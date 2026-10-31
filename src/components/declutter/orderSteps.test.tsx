@@ -63,11 +63,11 @@ describe("OrderSteps: one tracker for every Declutter order", () => {
     expect(states).toBeGreaterThan(80);
   });
 
-  it("porch: Paid -> Day picked -> On the porch -> Picked up, read from the booking, the porch photo and the pickup", () => {
+  it("porch: Paid -> Time booked -> On the porch -> Picked up, read from the booking, the porch photo and the pickup", () => {
     const [unbooked, booked, out, picked, done] = life("porch", "buyer");
-    expect(orderStepWords(unbooked)).toEqual(["Paid", "Day picked", "On the porch", "Picked up"]);
+    expect(orderStepWords(unbooked)).toEqual(["Paid", "Time booked", "On the porch", "Picked up"]);
     expect([unbooked, booked, out, picked, done].map(orderStepAt)).toEqual([0, 1, 2, 3, 3]);
-    // The buyer picks a day, waits for the photo (never goes before it), then picks it up.
+    // The buyer books a time inside the place's hours (LEAD-PLACE-TIMES), waits for the photo (never goes before it), then picks it up.
     expect([unbooked, booked, out, picked, done].map(orderBucket)).toEqual(["needs_you", "upcoming", "needs_you", "waiting", "done"]);
     // The seller: waiting on the buyer's day, then puts it out.
     const seller = life("porch", "seller");

@@ -293,7 +293,7 @@ describe("DeclutterProblemsCard: one dispute screen (AL-4)", () => {
     await waitFor(() => expect(document.querySelector("[data-order-steps]")).not.toBeNull());
     let steps = document.querySelector("[data-order-steps]")!;
     expect(steps.getAttribute("data-order-steps")).toBe("porch");
-    // A day is picked (the booking's porch day), nothing set out yet: "Day picked" is the current step.
+    // A day is picked (the booking's porch day), nothing set out yet: "Time booked" is the current step.
     expect(steps.getAttribute("data-order-step")).toBe("1");
     v.unmount();
     // Set out, not yet picked up: "On the porch".

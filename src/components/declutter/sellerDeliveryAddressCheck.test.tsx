@@ -23,7 +23,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 
 const state = { fail: true };
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/sellerDelivery")>()),
   quoteSellerDelivery: async () => {

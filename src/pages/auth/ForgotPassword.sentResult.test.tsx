@@ -21,7 +21,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 const EMAIL = "jane.doe@example.com";
 

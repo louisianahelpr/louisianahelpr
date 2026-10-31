@@ -38,7 +38,7 @@ vi.mock("@/components/DateTimeField", () => ({
     <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />
   ),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: state.profile }) }));
 // Q2416: the hired-Helpr payout prompt after taking a delivery (its own dialog test is payoutAfterHire.test.tsx).
 vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({

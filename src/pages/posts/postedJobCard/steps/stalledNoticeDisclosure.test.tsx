@@ -26,7 +26,7 @@ import type { Job } from "../../../../components/job-card/activityConstants";
 import type { PosterStepCtx } from "./posterStepContract";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({

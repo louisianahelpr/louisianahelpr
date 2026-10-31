@@ -42,7 +42,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => currentUser }));
 vi.mock("@/lib/authSignOut", () => ({ signOutWithPushCleanup: async () => {} }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { DeleteAccountDialog } from "@/components/profile/DeleteAccountDialog";

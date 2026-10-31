@@ -11,9 +11,9 @@
  *   2. no function links a retired Declutter address (?view=cart, ?view=deliver) beyond the exact list below, which
  *      only shrinks (a function fixed later must leave the list in the same commit; a new one may never join it).
  *
- * @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | format('The Helpr couldn''t pick up %s from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr couldn''t pick up your item from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',
+ * @mutate supabase/migrations/20261031140431_helpr_delivery_seller_told_delivered.sql | format('The Helpr couldn''t pick up %s from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr couldn''t pick up your item from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',
  * @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | '/declutter?tab=deliver', t.customer_id); | '/declutter?view=deliver', t.customer_id);
- * @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=buying', NULL); | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart', NULL);
+ * @mutate supabase/migrations/20261031140431_helpr_delivery_seller_told_delivered.sql | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=buying', NULL); | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart', NULL);
  */
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

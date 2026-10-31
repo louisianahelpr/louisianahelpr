@@ -166,7 +166,7 @@ if (skip) {
     const t1 = await one(`select extract(epoch from seller_no_show_answer_by - seller_no_show_reported_at)::int / 3600 h, status from public.helpr_tasks where id = $1`, [T(1)]);
     check(t1.h === 24 && t1.status === "accepted", `${P} 24 hours to answer; the task stays booked`, JSON.stringify(t1));
     const hn = await one(`select title, link from public.notes where user_id = $1`, [HELPR]);
-    check(hn?.title === "The seller says you didn't come" && hn?.link === "/declutter?view=deliver", `${P} the Helpr is told at once`, JSON.stringify(hn));
+    check(hn?.title === "The seller says you didn't come" && hn?.link === "/declutter?tab=deliver", `${P} the Helpr is told at once`, JSON.stringify(hn));
     const bn = await one(`select message from public.notes where user_id = $1`, [BUYER]);
     check(/Your money stays held/.test(bn?.message ?? ""), `${P} the buyer is told the money stays held`, JSON.stringify(bn));
     check(await held(1), `${P} the report holds the money`);

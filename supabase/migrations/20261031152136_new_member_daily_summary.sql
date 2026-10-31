@@ -37,6 +37,9 @@ BEGIN
   ) THEN
     ALTER TABLE public.new_member_admin_notices ADD COLUMN summarized_at timestamptz;
     -- Everyone claimed before today was already announced one by one.
+    -- DESTRUCTIVE-DDL-ACK: UPDATE public.new_member_admin_notices (no WHERE)
+    -- ACK-REASON: a backfill of the column added on the line above; it runs only when that column is first added.
+    -- ACK-DATA-LOSS: none; every summarized_at was NULL (just added) and becomes the row's notified_at, so no stored value is lost.
     UPDATE public.new_member_admin_notices SET summarized_at = notified_at;
   END IF;
 END

@@ -12,6 +12,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
+import { allTownPagePaths } from "./townPages.mjs";
 
 const ROOT = resolve(__dirname, "..", "..");
 const sitemap = readFileSync(resolve(ROOT, "public/sitemap.xml"), "utf8");
@@ -61,11 +62,18 @@ describe("sitemap.xml", () => {
   // actually-registered route.
   it("only lists paths that App.tsx still registers as routes", () => {
     const registeredPaths = [...appTsx.matchAll(/path="([^"]+)"/g)].map((m) => m[1]);
+    // A route with params counts only for the exact pages its own table says exist (OPS-4: the 40
+    // /hire/<service>/<town> pages come from src/lib/townPages.mjs, which the route's page reads, so a town or
+    // service dropped from the table is a 404 and must leave the sitemap too).
+    const PARAM_ROUTE_PAGES: Record<string, readonly string[]> = { "/hire/:service/:town": allTownPagePaths() };
+    for (const route of Object.keys(PARAM_ROUTE_PAGES)) expect(registeredPaths, route).toContain(route);
+    const paramPages = new Set(Object.values(PARAM_ROUTE_PAGES).flat());
     const missing = sitemapPaths.filter(
-      // "/" is registered as path="/"; every other entry must match exactly.
-      (p) => !registeredPaths.includes(p),
+      // "/" is registered as path="/"; every other entry must match exactly, or be one of a param route's pages.
+      (p) => !registeredPaths.includes(p) && !paramPages.has(p),
     );
     expect(missing).toEqual([]);
+    expect(sitemapPaths.filter((p) => p.startsWith("/hire/")).length).toBeGreaterThan(20);
   });
 
   // The two guards above grade the COMMITTED file. Nothing graded the

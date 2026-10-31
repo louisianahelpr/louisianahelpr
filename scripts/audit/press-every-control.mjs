@@ -194,6 +194,8 @@ export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews, jo
     let url = r.path
       .replace(":userId", helperId)
       .replace(/^\/jobs\/:id$/, `/jobs/${seedJobId}`)
+      // OPS-4: a town page only exists for a real service and town (src/lib/townPages.mjs); /hire/test/test is the 404.
+      .replace(/^\/hire\/:service\/:town$/, "/hire/handyman/lafayette")
       .replace(/:[a-zA-Z]+/g, "test")
       .replace(/\/\*$/, "/x");
     if (r.admin) {

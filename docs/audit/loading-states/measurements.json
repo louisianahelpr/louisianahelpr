@@ -29948,6 +29948,19 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/hire/handyman/lafayette",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4373",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/hire/handyman/lafayette",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -30206,6 +30219,14 @@
       "base": "http://127.0.0.1:4629",
       "surfaces": [
         "anon /declutter/settings"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-31T23:05:33.151Z",
+      "base": "http://127.0.0.1:4373",
+      "surfaces": [
+        "anon /hire/handyman/lafayette"
       ],
       "replaced": []
     }

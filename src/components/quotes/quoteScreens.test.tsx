@@ -230,6 +230,9 @@ describe("board 115: quotes side by side", () => {
     expect(table.textContent).toMatch(/\$95/);
     expect(table.textContent).not.toMatch(/take.?home|receives/i);
     expect(screen.getByText(/Each amount is the job price/)).toBeInTheDocument();
+    // AUD31-50: "use Dana, Ray's card" gave the two names one "'s".
+    // @mutate src/components/quotes/QuotesSideBySide.tsx | ${own.slice(0, -1).join(", ")} or ${own[own.length - 1]} | ${names.join(", ")}
+    expect(screen.getByText(/Each amount is the job price/).textContent).toContain("To accept, use Dana's or Ray's card below.");
   });
 
   it("one quote: no side-by-side", async () => {

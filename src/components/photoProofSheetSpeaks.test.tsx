@@ -113,7 +113,8 @@ describe("a failed upload", () => {
     await within(sheet).findByRole("alert");
 
     fireEvent.click(within(sheet).getByRole("button", { name: "Cancel" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    // Cancel closes the sheet in the same tick, so this is a plain check, not a waitFor (waitForEmptyIsVacuous).
+    expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /after photo/i }));
     expect(within(await screen.findByRole("dialog")).queryByRole("alert")).toBeNull();
   });

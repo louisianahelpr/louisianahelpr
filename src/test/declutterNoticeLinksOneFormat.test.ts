@@ -51,7 +51,6 @@ const VIEW_LINKS_LEFT: Record<string, string> = {
   declutter_problem_add_side: "<dynamic>",
   declutter_propose_delivery_time: "<dynamic>,sales",
   declutter_record_hand_refund: "cart",
-  declutter_record_refund: "selling",
   declutter_refund_after_handover: "cart,selling",
   declutter_refund_gave_up_check: "cart",
   declutter_refund_paid_order: "cart",

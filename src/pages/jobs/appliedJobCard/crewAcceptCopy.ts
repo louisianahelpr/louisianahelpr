@@ -15,7 +15,7 @@ export const CREW_ACCEPT_COPY = {
   accepted: "You accepted your spot on this crew.",
   failed: "We couldn't accept your spot. Please try again.",
   /* After the accept, before anyone sets out. */
-  onCrewWaiting: "You're on the crew. You can head out once every spot on the crew is filled.",
+  onCrewWaiting: "You're on the crew. You can head out once the job is booked. At the start time it goes ahead with whoever's on the crew.",
   onCrewSetOut: "You're on the crew. Tap I'm on my way when you head out.",
   lateLeaveStrike: "Leaving a crew you accepted within 24 hours of the start counts as a reliability strike",
 } as const;

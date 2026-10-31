@@ -10,6 +10,7 @@
  */
 import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
+import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
 import { helperStatusLine, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
@@ -231,6 +232,8 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     // An applicant waiting on the poster's pick is the poster's move.
     if (o.application === "pending") return at(0, poster, "Posted", poster ? `${other} applied` : `You applied. Waiting on ${otherLow}`, held);
     if (o.application === "rejected") return at(null, false, "Not picked", poster ? "You passed on this one" : "Not picked this time", false);
+    // JOBS-9: nobody can see a job that never got paid for, so it is not waiting for anyone.
+    if (poster && jobIsUnfundedDraft(job)) return at(0, false, "Posted", "Waiting on your payment", false);
     return at(0, false, "Posted", poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") : "Open for Helprs", held);
   }
 

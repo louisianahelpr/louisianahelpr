@@ -9,8 +9,8 @@
  *
  * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx |               <Link to={movingDayPostJobPath(current ?? date)}>Hire a Helpr for moving day</Link> |               <Link to="/post-job">Hire a Helpr for moving day</Link>
  * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx | <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current ?? date)}>Haul away what's left</Link> | <Link to="/post-job">Haul away what's left</Link>
- * @mutate src/pages/post-job/usePrefillOpensDetails.ts | MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM] as const; | MATCHMAKER_PARAM, MOVING_DAY_PARAM] as const;
- * @mutate src/pages/post-job/usePrefillOpensDetails.ts | MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM] as const; | MATCHMAKER_PARAM, "haulAway"] as const;
+ * @mutate src/pages/post-job/usePrefillOpensDetails.ts | MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM, "rebook"] as const; | MATCHMAKER_PARAM, MOVING_DAY_PARAM, "rebook"] as const;
+ * @mutate src/pages/post-job/usePrefillOpensDetails.ts | MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM, "rebook"] as const; | MATCHMAKER_PARAM, "haulAway", "rebook"] as const;
  * @mutate src/pages/post-job/usePostJobForm.ts | searchParams.get(MATCHMAKER_PARAM) \|\| searchParams.get(MOVING_DAY_PARAM)); | searchParams.get(MATCHMAKER_PARAM));
  * @mutate src/pages/post-job/useJobFormEffects.ts |     const p = buildMovingDayPrefill(raw, todayYmd()); |     const p = buildMovingDayPrefill(raw, todayYmd()); return;
  * @mutate src/pages/post-job/FormStep.tsx |           {form.haulAwayItemIds && form.haulAwayItemIds.length > 0 && ( |           {false && (

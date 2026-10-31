@@ -15,7 +15,7 @@ import { MOVING_DAY_PARAM } from "@/lib/declutter/movingDayJob";
 // `haulAway`: a Declutter haul-away (audit 1d D4-7: it stopped at "What do you need done?" with Moving & errands picked
 // and nothing saying it was the haul-away; useHaulAwayPrefill sets Moving help). `movingDay`: the moving sale's
 // "Hire a Helpr for moving day" (D4-6; buildMovingDayPrefill sets Moving help).
-export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM, MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM] as const;
+export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM, MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM, "rebook"] as const;
 
 /** Is this Post a job link one whose pre-fill picks the category (usePostJobForm hands FormStep the answer)? */
 export function prefillOpensDetails(searchParams: URLSearchParams): boolean {

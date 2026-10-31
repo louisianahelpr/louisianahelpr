@@ -33,6 +33,7 @@ import {
   firstPayoutFeeDueFrom,
   earnedDollarsWithLedger,
   isEarnedJob,
+  paidOutDollars,
   rangeStartMs,
 } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { useEarningsData } from "@/components/profile/earningsTab/useEarningsData";
@@ -157,7 +158,6 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const inProgressJobs = earningsJobs.filter((j) => j.status === "in_progress");
   // Take-home per job: helperEarnings.ts (a group helper sees only their share,
   // #114). The one-time fee comes off a total only while a payout is still to come (Q753).
-  const totalEarnings = earnedDollarsWithLedger(completedJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger); // Q1272 (8): paid jobs count what landed
 
   const availableTotal = (stripeData?.available ?? []).reduce((s, b) => s + b.amount, 0);
   const pendingTotal = (stripeData?.pending ?? []).reduce((s, b) => s + b.amount, 0);
@@ -173,7 +173,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   useHelperMilestones({
     helperId,
     completedJobCount: completedJobs.length,
-    totalEarningsDollars: totalEarnings,
+    totalEarningsDollars: paidOutDollars(payoutLedger),
     // Gates whether a milestone is still worth celebrating. `earningsJobs`
     // arrives newest-first, so the first completed row is the latest
     // completion. `poster_completed_at` is the moment the job actually became
@@ -195,8 +195,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
      Year" was a no-op and "This Week" printed a lifetime total under a label
      that said otherwise. `rangeStartMs` buckets by completion timestamp, so
      "This Week" means one week.
-     Lifetime `totalEarnings` is still what PaymentTab and the milestone hook
-     read — those are lifetime facts and must not follow the toggle. */
+     The milestone hook reads paidOutDollars (JOBS2-40), a lifetime fact that must not follow the toggle. */
   const rangeSince = rangeStartMs(range);
   const rangeJobs = completedWithin(completedJobs, rangeSince);
   const rangeTipRows =

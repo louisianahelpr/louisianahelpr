@@ -69,6 +69,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
+import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
@@ -120,7 +121,9 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   });
   // Audit 1b D2-2: an open problem shows on both cards and hides booking and a second report.
   const problems = useOpenProblems(ids);
-  const chosen = show ? orders.filter((o) => show(o.orderId)) : orders;
+  // BUY-30: the order a notice opened shows whatever the chip.
+  const linked = useLinkedOrder();
+  const chosen = show ? orders.filter((o) => show(o.orderId) || o.orderId === linked) : orders;
   // DB-6: on Buying, what needs the buyer comes first and history (Done, Cancelled) last; on Selling (soldstates-2),
   // the sales still to hand over, then handed over, then refunded.
   const shown = views ? byBucket(chosen, views) : liveSalesFirst(chosen);
@@ -140,13 +143,14 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
           booking={(bookings.data ?? []).find((b) => b.order_id === o.orderId) ?? null}
           payout={(payouts.data ?? []).find((p) => p.order_id === o.orderId) ?? null}
           problem={problems.get(o.orderId) ?? null}
+          linked={o.orderId === linked}
         />
       ))}
     </section>
   );
 }
 
-function OrderCard({ order, userId, booking, payout, view, problem }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView; problem: OpenProblem | null }) {
+function OrderCard({ order, userId, booking, payout, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
@@ -178,8 +182,10 @@ function OrderCard({ order, userId, booking, payout, view, problem }: { order: P
     go?.focus({ preventScroll: true });
   }, [open, view]);
   const body = !view || open;
+  const cardRef = useRef<HTMLElement>(null);
+  useScrollToLinkedOrder(cardRef, linked, () => setOpen(true));
   return (
-    <article className="rounded-[20px] border border-border bg-card p-4 space-y-3">
+    <article ref={cardRef} tabIndex={linked ? -1 : undefined} data-linked-order={linked ? "" : undefined} className="rounded-[20px] border border-border bg-card p-4 space-y-3">
       {/* Board 47 / 26 mine card: title, the price in money ink, ONE line saying how it's coming. The buyer's card no
           longer says "You're buying" (lead 2026-10-28: every card on the Buying tab repeated it). */}
       <div className="flex items-start justify-between gap-3 min-w-0" data-order-head="">

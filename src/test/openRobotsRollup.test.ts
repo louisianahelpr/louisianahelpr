@@ -3,6 +3,8 @@
 // @mutate scripts/lib/openFeeds.mjs |           lines[current2.start].replace(/^- \[ \]/, "- [x]") |           lines[current2.start]
 // @mutate scripts/lib/openFeeds.mjs |       if (elsewhere.length) { |       if (false) {
 // @mutate scripts/lib/openFeeds.mjs |     if (it.state !== " " \|\| isRobotsItem(it.text)) continue; |     if (it.state !== " ") continue;
+// @mutate src/test/openRobotsRollup.test.ts |     if (row.length !== 1 \|\| own.length !== 1 \|\| row[0] !== own[0] \|\| row[0] === robotsId) off.push(rowKey(r)); |     // row unchecked
+// @mutate src/test/openRobotsRollup.test.ts | !otherAlertIssue(snap, r)).map(rowKey),\n | false).map(rowKey),\n
 /*
  * GUARD (owner 2026-10-14, pop-up: "All failing robot checks roll into ONE
  * 'fix the test robots' item instead of 18"): every red overnight check is a
@@ -55,6 +57,39 @@ const ledger = [
 ];
 const BASE = "# OPEN\n\n## FEEDS — x\n\n- [ ] **Q1 LOW something else.** keep me.\n\n## CARRIED\n";
 const opts = (over = {}) => ({ status: () => "open" as const, nextFree: 100, today: "2026-10-14", ...over });
+
+type Snap = {
+  issues: { open: { number: number; label?: string }[] };
+  ledger: { open: { fingerprint: string; source_kind: string; issue?: number | null }[] };
+};
+const rowKey = (r: { fingerprint: string }) => `ledger ${r.fingerprint.slice(0, 12)}`;
+/**
+ * scripts/ops-alert-ledger.mjs sync records EVERY alert label's issue with
+ * source_kind nightly_red (its `source` is the label), so that kind alone does
+ * not make a row a robot's: the row of a schedule-stalled issue is ONE source
+ * with that issue, and the owner's rollup keeps other alert labels on an item
+ * each. Such a row is held to its own rule below, never left unchecked.
+ */
+const otherAlertIssue = (snap: Snap, r: { issue?: number | null }) =>
+  snap.issues.open.find((i) => i.number === r.issue && (i.label ?? "nightly-red") !== "nightly-red");
+const robotSourceKeys = (snap: Snap) => [
+  ...snap.issues.open.filter((i) => (i.label ?? "nightly-red") === "nightly-red").map((i) => `issue #${i.number}`),
+  ...snap.ledger.open.filter((r) => r.source_kind === "nightly_red" && !otherAlertIssue(snap, r)).map(rowKey),
+];
+/** Source keys on the wrong item: a robot's off the robots item, another alert's row off exactly its issue's one item. */
+function robotMirrorProblems(md: string, snap: Snap): string[] {
+  const robotsId = queueItems(md).find((it) => it.state !== "x" && isRobotsItem(it.text))?.id;
+  const by = mirrored(md);
+  const off = robotSourceKeys(snap).filter((k) => (by.get(k) ?? []).some((id) => id !== robotsId));
+  for (const r of snap.ledger.open) {
+    const issue = r.source_kind === "nightly_red" ? otherAlertIssue(snap, r) : undefined;
+    if (!issue) continue;
+    const row = by.get(rowKey(r)) ?? [];
+    const own = by.get(`issue #${issue.number}`) ?? [];
+    if (row.length !== 1 || own.length !== 1 || row[0] !== own[0] || row[0] === robotsId) off.push(rowKey(r));
+  }
+  return off;
+}
 
 describe("all red overnight checks are ONE OPEN.md item", () => {
   it("groups every nightly-red issue and nightly_red ledger row into one robots group; other alerts stay separate", () => {
@@ -128,23 +163,46 @@ describe("all red overnight checks are ONE OPEN.md item", () => {
     expect(newestRunUrl([undefined, "no link"])).toBeNull();
   });
 
+  it("a row of another alert label's issue stays on that issue's own item; anywhere else is off (bot PR #3820)", () => {
+    const snap: Snap = {
+      issues: { open: [{ number: 12, label: "nightly-red" }, { number: 30, label: "schedule-stalled" }] },
+      ledger: { open: [
+        { fingerprint: "aaaaaaaaaaaa1111", source_kind: "nightly_red", issue: 12 },
+        { fingerprint: "dddddddddddd4444", source_kind: "nightly_red", issue: 30 },
+      ] },
+    };
+    const sync = applyFeeds(BASE, groupSources({ ledger: snap.ledger.open.map((r) => ({ ...r, status: "open", source: "x", title: `t${r.issue}`, sample_ref: { issue: r.issue } })), issues: [{ number: 12, title: "nightly-red: vacuity", label: "nightly-red", run: RUN(5), runTruncated: false }, { number: 30, title: "1 stalled", label: "schedule-stalled" }] }), opts()).md;
+    expect(robotMirrorProblems(sync, snap)).toEqual([]);
+    const own = queueItems(sync).find((it) => tagsOf(it.text).includes("issue #30"))!;
+    expect(isRobotsItem(own.text)).toBe(false);
+    expect(tagsOf(own.text)).toEqual(["issue #30", "ledger dddddddddddd"]);
+    // the row split from its issue, onto the robots item or a third item
+    const split = sync.replace(" · feed: ledger dddddddddddd", "").replace("feed: ledger aaaaaaaaaaaa", "feed: ledger aaaaaaaaaaaa · feed: ledger dddddddddddd");
+    expect(split).not.toBe(sync);
+    expect(robotMirrorProblems(split, snap)).toEqual(["ledger dddddddddddd"]);
+    const third = sync.replace(" · feed: ledger dddddddddddd", "").replace("keep me.", "keep me. feed: ledger dddddddddddd");
+    expect(robotMirrorProblems(third, snap)).toEqual(["ledger dddddddddddd"]);
+    // its issue on the robots item with it is still off: it is not an overnight check
+    const swallowed = sync.replace("feed: issue #30 · feed: ledger dddddddddddd", "").replace("feed: ledger aaaaaaaaaaaa", "feed: ledger aaaaaaaaaaaa · feed: issue #30 · feed: ledger dddddddddddd");
+    expect(swallowed).not.toBe(sync);
+    expect(robotMirrorProblems(swallowed, snap)).toEqual(["ledger dddddddddddd"]);
+    // a row of a nightly-red issue, of a closed issue, or of none is still a robot's
+    for (const issue of [12, 99, null]) {
+      const md = sync.replace("keep me.", "keep me. feed: ledger bbbbbbbbbbbb");
+      const s: Snap = { ...snap, ledger: { open: [...snap.ledger.open, { fingerprint: "bbbbbbbbbbbb2222", source_kind: "nightly_red", issue }] } };
+      expect(robotMirrorProblems(md, s)).toEqual(["ledger bbbbbbbbbbbb"]);
+    }
+  });
+
   it("the real OPEN.md: every open nightly-red source is on the ONE robots item and nowhere else", () => {
     const md = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
-    const snap = JSON.parse(readFileSync(join(ROOT, SNAPSHOT), "utf8")) as {
-      issues: { open: { number: number; label?: string }[] };
-      ledger: { open: { fingerprint: string; source_kind: string }[] };
-    };
+    const snap = JSON.parse(readFileSync(join(ROOT, SNAPSHOT), "utf8")) as Snap;
     const items = queueItems(md);
     expect(items.length).toBeGreaterThan(100);
     const robotItems = items.filter((it) => it.state !== "x" && isRobotsItem(it.text));
     expect(robotItems.length).toBeLessThanOrEqual(1);
-    const robotKeys = [
-      ...snap.issues.open.filter((i) => (i.label ?? "nightly-red") === "nightly-red").map((i) => `issue #${i.number}`),
-      ...snap.ledger.open.filter((r) => r.source_kind === "nightly_red").map((r) => `ledger ${r.fingerprint.slice(0, 12)}`),
-    ];
-    const by = mirrored(md);
-    const off = robotKeys.filter((k) => (by.get(k) ?? []).some((id) => id !== robotItems[0]?.id));
-    expect(off, "a red overnight check is mirrored outside the robots item").toEqual([]);
+    const robotKeys = robotSourceKeys(snap);
+    expect(robotMirrorProblems(md, snap), "a red overnight check is mirrored outside the robots item").toEqual([]);
     if (robotKeys.length) {
       expect(robotItems).toHaveLength(1);
       const n = Number(/Fix the test robots: (\d+) overnight/.exec(robotItems[0].text)?.[1]);

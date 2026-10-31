@@ -798,7 +798,7 @@ const createWithEarlyId = (deps: ListDeps, fields: Parameters<typeof createDraft
   withId ? deps.createDraft(fields, withId) : deps.createDraft(fields);
 
 /** LEAD-BUNCH-34-SLOW: items made ready side by side, as many as publishMany lists at once. */
-export const PREPARE_AT_ONCE = 3;
+const PREPARE_AT_ONCE = 3;
 
 export async function listBunch(
   sellerId: string,

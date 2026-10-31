@@ -22,7 +22,7 @@ export interface EarlyUploads {
 }
 
 /** Photos going up at once while the seller sorts: the phone's upload is the limit, and the photo tool shares it. */
-export const STAGE_AT_ONCE = 3;
+const STAGE_AT_ONCE = 3;
 
 type StageOne = (sellerId: string, itemId: string, file: File) => Promise<string | null>;
 type DropMany = (paths: string[]) => Promise<void>;

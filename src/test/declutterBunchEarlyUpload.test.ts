@@ -3,7 +3,7 @@
  * looks them over, into the folder of the id its draft will be made with (the one-item form's scheme,
  * declutter_create_item_with_id), so List only creates, attaches and publishes, a few items at once.
  *
- * Target: 3 items live in under 2 s when their photos are already up. Measured here with every server call held for a
+ * Target (owner, 2026-10-31): 3 items live in under 2 s when their photos are already up. Measured here with every server call held for a
  * realistic phone round trip (RPC_MS) and each photo upload for UPLOAD_MS, on fake timers so the number is exact.
  *
  * @mutate src/lib/declutter/bunch.ts |             const uploadedPath = (await early?.path(draftId, k)) ?? undefined; |             const uploadedPath = undefined;
@@ -89,7 +89,7 @@ const items = [item("a", ["a1", "a2", "a3"]), item("b", ["b1", "b2", "b3"]), ite
 const photos = new Map(items.flatMap((it) => it.photoKeys).map((k) => [k, new File([k], `${k}.jpg`, { type: "image/jpeg" })]));
 
 let ids = 0;
-const stagerFor = (stageOne = vi.fn(async (_s: string, id: string, f: File) => `seller/declutter/${id}/${f.name}`), drop = vi.fn(async () => {})) => ({
+const stagerFor = (stageOne = vi.fn(async (_s: string, id: string, f: File): Promise<string | null> => `seller/declutter/${id}/${f.name}`), drop = vi.fn(async () => {})) => ({
   stager: new BunchStager("seller", stageOne, drop, () => `early-${++ids}`),
   stageOne,
   drop,
@@ -115,6 +115,11 @@ describe("Sell a bunch: 3 items whose photos are already up", () => {
     console.log(`[LEAD-BUNCH-34-SLOW] 3 items, 9 photos already up, ${RPC_MS} ms a call: ${ms} ms to live`);
     expect(out.map((o) => ("status" in o ? o.status : "error"))).toEqual(["live", "live", "live"]);
     expect(ms).toBeLessThan(2_000);
+    // Exact on fake timers: the draft (1 call), then its 3 attaches beside its settings (3 calls), then attest and
+    // publish (2 calls). Settings after the photos would be 1800 ms; one item at a time, 3000 ms.
+    expect(ms).toBe(6 * RPC_MS);
+    // Listed in the seller's order.
+    expect(vi.mocked(d.publishMany).mock.calls[0][0]).toEqual(["early-1", "early-2", "early-3"]);
     expect(createDraft.mock.calls.map((c) => c[1])).toEqual(["early-1", "early-2", "early-3"]);
     expect(log.filter((l) => l.startsWith("upload"))).toEqual([]);
     expect(log.filter((l) => l.endsWith("early"))).toHaveLength(9);

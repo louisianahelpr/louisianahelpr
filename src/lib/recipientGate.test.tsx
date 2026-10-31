@@ -264,8 +264,8 @@ describe("a send refused by the receiver gate", () => {
     // still not blamed on the receiver rule.
     expect(s.get().messages[0].sendStatus).toBe("refused");
     expect(s.get().messages[0].failReason).toBe("blocked");
-    expect(toastError).toHaveBeenCalledWith("You can't message this person.");
-    expect(toastError).not.toHaveBeenCalledWith(RECIPIENT_RESTRICTED_TOAST);
+    // AUD31-42: the refused bubble's label says why, so no toast covers it (and none blames the recipient rule).
+    expect(toastError).not.toHaveBeenCalled();
     expect(s.get().active?.recipientRestricted).toBeFalsy();
     expect(gateCalls()).toHaveLength(0);
   });

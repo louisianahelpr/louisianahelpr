@@ -17,7 +17,8 @@
     "features_open_to_everyone()": "client",
     "rentals_public_listing(text)": "reviewed 2026-10-19 (Q2188): the public Homes listing link (D12) /r/<slug>, for anyone with the link (signed out too). Returns one listing's coarse facts only while rentals_public_listing_visible holds (live, not expired, ownership approved, owner not banned, not taken down, Homes open to everyone, not a test/seed owner): city + ZIP never the street, no owner or listing id, no storage path (photos by id/ref), and no size/lot/year for a home for sale; a hidden or unknown slug is P0002 listing_not_found. Proof: src/test/pglite/homesPublicLink.pglite.mjs. The /r/ page that calls it comes with the Slice 3 client.",
     "shops_shop_faqs(uuid)": "client",
-    "shops_shop_policies(uuid)": "client"
+    "shops_shop_policies(uuid)": "client",
+    "declutter_open_to_guests()": "policy"
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -526,7 +527,8 @@
     "declutter_my_porch_places()": "client",
     "declutter_seller_porch_places(uuid)": "client",
     "declutter_set_porch_place(uuid, uuid)": "client",
-    "declutter_order_place(uuid)": "client"
+    "declutter_order_place(uuid)": "client",
+    "declutter_open_to_guests()": "policy"
   },
   "unscoped": {
     "declutter_set_offer_rules(uuid, boolean, boolean)": "reviewed 2026-10-29 (Q1284): smart offers (20261029162620); require_feature('declutter') and is_caller_banned first, reads the caller only through public.declutter_assert_member(true), which returns auth.uid() after the member gates, then touches only that caller's own live/paused item (seller_id = v_uid FOR UPDATE; item_not_found otherwise) and its private row",

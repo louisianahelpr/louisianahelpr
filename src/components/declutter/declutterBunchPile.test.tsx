@@ -4,7 +4,7 @@
  * "Write it with AI", says why it is blank, and shows on that card why writing failed.
  *
  * @mutate src/components/declutter/DeclutterBunchPile.tsx | {item.sortReason}</p> | </p>
- * @mutate src/components/declutter/DeclutterBunchCard.tsx | noWords ? "Write it with AI" : "Write it again" | "Write it again"
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx | {rewriting ? "Writing…" : noWords ? "Write it with AI" : "Write it again"} | {rewriting ? "Writing…" : "Write it again"}
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {rewriteNote && <p | {false && <p
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |       {mergeTarget && ( |       {false && (
  */
@@ -18,7 +18,7 @@ vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 
 const card = (props: Partial<Parameters<typeof BunchCard>[0]> = {}) => render(
   <ul>
-    <BunchCard item={blankItem(["a"])} index={0} others={[]} urls={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} {...props} />
+    <BunchCard item={blankItem(["a"])} index={0} others={[]} urls={new Map()} files={new Map()} at={null} rewriting={false} onChange={() => {}} onMove={() => {}} onSplit={() => {}} onRemovePhoto={() => {}} onCover={() => {}} onAddPhotos={() => {}} onMerge={() => {}} onDrop={() => {}} onRewrite={() => {}} {...props} />
   </ul>,
 );
 
@@ -62,13 +62,13 @@ describe("an item with no words", () => {
     const onRewrite = vi.fn();
     card({ onRewrite });
     expect(document.querySelector("[data-bunch-no-words]")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Write it with AI" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Write it with AI/ }));
     expect(onRewrite).toHaveBeenCalledTimes(1);
   });
 
   it("with words, it is Write it again, and says nothing about being blank", () => {
     card({ item: { ...blankItem(["a"]), title: "Oak chair" } });
-    expect(screen.getByRole("button", { name: "Write it again" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Write it again/ })).toBeTruthy();
     expect(document.querySelector("[data-bunch-no-words]")).toBeNull();
   });
 
@@ -79,13 +79,13 @@ describe("an item with no words", () => {
 });
 
 // @mutate src/components/declutter/DeclutterBunchCard.tsx |       {item.failedPhoto && item.photoKeys.includes(item.failedPhoto) && ( |       {false && (
-// @mutate src/components/declutter/DeclutterBunchCard.tsx | data-bunch-photo-failed={item.failedPhoto === k ? "" : undefined} | data-bunch-photo-failed={undefined}
+// @mutate src/components/declutter/DeclutterBunchPhotos.tsx | data-bunch-photo-failed={item.failedPhoto === k ? "" : undefined} | data-bunch-photo-failed={undefined}
 describe("a photo that didn't finish sending", () => {
   it("stays on the item, marked, says which, and offers Try again", () => {
     const onRetryUpload = vi.fn();
     card({ item: { ...blankItem(["a", "b"]), title: "Floor lamp", failedPhoto: "b" }, onRetryUpload });
     expect(document.querySelectorAll("[data-bunch-photo-failed]")).toHaveLength(1);
-    expect(screen.getByLabelText("Floor lamp, photo 2").closest("li")?.hasAttribute("data-bunch-photo-failed")).toBe(true);
+    expect(screen.getByRole("button", { name: "See Floor lamp, photo 2" }).closest("li")?.hasAttribute("data-bunch-photo-failed")).toBe(true);
     expect(document.querySelector("[data-bunch-upload-failed]")?.textContent).toContain("Photo 2");
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(onRetryUpload).toHaveBeenCalledTimes(1);

@@ -3,7 +3,7 @@ import { unregisterPushOnSignOut } from "@/lib/nativePush";
 import { clearRememberedRoute } from "@/lib/lastRoute";
 import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
-import { clearSavedBunch } from "@/lib/declutter/bunchSaved";
+import { clearSavedBunch, clearSavedSellOne } from "@/lib/declutter/bunchSaved";
 import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { markIntentionalSignOut } from "@/lib/unexpectedSignOut";
 import { clearNativeSessionMirror } from "@/integrations/supabase/keychainStorageAdapter";
@@ -275,6 +275,8 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
     Promise.resolve().then(() => removePersistedClient()),
     // Sell a bunch's saved photos and pickup address (lib/declutter/bunchSaved.ts): never for the next member.
     clearSavedBunch(),
+    // The same for a one-item listing in progress (components/declutter/useSellSaved.ts).
+    clearSavedSellOne(),
   ]).catch((err) => {
     console.error("[signOut] cache wipe failed — prior user data may persist", err);
   });

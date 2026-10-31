@@ -171,6 +171,46 @@ describe("the buyer's pick", () => {
     answers({ declutter_seller_porch_places: OPTIONS.map((o) => ({ ...o, chosen: o.id === "p2" })) });
   });
 
+  // Lead 10-30: a first-timer's address is one place named "Home"; a buyer had to pick it from a list of one.
+  // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |     if (!needed \|\| !only \|\| only.chosen \|\| sent.current === only.id) return; |     return;
+  // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |   const places = only ? [{ ...only, chosen: true }] : read; |   const places = read;
+  // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |   if (places.length === 1) {\n    const p = places[0]; |   if (false) {\n    const p = places[0];
+  describe("a seller with exactly one place", () => {
+    const ONE = [{ id: "p1", label: "Home", area: "Lafayette", weekdays: [6], chosen: false, address: "12 Home Street, Lafayette" }];
+
+    it("it is picked for the buyer, the server gets the pick, Pay is open, and no address or list shows", async () => {
+      answers({ declutter_seller_porch_places: ONE, declutter_set_porch_place: "p1" });
+      wrap(<Checkout />);
+      await screen.findByText("Home");
+      expect(screen.getByRole("button", { name: "Pay" })).toBeEnabled();
+      expect(screen.queryByRole("radio")).toBeNull();
+      expect(document.body.textContent).toContain("Lafayette");
+      expect(document.body.textContent).not.toContain("12 Home Street");
+      await waitFor(() => expect(h.rpc.mock.calls.filter(([n]) => n === "declutter_set_porch_place")).toHaveLength(1));
+      expect(h.rpc.mock.calls.find(([n]) => n === "declutter_set_porch_place")![1]).toEqual({ p_seller_id: "s1", p_place_id: "p1" });
+    });
+
+    it("nothing is sent while no place is needed (the buyer chose another way)", async () => {
+      answers({ declutter_seller_porch_places: ONE, declutter_set_porch_place: "p1" });
+      function Elsewhere() {
+        const p = useSellerPorchPlaces("s1", 1000, false);
+        return <p>{p.places.length} place</p>;
+      }
+      wrap(<Elsewhere />);
+      await screen.findByText("1 place");
+      await new Promise((r) => setTimeout(r, 20));
+      expect(h.rpc.mock.calls.filter(([n]) => n === "declutter_set_porch_place")).toHaveLength(0);
+    });
+
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |             await porchPlaces.whenPicked();\n            const res = await startCheckoutPayment( |             const res = await startCheckoutPayment(
+    // @mutate src/components/declutter/DeclutterFreeClaim.tsx |       await porchPlaces.whenPicked();\n |
+    it("paid checkout, a delivery price and the free claim wait for that pick before they call the server", () => {
+      expect(SRC("DeclutterTradeViews.tsx")).toMatch(/await porchPlaces\.whenPicked\(\);\s+const res = await startCheckoutPayment/);
+      expect(SRC("DeclutterTradeViews.tsx")).toMatch(/await porchPlaces\.whenPicked\(\);\s+return fetchDeliveryQuote/);
+      expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/await porchPlaces\.whenPicked\(\);\s+return checkoutFree/);
+    });
+  });
+
   it("a chosen place opens Pay", async () => {
     answers({ declutter_seller_porch_places: OPTIONS.map((o) => ({ ...o, chosen: o.id === "p1" })) });
     wrap(<Checkout />);

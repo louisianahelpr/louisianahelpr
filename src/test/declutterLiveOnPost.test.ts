@@ -17,7 +17,7 @@
  * @mutate src/lib/declutter/api.ts |   for (let attempt = 1; attempt <= 2; attempt++) { |   for (let attempt = 1; attempt <= 1; attempt++) {
  * @mutate src/components/declutter/useSellFlowState.ts |       await requestAiCheckWithRetry(id); |       void id;
  * @mutate src/components/declutter/DeclutterEditListing.tsx |       await requestAiCheckWithRetry(item.id); |       void item.id;
- * @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterReportListing itemId={itemId} />} |           {null}
+ * @mutate src/components/declutter/DeclutterItemView.tsx |           {!ownListing && user && <DeclutterReportListing itemId={itemId} />} |           {null}
  * @mutate src/components/declutter/declutterUi.tsx | "Our automatic check flagged something, or it didn't finish, | "Someone from Louisiana Helpr checks a new seller's first 3 listings, and
  */
 import { readFileSync } from "node:fs";
@@ -97,7 +97,7 @@ describe("item B: a listing goes live when posted; only a failed automatic check
   });
 
   it("the item page offers 'Report this listing' to everyone but the seller; the seller's copy has no 'first 3'", () => {
-    expect(code("src/components/declutter/DeclutterItemView.tsx")).toContain("{!isSeller && user && <DeclutterReportListing itemId={itemId} />}");
+    expect(code("src/components/declutter/DeclutterItemView.tsx")).toContain("{!ownListing && user && <DeclutterReportListing itemId={itemId} />}");
     expect(code("src/components/declutter/DeclutterReportListing.tsx")).toContain('reportedType="declutter_item"');
     for (const p of ["src/components/declutter/declutterUi.tsx", "src/components/admin/settings/DeclutterReviewCard.tsx"]) {
       expect(code(p), p).not.toMatch(/first 3|of 3 approved/);

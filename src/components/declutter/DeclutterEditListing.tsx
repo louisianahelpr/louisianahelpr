@@ -15,16 +15,15 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
-  addPhoto, editListing, fetchItem, fetchItemHandovers, fetchPhotos, removePhoto, requestAiCheckWithRetry,
+  addPhotoSteadily, editListing, fetchItem, fetchItemHandovers, fetchPhotos, removePhoto, requestAiCheckWithRetry,
   type DeclutterItem, type DeliverySize, type SellerHandover,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
-import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL, TAX_ATTESTATION_SENTENCE } from "./declutterUi";
+import { FULL_LISTING_COPY, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
+import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL, TaxStatementsCheck } from "./declutterUi";
 import { ChipGroup } from "./DeclutterSellSteps";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { FieldLabel, SELL_INPUT } from "./SellFormParts";
@@ -72,7 +71,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
     mutationFn: async (): Promise<keyof typeof EDIT_SAVED> => {
       const status = await editListing(item.id, { title: title.trim(), description: description.trim(), category, conditionStars: condition, deliverySize: size, handovers: sentWays });
       // New photos first, then the removed ones, so the listing always keeps one (too_few_photos).
-      for (const f of held) await addPhoto(user!.id, item.id, f);
+      for (const f of held) await addPhotoSteadily(user!.id, item.id, f, FULL_LISTING_COPY);
       for (const id of removed) await removePhoto(id);
       if (status === "live" && !photosChanged) return "saved";
       // A big change: the automatic check judges the new words and photos now (asked twice); the server puts a clean
@@ -125,10 +124,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       <p className="text-ds-13 text-muted-foreground" data-edit-review={big ? "yes" : "no"} aria-live="polite">
         {big ? EDIT_RULE.checked : EDIT_RULE.instant}
       </p>
-      <div className="flex items-start gap-3 text-ds-14">
-        <Checkbox id="edit-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} />
-        <label htmlFor="edit-tax">{TAX_ATTESTATION_SENTENCE}</label>
-      </div>
+      <TaxStatementsCheck id="edit-tax" checked={attested} onChange={setAttested} free={free} />
       <button type="submit" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 w-full rounded-full px-5 text-ds-15 font-semibold" disabled={!ready}>
         {save.isPending ? "Saving…" : "Save changes"}
       </button>

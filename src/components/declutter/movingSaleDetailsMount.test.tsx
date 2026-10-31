@@ -1,11 +1,10 @@
 /**
- * Q2269 mount: the move page (/declutter/move: DeclutterMovePage, its two switch gates, then MoveFlow) shows the
- * sale-details form once the seller has a move-out date, and hands it that date as the last day a sale can
- * start. movingSaleDetails.test.tsx renders the form alone; this renders the route page that mounts it, with
- * both hidden switches on. Every read is stubbed (no network).
+ * Q2269 mount: the moving sale on Sell a bunch (BunchMovingSale) shows the sale-details form once the seller has a
+ * move-out date, and hands it that date as the last day a sale can start. movingSaleDetails.test.tsx renders the form
+ * alone. Every read is stubbed (no network).
  *
- * @mutate src/components/declutter/DeclutterMoveView.tsx |         {user && current && <MovingSaleDetails userId={user.id} moveOutOn={current} today={today} />} |
- * @mutate src/components/declutter/DeclutterMoveView.tsx | <MovingSaleDetails userId={user.id} moveOutOn={current} today={today} /> | <MovingSaleDetails userId={user.id} moveOutOn={today} today={today} />
+ * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx |       {current && <MovingSaleDetails userId={userId} moveOutOn={current} today={today} />} |
+ * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx | <MovingSaleDetails userId={userId} moveOutOn={current} today={today} /> | <MovingSaleDetails userId={userId} moveOutOn={today} today={today} />
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
@@ -14,6 +13,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = { moveOutOn: "2026-11-01" as string | null };
 
+// The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
+vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
+vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null }));
+vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
@@ -49,19 +53,17 @@ vi.mock("@/lib/declutter/moves", async (orig) => ({
   fetchMyMovingSale: async () => ({ saleName: "Moving to Lafayette", startsOn: null }),
   setMovingSale: async () => 0,
   setMoveOutDate: async () => 0,
-  createMoveDrafts: async () => [],
   publishMany: async () => [],
-  scanRoom: async () => [],
 }));
 
-import DeclutterMovePage from "@/pages/declutter/DeclutterMovePage";
+import { BunchMovingSale } from "./DeclutterBunchMovingSale";
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <DeclutterMovePage />
+        <BunchMovingSale userId="u1" date="" setDate={() => {}} today="2026-10-20" />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -72,7 +74,7 @@ beforeEach(() => {
   state.moveOutOn = "2026-11-01";
 });
 
-describe("the move page mounts the sale details (Q2269)", () => {
+describe("the moving sale mounts the sale details (Q2269)", () => {
   it("with a move-out date saved, the sale-details form shows the saved name and ends on that date", async () => {
     renderPage();
     const name = await screen.findByLabelText(/Sale name/);

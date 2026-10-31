@@ -15,7 +15,7 @@
  * it is.
  */
 import { compressImage } from "@/lib/imageCompression";
-import { ListingPhotoError } from "./errors";
+import { declutterErrorMessage, ListingPhotoError } from "./errors";
 
 /**
  * What a listing photo is once cleaned: always a re-encoded JPEG. A subset of
@@ -64,11 +64,11 @@ export async function cleanListingPhoto(file: File, maxDimension = 1920, quality
   if (!file.type.startsWith("image/")) throw new ListingPhotoError("Only photos can be added to a listing.");
   let cleaned: File;
   try {
-    cleaned = await compressImage(file, maxDimension, quality);
+    cleaned = await compressImage(file, maxDimension, quality, undefined, { tryHeic: true });
   } catch {
     throw new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE);
   }
-  // compressImage returns the original on HEIC / no canvas / empty blob.
+  // compressImage returns the original on no canvas / empty blob.
   if (cleaned === file || cleaned.type !== "image/jpeg") throw new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE);
   // Apple's JPEG encoder (iOS Safari / WKWebView, WebKit) writes its OWN APP1 and APP13 segments into a canvas
   // re-encode (measured 2026-10-28: markers e0, e1:76, ed:56, ...), so refusing any APP1 refused every photo on
@@ -146,4 +146,13 @@ export function blobToBase64(blob: Blob): Promise<string> {
 export function listingPhotoPath(sellerId: string, itemId: string, nonce: string): string {
   const safe = nonce.replace(/[^A-Za-z0-9._-]/g, "").slice(0, 60) || "photo";
   return `${sellerId}/declutter/${itemId}/${safe}.jpg`;
+}
+
+/** Which photos weren't added and why, in one line; null when none. */
+export function unusablePhotosNote(unusable: readonly { name: string; error: unknown }[]): string | null {
+  if (unusable.length === 0) return null;
+  const shown = unusable.slice(0, 5).map((u) => u.name || "A photo").join(", ");
+  const more = unusable.length > 5 ? ` and ${unusable.length - 5} more` : "";
+  const subject = unusable.length === 1 ? `This photo wasn't added (${shown}):` : `${unusable.length} photos weren't added (${shown}${more}):`;
+  return `${subject} ${declutterErrorMessage(unusable[0].error)}`;
 }

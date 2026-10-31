@@ -2,8 +2,8 @@
  * Sell a bunch audit finding 2: reload, the back link, a killed tab or a crash lost every photo and every word, with no
  * warning. The store is mocked with an in-memory idb-keyval (jsdom has no IndexedDB); the real one is a browser check.
  *
- * @mutate src/components/declutter/useBunchSaved.ts |     window.addEventListener("beforeunload", warn); |     void warn;
- * @mutate src/components/declutter/useBunchSaved.ts |     const t = setTimeout(flush, SAVE_DELAY_MS); |     const t = setTimeout(() => {}, SAVE_DELAY_MS);
+ * @mutate src/components/declutter/useDeviceSaved.ts |     window.addEventListener("beforeunload", warnNow); |     void warnNow;
+ * @mutate src/components/declutter/useDeviceSaved.ts |     const t = setTimeout(flush, SAVE_DELAY_MS); |     const t = setTimeout(() => {}, SAVE_DELAY_MS);
  * @mutate src/components/declutter/useBunchSaved.ts |       const keep = s.sorting ? s.photos : s.photos.filter((p) => held.has(p.key)); |       const keep = s.photos;
  * @mutate src/lib/declutter/bunch.ts |       unusable.push({ key: p.key, name: p.file.name, error });\n    }\n  }\n  return { photos: kept, unusable }; |       kept.push(p); void error;\n    }\n  }\n  return { photos: kept, unusable };
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       setSortNote(unusablePhotosNote(back.unusable)); |       void back.unusable;
@@ -76,6 +76,7 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
 import BunchFlow from "./DeclutterBunchView";
 import { clearSavedBunch, loadSavedBunch } from "@/lib/declutter/bunchSaved";
 
+const openRows = () => document.querySelectorAll<HTMLElement>('[data-bunch-expand][aria-expanded="false"]').forEach((b) => fireEvent.click(b));
 function renderFlow() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={qc}><MemoryRouter><BunchFlow /></MemoryRouter></QueryClientProvider>);
@@ -122,11 +123,12 @@ describe("Sell a bunch survives leaving", () => {
     expect((await screen.findByText(/We kept your work from last time: 2 items/)).textContent).toContain("with their photos and prices.");
     const back = document.querySelectorAll("[data-bunch-item]");
     expect(back).toHaveLength(2);
-    expect((within(back[0] as HTMLElement).getByLabelText("Name") as HTMLInputElement).value).toBe("Oak chair");
+    openRows();
+    expect((within(back[0] as HTMLElement).getByLabelText("Title") as HTMLInputElement).value).toBe("Oak chair");
     expect((within(back[0] as HTMLElement).getByLabelText("Price ($)") as HTMLInputElement).value).toBe("40");
     expect((screen.getByLabelText("Pickup address") as HTMLInputElement).value).toBe("1 Main St, Baton Rouge");
     expect((screen.getByLabelText("Area buyers see") as HTMLInputElement).value).toBe("Mid-City");
-    await waitFor(() => expect(back[0].querySelectorAll("img")).toHaveLength(1));
+    await waitFor(() => expect(back[0].querySelectorAll("[data-bunch-thumb]")).toHaveLength(1));
   });
 
   it("leaving before the save delay still saves (the back link)", async () => {
@@ -155,7 +157,8 @@ describe("Sell a bunch survives leaving", () => {
     const first = renderFlow();
     await pickTwoPhotos();
     await waitFor(() => expect(photoEntries()).toHaveLength(2));
-    fireEvent.click(within(document.querySelectorAll("[data-bunch-item]")[1] as HTMLElement).getByRole("button", { name: "Don't sell this" }));
+    openRows();
+    fireEvent.click(within(document.querySelectorAll("[data-bunch-item]")[1] as HTMLElement).getByRole("button", { name: /^Don't sell/ }));
     await waitFor(() => expect(photoEntries()).toHaveLength(1));
     first.unmount();
     renderFlow();
@@ -195,19 +198,19 @@ describe("Sell a bunch survives leaving", () => {
     for (const n of names) h.disk.set(`lh-bunch-v1-photo:${n}`, new File([n], `${n}.jpg`, { type: "image/jpeg" }));
     renderFlow();
     fireEvent.click(await screen.findByRole("button", { name: "Sort again" }));
-    expect(await screen.findByDisplayValue("Oak chair")).toBeTruthy();
+    await screen.findByRole("button", { name: /Oak chair/ });
     expect(screen.queryByRole("heading", { name: /not sorted yet/ })).toBeNull();
     expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(2);
   });
 
-  // @mutate src/components/declutter/DeclutterBunchView.tsx | onOneItem={() => setItems((its) => editBunchItem(its, it.key, { notSorted: false, sortReason: undefined }))} | onOneItem={() => {}}
+  // @mutate src/components/declutter/DeclutterBunchView.tsx | onOneItem={() => { setOpenRows((m) => new Map(m).set(it.key, true)); setItems((its) => editBunchItem(its, it.key, { notSorted: false, sortReason: undefined })); }} | onOneItem={() => {}}
   it("These are one item makes one item with no words yet, offering to write it", async () => {
     const names = ["a", "b"];
     h.disk.set(META, { userId: "u1", savedAt: Date.now(), areaLabel: "", pickupAddress: "", coords: null, items: [], photos: names.map((n) => ({ key: n, name: `${n}.jpg`, type: "image/jpeg" })) });
     for (const n of names) h.disk.set(`lh-bunch-v1-photo:${n}`, new File([n], `${n}.jpg`, { type: "image/jpeg" }));
     renderFlow();
     fireEvent.click(await screen.findByRole("button", { name: "These are one item" }));
-    expect(await screen.findByRole("button", { name: "Write it with AI" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /^Write it with AI/ })).toBeTruthy();
     expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(1);
     expect(document.querySelector("[data-bunch-not-sorted]")).toBeNull();
   });
@@ -221,10 +224,11 @@ describe("Sell a bunch survives leaving", () => {
     renderFlow();
     await screen.findByText(/We kept your work from last time: 2 items/);
     const cards = () => [...document.querySelectorAll("[data-bunch-item]")] as HTMLElement[];
-    fireEvent.click(within(cards()[0]).getByRole("button", { name: "Don't sell this" }));
+    openRows();
+    fireEvent.click(within(cards()[0]).getByRole("button", { name: /^Don't sell/ }));
     await waitFor(() => expect(cards()).toHaveLength(1));
     expect(h.withdrawn).toEqual([]);
-    fireEvent.click(within(cards()[0]).getByRole("button", { name: "Don't sell this" }));
+    fireEvent.click(within(cards()[0]).getByRole("button", { name: /^Don't sell/ }));
     await waitFor(() => expect(h.withdrawn).toEqual(["d1"]));
   });
 

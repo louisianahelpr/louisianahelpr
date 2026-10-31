@@ -21,13 +21,13 @@
  * Nothing here is the protection: every write is a declutter_* RPC behind the
  * 'declutter' switch, and the photo tool's mode checks the selling gates.
  */
-import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
+import { blobToBase64, cleanListingPhoto, unusablePhotosNote } from "@/lib/declutter/photos";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { report } from "@/lib/errorLogger";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { pageAwayCount, whenPageIsBack, withRetries } from "@/lib/declutter/steadyRetry";
 import { addPhotoSteadily, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
-import { AI_CHECK_GAP_MS, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
+import { AI_CHECK_GAP_MS, createMoveDraft, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
 import { priceChoiceToSave } from "@/components/declutter/sellForm";
@@ -63,6 +63,10 @@ export interface BunchItem {
   aiPrice?: string;
   /** Given away: price and lowest price 0, porch pickup only (the single form's "Give it away free"). */
   free?: boolean;
+  /** The seller changed the name or details: a merge keeps their words, and a written-for-them pass leaves them be. */
+  edited?: boolean;
+  /** The photo tool hasn't answered the size: only then does the card ask, as the single form does. */
+  sizeUnknown?: boolean;
   /** Set once listing has made its draft: trying again finishes that draft, never a second one. */
   draftId?: string;
   /** Photos already on that draft: photo key -> the server's photo id, so one moved off the item can be taken off it. */
@@ -89,7 +93,7 @@ const nextKey = (p: string) => `${p}${Date.now().toString(36)}_${++seq}`;
 
 /** An item with only photos and no words yet (split off, or the seller said these are one thing). */
 export function blankItem(photoKeys: string[]): BunchItem {
-  return { key: nextKey("item"), photoKeys, title: "", description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "" };
+  return { key: nextKey("item"), photoKeys, title: "", description: "", category: "other", deliverySize: "large", conditionStars: 3, flagged: false, price: "", sizeUnknown: true };
 }
 
 /** The photo tool's suggested price as the field shows it, or "" when it gave none we could use. */
@@ -137,7 +141,7 @@ export function itemsFromAnswer(answer: GroupAnswer, batch: BunchPhoto[]): Bunch
     }
     if (photoKeys.length === 0) continue;
     const price = suggestedPrice(it.priceDollars);
-    out.push({ ...blankItem(photoKeys), title: it.title, description: it.description, category: it.category, deliverySize: it.deliverySize, conditionStars: it.conditionStars, flagged: it.flagged !== false, price, aiPrice: price || undefined });
+    out.push({ ...blankItem(photoKeys), title: it.title, description: it.description, category: it.category, deliverySize: it.deliverySize, conditionStars: it.conditionStars, flagged: it.flagged !== false, price, aiPrice: price || undefined, sizeUnknown: false });
   }
   const unplaced = batch.filter((_, i) => !placed.has(i)).map((p) => p.key);
   if (unplaced.length > 0) out.push(notSortedPile(unplaced, PILE_NOT_PLACED));
@@ -168,14 +172,8 @@ export interface GroupResult {
   unusable: { key: string; name: string; error: unknown }[];
 }
 
-/** The screen's words for the photos left out, by file name, or null when there are none. */
-export function unusablePhotosNote(unusable: GroupResult["unusable"]): string | null {
-  if (unusable.length === 0) return null;
-  const shown = unusable.slice(0, 5).map((u) => u.name || "A photo").join(", ");
-  const more = unusable.length > 5 ? ` and ${unusable.length - 5} more` : "";
-  const subject = unusable.length === 1 ? `This photo wasn't added (${shown}):` : `${unusable.length} photos weren't added (${shown}${more}):`;
-  return `${subject} ${declutterErrorMessage(unusable[0].error)}`;
-}
+/** The screen's words for the photos left out (it lives with the photo rules, for the one-item form too). */
+export { unusablePhotosNote };
 
 /** Long enough to tell two items apart: "oak", "the" and "with" say nothing about whether they're the same thing. */
 const titleWords = (title: string) => new Set(title.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !["with", "from", "that", "this", "used", "item", "size"].includes(w)));
@@ -367,13 +365,83 @@ export function movePhoto(items: BunchItem[], photoKey: string, toItemKey: strin
   return withoutEmpty(moved);
 }
 
-/** Merge `fromKey` into `intoKey`: its photos join the end; the kept item's words stay. Still flagged if either was. */
+/** A price the seller typed, not our suggestion. */
+const typedPrice = (it: Pick<BunchItem, "price" | "aiPrice">) => it.price.trim() !== "" && it.price !== it.aiPrice;
+
+/**
+ * Merge `fromKey` into `intoKey`: its photos join the end, still flagged if either was. What the seller typed survives:
+ * their words win over the tool's, the longer details stay, and a typed price wins over a suggestion. When both have
+ * typed prices the kept item's stands, and mergePriceClash lets the screen offer the other.
+ */
 export function mergeItems(items: BunchItem[], fromKey: string, intoKey: string): BunchItem[] {
   const from = items.find((it) => it.key === fromKey);
   if (!from || fromKey === intoKey || !items.some((it) => it.key === intoKey)) return items;
   return items
     .filter((it) => it.key !== fromKey)
-    .map((it) => (it.key === intoKey ? { ...it, photoKeys: [...it.photoKeys, ...from.photoKeys], flagged: it.flagged || from.flagged } : it));
+    .map((it) => {
+      if (it.key !== intoKey) return it;
+      const theirWords = !!from.edited && !it.edited;
+      const priced = typedPrice(it) ? it : typedPrice(from) ? from : it.price.trim() ? it : from;
+      return {
+        ...it,
+        photoKeys: [...it.photoKeys, ...from.photoKeys],
+        flagged: it.flagged || from.flagged,
+        title: theirWords || !it.title.trim() ? from.title : it.title,
+        description: from.description.trim().length > it.description.trim().length ? from.description : it.description,
+        category: theirWords ? from.category : it.category,
+        conditionStars: theirWords ? from.conditionStars : it.conditionStars,
+        edited: it.edited || from.edited,
+        price: priced.price,
+        aiPrice: priced.aiPrice,
+      };
+    });
+}
+
+/** The price a merge would set aside: both items had one the seller typed, and they differ. Otherwise null. */
+export function mergePriceClash(items: BunchItem[], fromKey: string, intoKey: string): string | null {
+  const from = items.find((it) => it.key === fromKey);
+  const into = items.find((it) => it.key === intoKey);
+  if (!from || !into || !typedPrice(from) || !typedPrice(into) || from.price.trim() === into.price.trim()) return null;
+  return from.price.trim();
+}
+
+/** Take one photo off an item. An item left with no photo is removed (the screen offers Undo). */
+export function takePhotoOff(items: BunchItem[], itemKey: string, photoKey: string): BunchItem[] {
+  return withoutEmpty(items.map((it) => (it.key === itemKey ? { ...it, photoKeys: it.photoKeys.filter((k) => k !== photoKey) } : it)));
+}
+
+/** This photo first: the cover buyers see, and the one the photo tool leads with. */
+export function makeCover(items: BunchItem[], itemKey: string, photoKey: string): BunchItem[] {
+  return items.map((it) => (it.key === itemKey && it.photoKeys.includes(photoKey) ? { ...it, photoKeys: [photoKey, ...it.photoKeys.filter((k) => k !== photoKey)] } : it));
+}
+
+/** New photos on the end of an item, without the photo tool. */
+export function addPhotosToItem(items: BunchItem[], itemKey: string, photoKeys: string[]): BunchItem[] {
+  return items.map((it) => (it.key === itemKey ? { ...it, photoKeys: [...it.photoKeys, ...photoKeys] } : it));
+}
+
+/* ---- Changing many at once (pure) ---------------------------------------- */
+
+/** The same change on these items. Not the words, so it never clears a flag. */
+export function bulkEdit(items: BunchItem[], keys: ReadonlySet<string>, patch: Partial<Pick<BunchItem, "price" | "free" | "conditionStars">>): BunchItem[] {
+  return items.map((it) => (keys.has(it.key) ? { ...it, ...patch } : it));
+}
+
+/** A percent off each item's own suggestion, to a whole dollar and never under $1. Free items and items with no suggestion are left alone. */
+export function percentOffSuggested(items: BunchItem[], keys: ReadonlySet<string>, pct: number): { items: BunchItem[]; changed: number; skipped: number } {
+  let changed = 0;
+  let skipped = 0;
+  const next = items.map((it) => {
+    if (!keys.has(it.key) || it.free) return it;
+    const was = Number(it.aiPrice);
+    if (!it.aiPrice || !Number.isFinite(was)) {
+      skipped += 1;
+      return it;
+    }
+    changed += 1;
+    return { ...it, price: String(Math.max(1, Math.round((was * (100 - pct)) / 100))) };
+  });
+  return { items: next, changed, skipped };
 }
 
 /**
@@ -422,7 +490,8 @@ export async function removeBunchDraft(id: string, deps: Pick<ListDeps, "itemSta
  */
 export function editBunchItem(items: BunchItem[], itemKey: string, patch: Partial<BunchItem>): BunchItem[] {
   const reworded = "title" in patch || "description" in patch;
-  return items.map((it) => (it.key === itemKey ? { ...it, ...patch, flagged: reworded ? false : it.flagged } : it));
+  const sized = "deliverySize" in patch ? { sizeUnknown: false } : null;
+  return items.map((it) => (it.key === itemKey ? { ...it, ...patch, ...sized, flagged: reworded ? false : it.flagged, edited: reworded || it.edited } : it));
 }
 
 /** The photos some item still holds. Listed and dropped items' photos leave, so they stop counting toward the cap. */
@@ -441,9 +510,37 @@ export function bunchItemProblem(it: BunchItem): string | null {
   if (it.notSorted) return "These photos aren't sorted yet.";
   if (it.photoKeys.length < DECLUTTER_MIN_PHOTOS) return `Add at least ${photosWord(DECLUTTER_MIN_PHOTOS)}.`;
   if (it.photoKeys.length > DECLUTTER_MAX_PHOTOS) return `Use at most ${photosWord(DECLUTTER_MAX_PHOTOS)}: split this item or move some photos.`;
-  return moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" })
+  const row = moveRowProblem({ title: it.title, price: it.free ? "1" : it.price, floor: "" })
     ?.replace("Give each item a name", "Give it a name")
-    .replace("Give each item a price", "Give it a price") ?? null;
+    .replace("Give each item a price", "Give it a price");
+  if (row) return row;
+  return it.sizeUnknown ? BUNCH_SIZE_PROBLEM : null;
+}
+
+const BUNCH_SIZE_PROBLEM = "Pick a size, so buyers know what it takes to move it.";
+
+/** Which field an item's problem is about, so the screen can go straight to it. */
+export type BunchNeed = "photos" | "name" | "price" | "size";
+export function bunchItemNeed(it: BunchItem): BunchNeed | null {
+  // A not-sorted pile has its own card and its own Sort again: it isn't an item waiting for a field.
+  if (it.notSorted) return null;
+  const p = bunchItemProblem(it);
+  if (!p) return null;
+  if (p === BUNCH_SIZE_PROBLEM) return "size";
+  if (/photo/i.test(p)) return "photos";
+  return /name/i.test(p) ? "name" : "price";
+}
+
+/** "1 needs a name, 2 need a price": what is left, in the seller's words. */
+export function bunchNeedsLine(items: BunchItem[]): string | null {
+  const words: Record<BunchNeed, string> = { photos: "photos", name: "a name", price: "a price", size: "a size" };
+  const counts = new Map<BunchNeed, number>();
+  for (const it of items) {
+    const need = bunchItemNeed(it);
+    if (need) counts.set(need, (counts.get(need) ?? 0) + 1);
+  }
+  if (counts.size === 0) return null;
+  return [...counts].map(([need, n]) => `${n} ${n === 1 ? "needs" : "need"} ${words[need]}`).join(", ");
 }
 
 /**
@@ -463,9 +560,32 @@ export function bunchListable(items: BunchItem[], feeDue: boolean): BunchItem[] 
 export const BUNCH_SECONDS_EACH = 15;
 export const bunchListingMinutes = (items: number) => Math.ceil((items * BUNCH_SECONDS_EACH) / 60);
 
+/** Time left, said plainly. */
+function timeLeft(seconds: number): string {
+  if (seconds < 45) return "Less than a minute left.";
+  const minutes = Math.round(seconds / 60);
+  return `About ${minutes} ${minutes === 1 ? "minute" : "minutes"} left.`;
+}
+
+/** Sorting, in the seller's terms: what's been found and how long is left, never batches. */
+export function sortProgressLine(done: number, total: number, found: number): string {
+  const so = found > 0 ? `Found ${found} ${found === 1 ? "item" : "items"} so far.` : "Looking through your photos.";
+  return `${so} ${timeLeft(((total - done) * AI_CHECK_GAP_MS) / 1000)}`;
+}
+
+/** Listing, in the seller's terms. A run's steps are every item made ready, then every item listed. */
+export function listingProgressLine(done: number, total: number, names: readonly string[]): string {
+  const n = Math.max(1, total / 2);
+  const getting = done < n;
+  const at = Math.min(n, (getting ? done : done - n) + 1);
+  const name = names[at - 1]?.trim();
+  const left = ((total - done) * BUNCH_SECONDS_EACH) / 2;
+  return `${getting ? "Getting" : "Listing"} ${at} of ${n}${getting ? " ready" : ""}${name ? `: ${name}` : ""}. ${timeLeft(left)}`;
+}
+
 export type BunchOutcome =
-  /** `keepUpFailed`: it is listed, but "Keep it up" could not be turned on (the seller can, from Manage listing). */
-  | { key: string; title: string; status: "live" | "pending_review"; keepUpFailed?: boolean }
+  /** `keepUpFailed`: it is listed, but "Keep it up" could not be turned on (the seller can, from Manage listing). `id`: its listing. */
+  | { key: string; title: string; status: "live" | "pending_review"; keepUpFailed?: boolean; id?: string }
   /**
    * `draftId` set: the draft was made but a later step failed. `stays`: it failed getting ready (an upload, the phone
    * locking), so it stays on the list with its photos to try again; otherwise it is finished under Selling.
@@ -483,6 +603,8 @@ export interface PhotoProgress {
 
 export interface ListDeps {
   createDraft: typeof createDraft;
+  /** The same draft, in the seller's moving sale (a move-out date was given). */
+  createMoveDraft: typeof createMoveDraft;
   updateDraft: typeof updateDraft;
   addPhoto: typeof addPhotoSteadily;
   removePhoto: typeof removePhoto;
@@ -495,7 +617,7 @@ export interface ListDeps {
   publishMany: (ids: string[], onProgress: (done: number, total: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
 
 /** The single form's listing choices, once for the batch (they start from the seller's remembered ones). */
 export interface BunchChoices {
@@ -504,6 +626,8 @@ export interface BunchChoices {
   dropPct: number;
   /** Each item's lowest price, as a percent of its price (rounded by floorFromPct, as the single form does). */
   floorPct: number;
+  /** The move-out date (YYYY-MM-DD): new drafts join the seller's moving sale. Blank or absent: ordinary listings. */
+  moveOutOn?: string | null;
 }
 
 /** Taking a photo off a draft. Already gone (a run cut off after this step, before it was saved) is what was asked for. */
@@ -611,7 +735,7 @@ export async function listBunch(
     if (it.draftId && statuses) {
       const status = statuses.get(it.draftId);
       if (status === "live" || status === "pending_review") {
-        out.set(it.key, { key: it.key, title: it.title, status });
+        out.set(it.key, { key: it.key, title: it.title, status, id: it.draftId });
         onStep(it.key, null);
         onProgress(i + 1, total);
         continue;
@@ -653,7 +777,9 @@ export async function listBunch(
         // Its draft exists from an earlier try: the seller's edits go onto it.
         await deps.updateDraft(id, fields);
       } else {
-        id = await deps.createDraft(fields);
+        id = choices.moveOutOn
+          ? await deps.createMoveDraft(choices.moveOutOn, place, fields)
+          : await deps.createDraft(fields);
         onStep(it.key, { draftId: id });
       }
       const uploaded = { ...it.uploaded };
@@ -710,7 +836,7 @@ export async function listBunch(
     });
     results.forEach((r, i) => {
       const p = prepared[i];
-      out.set(p.key, "error" in r ? { key: p.key, title: p.title, error: r.error, draftId: p.id } : { key: p.key, title: p.title, status: r.status, ...(p.keepUpFailed ? { keepUpFailed: true } : {}) });
+      out.set(p.key, "error" in r ? { key: p.key, title: p.title, error: r.error, draftId: p.id } : { key: p.key, title: p.title, status: r.status, id: p.id, ...(p.keepUpFailed ? { keepUpFailed: true } : {}) });
     });
   }
   onProgress(total, total);

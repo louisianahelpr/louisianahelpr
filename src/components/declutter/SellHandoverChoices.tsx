@@ -87,7 +87,7 @@ export function SellHandoverChoices({ ways, setWays, free, sellerDeliveryOpen, p
   const shown = SELLER_WAYS.filter((w) => (free ? w === "porch" : w !== "seller_delivery" || sellerDeliveryOpen));
   return (
     <div className="space-y-2" role="group" aria-labelledby="sell-ways">
-      <p id="sell-ways" className="text-ds-14 font-semibold text-foreground">Tick every way that works for you</p>
+      <p id="sell-ways" className="text-ds-14 font-semibold text-foreground">{free ? "How it's picked up" : "Tick every way that works for you"}</p>
       <SellWayTiles shown={shown} ways={ways} setWays={setWays} fixed={free} />
       {free && <p className="text-ds-13 text-muted-foreground" data-free-ways="">A free item is picked up from your porch.</p>}
       {!free && <p className="text-ds-13 text-muted-foreground" data-helpr-delivery-always="">{HELPR_DELIVERY_ALWAYS}</p>}

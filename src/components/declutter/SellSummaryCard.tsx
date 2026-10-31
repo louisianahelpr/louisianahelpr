@@ -6,7 +6,7 @@
  * Claude could not write it (or there are no photos yet), the empty rows say "Add …", so the screen never
  * dead-ends.
  */
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import type { DeliverySize } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { ChipGroup } from "./DeclutterSellSteps";
@@ -27,7 +27,7 @@ const FIELD_WORD: Record<SummaryField, string> = {
   description: "details",
 };
 
-function Row({ field, title, value, empty, open, onToggle, busy, children, extra, problem }: {
+function Row({ field, title, value, empty, open, onToggle, busy, children, extra, problem, instead }: {
   field: SummaryField;
   title: string;
   value: string;
@@ -39,26 +39,38 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
   extra?: ReactNode;
   /** What blocks Post in this row, once Post was tapped (audit DC-2: said in the row, not only by the button). */
   problem?: ReactNode;
+  /** In place of Edit: a row with nothing to edit says what the seller can do instead (a free item's price). */
+  instead?: { label: string; onClick: () => void };
 }) {
   const verb = open ? "Done" : empty ? "Add" : "Edit";
+  // Opening a row puts the cursor in it (audit posting 1030 #8): Edit, tap the box, type, Done was one tap too many.
+  const li = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    li.current?.querySelector<HTMLElement>("input:not([type=checkbox]), textarea, [role=radio][aria-checked=true]")?.focus();
+  }, [open]);
   return (
-    <li className="space-y-3 px-4 py-3.5" data-summary-row={field} data-sell-row={field}>
+    <li ref={li} className="space-y-3 px-4 py-3.5" data-summary-row={field} data-sell-row={field}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-ds-13 font-semibold text-muted-foreground">{title}</p>
           {!open && (
-            <p className={`text-ds-15 [overflow-wrap:anywhere] ${empty ? "text-muted-foreground" : "font-semibold text-foreground"}`} data-summary-value="">
+            <p onClick={instead ? undefined : onToggle} className={`text-ds-15 [overflow-wrap:anywhere] ${instead ? "" : "cursor-pointer"} ${empty ? "text-muted-foreground" : "font-semibold text-foreground"}`} data-summary-value="">
               {busy && empty ? "We're filling this in…" : empty ? `Add ${FIELD_WORD[field] === "details" ? "details" : `a ${FIELD_WORD[field]}`}` : value}
             </p>
           )}
         </div>
         {/* The name says which field ("Edit price"): an sr-only span's leading space is dropped from the computed name
             (it read "Editprice"), so the name is set whole; it starts with the visible word (labelInName). */}
-        <button type="button" onClick={onToggle} aria-expanded={open} aria-label={`${verb} ${FIELD_WORD[field]}`} className="min-h-11 shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
-          {verb}
-        </button>
+        {instead ? (
+          <button type="button" onClick={instead.onClick} className="min-h-11 shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">{instead.label}</button>
+        ) : (
+          <button type="button" onClick={onToggle} aria-expanded={open} aria-label={`${verb} ${FIELD_WORD[field]}`} className="min-h-11 shrink-0 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
+            {verb}
+          </button>
+        )}
       </div>
-      {open && children}
+      {open && !instead && children}
       {problem}
       {extra}
     </li>
@@ -72,7 +84,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
   priceExtras: ReactNode;
   problems?: Partial<Record<SummaryField, ReactNode>>;
 }) {
-  const { form, set, ai, hintAt, priceCents } = s;
+  const { form, set, ai, hintAt, priceCents, sizeKnown, setSizePicked } = s;
   const busy = ai.state.status === "busy";
   const toggle = (f: SummaryField) => setOpen((o) => (o === f ? null : f));
   const row = (field: SummaryField) => ({ field, open: open === field, onToggle: () => toggle(field), busy, problem: problems?.[field] });
@@ -95,6 +107,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
           title="Price"
           value={form.free ? "Free" : priceCents ? formatPrice(priceCents) : ""}
           empty={!form.free && !priceCents}
+          instead={form.free ? { label: "Charge for it", onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined}
           extra={<>
             {draft && !form.free && <AiPriceLine draft={draft} />}
             {!form.free && <PriceHint category={form.category} conditionStars={form.conditionStars} place="near_you" at={hintAt} />}
@@ -109,9 +122,12 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
         <Row {...row("condition")} title="Condition" value={CONDITION_LABEL[form.conditionStars] ?? ""} empty={false}>
           <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
         </Row>
-        <Row {...row("size")} title="Size" value={SIZE_LABEL[form.deliverySize] ?? ""} empty={false}>
-          <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} />
-        </Row>
+        {/* Not one of the owner's six: asked only when the photo tool didn't answer it (and while it is writing, never guessed). */}
+        {!sizeKnown && !busy && (
+          <Row {...row("size")} title="Size" value="" empty>
+            <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value="" onChange={(v) => { set("deliverySize", v as DeliverySize); setSizePicked(true); }} />
+          </Row>
+        )}
         <Row {...row("description")} title="Details" value={form.description.trim()} empty={!form.description.trim()}>
           <div className="space-y-2">
             <FieldLabel htmlFor="sell-desc" text="Anything else?" extra="(optional)" />

@@ -38,6 +38,36 @@ export function ListingDefaultsCard({ userId }: { userId: string }) {
   return <ListingDefaultsForm userId={userId} current={saved.data ?? SELLER_DEFAULTS} />;
 }
 
+/** Price drops, keep it up and make it free: the same fields here and in the one-time setup (SellerSetup). */
+export function ListingChoiceFields({ draft, change, idPrefix = "defaults" }: { draft: SellerDefaults; change: (patch: Partial<SellerDefaults>) => void; idPrefix?: string }) {
+  return (<>
+      <div className="flex items-start gap-3">
+        <label htmlFor={`${idPrefix}-drops`} className="min-w-0 flex-1">
+          <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span>
+          <span className="block text-ds-13 text-muted-foreground">
+            {draft.drops ? `It drops ${draft.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price.` : "Off. It stays at your price until you change it."}
+          </span>
+        </label>
+        <Switch id={`${idPrefix}-drops`} checked={draft.drops} onCheckedChange={(v) => change({ drops: v === true })} />
+      </div>
+      {draft.drops && (<>
+        <ChipGroup label="How much each evening" options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(draft.dropPct)} onChange={(v) => change({ dropPct: Number(v) })} />
+        <div className="space-y-2">
+          <ChipGroup label="Lowest you'll take" options={floorOptions(draft.floorPct)} value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} />
+          <p className="text-ds-13 text-muted-foreground">Starts at {draft.floorPct}% of your asking price. Only you see this. The drops stop here.</p>
+        </div>
+      </>)}
+      <div className="flex items-start gap-3">
+        <span className="min-w-0 flex-1">
+          <span id={`${idPrefix}-keep-up`} className="block text-ds-15 font-semibold text-foreground">{KEEP_UP_TITLE}</span>
+          <span className="block text-ds-13 text-muted-foreground">{keepUpSettingLine(draft.keepUp)}</span>
+        </span>
+        <Switch aria-labelledby={`${idPrefix}-keep-up`} checked={draft.keepUp} onCheckedChange={(v) => change({ keepUp: v === true })} />
+      </div>
+      <AutoFreeChoice days={draft.freeAfterDays} onChange={(days) => change({ freeAfterDays: days })} />
+  </>);
+}
+
 function ListingDefaultsForm({ userId, current }: { userId: string; current: SellerDefaults }) {
   const qc = useQueryClient();
   const sellerDeliveryOpen = useFeature("declutter_seller_delivery");
@@ -68,30 +98,7 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
         Your next listing starts with these, and you can change them on any listing. What you pick when you post becomes
         the new start. Listings already up stay as they are.
       </p>
-      <div className="flex items-start gap-3">
-        <label htmlFor="defaults-drops" className="min-w-0 flex-1">
-          <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span>
-          <span className="block text-ds-13 text-muted-foreground">
-            {draft.drops ? `It drops ${draft.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price.` : "Off. It stays at your price until you change it."}
-          </span>
-        </label>
-        <Switch id="defaults-drops" checked={draft.drops} onCheckedChange={(v) => change({ drops: v === true })} />
-      </div>
-      {draft.drops && (<>
-        <ChipGroup label="How much each evening" options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(draft.dropPct)} onChange={(v) => change({ dropPct: Number(v) })} />
-        <div className="space-y-2">
-          <ChipGroup label="Lowest you'll take" options={floorOptions(draft.floorPct)} value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} />
-          <p className="text-ds-13 text-muted-foreground">Starts at {draft.floorPct}% of your asking price. Only you see this. The drops stop here.</p>
-        </div>
-      </>)}
-      <div className="flex items-start gap-3">
-        <span className="min-w-0 flex-1">
-          <span id="defaults-keep-up" className="block text-ds-15 font-semibold text-foreground">{KEEP_UP_TITLE}</span>
-          <span className="block text-ds-13 text-muted-foreground">{keepUpSettingLine(draft.keepUp)}</span>
-        </span>
-        <Switch aria-labelledby="defaults-keep-up" checked={draft.keepUp} onCheckedChange={(v) => change({ keepUp: v === true })} />
-      </div>
-      <AutoFreeChoice days={draft.freeAfterDays} onChange={(days) => change({ freeAfterDays: days })} />
+      <ListingChoiceFields draft={draft} change={change} />
       <div className="space-y-2" role="group" aria-labelledby="defaults-ways">
         <p id="defaults-ways" className="text-ds-14 font-semibold text-foreground">How buyers can get it</p>
         <SellWayTiles shown={shown} ways={draft.handovers} setWays={(w) => change({ handovers: w })} onSettingsPage />

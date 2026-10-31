@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterEditListing.tsx |   const ready = attested && | const ready =
  * @mutate src/components/declutter/DeclutterEditListing.tsx |   const big = title.trim() !== item.title \|\| description.trim() !== item.description \|\| category !== item.category \|\| photosChanged; |   const big = false;
  * @mutate src/components/declutter/DeclutterEditListing.tsx |  category !== item.category \|\| photosChanged; |  category !== item.category;
- * @mutate src/components/declutter/DeclutterEditListing.tsx |       for (const f of held) await addPhoto(user!.id, item.id, f);\n      for (const id of removed) await removePhoto(id); |       for (const id of removed) await removePhoto(id);\n      for (const f of held) await addPhoto(user!.id, item.id, f);
+ * @mutate src/components/declutter/DeclutterEditListing.tsx |       for (const f of held) await addPhotoSteadily(user!.id, item.id, f, FULL_LISTING_COPY);\n      for (const id of removed) await removePhoto(id); |       for (const id of removed) await removePhoto(id);\n      for (const f of held) await addPhotoSteadily(user!.id, item.id, f, FULL_LISTING_COPY);
  * @mutate src/components/declutter/DeclutterEditListing.tsx |       if (status === "live" && !photosChanged) return "saved"; |       if (status === "live") return "saved";
  * @mutate src/components/declutter/DeclutterEditListing.tsx |  && photoTotal >= DECLUTTER_MIN_PHOTOS && | &&
  * @mutate src/components/declutter/DeclutterEditListing.tsx |           onRemoveUploaded={(id) => setRemoved((r) => [...r, id])} |           onRemoveUploaded={() => {}}
@@ -30,7 +30,7 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
   editListing: (...a: unknown[]) => editListing(...a),
   fetchItemHandovers: async () => ["porch"],
   fetchPhotos: async () => photoRows.value,
-  addPhoto: async (_u: string, id: string, f: File) => { calls.push(`add:${id}:${f.name}`); return "new"; },
+  addPhotoSteadily: async (_u: string, id: string, f: File) => { calls.push(`add:${id}:${f.name}`); return "new"; },
   removePhoto: async (id: string) => { calls.push(`remove:${id}`); },
   requestAiCheckWithRetry: async (id: string) => { calls.push(`check:${id}`); return { checked: true, flagged: false }; },
   fetchItem: async () => ({ status: "live" }),
@@ -42,7 +42,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("./SellPorchDays", () => ({ SellPorchDays: () => null }));
 
 import { DeclutterEditListing, EDIT_RULE, EDIT_SAVED } from "./DeclutterEditListing";
-import { TAX_ATTESTATION_SENTENCE } from "./declutterUi";
+import { TAX_TICK_LABEL } from "./declutterUi";
 import { toast } from "sonner";
 
 const ITEM = {
@@ -79,7 +79,7 @@ describe("D1-1: edit a live listing", () => {
     expect(screen.getByText(EDIT_RULE.instant)).toBeInTheDocument();
     const save = screen.getByRole("button", { name: "Save changes" });
     expect(save).toBeDisabled();
-    fireEvent.click(screen.getByRole("checkbox", { name: TAX_ATTESTATION_SENTENCE }));
+    fireEvent.click(screen.getByRole("checkbox", { name: TAX_TICK_LABEL }));
     expect(save).toBeEnabled();
     fireEvent.click(save);
     await waitFor(() => expect(editListing).toHaveBeenCalledWith("i1", expect.objectContaining({ conditionStars: 5, title: "Oak rocking chair", handovers: ["porch"] })));
@@ -122,7 +122,7 @@ describe("DC-8: a live listing's photos", () => {
     expect(review()).toBe("yes");
     expect(screen.getByText(EDIT_RULE.checked)).toBeInTheDocument();
     expect(EDIT_RULE.checked).toMatch(/photo/);
-    fireEvent.click(screen.getByRole("checkbox", { name: TAX_ATTESTATION_SENTENCE }));
+    fireEvent.click(screen.getByRole("checkbox", { name: TAX_TICK_LABEL }));
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
     expect(calls).toEqual(["edit", "add:i1:b.jpg", "check:i1"]);
@@ -136,7 +136,7 @@ describe("DC-8: a live listing's photos", () => {
     expect(screen.queryByAltText("Photo 1")).toBeNull();
     // With no photo left it will not save, and says why.
     expect(screen.getByText("Keep at least 1 photo.")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("checkbox", { name: TAX_ATTESTATION_SENTENCE }));
+    fireEvent.click(screen.getByRole("checkbox", { name: TAX_TICK_LABEL }));
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
     fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("new.jpg")] } });
     await screen.findByAltText("Photo 1");
@@ -151,7 +151,7 @@ describe("DC-8: a live listing's photos", () => {
     await screen.findByAltText("Photo 2");
     fireEvent.click(screen.getByRole("button", { name: "Remove photo 2" }));
     expect(review()).toBe("yes");
-    fireEvent.click(screen.getByRole("checkbox", { name: TAX_ATTESTATION_SENTENCE }));
+    fireEvent.click(screen.getByRole("checkbox", { name: TAX_TICK_LABEL }));
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(calls).toEqual(["edit", "remove:p2", "check:i1"]));
   });

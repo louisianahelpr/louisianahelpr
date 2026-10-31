@@ -12,6 +12,7 @@
  * confirmations, B19) and relisting a SOLD item as a copy. The paused card
  * shows no "N people saved it": no read gives the seller that count.
  */
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
@@ -109,7 +110,9 @@ export function ManageListingSheet({
   // so it reads as stopped here, and the switch cannot claim "back on" (money review 2026-10-28 #3).
   const dropState = useQuery({ queryKey: ["declutter", "drop-state", item.id], queryFn: () => fetchItemDropState(item.id), enabled: open });
   const listedOff = dropState.data ? dropPctOf(dropState.data) === 0 : false;
-  const stopped = (manage?.drops_stopped ?? false) || listedOff;
+  // A lowest price at the price can't drop whatever the switch says, so it never reads "On".
+  const atFloor = !!manage && !manage.drops_stopped && !listedOff && manage.floor_price_cents >= item.current_price_cents;
+  const stopped = (manage?.drops_stopped ?? false) || listedOff || atFloor;
   const drops = useListingAction((on: boolean) => setListingDrops(item.id, on), stopped ? "Price drops are back on." : `Price drops are off. It stays at ${formatPrice(item.current_price_cents)}.`);
   const pause = useListingAction(() => pauseListing(item.id), "Paused. It's hidden from buyers.", close);
   const relist = useListingAction(() => relistListing(item.id), "Back on sale.", close);
@@ -135,6 +138,14 @@ export function ManageListingSheet({
           <div className="space-y-3">
             <ListingSummary item={item} coverUrl={coverUrl} />
             <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+              {item.status === "live" ? (
+              <li>
+                <Link to={`/declutter/item/${item.id}?preview=buyer`} className={ROW} data-manage-preview="" onClick={close}>
+                  <RowText title="See what buyers see">Your listing as a buyer reads it</RowText>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Link>
+              </li>
+              ) : null}
               {/* Audit 1028 D1-1: a live listing can be edited (declutter_edit_listing; the owner's review rule). */}
               {item.status === "live" && (
               <li>
@@ -158,12 +169,12 @@ export function ManageListingSheet({
               {/* Audit DC-5: the sell form's own words and direction, on = it drops (it said "Stop price drops", on = stopped). */}
               <li className={ROW}>
                 <RowText title={DROPS_SWITCH_LABEL} id="manage-drops">
-                  {listedOff ? "Off: you listed it without price drops" : stopped ? `Off. It stays at ${itemPriceLabel(item.current_price_cents)}.` : "On. It drops each evening, never below your lowest price."}
+                  {listedOff ? "Off: you listed it without price drops" : atFloor ? "Off: its lowest price is its price" : stopped ? `Off. It stays at ${itemPriceLabel(item.current_price_cents)}.` : "On. It drops each evening, never below your lowest price."}
                 </RowText>
                 <Switch
                   aria-labelledby="manage-drops"
                   checked={!stopped}
-                  disabled={!manage || busy || listedOff}
+                  disabled={!manage || busy || listedOff || atFloor}
                   onCheckedChange={(on) => drops.mutate(on)}
                 />
               </li>

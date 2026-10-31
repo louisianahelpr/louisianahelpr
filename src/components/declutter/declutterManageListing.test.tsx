@@ -28,6 +28,7 @@
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const calls: unknown[][] = [];
@@ -80,7 +81,7 @@ const item = (over: Record<string, unknown> = {}) => ({
 });
 function wrap(node: React.ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}>{node}</QueryClientProvider>);
+  return render(<MemoryRouter><QueryClientProvider client={qc}>{node}</QueryClientProvider></MemoryRouter>);
 }
 const sheet = (over: Record<string, unknown> = {}) =>
   wrap(<ManageListingSheet item={item(over) as never} coverUrl={null} open onOpenChange={() => {}} />);
@@ -127,7 +128,7 @@ describe("Manage a listing (board 158)", () => {
   it("shows only the rows the server can do, with the real price and lowest price", async () => {
     sheet();
     expect(await screen.findByText("Now $38 · lowest $30")).toBeTruthy();
-    for (const t of ["Change price or lowest price", "Lower the price if it doesn't sell?", "Pause listing", "Mark sold elsewhere", "Delete listing"]) {
+    for (const t of ["Change price or lowest price", "Lower the price over time", "Pause listing", "Mark sold elsewhere", "Delete listing"]) {
       expect(screen.getByText(t)).toBeTruthy();
     }
     expect(screen.getByText("Hide it without losing it. Open offers close.")).toBeTruthy();
@@ -152,7 +153,7 @@ describe("Manage a listing (board 158)", () => {
     await waitFor(() => expect(stateReads.n).toBeGreaterThan(0));
     await act(async () => {});
     expect(screen.queryByText("Change price or lowest price")).toBeNull();
-    expect(screen.queryByText("Lower the price if it doesn't sell?")).toBeNull();
+    expect(screen.queryByText("Lower the price over time")).toBeNull();
     expect(screen.queryByText("Pause listing")).toBeNull();
     expect(screen.getByText("Delete listing")).toBeTruthy();
   });
@@ -175,8 +176,8 @@ describe("Manage a listing (board 158)", () => {
     const a = sheet();
     const group = await screen.findByRole("radiogroup", { name: "If it doesn't sell, make it free after" });
     const chips = Array.from(group.querySelectorAll('[role="radio"]')).map((c) => c.textContent);
-    expect(chips).toEqual(["Never", "7 days", "14 days", "21 days", "30 days"]);
-    expect(screen.getByRole("radio", { name: "Never" }).getAttribute("aria-checked")).toBe("true");
+    expect(chips).toEqual(["Never make it free", "7 days", "14 days", "21 days", "30 days"]);
+    expect(screen.getByRole("radio", { name: "Never make it free" }).getAttribute("aria-checked")).toBe("true");
     expect(screen.queryByText("Free on day 12")).toBeNull();
     fireEvent.click(screen.getByRole("radio", { name: "21 days" }));
     await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", 21]));
@@ -185,13 +186,13 @@ describe("Manage a listing (board 158)", () => {
     calls.length = 0;
     const b = sheet();
     await waitFor(() => expect(screen.getByRole("radio", { name: "7 days" }).getAttribute("aria-checked")).toBe("true"));
-    fireEvent.click(screen.getByRole("radio", { name: "Never" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Never make it free" }));
     await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", null]));
     b.unmount();
     autoFree = "not_deployed";
     const readsBefore = autoFreeReads.n;
     sheet();
-    expect(await screen.findByText("Lower the price if it doesn't sell?")).toBeTruthy();
+    expect(await screen.findByText("Lower the price over time")).toBeTruthy();
     // Wait for the auto-free DATA ("not_deployed" resolved and React settled), then assert the absence.
     await waitFor(() => expect(autoFreeReads.n).toBeGreaterThan(readsBefore));
     await act(async () => {});
@@ -214,21 +215,21 @@ describe("Manage a listing (board 158)", () => {
     b.unmount();
     keepUp = "not_deployed";
     sheet();
-    expect(await screen.findByText("Lower the price if it doesn't sell?")).toBeTruthy();
+    expect(await screen.findByText("Lower the price over time")).toBeTruthy();
     await act(async () => {});
     expect(screen.queryByText("Keep it up until it sells")).toBeNull();
     keepUp = false;
   });
 
   // Audit DC-5: one label, one direction. Manage said "Stop price drops" (on = stopped) while the sell form said
-  // "Lower the price if it doesn't sell?" (on = drops). Now both say the form's words and on = it drops.
+  // "Lower the price over time" (on = drops). Now both say the form's words and on = it drops.
   // @mutate src/components/declutter/DeclutterManageListing.tsx |                   checked={!stopped} |                   checked={stopped}
   // @mutate src/components/declutter/DeclutterManageListing.tsx |                 <RowText title={DROPS_SWITCH_LABEL} id="manage-drops"> |                 <RowText title="Stop price drops" id="manage-drops">
   // @mutate src/components/declutter/SellFormParts.tsx | <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span> | <span className="block text-ds-15 font-semibold text-foreground">Lower the price?</span>
   it("the drops switch has the sell form's name and on = it drops; off turns them off, on turns them back on (DC-5)", async () => {
     const { DROPS_SWITCH_LABEL } = await import("./sellForm");
     const SellFormParts = await import("./SellFormParts");
-    expect(DROPS_SWITCH_LABEL).toBe("Lower the price if it doesn't sell?");
+    expect(DROPS_SWITCH_LABEL).toBe("Lower the price over time");
     // The sell form's own switch reads the same constant (source check: the form needs the whole sell state to render).
     const { readFileSync } = await import("node:fs");
     const { blankComments } = await import("@/test/helpers/blankNonCode");
@@ -256,12 +257,12 @@ describe("Manage a listing (board 158)", () => {
   });
 
   // Owner 2026-10-28 (money review #3): listed with drops off (drop_pct 0) reads as off, and cannot be "turned back on" here.
-  // @mutate src/components/declutter/DeclutterManageListing.tsx |   const stopped = (manage?.drops_stopped ?? false) \|\| listedOff; |   const stopped = manage?.drops_stopped ?? false;
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |   const stopped = (manage?.drops_stopped ?? false) \|\| listedOff \|\| atFloor; |   const stopped = (manage?.drops_stopped ?? false) \|\| atFloor;
   it("a listing put up without price drops shows them off and the switch is not offered", async () => {
     dropPct.value = 0;
     sheet();
     expect(await screen.findByText("Off: you listed it without price drops")).toBeTruthy();
-    const sw = screen.getByRole("switch", { name: "Lower the price if it doesn't sell?" });
+    const sw = screen.getByRole("switch", { name: "Lower the price over time" });
     expect(sw).toHaveAttribute("aria-checked", "false");
     expect((sw as HTMLButtonElement).disabled).toBe(true);
   });

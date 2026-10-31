@@ -7,7 +7,7 @@
  * screen. The API is stubbed: these check what each state renders.
  *
  * @mutate src/components/declutter/DeclutterGallery.tsx |   if (urls.length === 0) { |   if (false) {
- * @mutate src/components/declutter/DeclutterItemView.tsx |   const boughtByMe = !isSeller && !forSale; |   const boughtByMe = false;
+ * @mutate src/components/declutter/DeclutterItemView.tsx |   const boughtByMe = !ownListing && !forSale; |   const boughtByMe = false;
  * @mutate src/components/declutter/DeclutterItemView.tsx | {way !== "none" && forSale && <ItemPickupTimes | {way !== "none" && <ItemPickupTimes
  *   DA-6 (Declutter audit 2026-10-30): the buyer's own sold item says "You bought this." / "You claimed this." with
  *   Buying, asks no item pickup times (that read answers only while it is for sale) and no "shared after you pay".
@@ -34,13 +34,17 @@
  * @mutate src/components/declutter/DeclutterItemRows.tsx | (rows ?? []).filter((r) => r.seller_id !== viewerId) | (rows ?? [])
  * @mutate src/components/declutter/DeclutterItemRows.tsx |       {moreRows.length > 0 && <Row |       {<Row
  * @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && (\n        <div className="mt-8"> |       {(\n        <div className="mt-8">
- * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && !(isSeller | {false && !(isSeller
+ * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && ( | {false && (
  * @mutate src/components/declutter/DeclutterItemView.tsx | lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} /> | lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} />
- * @mutate src/components/declutter/DeclutterItemView.tsx | sellerDrops.data.drops_stopped) && ( | false) && (
- * @mutate src/components/declutter/DeclutterItemView.tsx |   const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null; |   const drop = { at: new Date(), lowestCents: it.current_price_cents - 200 };
+ * @mutate src/components/declutter/DeclutterItemView.tsx | const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null; | const drop = planned;
+ * @mutate src/components/declutter/DeclutterItemView.tsx |   const planned = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null; |   const planned = { at: new Date(), lowestCents: it.current_price_cents - 200, pct: 5 };
  * @mutate src/components/declutter/DeclutterBundleRow.tsx | (r) => r.status === "live" && r.seller_id !== viewerId | (r) => r.seller_id !== viewerId
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   const capped = (more.data?.length ?? 0) >= 12; |   const capped = false;
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |   if (buyable.length === 0 \|\| card.isLoading) return null; |   if (card.isLoading) return null;
+ * @mutate src/components/declutter/DeclutterItemView.tsx |   const isSeller = ownListing && !preview; |   const isSeller = ownListing;
+ * Tester 5, 10-30: pressing Buy now in the preview showed nothing, because toast.info renders nothing in the app.
+ * @mutate src/components/declutter/DeclutterItemView.tsx |   const noteOwnListing = () => setPreviewPressed(true); |   const noteOwnListing = () => toast.info(PREVIEW_ACTION_NOTE);
+ * @mutate src/components/declutter/DeclutterItemView.tsx |               onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); noteOwnListing(); }} |               onClickCapture={() => noteOwnListing()}
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -48,6 +52,8 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
+  manageReads: 0,
+  buys: 0,
   item: null as unknown,
   photos: [] as unknown[],
   rating: { avg: 4.8, count: 12 } as { avg: number; count: number } | null,
@@ -116,7 +122,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSimilarItems: async () => state.similar,
     fetchItem: async () => state.item,
     fetchItemDropState: async () => { state.reads++; return state.drop; },
-    fetchManageState: async () => { state.reads++; return state.manage; },
+    fetchManageState: async () => { state.reads++; state.manageReads++; return state.manage; },
     fetchPhotos: async () => state.photos,
     fetchQuestions: async () => [],
     fetchWatching: async () => new Set(),
@@ -130,7 +136,7 @@ vi.mock("@/lib/declutter/api", async () => {
     askQuestion: async () => "q",
     answerQuestion: async () => "a",
     makeOffer: async () => "o",
-    buyNow: async () => "l",
+    buyNow: async () => { state.buys++; return "l"; },
     startCardSave: async () => "https://stripe",
   };
 });
@@ -149,12 +155,12 @@ const ITEM = {
   area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15, created_at: "2026-10-14", live_at: null, porch_ok: true,
 };
 
-function open() {
+function open(search = "") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[`/declutter/item/${ID}`]}>
+      <MemoryRouter initialEntries={[`/declutter/item/${ID}${search}`]}>
         <Routes>
           <Route path="/declutter/item/:id" element={<DeclutterItemPage />} />
         </Routes>
@@ -244,7 +250,7 @@ describe("the photo-first Declutter item page", () => {
   });
 
   // Audit DC-7: the seller's own item page used the buyer's words ("after you pay") and said "About 52 mi away".
-  // @mutate src/components/declutter/DeclutterItemView.tsx |   const away = isSeller ? null : milesLabel( |   const away = milesLabel(
+  // @mutate src/components/declutter/DeclutterItemView.tsx |   const away = ownListing ? null : milesLabel( |   const away = milesLabel(
   // @mutate src/components/declutter/DeclutterItemView.tsx | {addressNote(free, isSeller)} | {addressNote(free, false)}
   it("the seller's own page: no distance, and owner words about the address (DC-7)", async () => {
     state.geo = { status: "ready", lat: 30.0, lng: -90.0, approximate: false };
@@ -263,7 +269,7 @@ describe("the photo-first Declutter item page", () => {
   });
 
   // Deep audit #23: a free item is claimed, never offered on; its page must not end with "Make an offer".
-  // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !!user} free={free} /> | canAsk={canAct && !!user} />
+  // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !!user && !preview} free={free} /> | canAsk={canAct && !!user && !preview} />
   it("a free item's page never says 'Make an offer'; a priced one keeps the line", async () => {
     state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
     const free = open();
@@ -559,6 +565,50 @@ describe("the photo-first Declutter item page", () => {
     await waitFor(() => expect(state.reads).toBe(2));
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(document.querySelector("[data-price-drop]")).toBeNull();
+  });
+
+  it("seller: a lowest price at the price can't drop, so nothing is said about drops (owner 2026-10-30)", async () => {
+    state.item = { ...ITEM, seller_id: "u1", current_price_cents: 3800, live_at: new Date(Date.now() - 60_000).toISOString() };
+    state.drop = { sale_mode: "offers", last_price_drop_on: null, drop_pct: 5 };
+    state.manage = { floor_price_cents: 3800, drops_stopped: false };
+    state.reads = 0;
+    open();
+    await screen.findByText("Your listing is for sale");
+    await waitFor(() => expect(state.reads).toBe(2));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(document.querySelector("[data-price-drop]")).toBeNull();
+  });
+
+  it("See what buyers see: no seller controls or private reads, the buyer's words, and actions only say whose listing it is", async () => {
+    state.item = { ...ITEM, seller_id: "u1", current_price_cents: 3800, title: "Oak dresser", live_at: new Date(Date.now() - 60_000).toISOString() };
+    state.drop = { sale_mode: "offers", last_price_drop_on: null, drop_pct: 5 };
+    state.manage = { floor_price_cents: 1234, drops_stopped: false };
+    state.reads = 0;
+    state.manageReads = 0;
+    state.buys = 0;
+    const first = open("?preview=buyer");
+    await screen.findByText("This is what buyers see");
+    // The buyer's words and the buyer's actions.
+    expect(screen.getByText("The exact address is shared after you pay.")).toBeInTheDocument();
+    expect(await screen.findByText(/until it reaches a price the seller chose/)).toBeInTheDocument();
+    const buy = (await screen.findAllByRole("button", { name: /Buy now/ }))[0];
+    // No seller panel, and the seller's private lowest price is never read or shown.
+    expect(screen.queryByText("Your listing is for sale")).toBeNull();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(state.manageReads).toBe(0);
+    expect(document.body.textContent).not.toContain("$12.34");
+    expect(document.body.textContent).not.toContain("1 Main St");
+    // Pressing Buy only says whose listing it is: nothing reaches the checkout.
+    fireEvent.click(buy);
+    expect(state.buys).toBe(0);
+    // On the page itself: toast.info renders nothing in the app (toastPolicy), so a spy on it proved nothing.
+    expect((await screen.findByText(/^This is your listing\./)).closest("[data-preview-note]")).toBeTruthy();
+    // Not the seller: the same link is the ordinary page.
+    first.unmount();
+    state.item = { ...ITEM, seller_id: "someone-else", current_price_cents: 3800, live_at: new Date(Date.now() - 60_000).toISOString() };
+    open("?preview=buyer");
+    await screen.findAllByRole("button", { name: /Buy now/ });
+    expect(screen.queryByText("This is what buyers see")).toBeNull();
   });
 
   // Board 4: "N more from <first name>. One pickup, one fee." is true because

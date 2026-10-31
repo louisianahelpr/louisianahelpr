@@ -4,10 +4,10 @@
  *     nothing is looked up again; what the seller already typed stays theirs;
  *   - the photo step says plainly that smaller copies are sent to sort them, instead of "nothing goes up".
  *
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     setAreaLabel((a) => (a.trim() ? a : s.areaLabel)); |     void s.areaLabel;
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     void s.pickup.address;
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     setPickupAddress(s.pickup!.address);
- * @mutate src/components/declutter/DeclutterBunchView.tsx |     place.setPoint((c) => c ?? { ...s.pickup! }); |     void place;
+ * @mutate src/components/declutter/useBunchStartingPlace.ts |     setAreaLabel((a) => (a.trim() ? a : s.areaLabel)); |     void s.areaLabel;
+ * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     void s.pickup.address;
+ * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPickupAddress((a) => (a.trim() ? a : s.pickup!.address)); |     setPickupAddress(s.pickup!.address);
+ * @mutate src/components/declutter/useBunchStartingPlace.ts |     setPoint((c) => c ?? { ...s.pickup! }); |     void place;
  * @mutate src/components/declutter/DeclutterBunchView.tsx | Smaller copies, with location data removed, are sent to sort them and write your listings. | Location data is removed before anything is sent, and nothing goes up until you list.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -30,6 +30,7 @@ vi.mock("@/lib/addressLookup", () => ({
   lookUpAddress: async (a: string) => { state.geocodes.push(a); return { status: "exact", lat: 1, lng: 2 }; },
 }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => { await state.gate; return state.last; } }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/components/declutter/BunchFeeGate", () => ({ BunchFeeGate: () => null, useSetupFeeDueCents: () => null }));
@@ -54,12 +55,12 @@ beforeEach(() => { state.last = null; state.gate = null; state.geocodes = []; })
 afterEach(cleanup);
 
 describe("Sell a bunch: where buyers pick up starts from the last listing", () => {
-  it("fills both boxes, with the saved point: leaving the address box looks nothing up", async () => {
+  it("a saved address asks nothing, with its saved point: nothing is looked up, and the steps start at the photos", async () => {
     state.last = LAST;
     renderFlow();
-    await waitFor(() => expect(box("Area buyers see").value).toBe("Mid-City"));
-    expect(box("Pickup address").value).toBe("1 Main St, Baton Rouge");
-    fireEvent.blur(box("Pickup address"));
+    await screen.findByRole("heading", { name: "1. Add photos" });
+    expect(screen.queryByLabelText("Pickup address")).toBeNull();
+    expect(screen.queryByLabelText("Area buyers see")).toBeNull();
     await settle();
     expect(state.geocodes).toEqual([]);
   });

@@ -15,6 +15,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AiDraft, DeliverySize } from "@/lib/declutter/api";
+import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 
@@ -35,28 +36,45 @@ export interface AiFields {
   price: string;
 }
 
-/**
- * What the seller's form becomes once Claude answers: each field Claude fills
- * in, EXCEPT one the seller changed while Claude was writing (theirs wins).
- */
-function mergeAiDraft<F extends AiFields>(current: F, atStart: AiFields, d: AiDraft): F {
-  const pick = <K extends keyof AiFields>(k: K, v: AiFields[K]) => (current[k] === atStart[k] ? v : current[k]);
+/** The fields as Claude wrote them. No price from Claude (or an older function): the form's price box stays as it is. */
+function fieldsFrom(current: AiFields, d: AiDraft): AiFields {
   return {
-    ...current,
-    title: pick("title", d.title),
-    description: pick("description", d.description),
-    category: pick("category", d.category),
-    deliverySize: pick("deliverySize", d.deliverySize),
-    conditionStars: pick("conditionStars", d.conditionStars),
-    // No price from Claude (or an older function): the seller's box stays as it is.
-    price: typeof d.priceDollars === "number" && d.priceDollars >= 1 ? pick("price", String(d.priceDollars)) : current.price,
+    title: d.title,
+    description: d.description,
+    category: d.category,
+    deliverySize: d.deliverySize,
+    conditionStars: d.conditionStars,
+    price: typeof d.priceDollars === "number" && d.priceDollars >= 1 ? String(d.priceDollars) : current.price,
   };
 }
+
+const AI_KEYS = ["title", "description", "category", "deliverySize", "conditionStars", "price"] as const;
+
+/**
+ * What "theirs" means across rewrites (audit posting 1030 #6: Write it again compared with the form when the rewrite
+ * started, so a correction made before it counted as our words and was wiped). `base` is each field as it last came
+ * from us (or as it was before our first answer); a field that differs from it is the seller's from then on.
+ */
+export interface AiMemory {
+  base: AiFields;
+  theirs: (keyof AiFields)[];
+}
+
+/** The form once Claude answers: every field Claude fills in, except the seller's; and what to remember for next time. */
+function mergeAiDraft<F extends AiFields>(current: F, before: AiMemory, d: AiDraft): { form: F; memory: AiMemory } {
+  const written = fieldsFrom(current, d);
+  const theirs = AI_KEYS.filter((k) => before.theirs.includes(k) || current[k] !== before.base[k]);
+  const next = { ...written };
+  for (const k of theirs) (next as Record<string, unknown>)[k] = current[k];
+  return { form: { ...current, ...next }, memory: { base: next, theirs } };
+}
+
+const aiFieldsOf = (f: AiFields): AiFields => ({ title: f.title, description: f.description, category: f.category, deliverySize: f.deliverySize, conditionStars: f.conditionStars, price: f.price });
 
 /**
  * Photo coach (owner 2026-10-29): a NEW listing's held photos with Claude's pick for the cover moved
  * first. Matched by the File itself (the one Claude was sent), so photos added or removed while it was
- * writing never move the wrong one; the seller can still reorder or remove them.
+ * writing never move the wrong one; the seller can make another the cover, or undo it.
  */
 export function coverFirst(held: File[], cover: File | undefined): File[] {
   if (!cover || held[0] === cover || !held.includes(cover)) return held;
@@ -99,6 +117,7 @@ export function useSellAiDraft<F extends AiFields>({
   setForm,
   autoStart,
   autoFillEmpty = false,
+  photosAdded = 0,
   onDraft,
 }: {
   ask: (() => Promise<AiDraft>) | null;
@@ -106,6 +125,8 @@ export function useSellAiDraft<F extends AiFields>({
   setForm: (update: (f: F) => F) => void;
   autoStart: boolean;
   autoFillEmpty?: boolean;
+  /** How many photos a new listing holds: more of them, within what Claude reads, reads again (audit posting 1030 #10). */
+  photosAdded?: number;
   /** Called with each answer (the photo coach's cover pick). */
   onDraft?: (d: AiDraft & { coverFile?: File }) => void;
 }) {
@@ -113,14 +134,25 @@ export function useSellAiDraft<F extends AiFields>({
   const formRef = useRef(form);
   formRef.current = form;
   const ran = useRef(false);
+  const memory = useRef<AiMemory | null>(null);
+  const readPhotos = useRef(0);
+  const photosNow = useRef(photosAdded);
+  photosNow.current = photosAdded;
   const run = useCallback(async (onlyEmpty = false) => {
     if (!ask) return;
     ran.current = true;
-    const atStart: AiFields = { ...formRef.current };
+    readPhotos.current = photosNow.current;
+    if (!memory.current) memory.current = { base: aiFieldsOf(formRef.current), theirs: [] };
     setState({ status: "busy" });
     try {
       const d = await ask();
-      setForm((f) => (onlyEmpty ? fillEmptyFields(f, d) : mergeAiDraft(f, atStart, d)));
+      if (onlyEmpty) {
+        setForm((f) => fillEmptyFields(f, d));
+      } else {
+        const merged = mergeAiDraft(formRef.current, memory.current, d);
+        memory.current = merged.memory;
+        setForm(() => merged.form);
+      }
       onDraft?.(d);
       setState({ status: "done", draft: d });
     } catch (err) {
@@ -133,7 +165,19 @@ export function useSellAiDraft<F extends AiFields>({
   useEffect(() => {
     if ((autoStart || autoFillEmpty) && ask && !ran.current) void run(!autoStart);
   }, [autoStart, autoFillEmpty, ask, run]);
-  return { state, run: () => run(false) };
+  // A photo added after the first answer is read too, once Claude has finished; only what isn't the seller's changes.
+  const status = state.status;
+  useEffect(() => {
+    if (!autoStart || !ask || !ran.current || status !== "done") return;
+    if (photosAdded > readPhotos.current && readPhotos.current < AI_DRAFT_PHOTOS) void run(false);
+  }, [autoStart, ask, photosAdded, status, run]);
+  /** A listing brought back from this device: what was ours and what was theirs, and that the photos have been read. */
+  const remember = useCallback((m: AiMemory | null, photos: number) => {
+    memory.current = m;
+    readPhotos.current = photos;
+    ran.current = !!m;
+  }, []);
+  return { state, run: () => run(false), memory, remember };
 }
 
 /** Claude's suggested price and its one-line reason (owner 2026-10-29); nothing when there is none. */
@@ -152,14 +196,14 @@ export function AiPriceLine({ draft }: { draft: AiDraft }) {
  * on "the next steps"; a saved draft's step form keeps the step words.
  */
 const AI_CHANGE_HINT = { oneScreen: "Check it below and change anything.", steps: "Check it and change anything on the next steps." } as const;
-export function SellAiDraftPanel({ state, onRun, oneScreen = false }: { state: AiState; onRun: () => void; oneScreen?: boolean }) {
+export function SellAiDraftPanel({ state, onRun, oneScreen = false, free = false }: { state: AiState; onRun: () => void; oneScreen?: boolean; free?: boolean }) {
   if (state.status === "busy") {
     return (
       <div role="status" aria-live="polite" data-ai-draft="busy" className="flex items-start gap-3 rounded-[20px] border border-border bg-card p-4">
         <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-[hsl(var(--sage-ink))]" aria-hidden />
         <div className="min-w-0">
           <p className="text-ds-15 font-semibold text-foreground">We're writing your listing…</p>
-          <p className="mt-0.5 text-ds-13 text-muted-foreground">It looks at your photos for the name, details, category, size, condition and a fair price. This takes a few seconds.</p>
+          <p className="mt-0.5 text-ds-13 text-muted-foreground">It looks at your photos for the name, details, category, size, condition{free ? "" : " and a fair price"}. This takes a few seconds.</p>
         </div>
       </div>
     );
@@ -177,14 +221,15 @@ export function SellAiDraftPanel({ state, onRun, oneScreen = false }: { state: A
             <span className="font-semibold">One more photo would help:</span> {d.photoTip}
           </p>
         )}
-        <div className="space-y-1">
+        {/* On the one screen the rows below hold all of this; said twice, it pushed them off the first screen (audit posting 1030 #17). */}
+        {!oneScreen && <div className="space-y-1">
           <p className="text-ds-17 font-bold text-foreground [overflow-wrap:anywhere]" data-ai-title="">{d.title}</p>
           <p className="text-ds-13 text-muted-foreground">
             {[CATEGORY_LABEL[d.category] ?? d.category, CONDITION_LABEL[d.conditionStars], SIZE_LABEL[d.deliverySize]].filter(Boolean).join(" · ")}
           </p>
           {d.description && <p className="line-clamp-3 text-ds-14 text-foreground [overflow-wrap:anywhere]">{d.description}</p>}
-          <AiPriceLine draft={d} />
-        </div>
+          {!free && <AiPriceLine draft={d} />}
+        </div>}
         {d.flagged && (
           <p className="text-ds-13 font-semibold text-foreground">
             This item may not be allowed, so someone from Louisiana Helpr will look at it before it goes up.

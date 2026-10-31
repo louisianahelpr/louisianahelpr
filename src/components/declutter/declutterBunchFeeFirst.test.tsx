@@ -9,7 +9,7 @@
  * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items.filter((it) => !bunchItemProblem(it));
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const blocked = busy; |   const blocked = busy \|\| feeDue != null;
  * @mutate src/components/declutter/BunchDraftsSection.tsx |   const drafts = feeDue ? saved.filter((i) => i.current_price_cents === 0) : saved; |   const drafts = saved;
- * @mutate src/components/declutter/BunchDraftsSection.tsx |     if (checks.some((c) => !c)) { |     if (false) {
+ * @mutate src/components/declutter/BunchDraftsSection.tsx |     if (!attested) { |     if (false) {
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -46,11 +46,13 @@ vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: React.ReactNode }) => <main>{children}</main> }));
 vi.mock("@/lib/declutter/setupFee", async (orig) => ({ ...(await orig<object>()), payAccountSetupFee: h.pay }));
 vi.mock("@/lib/declutter/moves", async (orig) => ({ ...(await orig<object>()), publishMany: h.publishMany }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [] }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<object>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<object>()),
   fetchMyItems: async () => h.mine,
+  fetchPhotos: async (ids: string[]) => ids.map((id) => ({ item_id: id })),
   fetchMyPickupWindows: async () => [],
 }));
 
@@ -133,10 +135,10 @@ describe("List all my drafts", () => {
     renderFlow();
     const button = await screen.findByRole("button", { name: "List all my drafts" });
     fireEvent.click(button);
-    expect(await screen.findByText("All four statements need a check before you can list your drafts.")).toBeTruthy();
+    expect(await screen.findByText("Tick the box under the four statements before you list your drafts.")).toBeTruthy();
     expect(h.publishMany).not.toHaveBeenCalled();
 
-    for (let i = 0; i < 4; i++) fireEvent.click(document.getElementById(`bunch-drafts-tax-${i}`)!);
+    fireEvent.click(document.getElementById("bunch-drafts-tax")!);
     fireEvent.click(button);
     await waitFor(() => expect(h.publishMany).toHaveBeenCalledTimes(1));
     expect(h.publishMany.mock.calls[0][0]).toEqual(["d1", "d2"]);
@@ -174,7 +176,7 @@ describe("List all my drafts", () => {
     renderFlow();
     const button = await screen.findByRole("button", { name: "List my free drafts" });
     expect(screen.getByText(/1 priced draft waits for the setup fee\./)).toBeTruthy();
-    for (let i = 0; i < 4; i++) fireEvent.click(document.getElementById(`bunch-drafts-tax-${i}`)!);
+    fireEvent.click(document.getElementById("bunch-drafts-tax")!);
     fireEvent.click(button);
     await waitFor(() => expect(h.publishMany).toHaveBeenCalledTimes(1));
     expect(h.publishMany.mock.calls[0][0]).toEqual(["f1", "f2"]);

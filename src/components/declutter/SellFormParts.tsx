@@ -14,7 +14,7 @@ import { ChipGroup, DropSchedule, StepperButton, dropRunTime } from "./Declutter
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import { SellHandoverChoices } from "./SellHandoverChoices";
 import { SavedPlacesComeFirst, useHasPorchPlaces } from "./SellPorchPlaces";
-import { TAX_ATTESTATION_SENTENCE } from "./declutterUi";
+import { TaxStatementsCheck } from "./declutterUi";
 import { DROPS_SWITCH_LABEL, priceTooLowForDrops } from "./sellForm";
 import type { SellFlow } from "./useSellFlowState";
 
@@ -67,8 +67,8 @@ export function SellFreeToggle({ s }: { s: SellFlow }) {
     </label>
     {form.free && (
       <p className="text-ds-14 text-muted-foreground" data-sell-free-note="">
-        Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up at
-        your door or from your porch, and nothing is charged.
+        Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up
+        from your porch, and nothing is charged.
       </p>
     )}
   </>);
@@ -88,7 +88,7 @@ export function SellDropsCard({ s, offerRules }: { s: SellFlow; offerRules?: Rea
         <label htmlFor="sell-drops" className="min-w-0 flex-1">
           <span className="block text-ds-15 font-semibold text-foreground">{DROPS_SWITCH_LABEL}</span>
           <span className="block text-ds-13 text-muted-foreground">
-            {tooLow ? "At this price there's nothing lower to drop to, so it stays at your price." : on ? `It drops ${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price.` : "Off. It stays at your price until you change it."}
+            {tooLow ? "At this price there's nothing lower to drop to, so it stays at your price." : on ? `On. It drops ${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price. Turn this off if it should never drop.` : "Off. It stays at your price until you change it."}
           </span>
         </label>
         <Switch id="sell-drops" checked={on} disabled={tooLow} onCheckedChange={(v) => setForm((f) => ({ ...f, drops: v === true }))} />
@@ -149,17 +149,14 @@ export function SellWaysFields({ s }: { s: SellFlow }) {
   </>);
 }
 
-/** ONE tax checkbox stating the four facts (row 54; owner 2026-10-28; attestItem records all four). */
+/** The four statements above ONE checkbox (row 54; owner 2026-10-28 and 2026-10-30; attestItem records all four). */
 export function SellTaxBox({ s }: { s: SellFlow }) {
-  const { attested, setAttested } = s;
+  const { attested, setAttested, form } = s;
   return (
     <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax-head" data-sell-tax="">
       <h3 id="sell-tax-head" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>
-      <p className="text-ds-13 text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things.</p>
-      <div className="flex items-start gap-3 text-ds-14">
-        <Checkbox id="sell-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} />
-        <label htmlFor="sell-tax">{TAX_ATTESTATION_SENTENCE}</label>
-      </div>
+      {!form.free && <p className="text-ds-13 text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things.</p>}
+      <TaxStatementsCheck id="sell-tax" checked={attested} onChange={setAttested} free={form.free} />
     </div>
   );
 }

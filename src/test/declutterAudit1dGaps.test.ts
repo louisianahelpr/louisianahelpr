@@ -7,8 +7,8 @@
  *  - D4-13: Sell a bunch showed a grey "40" in an empty Price box (it read like a value) and cut the title.
  *  - D4-14: going offline mid-post said "Something went wrong. Please try again."
  *
- * @mutate src/components/declutter/DeclutterMoveView.tsx |             <Link to={movingDayPostJobPath(current)}>Hire a Helpr for moving day</Link> |             <Link to="/post-job">Hire a Helpr for moving day</Link>
- * @mutate src/components/declutter/DeclutterMoveView.tsx | <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current)}>Haul away what's left</Link> | <Link to="/post-job">Haul away what's left</Link>
+ * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx |               <Link to={movingDayPostJobPath(current ?? date)}>Hire a Helpr for moving day</Link> |               <Link to="/post-job">Hire a Helpr for moving day</Link>
+ * @mutate src/components/declutter/DeclutterBunchMovingSale.tsx | <Link to={haulIds.length > 0 ? haulAwayPostJobPath(haulIds) : movingDayPostJobPath(current ?? date)}>Haul away what's left</Link> | <Link to="/post-job">Haul away what's left</Link>
  * @mutate src/pages/post-job/usePrefillOpensDetails.ts | MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM] as const; | MATCHMAKER_PARAM, MOVING_DAY_PARAM] as const;
  * @mutate src/pages/post-job/usePrefillOpensDetails.ts | MATCHMAKER_PARAM, "haulAway", MOVING_DAY_PARAM] as const; | MATCHMAKER_PARAM, "haulAway"] as const;
  * @mutate src/pages/post-job/usePostJobForm.ts | searchParams.get(MATCHMAKER_PARAM) \|\| searchParams.get(MOVING_DAY_PARAM)); | searchParams.get(MATCHMAKER_PARAM));
@@ -16,7 +16,7 @@
  * @mutate src/pages/post-job/FormStep.tsx |           {form.haulAwayItemIds && form.haulAwayItemIds.length > 0 && ( |           {false && (
  * @mutate src/lib/declutter/movingDayJob.ts |   const date = YMD.test(param) && param >= today ? param : null; |   const date = YMD.test(param) ? param : null;
  * @mutate src/components/declutter/DeclutterBunchCard.tsx | onChange={(e) => onChange({ price: e.target.value })} placeholder="Set a price" /> | onChange={(e) => onChange({ price: e.target.value })} placeholder="40" />
- * @mutate src/components/declutter/DeclutterBunchCard.tsx |         <h3 className="min-w-0 break-words text-ds-15 font-semibold">{name}</h3> |         <h3 className="min-w-0 truncate text-ds-15 font-semibold">{name}</h3>
+ * @mutate src/components/declutter/DeclutterBunchRow.tsx | <span id={nameId} className="block break-words text-ds-14 font-semibold">{name}</span> | <span id={nameId} className="block truncate text-ds-14 font-semibold">{name}</span>
  * @mutate src/lib/declutter/errors.ts |   if (deviceOffline()) return DECLUTTER_OFFLINE_COPY; |   if (false) return DECLUTTER_OFFLINE_COPY;
  * @mutate src/lib/declutter/errors.ts |   if (isNetworkFailure(err)) return CONNECTION_TROUBLE_COPY; |   if (false) return CONNECTION_TROUBLE_COPY;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | ? `${msg} We kept what you typed.` : msg); | ? msg : msg);
@@ -45,8 +45,8 @@ describe("D4-6: every Declutter link to Post a job is pre-filled", () => {
   });
 
   it("the moving sale's two links: moving day carries the move-out date, haul-away the listed items", () => {
-    const src = code(`${dir}/DeclutterMoveView.tsx`);
-    expect(src).toContain("<Link to={movingDayPostJobPath(current)}>Hire a Helpr for moving day</Link>");
+    const src = code(`${dir}/DeclutterBunchMovingSale.tsx`);
+    expect(src).toContain("<Link to={movingDayPostJobPath(current ?? date)}>Hire a Helpr for moving day</Link>");
     expect(src).toContain("haulAwayPostJobPath(haulIds)");
     expect(movingDayPostJobPath("2026-11-15")).toBe(`/post-job?${MOVING_DAY_PARAM}=2026-11-15`);
     expect(movingDayPostJobPath(null)).toBe(`/post-job?${MOVING_DAY_PARAM}=1`);
@@ -98,10 +98,11 @@ describe("D4-13: Sell a bunch never shows a number where no price was set, and t
     const ph = price.match(/placeholder="([^"]*)"/)?.[1];
     expect(ph).toBeDefined();
     expect(ph).not.toMatch(/\d/);
-    const h3 = src.match(/<h3 className="[^"]*">\{name\}<\/h3>/)?.[0] ?? "";
-    expect(h3).not.toBe("");
-    expect(h3).not.toContain("truncate");
-    expect(h3).toContain("break-words");
+    // The row is what says the name now.
+    const name = code("src/components/declutter/DeclutterBunchRow.tsx").match(/<span id=\{nameId\} className="[^"]*">\{name\}<\/span>/)?.[0] ?? "";
+    expect(name).not.toBe("");
+    expect(name).not.toContain("truncate");
+    expect(name).toContain("break-words");
   });
 });
 

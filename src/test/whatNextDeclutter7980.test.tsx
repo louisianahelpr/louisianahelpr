@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | cents={sentCents} returnFocusTo={panel} onClose | cents={sentCents} onClose
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <section ref={panel} tabIndex={-1} className | <section ref={panel} className
  * @mutate src/components/declutter/ListedWhatNext.tsx |   const drop = live ? nextPriceDrop(it) : null; |   const drop = live ? { at: new Date(), lowestCents: 1 } : null;
- * @mutate src/components/declutter/useSellFlowState.ts |       navigate("/declutter?view=selling", { state: { justListed: { itemId: id, status } } }); |       navigate("/declutter?view=selling");
+ * @mutate src/components/declutter/useSellFlowState.ts |       navigate("/declutter?tab=selling", { state: { justListed: { itemId: id, status } } }); |       navigate("/declutter?tab=selling");
  */
 import { useRef, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -106,6 +106,18 @@ describe("board 79: closing Offer sent", () => {
 });
 
 describe("board 80: after listing", () => {
+  // Audit posting 1030 #12: a giveaway's sheet reads as one.
+  // @mutate src/components/declutter/ListedWhatNext.tsx |   const free = it.current_price_cents === 0; |   const free = false;
+  it("a free listing says free and claimed, never price or buyers", async () => {
+    items.f = { id: "f", title: "Box of books", status: "live", sale_mode: "offers", current_price_cents: 0, live_at: new Date().toISOString() };
+    renderListed("f", "live");
+    expect(await screen.findByRole("heading", { name: "Your free listing is live" })).toBeTruthy();
+    const text = screen.getByTestId("what-next-sheet").textContent ?? "";
+    expect(text).toContain("Listed for free");
+    expect(text).toContain("When it's claimed");
+    expect(text).not.toMatch(/\$0|up for sale|When it sells|Buyers ask/);
+  });
+
   it("a live offers listing shows its price and the next possible drop", async () => {
     items.a = { id: "a", title: "Brass lamp", status: "live", sale_mode: "offers", current_price_cents: 4000, live_at: new Date(Date.now() - 60e3).toISOString(), last_price_drop_on: null };
     renderListed("a", "live");

@@ -7,11 +7,11 @@
  * DeclutterQuestions; messages open after checkout). Share and
  * the watch heart (row 46) sit on the title row. Two columns from lg.
  */
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -52,7 +52,7 @@ import { ItemPickupTimes } from "./DeclutterPickupWindows";
 import { ItemPickupWays } from "./ItemPickupWays";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
-import { nextPriceDrop } from "@/lib/declutter/priceDrop";
+import { nextPriceDrop, sellerStateStopsDrops } from "@/lib/declutter/priceDrop";
 import { shareListing } from "./DeclutterShareCard";
 import { ReopenListingButton } from "./DeclutterTakenDown";
 import { DeclutterReportListing } from "./DeclutterReportListing";
@@ -62,6 +62,9 @@ function addressNote(free: boolean, isSeller: boolean): string {
   if (isSeller) return free ? "Buyers see your exact address only once they choose a pickup." : "Buyers see your exact address only after they pay.";
   return free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay.";
 }
+
+/** What a pressed Buy or Offer says in the seller's own preview. */
+const PREVIEW_ACTION_NOTE = "This is your listing. Buyers can press this; you can't buy your own.";
 
 /** One label / value row of the details list. */
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -88,7 +91,14 @@ export default function ItemView({ itemId }: { itemId: string }) {
     queryFn: () => fetchWatching(user!.id),
     enabled: !!user,
   });
-  const isSeller = !!user && item.data?.seller_id === user.id;
+  const ownListing = !!user && item.data?.seller_id === user.id;
+  // "See what buyers see" (owner 2026-10-30, ?preview=buyer): the seller's own listing as a buyer reads it. The seller's
+  // panels and private reads are off, as for anyone else; actions show but only say this is their listing. Only the
+  // seller gets it: the same link for anyone else is the ordinary page. No server read changes.
+  const [params] = useSearchParams();
+  const preview = ownListing && params.get("preview") === "buyer";
+  const [previewPressed, setPreviewPressed] = useState(false);
+  const isSeller = ownListing && !preview;
   // A failed read hides the drop line (nothing is promised); the item itself still shows.
   const dropState = useQuery({
     queryKey: ["declutter", "item-drop", itemId],
@@ -125,17 +135,29 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const miles =
     geo.status === "ready" ? milesBetween({ lat: geo.lat, lng: geo.lng }, { lat: Number(it.area_lat), lng: Number(it.area_lng) }) : null;
   // Audit DC-7: the seller's own listing is not "About 52 mi away" from them; no distance on their own page.
-  const away = isSeller ? null : milesLabel(miles, geo.status === "ready" && geo.approximate);
+  const away = ownListing ? null : milesLabel(miles, geo.status === "ready" && geo.approximate);
   const forSale = it.status === "live" || it.status === "reserved";
   const canAct = !isSeller && forSale;
+  // On the page, not a toast: toast.info renders nothing (src/lib/toastPolicy.ts), so Tester 5's press showed no note.
+  const noteOwnListing = () => setPreviewPressed(true);
   // DA-6 (Declutter audit 2026-10-30): a member who is not the seller reads an item that is no longer for sale only
   // through a PAID cart line of their own (items read policy, 20261030080020): they bought or claimed it.
-  const boughtByMe = !isSeller && !forSale;
+  const boughtByMe = !ownListing && !forSale;
 
   const free = isFreeItem(it);
   const dropped = it.current_price_cents < it.price_cents;
   // Board 4: the next drop only from the real rule (priceDrop.ts), never a promise the server may not keep.
-  const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null;
+  const planned = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null;
+  // The seller's own listing also knows its private lowest price and whether they stopped the drops: one that can't drop says nothing.
+  const sellerState = isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" ? sellerDrops.data : null;
+  const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null;
+  const actions = (<>
+    {canAct && <DeclutterBundleRow item={it} viewerId={user?.id ?? null} />}
+
+    {/* Buy now and Make an offer sit right under the price and seller (owner, 2026-10-19). */}
+    {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
+    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)}
+  </>);
   const urls = (photos.data ?? []).map((p) => photoPublicUrl(p.storage_path));
 
   return (
@@ -163,7 +185,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
               aria-label={isWatching ? "Stop watching this item" : "Watch this item"}
               className={`w-11 h-11 rounded-full border border-border flex items-center justify-center ${isWatching ? "text-[hsl(var(--burnt-sienna))]" : ""}`}
               disabled={toggleWatch.isPending}
-              onClick={() => toggleWatch.mutate()}
+              onClick={() => (preview ? noteOwnListing() : toggleWatch.mutate())}
             >
               <Heart className="w-5 h-5" fill={isWatching ? "currentColor" : "none"} />
             </button>
@@ -190,7 +212,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
               </p>
               <ConditionChip stars={it.condition_stars} />
             </div>
-            {drop && !(isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" && sellerDrops.data.drops_stopped) && (
+            {drop && (
               <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} />
             )}
             {/* The title once (audit #47): the desktop page header already prints it. The condition is said once too:
@@ -207,6 +229,15 @@ export default function ItemView({ itemId }: { itemId: string }) {
               </p>
             )}
           </section>
+
+          {preview && (
+            <div data-item-preview="">
+              <DeclutterNotice title="This is what buyers see">
+                <Link to={`/declutter/item/${it.id}`} className="font-semibold underline underline-offset-2">Back to your listing</Link>
+                {previewPressed && <p role="status" className="mt-1 font-semibold text-foreground" data-preview-note="">{PREVIEW_ACTION_NOTE}</p>}
+              </DeclutterNotice>
+            </div>
+          )}
 
           {/* The Free change (Q2487): the giver sees who asked and picks one. */}
           {isSeller && it.status === "live" && free && <FreeRequestsForGiver item={it} />}
@@ -231,11 +262,18 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
 
-          {canAct && <DeclutterBundleRow item={it} viewerId={user?.id ?? null} />}
-
-          {/* Buy now and Make an offer sit right under the price and seller (owner, 2026-10-19). */}
-          {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
-          {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)}
+          {/* A preview shows what a buyer would press; pressing it only says whose listing this is (the server refuses
+              a seller's own listing anyway). Capture: no click or submit reaches the real panels. */}
+          {preview ? (
+            <div
+              className="space-y-5"
+              data-item-actions="preview"
+              onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); noteOwnListing(); }}
+              onSubmitCapture={(e) => { e.preventDefault(); e.stopPropagation(); noteOwnListing(); }}
+            >
+              {actions}
+            </div>
+          ) : actions}
 
           {!free && <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />}
 
@@ -262,10 +300,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
             {!boughtByMe && <p className="text-xs text-muted-foreground" data-item-address-note="">{addressNote(free, isSeller)}</p>}
           </section>
 
-          <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} free={free} />
+          <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user && !preview} free={free} />
 
           {/* Item B (owner 2026-10-29): listings go live when posted; a member's report is what reaches an admin. */}
-          {!isSeller && user && <DeclutterReportListing itemId={itemId} />}
+          {!ownListing && user && <DeclutterReportListing itemId={itemId} />}
         </div>
       </div>
       {!isSeller && (

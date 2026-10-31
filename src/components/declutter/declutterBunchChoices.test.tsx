@@ -8,9 +8,9 @@
  * @mutate src/components/declutter/BunchChoices.tsx |     if (ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? ways : w)); |     void ways;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows); |       await setPickupWindows(windows);
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (result.out.some((o) => "status" in o)) void choices.remember(savedWays); |       void result.out;
- * @mutate src/components/declutter/DeclutterBunchView.tsx | undefined, onStep, choices.choices, | undefined, onStep,
+ * @mutate src/components/declutter/DeclutterBunchView.tsx | undefined, onStep, { ...choices.choices, moveOutOn: moveDate \|\| null }, | undefined, onStep,
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |           {!item.free && (\n            <div> |           {(\n            <div>
- * @mutate src/components/declutter/DeclutterBunchCard.tsx |             <Checkbox checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} /> |             <Checkbox checked={!!item.free} />
+ * @mutate src/components/declutter/DeclutterBunchCard.tsx |             <Checkbox aria-label={`Give ${name} away free`} checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} /> |             <Checkbox checked={!!item.free} />
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -18,14 +18,17 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { BunchChoices, BunchItem } from "@/lib/declutter/bunch";
 import type { SellerDefaults } from "@/lib/declutter/sellerDefaults";
+import type { MyPorchPlace } from "@/lib/declutter/porchPlaces";
 
 const state = vi.hoisted(() => ({
   saved: null as SellerDefaults | null,
   remembered: [] as SellerDefaults[],
   windows: [] as { weekday: number; starts_local: string; ends_local: string }[],
   windowWrites: 0,
-  listed: [] as { ways: string[]; choices: BunchChoices | undefined; items: BunchItem[] }[],
+  listed: [] as { ways: string[]; choices: BunchChoices | undefined; items: BunchItem[]; place: unknown }[],
   feeDue: null as number | null,
+  places: [] as MyPorchPlace[],
+
 }));
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
@@ -41,9 +44,10 @@ vi.mock("@/components/declutter/useBunchSaved", () => ({
 vi.mock("@/components/AppPage", () => ({
   default: ({ title, children }: { title: string; children: React.ReactNode }) => (<main><h1>{title}</h1>{children}</main>),
 }));
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
-vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => ({ status: "exact", lat: 30.4, lng: -91.1 }) }));
+const geocodeCalls = vi.hoisted(() => ({ n: 0 }));
+vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: async () => { geocodeCalls.n++; return { status: "exact", lat: 30.4, lng: -91.1 }; } }));
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => state.places }));
 vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }));
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({
   ...(await orig<object>()),
@@ -60,12 +64,12 @@ vi.mock("@/lib/declutter/bunch", async (orig) => {
   return {
     ...real,
     groupPhotos: async (photos: { key: string }[], onProgress: (done: number, total: number, made: BunchItem[]) => void) => {
-      const items = [{ ...real.blankItem([photos[0].key, photos[1].key]), key: "i1", title: "Oak chair", description: "Solid.", category: "furniture" }];
+      const items = [{ ...real.blankItem([photos[0].key, photos[1].key]), key: "i1", title: "Oak chair", description: "Solid.", category: "furniture", sizeUnknown: false }];
       onProgress(1, 1, items);
       return { items, failed: [], unusable: [] };
     },
-    listBunch: async (_s: string, items: BunchItem[], _p: unknown, _pl: unknown, ways: string[], _op: unknown, _d: unknown, _st: unknown, choices?: BunchChoices) => {
-      state.listed.push({ ways, choices, items });
+    listBunch: async (_s: string, items: BunchItem[], _p: unknown, place: unknown, ways: string[], _op: unknown, _d: unknown, _st: unknown, choices?: BunchChoices) => {
+      state.listed.push({ ways, choices, items, place });
       return items.map((i) => ({ key: i.key, title: i.title, status: "live" as const, keepUpFailed: true }));
     },
   };
@@ -78,7 +82,7 @@ beforeAll(() => {
   URL.createObjectURL = () => `blob:test/${++n}`;
   URL.revokeObjectURL = () => {};
 });
-beforeEach(() => { state.saved = null; state.remembered = []; state.windows = []; state.windowWrites = 0; state.listed = []; state.feeDue = null; });
+beforeEach(() => { state.saved = null; state.remembered = []; state.windows = []; state.windowWrites = 0; state.listed = []; state.feeDue = null; state.places = []; geocodeCalls.n = 0; });
 afterEach(cleanup);
 
 async function open() {
@@ -87,8 +91,9 @@ async function open() {
   const files = ["a", "b"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" }));
   fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
   await screen.findByRole("heading", { name: /^3\. Check each item/ });
-  await screen.findByText(/Tick every way that works for you/);
+  await screen.findByRole("heading", { name: /^\d\. List/ });
 }
+const openRows = () => document.querySelectorAll<HTMLElement>('[data-bunch-expand][aria-expanded="false"]').forEach((b) => fireEvent.click(b));
 const switchOf = (name: RegExp) => screen.getByRole("switch", { name });
 const isOn = (el: HTMLElement) => el.getAttribute("aria-checked") === "true";
 const DROPS = /Lower the price/;
@@ -97,7 +102,7 @@ const KEEP = /Keep it up/;
 async function listIt() {
   fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
   fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
-  for (let i = 0; i < 4; i++) fireEvent.click(document.getElementById(`bunch-tax-${i}`)!);
+  fireEvent.click(document.getElementById("bunch-tax")!);
   const list = await screen.findByRole("button", { name: "List 1 item" });
   await waitFor(() => expect((list as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(list);
@@ -111,7 +116,7 @@ describe("Sell a bunch: listing choices", () => {
     expect(isOn(switchOf(KEEP))).toBe(true);
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
-    expect(state.listed[0].choices).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50 });
+    expect(state.listed[0].choices).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, moveOutOn: null });
     await waitFor(() => expect(state.remembered).toHaveLength(1));
     expect(state.remembered[0]).toMatchObject({ keepUp: true, drops: true, handovers: ["porch"] });
     expect(await screen.findByText(/didn't turn on for 1 item/)).toBeTruthy();
@@ -120,21 +125,54 @@ describe("Sell a bunch: listing choices", () => {
   it("saved choices start the switches and the ways, and a switch the seller flips is what lists", async () => {
     state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: 14, handovers: ["meetup"] };
     await open();
-    await waitFor(() => expect(isOn(switchOf(DROPS))).toBe(false));
-    expect(isOn(switchOf(KEEP))).toBe(false);
-    fireEvent.click(switchOf(DROPS));
+    // Saved settings are one line (owner 2026-10-30), saying the price choice; no form, and they reach the listing.
+    const line = await waitFor(() => { const el = document.querySelector("[data-bunch-list-saved]") as HTMLElement; expect(el).not.toBeNull(); return el; });
+    expect(line.textContent).toContain("Price drops: off.");
+    expect(within(line).getByRole("link", { name: "Settings" })).toBeTruthy();
+    expect(screen.queryByText(/Tick every way that works for you/)).toBeNull();
+    expect(screen.queryByRole("switch", { name: DROPS })).toBeNull();
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
-    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: true, dropPct: 15, floorPct: 70 });
+    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, moveOutOn: null });
     expect(state.listed[0].ways).toEqual(["meetup"]);
     await waitFor(() => expect(state.remembered[0]?.freeAfterDays).toBe(14));
   });
 
+  it("a saved pickup place fills it, one line says which, exact point, and first-timers still get the boxes", async () => {
+    state.places = [
+      { id: "p2", position: 2, label: "Mom's house", address: "2 Oak St, Baton Rouge, LA", area: "Garden District", lat: 30.2, lng: -91.2, weekdays: [6] },
+      { id: "p1", position: 1, label: "Home", address: "1 Main St, Baton Rouge, LA", area: "Mid-City", lat: 30.45123, lng: -91.15456, weekdays: [0] },
+    ];
+    state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"] };
+    await open();
+    const where = await waitFor(() => { const el = document.querySelector("[data-saved-pickup]") as HTMLElement; expect(el).not.toBeNull(); return el; });
+    expect(where.textContent).toContain("Pickup at Home, Mom's house. Buyers pick one.");
+    expect(screen.queryByRole("heading", { name: /Where buyers pick up/ })).toBeNull();
+    expect(screen.queryByLabelText("Pickup address")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
+    fireEvent.click(document.getElementById("bunch-tax")!);
+    const list = await screen.findByRole("button", { name: "List 1 item" });
+    await waitFor(() => expect((list as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(list);
+    await waitFor(() => expect(state.listed).toHaveLength(1));
+    // The place's own exact point, not the address looked up again (geocode mock answers 30.4, -91.1).
+    expect(state.listed[0].place).toMatchObject({ areaLabel: "Mid-City", pickupAddress: "1 Main St, Baton Rouge, LA", pickupLat: 30.45123, pickupLng: -91.15456 });
+    expect(geocodeCalls.n).toBe(0);
+  });
+
+  it("nothing saved: the area and address boxes show, with no saved-settings line", async () => {
+    await open();
+    expect(screen.getByLabelText("Pickup address")).toBeTruthy();
+    expect(screen.queryByText("Using your saved settings")).toBeNull();
+    expect(document.querySelector("[data-bunch-list-saved]")).toBeNull();
+  });
+
   it("the Free tick takes the price box and hint away, says the rule, and the item is ready", async () => {
     await open();
+    openRows();
     const card = document.querySelector("[data-bunch-item]") as HTMLElement;
     expect(within(card).getByText("fair price hint")).toBeTruthy();
-    fireEvent.click(within(card).getByRole("checkbox", { name: /Give it away free/ }));
+    fireEvent.click(within(card).getByRole("checkbox", { name: /away free/ }));
     expect(within(card).queryByLabelText("Price ($)")).toBeNull();
     expect(within(card).queryByText("fair price hint")).toBeNull();
     expect(screen.getByRole("heading", { name: "3. Check each item (1 of 1 ready)" })).toBeTruthy();
@@ -149,13 +187,14 @@ describe("Sell a bunch while the setup fee is due", () => {
   it("a free item lists together with no fee (the server asks none at price 0); a priced one waits and is named", async () => {
     state.feeDue = 200;
     await open();
+    openRows();
     const card = document.querySelector("[data-bunch-item]") as HTMLElement;
     fireEvent.change(within(card).getByLabelText("Price ($)"), { target: { value: "40" } });
     expect(screen.getByRole("heading", { name: "3. Check each item (1 of 1 ready)" })).toBeTruthy();
     expect(document.querySelector("[data-bunch-fee-held]")?.textContent).toContain("1 priced item waits for the setup fee above");
     expect((screen.getByRole("button", { name: "List 0 items" }) as HTMLButtonElement).disabled).toBe(true);
 
-    fireEvent.click(within(card).getByRole("checkbox", { name: /Give it away free/ }));
+    fireEvent.click(within(card).getByRole("checkbox", { name: /away free/ }));
     expect(document.querySelector("[data-bunch-fee-held]")).toBeNull();
     await listIt();
     expect(state.listed[0].items.map((i) => i.free)).toEqual([true]);

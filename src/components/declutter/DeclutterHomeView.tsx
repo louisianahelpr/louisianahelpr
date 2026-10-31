@@ -12,7 +12,7 @@
  */
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,14 +43,14 @@ import { firstPhotos } from "./DeclutterItemCard";
 import { ManageListingSheet } from "./DeclutterManageListing";
 import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
-import { dropOutlook } from "@/lib/declutter/browseFilters";
+import { useMyDropsTonight } from "./useMyDropsTonight";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
 import { OrdersUpdating } from "./OrdersUpdating";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_CHOOSER_PATH, SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { SectionScreen } from "@/components/sections/SectionScreen";
@@ -173,6 +173,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
+  const dropsTonight = useMyDropsTonight(mine.data ?? [], myDrops.data);
   // The Free change (Q2487): each live free listing shows its open asks as "Requests (n)"; read only when there is one.
   const anyFreeLive = (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0);
   const freeAsks = useQuery({ queryKey: ["declutter", "free-request-counts", userId], queryFn: () => fetchOpenFreeRequestCounts(userId), enabled: anyFreeLive });
@@ -301,7 +302,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           line, the price in money ink; the actions sit at the row's right end from sm up (owner 2026-10-28). */}
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" data-selling-list="">
         {list.map((item) => {
-          const drop = item.status === "live" && dropOutlook(item, myDrops.data?.get(item.id)).tonight;
+          const drop = dropsTonight.has(item.id);
           const thumb = myCover.get(item.id);
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
@@ -331,6 +332,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                 ) : (
                   <Button asChild variant="outline" size="sm">
                     <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
+                  </Button>
+                )}
+                {item.status === "live" && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={`See what buyers see of ${item.title}`}>See what buyers see</Link>
                   </Button>
                 )}
                 {(item.status === "live" || item.status === "paused") && (
@@ -398,6 +404,12 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
   return (
     <div className="space-y-6">
       <ListedWhatNext />
+      {/* Audit posting 1030 #11: on a phone this tab had no way to sell. The photo screen directly, and one small line
+          to the other ways. The header has its own add action on desktop. */}
+      <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
+        <Button asChild className="shrink-0 rounded-full"><Link to={SELL_ONE_PATH}>Sell an item</Link></Button>
+        <Link to={SELL_CHOOSER_PATH} className="min-h-11 content-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Free, a bunch, or moving out?</Link>
+      </div>
       <SellingDash
         todo={todo}
         userId={userId}
@@ -491,6 +503,7 @@ function useSelectedTabInView(view: string) {
 export default function DeclutterHome() {
   const { user } = useCurrentUser();
   const [params, setParams] = useSearchParams();
+  const location = useLocation();
   // W14: "Wanted" exists only while its own switch is on for this member.
   // The tab row waits for that answer (Q?declutter-settle): painted before it,
   // the Wanted tab arrived ~20 ms later and, at 375, wrapped the row onto a
@@ -521,7 +534,8 @@ export default function DeclutterHome() {
   const view: DeclutterTab = subView ?? fromView ?? sectionTab;
   const tabRowRef = useSelectedTabInView(tabsReady ? view : "");
   // An old ?view= link is rewritten to ?tab= once the badges' reads are in
-  // (they decide which side an offers/cart link meant), keeping its other params.
+  // (they decide which side an offers/cart link meant), keeping its other params and its router state
+  // (audit posting 1030 #3: dropping it closed "Your listing is live" before it opened).
   useEffect(() => {
     if (!fromView || !tabsReady) return;
     setParams((p) => {
@@ -530,8 +544,8 @@ export default function DeclutterHome() {
       if (fromView === "browse") next.delete("tab");
       else next.set("tab", fromView);
       return next;
-    }, { replace: true });
-  }, [fromView, tabsReady, setParams]);
+    }, { replace: true, state: location.state });
+  }, [fromView, tabsReady, setParams, location.state]);
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
   // Browse adds its count and (desktop) search, filters and map at the row's end, or (phone) its search row under

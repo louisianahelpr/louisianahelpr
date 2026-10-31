@@ -125,7 +125,8 @@ export interface StripeMock {
     /** Q1782 (2): stripe-webhook reads a visit's tax transaction lines to size a refund's reversal. */
     transactions: { createFromCalculation: ReturnType<typeof vi.fn>; createReversal: ReturnType<typeof vi.fn>; listLineItems: ReturnType<typeof vi.fn> };
   };
-  payouts: { create: ReturnType<typeof vi.fn> };
+  /** `list`: instant-payout's fee return asks Stripe whether the attempt's payout really went. */
+  payouts: { create: ReturnType<typeof vi.fn>; list: ReturnType<typeof vi.fn> };
   charges: {
     retrieve: ReturnType<typeof vi.fn>;
   };
@@ -238,6 +239,7 @@ export const stripeMock: StripeMock = {
   },
   payouts: {
     create: vi.fn(),
+    list: vi.fn().mockResolvedValue({ data: [] }),
   },
   charges: {
     retrieve: vi.fn(),
@@ -333,6 +335,7 @@ export function resetStripeMock() {
   // on a resume, and a reset mock returning undefined would make every resume
   // fail closed with "could not verify prior transfers".
   stripeMock.transfers.list.mockResolvedValue({ data: [] });
+  stripeMock.payouts.list.mockResolvedValue({ data: [] });
   stripeMock.transfers.listReversals.mockResolvedValue({ data: [] });
   // create-payment awaits `checkout.sessions.expire` on the re-mint path before
   // it creates the replacement session; a reset mock resolves to undefined,

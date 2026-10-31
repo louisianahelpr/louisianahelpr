@@ -17,7 +17,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 
 async function load(): Promise<EdgeHarness> {
   setEnv({
@@ -43,6 +43,35 @@ describe("payout.failed: recorded and the member is told (board 143a)", () => {
     resetStripeMock();
     resetSupabaseMock();
     resetSharedMocks();
+  });
+
+  // Jobs audit 54b: a bank-returned instant payout owes its fee back. Only a row
+  // whose fee was earned moves (`kept`), and the money itself moves at the next
+  // cash-out (instant-payout-one-fee.test.ts), never in this handler.
+  // @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |     .eq("fee_state", "kept") |     .eq("fee_state", "none")
+  it("a bank-returned instant payout marks its fee as owed back and pages", async () => {
+    const fn = await load();
+    event("evt_f9", "payout.failed", payout());
+    scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
+    scenario.writeSelectRows["instant_payouts"] = [{ id: "ip-1" }];
+    expect((await post(fn)).status).toBe(200);
+    const mark = writes("instant_payouts", "update")[0];
+    expect(mark.payload).toMatchObject({ status: "failed", fee_state: "taken" });
+    expect(mark.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ column: "stripe_payout_id", value: "po_1" }),
+      expect.objectContaining({ column: "fee_state", value: "kept" }),
+    ]));
+    expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+    expect((slackAlerts as Array<{ title: string }>).some((a) => a.title === "A bank returned an instant payout: its fee is owed back")).toBe(true);
+  });
+
+  it("an ordinary payout that fails touches no instant row and pages nothing about a fee", async () => {
+    const fn = await load();
+    event("evt_f8", "payout.failed", payout());
+    scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
+    scenario.writeSelectRows["instant_payouts"] = [];
+    expect((await post(fn)).status).toBe(200);
+    expect((slackAlerts as Array<{ title: string }>).some((a) => a.title === "A bank returned an instant payout: its fee is owed back")).toBe(false);
   });
 
   it("records the failure and sends one notice with the real amount", async () => {

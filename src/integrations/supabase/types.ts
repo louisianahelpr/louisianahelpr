@@ -5273,6 +5273,9 @@ export type Database = {
           created_at: string
           error_message: string | null
           fee_amount: number
+          fee_reversal_id: string | null
+          fee_state: string
+          fee_transfer_id: string | null
           gross_amount: number
           helper_id: string
           id: string
@@ -5285,6 +5288,9 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           fee_amount: number
+          fee_reversal_id?: string | null
+          fee_state?: string
+          fee_transfer_id?: string | null
           gross_amount: number
           helper_id: string
           id?: string
@@ -5297,6 +5303,9 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           fee_amount?: number
+          fee_reversal_id?: string | null
+          fee_state?: string
+          fee_transfer_id?: string | null
           gross_amount?: number
           helper_id?: string
           id?: string

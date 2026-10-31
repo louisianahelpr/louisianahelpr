@@ -82,6 +82,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   report_message_party_and_copy: "hides", // posting audit #8: a member can't report a test post they can't see
   declutter_admin_reported_items: "tags", // B77 (20261030071816): the admin's reported-listings read returns is_seed so a test listing is labelled; admin-only, it hides nothing and gates no money
   declutter_seller_sold_count: "hides",
+  declutter_guest_seller_first_name: "hides", // BUY-16 (20261031062900): a seed listing or seed seller gives a guest no name
   declutter_apply_seller_fault: "alerts",
   declutter_ask_question: "hides",
   // #36 (20261028214524): a test listing is left out of the answer for a member it is hidden from.

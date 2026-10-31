@@ -143,8 +143,9 @@ describe("every pop-up title is sentence case", () => {
     // 184: -2 DB-5 (owner 2026-10-30: Buy now goes straight to checkout): the Buy now sheet and its two titles are gone.
     // 186: +2 batch 1030 (2026-10-30): "Edit your post" (Wanted) and "How a Helpr helps you list" (B42).
     // 188: +2 the posting stack: "Your free listing is live" (ListedWhatNext) and "${itemName}, photo ${position}" (DeclutterBunchPhotos).
+    // 191: +1 BUY-5 "Picked up?" (PickedUpPhotoSheet, the buyer's porch pickup photo preview).
     // 190: +2 batch 3: "Take this post down?" (WantedReportPanel) and "Is it still available?" (DeclutterStillAvailable).
-    expect(all.length).toBe(190);
+    expect(all.length).toBe(191);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

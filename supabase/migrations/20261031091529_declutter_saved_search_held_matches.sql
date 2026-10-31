@@ -15,10 +15,10 @@
 -- The bell and email words are otherwise D4-15's; the daily email throttle is unchanged (an email still goes at most
 -- once a day per search, now with the same "and N more").
 --
--- RESTATED FROM: deliver_saved_search_item_alerts in 20261030153722_declutter_saved_search_alert_quotes.sql and
--- saved_search_on_item_live in 20261021042132_saved_searches_every_section.sql (the repo's newest definitions). Who
--- is matched (every filter), the seed rules, the lock order, the hourly and daily throttles and the grants are
--- unchanged. No money moves.
+-- RESTATED FROM: deliver_saved_search_item_alerts in 20261031023451_saved_search_keeps_its_origin.sql (BUY-49: the
+-- distance from where the search was saved) and saved_search_on_item_live in 20261021042132_saved_searches_every_section.sql
+-- (origin/main's newest CREATE of each, 2026-10-31). Who is matched (every filter, BUY-49's origin included), the seed
+-- rules, the lock order, the hourly and daily throttles and the grants are unchanged. No money moves.
 -- REPLAY-SAFE: CREATE TABLE IF NOT EXISTS, CREATE OR REPLACE. Proof: src/test/pglite/declutterSavedSearchHeldMatches.pglite.mjs
 -- (applied 3x). Guard: src/test/declutterSavedSearchHeldMatches.test.ts.
 
@@ -134,9 +134,10 @@ BEGIN
       AND (s.min_budget IS NULL OR v_item.current_price_cents >= s.min_budget * 100)
       -- Declutter Browse's rule (DA-1): every word, in the title, description or category, plurals folded.
       AND public.declutter_search_matches(s.query, v_item.title, v_item.description, v_item.category)
+      -- BUY-49: from where the search was saved; else the profile, as before.
       AND (s.radius_miles IS NULL
-           OR (p.latitude IS NOT NULL AND p.longitude IS NOT NULL
-               AND public.miles_between(p.latitude, p.longitude, v_item.area_lat::numeric, v_item.area_lng::numeric) <= s.radius_miles))
+           OR (COALESCE(s.origin_lat, p.latitude) IS NOT NULL AND COALESCE(s.origin_lng, p.longitude) IS NOT NULL
+               AND public.miles_between(COALESCE(s.origin_lat, p.latitude), COALESCE(s.origin_lng, p.longitude), v_item.area_lat::numeric, v_item.area_lng::numeric) <= s.radius_miles))
       -- BUY-50: on a re-run, only the searches still owed this listing.
       AND (NOT v_rerun OR EXISTS (SELECT 1 FROM public.saved_search_item_matches m
                                    WHERE m.item_id = v_item.id AND m.search_id = s.id AND m.held))

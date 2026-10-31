@@ -1,10 +1,11 @@
 {
-  "generated": "2026-10-31T01:00:59.316Z",
-  "guards": 2840,
+  "generated": "2026-10-31T01:27:22.916Z",
+  "guards": 2841,
   "registered": 2838,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
-    "e2e/prod-audit/admin-chrome.spec.ts"
+    "e2e/prod-audit/admin-chrome.spec.ts",
+    "src/lib/jobPostDraftAccount.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",

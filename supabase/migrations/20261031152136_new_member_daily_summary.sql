@@ -3,7 +3,7 @@
 --
 -- notify_admins_new_member keeps every gate and the once-per-member claim, and
 -- stops writing a notification: its claim row in new_member_admin_notices is now
--- the queue. send_new_member_daily_summary (cron, 13:07 UTC, off the crowded 13:00 minute) sends each admin
+-- the queue. send_new_member_daily_summary (cron, 13:11 UTC; 13:00 is full and 13:07 sits at the reserve floor) sends each admin
 -- ONE notice naming who joined since the last run, and sends nothing on a day
 -- nobody joined.
 --
@@ -14,6 +14,17 @@
 -- definition on origin/main (checked 10-31 by diffing the two bodies). Its only changes: the
 -- notification INSERT and the no_admins branch go, and it returns 'queued'
 -- instead of 'sent'.
+--
+-- A member marked a test account AFTER a summary named them is taken out of it:
+-- retract_new_member_notice_for_test_account (restated from 20261027220459, its
+-- newest definition) rebuilds every summary that named them from the members
+-- still real, or deletes it when none are left, and marks a pending row done.
+-- A summary's notifications carry created_at = its members' summarized_at (one
+-- transaction, one now()), which is how the trigger finds them.
+--
+-- admin_alert_close_rule is restated from 20261030221720 (its newest
+-- definition); its one change: the 'new member joined' row becomes
+-- ('new member summary', 'notice').
 --
 -- Replay-safe: the backfill runs only when the column is first added.
 
@@ -121,6 +132,27 @@ $function$;
 REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.notify_admins_new_member(uuid, text) TO service_role;
 
+-- The summary's one sentence for these members, in this order (first five named).
+CREATE OR REPLACE FUNCTION public.new_member_summary_message(p_ids uuid[])
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT cardinality(p_ids)
+           || CASE WHEN cardinality(p_ids) = 1 THEN ' new member joined: ' ELSE ' new members joined: ' END
+           || (SELECT string_agg(
+                        coalesce(NULLIF(btrim(p.full_name), ''), 'A new member')
+                          || coalesce(' from ' || NULLIF(btrim(p.location), ''), ''),
+                        ', ' ORDER BY t.ord)
+                 FROM unnest(p_ids[1:5]) WITH ORDINALITY AS t(user_id, ord)
+                 JOIN public.profiles p ON p.user_id = t.user_id)
+           || CASE WHEN cardinality(p_ids) > 5 THEN ' and ' || (cardinality(p_ids) - 5) || ' more.' ELSE '.' END
+$function$;
+
+REVOKE ALL ON FUNCTION public.new_member_summary_message(uuid[]) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.new_member_summary_message(uuid[]) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.send_new_member_daily_summary()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -131,7 +163,7 @@ DECLARE
   v_ids     uuid[];
   v_skipped integer;
   v_count   integer;
-  v_names   text;
+  v_message text;
   v_sent    integer;
 BEGIN
   -- Marked a test account after confirming, or deleted since: never named, and
@@ -164,20 +196,12 @@ BEGIN
     RETURN jsonb_build_object('members', 0, 'skipped', v_skipped, 'sent', 0);
   END IF;
 
-  SELECT string_agg(
-           coalesce(NULLIF(btrim(p.full_name), ''), 'A new member')
-             || coalesce(' from ' || NULLIF(btrim(p.location), ''), ''),
-           ', ' ORDER BY t.ord)
-    INTO v_names
-    FROM unnest(v_ids[1:5]) WITH ORDINALITY AS t(user_id, ord)
-    JOIN public.profiles p ON p.user_id = t.user_id;
+  v_message := public.new_member_summary_message(v_ids);
 
   INSERT INTO public.notifications (user_id, title, message, type, link)
   SELECT ur.user_id,
          'New member summary',
-         v_count || CASE WHEN v_count = 1 THEN ' new member joined: ' ELSE ' new members joined: ' END
-           || v_names
-           || CASE WHEN v_count > 5 THEN ' and ' || (v_count - 5) || ' more.' ELSE '.' END,
+         v_message,
          'admin_alert',
          '/admin?view=people'
     FROM (SELECT DISTINCT r.user_id FROM public.user_roles r WHERE r.role = 'admin') ur;
@@ -202,14 +226,14 @@ BEGIN
   IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
     INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
     VALUES ('new-member-daily-summary', interval '26 hours',
-            'One daily admin notice naming who joined since the last run (owner 2026-10-30), at 13:07 UTC.',
+            'One daily admin notice naming who joined since the last run (owner 2026-10-30), at 13:11 UTC.',
             'exempt',
             'A day nobody joined changes nothing, which is the healthy state.')
     ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('new-member-daily-summary', '7 13 * * *',
+    PERFORM cron.schedule('new-member-daily-summary', '11 13 * * *',
       $c$SELECT public.cron_record_work('new-member-daily-summary', to_jsonb(public.send_new_member_daily_summary()));$c$);
   END IF;
 END
@@ -264,3 +288,117 @@ INSERT INTO public.cron_catchup_policy (jobname, catch_up, max_late, reason) VAL
   END IF;
 END
 $do$;
+
+-- Marked a test account: no admin notice keeps their name (owner 2026-10-27,
+-- "Stop showing test stuff in my notification"). Restated from 20261027220459;
+-- the one-by-one retraction is unchanged, the summary half is new.
+CREATE OR REPLACE FUNCTION public.retract_new_member_notice_for_test_account()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_at  timestamptz;
+  v_ids uuid[];
+BEGIN
+  IF NEW.is_seed IS TRUE AND OLD.is_seed IS DISTINCT FROM TRUE THEN
+    DELETE FROM public.notifications n
+     WHERE n.user_id IN (SELECT r.user_id FROM public.user_roles r WHERE r.role = 'admin')
+       AND n.title = 'New member joined'
+       AND n.link = '/admin?view=people&user=' || NEW.user_id::text;
+
+    -- A summary already sent that named them: rebuilt from the members still
+    -- real, or deleted when nobody is left.
+    SELECT n.summarized_at INTO v_at
+      FROM public.new_member_admin_notices n WHERE n.user_id = NEW.user_id;
+    IF v_at IS NOT NULL THEN
+      SELECT array_agg(n.user_id ORDER BY n.notified_at, n.user_id) INTO v_ids
+        FROM public.new_member_admin_notices n
+        JOIN public.profiles p ON p.user_id = n.user_id
+       WHERE n.summarized_at = v_at
+         AND n.user_id <> NEW.user_id
+         AND NOT coalesce(p.is_seed, false)
+         AND p.anonymized_at IS NULL
+         AND NOT public.is_test_subject(n.user_id);
+      IF v_ids IS NULL THEN
+        DELETE FROM public.notifications x
+         WHERE x.user_id IN (SELECT r.user_id FROM public.user_roles r WHERE r.role = 'admin')
+           AND x.title = 'New member summary'
+           AND x.created_at = v_at;
+      ELSE
+        UPDATE public.notifications x
+           SET message = public.new_member_summary_message(v_ids)
+         WHERE x.user_id IN (SELECT r.user_id FROM public.user_roles r WHERE r.role = 'admin')
+           AND x.title = 'New member summary'
+           AND x.created_at = v_at;
+      END IF;
+    END IF;
+
+    -- Still waiting for the next summary: never named.
+    UPDATE public.new_member_admin_notices
+       SET summarized_at = now()
+     WHERE user_id = NEW.user_id AND summarized_at IS NULL;
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.retract_new_member_notice_for_test_account() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS retract_new_member_notice_for_test_account ON public.profiles;
+CREATE TRIGGER retract_new_member_notice_for_test_account
+  AFTER UPDATE OF is_seed ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.retract_new_member_notice_for_test_account();
+
+-- Restated from 20261030221720 (newest); one row changed (see the header).
+CREATE OR REPLACE FUNCTION public.admin_alert_close_rule(p_title text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public'
+AS $function$
+  SELECT r.rule
+    FROM (VALUES
+      ('ban review needed',                         'ban-review'),
+      ('identity verification needs review',        'idv-review'),
+      ('user flagged',                              'reported-user'),
+      ('dispute escalated',                         'dispute-open'),
+      ('escalated dispute overdue',                 'dispute-open'),
+      ('dispute stuck — escrow cannot auto-settle', 'dispute-open'),
+      ('dispute split did not settle',              'dispute-unsettled'),
+      ('job stalled — nobody marked it done',       'stalled-job'),
+      ('stuck payment — webhook may be failing',    'stuck-payment'),
+      ('payout blocked — ',                          'money-held'),
+      ('scheduled payout failed',                   'money-held'),
+      ('transfer failed',                           'money-held'),
+      ('arrival not confirmed in ',                 'arrival-unconfirmed'),
+      ('arrival near a wrong pin not confirmed',    'arrival-unconfirmed'),
+      ('auto-restricted (',                         'restriction-review'),
+      ('repeat offender: ',                         'repeat-offender'),
+      ('low rating alert',                          'low-rating'),
+      -- 20261031152136: one daily summary replaces the one-by-one notice.
+      ('new member summary',                        'notice'),
+      ('dispute auto-resolved',                     'notice'),
+      -- Q1324: an account banned on a card / bank match waits for an admin.
+      ('ban settlement review',                     'ban-settlement-review'),
+      -- Rentals slice 3: a landlord's ownership proof waits for an admin.
+      ('ownership proof waits for review',          'rentals-ownership-review'),
+      -- Landlord ID (20261019051407): a landlord's photo ID waits for an admin.
+      ('landlord id waits for review',              'rentals-landlord-id-review'),
+      -- 20261023143240: a job whose poster did not approve in time waits for Helpr support.
+      ('job waiting on approval',                   'approval-escalation'),
+      -- 20261030221720: a support ticket waits for an answer.
+      ('new support message',                       'support-ticket')
+    ) AS r(prefix, rule)
+   WHERE public.ops_alert_normalise(p_title) LIKE r.prefix || '%'
+   LIMIT 1
+$function$;
+REVOKE ALL ON FUNCTION public.admin_alert_close_rule(text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_alert_close_rule(text) TO service_role;
+DO $grant$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'supabase_read_only_user') THEN
+    GRANT EXECUTE ON FUNCTION public.admin_alert_close_rule(text) TO supabase_read_only_user;
+  END IF;
+END
+$grant$;

@@ -397,6 +397,28 @@ describe("Declutter slice 3 screens", () => {
     }
   });
 
+  // NIGHT-BUYING0-2 (audit 1030 night, d-375-31-webhook-late): the card filed after the 10-second wait; Buy now
+  // still showed the Add a card step and never called declutter_buy_now.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     void card.refetch().then((r) => {\n      if (r.data) { |     void card.refetch().then((r) => {\n      if (false) {
+  it("a card filed after the wait is noticed: Buy now goes on, not to a second card page", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
+      expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
+      await act(async () => {
+        vi.advanceTimersByTime(10_001);
+      });
+      expect(await screen.findByRole("button", { name: "Add a card" })).toBeInTheDocument();
+      // The webhook lands late; no poll is running now.
+      state.card = { brand: "visa", last4: "4242" };
+      fireEvent.click(screen.getAllByRole("button", { name: "Buy now · $42.70 total" })[0]);
+      await waitFor(() => expect(state.bought).toBe(1));
+      expect(screen.queryByRole("button", { name: "Add a card" })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("under 18: buying is a plain block (row 53)", async () => {
     state.underAge = true;
     state.card = { brand: "visa", last4: "4242" };

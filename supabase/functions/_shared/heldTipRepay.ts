@@ -347,9 +347,13 @@ async function ageAlert(r: RedriveRow, now: number, why: string): Promise<void> 
 }
 
 /** Put a claimed row back to 'reversed' (waiting), compare-and-set. */
-async function backToWaiting(supabase: Db, tipId: string, reason?: string): Promise<void> {
+async function backToWaiting(supabase: Db, tipId: string, reason?: string, clearRepayClock = false): Promise<void> {
   await supabase.from("tip_hold_redrives")
-    .update({ status: "reversed", updated_at: nowIso(), ...(reason ? { failure_reason: reason.slice(0, 500) } : {}) })
+    .update({
+      status: "reversed", updated_at: nowIso(),
+      ...(reason ? { failure_reason: reason.slice(0, 500) } : {}),
+      ...(clearRepayClock ? { first_repay_attempt_at: null } : {}),
+    })
     .eq("tip_id", tipId).eq("status", "repaying").select("tip_id");
 }
 
@@ -381,7 +385,9 @@ async function repayOne(stripe: Stripe, supabase: Db, r: RedriveRow, out: Redriv
       // held back before the switch went on. A NEW transfer only: one Stripe already holds moves no money.
       const idHold = await checkIdentityHold(supabase, r.helper_id);
       if (idHold.kind !== "clear") {
-        await backToWaiting(supabase, r.tip_id, idHold.kind === "waits" ? "identity_not_verified" : undefined);
+        // Waiting on the Helpr is no failed attempt: money-reconciliation's stuck clock starts again once they verify.
+        if (idHold.kind === "waits") await backToWaiting(supabase, r.tip_id, "identity_not_verified", true);
+        else await backToWaiting(supabase, r.tip_id);
         if (idHold.kind === "error") out.defects.push(`tip ${r.tip_id} ID check: ${idHold.message}`);
         else {
           out.waiting++;

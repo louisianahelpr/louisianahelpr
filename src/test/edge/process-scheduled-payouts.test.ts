@@ -969,7 +969,7 @@ describe("process-scheduled-payouts edge function", () => {
       const res = await runCron();
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       const updates = tipUpdates().map((w) => w.payload as Record<string, unknown>);
-      expect(updates[updates.length - 1]).toMatchObject({ status: "reversed", failure_reason: "identity_not_verified" });
+      expect(updates[updates.length - 1]).toMatchObject({ status: "reversed", failure_reason: "identity_not_verified", first_repay_attempt_at: null });
       expect(updates.some((u) => u.status === "repaid")).toBe(false);
       expect((await json(res)).heldRedrive).toMatchObject({ tips_repaid: 0 });
     });

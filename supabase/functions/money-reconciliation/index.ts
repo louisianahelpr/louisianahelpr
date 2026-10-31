@@ -60,7 +60,7 @@ import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { checkoutChargeTaxCents, posterCancelKeptFeeCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
-import { loadPayoutHolds } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, loadPayoutHolds } from "../_shared/payoutHold.ts";
 
 /** Offending ids reported per check. A bad day must not emit a 10MB payload. */
 const MAX_IDS_PER_CHECK = 10;
@@ -1688,6 +1688,10 @@ serve(async (req) => {
               ? stale(r.created_at)
               : !holdRead.holds.has(r.helper_id) &&
                 (r.first_repay_attempt_at ? stale(r.first_repay_attempt_at) : staleUntried(r.created_at, r.updated_at)));
+            // Owner 2026-10-30: a tip waiting on the Helpr's ID is waiting on purpose (heldTipRepay), only while
+            // they still have not verified. Verified, or an unreadable answer, reports as any other stuck tip.
+            if (stuck && r.failure_reason === "identity_not_verified" && r.status === "reversed" &&
+              (await checkIdentityHold(admin, r.helper_id)).kind === "waits") continue;
             if (refused || stuck) {
               checks.heldMoneyNotRedriven.add({ tip_id: r.tip_id, status: r.status, amount: money(r.amount_cents / 100), reason: r.failure_reason });
             }

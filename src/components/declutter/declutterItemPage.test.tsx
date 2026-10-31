@@ -115,7 +115,9 @@ vi.mock("@/integrations/supabase/client", () => ({
     rpc: async (fn: string) =>
       fn === "declutter_item_pickup_windows" || fn === "declutter_bundle_applies"
         ? { data: [], error: null }
-        : { data: state.safeRows, error: null },
+        : fn === "declutter_guest_seller_first_name"
+          ? { data: "Dana", error: null }
+          : { data: state.safeRows, error: null },
     from: (t: string) => { calls.push(["from", [t]]); return builder; },
   },
 }));
@@ -684,6 +686,8 @@ describe("the photo-first Declutter item page", () => {
   // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && <DeclutterGuestJoin free={free} />} |
   // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />} |           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
   // @mutate src/components/declutter/DeclutterGuest.tsx |   if (open?.has("declutter")) return <>{children}</>; |   return <>{children}</>;
+  // @mutate src/components/declutter/DeclutterItemView.tsx |           {!user && <DeclutterGuestSeller itemId={it.id} />} |
+  // @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_guest_seller_first_name", { p_item_id: itemId }); |   const res = await supabase.rpc("get_safe_profiles", { user_ids: [itemId] });
   it("BUY-16: a guest reads a shared listing and is asked to sign up to buy; no seller name; the wall while Declutter isn't open", async () => {
     guest.on = true;
     state.item = { ...ITEM, live_at: new Date(Date.now() - 60_000).toISOString() };
@@ -697,7 +701,12 @@ describe("the photo-first Declutter item page", () => {
     expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
     expect(screen.queryByRole("button", { name: /Buy now/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Watch this item" })).toBeNull();
-    expect(screen.queryByText(/Dana/)).toBeNull();
+    // The seller's first name only (declutter_guest_seller_first_name), never the member card's "Dana R." or its link.
+    const seller = await screen.findByText("Dana");
+    expect(seller.closest("[data-guest-seller]")).not.toBeNull();
+    expect(screen.queryByText(/Dana R/)).toBeNull();
+    expect(screen.queryByText(/Robichaux/)).toBeNull();
+    expect(screen.queryByRole("link", { name: /See the seller/ })).toBeNull();
     expect(screen.queryByText("LOGIN WALL")).toBeNull();
     first.unmount();
     // Declutter not open to everyone: the login wall, as before.

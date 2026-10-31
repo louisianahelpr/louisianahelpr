@@ -18,7 +18,8 @@
     "rentals_public_listing(text)": "reviewed 2026-10-19 (Q2188): the public Homes listing link (D12) /r/<slug>, for anyone with the link (signed out too). Returns one listing's coarse facts only while rentals_public_listing_visible holds (live, not expired, ownership approved, owner not banned, not taken down, Homes open to everyone, not a test/seed owner): city + ZIP never the street, no owner or listing id, no storage path (photos by id/ref), and no size/lot/year for a home for sale; a hidden or unknown slug is P0002 listing_not_found. Proof: src/test/pglite/homesPublicLink.pglite.mjs. The /r/ page that calls it comes with the Slice 3 client.",
     "shops_shop_faqs(uuid)": "client",
     "shops_shop_policies(uuid)": "client",
-    "declutter_open_to_guests()": "policy"
+    "declutter_open_to_guests()": "policy",
+    "declutter_guest_seller_first_name(uuid)": "client"
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -528,9 +529,12 @@
     "declutter_seller_porch_places(uuid)": "client",
     "declutter_set_porch_place(uuid, uuid)": "client",
     "declutter_order_place(uuid)": "client",
-    "declutter_open_to_guests()": "policy"
+    "declutter_open_to_guests()": "policy",
+    "declutter_guest_seller_first_name(uuid)": "client"
   },
   "unscoped": {
+    "declutter_open_to_guests()": "reviewed 2026-10-31 (Q14): BUY-16, no argument; returns only whether the declutter switch's audience is 'everyone' (the same fact features_open_to_everyone already gives anon). Used by the anon read policies of 20261031060656.",
+    "declutter_guest_seller_first_name(uuid)": "reviewed 2026-10-31 (Q14): BUY-16, returns the first word of the seller's name (40 chars max) or NULL, only for a live/reserved, not seller_hidden, not is_seed item while declutter is open to everyone, and only for an email-verified, unbanned, not anonymised, not test profile (20261031062900). Never the full name, avatar or any id. Proof: ~/.lh-shots/b71-1031/b71-buy16-first-name.mjs, 15/15 applied 3x, red under 5 planted defects.",
     "declutter_set_offer_rules(uuid, boolean, boolean)": "reviewed 2026-10-29 (Q1284): smart offers (20261029162620); require_feature('declutter') and is_caller_banned first, reads the caller only through public.declutter_assert_member(true), which returns auth.uid() after the member gates, then touches only that caller's own live/paused item (seller_id = v_uid FOR UPDATE; item_not_found otherwise) and its private row",
     "declutter_reopen_listing(uuid)": "reviewed 2026-10-28 (Q1284): Relist a taken-down listing; reads the caller only through public.declutter_assert_member(true), which returns auth.uid() after the member gates (and is_caller_banned first), then touches only that caller's own WITHDRAWN item (seller_id = v_uid FOR UPDATE)",
     "declutter_add_handover(uuid, text)": "reviewed 2026-10-29 (Q1284): The seller adds a way buyers can get a listed item (20261028235249); require_feature('declutter') and is_caller_banned first, reads the caller only through public.declutter_assert_member(true), which returns auth.uid() after the member gates, then touches only that caller's own item (seller_id = v_uid FOR UPDATE; item_not_found otherwise), adds a way and never removes one (declutter_items_handovers_guard), and moves only that item's in-cart lines' checkout time later",

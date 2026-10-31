@@ -453,6 +453,18 @@ export async function fetchSellerCard(sellerId: string): Promise<SellerCard | nu
   return row ? { name: row.full_name ?? null, avatarUrl: row.avatar_url ?? null, joinedAt: row.created_at ?? null } : null;
 }
 
+/**
+ * BUY-16: a guest's seller line, the seller's FIRST name only (owner 10-30: "no seller full name"), from
+ * declutter_guest_seller_first_name (20261031062900). Null when the server gives none (not a guest-readable listing, no
+ * name on the profile) or before it is deployed (the page then shows no seller line, as before).
+ */
+export async function fetchGuestSellerFirstName(itemId: string): Promise<string | null> {
+  const res = await supabase.rpc("declutter_guest_seller_first_name", { p_item_id: itemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_guest_seller_first_name")) return null;
+  const name = rpcData(res, (e) => rpcErrorMessage("declutter_guest_seller_first_name", e));
+  return typeof name === "string" && name.trim() !== "" ? name.trim() : null;
+}
+
 export async function setWatch(itemId: string, watch: boolean): Promise<string> {
   return rpcData(await supabase.rpc("declutter_set_watch", { p_item_id: itemId, p_watch: watch }), (e) => rpcErrorMessage("declutter_set_watch", e)) as string;
 }

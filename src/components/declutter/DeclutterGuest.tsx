@@ -6,6 +6,8 @@
  * While Declutter is not open to everyone, a guest still gets the login wall, as before.
  */
 import type { ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchGuestSellerFirstName } from "@/lib/declutter/api";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useSectionsOpen } from "@/components/landing/useSectionsOpen";
@@ -60,5 +62,25 @@ export function DeclutterGuestBrowseJoin() {
         </Button>
       </div>
     </section>
+  );
+}
+
+/**
+ * A guest's seller line (BUY-16): the first name only, never the full name, no avatar, no link to the profile (a
+ * member's page). Nothing while it loads, on a failed read, or with no name: the listing reads the same without it.
+ */
+export function DeclutterGuestSeller({ itemId }: { itemId: string }) {
+  const first = useQuery({ queryKey: ["declutter", "guest-seller", itemId], queryFn: () => fetchGuestSellerFirstName(itemId) });
+  if (!first.data) return null;
+  return (
+    <p data-guest-seller="" className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+      <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
+        {first.data.charAt(0).toUpperCase()}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-xs text-muted-foreground">Sold by</span>
+        <span className="block truncate font-semibold">{first.data}</span>
+      </span>
+    </p>
   );
 }

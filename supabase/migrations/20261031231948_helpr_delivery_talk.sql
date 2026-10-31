@@ -144,7 +144,7 @@ BEGIN
       IF v_to IS NOT NULL AND v_to <> v_uid THEN
         PERFORM public.declutter_notify(v_to, 'declutter_sales', 'New message about a delivery',
           format('The %s sent a message about the delivery of "%s".', CASE v_side WHEN 'helpr' THEN 'Helpr' ELSE v_side END, t.title),
-          CASE WHEN v_to = t.helpr_id THEN '/declutter?view=deliver' WHEN v_to = t.customer_id THEN '/declutter?tab=buying' ELSE '/declutter?tab=selling' END,
+          CASE WHEN v_to = t.helpr_id THEN '/declutter?tab=deliver' WHEN v_to = t.customer_id THEN '/declutter?tab=buying' ELSE '/declutter?tab=selling' END,
           v_uid);
       END IF;
     END LOOP;

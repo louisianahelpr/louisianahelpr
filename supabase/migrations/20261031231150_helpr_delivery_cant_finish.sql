@@ -216,7 +216,7 @@ BEGIN
                            public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0, 'FM999990.00'))
                ELSE format('This refund on %s leaves you owing $%s. It comes out of your next Declutter sale''s payout.',
                            public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0, 'FM999990.00')) END,
-          CASE WHEN p_reason = 'helpr_fault' THEN '/declutter?view=deliver' ELSE '/declutter?tab=selling' END, NULL);
+          CASE WHEN p_reason = 'helpr_fault' THEN '/declutter?tab=deliver' ELSE '/declutter?tab=selling' END, NULL);
       END IF;
     END IF;
   END IF;
@@ -375,7 +375,7 @@ BEGIN
     PERFORM public.helpr_task_log(t.id, 'failed', v_uid, 'helpr fault: buyer collected');
     PERFORM public.declutter_delivery_refund(t.source_id, 'delivery_not_done');
     PERFORM public.declutter_notify(t.helpr_id, 'warning', 'Delivery closed',
-      format('The buyer has "%s". You are not paid for this delivery.', t.title), '/declutter?view=deliver', NULL);
+      format('The buyer has "%s". You are not paid for this delivery.', t.title), '/declutter?tab=deliver', NULL);
   END IF;
   RETURN public.helpr_task_source_event(t.id, 'confirmed', 'customer');
 END;
@@ -743,7 +743,7 @@ BEGIN
     UPDATE public.helpr_tasks SET status = 'failed', closed_at = now(), close_note = 'The Helpr could not finish', updated_at = now() WHERE id = t.id;
     PERFORM public.helpr_task_log(t.id, 'failed', NULL, 'helpr fault: returned, buyer refunded');
     PERFORM public.declutter_notify(t.helpr_id, 'warning', 'Delivery closed',
-      format('"%s" is back with the seller. You are not paid for this delivery.', t.title), '/declutter?view=deliver', NULL);
+      format('"%s" is back with the seller. You are not paid for this delivery.', t.title), '/declutter?tab=deliver', NULL);
     RETURN public.declutter_close_paid_order(o.id, 'helpr_fault', NULL, NULL, NULL);
   END IF;
   IF t.stuck_choice = 'repost' THEN
@@ -931,7 +931,7 @@ BEGIN
   UPDATE public.helpr_tasks SET stuck_stage = 'retrying', stuck_fix_note = v_note, updated_at = now() WHERE id = t.id;
   PERFORM public.helpr_task_log(t.id, 'buyer_fix', v_uid, CASE WHEN v_address IS NULL THEN 'note' ELSE 'address' END);
   PERFORM public.declutter_notify(t.helpr_id, 'info', 'The buyer fixed it',
-    format('Try "%s" once more. See what changed on the delivery.', t.title), '/declutter?view=deliver', v_uid);
+    format('Try "%s" once more. See what changed on the delivery.', t.title), '/declutter?tab=deliver', v_uid);
   RETURN jsonb_build_object('result', 'retrying');
 END;
 $function$;
@@ -979,7 +979,7 @@ BEGIN
     UPDATE public.helpr_tasks SET stuck_choice = 'collect', stuck_stage = 'collecting', stuck_collect_note = v_note, updated_at = now() WHERE id = t.id;
     PERFORM public.helpr_task_log(t.id, 'buyer_choice', v_uid, 'collect');
     PERFORM public.declutter_notify(t.helpr_id, 'info', 'The buyer will collect it from you',
-      format('See where and when on "%s".', t.title), '/declutter?view=deliver', v_uid);
+      format('See where and when on "%s".', t.title), '/declutter?tab=deliver', v_uid);
     RETURN jsonb_build_object('result', 'collecting');
   END IF;
   UPDATE public.helpr_tasks
@@ -1096,7 +1096,7 @@ BEGIN
   VALUES (t.source_id, v_uid, 'seller', 'other', v_note, '{}', COALESCE(o.is_seed, false))
   RETURNING id INTO v_problem;
   PERFORM public.declutter_notify(t.helpr_id, 'warning', 'The seller says it didn''t come back',
-    format('About "%s". Louisiana Helpr looks at it and tells you what it decides.', t.title), '/declutter?view=deliver', v_uid);
+    format('About "%s". Louisiana Helpr looks at it and tells you what it decides.', t.title), '/declutter?tab=deliver', v_uid);
   PERFORM public.declutter_notify(t.customer_id, 'warning', 'Your delivery is on hold',
     format('The seller says "%s" didn''t come back. Louisiana Helpr looks at it and tells you what it decides. The money stays held until then.', t.title),
     '/declutter?tab=buying', v_uid);
@@ -1173,7 +1173,7 @@ BEGIN
     PERFORM public.helpr_task_give_job_strike(v_task.helpr_id, 'delivery_backed_out', v_task.id, 'Could not finish a Helpr delivery after picking it up');
     v_out := public.declutter_close_paid_order(o.id, 'helpr_fault', NULL, NULL, NULL);
     PERFORM public.declutter_notify(v_task.helpr_id, 'warning', 'Delivery decided',
-      format('Louisiana Helpr decided "%s" wasn''t finished because of you. You are not paid for this delivery.', v_task.title), '/declutter?view=deliver', NULL);
+      format('Louisiana Helpr decided "%s" wasn''t finished because of you. You are not paid for this delivery.', v_task.title), '/declutter?tab=deliver', NULL);
     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Louisiana Helpr decided',
       format('We looked at the problem with %s. All of your money is coming back, delivery included.', public.declutter_order_items_named(o.id)),
       '/declutter?tab=buying', o.seller_id);
@@ -1321,7 +1321,7 @@ BEGIN
         UPDATE public.helpr_tasks SET stuck_stage = 'returning', stuck_return_by = now() + interval '48 hours', updated_at = now() WHERE id = t.id;
         PERFORM public.declutter_notify(t.helpr_id, 'info', 'Take it back to the seller',
           format('The buyer didn''t fix the delivery of "%s". Take it back to the seller within 48 hours, and you''re paid for the trip.', t.title),
-          '/declutter?view=deliver', t.customer_id);
+          '/declutter?tab=deliver', t.customer_id);
         PERFORM public.declutter_notify(t.customer_id, 'payment', 'The delivery couldn''t be finished',
           format('"%s" goes back to the seller and the sale is cancelled. You get back what you paid, less the delivery fee, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back.', t.title),
           '/declutter?tab=buying', t.helpr_id);
@@ -1347,7 +1347,7 @@ BEGIN
         PERFORM public.declutter_notify(t.pickup_contact_id, 'warning', 'Louisiana Helpr is looking at this delivery',
           format('About "%s". The money stays held until it decides.', t.title), '/declutter?tab=selling', t.helpr_id);
         PERFORM public.declutter_notify(t.helpr_id, 'warning', 'Louisiana Helpr is looking at this delivery',
-          format('About "%s". It decides what happens next.', t.title), '/declutter?view=deliver', NULL);
+          format('About "%s". It decides what happens next.', t.title), '/declutter?tab=deliver', NULL);
         -- A cron has no caller for the gate to read, so test data is skipped here too (20261030150104's rule).
         IF NOT (t.is_seed OR public.is_test_subject(t.customer_id) OR public.is_test_subject(t.pickup_contact_id) OR public.is_test_subject(t.helpr_id)) THEN
           FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP
@@ -1389,7 +1389,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.notification_preferences np WHERE np.user_id = t.helpr_id AND np.declutter_pickups IS FALSE) THEN
     PERFORM public.declutter_pickup_remind(t.helpr_id, 'Still have this delivery?',
       format('You picked up %s on %s and it isn''t marked delivered. Take the drop-off photo at the address when you leave it. If you can''t, tap "I can''t deliver this" on the delivery.', v_item, v_when),
-      '/declutter?view=deliver', o.buyer_id);
+      '/declutter?tab=deliver', o.buyer_id);
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.notification_preferences np WHERE np.user_id = o.buyer_id AND np.declutter_pickups IS FALSE) THEN
     PERFORM public.declutter_pickup_remind(o.buyer_id, 'Is your delivery still coming?',

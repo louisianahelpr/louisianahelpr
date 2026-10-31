@@ -42,7 +42,7 @@ const DECIDERS = [...DEFS.keys()].filter((fn) => fn.startsWith("declutter_admin_
 
 describe("both sides hear the admin's decision on a reported problem", () => {
   it("knows every decision function (exact)", () => {
-    expect(DECIDERS).toEqual(["declutter_admin_decide_delivery_damage", "declutter_admin_decide_problem"]);
+    expect(DECIDERS).toEqual(["declutter_admin_decide_delivery_damage", "declutter_admin_decide_problem", "declutter_admin_decide_stuck_delivery"]);
   });
 
   it.each(DECIDERS)("%s tells the buyer and the seller, each on their own tab", (fn) => {

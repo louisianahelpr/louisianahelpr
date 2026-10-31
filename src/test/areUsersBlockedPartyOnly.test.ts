@@ -93,8 +93,6 @@ const EXPECTED_CALLERS = [
   "declutter_open_handover_talk",
   // The paid-order chat view: declutter_order_side(o.buyer_id, o.seller_id, auth.uid()) must name a side first.
   "declutter_order_talk_view",
-  // The delivery chat (20261031231948, BUY-36): v_uid := auth.uid() is always one argument, a party of the task the other.
-  "helpr_task_send_message",
   // The Free change (Q2487, 20261030064021): the caller (declutter_assert_member() / auth.uid()) and the seller or asker.
   "declutter_pick_free_request",
   // Price-drop alerts (20261027204745, Train D): an AFTER UPDATE trigger on declutter_items passes the
@@ -144,6 +142,7 @@ const EXPECTED_CALLERS = [
   "helpr_task_offer_online",
   "helpr_task_pickup_windows", // 20261028232930: the Helpr's Accept picker; passes the caller (v_uid) as one side
   "helpr_task_same_pickup_slot", // 20261030152601: the same filter on the Accept card; passes the caller (v_uid) as one side
+  "helpr_task_send_message", // 20261031231948 (BUY-36, the delivery chat): v_uid := auth.uid() is one argument, a party of the task the other
   // Delivery tips (Q2453, 20261028014848): v_uid := auth.uid() (the delivery's buyer) is one argument,
   // the delivery's Helpr (t.helpr_id) the other.
   "helpr_task_tip_start",

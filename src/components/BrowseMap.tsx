@@ -969,7 +969,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
             The map isn't available right now.
           </p>
           <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-            Every open job is still on the list — switch to the list view to browse them.
+            Every open job is still on the list.
           </p>
         </div>
       )}

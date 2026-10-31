@@ -50,7 +50,7 @@ const TEXT: Record<StepState, string> = {
   todo: "text-muted-foreground",
 };
 
-/** A problem word short enough for its column at 375 (the full word shows from a 368px tracker and in the aria sentence). */
+/** One problem word at every width, short enough for its column at 375 (JOBS2-38: "Overdue" at 1440 and "Late" at 375 for one step). The aria sentence keeps the full word. */
 const PROBLEM_SHORT: Record<string, string> = { "No-show?": "No-show", Overdue: "Late", Dispute: "Issue" };
 
 /** "Oct 22, 3:00 PM": when a done step happened. */
@@ -140,7 +140,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
               {s === "done" && <Check className="job-step-wide h-3 w-3 shrink-0" />}
               <span className="job-step-short truncate">{(s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : JOB_PROGRESS_SHORT[i]}</span>
               {/* The full name may take two lines (a soft hyphen or its space), never an ellipsis (A2-L15). */}
-              <span className="job-step-full min-w-0 text-center">{(s === "problem" || s === "alarm") && label ? label : JOB_PROGRESS_DRAWN[i]}</span>
+              <span className="job-step-full min-w-0 text-center">{(s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : JOB_PROGRESS_DRAWN[i]}</span>
             </span>
           </>
         );

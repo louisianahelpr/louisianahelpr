@@ -223,7 +223,7 @@ export function ApplicantsDesktopTable({
                         <IconActionButton bare compact icon={<Ban className="h-4 w-4" style={{ color: "hsl(var(--danger-ink))" }} />} ariaLabel={`Block ${helperName}`} onClick={() => { hapticLight(); onBlock(app); }} />
                       </div>
                       {app.status === "pending" ? (
-                        <ApplicantHireRow jobId={jobId} helperId={app.helper_id} helperName={helperName} payoutReady={app.profiles?.is_payout_ready === true}
+                        <ApplicantHireRow jobId={jobId} helperId={app.helper_id} helperName={helperName}
                           onAcceptApplication={() => onAcceptApplication(app)} onDecline={() => onDecline(app)} />
                       ) : (
                         canMessageApplicant(app.status) && <MessageApplicantButton jobId={jobId} helperId={app.helper_id} helperName={helperName} />

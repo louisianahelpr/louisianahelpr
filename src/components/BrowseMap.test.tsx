@@ -308,7 +308,8 @@ describe("BrowseMap MapKit availability", () => {
 
     const panel = await screen.findByTestId("browse-map-unavailable");
     expect(panel).toHaveTextContent("The map isn't available right now.");
-    expect(panel).toHaveTextContent("switch to the list view");
+    expect(panel).toHaveTextContent("Every open job is still on the list.");
+    expect(panel).not.toHaveTextContent("switch to the list view");
     vi.doUnmock("@/hooks/useMapKitJs");
     vi.resetModules();
   });

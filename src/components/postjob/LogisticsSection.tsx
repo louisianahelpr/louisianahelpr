@@ -529,7 +529,7 @@ export function LogisticsSection({
         <div className="flex items-start gap-2.5 rounded-2xl border border-border bg-card p-4">
           <Shield className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--bark))]" aria-hidden />
           <p className="font-sans text-ds-13 leading-snug text-muted-foreground">
-            Helprs see <span className="font-semibold text-foreground">{town || "your town"}</span> and the distance. The street address is sent only to the Helpr you hire.
+            Helprs see <span className="font-semibold text-foreground">{town || "your town"}</span> and the distance. The street address is sent only to the Helpr you offer the job to.
           </p>
         </div>
       </div>

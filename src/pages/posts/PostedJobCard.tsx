@@ -325,7 +325,7 @@ function PostedJobCardInner({
                 />
               )}
               action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined}
-              progress={isExpanded ? null : jobProgress(job, { viewer: "poster", otherFirst: helperName.split(" ")[0], rescheduled, card: { line: cardLine, face: faceAction } })} /* the 8 steps on the card (owner, 2026-10-22) */
+              progress={isExpanded ? null : jobProgress(job, { viewer: "poster", otherFirst: helperName.split(" ")[0], rescheduled, card: { line: cardLine, face: faceAction }, pendingApplicants: pendingApplicantCounts ? pendingApplicantCounts[job.id] ?? 0 : undefined })} /* the 8 steps on the card (owner, 2026-10-22) */
             />
             {isExpanded && <MineOpenMeta jobId={job.id} meta={metaRow} />}
 

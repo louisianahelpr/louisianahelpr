@@ -8,7 +8,7 @@
  *
  * @mutate src/components/declutter/DeclutterGallery.tsx |   if (urls.length === 0) { |   if (false) {
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const boughtByMe = !ownListing && !forSale; |   const boughtByMe = false;
- * @mutate src/components/declutter/DeclutterItemView.tsx | {way !== "none" && forSale && <ItemPickupTimes | {way !== "none" && <ItemPickupTimes
+ * @mutate src/components/declutter/DeclutterItemView.tsx | {way !== "none" && forSale && user && <ItemPickupTimes | {way !== "none" && user && <ItemPickupTimes
  *   DA-6 (Declutter audit 2026-10-30): the buyer's own sold item says "You bought this." / "You claimed this." with
  *   Buying, asks no item pickup times (that read answers only while it is for sale) and no "shared after you pay".
  * @mutate src/components/declutter/DeclutterGallery.tsx |               onClick={() => setOpen(i)} |               onClick={() => undefined}
@@ -33,7 +33,7 @@
  * @mutate src/lib/declutter/api.ts |       .neq("seller_id", sellerId) |       .neq("seller_id", "")
  * @mutate src/components/declutter/DeclutterItemRows.tsx | (rows ?? []).filter((r) => r.seller_id !== viewerId) | (rows ?? [])
  * @mutate src/components/declutter/DeclutterItemRows.tsx |       {moreRows.length > 0 && <Row |       {<Row
- * @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && (\n        <div className="mt-8"> |       {(\n        <div className="mt-8">
+ * @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && user && (\n        <div className="mt-8"> |       {user && (\n        <div className="mt-8">
  * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && ( | {false && (
  * @mutate src/components/declutter/DeclutterItemView.tsx | lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} /> | lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} />
  * @mutate src/components/declutter/DeclutterItemView.tsx | const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null; | const drop = planned;
@@ -79,9 +79,16 @@ const builder: object = new Proxy({}, {
 });
 const shared: unknown[] = [];
 
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
-vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
-vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
+// BUY-16: `guest.on` signs the visitor out (useFeature is false signed out, as the real hook); `guest.open` is the
+// landing's features_open_to_everyone answer (null = still loading).
+const guest = { on: false, open: ["declutter"] as string[] | null };
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => !guest.on, useFeatureStatus: () => ({ on: !guest.on, settled: true }) }));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: guest.on ? null : { id: "u1" }, isReady: true }) }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: guest.on ? null : { id: "u1" }, profile: {}, isLoading: false }) }));
+vi.mock("@/components/landing/useSectionsOpen", async () => ({
+  ...(await vi.importActual<object>("@/components/landing/useSectionsOpen")),
+  useSectionsOpen: () => (guest.open === null ? { open: null, settled: false } : { open: new Set(guest.open), settled: true }),
+}));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => state.geo,
@@ -165,6 +172,7 @@ function open(search = "") {
       <MemoryRouter initialEntries={[`/declutter/item/${ID}${search}`]}>
         <Routes>
           <Route path="/declutter/item/:id" element={<DeclutterItemPage />} />
+          <Route path="/login" element={<p>LOGIN WALL</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -175,6 +183,8 @@ describe("the photo-first Declutter item page", () => {
   beforeEach(() => {
     state.item = { ...ITEM };
     state.handovers = null;
+    guest.on = false;
+    guest.open = ["declutter"];
     state.geo = { status: "idle" };
     state.photos = [];
     state.rating = { avg: 4.8, count: 12 };
@@ -272,7 +282,7 @@ describe("the photo-first Declutter item page", () => {
   });
 
   // Deep audit #23: a free item is claimed, never offered on; its page must not end with "Make an offer".
-  // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !!user && !preview} free={free} /> | canAsk={canAct && !!user && !preview} />
+  // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !preview} free={free} />} | canAsk={canAct && !preview} />}
   it("a free item's page never says 'Make an offer'; a priced one keeps the line", async () => {
     state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
     const free = open();
@@ -667,6 +677,33 @@ describe("the photo-first Declutter item page", () => {
     open();
     expect((await screen.findAllByRole("button", { name: "Buy now · $42.70 total" })).length).toBeGreaterThan(0);
     expect(await screen.findByRole("button", { name: /Check out together: one pickup, one payment\./ })).toBeInTheDocument();
+  });
+
+  // BUY-16 (audit 10-30, High; owner 10-30: guests see item pages, sign up to buy or offer, no seller full name).
+  // @mutate src/components/declutter/declutterUi.tsx |   if (!user) return <DeclutterGuestGate skeleton={skeleton}>{children}</DeclutterGuestGate>; |
+  // @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && !user && <DeclutterGuestJoin free={free} />} |
+  // @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />} |           {!isSeller && <DeclutterSellerCard sellerId={it.seller_id} />}
+  // @mutate src/components/declutter/DeclutterGuest.tsx |   if (open?.has("declutter")) return <>{children}</>; |   return <>{children}</>;
+  it("BUY-16: a guest reads a shared listing and is asked to sign up to buy; no seller name; the wall while Declutter isn't open", async () => {
+    guest.on = true;
+    state.item = { ...ITEM, live_at: new Date(Date.now() - 60_000).toISOString() };
+    const first = open();
+    expect(await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 })).toBeInTheDocument();
+    expect(document.querySelector("[data-item-price]")?.textContent).toContain("$40");
+    const join = document.querySelector("[data-guest-join]") as HTMLElement;
+    expect(join).toHaveTextContent("Sign up to buy it or make an offer.");
+    const back = encodeURIComponent(`/declutter/item/${ID}`);
+    expect(within(join).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", `/signup?redirect=${back}`);
+    expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
+    expect(screen.queryByRole("button", { name: /Buy now/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Watch this item" })).toBeNull();
+    expect(screen.queryByText(/Dana/)).toBeNull();
+    expect(screen.queryByText("LOGIN WALL")).toBeNull();
+    first.unmount();
+    // Declutter not open to everyone: the login wall, as before.
+    guest.open = [];
+    open();
+    expect(await screen.findByText("LOGIN WALL")).toBeInTheDocument();
   });
 
   it("DA-6: the buyer's own sold item says You bought this (free: You claimed this), with Buying, and asks no item pickup times", async () => {

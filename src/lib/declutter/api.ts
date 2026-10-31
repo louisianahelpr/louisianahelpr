@@ -510,7 +510,9 @@ const draftArgs = (f: DraftFields) => ({
 export async function createDraft(f: DraftFields, withId?: string): Promise<string> {
   if (withId) {
     const res = await supabase.rpc("declutter_create_item_with_id", { p_item_id: withId, ...draftArgs(f) });
-    if (!(res.error && isMissingRpcNamed(res.error, "declutter_create_item_with_id"))) {
+    // Before 20261031160546 (PGRST202), or the id already made (a first Post whose answer was lost): a fresh id.
+    const retry = res.error && (isMissingRpcNamed(res.error, "declutter_create_item_with_id") || /item_id_taken/.test(res.error.message ?? ""));
+    if (!retry) {
       return rpcData(res, (e) => rpcErrorMessage("declutter_create_item_with_id", e)) as string;
     }
   }

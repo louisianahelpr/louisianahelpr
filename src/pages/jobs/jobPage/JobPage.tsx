@@ -41,6 +41,8 @@ import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
+import { requestFaceAction } from "@/components/job-card/faceActionRequest";
+import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { MineFaceNote } from "@/components/job-card/MineJobFace";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
@@ -135,6 +137,16 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     : null;
   const primary = isPoster && posterWait === "confirm_arrival"
     ? { label: arrival.confirming ? "Confirming…" : "Confirm arrival", go: () => void arrival.confirm(), disabled: arrival.confirming }
+    // AUD31-77: the Helpr marked it done and the page said "Check the work and approve" over a "Manage job" button.
+    // The button is the approve now: it opens this job's Posted card with its approve sheet (the card's own write).
+    : isPoster && posterWait === "approve"
+    ? {
+        label: RELEASE_ACTION,
+        go: () => {
+          requestFaceAction(job.id, "approve");
+          navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`);
+        },
+      }
     : isPoster && jobIsUnfundedDraft(job)
     // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. The copy is the way on.
     ? { label: "Post this job again", go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }

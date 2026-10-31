@@ -36,9 +36,13 @@ export interface CardSave {
  * The one tag a card's photo may wear, only from a real rule: "May drop
  * tonight" (the nightly drop could lower it this evening; the stop is private,
  * so never "Drops"), or "Helpr delivery" (a big item; delivery is offered on
- * every item while Declutter is open, and the spec puts it first for big ones).
+ * every item while Declutter is open, and the spec puts it first for big ones),
+ * or "New" (BUY-53: opened from a saved search, it went live after the member
+ * last looked, the same rule as the search's "N new" count).
  */
-export type CardTag = "drop" | "delivery";
+export type CardTag = "drop" | "delivery" | "new";
+
+const TAG_WORDS: Record<CardTag, string> = { drop: "May drop tonight", delivery: "Helpr delivery", new: "New" };
 
 /** The first row's photo is usually the page's largest paint: it does not wait for the browser's lazy-load check. */
 const FIRST_ROW_PHOTO: Record<string, string> = { loading: "eager", fetchpriority: "high" };
@@ -67,10 +71,10 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
           // Opaque card under the tint, so the tag reads the same on any photo.
           <span data-card-tag={tag} className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] rounded-full bg-card shadow-sm">
             <span
-              className={`block rounded-full truncate px-2.5 py-1 text-ds-11 font-semibold leading-none ${tag === "drop" ? "bg-[hsl(var(--burnt-sienna)/0.14)] text-[hsl(var(--sienna-ink))]" : "border border-border text-foreground"}`}
-              title={tag === "drop" ? "May drop tonight" : "Helpr delivery"}
+              className={`block rounded-full truncate px-2.5 py-1 text-ds-11 font-semibold leading-none ${tag === "delivery" ? "border border-border text-foreground" : "bg-[hsl(var(--burnt-sienna)/0.14)] text-[hsl(var(--sienna-ink))]"}`}
+              title={tag === "new" ? "New since you last looked at this search" : TAG_WORDS[tag]}
             >
-              {tag === "drop" ? "May drop tonight" : "Helpr delivery"}
+              {TAG_WORDS[tag]}
             </span>
           </span>
         )}

@@ -506,8 +506,8 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
 });
 
 describe("job page, the poster sees who they hired (AUD31-80)", () => {
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status) && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>} |
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status) && | {isPoster && job.helper_id && !job.is_group_job &&
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>} |
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && | {isPoster && job.helper_id && !job.is_group_job &&
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <DeclutterSellerCard sellerId={helprId} noun="Helpr" /> |       <DeclutterSellerCard sellerId={helprId} noun="poster" />
   const hired = () => row({ customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z" });
 

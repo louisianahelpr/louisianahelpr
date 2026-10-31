@@ -22,6 +22,8 @@ interface ProfileTabHeaderProps {
   phoneHidesTitle?: boolean;
   /** AppPage's `stickyHeader` (DA-9): this wrapper is the header's only box under the page body, so it is what sticks. */
   sticky?: boolean;
+  /** See PageHeader's `wrapTitle`: a long title wraps instead of ending in "...". */
+  wrapTitle?: boolean;
 }
 
 /**
@@ -67,7 +69,7 @@ interface ProfileTabHeaderProps {
  * itself, because the alternative is loosening the shell test's exact-match
  * guard for every tab.
  */
-export function ProfileTabHeader({ title, onBack, backTo, rightSlot, phoneHidesTitle, sticky }: ProfileTabHeaderProps) {
+export function ProfileTabHeader({ title, onBack, backTo, rightSlot, phoneHidesTitle, sticky, wrapTitle }: ProfileTabHeaderProps) {
   // `sticky` pins this wrapper (its parent is the whole page body, so it can stick): the row's top padding slides
   // under the scroller's top edge and the 44px buttons sit at the top. -mx-3/px-3 reach the scroller's own padding,
   // so content scrolling under the row is covered edge to edge once index.css paints it (`.sticky-title-row`).
@@ -80,6 +82,7 @@ export function ProfileTabHeader({ title, onBack, backTo, rightSlot, phoneHidesT
         titleActions={rightSlot}
         phoneHidesTitle={phoneHidesTitle}
         stickyTitle={sticky}
+        wrapTitle={wrapTitle}
         width="none"
         topInsetHandled
       />

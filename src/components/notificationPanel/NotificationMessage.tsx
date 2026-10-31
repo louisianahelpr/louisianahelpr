@@ -8,7 +8,7 @@
 import { useState } from "react";
 
 /** Past this a 2-line clamp can cut the text on a phone (about 40 characters a line at 375). */
-export const MESSAGE_FITS_TWO_LINES = 80;
+const MESSAGE_FITS_TWO_LINES = 80;
 
 export function NotificationMessage({ text }: { text: string }) {
   const [open, setOpen] = useState(false);

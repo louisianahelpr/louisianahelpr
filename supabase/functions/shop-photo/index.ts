@@ -21,6 +21,12 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 // link-visible. Declutter photos live in the same job-photos bucket, at
 // <seller uid>/declutter/<item id>/<file>, so the same reason applies.
 //
+// kind=job (GROW-6, 10-31): a public job's FIRST photo for its shared link
+// card, asked by the JOB id (already in the shared URL). The photo URL lives in
+// jobs.photos and starts with the poster's user id, so the card never names it.
+// Served only while open_jobs_browse (the guest page's own public view) still
+// has the job, and only a photo in this project's job-photos bucket.
+//
 // It serves a photo only while its shop passes shop_link_visible (not hidden,
 // not paused, owner in good standing, Shops not switched off), and an item
 // photo only while the item is live and the shop sells: the same rule as the
@@ -103,7 +109,7 @@ serve(async (req: Request) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id") ?? "";
   const askedKind = url.searchParams.get("kind");
-  const kind = askedKind === "item" ? "item" : askedKind === "declutter" ? "declutter" : "shop";
+  const kind = askedKind === "item" ? "item" : askedKind === "declutter" ? "declutter" : askedKind === "job" ? "job" : "shop";
   const og = url.searchParams.get("og") === "1";
   const asked = Number(url.searchParams.get("w") ?? 640);
   const width = og ? (asked === OG_HEIGHT ? OG_HEIGHT : 1200) : (WIDTHS.find((w) => w >= asked) ?? 1200);
@@ -118,7 +124,9 @@ serve(async (req: Request) => {
     // Q2426: a shared Declutter item's link card asks kind=declutter. Same proxy, its own visibility rule
     // (declutter_item_link_visible: live or reserved, seller not out, Declutter not switched off).
     const { data, error } =
-      kind === "declutter"
+      kind === "job"
+        ? await publicJobPhotoPath(id)
+        : kind === "declutter"
         ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id })
         : await admin.rpc("shops_public_photo_path", { p_photo_id: id, p_kind: kind });
     if (error) {
@@ -182,3 +190,27 @@ serve(async (req: Request) => {
     return new Response("Unavailable", { status: 503 });
   }
 });
+
+// Below the handler on purpose: read only at request time, after the module has loaded.
+const JOB_PHOTO_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/job-photos/`;
+
+/**
+ * GROW-6: the storage path of a public job's first photo, or null. The job must still be in
+ * open_jobs_browse (open, not ownerless, the guest page's own rule), and the photo a public URL in this
+ * project's job-photos bucket; anything else (another host, a data: URI, an empty list) is null = 404.
+ */
+async function publicJobPhotoPath(jobId: string): Promise<{ data: string | null; error: { code?: string; message: string } | null }> {
+  const { data, error } = await admin.from("open_jobs_browse").select("photos").eq("id", jobId).maybeSingle();
+  if (error) return { data: null, error };
+  const photos = (data as { photos?: unknown } | null)?.photos;
+  const first = Array.isArray(photos) ? photos.find((p): p is string => typeof p === "string" && p.length > 0) : undefined;
+  if (!first || !first.startsWith(JOB_PHOTO_PREFIX)) return { data: null, error: null };
+  const raw = first.slice(JOB_PHOTO_PREFIX.length).split(/[?#]/)[0];
+  try {
+    const path = raw.split("/").map(decodeURIComponent).join("/");
+    return { data: path && !path.split("/").includes("..") ? path : null, error: null };
+  } catch {
+    // A malformed %-escape: not a photo we can name, so the one 404 answer.
+    return { data: null, error: null };
+  }
+}

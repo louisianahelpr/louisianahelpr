@@ -338,8 +338,10 @@ function BookingPanel({ order, booking, frozen = false }: { order: PaidOrder; bo
       {movedAlready ? (
         <p className="text-xs text-muted-foreground" data-testid="declutter-move-used">You've already moved this pickup once. Message the other side if the time doesn't work.</p>
       ) : booked && order.side === "seller" ? (
+        // Night audit sold states #3: once the booked time has started the seller's next step is "Picked up" or
+        // "They didn't show", so "Move the pickup" goes.
         // Deep audit #32: folded behind one button, so a booked card is not two full pickers deep at 390.
-        <FoldedTimePicker id={id} openLabel="Move the pickup" title="Move it (you can do this once)" fieldLabel="New pickup time"
+        Date.now() >= new Date(booked).getTime() ? null : <FoldedTimePicker id={id} openLabel="Move the pickup" title="Move it (you can do this once)" fieldLabel="New pickup time"
           confirmLabel="Move" pending={book.isPending} onConfirm={(iso) => book.mutate(iso)} />
       ) : booked && !moving ? (
         // The buyer's move folds the same way (#32), and opens the seller's own times (#2).
@@ -533,7 +535,9 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
         </>
       )}
       {buyerWaits ? null : notYet ? (
-        <p className="text-sm" data-porch-not-yet="">Put it out {onDay(booking.pickup_day as string)}.</p>
+        // Night audit sold states #3: the card's status line already says "Put it out <day> and post the porch photo";
+        // this one says only what is not there yet.
+        <p className="text-sm" data-porch-not-yet="">You can take the porch photo {onDay(booking.pickup_day as string)}.</p>
       ) : (<>
       <label htmlFor={fileId} className="sr-only">
         {order.side === "seller" ? `Photo of the item on your porch ("Left on porch"${payWords ? ": needed before you can be paid automatically)" : ")"}` : `Photo when you pick it up, taken at the address ("Picked up"${payWords ? ": this pays the seller 24 hours later)" : ")"}`}

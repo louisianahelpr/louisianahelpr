@@ -14842,6 +14842,10 @@ export type Database = {
         }
         Returns: number
       }
+      declutter_guest_seller_first_name: {
+        Args: { p_item_id: string }
+        Returns: string
+      }
       declutter_hand_refund_failed: {
         Args: { p_stripe_refund_id: string; p_why: string }
         Returns: string
@@ -14991,6 +14995,7 @@ export type Database = {
       }
       declutter_member_out: { Args: { p_user: string }; Returns: boolean }
       declutter_first_screen: { Args: { p_switch_keys: string[] }; Returns: Json }
+      declutter_open_to_guests: { Args: never; Returns: boolean }
       declutter_on_my_way: { Args: { p_order_id: string }; Returns: string }
       declutter_meetup_here: {
         Args: { p_order_id: string }

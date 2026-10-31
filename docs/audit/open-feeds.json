@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-31T07:51Z",
+  "measured_at": "2026-10-31T14:02Z",
   "issues": {
     "readable": true,
     "open": [
@@ -92,7 +92,7 @@
         "number": 3802,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41182143172",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41206541573",
         "runTruncated": false
       },
       {
@@ -126,6 +126,13 @@
         "title": "nightly-red: codeql",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41151980186",
+        "runTruncated": false
+      },
+      {
+        "number": 3875,
+        "title": "nightly-red: code-scanning-alerts",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41203680439",
         "runTruncated": false
       }
     ]
@@ -582,14 +589,6 @@
         "issue": null
       },
       {
-        "fingerprint": "f2afa1349a3ae98138fd104f49431fcf",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/home · error screen shown: we couldn't load your account.",
-        "issue": null
-      },
-      {
         "fingerprint": "d21db97e9f067cd021f5002d3341c443",
         "source_kind": "edge_slack",
         "source": "ops-alert:custom",
@@ -694,6 +693,14 @@
         "issue": null
       },
       {
+        "fingerprint": "c2e77e40435efc12778adbbdcb9fc240",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: code-scanning-alerts",
+        "issue": 3875
+      },
+      {
         "fingerprint": "fcb35988052463c0af6b7ba5ce3dc4d5",
         "source_kind": "sentry",
         "source": "sentry:assets/supabase",
@@ -734,19 +741,19 @@
         "issue": null
       },
       {
-        "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "cr",
-        "issue": null
-      },
-      {
         "fingerprint": "e32aa223d475dd1349363e900374a77e",
         "source_kind": "sentry",
         "source": "sentry:unknown",
         "status": "open",
         "title": "error: script error.",
+        "issue": null
+      },
+      {
+        "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "cr",
         "issue": null
       },
       {
@@ -822,14 +829,6 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -838,27 +837,19 @@
         "issue": null
       },
       {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
         "fingerprint": "51fed45d8e7725b124d2dfcab0da1d3c",
         "source_kind": "edge_slack",
         "source": "ops-alert:custom",
         "status": "open",
         "title": "declutter delivery: the address lookup is not answering",
-        "issue": null
-      },
-      {
-        "fingerprint": "bc51fa1a0adefe635c75e659904623b8",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/home · boot stalled #s on the startup screen (boot scripts unfinished: #)",
-        "issue": null
-      },
-      {
-        "fingerprint": "341d3e1a81540ee936cd581e849707b8",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/home · boot recovered after a stall (reload attempt #)",
         "issue": null
       },
       {
@@ -910,6 +901,14 @@
         "issue": null
       },
       {
+        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
+        "issue": null
+      },
+      {
         "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
@@ -923,14 +922,6 @@
         "source": "user-error-screen",
         "status": "open",
         "title": "/declutter · error screen shown: we couldn't load offers.",
-        "issue": null
-      },
-      {
-        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
         "issue": null
       },
       {
@@ -988,6 +979,7 @@
     "issue #3824": "Q1816",
     "issue #3833": "Q1816",
     "issue #3846": "Q1816",
+    "issue #3875": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
@@ -1100,6 +1092,7 @@
     "ledger bc6810c9f1ab": "Q1596",
     "ledger bd4c3063280b": "Q1596",
     "ledger c1ad0c081216": "Q1596",
+    "ledger c2e77e40435e": "Q1816",
     "ledger c4af5413ec6a": "Q1596",
     "ledger c540527c8265": "Q2517",
     "ledger c5d2aafd1f77": "Q2410",

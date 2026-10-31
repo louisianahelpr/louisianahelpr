@@ -41,12 +41,12 @@ const counterExample = (o: MyOffer) =>
  * the server's (declutter_respond_offer, 20261029162620): at least $1 and at most the price now; a buyer's at least half
  * the price now; never the amount already on the table (that is Accept).
  */
-export function counterRange(o: Pick<MyOffer, "my_side" | "current_price_cents">): { min: number; max: number } {
+function counterRange(o: Pick<MyOffer, "my_side" | "current_price_cents">): { min: number; max: number } {
   return { min: o.my_side === "buyer" ? Math.max(100, Math.ceil(o.current_price_cents / 2)) : 100, max: o.current_price_cents };
 }
 
 /** Why a typed counter can't be sent, in words; null when it can. */
-export function counterProblem(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">, cents: number | null): string | null {
+function counterProblem(o: Pick<MyOffer, "my_side" | "current_price_cents" | "amount_cents">, cents: number | null): string | null {
   if (!cents) return null;
   const { min, max } = counterRange(o);
   if (cents < min || cents > max) return `Your price has to be between ${formatPrice(min)} and ${formatPrice(max)}.`;

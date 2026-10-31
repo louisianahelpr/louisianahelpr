@@ -33,6 +33,7 @@ import {
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { dayOffAllowed, dayOffBounds, dayOffLabel } from "@/lib/declutter/daysOff";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 
 const KEY = ["declutter", "my-seller-delivery"] as const;
@@ -213,7 +214,7 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
           <ul className="flex flex-wrap gap-2">
             {daysOff.map((d) => (
               <li key={d} className="flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs">
-                {new Date(`${d}T12:00:00`).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+                {dayOffLabel(d)}
                 <button type="button" className="min-h-0 px-1 underline" aria-label={`Remove ${d}`} onClick={() => setDaysOff((xs) => xs.filter((x) => x !== d))}>
                   Remove
                 </button>
@@ -223,8 +224,8 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
         )}
         <div className="flex gap-2">
           <input id="sd-day-off" type="date" className="min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            value={newDay} onChange={(e) => setNewDay(e.target.value)} />
-          <Button type="button" variant="outline" size="sm" disabled={!newDay || daysOff.includes(newDay) || daysOff.length >= 60}
+            min={dayOffBounds().min} max={dayOffBounds().max} value={newDay} onChange={(e) => setNewDay(e.target.value)} />
+          <Button type="button" variant="outline" size="sm" disabled={!dayOffAllowed(newDay) || daysOff.includes(newDay) || daysOff.length >= 60}
             onClick={() => { setDaysOff((xs) => [...xs, newDay].sort()); setNewDay(""); }}>
             Add day off
           </Button>

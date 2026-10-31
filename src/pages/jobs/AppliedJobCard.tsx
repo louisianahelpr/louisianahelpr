@@ -10,6 +10,7 @@ import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
 import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperFaceAction, helperFaceNextStep } from "./appliedJobCard/helperFaceAction";
+import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PersonTile } from "@/components/PersonTile";
 import { JobActionRow, JobActionChip, JobStepPrimaryButton } from "../../components/job-card/JobActionRow";
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
@@ -99,6 +100,8 @@ function AppliedJobCardInner({
   /* The person slot, opened BEFORE the `if (!job)` early return below (rules
      of hooks). The tile is built once the card knows the poster. */
   const { claim: personClaim, stepCarriesTile } = useJobCardPersonSlot();
+  // The face's Mark job complete is greyed for the same 30 minutes as the Working card's (useDoneFloor).
+  const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(app.job?.poster_confirmed_working_at, app.job?.helper_arrived_at));
 
   // `poster_viewed_at` isn't in the generated types yet (migration lag);
   // read it through this narrow view rather than `as any`.
@@ -324,6 +327,7 @@ function AppliedJobCardInner({
     posterId, review: (id) => onHelperReview(app.job_id, id, app.posterName || "the person who posted this job"), wait: cardLine.id, jobId: job.id, viewDispute: () => onViewDispute(job),
     manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },
     step: (isConfirmed || isActive) && !isCrewLive && !job.is_group_job ? helperFaceNextStep(job, initialTracking, cardLine.id) : null,
+    doneFloorMinutes,
   });
 
   return (

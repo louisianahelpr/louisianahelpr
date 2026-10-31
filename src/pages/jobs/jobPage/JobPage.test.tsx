@@ -509,7 +509,7 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByTestId("where").textContent).toBe(`/messages?jobId=${row().id}&userId=${POSTER}`);
   });
 
-  it("reads the photos and the tracking row like the Working card: both photos and started = Mark done", () => {
+  it("reads the photos and the tracking row like the Working card: both photos and started = Mark job complete", () => {
     state.job = row({
       helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
       poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
@@ -520,7 +520,27 @@ describe("job page, the hired Helpr", () => {
     state.tracking = "working";
     renderPage();
     expect(document.body.textContent).not.toMatch(/before photo/i);
-    expect(screen.getByRole("button", { name: "Mark done" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Mark job complete" })).toBeTruthy();
+  });
+
+  it("10 minutes after arriving, Mark job complete is greyed with the Working card's sentence; at 30 it is live", () => {
+    const stamps = {
+      helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
+      poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", poster_confirmed_arrival_at: "2026-10-28T12:30:00Z",
+      require_photo_proof: true, proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"],
+    };
+    state.job = row({ ...stamps, helper_arrived_at: new Date(Date.now() - 10 * 60_000).toISOString() });
+    state.party = true;
+    state.tracking = "working";
+    const { unmount } = renderPage();
+    expect((screen.getByRole("button", { name: "Mark job complete" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("Available in 20 min — 30 minutes after you arrived, to ensure quality.")).toBeTruthy();
+    unmount();
+
+    state.job = row({ ...stamps, helper_arrived_at: new Date(Date.now() - 31 * 60_000).toISOString() });
+    renderPage();
+    expect((screen.getByRole("button", { name: "Mark job complete" }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.queryByText(/^Available in/)).toBeNull();
   });
 
   it("the tracker reads the tracking row: before photo taken, not started, arrival not yet confirmed", () => {
@@ -535,7 +555,7 @@ describe("job page, the hired Helpr", () => {
     const tracker = document.querySelector("[data-job-tracker]")?.textContent ?? "";
     // Without the tracking row the line guessed "working" and said to mark it done.
     expect(tracker).not.toMatch(/mark it done/i);
-    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark job complete" })).toBeNull();
   });
 
   it("still asks for the before photo while it is owed", () => {

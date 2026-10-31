@@ -54,7 +54,9 @@ await db.exec(`
   CREATE ROLE authenticated; CREATE ROLE anon; CREATE ROLE service_role;
   CREATE TABLE public.helpr_tasks (
     id uuid PRIMARY KEY, source_kind text, source_id uuid, status text, size text,
-    open_until timestamptz, latest_pickup_at timestamptz, customer_id uuid, pickup_contact_id uuid);
+    open_until timestamptz, latest_pickup_at timestamptz, customer_id uuid, pickup_contact_id uuid,
+    -- b83 (20261031134217): helpr_task_source_held reads the seller no-show report's clock.
+    seller_no_show_reported_at timestamptz, seller_no_show_answered_at timestamptz, seller_no_show_settled_at timestamptz);
   CREATE TABLE public.helpr_task_events (id bigserial PRIMARY KEY, task_id uuid, task_event text, actor_id uuid);
   CREATE TABLE public.declutter_problems (id bigserial PRIMARY KEY, order_id uuid, status text);
   CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, seller_id uuid, paid_at timestamptz, status text, handover text);

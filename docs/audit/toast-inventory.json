@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 457,
+      "literal": 456,
       "template": 95,
-      "dynamic": 551,
+      "dynamic": 552,
       "jsx": 0
     }
   },
@@ -4903,7 +4903,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 89,
+      "line": 96,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4913,17 +4913,27 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 92,
+      "line": 99,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Listing defaults saved."
+        "form": "dynamic",
+        "text": "stopped ? `Listing defaults saved. ${stopped === 1 ? \"1 listing no longer offers\" : `${stopped} listings no longer offer`} your delivery.` : \"Listing defaults saved.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Listing defaults saved. ${stopped === 1 ? \"1 listing no longer offers\" : `${stopped} listings no longer offer`} your delivery."
+          },
+          {
+            "form": "literal",
+            "text": "Listing defaults saved."
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 96,
+      "line": 104,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4933,7 +4943,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 144,
+      "line": 153,
       "kind": "toast",
       "title": {
         "form": "literal",

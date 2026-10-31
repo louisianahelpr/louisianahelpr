@@ -10,7 +10,10 @@
  *
  * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql |   IF v_made IS NULL OR v_made < now() - interval '2 days' THEN |   IF v_made IS NULL THEN
  * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql |   v_source := CASE WHEN position('@' IN coalesce(p_source, '')) > 0 OR | v_source := CASE WHEN false OR
- * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql | OR coalesce(p_campaign, '') ~ '[0-9]{7,}' THEN NULL |  THEN NULL
+ * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql | OR regexp_replace(coalesce(p_campaign, ''), '[^0-9]', '', 'g') ~ '[0-9]{7,}' THEN NULL |  THEN NULL
+ * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql | OR regexp_replace(coalesce(p_source, ''), '[^0-9]', '', 'g') ~ '[0-9]{7,}' THEN 'other' | OR coalesce(p_source, '') ~ '[0-9]{7,}' THEN 'other'
+ * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql | OR position('%40' IN coalesce(p_source, '')) > 0 | 
+ * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql | OR position('%40' IN coalesce(p_campaign, '')) > 0 | 
  * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql |        AND NOT public.is_test_subject(s.user_id) |        AND true
  * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql |   IF auth.uid() IS NULL OR NOT coalesce(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN |   IF auth.uid() IS NULL THEN
  * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql |   recorded_at timestamptz NOT NULL DEFAULT now()\n); |   recorded_at timestamptz NOT NULL DEFAULT now(),\n  email text\n);
@@ -56,8 +59,9 @@ describe("sign-up sources are counted with no personal data (OPS-5)", () => {
     const b = body("record_my_signup_source");
     expect(b).not.toBe("");
     expect(b).toMatch(/v_made\s*<\s*now\(\)\s*-\s*interval\s*'2 days'/i);
-    expect(b).toMatch(/position\('@' IN coalesce\(p_source, ''\)\) > 0 OR coalesce\(p_source, ''\) ~ '\[0-9\]\{7,\}' THEN 'other'/i);
-    expect(b).toMatch(/position\('@' IN coalesce\(p_campaign, ''\)\) > 0 OR coalesce\(p_campaign, ''\) ~ '\[0-9\]\{7,\}' THEN NULL/i);
+    // Review 10-31: an @ or a %40, or 7+ digits once separators are dropped ("(555) 123-4567"), is never kept.
+    expect(b).toMatch(/position\('@' IN coalesce\(p_source, ''\)\) > 0 OR position\('%40' IN coalesce\(p_source, ''\)\) > 0\s+OR regexp_replace\(coalesce\(p_source, ''\), '\[\^0-9\]', '', 'g'\) ~ '\[0-9\]\{7,\}' THEN 'other'/i);
+    expect(b).toMatch(/position\('@' IN coalesce\(p_campaign, ''\)\) > 0 OR position\('%40' IN coalesce\(p_campaign, ''\)\) > 0\s+OR regexp_replace\(coalesce\(p_campaign, ''\), '\[\^0-9\]', '', 'g'\) ~ '\[0-9\]\{7,\}' THEN NULL/i);
     expect((b.match(/\[\^a-z0-9\._-\]/g) ?? []).length).toBe(2);
     expect(b).toMatch(/auth\.uid\(\)/);
   });

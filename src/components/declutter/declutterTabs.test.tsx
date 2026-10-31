@@ -410,6 +410,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const empty = at("/declutter");
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.queryByText("Opens soon")).toBeNull();
+    // With Wanted on, the line names both ways (b29: it says only "Be the first to sell something." without it).
+    expect(screen.getByText("Be the first to sell something, or say what you're looking for.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Post what you're looking for" })).toHaveAttribute("href", "/declutter?tab=wanted");
     expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
     empty.unmount();

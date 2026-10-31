@@ -8,7 +8,7 @@
     "src/components/dashboard/JobCard.tsx": 795,
     "src/components/dashboard/JobDetailDialog.tsx": 945,
     "src/components/job-card/JobListPage.tsx": 639,
-    "src/components/JobTracking.tsx": 1891,
+    "src/components/JobTracking.tsx": 1835,
     "src/components/messages/ConversationList.tsx": 1748,
     "src/components/MobileNav.tsx": 712,
     "src/components/NotificationPanel.tsx": 963,

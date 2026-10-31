@@ -235,7 +235,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
           <section aria-label="Where the job is" data-job-steps="" className="order-4 space-y-4 lg:order-none">
             <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
-              pendingApplicants={isPoster && applicants.data ? pending : undefined} />
+              />
             {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. */}
             {party && (isPoster || isHired) && <JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} />}
             {isHired && <HiredSeriesSection job={job} userId={userId} />}

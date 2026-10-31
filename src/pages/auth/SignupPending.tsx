@@ -329,7 +329,7 @@ const SignupPending = () => {
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
               <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Your profile is already done — you'll land straight in the app.
-                {idCheckOn ? " Posting or accepting your first job adds a quick identity check." : ""}
+                {idCheckOn ? " The first time you hire someone or get paid, there's a one-time quick identity check." : ""}
               </p>
             </div>
           </div>

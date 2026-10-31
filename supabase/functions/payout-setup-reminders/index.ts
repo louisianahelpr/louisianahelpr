@@ -38,6 +38,8 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
 import {
+  IDENTITY_REMINDER_LINK,
+  identityReminderCopy,
   PAYOUT_SETUP_REMINDER_LINK,
   PAYOUT_SETUP_REMINDER_TYPE,
   payoutSetupReminderCopy,
@@ -91,8 +93,15 @@ serve(async (req) => {
     };
 
     for (const c of claims) {
-      const { title, message } = payoutSetupReminderCopy(c.stage, c.job_title);
-      const row = { user_id: c.helper_id, job_id: c.job_id, title, message, type: PAYOUT_SETUP_REMINDER_TYPE, link: PAYOUT_SETUP_REMINDER_LINK };
+      // Owner 2026-10-30: payout account ready and the ID outstanding: the notice asks for the ID.
+      // Payout setup first when both are missing (its words already name Stripe's check).
+      const { data: prof, error: profErr } = await supabase.from("profiles")
+        .select("stripe_account_id, stripe_payouts_enabled").eq("user_id", c.helper_id).maybeSingle();
+      if (profErr) defects.push(`profile ${c.helper_id}: ${profErr.message}`);
+      const payoutReady = !!prof?.stripe_account_id && prof?.stripe_payouts_enabled === true;
+      const { title, message } = payoutReady ? identityReminderCopy(c.stage, c.job_title) : payoutSetupReminderCopy(c.stage, c.job_title);
+      const link = payoutReady ? IDENTITY_REMINDER_LINK : PAYOUT_SETUP_REMINDER_LINK;
+      const row = { user_id: c.helper_id, job_id: c.job_id, title, message, type: PAYOUT_SETUP_REMINDER_TYPE, link };
       const { data: noted, error: noteErr } = await supabase.from("notifications").insert(row).select("id");
       if (noteErr) {
         defects.push(`notice ${c.helper_id}/${c.reminder_key}: ${noteErr.message}`);
@@ -101,7 +110,7 @@ serve(async (req) => {
       }
       if ((noted?.length ?? 0) === 0) {
         // Dropped BY DESIGN by the seed boundary: not a defect, and no email.
-        if ((await seedBoundaryDropsRow(supabase, { user_id: c.helper_id, job_id: c.job_id, link: PAYOUT_SETUP_REMINDER_LINK })) === true) {
+        if ((await seedBoundaryDropsRow(supabase, { user_id: c.helper_id, job_id: c.job_id, link })) === true) {
           counts.seedDropped++;
           continue;
         }
@@ -128,6 +137,11 @@ serve(async (req) => {
         .eq("reminder_key", c.reminder_key);
       if (stampErr) defects.push(`sent_at ${c.helper_id}/${c.reminder_key}: ${stampErr.message}`);
     }
+
+    // Owner 2026-10-30: a poster is told 24 hours before the start that their hired Helpr has not
+    // verified their ID (the SQL writes the one notice and is a no-op while the switch is off).
+    const { error: posterErr } = await supabase.rpc("identity_notify_posters_before_start", { p_limit: CAP });
+    if (posterErr && posterErr.code !== "PGRST202") defects.push(`ID notices before the start: ${posterErr.message}`);
 
     return cronResult("payout-setup-reminders", counts, { count: defects.length, reasons: defects }, corsHeaders);
   } catch (e) {

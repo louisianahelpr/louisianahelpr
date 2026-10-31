@@ -72,7 +72,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
-import { checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 import { CONNECT_HOLD_SPLIT_ERROR, CONNECT_NOT_PAYABLE_CODE, CONNECT_REJECTED_CODE, STRIPE_PLATFORM_REJECTED_CODE } from "../_shared/livePayoutGate.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
@@ -1557,6 +1557,17 @@ serve(async (req) => {
 
     // Q1491: a JOB payout hold (an underfunded gift-card job). The split
     // transfers before its ledger row, so the claim trigger cannot stop it.
+    // No payout without a verified ID: the whole split waits (owner 2026-10-30), read by
+    // auto-resolve-disputes as a split a hold keeps on purpose; nothing has moved.
+    const idHold = await checkIdentityHold(supabaseAdmin, job.helper_id);
+    if (idHold.kind === "error") {
+      await markFailed(supabaseAdmin, disputeId, "ID check read failed", {}, job.id, settlementClaim);
+      return json({ error: "could not read the Helpr's ID check — nothing was moved, retry" }, 500);
+    }
+    if (idHold.kind === "waits") {
+      await markFailed(supabaseAdmin, disputeId, PAYOUT_HOLD_SPLIT_ERROR, {}, job.id, settlementClaim);
+      return json({ error: "the Helpr has not verified their ID yet, so this settlement waits. Nothing was moved.", code: PAYOUT_HELD_CODE }, 409);
+    }
     const jobHold = await checkJobPayoutHold(supabaseAdmin, job.id);
     if (jobHold.kind === "error") {
       console.error(`[execute-dispute-split] job payout hold check failed for ${job.id}: ${jobHold.message}`);

@@ -109,7 +109,8 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
     const where = photo ? await deliveryPhotoPosition() : null;
     return markDelivered(orderId, photo ? await uploadHandoverPhoto(userId, orderId, photo) : "", where);
   },
-    b?.handoff === "hand" ? "Marked handed over. You're paid when the buyer confirms, or in about 48 hours." : "Marked delivered. You're paid when the buyer confirms, or in about 48 hours."));
+    // LEAD-DOOR-PAYLINE: "paid when the buyer confirms" was a day early (the buyer's 24 hours to ask for a refund follow).
+    b?.handoff === "hand" ? "Marked handed over. We asked the buyer to confirm." : "Marked delivered. We asked the buyer to confirm."));
   const gotIt = useMutation(act(async () => { const r = await confirmHandover(orderId); markReviewPrompt(orderId); return r; }, "Handover done. Enjoy your item."));
   const notDelivered = useMutation(act(async () => { await reportNotDelivered(orderId); void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] }); }, "We told the seller. They have 24 hours to answer."));
   const handoff = useMutation(act((h: DeliveryHandoff) => setDeliveryHandoff(orderId, h), "Saved. The seller is told."));
@@ -135,7 +136,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" && b.status === "booked" && !b.delivered_at && (
           <p data-got-it-later="">You can confirm you got it from the delivery day.</p>
         )}
-        {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}.{problemOpen ? null : b.side === "buyer" ? " Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : " You're paid when the buyer confirms, or in about 48 hours unless they report a problem."}</p>}
+        {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}.{problemOpen ? null : b.side === "buyer" ? " Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : " We asked the buyer to confirm. If they say nothing, you're paid in about 48 hours."}</p>}
       </div>
       {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto path={b.delivered_photo_path} hand={b.handoff === "hand"} at={b.delivered_at} />}
       {can.changeHandoff && (

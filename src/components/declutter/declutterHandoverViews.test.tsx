@@ -432,11 +432,13 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.calls = [];
     state.bookings = [slot(10)];
     show([line({ my_side: "seller" })]);
-    expect(await screen.findByText(/You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it", or 24 hours after you tap "Picked up"/)).toBeInTheDocument();
+    // LEAD-DOOR-PAYLINE: said once, in the money note, with the owner's 10-30 rule; never "24 hours after you tap Picked up".
+    expect((await screen.findByText(/^You get/)).textContent).toBe('You get $40. You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. If neither of you says anything, the money stays held.');
+    expect(document.body.textContent).not.toMatch(/24 hours after you tap|paid 24 hours after the handover/);
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     expect(screen.queryByLabelText(/code/i)).toBeNull();
     expect(screen.getByText("Pickup at the door")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Picked up" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Picked up" }));
     const picked = await screen.findByRole("dialog");
     expect(within(picked).getByText("Did Dana take it?")).toBeInTheDocument();
     fireEvent.click(within(picked).getByRole("button", { name: "Picked up" }));
@@ -459,7 +461,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   it("door pickup: the seller's \"Picked up\" appears only from the booked time (lh-money-escrow review #1)", async () => {
     state.bookings = [slot(-60)];
     show([line({ my_side: "seller" })]);
-    expect(await screen.findByText(/you tap "Picked up" from the pickup time/)).toBeInTheDocument();
+    expect(await screen.findByText(/^You can tap "Picked up" from the pickup time\.$/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Picked up" })).toBeNull();
   });
 
@@ -684,9 +686,9 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect((await screen.findAllByText(/^Pickup:/)).length).toBeGreaterThan(0);
     expect(screen.getByRole("list", { name: "Step 2 of 4: Day picked" })).toBeInTheDocument();
     expect(screen.getByText("Paid. Put it out and take one photo where the buyer will find it.")).toBeInTheDocument();
-    // Deep audit #31: one payout rule, the live one (24 hours after the handover), never "when the buyer marks it".
-    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | once the sale is final: 24 hours after the handover, unless the buyer asks for a refund. | when the buyer marks it picked up.
-    expect(screen.getByText(/You get/).textContent).toBe("You get $40 once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.");
+    // Deep audit #31: one payout rule, the live one, never "when the buyer marks it". LEAD-DOOR-PAYLINE: the porch rule.
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {sellerPayoutRule(kind)} | You're paid when the buyer marks it picked up.
+    expect(screen.getByText(/You get/).textContent).toBe('You get $40. You\'re paid 24 hours after the buyer taps "I got it" or takes their pickup photo, unless they ask for a refund. If the buyer says nothing, you\'re paid about 48 hours after the later of the pickup time and your porch photo. With no porch photo, the money stays held until the buyer confirms.');
   });
 
   // Audit 1028 D1-5 (1a-s-porch-after-375): after the porch photo the seller's card still asked for it ("Take the porch
@@ -857,7 +859,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(document.body.textContent).not.toMatch(/once the seller posts/);
     expect(screen.queryByRole("button", { name: "Out all day" })).toBeNull();
     expect(screen.queryByLabelText("Out until")).toBeNull();
-    expect(screen.getByText(/once the sale is final: 24 hours after the handover/)).toBeInTheDocument();
+    expect(screen.getByText(/the later of the pickup time and your porch photo/)).toBeInTheDocument();
   });
 
   it("owner 10-28: before the porch-day migration is live (no days read), the porch card keeps the time picker", async () => {
@@ -981,7 +983,7 @@ describe("boards 159 + 160: handover sheets", () => {
 // pick it up"), and the handover words promised a refund window and a payout on $0.
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const money = free ? null |   const money = false ? null
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |     handover, side, free, booked: !!slot, |     handover, side, free: false, booked: !!slot,
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {free ? "" : "You're paid 24 hours after the handover, unless the buyer asks for a refund. "} | {"You're paid 24 hours after the handover, unless the buyer asks for a refund. "}
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | free ? <p className="text-sm text-muted-foreground">The handover is when {how}.</p> : null; | <p className="text-sm text-muted-foreground">{"You're paid 24 hours after the handover. "}The handover is when {how}.</p>;
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         porch={order.handover === "porch"} free={free} |         porch={order.handover === "porch"}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={free} pending={pickedUp.isPending} | who={who} pending={pickedUp.isPending}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
@@ -1482,7 +1484,7 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
       expect(el).not.toBeNull();
       return el as HTMLElement;
     });
-    expect(await screen.findByText(/once the sale is final: 24 hours after the handover/)).toBeInTheDocument();
+    expect(await screen.findByText(/^You get .*You're paid 24 hours after the buyer taps "I got it"/)).toBeInTheDocument();
     return steps;
   };
 

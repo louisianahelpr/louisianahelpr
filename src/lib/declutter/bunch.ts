@@ -811,7 +811,7 @@ function oneAtATime(): () => Promise<() => void> {
 }
 
 /** LEAD-BUNCH-34-SLOW: items made ready side by side, as many as publishMany lists at once. */
-export const PREPARE_AT_ONCE = 3;
+const PREPARE_AT_ONCE = 3;
 
 export async function listBunch(
   sellerId: string,

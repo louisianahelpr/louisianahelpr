@@ -93,6 +93,8 @@ export function useSellerDefaultsPrefill(
       floorPct: floorPct.current,
       freeAfterDays,
       handovers: ways,
+      // LEAD-OFFERS-CHOICE: the saved choice stays until the form has its own Accept offers switch.
+      acceptsOffers: saved.data?.acceptsOffers ?? SELLER_DEFAULTS.acceptsOffers,
     };
     try {
       await saveSellerDefaults(userId, d);

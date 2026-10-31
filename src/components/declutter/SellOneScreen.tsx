@@ -204,7 +204,9 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             </div>
           </div>
         )}
-        {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">Fix what's marked above, then post.</p>}
+        {/* LEAD-POST-SLOW (owner 2026-10-31: "Post it does nothing"): the pointer by the button names what blocks Post, so a
+            tap whose marked row is out of sight is never a tap that did nothing. */}
+        {tried && bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-pointer">Not posted yet: {bad.message} Fix what's marked above, then post.</p>}
         {postWhenWritten && (
           <div className="flex flex-wrap items-center justify-between gap-2" role="status" data-post-when-written="">
             <p className="min-w-0 flex-1 text-ds-14 text-foreground">Still writing your listing. It posts when that's done.</p>

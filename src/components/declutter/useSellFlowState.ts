@@ -6,8 +6,8 @@
  *
  * A new listing's photos wait on the device until Post (there is no draft to hold them); Claude reads them
  * from the device by itself once the first ones are added (SellAiDraft.tsx). Post creates the draft, uploads
- * them, then runs the same list path a draft's "List it" runs: saveDetails -> setPickupWindows -> attestItem ->
- * requestAiCheckWithRetry (fail-safe) -> publishItem. The server path is the same either way.
+ * them, then runs the same list path a draft's "List it" runs: saveDetails, then setPickupWindows, attestItem and
+ * requestAiCheckWithRetry (fail-safe) side by side, then publishItem. The server path is the same either way.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -59,6 +59,10 @@ import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { useSellSaved } from "./useSellSaved";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
+
+/** After this long on the photo check, Post says it is still checking (LEAD-POST-SLOW, owner 2026-10-31). */
+export const SLOW_CHECK_AFTER_MS = 6000;
+export const SLOW_CHECK_STEP = "Still checking your photos. This can take up to a minute";
 
 export function useSellFlowState(urlItemId: string | null) {
   const { user } = useCurrentUser();
@@ -422,30 +426,37 @@ export function useSellFlowState(urlItemId: string | null) {
       if (!id) return;
       // A photo didn't go up: nothing goes live until the seller says what to do (data-photo-trouble in SellOneScreen).
       if (failedPhotos.current > 0) return;
-      setPostStep("Saving your listing");
-      // A new listing's "Keep it up until it sells" goes on the draft Post just made. Not a blocker: if it
-      // fails it is said, and the seller can turn it on in Manage listing.
-      if (!urlItemId && keepUpWanted) {
-        try {
-          await setKeepUp(id, true);
-        } catch (err) {
-          toast.error(`${declutterErrorMessage(err)} You can turn on "Keep it up" from Manage listing.`);
-        }
-      }
-      // The same for "make it free after __ days": a free listing has nothing to choose.
-      if (!urlItemId && autoFreeWanted !== null && !form.free) {
-        try {
-          await setAutoFreeDays(id, autoFreeWanted);
-        } catch (err) {
-          toast.error(`${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing.`);
-        }
-      }
-      // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
-      if (urlItemId) await setPickupWindows(windows);
-      await attestItem(id);
       setPostStep("Checking your listing");
+      // LEAD-POST-SLOW (owner 2026-10-31): the photo check is most of Post's wait (3.9 s of 5.8 s measured on prod,
+      // c87b7de4), and it reads only the photos, title, details and category saved above. So it starts NOW, and the
+      // settings below go up while it runs instead of one after another before it.
       // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe).
-      await requestAiCheckWithRetry(id);
+      const checked = requestAiCheckWithRetry(id);
+      // Still checking after a while: said, so a slow check never looks like nothing is happening.
+      const slow = setTimeout(() => setPostStep(SLOW_CHECK_STEP), SLOW_CHECK_AFTER_MS);
+      try {
+        await Promise.all([
+          // A new listing's "Keep it up until it sells" goes on the draft Post just made. Not a blocker: if it
+          // fails it is said, and the seller can turn it on in Manage listing.
+          !urlItemId && keepUpWanted
+            ? setKeepUp(id, true).catch((err: unknown) => {
+                toast.error(`${declutterErrorMessage(err)} You can turn on "Keep it up" from Manage listing.`);
+              })
+            : null,
+          // The same for "make it free after __ days": a free listing has nothing to choose.
+          !urlItemId && autoFreeWanted !== null && !form.free
+            ? setAutoFreeDays(id, autoFreeWanted).catch((err: unknown) => {
+                toast.error(`${declutterErrorMessage(err)} You can choose when it becomes free from Manage listing.`);
+              })
+            : null,
+          // A new listing uses the times saved in setup and Settings; only a saved draft's step form edits them.
+          urlItemId ? setPickupWindows(windows) : null,
+          attestItem(id),
+          checked,
+        ]);
+      } finally {
+        clearTimeout(slow);
+      }
       setPostStep("Putting it up");
       const status = await publishItem(id);
       void keptWork.finish();

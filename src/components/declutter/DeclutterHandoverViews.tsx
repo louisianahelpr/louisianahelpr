@@ -287,7 +287,8 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch" && booking?.pickup_day
             ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />}
                 noDays={<ProblemForm orderId={order.orderId} side={order.side} stage="waiting" />} />
-            : <BookingPanel order={order} booking={booking} />}
+            : <BookingPanel order={order} booking={booking}
+                noTimes={order.handover === "porch" && order.side === "buyer" ? <ProblemForm orderId={order.orderId} side={order.side} stage="waiting" /> : null} />}
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
@@ -308,7 +309,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   );
 }
 
-function BookingPanel({ order, booking, frozen = false }: { order: PaidOrder; booking: MyBooking | null; frozen?: boolean }) {
+function BookingPanel({ order, booking, frozen = false, noTimes = null }: { order: PaidOrder; booking: MyBooking | null; frozen?: boolean; noTimes?: ReactNode }) {
   const qc = useQueryClient();
   const [value, setValue] = useState("");
   // Deep audit #2: the buyer picks from the seller's own times (day + time chips); the seller's one move stays free.
@@ -357,7 +358,7 @@ function BookingPanel({ order, booking, frozen = false }: { order: PaidOrder; bo
       <>
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
       <div className="space-y-2">
-        <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot}
+        <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} noTimes={booked ? null : noTimes}
           fallback={<DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />} />
         <div className="flex flex-wrap gap-2">
           <button type="button" className={booked ? btn : primary} disabled={book.isPending || !(slot ?? localInputToIso(value))}

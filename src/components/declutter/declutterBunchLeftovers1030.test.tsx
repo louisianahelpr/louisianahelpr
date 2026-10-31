@@ -182,7 +182,10 @@ describe("finding 14: one tick on the page", () => {
     twoDrafts();
     await open();
     await section();
-    fireEvent.click(within(document.querySelector("[data-bunch-bulk]") as HTMLElement).getByRole("button", { name: "Make free" }));
+    for (const key of rowKeys()) {
+      openRow(key!);
+      fireEvent.click(within(row(key!)).getByRole("checkbox", { name: /^Give .* away free$/ }));
+    }
     await waitFor(() => expect(document.querySelector("[data-tax-statements='']")).toBeTruthy());
     expect(document.querySelector("[data-tax-statements='free']")).toBeNull();
   });

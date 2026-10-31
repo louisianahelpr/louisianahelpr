@@ -52,7 +52,9 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   declutter_answer_no_show: "caller", // 20261031004529: the seller answering a buyer's no-show report
   declutter_handover_sweep: "explicit", // 20261031004529: the 60-day held sale
   declutter_helpr_answer_no_show: "explicit", // 20261031134217: the Helpr answers a seller's "didn't come"; is_test_subject on buyer, seller and caller, and is_seed
+  declutter_hold_unchecked_listings: "explicit", // 20261031152545: a reserved or sold listing never checked; is_test_subject on the seller
   declutter_problem_add_side: "caller",
+  declutter_record_ai_check: "explicit", // 20261031152545: a flag after a buyer paid; is_test_subject on the seller
   declutter_refund_request_to_admin: "explicit",
   declutter_report_problem: "caller",
   declutter_withdraw_problem: "caller",

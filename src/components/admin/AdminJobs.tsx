@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { warnIfGiftNotReturned } from "./giftRestoreWarning";
 import type { Job } from "./adminJobs/types";
 import { useApplicantCounts } from "./adminJobs/useApplicantCounts";
-import { detectFlags, isStaleOnly, isGhostJob, isActivePaidJob } from "./adminJobs/adminJobsHelpers";
+import { flagsForJob, isStaleOnly, isGhostJob, isActivePaidJob } from "./adminJobs/adminJobsHelpers";
 import { useResolvedFlags } from "./adminJobs/useResolvedFlags";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "./AdminViewShell";
 import { JobListItem } from "./adminJobs/JobListItem";
@@ -102,9 +102,7 @@ const AdminJobs = () => {
         setJobs(rows);
         const flagMap = new Map<string, string[]>();
         for (const job of rows) {
-          const existingFlags = job.flag_reasons || [];
-          const detected = detectFlags(job);
-          const allFlags = [...new Set([...existingFlags, ...detected])];
+          const allFlags = flagsForJob(job);
           if (allFlags.length > 0) flagMap.set(job.id, allFlags);
         }
         setJobFlags(flagMap);

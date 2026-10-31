@@ -159,6 +159,17 @@ export function detectFlags(job: Job): string[] {
 
 
 /**
+ * A job's flags in the Flagged queue: only while it can still be acted on (Admin
+ * M5). Prod 2026-10-30: 15 of 18 real jobs were cancelled or completed, every one
+ * with a past date, so each read as flagged forever and nothing could clear it.
+ */
+const FLAGGABLE_STATUSES = ["open", "accepted", "in_progress"];
+export function flagsForJob(job: Job): string[] {
+  if (!FLAGGABLE_STATUSES.includes(job.status ?? "")) return [];
+  return [...new Set([...(job.flag_reasons ?? []), ...detectFlags(job)])];
+}
+
+/**
  * ACTIVE: a real job someone paid for that is not finished or called off
  * (owner, 2026-10-09: "an active filter bc rn I only want to see the real jobs
  * that were paid and be able to click to see how many applicants"). Money

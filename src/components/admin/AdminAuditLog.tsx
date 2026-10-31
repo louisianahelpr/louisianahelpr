@@ -5,7 +5,11 @@ import { formatCategory } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -15,6 +19,11 @@ import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { saveOrShareFile } from "@/lib/fileExport";
+import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import {
+  AUDIT_ACTOR_LABEL, AUDIT_KIND_LABEL, auditMatches, auditSubjects, isNoOpAudit,
+  type AuditActor, type AuditKind,
+} from "@/components/admin/adminAuditLog/auditRows";
 
 interface AuditEntry {
   id: string;
@@ -26,42 +35,110 @@ interface AuditEntry {
   details: Json | null;
   created_at: string;
   admin_name?: string;
+  /** The admin was a party to this job, so their status change is their own hire, not an override (Admin M1). */
+  own_job?: boolean;
+}
+
+const PAGE_SIZE = 200;
+
+/** The ids in batches a URL can carry: one row's snapshot can name three people, and a page holds 200 rows. */
+function batches(ids: string[], size = 100): string[][] {
+  const out: string[][] = [];
+  for (let i = 0; i < ids.length; i += size) out.push(ids.slice(i, i + size));
+  return out;
+}
+
+/**
+ * One page, newest first, older than `before`. What is left out of the list:
+ * a row about test data (owner: "i should never see test stuff in my admin
+ * panel") and an update that changed nothing. A failed read throws, like every
+ * admin fetcher: a list that silently kept its test rows would read as real.
+ * `more` comes from the rows READ, not the rows kept: a page can keep none.
+ */
+async function fetchAuditPage(before?: string): Promise<{ entries: AuditEntry[]; more: boolean; oldest: string | null }> {
+  let query = supabase.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(PAGE_SIZE);
+  if (before) query = query.lt("created_at", before);
+  const data = unwrap(await query);
+  if (!data || data.length === 0) return { entries: [], more: false, oldest: null };
+
+  const subjects = data.map(auditSubjects);
+  const jobIds = [...new Set(subjects.flatMap((x) => x.jobs))];
+  const itemIds = [...new Set(subjects.flatMap((x) => x.items))];
+  const jobs = new Map<string, { is_seed: boolean | null; customer_id: string | null; helper_id: string | null }>();
+  for (const ids of batches(jobIds)) {
+    for (const j of unwrap(await supabase.from("jobs").select("id, is_seed, customer_id, helper_id").in("id", ids)) ?? []) jobs.set(j.id, j);
+  }
+  const seedItems = new Set<string>();
+  for (const ids of batches(itemIds)) {
+    for (const i of unwrap(await supabase.from("declutter_items").select("id").in("id", ids).eq("is_seed", true)) ?? []) seedItems.add(i.id);
+  }
+  const seedUsers = new Set<string>();
+  for (const ids of batches([...new Set(subjects.flatMap((x) => x.users))])) {
+    for (const id of await fetchSeedUserIds(ids)) seedUsers.add(id);
+  }
+  const kept = data.filter((e, i) => {
+    const about = subjects[i];
+    if (isNoOpAudit(e)) return false;
+    return !(about.users.some((id) => seedUsers.has(id))
+      || about.jobs.some((id) => jobs.get(id)?.is_seed === true)
+      || about.items.some((id) => seedItems.has(id)));
+  });
+
+  // admin_id is NULL for automated writes (pg_cron / service-role edge
+  // functions) — see 20260825140000. Those nulls must not reach `.in()`:
+  // postgrest serializes them as the literal `null`, and
+  // `user_id=in.(null,…)` is a uuid syntax error (22P02) that fails the
+  // whole query, so one system row would blank the entire tab.
+  const adminIds = [...new Set(kept.map((e) => e.admin_id))]
+    .filter((id): id is string => !!id);
+  const nameMap = new Map<string, string | null>();
+  if (adminIds.length > 0) {
+    const profiles = unwrap(await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", adminIds));
+    for (const p of profiles ?? []) nameMap.set(p.user_id, p.full_name);
+  }
+  const entries = kept.map((e) => {
+    const job = e.target_id ? jobs.get(e.target_id) : undefined;
+    return {
+      ...e,
+      admin_name: formatName(e.admin_id ? nameMap.get(e.admin_id) : undefined, "System"),
+      own_job: e.action === "job_status_override" && !!e.admin_id && !!job && (job.customer_id === e.admin_id || job.helper_id === e.admin_id),
+    };
+  });
+  return { entries, more: data.length === PAGE_SIZE, oldest: data[data.length - 1].created_at };
 }
 
 const AdminAuditLog = () => {
-  const { data: entries, isInitialLoading, isError, refetch } = useInstantQuery<AuditEntry[]>({
+  const { data: first, isInitialLoading, isError, refetch } = useInstantQuery<{ entries: AuditEntry[]; more: boolean; oldest: string | null }>({
     key: ["admin-audit-log"],
-    fallback: [],
-    fetcher: async () => {
-      const data = unwrap(await supabase.from("admin_audit_log")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(200));
-
-      if (!data || data.length === 0) return [];
-
-      // admin_id is NULL for automated writes (pg_cron / service-role edge
-      // functions) — see 20260825140000. Those nulls must not reach `.in()`:
-      // postgrest serializes them as the literal `null`, and
-      // `user_id=in.(null,…)` is a uuid syntax error (22P02) that fails the
-      // whole query, so one system row would blank the entire tab.
-      const adminIds = [...new Set(data.map((e) => e.admin_id))]
-        .filter((id): id is string => !!id);
-
-      const nameMap = new Map<string, string | null>();
-      if (adminIds.length > 0) {
-        const profiles = unwrap(await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", adminIds));
-        for (const p of profiles ?? []) nameMap.set(p.user_id, p.full_name);
-      }
-      return data.map((e) => ({
-        ...e,
-        admin_name: formatName(e.admin_id ? nameMap.get(e.admin_id) : undefined, "System"),
-      }));
-    },
+    fallback: { entries: [], more: false, oldest: null },
+    fetcher: () => fetchAuditPage(),
   });
+  // Older pages, added by Load more. Dropped when the first page changes under them, which would leave a gap.
+  const [older, setOlder] = useState<{ after: string | null; entries: AuditEntry[]; more: boolean; oldest: string | null } | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [kind, setKind] = useState<AuditKind>("all");
+  const [actor, setActor] = useState<AuditActor>("anyone");
+  const [search, setSearch] = useState("");
+  const current = older && older.after === first.oldest ? older : null;
+  const loaded = current ? [...first.entries, ...current.entries] : first.entries;
+  const more = current ? current.more : first.more;
+  const oldest = current ? current.oldest : first.oldest;
+
+  const loadMore = async () => {
+    if (!oldest) return;
+    setLoadingMore(true);
+    try {
+      const page = await fetchAuditPage(oldest);
+      setOlder({ after: first.oldest, entries: [...(current?.entries ?? []), ...page.entries], more: page.more, oldest: page.oldest ?? oldest });
+    } catch {
+      toast.error("Couldn't load older entries. Try again.");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   /**
    * Export the loaded entries as CSV.
@@ -82,7 +159,7 @@ const AdminAuditLog = () => {
    */
   const exportCSV = () => {
     const header = "Timestamp,Admin,Action,Target Type,Target ID,Details\n";
-    const rows = entries.map(e =>
+    const rows = shown.map(e =>
       `"${e.created_at}","${e.admin_name}","${e.action}","${e.target_type || ""}","${e.target_id || ""}","${JSON.stringify(e.details || {}).replace(/"/g, '""')}"`
     ).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8" });
@@ -179,6 +256,9 @@ const AdminAuditLog = () => {
     return null;
   };
 
+  const shown = loaded.filter((e) => auditMatches(e, { kind, actor, search }, `${e.own_job ? "own job " : ""}${summarizeDetails(e.action, e.details) ?? ""}`));
+  const filtering = kind !== "all" || actor !== "anyone" || search.trim() !== "";
+
   return (
     <AdminViewShell>
       {/* Export CSV lived on a bare right-aligned row above the list, with a
@@ -188,12 +268,14 @@ const AdminAuditLog = () => {
       <AdminCard
         title="Recent Activity"
         subtitle={
-          entries.length > 0
-            ? `Last ${entries.length} admin ${entries.length === 1 ? "action" : "actions"}, newest first.`
+          filtering
+            ? `${shown.length} of the ${loaded.length} loaded, newest first. Load more to search further back.`
+            : loaded.length > 0
+            ? `Last ${loaded.length} admin ${loaded.length === 1 ? "action" : "actions"}, newest first.`
             : "Every admin action is recorded here, newest first."
         }
         action={
-          <Button variant="outline" size="sm" onClick={exportCSV} disabled={entries.length === 0}>
+          <Button variant="outline" size="sm" onClick={exportCSV} disabled={shown.length === 0}>
             <Download className="w-3 h-3 mr-1" /> Export CSV
           </Button>
         }
@@ -221,7 +303,7 @@ const AdminAuditLog = () => {
           body="Tap Try again. Every admin action is still recorded — this is just a fetch hiccup."
           onRetry={() => refetch()}
         />
-      ) : entries.length === 0 ? (
+      ) : loaded.length === 0 && !more ? (
         <EmptyState
           surfaceStyle={NESTED_EMPTY_SURFACE}
           variant="inline"
@@ -231,15 +313,42 @@ const AdminAuditLog = () => {
         />
       ) : (
         <div className="space-y-1.5">
-          {entries.map(entry => {
+          <div className="flex flex-col gap-2 pb-1.5 sm:flex-row sm:items-center">
+            <Input
+              type="search"
+              aria-label="Search the audit log"
+              placeholder="Search by name, action or id"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="sm:flex-1"
+            />
+            <Select value={kind} onValueChange={(v) => setKind(v as AuditKind)}>
+              <SelectTrigger aria-label="Kind of action" className="sm:w-52"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(AUDIT_KIND_LABEL) as AuditKind[]).map((k) => <SelectItem key={k} value={k}>{AUDIT_KIND_LABEL[k]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={actor} onValueChange={(v) => setActor(v as AuditActor)}>
+              <SelectTrigger aria-label="Who did it" className="sm:w-36"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(AUDIT_ACTOR_LABEL) as AuditActor[]).map((k) => <SelectItem key={k} value={k}>{AUDIT_ACTOR_LABEL[k]}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {shown.length === 0 && (
+            <p className="py-4 text-center text-ds-12 text-muted-foreground">
+              {filtering ? "Nothing loaded matches these filters." : "Nothing to show in this stretch of the log."}
+            </p>
+          )}
+          {shown.map(entry => {
             const summary = summarizeDetails(entry.action, entry.details);
             return (
               <div key={entry.id} className="rounded-ds-sm border border-border/60 bg-background/40 p-3 flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-ds-13 text-foreground">{entry.admin_name}</span>
-                    <Badge className={toneBadgeClasses[actionTone[entry.action] ?? "neutral"]}>
-                      {formatCategory(entry.action)}
+                    <Badge className={toneBadgeClasses[entry.own_job ? "neutral" : actionTone[entry.action] ?? "neutral"]}>
+                      {entry.own_job ? "Own job" : formatCategory(entry.action)}
                     </Badge>
                     {entry.target_type && (
                       <span className="text-ds-11 text-muted-foreground">→ {entry.target_type}</span>
@@ -255,6 +364,13 @@ const AdminAuditLog = () => {
               </div>
             );
           })}
+          {more && (
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" size="sm" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? "Loading..." : "Load more"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
       </AdminCard>

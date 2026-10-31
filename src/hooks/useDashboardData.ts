@@ -1,3 +1,5 @@
+import { feedPhase as feedPhaseOf } from "@/lib/feedPhase";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { useCallback, useMemo } from "react";
 import { dedupeById, formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -225,11 +227,14 @@ export function useDashboardData() {
     placeholderData: keepPreviousData,
   });
 
+  const { online } = useOnlineStatus();
   // Paginated open-jobs feed. Each page = 25 raw rows + per-page enrichment.
   const {
     data: pagesData,
     isLoading: jobsLoading,
     isError: jobsError,
+    status: jobsStatus,
+    fetchStatus: jobsFetchStatus,
     isFetching: jobsFetching,
     fetchNextPage,
     hasNextPage,
@@ -709,6 +714,9 @@ export function useDashboardData() {
     refresh,
     // True once the open-jobs feed fetch has failed (first page).
     loadError: jobsError,
+    // The feed's own phase (Q332's feedPhase): "offline-empty" while offline (or paused) with no page in hand, so
+    // Browse never paints "0" or the empty state for jobs it never read (owner 10-31).
+    feedPhase: feedPhaseOf({ status: jobsStatus, fetchStatus: jobsFetchStatus }, online),
     // Background-refetch indicator — stale-while-revalidate signal.
     isRefreshing,
     // When the board was last read. The map has its own RPC; it re-reads on

@@ -14,6 +14,8 @@ import { useFeature } from "@/hooks/useFeature";
 import { DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
 import { SELLER_DEFAULTS, fetchSellerDefaults, saveSellerDefaults, type SellerDefaults } from "@/lib/declutter/sellerDefaults";
 import { AutoFreeChoice } from "./AutoFreeRow";
+import { BundleDiscountCard } from "./BundleDiscountCard";
+import { SellerDeliveryDetails } from "./SellerDeliverySettings";
 import { ChipGroup, dropRunTime } from "./DeclutterSellSteps";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { KEEP_UP_TITLE, keepUpSettingLine } from "./KeepUpRow";
@@ -101,9 +103,14 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
         the new start. Listings already up stay as they are.
       </p>
       <ListingChoiceFields draft={draft} change={change} />
+      {/* LEAD-BUNDLE-DROPDOWN: directly under the free-after row, in its own panel: it applies to all the seller's
+          listings and saves on change, apart from these next-listing fields and their Save. */}
+      <BundleDiscountCard />
       <div className="space-y-2" role="group" aria-labelledby="defaults-ways">
         <p id="defaults-ways" className="text-ds-14 font-semibold text-foreground">How buyers can get it</p>
         <SellWayTiles shown={shown} ways={draft.handovers} setWays={(w) => change({ handovers: w })} onSettingsPage />
+        {/* LEAD-DELIVER-TWICE: the delivery price and times open under the ticked "I'll deliver" (their own Save). */}
+        {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />}
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="button" size="sm" disabled={save.isPending || noWay || !unsaved} onClick={() => save.mutate()}>

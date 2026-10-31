@@ -80,10 +80,33 @@ export function SellerDeliveryCard() {
   );
 }
 
-function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; onDone: () => void }) {
+/**
+ * LEAD-DELIVER-TWICE (owner 2026-10-31): on Declutter settings the one delivery control is the "I'll deliver" tick in
+ * Listing defaults; while it is ticked, the price, distance, times and days off open right under it (this), with no
+ * second "I can deliver" row or on/off switch of its own: saving it turns delivery on with those terms.
+ * Guard: src/components/declutter/declutterSettings.test.tsx.
+ */
+export function SellerDeliveryDetails() {
+  const on = useFeature("declutter_seller_delivery");
+  const mine = useMySellerDelivery(on);
+  if (!on) return null;
+  // The card's own retry line (NIGHT-SET-Declutterse-1), for this read too.
+  const readFailed = mine.isError;
+  if (readFailed) return <ErrorState variant="inline" title="We couldn't load your delivery setting." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
+  if (!mine.data) return <p role="status" className="text-ds-13 text-muted-foreground">Loading…</p>;
+  return (
+    <div role="group" aria-label="Your delivery price and times" data-seller-delivery-details=""
+      className="rounded-[16px] border border-border bg-card">
+      <SellerDeliveryForm current={mine.data} onDone={() => undefined} embedded />
+    </div>
+  );
+}
+
+function SellerDeliveryForm({ current, onDone, embedded = false }: { current: MySellerDelivery; onDone: () => void; embedded?: boolean }) {
   const qc = useQueryClient();
   const rules = current.rules ?? SELLER_DELIVERY_RULES;
-  const [enabled, setEnabled] = useState(current.enabled);
+  // Embedded under the ticked "I'll deliver": delivery is what the tick means, so there is no switch to turn it on.
+  const [enabled, setEnabled] = useState(embedded ? true : current.enabled);
   // Free delivery, or a set price (owner 2026-10-27). A set price may be free on bigger orders.
   const [priceMode, setPriceMode] = useState<"free" | "paid">(current.rate_cents === 0 ? "free" : "paid");
   const [rate, setRate] = useState(current.rate_cents ? String(current.rate_cents / 100) : "");
@@ -142,11 +165,13 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
   });
   const canSave = !enabled || formOk;
   return (
-    <form className="space-y-5 border-t border-border px-4 py-4" onSubmit={(e) => { e.preventDefault(); if (canSave) save.mutate(); }}>
+    <form className={`space-y-5 px-4 py-4 ${embedded ? "" : "border-t border-border"}`} onSubmit={(e) => { e.preventDefault(); if (canSave) save.mutate(); }}>
+      {!embedded && (
       <div className="flex items-center justify-between gap-3">
         <label htmlFor="sd-enabled" className="text-sm font-medium">Offer delivery to buyers</label>
         <Switch id="sd-enabled" checked={enabled} onCheckedChange={setEnabled} />
       </div>
+      )}
       {/* Audit #35: the price, distance and times appear once delivery is switched on. */}
       {enabled ? (
       <>
@@ -244,7 +269,7 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
       {missing && <p className="text-xs text-destructive-ink" role="status" data-sd-missing="">{missing}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" disabled={!canSave || save.isPending}>{save.isPending ? "Saving…" : "Save delivery"}</Button>
-        <Button type="button" variant="outline" onClick={onDone} disabled={save.isPending}>Cancel</Button>
+        {!embedded && <Button type="button" variant="outline" onClick={onDone} disabled={save.isPending}>Cancel</Button>}
       </div>
     </form>
   );

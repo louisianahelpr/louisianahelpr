@@ -142,9 +142,12 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             user has to be able to read. The `subtitle` prop is gone from the
             hero above rather than left sr-only, so screen readers hear it
             once, here, instead of twice. */}
-        <DialogBody>
-          <p>Goes to your debit card in about 30 minutes.</p>
-        </DialogBody>
+        {/* NIGHT-JOBSRE4-2: only beside a quote; a refused or failed quote promises no money. */}
+        {quote && !error && (
+          <DialogBody>
+            <p>Goes to your debit card in about 30 minutes.</p>
+          </DialogBody>
+        )}
         {loading ? (
           <div className="py-8 flex justify-center">
             <HelprSpinner size={32} delay={0} />

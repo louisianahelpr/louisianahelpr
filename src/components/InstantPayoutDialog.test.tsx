@@ -133,6 +133,16 @@ describe("InstantPayoutDialog", () => {
     render(<InstantPayoutDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} />);
     expect(await screen.findByText("Instant cash-out starts at $25.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+    // NIGHT-JOBSRE4-2: a dialog that cannot pay out promises no money.
+    expect(screen.queryByText(/Goes to your debit card/)).toBeNull();
+  });
+
+  // NIGHT-JOBSRE4-2 (night audit): with the quote refused or failed, the dialog still read "Goes to your debit card in
+  // about 30 minutes." The timing line shows only beside a quote.
+  // @mutate src/components/InstantPayoutDialog.tsx |         {quote && !error && ( |         {true && (
+  it("NIGHT-JOBSRE4-2: the timing line shows with a quote", async () => {
+    await openWithQuote();
+    expect(screen.getByText(/Goes to your debit card in about 30 minutes/)).toBeInTheDocument();
   });
 
   it("a passed confirmation executes the payout once", async () => {

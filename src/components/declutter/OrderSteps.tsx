@@ -28,6 +28,8 @@ export type OrderFacts = {
   booked: boolean;
   /** Porch: the seller's "on the porch" photo is in. */
   out?: boolean;
+  /** Door pickup or meetup: "I got it" is open (from an hour before the booked time: gotItOpen). */
+  gotItOpen?: boolean;
   /** The item has left the seller: the buyer picked it up, met, or the Helpr picked it up. */
   pickedUp?: boolean;
   /** Delivery kinds: dropped off at the buyer's. */
@@ -57,6 +59,18 @@ const STEPS: Record<OrderHandover, readonly [string, string, string, string]> = 
   seller_delivery: ["Paid", "Time booked", "Delivered", "Done"],
   delivery: ["Paid", "Helpr found", "Picked up", "Delivered"],
 };
+
+/**
+ * BUY-7 / audit 1030 DB-3: at a door pickup or a safe meeting spot "I got it" opens an hour before the booked
+ * time, as "I'm here" does (the server refuses it before then: got_it_too_early, 20261030061753). One rule for
+ * the card's action and the button under Details.
+ */
+export const GOT_IT_OPENS_MINUTES_BEFORE = 60;
+export function gotItOpen(slotStart: string | null | undefined, now: number = Date.now()): boolean {
+  if (!slotStart) return false;
+  const t = new Date(slotStart).getTime();
+  return Number.isFinite(t) && now >= t - GOT_IT_OPENS_MINUTES_BEFORE * 60_000;
+}
 
 /** The step words for this order (free: "Claimed" first). */
 export function orderStepWords(f: Pick<OrderFacts, "handover" | "free">): readonly string[] {
@@ -89,7 +103,8 @@ export function orderWaitsOnYou(f: OrderFacts): boolean {
       return buyer ? !f.booked || (!!f.out && !f.pickedUp) : f.booked && !f.out;
     case "pickup_home":
     case "meetup":
-      return buyer && !f.booked;
+      // BUY-7: at the handover time "I got it" is the buyer's move, on the card, not under Details.
+      return buyer && (!f.booked || (!!f.gotItOpen && !f.pickedUp));
     case "seller_delivery":
     case "delivery":
       // Dropped off: the buyer says they have it.

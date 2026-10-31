@@ -13,6 +13,10 @@
  * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!rows.slotStart, out: !!h?.set_out_at, pickedUp: tookIt }; |       return { ...base, booked: !!rows.slotStart, out: !!rows.slotStart, pickedUp: tookIt };
  * @mutate src/components/declutter/BuyingOrders.tsx |       return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at }; |       return { ...base, booked: !!t, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at };
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (!orderWaitsOnYou(f)) return null; |   if (f.done) return null;
+ * BUY-7 (buying audit 10-30 #7): from an hour before a door pickup or meetup, "I got it" is the card's action (Needs you).
+ * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!f.booked \|\| (!!f.gotItOpen && !f.pickedUp)); |      return buyer && !f.booked;
+ * @mutate src/components/declutter/BuyingOrders.tsx |   if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet"; |   if (f.handover === "meetup") return "Book a time to meet";
+ * @mutate src/components/declutter/OrderSteps.tsx |   return Number.isFinite(t) && now >= t - GOT_IT_OPENS_MINUTES_BEFORE * 60_000; |   return Number.isFinite(t) && now >= t;
  * @mutate src/components/declutter/BuyingOrders.tsx |       money: facts.free ? "Free." : total != null |       money: total != null
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const body = !view \|\| open; |   const body = true;
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!view && (order.handover === "porch" \|\| order.handover === "pickup_home" \|\| order.handover === "meetup") && ( |       {(order.handover === "porch" \|\| order.handover === "pickup_home" \|\| order.handover === "meetup") && (
@@ -129,6 +133,11 @@ const CASES: Case[] = [
   { id: "home2", line: {}, slot: iso(-1), handover: { confirmed_at: iso(-0.5) }, step: 2, bucket: "waiting", action: null },
   { id: "meet0", line: { handover: "meetup" }, step: 0, bucket: "needs_you", action: "Book a time to meet" },
   { id: "meet1", line: { handover: "meetup" }, slot: iso(5), step: 1, bucket: "upcoming", action: null },
+  // BUY-7: within the hour before (and after) the booked time, "I got it" is on the card.
+  { id: "home1near", line: {}, slot: iso(0.5), step: 1, bucket: "needs_you", action: "I got it" },
+  { id: "meet1near", line: { handover: "meetup" }, slot: iso(0.75), step: 1, bucket: "needs_you", action: "I got it" },
+  { id: "meet1late", line: { handover: "meetup" }, slot: iso(-0.5), step: 1, bucket: "needs_you", action: "I got it" },
+  { id: "home1early", line: {}, slot: iso(1.25), step: 1, bucket: "upcoming", action: null },
   { id: "sd0", line: { handover: "seller_delivery" }, sd: { status: "needs_time" }, step: 0, bucket: "waiting", action: null },
   { id: "sd1", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26) }, step: 1, bucket: "upcoming", action: null },
   { id: "sd2", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-2), delivered_at: iso(-1) }, step: 2, bucket: "needs_you", action: "I got it" },

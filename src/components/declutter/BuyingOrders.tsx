@@ -24,7 +24,7 @@ import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
 import { useOpenProblems } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
-import { ORDER_BUCKETS, OrderSteps, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
+import { ORDER_BUCKETS, OrderSteps, gotItOpen, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
 /** One paid order on the buyer's side, as the tracker files it. */
 export type BuyerOrderView = {
@@ -48,6 +48,7 @@ export function buyerOrderFacts(
   rows: { slotStart?: string | null; handover?: Pick<MyHandover, "set_out_at" | "picked_up_at" | "confirmed_at"> | null;
     sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at"> | null;
     task?: Pick<TaskView, "accepted_at" | "picked_up_at" | "delivered_at"> | null },
+  now: number = Date.now(),
 ): OrderFacts {
   const handover = kindOf(order.handover);
   const base: OrderFacts = {
@@ -73,7 +74,7 @@ export function buyerOrderFacts(
       return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at };
     }
     default:
-      return { ...base, booked: !!rows.slotStart, pickedUp: tookIt };
+      return { ...base, booked: !!rows.slotStart, pickedUp: tookIt, gotItOpen: gotItOpen(rows.slotStart, now) };
   }
 }
 
@@ -81,8 +82,8 @@ export function buyerOrderFacts(
 export function buyerNextAction(f: OrderFacts): string | null {
   if (!orderWaitsOnYou(f)) return null;
   if (f.handover === "porch") return f.booked ? "I got it" : "Pick a pickup day";
-  if (f.handover === "pickup_home") return "Book a pickup time";
-  if (f.handover === "meetup") return "Book a time to meet";
+  if (f.handover === "pickup_home") return f.booked ? "I got it" : "Book a pickup time";
+  if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet";
   return "I got it";
 }
 

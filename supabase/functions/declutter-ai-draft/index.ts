@@ -204,7 +204,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const { allowed, retryAfter } = await checkRateLimit(req, {
-    windowMs: 60_000, maxRequests: 6, keyPrefix: "declutter-ai-draft",
+    // LEAD-BUNCH-34-SLOW (owner 10-31): 12 a minute (was 6), so Sell a bunch's sorting calls go every 5.25 s
+    // (AI_CHECK_GAP_MS). Cost stays capped by each mode's hourly limit below (group: 20 calls an hour).
+    windowMs: 60_000, maxRequests: 12, keyPrefix: "declutter-ai-draft",
   });
   if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
 

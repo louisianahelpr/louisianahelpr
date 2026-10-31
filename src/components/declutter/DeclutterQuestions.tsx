@@ -155,6 +155,7 @@ export function DeclutterQuestions({
   canAsk,
   free = false,
   preview = false,
+  onMakeOffer,
 }: {
   itemId: string;
   sellerId: string;
@@ -165,6 +166,8 @@ export function DeclutterQuestions({
   free?: boolean;
   /** The seller's "See what buyers see" (LEAD-PREVIEW-ASK): the Ask box shows, greyed out, saying how it works. */
   preview?: boolean;
+  /** AUD31-15: opens the offer box on the item page; without it the hint stays plain words. */
+  onMakeOffer?: () => void;
 }) {
   const qc = useQueryClient();
   const sellerName = useSellerFirstName(sellerId);
@@ -236,7 +239,10 @@ export function DeclutterQuestions({
             </Button>
           </div>
           {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>}
-          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is not allowed.{free ? "" : " Want to make a deal? Make an offer."}</p>
+          {/* AUD31-15: "Make an offer" opens the offer box on this page (DeclutterItemView's onMakeOffer), not plain text. */}
+          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is not allowed.{free ? null : onMakeOffer
+            ? <>{" Want to make a deal? "}<button type="button" className="font-semibold text-foreground underline underline-offset-2" onClick={onMakeOffer} data-question-make-offer="">Make an offer</button>.</>
+            : " Want to make a deal? Make an offer."}</p>
         </form>
       )}
       {preview && (

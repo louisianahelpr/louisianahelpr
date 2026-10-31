@@ -4833,7 +4833,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 229,
+      "line": 231,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4853,7 +4853,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 232,
+      "line": 234,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4863,7 +4863,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 237,
+      "line": 239,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4873,7 +4873,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 252,
+      "line": 254,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4883,7 +4883,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 255,
+      "line": 257,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5410,7 +5410,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 170,
+      "line": 173,
       "kind": "toast",
       "title": {
         "form": "literal",

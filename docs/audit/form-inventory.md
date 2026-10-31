@@ -160,7 +160,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterOfferPanel.tsx` | input×1 | text |  | Add a card · Buy or make an offer · declutter-offer · declutter-offer-help |
-| `src/components/declutter/DeclutterQuestions.tsx` | input×1, textarea×1 | text | 1000, 500 | declutter-answer · declutter-questions · declutter-question · Ask about size, condition… · declutter-question-error |
+| `src/components/declutter/DeclutterQuestions.tsx` | input×2, textarea×1 | text | 1000, 500 | declutter-answer · declutter-questions · declutter-question · Ask about size, condition… · declutter-question-error · declutter-question-preview · declutter-question-preview-note |
 
 ## /declutter/sell
 

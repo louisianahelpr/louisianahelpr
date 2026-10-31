@@ -27,7 +27,7 @@ import { handoverSummary } from "./SellHandoverChoices";
 import { UsesSettingsNote } from "./SellLastSetup";
 import { DeclutterNotice } from "./declutterUi";
 import { dropsOutcomeLine, formProblem } from "./sellForm";
-import { SellFreeToggle, SellTaxBox } from "./SellFormParts";
+import { SellFreeNote, SellTaxBox } from "./SellFormParts";
 import { SellSummaryCard, type SummaryField } from "./SellSummaryCard";
 import { useSellFlowState, type SellFlow } from "./useSellFlowState";
 import { photoPublicUrl } from "@/lib/declutter/api";
@@ -175,7 +175,9 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
           open={open}
           setOpen={setOpen}
           problems={{ title: problemAt("title"), price: problemAt("price"), size: problemAt("size") }}
-          priceExtras={<div className="space-y-3 pt-1"><SellFreeToggle s={s} /></div>}
+          // LEAD-FREE-MOVE (owner 2026-10-31): "Give it away free" is a choice on the sell chooser's first screen
+          // (?free=1), not a tick on the Price row; a free listing's row says what free means and offers "Charge for it".
+          priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : null}
         />
 
         <div className="space-y-2" data-sell-row="tax"><SellTaxBox s={s} />{problemAt("tax")}</div>

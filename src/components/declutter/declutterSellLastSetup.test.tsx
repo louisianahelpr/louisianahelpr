@@ -24,7 +24,7 @@
  * @mutate src/components/declutter/useSellFlowState.ts | useState<FormState>(() => (!urlItemId && startsFree(params) ? { ...EMPTY, free: true } : EMPTY)) | useState<FormState>(EMPTY)
  */
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { LastSetup } from "@/lib/declutter/lastSetup";
@@ -310,6 +310,20 @@ describe("Give it away free (?free=1)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(drafts).toHaveLength(1));
     expect(drafts[0]).toMatchObject({ priceCents: 0 });
+  });
+
+  // LEAD-FREE-MOVE (owner 2026-10-31): free is picked on the chooser's first screen, never ticked on the Price row.
+  // @mutate src/components/declutter/SellOneScreen.tsx | priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : null} | priceExtras={<div className="pt-1" data-sell-free="">Give it away free</div>}
+  it("the one screen has no Give it away free tick; a free listing can still go back to a price", async () => {
+    open("/declutter/sell");
+    await addPhotoAndWait();
+    expect(document.querySelector("[data-sell-free]")).toBeNull();
+    expect(screen.queryByText("Give it away free")).toBeNull();
+    cleanup();
+    open("/declutter/sell?free=1");
+    await addPhotoAndWait();
+    expect(document.querySelector("[data-sell-free]")).toBeNull();
+    expect(screen.getByRole("button", { name: "Charge for it" })).toBeTruthy();
   });
 
   it("a saved draft (?item=) is never switched to Free by the param", () => {

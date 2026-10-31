@@ -1249,7 +1249,8 @@ export const RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   // LEAD-POST-SLOW (a), 20261031160546: the same rules with the id the app picked at the first photo. item_id_taken
-  // never reaches the seller: createDraft falls back to declutter_create_item (a fresh id) and re-uploads the photos.
+  // never reaches the seller: createDraft reuses the seller's own draft, says "Already posted" for the seller's own
+  // posted item (LEAD-RESUME-REPOSTS), and only for an id that isn't the seller's makes a fresh one.
   declutter_create_item_with_id: {
     account_restricted: DC.account_restricted,
     area_looks_like_address: DC.area_looks_like_address,

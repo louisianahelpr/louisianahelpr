@@ -528,11 +528,16 @@ export async function createDraft(f: DraftFields, withId?: string): Promise<stri
     // (4): that draft is reused (its fields saved again), never a second draft with the photos uploaded twice. A
     // draft row reads back only for its own seller (the declutter_items read policy), so a row that reads back as a
     // draft is the caller's own; anything else gets a fresh id below.
-    if (res.error && /item_id_taken/.test(res.error.message ?? "") && (await isMyDraft(withId))) {
+    const taken = !!res.error && /item_id_taken/.test(res.error.message ?? "");
+    const mine = taken ? await readMyItem(withId) : null;
+    if (mine === "draft") {
       await updateDraft(withId, f);
       return withId;
     }
-    // Before 20261031160546 (PGRST202), or an id taken by a row that is not the caller's draft: a fresh id.
+    // LEAD-RESUME-REPOSTS (owner 2026-10-31, prod duplicates of c87b7de4 / 019dd0b3): the id is the caller's own item and
+    // it is already past draft (posted). A fresh id here made a second copy of it; it is never made again.
+    if (mine) throw new AlreadyPosted(withId);
+    // Before 20261031160546 (PGRST202), or an id taken by a row that is not the caller's: a fresh id.
     const retry = res.error && (isMissingRpcNamed(res.error, "declutter_create_item_with_id") || /item_id_taken/.test(res.error.message ?? ""));
     if (!retry) {
       return rpcData(res, (e) => rpcErrorMessage("declutter_create_item_with_id", e)) as string;
@@ -541,10 +546,29 @@ export async function createDraft(f: DraftFields, withId?: string): Promise<stri
   return rpcData(await supabase.rpc("declutter_create_item", draftArgs(f)), (e) => rpcErrorMessage("declutter_create_item", e)) as string;
 }
 
-/** Is this id a draft the caller can read (only its own seller can read a draft)? A failed read says no. */
-async function isMyDraft(itemId: string): Promise<boolean> {
-  const r = await supabase.from("declutter_items").select("id, status").eq("id", itemId).maybeSingle();
-  return !r.error && (r.data as { status?: string } | null)?.status === "draft";
+/**
+ * LEAD-RESUME-REPOSTS: Post with an id that is already the seller's posted item. Never a second copy: the screen says
+ * "Already posted" and opens it (itemId).
+ */
+export class AlreadyPosted extends Error {
+  readonly userMessage = "Already posted. It's under Selling.";
+  constructor(readonly itemId: string) {
+    super("already_posted");
+  }
+}
+
+/**
+ * The caller's own item with this id: its status, or null when it is not the caller's (or can't be read). A draft reads
+ * back only for its own seller (the declutter_items read policy); a posted item reads for everyone, so the seller is
+ * compared too. A failed read says null (a fresh id, as before).
+ */
+async function readMyItem(itemId: string): Promise<string | null> {
+  const r = await supabase.from("declutter_items").select("id, status, seller_id").eq("id", itemId).maybeSingle();
+  const row = r.error ? null : (r.data as { status?: string; seller_id?: string } | null);
+  if (!row?.status) return null;
+  if (row.status === "draft") return "draft";
+  const me = (await supabase.auth.getSession()).data.session?.user.id;
+  return me && row.seller_id === me ? row.status : null;
 }
 
 export async function updateDraft(itemId: string, f: DraftFields): Promise<string> {

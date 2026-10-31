@@ -122,7 +122,7 @@ describe("where it shows", () => {
     rpc.mockClear();
     wrap(<><ApplicantTrustLine helperId="h1" helperIds={["h1", "h2"]} /><ApplicantTrustLine helperId="h2" helperIds={["h1", "h2"]} /></>);
     expect(await screen.findByText("4 jobs done · 80% on time · Usually replies in under an hour")).toBeTruthy();
-    // h2 is new (1 job): nothing at the bottom of the card; "New" is the tag beside the name.
+    // h2 is new (its fixture row is under the New threshold): nothing at the bottom of the card; "New" is the tag beside the name.
     await waitFor(() => expect(document.querySelectorAll("[data-trust-line]").length).toBe(1));
     expect(screen.queryByText("New")).toBeNull();
     expect(rpc.mock.calls.filter((c) => c[0] === "get_public_profile_stats").length).toBe(1);

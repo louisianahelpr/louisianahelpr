@@ -240,7 +240,9 @@ serve(async (req) => {
     // The caller's own DRAFT only (a stranger is never told it exists). Item B (owner 2026-10-29): a `check` may
     // also judge a Declutter listing an edit sent back (pending_review); declutter_record_ai_check decides
     // whether that one may be judged (it was live and its check was cleared) and refuses anything else.
-    const declutterStatuses = mode === "check" ? ["draft", "pending_review"] : ["draft"];
+    // LEAD-POST-SLOW (owner 2026-10-31, 20261031152545): Post publishes at once and the check runs right after, on
+    // the LIVE listing; declutter_record_ai_check judges a live one only while it has no check yet.
+    const declutterStatuses = mode === "check" ? ["draft", "live", "pending_review"] : ["draft"];
     const { data: item, error: itemErr } = shopItem
       ? await admin.from("shop_items").select("id, kind, subtype, title, description")
           .eq("id", itemId).eq("owner_id", userId).eq("status", "draft").maybeSingle()

@@ -121,7 +121,7 @@ vi.mock("@/lib/declutter/api", () => ({
   // Owner 2026-10-28: a new listing's held photos go to Claude by themselves (SellAiDraft.tsx).
   requestAiDraftFromPhotos: (files: File[]) => { aiCalls.push(files.map((f) => f.name)); return aiAnswer.fails ? Promise.reject(new Error("ai_unavailable")) : aiAnswer.next(); },
   requestAiCheck: async () => ({ checked: true, flagged: false }),
-  requestAiCheckWithRetry: async () => { post.checksStarted += 1; await post.checkGate; return { checked: true, flagged: false }; },
+  requestAiCheckWithRetry: async () => { post.checksStarted += 1; calls.push("check"); await post.checkGate; return { checked: true, flagged: false }; },
   setPickupWindows: async () => { calls.push("windows"); return 1; },
   attestItem: async () => { await post.attestGate; post.attested += 1; calls.push("attest"); },
   publishItem: async () => { calls.push("publish"); return "live"; },
@@ -129,7 +129,6 @@ vi.mock("@/lib/declutter/api", () => ({
 
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import * as api from "@/lib/declutter/api";
-import { SLOW_CHECK_AFTER_MS, SLOW_CHECK_STEP } from "./useSellFlowState";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 /** Where Post lands: the address and the router state the "Your listing is live" sheet reads. */
@@ -242,7 +241,7 @@ describe("photo-first selling, one screen", () => {
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() =>
-      expect(calls).toEqual(["createDraft", `addPhoto:${NEW_ID}:a.jpg`, `addPhoto:${NEW_ID}:b.jpg`, `addPhoto:${NEW_ID}:c.jpg`, "attest", "publish"]),
+      expect(calls).toEqual(["createDraft", `addPhoto:${NEW_ID}:a.jpg`, `addPhoto:${NEW_ID}:b.jpg`, `addPhoto:${NEW_ID}:c.jpg`, "attest", "publish", "check"]),
     );
     // The seller's choice is what the server stores: their lowest price and their step.
     // @mutate src/components/declutter/useSellFlowState.ts |       if (!form.free) await setDropPct(id, choice.dropPct); |       void choice;
@@ -304,7 +303,7 @@ describe("photo-first selling, one screen", () => {
       calls.length = 0;
       fireEvent.click(screen.getByRole("button", { name: "Try again" }));
       await screen.findByTestId("landed");
-      expect(calls).toEqual([`addPhoto:${NEW_ID}:b.jpg`, `addPhoto:${NEW_ID}:d.jpg`, "attest", "publish"]);
+      expect(calls).toEqual([`addPhoto:${NEW_ID}:b.jpg`, `addPhoto:${NEW_ID}:d.jpg`, "attest", "publish", "check"]);
     });
 
     it("Post with 2 photos is the seller's choice: it publishes what went up and drops the rest", async () => {
@@ -312,7 +311,7 @@ describe("photo-first selling, one screen", () => {
       calls.length = 0;
       fireEvent.click(await screen.findByRole("button", { name: "Post with 2 photos" }));
       await screen.findByTestId("landed");
-      expect(calls).toEqual(["attest", "publish"]);
+      expect(calls).toEqual(["attest", "publish", "check"]);
     });
 
     it("with none up, Post with is not offered", async () => {
@@ -730,31 +729,12 @@ describe("photo-first selling, one screen", () => {
       "Buyers can also choose Helpr delivery: a local Helpr picks it up from you and brings it to them, and the buyer pays for it.");
     expect(screen.queryByText(/Pickup at your door/)).toBeNull();
   });
-  // LEAD-POST-SLOW (owner 2026-10-31: "Post it does nothing, or posts only after a very long delay"). Prod, measured
-  // from the request log of the owner's own Post (c87b7de4): 5.8 s from the draft to live, 3.9 s of it the photo check,
-  // which waited for keep-up, the tax tick and the rest to go up one by one first. The check reads only what
-  // saveDetails saved, so it starts at once and the rest go up beside it.
-  // @mutate src/components/declutter/useSellFlowState.ts |       const checked = requestAiCheckWithRetry(id); |       await attestItem(id);\n      const checked = requestAiCheckWithRetry(id);
-  it("LEAD-POST-SLOW: the photo check starts while the tax tick is still going up, and Post waits for both", async () => {
-    let releaseAttest = () => {};
-    post.attestGate = new Promise<void>((r) => { releaseAttest = r; });
-    open();
-    await screen.findByRole("heading", { name: "Show it off" });
-    addPhotos("a.jpg");
-    await screen.findByText("We wrote your listing. Check it before you post");
-    fillWaysAndTax();
-    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-    await waitFor(() => expect(post.checksStarted).toBe(1));
-    expect(post.attested).toBe(0);
-    expect(calls).not.toContain("publish");
-    releaseAttest();
-    await screen.findByTestId("landed");
-    expect(calls.slice(-2)).toEqual(["attest", "publish"]);
-  });
-
-  // A slow photo check says it is still going, so a long wait never looks like a Post that did nothing.
-  // @mutate src/components/declutter/useSellFlowState.ts |       const slow = setTimeout(() => setPostStep(SLOW_CHECK_STEP), SLOW_CHECK_AFTER_MS); |       const slow = setTimeout(() => undefined, SLOW_CHECK_AFTER_MS);
-  it("LEAD-POST-SLOW: a photo check still out after a few seconds says so on the button", async () => {
+  // LEAD-POST-SLOW (owner 2026-10-31: "Post it does nothing, or posts only after a very long delay"; "nothing slow
+  // for users, under 2 s"). Prod, measured from the request log of the owner's own Post (c87b7de4): 5.8 s from the
+  // draft to live, 3.9 s of it the photo check that publish waited for. Post now publishes at once and asks for the
+  // check right after (20261031152545: a flag takes the listing down and tells the seller).
+  // @mutate src/components/declutter/useSellFlowState.ts |       const status = await publishItem(id); |       await requestAiCheckWithRetry(id);\n      const status = await publishItem(id);
+  it("LEAD-POST-SLOW: Post lands on Selling while the photo check is still out, and the check is asked after publish", async () => {
     let releaseCheck = () => {};
     post.checkGate = new Promise<void>((r) => { releaseCheck = r; });
     open();
@@ -762,19 +742,11 @@ describe("photo-first selling, one screen", () => {
     addPhotos("a.jpg");
     await screen.findByText("We wrote your listing. Check it before you post");
     fillWaysAndTax();
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    try {
-      fireEvent.click(screen.getByRole("button", { name: "Post it" }));
-      expect(await screen.findByRole("button", { name: "Checking your listing" })).toBeDisabled();
-      await vi.advanceTimersByTimeAsync(SLOW_CHECK_AFTER_MS + 50);
-      expect(await screen.findByRole("button", { name: SLOW_CHECK_STEP })).toBeDisabled();
-      // Nothing goes live before the check has answered.
-      expect(calls).not.toContain("publish");
-    } finally {
-      vi.useRealTimers();
-    }
-    releaseCheck();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await screen.findByTestId("landed");
+    // The check is asked only once the listing is up.
+    expect(calls.slice(-3)).toEqual(["attest", "publish", "check"]);
+    releaseCheck();
   });
 
   // The owner's second Post on 10-31 never reached the server (no declutter_create_item in the request log between

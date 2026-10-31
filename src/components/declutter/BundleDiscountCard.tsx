@@ -20,7 +20,7 @@ import { bundleErrorMessage } from "@/lib/declutter/bundleErrors";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { ErrorState } from "@/components/ui/ErrorState";
 
-export const BUNDLE_APPLIES_LINE = "Applies to all your listings";
+const BUNDLE_APPLIES_LINE = "Applies to all your listings";
 
 export function BundleDiscountCard() {
   const on = useFeature("declutter");

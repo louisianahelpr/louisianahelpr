@@ -541,3 +541,50 @@ describe("BrowseMap pin popup — reuses JobCard via mapJobToEnrichedJob", () =>
 // dismissed and not-saved jobs pin the board again while the list hides them —
 // "map shows 7 jobs. list shows 4."
 // @mutate src/components/BrowseMap.tsx | return filtered.filter((j) => !isJobExcludedForViewer(j, exclusions)); | return filtered;
+
+// NIGHT-JOBSMA5-3 (audit 10-30 night): at 375 Apple's "Maps" logo and "Legal" link sat under the dock. MapKit's own
+// padding lifts them (measured 10-31, B37: padding bottom 112 moved both up by exactly 112 CSS px; shots in
+// ~/.lh-shots/b37-1031/map/), and it frames every region inside the padded area, so the fit must not inset the band
+// a second time.
+// @mutate src/components/browseMap/useMapLayersSync.ts |       map.padding = new mk.Padding!(0, 0, band, 0); |       map.padding = new mk.Padding!(0, 0, 0, 0);
+// @mutate src/components/browseMap/useMapLayersSync.ts |     const band = padded.current ? 0 : clearanceProbeRef.current?.offsetHeight ?? 0; |     const band = clearanceProbeRef.current?.offsetHeight ?? 0;
+describe("BrowseMap keeps Apple's logo and Legal above the dock (NIGHT-JOBSMA5-3)", () => {
+  it("pads the map by the dock band once, and the fit does not inset it again", async () => {
+    class Padding {
+      constructor(public top: number, public right: number, public bottom: number, public left: number) {}
+    }
+    (window as unknown as { mapkit: Record<string, unknown> }).mapkit.Padding = Padding;
+    const offset = vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(112);
+    const client = vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(600);
+    try {
+      rpcResolver.value = [makeJob(1), makeJob(40)];
+      const { BrowseMap } = await import("./BrowseMap");
+      render(<BrowseMap />);
+      await waitFor(() => expect(mapInstances.length).toBeGreaterThan(0));
+      const map = mapInstances[mapInstances.length - 1] as unknown as { padding?: Padding; setRegionAnimated: ReturnType<typeof vi.fn> };
+      await waitFor(() => expect(map.padding).toBeInstanceOf(Padding));
+      expect([map.padding!.top, map.padding!.right, map.padding!.bottom, map.padding!.left]).toEqual([0, 0, 112, 0]);
+
+      // The same two pins framed with no inset, and with the 112 px band inset by hand (the old way).
+      const { fitToPins } = await import("./browseMap/MapLayers");
+      const { busyAreaCircles, busyAreas } = await import("@/lib/busyAreas");
+      const pins = [makeJob(1), makeJob(40)];
+      const mk = (window as unknown as { mapkit: Parameters<typeof fitToPins>[0] }).mapkit;
+      const framed = (inset: number) => {
+        const fake = { element: { clientHeight: 600 }, setRegionAnimated: vi.fn() };
+        fitToPins(mk, fake as unknown as Parameters<typeof fitToPins>[1], pins, false, inset, busyAreaCircles(busyAreas(pins as never, []).areas));
+        return (fake.setRegionAnimated.mock.calls[0][0] as { span: { latitudeDelta: number } }).span.latitudeDelta;
+      };
+      expect(framed(112)).toBeGreaterThan(framed(0)); // the inset is real, so the check below can fail
+      await waitFor(() => {
+        const calls = map.setRegionAnimated.mock.calls;
+        const spans = calls.map((c) => (c[0] as { span: { latitudeDelta: number } }).span.latitudeDelta);
+        expect(spans).toContain(framed(0));
+        expect(spans).not.toContain(framed(112));
+      });
+    } finally {
+      offset.mockRestore();
+      client.mockRestore();
+    }
+  });
+});

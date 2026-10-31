@@ -66,11 +66,30 @@ export function useFitPinsOnChange(
   visibleJobs: ReadonlyArray<Pick<MapJob, "latitude" | "longitude" | "parish">>,
   clearanceProbeRef: RefObject<HTMLDivElement | null>,
 ) {
+  // NIGHT-JOBSMA5-3: at 375 Apple's "Maps" logo and "Legal" link sat under the dock. MapKit's own padding lifts its
+  // controls (logo and Legal included) and frames every region inside the padded area, so the dock band is padded
+  // once, here, and fitToPins no longer insets the same band itself. Re-measured on resize (rotation, a dock that
+  // comes or goes). Measured 10-31 (B37): padding bottom 112 moved the logo and Legal up by exactly 112 CSS px.
+  const padded = useRef(false);
+  useEffect(() => {
+    const mk = getMapKit();
+    const map = mapRef.current;
+    if (!mk?.Padding || !map) return;
+    const apply = () => {
+      const band = clearanceProbeRef.current?.offsetHeight ?? 0;
+      map.padding = new mk.Padding!(0, 0, band, 0);
+      padded.current = true;
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, [mapReady, mapRef, clearanceProbeRef]);
   useEffect(() => {
     const mk = getMapKit();
     const map = mapRef.current;
     if (!mk || !map) return;
+    const band = padded.current ? 0 : clearanceProbeRef.current?.offsetHeight ?? 0;
     // With the busy-area circles, so the busiest is never cut at the edge (A2-L14).
-    fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0, busyAreaCircles(busyAreas(visibleJobs, []).areas));
+    fitToPins(mk, map, visibleJobs, false, band, busyAreaCircles(busyAreas(visibleJobs, []).areas));
   }, [visibleJobs, mapReady, mapRef, clearanceProbeRef]);
 }

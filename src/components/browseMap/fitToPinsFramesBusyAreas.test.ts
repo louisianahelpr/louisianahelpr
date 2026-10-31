@@ -11,7 +11,7 @@
  * not the camera.)
  *
  * @mutate src/components/browseMap/MapLayers.tsx |   for (const c of circles) { |   for (const c of circles.slice(0, 0)) {
- * @mutate src/components/browseMap/useMapLayersSync.ts | fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0, busyAreaCircles(busyAreas(visibleJobs, []).areas)); | fitToPins(mk, map, visibleJobs, false, clearanceProbeRef.current?.offsetHeight ?? 0);
+ * @mutate src/components/browseMap/useMapLayersSync.ts | fitToPins(mk, map, visibleJobs, false, band, busyAreaCircles(busyAreas(visibleJobs, []).areas)); | fitToPins(mk, map, visibleJobs, false, band);
  * @mutate src/lib/busyAreas.ts |   return areas.map((a) => ({ lat: a.center.lat, lng: a.center.lng, radiusMeters: busyCircleRadiusMeters(a.total, max) })); |   return [];
  */
 import { describe, it, expect } from "vitest";

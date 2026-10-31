@@ -17589,6 +17589,7 @@ export type Database = {
       ops_alert_sentry_source: { Args: { p_source: string }; Returns: string }
       ops_alert_verify: { Args: never; Returns: Json }
       ops_route_key: { Args: { p_route: string }; Returns: string }
+      owner_daily_summary_stats: { Args: { p_since: string }; Returns: Json }
       payout_day_label: { Args: { p_at: string }; Returns: string }
       payout_defer: {
         Args: { p_kind: string; p_minutes: number; p_payout_id: string }

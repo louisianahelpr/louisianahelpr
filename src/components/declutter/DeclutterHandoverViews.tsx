@@ -70,6 +70,7 @@ import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
+import { Link } from "react-router-dom";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
@@ -225,7 +226,8 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
         <>
           {/* BUY-31: said once. The buyer's head line says it, and SellerDeliveryStatus says it to the seller. */}
           {order.handover === "delivery" && !view && <p className="text-sm font-medium">Handed over.</p>}
-          {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}</p>}
+          {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}
+            {payout.status === "failed" && <>{" "}<Link to="/profile?tab=payment" className="underline font-semibold">Check your payouts</Link></>}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>
               <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={problem ? null : <ProblemForm orderId={order.orderId} side={order.side} stage="handover" />} />

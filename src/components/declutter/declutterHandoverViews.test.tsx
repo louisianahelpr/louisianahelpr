@@ -606,6 +606,16 @@ describe("Declutter slice 4: paid-order cards", () => {
     show([line({ my_side: "seller", order_status: "handed_over" })]);
     expect(await screen.findByText(/\$38\.50 \(\$40 minus \$1\.50 you owed\)/)).toBeInTheDocument();
     expect(screen.getByText("Review o1 as the seller (me)")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Check your payouts" })).toBeNull();
+  });
+
+  // NIGHT-SELL-soldstates-4: a failed payout said "check that your payout account is set up" with no way there.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |             {payout.status === "failed" && <>{" "}<Link | {false && <>{" "}<Link
+  it("soldstates-4: a failed payout links to the payout settings", async () => {
+    state.payouts = [{ order_id: "o1", items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, amount_cents: 4000, status: "failed", executed_at: null }];
+    show([line({ my_side: "seller", order_status: "handed_over" })]);
+    expect(await screen.findByText(/Your payout didn't go through yet/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Check your payouts" })).toHaveAttribute("href", "/profile?tab=payment");
   });
 
   // Boards 71/72: the one tracker, where it stands, and the money note, from the real handover row.

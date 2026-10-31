@@ -35,7 +35,7 @@ import { fetchMyPickupWindows, requestAiDraftFromPhotos, setPickupWindows, type 
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { withRetries } from "@/lib/declutter/steadyRetry";
 import {
-  addPhotosToItem, addSorted, askGroup, BUNCH_MAX_PHOTOS, bulkEdit, bunchItemNeed, bunchItemProblem, bunchListable, bunchNeedsLine, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, keepCleanablePhotos, listBunch, makeCover, mergeItems, mergePriceClash, movePhoto, movePhotoWithin, percentOffSuggested, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, takePhotoOff, unreadyFirst, unusablePhotosNote, watchBunchRun,
+  addPhotosToItem, addSorted, askGroup, BUNCH_MAX_PHOTOS, bulkEdit, bunchItemNeed, bunchItemProblem, bunchListable, bunchNeedsLine, draftsLeftBehind, dropItem, editBunchItem, GROUP_BATCH, groupPhotos, joinSorted, keepCleanablePhotos, listBunch, makeCover, mergeItems, mergePriceClash, movePhoto, movePhotoWithin, notSortedPile, percentOffSuggested, photosInItems, removeBunchDraft, rewrittenPrice, splitItem, startBunchRun, takePhotoOff, unreadyFirst, unusablePhotosNote, watchBunchRun,
   type BunchItem, type BunchOutcome, type BunchPhoto, type BunchRunWatcher, type PhotoProgress,
 } from "@/lib/declutter/bunch";
 import { louisianaToday, moveDateProblem } from "@/lib/declutter/moves";
@@ -59,6 +59,7 @@ import { BunchListStep } from "./DeclutterBunchListStep";
 import { BunchSection } from "./DeclutterBunchSection";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useBunchThumbs } from "./useBunchThumbs";
+import { BunchIntake } from "./DeclutterBunchIntake";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
@@ -105,7 +106,27 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   const [results, setResults] = useState<BunchOutcome[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const thumbs = useBunchThumbs(photos);
+  // LEAD-BUNCH-34-SLOW: while sorting, each photo's thumbnail is its small copy, shown the moment it is made (no second
+  // decode of the full photo); "Adding N of M" counts them. The preview maker fills in the rest once sorting is done.
+  const [adding, setAdding] = useState<{ ready: number; total: number } | null>(null);
+  const [copyUrls, setCopyUrls] = useState<ReadonlyMap<string, string>>(() => new Map());
+  const made = useBunchThumbs(photos, { paused: !!sorting, ready: copyUrls });
+  const thumbs = useMemo(() => new Map([...copyUrls, ...made]), [copyUrls, made]);
+  useEffect(() => {
+    const now = new Set(photos.map((p) => p.key));
+    if (![...copyUrls.keys()].some((k) => !now.has(k))) return;
+    setCopyUrls((m) => {
+      const kept = new Map<string, string>();
+      for (const [k, url] of m) {
+        if (now.has(k)) kept.set(k, url);
+        else URL.revokeObjectURL(url);
+      }
+      return kept;
+    });
+  }, [photos, copyUrls]);
+  const copyUrlsNow = useRef(copyUrls);
+  copyUrlsNow.current = copyUrls;
+  useEffect(() => () => copyUrlsNow.current.forEach((url) => URL.revokeObjectURL(url)), []);
   // Photos of listed and dropped items stop counting toward the cap. Not mid-sort: a batch's photos aren't in an item yet.
   useEffect(() => {
     if (!sorting) setPhotos((ps) => photosInItems(ps, items));
@@ -214,24 +235,36 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   async function sortPhotos(batch: BunchPhoto[]) {
     setSorting({ done: 0, total: Math.ceil(batch.length / GROUP_BATCH) });
     setFound(0);
+    setAdding({ ready: 0, total: batch.length });
     try {
-      const at = await hintPoint();
+      // LEAD-BUNCH-34-SLOW: the photos start being made ready now; the address check runs beside them, not before them.
+      const at = hintPoint();
       const res = await groupPhotos(batch, (done, total, made) => {
         setSorting({ done, total });
         setFound((n) => n + made.length);
         // Items just came in, so "before" would lose them.
         if (made.length > 0) setUndo(null);
         setItems((its) => addSorted(its, made));
-      }, (cleaned) => askGroup(cleaned, at), undefined, undefined, undefined, {
+      }, async (cleaned) => askGroup(cleaned, await at), undefined, undefined, undefined, {
         onRetry: () => setSorting((s) => (s ? { ...s, retrying: true } : s)),
         onJoined: (into, from) => setItems((its) => joinSorted(its, into, from)),
+        onCleaned: (key, copy) => {
+          setAdding((a) => (a ? { ...a, ready: a.ready + 1 } : a));
+          if (copy) setCopyUrls((m) => new Map(m).set(key, URL.createObjectURL(copy)));
+        },
       });
+      // A photo that couldn't be read is kept, with why, in a pile the seller can Sort again (it is read again then).
+      if (res.unusable.length > 0) {
+        const n = res.unusable.length;
+        setItems((its) => addSorted(its, [notSortedPile(res.unusable.map((u) => u.key), `We couldn't read ${n === 1 ? "this photo" : `these ${n} photos`}. Tap Sort again to try once more.`)]));
+      }
       const n = res.failed.reduce((s, f) => s + f.photos, 0);
       const notSorted = n > 0 ? `${n} ${n === 1 ? "photo isn't" : "photos aren't"} sorted yet: ${declutterErrorMessage(res.failed[0].error)} ${n === 1 ? "It's" : "They're"} kept together below. Tap Sort again.` : null;
       const note = [notSorted, unusablePhotosNote(res.unusable)].filter(Boolean).join(" ");
       if (note) setSortNote(note);
     } finally {
       setSorting(null);
+      setAdding(null);
     }
   }
 
@@ -509,6 +542,10 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
           <Button asChild variant="outline" size="sm" className="cursor-pointer">
             <label htmlFor="bunch-files">{photos.length > 0 ? "Add more photos" : "Add photos"}</label>
           </Button>
+        )}
+        {sorting && (
+          <BunchIntake keys={photos.filter((p) => !items.some((it) => it.photoKeys.includes(p.key))).map((p) => p.key)} urls={thumbs}
+            ready={adding?.ready ?? 0} total={adding?.total ?? 0} />
         )}
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
       </BunchSection>

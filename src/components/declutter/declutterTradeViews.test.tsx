@@ -123,6 +123,8 @@ vi.mock("@/lib/declutter/meetup", () => ({
   fetchMeetupSpotsNear: async () => state.spots.map((sp) => ({ ...sp, chosen: state.chosenSpots.includes(sp.id) })),
   chooseMeetupSpot: async (_seller: string, spotId: string) => { state.chosenSpots = [spotId]; },
 }));
+/** BUY-15: the photos the cart's thumbnails read (declutter_item_photos), set per case. */
+const cartPhotos: { id: string; item_id: string; storage_path: string; position: number }[] = [];
 vi.mock("@/lib/declutter/api", () => ({
   // Audit 1030 DB-4: the ways the seller ticked (null = an older item: "with pickup").
   fetchItemHandovers: async () => state.handovers,
@@ -130,6 +132,9 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyActiveStrikes: async () => state.strikes,
   fetchMyOffers: async () => state.offers,
   fetchMyCart: async () => state.cart,
+  // BUY-15: the cart's small photos (first photo per item).
+  fetchPhotos: async (ids: string[]) => cartPhotos.filter((p) => ids.includes(p.item_id)),
+  photoPublicUrl: (path: string) => `https://photos.test/${path}`,
   makeOffer: async (itemId: string, cents: number) => {
     state.sent.push({ itemId, cents });
     return "o1";
@@ -1395,5 +1400,56 @@ describe("B-1: the return from the payment page never offers Pay again for what 
     show(<CartView />, "/declutter?tab=buying");
     expect((await screen.findAllByRole("button", { name: /^Pay / })).length).toBe(2);
     expect(screen.queryByText("Payment received.")).toBeNull();
+  });
+});
+
+// BUY-15 (buying audit 10-30): checkout at 1440 was one stretched column (Pay 1110 px wide, no side summary, no
+// thumbnail). From lg the choices and the bill with Pay are two columns; each cart line shows its item's photo.
+// NIGHT-BUYINGpresse-3: the line's title link was 20 px tall on a phone; it is a 44 px tap now.
+// jsdom has no layout: the case pins the structure the lg grid lays out (the 375/1440 look is in the commit).
+// @mutate src/components/declutter/DeclutterTradeViews.tsx | lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] | lg:block
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |     </div>\n    <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary=""> |     <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |                     <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />\n |
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |       {path && !failed && <img | {false && <img
+// @mutate src/components/declutter/DeclutterTradeViews.tsx | className="flex min-h-11 min-w-0 items-center truncate" | className="truncate"
+describe("BUY-15: checkout is two columns from lg, and each cart line shows its photo", () => {
+  const line = { line_id: "l1", item_id: "i1", item_title: "Oak rocking chair", my_side: "buyer", seller_id: "s2", price_cents: 4000, status: "in_cart",
+    checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+  it("the ways to get it sit in the left column and the bill with Pay in the right one", async () => {
+    cartPhotos.length = 0;
+    state.cart = [line];
+    show(<CartView />, "/declutter?tab=buying");
+    const pay = await screen.findByRole("button", { name: /^Pay \$/ });
+    const columns = document.querySelector("[data-checkout-columns]")!;
+    expect(columns.className).toMatch(/\blg:grid\b/);
+    expect(columns.className).toMatch(/lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,22rem\)\]/);
+    const choices = columns.querySelector(":scope > [data-checkout-choices]")!;
+    const summary = columns.querySelector(":scope > [data-checkout-summary]")!;
+    expect(choices).not.toBeNull();
+    expect(summary).not.toBeNull();
+    expect(choices.querySelector("fieldset")).not.toBeNull();
+    expect(choices.contains(pay)).toBe(false);
+    expect(summary.contains(pay)).toBe(true);
+    expect(summary.querySelector("[data-checkout-breakdown]")).not.toBeNull();
+    expect(summary.querySelector("[data-checkout-note]")).not.toBeNull();
+    // A phone keeps the old order: the choices come before the bill and Pay.
+    expect(choices.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  it("each line shows its first photo (a grey square when it has none) and its title is a 44 px tap", async () => {
+    cartPhotos.length = 0;
+    cartPhotos.push({ id: "p2", item_id: "i1", storage_path: "s2/i1/b.jpg", position: 1 }, { id: "p1", item_id: "i1", storage_path: "s2/i1/a.jpg", position: 0 });
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Blue coffee mug", price_cents: 500 }];
+    show(<CartView />, "/declutter?tab=buying");
+    await waitFor(() => expect(document.querySelectorAll("[data-cart-thumb] img").length).toBe(1));
+    const rows = Array.from(document.querySelectorAll("[data-cart-line]"));
+    expect(rows).toHaveLength(2);
+    // fetchPhotos returns them by position in real life; firstPhotos keeps the first one it is given.
+    expect(rows[0].querySelector("[data-cart-thumb] img")?.getAttribute("src")).toBe("https://photos.test/s2/i1/b.jpg");
+    expect(rows[1].querySelector("[data-cart-thumb]")).not.toBeNull();
+    expect(rows[1].querySelector("[data-cart-thumb] img")).toBeNull();
+    const link = within(rows[1] as HTMLElement).getByRole("link", { name: "Blue coffee mug" });
+    expect(link.getAttribute("href")).toBe("/declutter/item/i2");
+    expect(link.className).toMatch(/\bmin-h-11\b/);
+    cartPhotos.length = 0;
   });
 });

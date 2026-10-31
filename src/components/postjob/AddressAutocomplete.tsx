@@ -111,6 +111,9 @@ export function AddressAutocomplete({
   const [suggestions, setSuggestions] = useState<MapKitSuggestion[]>([]);
   const searchRef = useRef<MapKitSearch | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  // The deferred close on blur must not outlive the field.
+  const blurTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(blurTimer.current), []);
 
   // Sync local query when parent value changes (draft restore, etc.).
   useEffect(() => {
@@ -257,7 +260,7 @@ export function AddressAutocomplete({
           // The option's mousedown-preventDefault keeps the input
           // from blurring on touch, but pointer/keyboard paths still
           // hit this. 120ms matches CityAutocomplete-style timings.
-          setTimeout(() => setOpen(false), 120);
+          blurTimer.current = setTimeout(() => setOpen(false), 120);
           onBlurred?.();
         }}
         required

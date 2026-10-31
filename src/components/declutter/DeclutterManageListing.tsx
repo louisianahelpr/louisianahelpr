@@ -142,7 +142,7 @@ export function ManageListingSheet({
               {item.status === "live" ? (
               <li>
                 <Link to={`/declutter/item/${item.id}?preview=buyer`} className={ROW} data-manage-preview="" onClick={close}>
-                  <RowText title="See what buyers see">Your listing as a buyer reads it</RowText>
+                  <RowText title="Preview">See your listing as buyers do</RowText>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 </Link>
               </li>

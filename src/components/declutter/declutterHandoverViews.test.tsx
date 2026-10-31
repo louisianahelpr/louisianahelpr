@@ -1162,6 +1162,7 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : problemOpen\n | : false\n
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {problemOpen && !done ? PROBLEM_ON_HOLD : standing( | {false ? PROBLEM_ON_HOLD : standing(
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemOpen={!!problem}\n        /> | />
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | (problem_open).\n    if (anyProblem) return null;\n | (problem_open).\n
 
 describe("D2-2: an open problem shows on both cards", () => {
   const damaged = { id: "p1", order_id: "o1", reporter_side: "buyer", reason: "damaged" };
@@ -1202,6 +1203,9 @@ describe("D2-2: an open problem shows on both cards", () => {
     expect((await screen.findByText(/is held while Louisiana Helpr looks at the problem/)).textContent)
       .toBe("Your $40 is held while Louisiana Helpr looks at the problem.");
     expect(screen.queryByText(/once the sale is final/)).toBeNull();
+    // NIGHT-BUYINGopenpr-4: nor "You're paid 24 hours after the handover" under it, while the money is held.
+    expect(screen.queryByText(/You're paid 24 hours after the handover/)).toBeNull();
+    expect(screen.queryByText(/the later of the pickup time and your porch photo/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
   });
 

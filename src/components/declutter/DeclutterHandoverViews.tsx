@@ -385,13 +385,14 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (order.side === "seller") {
+    // NIGHT-BUYINGopenpr-4: nothing about when the seller is paid while a problem holds the money (the card's note says so).
+    // T9: any open problem, the 60-day one too: the server refuses "Picked up" then (problem_open).
+    if (anyProblem) return null;
     // Q2425: at a safe meeting spot the seller hands it over as at the door ("Picked up").
     if (order.handover !== "pickup_home" && order.handover !== "meetup") {
       return rule('the buyer taps "I got it" or takes their pickup photo, or 24 hours after the later of the pickup time and your porch photo, if no problem is reported');
     }
     const fileId = `dcl-door-${order.orderId}`;
-    // T9: any open problem, the 60-day one too: the server refuses "Picked up" then (problem_open). The card's note says why.
-    if (anyProblem) return null;
     // A buyer's no-show report: the card's answer is the seller's way forward (the server refuses Picked up: no_show_reported).
     if (handoverRow.data?.no_show_reported_at) return null;
     // Owner 10-30: the seller's word waits for the buyer. Said once; toasts for a confirmation show nothing (toastPolicy).

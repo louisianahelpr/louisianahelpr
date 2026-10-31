@@ -70,6 +70,7 @@ import { fetchModelWithRetry } from "./modelRetry.ts";
 import { priceDraftFromLookup } from "./priceLookup.ts";
 import { claudeFetch, claudeJson, type ClaudeImage } from "../_shared/claudeMessages.ts";
 import { sanitizeShopItemDraft, SHOP_ITEM_SYSTEM_PROMPT, SHOP_ITEM_TOOL } from "./shopItemSanitize.ts";
+import { BANNED_RULE } from "./bannedRule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -114,7 +115,7 @@ const PRICE_RULE = `Suggest a starting price in whole US dollars (1 to 1000) for
 
 const PHOTO_COACH_RULE = `Read any labels, tags or markings in the photos: put the brand, model, size or measurements you can actually read into details as one short line (for example "Brand: KitchenAid. Model: KSM150. 5 quart."); leave details empty when nothing is readable, and never guess. Set cover_photo to the number of the photo (0 for the first one sent) that shows the whole item best for a listing's cover. Set photo_tip to at most ONE short tip for one more photo that would help a buyer (for example "A photo of the label" or "A photo of the back"), or leave it empty when the photos are enough.`;
 
-const BANNED_RULE = `Set possibly_banned to true, with a short reason, if the item may be any of these, which cannot be sold: weapons, ammunition or weapon knives; alcohol; prescription or illegal drugs; vapes or e-cigarettes; any recalled product; cribs made before mid-2011; used car seats; counterfeit goods; adult items; live animals; vehicles or boats; real estate. If you are not sure, set it to true.`;
+// The not-allowed rule (owner 10-31: only what truly cannot be sold) lives in bannedRule.ts.
 
 /**
  * The category: the most specific one (owner 2026-10-30: a dog bed listed as "Other" because there was no Pets).

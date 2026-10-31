@@ -136,7 +136,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: () => navigate(highlight), message: messagePoster })
     : null;
   const primary = isPoster && posterWait === "confirm_arrival"
-    ? { label: arrival.confirming ? "Confirming…" : "Confirm arrival", go: () => void arrival.confirm(), disabled: arrival.confirming }
+    ? { label: arrival.confirming ? "Confirming…" : "Confirm they've arrived", go: () => void arrival.confirm(), disabled: arrival.confirming }
     // AUD31-77: the Helpr marked it done and the page said "Check the work and approve" over a "Manage job" button.
     // The button is the approve now: it opens this job's Posted card with its approve sheet (the card's own write).
     : isPoster && posterWait === "approve"

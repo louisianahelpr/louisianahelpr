@@ -6,6 +6,7 @@
  *   PLANT=old node src/test/pglite/newMemberDailySummary.pglite.mjs        # RED: the one-by-one writer from 20261030143141
  *   PLANT=no-test-skip node src/test/pglite/newMemberDailySummary.pglite.mjs  # RED: send-time test skip removed
  *   PLANT=no-mark node src/test/pglite/newMemberDailySummary.pglite.mjs    # RED: the run never marks anyone done
+ *   PLANT=no-scrub node src/test/pglite/newMemberDailySummary.pglite.mjs   # RED: the test-account trigger from 20261027220459
  *
  * The migration runs VERBATIM, three times. is_test_subject is a stand-in (the
  * real one is proven in adminAlertsSkipTestAccounts.pglite.mjs).
@@ -30,6 +31,17 @@ if (PLANT === "no-mark") {
   if (before === THIS) throw new Error("plant no-mark did not apply");
 }
 
+if (PLANT === "no-scrub") {
+  const before = THIS;
+  const old = readFileSync(migPath("20261027220459_admin_new_member_notice_retracted_when_marked_test.sql"), "utf8");
+  const a = THIS.indexOf("CREATE OR REPLACE FUNCTION public.retract_new_member_notice_for_test_account");
+  const b = THIS.indexOf("$fn$;", a) + "$fn$;".length;
+  const oa = old.indexOf("CREATE OR REPLACE FUNCTION public.retract_new_member_notice_for_test_account");
+  const ob = old.indexOf("$fn$;", oa) + "$fn$;".length;
+  THIS = THIS.slice(0, a) + old.slice(oa, ob) + THIS.slice(b);
+  if (before === THIS) throw new Error("plant no-scrub did not apply");
+}
+
 let failures = 0;
 const check = (name, ok, detail = "") => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? `  (${detail})` : ""}`);
@@ -49,7 +61,8 @@ CREATE SCHEMA auth;
 CREATE TABLE auth.users (id uuid PRIMARY KEY, email text, email_confirmed_at timestamptz);
 CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, full_name text, location text, is_seed boolean DEFAULT false, anonymized_at timestamptz);
 CREATE TABLE public.user_roles (user_id uuid, role text);
-CREATE TABLE public.notifications (id bigserial PRIMARY KEY, user_id uuid, title text, message text, type text, link text);
+CREATE TABLE public.notifications (id bigserial PRIMARY KEY, user_id uuid, title text, message text, type text, link text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE FUNCTION public.ops_alert_normalise(t text) RETURNS text LANGUAGE sql IMMUTABLE AS $f$ SELECT lower(btrim(t)) $f$;
 CREATE TABLE public.pre_verification_wipes (user_id uuid, error text, wiped_at timestamptz);
 CREATE TABLE public.new_member_admin_notices (user_id uuid PRIMARY KEY, notified_at timestamptz NOT NULL DEFAULT now(), via text NOT NULL);
 CREATE TABLE public.cron_work_expectations (jobname text PRIMARY KEY, expected_max_gap interval, note text, work_visibility text, work_exempt_reason text);
@@ -121,7 +134,8 @@ check("a member marked test after confirming is left out", !msg.includes("Marked
 check("a deleted member is left out", !msg.includes("Deleted Later"));
 check("a test subject with is_seed false is left out", !msg.includes("Enrolled Later"));
 check("its title keeps the info severity", sent[0]?.title === "New member summary" && sent[0]?.type === "admin_alert");
-check("the run reports its counts", r.members === 2 && r.skipped === 3 && r.sent === 2, JSON.stringify(r));
+// "Marked Later" is not among the skipped: marking it a test account already marked it done (the trigger).
+check("the run reports its counts", r.members === 2 && r.skipped === 2 && r.sent === 2, JSON.stringify(r));
 
 await run();
 check("a second run sends nothing more", (await notes()).length === 2, `${(await notes()).length} rows`);
@@ -130,6 +144,36 @@ for (let n = 20; n < 27; n++) await join(n, `Member ${n}`);
 await run();
 const many = (await notes()).at(-1)?.message ?? "";
 check("a long list stops at five names", many === "7 new members joined: Member 20, Member 21, Member 22, Member 23, Member 24 and 2 more.", many);
+
+// Marked a test account AFTER a summary named them (owner: test data never reaches her).
+await join(40, "Real Rita");
+await join(41, "SEED Late Fixture");
+await run();
+const before = (await notes()).at(-1)?.message ?? "";
+check("the summary first named both", before === "2 new members joined: Real Rita, SEED Late Fixture.", before);
+await q(`UPDATE public.profiles SET is_seed = true WHERE user_id = $1`, [id(41)]);
+const rebuilt = (await q(`SELECT message FROM public.notifications WHERE title = 'New member summary' ORDER BY id DESC LIMIT 2`)).map((n) => n.message);
+check("marked test after the summary: its name leaves every admin's copy", rebuilt.length === 2 && rebuilt.every((m) => m === "1 new member joined: Real Rita."), JSON.stringify(rebuilt));
+const earlier = (await notes()).filter((n) => n.message === "2 new members joined: Ashley B from Kaplan, Ben C.").length;
+check("other days' summaries are untouched", earlier === 2, `${earlier}`);
+
+await join(42, "SEED Only One");
+await run();
+const lonely = (await notes()).length;
+await q(`UPDATE public.profiles SET is_seed = true WHERE user_id = $1`, [id(42)]);
+check("a summary that named only them is deleted", (await notes()).length === lonely - 2, `${lonely} -> ${(await notes()).length}`);
+
+await join(43, "SEED Still Pending");
+await q(`UPDATE public.profiles SET is_seed = true WHERE user_id = $1`, [id(43)]);
+check("marked test while still pending: marked done, never named",
+  (await one(`SELECT summarized_at IS NOT NULL AS done FROM public.new_member_admin_notices WHERE user_id=$1`, [id(43)])).done);
+const afterPending = (await notes()).length;
+await run();
+check("so the next run names nobody", (await notes()).length === afterPending);
+
+check("the summary closes as a notice; the old title no longer has a rule",
+  (await one(`SELECT public.admin_alert_close_rule('New member summary') AS r`)).r === "notice"
+  && (await one(`SELECT public.admin_alert_close_rule('New member joined') AS r`)).r === null);
 
 await q(`DELETE FROM public.user_roles`);
 await join(30, "Waits For Admin");

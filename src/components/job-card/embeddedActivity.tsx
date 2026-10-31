@@ -68,6 +68,7 @@ export function EmbeddedActivityHeader({
             onToggle={(k) => onFilter(nextBoxFilter(statusFilter, k))}
             // `all` is the length of the very list "All" shows (activityFilters: postedJobs.length / appliedApps.length).
             allCount={counts.all}
+            emptyLine={false}
             onlyLit={searchOpen && !desktop}
             // Search is an ICON at the row's end, like Browse's (owner 2026-10-25: "i prefer the search not expanded"),
             // and it opens IN PLACE, leftward out of the icon (owner 2026-10-27: "search should just open where its at").

@@ -70,12 +70,15 @@ export function StatusBoxes<K extends string>({
   allCount,
   end,
   onlyLit = false,
+  emptyLine = true,
 }: {
   boxes: readonly StatusBoxDef<K>[];
   value: K | null;
   onToggle: (k: K) => void;
   /** How many rows "All" shows. Only a caller whose list is exactly that many rows passes it; without it All has no number (the groups need not add up to the list). */
   allCount?: number;
+  /** "Nothing in X right now" under the chips. Jobs passes false: its list's own empty card already says it (owner 2026-10-31, LEAD-SEARCH-BY-GEAR: the line showed twice). */
+  emptyLine?: boolean;
   /** A control pinned at the row's end, outside the sideways scroll (Jobs: the search icon, owner 2026-10-25). */
   end?: ReactNode;
   /**
@@ -143,7 +146,7 @@ export function StatusBoxes<K extends string>({
       </div>
       {end}
       </div>
-      {active && active.count === 0 && (
+      {emptyLine && active && active.count === 0 && (
         <p className="text-ds-13 text-muted-foreground px-1" aria-live="polite">
           Nothing in <b className="text-foreground">{active.label}</b> right now
         </p>

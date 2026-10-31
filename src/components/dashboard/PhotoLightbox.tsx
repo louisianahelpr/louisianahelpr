@@ -294,9 +294,9 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
         // (the dialog) with a warm tint. Replaces the heavy black box.
         // DA-2 (Declutter audit 2026-10-30, da-lightbox2-open-wk375 vs -cr375): in WebKit the blur did not
         // paint, and at 0.55 the item page read straight through: its back arrow, heart and Buy bar sat under
-        // the viewer's 1/3, close and thumbnails. The tint alone must hide the page, so it is 0.86 whether
+        // the viewer's 1/3, close and thumbnails. The tint alone must hide the page, so it is 0.96 (presse-2: 0.86 still let Share and the heart read through) whether
         // or not the blur paints; the blur stays as polish where it does (photoViewerScrimHidesPage.test.ts).
-        backgroundColor: "hsla(38, 18%, 12%, 0.86)",
+        backgroundColor: "hsla(38, 18%, 12%, 0.96)",
         backdropFilter: "blur(28px) saturate(140%)",
         WebkitBackdropFilter: "blur(28px) saturate(140%)",
         // Disable native pinch-to-zoom on the page so our pinch math

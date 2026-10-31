@@ -262,7 +262,7 @@ function everything() {
  */
 const BEFORE_ACTIONS = {
   selling: [
-    { role: "link", name: /^View\b/ },
+    { role: "link", name: /^Preview\b/ },
     { role: "button", name: /^Finish listing\b/ },
     { role: "button", name: /^Delete\b/ },
     // Board 158: a live listing's "Take down" lives in its Manage sheet (Delete listing / Mark sold elsewhere).
@@ -693,6 +693,18 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const row = document.querySelector("[data-selling-sell]")!;
     expect(within(row as HTMLElement).getByRole("link", { name: "Sell an item" })).toHaveAttribute("href", "/declutter/sell");
     expect(within(row as HTMLElement).getByRole("link", { name: "Free, a bunch, or moving out?" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
+  });
+
+  // LEAD-SELLING-NO-SELL-BTN-PHONE (owner 2026-10-31): on a phone the + covers it, so the row is off below sm (640px)
+  // and the filter chips move up; from sm to the desktop header (lg, 900px) it shows; the header has its own from lg.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell=""> | <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
+  it("the Sell an item row is not on a phone, only from sm until the desktop header", async () => {
+    state.mine = [ITEM];
+    at("/declutter?tab=selling");
+    await screen.findByRole("heading", { name: /^Your listings/ });
+    const cls = (document.querySelector("[data-selling-sell]") as HTMLElement).className.split(/\s+/);
+    expect(cls).toEqual(expect.arrayContaining(["hidden", "sm:flex", "lg:hidden"]));
+    expect(cls).not.toContain("flex");
   });
 
   it("old link ?view=mine opens Selling and the address becomes ?tab=selling", async () => {

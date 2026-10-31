@@ -8,7 +8,7 @@
  * The Stripe double keeps a real balance, so "one fee" is measured as money
  * (fees taken minus fees returned), not as a call count.
  */
-// @mutate supabase/functions/instant-payout/index.ts | const unsettled = await settleUnreturnedInstantFees(stripe, supabaseAdmin, user.id, profile.stripe_account_id); | const unsettled = { kind: "clear" as const };
+// @mutate supabase/functions/instant-payout/index.ts | const unsettled = await settleUnreturnedInstantFees(stripeFor, supabaseAdmin, user.id, profile.stripe_account_id); | const unsettled = { kind: "clear" as const };
 // @mutate supabase/functions/instant-payout/index.ts | if (recheckedCents !== availableCents) { | if (false) {
 // @mutate supabase/functions/instant-payout/index.ts | if (recordErr && (recordErr as { code?: string }).code === "IP001") { | if (false) {
 // @mutate supabase/functions/_shared/instantPayoutFeeReturn.ts | if (sent && sent.status !== "failed" && sent.status !== "canceled") { | if (false) {
@@ -166,6 +166,66 @@ describe("a failed instant cash-out never costs a second fee", () => {
     expect(res.status).toBe(200);
     expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
     expect(firstInstantWrite()?.fee_state).toBe("kept");
+    // Review of 9c498193ff #5: the row says the payout went, and which one.
+    expect(firstInstantWrite()).toMatchObject({ status: "completed", stripe_payout_id: "po_old" });
+  });
+
+  // Review of 9c498193ff #2: a reversal made by hand in the dashboard carries no
+  // metadata; Stripe refuses a second reversal of a fully reversed transfer, so
+  // the row stayed owed and cash-out was refused for good.
+  // @mutate supabase/functions/_shared/instantPayoutFeeReturn.ts |     if (amount > 0 && (transfer?.amount_reversed ?? 0) >= amount) { |     if (false) {
+  it("a reversal made by hand is adopted from Stripe's amount_reversed, never made again", async () => {
+    scenario.reads.instant_payouts = { rows: [owedRow()] };
+    stripeMock.transfers.listReversals.mockResolvedValue({ data: [{ id: "trr_hand", metadata: {} }] });
+    stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_old", amount: 300, amount_reversed: 300 });
+    const res = await call("quote");
+    expect(res.status).toBe(200);
+    expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+    expect(firstInstantWrite()).toMatchObject({ fee_state: "returned", fee_reversal_id: "trr_hand" });
+  });
+
+  it("a part reversal by hand is not the whole fee: the rest goes back", async () => {
+    scenario.reads.instant_payouts = { rows: [owedRow()] };
+    stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_old", amount: 300, amount_reversed: 100 });
+    expect((await call("quote")).status).toBe(200);
+    expect(stripeMock.transfers.createReversal).toHaveBeenCalledTimes(1);
+  });
+
+  // Review of 9c498193ff #1: the return ran after the hold and membership gates,
+  // so while instant cash-out is off for everyone (memberships off) an owed fee
+  // never went back. The money is the Helpr's own; it goes back whatever the gate.
+  it("cash-out switched off: the owed fee still goes back, and the answer is still 'off'", async () => {
+    scenario.rpc.feature_enabled_for_user = false;
+    scenario.reads.instant_payouts = { rows: [owedRow()] };
+    const res = await call("quote");
+    expect(res.status).toBe(403);
+    expect(JSON.parse(await res.text()).code).toBe("instant_payout_off");
+    expect(stripeMock.transfers.createReversal).toHaveBeenCalledTimes(1);
+    expect(firstInstantWrite()).toMatchObject({ fee_state: "returned" });
+  });
+
+  // Review of 9c498193ff #4: a test account's money alerts are seed alerts (the digest), never a page.
+  // @mutate supabase/functions/instant-payout/index.ts |         client = { stripe: new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" }), seed: mode === "test" }; |         client = { stripe: new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" }), seed: false };
+  it("a test account's stuck fee is a seed alert; a real Helpr's pages", async () => {
+    setEnv({ STRIPE_TEST_SECRET_KEY: "sk_test_tst" });
+    scenario.reads.profiles = {
+      rows: [{ user_id: "helper-1", is_seed: true, stripe_account_id: "acct_helper", full_name: "H", subscription_tier: "basic", subscription_expires_at: null }],
+    };
+    scenario.reads.test_accounts = { rows: [{ user_id: "helper-1" }] };
+    firstPayoutFails();
+    stripeMock.transfers.createReversal.mockRejectedValue(new Error("stripe is down"));
+    await call("execute");
+    const pages = (slackAlerts as Array<{ title: string; seed?: boolean }>).filter((a) => a.title === "Instant-payout fee taken but the payout failed");
+    expect(pages).toHaveLength(1);
+    expect(pages[0].seed).toBe(true);
+  });
+
+  it("a real Helpr's stuck fee pages (seed false)", async () => {
+    firstPayoutFails();
+    stripeMock.transfers.createReversal.mockRejectedValue(new Error("stripe is down"));
+    await call("execute");
+    const page = (slackAlerts as Array<{ title: string; seed?: boolean }>).find((a) => a.title === "Instant-payout fee taken but the payout failed");
+    expect(page?.seed).toBe(false);
   });
 
   it("a reversal Stripe already holds is adopted, never made twice", async () => {

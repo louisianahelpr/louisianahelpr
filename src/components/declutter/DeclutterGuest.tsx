@@ -79,21 +79,26 @@ function DeclutterGuestTopBar() {
  *  AUD31-68: a listing that takes no offers (accepts_offers false, Buy now only) never mentions an offer. */
 export function DeclutterGuestJoin({ free, offers = true }: { free: boolean; offers?: boolean }) {
   const location = useLocation();
+  // AUD31-67 follow-up (lead 10-31): at desktop width the guest top bar already carries the logo, Log in and Sign up,
+  // so the panel keeps only its item-specific message there. Phone widths have no bar and keep everything.
+  const barShown = useIsWebDesktop();
   const label = free ? "Ask for this item" : offers ? "Buy or make an offer" : "Buy this item";
   return (
     <section data-guest-join="" aria-label={label} className="rounded-2xl border border-border bg-card p-4 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-semibold">{free ? "Sign up to ask for it." : offers ? "Sign up to buy it or make an offer." : "Sign up to buy it."}</p>
-        <GuestBrand />
+        {!barShown && <GuestBrand />}
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <Button asChild size="wrap" className="w-full rounded-full">
-          <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
-        </Button>
-        <Button asChild size="wrap" variant="outline" className="w-full rounded-full">
-          <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
-        </Button>
-      </div>
+      {!barShown && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button asChild size="wrap" className="w-full rounded-full">
+            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
+          </Button>
+          <Button asChild size="wrap" variant="outline" className="w-full rounded-full">
+            <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+          </Button>
+        </div>
+      )}
       <p className="text-xs text-muted-foreground">It's free. You come back to this item after.</p>
     </section>
   );
@@ -102,21 +107,25 @@ export function DeclutterGuestJoin({ free, offers = true }: { free: boolean; off
 /** Above a guest's Browse (BUY-16): one line and the two ways in, coming back to Browse after. */
 export function DeclutterGuestBrowseJoin() {
   const location = useLocation();
+  // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo and both buttons; the line stays.
+  const barShown = useIsWebDesktop();
   return (
     <section data-guest-join="browse" aria-label="Join to buy or sell" className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-border bg-card p-3">
-      <GuestBrand />
+      {!barShown && <GuestBrand />}
       <p className="min-w-0 flex-1 basis-48 text-sm">
         <span className="font-semibold">Sign up to buy, make offers or sell.</span>{" "}
         <span className="text-muted-foreground">It's free.</span>
       </p>
-      <div className="flex shrink-0 gap-2">
-        <Button asChild size="sm" className="rounded-full">
-          <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
-        </Button>
-        <Button asChild size="sm" variant="outline" className="rounded-full">
-          <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
-        </Button>
-      </div>
+      {!barShown && (
+        <div className="flex shrink-0 gap-2">
+          <Button asChild size="sm" className="rounded-full">
+            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="rounded-full">
+            <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

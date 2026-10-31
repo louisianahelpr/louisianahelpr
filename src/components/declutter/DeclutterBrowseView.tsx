@@ -120,11 +120,16 @@ function WantedLink() {
  * accounts). Now the two ways forward, as the app's pill buttons: Sell something (the sell form) and, while Wanted is
  * on for the viewer, Post what you're looking for (the Wanted tab).
  */
-function NothingForSaleActions() {
+function NothingForSaleActions({ guest }: { guest: boolean }) {
   const wanted = useFeature("declutter_wanted");
   return (
     <div className="flex flex-col items-center gap-2" data-nothing-for-sale="">
-      <BarkPillButton asChild><Link to={SELL_CHOOSER_PATH}>Sell something</Link></BarkPillButton>
+      {/* A guest can't sell yet (lead 10-31): Sign up to sell, coming back to the sell chooser after. */}
+      {guest ? (
+        <BarkPillButton asChild><Link to={`/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}`}>Sign up to sell</Link></BarkPillButton>
+      ) : (
+        <BarkPillButton asChild><Link to={SELL_CHOOSER_PATH}>Sell something</Link></BarkPillButton>
+      )}
       {wanted && (
         <Button asChild variant="outline" className="rounded-full">
           <Link to="/declutter?tab=wanted">Post what you're looking for</Link>
@@ -358,7 +363,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
             action={
               // Owner 2026-10-30 (via the lead): nothing for sale at all is a real empty state for everyone who has
               // Declutter, never "Opens soon": Sell something, and Post what you're looking for (NothingForSaleActions).
-              !searched && others.length === 0 ? <NothingForSaleActions /> :
+              !searched && others.length === 0 ? <NothingForSaleActions guest={!member} /> :
               <div className="flex flex-col items-center gap-2">
                 {searched && (
                   <Button type="button" variant="outline" size="sm" className="rounded-full" data-testid="declutter-clear-search" onClick={() => { setQuery(""); clearAll(); }}>

@@ -9,6 +9,12 @@
  * @mutate src/components/declutter/DeclutterGuest.tsx |   if (!isWebDesktop) return null; |   if (isWebDesktop) return null;
  * @mutate src/components/declutter/DeclutterGuest.tsx |       style={{ paddingTop: DESKTOP_BAR_PAD_TOP, top: bannerOffset \|\| 0, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} |       style={{ paddingTop: 0, top: bannerOffset \|\| 0, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}
  * @mutate src/components/declutter/DeclutterGuest.tsx |             <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>\n          </Button>\n        </div>\n      </div>\n    </header> |             <Link to="/signup">Sign up</Link>\n          </Button>\n        </div>\n      </div>\n    </header>
+ *
+ * Lead 10-31 (follow-up): at 1440 a guest then saw the logo and Sign up / Log in twice (the bar and the item's join
+ * panel). At desktop width the item panel keeps only its item-specific message; phone widths are unchanged.
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   // so the panel keeps only its item-specific message there. Phone widths have no bar and keep everything.\n  const barShown = useIsWebDesktop(); |   // so the panel keeps only its item-specific message there. Phone widths have no bar and keep everything.\n  const barShown = false;
+ * @mutate src/components/declutter/DeclutterGuest.tsx |       {!barShown && (\n        <div className="grid gap-2 sm:grid-cols-2"> |       {true && (\n        <div className="grid gap-2 sm:grid-cols-2">
+ * @mutate src/components/declutter/DeclutterGuest.tsx |       {!barShown && (\n        <div className="grid gap-2 sm:grid-cols-2"> |       {barShown && (\n        <div className="grid gap-2 sm:grid-cols-2">
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -21,7 +27,7 @@ vi.mock("@/components/landing/useSectionsOpen", () => ({
   useSectionsOpen: () => ({ open: new Set(state.open ? ["declutter"] : []), settled: true }),
 }));
 
-import { DeclutterGuestGate } from "./DeclutterGuest";
+import { DeclutterGuestGate, DeclutterGuestJoin } from "./DeclutterGuest";
 
 function renderGate(path = "/declutter/item/i1") {
   return render(
@@ -86,5 +92,31 @@ describe("a guest on Declutter at desktop width gets a header in the band AppShe
     expect(screen.getByText("LOGIN WALL")).toBeTruthy();
     expect(document.querySelector("header[data-guest-top-bar]")).toBeNull();
     expect(screen.queryByText("THE PAGE")).toBeNull();
+  });
+});
+
+describe("the item's join panel does not repeat the bar at desktop width (lead 10-31)", () => {
+  const panel = () => {
+    render(<MemoryRouter initialEntries={["/declutter/item/i1"]}><DeclutterGuestJoin free={false} /></MemoryRouter>);
+    return document.querySelector("[data-guest-join]") as HTMLElement;
+  };
+
+  it("desktop: the item-specific message stays; no logo, no Sign up, no Log in in the panel", () => {
+    const join = panel();
+    expect(join).toHaveTextContent("Sign up to buy it or make an offer.");
+    expect(join).toHaveTextContent("It's free. You come back to this item after.");
+    expect(within(join).queryAllByRole("link")).toEqual([]);
+    expect(join.querySelector("[data-guest-brand]")).toBeNull();
+  });
+
+  it("phone: unchanged, the logo and both buttons coming back to the item", () => {
+    state.desktop = false;
+    const join = panel();
+    expect(join).toHaveTextContent("Sign up to buy it or make an offer.");
+    expect(within(join).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
+      "/",
+      "/signup?redirect=%2Fdeclutter%2Fitem%2Fi1",
+      "/login?redirect=%2Fdeclutter%2Fitem%2Fi1",
+    ]);
   });
 });

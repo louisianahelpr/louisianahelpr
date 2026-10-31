@@ -28,7 +28,7 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {searched && ( |                 {false && (
  * Owner 2026-10-30: nothing for sale at all is a real empty state (Sell something, Post what you're looking for).
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | others.length === 0 ? "Nothing for sale near you yet." | others.length === 0 ? "Opens soon"
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |               !searched && others.length === 0 ? <NothingForSaleActions /> : |               false ? <NothingForSaleActions /> :
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |               !searched && others.length === 0 ? <NothingForSaleActions guest={!member} /> : |               false ? <NothingForSaleActions guest={!member} /> :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |       {wanted && ( |       {true && (
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine" \|\| view === "sales") return "selling"; |   if (view === "mine" \|\| view === "sales") return "buying";

@@ -9,7 +9,12 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchWatching(userId ?? ""), enabled: member }); | queryFn: () => fetchWatching(userId ?? "") });
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   save={member ? { |                   save={true ? {
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const mapVisible = member && mapChoice; |   const mapVisible = mapChoice;
- * @mutate src/components/declutter/DeclutterGuest.tsx |       <GuestBrand />\n      <p className="min-w-0 flex-1 basis-48 text-sm"> |       <p className="min-w-0 flex-1 basis-48 text-sm">
+ * @mutate src/components/declutter/DeclutterGuest.tsx |       {!barShown && <GuestBrand />}\n      <p className="min-w-0 flex-1 basis-48 text-sm"> |       <p className="min-w-0 flex-1 basis-48 text-sm">
+ * Lead 10-31 (AUD31-67 follow-up): at desktop width the guest top bar carries the logo, Log in and Sign up, so the
+ * Browse join line keeps only its message there; and a guest's empty Browse says "Sign up to sell", not "Sell something".
+ * @mutate src/components/declutter/DeclutterGuest.tsx |   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo and both buttons; the line stays.\n  const barShown = useIsWebDesktop(); |   const barShown = false;
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |       {guest ? ( |       {false ? (
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | <Link to={`/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}`}>Sign up to sell</Link> | <Link to="/signup">Sign up to sell</Link>
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, | queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0,
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -25,11 +30,11 @@ const item = (n: number) => ({
   porch_ok: true, accepts_offers: true,
 });
 const reads: string[] = [];
-const state = { desktop: true };
+const state = { desktop: true, items: [item(1), item(2)] };
 
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
-  fetchLiveItems: async () => [item(1), item(2)],
+  fetchLiveItems: async () => state.items,
   fetchPhotos: async () => [],
   fetchDropStates: async () => new Map(),
   fetchWatching: async () => { reads.push("watching"); return new Set(); },
@@ -72,6 +77,7 @@ afterEach(() => {
   cleanup();
   reads.length = 0;
   state.desktop = true;
+  state.items = [item(1), item(2)];
 });
 
 describe("BUY-16: guests browse Declutter", () => {
@@ -84,6 +90,8 @@ describe("BUY-16: guests browse Declutter", () => {
   });
 
   it("a guest gets Browse alone, a sign-up line that comes back here, and no member-only control or read", async () => {
+    // Phone width: no guest top bar, so the line carries the logo and both buttons.
+    state.desktop = false;
     show(<DeclutterHome />);
     expect(await screen.findByText("Thing 1")).toBeInTheDocument();
     expect(screen.getByText("Thing 2")).toBeInTheDocument();
@@ -104,6 +112,32 @@ describe("BUY-16: guests browse Declutter", () => {
     expect(screen.queryByRole("button", { name: /the map/ })).toBeNull();
     expect(screen.queryByText("THE MAP")).toBeNull();
     expect(reads).toEqual([]);
+  });
+
+  it("at desktop width the line keeps its message but not the logo or the buttons: the guest top bar has them (lead 10-31)", async () => {
+    show(<DeclutterHome />);
+    expect(await screen.findByText("Thing 1")).toBeInTheDocument();
+    const join = document.querySelector('[data-guest-join="browse"]') as HTMLElement;
+    expect(join).toHaveTextContent("Sign up to buy, make offers or sell.");
+    expect(within(join).queryAllByRole("link")).toEqual([]);
+    expect(join.querySelector("[data-guest-brand]")).toBeNull();
+    // Desktop draws the map beside the list for a member; a guest still gets no map and no pins read.
+    expect(screen.queryByRole("button", { name: /the map/ })).toBeNull();
+    expect(screen.queryByText("THE MAP")).toBeNull();
+    expect(reads).toEqual([]);
+  });
+
+  it("a guest's empty Browse offers Sign up to sell (back to the sell chooser), never Sell something; a member keeps Sell something", async () => {
+    state.items = [];
+    const g = show(<DeclutterHome />);
+    expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign up to sell" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/declutter/sell?mode=choose")}`);
+    expect(screen.queryByRole("link", { name: "Sell something" })).toBeNull();
+    g.unmount();
+    show(<DeclutterBrowse userId="me" tabs={(h) => <div>{h.end}</div>} />);
+    expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
+    expect(screen.queryByRole("link", { name: "Sign up to sell" })).toBeNull();
   });
 
   it("a member still gets the hearts, the map and their reads (the same screen, so the guest test can fail)", async () => {

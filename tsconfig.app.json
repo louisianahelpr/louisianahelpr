@@ -207,6 +207,7 @@
     // Declutter's AI answer sanitizer: dependency-free, imported by
     // src/test/declutterAiDraftSanitize.test.ts.
     "supabase/functions/declutter-ai-draft/sanitize.ts",
+    "supabase/functions/declutter-ai-draft/bannedRule.ts",
     // Its one-retry-on-busy wrapper, imported by
     // src/test/declutterAiModelRetry.test.ts.
     "supabase/functions/declutter-ai-draft/modelRetry.ts",

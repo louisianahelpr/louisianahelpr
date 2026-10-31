@@ -28,7 +28,8 @@ import { getCity } from "@/lib/locationUtils";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobEyebrow } from "./jobEyebrow";
-import { useJobPage, type JobPageRow } from "./useJobPage";
+import { useJobPage, useOfferedToMe, type JobPageRow } from "./useJobPage";
+import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterMoney, HelprMoney, PostedBy } from "./JobPageParts";
 import { HiredSeriesSection } from "./HiredSeriesSection";
 import { NoApplicantsYet } from "./NoApplicantsYet";
@@ -62,6 +63,7 @@ const CARD = "rounded-2xl border border-border bg-card";
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew } = useJobPage(id, userId);
+  const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
   // Q1586(c): the same under-18 grey-out as every other Apply; a tap says why, before the sheet and its uploads (JOBS-17).
   const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const trackingStatus = tracking.data ?? null;
@@ -119,7 +121,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const canApply = !isPoster && !party && open;
 
   // Every viewer state, one table (viewerState.ts): applied, offered, hired, declined, closed, own job.
-  const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew });
+  const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew, offeredToMe });
   // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
   // is an application id), and `open=1` expands the card instead of only pulsing it.
   const highlight = `/jobs?tab=working&job=${encodeURIComponent(job.id)}&open=1`;
@@ -194,6 +196,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {/* Desktop prints the title once, in the page header (lead review 2026-10-20). */}
             <h2 className="text-ds-24 font-bold leading-tight [overflow-wrap:anywhere] lg:hidden">{job.title}</h2>
             {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
+            {/* JOBS-18: every visit, before they apply or answer; a hired Helpr reads it in HiredSeriesSection. */}
+            {!isHired && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
             {/* The hired Helpr is owed the street address (the party read carries it; RLS gives it only to parties). */}
             {isHired && job.location && (
               <p data-job-address="" className="text-ds-14 text-foreground [overflow-wrap:anywhere]">

@@ -21,6 +21,8 @@ export function jobPageViewerState(o: {
   posterFirst: string | null;
   /** On this crew job's roster (group_job_helpers): hired, though a crew job's helper_id is null (A2-B8). */
   onCrew?: boolean;
+  /** A pending direct offer to this viewer (JOBS-18): they never applied, so no application says so. */
+  offeredToMe?: boolean;
 }): { action: ViewerAction; status: string | null } {
   if (o.isPoster) return { action: { kind: "manage" }, status: null };
   // A crew member is hired the moment they are on the roster: their Working card, never "no longer available".
@@ -31,6 +33,9 @@ export function jobPageViewerState(o: {
     return { action: { kind: "see_offer" }, status: `${o.posterFirst || "The person who posted it"} offered you this job` };
   }
   if (mineAssigned) return { action: { kind: "open_working" }, status: null };
+  if (o.offeredToMe && o.job.status === "open") {
+    return { action: { kind: "see_offer" }, status: `${o.posterFirst || "The person who posted it"} offered you this job` };
+  }
   const app = o.myApplication;
   if (app === undefined) return { action: { kind: "none" }, status: null };
   if (app) {

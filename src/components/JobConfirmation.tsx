@@ -342,20 +342,21 @@ export function JobConfirmation({
     ? "less than 24 hours"
     : (() => { const h = Math.round(hoursUntilJob); return `${h} hour${h !== 1 ? "s" : ""}`; })();
 
-  // "Thursday, October 22, 2037 at 9:00 AM": the day the Helpr commits to, and the time when the job has one.
+  // "Thursday, October 22, 2037 at 9:00 AM": the day being confirmed, and the time when the job has one.
   const scheduledStart = startTime ? jobStartDateTime(dateNeeded, startTime) : null;
   const scheduledFor = `${jobDate.toLocaleDateString("en-US", { timeZone: JOB_TIMEZONE, weekday: "long", month: "long", day: "numeric", year: "numeric" })}${
     scheduledStart ? ` at ${scheduledStart.toLocaleTimeString("en-US", { timeZone: JOB_TIMEZONE, hour: "numeric", minute: "2-digit" })}` : ""
   }`;
 
-  /* The commit popup, hoisted out of the card's return so BOTH variants
+  /* The confirm popup, hoisted out of the card's return so BOTH variants
      render the identical flow — the "Scheduled for" date, the no-show warning,
      and the hand-off to the caller's real cancel path. The inline variant drops
      the card's chrome, never its consequences. */
   const confirmDialog = (
     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
       <DialogContent>
-        <DialogHero title="Commit to this job?" />
+        {/* Plain words by role, no "commit" (owner 2026-10-31, LEAD-CONFIRM-WORDS). */}
+        <DialogHero title={isOwner ? "Confirm the job is still on" : "Confirm you'll be there"} />
         <div className="space-y-3">
           <div
             className="rounded-ds-md p-3"
@@ -392,7 +393,7 @@ export function JobConfirmation({
             onClick={handleConfirm}
             disabled={confirming}
           >
-            {confirming ? "Confirming…" : "Yes, I confirm"}
+            {confirming ? "Confirming…" : isOwner ? "Yes, it's still on" : "Yes, I'll be there"}
           </DialogPrimaryAction>
         </DialogFooter>
         {/* Distinct from Cancel: Cancel just dismisses this popup, nothing

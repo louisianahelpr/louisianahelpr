@@ -41,7 +41,7 @@ import { userFacingError } from "@/lib/userFacingError";
  * is a report about another screen, not this one failing (Q101). Guard:
  * src/test/quotedLogRenderersMarked.test.ts.
  */
-const CheckRow = ({ check, quoted = false }: { check: ConfigCheck; quoted?: boolean }) => {
+const CheckRow = ({ check, quoted = false }: { check: ConfigCheck & { group?: string; groupStart?: boolean }; quoted?: boolean }) => {
   const dot: Record<CheckTone, string> = {
     ok: "bg-[hsl(var(--bark))]",
     warn: "bg-[hsl(var(--burnt-sienna))]",
@@ -49,6 +49,11 @@ const CheckRow = ({ check, quoted = false }: { check: ConfigCheck; quoted?: bool
     unknown: "bg-muted-foreground",
   };
   return (
+    <>
+    {/* NOID-24 M7: the Open Alerts groups (openAlertChecks): a heading before the first row of each. */}
+    {check.groupStart && check.group && (
+      <li data-alert-group={check.group} className="pt-1 text-ds-12 font-semibold text-foreground">{check.group}</li>
+    )}
     <li
       className="flex items-start gap-3 rounded-ds-sm border border-border bg-card p-3"
       data-quoted-log={quoted ? "" : undefined}
@@ -70,6 +75,7 @@ const CheckRow = ({ check, quoted = false }: { check: ConfigCheck; quoted?: bool
         <p className="text-ds-11 text-muted-foreground leading-tight">{check.detail}</p>
       </div>
     </li>
+    </>
   );
 };
 

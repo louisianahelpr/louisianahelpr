@@ -8,7 +8,7 @@
  *
  * @mutate src/components/declutter/DeclutterGallery.tsx |   if (urls.length === 0) { |   if (false) {
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const boughtByMe = !ownListing && !forSale; |   const boughtByMe = false;
- * @mutate src/components/declutter/DeclutterItemView.tsx | {way !== "none" && forSale && user && <ItemPickupTimes | {way !== "none" && user && <ItemPickupTimes
+ * @mutate src/components/declutter/DeclutterItemView.tsx | {way !== "none" && !porchOnly && forSale && user && <ItemPickupTimes | {way !== "none" && !porchOnly && user && <ItemPickupTimes
  *   DA-6 (Declutter audit 2026-10-30): the buyer's own sold item says "You bought this." / "You claimed this." with
  *   Buying, asks no item pickup times (that read answers only while it is for sale) and no "shared after you pay".
  * @mutate src/components/declutter/DeclutterGallery.tsx |               onClick={() => setOpen(i)} |               onClick={() => undefined}

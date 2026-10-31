@@ -19,7 +19,7 @@ export const PROBLEM_ON_HOLD = "On hold while Louisiana Helpr looks at the probl
  * (declutter_admin_decide_problem: declutter_notify to buyer and seller, "Louisiana Helpr decided"). No time is said:
  * there is no deadline on a decision or on adding a side (declutter_problems has none), so none is promised.
  */
-export const PROBLEM_NEXT = "Next: they read both sides, then send you both a notice with what they decide.";
+const PROBLEM_NEXT = "Next: they read both sides, then send you both a notice with what they decide.";
 
 function noShowAnsweredWords(side: "buyer" | "seller", delivery: boolean) {
   if (side === "buyer") return delivery ? "You reported it wasn't delivered, and the seller answered." : "You reported the seller didn't show, and the seller answered.";

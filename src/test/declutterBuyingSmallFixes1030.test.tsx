@@ -41,7 +41,7 @@ const D = "src/components/declutter/";
 
 describe("the buying audit's small findings", () => {
   it("BUY-13: no Save this search while Free is on", () => {
-    expect(code(`${D}DeclutterBrowseView.tsx`)).toMatch(/\{!filters\.freeOnly && \(q \|\| filters\.category/);
+    expect(code(`${D}DeclutterBrowseView.tsx`)).toMatch(/\{member && !filters\.freeOnly && \(q \|\| filters\.category/);
   });
 
   it("BUY-14: the words name what's on screen", () => {

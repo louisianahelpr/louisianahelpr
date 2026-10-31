@@ -31,11 +31,11 @@ function show(onCancelJob = vi.fn()) {
 }
 
 describe("board 66: change this job", () => {
-  it("sends the picked day and time to the Helpr by name; 14 days to pick from", async () => {
+  it("sends the picked day and time to the Helpr by name; 60 days to pick from", async () => {
     show();
     expect(screen.getByText(/Jolie gets the new time and says yes or no\. Nothing is charged/)).toBeInTheDocument();
     const days = screen.getAllByRole("button", { pressed: false }).filter((b) => /Oct|Nov/.test(b.textContent ?? ""));
-    expect(days).toHaveLength(14);
+    expect(screen.getByRole("group", { name: "New day" }).querySelectorAll("button")).toHaveLength(60); // JOBS-19: was 14
     const send = screen.getByRole("button", { name: "Send new time to Jolie" });
     expect(send).toBeDisabled();
     fireEvent.click(days[9]); // Oct 31

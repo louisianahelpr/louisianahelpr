@@ -11,6 +11,11 @@
 -- frozen on declutter_orders.handover). Paused, reserved and sold listings are not touched. A listing whose only way
 -- was 'seller_delivery' gets Helpr delivery, which a paid checkout always offers (owner 2026-10-29, DC-4), so it can
 -- still be bought. Returns how many listings changed. FOR VERDICT (data change on listings).
+--
+-- Lead review 2026-10-31: the default and the live listings change in ONE transaction. This also takes
+-- 'seller_delivery' off the caller's saved default (declutter_seller_defaults.handovers; 'porch', the column default,
+-- if nothing else is left, as its CHECK needs one way), so a failed second step can never leave the default off while
+-- live listings still offer it. The client calls this FIRST, then saves its other choices.
 CREATE OR REPLACE FUNCTION public.declutter_stop_my_seller_delivery()
 RETURNS integer
 LANGUAGE plpgsql
@@ -43,6 +48,11 @@ BEGIN
     v_n := v_n + 1;
   END LOOP;
   PERFORM set_config('declutter.editing_listing', '', true);
+  UPDATE public.declutter_seller_defaults d
+     SET handovers = CASE WHEN cardinality(array_remove(d.handovers, 'seller_delivery')) < 1 THEN ARRAY['porch']::text[]
+                          ELSE array_remove(d.handovers, 'seller_delivery') END,
+         updated_at = now()
+   WHERE d.member_id = v_uid AND 'seller_delivery' = ANY (d.handovers);
   RETURN v_n;
 END;
 $fn$;

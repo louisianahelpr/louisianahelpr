@@ -19,10 +19,14 @@
  * onConfirm-throws contract on the other side lives in useOfferHandlers.
  */
 // @mutate src/components/ResponseDeadlineDialog.tsx |       setErrorMessage(msg); |       // setErrorMessage(msg);
+// @mutate src/components/ResponseDeadlineDialog.tsx |       setErrorMessage(msg);\n |       setErrorMessage(msg); (await import("sonner")).toast.error(msg);\n
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { ResponseDeadlineDialog } from "@/components/ResponseDeadlineDialog";
+import { toast } from "sonner";
 import { posterAwardBlockMessage } from "@/lib/awardGate";
+
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), warning: vi.fn(), success: vi.fn(), info: vi.fn() }) }));
 
 // jsdom lacks a few pointer APIs Radix dialogs touch.
 beforeAll(() => {
@@ -60,6 +64,17 @@ describe("ResponseDeadlineDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: /send offer/i }));
     expect(onConfirm).toHaveBeenCalledTimes(2);
     expect(await screen.findByRole("alert")).toHaveTextContent(gateMessage);
+  });
+
+  it("says a failed send once: inside the dialog, with no toast on top (audit 2026-10-30)", async () => {
+    vi.mocked(toast.error).mockClear();
+    const onConfirm = vi.fn().mockRejectedValue(new Error(""));
+    render(
+      <ResponseDeadlineDialog open helperName="Jane Doe" onConfirm={onConfirm} onClose={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /send offer/i }));
+    await screen.findByRole("alert");
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it("falls back to generic copy when the failure carries no message", async () => {

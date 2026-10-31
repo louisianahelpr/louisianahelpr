@@ -32,7 +32,8 @@ describe("The buyer's I got it on a Helpr delivery is refused while it is on the
     const fn = body("helpr_task_customer_confirm");
     expect(fn).toMatch(/IF t\.status NOT IN \('picked_up', 'delivered'\) THEN/);
     expect(fn).toMatch(
-      /IF t\.status = 'picked_up' AND \(t\.picked_up_at IS NULL OR t\.picked_up_at > now\(\) - interval '24 hours'\) THEN RAISE EXCEPTION 'delivery_on_the_way'/,
+      // BUY-36 (20261031231150): the one exception is a buyer collecting it from a Helpr at fault (stuck_stage 'collecting').
+      /IF t\.status = 'picked_up' AND t\.stuck_stage IS DISTINCT FROM 'collecting' AND \(t\.picked_up_at IS NULL OR t\.picked_up_at > now\(\) - interval '24 hours'\) THEN RAISE EXCEPTION 'delivery_on_the_way'/,
     );
     const onRoad = fn.indexOf("'delivery_on_the_way'");
     const pays = fn.indexOf("helpr_task_source_event(t.id, 'confirmed', 'customer')");

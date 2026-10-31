@@ -353,6 +353,9 @@ export function JobTracking({
   // Seed from the parent-batched tracking row when present so we don't
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
   const [tracking, setTracking] = useState<TrackingData | null>(initialTracking ?? null);
+  // AUD31-79: whether the tracking row has been read (handed in by the list, or this card's own read answered). Until
+  // then the tracker draws from the job row alone, which can name an earlier step than the row will.
+  const [trackingSettled, setTrackingSettled] = useState(initialTracking !== undefined);
   const [updating, setUpdating] = useState(false);
   /** Which tier of en-route tracking the RUNTIME actually established — never
    *  what we hoped for. `null` means no watch is running. Drives both the
@@ -409,7 +412,10 @@ export function JobTracking({
   // the parent refetches its batched job_tracking rows, the new value flows
   // back into the card (e.g. cache invalidation after a write).
   useEffect(() => {
-    if (initialTracking !== undefined) setTracking(initialTracking);
+    if (initialTracking !== undefined) {
+      setTracking(initialTracking);
+      setTrackingSettled(true);
+    }
   }, [initialTracking]);
 
   const loadTracking = useCallback(async () => {
@@ -420,6 +426,7 @@ export function JobTracking({
       .eq("job_id", jobId)
       .order("created_at", { ascending: false })
       .limit(1);
+    setTrackingSettled(true);
     if (error) {
       console.error("[JobTracking] failed to load tracking:", error);
       report(error, { severity: "warning", tags: { source: "JobTracking.load" } });
@@ -1803,7 +1810,8 @@ export function JobTracking({
         const runNext = () => { if (isDoneStep) setConfirmDoneOpen(true); else void updateStatus(nextStatus.key); };
         const ctaDisabled = updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly;
         // Boards 62/64: the Working card's face asked for THIS step (helperStepRequest.ts); press it once, gates intact.
-        if (takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext);
+        // AUD31-79: only once the tracking row has settled; a first draw from the job row alone dropped the request.
+        if (trackingSettled && takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext);
         const ctaEl = (
           <JobStepPrimaryButton
             icon={nextStatus.icon}

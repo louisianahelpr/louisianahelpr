@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |   IF w.is_seed IS NOT TRUE AND NOT EXISTS ( |   IF NOT EXISTS (
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |       PERFORM public.declutter_wanted_hold_photos(h.id, NULL, 'The automatic photo check did not finish.'); |       NULL;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       if (files.length > failed) checkPhotosInBackground(id); |       void id;
- * @mutate src/components/admin/AdminReports.tsx |         || (r.reported_type === WANTED_REPORT && wantedPosts.get(r.reported_id)?.is_seed === true)\n |
+ * @mutate src/components/admin/AdminReports.tsx |         \|\| (r.reported_type === WANTED_REPORT && wantedPosts.get(r.reported_id)?.is_seed === true)\n |
  * @mutate src/components/admin/AdminReports.tsx |  && r.reported_type !== WANTED_REPORT; | ;
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     if (!shopItem && body?.mode === "wanted_check") return await wantedCheck(req, admin, authData.user, body);\n |
  */

@@ -225,10 +225,10 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: {
       if (!editing) clearWantedDraft();
       setFiles([]);
       setProblems({});
-      if (editing) toast.success("Saved. Sellers near you see the new words and price.");
+      if (editing) toast("Saved. Sellers near you see the new words and price.");
       else if (failed > 0) toast.error(`Posted, but ${failed === 1 ? "a photo" : `${failed} photos`} didn't upload. Add ${failed === 1 ? "it" : "them"} again from your post.`);
       // Audit 10-30 #4: what matching really does. It looks for any of the words, and a match can be missed.
-      else toast.success("Posted. Sellers near you can answer it. We also watch new listings for your words and tell you if one looks like a match at or under your price.");
+      else toast("Posted. Sellers near you can answer it. We also watch new listings for your words and tell you if one looks like a match at or under your price.");
       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
       onClose();
     },
@@ -301,7 +301,7 @@ function WantedReplies({ replies }: { replies: WantedReply[] }) {
 /** Audit 10-30 #8: runs behind the screen, because the post is already up. The poster hears only about a held photo. */
 function checkPhotosInBackground(wantedId: string) {
   void checkWantedPhotos(wantedId).then((held) => {
-    if (held) toast.info("Your post is up. A photo is waiting for a quick look before sellers see it.");
+    if (held) toast("Your post is up. A photo is waiting for a quick look before sellers see it.");
   });
 }
 
@@ -363,12 +363,12 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
   const refresh = () => void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
   const again = useMutation({
     mutationFn: () => reopenWanted(post.id),
-    onSuccess: () => { toast.success("Posted again for another 30 days."); refresh(); },
+    onSuccess: () => { toast("Posted again for another 30 days."); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const remove = useMutation({
     mutationFn: () => removeWanted(post.id),
-    onSuccess: () => { toast.success("Removed."); setConfirmRemove(false); refresh(); },
+    onSuccess: () => { toast("Removed."); setConfirmRemove(false); refresh(); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   // Audit 10-30 #16: buying from an answer doesn't close the post, so ask once one is accepted.
@@ -378,7 +378,7 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
     mutationFn: () => closeWanted(post.id),
     onSuccess: () => {
       // Audit W5: an answer already sent stays open in Buying; closing the post does not withdraw it, so say so.
-      toast.success(openReplies > 0
+      toast(openReplies > 0
         ? `Closed. No more alerts or answers. ${openReplies === 1 ? "The answer you already have stays" : `The ${openReplies} answers you already have stay`} in Buying until you accept or decline.`
         : "Closed. No more alerts or answers for this one.");
       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });

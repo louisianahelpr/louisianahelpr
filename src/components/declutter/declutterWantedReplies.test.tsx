@@ -36,7 +36,7 @@ const state = {
   blockFails: false,
   blockTries: 0,
 };
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn() }) }));
 vi.mock("@/lib/declutter/wanted", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/wanted")>()),
   fetchWantedNear: async () => state.near,

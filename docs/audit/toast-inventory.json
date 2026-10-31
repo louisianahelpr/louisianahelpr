@@ -3,18 +3,18 @@
   "summary": {
     "calls": 1063,
     "files": 288,
-    "rendering": 888,
-    "suppressedByPolicy": 175,
+    "rendering": 898,
+    "suppressedByPolicy": 165,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 73,
+      "toast": 83,
       "toast.error": 742,
-      "toast.info": 4,
+      "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 178,
+      "toast.success": 169,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -3446,12 +3446,12 @@
     {
       "file": "src/components/admin/adminReports/WantedReportPanel.tsx",
       "line": 37,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "dynamic",
         "text": "done"
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/admin/adminReports/WantedReportPanel.tsx",
@@ -5902,12 +5902,12 @@
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
       "line": 46,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Blocked. You won't see each other's Wanted posts."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
@@ -5922,12 +5922,12 @@
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
       "line": 93,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "template",
         "text": "Sent. ${who === \"them\" ? \"They have\" : `${who} has`} 48 hours to accept."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
@@ -5942,12 +5942,12 @@
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
       "line": 217,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "You already answered this post."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterWantedReplies.tsx",
@@ -5972,12 +5972,12 @@
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
       "line": 228,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Saved. Sellers near you see the new words and price."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
@@ -5992,12 +5992,12 @@
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
       "line": 231,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Posted. Sellers near you can answer it. We also watch new listings for your words and tell you if one looks like a match at or under your price."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
@@ -6022,12 +6022,12 @@
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
       "line": 304,
-      "kind": "toast.info",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Your post is up. A photo is waiting for a quick look before sellers see it."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
@@ -6052,12 +6052,12 @@
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
       "line": 366,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Posted again for another 30 days."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
@@ -6072,12 +6072,12 @@
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
       "line": 371,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Removed."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
@@ -6092,7 +6092,7 @@
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
       "line": 381,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "dynamic",
         "text": "openReplies > 0 ? `Closed. No more alerts or answers. ${openReplies === 1 ? \"The answer you already have stays\" : `The ${openReplies} answers you already have stay`} in Buying until you accept or decline.` : \"Closed. No more alerts or answers for this one.\"",
@@ -6107,7 +6107,7 @@
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",

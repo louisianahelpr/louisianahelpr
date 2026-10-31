@@ -34,7 +34,7 @@ export function WantedReportPanel({ post, reportId, open, onDone }: {
     setBusy(true);
     try {
       await work();
-      toast.success(done);
+      toast(done);
       setAsking(false);
       onDone();
     } catch (err) {

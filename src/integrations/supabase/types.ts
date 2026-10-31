@@ -15601,6 +15601,9 @@ export type Database = {
         Returns: number
       }
       declutter_wanted_sweep: { Args: never; Returns: Json }
+      declutter_wanted_category_near: { Args: { p_category: string }; Returns: string[] }
+      declutter_wanted_text_problem: { Args: { p_what: string }; Returns: string }
+      declutter_wanted_tsquery: { Args: { p_what: string }; Returns: unknown }
       declutter_listing_manage_state: {
         Args: { p_item_id: string }
         Returns: {

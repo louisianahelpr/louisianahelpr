@@ -11,9 +11,9 @@
  * are completed"; one job's own line, "this job", is not this class), and names neither Declutter, sales nor
  * deliveries.
  *
- * @mutate supabase/functions/_shared/connectGateSync.ts | message: "Your payout account is set up. You can now get paid for jobs, Declutter sales and deliveries.", | message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
- * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | message: "Your payout account is set up. You can now get paid for jobs, Declutter sales and deliveries.", | message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
- * @mutate src/components/PayoutSetupForm.tsx | Payouts go to your default method on their own after a job, a Declutter sale or a delivery is finished. | Payouts run automatically to your default method when jobs are completed.
+ * @mutate supabase/functions/_shared/connectGateSync.ts | message: "Your payout account is fully set up! You can now get paid for jobs, Declutter sales and deliveries.", | message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
+ * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | message: "Your payout account is fully set up! You can now get paid for jobs, Declutter sales and deliveries.", | message: "Your payout account is fully set up! You can now receive payments for completed jobs.",
+ * @mutate src/components/PayoutSetupForm.tsx | Payouts run automatically to your default method when a job, a Declutter sale or a delivery is done. | Payouts run automatically to your default method when jobs are completed.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

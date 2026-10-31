@@ -167,6 +167,7 @@ const DashboardGuest = lazyWithPreload(() => import("./pages/home/DashboardGuest
 // are lazy-imported by ProfileTabPanels instead: PetProfiles, WorkRecord,
 // HomeHistory, HelprWrapped, StrSettings, HelperAnalytics, AutoTip.
 const HelpCenter = lazyWithPreload(() => import("./pages/info/HelpCenter"));
+const HireTownPage = lazyWithPreload(() => import("./pages/info/HireTownPage"));
 const SmsOptIn = lazyWithPreload(() => import("./pages/info/SmsOptIn"));
 const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
@@ -445,6 +446,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Center"), so it is upstream of the in-app surface, not a marketing
           duplicate of it. Support must stay reachable from anywhere. */}
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* OPS-4: town + service pages for Google ("Handyman in Baton Rouge"), open to anyone; src/lib/townPages.ts. */}
+      <Route path="/hire/:service/:town" element={<RouteErrorBoundary>{routeEl(<PageTransition><HireTownPage /></PageTransition>)}</RouteErrorBoundary>} />
       {/* Twilio A2P review (owner 2026-10-23): a public link to how members opt in to texts. */}
       <Route path="/sms-opt-in" element={<RouteErrorBoundary>{routeEl(<PageTransition><SmsOptIn /></PageTransition>)}</RouteErrorBoundary>} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and

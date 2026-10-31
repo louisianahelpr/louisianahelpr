@@ -33,6 +33,7 @@ vi.mock("@/lib/declutter/wanted", () => ({
   closeWanted: async (id: string) => { state.closed.push(id); return "closed"; },
 }));
 
+import { toast } from "sonner";
 import { OffersSection } from "./DeclutterOffersSection";
 
 const W = "b0000000-0000-4000-8000-000000000001";
@@ -79,7 +80,8 @@ describe("BUY-29: accepting a reply to your Wanted post asks whether to close th
     await accept();
     const sheet = await waitFor(() => { expect(askSheet()).not.toBeNull(); return askSheet()!; });
     fireEvent.click(within(sheet).getByRole("button", { name: "Keep it open" }));
-    await waitFor(() => expect(askSheet()).toBeNull());
+    // The ask was on screen just above; it goes, and nothing was closed (a positive check: not a first-paint wait).
+    await waitFor(() => { expect(askSheet()).toBeNull(); expect(state.closed).toEqual([]); });
     expect(state.closed).toEqual([]);
   });
 
@@ -93,6 +95,7 @@ describe("BUY-29: accepting a reply to your Wanted post asks whether to close th
     expect(cases.length).toBeGreaterThan(3);
     for (const [row, answer] of cases) {
       document.body.innerHTML = "";
+      vi.mocked(toast.success).mockClear();
       state.offers = [row];
       state.answer = answer;
       if (row.my_side === "seller") {
@@ -100,7 +103,8 @@ describe("BUY-29: accepting a reply to your Wanted post asks whether to close th
         render(<QueryClientProvider client={qc}><MemoryRouter><OffersSection side="seller" /></MemoryRouter></QueryClientProvider>);
       } else show();
       await accept();
-      await waitFor(() => expect(document.querySelector('[data-confirm-sheet="accept-offer"]')).toBeNull());
+      // Wait for the answer to land (its toast; toast.success until LEAD-TOAST3), not for an empty screen: onSuccess has then run, ask or no ask.
+      await waitFor(() => { expect(document.querySelector('[data-confirm-sheet="accept-offer"]')).toBeNull(); expect(toast.success).toHaveBeenCalled(); });
       expect(askSheet()).toBeNull();
     }
     expect(state.closed).toEqual([]);

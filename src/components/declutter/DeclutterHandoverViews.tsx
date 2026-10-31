@@ -275,13 +275,16 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
           {order.handover === "porch" && <OrderPorchPlace orderId={order.orderId} side={order.side} />}
-          {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
+          {/* LEAD-PLACE-TIMES (owner 2026-10-31, lead's decision 1): the porch buyer picked the place at checkout, then
+              picks a day and a time inside that place's hours (BookingPanel: declutter_order_pickup_windows reads the
+              hours frozen on the order; declutter_book_pickup checks them). A porch DAY booked under the 10-28 design
+              keeps its day card. */}
           {/* D2-2: no booking while a problem is open (the server refuses it: problem_open). */}
           {/* T9: while the seller has their 24 hours the time stands (the server refuses a move: no_show_waiting). */}
           {/* BUY-2 (owner 10-31): no Helpr took the delivery; the buyer may cancel instead (the buyer bears the card fee). A
               pickup order with a delivery fee is one (CartLine.delivery_cents is kept after the no-Helpr fallback). */}
           {order.side === "buyer" && order.handover === "pickup_home" && order.lines.some((l) => (l.delivery_cents ?? 0) > 0) && !booking?.slot_start && !problem && <NoHelprChoice orderId={order.orderId} />}
-          {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch"
+          {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch" && booking?.pickup_day
             ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />}
                 noDays={<ProblemForm orderId={order.orderId} side={order.side} stage="waiting" />} />
             : <BookingPanel order={order} booking={booking} />}

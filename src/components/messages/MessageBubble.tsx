@@ -331,7 +331,7 @@ export function MessageBubble({
           </button>
         ) : isRefused ? (
           <span className="text-destructive-ink font-medium">
-            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not Sent — Conversation Closed"}
+            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — conversation closed"}
           </span>
         ) : (
           <>

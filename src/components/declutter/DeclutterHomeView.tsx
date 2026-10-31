@@ -583,11 +583,11 @@ function DeclutterMemberHome() {
   if (view === "browse") return <DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} />;
   return (
     // LEAD-DECL-SEARCHBAR (owner 2026-10-31, Deliver at 375): no full-width "Search all sections" bar under the tabs
-    // on any tab. Deliver, Wanted and Free carry the same search as Jobs' 40px icon square, right before the gear
-    // (Browse's own "Search items" icon sits there too). Not on Buying (lead walkthrough 2026-10-28, shot 05) or
-    // Selling (owner 2026-10-28): a member's own cart, offers, listings and sales are not what "Search all sections"
-    // finds. Guard: src/components/declutter/sellingDash.test.tsx.
-    <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor(view === "buying" || view === "selling" ? undefined : { end: <ExploreSearchEntry variant="icon" /> })}>
+    // on any tab. Every tab carries the same search as Jobs' 40px icon square, right before the gear (Browse's own
+    // "Search items" icon sits there too). LEAD-SEARCH-ALL-TABS (owner 2026-10-31): Buying and Selling too, matching
+    // Jobs (this replaces the 2026-10-28 call that left it off a member's own lists). Guard:
+    // src/components/declutter/sellingDash.test.tsx.
+    <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}>
       <StrikeCount userId={user.id} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>

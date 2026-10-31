@@ -21,7 +21,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { minOfferCents } from "@/lib/declutter/money";
 import { BuyerTotal } from "./BuyerTotal";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { afterCardFromState, offerAmountFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
+import { afterCardFromState, cardCancelledFromState, offerAmountFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
 import { OfferSentWhatNext } from "./OfferSentWhatNext";
 import { checkoutLinkFor } from "@/lib/declutter/buyNowHold";
@@ -36,8 +36,13 @@ import { invalidateTrades } from "./DeclutterOffersSection";
  * on the web via the return from Stripe's page, in the app on return from the
  * in-app browser). Nothing is charged by saving a card.
  */
-function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel }: {
+/** NIGHT-BUYING0-7: the step's line when the member came back from the card page without saving one. */
+const CARD_NOT_SAVED = "No card was saved, so nothing happened yet.";
+
+function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel, note }: {
   action: AfterCardAction;
+  /** Said above the step's own words (back from the card page with none saved). */
+  note?: string;
   itemId: string;
   /** DA-11: the amount already typed, kept across the trip to Stripe's page. */
   offerAmount?: string;
@@ -47,6 +52,7 @@ function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel }: {
   const [opening, setOpening] = useState(false);
   return (
     <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2" role="group" aria-label="Add a card">
+      {note && <p className="text-sm text-foreground" role="status" data-card-not-saved="">{note}</p>}
       <p className="text-sm font-semibold">Add a card to finish.</p>
       <p className="text-xs text-muted-foreground">
         {/* #21 (owner chose C, 2026-10-28): two Stripe pages stay; this line says what the first one is for. */}
@@ -189,12 +195,31 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
    * address) or from the in-app browser in the app.
    */
   const [resume, setResume] = useState<AfterCardAction | null>(() => afterCardFromState(location.state));
+  // NIGHT-BUYING0-7: back from the card page with no card saved (they cancelled), the step opens again for the same
+  // action, saying so, instead of dropping the buy with no words.
+  const [cardCancelled, setCardCancelled] = useState<AfterCardAction | null>(() => cardCancelledFromState(location.state));
+  // NIGHT-BUYING0-6: the server said card_required (the read said yes, or could not be read): its card step shows.
+  const [serverNoCard, setServerNoCard] = useState(false);
   // NIGHT-BUYING0-3: back with a card for an offer, the typed amount waits unsent; this line says so.
   const [cardSaved, setCardSaved] = useState(false);
   // NIGHT-BUYING0-1: back from the card page the member lands at the top of the item, with "Checking for your
   // card…" (and later the card step or the offer box) below a phone's screen. Bring the panel into view.
   const showPanel = () => panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   useEffect(() => { if (resume) showPanel(); }, [resume]);
+  useEffect(() => {
+    if (!cardCancelled) return;
+    setNeedCard(cardCancelled);
+    showPanel();
+  }, [cardCancelled]);
+  /** The server refused for want of a card: ask for one for this action, at the panel. True when it did. */
+  const askCardIfRefused = (err: unknown, action: AfterCardAction) => {
+    if (String((err as { message?: unknown } | null)?.message ?? "").trim() !== "card_required") return false;
+    setServerNoCard(true);
+    if (action === "buy") setOpen(false);
+    setNeedCard(action);
+    showPanel();
+    return true;
+  };
   // The saved card is written by Stripe's webhook, which can land a moment
   // after the member is back: while resuming, read again every CARD_POLL_MS.
   const card = useQuery({
@@ -231,7 +256,7 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
       setSentCents(cents);
       invalidateTrades(qc);
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => { if (!askCardIfRefused(err, "offer")) toast.error(declutterErrorMessage(err)); },
   });
   // DB-5 (owner 2026-10-30): "Buy now goes straight to checkout, with no strike for backing out before paying." No
   // reserve sheet: the tap holds the item (the server's 48-hour line, needed for checkout) and opens this seller's
@@ -243,7 +268,7 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
       invalidateTrades(qc);
       navigate(checkoutLinkFor(item.seller_id));
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => { if (!askCardIfRefused(err, "buy")) toast.error(declutterErrorMessage(err)); },
   });
 
   const confirmBuy = () => {
@@ -268,8 +293,10 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
     }
     // NIGHT-BUYING0-2: a card Stripe's webhook filed after the CARD_WAIT_MS wait was never noticed (polling had
     // stopped), so Buy now kept asking for a card. With no card in the last answer, read it again before asking.
+    // NIGHT-BUYING0-5: a card read that fails does not block, as at Send: the server checks the card itself, and
+    // its card_required opens the step (askCardIfRefused).
     void card.refetch().then((r) => {
-      if (r.data) {
+      if (r.data || r.isError) {
         setNeedCard(null);
         run(action);
       } else {
@@ -297,7 +324,7 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
   // The action came back in the router state: drop it from history so a
   // reload or Back never replays it.
   useEffect(() => {
-    if (afterCardFromState(location.state) || offerAmountFromState(location.state)) {
+    if (afterCardFromState(location.state) || cardCancelledFromState(location.state) || offerAmountFromState(location.state)) {
       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null });
     }
   }, []);
@@ -329,7 +356,7 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
     return () => window.clearTimeout(t);
   }, [resume]);
 
-  const showCardStep = !!needCard && !resume && !card.isError;
+  const showCardStep = !!needCard && !resume && (!card.isError || serverNoCard);
   // Back from Stripe's page: the Send press comes once the card is in.
   const checkingCard = !!resume && !hasCard && !card.isError;
 
@@ -339,11 +366,13 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
       itemId={item.id}
       offerAmount={action === "offer" ? amount.trim() : undefined}
       onReturned={() => {
+        setCardCancelled(null);
         setResume(action);
         setNeedCard(null);
         void card.refetch();
       }}
-      onCancel={() => setNeedCard(null)}
+      onCancel={() => { setNeedCard(null); setCardCancelled(null); }}
+      note={cardCancelled === action ? CARD_NOT_SAVED : undefined}
     />
   );
 

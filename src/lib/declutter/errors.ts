@@ -257,6 +257,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   delivery_unavailable: "Helpr delivery isn't available for this order. Choose pickup.",
   delivery_order: "A Helpr is delivering this order and picks the pickup time.",
   delivery_not_done: "The Helpr hasn't picked the item up yet.",
+  // BUY-39 (20261031082308): the buyer's I got it while the Helpr is still bringing it.
+  delivery_on_the_way: "The Helpr is still bringing it. Tap I got it once it's dropped off.",
   invalid_address: "Enter the full drop-off address: street number, street, and town.",
   order_handover_frozen: "How you get this order can't be changed after checkout.",
   order_amounts_frozen: "The amounts of this order can't be changed after checkout.",

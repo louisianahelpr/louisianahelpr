@@ -122,6 +122,8 @@ export interface OwnerDailyStats {
   failedPayouts: number
   memberErrors: number
   membersWithErrors: number
+  /** OPS-5: top sign-up sources in the window, real members only; null when unknown (left out). */
+  topSources?: Array<{ source: string; signups: number }> | null
 }
 
 /**
@@ -163,6 +165,18 @@ export const OwnerDailySummaryEmail = ({
       <Stat label="Declutter items sold" value={stats.itemsSold} />
       <Stat label="Declutter sales" value={`$${(stats.salesCents / 100).toFixed(2)}`} />
     </Section>
+    {stats.topSources && stats.topSources.length > 0 && (
+      <>
+        <Text className="e-text" style={{ ...textStyle, fontWeight: 'bold' as const }}>
+          Where sign-ups came from
+        </Text>
+        <Section style={{ margin: '0 0 20px' }}>
+          {stats.topSources.map((s) => (
+            <Stat key={s.source} label={s.source === 'direct' ? 'Direct (no link)' : s.source === 'other' ? 'Other' : s.source} value={s.signups} />
+          ))}
+        </Section>
+      </>
+    )}
     <Text className="e-text" style={{ ...textStyle, fontWeight: 'bold' as const }}>
       Needs a look
     </Text>

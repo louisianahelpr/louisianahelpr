@@ -1037,6 +1037,49 @@ serve(async (_req) => {
         for (const r of (realRes.data || []) as Array<{ user_id: string }>) if (asked.has(r.user_id) && !testIds.has(r.user_id)) realIds.add(r.user_id)
       }
 
+      // OPS-5: where today's sign-ups came from (member_signup_sources, 20261031220447), real members only. Its own
+      // read: the table not deployed yet (PGRST205 / 42P01) leaves the line out quietly; any other failure leaves it
+      // out and is recorded, and never stops the rest of the summary.
+      let topSources: Array<{ source: string; signups: number }> | null = null
+      if (!dailyFailures.length) {
+        const srcScan = await scanAll<{ user_id: string; source: string }>(
+          'signup sources',
+          (countOpt) =>
+            supabase.from('member_signup_sources').select('user_id, source', countOpt).gte('recorded_at', since).order('user_id', { ascending: true }),
+        )
+        const missing = srcScan.error && /PGRST205|42P01|does not exist|Could not find the table/.test(srcScan.error.message)
+        if (srcScan.error || !srcScan.complete) {
+          if (!missing) results.errors.push(`owner daily summary: sign-up sources left out (${srcScan.shortfall ?? srcScan.error?.message})`)
+        } else {
+          const ids = [...new Set(srcScan.rows.map((r) => r.user_id))]
+          const real = new Set<string>()
+          let ok = true
+          for (let i = 0; i < ids.length; i += 200) {
+            const chunk = ids.slice(i, i + 200)
+            const [realRes, testRes] = await Promise.all([
+              supabase.from('profiles').select('user_id, is_seed').in('user_id', chunk).eq('is_seed', false),
+              supabase.from('test_accounts').select('user_id').in('user_id', chunk),
+            ])
+            if (realRes.error || testRes.error) {
+              results.errors.push(`owner daily summary: sign-up sources left out (${(realRes.error ?? testRes.error)!.message})`)
+              ok = false
+              break
+            }
+            const tests = new Set(((testRes.data || []) as Array<{ user_id: string }>).map((r) => r.user_id))
+            const asked = new Set(chunk)
+            for (const r of (realRes.data || []) as Array<{ user_id: string }>) if (asked.has(r.user_id) && !tests.has(r.user_id)) real.add(r.user_id)
+          }
+          if (ok) {
+            const bySource = new Map<string, number>()
+            for (const r of srcScan.rows) if (real.has(r.user_id)) bySource.set(r.source, (bySource.get(r.source) ?? 0) + 1)
+            topSources = [...bySource.entries()]
+              .map(([source, signups]) => ({ source, signups }))
+              .sort((a, b) => b.signups - a.signups || a.source.localeCompare(b.source))
+              .slice(0, 5)
+          }
+        }
+      }
+
       if (dailyFailures.length) {
         results.errors.push(
           `owner daily summary NOT sent — these stats could not be read: ${dailyFailures.join(', ')}. A zero from a failed read tells the owner nothing is wrong.`,
@@ -1053,6 +1096,7 @@ serve(async (_req) => {
           failedPayouts: dPayouts.count || 0,
           memberErrors: errRows.filter((r) => realIds.has(r.user_id as string)).length,
           membersWithErrors: realIds.size,
+          topSources,
         }
         const dailyTo = await opsMailRecipients(supabase, suppressedSet, results, 'owner daily summary')
         for (const to of dailyTo) {

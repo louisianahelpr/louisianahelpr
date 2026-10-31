@@ -532,7 +532,7 @@ function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: 
   const [asking, setAsking] = useState(false);
   const report = useMutation({
     mutationFn: () => reportNoShow(order.orderId),
-    onSuccess: () => { setAsking(false); toast.success("Reported. We'll tell the other side and sort out the money."); invalidate(qc, order.orderId); },
+    onSuccess: () => { setAsking(false); toast("Reported. We'll tell the other side and sort out the money."); invalidate(qc, order.orderId); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   // Row 94: from 15 minutes after the booked time. The server checks again.
@@ -565,7 +565,7 @@ function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange, trigg
   const send = useMutation({
     mutationFn: async () => reportProblem(orderId, reason, note.trim(), PROBLEM_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(orderId, photos) : []),
     onSuccess: () => {
-      toast.success("Reported. Nobody is paid until Louisiana Helpr decides.");
+      toast("Reported. Nobody is paid until Louisiana Helpr decides.");
       setOpen(false);
       setNote("");
       setPhotos([]);
@@ -577,6 +577,7 @@ function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange, trigg
   return (
     <div ref={formRef} className="space-y-2 rounded-xl border border-border p-3">
       {/* BUY-35: the shared pick-one list, as Jobs' dispute and Declutter's refund use. */}
+      <p className="text-xs font-medium" aria-hidden="true">What went wrong?</p>
       <RadioCardList label="What went wrong?" value={reason} onChange={(r) => setReason(r as ProblemReason)}
         options={reasons.map(([r, words]) => ({ value: r, label: words }))} />
       <label htmlFor={`dcl-note-${orderId}`} className="block text-xs font-medium">Tell us what happened</label>

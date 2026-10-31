@@ -14392,6 +14392,7 @@ export type Database = {
         Args: { p_handover: string; p_lines: string[] }
         Returns: boolean
       }
+      declutter_hold_unchecked_listings: { Args: never; Returns: number }
       declutter_item_link_visible: {
         Args: { p_item_id: string }
         Returns: boolean

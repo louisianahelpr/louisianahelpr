@@ -719,7 +719,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // NIGHT-SELL-soldstates-4: a failed payout said "check that your payout account is set up" with no way there.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payout.status === "failed" && <FailedPayoutLink />} | {false && <FailedPayoutLink />}
   // While payout setup is paused (payout_setup off) the payout settings offer nothing to fix: no link (payoutSetupPausedEntryPoints).
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (paused) return null; |   if (false) return null;
+  // @mutate src/components/declutter/FailedPayoutLink.tsx |   if (paused) return null; |   if (false) return null;
   it("soldstates-4: a failed payout links to the payout settings, not while payout setup is paused", async () => {
     state.payouts = [{ order_id: "o1", items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, amount_cents: 4000, status: "failed", executed_at: null }];
     state.features = ["payout_setup"];

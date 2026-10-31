@@ -25,6 +25,7 @@
  * @mutate src/components/admin/AdminSubscriptions.tsx | {pillLabel(f.charAt(0).toUpperCase() + f.slice(1), isInitialLoading \|\| isError ? undefined : pillCount(f))} | {f.charAt(0).toUpperCase() + f.slice(1)}
  * @mutate src/components/admin/adminDisputes/DisputeFilters.tsx | ].map((o) => ({ ...o, label: pillLabel(o.label, p.partyCount(o.id as PartyFilter)) }))} | ]}
  * @mutate src/components/admin/AdminSupport.tsx | useFilterCounts(SUPPORT_FILTERS, supportQueueKey, fetchSupportTickets | useFilterCounts(SUPPORT_FILTERS, (f) => ["admin-support-count", f], fetchSupportTickets
+ * @mutate src/components/admin/AdminAuditLog.tsx |                 {pillLabel(label, entries.filter((e) => auditWhoMatches(value, e)).length)} |                 {label}
  * @mutate src/components/admin/useFilterCounts.ts |   count === undefined ? label : `${label} (${count})`; |   `${label} (${count ?? 0})`;
  */
 import { describe, it, expect } from "vitest";
@@ -63,6 +64,8 @@ const COUNTED: Record<string, RegExp[]> = {
   "src/components/admin/AdminUsers.tsx": [/count: t\.count,/],
   "src/components/admin/AdminAnalyticsDrilldowns.tsx": [/`All \(\$\{users\.length\}\)`|\(\$\{users\.filter/, /`All \(\$\{jobs\.length\}\)`/],
   "src/components/admin/marketing/MarketingQueue.tsx": [/` \(\$\{counts\[f\.id\]\}\)`/],
+  // NOID-23: the audit log's All / By an admin / Automatic, each counted from the very entries the list shows.
+  "src/components/admin/AdminAuditLog.tsx": [/\{pillLabel\(label, entries\.filter\(\(e\) => auditWhoMatches\(value, e\)\)\.length\)\}/],
 };
 
 /** Pill/tab controls that do not filter a list of items. EXACT. */

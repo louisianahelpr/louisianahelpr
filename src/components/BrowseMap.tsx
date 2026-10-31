@@ -54,6 +54,7 @@ import {
   type MapJobFilterInput,
 } from "./browseMap/mapFilter";
 import { laRegion, MyLocationControl } from "./browseMap/MapLayers";
+import { PREVIEW_CARD_MAX_W, PREVIEW_CARET, PREVIEW_EDGE, type PreviewPlacement } from "./browseMap/previewPlacement";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import {
   colorSchemeFor,
@@ -155,21 +156,6 @@ interface BrowseMapProps {
    */
   refreshKey?: number;
 }
-
-/** Placement of the pin-anchored preview popover, in `mapBoxRef` pixels.
- *  `caretDir` "down": card sits above the pin, caret on its bottom edge points
- *  down at the pin. "up": card flipped below the pin, caret on its top edge. */
-type PreviewPlacement = {
-  left: number;
-  top: number;
-  caretLeft: number;
-  caretDir: "up" | "down";
-};
-
-/** Popover geometry constants (px). */
-const PREVIEW_CARD_MAX_W = 416; // 26rem — matches the old sheet's max width.
-const PREVIEW_EDGE = 8; // keep the card this far from every map edge.
-const PREVIEW_CARET = 9; // caret height / gap between card and pin.
 
 export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, exclusions, refreshKey }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";

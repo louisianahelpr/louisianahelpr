@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/useDeviceSaved.ts |     const t = setTimeout(flush, SAVE_DELAY_MS); |     const t = setTimeout(() => {}, SAVE_DELAY_MS);
  * @mutate src/components/declutter/useBunchSaved.ts |   if (s.sorting) return s.photos;\n | \n
  * @mutate src/components/declutter/useBunchSaved.ts |   return s.photos.filter((p) => held.has(p.key));\n}\n\n/** Items and | \n  return s.photos;\n}\n\n/** Items and
- * @mutate src/lib/declutter/bunch.ts |       unusable.push({ key: p.key, name: p.file.name, error });\n    }\n  }\n  return { photos: kept, unusable }; |       kept.push(p); void error;\n    }\n  }\n  return { photos: kept, unusable };
+ * @mutate src/lib/declutter/bunch.ts |     else unusable.push({ key: p.key, name: p.file.name, error: r.error });\n  }\n  return { photos: kept, unusable }; |     else kept.push(p);\n  }\n  return { photos: kept, unusable };
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       setSortNote(unusablePhotosNote(back.unusable)); |       void back.unusable;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item); |     void next;
  * @mutate src/components/declutter/DeclutterBunchView.tsx | with their photos{items.some((it) => it.price.trim() !== "") ? " and prices" : ""}. | with their photos and prices.
@@ -30,6 +30,8 @@ const h = vi.hoisted(() => ({ refuseBlobs: false,
   statuses: new Map<string, string>(),
   disk: new Map<string, unknown>(),
   failWrites: false,
+  /** LEAD-BUNCH-34-SLOW: photo writes after this many never finish (a phone still writing big photos when the page goes). */
+  photoWritesFinish: Infinity,
   user: "u1",
 }));
 
@@ -38,6 +40,7 @@ vi.mock("idb-keyval", () => ({
   get: async (k: string) => h.disk.get(k),
   set: async (k: string, v: unknown) => {
     if (h.failWrites) throw new Error("quota");
+    if (k.includes("-photo:") && [...h.disk.keys()].filter((x) => x.includes("-photo:")).length >= h.photoWritesFinish) await new Promise(() => {});
     if (h.refuseBlobs && v instanceof Blob) throw new Error("UnknownError: blobs aren't stored in this session");
     h.disk.set(k, v);
   },
@@ -113,6 +116,7 @@ beforeAll(() => {
 beforeEach(() => {
   h.disk.clear();
   h.failWrites = false;
+  h.photoWritesFinish = Infinity;
   h.hang = false;
   h.user = "u1";
   h.withdrawn = [];
@@ -208,6 +212,39 @@ describe("Sell a bunch survives leaving", () => {
     expect(savedMeta()?.photos).toHaveLength(3);
     first.unmount();
     await threeComeBack();
+  });
+
+  // LEAD-BUNCH-34-SLOW (owner 10-31: "every time you close the website you lose what you did"): the small record was
+  // written once, after EVERY photo, so a page closed while the phone was still writing big photos kept none of them.
+  // @mutate src/components/declutter/useDeviceSaved.ts |         onDisk.current.add(x.key);\n        await saveMeta();\n |         onDisk.current.add(x.key);\n
+  it("5 photos, the page closes while the 4th is still being written: the 3 written come back", async () => {
+    const first = renderFlow();
+    h.photoWritesFinish = 3;
+    h.hang = true;
+    await new Promise((r) => setTimeout(r, 0));
+    fireEvent.change(document.getElementById("bunch-files")!, { target: { files: ["a", "b", "c", "d", "e"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" })) } });
+    await new Promise((r) => setTimeout(r, 0));
+    window.dispatchEvent(new Event("pagehide"));
+    await waitFor(() => expect(savedMeta()?.photos).toHaveLength(3), { timeout: 300 });
+    first.unmount();
+    h.hang = false;
+    h.photoWritesFinish = Infinity;
+    renderFlow();
+    expect(await screen.findByRole("heading", { name: "3 photos not sorted yet" })).toBeTruthy();
+  });
+
+  it("5 photos added, the page closes, reopened: all 5 are back", async () => {
+    const first = renderFlow();
+    h.hang = true;
+    await new Promise((r) => setTimeout(r, 0));
+    fireEvent.change(document.getElementById("bunch-files")!, { target: { files: ["a", "b", "c", "d", "e"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" })) } });
+    await new Promise((r) => setTimeout(r, 0));
+    window.dispatchEvent(new Event("pagehide"));
+    await waitFor(() => expect(savedMeta()?.photos).toHaveLength(5), { timeout: 300 });
+    first.unmount();
+    h.hang = false;
+    renderFlow();
+    expect(await screen.findByRole("heading", { name: "5 photos not sorted yet" })).toBeTruthy();
   });
 
   it("the app goes to the background mid-sort (hidden): saved at once", async () => {

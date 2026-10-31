@@ -59,22 +59,27 @@ export function useDeviceSaved<S, M extends SavedPhotos>({ store, userId, snapsh
         return;
       }
       const keepKeys = new Set(p.photos.map((x) => x.key));
+      // LEAD-BUNCH-34-SLOW (owner 10-31: "every time you close the website you lose what you did"): the small record
+      // lists only photos already on the device and is written after EACH new photo, so a page closed while 34 full
+      // photos are still being written keeps every one written so far. Before, it was written once, after all of them.
+      const saveMeta = () => store.saveMeta({
+        ...p.meta,
+        userId,
+        savedAt: Date.now(),
+        photos: p.photos.filter((x) => onDisk.current.has(x.key)).map((x) => ({ key: x.key, name: x.file.name, type: x.file.type })),
+      } as M);
       for (const x of p.photos) {
         if (onDisk.current.has(x.key)) continue;
         await store.savePhoto(x);
         onDisk.current.add(x.key);
+        await saveMeta();
       }
       for (const k of [...onDisk.current]) {
         if (keepKeys.has(k)) continue;
         await store.removePhoto(k);
         onDisk.current.delete(k);
       }
-      await store.saveMeta({
-        ...p.meta,
-        userId,
-        savedAt: Date.now(),
-        photos: p.photos.map((x) => ({ key: x.key, name: x.file.name, type: x.file.type })),
-      } as M);
+      await saveMeta();
     });
   }, [enqueue, store, userId]);
 

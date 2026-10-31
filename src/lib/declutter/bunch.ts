@@ -38,6 +38,42 @@ export const GROUP_BATCH = 8;
 export const BUNCH_MAX_PHOTOS = 80;
 /** The grouping call sorts up to 8 photos and writes several listings, so it gets longer than one item's minute. */
 const GROUP_TIMEOUT_MS = 100_000;
+/**
+ * LEAD-BUNCH-34-SLOW (owner 10-31, 34 photos on an iPhone "takes ages, like it's not even accepting the pictures"):
+ * photos are made ready (decoded, shrunk, location data removed) this many at a time, all of them from the first tap,
+ * instead of one after another inside each batch's turn. A few at once, never all: a phone decodes each full photo whole.
+ */
+export const PHOTO_WORK_AT_ONCE = 4;
+
+/** Each photo's small copy, or why it couldn't be made, started at once for every photo, PHOTO_WORK_AT_ONCE at a time, in order. */
+export function cleanAhead(
+  photos: readonly BunchPhoto[],
+  clean: (file: File) => Promise<File>,
+  onEach?: (key: string, copy: File | null, error?: unknown) => void,
+  atOnce = PHOTO_WORK_AT_ONCE,
+): Promise<{ copy: File } | { error: unknown }>[] {
+  const done: ((r: { copy: File } | { error: unknown }) => void)[] = [];
+  const out = photos.map(() => new Promise<{ copy: File } | { error: unknown }>((resolve) => { done.push(resolve); }));
+  let next = 0;
+  const worker = async () => {
+    while (next < photos.length) {
+      const i = next++;
+      const p = photos[i];
+      try {
+        const copy = await clean(p.file);
+        onEach?.(p.key, copy);
+        done[i]({ copy });
+      } catch (error) {
+        // Not swallowed: the caller names this photo and says why (unusablePhotosNote), and the screen offers it again.
+        onEach?.(p.key, null, error);
+        done[i]({ error });
+      }
+    }
+  };
+  for (let w = 0; w < Math.min(atOnce, photos.length); w++) void worker();
+  return out;
+}
+
 /** The waits before a batch's further tries. A phone that drops one request usually sends the next. */
 const SORT_RETRY_DELAYS_MS = [5_000, 20_000] as const;
 
@@ -199,6 +235,8 @@ export interface SortExtras {
   onRetry?: () => void;
   /** A batch's first item was the same thing as the last batch's last: its photos joined that item. */
   onJoined?: (intoKey: string, from: BunchItem) => void;
+  /** LEAD-BUNCH-34-SLOW: each photo's small copy as soon as it is made (null when it couldn't be), for its thumbnail and the "Adding N of M" count. */
+  onCleaned?: (key: string, copy: File | null) => void;
 }
 
 /** Too much to send in one go on this connection, or the server said so: half as many may go through. A limit or a busy tool answers the same. */
@@ -228,7 +266,9 @@ export async function groupPhotos(
   clean: (file: File) => Promise<File> = cleanForGroup,
   extras: SortExtras = {},
 ): Promise<GroupResult> {
-  const { whenBack = whenPageIsBack, awayCount = pageAwayCount, onRetry, onJoined } = extras;
+  const { whenBack = whenPageIsBack, awayCount = pageAwayCount, onRetry, onJoined, onCleaned } = extras;
+  // LEAD-BUNCH-34-SLOW: every photo starts being made ready now, a few at a time, so a batch's copies are waiting when its turn comes.
+  const ahead = cleanAhead(photos, clean, onCleaned ? (key, copy) => onCleaned(key, copy) : undefined);
   const batches: BunchPhoto[][] = [];
   for (let i = 0; i < photos.length; i += GROUP_BATCH) batches.push(photos.slice(i, i + GROUP_BATCH));
   const items: BunchItem[] = [];
@@ -256,13 +296,14 @@ export async function groupPhotos(
   for (const [i, batch] of batches.entries()) {
     const good: BunchPhoto[] = [];
     const cleaned: File[] = [];
-    for (const p of batch) {
-      try {
-        cleaned.push(await clean(p.file));
+    for (const [n, p] of batch.entries()) {
+      const made = await ahead[i * GROUP_BATCH + n];
+      if ("copy" in made) {
+        cleaned.push(made.copy);
         good.push(p);
-      } catch (error) {
-        // Not swallowed: the screen names this photo and says why (unusablePhotosNote).
-        unusable.push({ key: p.key, name: p.file.name, error });
+      } else {
+        // The screen names this photo and says why (unusablePhotosNote).
+        unusable.push({ key: p.key, name: p.file.name, error: made.error });
       }
     }
     let made: BunchItem[] = [];
@@ -333,20 +374,21 @@ export async function keepCleanablePhotos(
   clean: (file: File) => Promise<File> = cleanForGroup,
 ): Promise<{ photos: BunchPhoto[]; unusable: GroupResult["unusable"] }> {
   const held = new Set(items.flatMap((it) => it.photoKeys));
+  // LEAD-BUNCH-34-SLOW: a few at a time, as a live sort does (34 photos brought back mid-sort were read one by one first).
+  const loose = photos.filter((p) => !held.has(p.key));
+  const checks = new Map(cleanAhead(loose, clean).map((c, i) => [loose[i].key, c] as const));
   const kept: BunchPhoto[] = [];
   const unusable: GroupResult["unusable"] = [];
   for (const p of photos) {
-    if (held.has(p.key)) {
+    const check = checks.get(p.key);
+    if (!check) {
       kept.push(p);
       continue;
     }
-    try {
-      await clean(p.file);
-      kept.push(p);
-    } catch (error) {
-      // Not swallowed: the screen names this photo and says why (unusablePhotosNote).
-      unusable.push({ key: p.key, name: p.file.name, error });
-    }
+    const r = await check;
+    if ("copy" in r) kept.push(p);
+    // The screen names this photo and says why (unusablePhotosNote).
+    else unusable.push({ key: p.key, name: p.file.name, error: r.error });
   }
   return { photos: kept, unusable };
 }

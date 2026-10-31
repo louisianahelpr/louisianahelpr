@@ -601,7 +601,7 @@
     },
     {
       "file": "src/components/JobConfirmation.tsx",
-      "line": 306,
+      "line": 309,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12625,7 +12625,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 214,
+      "line": 219,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12635,7 +12635,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 220,
+      "line": 225,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -12645,7 +12645,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 264,
+      "line": 269,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12665,7 +12665,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 275,
+      "line": 280,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12675,7 +12675,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 287,
+      "line": 292,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

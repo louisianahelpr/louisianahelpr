@@ -155,8 +155,8 @@ export function jobIsOverdue(j: { status?: string | null; date_needed?: string |
   if (!isPastDue(j.date_needed)) return false;
   // NIGHT-JOBSLO6-1: an 11 PM job was "Late" at midnight while the Helpr was on time. With a start time, the day
   // passing is not enough: LATE_AFTER_START_HOURS from the start must have passed too. No start time (or Flexible):
-  // the day passing, as before.
-  const start = j.start_time && /^\d{1,2}:\d{2}/.test(j.start_time) ? jobStartDateTime(j.date_needed, j.start_time) : null;
+  // jobStartDateTime gives the day's midnight, so the day passing decides, as before.
+  const start = jobStartDateTime(j.date_needed, j.start_time);
   if (!start) return true;
   return Date.now() >= start.getTime() + LATE_AFTER_START_HOURS * 3_600_000;
 }

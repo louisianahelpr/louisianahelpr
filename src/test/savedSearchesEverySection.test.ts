@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |       AND public.feature_enabled_for_user('declutter', s.user_id)\n |
  * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |            AND NOT public.declutter_seller_hidden(i.seller_id)\n |
  * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |       AND (NOT v_seller_seed OR COALESCE(p.is_seed, false))\n | 
- * @mutate supabase/migrations/20261030071817_declutter_search_words.sql | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC;
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC;
  * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |   WHERE s.user_id = (SELECT auth.uid());\n$function$; |   WHERE true;\n$function$;
  */
 import { describe, it, expect } from "vitest";

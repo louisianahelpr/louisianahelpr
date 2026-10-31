@@ -7,6 +7,8 @@
  *
  * @mutate index.html | <meta name="application-name" content="Louisiana Helpr" /> | <meta name="application-name" content="Helpr" />
  * @mutate index.html | <meta property="og:site_name" content="Louisiana Helpr" /> | <meta property="og:site_name" content="Helpr" />
+ * @mutate index.html | <meta name="author" content="Louisiana Helpr" /> | <meta name="author" content="Helpr" />
+ * @mutate index.html | "@type": "WebSite", | "@type": "WebPage",
  * @mutate src/components/Footer.tsx | © {new Date().getFullYear()} Louisiana Helpr · Helpr LLC | © {new Date().getFullYear()} Helpr LLC
  * @mutate src/pages/info/Index.tsx | name: "Louisiana Helpr", | name: "Helpr",
  * @mutate vite.config.ts | name: "Louisiana Helpr", | name: "Helpr — Louisiana Help Marketplace",
@@ -31,12 +33,14 @@ describe("the home page calls itself Louisiana Helpr", () => {
   it("the raw HTML's site-name tags say the name", () => {
     expect(html).toContain(`<meta name="application-name" content="${NAME}" />`);
     expect(html).toContain(`<meta property="og:site_name" content="${NAME}" />`);
+    expect(html).toContain(`<meta name="author" content="${NAME}" />`);
   });
 
   it("every business entity in the raw HTML carries the name, and the company keeps its legal name", () => {
     expect(jsonLd.length).toBeGreaterThan(1);
     for (const entity of jsonLd) expect(entity.name, entity["@type"]).toBe(NAME);
     expect(jsonLd.find((e) => e["@type"] === "Organization")?.legalName).toBe("Helpr LLC");
+    expect(jsonLd.map((e) => e["@type"]), "the block that names the site").toContain("WebSite");
   });
 
   it("the page's own schema and the tab's fallback title say it after JavaScript runs", () => {

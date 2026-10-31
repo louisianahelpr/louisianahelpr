@@ -77,10 +77,13 @@ describe("design tweaks (owner 2026-10-18)", () => {
     expect(code("src/components/declutter/DeclutterHomeView.tsx")).toMatch(/if \(mine\.isLoading\) return <ListingsSkeleton \/>;/);
   });
 
-  it("T6: Filters opens as a slide-up sheet with a grab handle below desktop web", () => {
+  // LEAD-SHEET-X-ONLY (owner 10-31): no grab handle on any sheet; the X (or a tap outside) closes it.
+  // @mutate src/components/ui/sheet.tsx |           {/* LEAD-SHEET-X-ONLY (owner 10-31): no drag bar or grab handle; a sheet closes with its X or a tap outside. */}\n |           {isFloor && <div aria-hidden className="sheet-grab-handle" />}\n
+  it("T6: Filters opens as a slide-up sheet below desktop web, with no grab handle", () => {
     // Desktop web: the small drop-down under the Filters button (owner 2026-10-28; filterDropdownOnDesktop.test.tsx).
     expect(code("src/components/dashboard/FilterSheet.tsx")).toMatch(/side="bottom"\s+floor\s/);
-    expect(code("src/components/ui/sheet.tsx")).toMatch(/isFloor && <div aria-hidden className="sheet-grab-handle" \/>/);
+    expect(code("src/components/ui/sheet.tsx")).not.toMatch(/sheet-grab-handle|grab-handle/);
+    expect(code("src/index.css")).not.toMatch(/sheet-grab-handle/);
     expect(rule(".sheet-floor")).toMatch(/bottom:\s*0/);
   });
 

@@ -4807,7 +4807,7 @@ html.page-scrolled .sticky-title-row-name { opacity: 1; }
   background-image: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.07), transparent) !important;
 }
 
-/* T6 — slide-up sheet (SheetContent floor): glued to the bottom edge, grab handle, plain dim scrim. */
+/* T6 — slide-up sheet (SheetContent floor): glued to the bottom edge, plain dim scrim (no grab handle: LEAD-SHEET-X-ONLY). */
 /* The floor sheet is the phone half only (spec v2 §3, 2026-10-20): from 640px
    it is the centred 480px dialog every popup is (sheetVariants "bottom"). */
 @media (max-width: 639.98px) {
@@ -4822,19 +4822,11 @@ html.page-scrolled .sticky-title-row-name { opacity: 1; }
   --tw-enter-translate-y: 100% !important; --tw-exit-translate-y: 100% !important;
   box-shadow: 0 -8px 30px -12px hsl(220 14% 20% / 0.25) !important;
 }
-.sheet-floor.p-0 > :nth-child(2) { padding: 0.25rem 0.5rem 0 1.25rem; }
-}
-@media (min-width: 640px) {
-  .sheet-grab-handle { display: none; }
+.sheet-floor.p-0 > :first-child { padding: 1rem 0.5rem 0 1.25rem; }
 }
 .sheet-floor-scrim {
   -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
   background-color: hsl(0 0% 0% / 0.28) !important;
-}
-.sheet-grab-handle {
-  width: 36px; height: 5px; border-radius: 3px; flex-shrink: 0;
-  margin: 8px auto 2px;
-  background: hsl(var(--muted-foreground) / 0.35);
 }
 
 /* T7 — pill filter chips: one sideways-scrolling row, an edge fade shows there is more. */

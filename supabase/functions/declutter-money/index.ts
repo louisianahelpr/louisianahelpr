@@ -1233,6 +1233,24 @@ serve(async (req) => {
         }
         if (!(await payeeReadyNow(stripe, mode, "helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id as string, h.amount_cents))) continue;
         if (!(await stillPayableNow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
+        // Owner 2026-10-30: the delivery Helpr's one-time setup fee comes out here, once the send is certain (0 while the
+        // identity_check switch is off), from the order's part only: a raise and a held tip go whole from their own charge.
+        // Never on a row a send may have started: its Stripe key was sent with the old amount. Fails closed: an unreadable
+        // answer sends nothing this run, no try used.
+        if (!maybeSent_helpr_task(h)) {
+          const { data: toSend, error: feeErr } = await admin.rpc("helpr_task_payout_take_setup_fee", { p_payout_id: h.payout_id });
+          if (feeErr) {
+            if ((feeErr as { code?: string }).code !== "PGRST202") {
+              defects.record(`helpr payout ${h.payout_id}: setup fee read failed, not sent this run: ${feeErr.message}`.slice(0, 200));
+              await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 15, "transient", `setup fee read failed: ${feeErr.message}`);
+              continue;
+            }
+          } else if (typeof toSend === "number" && toSend !== h.amount_cents) {
+            const taken = h.amount_cents - toSend;
+            parts = parts.map((part) => (!part.raiseId && !part.tipId ? { ...part, amountCents: part.amountCents - taken } : part));
+            h.amount_cents = toSend;
+          }
+        }
         if (!(await markSending("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
         beforeSend = false;
         for (const [i, part] of parts.entries()) {

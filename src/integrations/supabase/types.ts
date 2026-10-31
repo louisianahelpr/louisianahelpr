@@ -4926,6 +4926,7 @@ export type Database = {
           settled_by_hand_cents: number | null
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
+          setup_fee_cents: number
           status: string
           stripe_transfer_id: string | null
           task_id: string
@@ -4948,6 +4949,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          setup_fee_cents?: number
           status: string
           stripe_transfer_id?: string | null
           task_id: string
@@ -4970,6 +4972,7 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          setup_fee_cents?: number
           status?: string
           stripe_transfer_id?: string | null
           task_id?: string
@@ -16804,6 +16807,10 @@ export type Database = {
       helpr_task_lock: { Args: { p_task: string }; Returns: unknown }
       helpr_task_log: { Args: { p_actor: string; p_detail: string; p_kind: string; p_task: string }; Returns: undefined }
       helpr_task_payout_executed: { Args: { p_error: string; p_payout_id: string; p_succeeded: boolean; p_transfer_id: string }; Returns: string }
+      helpr_task_payout_take_setup_fee: {
+        Args: { p_payout_id: string }
+        Returns: number
+      }
       helpr_task_payouts_due: { Args: { p_limit: number }; Returns: unknown }
       helpr_task_photo_access: { Args: { p_name: string; p_write: boolean }; Returns: boolean }
       helpr_task_photo_ok: { Args: { p_path: string; p_task: string; p_uid: string }; Returns: boolean }

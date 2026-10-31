@@ -331,7 +331,10 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(screen.getByText("Drop off near Baker, LA")).toBeInTheDocument();
     expect(screen.getByText("To the buyer · about 9 miles")).toBeInTheDocument();
     expect(screen.getByText("$26.20")).toBeInTheDocument();
-    expect(screen.getByText("Exact addresses unlock when you accept.")).toBeInTheDocument();
+    // BUY-38: the drop-off follows helpr_task_dropoff_shows_at, so "unlock when you accept" was untrue for a first delivery.
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | <p className="text-ds-12 text-muted-foreground">{DELIVERY_ADDRESSES_SHOW}</p> | <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you accept.</p>
+    expect(screen.getByText("The pickup address shows when you accept. The drop-off shows 2 hours before the pickup time, or at once after your first finished delivery.")).toBeInTheDocument();
+    expect(screen.queryByText(/unlock when you accept/)).toBeNull();
     const take = screen.getByRole("button", { name: "Accept delivery" });
     expect(take).toBeDisabled();
     // Before helpr_task_pickup_windows is live (null), the free field stays, once that read answers.

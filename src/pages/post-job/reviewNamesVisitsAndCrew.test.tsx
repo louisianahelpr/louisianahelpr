@@ -15,7 +15,7 @@
 // @mutate src/pages/post-job/CheckoutStepView.tsx |         isGroupJob={form.isGroupJob} |         isGroupJob={false}
 // JOBS-28 (Jobs audit 10-30, "later repeat visits don't mention tax"): a taxable category's later visits are charged
 // their sales tax too (charge-recurring-visits), so Review says so; an untaxed one keeps the plain words.
-// @mutate src/components/postjob/CheckoutStep.tsx |                 taxable={hasTaxableLine(category)} /> |                 taxable={false} />
+// @mutate src/components/postjob/CheckoutStep.tsx | taxable={hasTaxableLine(category)} /> | taxable={false} />
 // @mutate src/lib/seriesMoneyCopy.ts |   return taxable ? SERIES_LATER_VISITS_CHARGED_TAXED : SERIES_LATER_VISITS_CHARGED; |   return SERIES_LATER_VISITS_CHARGED;
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

@@ -78,8 +78,8 @@ export function SignupSources() {
             <thead>
               <tr className="text-left text-ds-13 text-muted-foreground">
                 <th scope="col" className="py-2 font-semibold">Source</th>
-                <th scope="col" className="py-2 text-right font-semibold">Sign-ups</th>
-                <th scope="col" className="py-2 text-right font-semibold">First posts</th>
+                <th scope="col" className="py-2 pl-3 text-right font-semibold whitespace-nowrap">Sign-ups</th>
+                <th scope="col" className="py-2 pl-3 text-right font-semibold whitespace-nowrap">First posts</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">

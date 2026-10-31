@@ -235,7 +235,9 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();
     // #21 (owner chose C, 2026-10-28): two Stripe pages stay; before the first, one line says what it is for.
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged when you check out. | You're only charged when you buy.
-    expect(screen.getByText("We save your card now; you're only charged when you check out. Then you confirm the buy.")).toBeInTheDocument();
+    // NIGHT-BUYING0-4: after the card is saved the app holds the item and opens checkout (run("buy")); no confirm press.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | "Then checkout opens." | "Then you confirm the buy."
+    expect(screen.getByText("We save your card now; you're only charged when you check out. Then checkout opens.")).toBeInTheDocument();
     // Said once: the line under the buttons steps aside while the card step says it.
     expect(screen.getAllByText(/only charged when/)).toHaveLength(1);
     expect(window.confirm).not.toHaveBeenCalled();

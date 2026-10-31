@@ -50,7 +50,7 @@ function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel }: {
       <p className="text-sm font-semibold">Add a card to finish.</p>
       <p className="text-xs text-muted-foreground">
         {/* #21 (owner chose C, 2026-10-28): two Stripe pages stay; this line says what the first one is for. */}
-        We save your card now; you're only charged when you check out. {action === "buy" ? "Then you confirm the buy." : "Then you send your offer."}
+        We save your card now; you're only charged when you check out. {action === "buy" ? "Then checkout opens." : "Then you send your offer."}
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Button

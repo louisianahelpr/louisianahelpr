@@ -14659,6 +14659,7 @@ export type Database = {
       }
       declutter_pick_free_request: { Args: { p_request_id: string }; Returns: string }
       declutter_my_free_pause: { Args: never; Returns: string }
+      declutter_open_to_guests: { Args: never; Returns: boolean }
       declutter_cancel_haul_away: {
         Args: { p_item_id: string; p_job_id?: string }
         Returns: string

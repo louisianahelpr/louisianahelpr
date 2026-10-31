@@ -3,6 +3,7 @@ import {
   CheckCircle2, TrendingUp, X,
 } from "lucide-react";
 import { type DashboardStats, type DateRange } from "./types";
+import { HOME_STANDING_LINE, type HomeStanding } from "./homeStanding";
 import { cn } from "@/lib/utils";
 import { KpiCard, computeTrend } from "./KpiCard";
 import { PriorityAlert } from "./PriorityAlert";
@@ -24,15 +25,20 @@ interface DashboardHomeProps {
   // The other, successful numbers still render — this just flags that the
   // picture may be incomplete, instead of silently showing misleading zeros.
   dataError?: boolean;
+  /** The greeting's line: homeStanding, from every queue and the alert ledger. */
+  standing: HomeStanding;
+  /** Open serious items in the alert ledger (Health); undefined while loading or unreadable. */
+  seriousAlerts: number | undefined;
 }
 
 export const DashboardHome = ({
   stats, statsLoading, onNavigate,
   dateRange, setDateRange, customDays, setCustomDays,
-  rangeLabel, prevLabel, dataError,
+  rangeLabel, prevLabel, dataError, standing, seriousAlerts,
 }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
-  const alertCount = [stats.disputedJobs, stats.openReports, stats.supportTickets].filter((n) => n > 0).length;
+  const healthAlerts = seriousAlerts ?? 0;
+  const alertCount = [stats.disputedJobs, stats.openReports, stats.supportTickets, healthAlerts].filter((n) => n > 0).length;
   const hasAlerts = alertCount > 0;
   // A SUM OF NULLS IS NOT ZERO PROFIT.
   // `totalFees` adds up `jobs.platform_fee_amount + customer_fee_amount` across
@@ -100,7 +106,7 @@ export const DashboardHome = ({
               Welcome back
             </h1>
             <p className="font-sans mt-0.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {hasAlerts ? "There are items needing attention today." : "Everything looks calm on the platform."}
+              {HOME_STANDING_LINE[standing]}
             </p>
           </div>
           <div className="shrink-0">
@@ -144,6 +150,9 @@ export const DashboardHome = ({
             )}
             {stats.supportTickets > 0 && (
               <PriorityAlert label="Support tickets" count={stats.supportTickets} color="accent" onClick={() => onNavigate("support")} />
+            )}
+            {healthAlerts > 0 && (
+              <PriorityAlert label="Health alerts" count={healthAlerts} color="destructive" onClick={() => onNavigate("health")} />
             )}
           </div>
         </AdminCard>

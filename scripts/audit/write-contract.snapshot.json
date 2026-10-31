@@ -10247,6 +10247,14 @@
    "policies": [
     {
      "cmd": "SELECT",
+     "name": "declutter photos: guests read with their item",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "anon"
+     ]
+    },
+    {
+     "cmd": "SELECT",
      "name": "declutter photos: readable with their item",
      "permissive": "PERMISSIVE",
      "roles": [
@@ -10568,6 +10576,14 @@
    },
    "kind": "table",
    "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter items: guests read live",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "anon"
+     ]
+    },
     {
      "cmd": "SELECT",
      "name": "declutter items: seller or switched-on members read live",

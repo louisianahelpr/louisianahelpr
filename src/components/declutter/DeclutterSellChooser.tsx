@@ -13,7 +13,10 @@
  * Guard: src/components/declutter/declutterSellChooser.test.tsx.
  */
 import { useState } from "react";
-import { Boxes, Gift, HandHelping, Images, Package, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Boxes, Gift, HandHelping, History, Images, Package, Search } from "lucide-react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { savedSellWork } from "@/lib/declutter/bunchSaved";
 import AppPage from "@/components/AppPage";
 import { ChoiceCard } from "@/components/ui/ChoiceCard";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -30,6 +33,9 @@ export default function DeclutterSellChooser() {
   const movingOut = useFeature("declutter_moving_out");
   const wanted = useFeature("declutter_wanted");
   const [explaining, setExplaining] = useState(false);
+  // LEAD-BUNCH-DRAFT-KEEP (owner 10-31): work kept on this device is offered first, so leaving never feels like losing it.
+  const { user } = useCurrentUser();
+  const kept = useQuery({ queryKey: ["declutter", "saved-sell-work", user?.id], queryFn: () => savedSellWork(user!.id), enabled: !!user?.id, staleTime: 0 });
   return (
     <AppPage title="Sell" backTo="/declutter?tab=selling" phoneHidesTitle>
       <div className="mx-auto w-full max-w-xl space-y-5" data-sell-chooser="">
@@ -42,6 +48,12 @@ export default function DeclutterSellChooser() {
           // since neither is a way to sell it yourself.
           <section className="flex flex-col gap-3 [&_[data-sell-choice]]:!min-h-[80px]" aria-labelledby="sell-step">
             <StepHead title="What would you like to do?" sub="Pick one. You can come back and choose another." />
+            {kept.data?.bunch && (
+              <ChoiceCard data-sell-choice="continue-bunch" to={kept.data.moving ? SELL_MOVE_PATH : SELL_BUNCH_PATH} icon={<History className={ICON} />} title="Continue where you left off" line="Your photos and items from Sell a bunch are kept on this device." />
+            )}
+            {kept.data?.one && (
+              <ChoiceCard data-sell-choice="continue-one" to={SELL_ONE_PATH} icon={<History className={ICON} />} title="Continue your listing" line="Your photos and words for one item are kept on this device." />
+            )}
             <ChoiceCard data-sell-choice="one" to={SELL_ONE_PATH} icon={<Package className={ICON} />} title="One item" line="Add photos and we write the listing for you." />
             <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Sell a bunch" line="Add photos of everything and we write each listing for you to check." />
             {movingOut && (

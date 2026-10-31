@@ -83,6 +83,9 @@ serve(async (req) => {
     // every redirect target is a literal route): "declutter_selling" = their Declutter listings, when the first
     // listing asked for the fee; anything else = Payments.
     const toDeclutter = (rawBody as { return_to?: unknown })?.return_to === "declutter_selling";
+    // Owner 2026-10-30: a first free claim pays first, then verifies: "declutter_free_claim" lands on Buying, where their
+    // picked item waits, with the ID check open (IdentityCheckHost reads verify_id).
+    const toFreeClaim = (rawBody as { return_to?: unknown })?.return_to === "declutter_free_claim";
 
     // Fail CLOSED on a read fault. A dropped error here would let someone who
     // has already paid be sent to Stripe to pay again — recoverable (the
@@ -169,19 +172,23 @@ serve(async (req) => {
         ],
         mode: "payment",
         payment_intent_data: { metadata },
-        success_url: toDeclutter
-          ? buildRedirectUrl("/declutter?view=selling", isNative)
-          : buildRedirectUrl("/profile?tab=payment&setup_fee=paid", isNative),
-        cancel_url: toDeclutter
-          ? buildRedirectUrl("/declutter?view=selling", isNative)
-          : buildRedirectUrl("/profile?tab=payment", isNative),
+        success_url: toFreeClaim
+          ? buildRedirectUrl("/declutter?tab=buying&verify_id=1&verify_reason=claim", isNative)
+          : toDeclutter
+            ? buildRedirectUrl("/declutter?view=selling", isNative)
+            : buildRedirectUrl("/profile?tab=payment&setup_fee=paid", isNative),
+        cancel_url: toFreeClaim
+          ? buildRedirectUrl("/declutter?tab=buying", isNative)
+          : toDeclutter
+            ? buildRedirectUrl("/declutter?view=selling", isNative)
+            : buildRedirectUrl("/profile?tab=payment", isNative),
         metadata,
       },
       // Per user, not per attempt: a double tap reopens the same session
       // instead of creating a second chargeable one.
       // Q2352: and per return path, since the page's return URLs differ (lh-money-escrow review #3).
       // v2: the wallet customer and payment methods changed the request (Q2084).
-      { idempotencyKey: toDeclutter ? `onboarding-fee:v2:${user.id}:declutter_selling` : `onboarding-fee:v2:${user.id}` },
+      { idempotencyKey: toFreeClaim ? `onboarding-fee:v2:${user.id}:declutter_free_claim` : toDeclutter ? `onboarding-fee:v2:${user.id}:declutter_selling` : `onboarding-fee:v2:${user.id}` },
     );
 
     return new Response(JSON.stringify({ url: session.url }), {

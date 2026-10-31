@@ -460,7 +460,7 @@ export const TermsContent = () => {
             <p>Before a buyer pays, they see your area name and about how far away the item is; the exact address goes only to the buyer who paid or the Helpr who took the delivery. Listing photos are shown to members, and anyone with a photo&apos;s link can open it; porch, delivery and problem photos stay with the people in that sale and our admins.</p>
             <p>The photos and text of your listing, and room photos when moving out, are sent to our AI provider to draft and check the listing.</p>
             <p>You can&apos;t delete your account while a Declutter sale or delivery is in progress. After you delete it, your Declutter photos are removed, your Declutter strikes stay {idOn ? "tied to your verified ID" : "on record"}, and your finished sales stay visible to the other side with you shown as &ldquo;Former member&rdquo;.</p>
-            <p>Declutter emails you only about money (sold, receipts, refunds); everything else comes as a push notification and in-app alert.</p>
+            <p>Declutter always emails your sale, payout and refund receipts. Pickup reminders, price drops and Wanted matches are emailed too unless you turn their email off in Settings. Listings, offers and questions come only as a push notification and in-app alert.</p>
             <p>After a handover, buyer and seller can review each other with stars, quick tags and a comment, hidden until both have reviewed or 14 days pass. Declutter reviews count toward the same star rating used for jobs.</p>
           </>
         }

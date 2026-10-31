@@ -148,6 +148,20 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
   const [gateOpen, setGateOpen] = useState(false);
 
+  // The tab just tapped, lit AT ONCE (AUD31-62). The router puts each
+  // navigation in a React transition, so while the new tab's page chunk loads
+  // `location` (and the page) stay on the old screen: the URL changed in
+  // ~0.1 s but Home stayed lit for 0.8-2.6 s and nothing answered the tap.
+  // This state is set in the click handler, outside the transition, so the
+  // dock re-renders now; it applies only while `location.key` is still the one
+  // tapped from, so the router's own answer wins the moment it commits.
+  const [tapped, setTapped] = useState<{ path: string; fromKey: string } | null>(null);
+  const litNow = tapped && tapped.fromKey === location.key ? tapped.path : null;
+  const goTab = (path: string, to: string) => {
+    setTapped({ path, fromKey: location.key });
+    navigate(to);
+  };
+
   // Long-press quick menus — Posts (status-bucket quick filters) and
   // Messages (last-3-conversations preview). At most one open at a time;
   // the string identifies which tab's menu is showing so renderItem can
@@ -412,7 +426,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       // If we're inside this tab's stack but not on its root, pop back to root.
       if (!isGuest && inStack && location.pathname !== path) {
         hapticLight();
-        navigate(path);
+        goTab(path, path);
         return;
       }
       if (!isGuest && path === "/profile" && location.pathname === "/profile" && location.search) {
@@ -422,7 +436,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
       }
       if (location.pathname !== effectivePath) {
         hapticLight();
-        navigate(effectivePath);
+        goTab(path, effectivePath);
         return;
       }
       announceTabReselect(path); // a re-tap of this tab: screens that reset on it listen (Home folds To do up)
@@ -434,7 +448,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
 
     // A section tab is lit anywhere inside its section; the one Jobs & Posts
     // tab is lit on both lists.
-    const isActive = active || inStack;
+    // A tab tapped a moment ago is the lit one until the router catches up.
+    const isActive = litNow ? litNow === path : active || inStack;
     // Long-press quick menus only wire up for Posts and Messages, and only
     // for a real signed-in account — guests never navigate has-status
     // filters or conversations. handleClick above already double-checks

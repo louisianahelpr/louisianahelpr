@@ -46,8 +46,9 @@ export function DoorPickupTips({ side }: { side: "buyer" | "seller" }) {
     <div className="rounded-xl border border-border p-3 text-xs text-muted-foreground">
       <p className="font-medium text-foreground">Pickup at the door</p>
       <ul className="mt-1 list-disc space-y-0.5 pl-4">
-        <li>Pick a daytime slot.</li>
-        <li>Bring someone with you{side === "seller" ? ", or have someone home" : ""}.</li>
+        {/* Night audit sold states #3: the buyer picks the slot; the seller is never told to. */}
+        {side === "buyer" && <li>Pick a daytime slot.</li>}
+        <li>{side === "seller" ? "Have someone home with you." : "Bring someone with you."}</li>
         <li>Meet at the door; nobody needs to go inside.</li>
         {side === "buyer" && <li>Too big to carry? Add a Helpr below.</li>}
       </ul>

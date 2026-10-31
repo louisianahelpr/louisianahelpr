@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { scanMessage, type DetectedViolation } from "@/lib/messageScanner";
 import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import { MessageSquare, TriangleAlert } from "lucide-react";
-import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
 import { offerResponseDeadline, jobOfferCutoff, JOB_STARTS_TOO_SOON_COPY, OFFER_MAX_WINDOW_HOURS } from "@/lib/offerDeadline";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -162,10 +161,8 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
       // the generic backstop so a failure never dies silently with the
       // dialog stuck open and no explanation.
       const msg = userFacingError(err, "Couldn't send the offer — please try again.");
+      // Inline only (role="alert" announces it): a toast said the same words again on top (audit 2026-10-30).
       setErrorMessage(msg);
-      // Toast kept as a secondary signal (e.g. screen-reader/haptic parity
-      // with other flows); the inline block above is the primary surface.
-      toast.error(msg);
     } finally {
       sendingRef.current = false;
       setSubmitting(false);

@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1050,
-    "files": 290,
-    "rendering": 893,
+    "calls": 1049,
+    "files": 289,
+    "rendering": 892,
     "suppressedByPolicy": 157,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 86,
-      "toast.error": 734,
+      "toast.error": 733,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 456,
       "template": 97,
-      "dynamic": 547,
+      "dynamic": 546,
       "jsx": 0
     }
   },
@@ -1288,16 +1288,6 @@
       "title": {
         "form": "literal",
         "text": "Couldn't copy — long-press the number to select it."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/ResponseDeadlineDialog.tsx",
-      "line": 168,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "msg"
       },
       "renders": true
     },

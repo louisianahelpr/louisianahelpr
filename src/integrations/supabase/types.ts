@@ -5102,6 +5102,7 @@ export type Database = {
           handed_over_to: string | null
           helpr_id: string | null
           id: string
+          in_hand_nudged_at: string | null
           is_seed: boolean
           latest_pickup_at: string
           open_until: string
@@ -5146,6 +5147,7 @@ export type Database = {
           handed_over_to?: string | null
           helpr_id?: string | null
           id?: string
+          in_hand_nudged_at?: string | null
           is_seed?: boolean
           latest_pickup_at: string
           open_until: string
@@ -5190,6 +5192,7 @@ export type Database = {
           handed_over_to?: string | null
           helpr_id?: string | null
           id?: string
+          in_hand_nudged_at?: string | null
           is_seed?: boolean
           latest_pickup_at?: string
           open_until?: string
@@ -14338,6 +14341,10 @@ export type Database = {
       declutter_add_handover: {
         Args: { p_item_id: string; p_way: string }
         Returns: string[]
+      }
+      declutter_delivery_still_in_hand: {
+        Args: { p_order_id: string; p_task: string }
+        Returns: Json
       }
       declutter_handover_refused: {
         Args: { p_handover: string; p_lines: string[] }

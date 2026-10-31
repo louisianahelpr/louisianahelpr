@@ -16,6 +16,7 @@ import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { fetchMyBookings, fetchMyHandover, type MyBooking, type MyHandover } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
+import { stillInHandLine } from "@/lib/declutter/stillInHand";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { endedOnPrefix } from "./DeclutterEndedSales";
@@ -86,7 +87,7 @@ export function buyerNextAction(f: OrderFacts): string | null {
 }
 
 /** Where it stands, for the buyer, in one sentence. `when` is the booked time in words, when there is one. */
-function buyerStanding(f: OrderFacts, when: string | null, helprName: string | null = null): string {
+function buyerStanding(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null): string {
   if (f.cancelled) return "Cancelled and refunded to your card.";
   if (f.problem) return PROBLEM_ON_HOLD;
   if (f.done) return "Handed over. It's yours.";
@@ -108,7 +109,7 @@ function buyerStanding(f: OrderFacts, when: string | null, helprName: string | n
       // never "on the way" days before it.
       return at === 0 ? "Finding a Helpr to bring it."
         : at === 1 ? `${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.`
-          : at === 2 ? "Picked up. On its way to you." : "Delivered. Tap I got it once you have it.";
+          : at === 2 ? stillInHandLine(helprName ?? "Your Helpr", taskPickedUpAt) ?? "Picked up. On its way to you." : "Delivered. Tap I got it once you have it.";
   }
 }
 
@@ -224,7 +225,7 @@ export function useBuyingTracker(): BuyingTracker {
       facts,
       bucket,
       action: buyerNextAction(facts),
-      standing: buyerStanding(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null),
+      standing: buyerStanding(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null),
       // #6: a free item never reads like a paid order ("You paid $0").
       money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
     });

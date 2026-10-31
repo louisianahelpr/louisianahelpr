@@ -377,7 +377,7 @@ describe("Selling tab: Taken down, with Relist", () => {
     for (const s of statuses) expect(await screen.findByText(`Item ${s}`)).toBeInTheDocument();
   });
 
-  // NIGHT-SELL-Sellinglist-2 (audit 10-31): "Listed · 7" opened 9 rows. The chip counted only on-sale statuses while
+  // NIGHT-SELL-Sellinglist-2 (night audit 2026-10-30): "Listed · 7" opened 9 rows. The chip counted only on-sale statuses while
   // Your listings shows every row but the history ones (sold, completed and rejected too). The chip now counts the
   // rows it opens, from the one shared set.
   // @mutate src/components/declutter/DeclutterMineViews.tsx | .filter((i) => !PAST_LISTING.has(i.status)).length | .filter((i) => ["draft", "pending_review", "live", "paused", "reserved"].includes(i.status)).length

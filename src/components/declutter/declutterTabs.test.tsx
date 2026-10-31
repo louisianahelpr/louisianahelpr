@@ -79,7 +79,7 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
 });
 vi.mock("@/hooks/useFeature", () => ({
   // Every switch on except seller delivery, which this suite does not cover (its own tests do:
-  // declutterTradeViews.test.tsx, src/test/declutterSellerDelivery.test.ts); with it on, porch reads "Porch or safe place".
+  // declutterTradeViews.test.tsx, src/test/declutterSellerDelivery.test.ts); porch reads "Porch pickup" either way (BUY-14).
   // 'declutter_wanted' follows state.wantedOn (the Wanted tab and Browse's "Can't find it?" link, owner 2026-10-28).
   useFeature: (key: string) => key !== "declutter_seller_delivery" && (key !== "declutter_wanted" || state.wantedOn),
   useFeatureStatus: (key: string) => ({ on: key !== "declutter_wanted" || state.wantedOn, settled: true }),

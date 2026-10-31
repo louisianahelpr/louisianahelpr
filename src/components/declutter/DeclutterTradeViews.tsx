@@ -43,7 +43,7 @@ import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
-import { HANDOVER_TITLE, HANDOVER_WORDS, PORCH_OR_SAFE_PLACE } from "./handoverCopy";
+import { HANDOVER_TITLE, HANDOVER_WORDS } from "./handoverCopy";
 import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
@@ -199,7 +199,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           >
             <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setPicked(h)} style={{ accentColor: "hsl(var(--primary))" }} />
             <span className="min-w-0 flex-1">
-              <span className="block text-ds-15 font-semibold text-foreground">{h === "porch" && sellerDeliveryOn ? PORCH_OR_SAFE_PLACE : HANDOVER_TITLE[h]}</span>
+              <span className="block text-ds-15 font-semibold text-foreground">{HANDOVER_TITLE[h]}</span>
               <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>
             </span>
             <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--accent-ink))]">

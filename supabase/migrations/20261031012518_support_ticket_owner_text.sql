@@ -18,14 +18,18 @@
 -- real admins share (measured 10-30: 2 real admins, 1 number). No number, or more than one, sends nothing and is logged.
 -- Proof: src/test/pglite/supportOwnerText.pglite.mjs.
 
-CREATE TABLE IF NOT EXISTS public.support_text_throttle (
+-- The throttle lives outside public on purpose. Every public table carries the unconfirmed-email gate, and the owner's
+-- text must not depend on the sender's email being confirmed (lead 10-30). Only this trigger's definer reads or writes
+-- it: no client role has the schema or the table, and PostgREST does not expose the schema.
+CREATE SCHEMA IF NOT EXISTS private;
+REVOKE ALL ON SCHEMA private FROM PUBLIC, anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS private.support_text_throttle (
   conversation_key text PRIMARY KEY,
   last_sent_at timestamptz NOT NULL
 );
-ALTER TABLE public.support_text_throttle ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.support_text_throttle FROM PUBLIC, anon, authenticated;
-GRANT ALL ON public.support_text_throttle TO service_role;
-SELECT public.attach_unconfirmed_email_gate();
+ALTER TABLE private.support_text_throttle ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE private.support_text_throttle FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.notify_owner_support_text()
  RETURNS trigger
@@ -69,9 +73,9 @@ BEGIN
     -- Only a hash of a guest's address is kept.
     v_key := CASE WHEN v_sender IS NOT NULL THEN 'member:' || v_sender::text ELSE 'guest:' || md5(COALESCE(v_guest, 'unknown')) END;
 
-    DELETE FROM public.support_text_throttle WHERE last_sent_at < now() - interval '1 day';
+    DELETE FROM private.support_text_throttle WHERE last_sent_at < now() - interval '1 day';
 
-    IF (SELECT count(*) FROM public.support_text_throttle WHERE last_sent_at > now() - interval '1 hour') >= 12 THEN
+    IF (SELECT count(*) FROM private.support_text_throttle WHERE last_sent_at > now() - interval '1 hour') >= 12 THEN
       IF NOT EXISTS (SELECT 1 FROM public.error_logs e
                       WHERE e.tags->>'source' = 'notify_owner_support_text' AND e.message = 'support text cap reached'
                         AND coalesce(e.tags->>'origin', '') <> 'client'
@@ -82,7 +86,7 @@ BEGIN
       RETURN NULL;
     END IF;
 
-    INSERT INTO public.support_text_throttle AS t (conversation_key, last_sent_at)
+    INSERT INTO private.support_text_throttle AS t (conversation_key, last_sent_at)
     VALUES (v_key, now())
     ON CONFLICT (conversation_key) DO UPDATE SET last_sent_at = now()
       WHERE t.last_sent_at <= now() - interval '15 minutes'

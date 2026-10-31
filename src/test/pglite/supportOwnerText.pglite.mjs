@@ -13,7 +13,9 @@
  *   - an admin's own message in a Team thread and an ordinary message ask for none;
  *   - a failure is logged and the ticket and the message still go in;
  *   - the claim finds the admins' one number, never a test admin's; the secret wins; two numbers or none send nothing and log;
- *   - anon and authenticated cannot execute either function or read the throttle.
+ *   - anon and authenticated cannot execute either function or read the throttle;
+ *   - with the real Q807 email gate on: the claim is not gated, an unconfirmed member's /support ticket texts, and the gate
+ *     still refuses that member's direct writes.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -88,9 +90,9 @@ const say = (sender, thread) =>
 const posts = async () => Number((await q(`SELECT count(*) n FROM public.posted`))[0].n);
 const reset = async () => {
   await db.exec(`DELETE FROM public.posted; DELETE FROM public.error_logs; DELETE FROM public.sms_messages;`);
-  if (!SKIP) await db.exec(`DELETE FROM public.support_text_throttle;`);
+  if (!SKIP) await db.exec(`DELETE FROM private.support_text_throttle;`);
 };
-const age = (mins) => (SKIP ? null : db.exec(`UPDATE public.support_text_throttle SET last_sent_at = now() - interval '${mins} minutes'`));
+const age = (mins) => (SKIP ? null : db.exec(`UPDATE private.support_text_throttle SET last_sent_at = now() - interval '${mins} minutes'`));
 
 await file(MEMBER);
 check("a member's ticket asks for one text", (await posts()) === 1, `${await posts()}`);
@@ -130,7 +132,7 @@ check("the same guest's second message in 15 minutes doesn't", (await posts()) =
 await guest("other@bayoumail.net");
 check("another guest does", (await posts()) === 2, `${await posts()}`);
 if (!SKIP) {
-  const keys = JSON.stringify(await q(`SELECT conversation_key FROM public.support_text_throttle`));
+  const keys = JSON.stringify(await q(`SELECT conversation_key FROM private.support_text_throttle`));
   check("a guest's address is never kept", !/bayoumail|real\.person/i.test(keys), keys);
 }
 
@@ -141,7 +143,7 @@ await say(TEST, TEST);
 await say(ADMIN1, ADMIN1);
 check("a seed account, a test account, a fixture guest and an admin text nobody", (await posts()) === 0, `${await posts()}`);
 check("their tickets are still filed", (await q(`SELECT 1 FROM public.reports WHERE id = ANY($1)`, [filed])).length === filed.length);
-if (!SKIP) check("they use up no throttle", (await q(`SELECT 1 FROM public.support_text_throttle`)).length === 0);
+if (!SKIP) check("they use up no throttle", (await q(`SELECT 1 FROM private.support_text_throttle`)).length === 0);
 
 await reset();
 await say(ADMIN1, MEMBER);
@@ -191,8 +193,54 @@ if (!SKIP) {
     has_function_privilege('anon', 'public.sms_claim_owner_support(boolean, text)', 'EXECUTE') c,
     has_function_privilege('authenticated', 'public.sms_claim_owner_support(boolean, text)', 'EXECUTE') d,
     has_function_privilege('service_role', 'public.sms_claim_owner_support(boolean, text)', 'EXECUTE') e,
-    has_table_privilege('authenticated', 'public.support_text_throttle', 'SELECT') f`))[0];
+    has_table_privilege('authenticated', 'private.support_text_throttle', 'SELECT') f`))[0];
   check("only the service role can claim; no member can run either or read the throttle", !acl.a && !acl.b && !acl.c && !acl.d && acl.e && !acl.f, JSON.stringify(acl));
+}
+
+if (!SKIP) {
+  // The real gate, on every public table. The stand-in sms_post_to_edge writes public.posted; the real one writes no gated
+  // table (net.http_post, and error_logs, which Q807 exempts), so the stand-in's table comes off the gate.
+  const q807 = readFileSync(fileURLToPath(new URL("../../../supabase/migrations/20260927234313_refuse_unconfirmed_email_writes.sql", import.meta.url)), "utf8");
+  await db.exec(`
+    CREATE SCHEMA IF NOT EXISTS auth;
+    CREATE SCHEMA IF NOT EXISTS storage;
+    CREATE TABLE auth.users (id uuid PRIMARY KEY, email_confirmed_at timestamptz);
+    CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('test.uid', true), '')::uuid $$;
+    CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('test.role', true), '') $$;
+    CREATE TABLE storage.objects (id serial PRIMARY KEY);
+    DROP FUNCTION public.attach_unconfirmed_email_gate();
+    INSERT INTO auth.users VALUES ('${MEMBER}', NULL);
+  `);
+  await db.exec(q807);
+  await db.exec(`DROP TRIGGER zz_refuse_unconfirmed_email_write ON public.posted;`);
+  const session = (uid, role) => db.exec(`SELECT set_config('test.uid', '${uid}', false), set_config('test.role', '${role}', false)`);
+  const unconfirmed = () => session(MEMBER, "authenticated");
+  const server = () => session("", "service_role");
+
+  await server();
+  await reset();
+  check("the throttle is not a public table", (await q(`SELECT to_regclass('public.support_text_throttle') t`))[0].t === null);
+  const roles = (await q(`SELECT has_schema_privilege('authenticated', 'private', 'USAGE') a, has_schema_privilege('anon', 'private', 'USAGE') b`))[0];
+  check("no client role can reach its schema", !roles.a && !roles.b, JSON.stringify(roles));
+
+  await file(MEMBER);
+  check("an unconfirmed member's /support ticket (contact-support, service role) asks for a text", (await posts()) === 1, `${await posts()}`);
+
+  await reset();
+  await db.exec(`DROP TRIGGER zz_refuse_unconfirmed_email_write ON public.reports;`);
+  await unconfirmed();
+  await file(MEMBER);
+  await server();
+  check("the claim itself goes through in an unconfirmed session", (await posts()) === 1 && (await q(`SELECT 1 FROM private.support_text_throttle`)).length === 1, `${await posts()}`);
+  check("and logs no failure", (await q(`SELECT 1 FROM public.error_logs`)).length === 0, JSON.stringify(await q(`SELECT context FROM public.error_logs`)));
+  await db.exec(`SELECT public.attach_unconfirmed_email_gate();`);
+
+  await reset();
+  await unconfirmed();
+  const refused = await file(MEMBER).then(() => null, (e) => e.message);
+  const refusedChat = await say(MEMBER, MEMBER).then(() => null, (e) => e.message);
+  await server();
+  check("the gate still refuses their direct ticket and Team thread write", refused === "email_unconfirmed" && refusedChat === "email_unconfirmed", `${refused} / ${refusedChat}`);
 }
 
 console.log(`\n${state.failures === 0 ? "ALL PASS" : `${state.failures} FAILED`}${SKIP ? " (NEW_MIGRATION=skip)" : ""}`);

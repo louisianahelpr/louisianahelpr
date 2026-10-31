@@ -33,7 +33,7 @@ const url = (p) => new URL(`../../../supabase/migrations/${p}`, import.meta.url)
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? url("20261031220849_id_check_asked_when_hired_restated.sql"), "utf8");
 
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
-const [POSTER, PLAIN, VERIFIED, TESTER, RESET3, RESET3_RETRIED, RESET1, OTHER3] = [1, 2, 3, 4, 5, 6, 7, 8].map(id);
+const [POSTER, PLAIN, VERIFIED, TESTER, RESET3, RESET3_RETRIED, RESET1, OTHER3, RESET_TA] = [1, 2, 3, 4, 5, 6, 7, 8, 99].map(id);
 const [JOB_LATE, JOB_VERIFIED, JOB_OTW, JOB_FAR, JOB_NOTICE, JOB_VFAR] = [11, 12, 13, 14, 15, 17].map(id);
 
 const SCHEMA = `
@@ -126,12 +126,13 @@ await db.exec(`
 INSERT INTO public.profiles (user_id, idv_status, idv_attempt_count, idv_attempted_at, stripe_account_id, stripe_payouts_enabled) VALUES
  ('${POSTER}','verified',1,now(),null,false), ('${PLAIN}','not_started',0,null,'acct',true), ('${VERIFIED}','verified',1,now(),'acct',true),
  ('${RESET3}','not_started',3,'2026-10-23',null,false), ('${RESET3_RETRIED}','not_started',3,'2026-10-29',null,false),
- ('${RESET1}','not_started',1,'2026-10-22',null,false), ('${OTHER3}','not_started',3,'2026-10-23',null,false);
+ ('${RESET1}','not_started',1,'2026-10-22',null,false), ('${OTHER3}','not_started',3,'2026-10-23',null,false),
+ ('${RESET_TA}','not_started',3,'2026-10-23',null,false);
 INSERT INTO public.profiles (user_id, is_seed, idv_status) VALUES ('${TESTER}', true, 'not_started');
-INSERT INTO public.test_accounts VALUES ('${TESTER}');
+INSERT INTO public.test_accounts VALUES ('${TESTER}'), ('${RESET_TA}');
 INSERT INTO public.helper_verifications VALUES
  ('${RESET3}','idv_status','verified','not_started',${old}), ('${RESET3_RETRIED}','idv_status','verified','not_started',${old}),
- ('${RESET1}','idv_status','verified','not_started',${old});
+ ('${RESET1}','idv_status','verified','not_started',${old}), ('${RESET_TA}','idv_status','verified','not_started',${old});
 `);
 const job = (jid, helper, hours, extra = "NULL") => `
 INSERT INTO public.jobs (id, title, budget, date_needed, start_time, customer_id, helper_id, status, helper_confirmed_at, helper_on_the_way_at, payment_status, helper_fee_percent, helper_fee_flat_cents)
@@ -235,6 +236,7 @@ ok("the reset member at 3 attempts starts over", (await count(RESET3)) === 0);
 ok("a reset member who tried since is left", (await count(RESET3_RETRIED)) === 3);
 ok("a reset member at 1 attempt is left", (await count(RESET1)) === 1);
 ok("a member at 3 who was never reset is left", (await count(OTHER3)) === 3);
+ok("an enrolled test account (not marked is_seed) reset at 3 is left", (await count(RESET_TA)) === 3);
 
 // Declutter wait
 if (!skip) {

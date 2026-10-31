@@ -275,20 +275,23 @@ const AdminCredentialQueue = () => {
                     
                   </p>
                   <p className="text-ds-11 text-muted-foreground truncate">{r.email}</p>
+                  {/* The claimed business name is part of what's being reviewed:
+                      approving publishes it next to the badge, so it has to
+                      match the name printed on the document below. Editing it
+                      later re-opens this row (trg_auto_pending_credentials).
+                      AUD31-48: on its own line under the email, so at 375 it no
+                      longer squeezes the person's name and email to "Dana Ri…". */}
+                  {r.business_name && (
+                    <p
+                      data-credential-business
+                      className="text-ds-11 font-semibold [overflow-wrap:anywhere]"
+                      style={{ color: "hsl(var(--burnt-sienna))" }}
+                      title={`Claimed business name: ${r.business_name}`}
+                    >
+                      {r.business_name}
+                    </p>
+                  )}
                 </div>
-                {/* The claimed business name is part of what's being reviewed:
-                    approving publishes it next to the badge, so it has to
-                    match the name printed on the document below. Editing it
-                    later re-opens this row (trg_auto_pending_credentials). */}
-                {r.business_name && (
-                  <p
-                    className="text-ds-11 font-semibold shrink-0 max-w-[10rem] truncate"
-                    style={{ color: "hsl(var(--burnt-sienna))" }}
-                    title={`Claimed business name: ${r.business_name}`}
-                  >
-                    {r.business_name}
-                  </p>
-                )}
                 <p className="text-ds-11 text-muted-foreground shrink-0">
                   {formatShortDate(r.submitted_at)}
                 </p>

@@ -1,12 +1,15 @@
-// seed-policy: pages for seed/E2E jobs too, on purpose. Every alert here is money
-// that moved (or failed to move) in Stripe while the DB says otherwise, or a Stripe
-// event that could not be settled: a platform failure whoever owns the job. The
-// nightly money journeys on seed jobs are how this path is proven, so their failures
-// are real signal (2026-09-22: "transfer failed" on seed jobs = the empty test
-// balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
+// Seed alerts: every alert here is money that moved (or failed to move) in Stripe
+// while the DB says otherwise, so a real job's alert pages. A seed job's alert
+// carries `seed` (is_seed OR is_test_subject of either party, as 20261030150104
+// does for admin alerts; a gift's donor in _giftCardRefund.ts): postSlackOpsAlert records it for the daily digest and it
+// never pages or opens a ledger item, because test data never reaches the owner
+// (owner 10-30, replacing the "pages for seed jobs too" policy that stood here).
+// A nightly money journey's failures stay readable in that digest. A failed read
+// of the flag counts as real: a page is never hidden because it could not be read.
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { anyIsTestSubject } from "./_testSubject.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
@@ -72,6 +75,7 @@ async function recordShopHandRefunds(
   // The whole refund history of the charge goes on the page, so the person deciding sees every refund at once.
   const history = refunds.filter((x) => !!x?.id).map((x) => `${x.id} $${formatExactDollars(Number(x.amount ?? 0) / 100)} ${x.status}`
     + ((x.metadata as Record<string, string> | null)?.kind === "shop_refund" ? " (app)" : " (by hand)")).join("; ");
+  let orderIsSeed: boolean | undefined;
   for (const r of hand) {
     const { data, error } = await supabase.rpc("shop_record_hand_refund", {
       p_payment_intent_id: paymentIntentId, p_stripe_refund_id: r.id, p_amount_cents: Number(r.amount ?? 0),
@@ -86,7 +90,9 @@ async function recordShopHandRefunds(
       why = SHOP_HAND_REFUND_PAGES[String(data)];
     }
     if (why) {
+      orderIsSeed ??= await shopOrderIsSeed(orderId, supabase, logStep);
       await postSlackOpsAlert({
+        seed: orderIsSeed,
         // Once per order (rule A of the v2 review): the order is held as a whole; one page carries its history.
         kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-hand-refund-${orderId ?? paymentIntentId}`,
         title: "Shops: a charge was refunded outside the app",
@@ -101,6 +107,22 @@ async function recordShopHandRefunds(
 function capturedCentsOf(charge: Pick<Stripe.Charge, "amount"> & { amount_captured?: number | null }): number {
   const captured = Number(charge.amount_captured ?? 0);
   return captured > 0 ? captured : charge.amount;
+}
+
+/** Whether a Shops order is test data (is_seed, or a test buyer or seller), read only when an alert is about to go. A failed read counts as real. */
+async function shopOrderIsSeed(
+  orderId: string | null,
+  supabase: WebhookContext["supabase"],
+  logStep: WebhookContext["logStep"],
+): Promise<boolean> {
+  if (!orderId) return false;
+  const { data, error } = await supabase.from("shop_orders").select("is_seed, buyer_id, seller_id").eq("id", orderId).maybeSingle();
+  if (error) {
+    logStep("WARNING: could not read the order's is_seed; its alert pages as real", { orderId, error: error.message });
+    return false;
+  }
+  const order = data as { is_seed?: boolean; buyer_id?: string | null; seller_id?: string | null } | null;
+  return order?.is_seed === true || await anyIsTestSubject(supabase, [order?.buyer_id, order?.seller_id], logStep);
 }
 
 export async function handleChargeRefunded(
@@ -224,6 +246,9 @@ export async function handleChargeRefunded(
   // Q1714: one sentence the refund notice adds for the newest refund (the gift
   // card a full refund gave back), set below where that is decided.
   let noticeExtra: string | null = null;
+  // The job this refund is about is seed data: read below where the job is, and
+  // every alert in this handler carries it (see the note at the top).
+  let subjectIsSeed = false;
 
   // Q1655 / Q1782 (2): a taxed recurring visit's Stripe Tax transaction is
   // reversed once per live refund, keyed on the refund id, by the share of the
@@ -250,7 +275,7 @@ export async function handleChargeRefunded(
   if (refundPiId && isFullRefund && !isOnboardingFeeCorrection) {
     const { data: refundedJob, error: jobLookupErr } = await supabase
       .from("jobs")
-      .select("id, customer_id, helper_id, title, payment_status")
+      .select("id, customer_id, helper_id, title, payment_status, is_seed")
       .eq("stripe_payment_intent_id", refundPiId)
       .maybeSingle();
 
@@ -263,6 +288,8 @@ export async function handleChargeRefunded(
     }
 
     if (refundedJob) {
+      subjectIsSeed = (refundedJob as { is_seed?: boolean | null }).is_seed === true
+        || await anyIsTestSubject(supabase, [refundedJob.customer_id, refundedJob.helper_id], logStep);
       // Q343: a COMPARE-AND-SET on the states a full refund may close. It was
       // matched on id alone, so it overwrote whatever the job said:
       //   - 'released': the Helpr was already paid. Writing 'refunded' hides
@@ -305,6 +332,7 @@ export async function handleChargeRefunded(
         if (!flipErr && ((flipped?.length ?? 0) > 0 || nowStatus === "refunded")) nowRefunded = true;
         if (!flipErr && (!flipped || flipped.length === 0) && nowStatus !== "refunded") {
           await postSlackOpsAlert({
+            seed: subjectIsSeed,
             kind: "money_at_risk",
             severity: "critical",
             title: "Full refund — job not marked refunded (payment state changed underneath)",
@@ -314,6 +342,7 @@ export async function handleChargeRefunded(
         }
       } else if (priorStatus !== "refunded") {
         await postSlackOpsAlert({
+          seed: subjectIsSeed,
           kind: "money_at_risk",
           severity: "critical",
           title: `Full refund on a job in '${priorStatus ?? "null"}' — payment_status left as is`,
@@ -343,6 +372,7 @@ export async function handleChargeRefunded(
             id: String(refundedJob.id),
             title: (refundedJob as { title?: string | null }).title ?? null,
             helper_id: (refundedJob as { helper_id?: string | null }).helper_id ?? null,
+            is_seed: subjectIsSeed,
           },
         );
         // Q454: the job is refunded in full, so the gift card that paid part of
@@ -372,6 +402,7 @@ export async function handleChargeRefunded(
           }
           if (livePayout.liveTransferId) {
             await postSlackOpsAlert({
+              seed: subjectIsSeed,
               kind: "money_at_risk",
               severity: "critical",
               title: "Full refund on a job whose payout already moved",
@@ -388,6 +419,7 @@ export async function handleChargeRefunded(
           }
           if (payout.transferId) {
             await postSlackOpsAlert({
+              seed: subjectIsSeed,
               kind: "money_at_risk",
               severity: "critical",
               title: "Full refund on a job with a payout transfer — gift card NOT returned",
@@ -399,6 +431,7 @@ export async function handleChargeRefunded(
             const giftBack = await restoreGiftForRefundedJob(supabase, String(refundedJob.id));
             if (!giftBack.ok) {
               await postSlackOpsAlert({
+                seed: subjectIsSeed,
                 kind: "money_at_risk",
                 severity: "critical",
                 title: "Full refund — the poster's gift card was NOT returned",
@@ -449,6 +482,7 @@ export async function handleChargeRefunded(
             );
           if (ledgerErr) {
             await postSlackOpsAlert({
+              seed: subjectIsSeed,
               kind: "money_at_risk",
               severity: "warning",
               title: "payment_refunds ledger write failed (charge.refunded)",
@@ -502,7 +536,7 @@ export async function handleChargeRefunded(
       let partialCustomerId: string | null = null;
       const { data: partialJob, error: partialJobErr } = await supabase
         .from("jobs")
-        .select("id, customer_id")
+        .select("id, customer_id, helper_id, is_seed")
         .eq("stripe_payment_intent_id", refundPiId)
         .maybeSingle();
       // A failed READ is not "no matching job": writing the ledger row with no
@@ -515,6 +549,8 @@ export async function handleChargeRefunded(
       if (partialJob) {
         partialJobId = partialJob.id;
         partialCustomerId = partialJob.customer_id;
+        subjectIsSeed = (partialJob as { is_seed?: boolean | null }).is_seed === true
+          || await anyIsTestSubject(supabase, [partialJob.customer_id, (partialJob as { helper_id?: string | null }).helper_id], logStep);
       }
 
       // Q1300: one row per ordinary live refund, not only the newest.
@@ -537,6 +573,7 @@ export async function handleChargeRefunded(
           );
         if (partialLedgerErr) {
           await postSlackOpsAlert({
+            seed: subjectIsSeed,
             kind: "money_at_risk",
             severity: "warning",
             title: "Partial refund ledger write failed (charge.refunded)",
@@ -638,6 +675,7 @@ export async function handleChargeRefunded(
       const problem = refundNoticeProblem(result);
       if (problem) {
         await postSlackOpsAlert({
+          seed: subjectIsSeed,
           kind: "custom",
           severity: "warning",
           title: "Refund made, but the card holder was not fully told",
@@ -687,7 +725,7 @@ async function closeDecidedDisputeOnExternalRefund(
   { supabase, logStep }: Pick<WebhookContext, "supabase" | "logStep">,
   charge: Stripe.Charge,
   listChargeRefunds: () => Promise<Stripe.Refund[]>,
-  job: { id: string; title: string | null; helper_id: string | null },
+  job: { id: string; title: string | null; helper_id: string | null; is_seed: boolean },
 ): Promise<string> {
   // Cheap, and first: most refunded jobs have no decided dispute, and they
   // must not pay for a Stripe round trip.
@@ -707,6 +745,8 @@ async function closeDecidedDisputeOnExternalRefund(
   const decidedId = (crew ?? decisions[0]).id;
 
   const noticeAdmins = async (title: string, message: string) => {
+    // A seed job's decision reaches no admin's bell (its alert goes to the digest).
+    if (job.is_seed) return;
     const { ids } = await loadAdminIds(supabase, "stripe-webhook.chargeRefunded.decidedDispute");
     for (const adminId of ids) {
       const { error: noticeErr } = await supabase.from("notifications").insert({
@@ -722,6 +762,7 @@ async function closeDecidedDisputeOnExternalRefund(
       `The payment for "${job.title ?? "a job"}" was refunded in full while its decided split (${split}) had not run, and the dispute could not be closed automatically: ${reason}.`,
     );
     await postSlackOpsAlert({
+      seed: job.is_seed,
       kind: "money_at_risk",
       severity: "critical",
       title: "Full refund on a decided dispute — settle it by hand",
@@ -778,6 +819,7 @@ async function closeDecidedDisputeOnExternalRefund(
   if (error?.code === "PGRST202") {
     // Not deployed yet: the old behaviour (left pending), said out loud.
     await postSlackOpsAlert({
+      seed: job.is_seed,
       kind: "money_at_risk",
       severity: "critical",
       title: "Full refund on a decided dispute — close not deployed yet",
@@ -788,6 +830,7 @@ async function closeDecidedDisputeOnExternalRefund(
   }
   if (error) {
     await postSlackOpsAlert({
+      seed: job.is_seed,
       kind: "money_at_risk",
       severity: "critical",
       title: "Full refund on a decided dispute — dispute NOT closed (DB error)",
@@ -831,6 +874,7 @@ async function closeDecidedDisputeOnExternalRefund(
         });
         if (helperNoteErr) {
           await postSlackOpsAlert({
+            seed: job.is_seed,
             kind: "money_at_risk",
             severity: "warning",
             title: "Full refund on a decided dispute — Helpr notice NOT sent",
@@ -842,6 +886,7 @@ async function closeDecidedDisputeOnExternalRefund(
       }
     }
     await postSlackOpsAlert({
+      seed: job.is_seed,
       kind: "money_at_risk",
       // A decided Helpr share the platform no longer holds is money a person
       // must decide on: critical then (review LOW-7), a warning otherwise.

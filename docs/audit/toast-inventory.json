@@ -18,9 +18,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 455,
-      "template": 97,
-      "dynamic": 545,
+      "literal": 453,
+      "template": 95,
+      "dynamic": 549,
       "jsx": 0
     }
   },
@@ -1293,7 +1293,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 98,
+      "line": 99,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1303,7 +1303,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 102,
+      "line": 103,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1313,7 +1313,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 127,
+      "line": 128,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1323,7 +1323,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 135,
+      "line": 136,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1333,7 +1333,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 155,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1416,8 +1416,25 @@
       "line": 337,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters."
+        "form": "dynamic",
+        "text": "t(\"chat.limit\", { count: MESSAGE_MAX_LENGTH.toLocaleString() })",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -7251,21 +7268,55 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 225,
+      "line": 226,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "The 15-minute edit window closed — that change wasn't saved."
+        "form": "dynamic",
+        "text": "t(\"chat.editClosed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 235,
+      "line": 236,
       "kind": "toast.error",
       "title": {
-        "form": "template",
-        "text": "Messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString()} characters."
+        "form": "dynamic",
+        "text": "t(\"chat.limit\", { count: MESSAGE_MAX_LENGTH.toLocaleString() })",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },
@@ -7291,11 +7342,28 @@
     },
     {
       "file": "src/components/messages/MessageActionSheet.tsx",
-      "line": 90,
+      "line": 92,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't copy that message."
+        "form": "dynamic",
+        "text": "t(\"chat.copyFailed\")",
+        "from": "src/lib/i18n/language.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "fill(dict[key] ?? englishWords[key] ?? key, vars)",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "s"
+              },
+              {
+                "form": "dynamic",
+                "text": "s.replace(/\\{(\\w+)\\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m))"
+              }
+            ]
+          }
+        ]
       },
       "renders": true
     },

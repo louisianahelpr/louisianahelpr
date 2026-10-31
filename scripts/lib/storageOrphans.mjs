@@ -12,7 +12,8 @@
  * A "world" is one read of the owning tables:
  *   { profileUserIds: Set, authUserIds: Set, jobIds: Set, attachmentRefs: string[] }
  * attachmentRefs are the raw `messages.attachment_url` values (a bare object
- * path or a full URL containing it).
+ * path or a full URL containing it). declutterItemIds (optional) is a read of
+ * declutter_items.id; without it no Declutter listing photo is an orphan.
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -89,6 +90,13 @@ export function orphanReason(bucket, name, world) {
       return isId(seg[2]) && !world.jobIds.has(seg[2]) ? "job gone" : null;
     }
     if (seg[1] === "reviews") return null;
+    // <userId>/declutter/<itemId>/<file> (src/lib/declutter/photos.ts listingPhotoPath). LEAD-DRAFT-PHOTO-SWEEP: a new
+    // listing's photos upload as they are added, before the listing exists; one never posted leaves them with no
+    // declutter_items row (a draft has one). Only with a read of declutter_items: without it, never an orphan.
+    if (seg[1] === "declutter") {
+      if (!isId(seg[2]) || seg.length < 4 || !(world.declutterItemIds instanceof Set)) return null;
+      return world.declutterItemIds.has(seg[2]) ? null : "listing gone";
+    }
     // <jobId>/... — but a first segment that is a LIVE USER is a user folder of
     // some shape we do not model (e.g. a test upload). Its owner exists: skip.
     if (userPresent(world, seg[0])) return null;

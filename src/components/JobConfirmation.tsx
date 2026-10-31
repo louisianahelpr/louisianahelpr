@@ -28,19 +28,11 @@ import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { helperDayOfConfirmation } from "@/components/job-card/helperDayOfConfirmation";
 import { takeFaceAction } from "@/components/job-card/faceActionRequest";
+import { posterConfirmWarning } from "./posterConfirmWarning";
 
 /** The Helpr's day-before step, on its button (owner, 2026-10-08). */
 const HELPER_CONFIRM_LABEL = "Confirm you'll be at the job";
 export { helperDayOfConfirmation };
-
-
-/** The confirm sheet's warning line, by side (LEAD-CONFIRM-WORDS). Guard: src/pages/jobs/jobPage/JobPage.test.tsx. */
-function posterConfirmWarning(isOwner: boolean, helperConfirmedAt: string | null): string {
-  if (!isOwner) return "No-shows or last-minute cancellations after confirming may result in a warning or account restrictions.";
-  return helperConfirmedAt
-    ? "If you cancel late, your Helpr is paid for their trouble."
-    : "There's no late-cancel fee until your Helpr confirms.";
-}
 
 export function JobConfirmation({
   jobId,

@@ -4,7 +4,9 @@
  * The shared task module's calls are stubbed; the backend proof is
  * src/test/pglite/declutterDelivery.pglite.mjs.
  *
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "picked_up" \|\| v.status === "delivered"); |   const canConfirm = v.status === "picked_up" \|\| v.status === "delivered";
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "delivered" \|\| (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null)); |   const canConfirm = v.status === "delivered" \|\| (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null);
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null)); | v.status === "picked_up");
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | Tapping I got it finishes the sale: the Helpr and the seller are paid. | Tapping I got it pays the Helpr.
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && toRoute} |           {null}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
  * @mutate src/lib/declutter/stillInHand.ts | Date.now() - new Date(pickedUpAt).getTime() < STILL_IN_HAND_MS | Date.now() > 0
@@ -172,7 +174,7 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => setAskGot(true)}> |         <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => gotIt.mutate()}>
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Do you have it?");
-    expect(sheet).toHaveTextContent("pays the Helpr");
+    expect(sheet).toHaveTextContent("finishes the sale: the Helpr and the seller are paid");
     expect(state.calls).toEqual([]);
     fireEvent.click(within(sheet).getByRole("button", { name: "I got it" }));
     await waitFor(() => expect(state.calls).toEqual([["got_it", "t1"]]));
@@ -462,11 +464,15 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, status: "picked_up", picked_up_at: ago(23), helpr_first_name: "Hank" };
     const { unmount } = show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText("Hank has your item and is on the way.")).toBeInTheDocument();
+    // BUY-39: no "I got it" while it is on the road (the server would finish the sale and pay the seller).
+    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     unmount();
     state.view = { ...VIEW, status: "picked_up", picked_up_at: ago(25), helpr_first_name: "Hank" };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText(/Hank picked it up .* and hasn't marked it delivered\. If you have it, tap "I got it"\. If not, report a problem\./)).toBeInTheDocument();
     expect(screen.queryByText(/is on the way/)).toBeNull();
+    // Held 24 hours without a drop-off: the buyer who has it may say so.
+    expect(screen.getByRole("button", { name: "I got it" })).toBeInTheDocument();
   });
 
   it("audit 1c #1: a pickup the seller never confirmed reads \"says it was picked up\" to the seller", async () => {

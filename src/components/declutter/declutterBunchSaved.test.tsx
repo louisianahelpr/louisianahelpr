@@ -28,6 +28,7 @@ const h = vi.hoisted(() => ({ refuseBlobs: false,
   user: "u1",
 }));
 
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("idb-keyval", () => ({
   get: async (k: string) => h.disk.get(k),
   set: async (k: string, v: unknown) => {
@@ -149,7 +150,6 @@ describe("which photos a saved bunch keeps", () => {
 describe("Sell a bunch survives leaving", () => {
   it("photos, the written words, prices and the address come back after the page goes away", async () => {
     const first = renderFlow();
-    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
     fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
     await pickTwoPhotos();
     const cards = document.querySelectorAll("[data-bunch-item]");
@@ -166,7 +166,6 @@ describe("Sell a bunch survives leaving", () => {
     expect((within(back[0] as HTMLElement).getByLabelText("Title") as HTMLInputElement).value).toBe("Oak chair");
     expect((within(back[0] as HTMLElement).getByLabelText("Price ($)") as HTMLInputElement).value).toBe("40");
     expect((screen.getByLabelText("Pickup address") as HTMLInputElement).value).toBe("1 Main St, Baton Rouge");
-    expect((screen.getByLabelText("Area buyers see") as HTMLInputElement).value).toBe("Mid-City");
     await waitFor(() => expect(back[0].querySelectorAll("[data-bunch-thumb]")).toHaveLength(1));
   });
 

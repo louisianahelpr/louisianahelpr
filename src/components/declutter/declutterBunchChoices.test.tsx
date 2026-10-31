@@ -31,6 +31,7 @@ const state = vi.hoisted(() => ({
 
 }));
 
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, explain: () => {}, gatedProps: () => ({}) }) }));
@@ -100,7 +101,6 @@ const DROPS = /Lower the price/;
 const KEEP = /Keep it up/;
 
 async function listIt() {
-  fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
   fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
   fireEvent.click(document.getElementById("bunch-tax")!);
   const list = await screen.findByRole("button", { name: "List 1 item" });

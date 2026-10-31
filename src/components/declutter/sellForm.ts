@@ -9,6 +9,7 @@ import type { DeliverySize } from "@/lib/declutter/api";
 import { dollarsToCents } from "@/lib/declutter/money";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { DEFAULT_DROP_PCT, DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
+import { parseUsAddress } from "../../../supabase/functions/_shared/addressMatch";
 
 /**
  * The ONE name of the price-drops switch, on the sell form and in Manage listing (audit DC-5: Manage said "Stop
@@ -94,6 +95,18 @@ export const EMPTY: FormState = {
 export const AREA_ADDRESS_RE =
   /(^|[^0-9a-z-])[0-9]+[a-z]?\s+([a-z.'-]+\s+){0,3}(street|st|avenue|ave|road|rd|drive|dr|lane|ln|blvd|boulevard|parkway|pkwy|hwy|highway|cir|circle|court|ct|way|place|pl|trail|trl)\b/i;
 
+/**
+ * The area buyers see, from a typed address (owner 10-30: "It should just use the city that's typed"): the part before
+ * the state and ZIP. Empty when there is none, or when that part is finer than a city: a street or a unit never shows.
+ */
+export function areaFromAddress(address: string): string {
+  const city = parseUsAddress(address).city?.trim() ?? "";
+  return /\d/.test(city) || AREA_ADDRESS_RE.test(city) ? "" : city;
+}
+
+/** An address with no city in it: said at Save, since there is no box to ask in. */
+export const NO_CITY_IN_ADDRESS = "We couldn't tell the city from that address. Pick it from the list, or type it as street, city, ZIP.";
+
 /** What is wrong with the form, in plain words, or null. Mirrors the server's checks. */
 export function formProblem(f: FormState): string | null {
   if (f.title.trim().length < 3) return "Give the item a name of at least 3 characters.";
@@ -105,9 +118,8 @@ export function formProblem(f: FormState): string | null {
     return "Set your lowest price: at least $1 and below your price. Or turn price drops off.";
   }
   if (!f.free && dropsApply && !(DROP_PCT_CHOICES as readonly number[]).includes(f.dropPct)) return "Pick how much the price drops each evening.";
-  if (f.areaLabel.trim().length < 2) return "Add your neighborhood or town.";
-  if (AREA_ADDRESS_RE.test(f.areaLabel)) return "Use your neighborhood or town for the area, not a street address.";
   if (f.pickupAddress.trim().length < 5) return "Add the pickup address. Buyers only see it after they pay.";
+  if (f.areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(f.areaLabel)) return NO_CITY_IN_ADDRESS;
   return null;
 }
 

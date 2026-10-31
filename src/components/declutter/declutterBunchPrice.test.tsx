@@ -20,6 +20,7 @@ const h = vi.hoisted(() => ({
   geocode: vi.fn(),
 }));
 
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("idb-keyval", () => ({ get: async () => undefined, set: async () => {}, del: async () => {}, delMany: async () => {}, keys: async () => [], createStore: () => ({}) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: { onboarding_fee_paid: true }, isAdmin: false, isLoading: false }) }));

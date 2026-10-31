@@ -39,7 +39,8 @@ import {
 } from "@/lib/declutter/bunch";
 import { louisianaToday, moveDateProblem } from "@/lib/declutter/moves";
 import { DeclutterNotice } from "./declutterUi";
-import { AREA_ADDRESS_RE } from "./sellForm";
+import { SellerAddressField } from "./SellerAddressField";
+import { AREA_ADDRESS_RE, NO_CITY_IN_ADDRESS } from "./sellForm";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
 import { BunchPileCard } from "./DeclutterBunchPile";
@@ -163,10 +164,9 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
   }
 
   const placeProblem =
-    areaLabel.trim().length < 2 ? "Add your neighborhood or town."
-      : AREA_ADDRESS_RE.test(areaLabel) ? "Use your neighborhood or town for the area, not a street address."
-        : pickupAddress.trim().length < 5 ? "Add the pickup address. Buyers only see it after they pay."
-          : null;
+    pickupAddress.trim().length < 5 ? "Add the pickup address. Buyers only see it after they pay."
+      : areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(areaLabel) ? NO_CITY_IN_ADDRESS
+        : null;
   // The setup gate (SellerSetup) has them save it first; the boxes are only for a saved address that stopped reading.
   const whereFolded = !!savedSetup.pickup && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address;
   const firstStep = whereFolded ? 1 : 2;
@@ -383,7 +383,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     if (p) {
       setProblem(p);
       // Beside the thing it's about, so the seller isn't left hunting up the page.
-      const at = p === placeProblem ? (areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(areaLabel) ? "bunch-area" : "bunch-address") : !attested ? "bunch-tax" : moveDate && p === moveDateProblem(moveDate, today) ? "bunch-move-date" : null;
+      const at = p === placeProblem ? "bunch-address" : !attested ? "bunch-tax" : moveDate && p === moveDateProblem(moveDate, today) ? "bunch-move-date" : null;
       if (at) document.getElementById(at)?.focus();
       return;
     }
@@ -476,11 +476,9 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {whereFolded ? null : (
       <BunchSection id="bunch-where" title="1. Where buyers pick up">
-        <label className="block text-sm font-medium" htmlFor="bunch-area">Area buyers see</label>
-        <input id="bunch-area" className={input} maxLength={80} value={areaLabel} onChange={(e) => setAreaLabel(e.target.value)} placeholder="Mid-City, Baton Rouge" />
         <label className="block text-sm font-medium" htmlFor="bunch-address">Pickup address</label>
-        <input id="bunch-address" className={input} maxLength={300} value={pickupAddress} autoComplete="street-address" placeholder="Street, city, ZIP"
-          onChange={(e) => setPickupAddress(e.target.value)} onBlur={() => {
+        <SellerAddressField id="bunch-address" ariaLabel="Pickup address" className={input} value={pickupAddress} place={place}
+          onChange={(a, city) => { setPickupAddress(a); setAreaLabel(city); }} onBlurred={() => {
             if (pickupAddress.trim().length < 5) return;
             // Early, for the note under the address and the price hints. A failure is said at "List": nothing was asked for yet.
             place.locate(pickupAddress).catch((e: unknown) => console.warn("[bunch] address check on blur:", e instanceof Error ? e.message : "unknown"));

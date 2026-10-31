@@ -40,7 +40,7 @@ const BASELINE: Record<string, number> = {
   // Judged 2026-09-26 (Q277): all five sit on the lightbox's own scrim,
   // hsla(38, 18%, 12%, 0.86 since DA-2 2026-10-30), which is dark in BOTH themes, so a white wash is
   // right in both.
-  "src/components/dashboard/PhotoLightbox.tsx": 5,
+  "src/components/dashboard/PhotoLightbox.tsx": 3,
 };
 
 describe("literal-white inline surfaces are ratcheted (Q179)", () => {

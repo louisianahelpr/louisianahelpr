@@ -401,15 +401,17 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
 
       {mode === "single" && (
         <>
-          {/* Prev arrow */}
+          {/* Prev arrow. NIGHT-BUYINGpresse-1: z-10 because it comes BEFORE the image, whose transform paints it
+              over an earlier positioned sibling (a phone-wide photo covered the arrow: presses hit the IMG). Both
+              arrows sit on a dark backing so they show on a light photo. */}
           {lightboxIndex > 0 && zoom <= 1 && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => Math.max((i ?? 0) - 1, 0)); }}
               aria-label="Previous photo"
-              className="absolute left-3 sm:left-6 w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+              className="absolute z-10 left-3 sm:left-6 w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
               style={{
-                backgroundColor: "rgba(255, 255, 255, 0.14)",
+                backgroundColor: "rgba(0, 0, 0, 0.45)",
                 backdropFilter: "blur(20px) saturate(150%)",
                 WebkitBackdropFilter: "blur(20px) saturate(150%)",
                 border: "0.5px solid rgba(255, 255, 255, 0.22)",
@@ -451,9 +453,9 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
               type="button"
               onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => Math.min((i ?? 0) + 1, photos.length - 1)); }}
               aria-label="Next photo"
-              className="absolute right-3 sm:right-6 w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+              className="absolute z-10 right-3 sm:right-6 w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
               style={{
-                backgroundColor: "rgba(255, 255, 255, 0.14)",
+                backgroundColor: "rgba(0, 0, 0, 0.45)",
                 backdropFilter: "blur(20px) saturate(150%)",
                 WebkitBackdropFilter: "blur(20px) saturate(150%)",
                 border: "0.5px solid rgba(255, 255, 255, 0.22)",

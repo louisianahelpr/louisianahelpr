@@ -54,6 +54,7 @@ export function JobConfirmation({
   otherFirstName = null,
   rescheduled = false,
   jobTitle = null,
+  openNow = false,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -113,6 +114,9 @@ export function JobConfirmation({
   rescheduled?: boolean;
   /** The job's name, shown first in the confirm sheet so the member knows WHICH job they confirm (owner 2026-10-31, LEAD-CONFIRM-WORDS / LEAD-JOBPAGE-LAYOUT). */
   jobTitle?: string | null;
+  /** Open the confirm sheet as soon as it can (the job page's "Confirm it's still on", LEAD-JOBPAGE-LAYOUT): the
+   *  caller remounts it per tap. Same owed-and-open rule as the card's face request. */
+  openNow?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -128,8 +132,8 @@ export function JobConfirmation({
   // this card's own button opens, only while the confirm is open and still owed by this viewer.
   useEffect(() => {
     const owed = !(isOwner ? posterConfirmedAt : helperDayofConfirmedAt) && Date.now() >= confirmOpensMs(dateNeeded);
-    if (owed && takeFaceAction(jobId, "confirm")) setShowConfirmDialog(true);
-  }, [jobId, isOwner, posterConfirmedAt, helperDayofConfirmedAt, dateNeeded]);
+    if (owed && (openNow || takeFaceAction(jobId, "confirm"))) setShowConfirmDialog(true);
+  }, [jobId, isOwner, posterConfirmedAt, helperDayofConfirmedAt, dateNeeded, openNow]);
 
   const jobDate = jobDayStart(dateNeeded);
   const now = new Date();

@@ -19,7 +19,7 @@ import { hasIdBadge } from "@/lib/awardGate";
 import { report } from "@/lib/errorLogger";
 
 /** Why the sheet opened: picks the first sentence, never the rule. */
-export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "deliver" | "general";
+export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "deliver" | "claim" | "general";
 
 interface SheetState {
   open: boolean;
@@ -142,7 +142,7 @@ export async function readIdentityReviewSince(userId: string, fallback: string |
  * The server's refusal, recognised by its raised code (migration
  * 20261021081258), so a caller can open the sheet instead of a dead-end toast.
  */
-export function identityRefusal(err: unknown): "post" | "start" | "buy" | "list" | "deliver" | null {
+export function identityRefusal(err: unknown): "post" | "start" | "buy" | "list" | "deliver" | "claim" | null {
   const raw = typeof err === "string" ? err : (err as { message?: unknown } | null)?.message;
   const m = typeof raw === "string" ? raw : "";
   if (/(^|[^a-z_])identity_required_to_post($|[^a-z_])/.test(m)) return "post";
@@ -151,6 +151,7 @@ export function identityRefusal(err: unknown): "post" | "start" | "buy" | "list"
   if (/(^|[^a-z_])identity_required_to_buy($|[^a-z_])/.test(m)) return "buy";
   if (/(^|[^a-z_])identity_required_to_list($|[^a-z_])/.test(m)) return "list";
   if (/(^|[^a-z_])identity_required_to_deliver($|[^a-z_])/.test(m)) return "deliver";
+  if (/(^|[^a-z_])identity_required_to_claim($|[^a-z_])/.test(m)) return "claim";
   return null;
 }
 

@@ -31,6 +31,7 @@ const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = { ...SHARED_CLIENT_C
 
 const DIR = join(process.cwd(), "supabase/migrations");
 const DECLUTTER_FILES = [
+  "20261031003100_free_claim_fee_then_id.sql",
   "20261014193955_declutter_foundation.sql",
   "20261014200728_declutter_slice2_followups.sql",
   "20261014210518_declutter_slice3_offers_checkout.sql",

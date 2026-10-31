@@ -22,6 +22,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { wayAllowed } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { DeclutterNotice } from "./declutterUi";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
 
@@ -43,13 +45,14 @@ function freeWaysOffered(porchOk: boolean, ways: Handover[] | null): FreeHandove
  * DA-5 (Declutter audit 2026-10-30): the ask line named "their home or from their porch" whatever the giver ticked.
  * It now names only the ways this item offers (undefined = still loading: no way named yet).
  */
-function freeAskLine(offered: FreeHandover[] | undefined): string {
+function freeAskLine(offered: FreeHandover[] | undefined, oneTimeCheckAhead = false): string {
   const how = offered === undefined ? "to choose a pickup"
     : offered.length === 2 ? "to choose a pickup at their home or from their porch"
     : offered[0] === "porch" ? "to choose a time to collect it from their porch"
     : offered[0] === "pickup_home" ? "to choose a time to pick it up at their home"
     : "to agree with them how you'll get it";
-  return `Free, nothing is charged. The giver picks who gets it; if it's you, you'll have 48 hours ${how}. You can ask for up to 3 free items at a time.`;
+  // "Nothing is charged" would be untrue for a member whose first claim carries the one-time ID check (owner 2026-10-30).
+  return `${oneTimeCheckAhead ? "The item is free." : "Free, nothing is charged."} The giver picks who gets it; if it's you, you'll have 48 hours ${how}. You can ask for up to 3 free items at a time.`;
 }
 
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
@@ -58,8 +61,10 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   // older behaviour (null: every free way), as there.
   const ticks = useQuery({ queryKey: ["declutter", "item-handovers", item.id], queryFn: () => fetchItemHandovers(item.id) });
   const offered = ticks.isLoading ? undefined : freeWaysOffered(item.porch_ok !== false, Array.isArray(ticks.data) ? (ticks.data as Handover[]) : null);
-  const { user } = useCurrentUser();
+  const { user, profile } = useCurrentUser();
   const { underAge } = useAgeGate();
+  const idCheckOn = useIdentityCheckOnStore();
+  const oneTimeCheckAhead = idCheckOn && profile?.onboarding_fee_paid === false;
   // Deep audit #3: a free item the member was picked for says so, with the way to choose a pickup.
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: item.status === "reserved" });
   const myHold = myHoldOn(cart.data, item.id);
@@ -76,7 +81,8 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       toast.success("Asked. The giver picks who gets it, and we'll tell you.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    // A first claim's refusal opens its own screen (FreeClaimFirstTime, the ID sheet), so no message as well.
+    onError: (err) => { if (!freeClaimGateRefusal(err)) toast.error(declutterErrorMessage(err)); },
   });
   const takeBack = useMutation({
     mutationFn: (id: string) => withdrawFreeRequest(id),
@@ -115,7 +121,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={ask.isPending || asks.isLoading} onClick={() => ask.mutate()}>
         Ask for it
       </Button>
-      <p className="text-xs text-muted-foreground">{freeAskLine(offered)}</p>
+      <p className="text-xs text-muted-foreground">{freeAskLine(offered, oneTimeCheckAhead)}</p>
     </section>
   );
 }
@@ -243,7 +249,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
       onDone();
     },
     onError: (err) => {
-      toast.error(declutterErrorMessage(err));
+      if (!freeClaimGateRefusal(err)) toast.error(declutterErrorMessage(err));
       // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
       if (chosen === "porch") void porchPlaces.reread(err);
     },

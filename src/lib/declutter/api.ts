@@ -510,13 +510,27 @@ const draftArgs = (f: DraftFields) => ({
 export async function createDraft(f: DraftFields, withId?: string): Promise<string> {
   if (withId) {
     const res = await supabase.rpc("declutter_create_item_with_id", { p_item_id: withId, ...draftArgs(f) });
-    // Before 20261031160546 (PGRST202), or the id already made (a first Post whose answer was lost): a fresh id.
+    // The id already made: a first Post whose answer was lost made this seller's draft with it. Review of 62f90f3368
+    // (4): that draft is reused (its fields saved again), never a second draft with the photos uploaded twice. A
+    // draft row reads back only for its own seller (the declutter_items read policy), so a row that reads back as a
+    // draft is the caller's own; anything else gets a fresh id below.
+    if (res.error && /item_id_taken/.test(res.error.message ?? "") && (await isMyDraft(withId))) {
+      await updateDraft(withId, f);
+      return withId;
+    }
+    // Before 20261031160546 (PGRST202), or an id taken by a row that is not the caller's draft: a fresh id.
     const retry = res.error && (isMissingRpcNamed(res.error, "declutter_create_item_with_id") || /item_id_taken/.test(res.error.message ?? ""));
     if (!retry) {
       return rpcData(res, (e) => rpcErrorMessage("declutter_create_item_with_id", e)) as string;
     }
   }
   return rpcData(await supabase.rpc("declutter_create_item", draftArgs(f)), (e) => rpcErrorMessage("declutter_create_item", e)) as string;
+}
+
+/** Is this id a draft the caller can read (only its own seller can read a draft)? A failed read says no. */
+async function isMyDraft(itemId: string): Promise<boolean> {
+  const r = await supabase.from("declutter_items").select("id, status").eq("id", itemId).maybeSingle();
+  return !r.error && (r.data as { status?: string } | null)?.status === "draft";
 }
 
 export async function updateDraft(itemId: string, f: DraftFields): Promise<string> {

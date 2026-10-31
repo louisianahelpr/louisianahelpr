@@ -126,6 +126,17 @@ s = await summaries();
 check(s.length === 2, "[fix] the summary stays, since it still counts a deletion");
 check(s[1]?.message === "No new members joined. 1 account was deleted.", `[fix] rebuilt without the test account, deletion kept (got ${JSON.stringify(s[1]?.message)})`);
 
+// The count can fail (here: every insert into the log raises). The delete still goes through, uncounted.
+const BREAK = "88888888-8888-8888-8888-888888888888";
+const hasLog = !(await tryQ(`select 1 from public.account_deletion_log limit 1`)).error;
+if (hasLog) await db.exec(`create function public.b29_refuse_log() returns trigger language plpgsql as $f$ begin raise exception 'log is broken'; end $f$;
+  create trigger b29_refuse_log before insert on public.account_deletion_log for each row execute function public.b29_refuse_log();`);
+await db.exec(`insert into auth.users values ('${BREAK}', 'cal@mail.la', now()); insert into public.profiles (user_id, full_name) values ('${BREAK}', 'Cal')`);
+const del = await tryQ(`delete from auth.users where id = '${BREAK}' returning id`);
+check(!del.error && del.length === 1, `[keep] a failing count never blocks the delete (${del.error ?? "deleted"})`);
+check((await q(`select count(*)::int as n from auth.users where id = '${BREAK}'`))[0].n === 0, "[keep] the account is gone");
+if (hasLog) await db.exec(`drop trigger b29_refuse_log on public.account_deletion_log`);
+
 const g = await tryQ(`select has_table_privilege('authenticated', 'public.account_deletion_log', 'select') as m,
   has_table_privilege('anon', 'public.account_deletion_log', 'select') as a`);
 check(!g.error && !g[0].m && !g[0].a, "[fix] members and guests cannot read the log");

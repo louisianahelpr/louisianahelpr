@@ -19,6 +19,7 @@
  */
 // @mutate src/lib/messageSendRefusal.ts |   { kind: "rate_limited", match: (m) => RATE_LIMIT_RAISE.test(m), retryable: true, toast: RATE_LIMITED_TOAST }, |
 // @mutate src/pages/messages/messagesData/sendHandlers.ts |       if (refusal) { |       if (false) {
+// @mutate src/pages/messages/messagesData/sendHandlers.ts |       if (refusal) {\n | \n      if (refusal) {\n        toast.error(refusal.toast);\n
 // @mutate src/components/messages/MessageBubble.tsx | {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — tap to retry"} | Not sent — tap to retry
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -115,7 +116,10 @@ describe("every refusal a messages INSERT trigger raises is classified for the c
     const generic = send.indexOf("Message didn't go through");
     expect(at).toBeGreaterThan(0);
     expect(at).toBeLessThan(generic);
-    expect(send).toMatch(/if \(refusal\) \{[\s\S]{0,200}toast\.error\(refusal\.toast\)/);
+    // AUD31-42: the refused bubble's label says why; a toast there covered it at 375.
+    const branch = send.slice(send.indexOf("if (refusal) {"), send.indexOf("return;", send.indexOf("if (refusal) {")));
+    expect(branch).toContain("setMessages(");
+    expect(branch).not.toMatch(/\btoast\b/);
     const bubble = blankComments(readFileSync(join(ROOT, "src/components/messages/MessageBubble.tsx"), "utf8"));
     expect(bubble.match(/REFUSAL_BUBBLE_LABEL\[m\.failReason\]/g)?.length).toBe(2);
   });

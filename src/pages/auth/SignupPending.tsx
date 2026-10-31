@@ -367,7 +367,7 @@ const SignupPending = () => {
               style={{ background: "hsl(var(--bark) / 0.06)" }}
             >
               <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
-                If <span className="font-semibold break-all">{prefillEmail}</span> still needs confirming, a new link is on its way. Check your spam folder too.
+                If <span className="font-semibold [overflow-wrap:anywhere]">{prefillEmail}</span> still needs confirming, a new link is on its way. Check your spam folder too.
               </p>
               <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
                 Already confirmed your email? Log in to continue.

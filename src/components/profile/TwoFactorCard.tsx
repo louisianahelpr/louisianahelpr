@@ -104,8 +104,9 @@ export function TwoFactorCard() {
               {isError
                 ? "We couldn't check your status."
                 : verified
-                  ? "Required at sign-in. Support can remove it."
-                  : "Authenticator code at sign-in."}
+                  // AUD31-72: "sign-in" stays whole; at 360 it split "sign- / in.".
+                  ? <>Required at <span className="whitespace-nowrap">sign-in.</span> Support can remove it.</>
+                  : <>Authenticator code at <span className="whitespace-nowrap">sign-in.</span></>}
             </p>
           )}
         </div>

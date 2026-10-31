@@ -84,6 +84,7 @@ import { ProblemForm } from "./DeclutterProblemForm";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
+import { NoHelprChoice } from "./DeclutterNoHelpr";
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
@@ -277,6 +278,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
           {/* D2-2: no booking while a problem is open (the server refuses it: problem_open). */}
           {/* T9: while the seller has their 24 hours the time stands (the server refuses a move: no_show_waiting). */}
+          {/* BUY-2 (owner 10-31): no Helpr took the delivery; the buyer may cancel instead (the buyer bears the card fee). A
+              pickup order with a delivery fee is one (CartLine.delivery_cents is kept after the no-Helpr fallback). */}
+          {order.side === "buyer" && order.handover === "pickup_home" && order.lines.some((l) => (l.delivery_cents ?? 0) > 0) && !booking?.slot_start && !problem && <NoHelprChoice orderId={order.orderId} />}
           {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch"
             ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />}
                 noDays={<ProblemForm orderId={order.orderId} side={order.side} stage="waiting" />} />

@@ -95,6 +95,7 @@ export function PickupStatus({
   itemsCents,
   problemOpen = false,
   refunded = false,
+  part = "all",
 }: {
   orderId: string;
   handover: Pickup;
@@ -109,6 +110,9 @@ export function PickupStatus({
   problemOpen?: boolean;
   /** NIGHT-SELL-soldstates-7: the sale was refunded in full after the handover (refundedInFull). */
   refunded?: boolean;
+  /** NIGHT-SELL-soldstates-3: the seller's open sale shows the tracker and its line first ("status") and the money
+   *  note below the next action ("money"); every other card shows all three together. */
+  part?: "all" | "status" | "money";
 }) {
   const h = useMyHandover(orderId);
   // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
@@ -126,11 +130,13 @@ export function PickupStatus({
   };
   const at = orderStepAt(facts);
   const done = facts.done || at === 3;
+  const money = <MoneyNote side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" />;
+  if (part === "money") return money;
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
       <p className="text-ds-14">{refunded && done ? REFUNDED_IN_FULL[side] : problemOpen && !done ? PROBLEM_ON_HOLD : standing(handover, side, at, day, free)}</p>
-      <MoneyNote side={side} kind={handover} free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="pick it up" />
+      {part === "all" && money}
     </div>
   );
 }

@@ -200,14 +200,19 @@ describe("Sell a bunch", () => {
     document.querySelectorAll("[data-bunch-thumb]").forEach((img) => expect(img.getAttribute("loading")).toBe("lazy"));
   });
 
-  it("names a photo that can't be used, and photos no item holds stop counting toward the cap", async () => {
+  // @mutate src/components/declutter/DeclutterBunchView.tsx |       if (res.unusable.length > 0) { |       if (false) {
+  it("names a photo that can't be used, keeps it to try again, and photos no item holds stop counting toward the cap", async () => {
     renderPage();
     await pageHeading();
     const files = Array.from({ length: 80 }, (_, i) => new File([`${i}`], `${i}.jpg`, { type: "image/jpeg" }));
     fireEvent.change(document.getElementById("bunch-files")!, { target: { files } });
     await screen.findByText(/77 photos weren't added \(3\.jpg, 4\.jpg, 5\.jpg, 6\.jpg, 7\.jpg and 72 more\)/);
     await waitFor(() => expect((document.getElementById("bunch-files") as HTMLInputElement).disabled).toBe(false));
-    // 80 picked, 3 held: another go has room instead of the cap's refusal.
+    // LEAD-BUNCH-34-SLOW: the photos that couldn't be read are kept together, said, and can be tried again.
+    expect(await screen.findByText(/We couldn't read these 77 photos\. Tap Sort again to try once more\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sort again" })).toBeInTheDocument();
+    // Not selling them frees their room: 80 picked, 3 held, so another go has room instead of the cap's refusal.
+    fireEvent.click(screen.getByRole("button", { name: "Don't sell these" }));
     fireEvent.change(document.getElementById("bunch-files")!, { target: { files: ["x", "y", "z"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" })) } });
     await waitFor(() => expect(document.querySelectorAll("[data-bunch-item]")).toHaveLength(4));
     expect(screen.queryByText(/That's the most for one go/)).toBeNull();

@@ -25,7 +25,8 @@ function noShowAnsweredWords(side: "buyer" | "seller", delivery: boolean) {
  * it. The money is held until an admin decides (declutter_report_problem's notice; the payout waits on it).
  */
 export function ProblemOpenNote({ problem, side, answered = false, delivery = false }: { problem: OpenProblem; side: "buyer" | "seller"; answered?: boolean; delivery?: boolean }) {
-  const by = problem.reporter_side === side ? "you" : `the ${problem.reporter_side}`;
+  // NIGHT-BUYINGopenpr-8: "the helpr" was written with a small h; Helpr is a name (the next box says "The Helpr").
+  const by = problem.reporter_side === side ? "you" : problem.reporter_side === "helpr" ? "the Helpr" : `the ${problem.reporter_side}`;
   // A buyer's no-show report the seller answered (declutter_answer_no_show): whose report it is, and who answered it.
   const noShowAnswered = answered && problem.reporter_side === "buyer" && problem.reason === "no_show";
   // Nobody's report: a sale held 60 days with nobody speaking (20261031004529).

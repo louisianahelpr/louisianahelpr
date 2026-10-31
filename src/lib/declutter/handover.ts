@@ -379,7 +379,8 @@ export async function addProblemSide(problemId: string, note: string, photoPaths
 export interface OpenProblem {
   id: string;
   order_id: string;
-  reporter_side: "buyer" | "seller" | "system";
+  // "helpr": the Helpr on a Helpr delivery can report too (declutter_problems allows it; NIGHT-BUYINGopenpr-8 saw one).
+  reporter_side: "buyer" | "seller" | "helpr" | "system";
   reason: ProblemReason;
 }
 

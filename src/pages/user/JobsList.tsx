@@ -1,4 +1,6 @@
 import { ClipboardList, Hammer } from "lucide-react";
+import { Link } from "react-router-dom";
+import { isExpiredListing } from "@/lib/expiredListing";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatShortDate, formatCategory, formatPrice } from "@/lib/format";
 import { jobStatusLabel } from "@/lib/statusLabels";
@@ -82,7 +84,20 @@ export const JobsList = ({ jobs: allRows, variant, knownCount = 0, viewerId, isO
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--accent-ink))" }}>${formatPrice(job.budget)}</span>
-            <span className={`text-ds-10 font-semibold px-2 py-0.5 rounded-full ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
+            {isExpiredListing(job) ? (
+              // Expired is not cancelled (owner 10-31): never "Cancelled"; only
+              // its poster sees it, with Repost.
+              <>
+                <span className="text-ds-10 font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Expired</span>
+                {job.customer_id === viewerId && (
+                  <Link to={`/post-job?rebook=${job.id}`} className="text-ds-11 font-semibold underline underline-offset-2" style={{ color: "hsl(var(--accent-ink))" }}>
+                    Repost
+                  </Link>
+                )}
+              </>
+            ) : (
+              <span className={`text-ds-10 font-semibold px-2 py-0.5 rounded-full ${jobStatusColorClasses(job.status)}`}>{jobStatusLabel(job.status)}</span>
+            )}
           </div>
         </div>
       )) : (

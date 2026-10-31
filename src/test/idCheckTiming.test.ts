@@ -19,11 +19,14 @@
  * @mutate supabase/functions/create-payment/index.ts | const tipIdHold = await checkIdentityHold(supabaseAdmin, helperId); | const tipIdHold = { kind: "clear" as const };
  * @mutate supabase/functions/auto-tip-charge/index.ts | const tipIdHold = await checkIdentityHold(supabase, c.helper_id as string); | const tipIdHold = { kind: "clear" as const };
  * @mutate supabase/functions/declutter-checkout/index.ts | const tipIdHold = await checkIdentityHold(admin, helprId); | const tipIdHold = { kind: "clear" as const };
+ * @mutate supabase/migrations/20261031021658_restore_id_members_reset_1027.sql | AND v.old_value = 'processing' AND v.new_value = 'verified' | AND v.new_value = 'verified'
+ * @mutate supabase/migrations/20261031021658_restore_id_members_reset_1027.sql |    AND p.is_seed IS NOT TRUE\n |
+ * @mutate supabase/migrations/20261031021658_restore_id_members_reset_1027.sql |    AND NOT EXISTS (SELECT 1 FROM public.test_accounts ta WHERE ta.user_id = p.user_id)\n |
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { blankComments } from "./helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 import { readSource, walkSource } from "./helpers/walkSource";
 
@@ -38,7 +41,6 @@ const rel = (f: string) => path.relative(FN_DIR, f).split(path.sep).join("/");
  */
 const NOT_ASKING: Readonly<Record<string, string>> = {
   "_shared/chargebackClawback.ts": "re-pays a transfer the Helpr already had, after a chargeback reversal: not a first payout",
-  "_shared/heldTipRepay.ts": "re-pays a tip the poster already paid, after a payout hold: a new tip is refused at its checkout",
 };
 
 describe("the ID check's timing", () => {
@@ -89,10 +91,20 @@ describe("the ID check's timing", () => {
     expect(newestFunction("enforce_identity_before_start").body).toMatch(/identity_required_to_start/);
   });
 
-  it("a poster's no-cost cancel: recorded, quoted and honoured by the money sweep alike", () => {
+  it("a poster's no-fee cancel: recorded, quoted, honoured by the money sweep and explained to reconciliation alike", () => {
     expect(newestFunction("poster_cancel_job").body).toMatch(/AND NOT v_id_outstanding/);
     expect(code("supabase/functions/create-payment/index.ts")).toMatch(/rpc\("payout_waits_on_identity"/);
     expect(code("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/\|\| noFeeRecorded \? 0 : computeCancellationFee\(job\)/);
+    expect(newestFunction("poster_cancel_job").body).toMatch(/INSERT INTO public\.job_cancel_id_waivers/);
+    expect(code("supabase/functions/money-reconciliation/index.ts")).toMatch(/\.from\("job_cancel_id_waivers"\)/);
+  });
+
+  it("the 16 are restored by the migration: only Stripe's verified, never a test account, no fee touched", () => {
+    const m = blankSqlComments(fs.readFileSync(path.join(ROOT, "supabase/migrations/20261031021658_restore_id_members_reset_1027.sql"), "utf8"));
+    expect(m).toMatch(/v\.old_value = 'processing' AND v\.new_value = 'verified'/);
+    expect(m).toMatch(/p\.is_seed IS NOT TRUE/);
+    expect(m).toMatch(/public\.test_accounts ta/);
+    expect(m).not.toMatch(/onboarding_fee|idv_attempt_count/);
   });
 
   it("restoring a verified check needs Stripe's verified for this very member, and starts no new session", () => {

@@ -81,6 +81,7 @@ import { currentPosition } from "@/lib/declutter/position";
 // signed-in-shared and put /posts over its critical-path budget.
 import { onDay, PickupStatus, PorchOutPhoto, SellerDeliveryStatus } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
+import { gotItOpen } from "./OrderSteps";
 import { FoldedTimePicker } from "./DeclutterFoldedTime";
 import { PickupSlotPicker } from "./DeclutterPickupWindows";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
@@ -421,7 +422,7 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
   // Audit 1030 DB-3: at a safe meeting spot or a door pickup "I got it" opens an hour before the booked time, as
   // "I'm here" does (the server refuses it before then: got_it_too_early, 20261030061753; declutter_meetup_rules()
   // here_from_minutes_before).
-  if ((order.handover === "meetup" || order.handover === "pickup_home") && Date.now() < new Date(slotStart).getTime() - 60 * 60_000) {
+  if ((order.handover === "meetup" || order.handover === "pickup_home") && !gotItOpen(slotStart)) {
     return <p className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" from an hour before the {order.handover === "meetup" ? "meeting" : "pickup"} time.</p>;
   }
   // Audit 1028 D1-12: its own block, so "I got it" never sits edge to edge with "Report a problem" below it.

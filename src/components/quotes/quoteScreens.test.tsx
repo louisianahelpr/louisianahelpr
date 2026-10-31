@@ -286,7 +286,8 @@ describe("the poster's quotes on a request", () => {
     expect(await screen.findByText("Decline $250?")).toBeInTheDocument();
     expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Keep it" }));
-    await waitFor(() => expect(screen.queryByText("Decline $250?")).not.toBeInTheDocument());
+    // Keep it closes the ask at once (shown two lines up), so no wait: a waitFor here would pass on its first poll.
+    expect(screen.queryByText("Decline $250?")).not.toBeInTheDocument();
     expect(state.calls.some((c) => c.fn === "respond_to_job_quote")).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Decline" }));
     fireEvent.click(await screen.findByRole("button", { name: "Decline quote" }));

@@ -28,7 +28,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { fetchDropStates, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
-import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
+import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
@@ -145,6 +145,8 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const member = userId !== null;
   const [params, setParams] = useSearchParams();
   const [start] = useState(() => browseStateFromParams(params));
+  // BUY-53: from a saved search, the listings its "N new" counted wear the New tag.
+  const [newSince] = useState(() => newSinceFromParams(params));
   const [maxMiles, setMaxMiles] = useState<number | null>(start.maxMiles);
   const [query, setQuery] = useState(start.query);
   const [filters, setFilters] = useState<DeclutterFilters>(start.filters);
@@ -368,7 +370,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
               <li key={item.id} className="min-w-0">
                 <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate}
                   firstRow={index < declutterFirstRowCount(desktop && !mapVisible, window.innerWidth)}
-                  tag={outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
+                  tag={isNewSince(item, newSince) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
                   bundle={bundles.data?.has(item.seller_id) ?? false}
                   save={member ? {
                     on: watching.data?.has(item.id) ?? false,

@@ -121,7 +121,7 @@ AS $function$
     WHEN 'moving_supplies' THEN ARRAY['misc']
     WHEN 'other' THEN ARRAY['home', 'outdoors', 'family', 'fun', 'misc', 'kids', 'yard', 'desk', 'auto']
     -- A key from an older list still matches itself.
-    ELSE ARRAY[COALESCE(p_category, '')]
+    ELSE ARRAY[COALESCE(p_category::text, '')]
   END;
 $function$;
 REVOKE ALL ON FUNCTION public.declutter_wanted_category_near(text) FROM PUBLIC, anon, authenticated;

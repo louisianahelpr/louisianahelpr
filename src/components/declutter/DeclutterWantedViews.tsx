@@ -249,7 +249,7 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: {
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
         className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-wanted-sheet="">
-        <SheetHero title={editing ? "Edit your Wanted" : "What are you looking for?"} />
+        <SheetHero title={editing ? "Edit your post" : "What are you looking for?"} />
         <div className="mt-2">
           <WantedFormFields form={form} setForm={setForm} problems={problems} onSubmit={submit}
             photos={editing ? null : <ProblemPhotoPicker files={files} onChange={setFiles} disabled={post.isPending} />} where={editing ? "Measured from where you first posted it." : where} />

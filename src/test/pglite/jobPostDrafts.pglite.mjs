@@ -13,6 +13,7 @@
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
+import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
@@ -29,7 +30,7 @@ const check = (name, ok, detail = "") => {
 };
 
 const U = (n) => `00000000-0000-4000-8000-0000000000${String(n).padStart(2, "0")}`;
-const REAL = U(1), OTHER = U(2), TEST = U(3), SEED = U(4), BANNED = U(5), POSTED = U(6), OLDJOB = U(7), EMPTY = U(8), NIGHT = U(9);
+const REAL = U(1), OTHER = U(2), TEST = U(3), SEED = U(4), BANNED = U(5), POSTED = U(6), OLDJOB = U(7), EMPTY = U(8), NIGHT = U(9), CLOCKED = U(10);
 
 const db = new PGlite();
 await db.exec(`
@@ -55,7 +56,7 @@ await db.exec(`
   CREATE FUNCTION cron.schedule(n text, s text, c text) RETURNS bigint LANGUAGE plpgsql AS $$
     BEGIN INSERT INTO cron.jobs VALUES (n, s, c) ON CONFLICT (name) DO UPDATE SET schedule = EXCLUDED.schedule, command = EXCLUDED.command; RETURN 1; END $$;
 `);
-for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9]) await db.query("INSERT INTO auth.users VALUES ($1)", [U(n)]);
+for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) await db.query("INSERT INTO auth.users VALUES ($1)", [U(n)]);
 await db.query("INSERT INTO public.profiles (user_id) SELECT id FROM auth.users");
 await db.query("UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = $1", [BANNED]);
 await db.query("UPDATE public.profiles SET is_seed = true WHERE user_id = $1", [SEED]);
@@ -190,6 +191,33 @@ await save(EMPTY, { title: "Old", description: "" });
 await db.query("UPDATE public.job_post_drafts SET updated_at = now() - interval '8 days' WHERE user_id = $1", [EMPTY]);
 check("over 7 days: never offered to a device", (await mine(EMPTY)) === null);
 check("Download My Data has a section for it, for the member's own rows only", NEW.includes("jsonb_build_object('job_post_drafts'") && /FROM public\.job_post_drafts t\s+WHERE t\.user_id = v_uid/.test(NEW));
+
+// ---- The sweep with no argument, as cron calls it, on the fixed clock ("sweep_job_post_drafts"): every clock read is now().
+if (!SKIP) {
+  await installClock(db);
+  await db.exec(onFixedClock(newestFunction("sweep_job_post_drafts").stmt));
+  await aged(CLOCKED, 30);
+  const bare = () => call(null, "SELECT public.sweep_job_post_drafts() AS n");
+  await setClock(db, "2026-10-30T20:00:00-05:00");
+  await bare();
+  check("no argument, 20:00 Louisiana: nothing sent", (await notices(CLOCKED)).length === 0);
+  await setClock(db, "2026-10-30T07:59:59-05:00");
+  await bare();
+  check("no argument, 07:59:59 Louisiana: nothing sent", (await notices(CLOCKED)).length === 0);
+  await db.query("UPDATE public.job_post_drafts SET updated_at = $1::timestamptz WHERE user_id = $2", ["2026-10-29T12:00:01-05:00", CLOCKED]);
+  await setClock(db, NOON);
+  await bare();
+  check("no argument: 1 second short of 24 hours, nothing sent", (await notices(CLOCKED)).length === 0);
+  await db.query("UPDATE public.job_post_drafts SET updated_at = $1::timestamptz WHERE user_id = $2", ["2026-10-29T12:00:00-05:00", CLOCKED]);
+  await bare();
+  check("no argument: exactly 24 hours, one notice", (await notices(CLOCKED)).length === 1);
+  await db.query("UPDATE public.job_post_drafts SET updated_at = $1::timestamptz WHERE user_id = $2", ["2026-10-23T12:00:01-05:00", CLOCKED]);
+  await bare();
+  check("no argument: under 7 days, the draft stays", (await row(CLOCKED)) !== null);
+  await db.query("UPDATE public.job_post_drafts SET updated_at = $1::timestamptz WHERE user_id = $2", ["2026-10-23T12:00:00-05:00", CLOCKED]);
+  await bare();
+  check("no argument: exactly 7 days, the draft goes", (await row(CLOCKED)) === null);
+}
 
 await db.close();
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILED`);

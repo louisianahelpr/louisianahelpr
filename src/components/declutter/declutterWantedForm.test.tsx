@@ -251,7 +251,7 @@ describe("the Wanted hub", () => {
     localStorage.setItem("helpr_wanted_draft", JSON.stringify({ what: "Kept draft", category: "", maxPrice: "", radius: 10 }));
     fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
     const sheet = await screen.findByRole("dialog");
-    expect(within(sheet).getByText("Edit your Wanted")).toBeInTheDocument();
+    expect(within(sheet).getByText("Edit your post")).toBeInTheDocument();
     const what = within(sheet).getByLabelText("I'm looking for");
     expect(what).toHaveValue("Kids bike");
     expect(within(sheet).getByLabelText("The most you'd pay for the item")).toHaveValue("30");

@@ -28,13 +28,13 @@
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   IF EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN |   IF false AND EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |     RETURN 'wipe_failed'; |     NULL;
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF false THEN
- * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   IF v_count = 0 THEN | IF false THEN
- * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |            OR NOT EXISTS (SELECT 1 FROM public.profiles p | OR false AND NOT EXISTS (SELECT 1 FROM public.profiles p
- * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |        AND (public.is_test_subject(n.user_id) |        AND (false
- * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |    WHERE user_id = ANY (v_ids); |    WHERE false;
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |   IF v_count = 0 AND v_deleted = 0 THEN | IF false THEN
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |            OR NOT EXISTS (SELECT 1 FROM public.profiles p | OR false AND NOT EXISTS (SELECT 1 FROM public.profiles p
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |        AND (public.is_test_subject(n.user_id) |        AND (false
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |    WHERE user_id = ANY (v_ids); |    WHERE false;
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql | '11 13 * * *' | '11 * * * *'
- * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |         UPDATE public.notifications x\n           SET message = public.new_member_summary_message(v_ids) |         UPDATE public.notifications x\n           SET message = message
- * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |      WHERE user_id = NEW.user_id AND summarized_at IS NULL; |      WHERE false;
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |         UPDATE public.notifications x\n           SET message = public.daily_member_summary_message(v_ids, v_deleted) |         UPDATE public.notifications x\n           SET message = message
+ * @mutate supabase/migrations/20261031205315_account_deletion_count_in_daily_summary.sql |      WHERE user_id = NEW.user_id AND summarized_at IS NULL; |      WHERE false;
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC;
  */
 import { describe, it, expect } from "vitest";
@@ -117,7 +117,7 @@ describe("the new-member admin notice waits for the email confirmation", () => {
     expect(c).toMatch(/NOT\s+coalesce\(p\.is_seed,\s*false\)/);
     expect(c).toMatch(/p\.anonymized_at\s+IS\s+NULL/);
     expect(c).toMatch(/OR\s+NOT\s+EXISTS\s*\(SELECT\s+1\s+FROM\s+public\.profiles\s+p/);
-    expect(c).toMatch(/IF\s+v_count\s*=\s*0\s+THEN/);
+    expect(c).toMatch(/IF\s+v_count\s*=\s*0\s+AND\s+v_deleted\s*=\s*0\s+THEN/);
     expect(c).toMatch(/WHERE\s+user_id\s*=\s*ANY\s*\(v_ids\)/);
     expect(migrationSql).toMatch(/cron\.schedule\('new-member-daily-summary',\s*'11 13 \* \* \*'/);
     expect(migrationSql).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.send_new_member_daily_summary\(\)\s+FROM\s+PUBLIC\s*,\s*anon\s*,\s*authenticated/i);
@@ -125,12 +125,12 @@ describe("the new-member admin notice waits for the email confirmation", () => {
 
   it("marked a test account after a summary: their name leaves it, and a pending row is never named (owner: test data never reaches her)", () => {
     const t = code("retract_new_member_notice_for_test_account").replace(/\s+/g, " ");
-    expect(defs.get("retract_new_member_notice_for_test_account")?.file ?? "").toContain("20261031152136");
-    expect(t).toContain("UPDATE public.notifications x SET message = public.new_member_summary_message(v_ids)");
+    expect(defs.get("retract_new_member_notice_for_test_account")?.file ?? "").toContain("20261031205315");
+    expect(t).toContain("UPDATE public.notifications x SET message = public.daily_member_summary_message(v_ids, v_deleted)");
     expect(t).toContain("AND x.title = 'New member summary' AND x.created_at = v_at;");
-    expect(t).toMatch(/IF v_ids IS NULL THEN DELETE FROM public\.notifications x/);
+    expect(t).toMatch(/IF v_ids IS NULL AND v_deleted = 0 THEN DELETE FROM public\.notifications x/);
     expect(t).toContain("WHERE user_id = NEW.user_id AND summarized_at IS NULL;");
-    expect(code("send_new_member_daily_summary")).toContain("public.new_member_summary_message(v_ids)");
+    expect(code("send_new_member_daily_summary")).toContain("public.daily_member_summary_message(v_ids, v_deleted)");
   });
 
   it("fires on the confirmation itself (NULL -> set), and a failure never breaks the confirmation", () => {

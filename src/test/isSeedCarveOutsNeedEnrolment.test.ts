@@ -179,6 +179,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   jobs_address_in_louisiana: "safety-skip",
   jobs_seed_from_poster: "tags",
   list_open_quote_requests: "hides",
+  // OPS-DEL (20261031205315): a deleted test account is never counted in the daily summary.
+  log_account_deletion: "hides",
   log_deleted_job: "tags",
   notification_crosses_seed_boundary: "hides",
   notify_admins_new_member: "hides",

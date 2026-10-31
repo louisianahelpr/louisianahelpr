@@ -34,6 +34,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { useFeature } from "@/hooks/useFeature";
+import { usePayoutSetupBlock } from "@/hooks/usePayoutSetupPaused";
 import type { CartLine } from "@/lib/declutter/api";
 import { invalidate, liveSalesFirst, localInputToIso, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
 import {
@@ -151,6 +152,17 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   );
 }
 
+/**
+ * NIGHT-SELL-soldstates-4: a failed seller payout links to the payout settings. While payout setup is paused for
+ * everyone (Stripe, owner 2026-10-23) that screen offers nothing to fix, so the link waits (the payout prompt above
+ * the sales shows the paused notice), as SellerPayoutPrompt does.
+ */
+function FailedPayoutLink() {
+  const paused = usePayoutSetupBlock() === "paused";
+  if (paused) return null;
+  return <>{" "}<Link to="/profile?tab=payment" className="underline font-semibold">Check your payouts</Link></>;
+}
+
 function OrderCard({ order, userId, booking, payout, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
@@ -227,7 +239,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {/* BUY-31: said once. The buyer's head line says it, and SellerDeliveryStatus says it to the seller. */}
           {order.handover === "delivery" && !view && <p className="text-sm font-medium">Handed over.</p>}
           {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}
-            {payout.status === "failed" && <>{" "}<Link to="/profile?tab=payment" className="underline font-semibold">Check your payouts</Link></>}</p>}
+            {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>
               <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={problem ? null : <ProblemForm orderId={order.orderId} side={order.side} stage="handover" />} />

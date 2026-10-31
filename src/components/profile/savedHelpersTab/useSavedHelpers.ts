@@ -216,18 +216,6 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
         return bT - aT;
       });
     }
-    if (sortBy === "rating") {
-      // Highest average rating first — missing values fall to 0 so
-      // an unrated helper doesn't outrank a 4.9-star one. Ties break
-      // by jobs-together so a 5.0 with 1 job ranks below a 5.0 with
-      // 10 (rebooking signal is a tiebreaker, not a primary).
-      return matched.sort((a, b) => {
-        const aR = a.avg_rating ?? 0;
-        const bR = b.avg_rating ?? 0;
-        if (bR !== aR) return bR - aR;
-        return (b.completed_jobs_together ?? 0) - (a.completed_jobs_together ?? 0);
-      });
-    }
     if (sortBy === "alpha") {
       // Alphabetical by full name, case-insensitive, locale-aware.
       // Missing names sink to the bottom so a placeholder doesn't take

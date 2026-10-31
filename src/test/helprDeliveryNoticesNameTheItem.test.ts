@@ -12,7 +12,7 @@
  *      only shrinks (a function fixed later must leave the list in the same commit; a new one may never join it).
  *
  * @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql | format('The Helpr couldn''t pick up %s from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr couldn''t pick up your item from the seller. Louisiana Helpr will look at it and decide; you''ll be told.',
- * @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | '/declutter?tab=deliver', t.customer_id); | '/declutter?view=deliver', t.customer_id);
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | '/declutter?tab=deliver', t.customer_id); | '/declutter?view=deliver', t.customer_id);
  * @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=buying', NULL); | 'Your Helpr can''t make it. The delivery of %s is back up for another Helpr.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart', NULL);
  */
 import { describe, it, expect } from "vitest";

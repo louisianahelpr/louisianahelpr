@@ -15,7 +15,7 @@
  *
  * @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |       CONTINUE WHEN v_s->>'kind' = 'dropoff' AND EXISTS ( |       CONTINUE WHEN false AND EXISTS (
  * @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |       'address', CASE WHEN p->>'kind' = 'pickup' THEN t.pickup_address WHEN v_shown THEN t.dropoff_address END, |       'address', CASE WHEN p->>'kind' = 'pickup' THEN t.pickup_address ELSE t.dropoff_address END,
- * @mutate supabase/migrations/20261030012018_helpr_delivery_seller_handover.sql |   v_drop_shown := v_role = 'helpr' AND v_active |   v_drop_shown := v_active
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   v_drop_shown := v_role = 'helpr' AND v_active |   v_drop_shown := v_active
  * @mutate supabase/migrations/20261027194235_helpr_my_route.sql |     ELSE p_slot - interval '2 hours' END; |     ELSE p_slot - interval '0 hours' END;
  * @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |             WHERE x.helpr_id = v_uid AND x.status IN ('accepted', 'picked_up') |             WHERE x.status IN ('accepted', 'picked_up')
  * @mutate supabase/migrations/20261030152601_helpr_route_same_seller_visit.sql |          > (v_fixed->>'slot')::timestamptz + interval '30 minutes' THEN |          > 'infinity'::timestamptz THEN

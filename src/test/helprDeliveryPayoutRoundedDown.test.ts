@@ -22,10 +22,10 @@
  *  6. The client mirror (helprTakeHomeCents) floors through roundPayoutDownCents.
  */
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |               ELSE (p_cents / 100) * 100 END; |               ELSE p_cents END;
-// @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql |   v_amount := public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents); |   v_amount := t.pay_cents - t.fee_cents;
+// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   v_amount := public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents); |   v_amount := t.pay_cents - t.fee_cents;
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |   CHECK (amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) AND amount_cents >= 0); |   CHECK (amount_cents = pay_cents - fee_cents AND amount_cents >= 0);
 // @mutate supabase/migrations/20261031075157_helpr_open_deliveries_hide_backed_out.sql |          public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents), t.open_until, t.latest_pickup_at |          t.pay_cents - t.fee_cents, t.open_until, t.latest_pickup_at
-// @mutate supabase/migrations/20261030012018_helpr_delivery_seller_handover.sql | THEN public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) END, | THEN t.pay_cents - t.fee_cents END,
+// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | THEN public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) END, | THEN t.pay_cents - t.fee_cents END,
 // @mutate supabase/migrations/20261030031642_helpr_delivery_notices_name_the_item.sql | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, (v_amount / 100)::text) END, | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, to_char(v_amount / 100.0, 'FM999990.00')) END,
 // @mutate supabase/functions/declutter-money/index.ts |       parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)]; |       parts = [...helprPayoutParts(h.amount_cents + 50, h.payment_intent_id, h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];
 import { describe, it, expect } from "vitest";

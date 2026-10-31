@@ -40,7 +40,7 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { gzipSync } from "node:zlib";
-import { signedInOnlyModules, signedInSplit, stripComments } from "./perf/bootReach.mjs";
+import { guestBrowseOnlyModules, signedInOnlyModules, signedInSplit, stripComments } from "./perf/bootReach.mjs";
 
 const DIST = "dist";
 const ASSETS = `${DIST}/assets`;
@@ -250,6 +250,30 @@ for (const { file, why } of DEFERRED_MODULES) {
     violations.push({
       chunk,
       why: `${mods.length} module(s) no signed-out cold load reaches are on the boot path, e.g. ${mods.slice(0, 3).join(", ")}`,
+      gzip: bytes(chunk),
+      chain: chainTo(chunk),
+    });
+  }
+}
+
+// ── Guest /browse-only code (LEAD-POSTS-BOOT-SHRINK, 10-31) ──────────────
+// Code a public cold load reaches only through guest /browse (bootReach.mjs
+// guestBrowseOnlyModules: the map, filters, job cards) rode in app-shared, so
+// /posts, /, /login and /signup each downloaded ~14 KB gz of it. It lives in
+// `browse-first-screen-*` now; this fails if any of it is on the boot path again.
+{
+  const rel = (abs) => abs.slice(process.cwd().length + 1);
+  const wanted = new Set([...guestBrowseOnlyModules(process.cwd())].map(rel));
+  const carriers = all.filter((f) => [...(sourcesIn(f) ?? [])].some((src) => wanted.has(src)));
+  if (wanted.size < 20 || !carriers.length) {
+    fail(`bootReach found ${wanted.size} guest /browse-only modules and ${carriers.length} chunk(s) carrying them. ` +
+         `Either the walk is blind (src/boot/routePreload.ts changed shape) or the .js.map files are gone. Fix the scan.`);
+  }
+  for (const chunk of carriers.filter((f) => reached.has(f))) {
+    const mods = [...(sourcesIn(chunk) ?? [])].filter((src) => wanted.has(src));
+    violations.push({
+      chunk,
+      why: `${mods.length} module(s) only guest /browse reaches are on the boot path, e.g. ${mods.slice(0, 3).join(", ")}`,
       gzip: bytes(chunk),
       chain: chainTo(chunk),
     });

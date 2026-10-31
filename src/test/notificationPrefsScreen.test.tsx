@@ -147,6 +147,20 @@ describe("the Declutter group", () => {
     expect(sender).not.toMatch(/notification_preferences|email_declutter_sales/);
   });
 
+  // NIGHT-SET-Declutterse-4 (night audit 10-30, settings #4): "Saved Helpr openings" and "Quote reminders" (Jobs rows)
+  // followed Wanted matches with no heading, so a seller sent here read them as Declutter's. The group now comes last.
+  // @mutate src/components/NotificationPreferences.tsx |       {declutterColumnsPresent(columns) && <DeclutterNotificationGroup renderRow={renderRow} />}\n |
+  it("the Declutter group comes after every Jobs row: nothing that is not Declutter sits under it", async () => {
+    FEATURES = { declutter: true, declutter_wanted: true, quotes: true };
+    PREFS_ROW = withDeclutterColumns();
+    render(<NotificationPreferences />);
+    const group = await screen.findByTestId("declutter-notification-group");
+    const after = (el: Element) => (group.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING) !== 0;
+    const jobsRows = [await screen.findByText("Saved Helpr openings"), await screen.findByText("Quote reminders")];
+    expect(jobsRows.length).toBe(2);
+    for (const el of jobsRows) expect(after(el), el.textContent ?? "").toBe(true);
+  });
+
   it("hides Wanted matches while Wanted is off for the member", async () => {
     FEATURES = { declutter: true };
     PREFS_ROW = withDeclutterColumns();

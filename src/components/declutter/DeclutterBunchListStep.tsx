@@ -1,12 +1,12 @@
 /** The last step of Sell a bunch: what the saved settings say, or the choices if none are saved, the one tick, and List. */
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import type { PickupWindow, SellerHandover } from "@/lib/declutter/api";
 import { BUNCH_SECONDS_EACH, bunchListingMinutes, type BunchItem, type PhotoProgress } from "@/lib/declutter/bunch";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { BunchChoicesCard, bunchDropsLine, type useBunchChoices } from "./BunchChoices";
+import { BunchChoicesCard, BunchDropsSwitch, bunchDropsLine, type useBunchChoices } from "./BunchChoices";
 import { BunchSection } from "./DeclutterBunchSection";
 import { PickupTimesEditor, pickupWindowsProblem, windowsSummary } from "./DeclutterPickupTimes";
 import { handoverSummary, SellHandoverChoices } from "./SellHandoverChoices";
@@ -38,6 +38,9 @@ export function BunchListStep({ step, items, pricedDraftsOffered, readyCount, he
   photoProgress: PhotoProgress | null;
   onList: () => void;
 }) {
+  // LEAD-BUNCH-PCT-LABEL (owner 2026-10-31): with saved settings the price-drops choice was only a line; it can be
+  // changed here for this bunch (and is remembered, as every choice made here).
+  const [changingDrops, setChangingDrops] = useState(false);
   return (
     <>
       <span id="bunch-list-step" tabIndex={-1} className="block focus:outline-none" />
@@ -45,7 +48,15 @@ export function BunchListStep({ step, items, pricedDraftsOffered, readyCount, he
           {savedSetup.hasSettings && savedWindows.isSuccess && savedWays.length > 0 && !pickupWindowsProblem(windows) ? (
             <div className="space-y-1" data-bunch-list-saved="">
               <p className="text-ds-15 font-semibold text-foreground [overflow-wrap:anywhere]">{[handoverSummary(savedWays), windowsSummary(windows)].filter(Boolean).join(" · ")}</p>
-              {items.some((it) => !it.free) && <p className="text-ds-14 text-foreground" data-bunch-outcome="">{bunchDropsLine(choices.choices)}</p>}
+              {items.some((it) => !it.free) && (<>
+                <p className="flex flex-wrap items-center gap-x-2 text-ds-14 text-foreground">
+                  <span data-bunch-outcome="">{bunchDropsLine(choices.choices)}</span>
+                  <Button type="button" variant="link" size="sm" className="px-0 font-semibold" aria-expanded={changingDrops} onClick={() => setChangingDrops((o) => !o)} data-bunch-change-drops="">
+                    {changingDrops ? "Done" : "Change"}
+                  </Button>
+                </p>
+                {changingDrops && <BunchDropsSwitch c={choices} />}
+              </>)}
               {savedSetup.pickup && <p className="text-xs text-muted-foreground [overflow-wrap:anywhere]" data-saved-pickup="">{savedSetup.pickup.line}</p>}
               <UsesSettingsNote />
             </div>

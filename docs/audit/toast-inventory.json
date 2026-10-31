@@ -3,18 +3,18 @@
   "summary": {
     "calls": 1047,
     "files": 291,
-    "rendering": 906,
-    "suppressedByPolicy": 141,
+    "rendering": 907,
+    "suppressedByPolicy": 140,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 100,
+      "toast": 101,
       "toast.error": 733,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 145,
+      "toast.success": 144,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -9521,7 +9521,7 @@
     },
     {
       "file": "src/components/savedSearches/SaveSearchSheet.tsx",
-      "line": 59,
+      "line": 61,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9531,8 +9531,8 @@
     },
     {
       "file": "src/components/savedSearches/SaveSearchSheet.tsx",
-      "line": 65,
-      "kind": "toast.success",
+      "line": 68,
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Search saved"
@@ -9541,7 +9541,7 @@
         "form": "literal",
         "text": "Find it in You › Settings › Saved searches."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/schedule/ScheduleChangeControl.tsx",

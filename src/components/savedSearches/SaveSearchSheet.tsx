@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
@@ -33,6 +34,7 @@ export function SaveSearchSheet({
   userId: string;
 }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [section, setSection] = useState<SavedSearchSection>(draft.section);
   const [email, setEmail] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -62,7 +64,11 @@ export function SaveSearchSheet({
     setSaving(false);
     hapticSuccess();
     void qc.invalidateQueries({ queryKey: SAVED_SEARCHES_KEY });
-    toast.success("Search saved", { description: "Find it in You › Settings › Saved searches." });
+    // NIGHT-SAVEDS1-SS-2: toast.success renders nothing (toastPolicy); the bare toast() does, with a way to the list.
+    toast("Search saved", {
+      description: "Find it in You › Settings › Saved searches.",
+      action: { label: "View", onClick: () => navigate("/profile?tab=saved_searches") },
+    });
     onOpenChange(false);
   };
 

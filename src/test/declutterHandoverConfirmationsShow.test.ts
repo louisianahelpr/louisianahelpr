@@ -27,8 +27,8 @@ const FILES = [
 ];
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
 
-/** Suppressed (renders:false) toasts app-wide on 10-31 after LEAD-TOAST2. Never raise it. */
-const SUPPRESSED_CEILING = 141;
+/** Suppressed (renders:false) toasts app-wide on 10-31 after LEAD-TOAST2 and SS-2. Never raise it. */
+const SUPPRESSED_CEILING = 140;
 
 describe("Declutter handover, problem and refund confirmations are shown", () => {
   it("reads the screens (floor: they raise toasts)", () => {

@@ -158,7 +158,7 @@ describe("/help FAQ copy is derived from config, not retyped", () => {
     const credentialAnswer = allAnswers.match(/On trade jobs \(([^)]+)\)/)?.[1];
     expect(credentialAnswer).toBeTruthy();
     for (const value of JOB_CATEGORY_VALUES) {
-      const named = credentialAnswer!.includes(JOB_CATEGORY_LABELS[value].toLowerCase());
+      const named = credentialAnswer!.toLowerCase().includes(JOB_CATEGORY_LABELS[value].toLowerCase()); // "HVAC" keeps its capitals (AUD31-58)
       expect(named).toBe(CREDENTIAL_TIER_CATEGORIES.has(value));
     }
   });

@@ -256,6 +256,9 @@ const EDGE_READERS: Record<string, Kind> = {
   "ship-rates/index.ts": "tags",
   "stalled-completion-reminder/index.ts": "alerts",
   "stripe-connect/index.ts": "alerts",
+  // SEED-ALERTS: a test job's, order's or gift donor's refund alert goes to the digest; both files only route alerts and an admin notice.
+  "stripe-webhook/handlers/_giftCardRefund.ts": "alerts",
+  "stripe-webhook/handlers/chargeRefunded.ts": "alerts",
   "stripe-webhook/handlers/checkoutSessionCompleted.ts": "alerts",
   "stripe-webhook/handlers/paymentIntentPaymentFailed.ts": "alerts",
   "stripe-webhook/handlers/paymentIntentSucceeded.ts": "alerts",

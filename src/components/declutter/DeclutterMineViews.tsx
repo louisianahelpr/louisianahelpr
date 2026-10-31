@@ -48,6 +48,7 @@ import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
 import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { FreePauseLine, MyFreeAsks } from "./DeclutterFreeClaim";
+import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
@@ -132,9 +133,11 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const history = takenDown.length + ended.length;
   const show = (g: SellingGroup) => only === null || only === g;
   // Audit DC-9: "To answer" is the offers waiting for the seller AND the questions waiting for an answer, and only
-  // those (no buyer-turn offers, no settings).
+  // those (no buyer-turn offers, no settings). NIGHT-BUYINGopenpr-3 (lead 10-31): and the sales with a buyer's report
+  // waiting on the seller's side, listed there too, so the chip never counts what it hides.
   const questions = useUnansweredQuestions(userId);
-  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count;
+  const reports = useSellerReportsToAnswer();
+  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size;
   const waitingLabel = useWaitingChipLabel();
   return (
     <div className="space-y-6">
@@ -153,6 +156,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
         ]}
       />
       {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title="Nothing to answer right now." />}
+      {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
       {show("offers") && <QuestionsToAnswer userId={userId} />}
       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}
       {show("listings") && listings}

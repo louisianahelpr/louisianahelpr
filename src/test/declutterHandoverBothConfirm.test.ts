@@ -26,7 +26,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
-import { blankSqlComments } from "./helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 
 const DEFS = effectiveDefs(resolve(__dirname, "../../supabase/migrations"));
 const flat = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "").replace(/\s+/g, " ");
@@ -114,6 +114,18 @@ describe("Declutter: both sides confirm before money moves", () => {
 
   it("the buyer's tap finishes a sale held 60 days, and only that problem steps aside for it", () => {
     expect(flat("declutter_confirm_handover")).toMatch(/UPDATE public\.declutter_problems SET status = 'withdrawn', withdrawn_at = now\(\) WHERE order_id = o\.id AND status = 'open' AND reporter_side = 'system'; RETURN public\.declutter_complete_handover\(o\.id, p_method\)/);
+  });
+
+  it("the screens follow the server: no move or Picked up while a report waits, frozen times, the answered report's words", () => {
+    // LEAD-VACUOUS 10-31: the four screen @mutate lines above had no check reading these files.
+    const screen = (p: string) => blankComments(file(p)).replace(/\s+/g, " ");
+    const seller = screen("src/components/declutter/SellerDeliveryOrder.tsx");
+    expect(seller).toContain("{can.askNewTime && !noShowWaiting &&");
+    const views = screen("src/components/declutter/DeclutterHandoverViews.tsx");
+    expect(views).toMatch(/if \(order\.side === "seller"\) \{ if \(anyProblem\) return null;/);
+    expect(views).toContain("if (frozen) return booked ?");
+    const note = screen("src/components/declutter/DeclutterProblemOpen.tsx");
+    expect(note).toContain(": noShowAnswered ? noShowAnsweredWords(side, delivery) :");
   });
 
   it("deleting an account while money is held says why and what to do", () => {

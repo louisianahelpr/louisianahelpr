@@ -23,7 +23,7 @@
 import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
@@ -1526,6 +1526,22 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 4500, delivery_cents: 1000 })]);
     const note = await screen.findByText(/^You get/);
     expect(note.textContent).toMatch(/^You get \$55 \(\$45 for the sale and \$10 for delivering it\)\. You're paid 24 hours after the buyer taps "I got it"/);
+  });
+
+  // AUD31-3, the seller's side: a move the buyer asked for waits on the seller's answer, and the sentence said "Booked".
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | p.proposed_by && p.proposed_by !== side | p.proposed_by && p.proposed_by === side
+  it("AUD31-3: a move the buyer asked for is named on the seller's card, not 'Booked'", async () => {
+    state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null,
+      proposed_start: "2026-11-01T15:00:00Z", proposed_by: "buyer" };
+    show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
+    const said = await screen.findByText(/^The buyer asked to move it to .+\. Accept the new time or keep it, below\.$/);
+    expect(said.textContent!.length).toBeGreaterThan(40);
+    expect(screen.queryByText("Booked. The delivery time is below.")).toBeNull();
+    // Its own request is not something to answer: the sentence stays as it was.
+    cleanup();
+    state.sd = { ...state.sd, proposed_by: "seller" };
+    show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
+    expect(await screen.findByText("Booked. The delivery time is below.")).toBeInTheDocument();
   });
 
   it("delivered: step 3, and the seller is told the buyer confirms", async () => {

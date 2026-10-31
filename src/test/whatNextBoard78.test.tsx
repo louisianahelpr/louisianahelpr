@@ -4,7 +4,7 @@
  * (Q997), the Helpr named (never a pronoun), no address promised and no amount printed.
  *
  * @mutate src/components/job-card/PaymentHeldDialog.tsx |   if (side === "poster") return <PosterWhatNext who={who ?? null} onClose={onClose} />; |
- * @mutate src/components/job-card/PaymentHeldDialog.tsx | {who?.cardHeld ? `Your card is charged when ${name ?? "your Helpr"} accepts. Then we hold the payment until the job is done.` : PAYMENT_HELD_SENTENCE} | {PAYMENT_HELD_SENTENCE}
+ * @mutate src/components/job-card/PaymentHeldDialog.tsx | {who?.cardHeld ? `Your card is charged when ${name ?? "your Helpr"} accepts. Then Louisiana Helpr holds the payment until the job is done.` : PAYMENT_HELD_SENTENCE} | {PAYMENT_HELD_SENTENCE}
  * @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     setPaymentHeldWho({ name: deadlineDialogApp.profiles?.full_name ?? null, dateNeeded: selectedJob.date_needed ?? null, cardHeld: selectedJob.payment_status === "held" }); |
  * @mutate src/components/job-card/ActivityOfferDialogs.tsx | who={actions.paymentHeldWho} |
  * @mutate src/components/job-card/PaymentHeldDialog.tsx |   if (side === "helpr") return <HelprWhatNext who={who ?? null} onClose={onClose} />; |
@@ -24,7 +24,7 @@ describe("board 78: what next after sending the offer", () => {
   it("a card only held says when the charge comes, never that the payment is held", () => {
     render(<PaymentHeldDialog side="poster" who={{ name: "Andre Thibodeaux", dateNeeded: "2026-10-31", cardHeld: true }} onClose={() => {}} />);
     const text = screen.getByTestId("what-next-sheet").textContent ?? "";
-    expect(text).toContain("Your card is charged when Andre accepts. Then we hold the payment until the job is done.");
+    expect(text).toContain("Your card is charged when Andre accepts. Then Louisiana Helpr holds the payment until the job is done.");
     expect(text).not.toContain(PAYMENT_HELD_SENTENCE);
   });
 

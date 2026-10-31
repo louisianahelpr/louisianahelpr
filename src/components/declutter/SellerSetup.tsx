@@ -18,7 +18,6 @@ import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { Input } from "@/components/ui/input";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
@@ -26,13 +25,13 @@ import { fetchMyPickupWindows, setPickupWindows, type PickupWindow } from "@/lib
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { MY_PORCH_PLACES_KEY, saveMyPorchPlace } from "@/lib/declutter/porchPlaces";
 import { SELLER_DEFAULTS, saveSellerDefaults, type SellerDefaults } from "@/lib/declutter/sellerDefaults";
-import { parseUsAddress } from "../../../supabase/functions/_shared/addressMatch";
 import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { ListingChoiceFields } from "./DeclutterListingDefaults";
 import { PickupTimesEditor, pickupWindowsProblem } from "./DeclutterPickupTimes";
 import { DeclutterSellSkeleton } from "./DeclutterSkeletons";
 import { SELLER_WAYS, SellWayTiles } from "./SellHandoverChoices";
-import { AREA_ADDRESS_RE } from "./sellForm";
+import { SellerAddressField } from "./SellerAddressField";
+import { NO_CITY_IN_ADDRESS } from "./sellForm";
 import { useExactAddressPoint } from "./useExactAddressPoint";
 import { useSavedPickup } from "./useSavedPickup";
 
@@ -63,7 +62,6 @@ function SetupScreen({ userId, needs, saved, savedWindows }: { userId: string; n
   const [address, setAddress] = useState("");
   const place = useExactAddressPoint();
   const [area, setArea] = useState("");
-  const [areaAsked, setAreaAsked] = useState(false);
   // No day is picked for them (audit single-free #16): a guessed pickup time would be a promise they never made.
   const [windows, setWindows] = useState<PickupWindow[]>([]);
   const [defaults, setDefaults] = useState<SellerDefaults>(saved ?? SELLER_DEFAULTS);
@@ -79,14 +77,9 @@ function SetupScreen({ userId, needs, saved, savedWindows }: { userId: string; n
       let pickup: { lat: number; lng: number; area: string } | null = null;
       if (needs.pickup) {
         const found = await place.locate(address);
-        // The town as typed; an address with none, or one that reads like a street, asks instead of guessing.
-        const typedTown = parseUsAddress(address).city ?? "";
-        const areaLabel = area.trim() || (AREA_ADDRESS_RE.test(typedTown) ? "" : typedTown);
-        if (!areaLabel) {
-          setAreaAsked(true);
-          throw new Error("setup_area");
-        }
-        pickup = { lat: found.lat, lng: found.lng, area: areaLabel };
+        // The city from the pick, or as typed. An address with none says so; nothing is guessed.
+        if (!area.trim()) throw new Error("setup_area");
+        pickup = { lat: found.lat, lng: found.lng, area: area.trim() };
       }
       if (needs.ways || needs.choices) {
         await saveSellerDefaults(userId, defaults);
@@ -113,7 +106,7 @@ function SetupScreen({ userId, needs, saved, savedWindows }: { userId: string; n
         invalid_location: "We couldn't find that address. Check the street, city and ZIP.",
         // The lookup itself is down: the address may be fine, so this never reads as "not found".
         address_lookup_unavailable: declutterErrorMessage({ message: "address_lookup_unavailable" }),
-        setup_area: "We couldn't tell the town from that address. Add your neighborhood or town.",
+        setup_area: NO_CITY_IN_ADDRESS,
       };
       if (said[code]) setProblem(said[code]);
       else toast.error(declutterErrorMessage(err));
@@ -130,15 +123,9 @@ function SetupScreen({ userId, needs, saved, savedWindows }: { userId: string; n
         {needs.pickup && (
           <section className="space-y-2 rounded-[20px] border border-border bg-card p-4" data-setup-pickup="">
             <label htmlFor="setup-address" className="block text-ds-15 font-semibold text-foreground">Pickup address</label>
-            <Input id="setup-address" maxLength={300} value={address} onChange={(e) => { setAddress(e.target.value); setProblem(null); }} placeholder="Street, city, ZIP" autoComplete="street-address" />
+            <SellerAddressField id="setup-address" ariaLabel="Pickup address" value={address} place={place} onChange={(a, city) => { setAddress(a); setArea(city); setProblem(null); }} />
             <AddressNeedsExactSpot typedAddress={address} inexact={place.inexact} locating={place.locating} shareMyLocation={place.shareMyLocation} />
             <p className="text-ds-13 text-muted-foreground">Private. Only the buyer who pays gets it. Other buyers see your town.</p>
-            {areaAsked && (
-              <div className="space-y-1.5 pt-1">
-                <label htmlFor="setup-area" className="block text-ds-14 font-semibold text-foreground">Area buyers see</label>
-                <Input id="setup-area" maxLength={80} value={area} onChange={(e) => setArea(e.target.value)} placeholder="e.g. Mid-City, Baton Rouge" />
-              </div>
-            )}
           </section>
         )}
         {needs.times && (

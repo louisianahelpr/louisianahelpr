@@ -60,6 +60,7 @@ const state = vi.hoisted(() => ({
   hold: null as Promise<void> | null,
 }));
 
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, explain: () => {}, gatedProps: () => ({}) }) }));
@@ -159,7 +160,6 @@ const undoBar = () => document.querySelector("[data-bunch-undo]") as HTMLElement
 const undo = () => fireEvent.click(within(undoBar()!).getByRole("button", { name: "Undo" }));
 
 async function listNow() {
-  fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
   fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
   fireEvent.change(row("i2").querySelector("input[aria-label='Price ($)']")!, { target: { value: "15" } });
   fireEvent.click(document.getElementById("bunch-tax")!);

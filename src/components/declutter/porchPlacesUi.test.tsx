@@ -24,7 +24,7 @@
  * @mutate src/components/declutter/SellHandoverChoices.tsx | on ? "border-[hsl(var(--bark))] dark:!border-[hsl(var(--bark))]" : `border-border ${PLACE_CARD_EDGE}` | on ? "border-[hsl(var(--bark))]" : "border-border"
  * @mutate src/components/declutter/DeclutterHomeView.tsx | Listing defaults, pickup places, pickup times, delivery | Listing defaults, pickup times, delivery
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {side === "seller" && place.address ? <> ({place.address})</> : null} | {place.address ? <> ({place.address})</> : null}
- * @mutate src/components/declutter/SellPorchPlaces.tsx | lat: g.latitude, lng: g.longitude | lat: 0, lng: 0
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | lat: point.lat, lng: point.lng | lat: 0, lng: 0
  * @mutate src/components/declutter/SellPorchPlaces.tsx | : places.length < MAX_PORCH_PLACES && ( | : (
  * @mutate src/components/declutter/SellPorchDays.tsx |   if (Array.isArray(places.data) && places.data.length > 0) return null; |
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady} | (sellerDelivering && !sdReady) \|\| !meetupReady}
@@ -40,10 +40,11 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 
 const h = vi.hoisted(() => ({
   rpc: vi.fn(),
-  geocode: vi.fn(),
+  lookup: vi.fn(),
 }));
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: h.rpc } }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: h.geocode }));
+vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.lookup }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "seller-1" } }) }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
@@ -82,20 +83,19 @@ function Checkout({ sellerId = "s1" }: { sellerId?: string }) {
 
 beforeEach(() => {
   h.rpc.mockReset();
-  h.geocode.mockReset();
+  h.lookup.mockReset();
 });
 
 describe("the seller's pickup places", () => {
-  it("adds a place: the geocoded point and the days go to the server", async () => {
+  it("adds a place: the exact point, the city as its area and the days go to the server", async () => {
     answers({ declutter_my_porch_places: [], declutter_save_porch_place: "new-id" });
-    h.geocode.mockResolvedValue({ latitude: 29.95, longitude: -90.07 });
+    h.lookup.mockResolvedValue({ status: "exact", lat: 29.95, lng: -90.07 });
     wrap(<SellPorchPlaces />);
     fireEvent.click(await screen.findByRole("button", { name: "Add a pickup place" }));
     const save = screen.getByRole("button", { name: "Save place" });
     expect(save).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: " Camp " } });
     fireEvent.change(screen.getByLabelText("Address"), { target: { value: "99 Camp Road, New Orleans" } });
-    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "New Orleans" } });
     fireEvent.click(screen.getByRole("button", { name: "Saturday" }));
     fireEvent.click(save);
     await waitFor(() => expect(h.rpc).toHaveBeenCalledWith("declutter_save_porch_place", expect.objectContaining({
@@ -105,15 +105,14 @@ describe("the seller's pickup places", () => {
 
   it("an address the map can't find saves nothing", async () => {
     answers({ declutter_my_porch_places: [] });
-    h.geocode.mockResolvedValue(null);
+    h.lookup.mockResolvedValue({ status: "not_found" });
     wrap(<SellPorchPlaces />);
     fireEvent.click(await screen.findByRole("button", { name: "Add a pickup place" }));
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Camp" } });
     fireEvent.change(screen.getByLabelText("Address"), { target: { value: "nowhere at all" } });
-    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "New Orleans" } });
     fireEvent.click(screen.getByRole("button", { name: "Saturday" }));
     fireEvent.click(screen.getByRole("button", { name: "Save place" }));
-    await waitFor(() => expect(h.geocode).toHaveBeenCalled());
+    await waitFor(() => expect(h.lookup).toHaveBeenCalled());
     expect(h.rpc).not.toHaveBeenCalledWith("declutter_save_porch_place", expect.anything());
   });
 
@@ -361,8 +360,8 @@ describe("the sell form says which address wins", () => {
     const first = await waitFor(() => { const el = container.querySelector("[data-saved-places-first]"); expect(el).not.toBeNull(); return el!; });
     expect(first.textContent).toBe("You have saved pickup places. A buyer choosing porch pickup or Helpr delivery picks one and gets that address, not the one below.");
     expect(note(container)).toBe("Private. Only used when a buyer gets it another way, or if you remove your saved places.");
-    // It sits between the saved places and the two fields it is about.
-    expect(first.compareDocumentPosition(screen.getByLabelText("Area buyers see")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // It sits between the saved places and the address it is about.
+    expect(first.compareDocumentPosition(screen.getByLabelText("Pickup address")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(container.querySelector("[data-porch-places]")!.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

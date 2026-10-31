@@ -36,6 +36,7 @@ import { trackedFiles } from "@/test/helpers/trackedFiles";
 const state = vi.hoisted(() => ({ switches: {} as Record<string, boolean>, underAge: false }));
 
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (k: string) => state.switches[k] ?? false,

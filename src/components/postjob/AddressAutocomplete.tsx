@@ -33,13 +33,19 @@ interface AddressAutocompleteProps {
    * Fires when the user selects a MapKit suggestion. Components above
    * use this to also populate city + zip in one shot. Any of the
    * fields may be empty when MapKit couldn't infer it from the
-   * placemark — callers should treat them as best-effort.
+   * placemark — callers should treat them as best-effort. `point` is set only
+   * when Apple placed the house itself (a house number and a street), so a
+   * town or street suggestion never carries one.
    */
-  onPick: (picked: { street: string; city: string; state: string; zipCode: string }) => void;
+  onPick: (picked: { street: string; city: string; state: string; zipCode: string; point?: { lat: number; lng: number } }) => void;
   className?: string;
   /** Accessible name (default "Street address"); the single address box says "Address". */
   ariaLabel?: string;
   placeholder?: string;
+  /** Keep the box while MapKit loads or can't be used, so a caller with no plain input of its own never swaps boxes under someone typing. */
+  plainWithoutMapKit?: boolean;
+  /** After the box loses focus. */
+  onBlurred?: () => void;
 }
 
 /**
@@ -58,6 +64,7 @@ interface MapKitPlace {
   postalCode?: string;
   administrativeArea?: string;
   administrativeAreaCode?: string;
+  coordinate?: { latitude?: number; longitude?: number };
 }
 interface MapKitSearch {
   autocomplete: (
@@ -92,6 +99,8 @@ export function AddressAutocomplete({
   className,
   ariaLabel,
   placeholder,
+  plainWithoutMapKit = false,
+  onBlurred,
 }: AddressAutocompleteProps) {
   const mapKitStatus = useMapKitJs();
   const [query, setQuery] = useState(value);
@@ -195,7 +204,10 @@ export function AddressAutocomplete({
           const state = place.administrativeAreaCode ?? place.administrativeArea ?? "";
           setQuery(street);
           onChange(street);
-          onPick({ street, city, state, zipCode });
+          const lat = place.coordinate?.latitude;
+          const lng = place.coordinate?.longitude;
+          const houseFound = !!sub && !!thor && typeof lat === "number" && typeof lng === "number" && Number.isFinite(lat) && Number.isFinite(lng);
+          onPick({ street, city, state, zipCode, ...(houseFound ? { point: { lat, lng } } : {}) });
         },
       );
     } catch {
@@ -214,7 +226,7 @@ export function AddressAutocomplete({
   // If MapKit can't be used, hide ourselves so the parent renders
   // its plain street input fallback. We only render when there's a
   // real chance of producing useful suggestions.
-  if (mapKitStatus !== "ready") {
+  if (mapKitStatus !== "ready" && !plainWithoutMapKit) {
     return null;
   }
 
@@ -237,6 +249,7 @@ export function AddressAutocomplete({
           // from blurring on touch, but pointer/keyboard paths still
           // hit this. 120ms matches CityAutocomplete-style timings.
           setTimeout(() => setOpen(false), 120);
+          onBlurred?.();
         }}
         required
         maxLength={200}

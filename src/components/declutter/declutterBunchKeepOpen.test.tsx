@@ -22,6 +22,7 @@ const h = vi.hoisted(() => ({
   listResult: null as null | (() => Promise<BunchOutcome[]>),
 }));
 
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("idb-keyval", () => ({ get: async () => undefined, set: async () => {}, del: async () => {}, delMany: async () => {}, keys: async () => [], createStore: () => ({}) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: { onboarding_fee_paid: true }, isAdmin: false, isLoading: false }) }));
@@ -63,7 +64,6 @@ async function reachListing() {
   render(<QueryClientProvider client={qc}><MemoryRouter><BunchFlow /></MemoryRouter></QueryClientProvider>);
   fireEvent.change(document.getElementById("bunch-files")!, { target: { files: ["a", "b"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" })) } });
   await screen.findByRole("heading", { name: /^3\. Check each item/ });
-  fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City" } });
   fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "1 Main St, Baton Rouge" } });
   fireEvent.click(document.getElementById("bunch-tax")!);
   const list = await screen.findByRole("button", { name: "List 2 items" });

@@ -262,6 +262,23 @@ describe("DeliverView: the Helpr sees the buyer's tip on the delivery (Q2453)", 
   });
 });
 
+describe("DeliverView: a finished delivery that paid nothing promises no pay (AUD31-27)", () => {
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | {active \|\| t.status === "confirmed" ? <> | {true ? <>
+  it("closed and damaged rows say why and show no take-home; a paid one still shows it", async () => {
+    const row = { size: "small", pickup_area: "Mid-City", dropoff_area: "Baker, LA", trip_miles: 9, take_home_cents: 2100, pickup_slot_start: null };
+    state.mine = [
+      { ...row, task_id: "t1", status: "cancelled", title: "Lamp", payout_status: null },
+      { ...row, task_id: "t2", status: "failed", title: "Mirror", payout_status: null },
+      { ...row, task_id: "t3", status: "confirmed", title: "Chair", payout_status: "succeeded" },
+    ];
+    show(<DeliverView />);
+    expect(await screen.findByText("Closed.")).toBeInTheDocument();
+    expect(screen.getByText("Decided as damaged in delivery. Not paid.")).toBeInTheDocument();
+    expect(screen.getByText("Delivered and paid.")).toBeInTheDocument();
+    expect(screen.getAllByText(/\$21 for you/)).toHaveLength(1);
+  });
+});
+
 describe("DeliverView (the Helpr's screen)", () => {
   it("a truck needs a photo before it can be saved (row 41)", async () => {
     show(<DeliverView />);

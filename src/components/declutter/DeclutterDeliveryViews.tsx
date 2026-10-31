@@ -359,7 +359,8 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
   return (
     <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
       <p className="font-semibold truncate" title={t.title}>{t.title}</p>
-      <p className="text-sm text-muted-foreground">{SIZE_WORDS[t.size]} · {formatPrice(t.take_home_cents)} for you</p>
+      {/* AUD31-27: a delivery that ended unpaid (closed, unfilled, damaged) promises no pay; the line under says why. */}
+      <p className="text-sm text-muted-foreground">{SIZE_WORDS[t.size]}{active || t.status === "confirmed" ? <> · {formatPrice(t.take_home_cents)} for you</> : null}</p>
       {!active && (
         <p className="text-sm">
           {t.status === "confirmed"

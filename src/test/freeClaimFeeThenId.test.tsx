@@ -37,6 +37,7 @@ import { FreeClaimFirstTime } from "@/components/identity/FreeClaimFirstTime";
 import { closeFreeClaimFirstTime, freeClaimFeeRefusal, freeClaimGateRefusal, isFreeClaimFirstTimeOpen, openFreeClaimFirstTime } from "@/lib/declutter/setupFee";
 import { checkoutFree } from "@/lib/declutter/api";
 import { identityRefusal } from "@/lib/identityCheck";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { DECLUTTER_ERROR_COPY } from "@/lib/declutter/errors";
 
 const ROOT = join(__dirname, "../..");
@@ -52,8 +53,15 @@ function show() {
 }
 
 describe("a first free claim", () => {
-  beforeEach(() => invoke.mockReset());
-  afterEach(() => { cleanup(); closeFreeClaimFirstTime(); });
+  beforeEach(() => { invoke.mockReset(); setIdentityCheckOn(true); });
+  afterEach(() => { cleanup(); closeFreeClaimFirstTime(); setIdentityCheckOn(false); });
+
+  it("draws nothing while the identity_check switch is off, even when opened", () => {
+    setIdentityCheckOn(false);
+    show();
+    act(() => openFreeClaimFirstTime());
+    expect(screen.queryByText(/real person's address/)).toBeNull();
+  });
 
   it("draws nothing until the server refuses", () => {
     show();

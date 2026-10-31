@@ -88,7 +88,8 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
       <FreePauseLine />
       {/* D-NEW11: on a day with pickups booked, what to do today comes first. */}
-      <PickupDayCard orders={t.live} bookings={t.bookings} />
+      {/* NIGHT-BUYINGopenpr-1: never on an order on hold (the same open-problem read as its card's "On hold"). */}
+      <PickupDayCard orders={t.live} bookings={t.bookings} held={new Set(t.live.filter((o) => t.views.get(o.orderId)?.facts.problem).map((o) => o.orderId))} />
       {orders && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
       {t.ready && !orders && offers.has === false && !settling.settling && (
         <DeclutterNotice title="Nothing bought yet.">

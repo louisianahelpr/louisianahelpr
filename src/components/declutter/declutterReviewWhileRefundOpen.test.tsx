@@ -1,10 +1,12 @@
 /**
- * Audit 1028 part 2, D2-15: while a refund request on the order is still being worked out (open, offered,
- * returning, with Louisiana Helpr), "Leave a review" is the OUTLINE button, so it does not pull the eye from the
- * refund panel above it. Settled, withdrawn or no request: the solid one. The read is the refund panel's own
+ * Audit 1028 part 2, D2-15: while a refund request on the order is still being worked out (open, offered),
+ * "Leave a review" is the OUTLINE button, so it does not pull the eye from the refund panel above it. Audit BUY-31:
+ * while the item is going back, with Louisiana Helpr, or under an open problem it isn't offered at all. Settled,
+ * withdrawn or no request: the solid one. The read is the refund panel's own
  * (same query key), made only when the card shows that panel.
  *
- * @mutate src/components/declutter/DeclutterReviewForm.tsx | const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open", "offered", "returning", "to_admin"]); | const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open", "offered", "to_admin"]);
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx |   if (problemOpen \|\| refundHoldsTheItem(refund.data?.request?.status)) return null; |
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx | const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open", "offered"]); | const REFUND_STILL_OPEN: ReadonlySet<string> = new Set(["open"]);
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | variant={refundStillOpen(refund.data) ? "outline" : "default"} | variant="default"
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |     enabled: refundPanel, |     enabled: true,
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | userId={userId} refundPanel={!!refundRequests && items > 0} /> | userId={userId} />
@@ -49,7 +51,24 @@ beforeEach(() => {
 });
 
 describe("Leave a review while a refund is open (D2-15)", () => {
-  it.each(["open", "offered", "returning", "to_admin"])("refund %s: the outline button", async (status) => {
+  it.each(["returning", "to_admin"])("refund %s: no review is asked for", async (status) => {
+    state.status = status;
+    const b = show(true);
+    await waitFor(() => expect(b.isConnected).toBe(false));
+    expect(screen.queryByRole("button", { name: "Leave a review" })).toBeNull();
+  });
+
+  it("an open problem: no review is asked for", () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <DeclutterReviewForm orderId="o1" side="buyer" userId="me" refundPanel={false} problemOpen />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole("button", { name: "Leave a review" })).toBeNull();
+  });
+
+  it.each(["open", "offered"])("refund %s: the outline button", async (status) => {
     state.status = status;
     const b = show(true);
     await waitFor(() => expect(b.className).toContain(OUTLINE));

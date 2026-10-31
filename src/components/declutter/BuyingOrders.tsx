@@ -112,6 +112,20 @@ function buyerStanding(f: OrderFacts, when: string | null, helprName: string | n
   }
 }
 
+/**
+ * Audit BUY-31: a handed-over order with a refund still being worked out. The card said "Handed over. It's yours." over
+ * a return, or with Louisiana Helpr deciding. Null when no refund is open (the standing above is right).
+ */
+export function refundStanding(status: string | null | undefined): string | null {
+  switch (status) {
+    case "open": return "Handed over. You asked for a refund.";
+    case "offered": return "Handed over. You have a refund offer to answer.";
+    case "returning": return "Going back for a refund.";
+    case "to_admin": return "On hold while Louisiana Helpr decides the refund.";
+    default: return null;
+  }
+}
+
 /** "today", "tomorrow" or "Thu, Oct 30", to sit after "for". */
 const porchDayLower = (day: string) => porchDayWords(day).replace(/^(Today|Tomorrow)$/, (w) => w.toLowerCase());
 const whenWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -246,15 +260,17 @@ export function bucketChips(counts: Record<OrderBucket, number>) {
  * the card (the pickup panel, the address, reporting a problem, the review) opens under "Details", and the next
  * action opens it at that control.
  */
-export function BuyerOrderHead({ view, open, onOpen, onClose, onAction = onOpen }: {
+export function BuyerOrderHead({ view, standing, open, onOpen, onClose, onAction = onOpen }: {
   view: BuyerOrderView; open: boolean; onOpen: () => void; onClose: () => void;
+  /** Says more than the tracker's sentence: a refund being worked out (refundStanding). */
+  standing?: string | null;
   /** The next-action button; defaults to opening Details (D3-7: a Helpr delivery's "I got it" also asks at once). */
   onAction?: () => void;
 }) {
   return (
     <div className="space-y-2" data-buyer-order={view.bucket}>
       <OrderSteps facts={view.facts} />
-      <p className="text-ds-14">{view.standing}</p>
+      <p className="text-ds-14">{standing ?? view.standing}</p>
       {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
       <div className="flex flex-wrap items-center gap-3">
         {view.action && !open && (

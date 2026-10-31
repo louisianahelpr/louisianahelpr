@@ -9,6 +9,7 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchWatching(userId ?? ""), enabled: member }); | queryFn: () => fetchWatching(userId ?? "") });
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   save={member ? { |                   save={true ? {
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const mapVisible = member && mapChoice; |   const mapVisible = mapChoice;
+ * @mutate src/components/declutter/DeclutterGuest.tsx |       <GuestBrand />\n      <p className="min-w-0 flex-1 basis-48 text-sm"> |       <p className="min-w-0 flex-1 basis-48 text-sm">
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, | queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0,
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -92,6 +93,8 @@ describe("BUY-16: guests browse Declutter", () => {
     const back = encodeURIComponent("/declutter");
     expect(within(join).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", `/signup?redirect=${back}`);
     expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
+    // AUD31-67: the brand, and a way to the rest of Louisiana Helpr.
+    expect(within(join).getByRole("link", { name: "Helpr home" })).toHaveAttribute("href", "/");
     // Browse is the only tab; no gear.
     for (const tab of ["Buying", "Selling", "Deliver", "Free"]) expect(screen.queryByRole("tab", { name: new RegExp(`^${tab}`) })).toBeNull();
     expect(screen.queryByRole("link", { name: /settings/i })).toBeNull();

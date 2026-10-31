@@ -34,7 +34,9 @@ const PAYOUT_FAILED_UNKNOWN = "Your payout didn't go through yet. Check that you
  */
 export function payoutStatusWords(p: Pick<MyPayout, "status" | "items_cents" | "delivery_cents" | "refunded_cents" | "debt_cents" | "attempts">): string {
   // soldstates-4: after the last try nothing restarts the payout on its own; say so, and who sends it.
-  if (p.status === "failed" && (p.attempts ?? 0) >= PAYOUT_TRIES) return PAYOUT_GAVE_UP;
+  // A row set back to pending (a rebook, a held row released) without its tries reset is never tried again by the run
+  // (attempts < 12): at 12 or more it says Support too, never a payment that won't happen on its own.
+  if ((p.status === "failed" || p.status === "pending") && (p.attempts ?? 0) >= PAYOUT_TRIES) return PAYOUT_GAVE_UP;
   // Try count unknown (the grant not live yet): the old words, which promise no retries.
   if (p.status === "failed" && p.attempts === undefined) return PAYOUT_FAILED_UNKNOWN;
   if (p.status !== "nothing_due") return PAYOUT_WORDS[p.status];

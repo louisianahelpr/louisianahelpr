@@ -14,6 +14,8 @@
  * @mutate src/lib/declutter/moves.ts |       if (gap > 0) await wait(gap); |       if (false) await wait(gap);
  * @mutate src/lib/declutter/moves.ts |   if (error) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error)); |   if (false) rpcFail(error, rpcErrorMessage("declutter_create_move_drafts", error));
  */
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const h = vi.hoisted(() => {
@@ -89,6 +91,7 @@ import {
   moveDollarsToCents,
   moveRowProblem,
   publishMany,
+  PUBLISH_AT_ONCE,
   setMoveOutDate,
 } from "./moves";
 import { fetchSellerMovingSale, movingSaleLine } from "./movingSale";
@@ -237,47 +240,78 @@ describe("server calls", () => {
 });
 
 describe("publishMany", () => {
-  // lh-silent-failure review of the Q2352 rebase #3: the setup fee is an account refusal; stop at the first one.
-  // @mutate src/lib/declutter/moves.ts |       if (setupFeeRefusal(error)) { |       if (false) {
-  it("stops at the first setup_fee_required_to_list: no more photo checks spent on items that would be refused too", async () => {
+  // lh-silent-failure review of the Q2352 rebase #3: the setup fee is an account refusal; nothing not started yet is tried.
+  // @mutate src/lib/declutter/moves.ts |           if (setupFeeRefusal(error)) accountRefusal = { error }; |           void setupFeeRefusal;
+  it("stops at the first setup_fee_required_to_list: no item after it is tried, and no photo check is spent", async () => {
     h.api.publishItem.mockRejectedValue(new Error("setup_fee_required_to_list"));
     const checks: string[] = [];
     h.api.requestAiCheck.mockImplementation(async (id: string) => void checks.push(id));
     const progress: string[] = [];
     let now = 0;
-    const out = await publishMany(["a", "b", "c"], (d, t) => progress.push(`${d}/${t}`), async (ms) => void (now += ms), () => now);
-    expect(checks).toEqual(["a"]);
-    expect(out.map((o) => o.id)).toEqual(["a", "b", "c"]);
+    let after: Promise<void> = Promise.resolve();
+    const out = await publishMany(["a", "b", "c", "d", "e"], (d, t) => progress.push(`${d}/${t}`), async (ms) => void (now += ms), () => now, (p) => { after = p; });
+    await after;
+    // The first three start together (PUBLISH_AT_ONCE); the two after them are never tried.
+    expect(h.api.publishItem).toHaveBeenCalledTimes(PUBLISH_AT_ONCE);
+    expect(checks).toEqual([]);
+    expect(out.map((o) => o.id)).toEqual(["a", "b", "c", "d", "e"]);
     expect(out.every((o) => "error" in o)).toBe(true);
-    expect(progress[progress.length - 1]).toBe("3/3");
+    expect(progress[progress.length - 1]).toBe("5/5");
   });
 
-  it("lists each item through the one-item calls, in order, reporting progress", async () => {
+  // LEAD-BUNCH-34-SLOW (owner 10-31, "very slow to list them after you click post"): a few at once, and Post never
+  // waits for the photo check (publish first, as the one-item form, LEAD-POST-SLOW).
+  // @mutate src/lib/declutter/moves.ts |   await Promise.all(Array.from({ length: Math.min(PUBLISH_AT_ONCE, itemIds.length) }, worker)); |   await worker();
+  // @mutate src/lib/declutter/moves.ts |   afterChecks(checks);\n  return out; |   await checks;\n  afterChecks(checks);\n  return out;
+  it("lists PUBLISH_AT_ONCE at a time, each through the one-item calls, and returns before any photo check", async () => {
+    expect(PUBLISH_AT_ONCE).toBe(3);
     const calls: string[] = [];
-    h.api.attestItem.mockImplementation(async (id: string) => void calls.push(`attest ${id}`));
-    h.api.requestAiCheck.mockImplementation(async (id: string) => void calls.push(`check ${id}`));
+    let open = 0;
+    let most = 0;
+    h.api.attestItem.mockImplementation(async (id: string) => { open += 1; most = Math.max(most, open); calls.push(`attest ${id}`); await new Promise((r) => setTimeout(r, 5)); });
+    // The photo tool is slow: each check answers only when let go. Post must not wait for one.
+    const letGo: (() => void)[] = [];
+    h.api.requestAiCheck.mockImplementation(async (id: string) => { calls.push(`check ${id}`); await new Promise<void>((r) => letGo.push(r)); });
     h.api.publishItem.mockImplementation(async (id: string) => {
+      open -= 1;
       calls.push(`publish ${id}`);
       return id === "b" ? "pending_review" : "live";
     });
     const progress: string[] = [];
     let now = 0;
-    const out = await publishMany(["a", "b"], (d, t) => progress.push(`${d}/${t}`), async (ms) => void (now += ms), () => now);
-    expect(calls).toEqual(["attest a", "check a", "publish a", "attest b", "check b", "publish b"]);
-    expect(out).toEqual([{ id: "a", status: "live" }, { id: "b", status: "pending_review" }]);
-    expect(progress).toEqual(["1/2", "2/2"]);
+    let after: Promise<void> = Promise.resolve();
+    const out = await publishMany(["a", "b", "c", "d"], (d, t, i) => progress.push(`${d}/${t}#${i}`), async (ms) => void (now += ms), () => now, (p) => { after = p; });
+    expect(most).toBe(3);
+    // Every item was published before the first check began, and publishMany came back with that check still out.
+    expect(calls.findIndex((c) => c.startsWith("check"))).toBeGreaterThan(calls.lastIndexOf("publish d"));
+    expect(calls.filter((c) => c.startsWith("check")).length).toBeLessThanOrEqual(1);
+    expect(out).toEqual([{ id: "a", status: "live" }, { id: "b", status: "pending_review" }, { id: "c", status: "live" }, { id: "d", status: "live" }]);
+    expect(progress.map((p) => p.split("#")[0])).toEqual(["1/4", "2/4", "3/4", "4/4"]);
+    expect(progress.map((p) => Number(p.split("#")[1])).sort()).toEqual([0, 1, 2, 3]);
+    for (let n = 0; n < 4; n++) {
+      await new Promise((r) => setTimeout(r, 0));
+      letGo.splice(0).forEach((go) => go());
+    }
+    await after;
+    expect(calls.filter((c) => c.startsWith("check"))).toEqual(["check a", "check b", "check c", "check d"]);
   });
 
   it("spaces the photo checks under the AI per-minute limit", async () => {
     h.api.publishItem.mockResolvedValue("live");
     let now = 0;
     const waits: number[] = [];
-    await publishMany(["a", "b", "c"], () => {}, async (ms) => { waits.push(ms); now += ms; }, () => now);
+    let after: Promise<void> = Promise.resolve();
+    await publishMany(["a", "b", "c"], () => {}, async (ms) => { waits.push(ms); now += ms; }, () => now, (p) => { after = p; });
+    await after;
     expect(waits).toEqual([AI_CHECK_GAP_MS, AI_CHECK_GAP_MS]);
-    expect(Math.floor(60_000 / AI_CHECK_GAP_MS)).toBeLessThanOrEqual(6);
+    // LEAD-BUNCH-34-SLOW: the gap is the edge function's own per-minute limit, read from its source (12 a minute).
+    const edge = readFileSync(resolve(process.cwd(), "supabase/functions/declutter-ai-draft/index.ts"), "utf8");
+    const perMinute = Number(/windowMs: 60_000, maxRequests: (\d+), keyPrefix: "declutter-ai-draft"/.exec(edge)?.[1]);
+    expect(perMinute).toBe(12);
+    expect(Math.ceil(60_000 / AI_CHECK_GAP_MS)).toBeLessThanOrEqual(perMinute);
   });
 
-  it("a failed photo check still publishes (to review, the server's fail-safe); a refused publish is reported, the rest go on", async () => {
+  it("a failed photo check never stops a listing (the server's fail-safe); a refused publish is reported, the rest go on", async () => {
     h.api.requestAiCheck.mockRejectedValue(new Error("ai_unavailable"));
     h.api.publishItem.mockImplementation(async (id: string) => {
       if (id === "a") throw Object.assign(new Error("photos_required"), { userMessage: DECLUTTER_ERROR_COPY.photos_required });
@@ -285,7 +319,9 @@ describe("publishMany", () => {
     });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     let now = 0;
-    const out = await publishMany(["a", "b"], () => {}, async (ms) => void (now += ms), () => now);
+    let after: Promise<void> = Promise.resolve();
+    const out = await publishMany(["a", "b"], () => {}, async (ms) => void (now += ms), () => now, (p) => { after = p; });
+    await after;
     warn.mockRestore();
     expect("error" in out[0] && declutterErrorMessage(out[0].error)).toBe(DECLUTTER_ERROR_COPY.photos_required);
     expect(out[1]).toEqual({ id: "b", status: "pending_review" });

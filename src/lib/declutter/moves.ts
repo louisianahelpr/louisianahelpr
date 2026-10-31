@@ -19,8 +19,12 @@ import { setupFeeRefusal } from "@/lib/declutter/setupFee";
 export { daysBetween, formatMoveDate, louisianaToday };
 
 const MOVE_DATE_MAX_DAYS = 180;
-/** declutter-ai-draft allows 6 calls a minute per member: one photo check every 10.5 s stays under it. */
-export const AI_CHECK_GAP_MS = 10_500;
+/**
+ * declutter-ai-draft allows 12 calls a minute per member: one call every 5.25 s stays under it. LEAD-BUNCH-34-SLOW (owner
+ * 10-31): it was 6 a minute and 10.5 s, so 34 photos on Sell a bunch (5 sorting calls) took at least 42 s of waiting
+ * alone. The hourly caps per mode (the cost cap) are unchanged. The edge function must be deployed before this.
+ */
+export const AI_CHECK_GAP_MS = 5_250;
 
 /** What is wrong with a move-out date, in plain words, or null. Mirrors declutter_move_out_date_problem. */
 export function moveDateProblem(date: string, today: string): string | null {
@@ -164,42 +168,63 @@ export async function fetchMyMoveOutDate(): Promise<string | null> {
 
 export type PublishOutcome = { id: string; status: "live" | "pending_review" } | { id: string; error: unknown };
 
+/** LEAD-BUNCH-34-SLOW (owner 10-31, "very slow to list them after you click post"): drafts listed at once, a few at a time. */
+export const PUBLISH_AT_ONCE = 3;
+
 /**
- * List several drafts, one at a time, each through the same three calls as
- * listing one item: the four confirmations, the photo check, publish. The
- * photo checks are spaced to stay under the photo tool's per-minute limit
- * (an unchecked item would only wait for a review, never skip one).
+ * List several drafts through the same calls as listing one item: the four confirmations, then publish, PUBLISH_AT_ONCE
+ * at a time (the owner: "very slow to list them after you click post"). The photo check runs AFTER, as on the one-item
+ * form (LEAD-POST-SLOW, publish first): Post never waits for it. The checks are spaced to stay under the photo tool's
+ * per-minute limit, one per listed item; one that never comes back leaves the server's fail-safe to hold the listing.
+ * `onProgress(done, total, index)`: `index` is the item that just finished (they finish in any order).
+ * `afterChecks` gets the checks' own promise (tests and a caller that wants to wait for them; nothing on screen does).
  */
 export async function publishMany(
   itemIds: string[],
-  onProgress: (done: number, total: number) => void,
+  onProgress: (done: number, total: number, index: number) => void,
   wait: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
   clock: () => number = () => Date.now(),
+  afterChecks: (checks: Promise<void>) => void = () => {},
 ): Promise<PublishOutcome[]> {
-  const out: PublishOutcome[] = [];
-  let lastCheck = -Infinity;
-  for (const [i, id] of itemIds.entries()) {
-    try {
-      await attestItem(id);
+  const out: PublishOutcome[] = new Array(itemIds.length);
+  const listed: string[] = [];
+  let next = 0;
+  let done = 0;
+  // lh-silent-failure review of the Q2352 rebase #3: the one-time setup fee is an ACCOUNT refusal, so every later
+  // item would be refused the same way. Once one is, the ones not started yet are not tried.
+  let accountRefusal: { error: unknown } | null = null;
+  const worker = async () => {
+    while (next < itemIds.length) {
+      const i = next++;
+      const id = itemIds[i];
+      if (accountRefusal) {
+        out[i] = { id, error: accountRefusal.error };
+      } else {
+        try {
+          await attestItem(id);
+          out[i] = { id, status: await publishItem(id) };
+          listed.push(id);
+        } catch (error) {
+          // Not swallowed: the refusal is returned for this item, and the screen tells the seller how many were not listed and why.
+          out[i] = { id, error };
+          if (setupFeeRefusal(error)) accountRefusal = { error };
+        }
+      }
+      done += 1;
+      onProgress(done, itemIds.length, i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(PUBLISH_AT_ONCE, itemIds.length) }, worker));
+  const checks = (async () => {
+    let lastCheck = -Infinity;
+    for (const id of listed) {
       const gap = lastCheck + AI_CHECK_GAP_MS - clock();
       if (gap > 0) await wait(gap);
       lastCheck = clock();
-      // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe).
+      // Asked twice; if it never comes back the listing is held for an admin (the server's fail-safe, 15 minutes).
       await requestAiCheckWithRetry(id);
-      out.push({ id, status: await publishItem(id) });
-    } catch (error) {
-      // Not swallowed: the refusal is returned for this item, and the screen
-      // tells the seller how many were not listed and why.
-      out.push({ id, error });
-      // lh-silent-failure review of the Q2352 rebase #3: the one-time setup fee is an ACCOUNT refusal, so every
-      // later item would be refused the same way after spending its own photo check. Stop at the first.
-      if (setupFeeRefusal(error)) {
-        for (const rest of itemIds.slice(i + 1)) out.push({ id: rest, error });
-        onProgress(itemIds.length, itemIds.length);
-        break;
-      }
     }
-    onProgress(i + 1, itemIds.length);
-  }
+  })();
+  afterChecks(checks);
   return out;
 }

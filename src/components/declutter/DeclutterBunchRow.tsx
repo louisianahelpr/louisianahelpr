@@ -6,25 +6,22 @@
  */
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { bunchItemProblem, type BunchItem } from "@/lib/declutter/bunch";
 import { CATEGORY_LABEL, CONDITION_LABEL } from "./declutterUi";
 import { bunchItemName } from "./DeclutterBunchCard";
 import { FallbackImg } from "./FallbackImg";
 import { bunchPhotoDrag } from "./bunchPhotoDrag";
 
-export function BunchRow({ item, index, url, open, chosen, nextPriceId, canDrop, onToggleOpen, onToggleChosen, onPrice, onPhotoDrop, children }: {
+export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggleOpen, onPrice, onPhotoDrop, children }: {
   item: BunchItem;
   index: number;
   url: string | undefined;
   open: boolean;
-  chosen: boolean;
   /** Where Next on the keyboard goes: the next item's price. */
   nextPriceId: string | null;
   /** False while a run is working on the list: nothing moves under it. */
   canDrop: boolean;
   onToggleOpen: () => void;
-  onToggleChosen: (on: boolean) => void;
   onPrice: (price: string) => void;
   onPhotoDrop: (photoKey: string) => void;
   children: React.ReactNode;
@@ -61,7 +58,6 @@ export function BunchRow({ item, index, url, open, chosen, nextPriceId, canDrop,
         onPhotoDrop(from.photo);
       }}>
       <div className="flex items-center gap-2 p-2">
-        <Checkbox className="ml-1 shrink-0" checked={chosen} onCheckedChange={(v) => onToggleChosen(v === true)} aria-label={`Choose ${name}`} />
         <button type="button" onClick={onToggleOpen} aria-expanded={open} aria-label={`${open ? "Close" : "Open"} ${name}`} data-bunch-expand=""
           className="flex min-h-14 min-w-0 flex-1 items-center gap-2 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">

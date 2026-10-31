@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |   if (waiting.cents <= 0) return null; |
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     if (l.my_side !== "seller" \|\| l.status !== "paid" \|\| !l.order_id \|\| l.price_cents <= 0) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx | p.status === "pending" \|\| p.status === "failed" ? p.amount_cents : 0 | p.amount_cents
- * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("sold") && <SellerPayoutPrompt />} |
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |     <SellerPayoutPrompt />\n |
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     titles.push(...s.titles); |     if (!titles.length) titles.push(...s.titles);
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |     s.titles.push(l.item_title); |     if (!s.titles.length) s.titles.push(l.item_title);
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |   return `${titles[0]}, ${titles[1]} and ${titles.length - 2} more`; |   return `${titles[0]}, ${titles[1]} and more`;
@@ -120,6 +120,8 @@ describe("Declutter payout prompt: only when Declutter money waits", () => {
 
   it("the Selling tab shows it where the money is: with the sold group", () => {
     const dash = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
-    expect(dash).toContain('{show("sold") && <SellerPayoutPrompt />}');
+    // AUD31-4 (4c8920f168): the sold group is built once as `sold` so it can come first; the prompt opens it
+    // (blankComments leaves the JSX comment as an empty {}).
+    expect(dash).toMatch(/const sold = show\("sold"\) && <>\s*(?:\{\s*\}\s*)?<SellerPayoutPrompt \/>/);
   });
 });

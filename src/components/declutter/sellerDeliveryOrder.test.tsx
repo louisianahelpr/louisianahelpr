@@ -7,8 +7,9 @@
  * has a cancel button on a paid delivery (migration 20261030002630 makes both cancel RPCs refuse).
  *
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         <button type="button" className={btn} onClick={onProblem}>Report a problem</button> |         <button type="button" className={btn}>Cancel order</button><button type="button" className={btn}>Cancel delivery</button><button type="button" className={btn} onClick={onProblem}>Report a problem</button>
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |             onClick={() => setAsk("notDelivered")}> |             onClick={() => notDelivered.mutate(undefined)}>
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("gotIt")}>I got it</button>} | onClick={() => gotIt.mutate(undefined)}>I got it</button>}
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("notDelivered")}>It wasn't delivered</button>} | onClick={() => notDelivered.mutate(undefined)}>It wasn't delivered</button>}
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   const late = can.notDelivered && !noShowWaiting; |   const late = false;
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx | !late && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>} | !late && <button type="button" className={primary} disabled={busy} onClick={() => gotIt.mutate(undefined)}>I got it</button>}
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} /> | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} />
  * #7 (deep audit 2026-10-28): before the delivery day the buyer is told when "I got it" comes, and gets no button.
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" |         {false && b.order_status === "paid"
@@ -117,6 +118,16 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     expect(window.confirm).not.toHaveBeenCalled();
   });
 
+  it("AUD31-2: a late delivery leads with It wasn't delivered, then Ask for a new time; I got it comes after", async () => {
+    state.booking = { ...BASE, slot_start: iso(-2 * HOUR), slot_end: iso(-1 * HOUR), not_delivered_from: iso(-0.75 * HOUR) };
+    show();
+    await screen.findByRole("button", { name: "It wasn't delivered" });
+    const row = document.querySelector("[data-seller-delivery-actions]")!;
+    const names = [...row.querySelectorAll("button")].map((b) => (b.textContent ?? "").trim());
+    expect(names.length).toBeGreaterThan(2);
+    expect(names).toEqual(["It wasn't delivered", "Ask for a new time", "I got it", "Report a problem"]);
+  });
+
   // Audit 2026-10-30 DB-8: the notice said the seller took a photo; neither side's card showed it.
   // @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto | {false && b.delivered_photo_path && <DeliveredPhoto
   // @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {url.isSuccess && !url.data && <p className="text-xs" role="alert"> |       {false && <p className="text-xs" role="alert">
@@ -157,7 +168,7 @@ describe("seller-delivery order: the money moments ask in the app", () => {
 // Audit 1030 DB-2 (live run A): with a problem report open, the delivery panel still offered "I got it" (which then
 // failed: the server refuses it with problem_open), the "Tap I got it ... 24 hours to report a problem" line and a
 // second "Report a problem". While a problem is open the panel offers none of them; the card's note says why.
-// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.gotIt && !problemOpen && <button | {can.gotIt && <button
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.gotIt && !problemOpen && !late && <button | {can.gotIt && !late && <button
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | {problemOpen ? null : b.side === "buyer" ? | {b.side === "buyer" ?
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | {!problemOpen && <button type="button" className={btn} onClick={onProblem}> | {<button type="button" className={btn} onClick={onProblem}>
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | !can.gotIt && !problemOpen && b.order_status | !can.gotIt && b.order_status

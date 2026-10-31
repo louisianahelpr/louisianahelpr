@@ -17,6 +17,13 @@
  * @mutate src/components/declutter/BuyingOrders.tsx |         inHandLong: !t?.delivered_at && heldPastADay(t?.picked_up_at, now) }; |         inHandLong: false };
  * @mutate src/lib/declutter/stillInHand.ts |   return !!pickedUpAt && now - new Date(pickedUpAt).getTime() >= STILL_IN_HAND_MS; |   return !!pickedUpAt && now - new Date(pickedUpAt).getTime() >= 0;
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (!orderWaitsOnYou(f)) return null; |   if (f.done) return null;
+ * AUD31-3: a seller delivery with no time set, or a move the seller asked, is the buyer's move (Needs you).
+ * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!!f.delivered \|\| (!f.delivered && (!!f.needsTime \|\| !!f.moveAsked \|\| !!f.late))); |      return buyer && (!!f.delivered \|\| (!f.delivered && !!f.late));
+ * @mutate src/components/declutter/BuyingOrders.tsx |         needsTime: sd?.status === "needs_time", moveAsked: | needsTime: false, moveAsked:
+ * @mutate src/components/declutter/BuyingOrders.tsx | moveAsked: !!sd?.proposed_start && sd.proposed_by === "seller", | moveAsked: !!sd?.proposed_start,
+ * AUD31-2: a seller delivery past its time and never marked delivered is late, under Needs you.
+ * @mutate src/components/declutter/OrderSteps.tsx | !!f.needsTime \|\| !!f.moveAsked \|\| !!f.late))); | !!f.needsTime \|\| !!f.moveAsked)));
+ * @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1 && f.late) return | if (at === 1 && false) return
  * BUY-7 (buying audit 10-30 #7): from an hour before a door pickup or meetup, "I got it" is the card's action (Needs you).
  * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!f.booked \|\| (!!f.gotItOpen && !f.pickedUp)); |      return buyer && !f.booked;
  * @mutate src/components/declutter/BuyingOrders.tsx |   if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet"; |   if (f.handover === "meetup") return "Book a time to meet";
@@ -145,7 +152,13 @@ const CASES: Case[] = [
   { id: "meet1near", line: { handover: "meetup" }, slot: iso(0.75), step: 1, bucket: "needs_you", action: "I got it" },
   { id: "meet1late", line: { handover: "meetup" }, slot: iso(-0.5), step: 1, bucket: "needs_you", action: "I got it" },
   { id: "home1early", line: {}, slot: iso(1.25), step: 1, bucket: "upcoming", action: null },
-  { id: "sd0", line: { handover: "seller_delivery" }, sd: { status: "needs_time" }, step: 0, bucket: "waiting", action: null },
+  // AUD31-3: no time set yet: only the buyer can pick one (Needs you); a move the seller asked: only the buyer accepts.
+  { id: "sd0", line: { handover: "seller_delivery" }, sd: { status: "needs_time" }, step: 0, bucket: "needs_you", action: "Pick a time" },
+  { id: "sd1move", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26), proposed_start: iso(30), proposed_by: "seller" }, step: 1, bucket: "needs_you", action: "Accept the new time" },
+  // AUD31-2: past the window and never marked delivered: late, Needs you, "It wasn't delivered" first.
+  { id: "sd1late", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-3), not_delivered_from: iso(-1) }, step: 1, bucket: "needs_you", action: "It wasn't delivered" },
+  { id: "sd1soon", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-0.5), not_delivered_from: iso(1) }, step: 1, bucket: "upcoming", action: null },
+  { id: "sd1mine", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26), proposed_start: iso(30), proposed_by: "buyer" }, step: 1, bucket: "upcoming", action: null },
   { id: "sd1", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(26) }, step: 1, bucket: "upcoming", action: null },
   { id: "sd2", line: { handover: "seller_delivery" }, sd: { status: "booked", slot_start: iso(-2), delivered_at: iso(-1) }, step: 2, bucket: "needs_you", action: "I got it" },
   { id: "hd0", line: { handover: "delivery", delivery_task_id: "t-hd0" }, step: 0, bucket: "waiting", action: null },
@@ -210,6 +223,28 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     await waitFor(() => expect(card("fresh")).toHaveTextContent("Picked up. On its way to you."));
     await waitFor(() => expect(card("late")).toHaveTextContent(/Hank picked it up .* and hasn't marked it delivered\./));
     expect(card("late")).not.toHaveTextContent("On its way");
+  });
+
+  // AUD31-7: the headline comes from the task once it ended without a delivery; a live one keeps its step line.
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return "No Helpr took this delivery. What you paid for delivery was refunded."; |
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return "This delivery was closed."; |
+  // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null), |         null),
+  it("AUD31-2: a seller delivery past its time says it is late, not booked", async () => {
+    load([CASES.find((c) => c.id === "sd1late")!]);
+    show();
+    await waitFor(() => expect(card("sd1late")).toHaveTextContent(/Late: it was due .* and the seller hasn't marked it delivered\./));
+    expect(card("sd1late")).not.toHaveTextContent("Delivery booked");
+  });
+
+  it("AUD31-7: a delivery nobody took, or one closed, never says Finding a Helpr; an open one still does", async () => {
+    const hd = (id: string, status: string): Case => ({ id, line: { handover: "delivery", delivery_task_id: `t-${id}` }, task: { status }, step: 0, bucket: "waiting", action: null });
+    load([hd("unfilled", "unfilled"), hd("closed", "cancelled"), hd("open", "open")]);
+    show();
+    await waitFor(() => expect(card("unfilled")).toHaveTextContent("No Helpr took this delivery. What you paid for delivery was refunded."));
+    await waitFor(() => expect(card("closed")).toHaveTextContent("This delivery was closed."));
+    await waitFor(() => expect(card("open")).toHaveTextContent("Finding a Helpr to bring it."));
+    expect(card("unfilled")).not.toHaveTextContent("Finding a Helpr");
+    expect(card("closed")).not.toHaveTextContent("Finding a Helpr");
   });
 
   it("collapsed, each card has the tracker at its step and at most one primary button: its next action", async () => {

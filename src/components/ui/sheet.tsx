@@ -13,11 +13,7 @@ import {
   POPUP_SHEET_CLS,
 } from "@/components/ui/popupFooter";
 import { SHEET_HERO_TITLE_CLASS, SHEET_HERO_TITLE_STYLE } from "./sheetHeroTitle";
-import {
-  PopupDismissCtx,
-  usePopupDismissPresence,
-  useRegisterPopupDismiss,
-} from "@/components/ui/popupDismiss";
+import { PopupDismissCtx } from "@/components/ui/popupDismiss";
 
 const Sheet = SheetPrimitive.Root;
 
@@ -97,8 +93,8 @@ interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
     VariantProps<typeof sheetVariants> {
   /**
-   * Slide-up sheet glued to the bottom edge with a grab handle and a plain
-   * dim scrim (owner 2026-10-18, tweak 6). Only with side="bottom"; every
+   * Slide-up sheet glued to the bottom edge with a plain dim scrim (owner
+   * 2026-10-18, tweak 6; no grab handle since LEAD-SHEET-X-ONLY, 10-31). Only with side="bottom"; every
    * other bottom sheet stays the centred modal.
    */
   floor?: boolean;
@@ -111,15 +107,11 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
     // own state with no Trigger, so Esc left focus on the page body. The button that had focus when the sheet opened
     // gets it back, if it is still on the page. A caller's own handler still decides first.
     const opener = React.useRef<HTMLElement | null>(null);
-    // THE ONE DISMISSAL RULE (popupDismiss.tsx): a sheet whose footer offers a
-    // labelled dismiss does not also draw the corner ×. Dialogs have enforced
-    // this since 2026-08-31; sheets rendered the × unconditionally, so the
-    // three sheets that DO carry a SheetSecondaryAction — withdraw an
-    // application, decline an applicant, the NPS prompt — each shipped a
-    // "Cancel"/"Skip" and an × six inches apart doing the same job. Registered,
-    // never passed: see popupDismiss.tsx for why a `hideClose` prop is not the
-    // answer.
-    const [hasDismiss, setHasDismiss] = usePopupDismissPresence();
+    // EVERY SHEET HAS AN X (owner 10-31, LEAD-SHEET-X-ONLY: "every sheet has an X; no drag bar"). Sheets used to
+    // follow popupDismiss.tsx's one-dismissal rule and drop the corner X when their footer had a Cancel; the owner
+    // now wants the X on every sheet, so it is drawn always and the footer Cancel stays beside it. Dialogs and toasts
+    // keep the one-dismissal rule. The provider is null so an action inside a sheet never registers on a dialog
+    // that happens to wrap it. Guarded by src/test/everySheetHasAnX.test.tsx.
     // For side="right" / "left" / "top" the sheet reaches the top of
     // the viewport so the close button needs to clear the iOS safe-area
     // inset (notch / Dynamic Island) — otherwise it ends up under the
@@ -159,9 +151,9 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
             opener.current.focus();
           }}
         >
-          {isFloor && <div aria-hidden className="sheet-grab-handle" />}
-          <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>
-          {!hasDismiss && <SheetCloseButton top={closeTop} right={closeRight} />}
+          {/* LEAD-SHEET-X-ONLY (owner 10-31): no drag bar or grab handle; a sheet closes with its X or a tap outside. */}
+          <PopupDismissCtx.Provider value={null}>{children}</PopupDismissCtx.Provider>
+          <SheetCloseButton top={closeTop} right={closeRight} />
         </SheetPrimitive.Content>
       </SheetPortal>
     );
@@ -365,9 +357,7 @@ const stripSheetOverrides = (props: Record<string, unknown>) => {
 
 const SheetSecondaryAction = React.forwardRef<HTMLButtonElement, SheetActionProps>(
   ({ children, ...props }, ref) => {
-    // Tell the surrounding SheetContent this sheet has a labelled way out, so
-    // it drops its redundant ×. See popupDismiss.tsx.
-    useRegisterPopupDismiss();
+    // No dismiss registration: every sheet keeps its X beside this (owner 10-31, LEAD-SHEET-X-ONLY).
     return (
     // No `size="sm"`. The dismiss matches the commit's height (h-14, 56px)
     // rather than stepping down to 44 — in a ROW the WIDTH already carries the

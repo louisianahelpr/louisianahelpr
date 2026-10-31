@@ -2,7 +2,7 @@
  * @mutate src/lib/declutter/bunchSaved.ts |         await set(photoPrefix + photo.key, await photo.file.arrayBuffer()); |         throw blobRefused;
  * @mutate src/components/declutter/useDeviceSaved.ts |     window.addEventListener("pagehide", now); |     void now;
  * @mutate src/components/declutter/useDeviceSaved.ts |       if (document.visibilityState === "hidden") flush(); |       void 0;
- * @mutate src/lib/declutter/bunchSaved.ts |     return { bunch: mine(bunch), moving: | return { bunch: false, moving:
+ * @mutate src/lib/declutter/bunchSaved.ts |     return { bunch: kept, moving: kept && | return { bunch: false, moving: kept &&
  * Sell a bunch audit finding 2: reload, the back link, a killed tab or a crash lost every photo and every word, with no
  * warning. The store is mocked with an in-memory idb-keyval (jsdom has no IndexedDB); the real one is a browser check.
  *
@@ -10,11 +10,14 @@
  * @mutate src/components/declutter/useDeviceSaved.ts |     const t = setTimeout(flush, SAVE_DELAY_MS); |     const t = setTimeout(() => {}, SAVE_DELAY_MS);
  * @mutate src/components/declutter/useBunchSaved.ts |   if (s.sorting) return s.photos;\n | \n
  * @mutate src/components/declutter/useBunchSaved.ts |   return s.photos.filter((p) => held.has(p.key));\n}\n\n/** Items and | \n  return s.photos;\n}\n\n/** Items and
- * @mutate src/lib/declutter/bunch.ts |       unusable.push({ key: p.key, name: p.file.name, error });\n    }\n  }\n  return { photos: kept, unusable }; |       kept.push(p); void error;\n    }\n  }\n  return { photos: kept, unusable };
+ * @mutate src/lib/declutter/bunch.ts |     else unusable.push({ key: p.key, name: p.file.name, error: r.error });\n  }\n  return { photos: kept, unusable }; |     else kept.push(p);\n  }\n  return { photos: kept, unusable };
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       setSortNote(unusablePhotosNote(back.unusable)); |       void back.unusable;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |     for (const { id, item } of draftsLeftBehind(items, next)) void takeDownDraft(id, item); |     void next;
  * @mutate src/components/declutter/DeclutterBunchView.tsx | with their photos{items.some((it) => it.price.trim() !== "") ? " and prices" : ""}. | with their photos and prices.
  * @mutate src/lib/declutter/bunchSaved.ts |   if (saved.userId !== userId \|\| now - saved.savedAt > MAX_AGE_MS) { |   if (false) {
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx |   const continueTo = kept.data?.bunch && kept.data.one ? { to: undefined } : kept.data?.bunch ? { to: bunchTo } |   const continueTo = kept.data?.bunch && kept.data.one ? { to: bunchTo } : kept.data?.bunch ? { to: bunchTo }
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | onClick={continueTo.to ? undefined : () => setChoosingKept(true)} | onClick={undefined}
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | <ChoiceCard compact data-kept-choice="one" to={SELL_ONE_PATH} | <ChoiceCard compact data-kept-choice="one" to={SELL_BUNCH_PATH}
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -30,6 +33,8 @@ const h = vi.hoisted(() => ({ refuseBlobs: false,
   statuses: new Map<string, string>(),
   disk: new Map<string, unknown>(),
   failWrites: false,
+  /** LEAD-BUNCH-34-SLOW: photo writes after this many never finish (a phone still writing big photos when the page goes). */
+  photoWritesFinish: Infinity,
   user: "u1",
 }));
 
@@ -38,6 +43,7 @@ vi.mock("idb-keyval", () => ({
   get: async (k: string) => h.disk.get(k),
   set: async (k: string, v: unknown) => {
     if (h.failWrites) throw new Error("quota");
+    if (k.includes("-photo:") && [...h.disk.keys()].filter((x) => x.includes("-photo:")).length >= h.photoWritesFinish) await new Promise(() => {});
     if (h.refuseBlobs && v instanceof Blob) throw new Error("UnknownError: blobs aren't stored in this session");
     h.disk.set(k, v);
   },
@@ -113,6 +119,7 @@ beforeAll(() => {
 beforeEach(() => {
   h.disk.clear();
   h.failWrites = false;
+  h.photoWritesFinish = Infinity;
   h.hang = false;
   h.user = "u1";
   h.withdrawn = [];
@@ -210,6 +217,39 @@ describe("Sell a bunch survives leaving", () => {
     await threeComeBack();
   });
 
+  // LEAD-BUNCH-34-SLOW (owner 10-31: "every time you close the website you lose what you did"): the small record was
+  // written once, after EVERY photo, so a page closed while the phone was still writing big photos kept none of them.
+  // @mutate src/components/declutter/useDeviceSaved.ts |         onDisk.current.add(x.key);\n        await saveMeta();\n |         onDisk.current.add(x.key);\n
+  it("5 photos, the page closes while the 4th is still being written: the 3 written come back", async () => {
+    const first = renderFlow();
+    h.photoWritesFinish = 3;
+    h.hang = true;
+    await new Promise((r) => setTimeout(r, 0));
+    fireEvent.change(document.getElementById("bunch-files")!, { target: { files: ["a", "b", "c", "d", "e"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" })) } });
+    await new Promise((r) => setTimeout(r, 0));
+    window.dispatchEvent(new Event("pagehide"));
+    await waitFor(() => expect(savedMeta()?.photos).toHaveLength(3), { timeout: 300 });
+    first.unmount();
+    h.hang = false;
+    h.photoWritesFinish = Infinity;
+    renderFlow();
+    expect(await screen.findByRole("heading", { name: "3 photos not sorted yet" })).toBeTruthy();
+  });
+
+  it("5 photos added, the page closes, reopened: all 5 are back", async () => {
+    const first = renderFlow();
+    h.hang = true;
+    await new Promise((r) => setTimeout(r, 0));
+    fireEvent.change(document.getElementById("bunch-files")!, { target: { files: ["a", "b", "c", "d", "e"].map((k) => new File([k], `${k}.jpg`, { type: "image/jpeg" })) } });
+    await new Promise((r) => setTimeout(r, 0));
+    window.dispatchEvent(new Event("pagehide"));
+    await waitFor(() => expect(savedMeta()?.photos).toHaveLength(5), { timeout: 300 });
+    first.unmount();
+    h.hang = false;
+    renderFlow();
+    expect(await screen.findByRole("heading", { name: "5 photos not sorted yet" })).toBeTruthy();
+  });
+
   it("the app goes to the background mid-sort (hidden): saved at once", async () => {
     const first = renderFlow();
     await pickThreeMidSort();
@@ -239,9 +279,19 @@ describe("Sell a bunch survives leaving", () => {
     moving.unmount();
     h.disk.set("lh-sell-one-v1", { userId: "u1", savedAt: Date.now(), photos: [] });
     h.disk.set(META, { ...(h.disk.get(META) as object), userId: "someone-else" });
+    const one = chooser();
+    expect((await screen.findByText("Continue where you left off")).closest("a")).toHaveAttribute("href", "/declutter/sell");
+    one.unmount();
+    // LEAD chooser fit (10-31): both kinds kept is still ONE row (the chooser must fit 375x812); it opens a small choice.
+    h.disk.set(META, { ...(h.disk.get(META) as object), userId: "u1" });
     chooser();
-    expect((await screen.findByText("Continue your listing")).closest("a")).toHaveAttribute("href", "/declutter/sell");
-    expect(screen.queryByText("Continue where you left off")).toBeNull();
+    const row = await screen.findByText("Continue where you left off");
+    expect(screen.getAllByText("Continue where you left off")).toHaveLength(1);
+    expect(document.querySelectorAll('[data-sell-choice^="continue"]')).toHaveLength(1);
+    expect(row.closest("a")).toBeNull();
+    fireEvent.click(row.closest("button")!);
+    const sheet = await waitFor(() => { const el = document.querySelector("[data-kept-work]"); expect(el).not.toBeNull(); return el as HTMLElement; });
+    expect([...sheet.querySelectorAll("[data-kept-choice]")].map((a) => a.getAttribute("href"))).toEqual(["/declutter/sell?mode=moving", "/declutter/sell"]);
   });
 
   it("leaving before the save delay still saves (the back link)", async () => {

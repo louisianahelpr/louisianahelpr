@@ -1,5 +1,6 @@
 import { toast } from "sonner";
 import { useFeature } from "@/hooks/useFeature";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { sectionItems } from "@/components/mobileNav/mobileNavHelpers";
 import { useOpenToEveryoneAnswer } from "@/components/landing/useSectionsOpen";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
@@ -20,10 +21,15 @@ export function useSectionTabs() {
   const declutter = useFeature("declutter");
   const shops = useFeature("shops");
   const rentals = useFeature("rentals");
-  const on = { declutter, shops, rentals } as const;
-  // Asked only once some section is live for this viewer: useFeature is false
-  // signed out, so a signed-out page and a member with nothing live never ask.
-  const openToEveryone = useOpenToEveryoneAnswer(declutter || shops || rentals);
+  // AUD31-73 (Guests on Declutter): useFeature is false signed out, so a guest browsing Declutter (open to everyone,
+  // DeclutterGuestGate) saw its own chip greyed "Declutter Soon". For a guest, Declutter is live when it is open to
+  // everyone (the same features_open_to_everyone answer the guest gate reads).
+  const { user, isReady } = useAuthReady();
+  const guest = isReady && !user;
+  // Asked only once some section is live for this viewer, or for a guest: a member with nothing live never asks.
+  const openToEveryone = useOpenToEveryoneAnswer(declutter || shops || rentals || guest);
+  // Declutter only: it is the one section with guest pages (BUY-16's DeclutterGuestGate).
+  const on = { declutter: declutter || (guest && !!openToEveryone?.has("declutter")), shops, rentals } as const;
   return sectionItems.map((s) => ({ ...s, on: on[s.feature], preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) }));
 }
 

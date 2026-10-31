@@ -302,6 +302,29 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(within(sold).getByText("Nothing sold yet")).toBeInTheDocument();
   });
 
+  // AUD31-4: a sale to hand over comes first on the whole tab, above the offers and the listings; none: after them.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const soldFirst = only === null && (todo?.salesOpen ?? 0) > 0; |   const soldFirst = false;
+  it("AUD31-4: a sale to hand over sits above the offers and the listings; with none, the sold group stays below", async () => {
+    state.mine = [ITEM];
+    state.cart = [{ line_id: "l-o1", item_id: "i-o1", item_title: "Sale o1", my_side: "seller", seller_id: "u1", price_cents: 3000, status: "paid",
+      checkout_by: "2026-10-27T12:00:00Z", order_id: "o1", order_status: "paid", handover: "seller_delivery", premium_cents: 0, total_cents: 3000 }];
+    const first = at("/declutter?tab=selling");
+    // The sale cards are mocked to one marked row each (PaidOrdersSection above).
+    const sold = await waitFor(() => {
+      const el = first.container.querySelector("[data-paid-order='o1']");
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    const offers = await screen.findByRole("region", { name: "Offers on your items" });
+    expect(sold.compareDocumentPosition(offers) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    first.unmount();
+    state.cart = [];
+    at("/declutter?tab=selling");
+    const sold2 = await screen.findByRole("region", { name: /^Sold: pickup and payout/ });
+    const offers2 = screen.getByRole("region", { name: "Offers on your items" });
+    expect(sold2.compareDocumentPosition(offers2) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+  });
+
   it("'More ways to sell' is one row to the sell chooser, never a pill", async () => {
     at("/declutter?tab=selling");
     const more = await screen.findByRole("region", { name: "More ways to sell" });
@@ -395,17 +418,19 @@ describe("Selling tab: Taken down, with Relist", () => {
   });
 
   // NIGHT-SELL-Sellinglist-4 (night audit 2026-10-30, list-375-01-top.png): at 375 one listing's title was cut on one
-  // line while View, See what buyers see and Manage wrapped to two rows. The title takes two lines, the row opens
-  // the item (a draft's opens Finish listing), and View is a button only from sm up.
+  // line while View, See what buyers see and Manage wrapped to two rows. The title takes two lines and the row opens
+  // the item (a draft's opens Finish listing). LEAD-ONE-PREVIEW (owner 2026-10-31): View and See what buyers see are
+  // one button, Preview (the listing as buyers read it), on every listed row and at every width; a draft has none.
   // @mutate src/components/declutter/DeclutterHomeView.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}> | <p className="truncate text-ds-15 font-semibold" title={item.title}>
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | className="hidden sm:inline-flex" data-listing-view="" | data-listing-view=""
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <Link to={`/declutter/item/${item.id}?preview=buyer`} aria-label={`Preview ${item.title}`}>Preview</Link> | <Link to={`/declutter/item/${item.id}`} aria-label={`View ${item.title}`}>View</Link>
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | {item.status !== "draft" && ( | {item.status === "live" && (
   // @mutate src/components/declutter/DeclutterHomeView.tsx | to={item.status === "draft" ? `/declutter/sell?item=${item.id}` : `/declutter/item/${item.id}`} | to="/declutter"
-  it("a listing row: the title takes two lines, the row opens the item, View is off on phones (Sellinglist-4)", async () => {
-    state.mine = [ITEM, { ...ITEM, id: "d1", status: "draft", title: "Half-done lamp" }];
+  it("a listing row: the title takes two lines, the row opens the item, one Preview (Sellinglist-4, LEAD-ONE-PREVIEW)", async () => {
+    state.mine = [ITEM, { ...ITEM, id: "p1", status: "paused", title: "Paused desk" }, { ...ITEM, id: "d1", status: "draft", title: "Half-done lamp" }];
     const { container } = at("/declutter?tab=selling");
     await screen.findByText("Half-done lamp");
     const rows = Array.from(container.querySelectorAll("[data-listing-row]"));
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(3);
     for (const r of rows) {
       const title = r.querySelector("[data-listing-open] p") as HTMLElement;
       expect(title.className).toContain("line-clamp-2");
@@ -414,9 +439,10 @@ describe("Selling tab: Taken down, with Relist", () => {
     const open = (title: string) => (screen.getByText(title).closest("[data-listing-open]") as HTMLAnchorElement).getAttribute("href");
     expect(open("Oak rocking chair")).toBe(`/declutter/item/${ITEM.id}`);
     expect(open("Half-done lamp")).toBe("/declutter/sell?item=d1");
-    const view = container.querySelector("[data-listing-view]") as HTMLElement;
-    expect(view.className.split(/\s+/)).toEqual(expect.arrayContaining(["hidden", "sm:inline-flex"]));
-    expect(view.className.split(/\s+/)).not.toContain("inline-flex");
+    const previews = Array.from(container.querySelectorAll("[data-listing-preview]")) as HTMLAnchorElement[];
+    expect(previews.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([["Preview", `/declutter/item/${ITEM.id}?preview=buyer`], ["Preview", "/declutter/item/p1?preview=buyer"]]);
+    expect(previews.every((a) => !a.className.split(/\s+/).includes("hidden"))).toBe(true);
+    expect(screen.queryByRole("link", { name: /^(?:View\b|See what buyers see)/ })).toBeNull();
   });
 
   it("no 'Taken down' chip or group while nothing is taken down", async () => {

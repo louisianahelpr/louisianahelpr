@@ -36,6 +36,12 @@ export type OrderFacts = {
   inHandLong?: boolean;
   /** Delivery kinds: dropped off at the buyer's. */
   delivered?: boolean;
+  /** AUD31-3, seller delivery: no time is set, and only the buyer can pick one (status needs_time). */
+  needsTime?: boolean;
+  /** AUD31-3, seller delivery: the other side asked to move the time, and only this viewer can accept it. */
+  moveAsked?: boolean;
+  /** AUD31-2, seller delivery: the booked time is over and it is not marked delivered (the booking's not_delivered_from). */
+  late?: boolean;
   /** The order is handed over (final). */
   done: boolean;
   cancelled?: boolean;
@@ -113,6 +119,8 @@ export function orderWaitsOnYou(f: OrderFacts): boolean {
       // BUY-7: at the handover time "I got it" is the buyer's move, on the card, not under Details.
       return buyer && (!f.booked || (!!f.gotItOpen && !f.pickedUp));
     case "seller_delivery":
+      // AUD31-3: before the drop-off, a time to pick or a move to answer is the buyer's move too.
+      return buyer && (!!f.delivered || (!f.delivered && (!!f.needsTime || !!f.moveAsked || !!f.late)));
     case "delivery":
       // Dropped off: the buyer says they have it. LEAD-GOTIT30H: so too once a Helpr has held it 24 hours undelivered.
       return buyer && (!!f.delivered || !!f.inHandLong);

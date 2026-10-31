@@ -21,7 +21,10 @@ describe("LEAD-WANTED-POST-BUTTON: Wanted's post button is Selling's Sell an ite
     const wanted = read("DeclutterWantedViews.tsx").match(/<div className="([^"]*)" data-wanted-post="">\s*<Button type="button" className="([^"]*)" onClick=\{\(\) => setPosting\(true\)\}>/);
     expect(wanted, "Wanted's post row").toBeTruthy();
     expect(wanted![2]).toBe(selling![2]);
-    expect(wanted![1]).toBe(selling![1].replace(/\s*lg:hidden/, ""));
+    // The same row, but for when it shows: Selling's is off on a phone and on desktop (LEAD-SELLING-NO-SELL-BTN-PHONE).
+    const layout = (c: string) => c.split(/\s+/).filter((x) => !["hidden", "flex", "sm:flex", "lg:hidden"].includes(x)).sort();
+    expect(layout(wanted![1])).toEqual(layout(selling![1]));
+    expect(wanted![1].split(/\s+/)).toContain("flex");
     const raw = readFileSync(join(process.cwd(), "src/components/declutter/DeclutterWantedViews.tsx"), "utf8");
     expect(raw).toMatch(/onClick=\{\(\) => setPosting\(true\)\}>Post what you're looking for<\/Button>/);
     expect(raw).not.toMatch(/<BarkPillButton[^>]*>Post what you're looking for/);

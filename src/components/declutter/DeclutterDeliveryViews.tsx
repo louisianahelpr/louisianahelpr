@@ -430,10 +430,21 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
       )}
       <ConfirmSheet open={ask?.kind === "backOut"} title="Back out of this delivery?" confirmLabel="Back out" pending={backOut.isPending}
         onConfirm={() => backOut.mutate()} onClose={() => setAsk(null)} testId="delivery-back-out">
-        Another Helpr can take it. Under 2 hours before the pickup it costs a delivery strike, unless the seller moved the time.
+        {/* AUD31-26: say whether THIS back-out costs a strike (helpr_task_release: late = under 2 hours before the
+            pickup, and free whenever the seller moved the time, which this view cannot see). */}
+        Another Helpr can take it. {backOutCostsStrike(v?.pickup_slot_start)
+          ? "It's less than 2 hours before the pickup, so backing out now costs a delivery strike, unless the seller moved the time."
+          : "It's more than 2 hours before the pickup, so backing out now costs no strike."}
       </ConfirmSheet>
     </li>
   );
+}
+
+/** helpr_task_release's late rule: under 2 hours before the booked pickup (or no time read yet: say the worst). */
+export function backOutCostsStrike(pickupSlotStart: string | null | undefined, now: number = Date.now()): boolean {
+  if (!pickupSlotStart) return true;
+  const t = new Date(pickupSlotStart).getTime();
+  return !Number.isFinite(t) || now > t - 2 * 3_600_000;
 }
 
 /**

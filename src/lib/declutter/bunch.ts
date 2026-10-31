@@ -26,7 +26,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { report } from "@/lib/errorLogger";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { pageAwayCount, whenPageIsBack, withRetries } from "@/lib/declutter/steadyRetry";
-import { addPhotoSteadily, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhotoSteadily, AlreadyPosted, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { AI_CHECK_GAP_MS, createMoveDraft, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
@@ -38,6 +38,42 @@ export const GROUP_BATCH = 8;
 export const BUNCH_MAX_PHOTOS = 80;
 /** The grouping call sorts up to 8 photos and writes several listings, so it gets longer than one item's minute. */
 const GROUP_TIMEOUT_MS = 100_000;
+/**
+ * LEAD-BUNCH-34-SLOW (owner 10-31, 34 photos on an iPhone "takes ages, like it's not even accepting the pictures"):
+ * photos are made ready (decoded, shrunk, location data removed) this many at a time, all of them from the first tap,
+ * instead of one after another inside each batch's turn. A few at once, never all: a phone decodes each full photo whole.
+ */
+export const PHOTO_WORK_AT_ONCE = 4;
+
+/** Each photo's small copy, or why it couldn't be made, started at once for every photo, PHOTO_WORK_AT_ONCE at a time, in order. */
+export function cleanAhead(
+  photos: readonly BunchPhoto[],
+  clean: (file: File) => Promise<File>,
+  onEach?: (key: string, copy: File | null, error?: unknown) => void,
+  atOnce = PHOTO_WORK_AT_ONCE,
+): Promise<{ copy: File } | { error: unknown }>[] {
+  const done: ((r: { copy: File } | { error: unknown }) => void)[] = [];
+  const out = photos.map(() => new Promise<{ copy: File } | { error: unknown }>((resolve) => { done.push(resolve); }));
+  let next = 0;
+  const worker = async () => {
+    while (next < photos.length) {
+      const i = next++;
+      const p = photos[i];
+      try {
+        const copy = await clean(p.file);
+        onEach?.(p.key, copy);
+        done[i]({ copy });
+      } catch (error) {
+        // Not swallowed: the caller names this photo and says why (unusablePhotosNote), and the screen offers it again.
+        onEach?.(p.key, null, error);
+        done[i]({ error });
+      }
+    }
+  };
+  for (let w = 0; w < Math.min(atOnce, photos.length); w++) void worker();
+  return out;
+}
+
 /** The waits before a batch's further tries. A phone that drops one request usually sends the next. */
 const SORT_RETRY_DELAYS_MS = [5_000, 20_000] as const;
 
@@ -69,6 +105,12 @@ export interface BunchItem {
   sizeUnknown?: boolean;
   /** Set once listing has made its draft: trying again finishes that draft, never a second one. */
   draftId?: string;
+  /**
+   * LEAD-RESUME-REPOSTS: the id its draft is made with, picked and saved before the draft is asked for. A run cut off
+   * before its draft id was saved, or work brought back from an older save, asks with the same id again: the server
+   * says it is already posted, so it is never listed twice.
+   */
+  appId?: string;
   /** Photos already on that draft: photo key -> the server's photo id, so one moved off the item can be taken off it. */
   uploaded?: Record<string, string>;
   /** Photos waiting to be sorted, kept together with why: not an item yet, so it can't be listed. The screen offers Sort again. */
@@ -199,6 +241,8 @@ export interface SortExtras {
   onRetry?: () => void;
   /** A batch's first item was the same thing as the last batch's last: its photos joined that item. */
   onJoined?: (intoKey: string, from: BunchItem) => void;
+  /** LEAD-BUNCH-34-SLOW: each photo's small copy as soon as it is made (null when it couldn't be), for its thumbnail and the "Adding N of M" count. */
+  onCleaned?: (key: string, copy: File | null) => void;
 }
 
 /** Too much to send in one go on this connection, or the server said so: half as many may go through. A limit or a busy tool answers the same. */
@@ -228,7 +272,9 @@ export async function groupPhotos(
   clean: (file: File) => Promise<File> = cleanForGroup,
   extras: SortExtras = {},
 ): Promise<GroupResult> {
-  const { whenBack = whenPageIsBack, awayCount = pageAwayCount, onRetry, onJoined } = extras;
+  const { whenBack = whenPageIsBack, awayCount = pageAwayCount, onRetry, onJoined, onCleaned } = extras;
+  // LEAD-BUNCH-34-SLOW: every photo starts being made ready now, a few at a time, so a batch's copies are waiting when its turn comes.
+  const ahead = cleanAhead(photos, clean, onCleaned ? (key, copy) => onCleaned(key, copy) : undefined);
   const batches: BunchPhoto[][] = [];
   for (let i = 0; i < photos.length; i += GROUP_BATCH) batches.push(photos.slice(i, i + GROUP_BATCH));
   const items: BunchItem[] = [];
@@ -256,13 +302,14 @@ export async function groupPhotos(
   for (const [i, batch] of batches.entries()) {
     const good: BunchPhoto[] = [];
     const cleaned: File[] = [];
-    for (const p of batch) {
-      try {
-        cleaned.push(await clean(p.file));
+    for (const [n, p] of batch.entries()) {
+      const made = await ahead[i * GROUP_BATCH + n];
+      if ("copy" in made) {
+        cleaned.push(made.copy);
         good.push(p);
-      } catch (error) {
-        // Not swallowed: the screen names this photo and says why (unusablePhotosNote).
-        unusable.push({ key: p.key, name: p.file.name, error });
+      } else {
+        // The screen names this photo and says why (unusablePhotosNote).
+        unusable.push({ key: p.key, name: p.file.name, error: made.error });
       }
     }
     let made: BunchItem[] = [];
@@ -333,20 +380,21 @@ export async function keepCleanablePhotos(
   clean: (file: File) => Promise<File> = cleanForGroup,
 ): Promise<{ photos: BunchPhoto[]; unusable: GroupResult["unusable"] }> {
   const held = new Set(items.flatMap((it) => it.photoKeys));
+  // LEAD-BUNCH-34-SLOW: a few at a time, as a live sort does (34 photos brought back mid-sort were read one by one first).
+  const loose = photos.filter((p) => !held.has(p.key));
+  const checks = new Map(cleanAhead(loose, clean).map((c, i) => [loose[i].key, c] as const));
   const kept: BunchPhoto[] = [];
   const unusable: GroupResult["unusable"] = [];
   for (const p of photos) {
-    if (held.has(p.key)) {
+    const check = checks.get(p.key);
+    if (!check) {
       kept.push(p);
       continue;
     }
-    try {
-      await clean(p.file);
-      kept.push(p);
-    } catch (error) {
-      // Not swallowed: the screen names this photo and says why (unusablePhotosNote).
-      unusable.push({ key: p.key, name: p.file.name, error });
-    }
+    const r = await check;
+    if ("copy" in r) kept.push(p);
+    // The screen names this photo and says why (unusablePhotosNote).
+    else unusable.push({ key: p.key, name: p.file.name, error: r.error });
   }
   return { photos: kept, unusable };
 }
@@ -444,23 +492,6 @@ export function addPhotosToItem(items: BunchItem[], itemKey: string, photoKeys: 
 /** The same change on these items. Not the words, so it never clears a flag. */
 export function bulkEdit(items: BunchItem[], keys: ReadonlySet<string>, patch: Partial<Pick<BunchItem, "price" | "free" | "conditionStars">>): BunchItem[] {
   return items.map((it) => (keys.has(it.key) ? { ...it, ...patch } : it));
-}
-
-/** A percent off each item's own suggestion, to a whole dollar and never under $1. Free items and items with no suggestion are left alone. */
-export function percentOffSuggested(items: BunchItem[], keys: ReadonlySet<string>, pct: number): { items: BunchItem[]; changed: number; skipped: number } {
-  let changed = 0;
-  let skipped = 0;
-  const next = items.map((it) => {
-    if (!keys.has(it.key) || it.free) return it;
-    const was = Number(it.aiPrice);
-    if (!it.aiPrice || !Number.isFinite(was)) {
-      skipped += 1;
-      return it;
-    }
-    changed += 1;
-    return { ...it, price: String(Math.max(1, Math.round((was * (100 - pct)) / 100))) };
-  });
-  return { items: next, changed, skipped };
 }
 
 /**
@@ -653,7 +684,7 @@ export interface ListDeps {
   setHandovers: typeof setHandovers;
   setDropPct: typeof setDropPct;
   setKeepUp: typeof setKeepUp;
-  publishMany: (ids: string[], onProgress: (done: number, total: number) => void) => Promise<PublishOutcome[]>;
+  publishMany: (ids: string[], onProgress: (done: number, total: number, index: number) => void) => Promise<PublishOutcome[]>;
 }
 
 const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, publishMany: (ids, p) => publishMany(ids, p) };
@@ -696,6 +727,34 @@ interface BunchRun {
 }
 
 let activeRun: BunchRun | null = null;
+
+/** The id a bunch item's draft is made with (crypto.randomUUID; the server checks its form). */
+function newBunchItemId(): string {
+  return crypto.randomUUID();
+}
+
+/**
+ * LEAD-RESUME-REPOSTS (owner 2026-10-31: "Continue where you left off" offered Sell a bunch items she had already
+ * posted, and posting them made duplicates). Work brought back from the device, against what the server says of its
+ * ids: an item whose draft or app id is already posted (any status but draft) is left out, with the photos only it
+ * held, so it is never offered again; an item whose draft is gone keeps its place and gets a new draft at listing.
+ * `statuses` null (the read failed): nothing is left out here, and listing asks again.
+ */
+export function withoutPosted<T extends { key: string }>(items: BunchItem[], photos: T[], statuses: Map<string, string> | null): { items: BunchItem[]; photos: T[]; posted: number } {
+  if (!statuses) return { items, photos, posted: 0 };
+  const isPosted = (id?: string) => !!id && statuses.has(id) && statuses.get(id) !== "draft";
+  const kept = items.filter((it) => !isPosted(it.draftId) && !isPosted(it.appId));
+  const posted = items.length - kept.length;
+  if (posted === 0) return { items, photos, posted };
+  const held = new Set(kept.flatMap((it) => it.photoKeys));
+  const goneOnly = new Set(items.filter((it) => !kept.includes(it)).flatMap((it) => it.photoKeys).filter((k) => !held.has(k)));
+  return { items: kept, photos: photos.filter((p) => !goneOnly.has(p.key)), posted };
+}
+
+/** Every id the server may know a kept item by: its draft and its app id. */
+export function keptItemIds(items: BunchItem[]): string[] {
+  return [...new Set(items.flatMap((it) => [it.draftId, it.appId].filter((x): x is string => !!x)))];
+}
 
 /**
  * One listing run at a time on this device. A run outlives its screen (the back link), and the screen brought back holds
@@ -762,7 +821,7 @@ export async function listBunch(
   const out = new Map<string, BunchOutcome>();
   const prepared: { key: string; title: string; id: string; keepUpFailed: boolean }[] = [];
   // A run cut off by a crash or a reload may have listed a draft before it could save that. Asked first, not refused later.
-  const held = items.flatMap((it) => (it.draftId ? [it.draftId] : []));
+  const held = keptItemIds(items);
   let statuses: Map<string, string> | null = null;
   if (held.length > 0) {
     try {
@@ -774,6 +833,12 @@ export async function listBunch(
   }
   for (const [i, original] of items.entries()) {
     let it = original;
+    // Its app id is already one of the seller's items (a run cut off before its draft id was saved): that is its draft.
+    const byAppId = !it.draftId && it.appId && statuses ? statuses.get(it.appId) : undefined;
+    if (byAppId !== undefined && it.appId) {
+      it = { ...it, draftId: it.appId };
+      onStep(it.key, { draftId: it.appId });
+    }
     if (it.draftId && statuses) {
       const status = statuses.get(it.draftId);
       if (status === "live" || status === "pending_review") {
@@ -819,9 +884,23 @@ export async function listBunch(
         // Its draft exists from an earlier try: the seller's edits go onto it.
         await deps.updateDraft(id, fields);
       } else {
-        id = choices.moveOutOn
-          ? await deps.createMoveDraft(choices.moveOutOn, place, fields)
-          : await deps.createDraft(fields);
+        // Saved before the draft is asked for, so a cut-off run asks with the same id and never makes a second.
+        const appId = it.appId ?? newBunchItemId();
+        if (!it.appId) onStep(it.key, { appId });
+        try {
+          id = choices.moveOutOn
+            ? await deps.createMoveDraft(choices.moveOutOn, place, fields)
+            : await deps.createDraft(fields, appId);
+        } catch (err) {
+          // LEAD-RESUME-REPOSTS: that id is already the seller's posted listing. Never a second copy: it leaves the list.
+          if (err instanceof AlreadyPosted) {
+            out.set(it.key, { key: it.key, title: it.title, error: err, draftId: err.itemId });
+            onStep(it.key, null);
+            onProgress(i + 1, total);
+            continue;
+          }
+          throw err;
+        }
         onStep(it.key, { draftId: id });
       }
       const uploaded = { ...it.uploaded };
@@ -871,9 +950,10 @@ export async function listBunch(
     onProgress(i + 1, total);
   }
   if (prepared.length > 0) {
-    const results = await deps.publishMany(prepared.map((p) => p.id), (done) => {
+    // LEAD-BUNCH-34-SLOW: listed a few at once, so they finish in any order; each one's own step is saved as it goes.
+    const results = await deps.publishMany(prepared.map((p) => p.id), (done, _total, index) => {
       onProgress(items.length + done, total);
-      const p = prepared[done - 1];
+      const p = prepared[index];
       if (p) onStep(p.key, null);
     });
     results.forEach((r, i) => {

@@ -362,7 +362,7 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/declutter-checkout/index.ts: { quantity: 1, price_data: { currency: "usd", unit_amount: raise.raise_cents + raise.card_fee_cents,',
   // Q1929 settleRaise: READS the order's buyer to check the raise page's payer. No money column, no write.
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id").eq("id", meta.order_id).maybeSingle()',
-  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover, items_cents").eq("id", orderId).maybeSingle()',
+  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover, items_cents, delivery_cents").eq("id", orderId).maybeSingle()',
   // Q2307: the same Stripe fee handed to declutter_refund_party_gone (an order a party has left), then to mark_order_paid.
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
@@ -508,7 +508,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     functions: {
       // A2-14 (20261028223738): only the "Louisiana Helpr decided" notices added; the refund it records is unchanged.
       // 20261028232338: only the buyer's "Enjoy your item" is not sent on this path; the refund it records is unchanged.
-      declutter_admin_decide_delivery_damage: "20261028232338_declutter_damage_no_enjoy_notice.sql 1fb157e202779ff4",
+      // 20261031184929 (AUD31-34): only the Helpr's and the buyer's notice words name the item; the refund is unchanged.
+      declutter_admin_decide_delivery_damage: "20261031184929_declutter_damage_notices_name_the_item.sql b531d4e77fa8cfe0",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       // Q2419 (20261027170717), reviewed: a FREE order (paid_with 'free', $0, no payment) closes with the strike rules
       // and records NO refund; every card order runs the unchanged body below it. declutter_checkout_free records none.
@@ -647,7 +648,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
       // 20261019112103: + a held Shops refund / payout, refused while a refund made in Stripe stands (refunded_in_stripe)
       // or when the queue would not send it; a released Shops row starts its tries at 0. No amount changes.
-      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql 486fe38ef3f5f44a",
+      admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
       // records how a held refund was settled outside the app (Stripe re_/pyr_ id or "other:") and the amount the admin
       // says moved (settled_by_hand_cents, payout_settlements, the hand-refund ledger); it sends no money and never
       // changes refund_cents, so no new fee is returned by the app (owner: hand-settled = no new money movement).
@@ -764,7 +765,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // /code-review of shops-m3): amounts come only from shop_refund_amounts (held by the shop_refunds CHECKs); the
     // held-for-review admin tools move status and record what moved, never change refund_cents.
     functions: {
-      admin_payout_release: "20261019112103_shops_held_for_review_admin_tools.sql 486fe38ef3f5f44a",
+      admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
       admin_payout_settle_by_hand: "20261019112103_shops_held_for_review_admin_tools.sql f65d8088fd3c48d3",
       admin_payouts_held_for_review: "20261019112103_shops_held_for_review_admin_tools.sql c1e1ff95266b714b",
       payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",

@@ -17,7 +17,7 @@ import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { isCaptchaError } from "@/lib/turnstile";
-import { notifySignupSubtitle } from "@/lib/jobIntent";
+import { signupSubtitle } from "@/lib/jobIntent";
 import { useSignupEntry } from "./signup/useSignupEntry";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -470,7 +470,7 @@ const Signup = () => {
   // "Pick up right where you left off." was removed. `subtitle` is optional;
   // the header renders the <p> only when one is present.
   const stepHeading: { title: string; subtitle?: string } =
-    step === 1 ? { title: t("signup.title"), subtitle: notifySignupSubtitle(searchParams.get("reason")) } : { title: t("signup.aboutTitle") };
+    step === 1 ? { title: t("signup.title"), subtitle: signupSubtitle(searchParams.get("reason"), searchParams.get("redirect")) } : { title: t("signup.aboutTitle") };
 
   // No `desktopBrandPanel`: the AuthBrandPane component (deleted unused on
   // 2026-08-25) was only the H emblem, and it stacked

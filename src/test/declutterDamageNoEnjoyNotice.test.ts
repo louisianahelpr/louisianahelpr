@@ -7,7 +7,7 @@
  * transaction-local declutter.no_enjoy_notice; the damage decision names its own order right before that call;
  * and nothing else sets the setting (EXACT list). Proof: src/test/pglite/declutterDamageNoEnjoyNotice.pglite.mjs.
  */
-// @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   PERFORM set_config('declutter.no_enjoy_notice', o.id::text, true);\n | \n
+// @mutate supabase/migrations/20261031184929_declutter_damage_notices_name_the_item.sql |   PERFORM set_config('declutter.no_enjoy_notice', o.id::text, true);\n | \n
 // @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   IF COALESCE(current_setting('declutter.no_enjoy_notice', true), '') IS DISTINCT FROM o.id::text THEN |   IF p_by <> 'admin' THEN
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

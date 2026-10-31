@@ -14,6 +14,12 @@ const REASON_WORDS: Record<ProblemReason, string> = {
 const PROBLEM_OPEN_HEADLINE = "Problem reported: Louisiana Helpr is looking.";
 /** Where the order stands while a problem is open (the server refuses booking and a no-show then: problem_open). */
 export const PROBLEM_ON_HOLD = "On hold while Louisiana Helpr looks at the problem.";
+/**
+ * NIGHT-BUYINGopenpr-6: a held order said nothing of what happens next. The decision sends both sides a notice
+ * (declutter_admin_decide_problem: declutter_notify to buyer and seller, "Louisiana Helpr decided"). No time is said:
+ * there is no deadline on a decision or on adding a side (declutter_problems has none), so none is promised.
+ */
+export const PROBLEM_NEXT = "Next: they read both sides, then send you both a notice with what they decide.";
 
 function noShowAnsweredWords(side: "buyer" | "seller", delivery: boolean) {
   if (side === "buyer") return delivery ? "You reported it wasn't delivered, and the seller answered." : "You reported the seller didn't show, and the seller answered.";
@@ -39,6 +45,7 @@ export function ProblemOpenNote({ problem, side, answered = false, delivery = fa
       <p className="text-muted-foreground">
         {reported} {side === "seller" ? "Your money is held until they decide." : "Nobody is paid until they decide."}
       </p>
+      <p className="text-muted-foreground" data-problem-next="">{PROBLEM_NEXT}</p>
     </div>
   );
 }

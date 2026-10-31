@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { RecognitionRow } from "./RecognitionRow";
 
@@ -26,7 +26,7 @@ describe("RecognitionRow badge sizing", () => {
   it("sizes milestone icons the same as the ID verified icon", () => {
     renderRow();
     const idChip = screen.getByRole("button", { name: /ID verified/ });
-    const milestoneChip = screen.getByRole("button", { name: /First job/ });
+    const milestoneChip = screen.getByRole("button", { name: /Trusted Helpr/ });
     const idIcon = idChip.querySelector("svg");
     const milestoneIcon = milestoneChip.querySelector("svg");
     expect(idIcon).not.toBeNull();
@@ -76,5 +76,42 @@ describe("RecognitionRow verification ladder (Q985)", () => {
   it("still draws the earned rung at tier 2", () => {
     renderLadder({ completedJobs: 6, avgRating: 4.9, reviewCount: 4 });
     expect(ladderChips().map((b) => (b.getAttribute("aria-label") ?? b.textContent ?? "").trim())).toEqual([expect.stringMatching(/^Trusted/)]);
+  });
+});
+
+/**
+ * AUD31-51: a 31-job Helpr's row read "Neighborhood pro · Trusted Helpr · Rising star · First job". Only the highest
+ * job-count rung shows; the lower ones are one tap away behind "+N more"; a credential milestone still shows.
+ * @mutate src/pages/user/RecognitionRow.tsx |     if (!milestone.requirement.credentialTier && milestone !== topRung) lowerRungs.push(milestoneSpec(milestone)); |     if (false) lowerRungs.push(milestoneSpec(milestone));
+ * @mutate src/pages/user/RecognitionRow.tsx |   const hidden = [...(overflows ? specs.slice(VISIBLE_BADGE_CAP) : []), ...lowerRungs]; |   const hidden = overflows ? specs.slice(VISIBLE_BADGE_CAP) : [];
+ * @mutate src/pages/user/RecognitionRow.tsx |   const topRung = earned.find((m) => !m.requirement.credentialTier); |   const topRung = earned[earned.length - 1];
+ */
+describe("AUD31-51: one ladder rung on the profile", () => {
+  const row = (credentialTier = 0) =>
+    render(
+      <RecognitionRow
+        milestoneStats={{ completedJobs: 31, avgRating: 4.9, reviewCount: 7, repeatHirePercent: 0, credentialTier }}
+        idVerified={false}
+        ladderProfile={null}
+        ladderStats={null}
+        credentials={{}}
+        backgroundChecked={false}
+      />,
+    );
+
+  it("shows only the highest job-count rung; the lower ones open from +N more", () => {
+    row();
+    expect(screen.getByRole("button", { name: /Neighborhood pro/ })).toBeTruthy();
+    for (const lower of [/First job/, /Rising star/, /Trusted Helpr/]) expect(screen.queryByRole("button", { name: lower })).toBeNull();
+    const more = screen.getByRole("button", { name: /^See all \d+ more badges$/ });
+    fireEvent.click(more);
+    expect(screen.getAllByText("First job").length).toBeGreaterThan(0);
+  });
+
+  it("a credential milestone (Licensed pro) still shows beside the top rung", () => {
+    row(2);
+    expect(screen.getByRole("button", { name: /Licensed pro/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Neighborhood pro/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /First job/ })).toBeNull();
   });
 });

@@ -28,6 +28,15 @@ CREATE TABLE IF NOT EXISTS public.member_signup_sources (
 );
 ALTER TABLE public.member_signup_sources ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.member_signup_sources FROM PUBLIC, anon, authenticated;
+
+-- Q807: every public table carries the unconfirmed-email statement gate.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
 GRANT SELECT, INSERT, DELETE ON TABLE public.member_signup_sources TO service_role;
 CREATE INDEX IF NOT EXISTS member_signup_sources_recorded_idx ON public.member_signup_sources (recorded_at);
 

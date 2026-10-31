@@ -14,7 +14,7 @@
  * Home never runs) is real, disjoint from Home's static reach, and gets its own
  * `signed-in-pages` chunk, ranked above signed-in-shared so it wins those modules.
  *
- * @mutate vite.config.ts |               test: (id: string) => homeOff.has(id.split("?")[0].replace(/\\\\/g, "/")), |               test: (id: string) => signedInDeep.has(id.split("?")[0].replace(/\\\\/g, "/")),
+ * @mutate vite.config.ts |               test: (id: string) => homeOff.has(id.split("?")[0].replace(/\\/g, "/")), |               test: (id: string) => signedInDeep.has(id.split("?")[0].replace(/\\/g, "/")),
  * @mutate vite.config.ts |               priority: 15.5, |               priority: 14,
  * @mutate scripts/perf/bootReach.mjs |   const homeOff = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !home.has(f))); |   const homeOff = new Set();
  * @mutate scripts/perf/bootReach.mjs |   const homeOff = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !home.has(f))); |   const homeOff = new Set([...firstScreen].filter((f) => !declutterOnly.has(f)));

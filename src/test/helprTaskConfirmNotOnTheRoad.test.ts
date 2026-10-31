@@ -9,7 +9,7 @@
  * Backend proof: src/test/pglite/helprTaskConfirmNotOnTheRoad.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | t.picked_up_at > now() - interval '24 hours' | t.picked_up_at > now() - interval '1 minute'
- * @mutate supabase/migrations/20261031082308_helpr_task_confirm_not_on_the_road.sql |   IF t.status = 'picked_up' AND (t.picked_up_at IS NULL OR |   IF t.status = 'no_such' AND (t.picked_up_at IS NULL OR
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF t.status = 'picked_up' AND t.stuck_stage IS DISTINCT FROM 'collecting' |   IF t.status = 'no_such' AND t.stuck_stage IS DISTINCT FROM 'collecting'
  * @mutate src/lib/declutter/errors.ts |   delivery_on_the_way: "The Helpr is still bringing it. Tap I got it once it's dropped off.", |   delivery_on_the_way: "Something went wrong.",
  */
 import { describe, expect, it } from "vitest";

@@ -87,6 +87,9 @@ export const POSTER_STEP: Record<PosterWait, Entry> = {
   overdue_unfinished: OVERDUE_AT(6),
   // Lit from the stamps, never from the status (A2-B12): stuck() stops at the first step that never happened.
   started_no_checkin: NO_SHOW,
+  // A crew's job-level bar never says No-show: the server refuses it, and the roster carries each member (JOBS-4).
+  crew_underway: at(6),
+  crew_overdue: OVERDUE_AT(6),
   dispute: DISPUTE,
   dispute_escalated: DISPUTE,
   dispute_settling: DISPUTE,

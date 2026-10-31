@@ -15,9 +15,9 @@
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261031003100_free_claim_fee_then_id.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
- * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
+ * @mutate supabase/migrations/20261031002445_seller_setup_fee_from_payout.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
- * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
+ * @mutate supabase/migrations/20261031002445_seller_setup_fee_from_payout.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
  * @mutate src/components/declutter/DeclutterItemView.tsx | (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />) | <OfferPanel item={it} userId={user.id} />
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |               {allFree ? ( |               {false ? (
  * @mutate src/lib/declutter/distance.ts |   return cents === 0 ? "Free" : formatPrice(cents); |   return formatPrice(cents);
@@ -49,15 +49,17 @@ describe("the Declutter Free section", () => {
     // declutter_complete_handover: restated by A3-8 (20261028210552) with only its notice lines naming the item
     // and #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql, the seller's link); the free branch's no-payout rule is asserted below.
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).
-    expect(newestFunction("declutter_complete_handover").file).toContain("20261028232338_declutter_damage_no_enjoy_notice.sql");
+    // 20261031002445: then the seller's notice that the one-time fee comes out of the payout (the free branch is untouched).
+    expect(newestFunction("declutter_complete_handover").file).toContain("20261031002445_seller_setup_fee_from_payout.sql");
     // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now", "declutter_close_paid_order",
-      "declutter_create_item", "declutter_update_draft", "payout_setup_hire_allowed",
-      "declutter_setup_fee_before_list"];
+      "declutter_create_item", "declutter_update_draft", "payout_setup_hire_allowed"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
-    expect(names.length).toBeGreaterThan(6);
+    expect(names.length).toBeGreaterThan(5);
+    // declutter_setup_fee_before_list: restated by the seller's fee from the payout (20261031002445), its free line kept (asserted below).
+    expect(newestFunction("declutter_setup_fee_before_list").file).toContain("20261031002445_seller_setup_fee_from_payout.sql");
     // declutter_orders_fee_rule_f1: restated by shipping S2 (20261030000030_shipping_s2_ship_handover.sql: 'ship' -> 'f1_ship') with the free rule kept.
     expect(newestFunction("declutter_orders_fee_rule_f1").file).toContain("20261030000030_shipping_s2_ship_handover.sql");
     expect(code("declutter_orders_fee_rule_f1")).toContain("NEW.fee_rule := CASE WHEN NEW.paid_with = 'free' THEN 'free'");

@@ -190,7 +190,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (2026-10-30: 24.) 20261030002630 (Q2477, a paid order is never cancelled) re-created
     // declutter_seller_cancel_delivery as a refusal, so 20261027172503's in-place notice rewrite is superseded.
     // (2026-10-30: 26.) 20261030220537 (notices say no escrow) rewrites five functions in place; the count rose by two.
-    expect(rewritten.length).toBe(26);
+    // (2026-10-30: 25.) 20261030225327 (the ID check's no-cost cancel) re-created poster_cancel_job, which 20261025203540
+    // had rewritten in place, as a plain CREATE; its six rewritten notice lines are in the new text.
+    expect(rewritten.length).toBe(25);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

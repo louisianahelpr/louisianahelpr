@@ -13,6 +13,7 @@ import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import {
   TOPICS,
   FAQ_SECTIONS,
+  type FaqSection,
 } from "./helpCenter/helpCenterContent";
 
 /**
@@ -85,7 +86,7 @@ const TopicSection = ({
   section,
   targeted,
 }: {
-  section: { topic: string; items: Array<{ q: string; a: string }> };
+  section: FaqSection;
   /** True when `location.hash` addresses THIS section. */
   targeted: boolean;
 }) => {

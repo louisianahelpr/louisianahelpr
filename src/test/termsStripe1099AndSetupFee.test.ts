@@ -17,7 +17,7 @@
  *
  * @mutate src/pages/info/legal/TermsSection.tsx | <p>Stripe issues <strong className="text-foreground">Form 1099-K</strong> | <p>Helpr issues <strong className="text-foreground">Form 1099-K</strong>
  * @mutate src/pages/info/legal/TermsSection.tsx | A Helpr pays it out of their first payout; | A Helpr pays it once;
- * @mutate src/pages/info/legal/TermsSection.tsx | {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr | $2, once per account. A Helpr
+ * @mutate src/pages/info/legal/TermsSection.tsx | {feeLabel ? `${feeLabel}, ` : ""}once per account. {idOn | $2, once per account. {idOn
  * @mutate src/pages/info/legal/TermsSection.tsx | the one-time account setup fee and the service fee above. | the service fee above.
  */
 import { describe, expect, it } from "vitest";

@@ -10,7 +10,7 @@
  *
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n    ELSE 'live' |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n    WHEN v_floor > 0 THEN 'pending_review'\n    ELSE 'live'
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |       UPDATE public.declutter_items\n         SET status = 'live', updated_at = v_at | UPDATE public.declutter_items\n         SET status = 'pending_review', updated_at = v_at
- * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |     PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated', |     UPDATE public.declutter_offers SET status = 'voided' WHERE item_id = p_item_id AND status = 'open';\n    PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated',
+ * @mutate supabase/migrations/20261031083708_declutter_edit_tells_offer_holders_what_matters.sql |     PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated',\n      format('The seller updated |     UPDATE public.declutter_offers SET status = 'voided' WHERE item_id = p_item_id AND status = 'open';\n    PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated',\n      format('The seller updated
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |  'application'::text, 'declutter_item'::text])); |  'application'::text]));
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN |   IF v_uid IS NULL THEN
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |           jsonb_build_object('note', v_note, 'report_id', p_report_id, 'was', v_item.status)); |           jsonb_build_object('note', v_note, 'was', v_item.status));
@@ -21,6 +21,7 @@
  * @mutate src/components/declutter/declutterUi.tsx | "Our automatic check flagged something, or it didn't finish, | "Someone from Louisiana Helpr checks a new seller's first 3 listings, and
  */
 import { readFileSync } from "node:fs";
+import { basename, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { newestCheckBody, newestFunction } from "./helpers/parityReaders";
@@ -31,10 +32,12 @@ const code = (p: string) => blankComments(readFileSync(p, "utf8"));
 
 describe("item B: a listing goes live when posted; only a failed automatic check holds it", () => {
   it("reads the newest definitions (floor)", () => {
-    for (const n of ["declutter_publish_item", "declutter_record_ai_check", "declutter_edit_listing",
+    for (const n of ["declutter_publish_item", "declutter_record_ai_check",
       "declutter_admin_take_down_item", "declutter_admin_reported_items"]) {
       expect(newestFunction(n).file, n).toContain("20261030071816");
     }
+    // BUY-11 (20261031083708) restated the edit with the small-edit notice; the rules read here are unchanged.
+    expect(newestFunction("declutter_edit_listing").file).toContain("20261031083708");
   });
 
   it("publish holds a listing only on a flagged or missing check (no 'first 3 listings' hold)", () => {
@@ -66,7 +69,8 @@ describe("item B: a listing goes live when posted; only a failed automatic check
     expect(down).toContain("IF v_item.status NOT IN ('live', 'paused', 'pending_review') THEN RAISE EXCEPTION 'item_not_removable'");
     expect(down).toContain("jsonb_build_object('note', v_note, 'report_id', p_report_id, 'was', v_item.status)");
     expect(sql("declutter_admin_reported_items")).toContain("IF NOT public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN RAISE EXCEPTION 'not_admin'");
-    const mig = readFileSync("supabase/migrations/20261030071816_declutter_live_on_post.sql", "utf8");
+    // The take-down's own migration, found through its newest definition (never a pinned file name).
+    const mig = readFileSync(join("supabase/migrations", basename(newestFunction("declutter_admin_take_down_item").file)), "utf8");
     for (const sig of ["declutter_admin_take_down_item(uuid, text, uuid)", "declutter_admin_reported_items(uuid[])", "declutter_publish_item(uuid)"]) {
       expect(mig, sig).toContain(`REVOKE ALL ON FUNCTION public.${sig} FROM PUBLIC, anon;`);
     }

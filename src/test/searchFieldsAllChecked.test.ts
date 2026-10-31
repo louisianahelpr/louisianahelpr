@@ -46,6 +46,7 @@ import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
+import { en } from "@/lib/i18n/en";
 
 const ROOT = path.resolve(__dirname, "..", "..");
 const SRC = path.join(ROOT, "src");
@@ -96,7 +97,11 @@ function walk(dir: string): string[] {
 }
 
 const rel = (p: string) => path.relative(ROOT, p).split(path.sep).join("/");
-const sources = walk(SRC).map((p) => ({ file: rel(p), src: blankComments(readFileSync(p, "utf8")) }));
+/** A `t("key")` call reads as its English words, so a field whose label moved into the dictionary (chat screens,
+ * 10-30) is still seen as the search field it is. A key with no English stays as written. */
+const english = en as Record<string, string>;
+const withEnglish = (src: string) => src.replace(/\bt\("([\w.]+)"\)/g, (call, key: string) => (key in english ? JSON.stringify(english[key]) : call));
+const sources = walk(SRC).map((p) => ({ file: rel(p), src: withEnglish(blankComments(readFileSync(p, "utf8"))) }));
 
 /** The attribute text of each opening tag, braces balanced (JSX values hold `>`). */
 function openingTags(src: string, names: string[]): { name: string; attrs: string }[] {

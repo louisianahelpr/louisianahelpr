@@ -23,9 +23,8 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
 import { COMPACT_HEADER_ROW_MIN_HEIGHT, ScreenHeaderRow, SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { useSearchOnOwnLine } from "@/components/messages/useSearchOnOwnLine";
-// Card-matching skeleton — mirrors the actual ConversationRow shape
-// (avatar + name/job/last-msg lines + timestamp + unread dot) so the
-// loading→loaded swap doesn't shift the row. See task #121.
+// Card-matching skeleton — mirrors the actual ConversationRow shape (avatar + name/job/last-msg lines +
+// timestamp + unread dot) so the loading→loaded swap doesn't shift the row. See task #121.
 import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
 import { VirtualList, type VirtualListHandle } from "@/components/VirtualList";
 import { ConversationRow } from "./ConversationRow";
@@ -256,10 +255,9 @@ export function ConversationList({
   // archive resolves.
   const [selectMode, setSelectMode] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
-  // In-list search: an expandable field (mirrors the Activity tabs'
-  // search pattern) that client-filters the already-loaded threads by
-  // the other person's name and the last-message snippet. No new query —
-  // a pure local filter over `conversations`, so no debounce needed.
+  // In-list search: an expandable field (mirrors the Activity tabs' search pattern) that client-filters the
+  // already-loaded threads by the other person's name and the last-message snippet. No new query — a pure
+  // local filter over `conversations`, so no debounce needed.
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   /* ONE PRESS OUT, AND THE FOCUS COMES BACK — the same dismiss contract

@@ -4,7 +4,7 @@
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (seedJobIds.has(jobId)) seedDefects.push(reason); | if (false) seedDefects.push(reason);
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | kind: "payout_failed",\n          seed: seedJobIds.has(job.id),\n          severity: "critical",\n          title: "Scheduled payout failed", | kind: "payout_failed",\n          seed: false,\n          severity: "critical",\n          title: "Scheduled payout failed",
 // @mutate supabase/functions/subscription-reconciliation/index.ts | return typeof id === "string" && seedUserIds.has(id); | return false;
-// @mutate supabase/functions/process-scheduled-payouts/index.ts | (jobs ?? []).filter((j) => j.is_seed === true) | (jobs ?? []).filter((j) => j.is_seed !== false)
+// @mutate supabase/functions/process-scheduled-payouts/index.ts | payoutJobs.filter((j) => j.is_seed === true) | payoutJobs.filter((j) => j.is_seed !== false)
 // @mutate supabase/functions/subscription-reconciliation/index.ts | notes.some((n) => n !== dryRunNote) | notes.length
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | const { ids: adminIds } = job.is_seed === true\n          ? { ids: [] as string[] } | const { ids: adminIds } = false\n          ? { ids: [] as string[] }
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | const { ids: adminIds } = job.is_seed === true\n                ? { ids: [] as string[] } | const { ids: adminIds } = job.is_seed !== false\n                ? { ids: [] as string[] }

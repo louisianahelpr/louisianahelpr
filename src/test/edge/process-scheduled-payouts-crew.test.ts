@@ -336,7 +336,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
   });
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         if (job.is_group_job && !crewSettled.has(job.id)) { |         if (false) {
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         if (job.is_group_job && !early && !crewSettled.has(job.id)) { |         if (false) {
   it("every member already paid but the refund never went out (it failed on the last member's run): the next run refunds and releases — before, nothing ever asked again", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     // Each member's own ledger read finds their settled transfer.
@@ -404,7 +404,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   // comes back whole and only that share of Stripe's fee is kept, once. The
   // stamp is served only to a read that names poster_fee_flat_cents.
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeHoldsCardFee = !isPosterFeeJob(job); |       const feeHoldsCardFee = true;
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts | customer_fee_amount, poster_fee_flat_cents, is_seed, payout_scheduled_at") | customer_fee_amount, is_seed, payout_scheduled_at")
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | customer_fee_amount, poster_fee_flat_cents, is_seed, payout_scheduled_at"; | customer_fee_amount, is_seed, payout_scheduled_at";
   it("a poster-fee crew, 1 of 3 filled: 6666 + floor(570*6666/10000)=379 of the fee - floor(337*6666/10000)=224 card fee = 6821c", async () => {
     seedCrew([["m1", 0, 3334]], { paidAll: true });
     const rows = (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows;

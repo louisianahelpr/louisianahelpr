@@ -143,6 +143,8 @@ vi.mock("./DeclutterHandoverViews", () => ({
   ),
 }));
 // Buying's tracker (BuyingOrders.tsx) reads each paid order's booking and handover row: none booked, nothing handed over.
+// A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => [] }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchMyBookings: async () => state.bookings,

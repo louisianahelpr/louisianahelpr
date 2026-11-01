@@ -66,6 +66,8 @@ vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
 vi.mock("@/lib/declutter/paidCents", () => ({
   fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.paid).map((id) => [id, state.paid[id]])),
 }));
+// A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => [] }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => [],
@@ -229,7 +231,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // AUD31-7: the headline comes from the task once it ended without a delivery; a live one keeps its step line.
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return info("No Helpr took this delivery. What you paid for delivery was refunded."); |
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return info("This delivery was closed."); |
-  // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null), |         null),
+  // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null, |         null,
   it("AUD31-2: a seller delivery past its time says it is late, not booked", async () => {
     load([CASES.find((c) => c.id === "sd1late")!]);
     show();
@@ -316,8 +318,8 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // whose order waits on the buyer says "Next: <step>" in the shared NextStep line, above its one button; every
   // other card says who it waits on or where it stands, never "Next:". The late seller delivery is the one Needs-you
   // card whose line says why (its button, "It wasn't delivered", is the step).
-  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time") |       return at === 0 ? info("Pick a pickup time")
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time"); |       if (at === 0) return info("Book a pickup time.");
+  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time", by) |       return at === 0 ? info("Pick a pickup time")
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time", by); |       if (at === 0) return info("Book a pickup time.");
   // @mutate src/components/declutter/BuyingOrders.tsx |       return you("Tap I got it once you have it");\n  } |       return info("Delivered.");\n  }
   // @mutate src/components/declutter/BuyingOrders.tsx | value={standing ? { who: "info", text: standing } : view.next} | value={{ who: "info", text: view.next.text }}
   it("Next-step line: every card that waits on the buyer says 'Next: …'; the rest never do", async () => {

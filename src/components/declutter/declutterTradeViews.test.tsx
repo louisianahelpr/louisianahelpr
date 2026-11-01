@@ -1079,7 +1079,7 @@ describe("Declutter slice 3 screens", () => {
   // (their own rows only) fills it once; it is asked only when a way that delivers is chosen, and never over typing.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data); |     void 0;
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: !!me?.id && (delivering \|\| sellerDelivering), staleTime: 5 * 60_000 }); |     enabled: !!me?.id, staleTime: 5 * 60_000 });
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}\n            onPicked | onTyped={(a) => { setAddress(a); setQuote(null); }}\n            onPicked
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}\n                    onPicked | onTyped={(a) => { setAddress(a); setQuote(null); }}\n                    onPicked
   it("BUY-9: Helpr delivery's Deliver to starts with the buyer's last drop-off, read only once delivery is chosen", async () => {
     state.deliveryOn = true;
     state.lastDropoff = "12 Oak St, Baton Rouge, LA";

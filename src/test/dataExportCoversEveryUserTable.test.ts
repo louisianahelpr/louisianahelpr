@@ -11,60 +11,60 @@
  * says are stripped really are, that anon cannot execute it, and that the
  * client, the edge function and the privacy journey all agree on the sections.
  *
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |   v_out := v_out \|\| jsonb_build_object('thread_pins', | v_out := v_out; PERFORM ('thread_pins',
  * Quotes (Q1866, 20261030081455): requests by poster, quotes by quoter, the quotes on the member's requests
  * without the quoter's id, and the counter-offers on a quote the member is a side of.
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |   v_out := v_out \|\| jsonb_build_object('job_quotes', | v_out := v_out; PERFORM ('job_quotes',
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | to_jsonb(t) - 'quoter_id' - 'photo_paths' | to_jsonb(t) - 'photo_paths'
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | WHERE r.poster_id = v_uid))); | WHERE r.poster_id = v_uid OR true)));
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | WHERE q.quoter_id = v_uid OR r.poster_id = v_uid))); | WHERE q.quoter_id = v_uid OR true)));
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |       WHERE t.poster_id = v_uid)); |       WHERE true));
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |   v_out := v_out \|\| jsonb_build_object('job_quotes', | v_out := v_out; PERFORM ('job_quotes',
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | to_jsonb(t) - 'quoter_id' - 'photo_paths' | to_jsonb(t) - 'photo_paths'
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | WHERE r.poster_id = v_uid))); | WHERE r.poster_id = v_uid OR true)));
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | WHERE q.quoter_id = v_uid OR r.poster_id = v_uid))); | WHERE q.quoter_id = v_uid OR true)));
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE t.poster_id = v_uid)); |       WHERE true));
  * Remembered listing choices: the seller's own row (20261030153635).
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |       WHERE t.member_id = v_uid)); |       WHERE true));
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |   v_out := v_out \|\| jsonb_build_object('declutter_seller_defaults', | v_out := v_out; PERFORM ('declutter_seller_defaults',
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE t.member_id = v_uid)); |       WHERE true));
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |   v_out := v_out \|\| jsonb_build_object('declutter_seller_defaults', | v_out := v_out; PERFORM ('declutter_seller_defaults',
  * Porch days: the seller's own porch-days section (20261029223949).
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |       WHERE t.seller_id = v_uid));\n  -- Q2278 | WHERE true));\n  -- Q2278
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |   v_out := v_out \|\| jsonb_build_object('declutter_seller_porch_days', | v_out := v_out; PERFORM ('declutter_seller_porch_days',
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | jsonb_agg(to_jsonb(t) - 'flag_reason') | jsonb_agg(to_jsonb(t))
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE t.seller_id = v_uid));\n  -- Q2278 | WHERE true));\n  -- Q2278
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |   v_out := v_out \|\| jsonb_build_object('declutter_seller_porch_days', | v_out := v_out; PERFORM ('declutter_seller_porch_days',
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |         OR (t.reviewee_id = v_uid AND t.status = 'published' |         OR (t.reviewee_id = v_uid AND true
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | CASE WHEN t.customer_id = v_uid OR public.user_may_see_job_address(t.id, v_uid) | CASE WHEN true
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | jsonb_agg(to_jsonb(t) - 'flag_reason') | jsonb_agg(to_jsonb(t))
  * Q1232: the applicant's own application rows keep flag_reason again.
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) - 'flag_reason' | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t)
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) - 'flag_reason' | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t)
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
  * @mutate src/test/helpers/dataExportInventory.ts |   "retained_bans.email_sha256": { reason: | "retained_banz.email_sha256": { reason:
  * A3-I6 (2026-10-29): helper_shadowbans left the export, and with it the created_by strip; this one now puts the section (staff id and all) back.
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |   v_out := v_out \|\| jsonb_build_object('payout_holds', |   v_out := v_out \|\| jsonb_build_object('helper_shadowbans', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helper_shadowbans t\n      WHERE t.helper_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('payout_holds',
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |   v_out := v_out \|\| jsonb_build_object('payout_holds', |   v_out := v_out \|\| jsonb_build_object('helper_shadowbans', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helper_shadowbans t\n      WHERE t.helper_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('payout_holds',
  * @mutate supabase/functions/export-my-data/index.ts |       storage_objects: storageObjects, |       files: storageObjects,
  * @mutate scripts/lib/privacyJourney.mjs | KNOWN_NOT_EXPORTED = []; | KNOWN_NOT_EXPORTED = ["reports"];
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |       WHERE t.payer_id = v_uid OR t.helper_id = v_uid)); |       WHERE t.helper_id = v_uid));
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |       WHERE t.helper_id = v_uid OR t.parent_job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments' |       WHERE t.helper_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments'
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'stripe_transfer_id' - 'status' - 'paid_at' END | to_jsonb(t)
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | AND NOT public.are_users_blocked(t.helper_id, v_uid)))); | )));
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'status', t.status, | ELSE to_jsonb(t) - 'flag_reason' \|\| jsonb_build_object('status', t.status,
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'slot_no', t.slot_no, 'status', t.status, | ELSE to_jsonb(t) \|\| jsonb_build_object('status', t.status,
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE t.payer_id = v_uid OR t.helper_id = v_uid)); |       WHERE t.helper_id = v_uid));
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE t.helper_id = v_uid OR t.parent_job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments' |       WHERE t.helper_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('recurring_visit_payments'
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | CASE WHEN t.helper_id = v_uid THEN to_jsonb(t) ELSE to_jsonb(t) - 'stripe_transfer_id' - 'status' - 'paid_at' END | to_jsonb(t)
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | AND NOT public.are_users_blocked(t.helper_id, v_uid)))); | )));
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'status', t.status, | ELSE to_jsonb(t) - 'flag_reason' \|\| jsonb_build_object('status', t.status,
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | ELSE jsonb_build_object('id', t.id, 'job_id', t.job_id, 'helper_id', t.helper_id, 'slot_no', t.slot_no, 'status', t.status, | ELSE to_jsonb(t) \|\| jsonb_build_object('status', t.status,
  * Homes rent + deposit (20261019083350): tenancy-keyed sections scoped by the rental_tenancies sub-select.
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | WHERE tn.landlord_id = v_uid OR tn.tenant_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('rental_rent_charges' | WHERE tn.landlord_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('rental_rent_charges'
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | WHERE tn.landlord_id = v_uid OR tn.tenant_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('rental_rent_charges' | WHERE tn.landlord_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('rental_rent_charges'
  * Reconcile (20261015084728, restated by 20261016053541, 20261017044046, the train's 20261017055501/055506/061157, Rentals' 20261017205607 and Shops' 20261018164443): the export keeps main's category_suggestions AND the Declutter sections.
  * Shops M1 (20261018164443): the member's shop orders (either side) and their lines, Stripe ids and error text dropped.
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |       WHERE t.buyer_id = v_uid OR t.seller_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('shop_order_lines' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('shop_order_lines'
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | WHERE o.buyer_id = v_uid OR o.seller_id = v_uid))); | WHERE o.buyer_id = v_uid OR true)));
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE t.buyer_id = v_uid OR t.seller_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('shop_order_lines' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('shop_order_lines'
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | WHERE o.buyer_id = v_uid OR o.seller_id = v_uid))); | WHERE o.buyer_id = v_uid OR true)));
  * Lane J (20261017055501): the second declutter_problems section stays scoped to the member's own orders and strips the reporter.
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | AND (o.buyer_id = v_uid OR o.seller_id = v_uid) | AND (o.buyer_id = v_uid OR true)
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | WHERE t.reporter_id IS DISTINCT FROM v_uid | WHERE true OR t.reporter_id IS DISTINCT FROM v_uid
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | - 'reporter_id' - 'photo_paths' | - 'photo_paths'
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | jsonb_build_object('category_suggestions', | jsonb_build_object('category_suggestionz',
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | jsonb_build_object('declutter_bookings', | jsonb_build_object('declutter_bookingz',
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | AND (o.buyer_id = v_uid OR o.seller_id = v_uid) | AND (o.buyer_id = v_uid OR true)
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | WHERE t.reporter_id IS DISTINCT FROM v_uid | WHERE true OR t.reporter_id IS DISTINCT FROM v_uid
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | - 'reporter_id' - 'photo_paths' | - 'photo_paths'
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | jsonb_build_object('category_suggestions', | jsonb_build_object('category_suggestionz',
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | jsonb_build_object('declutter_bookings', | jsonb_build_object('declutter_bookingz',
  * Reconcile (20261017205607, carried by Shops' 20261018164443): the export also keeps the Rentals S1 sections (20261017205605).
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | jsonb_build_object('rental_tenancies', | jsonb_build_object('rental_tenancyz',
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | jsonb_build_object('rental_tenancies', | jsonb_build_object('rental_tenancyz',
  * Owner 2026-10-17: the landlord never sees which admin reviewed the proof; the invite token hash never leaves.
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | jsonb_agg(to_jsonb(t) - 'ownership_reviewed_by') | jsonb_agg(to_jsonb(t))
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | jsonb_agg(to_jsonb(t) - 'invite_token_sha256') | jsonb_agg(to_jsonb(t))
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | jsonb_agg(to_jsonb(t) - 'ownership_reviewed_by') | jsonb_agg(to_jsonb(t))
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | jsonb_agg(to_jsonb(t) - 'invite_token_sha256') | jsonb_agg(to_jsonb(t))
  * Q1233: a renamed live policy, and a read policy calling an unclassified function.
  * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | CREATE POLICY "disputes parties select" ON public.disputes | CREATE POLICY "disputes parties read" ON public.disputes
  * Q1329: a replayed policy whose roles (or PERMISSIVE) differ from prod's, and an unmodelled role loop.
@@ -74,11 +74,11 @@
  * @mutate src/test/helpers/dataExportInventory.ts |   "20260506000000_scope_service_role_policies_to_service_role.sql": { |   "20260506000000_no_such_migration.sql": {
  * @mutate supabase/migrations/20261005061536_restate_policies_made_outside_migrations.sql | (lower(recipient_email) = lower(( SELECT auth.email() AS email))) | public.zz_mail_owner(recipient_email)
  * Q1235: a Helpr-side job sub-select on the poster's refunds.
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql |       WHERE t.customer_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks' |       WHERE t.customer_id = v_uid OR t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.helper_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks'
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections' | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections'
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE t.customer_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks' |       WHERE t.customer_id = v_uid OR t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.helper_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('chargeback_clawbacks'
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections' | WHERE t.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid OR true)));\n  v_out := v_out \|\| jsonb_build_object('str_calendar_connections'
  * Q2262 (spec B42): a seller's own export never carries the private price-drop stop.
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | to_jsonb(t) - 'ai_flag_reason' - 'drop_stop_cents' | to_jsonb(t) - 'ai_flag_reason'
- * @mutate supabase/migrations/20261031231948_helpr_delivery_talk.sql | WHERE h.buyer_id = v_uid OR h.seller_id = v_uid))); | WHERE h.buyer_id = v_uid OR true)));
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | to_jsonb(t) - 'ai_flag_reason' - 'drop_stop_cents' | to_jsonb(t) - 'ai_flag_reason'
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | WHERE h.buyer_id = v_uid OR h.seller_id = v_uid))); | WHERE h.buyer_id = v_uid OR true)));
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

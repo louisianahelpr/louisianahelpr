@@ -50,6 +50,7 @@ const VIEW_LINKS_LEFT: Record<string, string> = {
   declutter_mark_order_paid: "cart,selling",
   declutter_meetup_here: "bought,selling",
   declutter_notice_type: "deliver",
+  declutter_pick_free_request: "cart",
   declutter_pickup_reminder_sweep: "cart,selling",
   declutter_porch_photo: "sales",
   declutter_problem_add_side: "<dynamic>",

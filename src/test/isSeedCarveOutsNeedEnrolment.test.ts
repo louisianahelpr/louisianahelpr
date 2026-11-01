@@ -130,7 +130,10 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   // board 141d (20261026155251): a refund request follows its order's is_seed
   declutter_refund_requests_seed: "tags",
   declutter_seller_delivery_seed: "tags",
+  declutter_my_cart: "hides", // 20261101175510: buying lists hide seed items from a member seed_hidden_for hides them from
+  declutter_my_offers: "hides", // 20261101175510: same filter on the offers list
   declutter_my_reply_listings: "hides",
+  declutter_pick_free_request: "hides", // 20261101181129: a seed item hidden from the picked person takes the old 48-hour path
   declutter_seller_moving_sale: "hides",
   declutter_set_watch: "hides",
   // Q2352 (20261026154738): an ENROLLED test account (is_seed AND test_accounts) lists without the setup fee

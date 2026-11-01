@@ -162,6 +162,8 @@ const ALLOWED: Record<string, string> = {
   shop_active_strike_count: LADDER,
   shop_cottage_sales_cents: "logic: Louisiana cottage-food yearly sales cap for one shop",
   shop_day_count: LIMIT,
+  // 20261101183017 (owner 11-01): counts one member's own reminder sends in one conversation today (the 2-a-day cap), not a stat.
+  sweep_unread_message_reminders: LIMIT,
   shop_record_hand_refund: MONEY,
   shops_accept_order: MONEY,
   shops_create_item: LIMIT,

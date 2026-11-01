@@ -44,6 +44,10 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {false && <JobProofPhotos
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {<JobProofPhotos
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {(isPoster \|\| isHired) && <JobProofPhotos
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && instantUntil && <InstantBookingCard | {false && instantUntil && <InstantBookingCard
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && instantUntil && <InstantBookingCard | {instantUntil && <InstantBookingCard
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |     : instantUntil\n      ? null\n |
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {viewer.status && !(!isPoster && instantUntil) && | {viewer.status &&
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -67,10 +71,14 @@ const state = {
   onCrew: false,
   /** usePosterPageFlows' crewNobodyLeft (JOBS-3: every crew member reported a no-show). */
   crewNobodyLeft: false,
+  /** CMP-4: the viewer's instant booking's decline-by (useMyInstantBooking), or null. */
+  instantUntil: null as string | null,
 };
 
 vi.mock("./useJobPage", () => ({
   useOfferedToMe: () => false,
+  // CMP-4: the viewer's instant booking (its read and latch are src/test/jobPageInstantBooking.test.tsx).
+  useMyInstantBooking: () => state.instantUntil,
   useJobPage: (_id: string, userId: string) => ({
     job: { isLoading: false, isError: false, data: state.job ? { job: state.job, party: state.party } : null, refetch: vi.fn() },
     applicants: { isLoading: false, data: state.applicants },
@@ -223,6 +231,7 @@ beforeEach(() => {
   state.owed = 0;
   state.cardHold = false;
   state.crewNobodyLeft = false;
+  state.instantUntil = null;
 });
 
 describe("job page, Helpr side (boards 42, 169)", () => {
@@ -643,6 +652,56 @@ describe("job page, the hired Helpr", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: "See the offer" }));
     expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
+  });
+});
+
+// CMP-4 (lead 2026-11-01): the booked Helpr's job page showed only "See the offer"; the instant booking card (Confirm,
+// Decline, the 2-hour countdown) was on the Working offer card alone. The page now shows the same card, and no
+// "See the offer" or "offered you this job" beside it. The card's own answers are src/test/instantBookScreens.test.tsx.
+describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
+  const openOffer = () => row({ status: "open", payment_status: "held", direct_offer_status: "pending" });
+
+  it("inside the 2 hours: the card with its countdown, Confirm and Decline, and no See the offer", () => {
+    state.job = openOffer();
+    state.party = true;
+    state.instantUntil = new Date(Date.now() + 102 * 60_000 + 30_000).toISOString();
+    renderPage();
+    const card = document.querySelector(`[data-instant-booking="${row().id}"]`) as HTMLElement | null;
+    expect(card).not.toBeNull();
+    expect(card!.closest("[data-job-steps]")).not.toBeNull();
+    expect(within(card!).getByText("1 h 42 min left to decline")).toBeTruthy();
+    expect(within(card!).getByText(/You were booked for .Pressure wash driveway./)).toBeTruthy();
+    expect(within(card!).getByRole("button", { name: "Confirm" })).toBeTruthy();
+    expect(within(card!).getByRole("button", { name: "Decline" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "See the offer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
+    expect(document.querySelector("[data-viewer-status]")).toBeNull();
+  });
+
+  it("past the 2 hours: the card says they're booked, with no buttons", () => {
+    state.job = openOffer();
+    state.party = true;
+    state.instantUntil = new Date(Date.now() - 60_000).toISOString();
+    renderPage();
+    const card = document.querySelector(`[data-instant-booking="${row().id}"]`) as HTMLElement;
+    expect(within(card).getByText("The 2 hours to decline have ended, so you're booked.")).toBeTruthy();
+    expect(within(card).queryByRole("button", { name: "Confirm" })).toBeNull();
+    expect(within(card).queryByRole("button", { name: "Decline" })).toBeNull();
+  });
+
+  it("no instant booking: no card, and the page is as before", () => {
+    state.job = row({ helper_id: ME, status: "accepted", helper_confirmed_at: null });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector("[data-instant-booking]")).toBeNull();
+    expect(screen.getByRole("button", { name: "See the offer" })).toBeTruthy();
+  });
+
+  it("the poster never sees the Helpr's card", () => {
+    state.job = row({ customer_id: ME, status: "open", payment_status: "held", direct_offer_status: "pending" });
+    state.instantUntil = new Date(Date.now() + 60 * 60_000).toISOString();
+    renderPage();
+    expect(document.querySelector("[data-instant-booking]")).toBeNull();
   });
 });
 

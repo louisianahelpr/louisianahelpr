@@ -12,6 +12,7 @@
  * Neither read selects the street address for display: the page prints the
  * city only (no address before a hire, spec §1.6).
  */
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -156,18 +157,40 @@ async function fetchTrackingStatus(jobId: string): Promise<string | null> {
 /**
  * JOBS-18: this direct offer is to the viewer. offered_to_helper_id is not readable by a client, and a row can reach
  * the party read for other reasons, so the viewer's own offers list answers. Asked only when an offer is pending.
+ * The same row carries instant_decline_until (CMP-4): an instant booking is a direct offer with a 2-hour decline window.
+ * One read, one query key, for both hooks below.
  */
-export function useOfferedToMe(jobId: string | undefined, enabled: boolean): boolean {
-  const q = useQuery({
+function myPendingOfferQuery(jobId: string | undefined, enabled: boolean) {
+  return {
     queryKey: [...queryKeys.jobs.all, "page-offered-to-me", jobId ?? ""],
     queryFn: async () => {
-      const rows = unwrap<Array<{ id: string }> | null>(await supabase.rpc("get_my_pending_direct_offers").eq("id", jobId!).select("id"));
-      return (rows ?? []).length > 0;
+      const rows = unwrap<Array<{ id: string; instant_decline_until: string | null }> | null>(
+        await supabase.rpc("get_my_pending_direct_offers").eq("id", jobId!).select("id, instant_decline_until"),
+      );
+      return (rows ?? [])[0] ?? null;
     },
     enabled: enabled && !!jobId,
     staleTime: 30 * 1000,
-  });
-  return q.data === true;
+  };
+}
+
+export function useOfferedToMe(jobId: string | undefined, enabled: boolean): boolean {
+  const q = useQuery(myPendingOfferQuery(jobId, enabled));
+  return !!q.data;
+}
+
+/**
+ * CMP-4: the viewer's instant booking on this job, or null. Once seen it is kept for this job while the page is open,
+ * so the card's answer ("You're booked", "Booking declined") stays on screen after the offer row goes away.
+ */
+export function useMyInstantBooking(jobId: string | undefined, enabled: boolean): string | null {
+  const q = useQuery(myPendingOfferQuery(jobId, enabled));
+  const live = q.data?.instant_decline_until ?? null;
+  const [seen, setSeen] = useState<{ jobId: string; until: string } | null>(null);
+  useEffect(() => {
+    if (live && jobId && (seen?.jobId !== jobId || seen.until !== live)) setSeen({ jobId, until: live });
+  }, [live, jobId, seen]);
+  return live ?? (seen && seen.jobId === jobId ? seen.until : null);
 }
 
 export function useJobPage(id: string | undefined, userId: string | undefined) {

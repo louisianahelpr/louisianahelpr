@@ -13,6 +13,7 @@
  * (§1.6): the page prints the city only.
  */
 import { InstantBookPanel } from "@/components/jobs/InstantBookPanel";
+import { InstantBookingCard } from "@/components/jobs/InstantBookingCard";
 import { Link, useNavigate } from "react-router-dom";
 import { Briefcase } from "lucide-react";
 import AppPage from "@/components/AppPage";
@@ -29,7 +30,7 @@ import { getCity } from "@/lib/locationUtils";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobEyebrow } from "./jobEyebrow";
-import { useJobPage, useOfferedToMe, type JobPageRow } from "./useJobPage";
+import { useJobPage, useMyInstantBooking, useOfferedToMe, type JobPageRow } from "./useJobPage";
 import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterMoney, HelprMoney, PostedBy, HiredHelpr } from "./JobPageParts";
 import { HiredSeriesSection } from "./HiredSeriesSection";
@@ -66,6 +67,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const navigate = useNavigate();
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew } = useJobPage(id, userId);
   const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
+  // CMP-4: the booked Helpr's instant booking (Confirm / Decline, the 2-hour countdown), the Working offer card's own.
+  const instantUntil = useMyInstantBooking(id, !isPoster && q.data?.job.direct_offer_status === "pending");
   // Q1586(c): the same under-18 grey-out as every other Apply; a tap says why, before the sheet and its uploads (JOBS-17).
   const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const trackingStatus = tracking.data ?? null;
@@ -158,7 +161,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     ? posterActions.primary
     : hiredFace
       ? { label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled, secondary: hiredFace.tone === "secondary" }
-      : viewer.action.kind === "open_working"
+      // CMP-4: an instant booking is answered on its card below, never "See the offer" (or Apply after a decline).
+    : instantUntil
+      ? null
+    : viewer.action.kind === "open_working"
       ? { label: "Open in working", go: () => navigate(highlight) }
       : viewer.action.kind === "see_offer"
         ? { label: "See the offer", go: () => navigate(highlight) }
@@ -248,7 +254,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. */}
             {party && (isPoster || isHired) && <JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} />}
             {isHired && <HiredSeriesSection job={job} userId={userId} />}
-            {viewer.status && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
+            {/* CMP-4: the booked Helpr's card, the same one the Working offer card shows (InstantBookingCard). */}
+            {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} />}
+            {viewer.status && !(!isPoster && instantUntil) && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
             {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
             {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
             {primary && (

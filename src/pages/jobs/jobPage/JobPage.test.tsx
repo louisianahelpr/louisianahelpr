@@ -846,8 +846,8 @@ describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () =
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       ? { label: "Confirm it's still on", go: () => setConfirmAsk((n) => n + 1) } |       ? { label: "Confirm it's still on", go: flows.approve }
-  // @mutate src/components/JobConfirmation.tsx |   if (!isOwner) return "No-shows | if (true) return "No-shows
-  // @mutate src/components/JobConfirmation.tsx |   return helperConfirmedAt\n    ? | return !helperConfirmedAt\n    ?
+  // @mutate src/components/posterConfirmWarning.ts |   if (!isOwner) return "No-shows | if (true) return "No-shows
+  // @mutate src/components/posterConfirmWarning.ts |   return helperConfirmedAt\n    ? | return !helperConfirmedAt\n    ?
   // @mutate src/components/JobConfirmation.tsx |     if (owed && (openNow \|\| takeFaceAction(jobId, "confirm"))) setShowConfirmDialog(true); |     if (owed && takeFaceAction(jobId, "confirm")) setShowConfirmDialog(true);
   it("the poster's day-before step is the big button: Confirm it's still on opens its confirm sheet ON the page", async () => {
     state.job = row({

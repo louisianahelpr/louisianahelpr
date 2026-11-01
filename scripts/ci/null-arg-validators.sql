@@ -521,11 +521,18 @@ BEGIN
                            '00000000-0000-4000-8140-000000000601')$q$;
           -- Task 603 (20261101184555 live position): accepted by D and started; A, the seller, is its pickup contact.
           IF to_regprocedure('public.helpr_task_position_viewer(uuid)') IS NOT NULL THEN
+            -- Its own order 505 (helpr_tasks_one_per_source: one task per order), shaped as 503.
+            EXECUTE $q$INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status, handover, items_cents, premium_cents,
+                                                           tax_cents, delivery_cents, total_cents, paid_at, handed_over_at,
+                                                           closed_at, close_reason, stripe_payment_intent_id)
+                     VALUES ('00000000-0000-4000-8140-000000000505', '00000000-0000-4000-8140-00000000000b',
+                             '00000000-0000-4000-8140-00000000000a', 'handed_over', 'delivery', 1000, 120, 0, 1200, 2320,
+                             now(), now(), now(), 'handed_over', 'pi_q140_live')$q$;
             EXECUTE $q$INSERT INTO public.helpr_tasks (id, source_kind, source_id, status, size, title, pickup_area, dropoff_area,
                                                       pickup_address, pickup_lat, pickup_lng, dropoff_address, dropoff_lat, dropoff_lng,
                                                       trip_miles, pay_cents, fee_cents, customer_id, pickup_contact_id, helpr_id,
                                                       open_until, latest_pickup_at, pickup_slot_start, dropoff_code, started_at)
-                     VALUES ('00000000-0000-4000-8140-000000000603', 'declutter_delivery', '00000000-0000-4000-8140-000000000503',
+                     VALUES ('00000000-0000-4000-8140-000000000603', 'declutter_delivery', '00000000-0000-4000-8140-000000000505',
                              'accepted', 'small', '[q140] live', 'Lafayette', 'Lafayette', '1 Pickup St', 30.2, -92.0,
                              '2 Dropoff St', 30.21, -92.01, 5, 1200, 0, '00000000-0000-4000-8140-00000000000b',
                              '00000000-0000-4000-8140-00000000000a', '00000000-0000-4000-8140-00000000000d',

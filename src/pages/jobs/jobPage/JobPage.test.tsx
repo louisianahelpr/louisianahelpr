@@ -73,6 +73,8 @@ const state = {
   onCrew: false,
   /** usePosterPageFlows' moreCount: the card actions the page offers beside Message (jobStepMenu.tsx). */
   moreCount: 2,
+  /** usePosterPageFlows' leadCount: the card's own primaries (Review, Tip) that lead when the page has no step. */
+  leadCount: 0,
   /** OnTheWayNow's position read (job_tracking status, latitude, longitude). */
   position: null as { status: string | null; latitude: number | null; longitude: number | null } | null,
   /** useJobPage's crewConfirmed: the member's roster row has helper_confirmed_at (JA-33). */
@@ -166,7 +168,8 @@ const flowCalls = vi.hoisted(() => [] as string[]);
 vi.mock("./onTheWayPosition", () => ({ fetchOnTheWayPosition: async () => state.position }));
 vi.mock("./usePosterPageFlows", () => ({
   usePosterPageFlows: () => ({
-    ready: true, completing: false, moreCount: state.moreCount,
+    ready: true, completing: false, moreCount: state.moreCount, leadCount: state.leadCount,
+    setLeadHost: (el: HTMLElement | null) => { if (el) flowCalls.push("lead-host"); },
     approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
     crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, panel: <div data-testid="card-panel" />, dialogs: null,
@@ -252,6 +255,7 @@ beforeEach(() => {
   state.instantUntil = null;
   state.offeredToMe = false;
   state.moreCount = 2;
+  state.leadCount = 0;
   state.position = null;
 });
 
@@ -545,10 +549,10 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
 
 // Owner 2026-11-01: the on-the-way line and where the Helpr is sit ABOVE the tracker; Message and the card's options
 // share one row (none: Message alone; one: that action; two or more: More options); the Helpr's card sits above them.
-// @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} />} |
-// @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx |   const mapped = p?.status === "on_the_way" && | const mapped = true &&
-// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     cardSteps && flows.moreCount === 1 && <div | cardSteps && flows.moreCount > 1 && <div
-// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const messageInRow = cardSteps && !!message && primaryOrMessage === message; |   const messageInRow = false;
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />} |
+// @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx |   const mapped = (arrived ? p?.status === "arrived" : p?.status === "on_the_way") && | const mapped = true &&
+// @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |     : others === 1 | : others === -1
+// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras()]; |     const extras = [msg as RowAction, ...pageExtras()];
 describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => {
   const onTheWay = () => row({
     customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
@@ -570,7 +574,7 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     expect(document.querySelector("[data-on-the-way-map]")).toBeNull();
   });
 
-  it("with his position, a small map; once he has arrived, no block at all", async () => {
+  it("with his position, a small map; once he has arrived, the on-the-way line gives way to the arrived one", async () => {
     state.position = { status: "on_the_way", latitude: 30.01, longitude: -91.81 };
     state.job = onTheWay();
     state.party = true;
@@ -581,6 +585,31 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     state.job = { ...onTheWay(), helper_arrived_at: "2026-10-28T14:20:00Z" };
     renderPage();
     expect(document.querySelector("[data-on-the-way]")).toBeNull();
+    expect(document.querySelector("[data-arrived-now]")).toBeTruthy();
+  });
+
+  // Owner 2026-11-01 9:36 and 9:40 AM: at Arrived, "Rhonda arrived · 9:20 AM" and the Apple map with the job's pin and
+  // where she tapped Arrived, above the tracker; no GPS text line. Gone once the work is under way.
+  it("arrived: the time she tapped it and the map of where she was, above the tracker; no GPS line", async () => {
+    state.position = { status: "arrived", latitude: 30.0001, longitude: -91.8001 };
+    state.job = { ...onTheWay(), helper_arrived_at: "2026-10-28T14:20:00Z" };
+    state.party = true;
+    const { unmount } = renderPage();
+    const block = await screen.findByLabelText("Arrived");
+    await waitFor(() => expect(block.textContent).toContain("Rhonda arrived · 9:20 AM"));
+    expect(block.textContent).not.toMatch(/GPS|on the way/i);
+    await waitFor(() => expect(block.querySelector("[data-on-the-way-map]")).toBeTruthy());
+    const tracker = document.querySelector("[data-job-tracker]") as HTMLElement;
+    expect(block.compareDocumentPosition(tracker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    unmount();
+    // No position shared: the line alone, no empty map box.
+    state.position = null;
+    const second = renderPage();
+    expect((await screen.findByLabelText("Arrived")).querySelector("[data-on-the-way-map]")).toBeNull();
+    second.unmount();
+    state.job = { ...onTheWay(), helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:30:00Z" };
+    renderPage();
+    expect(document.querySelector("[data-arrived-now]")).toBeNull();
   });
 
   it("one card action (No-Show): [Message Rhonda | that action], no More options; the Helpr's card sits above them", async () => {
@@ -588,9 +617,9 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     state.job = onTheWay();
     state.party = true;
     renderPage();
-    const actions = document.querySelector("[data-poster-actions]") as HTMLElement;
+    const actions = document.querySelector('[data-job-row="poster"]') as HTMLElement;
     expect(await within(actions).findByRole("button", { name: "Message Rhonda" })).toBeTruthy();
-    expect(actions.querySelector("[data-poster-one-action]")).toBeTruthy();
+    expect(actions.querySelector("[data-row-one-action]")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
     // Message is in the row, not also the big button above it.
     expect(screen.getAllByRole("button", { name: "Message Rhonda" })).toHaveLength(1);
@@ -603,13 +632,13 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     state.job = onTheWay();
     state.party = true;
     const { unmount } = renderPage();
-    const actions = document.querySelector("[data-poster-actions]") as HTMLElement;
+    const actions = document.querySelector('[data-job-row="poster"]') as HTMLElement;
     await within(actions).findByRole("button", { name: "Message Rhonda" });
     expect(within(actions).getAllByRole("button").map((b) => b.textContent)).toEqual(["Message Rhonda"]);
     unmount();
     state.moreCount = 3;
     renderPage();
-    const row2 = document.querySelector("[data-poster-actions]") as HTMLElement;
+    const row2 = document.querySelector('[data-job-row="poster"]') as HTMLElement;
     await within(row2).findByRole("button", { name: "Message Rhonda" });
     expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["Message Rhonda", "More options"]);
   });
@@ -692,7 +721,10 @@ describe("job page, the hired Helpr", () => {
     state.job = booked();
     state.party = true;
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Message Rhonda" }));
+    // The step leads; Message and Open in working sit behind More options, one tap away (owner 2026-11-01).
+    await screen.findByRole("button", { name: "Confirm you'll be at the job" });
+    await waitFor(() => expect(pageActions()).toContain("Message Rhonda"));
+    pressAction("Message Rhonda");
     expect(screen.getByTestId("where").textContent).toBe(`/messages?jobId=${row().id}&userId=${POSTER}`);
   });
 
@@ -1097,12 +1129,34 @@ describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () =
     // Still on the job page: no trip to the Posted card, no request left for it.
     expect(screen.queryByTestId("where")).toBeNull();
     expect(faceRequests).toEqual([]);
-    // With the confirm as the big button, Message the Helpr moves under it (the open sheet hides the page from roles).
-    const row2 = document.querySelector("[data-poster-actions]") as HTMLElement;
-    expect(await within(row2).findByRole("button", { name: "Message Rhonda", hidden: true })).toBeTruthy();
+    // ONE row (owner 2026-11-01): the confirm leads on the right; Message, Change date or time and Cancel job are behind
+    // More options on its left (the open sheet hides the page from roles).
+    const row2 = document.querySelector('[data-job-row="poster"]') as HTMLElement;
+    expect(within(row2).getAllByRole("button", { hidden: true }).map((b) => b.textContent)).toEqual(["More options", "Confirm it's still on"]);
   });
 
 });
+
+/** Every action the page offers: the row's buttons, and what its More options lists (opened, then closed again). */
+function pageActions(): string[] {
+  const rowEl = document.querySelector("[data-job-row]");
+  if (!rowEl) return [];
+  const inRow = within(rowEl as HTMLElement).queryAllByRole("button").map((b) => b.textContent ?? "");
+  const more = within(rowEl as HTMLElement).queryByRole("button", { name: "More options" });
+  if (!more) return inRow;
+  fireEvent.click(more);
+  const sheet = document.querySelector("[data-row-options]") as HTMLElement;
+  const listed = within(sheet).queryAllByRole("button").map((b) => b.textContent ?? "").filter((t) => t && t !== "Close");
+  fireEvent.keyDown(sheet, { key: "Escape" });
+  return [...inRow.filter((t) => t !== "More options"), ...listed];
+}
+/** Press an action, opening More options first when it is listed there (one tap). */
+function pressAction(name: string) {
+  const direct = document.querySelector("[data-job-row]") ? within(document.querySelector("[data-job-row]") as HTMLElement).queryByRole("button", { name }) : null;
+  if (direct) return fireEvent.click(direct);
+  fireEvent.click(screen.getByRole("button", { name: "More options" }));
+  fireEvent.click(within(document.querySelector("[data-row-options]") as HTMLElement).getByRole("button", { name }));
+}
 
 describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31)", () => {
   // The Manage job card's actions are the page's secondary buttons: message, change the date or time, cancel.
@@ -1111,30 +1165,35 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     poster_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: null,
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     canChange && ( |     false && (
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     message && primary !== message && ( |     false && (
-  it("a booked job: Message is the big button; Change date or time and Cancel job sit under it, and no Manage job", async () => {
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     canChange && { key: "change" |     false && { key: "change"
+  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |       {others > 1 && ( |       {others > 99 && (
+  it("a booked job: [Message | More options], and More options lists Change date or time and Cancel job in one tap", async () => {
     state.job = booked();
     state.party = true;
     renderPage();
     const steps = document.querySelector("[data-job-steps]") as HTMLElement;
-    expect(await within(steps).findByRole("button", { name: "Message Rhonda" })).toBeTruthy();
-    const row2 = steps.querySelector("[data-poster-actions]") as HTMLElement;
-    expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["Change date or time", "Cancel job"]);
+    const row2 = steps.querySelector('[data-job-row="poster"]') as HTMLElement;
+    expect(await within(row2).findByRole("button", { name: "Message Rhonda" })).toBeTruthy();
+    expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["Message Rhonda", "More options"]);
+    // Never a stack of buttons: nothing else under the row.
+    expect(screen.queryByRole("button", { name: "Cancel job" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
+    fireEvent.click(within(row2).getByRole("button", { name: "More options" }));
+    const sheet = await screen.findByRole("dialog", { name: "More options" });
+    expect(within(sheet).getAllByRole("button").map((b) => b.textContent).filter((t) => t !== "Close")).toEqual(["Change date or time", "Cancel job"]);
     // jsdom has no scrollTo (the sheet's date strip scrolls itself into view).
     Element.prototype.scrollTo ??= () => {};
-    fireEvent.click(within(row2).getByRole("button", { name: "Change date or time" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Change date or time" }));
     expect(await screen.findByRole("dialog")).toBeTruthy();
     expect(screen.queryByTestId("where")).toBeNull();
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | disabled={!flows.ready} onClick={flows.cancel}> | disabled={!flows.ready} onClick={() => navigate(`/posts?highlight=${id}&manage=1`)}>
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: "Cancel job", go: flows.cancel, | label: "Cancel job", go: () => navigate(`/posts?highlight=${id}&manage=1`),
   it("Cancel job runs the card's own cancel flow (on-the-way check, fee quote, refund) ON the page", () => {
     state.job = booked();
     state.party = true;
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel job" }));
+    pressAction("Cancel job");
     expect(flowCalls).toEqual(["cancel"]);
     expect(screen.queryByTestId("where")).toBeNull();
     expect(faceRequests).toEqual([]);
@@ -1142,18 +1201,23 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | const CANCELLABLE = new Set(["open", "accepted"]); | const CANCELLABLE = new Set(["open", "accepted", "in_progress"]);
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | && !job.helper_on_the_way_at && | &&
-  it("no Cancel once the Helpr set off, and an open job with no applicants offers Cancel without a big button", () => {
-    for (const over of [{ helper_on_the_way_at: "2026-10-28T12:00:00Z" }, { status: "in_progress" }]) {
-      state.job = { ...booked(), ...over };
+  // JA-6 (Jobs audit 11-01): nor Change date or time, by the same rule.
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canChange = !!job.date_needed && !job.helper_on_the_way_at && !job.helper_arrived_at | const canChange = !!job.date_needed
+  it("no Cancel or Change date or time once the Helpr set off, and an open job with no applicants offers Cancel", () => {
+    state.moreCount = 0;
+    for (const over of [{ helper_on_the_way_at: "2026-10-28T12:00:00Z" }, { status: "in_progress", helper_arrived_at: "2026-10-28T12:30:00Z" }]) {
+      state.job = { ...booked(), date_needed: jobLocalDateISO(0), start_time: "23:30", ...over };
       state.party = true;
       const { unmount } = renderPage();
-      expect(screen.queryByRole("button", { name: "Cancel job" }), JSON.stringify(over)).toBeNull();
+      const offered = pageActions();
+      expect(offered, JSON.stringify(over)).not.toContain("Cancel job");
+      expect(offered, JSON.stringify(over)).not.toContain("Change date or time");
       unmount();
     }
     state.job = row({ customer_id: ME });
     state.applicants = { total: 0, pending: 0 };
     renderPage();
-    expect(screen.getByRole("button", { name: "Cancel job" })).toBeTruthy();
+    expect(pageActions()).toContain("Cancel job");
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
   });
 
@@ -1165,7 +1229,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     state.party = true;
     state.crewNobodyLeft = true;
     renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel job" }));
+    pressAction("Cancel job");
     expect(flowCalls).toEqual(["cancel"]);
   });
 
@@ -1226,12 +1290,12 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canEdit = !draft && status === "open" && !job.is_group_job; |   const canEdit = false;
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | <NoApplicantsYet job={job} onManage={posterActions.edit} /> | <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | disabled={!flows.ready} onClick={flows.edit}> | disabled={!flows.ready} onClick={() => navigate(`/posts?highlight=${id}&manage=1`)}>
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: "Edit job", go: flows.edit, | label: "Edit job", go: () => navigate(`/posts?highlight=${id}&manage=1`),
   it("an open job: Edit job, and the no-applicants rows (photo, price) open the card's own edit ON the page", () => {
     state.job = row({ customer_id: ME });
     state.applicants = { total: 0, pending: 0 };
     const { unmount } = renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "Edit job" }));
+    pressAction("Edit job");
     expect(flowCalls).toEqual(["edit"]);
     unmount();
     flowCalls.length = 0;
@@ -1243,7 +1307,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | const MORE_ON_CARD = new Set(["in_progress", "revision_requested", "completed", "disputed"]); | const MORE_ON_CARD = new Set<string>([]);
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | aria-haspopup="dialog" onClick={() => setOptionsOpen(true)}> | aria-haspopup="dialog" onClick={() => navigate(`/posts?highlight=${id}&manage=1`)}>
+  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | aria-haspopup="dialog" data-row-more="" onClick={() => setOpen(true)}> | aria-haspopup="dialog" data-row-more="" onClick={() => {}}>
   it("a job under way or done: More options opens the card's other steps (no-show, dispute, tip, review) ON the page, in one tap", async () => {
     state.job = { ...booked(), status: "completed", poster_completed_at: "2026-10-28T15:00:00Z", helper_completed_at: "2026-10-28T14:00:00Z" };
     state.party = true;
@@ -1258,11 +1322,11 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const panel = cardSteps \|\| posterWait === "approve" ? flows.panel : null; |   const panel = flows.panel;
-  it("a booked job not yet under way has no More options (everything it needs is on the page)", () => {
+  it("a booked job not yet under way offers only the page's own actions (no card steps)", async () => {
     state.job = booked();
     state.party = true;
     renderPage();
-    expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+    await waitFor(() => expect(pageActions()).toEqual(["Message Rhonda", "Change date or time", "Cancel job"]));
     // Nor the card's controls mounted out of sight (their reads), with no step that uses them.
     expect(screen.queryByTestId("card-panel")).toBeNull();
   });

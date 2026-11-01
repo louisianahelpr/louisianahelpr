@@ -343,7 +343,7 @@ export function JobActionRow({
  * label, so a call site that writes its own "Hire again — …" does not come out
  * as "Hire again — Hire again — …".
  */
-function composeAccessibleName(label: string, ariaLabel?: string): string | undefined {
+export function composeAccessibleName(label: string, ariaLabel?: string): string | undefined {
   if (!ariaLabel) return undefined; // no aria-label: the visible text IS the name
   const starts = ariaLabel.trim().toLowerCase().startsWith(label.trim().toLowerCase());
   return starts ? ariaLabel : `${label} — ${ariaLabel}`;

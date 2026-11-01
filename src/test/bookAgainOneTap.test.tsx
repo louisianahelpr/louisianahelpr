@@ -14,6 +14,7 @@
  * @mutate src/pages/post-job/FormStep.tsx |     goOn: () => setPage?.(4), |     goOn: () => setPage?.(2),
  * @mutate src/pages/post-job/usePostJobForm.ts |     prefillOpensWhen: prefillOpensWhen(searchParams), |     prefillOpensWhen: false,
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |         job.helper_id && !crew ? ( |         job.helper_id && crew ? (
+ * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |       ]}\n      dialogs={ |         job.helper_id ? <JobActionChip key="again2" icon={RotateCcw} label="Hire again" onClick={() => {}} /> : null,\n      ]}\n      dialogs={
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |             onClick={ageGate("post", () => navigate(bookAgainLink(job.id, job.helper_id as string)))} |             onClick={ageGate("post", () => navigate(`/post-job?offerTo=${job.helper_id}`))}
  * @mutate src/components/jobDone/JobDoneSummary.tsx |             to={bookAgainLink(jobId, job.helper_id)} |             to={`/post-job?offerTo=${job.helper_id}`}
  * @mutate src/components/jobDone/JobDoneSummary.tsx |           <SaveHelperButton helperId={job.helper_id} customerId={viewerId} /> |           {null}
@@ -118,7 +119,8 @@ describe("Book <Helpr> again (Q2471 #3)", () => {
     );
   });
 
-  it("the finished job's card draws Book <Helpr> again, which opens the copy offered to that Helpr; Hire again stays blank", async () => {
+  // One book-again (owner 2026-11-01: "Book Eli again" and "Hire again" side by side in the done list; keep one).
+  it("the finished job's card draws ONE Book <Helpr> again, which opens the copy offered to that Helpr; no Hire again beside it", async () => {
     const { CompletedStep } = await import("@/pages/posts/postedJobCard/steps/CompletedStep");
     const navigate = vi.fn();
     const job = {
@@ -136,8 +138,8 @@ describe("Book <Helpr> again (Q2471 #3)", () => {
     fireEvent.click(chip);
     expect(navigate).toHaveBeenCalledWith(bookAgainLink("job-1", "helper-1"));
     await openMore(container);
-    fireEvent.click(screen.getByRole("button", { name: /^Hire again — / }));
-    expect(navigate).toHaveBeenLastCalledWith("/post-job?offerTo=helper-1");
+    expect(screen.queryByRole("button", { name: /Hire again/ })).toBeNull();
+    expect(screen.getAllByRole("button", { name: /^Book Hallie again — / })).toHaveLength(1);
   });
 
   it("a crew job has no one Helpr to offer it to: no Book again chip", async () => {

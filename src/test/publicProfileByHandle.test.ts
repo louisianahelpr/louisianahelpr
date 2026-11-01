@@ -17,7 +17,9 @@
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | 'town', public.mask_job_location(j.location), | 'town', j.location,
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND w.public | 
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND j.status = 'open' | 
- * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | 'reviewer_name', public.member_display_name(r.reviewer_name), | 'reviewer_name', r.reviewer_name,
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | 'reviewer_name', public.member_display_name(r.reviewer_full_name), | 'reviewer_name', r.reviewer_full_name,
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND NOT public.is_test_member(rv.reviewer_id) | 
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND j.is_seed IS NOT TRUE\n         AND NOT public.is_test_member(rv.reviewer_id) |          AND NOT public.is_test_member(rv.reviewer_id)
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | 'id', i.id, | 'id', i.id, 'pickup_address', i.pickup_address,
  */
 import { describe, expect, it } from "vitest";
@@ -54,10 +56,15 @@ describe("the newest public_profile_by_handle keeps every rule", () => {
     ["never expired", "AND (j.expires_at IS NULL OR j.expires_at > now())"],
     ["live listings only", "AND i.status = 'live' AND NOT i.seller_hidden AND i.is_seed IS NOT TRUE"],
     ["public Wanted posts only", "AND w.status = 'open' AND w.public AND w.removed_at IS NULL AND w.expires_at > now() AND w.is_seed IS NOT TRUE"],
-    ["reviewers as First L.", "'reviewer_name', public.member_display_name(r.reviewer_name),"],
+    ["reviewers as First L.", "'reviewer_name', public.member_display_name(r.reviewer_full_name),"],
+    ["reviews: the stats' rules, for every caller (re-review 2026-11-01)", "WHERE rv.reviewee_id = v_p.user_id AND rv.status = 'published' AND rv.feedback_visible_at IS NOT NULL AND rv.feedback_visible_at <= now() AND j.status <> 'cancelled' AND j.is_seed IS NOT TRUE AND NOT public.is_test_member(rv.reviewer_id) AND NOT public.is_test_member(rv.reviewee_id)"],
     ["the public name as First L.", "'name', public.member_display_name(v_p.full_name),"],
   ])("%s", (_what, clause) => {
     expect(body).toContain(clause);
+  });
+
+  it("never reads the caller-dependent public reviews read (its seed rule reads auth.uid())", () => {
+    expect(body).not.toContain("get_public_profile_reviews(");
   });
 
   it("names no contact, address, coordinate, storage or user-id field", () => {

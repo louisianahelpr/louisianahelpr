@@ -9,10 +9,10 @@
  * (23 PASS with both migrations applied 3x; PHONE_MIGRATION=skip: the 7 has_phone checks FAIL). This guard pins the
  * newest definitions and the three places it is mounted.
  *
- * @mutate supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql |               WHERE np.user_id = v_uid AND np.sms_phone_prompt_dismissed_at IS NOT NULL) THEN |               WHERE np.user_id = v_uid) THEN
- * @mutate supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql |                AND (c.sms_opt_in IS TRUE |                AND (false
- * @mutate supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql |   RETURN v_n = 1; |   RETURN v_n >= 1;
- * @mutate supabase/migrations/20261030132841_sms_prompt_for_members_with_a_phone.sql | WHERE p.id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); | WHERE p.id = v_uid);
+ * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |               WHERE np.user_id = v_uid AND np.sms_phone_prompt_dismissed_at IS NOT NULL) THEN |               WHERE np.user_id = v_uid) THEN
+ * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |                AND (c.sms_opt_in IS TRUE |                AND (false
+ * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |   RETURN v_n = 1; |   RETURN v_n >= 1;
+ * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql | WHERE p.user_id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); | WHERE p.user_id = v_uid);
  * @mutate src/pages/home/HomeDashboard.tsx | {!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /> | {<Suspense fallback={null}><SmsPhonePrompt moment="has_phone" />
  * @mutate src/pages/home/HomeDashboard.tsx | <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} /> | <FirstRun userId={user?.id} />
  * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx | title={allSet ? "You're all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} | title={allSet ? "You're all set" : SMS_PHONE_PROMPT_TITLE}
@@ -34,7 +34,7 @@ const read = (p: string) => blankComments(readFileSync(p, "utf8")).replace(/\s+/
 describe("the one-time add-your-phone prompt", () => {
   it("reads the newest definitions (floor)", () => {
     const newest: Record<string, string> = {
-      sms_phone_prompt_due: "20261030132841",
+      sms_phone_prompt_due: "20261101040158",
       dismiss_sms_phone_prompt: "20261027183058",
     };
     const names = Object.keys(newest);
@@ -51,7 +51,7 @@ describe("the one-time add-your-phone prompt", () => {
     expect(due).toContain("RETURN v_n = 1;");
     // SMS-OPTIN: 'has_phone' is the caller's own profile phone, blank or spaces counting as none.
     expect(due).toContain("p_moment NOT IN ('first_job', 'first_hire', 'has_phone')");
-    expect(due).toContain("IF p_moment = 'has_phone' THEN RETURN EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); END IF;");
+    expect(due).toContain("IF p_moment = 'has_phone' THEN RETURN EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); END IF;");
     // The dismissal and texts-on checks come BEFORE the has_phone answer, so they hold for it too.
     expect(due.indexOf("sms_phone_prompt_dismissed_at IS NOT NULL")).toBeLessThan(due.indexOf("IF p_moment = 'has_phone'"));
     expect(due.indexOf("c.sms_opt_in IS TRUE")).toBeLessThan(due.indexOf("IF p_moment = 'has_phone'"));

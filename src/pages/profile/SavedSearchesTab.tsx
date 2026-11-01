@@ -8,6 +8,7 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { Sheet, SheetContent, SheetDestructiveAction, SheetFooter, SheetHero, SheetSecondaryAction } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SAVED_SEARCHES_KEY } from "@/components/savedSearches/SaveSearchSheet";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -183,9 +184,11 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
                     </span>
                     <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
                   </button>
-                  <button type="button" onClick={() => setEditing(s)} aria-label={`Settings for ${s.name}`} className="shrink-0 min-h-[44px] min-w-[44px] mr-1 inline-flex items-center justify-center rounded-full text-muted-foreground ctl-tint">
-                    <MoreHorizontal className="w-4 h-4" aria-hidden />
-                  </button>
+                  {/* The shared compact ghost icon (44 tap, 40 wash), not a hand-made button; 16px glyph kept (B47 10-31). */}
+                  <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} aria-label={`Settings for ${s.name}`}
+                    className="shrink-0 mr-1 rounded-full text-muted-foreground [&_svg]:size-4">
+                    <MoreHorizontal aria-hidden />
+                  </Button>
                 </li>
               ))}
             </ul>

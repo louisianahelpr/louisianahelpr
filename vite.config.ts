@@ -201,7 +201,7 @@ const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cw
 // B87: Home's lazy section reads (see the home-declutter-reads and home-schedule-reads groups). Two groups, not one:
 // api.ts imports myReads statically, so in one chunk the schedule reads rode onto /messages', /jobs' and /post-job's
 // first screens (check-deferred-vendors).
-const HOME_DECLUTTER_READS = /[\\/]src[\\/]lib[\\/]declutter[\\/]myReads\.ts$/;
+const HOME_DECLUTTER_READS = /[\\/]src[\\/]lib[\\/]declutter[\\/](myReads|minePrefetchTake)\.ts$/;
 const HOME_SCHEDULE_READS = /[\\/]src[\\/]lib[\\/](scheduleChange|scheduleClashes|notDeployedYet)\.ts$/;
 const BROWSE_GROUP_SKIPS = /[\\/]src[\\/]components[\\/]ui[\\/]skeleton\.tsx$/;
 
@@ -970,7 +970,7 @@ export default defineConfig(({ mode, command }) => ({
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
             // The small reads Home's first screen fires lazily (B87, 11-01): its Declutter tile and Coming up
-            // (src/lib/declutter/myReads.ts) and the schedule-change and clash reads useActivityData makes
+            // (src/lib/declutter/myReads.ts, with B81's minePrefetchTake.ts it takes /declutter's boot reads from) and the schedule-change and clash reads useActivityData makes
             // (scheduleChange, scheduleClashes, notDeployedYet). bootReach puts them in signed-in-pages /
             // signed-in-deep, so each import fetched that whole chunk and its ~150 KB gz closure (Radix, dates,
             // browse-first-screen, ...) while the dock was loading. Same shape as parish-names: they ride alone.

@@ -28,7 +28,7 @@ const config = read("vite.config.ts");
 
 /** Each group: its name, its regex constant, the files it must hold. */
 const GROUPS = [
-  { name: "home-declutter-reads", re: "HOME_DECLUTTER_READS", files: ["src/lib/declutter/myReads.ts"] },
+  { name: "home-declutter-reads", re: "HOME_DECLUTTER_READS", files: ["src/lib/declutter/myReads.ts", "src/lib/declutter/minePrefetchTake.ts"] },
   { name: "home-schedule-reads", re: "HOME_SCHEDULE_READS", files: ["src/lib/scheduleChange.ts", "src/lib/scheduleClashes.ts", "src/lib/notDeployedYet.ts"] },
 ];
 

@@ -93,6 +93,7 @@ describe("a run on a weak connection", () => {
     setHandovers: vi.fn(async () => {}) as unknown as ListDeps["setHandovers"],
     setDropPct: vi.fn(async () => {}) as unknown as ListDeps["setDropPct"],
     setKeepUp: vi.fn(async () => {}) as unknown as ListDeps["setKeepUp"],
+    setAutoFreeDays: vi.fn(async (_id: string, d: number | null) => d),
     setOfferRules: vi.fn(async () => {}) as unknown as ListDeps["setOfferRules"],
     publishMany: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, status: "live" as const }))),
   });

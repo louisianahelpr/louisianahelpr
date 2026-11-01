@@ -181,7 +181,8 @@ export function SettingsTab({
       </Group>
 
       <Group title="Your sections">
-        {SECTIONS.map((s) => {
+        {/* In the iPhone app a section not open to everyone is not listed (owner 10-31, hideUnopenedInApp). */}
+        {SECTIONS.filter((s) => live.find((t) => t.path === s.path)?.listed !== false).map((s) => {
           const tab = live.find((t) => t.path === s.path);
           const on = s.feature === null || !!tab?.on;
           const preview = s.feature !== null && !!tab?.preview;

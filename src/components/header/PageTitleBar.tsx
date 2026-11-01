@@ -84,10 +84,16 @@ export interface PageTitleBarProps {
   desktopGap?: boolean;
   /** A MOMENT title (Home's greeting; same face as every title since 2026-10-25). */
   moment?: boolean;
+  /**
+   * Desktop: the h1 stays for screen readers but is not painted, because the page paints its own title in its body
+   * (the Declutter item page, owner mockup 11-01: the title with Save and Share in the right column). Back and the
+   * actions stay in the bar.
+   */
+  titleHidden?: boolean;
 }
 
 /** The desktop bar's row: back, title, then the actions pushed right. */
-function DesktopRow({ title, back, actions, moment }: Pick<PageTitleBarProps, "title" | "back" | "actions" | "moment">) {
+function DesktopRow({ title, back, actions, moment, titleHidden }: Pick<PageTitleBarProps, "title" | "back" | "actions" | "moment" | "titleHidden">) {
   return (
     <div className="flex items-center gap-3 min-w-0 w-full" data-page-title-row="">
       {back && (
@@ -95,7 +101,7 @@ function DesktopRow({ title, back, actions, moment }: Pick<PageTitleBarProps, "t
           <BackButton onClick={back.onBack} to={back.backTo} />
         </div>
       )}
-      <h1 className={`${moment ? "font-moment " : ""}text-page-title leading-tight min-w-0 truncate text-foreground`}>{title}</h1>
+      <h1 className={`${moment ? "font-moment " : ""}text-page-title leading-tight min-w-0 truncate text-foreground${titleHidden ? " sr-only" : ""}`}>{title}</h1>
       {actions && <div className="ml-auto flex items-center gap-1.5 shrink-0 pr-1">{actions}</div>}
     </div>
   );
@@ -108,7 +114,7 @@ export function useHeaderInDesktopBar(): boolean {
   return isWebDesktop && !!target;
 }
 
-export function PageTitleBar({ title, back, actions, phone, desktopGap = true, moment = false }: PageTitleBarProps) {
+export function PageTitleBar({ title, back, actions, phone, desktopGap = true, moment = false, titleHidden = false }: PageTitleBarProps) {
   const isWebDesktop = useIsWebDesktop();
   const target = useDesktopTitleSlot();
   const first = useIsFirstTitleBar(useId());
@@ -116,14 +122,14 @@ export function PageTitleBar({ title, back, actions, phone, desktopGap = true, m
     // A screen on top of a page: its own row, under the bar, inside the screen.
     return (
       <div className="pt-5 pb-5" data-page-title-nested="">
-        <DesktopRow title={title} back={back} actions={actions} moment={moment} />
+        <DesktopRow title={title} back={back} actions={actions} moment={moment} titleHidden={titleHidden} />
       </div>
     );
   }
   if (isWebDesktop && target) {
     return (
       <>
-        {createPortal(<DesktopRow title={title} back={back} actions={actions} moment={moment} />, target)}
+        {createPortal(<DesktopRow title={title} back={back} actions={actions} moment={moment} titleHidden={titleHidden} />, target)}
         {/* The ONE gap between the bar and a page's first content, every page: 8px under the 70px bar, so a
             section's tabs row is level with the rail's Create (src/lib/desktopBar.ts). */}
         {desktopGap && <div aria-hidden className="h-2 shrink-0" data-page-title-gap="" />}

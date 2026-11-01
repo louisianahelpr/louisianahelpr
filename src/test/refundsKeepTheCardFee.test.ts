@@ -95,7 +95,7 @@
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261101000817_declutter_admin_helpr_fault.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
- * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
+ * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -563,7 +563,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // #26 (20261028204431): only the two "Payment received" lines changed (the next step from
       // declutter_paid_next_step). No reason, amount or fee changed.
       // A3-8 (20261028210552): only the "Payment received" / "Buyer paid" lines name the item. No reason, amount or fee changed.
-      declutter_mark_order_paid: "20261028210552_declutter_sale_notices_name_inline.sql c653dda18a5645b1",
+      // BUY-1 (20261101030040, lead 10-31, for lh-money-escrow): a payment that lands on a released hold (paid in time,
+      // recorded after the sweep put the item back on sale) is refunded IN FULL as 'order_closed' (full_platform_absorbs)
+      // or 'seller_out' when being out is the sole blocker, instead of the sale being brought back. No other reason,
+      // amount or fee changed.
+      declutter_mark_order_paid: "20261101030040_declutter_buy_now_30_minutes.sql 58316ae073a71a78",
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.

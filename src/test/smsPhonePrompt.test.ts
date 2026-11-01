@@ -15,9 +15,9 @@
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql | WHERE p.user_id = v_uid AND nullif(btrim(p.phone), '') IS NOT NULL); | WHERE p.user_id = v_uid);
  * @mutate src/pages/home/HomeDashboard.tsx | {!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /> | {<Suspense fallback={null}><SmsPhonePrompt moment="has_phone" />
  * @mutate src/pages/home/HomeDashboard.tsx | <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} /> | <FirstRun userId={user?.id} />
- * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx | title={allSet ? "You're all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} | title={allSet ? "You're all set" : SMS_PHONE_PROMPT_TITLE}
- * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |           <SmsAlertsCard inPrompt onAllSet={onAllSet} /> |           <p>Text alerts</p>
- * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |     void supabase.rpc("dismiss_sms_phone_prompt") |     void Promise.resolve({ data: 1, error: null })
+ * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx | title={allSet ? "You're all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} | title={allSet ? "You're all set" : SMS_PHONE_PROMPT_TITLE}
+ * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx |           <SmsAlertsCard inPrompt onAllSet={onAllSet} /> |           <p>Text alerts</p>
+ * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx |     void supabase.rpc("dismiss_sms_phone_prompt") |     void Promise.resolve({ data: 1, error: null })
  * @mutate src/pages/post-job/PaymentSuccess.tsx | <SmsPhonePrompt moment="first_job" /> | <span />
  * @mutate src/components/job-card/ActivityOfferDialogs.tsx |           <SmsPhonePrompt moment="first_hire" /> |           <span />
  */
@@ -30,6 +30,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 
 const code = (name: string) => blankSqlComments(newestFunction(name).body).replace(/\s+/g, " ");
 const read = (p: string) => blankComments(readFileSync(p, "utf8")).replace(/\s+/g, " ");
+// B87: the gate (switch, due read) and the dialog it loads once due are two files.
+const readPrompt = () => read("src/components/notificationPreferences/SmsPhonePrompt.tsx") + read("src/components/notificationPreferences/SmsPhonePromptDialog.tsx");
 
 describe("the one-time add-your-phone prompt", () => {
   it("reads the newest definitions (floor)", () => {
@@ -61,7 +63,7 @@ describe("the one-time add-your-phone prompt", () => {
   });
 
   it("the client: the existing opt-in card inside, the switch read, every close dismisses", () => {
-    const prompt = read("src/components/notificationPreferences/SmsPhonePrompt.tsx");
+    const prompt = readPrompt();
     expect(prompt).toContain("<SmsAlertsCard inPrompt onAllSet={onAllSet} />");
     expect(prompt).toContain('const enabled = useFeature("sms_alerts");');
     expect(prompt).toContain('void supabase.rpc("dismiss_sms_phone_prompt")');
@@ -74,7 +76,7 @@ describe("the one-time add-your-phone prompt", () => {
     expect(home).toContain('{!firstRunActive && <Suspense fallback={null}><SmsPhonePrompt moment="has_phone" /></Suspense>}');
     expect(home).toContain("<FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />");
     expect(home).toContain("const [firstRunActive, setFirstRunActive] = useState(true);");
-    const prompt = read("src/components/notificationPreferences/SmsPhonePrompt.tsx");
+    const prompt = readPrompt();
     expect(prompt).toContain('title={allSet ? "You\'re all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE}');
     expect(prompt).toContain('export const SMS_TEXTS_PROMPT_TITLE = "Turn on texts so you don\'t miss updates";');
   });

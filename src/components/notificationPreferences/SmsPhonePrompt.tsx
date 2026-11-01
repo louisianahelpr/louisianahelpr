@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useFeature } from "@/hooks/useFeature";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { report } from "@/lib/errorLogger";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHero, DialogSecondaryAction } from "@/components/ui/dialog";
-import SmsAlertsCard from "./SmsAlertsCard";
+import { loadModule } from "@/lib/loadModule";
+// B87: the refusal words load only on a refusal, and the dialog (Radix, the opt-in card) only once it is due.
+const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors"));
+const SmsPhonePromptDialog = lazy(() => import("./SmsPhonePromptDialog"));
 
 /**
  * The moments the prompt is offered at; the server decides whether it is due. "has_phone" (SMS-OPTIN, owner
@@ -46,9 +46,6 @@ export const SMS_TEXTS_PROMPT_TITLE = "Turn on texts so you don't miss updates";
 export function SmsPhonePrompt({ moment }: { moment: SmsPromptMoment }) {
   const enabled = useFeature("sms_alerts");
   const { user } = useAuthReady();
-  const [closed, setClosed] = useState(false);
-  const [allSet, setAllSet] = useState(false);
-  const queryClient = useQueryClient();
   const due = useQuery({
     queryKey: ["sms-phone-prompt", moment, user?.id],
     enabled: enabled && !!user,
@@ -60,46 +57,13 @@ export function SmsPhonePrompt({ moment }: { moment: SmsPromptMoment }) {
       // Not deployed yet (the web build can reach prod before db-deploy): never prompt.
       if (res.error && isMissingRpcNamed(res.error, "sms_phone_prompt_due")) return false;
       // Any other failure: no prompt; unwrap throws it, in words the error log can read.
-      if (res.error) res.error.message = rpcErrorMessage("sms_phone_prompt_due", res.error) ?? res.error.message;
+      if (res.error) {
+        const copy = await lifecycleErrors();
+        res.error.message = copy?.rpcErrorMessage("sms_phone_prompt_due", res.error) ?? res.error.message;
+      }
       return unwrap(res) === true;
     },
   });
-  const close = useCallback(() => {
-    setClosed(true);
-    // Every moment's cached answer: a remount (Home, Posted, a first hire) never reopens it this session.
-    queryClient.setQueriesData({ queryKey: ["sms-phone-prompt"] }, false);
-    void supabase.rpc("dismiss_sms_phone_prompt").then(({ data, error }) => {
-      // A zero-row answer is not a write: no timestamp back means it was not stored.
-      if (error || !data) {
-        report(error ?? new Error("dismiss_sms_phone_prompt stored nothing"), {
-          tags: { area: "sms_phone_prompt", moment },
-          context: { words: error ? rpcErrorMessage("dismiss_sms_phone_prompt", error) : null },
-        });
-      }
-    });
-  }, [moment, queryClient]);
-  const onAllSet = useCallback((alreadyOn: boolean) => {
-    if (alreadyOn) close();
-    else setAllSet(true);
-  }, [close]);
-  useEffect(() => {
-    if (!allSet || closed) return;
-    const t = setTimeout(close, SMS_PROMPT_ALL_SET_MS);
-    return () => clearTimeout(t);
-  }, [allSet, closed, close]);
-  if (!enabled || closed || due.data !== true) return null;
-  return (
-    <Dialog open onOpenChange={(o) => { if (!o) close(); }}>
-      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()} data-sms-phone-prompt={moment}>
-        <DialogHero title={allSet ? "You're all set" : moment === "has_phone" ? SMS_TEXTS_PROMPT_TITLE : SMS_PHONE_PROMPT_TITLE} />
-        <DialogBody>
-          {!allSet && <p>We'll text you when something on your job needs you and you haven't seen it in the app.</p>}
-          <SmsAlertsCard inPrompt onAllSet={onAllSet} />
-        </DialogBody>
-        <DialogFooter>
-          <DialogSecondaryAction onClick={close}>{allSet ? "Close" : "Not now"}</DialogSecondaryAction>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+  if (!enabled || due.data !== true) return null;
+  return <Suspense fallback={null}><SmsPhonePromptDialog moment={moment} /></Suspense>;
 }

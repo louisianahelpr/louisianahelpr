@@ -5,10 +5,10 @@
  * "You're all set, texts go to ..." for about 2 s and closes itself; it never offers Turn off (that is Settings');
  * it never comes back (a remount this session, or a reload, where the server answers not due).
  *
- * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |     const t = setTimeout(close, SMS_PROMPT_ALL_SET_MS); |     const t = setTimeout(() => {}, SMS_PROMPT_ALL_SET_MS);
- * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |     queryClient.setQueriesData({ queryKey: ["sms-phone-prompt"] }, false); |     void 0;
+ * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx |     const t = setTimeout(close, SMS_PROMPT_ALL_SET_MS); |     const t = setTimeout(() => {}, SMS_PROMPT_ALL_SET_MS);
+ * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx |     queryClient.setQueriesData({ queryKey: ["sms-phone-prompt"] }, false); |     void 0;
  * @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |         ) : optedIn && inPrompt ? ( |         ) : optedIn && inPrompt && false ? (
- * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |     if (alreadyOn) close(); |     if (alreadyOn) setAllSet(true);
+ * @mutate src/components/notificationPreferences/SmsPhonePromptDialog.tsx |     if (alreadyOn) close(); |     if (alreadyOn) setAllSet(true);
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, waitForElementToBeRemoved, act } from "@testing-library/react";

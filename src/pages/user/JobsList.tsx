@@ -1,5 +1,6 @@
 import { ClipboardList, Hammer } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAgeGate } from "@/hooks/useAgeGate";
 import { isExpiredListing } from "@/lib/expiredListing";
 import { jobStatusColorClasses } from "@/lib/statusColors";
 import { formatShortDate, formatCategory, formatPrice } from "@/lib/format";
@@ -42,6 +43,8 @@ export function jobsViewerWasPartOf(jobs: ProfileJob[], viewerId: string | null)
 }
 
 export const JobsList = ({ jobs: allRows, variant, knownCount = 0, viewerId, isOwnProfile = false }: Props) => {
+  // Repost opens Post a job: the same under-18 gate as every Post a job entry (Q1586(c)).
+  const { underAge, explain, gatedProps } = useAgeGate();
   const jobs = jobsViewerWasPartOf(allRows, viewerId);
   // Some of this person's jobs exist but are not listed: say so, the same way
   // on both tiles, instead of listing some and withholding others silently.
@@ -90,7 +93,15 @@ export const JobsList = ({ jobs: allRows, variant, knownCount = 0, viewerId, isO
               <>
                 <span className="text-ds-10 font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Expired</span>
                 {job.customer_id === viewerId && (
-                  <Link to={`/post-job?rebook=${job.id}`} className="text-ds-11 font-semibold underline underline-offset-2" style={{ color: "hsl(var(--accent-ink))" }}>
+                  <Link
+                    to={`/post-job?rebook=${job.id}`}
+                    {...gatedProps("post")}
+                    onClick={(e) => {
+                      if (!underAge) return;
+                      e.preventDefault();
+                      explain("post");
+                    }}
+                    className="text-ds-11 font-semibold underline underline-offset-2" style={{ color: "hsl(var(--accent-ink))" }}>
                     Repost
                   </Link>
                 )}

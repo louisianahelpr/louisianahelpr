@@ -21,7 +21,7 @@ import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/post
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 import { confirmDeadlineMs, confirmOpensMs, posterConfirmClosesMs } from "@/lib/jobDate";
-import { jobStartDateTime } from "@/lib/dateUtils";
+import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
@@ -658,7 +658,7 @@ export function posterStatusLine(
   const expired = id === "cancelled" && isExpiredListing(job);
   return {
     id,
-    eyebrow: expired ? "Expired" : copy.eyebrow ?? BUCKET_LABEL[bucket],
+    eyebrow: expired ? EXPIRED_WORD : copy.eyebrow ?? BUCKET_LABEL[bucket],
     detail: expired ? EXPIRED_LISTING_DETAIL : named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival",

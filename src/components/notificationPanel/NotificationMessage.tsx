@@ -6,6 +6,7 @@
  * "More" stops the tap from reaching the row, like the row's other pills. Guard: notificationMessageShowsAll.test.tsx.
  */
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 /** Past this a 2-line clamp can cut the text on a phone (about 40 characters a line at 375). */
 const MESSAGE_FITS_TWO_LINES = 80;
@@ -23,19 +24,21 @@ export function NotificationMessage({ text }: { text: string }) {
         {text}
       </p>
       {long && (
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
           aria-expanded={open}
           onClick={(e) => {
             e.stopPropagation();
             setOpen((v) => !v);
           }}
           onKeyDown={(e) => e.stopPropagation()}
-          className="inline-flex min-h-[44px] -my-2.5 items-center font-sans text-ds-12 font-semibold underline underline-offset-2"
+          className="-my-2.5 px-0 justify-start font-sans text-ds-12 font-semibold tracking-normal underline decoration-current decoration-auto underline-offset-2"
           style={{ color: "hsl(var(--bark))" }}
         >
           {open ? "Less" : "More"}
-        </button>
+        </Button>
       )}
     </>
   );

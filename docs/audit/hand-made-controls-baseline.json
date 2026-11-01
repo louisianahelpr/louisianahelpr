@@ -659,9 +659,6 @@
     "src/components/mobileNav/TabButton.tsx": {
       "button": 1
     },
-    "src/components/notificationPanel/NotificationMessage.tsx": {
-      "button": 1
-    },
     "src/components/postjob/AddressAutocomplete.tsx": {
       "button": 1
     },

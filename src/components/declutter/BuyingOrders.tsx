@@ -115,7 +115,7 @@ export function buyerNextAction(f: OrderFacts): string | null {
  * "Waiting on <who> to <step>", and a state that asks nothing of anyone is said plainly. `when` is the booked time in
  * words, when there is one. A "you" step has no full stop (NextStep adds "Next: "); the others are whole sentences.
  */
-export function buyerNextStep(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
+function buyerNextStep(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
   taskStatus: string | null = null, bookBy: string | null = null): NextStepValue {
   const you = (text: string, by?: string | null): NextStepValue => ({ who: "you", text, by: by ?? null });
   const them = (text: string): NextStepValue => ({ who: "them", text });

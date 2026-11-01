@@ -65,7 +65,7 @@ export const FEATURE_SWITCH_KEYS = [
   "declutter_add_helpr",
   // Declutter manager mode (owner 11-01, "Manage my Declutter for me"): a seller asks one person by a private
   // direct offer to handle the parts she picks (listing, prices, offers, messages, pickups) for a share of each
-  // sale. Created 'testers' by 20261101155712; every declutter_manager_* RPC and declutter_manage refuse without
+  // sale. Created 'testers' by 20261101181005; every declutter_manager_* RPC and declutter_manage refuse without
   // it (declutter_manager_end never does: access is always removable).
   "declutter_manager",
   // Rentals S1 (docs/specs/landlord-hub-prep.md): landlords invite tenants,

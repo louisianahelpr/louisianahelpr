@@ -4,7 +4,7 @@
  * percent of the item price, or a flat amount per sold item). The person accepts or declines; either side can end
  * it, and the seller can change the parts later. The manager then acts AS the seller's listings through ONE RPC,
  * declutter_manage(p_seller, p_action, p_args), which checks the part is on and the target is the seller's selling
- * side, then runs the seller's own RPC. Server rules: migration 20261101155712_declutter_manager_mode.sql.
+ * side, then runs the seller's own RPC. Server rules: migration 20261101181005_declutter_manager_mode.sql.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

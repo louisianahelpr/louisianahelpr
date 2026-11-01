@@ -39,6 +39,7 @@ import { AppLockGate } from "@/components/AppLockGate";
 import { ForceUpdateGate } from "@/components/ForceUpdateGate";
 import { SessionManager } from "@/components/SessionManager";
 import { SignedInChrome, SignedInOnly } from "@/components/SignedInChrome";
+import { WebDesktopOnly } from "@/components/WebDesktopOnly";
 
 // PageTransition (the iPhone edge swipe-back) and ScrollToTop no longer use
 // framer-motion (Q1356; check-deferred-vendors.mjs holds them to it). Q178: a
@@ -87,8 +88,9 @@ const DeliveryOnlinePill = lazy(() => import("./components/declutter/DeliveryOnl
 const NeedsYouMount = lazy(() => import("./components/NeedsYouMount"));
 import { SidePanelProvider } from "./components/sidePanelOpen";
 // /quotes is retired (owner 2026-10-19): old hub links redirect to Posts, Jobs or My Jobs (src/lib/quotes/homes.ts).
-const PermissionRationaleDialog = lazy(() =>
-  import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
+// A thin host: the dialog's chunk loads on the first ask or once the page settles (B86).
+const PermissionRationaleMount = lazy(() =>
+  import("@/components/PermissionRationaleMount").then((m) => ({ default: m.PermissionRationaleMount }))
 );
 // Terms re-consent and the one Stripe Identity sheet (owner 2026-10-21): small
 // always-mounted parts that fetch their dialog only when it has to show
@@ -573,14 +575,17 @@ const App = () => (
           <SignedInChrome>
             <Suspense fallback={null}><MobileNav /></Suspense>
             <Suspense fallback={null}><NeedsYouMount /></Suspense>
-            <Suspense fallback={null}><DesktopSidebarNav /></Suspense>
-            <Suspense fallback={null}><DesktopTopNav /></Suspense>
+            {/* Phones never fetch the desktop rail's chunks (B86). */}
+            <WebDesktopOnly>
+              <Suspense fallback={null}><DesktopSidebarNav /></Suspense>
+              <Suspense fallback={null}><DesktopTopNav /></Suspense>
+            </WebDesktopOnly>
             <Suspense fallback={null}><DeliveryOnlinePill /></Suspense>
             <Suspense fallback={null}><TermsReconsentMount /></Suspense>
             <Suspense fallback={null}><IdentityCheckMount /></Suspense>
           </SignedInChrome>
           <Suspense fallback={null}>
-            <PermissionRationaleDialog />
+            <PermissionRationaleMount />
           </Suspense>
           </SidePanelProvider>
           <SpeedInsightsRouted />

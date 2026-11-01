@@ -43,6 +43,8 @@ import { DeclutterNotice } from "./declutterUi";
 import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
+import { Button } from "@/components/ui/button";
+import { DropoffAddressField } from "./DropoffAddressField";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
 import { HANDOVER_TITLE, HANDOVER_WORDS } from "./handoverCopy";
 import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
@@ -126,9 +128,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // The quote is for the cart as it was priced: a changed cart total asks again.
   const [quotedFor, setQuotedFor] = useState<number | null>(null);
   const priceIt = useMutation({
-    mutationFn: async () => {
+    // `picked`: a whole address just picked from the list (owner 2026-11-01), priced at once.
+    mutationFn: async (picked?: string) => {
       await porchPlaces.whenPicked();
-      return fetchDeliveryQuote(sellerId, address.trim());
+      return fetchDeliveryQuote(sellerId, (picked ?? address).trim());
     },
     onSuccess: (q) => { setQuote(q); setQuotedFor(itemsTotalCents); setSdChecked(null); }, // DB-9: it stored a new drop-off: seller delivery checks again
     onError: (err) => { setQuote(null); toast.error(declutterErrorMessage(err)); void porchPlaces.reread(err); },
@@ -198,7 +201,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       <fieldset className="space-y-2">
         <legend className="mb-2 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">How you'll get it</legend>
         {offered.map((h) => (
-          <label key={h}
+          <div key={h} className="space-y-2" data-handover-option={h}>
+          <label
             className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-[20px] border bg-card px-4 py-3.5 ${chosen === h ? "border-2 border-primary" : "border-border"}`}
           >
             <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setPicked(h)} style={{ accentColor: "hsl(var(--primary))" }} />
@@ -214,6 +218,15 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
                 : "Free"}
             </span>
           </label>
+          {/* Owner 2026-11-01: the seller's pickup places sit UNDER the way that uses them (porch pickup, the default,
+              or a door pickup or Helpr delivery from that place), shown while it is the one chosen. */}
+          {chosen === h && needsPlace && (
+            <div className="pl-4" data-places-under={h}>
+              <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} refused={porchPlaces.refused} loadError={porchPlaces.query.error}
+                onRetry={() => void porchPlaces.reread()} onChosen={() => setQuote(null)} />
+            </div>
+          )}
+          </div>
         ))}
         {!porchOk && ways === null && (
           <p className="text-xs text-muted-foreground">The seller asked buyers to meet at their home for this order, so porch pickup isn't available.</p>
@@ -221,8 +234,6 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         {offered.length === 0 && <NoWayWorks sellerId={sellerId} />}
       </fieldset>
       {meetingUp && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
-      {needsPlace && <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} refused={porchPlaces.refused} loadError={porchPlaces.query.error}
-        onRetry={() => void porchPlaces.reread()} onChosen={() => setQuote(null)} />}
       {sellerDelivering && (
         <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
           handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
@@ -231,16 +242,13 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       )}
       {delivering && (
         <div className="space-y-2 rounded-xl border border-border p-3">
-          <label htmlFor={addressId} className="block text-xs font-medium">Deliver to (street number, street and town)</label>
-          <div className="flex gap-2">
-            <input id={addressId} className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              autoComplete="street-address" maxLength={300} value={address}
-              onChange={(e) => { setAddressTouched(true); setAddress(e.target.value); setQuote(null); }} />
-            <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
-              disabled={priceIt.isPending || address.trim().length < 5 || !placeReady} onClick={() => priceIt.mutate()}>
-              {priceIt.isPending ? "Pricing…" : "Get price"}
-            </button>
-          </div>
+          <DropoffAddressField id={addressId} value={address}
+            onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}
+            onPicked={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); if (placeReady) priceIt.mutate(a); }} />
+          <Button type="button" variant="outline" size="sm" className="rounded-full"
+            disabled={priceIt.isPending || address.trim().length < 5 || !placeReady} onClick={() => priceIt.mutate(undefined)}>
+            {priceIt.isPending ? "Pricing…" : "Get price"}
+          </Button>
           {liveQuote ? (
             <dl className="text-sm space-y-1">
               <div className="flex justify-between"><dt>Helpr delivery, about {liveQuote.road_miles} {liveQuote.road_miles === 1 ? "mile" : "miles"}</dt><dd>{formatPrice(liveQuote.delivery_cents)}</dd></div>

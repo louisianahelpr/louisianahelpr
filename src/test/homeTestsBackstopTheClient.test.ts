@@ -16,10 +16,10 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/test/helpers/emptySupabaseClient.ts |       return chain();\n    }, |       return undefined;\n    },
 
 const BACKSTOP = 'vi.mock("@/integrations/supabase/client", async () => (await import("./helpers/emptySupabaseClient")).emptySupabaseModule());';
-const FILES = ["src/test/dashboardsShell.test.tsx", "src/test/centerCreateNav.test.tsx"];
+const FILES = ["src/test/dashboardsShell.test.tsx", "src/test/centerCreateNav.test.tsx", "src/test/badgeIsTodo.test.tsx"];
 
 describe("Home's screen tests backstop the Supabase client", () => {
-  it("both mock the client with the empty fake", () => {
+  it("each mocks the client with the empty fake", () => {
     expect(FILES.length).toBeGreaterThan(1);
     for (const f of FILES) expect(blankComments(readFileSync(resolve(__dirname, "../..", f), "utf8")), f).toContain(BACKSTOP);
   });

@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 459,
+      "literal": 458,
       "template": 96,
-      "dynamic": 552,
+      "dynamic": 553,
       "jsx": 0
     }
   },
@@ -1604,7 +1604,7 @@
     },
     {
       "file": "src/components/TipDialog.tsx",
-      "line": 50,
+      "line": 51,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1614,7 +1614,7 @@
     },
     {
       "file": "src/components/TipDialog.tsx",
-      "line": 74,
+      "line": 75,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1624,7 +1624,7 @@
     },
     {
       "file": "src/components/TipDialog.tsx",
-      "line": 96,
+      "line": 97,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4563,7 +4563,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 76,
+      "line": 81,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4573,7 +4573,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 79,
+      "line": 84,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4583,7 +4583,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 84,
+      "line": 89,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4593,7 +4593,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 87,
+      "line": 92,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4603,7 +4603,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 134,
+      "line": 139,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4613,7 +4613,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 137,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4623,7 +4623,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 246,
+      "line": 258,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4633,7 +4633,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 251,
+      "line": 264,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6126,7 +6126,7 @@
     },
     {
       "file": "src/components/declutter/DeliveryTipPanel.tsx",
-      "line": 39,
+      "line": 47,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6804,7 +6804,7 @@
     },
     {
       "file": "src/components/identity/IdentityCheckSheet.tsx",
-      "line": 192,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10622,8 +10622,18 @@
       "line": 35,
       "kind": "toast.success",
       "title": {
-        "form": "literal",
-        "text": "Your setup fee is already paid. Publish your listing again."
+        "form": "dynamic",
+        "text": "returnTo === \"declutter_free_claim\" ? \"Your setup fee is already paid.\" : \"Your setup fee is already paid. Publish your listing again.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Your setup fee is already paid."
+          },
+          {
+            "form": "literal",
+            "text": "Your setup fee is already paid. Publish your listing again."
+          }
+        ]
       },
       "renders": false
     },

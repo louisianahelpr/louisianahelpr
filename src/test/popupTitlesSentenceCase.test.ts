@@ -159,7 +159,9 @@ describe("every pop-up title is sentence case", () => {
     // 205: +3 CMP-4 instant book (b80, train 14, 2026-11-01): "Book ${name} now?" / "Book now?" (InstantBookPanel's
     // confirm) and "Decline this booking?" (InstantBookingCard).
     // 206: +1 "More options" (the job page's options sheet, b91-jobpage 09764ab410, train 17).
-    expect(all.length).toBe(206);
+    // 208: +2 the free item ask (owner mockup 3, 11-01, b103 item page): "Ask for it" (FreeAskSheet) and
+    // "How free items work" (DeclutterFreeClaim's rules sheet behind How it works).
+    expect(all.length).toBe(208);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

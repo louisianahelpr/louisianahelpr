@@ -81,10 +81,9 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [protectedRoute],
     signedIn: [() => import("@/pages/jobs/JobsSection"), protectedRoute],
   },
-  // /posts only redirects to /jobs?tab=posted (PostsPage), so Jobs' page starts beside it, not a round later (B90).
   "/posts": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/posts/PostsPage"), () => import("@/pages/jobs/JobsSection"), protectedRoute],
+    signedIn: [() => import("@/pages/posts/PostsPage"), protectedRoute],
   },
   "/post-job": {
     guest: [protectedRoute],
@@ -95,10 +94,10 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [protectedRoute],
     signedIn: [() => import("@/boot/profileRoute"), protectedRoute],
   },
-  // adminRoute starts the gate and the page together (see that file).
+  // profileRoute also starts /admin's gate and page together (see accountPageChunksFor there).
   "/admin": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/boot/adminRoute"), protectedRoute],
+    signedIn: [() => import("@/boot/profileRoute"), protectedRoute],
   },
   // A signed-out visitor is sent to /login by ProtectedRoute, so Login is the page they will see.
   // declutterRoute keeps Declutter's long preload list out of the entry (see that file).

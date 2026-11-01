@@ -13,7 +13,9 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && !v.stuck_stage && toRoute} |           {null}
  * @mutate src/components/declutter/DeliveryCantFinish.tsx |  ariaLabel="The right address" plainWithoutMapKit keepListInView /> |  ariaLabel="The right address" />
  * @mutate src/components/declutter/DeliveryCantFinish.tsx | <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" | <input type="radio"
- * @mutate src/components/declutter/DeliveryCantFinish.tsx |       {!chosen && <p className="text-sm font-semibold">What would you like to happen?</p>} |
+ * @mutate src/components/declutter/DeliveryCantFinish.tsx |       {!chosen && ( |       {false && (
+ * @mutate src/components/declutter/DeliveryCantFinish.tsx | text: "Waiting on the buyer to fix it", by: v.stuck_fix_by ? `by ${when(v.stuck_fix_by)}` : null | text: "Waiting on the buyer to fix it", by: null
+ * @mutate src/components/declutter/DeliveryCantFinish.tsx | text: `Tell ${who} how to finish the delivery`, | text: "",
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
  * @mutate src/lib/declutter/stillInHand.ts |   if (!pickedUpAt \|\| !heldPastADay(pickedUpAt)) return null; |   if (true) return null;
  * @mutate src/components/declutter/DeliverVehicleForm.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
@@ -113,6 +115,7 @@ vi.mock("@/lib/declutter/deliveryTip", () => ({
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: async (url: string) => { state.calls.push(["open", url]); } }));
 
 import { DeliverView, OrderDeliveryPanel } from "./DeclutterDeliveryViews";
+import { HelprCantFinish } from "./DeliveryCantFinish";
 import { PAYOUT_SETUP_NEEDS_HIRE_COPY } from "@/lib/payoutSetupPaused";
 
 function show(el: React.ReactNode) {
@@ -579,9 +582,19 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(await screen.findByText(/less what the delivery cost, which pays the Helpr for the trip, and less the small part the card network kept/)).toBeInTheDocument();
     // B42: the corrected-address box is there before MapKit is (it was an empty space under its label).
     expect(screen.getByLabelText("The right address, if it changed")).toHaveAttribute("data-address-plain");
+    // A3-23: the buyer's step and its deadline as the shared line.
+    expect(document.querySelector('[data-cant-finish-fix] [data-next-step="you"]')?.textContent).toMatch(/^Next: tell Hank how to finish the delivery · by /);
     fireEvent.change(screen.getByLabelText("What the Helpr needs to know"), { target: { value: "Gate code 1234" } });
     fireEvent.click(screen.getByRole("button", { name: "Send it to Hank" }));
     await waitFor(() => expect(state.calls).toContainEqual(["buyer_fix", "t1", "Gate code 1234", null, null]));
+  });
+
+  it("A3-23: the Helpr waiting on the buyer's fix reads the shared line with its deadline", async () => {
+    state.view = { ...VIEW, role: "helpr", status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", stuck_stage: "waiting_fix", stuck_fault: "none", stuck_fix_by: "2026-10-31T12:00:00Z", problem_open: false };
+    show(<HelprCantFinish taskId="t1" userId="helper-1" />);
+    const line = await screen.findByText(/^Waiting on the buyer to fix it/);
+    expect(line.closest("[data-next-step]")?.getAttribute("data-next-step")).toBe("them");
+    expect(line.closest("[data-next-step]")?.textContent).toMatch(/ · by /);
   });
 
   it("BUY-36: an item going back can't be confirmed, and the seller answers when it's back", async () => {
@@ -602,7 +615,8 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", helpr_first_name: "Hank", stuck_stage: "returning", stuck_fault: "helpr", stuck_return_by: "2026-11-01T12:00:00Z", problem_open: false };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     // B42: the three buttons come with the question they answer.
-    expect(await screen.findByText("What would you like to happen?")).toBeInTheDocument();
+    // A3-23: the question is the shared next-step line.
+    expect((await screen.findByText(/^Next: choose a full refund, another Helpr or collecting it/)).closest("[data-next-step]")?.getAttribute("data-next-step")).toBe("you");
     fireEvent.click(await screen.findByRole("button", { name: "Refund me in full" }));
     const sheet = await waitFor(() => { const e = document.querySelector<HTMLElement>('[data-confirm-sheet="delivery-cant-finish-choice"]'); expect(e).not.toBeNull(); return e as HTMLElement; });
     expect(within(sheet).getByText(/All of your money comes back, delivery included/)).toBeInTheDocument();

@@ -134,13 +134,19 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
     });
   }
 
-  it("with nothing at its end, the status chip row draws no fade over its chips", () => {
+  // HELP-WORKIN (lead 10-31): the Jobs chip row now fades its right edge like Declutter's (AUD31-4), so a chip cut at
+  // 360 reads as "more to scroll" (searchKeepsLitChip pins its widths). A row with neither `end` nor `fade` still draws none.
+  it("with nothing at its end, the Jobs chip row fades its right edge (HELP-WORKIN); a plain StatusBoxes row does not", () => {
     const { container } = wrap(
       <EmbeddedActivityHeader header={() => <div />} tab="posted" statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} search="" onSearch={() => {}} />,
     );
     const cls = within(container).getByRole("group", { name: "Filter by status" }).className;
     expect(cls).toContain("overflow-x-auto");
-    expect(cls).not.toMatch(/mask-image|pr-11/);
+    expect(cls).toMatch(/\[mask-image:linear-gradient\(to_right,#000_calc\(100%-40px\),transparent\)\]/);
+    expect(cls).not.toMatch(/pr-11/);
+    cleanup();
+    const plain = wrap(<StatusBoxes boxes={[{ key: "a", label: "Needs you", count: 1 }]} value={null} onToggle={() => {}} allCount={1} />);
+    expect(within(plain.container).getByRole("group", { name: "Filter by status" }).className).not.toMatch(/mask-image|pr-1[01]/);
   });
 
   it("a status chip row that does carry an end control (StatusBoxes' `end`) fades over at least one icon width, and its end padding lets the last chip clear the fade", () => {

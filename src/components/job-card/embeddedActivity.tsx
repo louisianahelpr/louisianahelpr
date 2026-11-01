@@ -86,6 +86,9 @@ export function EmbeddedActivityHeader({
             // `all` is the length of the very list "All" shows (activityFilters: postedJobs.length / appliedApps.length).
             allCount={counts.all}
             emptyLine={false}
+            // HELP-WORKIN (lead 10-31): the same right-edge fade as Declutter's chip row (AUD31-4); at 360 the 4th chip
+            // starts past the edge, and the fade says the row scrolls.
+            fade
           />
         </div>
       </div>

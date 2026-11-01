@@ -40,6 +40,7 @@ const state = {
   askedAt: null as string | null,
   /** The member's own open asks for free items (the Free change, Q2487). */
   asks: [] as { id: string; item_id: string; status: string; created_at: string }[],
+  giverAsks: undefined as unknown[] | undefined,
   withdrawn: [] as string[],
   /** fetchItemHandovers: the ways the giver ticked (null = an older item with none recorded). DA-5. */
   ticks: null as string[] | null,
@@ -85,6 +86,8 @@ vi.mock("@/lib/declutter/api", () => ({
   },
   fetchSellerCard: async () => ({ name: "Lexi Lombas" }),
   fetchMyFreeRequests: async () => state.asks,
+  fetchFreeRequestsForItem: async () => state.giverAsks ?? [],
+  pickFreeRequest: async () => undefined,
   withdrawFreeRequest: async (id: string) => {
     state.withdrawn.push(id);
   },
@@ -93,7 +96,7 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 
 import { OfferPanel } from "./DeclutterOfferPanel";
-import { FreeCheckoutForSeller, FreeClaimPanel } from "./DeclutterFreeClaim";
+import { FreeCheckoutForSeller, FreeClaimPanel, FreeRequestsForGiver } from "./DeclutterFreeClaim";
 import type { DeclutterItem } from "@/lib/declutter/api";
 
 const ITEM = {
@@ -258,6 +261,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     expect(await rules()).toMatch(/you'll get the address to pick it up at their home or from their porch\./);
   });
 
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | value={{ who: "them", text: `Waiting on ${giverFirstName === "The giver" ? "the giver" : giverFirstName} to pick who gets it. We'll tell you either way.` }} | value={{ who: "info", text: "The giver picks who gets it. We'll tell you either way." }}
   it("with the member's ask open: You asked for this, and Take back my ask withdraws that ask", async () => {
     state.asks = [
       { id: "r1", item_id: "i1", status: "open", created_at: "2026-10-30T00:00:00Z" },
@@ -265,9 +269,28 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     ];
     show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
     expect(await screen.findByText("You asked for this.")).toBeInTheDocument();
+    // The shared next-step line (owner 11-01): nothing is the asker's to do; it waits on the giver (named).
+    await waitFor(() => expect(document.querySelector("[data-free-claim] [data-next-step]")?.textContent).toBe("Waiting on Lexi to pick who gets it. We'll tell you either way."));
+    expect(document.querySelector("[data-free-claim] [data-next-step]")?.getAttribute("data-next-step")).toBe("them");
     expect(screen.queryByRole("button", { name: "Ask for it" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Take back my ask" }));
     await waitFor(() => expect(state.withdrawn).toEqual(["r1"]));
+  });
+});
+
+// The giver's request list says the giver's move once someone asked (owner 11-01 12:02 PM: the shared next-step line).
+// @mutate src/components/declutter/DeclutterFreeClaim.tsx |         <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it" }} /> |         null
+describe("the giver's request list: Next: pick who gets it", () => {
+  it("with asks: 'Next: pick who gets it'; with none: it stays up, no step", async () => {
+    state.giverAsks = [{ request_id: "r1", requester_id: "u1", display_name: "Kaci B.", avg_rating: 5, review_count: 3, created_at: "2026-10-30T00:00:00Z", pickup_at: null }];
+    const one = show(<FreeRequestsForGiver item={{ ...ITEM, current_price_cents: 0, price_cents: 0 } as never} />);
+    expect(await screen.findByText("Next: pick who gets it")).toBeInTheDocument();
+    one.unmount();
+    state.giverAsks = [];
+    show(<FreeRequestsForGiver item={{ ...ITEM, current_price_cents: 0, price_cents: 0 } as never} />);
+    expect(await screen.findByText("Nobody has asked yet. It stays up until you pick someone.")).toBeInTheDocument();
+    expect(screen.queryByText(/^Next:/)).toBeNull();
+    state.giverAsks = undefined;
   });
 });
 

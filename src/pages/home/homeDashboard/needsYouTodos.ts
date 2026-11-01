@@ -12,9 +12,10 @@ import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { useFeature } from "@/hooks/useFeature";
 import { posterStatusLine, helperStatusLine, type JobStatusLine } from "@/components/job-card/jobStatusLine";
 import { jobStartTarget } from "@/components/job-card/CountdownRows";
+import { loadModule, untilReload } from "@/lib/loadModule";
 // The import alone goes through Vite's preload wrapper; the read runs after it (Sentry JAVASCRIPT-54,
 // src/test/dynamicImportThenDoesNoWork.test.ts).
-const shopOrdersApi = () => import("@/lib/shops/orders");
+const shopOrdersApi = () => loadModule(() => import("@/lib/shops/orders"));
 
 export interface TodoItem {
   id: string;
@@ -200,7 +201,7 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
     staleTime: CORE_STALE,
   });
   // My shop's incoming orders: the same query (key and fetch) the Shop dashboard reads.
-  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => m.fetchShopOrders(uid)), enabled: !!uid && shopsOn });
+  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchShopOrders(uid) : untilReload())), enabled: !!uid && shopsOn });
   const backout = useBackoutNotices(uid || null);
 
   const queryClient = useQueryClient();

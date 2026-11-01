@@ -23,7 +23,7 @@
  * @mutate src/test/pglite/declutterHaulAway.pglite.mjs | const onMain = migrationsAt("origin/main"); | const onMain = readdirSync(MIG_DIR);
  * @mutate scripts/ci/definer-exec-allowlist.json | when every one is already linked to p_job_id and that job is the caller's | when the items are the caller's
  * @mutate src/pages/post-job/useJobSubmit.ts | import { linkTurnoverJob } from "./turnoverPrefill"; | import { linkTurnoverJob } from "./turnoverPrefill";\nimport { linkSetupJob } from "@/lib/declutter/setupHelpr";
- * @mutate src/pages/post-job/useHaulAwayPrefill.ts | const declutter = () => import("@/lib/declutter/haulAway"); | const declutter = () => Promise.all([import("@/lib/declutter/api"), import("@/lib/declutter/haulAway")]).then(([a, h]) => ({ ...a, ...h }));
+ * @mutate src/pages/post-job/useHaulAwayPrefill.ts | const declutter = () => loadModule(() => import("@/lib/declutter/haulAway")); | const declutter = () => Promise.all([import("@/lib/declutter/api"), import("@/lib/declutter/haulAway")]).then(([a, h]) => ({ ...a, ...h }));
  * @mutate src/components/declutter/DeclutterHomeView.tsx | import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam"; | import { oneTripGroup, type HaulAwayRow } from "@/lib/declutter/haulAwayParam";\nvoid oneTripGroup;
  * @mutate src/lib/declutter/errors.ts |   // Haul-away (20261017070827): its words |   haul_away_too_many: "One haul-away can take up to 10 items.",\n  // Haul-away (20261017070827): its words
  * @mutate docs/archive/OPEN-done-2026-10.md |  CONDITION FOR GOING LIVE: the declutter_haul_away switch stays testers-only until the put-back-on-sale sweep below is live on prod |

@@ -56,10 +56,11 @@ import { resolveSentryRelease } from "./sentryRelease";
 import { isAutomatedBrowser } from "./automatedBrowser";
 import { attachColdLaunchSink } from "./coldLaunchPhases";
 import { redactInviteToken } from "./redactInviteToken";
+import { loadModule } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const sentryReact = () => import("@sentry/react");
+const sentryReact = () => loadModule(() => import("@sentry/react"));
 
 /**
  * Audit #2 from the 2026-05-27 cold-launch regression triage: a tag that
@@ -343,9 +344,11 @@ export function initSentry() {
         // the DOM recording it triggers are deferred until the browser is idle.
         // (@sentry-internal/replay was removed in @sentry/react ≥10.58.)
         sentryReact()
-          .then(({ replayIntegration }) => {
+          .then((m) => {
+            if (!m) return; // a recovery reload is under way
             // A test profile signed in before the idle tick: never start.
             if (replayBlocked) return;
+            const { replayIntegration } = m;
             try {
               addIntegration(
                 replayIntegration({

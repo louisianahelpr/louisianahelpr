@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useFeature } from "@/hooks/useFeature";
 import { report } from "@/lib/errorLogger";
 import { parseLocationIntoFields } from "./postJobFormHelpers";
+import { loadModule } from "@/lib/loadModule";
 
 interface Setters {
   setCategory: (v: string) => void;
@@ -25,7 +26,7 @@ interface Setters {
 // chunk (declutter/api, declutter/errors) puts its whole namespace object
 // there, on /posts' critical path (measured 2026-10-17); ./haulAway re-exports
 // the two api calls this needs.
-const declutter = () => import("@/lib/declutter/haulAway");
+const declutter = () => loadModule(() => import("@/lib/declutter/haulAway"));
 
 /** A listing photo (public job-photos bucket) as a File the job's upload takes. Null when it can't be read. */
 async function photoFile(path: string, photoPublicUrl: (p: string) => string): Promise<File | null> {
@@ -71,6 +72,7 @@ export function useHaulAwayPrefill(searchParams: URLSearchParams, s: Setters): s
       if (live) toast.error(`Couldn't load your items: ${errorMessage(err)}`);
     };
     declutter().then(async (d) => {
+      if (!d) return; // a recovery reload is under way
       // Parsed with the lazily loaded code: Post a Job imports nothing the
       // Declutter screen also imports (Q178).
       const ids = d.parseHaulAwayParam(raw);

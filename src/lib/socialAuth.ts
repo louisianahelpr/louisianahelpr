@@ -12,6 +12,7 @@
 // vitest suite (src/lib/socialLogin.test.ts) still covers the native path
 // without any churn.
 import { Capacitor } from "@capacitor/core";
+import { loadModule, untilReload } from "@/lib/loadModule";
 // PD-011: loaded on demand, never statically. A static import put the plugin
 // (41 KB raw) in main.tsx's cold-start closure via nativeInit, on the web where
 // it is dead weight. Destructure from the module, never await/return the plugin
@@ -28,7 +29,7 @@ import { Capacitor } from "@capacitor/core";
  */
 export const SOCIAL_SIGN_IN_ENABLED = true;
 
-const loadSocialLogin = () => import("@capgo/capacitor-social-login");
+const loadSocialLogin = () => loadModule(() => import("@capgo/capacitor-social-login"));
 type SocialLoginPlugin = typeof import("@capgo/capacitor-social-login").SocialLogin;
 import { supabase } from "@/integrations/supabase/client";
 import { recognizedAuthError } from "@/lib/authErrors";
@@ -83,7 +84,7 @@ let initialized = false;
 export async function initSocialLogin(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   if (initialized) return;
-  const { SocialLogin } = await loadSocialLogin();
+  const { SocialLogin } = (await loadSocialLogin()) ?? (await untilReload());
   await SocialLogin.initialize({
     apple: { clientId: "com.Helpr.signin" },
     google: {
@@ -167,7 +168,7 @@ async function nativeIdToken(provider: SocialProvider): Promise<{ idToken: strin
     provider === "apple"
       ? { scopes: ["email", "name"] }
       : { scopes: ["email", "profile"] };
-  const { SocialLogin } = await loadSocialLogin();
+  const { SocialLogin } = (await loadSocialLogin()) ?? (await untilReload());
   const { result } = await SocialLogin.login({ provider, options } as Parameters<
     SocialLoginPlugin["login"]
   >[0]);

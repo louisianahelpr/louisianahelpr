@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 import { signOutWithPushCleanup } from "@/lib/authSignOut";
+import { loadModule } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const errorLogger = () => import("@/lib/errorLogger");
+const errorLogger = () => loadModule(() => import("@/lib/errorLogger"));
 
 type SignOutResult = Awaited<ReturnType<typeof signOutWithPushCleanup>>;
 
@@ -47,7 +48,7 @@ export function useSignOutAction() {
         // threw. Reported, never an unhandled rejection from a click handler.
         console.error("[signOut] the after-sign-out step threw", err);
         void errorLogger()
-          .then(({ report }) => report(err, { severity: "error", tags: { area: "auth", op: "signOutAfter" } }))
+          .then((m) => m?.report(err, { severity: "error", tags: { area: "auth", op: "signOutAfter" } }))
           .catch(() => { /* Silent by design: the logger itself failed to load; the console line above still says it. */ });
       }
       return result;

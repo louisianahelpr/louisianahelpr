@@ -161,6 +161,6 @@ test.describe("Q199 stale chunks during a deploy", () => {
 // @mutate index.html | var wait = decide(st.count, st.last, Date.now(), offline); | var wait = st.last > 0 && Date.now() - st.last <= 10000 ? -1 : 0;
 // The route layer showing the error card while its retry waits: the
 // in-flight flag armed at schedule time is what keeps RouteErrorBoundary quiet.
-// @mutate src/lib/chunkReload.ts | (see recoveryReloadInFlight).\n    recoveryReloadInFlight = true; | (see recoveryReloadInFlight).\n    recoveryReloadInFlight = false;
+// @mutate src/lib/chunkReload.ts | (see recoveryReloadInFlight).\n    setRecoveryReloadInFlight(true); | (see recoveryReloadInFlight).\n    setRecoveryReloadInFlight(false);
 // The cap: a broken build must end on the error screen, not reload forever.
 // @mutate index.html | if (count >= SCHEDULE.length) return -1; | if (count >= 99) return -1;

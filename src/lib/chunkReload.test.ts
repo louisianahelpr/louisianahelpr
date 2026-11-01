@@ -119,7 +119,7 @@ describe("recoverFromChunkError", () => {
     expect(replace).toHaveBeenCalledTimes(4);
   });
 
-  // @mutate src/lib/chunkReload.ts |   if (pendingRetry) clearTimeout(pendingRetry);\n  if (pendingOnlineRetry) window.removeEventListener("online", pendingOnlineRetry);\n  pendingRetry = null;\n  pendingOnlineRetry = null;\n  recoveryReloadInFlight = false;\n  return true; |   return true;
+  // @mutate src/lib/chunkReload.ts |   if (pendingRetry) clearTimeout(pendingRetry);\n  if (pendingOnlineRetry) window.removeEventListener("online", pendingOnlineRetry);\n  pendingRetry = null;\n  pendingOnlineRetry = null;\n  setRecoveryReloadInFlight(false);\n  return true; |   return true;
   it("Q982 (2): leaving the page drops a scheduled retry: no reload of the page moved to, no attempt spent", async () => {
     recoverFromChunkError(); // attempt 1: reloads now
     await flush();

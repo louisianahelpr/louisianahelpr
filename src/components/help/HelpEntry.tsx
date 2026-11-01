@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type HelpEntryPanel from "./HelpEntryPanel";
+import { loadModule } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const helpEntryPanel = () => import("./HelpEntryPanel");
+const helpEntryPanel = () => loadModule(() => import("./HelpEntryPanel"));
 
 const SUPPORT_PATH = "/support?topic=message";
 
@@ -41,6 +42,7 @@ export function HelpEntry({ triggerClassName = "h-11 w-11" }: { triggerClassName
     }
     helpEntryPanel().then(
       (mod) => {
+        if (!mod) return; // a recovery reload is under way
         setPanel(() => mod.default);
         setOpen(true);
       },

@@ -24,6 +24,8 @@ import { startEntryAuthRefresh } from "./boot/entryAuthRefresh";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
+// Bare, not through loadModule: the entry imports nothing from src/lib (criticalPathBudget: that would drag
+// app-shared into it). `m?.` covers the undefined a prevented preload resolves; the prefetch is speculative.
 const declutterPrefetch = () => import("./boot/declutterPrefetch");
 
 // Q1170: a returning web visitor's expired token is refreshed beside the
@@ -46,7 +48,7 @@ startGuestJobsPrefetch(window.location.pathname);
 // other page downloads stays within its budget.
 if (hasToken() && /^\/declutter\/?$/.test(window.location.pathname)) {
   void declutterPrefetch()
-    .then((m) => m.startDeclutterPrefetch(window.location.pathname))
+    .then((m) => m?.startDeclutterPrefetch(window.location.pathname))
     .catch(() => {
       /* speculative: the page reads for itself */
     });

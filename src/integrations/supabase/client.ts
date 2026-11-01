@@ -8,11 +8,12 @@ import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
 import { signOutAwareFetch } from '@/lib/signOutAbort';
 import { noteReachableFetch } from '@/lib/connectivity';
 import { defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
+import { loadModule } from '@/lib/loadModule';
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const errorLogger = () => import('@/lib/errorLogger');
-const queryClientModule = () => import('@/lib/queryClient');
+const errorLogger = () => loadModule(() => import('@/lib/errorLogger'));
+const queryClientModule = () => loadModule(() => import('@/lib/queryClient'));
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -92,8 +93,7 @@ const reportHeld = (info: { surface: string; method: string }) => {
   if (now - lastHeldReportAt < 60_000) return;
   lastHeldReportAt = now;
   void errorLogger()
-    .then(({ report }) =>
-      report(new Error('Held a signed-in request while the sign-in refreshed'), {
+    .then((m) => m?.report(new Error('Held a signed-in request while the sign-in refreshed'), {
         severity: 'warning',
         tags: { source: 'signedInRequestGuard.held', surface: info.surface, method: info.method },
       }),
@@ -138,8 +138,8 @@ supabase.auth.onAuthStateChange((event) => {
   if (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN') return;
   if (!takeHeldSinceRefresh()) return;
   void queryClientModule()
-    .then(({ queryClient }) =>
-      queryClient.refetchQueries({ type: 'active', predicate: (q) => q.state.status === 'error' }),
+    .then((m) =>
+      m?.queryClient.refetchQueries({ type: 'active', predicate: (q) => q.state.status === 'error' }),
     )
     .catch((err: unknown) => {
       // Not silent: the screens keep their own Try again; this logs why the

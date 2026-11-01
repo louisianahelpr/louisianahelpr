@@ -321,7 +321,7 @@ describe("signOutWithPushCleanup", () => {
 // @mutate src/lib/authSignOut.ts | if (settled === CAPPED \|\| !settled?.error) return { error: cappedError as never }; | if (settled === CAPPED) return { error: null } as never;
 // @mutate src/lib/authSignOut.ts | if (options.scope === "global" && hadSession === false) { | if (false) {
 // @mutate src/lib/authSignOut.ts | if ((await capped(diskWipe, CACHE_WIPE_CAP_MS)) === CAPPED) { | if ((await diskWipe) === undefined && false) {
-// @mutate src/lib/authSignOut.ts |     .then(({ report }) => report(new Error(message), { severity: "warning", tags: { area, op: "signOutCap" } })) |     .then(() => undefined)
+// @mutate src/lib/authSignOut.ts |     .then((m) => m?.report(new Error(message), { severity: "warning", tags: { area, op: "signOutCap" } })) |     .then(() => undefined)
 // @mutate src/lib/authSignOut.ts | if ((await capped(pushCleanup, PUSH_CLEANUP_CAP_MS)) === CAPPED) { | if ((await pushCleanup) === undefined && false) {
 // @mutate src/lib/authSignOut.ts | const { data } = await supabase.auth.getSession(); | const { data: { user } } = await supabase.auth.getUser(); const data = { session: { user } };
 

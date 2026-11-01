@@ -126,7 +126,7 @@ export function InstantBookPanel({ jobId, now }: { jobId: string; now?: number }
   }
   if (!bookable) return null;
   if (candidates.isError) {
-    return <ErrorState variant="inline" title={rpcErrorMessage("instant_book_candidates", candidates.error) ?? "We couldn't load Helprs you can book now."} onRetry={() => void candidates.refetch()} />;
+    return <ErrorState variant="inline" title="We couldn't load Helprs you can book now." body={rpcErrorMessage("instant_book_candidates", candidates.error) ?? undefined} onRetry={() => void candidates.refetch()} />;
   }
   const list = (candidates.data ?? []).slice(0, 3);
   if (list.length === 0 && !error) return null;
@@ -142,7 +142,7 @@ export function InstantBookPanel({ jobId, now }: { jobId: string; now?: number }
           {INSTANT_BOOK_DECLINE_HOURS} hours while they can decline.
         </p>
       </div>
-      {error && <p role="alert" className="text-ds-14" style={{ color: "hsl(var(--destructive))" }}>{error}</p>}
+      {error && <p role="alert" className="text-ds-14" style={{ color: "hsl(var(--destructive-ink))" }}>{error}</p>}
       <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
         {list.map((c) => {
           const name = formatName(c.display_name, "A Helpr");

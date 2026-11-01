@@ -23,6 +23,7 @@
  * @mutate src/components/jobs/InstantBookPanel.tsx |         .select("status, helper_id, direct_offer_status, instant_decline_until, payment_status") |         .select("status, helper_id, offered_to_helper_id, direct_offer_status, instant_decline_until, payment_status")
  * @mutate src/components/jobs/InstantBookingCard.tsx |           {left\n            ? <>Can |           {true\n            ? <>Can
  */
+import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -124,7 +125,9 @@ describe("Helpr floor settings (private)", () => {
     wrap(<InstantBookTab onBack={() => {}} />);
     expect(await screen.findByText("Your lowest price is private. Nobody else ever sees it.")).toBeTruthy();
     expect(screen.getByText("At least $50")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Kind of work"), { target: { value: "moving" } });
+    // The shared Select (Radix): open it from the keyboard, then pick the option.
+    fireEvent.keyDown(screen.getByLabelText("Kind of work"), { key: "Enter" });
+    fireEvent.click(await screen.findByRole("option", { name: JOB_CATEGORY_LABELS.moving }));
     const amount = screen.getByLabelText("The least you'd take");
     fireEvent.focus(amount);
     fireEvent.change(amount, { target: { value: "75" } });

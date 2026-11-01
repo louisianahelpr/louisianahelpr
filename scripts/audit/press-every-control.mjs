@@ -299,7 +299,7 @@ export function networkGate() {
     },
   };
 }
-export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout|end|leave|give up|turn down|escalate|take (?:it )?back|take down|close my shop|got it|unsave|reverse|connect (?:google|apple)|watch|unwatch)\b/i;
+export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|book|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout|end|leave|give up|turn down|escalate|take (?:it )?back|take down|close my shop|got it|unsave|reverse|connect (?:google|apple)|watch|unwatch)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
 import { isDeclaredReadRpcPath } from "./declaredReadRpcs.mjs";
 import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite, isCommitControl, isNotificationOpen } from "./pressProdSafety.mjs";

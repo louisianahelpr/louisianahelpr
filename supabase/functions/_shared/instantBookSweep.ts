@@ -18,6 +18,8 @@
  * (src/test/instantBookSweep.test.ts). No floor is read or written here.
  */
 
+import type { InstantRefundOutcome } from "./instantBookRefund.ts";
+
 /** Exactly the shape captureCardHold answers (supabase/functions/_shared/cardHold.ts). */
 export type InstantCaptureResult =
   | { ok: true; already: boolean; /** No card hold at all: the job was paid at post, nothing was captured for the booking. */ paidAtPost?: boolean }
@@ -50,6 +52,11 @@ export type InstantSweepDeps = {
   now: number;
   record: (defect: string) => void;
   page: (title: string, message: string, fields: Record<string, string | number | null | undefined>) => Promise<unknown>;
+  /**
+   * instantBookRefund.ts refundInstantBooking: the job instant_book_captured_not_hired
+   * closed for review is refunded in full now (and retried by card-hold-sweep).
+   */
+  refund: (jobId: string) => Promise<InstantRefundOutcome>;
 };
 
 const INSTANT_BOOKING_COLUMNS =
@@ -118,20 +125,32 @@ export async function settleInstantBooking(deps: InstantSweepDeps, jobId: string
     deps.record(`job ${jobId}: an instant booking's hire did not complete (${doneErr?.message ?? "refused"}); retried next run`);
     return "retry";
   }
-  // The true race: charged, and the hire refused in the moment between. The
-  // booking ends and the poster hears their payment is being returned; ops is
-  // paged once per job (true only the first time).
+  // The true race: charged, and the hire refused in the moment between.
+  return endCapturedNotHired(deps, jobId, helperId, "card-hold-sweep captured the job's held card when the 2-hour window ended, and complete_direct_offer_accept then refused.");
+}
+
+/**
+ * Charged, and the hire refused: instant_book_captured_not_hired ends the
+ * booking, closes the job for review and takes the refund claim (true only the
+ * first time for a job), and the full refund runs at once. Ops is paged ONCE
+ * per job, on that first true, with what the refund did. Shared by
+ * card-hold-sweep and create-payment capture_hold (the Helpr's early confirm).
+ */
+export async function endCapturedNotHired(
+  deps: Pick<InstantSweepDeps, "db" | "record" | "page" | "refund">, jobId: string, helperId: string, how: string,
+): Promise<"captured_not_hired" | "none" | "retry"> {
   const { data: first, error: endErr2 } = await deps.db.rpc("instant_book_captured_not_hired", { p_job_id: jobId, p_helper: helperId });
   if (endErr2) {
     deps.record(`job ${jobId}: captured for an instant booking that did not complete, and the booking was not ended (${endErr2.message}); retried next run`);
     return "retry";
   }
   if (first !== true) return "none";
-  deps.record(`job ${jobId}: captured for an instant booking whose hire was refused; the person who posted it was told the payment is being returned`);
+  const refunded = await deps.refund(jobId);
+  deps.record(`job ${jobId}: captured for an instant booking whose hire was refused; the job is closed for review and its full refund ${refunded === "refunded" ? "went out" : refunded === "retry" ? "is retried by card-hold-sweep" : "needs a person"}`);
   await deps.page(
     "An instant booking was charged but the hire did not complete",
-    "card-hold-sweep captured the job's held card when the 2-hour window ended, and complete_direct_offer_accept then refused. The booking was ended and the person who posted the job was told their payment is being returned within a day: refund the job's payment in full by hand.",
-    { job_id: jobId, helpr: helperId },
+    `${how} The booking ended and the job is closed for review (status cancelled, payment_status 'cancelling', job_refund_claims holder 'instant_book_refund'), so nobody can be hired on it. Its payment is refunded in full automatically: ${refunded === "refunded" ? "the refund went out. No action needed unless this repeats." : refunded === "retry" ? "Stripe did not answer yet, so card-hold-sweep retries it every run." : refunded === "none" ? "no open instant-book refund claim was found for it; check the job's payment in Stripe." : "the refund stopped; see the \"automatic refund needs a person\" alert."}`,
+    { job_id: jobId, helpr: helperId, refund: refunded },
   );
   return "captured_not_hired";
 }

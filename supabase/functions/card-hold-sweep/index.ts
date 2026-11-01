@@ -52,6 +52,7 @@ import {
   placeOffSessionHold,
   readHold,
   readJob,
+  refundInstantBookingWith,
   releaseCardHold,
   takeFailedHoldOffListing,
   updateHold,
@@ -92,7 +93,7 @@ serve(async (req) => {
     );
     const stripes = createStripeModeResolver(db, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
     const defects = defectTracker();
-    const counts = { holds: 0, resumed: 0, released: 0, reconciled: 0, renotified: 0, completed: 0, crew_confirmed: 0, placed: 0, renewed: 0, failed_over: 0, instant_hired: 0, instant_failed: 0, instant_ended: 0, instant_captured_not_hired: 0 };
+    const counts = { holds: 0, resumed: 0, released: 0, reconciled: 0, renotified: 0, completed: 0, crew_confirmed: 0, placed: 0, renewed: 0, failed_over: 0, instant_hired: 0, instant_failed: 0, instant_ended: 0, instant_captured_not_hired: 0, instant_refunded: 0 };
     const now = Date.now();
     const depsFor = (hold: HoldRow): Deps => {
       const mode = hold.stripe_mode as StripeMode;
@@ -143,6 +144,10 @@ serve(async (req) => {
           record: (d) => defects.record(d),
           // One alert per job: instant_book_captured_not_hired answers true once, and the key dedupes a retried run.
           page: (title, message, fields) => postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title, message, fields, seed: j.is_seed === true, oncePerDayKey: `instant-book-captured-not-hired:${j.id}` }),
+          // The full refund of a job closed for review (charged, hire refused), at once.
+          refund: (id) => hold
+            ? refundInstantBookingWith(depsFor(hold), id, (d) => defects.record(d), j.is_seed === true)
+            : Promise.resolve("retry" as const),
           // The Helpr's accept's own capture: one claim, one key per attempt. A job with no
           // hold row (paid at post) is captured already, or not capturable here.
           // offerTo: the claim goes back, nothing charged, if the Helpr declined after it (CMP-4 race fix).
@@ -158,6 +163,27 @@ serve(async (req) => {
         else if (outcome === "captured_not_hired") counts.instant_captured_not_hired++;
       } catch (e) {
         defects.record(`job ${j.id} (instant booking): ${caughtMessage(e).slice(0, 300)}`);
+      }
+    }
+
+    // 8b. Instant bookings charged with nobody hired, closed for review: the
+    // full refund is retried until it goes out (instantBookRefund.ts). Read by
+    // the claim's holder row, so no closed job is ever left with its money.
+    const { data: owed, error: owedErr } = await db.from("job_refund_claims").select("job_id")
+      .eq("claimed_by", "instant_book_refund").order("job_id", { ascending: true }).limit(200);
+    if (owedErr) defects.record(`instant booking refunds not read: ${owedErr.message}`);
+    else if ((owed ?? []).length === 200) defects.record("200 instant booking refunds open (the cap): the rest wait for the next run");
+    for (const o of (owed ?? []) as Array<{ job_id: string }>) {
+      try {
+        const hold = await readHold(db, o.job_id);
+        if (!hold) {
+          defects.record(`job ${o.job_id}: an instant booking refund is open but the job has no card hold`);
+          continue;
+        }
+        const job = await readJob(db, o.job_id);
+        if ((await refundInstantBookingWith(depsFor(hold), o.job_id, (d) => defects.record(d), job?.is_seed === true)) === "refunded") counts.instant_refunded++;
+      } catch (e) {
+        defects.record(`job ${o.job_id} (instant booking refund): ${caughtMessage(e).slice(0, 300)}`);
       }
     }
 

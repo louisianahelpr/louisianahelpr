@@ -34,6 +34,7 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { isDefinitiveStripeRefusal } from "../_shared/stripeRefusal.ts";
 import type { StripeMode } from "../_shared/stripeMode.ts";
 import { CARD_HOLD_COPY } from "../_shared/cardHoldCopy.ts";
+import { refundInstantBooking, type InstantRefundOutcome, type InstantRefundPi } from "../_shared/instantBookRefund.ts";
 import { CARD_HOLD_PARTIAL_CAPTURE_API_VERSION, DAY_MS, HOUR_MS, offSessionAllowed, partialCaptureParams } from "../_shared/cardHoldPlan.ts";
 
 export { CARD_HOLD_COPY };
@@ -690,6 +691,24 @@ async function refundCaptureForNobody(deps: HoldDeps, job: HoldJob, hold: HoldRo
     fields: { job_id: job.id, payment_intent: piId },
     seed: job.is_seed === true,
   });
+}
+
+/**
+ * CMP-4: the automatic full refund of an instant booking charged with nobody
+ * hired (instantBookRefund.ts), wired to this hold's Stripe account and the
+ * setup-fee put-back. One alert per job per day for a refund that needs a person.
+ */
+export function refundInstantBookingWith(deps: HoldDeps, jobId: string, record: (defect: string) => void, seed: boolean): Promise<InstantRefundOutcome> {
+  return refundInstantBooking({
+    db: deps.db,
+    stripe: {
+      retrievePi: async (piId) => await deps.stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge"] }) as unknown as InstantRefundPi,
+      refund: async (params, idempotencyKey) => await deps.stripe.refunds.create({ ...params, reason: "requested_by_customer" }, { idempotencyKey }),
+    },
+    unclaimSetupFee: (id, posterId, at) => unclaimSetupFee(deps.db, id, posterId, at),
+    record,
+    page: (title, message, fields, onceKey) => postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title, message, fields, seed, oncePerDayKey: onceKey }),
+  }, jobId);
 }
 
 /**

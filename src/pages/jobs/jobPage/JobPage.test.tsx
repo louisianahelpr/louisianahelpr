@@ -28,11 +28,11 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid. Louisiana Helpr holds it until the job is done.", |   escrow: "Card held, not charged.",
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const line = released ? releasedLine(job) : status === "escrow" ? null : HELD_LINE[status] ?? null; | const line = released ? releasedLine(job) : HELD_LINE[status] ?? null;
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const line = released ? releasedLine(job) : HELD_LINE[status] ?? null; | const line = released ? releasedLine(job) : status === "escrow" ? null : HELD_LINE[status] ?? null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {isPoster && open && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | {isPoster && open &&
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && open && !offerOut && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | {isPoster && open && !offerOut &&
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |         {reach && reach > 0 |         {reach !== null
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     job.location ? getCity(job.location) : null, |     job.location,
@@ -41,15 +41,15 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew, offeredToMe }); | myApplication: myApplication.data, posterFirst, offeredToMe });
  * @mutate src/components/tracker/jobProgressState.ts | poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") | poster ? ("Pick your Helpr")
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  pendingApplicants={isPoster && applicants.data ? pending : undefined} | pendingApplicants={undefined}
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && !instantUntil && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {false && <JobProofPhotos
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {<JobProofPhotos
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {(isPoster \|\| isHired) && <JobProofPhotos
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {false && ((job.proof_before_urls
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {((job.proof_before_urls
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {(isPoster \|\| isHired) && ((job.proof_before_urls
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && instantUntil && <InstantBookingCard | {false && instantUntil && <InstantBookingCard
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && instantUntil && <InstantBookingCard | {instantUntil && <InstantBookingCard
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     : instantUntil\n      ? null\n |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {viewer.status && !(!isPoster && instantUntil) && | {viewer.status &&
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && <p | {!isPoster && !isHired && <p
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
  */
 import { describe, expect, it, vi, beforeEach, onTestFinished } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -1078,18 +1078,13 @@ describe("a crew member's own job page (A2-B8)", () => {
 // job's title; then the price, the description, the tracker with the step needed now as the big button; the Helpr
 // Guarantee at the very bottom. "Get help now" is off the page (help is the header icon). On a phone the column boxes
 // are `contents`, so each part's `order-N` places it in the one stack (jsdom draws no layout: the classes are read).
-// @mutate src/pages/jobs/jobPage/JobPage.tsx |           <div data-job-details="" className="order-3 space-y-4 lg:order-none"> |           <div data-job-details="" className="order-5 space-y-4 lg:order-none">
-// @mutate src/pages/jobs/jobPage/JobPage.tsx |           <section aria-label="Job summary" data-job-head="" className="order-2 space-y-4 lg:order-none"> |           <section aria-label="Job summary" data-job-head="" className="order-4 space-y-4 lg:order-none">
-// @mutate src/pages/jobs/jobPage/JobPage.tsx |           <div data-job-guarantee="" className="order-last lg:order-none empty:hidden"> |           <div data-job-guarantee="" className="order-2 lg:order-none empty:hidden">
+// Layout V2 (owner 11-01): the order is the DOM's own now (no `order-N`), read by "job page layout V2" below.
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-details="" className="space-y-4 lg:col-span-2"> | <div data-job-details="" className="space-y-4">
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | <section aria-label="Job summary" data-job-head="" | <section aria-label="Job summary" data-job-head-gone=""
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-guarantee="" className="empty:hidden"> | <div data-job-guarantee-gone="" className="empty:hidden">
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     posterWait === "confirm_still_on" |     false
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |       backTo={isPoster ? "/posts" : "/jobs"}\n      titleActions | backTo={isPoster ? "/posts" : "/jobs"}\n      phoneHidesTitle\n      titleActions
 describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () => {
-  it("the title shows in the top bar (no phoneHidesTitle)", () => {
-    state.job = row();
-    renderPage();
-    expect(document.querySelector("[data-job-page]")).not.toBeNull();
-  });
-
   it("the title shows in the top bar beside the back arrow on a phone (no phoneHidesTitle), and no Get help now", () => {
     state.job = row({ customer_id: ME, helper_id: POSTER, status: "accepted", helper_confirmed_at: "2026-10-27T12:00:00Z" });
     state.party = true;
@@ -1295,7 +1290,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     expect(screen.getByTestId("where").textContent).toBe(`/post-job?rebook=${row().id}`);
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canEdit = !draft && status === "open" && !job.is_group_job; |   const canEdit = false;
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canEdit = !draft && status === "open" && !job.is_group_job && job.direct_offer_status !== "pending"; |   const canEdit = false;
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | <NoApplicantsYet job={job} onManage={posterActions.edit} /> | <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | label: "Edit job", go: flows.edit, | label: "Edit job", go: () => navigate(`/posts?highlight=${id}&manage=1`),
   it("an open job: Edit job, and the no-applicants rows (photo, price) open the card's own edit ON the page", () => {
@@ -1351,7 +1346,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
 // B93 (owner 2026-11-01, 9:13 to 9:40 AM, and the Jobs audit's JA-3/7/8/9/10/22): the same one row at every stage.
 // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const cells = (stepRight ? [second, leadNode] : [leadNode, second]).filter(Boolean); |   const cells = [leadNode, second].filter(Boolean);
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0; |     const cardLead = false;
-// @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease && ( |             {false && (
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |   const approveLeft = isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease |   const approveLeft = false && isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | owesReview, review: () => setReviewOpen(true) }) | review: () => setReviewOpen(true) })
 describe("one row of buttons at every stage (B93)", () => {
   const live = { customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
@@ -1419,7 +1414,7 @@ describe("one row of buttons at every stage (B93)", () => {
  * @mutate src/components/tracker/jobProgressState.ts |   if (status === "in_progress" && !job.is_group_job && (job.proof_after_urls |   if (false && status === "in_progress" && !job.is_group_job && (job.proof_after_urls
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const offerOut = isPoster && open && job.direct_offer_status === "pending"; |   const offerOut = false;
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |  && job.direct_offer_status !== "pending"; | ;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |       : job.status === "cancelled" ? null : work] |       : work]
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | [msg, job.status === "cancelled" ? null : work] | [msg, work]
  */
 describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
   const LONG = "Mow and weed eat an empty lot in New Iberia. The edge of the bank near the water has become overgrown and needs to be weed eaten.";

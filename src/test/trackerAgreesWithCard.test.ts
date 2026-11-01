@@ -22,7 +22,7 @@
  * @mutate src/components/tracker/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return 3; |
  * @mutate src/components/tracker/jobStepFromWait.ts |   return face.step ? (FACE_STEP_STAGES[face.step] ?? []).includes(stage) : true; |   return true;
  * @mutate src/components/tracker/jobProgressState.ts |   const card = o.card ?? cardFaceFor(job, o, now); |   const card = cardFaceFor(job, o, now);
- * @mutate src/components/tracker/jobProgressState.ts |     next: posterLate \|\| noApplicantsYet \|\| ((sameStep \|\| offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail, |     next: base.next,
+ * @mutate src/components/tracker/jobProgressState.ts | \|\| posterLate \|\| noApplicantsYet \|\| ((sameStep \|\| offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail, | \|\| true ? base.next : card.line.detail,
  * @mutate src/pages/posts/PostedJobCard.tsx | rescheduled, card: { line: cardLine, face: faceAction }, pendingApplicants: | rescheduled, pendingApplicants:
  * @mutate src/pages/jobs/AppliedJobCard.tsx | \|\| null, card: { line: cardLine, face: faceAction } }) : null} | \|\| null }) : null}
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   const started = wait ? WORK_UNDERWAY.has(wait) : tracking?.status === "working"; |   const started = tracking?.status === "working";

@@ -170,6 +170,8 @@
     "supabase/functions/_shared/insertNotifications.ts",
     // Board 141 (Q2272): src/test/edge/refundRequestHold.test.ts reads the REAL liveness rule.
     "supabase/functions/_shared/refundRequestHold.ts",
+    // Continue another day (owner 2026-11-01): src/test/edge/continueDayHold.test.ts reads the REAL hold read.
+    "supabase/functions/_shared/continueDay.ts",
     // Q2399 card hold: the pure copy, listing set and hold plan the app and src/test/edge/card-hold.test.ts read.
     "supabase/functions/_shared/cardHoldCopy.ts",
     "supabase/functions/_shared/listedPaymentStatus.ts",

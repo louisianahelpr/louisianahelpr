@@ -57,6 +57,7 @@ import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
 import { HAS_HELPR, usePosterPageActions } from "./posterPageActions";
 import { usePosterPageFlows } from "./usePosterPageFlows";
+import { useContinueDayActions } from "./useContinueDayActions";
 import { MineFaceNote } from "@/components/job-card/MineJobFace";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
@@ -133,6 +134,14 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     job: q.data?.job, userId, enabled: isPoster, flows: posterFlows,
     posterWait: isPoster && q.data ? posterStatusLine(q.data.job as unknown as Job, applicants.data?.pending ?? 0).id : null,
     open: q.data?.job.status === "open", pending: applicants.data?.pending ?? 0, onChanged: () => void q.refetch(),
+  });
+
+  // Couldn't finish: continue another day (owner 2026-11-01, Yusef's job): the poster's and the hired Helpr's controls.
+  const continueDay = useContinueDayActions({
+    job: q.data?.job,
+    side: isPoster ? "poster" : q.data?.job.helper_id && q.data.job.helper_id === userId ? "helpr" : null,
+    otherFirst: isPoster ? helperFirst : posterFirst,
+    onChanged: () => void q.refetch(),
   });
 
   if (q.isPending) {
@@ -216,7 +225,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
     const extras = [msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
-    return <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={extras} />;
+    // Continue another day: a set day the Helpr has not confirmed leads; "Need another day" sits with the others.
+    if (continueDay.helprLead) {
+      return <JobPageActionRow tag="helpr" lead={continueDay.helprLead} leadIsStep extras={[...(faceIs === "step" ? [] : [lead]), ...extras, ...continueDay.helprExtras]} />;
+    }
+    return <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={[...extras, ...continueDay.helprExtras]} />;
   })();
   // Everyone else's one button: Apply, See the offer, View application, Open in working.
   const primary = isPoster || hiredFace
@@ -330,13 +343,14 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
         <section aria-label="Where the job is" data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-span-2 lg:p-5`}>
           {/* Owner 2026-11-01: "Yusef is on the way · since 8:51 AM" and where he is, ABOVE the tracker. */}
-          {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
+          {/* A continue day replaces the first day's "arrived" line: the next visit is what matters now. */}
+          {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
           <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
-            hideNext={isPoster && showsNow(job, trackingStatus)}
+            hideNext={isPoster && !continueDay.row && showsNow(job, trackingStatus)}
             otherFirst={isPoster ? helperFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={job.direct_offer_expires_at ?? null} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
-            crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} />
+            crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} continueStep={continueDay.step} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
           {/* JA-30 (Jobs audit 11-01): the dispute line says when they hear back; "See the case" opens the case itself
               (the Working and Posted cards' own DisputeTimelineDialog: the reason, both sides' evidence, the decision). */}
@@ -398,7 +412,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
             {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
             {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
-            {isPoster && posterActions.row(posterStep)}
+            {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras)}
+            {continueDay.sheet}
             {isPoster && posterActions.panel}
             {hiredRow}
             {primary && (

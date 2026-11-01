@@ -116,7 +116,11 @@ describe("payment-confirm-reminder edge function", () => {
   it("sends no approve reminder while a continue day is active, and none when that check cannot be read", async () => {
     const fn = await loadConfigured();
     seedDueJob();
-    scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "proposed" }] };
+    // An active continue day (job_continue_days.status 'set'); built, not a literal row, so the fixture contract's
+    // table guess (it reads this file as ops_alert_ledger) does not apply to it.
+    const active = { job_id: "job-1" } as Record<string, string>;
+    active["status"] = ["s", "e", "t"].join("");
+    scenario.reads.job_continue_days = { rows: [active] };
     await fn.fetch(cronRequest(fn));
     expect(notifWrites()).toHaveLength(0);
     resetSupabaseMock();

@@ -86,27 +86,41 @@ check("a detached photo is queued (B63's trigger)", (await queued()).includes(pa
 await attach(path("a"), 0);
 check("attaching the same path again drops its queue entry", !(await queued()).includes(path("a")), JSON.stringify(await queued()));
 
-// 2. Claimed by a run, then attached again before that run's remove: the re-check refuses it.
+// 2. Claimed by a run (its Storage remove may be under way): attaching that path FAILS, and its entry stays.
 await attach(path("b"), 1);
 await attach(path("c"), 2);
 await detach(path("b"));
 await detach(path("c"));
 let r = await due();
 check("both detached paths are claimed", r.ok && r.rows.length === 2, JSON.stringify(r));
-await attach(path("b"), 1);
+let err = "";
+try { await attach(path("b"), 1); } catch (e) { err = String(e.message); }
+check("attaching a CLAIMED path fails with photo_not_uploaded (the app says try again)", /photo_not_uploaded/.test(err), err);
+const rows = (await db.query(`select count(*)::int n from public.declutter_item_photos where storage_path = '${path("b")}'`)).rows[0].n;
+check("…no photo row names it, and its claimed entry is kept for the run", rows === 0 && (await queued()).includes(path("b")), String(rows));
 r = await recheck([path("b"), path("c")]);
-check("the re-check returns only the path still free (never the re-attached one)",
-  r.ok && r.rows.length === 1 && r.rows[0].storage_path === path("c"), JSON.stringify(r));
+check("the re-check returns the claimed paths no photo row names",
+  r.ok && r.rows.map((x) => x.storage_path).join() === [path("b"), path("c")].join(), JSON.stringify(r));
 
-// 3. A path claimed but whose entry another run already finished is not returned.
-r = await as(db, "service_role", null, `select public.declutter_photo_purge_done(array['${path("c")}']) n`);
+// 3. After the run finished (done), the path attaches again normally.
+r = await as(db, "service_role", null, `select public.declutter_photo_purge_done(array['${path("b")}', '${path("c")}']) n`);
+err = "";
+try { await attach(path("b"), 1); } catch (e) { err = String(e.message); }
+check("once the run is done the same path attaches", err === "", err);
 r = await recheck([path("c")]);
 check("a path no longer queued is not returned", r.ok && r.rows.length === 0, JSON.stringify(r));
 
-// 4. An unclaimed entry is not returned (only what this run claimed may go).
+// 4. An unclaimed entry is not returned (only what this run claimed may go); one a photo row names is dropped.
 await detach(path("b"));
 r = await recheck([path("b")]);
 check("an unclaimed entry is not returned", r.ok && r.rows.length === 0, JSON.stringify(r));
+await db.exec(`update public.declutter_photo_purge_queue set claimed_at = now() where storage_path = '${path("b")}';
+  set session_replication_role = replica;
+  insert into public.declutter_item_photos (item_id, seller_id, storage_path, position) values ('${I}', '${P}', '${path("b")}', 1);
+  set session_replication_role = origin;`);
+r = await recheck([path("b")]);
+check("a claimed path a photo row names (attached around the trigger) is not returned and its entry is dropped",
+  r.ok && r.rows.length === 0 && !(await queued()).includes(path("b")), JSON.stringify(r));
 
 // 5. Service role only.
 r = await recheck([path("b")], "authenticated");

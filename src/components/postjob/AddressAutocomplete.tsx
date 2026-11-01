@@ -48,6 +48,9 @@ interface AddressAutocompleteProps {
   onBlurred?: () => void;
   /** The open list scrolls itself clear of the bottom nav, for a box low on a page. */
   keepListInView?: boolean;
+  /** A failed check of this address: the box itself says so to a screen reader, tied to the words under it. */
+  invalid?: boolean;
+  describedBy?: string;
 }
 
 /**
@@ -104,6 +107,8 @@ export function AddressAutocomplete({
   plainWithoutMapKit = false,
   onBlurred,
   keepListInView = false,
+  invalid,
+  describedBy,
 }: AddressAutocompleteProps) {
   const mapKitStatus = useMapKitJs();
   const [query, setQuery] = useState(value);
@@ -270,6 +275,8 @@ export function AddressAutocomplete({
         aria-label={ariaLabel ?? "Street address"}
         placeholder={placeholder}
         {...comboboxProps}
+        aria-invalid={invalid ? true : undefined}
+        aria-describedby={describedBy}
         className={className}
       />
       {showList && (

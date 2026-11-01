@@ -130,11 +130,25 @@ const loadOnce = async (userId: string) => {
   // Counted separately and deliberately: the list is a page, the badge is a
   // fact. A failure here leaves unreadTotal null and the UI falls back to
   // the page-derived count.
-  const { count, error: countErr } = await withLoadTimeout(supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("read", false));
+  //
+  // A STALLED count is a failed count, not a failed load (Sentry JAVASCRIPT-4M, measured 2026-11-01 from the
+  // event's breadcrumbs, iPhone on /jobs): both list selects answered 200 at 17:47:52.4 and 17:47:55.2, the HEAD
+  // count never came back, and its timer fired at 17:48:10.2, exactly 15 s after the list landed. That rejection
+  // escaped loadOnce and failed the whole load ("notifications load timed out after 15000ms", source
+  // NotificationPanel.load) over a list already on screen. The database is not slow: idx_notifications_user_created
+  // and idx_notifications_user_id_read serve both reads, and the largest feed (792 rows) answers in 17 ms.
+  let counted: { count: number | null; error: unknown };
+  try {
+    counted = await withLoadTimeout(supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("read", false));
+  } catch (e: unknown) {
+    report(e, { severity: "warning", tags: { source: "NotificationPanel.unreadCount" } });
+    return;
+  }
+  const { count, error: countErr } = counted;
   if (countErr) {
     report(countErr, { tags: { source: "NotificationPanel.unreadCount" } });
     return;

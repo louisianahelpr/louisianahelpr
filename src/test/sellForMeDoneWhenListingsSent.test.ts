@@ -13,7 +13,7 @@
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | title text, price_cents integer, floor_price_cents integer, | title text, price_cents integer,
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | THEN pv.floor_price_cents END, | THEN pv.floor_price_cents ELSE pv.floor_price_cents END,
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |                  AND j.status::text IN ('accepted', 'in_progress', 'revision_requested')\n | 
-// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n
+// @mutate supabase/migrations/20261101054258_declutter_photo_purge.sql |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n
 //
 // LEAD-LIST-FOR-SELLER (owner 10-31 ~10:30 PM, POST-H3; lead decision): a "Have a Helpr list it" job is done for the
 // Helpr once they have SENT its listings to the seller for approval (never stranded waiting for the seller). Mark done
@@ -44,14 +44,21 @@ function linkTableGrants(): string[] {
   return out;
 }
 
-const LFS = "supabase/migrations/20261101034159_declutter_list_for_seller.sql";
+/** The list-for-seller migration names WHICH functions are graded; their text is always the newest definition. */
+const LFS = `supabase/migrations/${readdirSync(MIG).find((n) => n.endsWith("_declutter_list_for_seller.sql"))}`;
 
-/** Each function this migration creates: its name, its header (up to AS) and its body. Comment-blanked. */
+const FN_RE = /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.(\w+)\(([\s\S]*?)\bAS\s+(\$\w*\$)([\s\S]*?)\3/gi;
+
+/**
+ * Each function this migration creates: its name, and the header (up to AS) and body of its NEWEST definition
+ * (a later migration may restate it: 20261101054258 restates declutter_decline_listed_for_me). Comment-blanked.
+ */
 function lfsFunctions(): { name: string; head: string; body: string }[] {
   const sql = blankSqlComments(readFileSync(resolve(ROOT, LFS), "utf8"));
   const out: { name: string; head: string; body: string }[] = [];
-  for (const m of sql.matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.(\w+)\(([\s\S]*?)\bAS\s+(\$\w*\$)([\s\S]*?)\3/gi)) {
-    out.push({ name: m[1], head: flat(m[2]), body: m[4] });
+  for (const m of sql.matchAll(FN_RE)) {
+    const newest = [...body(m[1]).matchAll(FN_RE)][0] ?? m;
+    out.push({ name: m[1], head: flat(newest[2]), body: newest[4] });
   }
   return out;
 }

@@ -122,6 +122,9 @@ const selectorFor = (u: Use) =>
 
 let CSS = "";
 
+/** Files other tests create and delete while this runs (see the compile below). */
+const TEMP_FIXTURES_NOT_SCANNED = ["!./src/test/fixtures/q136Control-*.ts"];
+
 describe("every arbitrary width variant in the app compiles to a rule", () => {
   it("the inventory is real, and came from the components", () => {
     // VACUITY FLOOR (class a): an empty inventory would make the assertion
@@ -147,8 +150,15 @@ describe("every arbitrary width variant in the app compiles to a rule", () => {
           import("tailwindcss"),
           import(/* @vite-ignore */ configPath) as Promise<{ default: unknown }>,
         ]);
+      /* B82 (lead, 2026-11-01): vacuityGate.test.ts writes src/test/fixtures/q136Control-<run>.ts for a moment (it must
+         sit in an ordinary src/ folder to prove the APP's globs scan it, so the app config cannot exclude it). Tailwind
+         globs, then reads: this compile, overlapping it in another worker, read a file already deleted and threw
+         ENOENT (Lander 21's landing run). That control holds one throwaway class and no width variant, so this
+         compile leaves it out; every other app glob is unchanged. */
+      const appConfig = config as { content: string[] };
+      const scanned = { ...appConfig, content: [...appConfig.content, ...TEMP_FIXTURES_NOT_SCANNED] };
       CSS = (
-        await postcss([tailwindcss(config as never)]).process("@tailwind utilities;", {
+        await postcss([tailwindcss(scanned as never)]).process("@tailwind utilities;", {
           from: undefined,
         })
       ).css;

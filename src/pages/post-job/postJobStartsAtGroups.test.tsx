@@ -80,7 +80,8 @@ describe("JA-41: Post a job opens on the group grid", () => {
     );
     expect(names).toEqual(["Use a template", "Hire a saved Helpr", "Describe it with AI"]);
     // Small links, not the 104px choice cards.
-    for (const b of links.querySelectorAll("button")) expect(b.className).toMatch(/min-h-\[44px\]/);
+    // 44px tap target: the shared Button at size="sm" (h-11).
+    for (const b of links.querySelectorAll("button")) expect(b.className).toMatch(/\bh-11\b/);
     fireEvent.click(screen.getByRole("button", { name: /Use a template/ }));
     fireEvent.click(screen.getByRole("button", { name: /Hire a saved Helpr/ }));
     fireEvent.click(screen.getByRole("button", { name: /Describe it with AI/ }));

@@ -10,7 +10,7 @@
  *
  * @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |             onClick={() => setAskStop(true)} |             onClick={() => { void save(false); }}
  * @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |     if (wasWaiting.current && optedIn) setJustConfirmed(true); |     void 0;
- * @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |         toast.success("Request cancelled. Text alerts stay off."); |         toast.success("Text alerts are off.");
+ * @mutate src/components/notificationPreferences/SmsAlertsCard.tsx | : cancellingRequest ? "Request cancelled. Text alerts stay off." : "Text alerts are off.", | : "Text alerts are off.",
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
@@ -70,8 +70,10 @@ describe("Settings' text alerts never turn off from a tap meant to close", () =>
     // No full-width Turn off button competing with Done.
     expect(screen.queryByRole("button", { name: "Turn off text alerts" })).toBeNull();
     fireEvent.click(done);
-    await waitFor(() => expect(screen.queryByText(/You're all set/)).toBeNull());
-    expect(screen.getByText(/Texts go to/)).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.queryByText(/You're all set/)).toBeNull();
+      expect(screen.getByText(/Texts go to/)).toBeInTheDocument();
+    });
     expect(setCalls()).toHaveLength(0);
   });
 

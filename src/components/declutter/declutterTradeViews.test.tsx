@@ -1001,8 +1001,10 @@ describe("Declutter slice 3 screens", () => {
     expect(document.querySelectorAll("[data-places-under]")).toHaveLength(1);
     // A door pickup is at the chosen place too (LEAD-PLACE-TIMES): they move under that way instead.
     fireEvent.click(screen.getByLabelText(/Meet at the seller's home/));
-    await waitFor(() => expect(porch.querySelector("[data-places-under]")).toBeNull());
-    expect(document.querySelector('[data-handover-option="pickup_home"] [data-places-under]')).not.toBeNull();
+    await waitFor(() => {
+      expect(porch.querySelector("[data-places-under]")).toBeNull();
+      expect(document.querySelector('[data-handover-option="pickup_home"] [data-places-under]')).toBeInTheDocument();
+    });
   });
 
   it("slice 5: Helpr delivery is offered, priced by the server for the typed address, and Pay carries the delivery fee", async () => {

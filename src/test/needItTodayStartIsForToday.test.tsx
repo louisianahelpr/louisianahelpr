@@ -102,7 +102,8 @@ describe("A2-C27: Need it today's start is for today only", () => {
   });
 
   it("a start the poster picked themselves is kept when the day changes", () => {
-    clock.start = "14:30";
+    // JA-44: today offers only starts from the earliest on, so the earliest is early enough to leave 9:00 AM.
+    clock.start = "08:00";
     render(<Host />);
     fireEvent.click(needItToday());
     fireEvent.click(screen.getByRole("radio", { name: "9:00 AM" }));

@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1080,
+    "calls": 1078,
     "files": 301,
     "rendering": 997,
-    "suppressedByPolicy": 83,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 32,
       "errorToast": 6,
@@ -13,13 +13,13 @@
       "toast.error": 742,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 89,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 463,
+      "literal": 460,
       "template": 98,
-      "dynamic": 570,
+      "dynamic": 571,
       "jsx": 0
     }
   },
@@ -7773,31 +7773,31 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 132,
+      "line": 133,
       "kind": "toast.success",
       "title": {
-        "form": "literal",
-        "text": "Check your phone: reply YES and the 4-digit code in the text we just sent."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 134,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Request cancelled. Text alerts stay off."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 135,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Text alerts are off."
+        "form": "dynamic",
+        "text": "optIn ? \"Check your phone: reply YES and the 4-digit code in the text we just sent.\" : cancellingRequest ? \"Request cancelled. Text alerts stay off.\" : \"Text alerts are off.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Check your phone: reply YES and the 4-digit code in the text we just sent."
+          },
+          {
+            "form": "dynamic",
+            "text": "cancellingRequest ? \"Request cancelled. Text alerts stay off.\" : \"Text alerts are off.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Request cancelled. Text alerts stay off."
+              },
+              {
+                "form": "literal",
+                "text": "Text alerts are off."
+              }
+            ]
+          }
+        ]
       },
       "renders": false
     },

@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { FileText, ChevronRight } from "lucide-react";
 import { START_EMOJI } from "@/lib/categoryEmoji";
@@ -261,16 +262,18 @@ export function EntryChoice({ form }: EntryChoiceProps) {
 
   // A small link under the grid (JA-41): 44px tall, one line, the way-to-start emoji before it.
   const entryLink = (key: string, emoji: string, label: string, onClick: () => void) => (
-    <button
+    <Button
       key={key}
       type="button"
+      variant="link"
+      size="sm"
       data-entry-link={key}
       onClick={onClick}
-      className="flex min-h-[44px] w-fit items-center gap-2 font-sans text-ds-14 font-semibold text-[hsl(var(--bark))] underline-offset-2 hover:underline"
+      className="w-fit px-0 items-center gap-2 font-sans text-ds-14 font-semibold text-[hsl(var(--bark))] underline-offset-2 hover:underline"
     >
       <span aria-hidden className="text-ds-15 leading-none">{emoji}</span>
       {label}
-    </button>
+    </Button>
   );
 
   // A way to start, opened in place of the cards (owner 2026-10-21: "tapping goes straight on"). The

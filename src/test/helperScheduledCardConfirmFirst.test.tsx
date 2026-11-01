@@ -151,7 +151,9 @@ describe("Q1554 — the Helpr's scheduled card: Confirm first, the rest under Mo
       const disabled = primaries[0].hasAttribute("disabled") || primaries[0].getAttribute("aria-disabled") === "true";
       expect(disabled, "the row's primary is greyed: a disabled future step").toBe(false);
       if (days > 1) {
-        expect(cardText).toMatch(/Confirm the day before\. Opens [A-Z][a-z]{2} 12:00 AM/);
+        // JA-5 (audit 11-01): the day, never "Opens Mon 12:00 AM".
+        expect(cardText).toMatch(/Confirm on [A-Z][a-z]{2}, the day before/);
+        expect(cardText).not.toMatch(/12:00 AM/);
         expect(cardText).not.toMatch(/Confirm you'll be at the job/);
       }
       // Message is the primary OR a More item, never both (primaryChipKey).

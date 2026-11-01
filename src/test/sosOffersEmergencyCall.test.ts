@@ -46,7 +46,20 @@ describe("TS-007: every SOS control offers the emergency number", () => {
     expect(sosModules.length).toBeGreaterThan(0);
   });
 
-  it.each(sosModules.map((m) => [m.rel, m.code] as const))(
+  // A control that only OPENS SosShareButton's own sheet (the sheet carries the tel:911 link and the line), so the
+  // number is one tap away exactly as on the card. Each must still import SosShareButton and call its onOpen.
+  const OPENS_THE_SOS_SHEET: Record<string, string> = {
+    "src/components/job-card/jobStepMenu.tsx":
+      "Lead 11-01 (B107): the job page draws SosShareButton's chip as an outlined row button whose onClick is the chip's own onOpen (src/test/jobPageSosIsSecondary.test.tsx)",
+  };
+  it.each(Object.keys(OPENS_THE_SOS_SHEET))("%s only opens SosShareButton's sheet", (rel) => {
+    const m = sosModules.find((x) => x.rel === rel);
+    expect(m, `${rel} no longer has an SOS control: drop it from OPENS_THE_SOS_SHEET`).toBeTruthy();
+    expect(m!.code).toMatch(/import \{ SosShareButton \} from "@\/components\/SosShareButton"/);
+    expect(m!.code).toMatch(/chip\.type === SosShareButton[\s\S]{0,400}onClick=\{onOpen\}/);
+  });
+
+  it.each(sosModules.filter((m) => !(m.rel in OPENS_THE_SOS_SHEET)).map((m) => [m.rel, m.code] as const))(
     "%s renders a tel:911 link and says sharing alerts nobody else",
     (_rel, code) => {
       expect(code).toMatch(/href=["']tel:911["']/);

@@ -16,10 +16,11 @@ vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0 
 
 import { JobTracker, PosterMoneyNotes } from "@/pages/jobs/jobPage/JobPageParts";
 import type { JobPageRow } from "@/pages/jobs/jobPage/useJobPage";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const base = {
   id: "j1", title: "Haul off an old couch", status: "cancelled", payment_status: "refunded", customer_id: "p", helper_id: null,
-  date_needed: "2026-11-03", start_time: "09:00", is_group_job: false, budget: 120,
+  date_needed: jobLocalDateISO(2), start_time: "09:00", is_group_job: false, budget: 120,
 } as unknown as JobPageRow;
 
 const pageText = (job: JobPageRow) => {

@@ -24,6 +24,8 @@
  * @mutate supabase/functions/_shared/purgeBuckets.ts |     else if (p.seller_id !== null && p.seller_id !== userId && seg[0] === userId) helprKeep.add(p.storage_path); |     else if (false) helprKeep.add(p.storage_path);
  * @mutate supabase/functions/_shared/purgeBuckets.ts |     if (seg.length !== 4 \|\| !seg[0] \|\| seg[1] !== "declutter" \|\| seg[2] !== p.item_id \|\| !seg[3]) continue; |     if (!seg[0]) continue;
  * @mutate supabase/functions/_shared/accountPurge.ts |     if (rows.length < PHOTO_PAGE) return { data: all, error: null }; |     return { data: all, error: null };
+ * @mutate supabase/functions/_shared/accountPurge.ts |     after = rows[rows.length - 1].id; |     after = rows[rows.length - 2]?.id ?? null;
+ * @mutate supabase/functions/_shared/accountPurge.ts |         const left = (await listAllObjects(admin, bucket, dir)).filter((p) => want.has(p)); |         const left: string[] = [];
  * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("seller_id", userId).not("storage_path", "like", `${userId}/%`) |     .eq("seller_id", "nobody").not("storage_path", "like", `${userId}/%`)
  * @mutate supabase/functions/_shared/accountPurge.ts |     { bucket: "job-photos", paths: listed.sellerExtra }, |     { bucket: "job-photos", paths: [] },
  * @mutate supabase/functions/_shared/accountPurge.ts |   ], listed.helprKeep)) && listed.ok; |   ])) \&\& listed.ok;
@@ -136,14 +138,17 @@ describe("listed-for-seller photos (a Helpr's folder, the seller's listing) foll
     expect(p.sellerExtra).toEqual([]);
   });
 
-  type Row = { id: number; item_id: string; storage_path: string; seller_id: string | null };
+  type Row = { id: string; item_id: string; storage_path: string; seller_id: string | null };
+  const rid = (k: number) => `00000000-0000-4000-8000-${String(k).padStart(12, "0")}`;
   /** PostgREST stand-in for the two declutter_item_photos reads: eq / not like / like / neq / order / range, 1,000-row cap. */
-  function fakeAdmin(rows: Row[], reads: string[] = []) {
+  function fakeAdmin(rows: Row[], reads: string[] = [], onPage?: (rows: Row[]) => void) {
     return {
       from(table: string) {
         const preds: Array<(r: Row) => boolean> = [];
         const like = (pat: string) => new RegExp(`^${pat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*")}$`);
-        let lo = 0, hi = 999;
+        let limit = 1000;
+        let offset = 0; // only an offset reader (.range) sets it: kept so the keyset test can show offset paging skips
+
         const q = {
           select: () => q,
           eq: (c: keyof Row, v: unknown) => (preds.push((r) => r[c] === v), q),
@@ -151,11 +156,15 @@ describe("listed-for-seller photos (a Helpr's folder, the seller's listing) foll
           like: (c: keyof Row, pat: string) => (preds.push((r) => like(pat).test(String(r[c]))), q),
           not: (c: keyof Row, op: string, pat: string) => (op === "like" && preds.push((r) => !like(pat).test(String(r[c]))), q),
           order: () => q,
-          range: (a: number, b: number) => ((lo = a), (hi = Math.min(b, a + 999)), q),
+          gt: (c: keyof Row, v: string) => (preds.push((r) => String(r[c]) > v), q),
+          limit: (n: number) => ((limit = Math.min(n, 1000)), q),
+          range: (a: number, b: number) => ((offset = a), (limit = Math.min(b - a + 1, 1000)), q),
           then: (res: (v: unknown) => unknown) => {
-            reads.push(`${table} ${lo}-${hi}`);
-            const all = rows.filter((r) => preds.every((p) => p(r))).sort((x, y) => x.id - y.id);
-            return Promise.resolve({ data: all.slice(lo, hi + 1), error: null }).then(res);
+            reads.push(table);
+            const all = rows.filter((r) => preds.every((p) => p(r))).sort((x, y) => (x.id < y.id ? -1 : 1));
+            const page = all.slice(offset, offset + limit);
+            onPage?.(rows);
+            return Promise.resolve({ data: page, error: null }).then(res);
           },
         };
         return q;
@@ -171,7 +180,7 @@ describe("listed-for-seller photos (a Helpr's folder, the seller's listing) foll
 
   it("the Helpr deletes first, then the seller: the seller's purge still finds the photos (no link row needed)", async () => {
     // After the Helpr's deletion the link row is gone (ON DELETE CASCADE); only declutter_item_photos remains.
-    const rows: Row[] = photos.map((p, k) => ({ id: k + 1, ...p }));
+    const rows: Row[] = photos.map((p, k) => ({ id: rid(k + 1), ...p }));
     const helprSide = await collect(fakeAdmin(rows), H);
     expect([...helprSide.helprKeep].sort()).toEqual([`${H}/declutter/${I}/a.jpg`, `${H}/declutter/${I}/b.jpg`]);
     const sellerSide = await collect(fakeAdmin(rows), S);
@@ -180,13 +189,29 @@ describe("listed-for-seller photos (a Helpr's folder, the seller's listing) foll
   });
 
   it("pages past PostgREST's 1,000-row cap: 2,500 photos are all found", async () => {
-    const rows: Row[] = Array.from({ length: 2500 }, (_, k) => ({ id: k + 1, item_id: `i${k}`, storage_path: `${H}/declutter/i${k}/p.jpg`, seller_id: S }));
+    const rows: Row[] = Array.from({ length: 2500 }, (_, k) => ({ id: rid(k + 1), item_id: `i${k}`, storage_path: `${H}/declutter/i${k}/p.jpg`, seller_id: S }));
     const reads: string[] = [];
     const out = await collect(fakeAdmin(rows, reads), S);
     expect(out.sellerExtra.length).toBe(2500);
     expect(reads.filter((r) => r.startsWith("declutter_item_photos")).length).toBeGreaterThan(3);
     const keep = await collect(fakeAdmin(rows), H);
     expect(keep.helprKeep.size).toBe(2500);
+  });
+
+  it("pages by keyset: a row deleted between two pages never makes the next page skip one", async () => {
+    const rows: Row[] = Array.from({ length: 2500 }, (_, k) => ({ id: rid(k + 1), item_id: `i${k}`, storage_path: `${H}/declutter/i${k}/p.jpg`, seller_id: S }));
+    let served = 0;
+    // After the first page is served, its first row is deleted (a concurrent delete): an offset read would now skip row 1001.
+    const out = await collect(fakeAdmin(rows, [], (all) => { if (++served === 1) all.splice(0, 1); }), S);
+    expect(out.sellerExtra).toContain(`${H}/declutter/i1000/p.jpg`);
+    expect(out.sellerExtra.length).toBe(2500);
+  });
+
+  it("the exact-path removals are re-listed too (each named path's folder read again)", () => {
+    const storage = fnBody(purge, "purgeIdentityStorage");
+    expect(storage).toContain("for (const { bucket, paths } of extraPaths) {");
+    expect(storage).toContain("const left = (await listAllObjects(admin, bucket, dir)).filter((p) => want.has(p));");
+    expect(storage).toMatch(/named object\(s\) still present after remove`\);\s+allOk = false;/);
   });
 
   it("the purge reads the plan before the RPC, removes the seller's extras, and skips the kept ones in the sweep and its check", () => {

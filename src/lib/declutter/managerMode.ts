@@ -117,7 +117,7 @@ export type ManageAction =
   | "set_listing_price" | "set_listing_drops" | "relist_listing" | "reopen_listing"
   | "respond_offer" | "set_offer_rules"
   | "answer_question" | "send_order_message" | "order_talk_view"
-  | "set_pickup_windows" | "confirm_handover" | "complete_handover";
+  | "set_pickup_windows" | "confirm_handover";
 
 /** One action for the seller. Returns the seller RPC's own result. */
 export async function manageForSeller(sellerId: string, action: ManageAction, args: Record<string, unknown>): Promise<unknown> {

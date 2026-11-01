@@ -1,3 +1,5 @@
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |       WHEN 'confirm_handover' THEN public.declutter_confirm_handover(v_target, v_a ->> 'method', v_a ->> 'code') |       WHEN 'confirm_handover' THEN public.declutter_confirm_handover(v_target, v_a ->> 'method', v_a ->> 'code')\n      WHEN 'complete_handover' THEN public.declutter_complete_handover(v_target, v_a ->> 'by')
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |     WHEN 'confirm_handover' THEN 'pickups' |     WHEN 'confirm_handover' THEN 'pickups'\n    WHEN 'complete_handover' THEN 'pickups'
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | IF NOT COALESCE(v_on, false) THEN | IF false THEN
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | AND manager_id = (SELECT auth.uid()) AND status = 'active'\n   FOR SHARE; | AND manager_id = (SELECT auth.uid())\n   FOR SHARE;
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target AND seller_id = p_seller); | v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target);
@@ -111,5 +113,59 @@ describe("Declutter manager mode: a manager acts only in the parts the seller tu
 
   it("ending access never needs the switch", () => {
     expect(body("declutter_manager_end")).not.toMatch(/require_feature/);
+  });
+});
+
+/**
+ * Lead verdict 11-01 (B116 finding): the act-as-seller list is PINNED, and a manager can never do anything the seller
+ * can't do herself. 'complete_handover' called the service-role-only declutter_complete_handover with the manager's own
+ * p_by ('admin' skips the open-problem check and the 24 h refund window), a power the seller does not have.
+ */
+const PINNED_ACTIONS = [
+  "answer_question", "attest_item", "confirm_handover", "create_item", "edit_listing", "order_talk_view", "pause_listing",
+  "publish_item", "relist_listing", "remove_item_photo", "reopen_listing", "respond_offer", "send_order_message",
+  "set_handovers", "set_listing_drops", "set_listing_price", "set_offer_rules", "set_pickup_windows", "update_draft",
+  "withdraw_item",
+];
+
+/** action -> the public function the act-as-seller CASE calls for it. */
+function runTargets(): Map<string, string> {
+  const b = body("declutter_manage");
+  const run = /v_result := CASE p_action([\s\S]*?)\n\s*END;/.exec(b)?.[1] ?? "";
+  return new Map([...run.matchAll(/WHEN '([a-z_]+)' THEN (?:to_jsonb\()?public\.([a-z_]+)\(/g)].map((m) => [m[1], m[2]]));
+}
+
+/** Whether `authenticated` may EXECUTE public.<fn> after every migration, replayed in order (explicit grant needed). */
+function authenticatedMayRun(fn: string): boolean {
+  let may = false;
+  for (const f of readdirSync(MIG).filter((n) => n.endsWith(".sql")).sort()) {
+    const sql = blankSqlComments(readFileSync(resolve(MIG, f), "utf8"));
+    for (const m of sql.matchAll(new RegExp(`\\b(REVOKE|GRANT)\\b[^;]*ON FUNCTION public\\.${fn}\\s*\\([^;]*;`, "g"))) {
+      const st = flat(m[0]);
+      if (!/\bauthenticated\b/.test(st)) continue;
+      may = st.startsWith("GRANT");
+    }
+  }
+  return may;
+}
+
+describe("Declutter manager mode: the act-as-seller list is pinned, and never exceeds the seller's own rights", () => {
+  it("the actions declutter_manage runs as the seller are exactly the reviewed list", () => {
+    const run = runActions();
+    expect(run.length).toBeGreaterThan(15);
+    expect([...run].sort()).toEqual(PINNED_ACTIONS);
+    expect([...actionParts().keys()].filter((a) => a !== "add_item_photo").sort()).toEqual(PINNED_ACTIONS);
+  });
+
+  it("every function a manager reaches is one the seller may call herself (newest grant includes authenticated)", () => {
+    const targets = runTargets();
+    expect(targets.size).toBe(runActions().length);
+    const notTheSellers = [...targets].filter(([, fn]) => !authenticatedMayRun(fn)).map(([a, fn]) => `${a} -> ${fn}`);
+    expect(notTheSellers).toEqual([]);
+  });
+
+  it("the grant reader sees a service-role-only function as one (control)", () => {
+    expect(authenticatedMayRun("declutter_complete_handover")).toBe(false);
+    expect(authenticatedMayRun("declutter_confirm_handover")).toBe(true);
   });
 });

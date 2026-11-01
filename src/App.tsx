@@ -181,13 +181,8 @@ const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
 // Lazy load route wrappers
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
-// B90 (11-01): Admin's page starts WITH its gate. It used to be requested only once AdminRoute's chunk (and its static
-// closure) had arrived and run: lab, HTTP/2, Slow 4G x4 CPU, Admin.js asked for at ~3.0 s. Only a public static file is
-// fetched early; AdminRoute still decides whether it renders, and the server's role checks guard the data.
-const AdminRoute = lazy(() => {
-  Admin.preload();
-  return import("./components/AdminRoute");
-});
+// B90: Admin's page chunk starts WITH its gate, not a round later (AdminRoute still decides; see boot/profileRoute.ts).
+const AdminRoute = lazy(() => (Admin.preload(), import("./components/AdminRoute")));
 
 /**
  * Wraps a single route's lazy content in its own `<Suspense>` with a

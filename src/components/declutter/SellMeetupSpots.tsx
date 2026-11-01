@@ -41,7 +41,7 @@ function SpotForm({ initial, onDone }: { initial: Draft; onDone: () => void }) {
       return saveMyMeetupSpot({ id: null, name: d.name.trim(), address, area: d.area.trim(), lat: point.lat, lng: point.lng, windows: d.windows });
     },
     onMutate: () => setProblem(null),
-    onSuccess: () => { void qc.invalidateQueries({ queryKey: MY_MEETUP_SPOTS_KEY }); toast.success("Meet spot saved."); onDone(); },
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: MY_MEETUP_SPOTS_KEY }); toast("Meet spot saved."); onDone(); },
     onError: (err) => {
       const code = err instanceof Error ? err.message : "";
       if (code === "address_not_exact") return;

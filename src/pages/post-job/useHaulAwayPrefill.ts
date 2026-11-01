@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { useFeature } from "@/hooks/useFeature";
 import { report } from "@/lib/errorLogger";
 import { parseLocationIntoFields } from "./postJobFormHelpers";
-import { loadModule } from "@/lib/loadModule";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 interface Setters {
   setCategory: (v: string) => void;
@@ -71,8 +71,10 @@ export function useHaulAwayPrefill(searchParams: URLSearchParams, s: Setters): s
       report(err, { severity: "warning", tags: { source: "useHaulAwayPrefill" } });
       if (live) toast.error(`Couldn't load your items: ${errorMessage(err)}`);
     };
-    declutter().then(async (d) => {
-      if (!d) return; // a recovery reload is under way
+    declutter().then(async (loaded) => {
+      // `applied` is already set: an empty module must not drop the prefill silently. It waits for the reload,
+      // or fails into failed() below (reported, and the seller is told).
+      const d = loaded ?? (await untilReload());
       // Parsed with the lazily loaded code: Post a Job imports nothing the
       // Declutter screen also imports (Q178).
       const ids = d.parseHaulAwayParam(raw);
@@ -134,7 +136,8 @@ export function useHaulAwayPrefill(searchParams: URLSearchParams, s: Setters): s
       }
       const files = (await Promise.all(p.photoPaths.map((path) => photoFile(path, d.photoPublicUrl)))).filter((f): f is File => !!f);
       if (live && files.length > 0) s.addPrefillImages(files);
-    }, (err) => failed(err, () => "please try again."));
+    // .catch, not then's second argument: it also takes a rejection from inside the callback (an empty module).
+    }).catch((err: unknown) => failed(err, () => "please try again."));
     return () => { live = false; };
     // The setters are stable; the switch and the params are the triggers.
   }, [on, raw, donate]);

@@ -5435,6 +5435,30 @@ export type Database = {
         }
         Relationships: []
       }
+      instant_book_floors: {
+        Row: {
+          category: Database["public"]["Enums"]["job_category"]
+          created_at: string
+          floor_cents: number
+          helper_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["job_category"]
+          created_at?: string
+          floor_cents: number
+          helper_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["job_category"]
+          created_at?: string
+          floor_cents?: number
+          helper_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       instant_payouts: {
         Row: {
           created_at: string
@@ -15448,6 +15472,15 @@ export type Database = {
         Returns: string
       }
       declutter_delete_porch_place: { Args: { p_place_id: string }; Returns: string }
+      rpc_my_instant_book_floors: { Args: never; Returns: { category: string; floor_cents: number }[] }
+      rpc_set_instant_book_floor: { Args: { p_category: string; p_floor_cents: number | null }; Returns: undefined }
+      instant_book_helper_free_on: { Args: { p_day: string; p_helper: string }; Returns: boolean }
+      instant_book_real_jobs_done: { Args: { p_helper: string }; Returns: number }
+      instant_book_block_reason: { Args: { p_helper: string; p_job_id: string }; Returns: string }
+      instant_book_candidates: {
+        Args: { p_job_id: string }
+        Returns: { avatar_url: string | null; display_name: string; helper_id: string; jobs_done: number; rating: number | null; review_count: number }[]
+      }
       declutter_seller_porch_places: {
         Args: { p_seller_id: string }
         Returns: { area: string; chosen: boolean; id: string; label: string; weekdays: number[]; windows: Json }[]

@@ -65,7 +65,7 @@ const job = {
   helper_id: null,
   status: "open",
   location: "Baton Rouge, LA",
-  date_needed: jobLocalDateISO(1),
+  date_needed: jobLocalDateISO(3),
   payment_status: "escrow",
 } as unknown as Job;
 

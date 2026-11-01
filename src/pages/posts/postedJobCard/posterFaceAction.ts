@@ -108,6 +108,11 @@ export function posterFaceAction(
     case "dispute":
     case "dispute_escalated":
       return { label: "Open the dispute", onClick: h.viewDispute, tone: "secondary" };
+    case "no_applicants":
+      // Poster is waiting for Helprs to apply — no real next step. step: "waiting" keeps faceTakesStep
+      // false so the open tracker's bar stays on "Posted" (its own sameStep sentence), not the card's
+      // "No applicants yet" (which is only the collapsed-card label, not a tracker instruction).
+      return { label: "Manage job", onClick: h.manage, tone: "secondary", step: "waiting" };
     default:
       // WAITING ON THE HELPR (owner, 2026-10-23, card critique item 13; board 14): the one button talks to them,
       // and "Manage job" (the card's controls) is a small text link beside it. No Helpr yet, or a crew: Manage job.

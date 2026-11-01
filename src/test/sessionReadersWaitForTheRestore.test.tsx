@@ -196,8 +196,8 @@ const READERS: Record<string, string> = {
   // A hint whose wrong guess costs a chunk download, nothing a person sees:
   "src/boot/routePreload.ts": "preload hint: a wrong guess fetches the other route's chunk",
   "src/boot/guestJobsPrefetch.ts": "prefetch hint: a wrong guess fetches the guest job list once",
-  "src/boot/declutterPrefetch.ts": "prefetch hint: no usable stored token starts no read, and the page reads for itself",
-  "src/entry.ts": "prefetch hint: hasToken() picks whether to start Declutter's first-screen read",
+  "src/boot/storedSession.ts": "prefetch hint (declutterPrefetch, homePrefetch): no usable stored token starts no read, and the page reads for itself",
+  "src/entry.ts": "prefetch hint: hasToken() picks whether to start Declutter's or Home's first-screen reads",
   // Read after the restore by construction:
   "src/hooks/useAuthReady.ts": "after the restore: read only once AUTH_BOOTSTRAP_TIMEOUT_MS (2.5 s) passed, past the 2 s hydrate cap",
   "src/main.tsx": "after the restore: read inside onAuthStateChange, which auth-js emits after its storage read",

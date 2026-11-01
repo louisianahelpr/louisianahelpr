@@ -324,6 +324,27 @@ describe("re-registration on resume and on sign-in", () => {
     await waitFor(() => expect(registerMock).toHaveBeenCalledTimes(2));
   });
 
+  // PUSH-REACH (11-01): a guest's getUser() is AuthSessionMissingError, the normal signed-out answer: buffered, not
+  // reported. Any OTHER getUser error is still reported.
+  // @mutate src/lib/nativePush.ts |     if (userError && (userError as { name?: string }).name !== "AuthSessionMissingError") { |     if (userError) {
+  it("a guest's 'Auth session missing' is buffered, not reported; another getUser error is reported", async () => {
+    const missing = Object.assign(new Error("Auth session missing!"), { name: "AuthSessionMissingError" });
+    getUserMock.mockResolvedValue({ data: { user: null }, error: missing });
+    await bootAtRootWithLaunchRedirect();
+    await waitFor(() => expect(pushListeners.registration).toBeTypeOf("function"));
+    await act(async () => {
+      await pushListeners.registration({ value: "apns-token-guest-2" });
+    });
+    expect(trackMock).toHaveBeenCalledWith("push_token_buffered", { platform: "ios" });
+    expect(reportMock).not.toHaveBeenCalledWith(missing, expect.anything());
+    const other = Object.assign(new Error("network down"), { name: "AuthRetryableFetchError" });
+    getUserMock.mockResolvedValue({ data: { user: null }, error: other });
+    await act(async () => {
+      await pushListeners.registration({ value: "apns-token-guest-3" });
+    });
+    expect(reportMock).toHaveBeenCalledWith(other, { severity: "warning", tags: { source: "savePushToken.getUser" } });
+  });
+
   it("records a token that arrives with nobody signed in, then saves it at sign-in", async () => {
     getUserMock.mockResolvedValue({ data: { user: null } });
     await bootAtRootWithLaunchRedirect();

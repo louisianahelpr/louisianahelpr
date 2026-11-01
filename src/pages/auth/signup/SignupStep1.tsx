@@ -292,14 +292,16 @@ export function SignupStep1({
           <div className="relative">
             <Input ref={passwordRef} id="password" type={showPassword ? "text" : "password"} enterKeyHint="next" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onPasswordKeyDown} onKeyUp={trackCaps} required minLength={PASSWORD_MIN_LENGTH} aria-invalid={passwordError} aria-describedby={passwordError ? "signup-password-error" : undefined}
               className={`${inputCls} pr-10 ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`} autoComplete="new-password" />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="iconCompact"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
-              className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground [&_svg]:size-4"
             >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
+              {showPassword ? <EyeOff /> : <Eye />}
+            </Button>
           </div>
           {capsLockOn && (
             <p className="inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--alert-ink))" }}>

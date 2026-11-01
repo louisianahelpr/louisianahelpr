@@ -8,7 +8,7 @@
  * and nothing else sets the setting (EXACT list). Proof: src/test/pglite/declutterDamageNoEnjoyNotice.pglite.mjs.
  */
 // @mutate supabase/migrations/20261031184929_declutter_damage_notices_name_the_item.sql |   PERFORM set_config('declutter.no_enjoy_notice', o.id::text, true);\n | \n
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF COALESCE(current_setting('declutter.no_enjoy_notice', true), '') IS DISTINCT FROM o.id::text THEN |   IF p_by <> 'admin' THEN
+// @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   IF COALESCE(current_setting('declutter.no_enjoy_notice', true), '') IS DISTINCT FROM o.id::text THEN |   IF p_by <> 'admin' THEN
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

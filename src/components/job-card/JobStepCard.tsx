@@ -361,7 +361,9 @@ export function JobStepCard({
   const menu = useContext(JobStepMenuContext);
   // Its own primaries (Review, Tip): the first leads the page's row when the page mounts a lead slot (it has no
   // step of its own); the rest join the options. With the page's own step showing, they are that step: not repeated.
-  const menuPrimaries = menu ? primaryButtons(ownPrimary) : [];
+  // A primary that stands in for the Message chip (primaryChipKey "message") IS Message: the page has its own, so it
+  // is not handed over (it drew "Message | Message" on a hired job before its start, happy-path smoke 11-01).
+  const menuPrimaries = menu && primaryChipKey !== "message" ? primaryButtons(ownPrimary) : [];
   const menuLead = menu?.leadHost ? menuPrimaries[0] ?? null : null;
   const menuChips = menu
     ? [...(menu.leadHost ? menuPrimaries.slice(1) : []), ...moreChips.filter((c) => !(isValidElement(c) && c.key === "message"))]

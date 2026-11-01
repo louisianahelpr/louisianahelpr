@@ -1117,4 +1117,24 @@ describe("on the job page, the card hands over its actions minus Message", () =>
       second.remove();
     }
   });
+
+  // L29 (happy-path smoke 11-01): a Message primary standing in for the Message chip was handed to the page as the
+  // card's lead, so the page drew its own Message AND the card's: "Message | Message".
+  // @mutate src/components/job-card/JobStepCard.tsx | const menuPrimaries = menu && primaryChipKey !== "message" ? primaryButtons(ownPrimary) : []; | const menuPrimaries = menu ? primaryButtons(ownPrimary) : [];
+  it("a Message primary (primaryChipKey message) is not offered as the card's lead: the page has its own Message", async () => {
+    const { JobStepMenuContext } = await import("./jobStepMenu");
+    const { JobStepPrimaryButton } = await import("./JobActionRow");
+    const { MessageSquare } = await import("lucide-react");
+    const leads: number[] = [];
+    render(
+      <JobStepMenuContext.Provider value={{ secondHost: null, listHost: null, leadHost: null, setCount: () => {}, setLeadCount: (n) => leads.push(n) }}>
+        <JobStepCard side="poster" step="t" primaryChipKey="message"
+          primary={<JobStepPrimaryButton icon={MessageSquare} label="Message Marcus" onClick={() => {}} />}
+          actions={[<button key="message" type="button">Message</button>, <button key="noshow" type="button">No-Show</button>]} />
+      </JobStepMenuContext.Provider>,
+    );
+    await act(async () => { await Promise.resolve(); });
+    expect(leads.length).toBeGreaterThan(0);
+    expect(leads[leads.length - 1]).toBe(0);
+  });
 });

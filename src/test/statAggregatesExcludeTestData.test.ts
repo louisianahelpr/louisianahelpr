@@ -148,8 +148,6 @@ const ALLOWED: Record<string, string> = {
   revoke_gift_card_for_refund: MONEY,
   rpc_add_dispute_evidence: VALID,
   rpc_check_application_rate: LIMIT,
-  // JOBS-3 crew no-show (20261101031804): the ladder's distinct reporters, then one job's own roster counts.
-  rpc_poster_report_member_no_show: LADDER,
   rpc_decide_crew_dispute: MONEY,
   rpc_group_member_mark_done: SPOTS,
   rpc_open_dispute: LIMIT,

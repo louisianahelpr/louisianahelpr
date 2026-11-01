@@ -47,6 +47,8 @@ export interface PosterPageFlows {
   leadCount: number;
   /** The page's lead slot, where the card's first primary is drawn. */
   setLeadHost: (el: HTMLElement | null) => void;
+  /** Above the row: where the card's `ask` is drawn (a crew's per-member Tip rows; why a Tip can't be sent yet). */
+  setAskHost: (el: HTMLElement | null) => void;
   /** The page's second-button slot, where a lone card action is drawn. */
   setSecondHost: (el: HTMLElement | null) => void;
   /** The open options sheet's list, where two or more card actions are drawn (null while it is closed). */
@@ -133,7 +135,8 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   const [listHost, setListHost] = useState<HTMLElement | null>(null);
   const [leadCount, setLeadCount] = useState(0);
   const [leadHost, setLeadHost] = useState<HTMLElement | null>(null);
-  const menu = useMemo(() => ({ secondHost, listHost, leadHost, setCount: setMoreCount, setLeadCount }), [secondHost, listHost, leadHost]);
+  const [askHost, setAskHost] = useState<HTMLElement | null>(null);
+  const menu = useMemo(() => ({ secondHost, listHost, leadHost, askHost, setCount: setMoreCount, setLeadCount }), [secondHost, listHost, leadHost, askHost]);
 
   const handlers = createLifecycleHandlers({
     user,
@@ -159,7 +162,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   });
 
   if (!enabled || !job) {
-    return { ready: false, completing: false, approve: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, setLeadHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
+    return { ready: false, completing: false, approve: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, setLeadHost: () => {}, setAskHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
   }
 
   // Its own Suspense: the card's steps lazy-load dialogs (the refund ask), and a suspend with no boundary of its own
@@ -246,6 +249,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     moreCount,
     leadCount,
     setLeadHost,
+    setAskHost,
     setSecondHost,
     setListHost,
     // The detail read is done (q.data), so a crew with no roster entry has nobody left on it.

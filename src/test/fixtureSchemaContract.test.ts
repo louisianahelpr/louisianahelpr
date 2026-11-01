@@ -333,6 +333,9 @@ describe("every fixture literal could be inserted", () => {
     // status, decline_reason }], count }` lost its applications marker and `count` pointed at ops_alert_ledger.
     { file: "src/test/edge/create-notification.test.ts", keys: ["rows", "status", "decline_reason", "count"] },
     { file: "src/test/reviewCountOneSource.test.ts", keys: ["stars"] },
+    // Shipping S3 (B111, 2026-11-01): an EasyPost Rate object (`{ id, carrier, service, rate, currency }`, EasyPost's own
+    // service names) is not a shipments row, but its `service` key reads as shipments.service.
+    { file: "src/test/easypostLabels.test.ts", keys: ["carrier", "service", "rate", "currency"] },
     { file: "e2e/visual-audit/responsive.spec.ts", keys: ["screen", "url", "notes"] },
     // Slice 5 (20261017055505) gave declutter_problems a named decision CHECK, so the admin audit-log `details`
     // object of a dispute split (`{ decision: "split", helper_cents, refund_cents }`) became attributable to it.

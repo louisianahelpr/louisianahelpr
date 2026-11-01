@@ -201,7 +201,7 @@ describe("claimPayout re-reads the job under the claim — Q1211", () => {
     expect(db.calls.some((c) => c.table === "jobs")).toBe(false);
   });
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         expectPaymentStatus: "payout_pending", |
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         expectPaymentStatus: early ? String(job.payment_status) : "payout_pending", |
   // @mutate supabase/functions/release-payout/index.ts |     expectPaymentStatus: "payout_pending", |
   it("both payout paths ask for the re-read", () => {
     for (const f of ["supabase/functions/process-scheduled-payouts/index.ts", "supabase/functions/release-payout/index.ts"]) {
@@ -209,7 +209,8 @@ describe("claimPayout re-reads the job under the claim — Q1211", () => {
       // The call runs to its first "});". 4000 chars, not 1400: Q1520's withheld
       // metadata pushed process-scheduled-payouts' expectPaymentStatus past 1400.
       const call = src.slice(src.indexOf("claimPayout(supabaseAdmin"), src.indexOf("claimPayout(supabaseAdmin") + 4000);
-      expect(call.slice(0, call.indexOf("});")), f).toMatch(/expectPaymentStatus:\s*"payout_pending"/);
+      // JOBS-3: an early crew-member payout re-reads expecting the job's own held state; the rest payout_pending.
+      expect(call.slice(0, call.indexOf("});")), f).toMatch(/expectPaymentStatus:\s*(early \? String\(job\.payment_status\) : )?"payout_pending"/);
     }
   });
 });

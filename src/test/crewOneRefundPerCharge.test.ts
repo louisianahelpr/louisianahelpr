@@ -19,7 +19,7 @@
  *      decision can follow it.
  * This guard pins both halves, reading the NEWEST definition of the RPC.
  *
- * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql |      OR EXISTS (SELECT 1 FROM public.payment_refunds r WHERE r.job_id = _job_id) THEN |      OR false THEN
+ * @mutate supabase/migrations/20261101044659_crew_member_paid_on_approval.sql |      OR EXISTS (SELECT 1 FROM public.payment_refunds r WHERE r.job_id = _job_id) THEN |      OR false THEN
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |       const source = decision ? "crew_dispute_refund" : "crew_unfilled_refund"; |       const source = decision && decision.refunded.size > 0 ? "crew_dispute_refund" : "crew_unfilled_refund";
  */
 import { describe, expect, it } from "vitest";

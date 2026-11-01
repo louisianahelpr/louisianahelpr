@@ -71,6 +71,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { heldByContinueDay, loadContinuingJobs } from "../_shared/continueDay.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -219,8 +220,14 @@ serve(async (req) => {
       for (const r of data ?? []) ledgers.set(r.job_id, r);
     }
 
+    // Continue another day (owner 2026-11-01): a job set to finish on a later day is not stalled; it is neither
+    // nudged nor sent to the admin queue while that day is active. Fails closed: an unread check holds every job.
+    const continuing = await loadContinuingJobs(supabase, ids);
+    if (!continuing.ok) defects.record(`continue day read: ${continuing.message}`);
+
     const counts = { first: 0, second: 0, escalate: 0, errors: 0 };
     await forEachBounded(scan.rows, SWEEP_CONCURRENCY, async (job) => {
+      if (heldByContinueDay(continuing, job.id)) return;
       const stage = stalledCompletionStage(job, ledgers.get(job.id) ?? null, now);
       if (!stage) return;
       try {

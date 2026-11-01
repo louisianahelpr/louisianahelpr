@@ -18,6 +18,8 @@
  * The supabase mock does not apply PostgREST filters, so every seeded row is
  * handed to the function — which is the point: the assertions are on the
  * decision the function makes, not on a query string.
+ *
+ * @mutate supabase/functions/stalled-completion-reminder/index.ts |       if (heldByContinueDay(continuing, job.id)) return; |       if (false) return;
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -299,6 +301,24 @@ describe("stalled-completion-reminder", () => {
     expect(await res.json()).toMatchObject({ sent: 0 });
     expect(notifs()).toEqual([]);
     assertNoMoneyMoved();
+  });
+
+  it("continue another day (owner 2026-11-01): a job set to finish later is neither nudged nor escalated", async () => {
+    const fn = await load();
+    seedStalled(STALLED_FIRST_AFTER_HOURS + 60, null);
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-stalled", status: "set" }] };
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(200);
+    expect(notifs()).toEqual([]);
+    expect(ledgerWrites()).toHaveLength(0);
+  });
+
+  it("continue another day: an unreadable check holds the job (fail closed)", async () => {
+    const fn = await load();
+    seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);
+    scenario.reads.job_continue_days = { error: { message: "connection reset", code: "08006" } };
+    await fn.fetch(cronRequest(fn));
+    expect(notifs()).toEqual([]);
   });
 
   it("skips a job the moment either side marks it done", async () => {

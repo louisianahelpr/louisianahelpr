@@ -25,6 +25,8 @@
  * Runs the REAL function source through the edge harness, including the real
  * `_shared/escrowTiming.ts`, so the 24 the window is derived from is the same
  * 24 the payout cron and the user-facing copy use.
+ *
+ * @mutate supabase/functions/payment-confirm-reminder/index.ts |     const jobs = jobScan.rows.filter((j) => !heldByContinueDay(continuing, j.id)); |     const jobs = jobScan.rows;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -108,6 +110,20 @@ describe("payment-confirm-reminder edge function", () => {
     // The link carries the poster to the job itself, not a filtered list.
     expect((notifWrites()[0].payload as { link: string }).link).toBe("/posts?job=job-1");
     expect(markWrites()).toHaveLength(1);
+  });
+
+  // Continue another day (owner 2026-11-01): a job the Helpr is coming back to is not waiting on the approval.
+  it("sends no approve reminder while a continue day is active, and none when that check cannot be read", async () => {
+    const fn = await loadConfigured();
+    seedDueJob();
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "proposed" }] };
+    await fn.fetch(cronRequest(fn));
+    expect(notifWrites()).toHaveLength(0);
+    resetSupabaseMock();
+    seedDueJob();
+    scenario.reads.job_continue_days = { error: { message: "connection reset", code: "08006" } };
+    await fn.fetch(cronRequest(fn));
+    expect(notifWrites()).toHaveLength(0);
   });
 
   // Q139: the reminder carries its SUBJECT (job_id), so the Q137 trigger drops

@@ -477,6 +477,9 @@ export const ADMIN_SCREENS: ScreenSpec[] = [
   })),
   // Q2585: the Declutter stage preview (made-up data, every request answered locally).
   { name: "admin-preview-declutter", url: "/admin/preview/declutter?stage=paid&side=buyer", rules: adminRules() },
+
+  // The member job page at one stage, on made-up data (owner 2026-11-01; src/pages/admin/preview/JobPreviewPage.tsx).
+  { name: "admin-preview-job", url: "/admin/preview/job?stage=working&viewer=poster", rules: adminRules() },
 ];
 
 /**

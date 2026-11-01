@@ -30,12 +30,12 @@ export const PREVIEW_STAGES = [
 export type PreviewStage = (typeof PREVIEW_STAGES)[number]["key"];
 export type PreviewViewer = "poster" | "helpr";
 
-export const PREVIEW_POSTER_ID = "00000000-0000-4000-a000-000000000001";
-export const PREVIEW_HELPR_ID = "00000000-0000-4000-a000-000000000002";
+const PREVIEW_POSTER_ID = "00000000-0000-4000-a000-000000000001";
+const PREVIEW_HELPR_ID = "00000000-0000-4000-a000-000000000002";
 const PREVIEW_CREWMATE_ID = "00000000-0000-4000-a000-000000000003";
 
 /** A made-up job id per stage, so each stage has its own page cache. */
-export function previewJobId(stage: PreviewStage): string {
+function previewJobId(stage: PreviewStage): string {
   const n = PREVIEW_STAGES.findIndex((s) => s.key === stage) + 1;
   return `00000000-0000-4000-b000-${String(n).padStart(12, "0")}`;
 }

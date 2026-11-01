@@ -78,7 +78,9 @@ describe("SellMeetupSpots", () => {
     state.missing = true;
     const { container } = wrap(<SellMeetupSpots />);
     await waitFor(() => expect(h.rpc.mock.calls.some((c) => c[0] === "declutter_my_meetup_spots")).toBe(true));
-    await waitFor(() => expect(container.querySelector("[data-testid=sell-meetup-spots]")).toBeNull());
+    // The read has answered (above); let its rejection settle, then the section must still be absent.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector("[data-testid=sell-meetup-spots]")).toBeNull();
   });
 });
 

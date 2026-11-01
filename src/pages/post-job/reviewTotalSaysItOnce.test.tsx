@@ -6,6 +6,8 @@
 // row held "$40" twice, and the switch label read "Save Card for Next Time".
 //
 // @mutate src/components/postjob/CheckoutBudgetLine.tsx |   if (!(budgetNum > 0 && (hasGift \|\| Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100)))) return crewLine; |   if (!(budgetNum > 0)) return crewLine;
+// @mutate src/components/postjob/CheckoutStep.tsx |           {/* No money row here (audit 11-01 JA-45) | <span><DollarSign />Total ${formatPriceExact(totalWithTax)}</span>{/* No money row here (audit 11-01 JA-45)
+// @mutate src/components/postjob/CheckoutStep.tsx | I've checked the details above, and they're right. | I understand the Helpr's payout will be released after both parties confirm job completion.
 // @mutate src/components/postjob/CheckoutStep.tsx | <span className="font-semibold block">Save card for next time</span> | <span className="font-semibold block">Save Card for Next Time</span>
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -30,15 +32,30 @@ function makeForm(over: Record<string, unknown> = {}): ReturnType<typeof usePost
   } as unknown as ReturnType<typeof usePostJobForm>;
 }
 
-/** The text of the summary card's Total row (its label is the DollarSign + "Total" span). */
+/**
+ * The text of the ONE total: the Payment breakdown's card, from its Total row through the notes under it
+ * (audit 11-01 JA-45 moved the summary card's Total row's lines here; the total is printed once).
+ */
 function totalRow(): string {
-  const label = screen.getAllByText("Total").find((el) => el.tagName === "SPAN" && el.querySelector("svg"));
-  expect(label, "the summary card's Total row is gone").toBeTruthy();
-  return (label!.parentElement?.textContent ?? "").replace(/\s+/g, " ");
+  const notes = screen.getByTestId("checkout-total-notes");
+  const card = notes.parentElement!;
+  expect(card.textContent, "the breakdown has its total").toMatch(/Total|You pay/);
+  return (card.textContent ?? "").replace(/\s+/g, " ");
 }
 const count = (s: string, needle: string) => s.split(needle).length - 1;
 
 describe("F18: the review step's Total says each number once", () => {
+  // Audit 11-01 JA-45: the total is printed ONCE on the whole review step (the summary card's Total row is gone).
+  it("JA-45: one Total on the whole step", () => {
+    const { container } = render(<CheckoutStepView form={makeForm()} />);
+    const text = (container.textContent ?? "").replace(/\s+/g, " ");
+    expect(count(text, "Total")).toBe(1);
+    // The money once: the Total (the other "$40" on the step is the preview card's price tag, "How your post will look").
+    expect(count(text.split("How your post will look")[0], "$40")).toBe(1);
+    expect(text).not.toMatch(/Job budget/);
+    expect(text).not.toMatch(/both parties confirm/);
+  });
+
   it("a plain $40 job: $40 once, no '$40 budget' line under it", () => {
     render(<CheckoutStepView form={makeForm()} />);
     const row = totalRow();
@@ -52,12 +69,14 @@ describe("F18: the review step's Total says each number once", () => {
     render(<CheckoutStepView form={makeForm({ isUrgent: true, urgentFeeNum: 5, totalCharge: 45 })} />);
     const row = totalRow();
     expect(row).toContain("$45");
-    expect(row).toMatch(/\$40 budget \+ urgent bonus/);
+    expect(row).toMatch(/Job budget\s*\$40/);
+    expect(row).toMatch(/Urgent bonus/);
   });
 
   it("a gift: the budget line stays and names the gift", () => {
     render(<CheckoutStepView form={makeForm({ hasGift: true, giftAppliedAmount: 40, giftCreditAmount: 40, totalCharge: 0 })} />);
-    expect(totalRow()).toMatch(/\$40 budget · \$40 gift applied/);
+    expect(totalRow()).toMatch(/Job budget\s*\$40/);
+    expect(totalRow()).toMatch(/gift/i);
   });
 
   it("the save-card switch is sentence case", () => {

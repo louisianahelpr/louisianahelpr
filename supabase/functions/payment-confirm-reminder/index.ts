@@ -76,6 +76,7 @@ import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { heldByContinueDay, loadContinuingJobs } from "../_shared/continueDay.ts";
 
 /**
  * Hours after the helper marks complete before the poster is nudged. Leaves
@@ -189,7 +190,11 @@ serve(async (req) => {
     }
     const scanShortfall = scanDefect("due reminders", jobScan);
     if (scanShortfall) defects.record(scanShortfall);
-    const jobs = jobScan.rows;
+    // Continue another day (owner 2026-11-01): a job whose Helpr is coming back is not waiting on the poster's
+    // approval, so no "approve it" reminder while the day is active. Fails closed: an unread check reminds nobody.
+    const continuing = await loadContinuingJobs(supabase, jobScan.rows.map((j) => j.id));
+    if (!continuing.ok) defects.record(`continue day read: ${continuing.message}`);
+    const jobs = jobScan.rows.filter((j) => !heldByContinueDay(continuing, j.id));
 
     // ── The hole this schedule leaves, measured ──────────────────────────────
     //

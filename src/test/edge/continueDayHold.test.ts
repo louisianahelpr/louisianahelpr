@@ -3,7 +3,8 @@
  * day (proposed or set), auto-release-payment does not run the approval clock on it: no escalation to Helpr support
  * and no instant release. The money is untouched. A poster's own approval still releases. An unreadable check holds
  * every candidate (fail closed). The SQL side (who may set a day, the cleared done stamp, reminders for the new day)
- * is proven in src/test/pglite/jobContinueDay.pglite.mjs.
+ * is proven in src/test/pglite/jobContinueDay.pglite.mjs. The stalled-job sweep's skip is exercised in
+ * src/test/edge/stalled-completion-reminder.test.ts ("continue another day").
  *
  * @mutate supabase/functions/auto-release-payment/index.ts |         if (heldByContinueDay(continuing, job.id)) { |         if (false) {
  * @mutate supabase/functions/auto-release-payment/index.ts |       if (instantIds.has(job.id) && !job.poster_completed_at && heldByContinueDay(continuing, job.id)) { |       if (false) {

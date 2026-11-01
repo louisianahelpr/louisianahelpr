@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { LISTING_GRID, ListingCardBone } from "./listingBones";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { FilterSheet } from "@/components/dashboard/FilterSheet";
 import { chipStyles } from "@/components/dashboard/JobFilters";
 import { hapticLight } from "@/lib/haptics";
@@ -257,7 +257,7 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
     if (buy) onKind("rent");
   };
   return (
-    <section aria-label={kind.key === "rent" ? "Homes for rent" : "Homes for sale"} className="space-y-4">
+    <section aria-label={kind.key === "rent" ? "Homes for rent" : "Homes for sale"} className="flex min-h-0 flex-1 flex-col gap-4">
       <SectionSearchRow
         searchLabel={`Search ${kind.noun}`}
         value={place}
@@ -357,8 +357,8 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
           <ListingCardBone />
         </div>
       ) : q.data.length === 0 ? (
-        <EmptyState
-          variant="bare"
+        // Owner 11-01 (B107): the shared Browse empty state, in the same spot as Shops, Declutter and Jobs.
+        <BrowseEmptyState
           icon={Home}
           title={preview ? "Opens soon" : `No ${kind.noun} here yet`}
           body={

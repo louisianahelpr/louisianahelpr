@@ -20,7 +20,7 @@ import { getPublicOrigin } from "@/lib/authRedirects";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { ChoiceSheet } from "@/components/sections/ChoiceFilterRow";
 import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
@@ -194,8 +194,7 @@ function ShopsBrowse() {
         <OfflineEmptyState body="Shops will show here once you're back online." onRetry={() => void shops.refetch()} />
       ) : shown.length === 0 ? (
         // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
-        <EmptyState
-          variant="bare"
+        <BrowseEmptyState
           icon={Store}
           title={words && (shops.data ?? []).length > 0 ? "No shops match that search." : preview ? "Opens soon" : "No shops here yet."}
           body={words && (shops.data ?? []).length > 0 ? "Try another word." : "Be the first: open a free shop for your business or the things you make."}

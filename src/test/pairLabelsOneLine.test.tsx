@@ -11,6 +11,7 @@
  * @mutate src/components/job-card/jobStepMenu.tsx |         {pair ? pairLabel(p.label) : p.label} |         {p.label}
  */
 import { describe, expect, it, vi } from "vitest";
+import { MessageCircle } from "lucide-react";
 import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
 import { JobPageActionRow } from "@/pages/jobs/jobPage/JobPageActionRow";

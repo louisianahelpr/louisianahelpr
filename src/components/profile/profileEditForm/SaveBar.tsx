@@ -57,7 +57,7 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
         variant="ghost"
         size="sm"
         onClick={onBack}
-        className="flex-1 px-0 rounded-ds-md text-ds-13 font-semibold tracking-normal text-foreground hover:bg-secondary/40 active:scale-[0.98]"
+        className="flex-1 px-0 text-ds-13 font-semibold tracking-normal text-foreground hover:bg-secondary/40 active:scale-[0.98]"
       >
         Cancel
       </Button>
@@ -67,7 +67,7 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
         size="sm"
         onClick={(e) => onSave(e as unknown as React.FormEvent)}
         disabled={saving || justSaved}
-        className="flex-[2] px-0 rounded-ds-md gap-2 text-ds-13 tracking-normal active:scale-[0.98] disabled:active:scale-100 disabled:opacity-100 [&_svg]:size-4"
+        className="flex-[2] px-0 gap-2 text-ds-13 tracking-normal active:scale-[0.98] disabled:active:scale-100 disabled:opacity-100 [&_svg]:size-4"
         style={{
           background: saving ? "hsl(var(--muted))" : "hsl(var(--bark))",
           color: saving ? "hsl(var(--muted-foreground))" : "hsl(var(--parchment))",

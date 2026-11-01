@@ -55,6 +55,7 @@ describe("StarRow keys", () => {
 
   it("Declutter's review form uses this row, not its own", () => {
     const src = readFileSync(resolve(__dirname, "../declutter/DeclutterReviewForm.tsx"), "utf8");
+    expect(src.length).toBeGreaterThan(1000);
     expect(src).toContain("<StarRow ");
     expect(src).not.toContain('role="radio"');
   });

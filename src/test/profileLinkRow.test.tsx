@@ -3,6 +3,7 @@
  *  - opening Settings never writes: the handle RPC runs only when the row is opened;
  *  - opened, it shows louisianahelpr.com/u/<handle> and the "Share my profile" button, which shares
  *    https://www.louisianahelpr.com/u/<handle>;
+ *  - closing and reopening the row never asks the server twice;
  *  - "Change link (once)" calls rpc_set_my_handle and then goes away; a refusal shows its words.
  *
  * @mutate src/components/profile/ProfileLinkRow.tsx | if (next && !handle && !loading) void load(); | void load();
@@ -41,6 +42,18 @@ describe("Settings › Your profile link", () => {
     fireEvent.click(screen.getByRole("button", { name: /share my profile/i }));
     await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
     expect(share.mock.calls[0][0]).toMatchObject({ url: "https://www.louisianahelpr.com/u/eli-b" });
+  });
+
+  it("closing and reopening the row does not ask the server again", async () => {
+    rpc.mockResolvedValue({ data: "eli-b", error: null });
+    render(<ProfileLinkRow name="Eli" />);
+    const row = screen.getByRole("button", { name: /your profile link/i });
+    fireEvent.click(row);
+    await screen.findByRole("button", { name: /share my profile/i });
+    fireEvent.click(row);
+    fireEvent.click(row);
+    await screen.findByRole("button", { name: /share my profile/i });
+    expect(rpc).toHaveBeenCalledTimes(1);
   });
 
   it("changes the link once, then offers no second change", async () => {

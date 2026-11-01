@@ -426,7 +426,7 @@ export function GroupJobHelpers({
           and a dropped spot can be refilled from the applicants (the sentence below says how). */}
       <div className="rounded-xl bg-muted/60 px-3 py-2.5 text-ds-13 text-foreground" data-crew-how="">
         <p className="font-semibold">How crew jobs work</p>
-        <p className="text-muted-foreground">When you approve, every Helpr on the crew is paid their share. If someone drops out, the spot opens again for your applicants.</p>
+        <p className="text-muted-foreground">When you approve, every Helpr on the crew is paid their share. If someone drops out, the spot opens again for your applicants. If someone never shows, tap Didn&apos;t show: they aren&apos;t paid and most of their share comes back to you.</p>
       </div>
       {remaining > 0 && (
         <p className="text-ds-11 text-muted-foreground text-center">

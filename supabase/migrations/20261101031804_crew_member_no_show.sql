@@ -28,7 +28,8 @@
 --     leaves (trg_sync_job_after_roster_departure closes their accepted
 --     application and, the poster being the caller, lapses a pending detail
 --     change), and the application says why (closed_reason 'no_show');
---   * the member is TOLD, with the job as the notice's subject so the seed
+--   * the member is TOLD (type 'warning', titled by the rung the ladder
+--     recorded, as the one-Helpr notice is), with the job as the subject so the seed
 --     boundary (trg_notifications_seed_boundary) drops a test job's notice to
 --     a real person;
 --   * then the crew's ROLL-UP runs again: if every confirmed member left on
@@ -201,12 +202,21 @@ BEGIN
      AND status IN ('accepted', 'rejected')
      AND closed_reason IS NULL;
 
+  -- type 'warning', as the one-Helpr no-show notice (notification-templates
+  -- no_show_reported): notifications_type_check has no 'no_show' type, and an
+  -- unlisted type would abort this whole report. The title follows the rung
+  -- the ladder recorded, never the poster's claim.
   INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
   VALUES (_member_id,
-          'Reported as a no-show',
+          CASE WHEN v_result->>'action' = 'pending_ban_review'
+               THEN 'Account restricted for 7 days'
+               ELSE 'No-show warning' END,
           'The poster of "' || COALESCE(v_job.title, 'the job')
-            || '" reported that you did not show up. Your spot on the crew is closed, you are not paid for it, and a no-show is on your record.',
-          'no_show',
+            || '" reported that you did not show up. Your spot on the crew is closed and you are not paid for it.'
+            || CASE WHEN v_result->>'action' = 'pending_ban_review'
+                    THEN ' This is your second no-show report, so your account is restricted for 7 days while an admin reviews it. If you think this is wrong, email admin@louisianahelpr.com.'
+                    ELSE ' A no-show warning is on your record.' END,
+          'warning',
           '/jobs?job=' || _job_id::text,
           _job_id);
 

@@ -19,6 +19,7 @@
  * @mutate src/components/GroupJobHelpers.tsx |     hasJobStarted(dateNeeded, startTime); |     true;
  * @mutate src/components/GroupJobHelpers.tsx |     !!h.helper_confirmed_at && |     true &&
  * @mutate src/components/GroupJobHelpers.tsx |               {noShowReportable(h) && ( |               {false && (
+ * @mutate src/components/GroupJobHelpers.tsx |  If someone never shows, tap Didn&apos;t show: they aren&apos;t paid and most of their share comes back to you. | 
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -88,6 +89,8 @@ describe("the poster's crew roster offers \"Didn't show\"", () => {
   it("after the start, on a confirmed member who has not checked in", () => {
     roster({});
     expect(chip()).toBeInTheDocument();
+    // "How crew jobs work" says what the chip does.
+    expect(document.body.textContent).toContain("If someone never shows, tap Didn't show: they aren't paid and most of their share comes back to you.");
   });
   it.each([
     ["before the start", { startTime: "15:00" }],

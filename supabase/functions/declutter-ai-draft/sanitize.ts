@@ -115,10 +115,10 @@ export interface SoldRange {
  * fair-price hint has a real range (the same validity rule the app applies:
  * at least 10 sales, low at least $1, high >= low), the price is clamped into
  * it and the reason says so in our words. No range: Claude's price as is.
- * The range only bounds the price, and is never a figure to move toward (owner 2026-10-30, high end of fair): a price
- * inside it stays. The hint is its category's p10 to p90 at this condition (declutter_price_hint), not this item, so
- * raising to its top would suggest a mug at the price of the dearest things in Household: the item's own high-end
- * figure comes from the prompt (PRICE_RULE).
+ * The range only bounds the price, and is never a figure to move toward: a price inside it stays. The hint is its
+ * category's p10 to p90 at this condition (declutter_price_hint), not this item, so moving toward either end would
+ * price a mug like the dearest or cheapest things in Household: the item's own garage-sale figure (owner 2026-11-01)
+ * comes from the prompt (PRICE_RULE) or the used-price lookup.
  */
 export function groundPrice(draft: DeclutterDraft, hint: SoldRange | null | undefined): DeclutterDraft {
   if (draft.priceDollars === null || !hint) return draft;

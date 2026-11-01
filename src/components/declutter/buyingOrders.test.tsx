@@ -69,13 +69,14 @@ vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
 vi.mock("@/lib/declutter/paidCents", () => ({
   fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.paid).map((id) => [id, state.paid[id]])),
 }));
-vi.mock("@/lib/declutter/bookBy", async (orig) => {
-  const real = await orig<typeof import("@/lib/declutter/bookBy")>();
-  return { ...real, fetchBookBy: async (ids: string[]) => {
+// The book-by read: the real fetchBookBy (its 7 days), over a stubbed declutter_orders read of paid_at.
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: { from: (table: string) => ({ select: () => ({ in: async (_c: string, ids: string[]) => {
+    if (table !== "declutter_orders") throw new Error(`unexpected read of ${table}`);
     state.bookByReads.push([...ids]);
-    return new Map(ids.filter((id) => id in state.paidAt).map((id) => [id, real.bookByIso(state.paidAt[id]) as string]));
-  } };
-});
+    return { data: ids.filter((id) => id in state.paidAt).map((id) => ({ id, paid_at: state.paidAt[id] })), error: null };
+  } }) }) },
+}));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => [],
@@ -360,7 +361,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time", bookBy ? `by ${bookBy}` : null); |       if (at === 0) return you("Book a pickup time");
   // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time", bookBy ? `by ${bookBy}` : null) |       return at === 0 ? you("Pick a pickup time", null)
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a time to meet at the safe spot", bookBy ? `by ${bookBy}` : null); |       if (at === 0) return you("Book a time to meet at the safe spot");
-  // @mutate src/lib/declutter/bookBy.ts | export const PICKUP_BOOK_DAYS = 7; | export const PICKUP_BOOK_DAYS = 2;
+  // @mutate src/lib/declutter/bookBy.ts | const PICKUP_BOOK_DAYS = 7; | const PICKUP_BOOK_DAYS = 2;
   // @mutate src/components/declutter/BuyingOrders.tsx | const unbooked = pickups.filter((o) => !(bookings.data ?? []).some((b) => b.order_id === o.orderId && b.slot_start)) | const unbooked = pickups
   it("book-by deadline: an unbooked pickup says 'Next: book a pickup time · by <paid + 7 days>'; booked ones never read it", async () => {
     const unbooked = CASES.filter((c) => c.id === "home0" || c.id === "porch0" || c.id === "meet0");

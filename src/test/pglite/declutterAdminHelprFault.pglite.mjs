@@ -7,6 +7,8 @@
  *   node src/test/pglite/declutterAdminHelprFault.pglite.mjs                    # GREEN (migration applied 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/declutterAdminHelprFault.pglite.mjs # RED: the chain without it
  *   MIGRATION_PATH=<planted copy> node ...                                      # RED on a planted defect
+ *   NEW_MIGRATION=skip-released node ...   # RED: without 20261101012052 (B45), only the released-Helpr cases fail
+ *   RELEASED_PATH=<planted copy> node ...  # RED on a planted defect in 20261101012052
  *
  * World: scripts/declutter/handoverPhotoWorld.mjs, the bases helprDeliveryCantFinish uses, then BUY-36's two
  * migrations (this one restates from them). Stubbed, and said so: is_test_subject (false). A task reaches "accepted"
@@ -16,6 +18,8 @@ import { readFileSync } from "node:fs";
 import { buildHandoverWorld, MIG_DIR } from "../../../scripts/declutter/handoverPhotoWorld.mjs";
 
 const NEW_FILE = "20261101000817_declutter_admin_helpr_fault.sql";
+// B45: the released Helpr's id (restates decide_problem from NEW_FILE). NEW_MIGRATION=skip-released leaves only it out.
+const RELEASED_FILE = "20261101012052_helpr_task_released_helpr.sql";
 const BASES = [
   "20261027171453_declutter_withdraw_refund_not_once_returning.sql",
   "20261027211754_declutter_bundle_discount.sql",
@@ -82,6 +86,13 @@ if (!skip) {
     const r = await run(sql);
     ok(!r?.error, `the migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
   }
+  if (process.env.NEW_MIGRATION !== "skip-released") {
+    const rel = readFileSync(process.env.RELEASED_PATH ?? `${MIG_DIR}${RELEASED_FILE}`, "utf8");
+    for (let i = 0; i < 3; i++) {
+      const r = await run(rel);
+      ok(!r?.error, `${RELEASED_FILE} applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
+    }
+  } else console.log("NEW_MIGRATION=skip-released: running WITHOUT " + RELEASED_FILE + " (expect section 4 FAILs)");
 }
 
 const I = (n) => `dddddddd-0000-0000-0000-${String(n).padStart(12, "0")}`;
@@ -166,6 +177,37 @@ const dD = await decide(pD, "refund_buyer", "none");
 ok(!dD?.error && (await refund(D.order))?.reason === "admin_no_fault" && (await refund(D.order))?.fee_policy === "keep_card_fee", `nobody's fault still keeps the card fee (${short(await refund(D.order))})`);
 // 20261027172503 rewrote the live body's notices (no fee words); the restatement keeps those words.
 ok((await noteTo(BUYER, "Refund on its way")) === "Your refund is on its way.", `  and its notice is the live one (${await noteTo(BUYER, "Refund on its way")})`);
+
+// 4. B45 (20261101012052, lead 10-31): the Helpr was released (the seller said they didn't come; the task is back up
+// for another Helpr, helpr_id NULL) before the admin decides. The released Helpr's id is kept and the fault is theirs.
+const E = await taken(5);
+const rel = await svc(`SELECT public.helpr_task_reopen('${E.task}', 'helpr_no_show', '${HELPR}', 'the seller said the Helpr did not come')`);
+ok(!rel?.error, `the Helpr is released (${short(rel)})`);
+const tE0 = await task(E.task);
+ok(tE0.status === "open" && tE0.helpr_id === null && tE0.released_helpr_id === HELPR, `  back up for another Helpr, the released Helpr kept (${tE0.status}, ${tE0.helpr_id}, ${tE0.released_helpr_id})`);
+const pE = await report(E.order);
+const strikesE = await strikes();
+const dE = await decide(pE, "refund_buyer", "helpr", true);
+ok(!dE?.error, `decided as the released Helpr's fault (${short(dE)})`);
+const rE = await refund(E.order);
+ok(rE?.reason === "helpr_fault" && rE?.paid_cents === E.total && rE?.refund_cents === E.total, `  everything back, delivery included (${short(rE)})`);
+const tE = await task(E.task);
+ok(tE.status === "failed" && tE.helpr_id === HELPR && !(await helprPayout(E.task)), `  the task is closed on that Helpr, unpaid, no longer offered (${tE.status}, ${tE.helpr_id})`);
+const dbtE = (await svc(`SELECT d.seller_id::text AS who, d.amount_cents FROM public.declutter_seller_fee_debts d JOIN public.declutter_refunds r ON r.id = d.refund_id WHERE r.order_id = '${E.order}'`))?.[0];
+ok(dbtE?.who === HELPR && dbtE?.amount_cents > 0, `  the released Helpr owes the card fee (${short(dbtE)})`);
+ok((await strikes()) === strikesE + 1, "  the strike is the released Helpr's");
+ok(/not paid for this delivery/.test(await noteTo(HELPR, "Delivery decided") ?? ""), "  the released Helpr is told");
+// Taken again by another Helpr: the task's Helpr is the one now on it (unchanged rule), never the released one.
+const F = await taken(6);
+await svc(`SELECT public.helpr_task_reopen('${F.task}', 'released', '${HELPR}', NULL)`);
+const NEXT = USERS.BUYER;
+const upF = await run(`UPDATE public.helpr_tasks SET status = 'picked_up', helpr_id = '${NEXT}', accepted_at = now(), pickup_slot_start = now() - interval '1 hour',
+  picked_up_at = now(), pickup_photo_path = '${NEXT}/task/${F.task}/pick.jpg' WHERE id = '${F.task}'`);
+ok(!upF?.error && (await task(F.task)).status === "picked_up", `another Helpr takes it and picks it up${upF?.error ? `: ${upF.error}` : ""}`);
+const pF = await report(F.order);
+const dF = await decide(pF, "refund_buyer", "helpr");
+ok(refused(dF, /helpr_fault_not_possible/), `picked up by the next Helpr: still not this decision (${short(dF)})`);
+ok((await task(F.task)).released_helpr_id === HELPR, "  the released id stays on the task as a record");
 
 console.log(`\n${pass} PASS / ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

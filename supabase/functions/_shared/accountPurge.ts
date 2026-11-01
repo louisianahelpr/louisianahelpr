@@ -48,7 +48,6 @@ import {
   identitySubfolderPrefixes,
   listedForSellerPhotoPlan,
   missingBuckets,
-  type ListedForSellerLink,
   type ListingPhotoRow,
 } from "./purgeBuckets.ts";
 import { caughtMessage } from "./caughtMessage.ts";
@@ -1331,46 +1330,53 @@ async function purgeDatabaseRows(
   return { ok: true, notDeployed: false };
 }
 
+/** PostgREST answers at most this many rows per request; every read below pages by it. */
+const PHOTO_PAGE = 1000;
+
+/** Every page of a photo read, ordered by id, until a short page: a cut-off at the row cap is never silent. */
+async function readAllPhotoPages(
+  build: (from: number, to: number) => PromiseLike<PostgrestLike<ListingPhotoRow[]>>,
+): Promise<PostgrestLike<ListingPhotoRow[]>> {
+  const all: ListingPhotoRow[] = [];
+  for (let from = 0; ; from += PHOTO_PAGE) {
+    const res = await build(from, from + PHOTO_PAGE - 1);
+    if (res.error) return { data: null, error: res.error };
+    const rows = res.data ?? [];
+    all.push(...rows);
+    if (rows.length < PHOTO_PAGE) return { data: all, error: null };
+  }
+}
+
 /**
  * LEAD-LIST-FOR-SELLER: the listing photos a hired Helpr uploaded into their own folder for a seller's listing
- * (purgeBuckets.ts listedForSellerPhotoPlan). Read BEFORE the RPC, which deletes the rows that name them. A failed
- * read is recorded and fails the storage step: going on would erase the seller's photos with the Helpr's folder, or
- * leave the seller's behind.
+ * (purgeBuckets.ts listedForSellerPhotoPlan). Read BEFORE the RPC, which deletes the rows that name them, and from
+ * declutter_item_photos only (the link table is gone once the Helpr deleted first). A failed read is recorded and
+ * fails the storage step: going on would erase the seller's photos with the Helpr's folder, or leave the seller's
+ * behind.
  */
-async function collectListedForSellerPhotos(
+export async function collectListedForSellerPhotos(
   admin: PurgeCapableClient,
   userId: string,
   steps: PurgeStep[],
 ): Promise<{ ok: boolean; sellerExtra: string[]; helprKeep: Set<string> }> {
-  const links: PostgrestLike<ListedForSellerLink[]> = await admin
-    .from("declutter_listed_for_seller")
-    .select("item_id, helpr_id, seller_id")
-    .or(`seller_id.eq.${userId},helpr_id.eq.${userId}`);
-  if (links.error) {
-    // Before 20261101034159 is applied the table is missing (42P01 / PGRST205): nothing was listed for anyone.
-    if (links.error.code === "42P01" || links.error.code === "PGRST205") {
-      steps.push({ step: "listed_for_seller_photos", ok: true, detail: "table not deployed yet, nothing to plan" });
-      return { ok: true, sellerExtra: [], helprKeep: new Set() };
-    }
-    console.error(`[accountPurge] could not read listed-for-seller links for ${userId}:`, links.error.message);
-    steps.push({ step: "listed_for_seller_photos", ok: false, detail: `read failed (${links.error.code ?? "?"}: ${links.error.message})` });
+  const cols = "id, item_id, storage_path, seller_id";
+  // The seller's own listings' photos stored in another member's folder.
+  const asSeller = await readAllPhotoPages((from, to) => admin
+    .from("declutter_item_photos").select(cols)
+    .eq("seller_id", userId).not("storage_path", "like", `${userId}/%`)
+    .order("id").range(from, to));
+  // Photos in this member's folder that belong to someone else's listing.
+  const asHelpr = asSeller.error ? asSeller : await readAllPhotoPages((from, to) => admin
+    .from("declutter_item_photos").select(cols)
+    .like("storage_path", `${userId}/declutter/%`).neq("seller_id", userId)
+    .order("id").range(from, to));
+  const err = asSeller.error ?? asHelpr.error;
+  if (err) {
+    console.error(`[accountPurge] could not read listed-for-seller photos for ${userId}:`, err.message);
+    steps.push({ step: "listed_for_seller_photos", ok: false, detail: `read failed (${err.code ?? "?"}: ${err.message})` });
     return { ok: false, sellerExtra: [], helprKeep: new Set() };
   }
-  const rows = links.data ?? [];
-  let photos: ListingPhotoRow[] = [];
-  if (rows.length > 0) {
-    const res: PostgrestLike<ListingPhotoRow[]> = await admin
-      .from("declutter_item_photos")
-      .select("item_id, storage_path")
-      .in("item_id", rows.map((r) => r.item_id));
-    if (res.error) {
-      console.error(`[accountPurge] could not read listed-for-seller photos for ${userId}:`, res.error.message);
-      steps.push({ step: "listed_for_seller_photos", ok: false, detail: `read failed (${res.error.code ?? "?"}: ${res.error.message})` });
-      return { ok: false, sellerExtra: [], helprKeep: new Set() };
-    }
-    photos = res.data ?? [];
-  }
-  const plan = listedForSellerPhotoPlan(userId, rows, photos);
+  const plan = listedForSellerPhotoPlan(userId, [...(asSeller.data ?? []), ...(asHelpr.data ?? [])]);
   steps.push({
     step: "listed_for_seller_photos",
     ok: true,

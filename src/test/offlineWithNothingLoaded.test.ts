@@ -17,12 +17,14 @@
 // @mutate src/lib/feedPhase.ts | if (!online \|\| q.fetchStatus === "paused") return "offline-empty"; | if (!online) return "offline-empty";
 // @mutate src/lib/feedPhase.ts |   if (q.status === "success") return "ready"; |   if (q.status !== "pending") return "ready";
 // @mutate src/pages/home/DashboardGuest.tsx | {phase === "offline-empty" ? ( | {false ? (
+// @mutate src/lib/feedPhase.ts |   if (s.phase === "offline-empty" && s.hasUser) return false;\n | \n
+// @mutate src/hooks/useDashboardData.ts |   const loading = dashboardLoading({ |   const loading = !profile \|\| dashboardLoading({
 // @mutate src/components/OfflineBanner.tsx | You're offline. Reconnect to load anything new. | You're offline. Showing the last data we have.
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { feedPhase } from "@/lib/feedPhase";
+import { dashboardLoading, feedPhase } from "@/lib/feedPhase";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -57,5 +59,27 @@ describe("the guest feed and the banner use it", () => {
     const src = code("src/components/OfflineBanner.tsx");
     expect(src).toMatch(/You're offline\. Reconnect to load anything new\./);
     expect(src).not.toMatch(/last data we have/);
+  });
+});
+
+describe("signed-in Browse: offline with nothing cached is never a held skeleton (owner 10-31)", () => {
+  // userLoading: true is what useCurrentUser reports while its profile read is paused offline.
+  const base = { hasUser: true, userLoading: true, hasProfile: false, ctxLoading: true, jobsLoading: false, jobCount: 0 };
+  it("a paused profile read does not hold the page skeleton while offline", () => {
+    expect(dashboardLoading({ ...base, phase: "offline-empty" })).toBe(false);
+  });
+  it("online, no profile yet: still the skeleton (can fail)", () => {
+    expect(dashboardLoading({ ...base, phase: "loading" })).toBe(true);
+  });
+  it("the user itself not known yet: the skeleton, even offline", () => {
+    expect(dashboardLoading({ ...base, hasUser: false, phase: "offline-empty" })).toBe(true);
+  });
+  it("everything in: not loading", () => {
+    expect(dashboardLoading({ ...base, userLoading: false, hasProfile: true, ctxLoading: false, jobCount: 3, phase: "ready" })).toBe(false);
+  });
+  it("useDashboardData decides loading through dashboardLoading", () => {
+    const src = code("src/hooks/useDashboardData.ts");
+    expect(src).toMatch(/const loading = dashboardLoading\(\{/);
+    expect(src).not.toMatch(/const loading = userLoading \|\| !profile/);
   });
 });

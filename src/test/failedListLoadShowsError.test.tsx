@@ -186,7 +186,8 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
     expect(dash).toMatch(/count: wantsQuotes \|\| feedShowingLoadError \? undefined : headerCount/);
     expect(dash).toMatch(/offline=\{feedOfflineEmpty\}/);
     const data = read("src/hooks/useDashboardData.ts");
-    expect(data).toMatch(/feedPhase: feedPhaseOf\(\{ status: jobsStatus, fetchStatus: jobsFetchStatus \}, online\)/);
+    expect(data).toMatch(/const phase = feedPhaseOf\(\{ status: jobsStatus, fetchStatus: jobsFetchStatus \}, online\);/);
+    expect(data).toMatch(/feedPhase: phase,/);
     const map = read("src/components/BrowseMap.tsx");
     expect(map).toMatch(/if \(\(loadError \|\| !online\) && visibleJobs\.length === 0\) \{/);
   });

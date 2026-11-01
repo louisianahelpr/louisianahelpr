@@ -165,5 +165,26 @@ ok(Array.isArray(stranger) && stranger.length === 0, `anyone else reads no row (
 ok(refused(await me(BUYER2, `SELECT stripe_payment_intent_id FROM public.declutter_orders WHERE id = '${o2c.id}'`), /permission denied/),
   "the Stripe ids stay unreadable");
 
+// 7. B112 (B110 leftover 2): checkout's porch chips keep to the seller's porch days (20261101200349). PORCH_DAYS=skip:
+// without it (expect FAILs).
+const DAYS_FILE = "20261101200349_declutter_checkout_porch_days.sql";
+if (process.env.PORCH_DAYS !== "skip") {
+  for (let i = 0; i < 3; i++) {
+    const r = await run(readFileSync(`${MIG_DIR}${DAYS_FILE}`, "utf8"));
+    ok(!r?.error, `${DAYS_FILE} applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
+  }
+}
+const days = async (uid) => { const r = await me(uid, `SELECT public.declutter_checkout_porch_days('${SELLER2}') AS d`); return Array.isArray(r) ? r[0]?.d : r; };
+ok(Array.isArray(await hold(7, BUYER3, 2000)), "fixture: buyer 3 holds an item from the seller");
+const all = await days(BUYER3);
+ok(Array.isArray(all) && all.join(",") === "0,1,2,3,4,5,6", `no porch days set: the days with pickup times (${short(all)})`);
+await svc(`INSERT INTO public.declutter_seller_porch_days (seller_id, weekdays) VALUES ('${SELLER2}', ARRAY[6]::smallint[])
+  ON CONFLICT (seller_id) DO UPDATE SET weekdays = EXCLUDED.weekdays`);
+const sat = await days(BUYER3);
+ok(Array.isArray(sat) && sat.join(",") === "6", `a Saturday-only porch seller: [6] (${short(sat)})`);
+const none = await days(BUYER2);
+ok(Array.isArray(none) && none.length === 0, `someone with nothing from that seller in their cart learns nothing (${short(none)})`);
+ok(refused(await me(null, `SELECT public.declutter_checkout_porch_days('${SELLER2}')`), /permission denied|not_authenticated/), "anon is refused");
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

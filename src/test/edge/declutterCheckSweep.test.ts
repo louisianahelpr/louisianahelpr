@@ -160,7 +160,7 @@ describe("(b, c) the service key runs the sweep; the seller comes from the claim
     expect(imageMediaType(b(0x89, ...s("PNG")))).toBe("image/png");
     expect(imageMediaType(b(...s("GIF89a")))).toBe("image/gif");
     expect(imageMediaType(b(...s("RIFF"), 0, 0, 0, 0, ...s("WEBP")))).toBe("image/webp");
-    // An iPhone HEIC is not a type the model reads: null, so the sweep asks Storage for a rendered copy first.
+    // An iPhone HEIC is not a type the model reads: null (none can reach the sweep: declutterCheckNeverSeesHeic).
     expect(imageMediaType(b(0, 0, 0, 0x18, ...s("ftypheic")))).toBeNull();
   });
 

@@ -1433,6 +1433,7 @@ export const RPC_ERROR_COPY = {
   },
   // LEAD-LIST-FOR-SELLER (20261101034159).
   declutter_helpr_delete_listing: {
+    account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,
     item_not_a_draft: DC.item_not_a_draft,
     item_not_found: DC.item_not_found,

@@ -92,7 +92,7 @@ const WORLD = `
   create function public.require_feature(text) returns void language sql as $f$ select $f$;
   create function public.feature_enabled_for(text) returns boolean language sql stable as $f$ select true $f$;
   create function public.seed_hidden_in_discovery() returns boolean language sql stable as $f$ select true $f$;
-  create function public.is_caller_banned() returns boolean language sql stable as $f$ select false $f$;
+  create function public.is_caller_banned() returns boolean language sql stable as $f$ select coalesce(current_setting('t.banned', true), '') = 'on' $f$;
   create function public.declutter_assert_member(boolean) returns void language sql as $f$ select $f$;
   create function public.declutter_notify(p_user uuid, p_kind text, p_title text, p_body text, p_link text, p_actor uuid)
     returns void language sql security definer as $f$ insert into public.notices values (p_user, p_kind, p_title, p_body, p_link) $f$;
@@ -180,6 +180,15 @@ check("a photo the Helpr never uploaded is refused", refused(r, /photo_not_uploa
 await upload(A, item1);
 r = await addPhoto(A, item1);
 check("the Helpr adds their own uploaded photo", r.ok, r.err);
+const photo1 = r.rows?.[0]?.id;
+// lh-authz-rls review (11-01): a banned Helpr can't remove a photo or delete a draft either.
+await db.exec("set t.banned = 'on'");
+r = await as(db, "authenticated", A, `select public.declutter_helpr_remove_listing_photo('${photo1}')`);
+const photoKept = (await db.query(`select 1 from public.declutter_item_photos where id = '${photo1}'`)).rows.length === 1;
+check("a banned Helpr can't remove a photo (account_restricted)", refused(r, /account_restricted/) && photoKept, r.err ?? "allowed");
+r = await as(db, "authenticated", A, `select public.declutter_helpr_delete_listing('${item1}')`);
+check("a banned Helpr can't delete a draft (account_restricted)", refused(r, /account_restricted/) && (await statusOf(item1)) === "draft", r.err ?? "allowed");
+await db.exec("set t.banned = ''");
 await upload(B, item1, "b.jpg");
 r = await as(db, "authenticated", B, `select public.declutter_helpr_add_listing_photo('${item1}', '${B}/declutter/${item1}/b.jpg')`);
 check("another Helpr can't add a photo to it", refused(r, /item_not_found/), r.err ?? "allowed");
@@ -234,6 +243,8 @@ if (!SKIP) {
 // ── The seller's approval: the normal publish path ───────────────────────────────
 r = await as(db, "authenticated", P, `select item_id, helpr_first_name from public.declutter_listed_for_me()`);
 check("the seller's approval card lists both, with the Helpr's first name", r.ok && r.rows.length === 2 && r.rows.every((x) => x.helpr_first_name === "Dana"), r.err ?? JSON.stringify(r.rows));
+r = await as(db, "authenticated", P, `select floor_price_cents from public.declutter_listed_for_me() where item_id = '${item1}'`);
+check("the approval card carries the lowest price the Helpr set", r.ok && r.rows[0]?.floor_price_cents === 9000, r.err ?? JSON.stringify(r.rows));
 r = await as(db, "authenticated", A, `select * from public.declutter_listed_for_me()`);
 check("the Helpr's own call lists nothing of the seller's", r.ok && r.rows.length === 0, r.err ?? JSON.stringify(r.rows));
 r = await as(db, "authenticated", A, `select public.declutter_approve_listed_for_me(array['${item1}']::uuid[], true, true, true, true) as out`);

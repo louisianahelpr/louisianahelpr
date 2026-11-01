@@ -9,7 +9,7 @@
  * @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql | 'Your Helpr cancelled', 'Your Helpr didn''t confirm', 'Offer declined', | 'Your Helpr didn''t confirm', 'Offer declined',
  * @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql | WHEN p_type IN ('warning', 'job_updates') AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute' | WHEN p_type = 'warning' AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute'
  * @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql | WHEN p_type = 'job_updates' AND p_title IN ('Offer declined', 'Offer expired', | WHEN p_type = 'job_updates' AND p_title IN ('Offer never',
- * @mutate supabase/functions/_shared/notification-templates.ts |         type: "new_offers",\n        link: `/jobs?job=${f.job.id}`, |         type: "info",\n        link: `/jobs?job=${f.job.id}`,
+ * @mutate supabase/functions/_shared/notification-templates.ts |         type: "new_offers",\n        link: jobPage(f), |         type: "info",\n        link: jobPage(f),
  * @mutate src/components/NotificationPanel.tsx | (n.type === "warning" \|\| n.title === "Your Helpr cancelled") && | n.type === "warning" &&
  */
 import { describe, expect, it } from "vitest";

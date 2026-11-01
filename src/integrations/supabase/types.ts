@@ -16372,6 +16372,10 @@ export type Database = {
         Args: { p_seller_id: string }
         Returns: Json
       }
+      declutter_checkout_porch_days: {
+        Args: { p_seller_id: string }
+        Returns: number[]
+      }
       declutter_meetup_spot_suggestions: {
         Args: never
         Returns: { id: string; name: string; address: string; area: string; lat: number; lng: number }[]

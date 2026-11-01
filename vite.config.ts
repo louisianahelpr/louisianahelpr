@@ -531,6 +531,17 @@ export default defineConfig(({ mode, command }) => ({
       // leaves the boot path; "sonner-real" is the package, loaded on the first toast or once the page settles.
       ...(command === "build" ? [{ find: /^sonner$/, replacement: path.resolve(import.meta.dirname, "./src/lib/sonnerFacade.ts") }] : []),
       { find: /^sonner-real$/, replacement: path.resolve(import.meta.dirname, "./node_modules/sonner/dist/index.mjs") },
+      // B75 speed: in the build, supabase-js's realtime and storage clients are stand-ins that load the packages on
+      // first use (src/integrations/supabase/lazyRealtime.ts, lazyStorage.ts), so realtime-js, phoenix and
+      // storage-js leave the boot path. "supabase-*-real" are the packages themselves.
+      ...(command === "build"
+        ? [
+            { find: /^@supabase\/realtime-js$/, replacement: path.resolve(import.meta.dirname, "./src/integrations/supabase/lazyRealtime.ts") },
+            { find: /^@supabase\/storage-js$/, replacement: path.resolve(import.meta.dirname, "./src/integrations/supabase/lazyStorage.ts") },
+          ]
+        : []),
+      { find: /^supabase-realtime-real$/, replacement: path.resolve(import.meta.dirname, "./node_modules/@supabase/realtime-js/dist/module/index.js") },
+      { find: /^supabase-storage-real$/, replacement: path.resolve(import.meta.dirname, "./node_modules/@supabase/storage-js/dist/index.mjs") },
     ],
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
@@ -686,6 +697,9 @@ export default defineConfig(({ mode, command }) => ({
                 // framer-motion ride with those lazy-loaded consumers keeps it
                 // off the critical path entirely — same fix as recharts.
                 if (id.includes("@stripe") || id.includes("stripe-js")) return "stripe";
+                // B75 11-01: realtime-js, phoenix and storage-js load on first use (lazyRealtime.ts, lazyStorage.ts), in
+                // their own chunk; pinned in "supabase" they would ride on every page's boot again.
+                if (/@supabase[\\/](realtime-js|phoenix|storage-js)[\\/]/.test(id)) return "supabase-lazy";
                 if (id.includes("@supabase")) return "supabase";
                 // react-day-picker is only imported by <Calendar> which is always
                 // React.lazy'd — keep it off the critical path by not pinning it to
@@ -738,7 +752,10 @@ export default defineConfig(({ mode, command }) => ({
             {
               name: "preload-helper",
               test: /vite\/preload-helper/,
-              priority: 50,
+              // Above the vendor buckets (100), B75 11-01: supabase-js imports lazyRealtime/lazyStorage in the build, and
+              // the "supabase" bucket's recursive capture took the helper they use with them, so the entry statically
+              // imported the 45 KB supabase chunk and every other boot chunk started one round later (+0.7 s).
+              priority: 110,
               minSize: 0,
             },
             // ── First-party shared code ───────────────────────────────────

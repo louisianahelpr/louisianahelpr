@@ -79,6 +79,12 @@ const DEFERRED_PACKAGES = [
     pkg: "framer-motion",
     why: "only animated surfaces need it; NotificationPanel loads it on open via useFramerMotion",
   },
+  // B75 (11-01): supabase-js builds its realtime and storage clients in createClient(), so these rode on every
+  // page's boot (~20 KB gz). In the build they are stand-ins (src/integrations/supabase/lazyRealtime.ts,
+  // lazyStorage.ts, aliased in vite.config.ts) that load the packages on the first channel or file call.
+  { pkg: "@supabase/realtime-js", why: "only chat, presence and live lists open a channel; lazyRealtime.ts loads it on the first one" },
+  { pkg: "@supabase/phoenix", why: "realtime-js's socket; it loads with realtime-js (lazyRealtime.ts)" },
+  { pkg: "@supabase/storage-js", why: "only upload, photo and delete screens touch files; lazyStorage.ts loads it on the first call" },
   {
     pkg: "@capgo/capacitor-social-login",
     why: "PD-011: web never uses it and native only on an Apple/Google tap; src/lib/socialAuth.ts loads it with import()",

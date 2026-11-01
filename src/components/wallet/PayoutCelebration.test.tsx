@@ -180,4 +180,4 @@ describe("PayoutCelebration", () => {
 // $50" AND advances helpr_last_seen_payout_at past it, so the real payout —
 // when and if it lands — is then suppressed as already-seen. Two wrongs from
 // one line, which is why this is the registered one.
-// @mutate src/components/wallet/PayoutCelebration.tsx | .filter((p) => p.status === "paid" && payoutTimestampMs(p) > lastSeen) | .filter((p) => payoutTimestampMs(p) > lastSeen)
+// @mutate src/components/wallet/payoutCelebrationGate.ts | .filter((p) => p.status === "paid" && payoutTimestampMs(p) > lastSeen) | .filter((p) => payoutTimestampMs(p) > lastSeen)

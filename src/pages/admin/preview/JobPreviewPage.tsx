@@ -113,7 +113,7 @@ function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
       data-preview-controls=""
       role="region"
       aria-label="Job page preview controls"
-      className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-[60] mx-auto max-w-2xl rounded-2xl border border-border bg-card p-3 shadow-lg pointer-events-auto lg:bottom-4"
+      className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-[60] mx-auto max-w-2xl rounded-2xl border border-border bg-card p-3 shadow-lg pointer-events-auto lg:bottom-4 lg:left-[calc(var(--desktop-sidebar-w,0px)+1rem)] lg:right-auto lg:mx-0 lg:w-[34rem]"
     >
       <div className="flex items-center gap-2">
         <Eye className="h-4 w-4 shrink-0 text-primary" aria-hidden />
@@ -126,37 +126,39 @@ function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
         </Button>
       </div>
       {open && (
-        <div className="mt-3 space-y-3">
-          <p className="text-ds-13 text-muted-foreground">
+        <div className="mt-2 space-y-2">
+          <p className="hidden text-ds-13 text-muted-foreground lg:block">
             Made-up job, real job page. Nothing here reads or changes a real job, and no button does anything.
           </p>
-          <div role="radiogroup" aria-label="Stage" className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
+          {/* One row that scrolls sideways on a phone, so the page stays in view. */}
+          <div role="radiogroup" aria-label="Stage" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible">
             {PREVIEW_STAGES.map((s) => (
               <button
                 key={s.key}
                 type="button"
                 role="radio"
                 aria-checked={s.key === stage}
-                className={cn(CHIP, "min-h-9 px-3", s.key === stage ? CHIP_ON : CHIP_OFF)}
+                className={cn(CHIP, "min-h-9 shrink-0 px-3", s.key === stage ? CHIP_ON : CHIP_OFF)}
                 onClick={() => onStage(s.key)}
               >
                 {s.label}
               </button>
             ))}
           </div>
-          <SegmentedControl
-            ariaLabel="Seen by"
-            value={viewer}
-            onChange={onViewer}
-            options={[{ value: "poster", label: "Poster" }, { value: "helpr", label: "Helpr" }]}
-          />
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <SegmentedControl
+              ariaLabel="Seen by"
+              className="min-w-0 flex-1"
+              value={viewer}
+              onChange={onViewer}
+              options={[{ value: "poster", label: "Poster" }, { value: "helpr", label: "Helpr" }]}
+            />
             {inPhoneWindow ? (
               <Button variant="outline" size="sm" className="rounded-full" onClick={() => window.close()}>Close phone window</Button>
             ) : (
-              <Button variant="outline" size="sm" className="rounded-full" onClick={openPhone}>Open at phone size (375)</Button>
+              <Button variant="outline" size="sm" className="hidden rounded-full sm:inline-flex" onClick={openPhone}>Phone size (375)</Button>
             )}
-            <Button variant="outline" size="sm" className="rounded-full" onClick={onLeave}>Leave preview</Button>
+            <Button variant="outline" size="sm" className="rounded-full" onClick={onLeave}>Leave</Button>
           </div>
         </div>
       )}

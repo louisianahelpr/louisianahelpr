@@ -7,7 +7,8 @@
  * RPC and edge-function call is answered "done" without being sent. Only two kinds of request still go out:
  *  - sign-in traffic (/auth/v1/), so the admin stays signed in;
  *  - a READ of the admin's OWN profile or role row (profiles / user_roles filtered by their id), so the app chrome
- *    and the admin gate keep their real answer. Never a write, never an RPC, never a job.
+ *    and the admin gate keep their real answer, and feature_switches_for_me (a read of which switches are on), so
+ *    the page draws as the live app does. Never a write, never a job.
  * Guard: src/test/adminJobPreviewIsInert.test.tsx.
  */
 import type { PreviewSample } from "./jobPreviewSamples";
@@ -34,6 +35,8 @@ export interface PreviewBackendOptions {
 const READ_RPC = /^(get_|list_|fetch_|can_|is_|has_|count_|check_|search_)|_candidates$|_state$|_stats$/;
 const SCALAR_RPC = /^(can_|is_|has_|check_)/;
 const OWN_ROW_TABLES = new Set(["profiles", "user_roles"]);
+/** The admin's own feature switches: sent, so the page draws with the switches the app really has on. */
+const PASS_THROUGH_RPC = new Set(["feature_switches_for_me"]);
 
 function json(body: unknown, status = 200, count?: number): Response {
   const headers: Record<string, string> = { "content-type": "application/json" };
@@ -90,7 +93,8 @@ function rpcAnswer(name: string, body: Record<string, unknown>, s: PreviewSample
   switch (name) {
     case "get_safe_profiles": {
       const ids = Array.isArray(body.user_ids) ? (body.user_ids as string[]) : [];
-      return s.profiles.filter((p) => ids.includes(p.id));
+      // get_safe_profiles rows carry user_id (pickRequestedProfile reads it), not id.
+      return s.profiles.filter((p) => ids.includes(p.id)).map((p) => ({ ...p, user_id: p.id }));
     }
     case "get_my_pending_direct_offers":
       return s.pendingOffer ? [s.pendingOffer] : [];
@@ -126,6 +130,10 @@ export function createPreviewFetch(o: PreviewBackendOptions): { fetch: typeof fe
     const rpc = path.match(/^\/rest\/v1\/rpc\/([^/]+)$/);
     if (rpc) {
       const name = decodeURIComponent(rpc[1]);
+      if (PASS_THROUGH_RPC.has(name)) {
+        note("passed");
+        return o.realFetch(input, init);
+      }
       if (READ_RPC.test(name)) {
         note("sample");
         const out = rpcAnswer(name, bodyJson(init), s);

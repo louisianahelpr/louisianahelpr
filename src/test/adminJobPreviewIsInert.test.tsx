@@ -77,13 +77,15 @@ function renderPreview(stage: string, viewer: string) {
 const ADMIN_ID = "11111111-1111-4111-8111-111111111111";
 /**
  * What reached Supabase: must stay empty, except sign-in traffic and a READ of the admin's own profile or role row
- * (previewBackend.ts: the app chrome and the admin gate keep their real answer). Never a write, an RPC or a job.
+ * and the read of which feature switches are on (previewBackend.ts: the app chrome and the admin gate keep their real
+ * answer). Never a write, any other RPC, or a job.
  */
 function leaked() {
   return sent.filter((r) => {
     if (!r.url.startsWith(SUPABASE)) return false;
     const u = new URL(r.url);
     if (u.pathname.startsWith("/auth/v1/")) return false;
+    if (u.pathname === "/rest/v1/rpc/feature_switches_for_me") return false;
     const ownRead = r.method === "GET" && /^\/rest\/v1\/(profiles|user_roles)$/.test(u.pathname) && [...u.searchParams.values()].includes(`eq.${ADMIN_ID}`);
     return !ownRead;
   });
@@ -124,6 +126,8 @@ describe("admin job-page preview", () => {
     const open = screen.getAllByRole("button", { name: "Open in working" })[0];
     fireEvent.pointerDown(open);
     fireEvent.click(open);
+    // The sample's people are named on the page (get_safe_profiles answered from the sample).
+    expect(screen.getAllByRole("button", { name: "Message Lexi" }).length).toBeGreaterThan(0);
     expect(toasts).toContain(`Preview: this would open /jobs?tab=working&job=${previewSample("working", "helpr").jobId}&open=1.`);
     pressEveryButton();
     await waitFor(() => expect(toasts.filter((t) => t.startsWith("Preview: this would ")).length).toBeGreaterThan(1));

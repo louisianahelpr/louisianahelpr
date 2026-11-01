@@ -96,6 +96,9 @@ const NOT_AN_ENTRY_POINT: Readonly<Record<string, string>> = {
   // Owner 2026-10-25: the "You're hired" prompt's words; HiredPayoutSetupDialog and PayoutSetupJobNotice show them and both call usePayoutSetupPaused().
   "src/lib/payoutAfterHire.ts": "the hire prompt's own words; the two components that show them read usePayoutSetupPaused() (and are entry points themselves)",
   // Owner 2026-10-25: the words a member nobody has hired reads in place of setup.
+  // Help's Declutter answers (6bd086d8a0) say WHEN setup happens ("at your first paid sale", "after you take your first
+  // delivery"); a static answer holds no hook, and no link or control in Help sends anyone to the setup screen.
+  "src/pages/info/helpCenter/helpCenterContent.ts": "Help answers that say when payout setup happens; nothing in Help sends anyone to setup",
   "src/lib/payoutSetupPaused.ts": "the notices' own words (\"You'll set up payouts when you're hired\"): they replace setup, they send nobody to it",
 };
 

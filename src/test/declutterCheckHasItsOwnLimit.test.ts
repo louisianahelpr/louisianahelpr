@@ -44,7 +44,7 @@ describe("a posted listing's check is never starved by the shared limit", () => 
 
   it("(b) the edge function reads the body before the limit and sends a check to its own bucket", () => {
     const src = blankComments(readFileSync(resolve(ROOT, "supabase/functions/declutter-ai-draft/index.ts"), "utf8"));
-    const serveAt = src.indexOf("serve(async (req) => {");
+    const serveAt = src.indexOf("serve(withCheckSweep(async (req) => {"); // the check sweep wraps the handler (LEAD-CHECK-SWEEP)
     const bodyAt = src.indexOf("const body = await req.json()", serveAt);
     const pickAt = src.indexOf('const isCheck = body?.mode === "check";', serveAt);
     const limitAt = src.indexOf("? await checkRateLimit(req, CHECK_MINUTE_LIMIT)", serveAt);

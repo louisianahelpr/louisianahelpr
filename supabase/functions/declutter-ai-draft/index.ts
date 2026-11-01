@@ -75,6 +75,7 @@ import { BANNED_RULE } from "./bannedRule.ts";
 import { imageMediaType, withCheckSweep, type CheckSweepDeps, type SweepClaim, type SweepOutcome } from "./checkSweep.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -391,7 +392,9 @@ serve(withCheckSweep(async (req) => {
  * vault service key); the item and its seller come from declutter_check_sweep_claim's ROW, never from the request.
  */
 function checkSweepDeps(): CheckSweepDeps {
-  const service = () => createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  // An HTTP cron calls this path: its reads are bounded and retried (cronReadsCannotHang, Q592), never left to hang.
+  const service = () =>
+    createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { global: { fetch: boundedFetch() } });
   return {
     verify: verifyCronSecret,
     answer: (body, defects) => cronResult("declutter-ai-draft", body, defects, corsHeaders),

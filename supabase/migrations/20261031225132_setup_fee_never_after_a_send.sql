@@ -145,7 +145,7 @@ BEGIN
   PERFORM public.declutter_notify(p.helpr_id, 'payment', 'One-time setup fee taken',
     format('We took the one-time $%s account setup fee from your delivery payout, so $%s is on its way. It is never charged again.',
            to_char(v_fee / 100.0, 'FM999990.00'), to_char(v_amount / 100.0, 'FM999990.00')),
-    '/declutter?view=deliver', NULL);
+    '/declutter?tab=deliver', NULL);
   RETURN v_amount;
 END;
 $fn$;

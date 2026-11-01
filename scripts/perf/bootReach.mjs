@@ -105,6 +105,8 @@ export function publicRoots(root) {
 
 /** A first screen whose code must not ride in signed-in-shared: see declutterOnly below. */
 const DECLUTTER_ROOT = "src/pages/declutter/DeclutterPage.tsx";
+/** /profile starts its page through src/boot/profileRoute.ts; the page itself is named so the walk reaches it. */
+const PROFILE_ROOT = "src/pages/profile/Profile.tsx";
 
 /**
  * Components App.tsx mounts beside EVERY page, each a lazy chunk fetched once
@@ -135,9 +137,9 @@ export function firstScreenRoots(root) {
   for (const r of EVERY_PAGE_ROOTS) {
     if (!fs.existsSync(path.join(root, r))) throw new Error(`bootReach: EVERY_PAGE_ROOTS names ${r}, which does not exist. Fix the list.`);
   }
-  // /declutter starts its page through src/boot/declutterRoute.ts, a dynamic import
-  // the walk does not follow, so the page itself is named.
-  return [...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, DECLUTTER_ROOT))];
+  // /declutter and /profile start their pages through boot route files, dynamic imports
+  // the walk does not follow, so each page itself is named.
+  return [...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, DECLUTTER_ROOT)), toPosix(path.join(root, PROFILE_ROOT))];
 }
 
 /**

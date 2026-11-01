@@ -218,10 +218,6 @@ export const POPUP_DIALOG_CLS =
   "sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:slide-out-to-bottom-0 " +
   "sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:zoom-out-95";
 
-/** The sheet's drag handle: 36x4 pill, centred 8px from the top, phone only. */
-export const POPUP_HANDLE_CLS =
-  "sm:hidden pointer-events-none absolute left-1/2 top-2 -translate-x-1/2 h-1 w-9 rounded-full bg-[hsl(var(--muted-foreground)/0.35)]";
-
 /** Every popup action is a pill (spec v2 §2: pill 999px for every button). */
 const POPUP_ACTION_RADIUS = "rounded-full";
 

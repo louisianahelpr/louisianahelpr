@@ -432,7 +432,9 @@ serve(async (req) => {
         title: "Job auto-cancelled",
         // Q2399: a held card was never charged; card-hold-sweep cancels the
         // hold and, told here already, does not say it a second time.
-        message: `"${job.title}" was automatically cancelled because the scheduled time passed without a Helpr being assigned. You can repost anytime.${job.payment_status === "held" ? " Your card was not charged." : ""}`,
+        // Owner 10-31: an expired listing is not a cancellation, so the words say
+        // "expired". The title stays: SMS kinds and the Repost action key on it.
+        message: `"${job.title}" expired: the scheduled time passed with no Helpr hired. You can repost anytime.${job.payment_status === "held" ? " Your card was not charged." : ""}`,
         // 61 of the 71 prod rows under this title went to ordinary posters,
         // not admins — a job-lifecycle event, not a platform alert.
         type: "job_updates",

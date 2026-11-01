@@ -176,8 +176,8 @@ describe("job card polish (owner 2026-10-23)", () => {
 
   it("13: a waiting card messages the other person; Manage job is a small link beside it", () => {
     const a = posterFaceAction("confirmed", job({}), handlers());
-    expect(a).toMatchObject({ label: "Message Hallie", tone: "secondary", also: { label: "Manage job" } });
-    expect(posterFaceAction("no_applicants", job({ helper_id: null, status: "open" }), handlers()).label).toBe("Manage job");
+    expect(a).toMatchObject({ label: "Message Hallie", tone: "secondary", also: { label: "More options" } });
+    expect(posterFaceAction("no_applicants", job({ helper_id: null, status: "open" }), handlers()).label).toBe("More options");
     const h = helperFaceAction({ isMinimalCard: false, isOffered: false, owesReview: false, review: noop, manage: noop, message: { name: "Pat", onClick: noop } });
     expect(h).toMatchObject({ label: "Message Pat", also: { label: "Manage job" } });
     expect(code("src/components/job-card/MineJobFace.tsx")).toContain('data-mine-face-also=""');

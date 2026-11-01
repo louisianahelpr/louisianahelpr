@@ -353,7 +353,9 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
                   Prop kept for the same reason as `eyebrow`: ~15 call sites
                   pass it, and neither churning them nor breaking their types
                   buys anything. One line restores it. */}
-              <h1 className={`text-page-title leading-tight ${wrapTitle ? "break-words" : "truncate"}${phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
+              {/* JA-14 (Jobs audit 11-01): a wrapping title stops at two lines (a 7-word job title took 3-4 lines of
+                  heading at 375 and pushed the page down); the whole title stays in the tooltip and the accessible name. */}
+              <h1 title={wrapTitle ? title : undefined} className={`text-page-title leading-tight ${wrapTitle ? "break-words line-clamp-2" : "truncate"}${phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
                 {title}
               </h1>
             </div>

@@ -18,6 +18,8 @@ import { InstantBookingCard } from "@/components/jobs/InstantBookingCard";
 import { Link, useNavigate } from "react-router-dom";
 import { Briefcase } from "lucide-react";
 import AppPage from "@/components/AppPage";
+import { CountdownRows } from "@/components/job-card/CountdownRows";
+import { collapsedClocks } from "@/components/job-card/collapsedClocks";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -324,6 +326,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} />
+          {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
+          {(isPoster || isHired) && job.status === "accepted" && <CountdownRows variant="bare" clocks={collapsedClocks({ ...job, status: job.status }, isPoster)} />}
         </section>
 
         <div data-job-main="" className="flex min-w-0 flex-col gap-4 empty:hidden lg:col-start-1">

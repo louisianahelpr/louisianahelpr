@@ -53,6 +53,8 @@ export type ProgressJob = {
   /** When the job was done (the server's stamp); the finished line's time (JA-11). */
   completed_at?: string | null;
   has_active_dispute?: boolean | null;
+  /** When the parties' own window to settle a dispute ends and Louisiana Helpr support decides (JA-30). */
+  dispute_deadline?: string | null;
   /** isExpiredListing reads these: an auto-expired listing is never shown as cancelled (JA-23). */
   cancellation_reason?: string | null;
   cancelled_by?: string | null;
@@ -321,7 +323,11 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD : "Closed", poster ? EXPIRED_LISTING_DETAIL : "No longer open", held);
   if (status === "cancelled" || status === "expired") return at(null, false, "Cancelled", cancelledLine(job, poster, other), held);
   if (job.has_active_dispute || status === "disputed") {
-    return at(null, false, "Under review", "A real person at Helpr is looking at the problem. The money stays held", held);
+    // JA-30 (Jobs audit 11-01): say WHEN they hear back (the dispute's own deadline, after which support decides) and
+    // the brand in full. Guard: src/test/disputeLineSaysWhen.test.ts.
+    const decideMs = Date.parse(job.dispute_deadline ?? "");
+    const by = Number.isNaN(decideMs) ? "" : decideMs > now ? `, with an answer by ${when(decideMs)}` : "";
+    return at(null, false, "Under review", `A real person at Louisiana Helpr is looking at the problem${by}. The money stays held`, held);
   }
 
   if (status === "open" && !job.helper_id) {

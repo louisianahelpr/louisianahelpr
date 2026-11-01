@@ -5230,6 +5230,7 @@ export type Database = {
           pickup_slot_start: string | null
           raised_cents: number
           releases: number
+          released_helpr_id: string | null
           seller_no_show_answer_by: string | null
           seller_no_show_answered_at: string | null
           seller_no_show_reported_at: string | null
@@ -5294,6 +5295,7 @@ export type Database = {
           pickup_slot_start?: string | null
           raised_cents?: number
           releases?: number
+          released_helpr_id?: string | null
           seller_no_show_answer_by?: string | null
           seller_no_show_answered_at?: string | null
           seller_no_show_reported_at?: string | null
@@ -5358,6 +5360,7 @@ export type Database = {
           pickup_slot_start?: string | null
           raised_cents?: number
           releases?: number
+          released_helpr_id?: string | null
           seller_no_show_answer_by?: string | null
           seller_no_show_answered_at?: string | null
           seller_no_show_reported_at?: string | null
@@ -14724,6 +14727,7 @@ export type Database = {
           helpr_delivered_at: string
           helpr_dropoff_distance_m: number
           helpr_dropoff_photo_path: string
+          helpr_has_delivery_strike: boolean
           helpr_picked_up_at: string
           helpr_pickup_photo_path: string
           order_status: string

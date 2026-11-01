@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
+import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
 import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 
@@ -83,7 +84,8 @@ describe("the entry's /declutter first screen", () => {
     const quoted = (name: string) => (api.match(new RegExp(`const ${name} =\\s*"([^"]+)"`))?.[1] ?? "").split(", ");
     const asked = [...quoted("ITEM_COLUMNS"), ...quoted("DROP_COLUMNS")];
     expect(asked.length).toBeGreaterThan(15);
-    const sql = blankSqlComments(readFileSync("supabase/migrations/20261031020705_declutter_drops_stopped_public.sql", "utf8"));
+    // The NEWEST definition (B82's 20261101092004 restated it), whatever file holds it.
+    const sql = blankSqlComments(effectiveDefs("supabase/migrations").get("declutter_first_screen")?.stmt ?? "");
     const selected = (sql.match(/SELECT (i\.id,[\s\S]*?),\s*CASE WHEN/)?.[1] ?? "").split(",").map((c) => c.trim().replace(/^i\./, ""));
     expect(selected.sort()).toEqual(asked.sort());
   });

@@ -706,7 +706,8 @@ describe("prod-hitting workflow schedules", () => {
     // 2026-10-12 (Q1721): e2e-journeys' worst case 127 -> 119 freed Tue/Fri
     // 07:17 and Thu 11:17; open-done-when moved Sun/Thu 05:17 -> Tue/Fri 07:17 so
     // vacuity could start at Sun 05:17 and db-drift-detect got its Sunday back.
-    expect(free).toEqual(["Thu 05:17", "Thu 11:17"]);
+    // 2026-11-01 (OPS-2, B65): e2e-real-backend took Thu 05:17 (4 runs a week).
+    expect(free).toEqual(["Thu 11:17"]);
   });
 
   it("rule 5 can fail: the Q318 shape (press 03:17 with two waves, drift 05:17, backup 07:17) is red", () => {

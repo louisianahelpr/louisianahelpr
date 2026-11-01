@@ -10,6 +10,7 @@
  * (the DO block skips cron.schedule), no cron_work_expectations.
  */
 import { PGlite, readMigration, checker } from "./seriesWorld.mjs";
+import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs";
 
 const FIX = "20261101183017_unread_message_reminders.sql";
 const SKIP = process.env.NEW_MIGRATION === "skip";
@@ -88,6 +89,20 @@ await msg("2026-11-05T16:00:00Z", J);
 await q(`insert into public.thread_mutes values ('${P}', '${J}', '${H}', null)`);
 await msg("2026-11-05T16:00:00Z", J2, "flagged_hidden=true");
 check("a muted thread and a hidden message are not reminded", (await sweep("2026-11-05T16:20:00Z")) === 0);
+
+// FIXED CLOCK (Q1357): the cron call passes no time, so the sweep reads now() (its DEFAULT). The newest
+// "sweep_unread_message_reminders" is reloaded with now() pointed at a fixed instant either side of 15 minutes.
+if (!SKIP) {
+  await installClock(db);
+  await db.exec(onFixedClock(newestFunction("sweep_unread_message_reminders").stmt));
+  await q(`update public.messages set read = true`);
+  await q(`delete from public.thread_mutes`);
+  await msg("2026-11-06T16:00:00Z", J2);
+  await setClock(db, "2026-11-06T16:14:59Z");
+  check("fixed clock: 1 s before 15 minutes, the no-argument sweep sends nothing", (await q(`select public.sweep_unread_message_reminders() n`))[0].n === 0);
+  await setClock(db, "2026-11-06T16:15:00Z");
+  check("fixed clock: at 15 minutes, the no-argument sweep sends one", (await q(`select public.sweep_unread_message_reminders() n`))[0].n === 1);
+}
 
 const acl = (await q(`select proacl::text a from pg_proc where proname = 'sweep_unread_message_reminders'`))[0]?.a ?? "";
 check("no EXECUTE for PUBLIC, anon or authenticated", SKIP || !/(^|[{,])=X|anon=X|authenticated=X/.test(acl), acl);

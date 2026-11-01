@@ -195,6 +195,8 @@ rpc_exempt(fn, why) AS (
   ('declutter_admin_apply_seller_fault', 'admin-only (body checks has_role admin or is_server_context; Declutter Add a Helpr A10 hand tool)'),
   ('declutter_remove_cart_item', 'a banned buyer may still let a reserved item go: releasing a hold only helps the seller (A2-8, 2026-10-28; no money moves)'),
   ('declutter_claim_free', 'one-line wrapper: returns declutter_request_free, which refuses a banned caller itself (is_caller_banned, account_restricted; Q2487, 20261030064021)'),
+  ('declutter_request_free_at', 'wrapper: calls declutter_request_free first, which refuses a banned caller itself (is_caller_banned, account_restricted); then only sets pickup_at on the callers own new ask (owner 11-01, 20261101174857)'),
+  ('helpr_stop_sharing', 'live delivery map (20261101184555): only deletes the callers own live-position rows; a banned Helpr can always stop sharing their location (privacy), and it posts no content and moves no money'),
   ('declutter_withdraw_free_request', 'a banned requester may still take back an open free ask: withdrawing only frees the item for the giver (Q2487, 20261030064021; no money moves)'),
   ('declutter_remove_wanted_photo', 'a banned member may still remove a photo from a Wanted post of their own: removing only takes their content down (20261030064727; no money moves)'),
   ('rpc_admin_end_recurring_series', 'admin-only (body checks has_role admin; Q417)'),

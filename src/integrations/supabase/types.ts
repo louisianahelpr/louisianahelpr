@@ -3993,6 +3993,7 @@ export type Database = {
           created_at: string
           id: string
           item_id: string
+          pickup_at: string | null
           requester_id: string
           seller_id: string
           status: string
@@ -4002,6 +4003,7 @@ export type Database = {
           created_at?: string
           id?: string
           item_id: string
+          pickup_at?: string | null
           requester_id: string
           seller_id: string
           status?: string
@@ -4011,6 +4013,7 @@ export type Database = {
           created_at?: string
           id?: string
           item_id?: string
+          pickup_at?: string | null
           requester_id?: string
           seller_id?: string
           status?: string
@@ -5304,6 +5307,7 @@ export type Database = {
           helpr_id: string | null
           id: string
           in_hand_nudged_at: string | null
+          started_at: string | null
           stuck_at: string | null
           stuck_reason: string | null
           stuck_note: string | null
@@ -5369,6 +5373,7 @@ export type Database = {
           helpr_id?: string | null
           id?: string
           in_hand_nudged_at?: string | null
+          started_at?: string | null
           stuck_at?: string | null
           stuck_reason?: string | null
           stuck_note?: string | null
@@ -5434,6 +5439,7 @@ export type Database = {
           helpr_id?: string | null
           id?: string
           in_hand_nudged_at?: string | null
+          started_at?: string | null
           stuck_at?: string | null
           stuck_reason?: string | null
           stuck_note?: string | null

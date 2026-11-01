@@ -96,6 +96,7 @@
     "supabase/functions/_shared/recentSignIn.ts",
     "supabase/functions/_shared/helprPayoutParts.ts",
     "supabase/functions/_shared/easypostRates.ts",
+    "supabase/functions/_shared/easypostTracking.ts",
     "supabase/functions/_shared/emailSendLog.ts",
     "supabase/functions/_shared/notificationTypes.ts",
     "supabase/functions/_shared/notificationLog.ts",

@@ -342,11 +342,11 @@ BEGIN
   LOOP
     v_n := v_n + 1;
     INSERT INTO public.declutter_offer_events (offer_id, actor_side, action) VALUES (r.id, 'system', 'reopen');
-    PERFORM public.declutter_notify(r.buyer_id, 'new_offers', 'Your offer is open again',
+    PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Your offer is open again',
       format('"%s" is back on sale, so your offer is open again. The seller has 48 hours to answer it. Nothing was charged.', r.title),
       '/declutter/item/' || r.item_id::text, r.seller_id);
     -- Follow-up (lead 10-31): the seller is told too, so the reopened offer is answered.
-    PERFORM public.declutter_notify(r.seller_id, 'new_offers', 'An offer is open again',
+    PERFORM public.declutter_notify(r.seller_id, 'declutter_offers', 'An offer is open again',
       format('"%s" is back on sale, so an offer the hold closed is open again. You have 48 hours to answer it.', r.title),
       '/declutter?tab=selling', r.buyer_id);
   END LOOP;

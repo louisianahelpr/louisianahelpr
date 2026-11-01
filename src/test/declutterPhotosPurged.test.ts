@@ -8,8 +8,8 @@
  * @mutate supabase/functions/_shared/purgeBuckets.ts |   { bucket: "job-photos", folder: "declutter" }, |   { bucket: "job-photos", folder: "declutter-x" },
  * @mutate supabase/functions/_shared/purgeBuckets.ts |   { bucket: "declutter-handover", folder: "declutter" }, |
  * @mutate src/lib/declutter/handover.ts | supabase.storage.from(DECLUTTER_HANDOVER_BUCKET).upload( | supabase.storage.from("job-photos").upload(
- * @mutate supabase/functions/_shared/accountPurge.ts |       targets.push({ bucket, paths: await listAllObjects(admin, bucket, prefix) }); |       targets.push({ bucket, paths: [] });
- * @mutate supabase/functions/_shared/accountPurge.ts |       const left = await listAllObjects(admin, bucket, prefix); |       const left: string[] = [];
+ * @mutate supabase/functions/_shared/accountPurge.ts |       targets.push({ bucket, paths: kept(bucket, await listAllObjects(admin, bucket, prefix)) }); |       targets.push({ bucket, paths: [] });
+ * @mutate supabase/functions/_shared/accountPurge.ts |       const left = kept(bucket, await listAllObjects(admin, bucket, prefix)); |       const left: string[] = [];
  * Lane J: a not-yet-created declutter-handover bucket is nothing to erase, never a failed deletion;
  * every other missing subfolder bucket still fails the step (Q219).
  * @mutate supabase/functions/_shared/purgeBuckets.ts |     notCreatedYet: missing.filter((b) => SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET.includes(b)), |     notCreatedYet: [] as string[],
@@ -19,6 +19,13 @@
  * @mutate supabase/functions/_shared/purgeBuckets.ts |   { bucket: "helpr-tasks", folder: "vehicle" }, |
  * @mutate src/lib/helprTasks/api.ts |   return uploadCleaned(`${userId}/vehicle/${nonce()}.jpg`, file); |   return uploadCleaned(`${userId}/truck/${nonce()}.jpg`, file);
  * @mutate supabase/functions/_shared/accountPurge.ts |     for (const bucket of failing) { |     for (const bucket of missingSub) {
+ * LEAD-LIST-FOR-SELLER: a Helpr's photos of a seller's listing go with the SELLER's account, never the Helpr's.
+ * @mutate supabase/functions/_shared/purgeBuckets.ts |     if (l.seller_id === userId) sellerExtra.push(p.storage_path); |     if (l.seller_id === "x") sellerExtra.push(p.storage_path);
+ * @mutate supabase/functions/_shared/purgeBuckets.ts |     else if (l.helpr_id === userId) helprKeep.add(p.storage_path); |     else if (l.helpr_id === "x") helprKeep.add(p.storage_path);
+ * @mutate supabase/functions/_shared/purgeBuckets.ts |     if (!l \|\| l.helpr_id === l.seller_id \|\| !p.storage_path.startsWith(`${l.helpr_id}/declutter/${l.item_id}/`)) continue; |     if (!l) continue;
+ * @mutate supabase/functions/_shared/accountPurge.ts |     { bucket: "job-photos", paths: listed.sellerExtra }, |     { bucket: "job-photos", paths: [] },
+ * @mutate supabase/functions/_shared/accountPurge.ts |   ], listed.helprKeep)) && listed.ok; |   ])) \&\& listed.ok;
+ * @mutate supabase/functions/_shared/accountPurge.ts |       const left = kept(bucket, await listAllObjects(admin, bucket, prefix)); |       const left = await listAllObjects(admin, bucket, prefix);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -26,6 +33,7 @@ import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import {
   classifyMissingSubfolderBuckets,
+  listedForSellerPhotoPlan,
   identitySubfolderPrefixes,
   IDENTITY_SUBFOLDERS,
   SUBFOLDER_BUCKETS_MAY_NOT_EXIST_YET,
@@ -76,8 +84,8 @@ describe("account deletion erases job-photos/<uid>/declutter/ (Declutter B4)", (
     const body = fnBody(purge, "purgeIdentityStorage");
     expect(body.length).toBeGreaterThan(500);
     expect(body).toContain("const subfolders = identitySubfolderPrefixes(userId);");
-    expect(body).toContain("targets.push({ bucket, paths: await listAllObjects(admin, bucket, prefix) });");
-    expect(body).toContain("const left = await listAllObjects(admin, bucket, prefix);");
+    expect(body).toContain("targets.push({ bucket, paths: kept(bucket, await listAllObjects(admin, bucket, prefix)) });");
+    expect(body).toContain("const left = kept(bucket, await listAllObjects(admin, bucket, prefix));");
     expect(body).toMatch(/missingBuckets\(admin, \[\.\.\.new Set\(subfolders\.map/);
   });
 
@@ -100,5 +108,37 @@ describe("account deletion erases job-photos/<uid>/declutter/ (Declutter B4)", (
     const failingLoop = /for \(const bucket of failing\) \{([\s\S]*?)\n {4}\}/.exec(body)?.[1] ?? "";
     expect(failingLoop).toContain("allOk = false;");
     expect(failingLoop).toContain("failures.push(");
+  });
+});
+
+describe("listed-for-seller photos (a Helpr's folder, the seller's listing) follow the seller", () => {
+  const S = "seller-1", H = "helpr-1", I = "item-1";
+  const links = [{ item_id: I, helpr_id: H, seller_id: S }, { item_id: "item-own", helpr_id: S, seller_id: S }];
+  const photos = [
+    { item_id: I, storage_path: `${H}/declutter/${I}/a.jpg` },
+    { item_id: I, storage_path: `${H}/declutter/${I}/b.jpg` },
+    { item_id: I, storage_path: `someone-else/declutter/${I}/x.jpg` }, // not the link's Helpr folder: never touched
+    { item_id: I, storage_path: `${H}/declutter/other-item/y.jpg` }, // not this item's folder: never touched
+    { item_id: "item-own", storage_path: `${S}/declutter/item-own/z.jpg` }, // the seller's own upload: the folder sweep's
+  ];
+  it("the seller's deletion removes their listing's photos from the Helpr's folder, by exact path", () => {
+    const p = listedForSellerPhotoPlan(S, links, photos);
+    expect(p.sellerExtra).toEqual([`${H}/declutter/${I}/a.jpg`, `${H}/declutter/${I}/b.jpg`]);
+    expect(p.helprKeep.size).toBe(0);
+  });
+  it("the Helpr's deletion keeps them for the seller", () => {
+    const p = listedForSellerPhotoPlan(H, links, photos);
+    expect([...p.helprKeep]).toEqual([`${H}/declutter/${I}/a.jpg`, `${H}/declutter/${I}/b.jpg`]);
+    expect(p.sellerExtra).toEqual([]);
+  });
+  it("the purge reads the plan before the RPC, removes the seller's extras, and skips the kept ones in the sweep and its check", () => {
+    const body = fnBody(purge, "purgeAccount");
+    expect(body.indexOf("collectListedForSellerPhotos(admin, userId, steps)")).toBeGreaterThan(0);
+    expect(body.indexOf("collectListedForSellerPhotos(admin, userId, steps)")).toBeLessThan(body.indexOf("purgeDatabaseRows"));
+    expect(body).toContain('{ bucket: "job-photos", paths: listed.sellerExtra },');
+    expect(body).toMatch(/\], listed\.helprKeep\)\) && listed\.ok;/);
+    const storage = fnBody(purge, "purgeIdentityStorage");
+    expect(storage).toContain("targets.push({ bucket, paths: kept(bucket, await listAllObjects(admin, bucket, prefix)) });");
+    expect(storage).toContain("const left = kept(bucket, await listAllObjects(admin, bucket, prefix));");
   });
 });

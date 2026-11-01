@@ -8,6 +8,7 @@ import { StorageApiError as LazyStorageApiError, StorageClient as LazyStorage } 
  * reaches the network (URL, method, headers, body) and what comes back.
  */
 // @mutate src/integrations/supabase/lazyStorage.ts | encodeURI(`${url}/object/public/${finalPath}`) | encodeURI(`${url}/object/${finalPath}`)
+// @mutate src/integrations/supabase/lazyStorage.ts | ? "render/image" : "object" | ? "object" : "object"
 // @mutate src/integrations/supabase/lazyStorage.ts |           load().then((c) => (c.from(bucketId) as | load().then((c) => (c.from(bucketId + "x") as
 
 const URL_ = "https://fncmgoasalhdgfwzhsqa.supabase.co/storage/v1";
@@ -31,6 +32,10 @@ describe("lazyStorage (the build's storage-js stand-in)", () => {
       ["avatars", "/u1/a.webp", undefined],
       ["declutter-photos", "x/y z/ü.jpg", { download: true }],
       ["quote-photos", "q/1.jpg", { download: "named.jpg", cacheNonce: 3 }],
+      // Hotfix 11-01: Declutter's resized photos call getPublicUrl with a transform (render/image).
+      ["job-photos", "u1/d/item/p.jpg", { transform: { width: 340, height: 340, resize: "cover", quality: 70 } }],
+      ["job-photos", "u1/d/item/p.jpg", { transform: { width: 160, format: "origin" }, download: true }],
+      ["job-photos", "u1/d/item/p.jpg", { transform: {} }],
     ];
     let n = 0;
     for (const [bucket, path, opts] of cases) {

@@ -36,6 +36,9 @@ export function isSellForMeJob(category: string | null | undefined): boolean {
  */
 export const SELL_FOR_ME_LISTINGS_PATH = "/declutter?tab=selling";
 
+/** POST-H3 (owner 10-31): the Helpr's line while the work is on; the server's rule is the same (completion_requires_live_listings). */
+export const SELL_FOR_ME_DONE_NOTE = "Mark it done once the seller's listings are live on Declutter.";
+
 /** The Shops category option B lists (migration 20261019210636). */
 export const SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales";
 

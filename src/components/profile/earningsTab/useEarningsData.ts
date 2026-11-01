@@ -5,6 +5,22 @@ import { queryKeys } from "@/lib/queryKeys";
 import type { PayoutLedgerRow, StripePayoutData } from "./types";
 import { functionInvokeError, unwrap } from "@/lib/supabaseResult";
 
+/**
+ * One warning per read and failure (B77, 2026-11-01): ProfileTabPanels starts these reads before the tab's chunk
+ * (prefetchEarningsReads), and when that read fails the hook mounting a moment later reads again and fails the same
+ * way, so the same warning went to the error log twice. The same message for the same read within the reads' own
+ * freshness window (60 s) is the same failure; a different message, or a later one, is reported.
+ */
+const REPORT_WINDOW_MS = 60_000;
+const lastReported = new Map<string, { message: string; at: number }>();
+export function reportPayoutReadOnce(err: unknown, source: string, now = Date.now()): void {
+  const message = err instanceof Error ? err.message : typeof err === "object" && err && "message" in err ? String((err as { message: unknown }).message) : String(err);
+  const last = lastReported.get(source);
+  if (last && last.message === message && now - last.at < REPORT_WINDOW_MS) return;
+  lastReported.set(source, { message, at: now });
+  report(err, { severity: "warning", tags: { source } });
+}
+
 const FALLBACK_STRIPE: StripePayoutData = {
   connected: false, payouts_enabled: false, available: [], pending: [], payouts: [],
 };
@@ -25,7 +41,7 @@ function stripePayoutsQuery(helperId: string) {
         if (error) throw await functionInvokeError(error);
         return data ?? FALLBACK_STRIPE;
       } catch (err) {
-        report(err, { severity: "warning", tags: { source: "EarningsTab.fetchPayouts" } });
+        reportPayoutReadOnce(err, "EarningsTab.fetchPayouts");
         throw err;
       }
     },
@@ -50,7 +66,7 @@ function payoutLedgerQuery(helperId: string) {
         .limit(50);
       // Throw (unwrap), don't collapse to [] — an empty ledger and a failed
       // fetch are different facts, and the tab shows a retry for the latter.
-      if (result.error) report(result.error, { severity: "warning", tags: { source: "EarningsTab.fetchLedger" } });
+      if (result.error) reportPayoutReadOnce(result.error, "EarningsTab.fetchLedger");
       return (unwrap(result) ?? []) as PayoutLedgerRow[];
     },
     enabled: !!helperId,

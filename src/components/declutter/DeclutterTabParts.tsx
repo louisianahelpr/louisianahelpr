@@ -14,6 +14,7 @@ import { SectionHeading } from "./DeclutterTabHeads";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import type { BuyerOrderView } from "./BuyingOrders";
 import { useLinkedOrder } from "./useLinkedOrder";
+import { SectionHeading } from "./DeclutterTabBadges";
 
 // useDeclutterTodo and SectionHeading live in the leaf DeclutterTabHeads (the /declutter first screen loads them without
 // this module's order views); re-exported so every import of them from here still works.

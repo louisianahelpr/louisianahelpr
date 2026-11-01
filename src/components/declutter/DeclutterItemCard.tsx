@@ -2,14 +2,16 @@
  * The Declutter item card (Browse grid and the item page's "More from this
  * seller" / "Similar items" rows): one card for every list of items.
  */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { CARD_PHOTO_PX, photoCardUrl, photoPublicUrl, type DeclutterItem, type DeclutterPhoto } from "@/lib/declutter/api";
+import { cardPhotoSrcSet, CARD_PHOTO_SIZES } from "@/lib/declutter/photoSizes";
 import { useLoadPhotoAhead } from "./useLoadPhotoAhead";
+import { holdForFirstRowPhoto, useLaterPhotosOpen } from "./firstRowPhotoGate";
 import { formatPrice, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
 
 export function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
@@ -58,7 +60,17 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
   // comes first (owner 10-31: pictures were slow while scrolling); if it fails, the full photo; then the icon.
   const [photoStage, setPhotoStage] = useState<PhotoStage>("card");
   const photoRef = useRef<HTMLImageElement>(null);
-  useLoadPhotoAhead(photoRef, !firstRow && !!photoPath && photoStage !== "failed");
+  // B77: a later card's photo waits for the first row's (firstRowPhotoGate.ts), so the largest paint loads alone.
+  const laterOpen = useLaterPhotosOpen(!firstRow && !!photoPath);
+  const firstRowDone = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    if (!firstRow || !photoPath) return;
+    const done = holdForFirstRowPhoto();
+    firstRowDone.current = done;
+    return done;
+  }, [firstRow, photoPath]);
+  const photoSettled = () => firstRowDone.current?.();
+  useLoadPhotoAhead(photoRef, laterOpen && !firstRow && !!photoPath && photoStage !== "failed");
   const card = (
     <Link
       to={`/declutter/item/${item.id}`}
@@ -71,18 +83,21 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
             loading, one that fails, or one with nothing opaque in it (prod's E2E
             fixture photos are 1x1 transparent PNGs) shows the icon, never a blank box. */}
         <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />
-        {photoPath && photoStage !== "failed" && (
+        {photoPath && photoStage !== "failed" && (firstRow || laterOpen) && (
           // width/height: the photo's own square, so the browser knows its shape before a byte arrives (the tile is
           // aspect-square, so nothing moves either way); decoding="async" keeps decoding off the scroll.
           <img
             ref={photoRef}
             src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)}
+            srcSet={photoStage === "card" ? cardPhotoSrcSet(photoPublicUrl(photoPath), photoCardUrl(photoPath), CARD_PHOTO_PX) : undefined}
+            sizes={photoStage === "card" ? CARD_PHOTO_SIZES : undefined}
             alt=""
             width={CARD_PHOTO_PX}
             height={CARD_PHOTO_PX}
             decoding="async"
             {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)}
-            onError={() => setPhotoStage((s) => (s === "card" ? "full" : "failed"))}
+            onLoad={photoSettled}
+            onError={() => { photoSettled(); setPhotoStage((s) => (s === "card" ? "full" : "failed")); }}
             className="relative h-full w-full object-cover"
           />
         )}

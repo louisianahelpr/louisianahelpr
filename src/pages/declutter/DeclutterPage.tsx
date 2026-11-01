@@ -1,17 +1,34 @@
 import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { DeclutterHomeSkeleton } from "@/components/declutter/DeclutterSkeletons";
 import DeclutterHome from "@/components/declutter/DeclutterHomeView";
-import { OrderTalkFromLink } from "@/components/declutter/DeclutterOrderTalk";
 import { lazy, Suspense, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { afterCardPath, afterCardReturnState, takeAfterCard } from "@/lib/declutter/afterCard";
 
-// Loaded only when drawn (lead 11-01, the /declutter order chunk): the switched-off sales view, and the handover chat
-// that opens from ?talk=<id>. Statically imported, both pulled the order and handover views (~24 KB gz) into every
-// /declutter first screen. Guard: src/test/declutterTabsLoadOnDemand.test.ts.
-const FinishSalesView = lazy(() => import("@/components/declutter/DeclutterTradeViews").then((m) => ({ default: m.FinishSalesView })));
-const HandoverTalkFromLink = lazy(() => import("@/components/declutter/DeclutterHandoverTalk").then((m) => ({ default: m.HandoverTalkFromLink })));
+// B77 (2026-11-01, "Nothing slow for users"): what only some visits draw loads on its own. The agreed-sales view
+// (Declutter switched off) is the whole checkout (~24 KB gz), and each chat opens only from its link's parameter.
+const FinishSales = lazy(() => import("@/components/declutter/DeclutterTradeViews").then((m) => ({ default: m.FinishSalesView })));
+const HandoverTalk = lazy(() => import("@/components/declutter/DeclutterHandoverTalk").then((m) => ({ default: m.HandoverTalkFromLink })));
+const OrderTalk = lazy(() => import("@/components/declutter/DeclutterOrderTalk").then((m) => ({ default: m.OrderTalkFromLink })));
+
+function FinishSalesView() {
+  return <Suspense fallback={<DeclutterHomeSkeleton />}><FinishSales /></Suspense>;
+}
+
+/** Q2462: ?talk=<id>. The chat's code loads only when a link carries one. */
+function HandoverTalkFromLink() {
+  const [params] = useSearchParams();
+  if (!params.get("talk")) return null;
+  return <Suspense fallback={null}><HandoverTalk /></Suspense>;
+}
+
+/** D2-1: ?order_talk=<order id>. The chat's code loads only when a link carries one. */
+function OrderTalkFromLink() {
+  const [params] = useSearchParams();
+  if (!params.get("order_talk")) return null;
+  return <Suspense fallback={null}><OrderTalk /></Suspense>;
+}
 
 /**
  * /declutter: the 404 unless the hidden 'declutter' switch is on (DeclutterGate),

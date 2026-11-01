@@ -37,6 +37,15 @@ REVOKE ALL ON TABLE public.helpr_task_live_positions FROM PUBLIC, anon, authenti
 GRANT SELECT ON TABLE public.helpr_task_live_positions TO authenticated;
 GRANT ALL ON TABLE public.helpr_task_live_positions TO service_role;
 
+-- Q807: writes from an unconfirmed email are refused on every public table (the gate's own statement trigger).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
 -- Who may see a delivery's live position right now (helpr_tasks has no client privilege, so the policy asks this).
 CREATE OR REPLACE FUNCTION public.helpr_task_position_viewer(p_task_id uuid)
 RETURNS boolean

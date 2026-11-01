@@ -75,7 +75,6 @@ const PINS_OFFSET_COLOUR =
  * whole ledger and the four fixes beside it become belt-and-braces.
  */
 const LEDGER = [
-  "src/components/NotificationPanel.tsx",
   "src/components/TimePickerWheel.tsx",
   "src/pages/jobs/AppliedJobsTab.tsx",
   "src/pages/posts/postedJobs/DeclineApplicantSheet.tsx",

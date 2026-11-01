@@ -79,6 +79,9 @@ export async function reportSignupSource(userId: string): Promise<void> {
       p_campaign: touch.campaign ?? undefined,
     });
     if (error) {
+      // Before the email is confirmed every write is refused (refuse_unconfirmed_email_write: 42501 "email_unconfirmed").
+      // Expected, not an error: quiet, not marked sent, so it is tried again once confirmed (LEAD-SIGNUP-SOURCE-RETRY-NOISE).
+      if (/^\s*email_unconfirmed\b/.test(String(error.message ?? ""))) return;
       if (!isMissingRpcNamed(error, "record_my_signup_source")) report(error, { tags: { source: "signup-source" } });
       return;
     }

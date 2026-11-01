@@ -44,6 +44,26 @@ export function DeclutterHomeSkeleton() {
   );
 }
 
+/**
+ * The Buying or Selling body while its code loads (DeclutterHomeView loads both on demand, lead 11-01): the filter
+ * chips row and two order-card bones, where the tab's own chips and first cards land. Normally never seen: the chunk
+ * starts loading once the page settles, before the member taps either tab.
+ */
+export function DeclutterTabBones() {
+  return (
+    <div className="space-y-6" role="status" aria-busy="true" data-declutter-tab-bones="">
+      <span className="sr-only">Loading…</span>
+      <div className="flex gap-2" aria-hidden>
+        <Skeleton className="h-9 w-24 rounded-full" />
+        <Skeleton className="h-9 w-20 rounded-full" />
+        <Skeleton className="h-9 w-24 rounded-full" />
+      </div>
+      <Skeleton className="h-28 w-full rounded-[20px]" aria-hidden />
+      <Skeleton className="h-28 w-full rounded-[20px]" aria-hidden />
+    </div>
+  );
+}
+
 /** The Browse grid: 2 across on a phone, 3 on a small tablet, 4 on very wide screens (owner, 2026-10-19 14:55Z). */
 export const DECLUTTER_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 2xl:grid-cols-4";
 /** The same grid across the whole panel (desktop, map hidden): 4 across, 5 on wide screens, so a card stays card-sized. */

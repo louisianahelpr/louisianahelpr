@@ -15293,6 +15293,14 @@ export type Database = {
         Args: { p_task_id: string }
         Returns: boolean
       }
+      sweep_chat_unread_reminders: {
+        Args: { p_now?: string }
+        Returns: Json
+      }
+      sweep_declutter_talk_reminders: {
+        Args: { p_now?: string }
+        Returns: number
+      }
       sweep_unread_message_reminders: {
         Args: { p_now?: string }
         Returns: number

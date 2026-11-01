@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 506** (432 to do, 74 fixed with protection pending; 1627 done). Feeds mirrored in: 71 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 18 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 507** (433 to do, 74 fixed with protection pending; 1627 done). Feeds mirrored in: 72 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 18 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 14 red, 14 stale, 1 unknown, 48 green of 77 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-22T04:06Z)_
@@ -91,7 +91,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2133 items — 1627 done, 74 partly done (fixed, protection pending), 432 open.**
+**Queue: 2134 items — 1627 done, 74 partly done (fixed, protection pending), 433 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -770,6 +770,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q2543 MEDIUM new member joined.** Mirrored 2026-10-31 from alert-ledger row 3a801ee231b0 (edge_slack: ops-alert:custom; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 3a801ee231b0. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '3a801ee231b0cb5622678dd6e59362c5'` => closed
 - [ ] **Q2544 MEDIUM /jobs · failed to fetch dynamically imported module: <url>.** Mirrored 2026-10-31 from alert-ledger row bf6860c13035 (user-error-screen: user-error-screen; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger bf6860c13035. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'bf6860c13035a95fdccbf8c10dd9edc7'` => closed
 - [ ] **Q2545 MEDIUM sweep_old_notifications: deleted # rows (# read, # unread).** Mirrored 2026-11-01 from alert-ledger row 043a7a13b735 (error_logs: sweep_old_notifications; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 043a7a13b735. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '043a7a13b73539a44b5175ae12d3cc3e'` => closed
+- [ ] **Q2546 MEDIUM cron http failure: declutter-check-sweep returned 401.** Mirrored 2026-11-01 from alert-ledger row b785447b81e8 (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger b785447b81e8. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'b785447b81e879352e644ca078458cd0'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

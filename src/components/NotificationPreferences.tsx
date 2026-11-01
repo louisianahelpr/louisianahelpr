@@ -25,6 +25,7 @@ import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
 import { JobRemindersGroup } from "./notificationPreferences/JobRemindersGroup";
 import { NotificationPrefsLoadFailed } from "./notificationPreferences/NotificationPrefsLoadFailed";
+import { PushDeviceHint } from "./notificationPreferences/PushDeviceHint";
 import { emailSkipCopy, joinList, type TestSendResult } from "./notificationPreferences/testNotificationCopy";
 
 const NotificationPreferences = () => {
@@ -444,28 +445,12 @@ const NotificationPreferences = () => {
 
   return (
     <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
-      {/* No phone or browser registered for push (owner 2026-11-01): say how to get alerts at the TOP, not only in
-          the "Send a test" row at the bottom. */}
-      {!loadFailed && pushTokenCount === 0 && (
-        <p
-          data-testid="push-device-hint"
-          className="px-3 min-[360px]:px-4 py-2.5 font-sans text-ds-13"
-          style={{ color: "hsl(var(--ink-deep) / 0.8)", borderBottom: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
-        >
-          Get alerts on your phone: allow notifications for Louisiana Helpr.
-        </p>
-      )}
+      {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />}
       {/* The saved settings could not be read: say so, offer a retry, and keep
           every switch below disabled so no press can save the defaults over
           them (Q2311). */}
       {loadFailed && (
-        <NotificationPrefsLoadFailed
-          onRetry={() => {
-            setLoaded(false);
-            setLoadFailed(false);
-            setLoadAttempt((n) => n + 1);
-          }}
-        />
+        <NotificationPrefsLoadFailed onRetry={() => { setLoaded(false); setLoadFailed(false); setLoadAttempt((n) => n + 1); }} />
       )}
       {/* Column header — App / Email column labels sit directly above
           the master switches (and every row's switches) below, since

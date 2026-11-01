@@ -274,6 +274,28 @@ export async function posterConfirmMemberArrival(jobId: string, helperId: string
  * them, and completes the crew at once if everyone else is already done. Their
  * share goes back to the poster with the unfilled spots' refund at payout.
  */
+/**
+ * JOBS-3 (owner 2026-10-31: crew members are paid individually once the poster confirms they worked): the poster
+ * confirms ONE member's work. rpc_poster_approve_member (20261101044659) stamps their roster row and the payout cron
+ * pays them crew_member_payout_delay() (3 days) later, on their own. Returns when they are paid.
+ */
+export const CREW_APPROVE_NOT_READY = "Confirming one Helpr's work isn't available yet. Please try again in a few minutes.";
+export async function posterApproveMember(jobId: string, memberId: string): Promise<{ approvedAt: string; payoutDueAt: string }> {
+  const { data, error } = await supabase.rpc("rpc_poster_approve_member", { _job_id: jobId, _member_id: memberId });
+  if (error) {
+    if (isMissingRpcNamed(error, "rpc_poster_approve_member")) {
+      throw new CrewActionError(CREW_APPROVE_NOT_READY, error, error.message);
+    }
+    throw new CrewActionError(rpcErrorMessage("rpc_poster_approve_member", error), error, error.message);
+  }
+  const d = (data ?? null) as Record<string, unknown> | null;
+  // The body names the member it confirmed; anything else is not proof the stamp landed.
+  if (!d || d.helper_id !== memberId || typeof d.payout_due_at !== "string" || typeof d.approved_at !== "string") {
+    throw new CrewActionError(null, data, "rpc_poster_approve_member returned no approval");
+  }
+  return { approvedAt: d.approved_at, payoutDueAt: d.payout_due_at };
+}
+
 export const CREW_NO_SHOW_NOT_READY = "Reporting a crew no-show isn't available yet. Please try again in a few minutes.";
 
 export async function posterReportMemberNoShow(jobId: string, memberId: string): Promise<{ jobComplete: boolean }> {

@@ -187,6 +187,7 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   // The tracker's own sentence is kept only where it describes the step the card is on; otherwise the line under
   // the bar is the card's own sentence, so the job page's bar and line can never disagree either.
   const sameStep = bar.tone === "progress" && base.stage === bar.stage && base.waitingOnYou === bar.waitingOnYou;
+  const posterLate = o.viewer === "poster" && bar.tone === "progress" && bar.stage === 4 && base.stage === 4 && !!minutesLate(job, now.getTime());
   const offPath = bar.tone === "cancelled" || (bar.label === "Dispute" && base.word === "Under review");
   return withBegun({
     ...base,
@@ -196,7 +197,8 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     ...(bar.label ? { label: bar.label } : {}),
     word: sameStep || offPath ? base.word : bar.label ?? ((JOB_PROGRESS_STEPS as readonly string[])[bar.stage] ?? "Done"),
     // JOBS3-48: arrived and not started, the Helpr's bar is on Working, but the line is the card's ("Tap Start working"), never "Mark it done".
-    next: (sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id) ? base.next : card.line.detail,
+    // JA-12 / JA-13: the poster's late line wins over the card's calm one while the bar is on On the way.
+    next: posterLate || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail,
   }, job, card.line.id, o.workUnderway);
 }
 
@@ -229,6 +231,18 @@ function someoneHired(job: ProgressJob): boolean {
 /** A crew job whose roster is hired (status 'accepted') and whose job row has no single Helpr's accept (JA-32). */
 function crewBookedOnRow(job: ProgressJob): boolean {
   return job.is_group_job === true && job.status === "accepted" && !job.helper_id && !job.helper_confirmed_at;
+}
+
+/** Grace after the start before a Helpr not yet there reads as late (JA-12). */
+const LATE_GRACE_MIN = 10;
+
+/** "75 min" / "1 h 20 min" past the job's start when that is more than the grace, else null (no start time: null). */
+function minutesLate(job: ProgressJob, nowMs: number): string | null {
+  const start = jobStartDateTime(job.date_needed ?? null, job.start_time ?? null);
+  if (!start || job.helper_arrived_at) return null;
+  const mins = Math.floor((nowMs - start.getTime()) / 60_000);
+  if (mins <= LATE_GRACE_MIN) return null;
+  return mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} h${mins % 60 ? ` ${mins % 60} min` : ""}`;
 }
 
 /** The card's line and face for a surface that is not a card, from the same functions the cards call. */
@@ -345,7 +359,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   if (job.helper_arrived_at) {
     return at(5, poster, "Arrived", poster ? `${other} arrived. Confirm they've arrived` : `You've arrived. Waiting on ${otherLow} to confirm`, held);
   }
-  if (job.helper_on_the_way_at) return at(4, !poster, "On the way", poster ? `${other} is on the way` : "You're on the way", held);
+  // JA-12 / JA-13 (audit 11-01): past the start time the poster is told the Helpr is late, never only the calm line.
+  const lateBy = minutesLate(job, now);
+  if (job.helper_on_the_way_at) return at(4, !poster, "On the way", poster ? (lateBy ? `${other} is on the way, ${lateBy} late` : `${other} is on the way`) : "You're on the way", held);
 
   // Booked, before setting out: the day-before confirm (the server's rule, _shared/confirmDeadline.ts:
   // opens at midnight the day before, owed until 2 hours before the start).
@@ -385,5 +401,5 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // moved the job to in_progress), the Helpr's line is the card's "today" line, not "when you leave".
   const startAt = jobStartDateTime(job.date_needed, job.start_time ?? null);
   const started = status === "in_progress" || (!!startAt && now >= startAt.getTime());
-  return at(4, !poster, "On the way", poster ? `You're both confirmed. ${other} taps On my way when they leave` : started ? "It's time — tap I'm on my way" : "Tap I'm on my way when you leave", held);
+  return at(4, !poster, "On the way", poster ? (lateBy ? `${other} is ${lateBy} late and hasn't set out` : `You're both confirmed. ${other} taps On my way when they leave`) : started ? "It's time — tap I'm on my way" : "Tap I'm on my way when you leave", held);
 }

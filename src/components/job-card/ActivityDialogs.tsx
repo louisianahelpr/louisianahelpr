@@ -223,6 +223,8 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
                 }
               : undefined
           }
+          // JOBS-3: set by tryCancelJob from its own roster read (empty roster, job under way).
+          nobodyLeft={(props.cancelDialogJob as { crewNobodyLeft?: boolean }).crewNobodyLeft === true}
           wasFunded={
             // 'failed': a declined card (paymentIntentPaymentFailed) took
             // nothing, as redeem_gift_card also reads it (lh-money-escrow

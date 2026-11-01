@@ -96,7 +96,9 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       crewOnRoster = (roster ?? []).map((r) => r.helper_id).filter((id): id is string => !!id);
       if (crewOnRoster.length === 0) {
-        setCancelDialogJob(job);
+        // Nobody is left (every member was a no-show): the dialog says all of the money comes back
+        // (CancellationDialog nobodyLeft), from THIS server read, never a roster map that may not have loaded.
+        setCancelDialogJob({ ...job, crewNobodyLeft: job.status === "in_progress" } as Job);
         return;
       }
     }

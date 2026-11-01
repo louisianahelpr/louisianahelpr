@@ -74,6 +74,15 @@ type CancellationDialogProps = {
    * true when any member counts.
    */
   crew?: { needed: number; members: Array<{ share_cents: number | null; confirmed: boolean }> };
+  /**
+   * JOBS-3: an under-way crew whose every member was reported a no-show
+   * (crewNobodyLeft). poster_cancel_job prices no share for an empty roster and
+   * records no strike, so the two-step policy ("Before a Helpr is selected",
+   * "Most of your payment comes back") is the wrong story: the dialog says all
+   * of the money comes back, shows no step, and "Back to you" is still only the
+   * server's cancel_quote number.
+   */
+  nobodyLeft?: boolean;
   /** The job's fee-model stamp (jobs.helper_fee_flat_cents / helper_fee_percent).
    *  A flat-model job's Helpr pays 5% + 70c on the fee, not a tier percent (Q1839). */
   feeStamp?: FlatFeeStamp | null;
@@ -86,7 +95,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, cardHeld, helperId: _helperId, helperName, crew, setupFeeKept, feeStamp, posterFee, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, cardHeld, helperId: _helperId, helperName, crew, nobodyLeft = false, setupFeeKept, feeStamp, posterFee, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Q1674: the sentence both the policy text and the toast add for a first job.
   const keptFee = wasFunded && typeof setupFeeKept === "number" && setupFeeKept > 0 ? setupFeeKept : 0;
   const keptFeeSentence = keptFee > 0
@@ -400,7 +409,21 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         />
         <div className="space-y-4">
 
+          {nobodyLeft && (
+            <div className="rounded-ds-md border border-primary/30 bg-primary/10 p-4 space-y-1.5" data-testid="cancel-nobody-left">
+              <p className="text-ds-13 font-semibold text-foreground">Nobody from your crew came</p>
+              <p className="text-ds-11 text-muted-foreground">
+                Cancel now and all of your money comes back to your card.{keptFeeSentence}
+              </p>
+              <div className="flex items-center gap-1.5">
+                <CheckCircle className="w-3 h-3 text-primary shrink-0" />
+                <span className="text-ds-11 text-primary font-medium">Nothing goes to a Helpr · No strike for you</span>
+              </div>
+            </div>
+          )}
+
           {/* Full Cancellation Policy */}
+          {!nobodyLeft && (<>
           <div className="rounded-ds-md border border-border bg-muted/30 p-4 space-y-3">
             <p className="text-ds-11 font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
 
@@ -504,6 +527,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
               <p className="text-ds-11 text-muted-foreground">✓ These consequences don&apos;t apply to this cancel — the job is 24 or more hours away.</p>
             )}
           </div>
+          </>)}
 
           {/* Series scope — stated at the decision (owner, 2026-08-24). */}
           {isSeriesParent && <CancelSeriesNotice />}

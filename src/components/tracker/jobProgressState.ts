@@ -137,6 +137,8 @@ type ProgressOpts = {
     /** Poster, an open job: how many applicants wait on their pick, when the surface knows (the job page). 0 = nobody
      *  has applied yet, so the line says it is waiting for applicants, not "Pick your Helpr" (audit 2026-10-28 A2-C30). */
     pendingApplicants?: number;
+    /** The viewer is on this crew job's roster (the job page's own read): their spot confirmed or not (JA-33). */
+    crewMember?: { confirmed: boolean };
     /** The date or time was moved by an accepted change (useJobRescheduled): both sides confirm the NEW slot. */
     rescheduled?: boolean;
     now?: Date;
@@ -176,6 +178,12 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   // A dispute flag the status column does not carry: the warning step, never a progress colour.
   // An expired listing is greyed like a cancel but named for what it is (JA-23).
   if (isExpiredListing(job)) return { ...base, stage: 0, waitingOnYou: false, tone: "cancelled", label: base.word };
+  // JA-33 (audit 11-01): a crew member's own spot, never "<Name> offered you this job" once they confirmed it.
+  if (o.viewer === "helpr" && o.crewMember && job.is_group_job === true && job.status === "accepted" && !job.helper_confirmed_at) {
+    return o.crewMember.confirmed
+      ? { ...base, stage: 2, waitingOnYou: false, tone: "progress", word: "Hired", next: "You're on the crew. Your spot is confirmed" }
+      : { ...base, stage: 1, waitingOnYou: true, tone: "progress", word: "Offered", next: "Confirm your spot on the crew" };
+  }
   // JA-32: the crew's own line (the card's single-Helpr rule would read "accept the offer").
   if (o.viewer === "poster" && crewBookedOnRow(job) && base.word === "Hired") return base;
   if (base.word === "Under review") return { ...base, stage: 7, waitingOnYou: false, tone: "problem", label: "Dispute" };

@@ -15,6 +15,8 @@
  * src/test/declutterCheckSweep.test.ts (and src/test/pglite/declutterCheckSweep.pglite.mjs for the SQL).
  */
 
+import { caughtMessage } from "../_shared/caughtMessage.ts";
+
 const CHECK_SWEEP_MODE = "check_sweep";
 /**
  * Listings per run (the claim caps it at 20): ~4 s a check, two at a time, well inside the 120 s pg_net timeout, and
@@ -106,7 +108,7 @@ async function runCheckSweep(deps: CheckSweepDeps): Promise<Response> {
       try {
         outcome = await deps.judge(next);
       } catch (e) {
-        console.error("[declutter-ai-draft] check sweep judge threw:", next.itemId, e instanceof Error ? e.message : String(e));
+        console.error("[declutter-ai-draft] check sweep judge threw:", next.itemId, caughtMessage(e));
         outcome = "defect";
       }
       if (outcome === "failed") console.error("[declutter-ai-draft] check sweep: check failed", next.itemId, "try", next.attempt);

@@ -10,6 +10,8 @@
  *
  * @mutate supabase/functions/send-push-notification/index.ts | payload.badge = count + notifCount // NB-002 server badge | payload.badge = count // NB-002 server badge
  * @mutate supabase/functions/send-push-notification/index.ts | .not('is_system', 'is', true) | .not('is_system', 'is', null)
+ * @mutate supabase/functions/send-push-notification/index.ts |       const count = msgs.error ? null : threads.size |       const count = msgs.error ? null : (msgs.data ?? []).length
+ * @mutate supabase/functions/send-push-notification/index.ts |           .filter((m) => !m.flagged_hidden) |           .filter(() => true)
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -28,6 +30,14 @@ describe("every iOS push carries the server's unread count (NB-002)", () => {
     expect(block).toContain("sender_id.not.in.(${blocked.join(',')}),team_thread_user_id.not.is.null");
     expect(block).toMatch(/payload\.badge = count \+ notifCount \/\/ NB-002 server badge/);
   });
+  it("the messages part counts unread CONVERSATIONS, as the in-app badge does (NOID-20, lead 2026-10-31)", () => {
+    const block = src.slice(src.indexOf("// NB-002:"), src.indexOf("// NB-002 server badge") + 30);
+    expect(block).toMatch(/\.limit\(1000\)/);
+    expect(block).toContain(".filter((m) => !m.flagged_hidden)");
+    expect(block).toContain("m.job_id === null ? `team:${m.team_thread_user_id ?? ''}` : `${m.job_id}_${m.sender_id ?? 'deleted-account'}`");
+    expect(block).toContain("const count = msgs.error ? null : threads.size");
+  });
+
   it("the badge adds the bell's unread notifications (N-006)", () => {
     const block = src.slice(src.indexOf("// NB-002:"), src.indexOf("// NB-002 server badge") + 30);
     expect(block).toMatch(/\.from\('notifications'\)\s*\.select\('id', \{ count: 'exact', head: true \}\)\s*\.eq\('user_id', payload\.user_id\)\s*\.eq\('read', false\)/);

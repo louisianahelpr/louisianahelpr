@@ -11,7 +11,7 @@
  *
  * @mutate src/vendorStubs/authJsAdminStub.ts |         noResolveJson: true, |         noResolveJson: false,
  * @mutate src/vendorStubs/authJsAdminStub.ts |       if (isAuthError(error)) { |       if (error) {
- * @mutate src/hooks/useDeleteAccount.ts | import { | const probeAdmin = (c: { auth: { admin: unknown } }) => c.auth.admin;\nvoid probeAdmin;\nimport {
+ * @mutate src/hooks/useDeleteAccount.ts | import { useRef, useState } from "react"; | import { useRef, useState } from "react";\nconst probeAdmin = (c: { auth: { admin: unknown } }) => c.auth.admin;\nvoid probeAdmin;
  * @mutate vite.config.ts |     if (source === "./GoTrueAdminApi") return path.resolve(__dirname, "src/vendorStubs/authJsAdminStub.ts"); |     if (source === "./GoTrueAdminApiX") return path.resolve(__dirname, "src/vendorStubs/authJsAdminStub.ts");
  */
 import { readFileSync } from "node:fs";

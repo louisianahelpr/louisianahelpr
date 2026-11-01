@@ -254,8 +254,10 @@ describe("Declutter slice 3 screens", () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
     expect(screen.getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
-    // The reassurance is a line under the buttons, not a box in their place.
-    expect(screen.getByText("You're only charged when you buy.")).toBeInTheDocument();
+    // LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): neither line under the buttons, and no box in their place.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />} |       {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}<p className="text-xs text-muted-foreground">You see one total before you pay. The seller keeps the whole price.</p>
+    expect(screen.queryByText("You're only charged when you buy.")).toBeNull();
+    expect(screen.queryByText("You see one total before you pay. The seller keeps the whole price.")).toBeNull();
     expect(screen.queryByText("Save a card to buy or make offers.")).toBeNull();
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
@@ -265,7 +267,7 @@ describe("Declutter slice 3 screens", () => {
     // NIGHT-BUYING0-4: after the card is saved the app holds the item and opens checkout (run("buy")); no confirm press.
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx | "Then checkout opens." | "Then you confirm the buy."
     expect(screen.getByText("We save your card now; you're only charged when you check out. Then checkout opens.")).toBeInTheDocument();
-    // Said once: the line under the buttons steps aside while the card step says it.
+    // Said once, by the card step (the line under the buttons is gone, LEAD-ITEM-PAGE-LAYOUT).
     expect(screen.getAllByText(/only charged when/)).toHaveLength(1);
     expect(window.confirm).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Add a card" }));

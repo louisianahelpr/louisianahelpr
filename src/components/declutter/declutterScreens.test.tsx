@@ -328,7 +328,8 @@ describe("Declutter screens", () => {
     const buyNow = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
     // AUD31-15: the Questions hint has its own "Make an offer"; this is the panel's.
     expect(within(document.querySelector<HTMLElement>("[aria-label='Buy or make an offer']")!).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
-    expect(screen.getByText("You're only charged when you buy.")).toBeInTheDocument();
+    // LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons.
+    expect(screen.queryByText("You're only charged when you buy.")).toBeNull();
     await waitFor(() => expect(buyNow).toBeEnabled());
     fireEvent.click(buyNow);
     expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();

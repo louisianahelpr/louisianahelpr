@@ -54,6 +54,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_item_link_visible',   'allow',    'Q2426 share card (20261027194426): may a public link card show this Declutter item (live/reserved, seller not out, Declutter not off)'),
   ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
+  ('sell_for_me_listings_sent',     'allow',    'may a Have a Helpr list it job be marked done: TRUE = its Helpr sent at least one listing for approval (create-payment release path, LEAD-LIST-FOR-SELLER, 20261101034159)'),
   ('declutter_payout_unsent',       'allow',    'may a refund after the handover still rebook this sale''s seller payout (never tried, marked or sent; board 141, 20261026155251)'),
   ('declutter_problem_window_open', 'allow',    'may the buyer still report a problem on this handed-over sale (board 141, 20261026155251)'),
   ('declutter_sale_final',          'allow',    'may this sale''s seller payout be offered to the payout run (board 141, 20261026155251)'),
@@ -311,6 +312,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('declutter_delivery_raise_open', NULL, ARRAY['(SELECT o FROM public.declutter_orders o WHERE o.id = ''00000000-0000-4000-8140-000000000501''::uuid)', 'jsonb_populate_record(NULL::public.helpr_tasks, jsonb_build_object(''id'', ''00000000-0000-4000-8140-000000000602'', ''status'', ''open'', ''open_until'', now() + interval ''1 hour'', ''source_kind'', ''declutter_delivery'', ''source_id'', ''00000000-0000-4000-8140-000000000501''))', '0'], ARRAY[1,2,3]),
   -- Board 141: H is handed over now with an untouched payout, so a refund may still rebook it and the buyer may still
   -- report; O is still 'paid' (not handed over), so its sale counts as final for the payout queue.
+  -- B (J's Helpr) sent item I's listing to A, so the service-role call (no caller) is TRUE for J.
+  ('sell_for_me_listings_sent',     NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('declutter_payout_unsent',       NULL, ARRAY['''00000000-0000-4000-8140-000000000502''::uuid'], ARRAY[1]),
   -- T (the 'tip' step): B's handed-over delivery from A, its task confirmed, Helpr D with a payout account.
   ('declutter_delivery_tip_open',   NULL, ARRAY['''00000000-0000-4000-8140-000000000503''::uuid'], ARRAY[1]),
@@ -370,7 +373,7 @@ BEGIN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'meetup', 'delivery', 'handed_over', 'tip', 'ship', 'rentals', 'bucket', 'objects', 'shop']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'meetup', 'delivery', 'handed_over', 'tip', 'ship', 'rentals', 'bucket', 'objects', 'shop', 'list_for_seller']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -433,6 +436,14 @@ BEGIN
                    VALUES ('00000000-0000-4000-8140-000000000311', '00000000-0000-4000-8140-00000000000d', 'live', '[q140] chair',
                            'furniture', 3, 'small', 1000, 1000, 'Metairie', 29.98, -90.15)$q$;
           EXECUTE $q$UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'declutter'$q$;
+        END IF;
+      WHEN 'list_for_seller' THEN
+        -- LEAD-LIST-FOR-SELLER (20261101034159): B (J's Helpr) listed item I for A (J's poster) and sent it, so
+        -- sell_for_me_listings_sent(J) is TRUE as the service role (to_regclass: before it there is no table).
+        IF to_regclass('public.declutter_listed_for_seller') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.declutter_listed_for_seller (item_id, job_id, helpr_id, seller_id, sent_at)
+                   VALUES ('00000000-0000-4000-8140-000000000301', '00000000-0000-4000-8140-000000000101',
+                           '00000000-0000-4000-8140-00000000000b', '00000000-0000-4000-8140-00000000000a', now())$q$;
         END IF;
       WHEN 'meetup' THEN
         -- Q2425 (20261027204500): spot S, an active public place beside item I (to_regclass: before it there are no spots).

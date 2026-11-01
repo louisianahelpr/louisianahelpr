@@ -1,7 +1,7 @@
 /**
  * The iOS deploy never overwrites the App Review notes (App Store readiness sweep, B48 10-31).
  *
- * deploy.yml's "Generate changelog" step copied the last 20 commit subjects over
+ * deploy.yml's "Generate changelog" step copied the recent commit subjects (git log) over
  * fastlane/metadata/review_information/notes.txt, on every lane. The release lane stages that folder for deliver
  * (allowed_metadata_entries includes review_information), so App Review got a commit list instead of the notes
  * that explain the demo account, the in-person payments and the background location use. TestFlight's "What to

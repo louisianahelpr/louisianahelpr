@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchBundleRule } from "@/lib/declutter/bundle";
 import { holdHasNoStrike } from "@/lib/declutter/buyNowHold";
 import type { CartLine } from "@/lib/declutter/api";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 
 /**
  * The cart's hold line for one seller's checkout (lead 2026-10-28): "Reserved for you, not paid yet" and the time
@@ -20,6 +21,11 @@ import type { CartLine } from "@/lib/declutter/api";
  * accepted offer keeps the strike words, because that line still carries one. And Buy now lands on
  * ?checkout=<seller>: this seller's checkout (the section around the hold line) scrolls into view once it is shown.
  */
+/** The cart's next step: choose a way to get it, then pay (or confirm a free item), before the hold runs out. */
+export function cartNextStep(allFree: boolean, timeLeft: string): NextStepValue {
+  return { who: "you", text: allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: timeLeft || null };
+}
+
 export function CartHold({ sellerId, checkoutBy, allFree, lines, timeLeft }: {
   sellerId: string; checkoutBy: string; allFree: boolean; lines: readonly CartLine[]; timeLeft: string;
 }) {
@@ -34,11 +40,11 @@ export function CartHold({ sellerId, checkoutBy, allFree, lines, timeLeft }: {
   }, [focused]);
   return (
     <div ref={ref} className="space-y-0.5" data-cart-hold="">
-      <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-ds-15 font-semibold text-foreground">
-        <span>{allFree ? "Reserved for you" : "Reserved for you, not paid yet"}</span>
-        <span className="text-ds-13 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{timeLeft}</span>
-      </p>
+      {/* The next-step line (owner 2026-11-01: "people aren't told what to do next"): the buyer's move here is the
+          checkout under this line, with the time left as its deadline. */}
+      <NextStep value={cartNextStep(allFree, timeLeft)} />
       <p className="text-ds-13 text-muted-foreground">
+        {allFree ? "Reserved for you. " : "Reserved for you, not paid yet. "}
         {/* DA-12: a free item goes back up with no strike when its 48 hours run out (declutter_deadline_sweep).
             DB-5: so does a Buy now line; only an accepted offer still carries a strike. */}
         {allFree ? `Confirm it by ${by}. If you don't, it goes back up. No strike.`

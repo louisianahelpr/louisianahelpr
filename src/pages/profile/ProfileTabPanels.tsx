@@ -418,8 +418,10 @@ export const ProfileTabPanels = ({
               title="Notifications"
               onBack={onBackFromTab}
             />
+            {/* Text alerts FIRST (owner 2026-11-01, screenshot): at the bottom, under the long list of switches,
+                people missed it. src/test/textAlertsTopOfNotifications.test.tsx. */}
+            <SmsAlertsCard atTop />
             <NotificationPreferences />
-            <SmsAlertsCard />
           </ProfileTabBody>
         </Suspense>
       )}

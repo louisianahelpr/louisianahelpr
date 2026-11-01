@@ -19,7 +19,8 @@
     "shops_shop_faqs(uuid)": "client",
     "shops_shop_policies(uuid)": "client",
     "declutter_open_to_guests()": "policy",
-    "declutter_guest_seller_first_name(uuid)": "client"
+    "declutter_guest_seller_first_name(uuid)": "client",
+    "public_profile_by_handle(text)": "client"
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -570,7 +571,8 @@
     "declutter_cancel_after_no_helpr(uuid)": "reviewed 2026-10-31 (Q1284): BUY-2, Builder 83 (20261031133938); refuses no caller and a banned caller, locks the order, buyer only (declutter_order_side; a stranger gets item_not_found), only an order no Helpr took with no pickup booked, nothing handed over and no open problem; closes through declutter_close_paid_order (buyer_cancelled: the buyer bears the card fee, no strike).",
     "declutter_report_helpr_no_show(uuid)": "reviewed 2026-10-31 (Q1284): soldstates-5, Builder 83 (20261031134217); refuses no caller and a banned caller, locks the order, seller only (declutter_order_side; a stranger gets item_not_found), a paid Helpr delivery whose Helpr is booked and 15 minutes late; starts the Helpr's 24 hours, moves no money.",
     "declutter_helpr_answer_no_show(uuid, text, text)": "reviewed 2026-10-31 (Q1284): soldstates-5, Builder 83 (20261031134217); refuses no caller and a banned caller, locks the task (helpr_task_lock), the task's own Helpr only (anyone else task_not_found), inside the 24 hours; a photo only from the caller's own task folder; opens a problem, moves no money.",
-    "helpr_task_no_show_report(uuid)": "reviewed 2026-10-31 (Q1284): soldstates-5, Builder 83 (20261031134217); read only: (SELECT auth.uid()), NULL for anyone but the task's Helpr and the order's seller; four timestamps."
+    "helpr_task_no_show_report(uuid)": "reviewed 2026-10-31 (Q1284): soldstates-5, Builder 83 (20261031134217); read only: (SELECT auth.uid()), NULL for anyone but the task's Helpr and the order's seller; four timestamps.",
+    "public_profile_by_handle(text)": "client"
   },
   "unscoped": {
     "declutter_open_to_guests()": "reviewed 2026-10-31 (Q14): BUY-16, no argument; returns only whether the declutter switch's audience is 'everyone' (the same fact features_open_to_everyone already gives anon). Used by the anon read policies of 20261031060656.",

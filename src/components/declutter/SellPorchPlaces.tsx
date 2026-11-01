@@ -244,13 +244,14 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
 }
 
 /** Each place on its own line with its own days and hours (LEAD-POST-PLACES, owner 2026-10-31: "both must show"). No address. */
-export function PickupPlacesHoursList({ places }: { places: PickupPlaceHours[] }) {
+/** `cityOnly`: the item page (LEAD-ITEM-PAGE-LAYOUT, owner 2026-10-31): buyers see the city, never the place's own label. */
+export function PickupPlacesHoursList({ places, cityOnly = false }: { places: PickupPlaceHours[]; cityOnly?: boolean }) {
   if (places.length === 0) return null;
   return (
     <ul className="space-y-1" data-pickup-places-hours="">
       {places.map((p, i) => (
         <li key={`${p.label}-${i}`} className="text-ds-13 [overflow-wrap:anywhere]" data-pickup-place-hours="">
-          <span className="font-semibold text-foreground">{[p.label, p.area].filter(Boolean).join(" · ")}</span>
+          <span className="font-semibold text-foreground">{cityOnly ? p.area : [p.label, p.area].filter(Boolean).join(" · ")}</span>
           <span className="block text-muted-foreground">{placeHoursLine(p.windows, p.weekdays)}</span>
         </li>
       ))}
@@ -279,7 +280,7 @@ export function ItemPickupPlaces({ itemId }: { itemId: string }) {
   return (
     <div className="space-y-1 pt-1" data-item-pickup-places="">
       <p className="text-sm font-semibold">{read.data.length === 1 ? "Pickup place" : "Pickup places"}</p>
-      <PickupPlacesHoursList places={read.data} />
+      <PickupPlacesHoursList places={read.data} cityOnly />
     </div>
   );
 }

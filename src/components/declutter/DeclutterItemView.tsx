@@ -50,7 +50,8 @@ import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
 import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
-import { ItemHandoverTimes } from "./ItemHandoverTimes";
+import { ItemHandoverTimes, itemTimesPlan } from "./ItemHandoverTimes";
+import { fetchItemPickupPlaces } from "@/lib/declutter/porchPlaces";
 import { ItemPickupWays } from "./ItemPickupWays";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
@@ -124,6 +125,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
   });
   // Audit 1030 DB-4: the Pickup block says pickup only when the seller offers one (ItemPickupWays reads the same key).
   const ways = useQuery({ queryKey: ["declutter", "item-handovers", itemId], queryFn: () => fetchItemHandovers(itemId), enabled: validId });
+  // The same read (and cache) as ItemHandoverTimes: whether the pickup places list is shown below "Pickup".
+  const pickupPlaces = useQuery({ queryKey: ["declutter", "item-pickup-places", itemId], queryFn: () => fetchItemPickupPlaces(itemId), enabled: validId && !!user });
   const way = noDeliveryWay(ways.data);
   const isWatching = watching.data?.has(itemId) ?? false;
   const toggleWatch = useMutation({
@@ -147,6 +150,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // Audit DC-7: the seller's own listing is not "About 52 mi away" from them; no distance on their own page.
   const away = ownListing ? null : milesLabel(miles, geo.status === "ready" && geo.approximate);
   const forSale = it.status === "live" || it.status === "reserved";
+  const placesListed = forSale && !!user && itemTimesPlan(ways.data, pickupPlaces.isPending ? null : Array.isArray(pickupPlaces.data) && pickupPlaces.data.length > 0).places;
   const canAct = !isSeller && forSale;
   // On the page, not a toast: toast.info renders nothing (src/lib/toastPolicy.ts), so Tester 5's press showed no note.
   const noteOwnListing = () => setPreviewPressed(true);
@@ -272,11 +276,6 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </div>
           )}
 
-          {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />}
-          {/* BUY-16: a guest sees the seller's first name only (declutter_guest_seller_first_name). */}
-          {!user && <DeclutterGuestSeller itemId={it.id} />}
-          {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
-
           {/* A preview shows what a buyer would press; pressing it only says whose listing this is (the server refuses
               a seller's own listing anyway). Capture: no click or submit reaches the real panels. */}
           {preview ? (
@@ -304,7 +303,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
           <section className="space-y-1" aria-labelledby="declutter-pickup">
             <h2 id="declutter-pickup" className="text-base font-semibold">{way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup"}</h2>
             {/* The miles sit once, under the title (board 4). */}
-            <p className="text-sm">{way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label}</p>
+            {/* LEAD-ITEM-PAGE-LAYOUT: the places below already name the city; the line stays only when none are listed. */}
+            {!placesListed && (
+              <p className="text-sm" data-item-pickup-in="">{way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label}</p>
+            )}
             {/* Deep audit #58: when the seller is around, before anyone buys. */}
             {/* Only while it is for sale: the item read answers item_not_found after that (the buyer's times are in Buying). */}
             {/* Lead's product call 2026-10-31 (LEAD-PLACE-TIMES review): pickup places for porch, pickup and delivery,
@@ -319,6 +321,13 @@ export default function ItemView({ itemId }: { itemId: string }) {
           </section>
 
           {user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={() => setOfferAsk((n) => n + 1)} />}
+
+          {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): Buy now / Make an offer sit right under the price, title, place and
+              delivery lines; the seller card moved here, below Questions. */}
+          {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />}
+          {/* BUY-16: a guest sees the seller's first name only (declutter_guest_seller_first_name). */}
+          {!user && <DeclutterGuestSeller itemId={it.id} />}
+          {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
 
           {/* Item B (owner 2026-10-29): listings go live when posted; a member's report is what reaches an admin. */}
           {!ownListing && user && <DeclutterReportListing itemId={itemId} />}

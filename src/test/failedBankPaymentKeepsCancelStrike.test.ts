@@ -45,7 +45,9 @@ const REMOVES_STRIKE = /\b(?:delete\s+from|update)\s+(?:public\.)?user_violation
 describe("a poster who cancelled while the bank debit was pending keeps the strike when the debit fails (owner, 2026-10-18)", () => {
   it("only these functions may delete or rewrite a strike (exact, both ways)", () => {
     // @two-way src/test/failedBankPaymentKeepsCancelStrike.test.ts:expect(found).toEqual(ALLOWED)
-    const ALLOWED = ["admin_reverse_violation", "purge_user_data", "report_helper_no_show"];
+    // rpc_poster_report_member_no_show (JOBS-3, 20261101031804): like report_helper_no_show, it only stamps reported_by on
+    // the no-show strike the ladder just wrote for that member on that job; it removes or lowers no strike.
+    const ALLOWED = ["admin_reverse_violation", "purge_user_data", "report_helper_no_show", "rpc_poster_report_member_no_show"];
     const found = [...defs.keys()].filter((n) => REMOVES_STRIKE.test(body(n))).sort();
     expect(defs.size).toBeGreaterThan(500);
     expect(found).toEqual(ALLOWED);

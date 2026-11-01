@@ -120,7 +120,8 @@ await db.exec(`
     created_at timestamptz DEFAULT now(), closed_at timestamptz);
   CREATE TABLE public.payout_holds (helper_id uuid PRIMARY KEY, reason text NOT NULL CHECK (length(btrim(reason)) BETWEEN 1 AND 1000),
     held_by uuid, held_at timestamptz NOT NULL DEFAULT now());
-  CREATE TABLE public.notifications (user_id uuid, title text, message text, type text, link text, read_at timestamptz);
+  CREATE TABLE public.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, title text NOT NULL,
+    message text NOT NULL, type text NOT NULL, read boolean NOT NULL DEFAULT false, link text, created_at timestamptz NOT NULL DEFAULT now(), job_id uuid);
   -- Stand-in for the ledger's normaliser (lower case, as admin_alert_manual_close's prefixes are).
   CREATE FUNCTION public.ops_alert_normalise(t text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT lower(t) $$;
   CREATE TABLE public.test_subjects (user_id uuid);
@@ -337,7 +338,7 @@ check("S30 two runs in a row with the first notice unread: one notice, not two",
 // No admin at all: nothing is stamped, so the listing is still alerted once there is one.
 await liveUnchecked(38, SELLER, 50);
 await clearedAgo(50, [I(38)]);
-await db.query("UPDATE public.notifications SET read_at = now()");
+await db.query("UPDATE public.notifications SET read = true");
 await db.query("DELETE FROM public.user_roles WHERE role = 'admin'");
 r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
 const noAdmin = r.ok?.[0]?.n === 0 && (await alertsNow()) === 1;
@@ -346,7 +347,7 @@ r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
 check("S31 with no admin nothing is stamped; once there is one, the listing is alerted", noAdmin && r.ok?.[0]?.n === 1 && (await alertsNow()) === 2,
   `${noAdmin} ${JSON.stringify(r)} ${await alertsNow()}`);
 // The admin read it: a later overdue listing alerts again.
-await db.query("UPDATE public.notifications SET read_at = now()");
+await db.query("UPDATE public.notifications SET read = true");
 // An edit clears its check again: alerted again only after another 45 minutes with no check. (The first alert is
 // moved 55 minutes back, so the clock moved back below still falls after it, as it would in real time.)
 if (!SKIP_FOLLOWUP) await db.query("UPDATE public.declutter_item_private SET ai_check_overdue_alerted_at = now() - interval '55 minutes' WHERE item_id = $1", [I(30)]);

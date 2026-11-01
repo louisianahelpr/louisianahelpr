@@ -1496,6 +1496,11 @@ export const RPC_ERROR_COPY = {
     no_parts_chosen: "Choose at least one thing for them to handle, or end their access.",
     not_your_grant: "Only the seller can change what their manager handles.",
   },
+  // Declutter manager mode (20261101155712): what the manager sees of the seller.
+  declutter_managed_overview: {
+    feature_disabled: DC.feature_disabled,
+    not_your_seller: "You're not managing this seller's Declutter any more.",
+  },
   // Declutter manager mode (20261101155712): the manager's switcher.
   declutter_my_manager_grants: {
     feature_disabled: DC.feature_disabled,

@@ -62,7 +62,7 @@ describe("landing redesign: the honesty fixes hold", () => {
     const hero = read("src/components/landing/HeroSection.tsx");
     expect(hero).toMatch(/const t = heroSearchTargets\(query\);\s*void goSignedInOr\(navigate, t\.signedIn, t\.signedOut\);/);
     // Signed out it searches Jobs only, so it promises nothing else (owner 2026-10-21).
-    expect(hero).toMatch(/placeholder="Search local jobs"/);
+    expect(hero).toContain(`placeholder={es ? es.searchLabel : "Search local jobs"}`);
     expect(hero).not.toMatch(/items, shops and homes/);
   });
 

@@ -177,7 +177,7 @@ await job(J.nodate);
 await owner(`UPDATE public.jobs SET date_needed = NULL WHERE id = '${J.nodate}'`);
 await owner(`INSERT INTO public.jobs (id, customer_id, title, description, category, date_needed, budget, payment_status) VALUES ('${J.other}', '${TP2}', 'x', 'd', 'yard_work', ${day}, 60, 'escrow')`);
 
-// History: 3 real completed jobs each (FEWJOBS: 2 real + 1 seed + 1 for a test poster).
+// History: each Helpr gets three real completed jobs; FEWJOBS gets two real ones plus a seed job and a test poster's job.
 let n = 1000;
 const done = async (h, cust = RP, seed = false) => {
   const jid = id(n++);
@@ -187,7 +187,7 @@ const done = async (h, cust = RP, seed = false) => {
 };
 for (const h of ALL_H.filter((x) => x !== FEWJOBS)) for (let i = 0; i < 3; i++) await done(h, h === TH ? TP2 : RP, h === TH);
 await done(FEWJOBS); await done(FEWJOBS); await done(FEWJOBS, RP, true); await done(FEWJOBS, TP2);
-// D has 4 real jobs (beats B on the tie-break); ratings: A 5, B 4, C 3, D 4, DAYON none.
+// D gets one more real job than the others (it wins the tie-break with B). Ratings: A 5, B 4, C 3, D 4, DAYON none.
 const dj = await done(D);
 const rate = async (h, r) => owner(`INSERT INTO public.reviews (job_id, reviewee_id, rating) VALUES ('${dj}', '${h}', ${r})`);
 await rate(A, 5); await rate(B, 4); await rate(C, 3); await rate(D, 4);
@@ -263,7 +263,7 @@ check("F5 only the job's poster may ask; the list carries no floor or price colu
     && list.every((r) => !Object.keys(r).some((k) => /floor|cents|price/i.test(k))),
   err(list) || err(notMine) || cols[0]?.c);
 
-// Every qualifier ranks; the 3 best are A (5.0), D (4.0, 4 jobs), B (4.0, 3 jobs). C (3.0) and DAYON (none) are cut.
+// Ranking: A (rating 5.0) first; D and B tie on 4.0 and D has more real jobs done; C (3.0) and DAYON (no rating) are cut.
 const full = await owner(`SELECT f.helper_id FROM public.instant_book_floors f WHERE public.instant_book_block_reason('${J.real}', f.helper_id) IS NULL ORDER BY 1`);
 const ids = ok(list) ? list.map((r) => r.helper_id) : [];
 check("F6 the qualifying Helprs, best first (rating, then jobs done), at most 3",

@@ -13,6 +13,8 @@ import ts from "typescript";
 // @mutate src/pages/home/homeDashboard/needsYouTodos.ts | import type { ShopOrder } from "@/lib/shops/orders"; | import { type ShopOrder, fetchShopOrders } from "@/lib/shops/orders";
 // @mutate src/lib/userBlocks.ts | const lifecycleErrors = () => import("@/lib/lifecycleErrors"); | import * as lifecycleErrorsNow from "@/lib/lifecycleErrors";\nconst lifecycleErrors = async () => lifecycleErrorsNow;
 // @mutate src/components/create/CreateSheet.tsx | queryFn: () => import("@/lib/shops/api").then((m) => m.fetchMyShopId()), | queryFn: () => fetchMyShopId(),
+// @mutate src/hooks/useActivityData.ts | const scheduleChangeApi = () => import("@/lib/scheduleChange"); | import * as scheduleChangeNow from "@/lib/scheduleChange";\nconst scheduleChangeApi = async () => scheduleChangeNow;
+// @mutate src/pages/home/HomeDashboard.tsx | const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet }))); | import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 // @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterApi = () => import("@/lib/declutter/api"); | import * as declutterApiNow from "@/lib/declutter/api";\nconst declutterApi = async () => declutterApiNow;
 
 const HOME_FILES = ["src/pages/home/homeDashboard/useHomeSummary.ts", "src/pages/home/homeDashboard/needsYouTodos.ts"];
@@ -51,6 +53,20 @@ describe("Home loads section data code lazily", () => {
   it("the dock's Create sheet reads the member's shop through a dynamic import", () => {
     expect(staticValueImports("src/components/create/CreateSheet.tsx", ["@/lib/shops/api"])).toEqual([]);
     expect(readFileSync(resolve(__dirname, "../..", "src/components/create/CreateSheet.tsx"), "utf8")).toContain('import("@/lib/shops/api")');
+  });
+
+  // B61 (11-01): Activity's schedule reads (scheduleChange brings seriesDates and awardGate) load with their query,
+  // and the Customize sheet (Sheet, Switch) loads the first time it opens. /home 386 -> 377 KB gz, local build.
+  it("Activity's schedule reads and Home's Customize sheet load through dynamic imports", () => {
+    const lazyAt: [string, string][] = [
+      ["src/hooks/useActivityData.ts", "@/lib/scheduleChange"],
+      ["src/hooks/useActivityData.ts", "@/lib/scheduleClashes"],
+      ["src/pages/home/HomeDashboard.tsx", "@/components/sections/CustomizeSheet"],
+    ];
+    for (const [f, m] of lazyAt) {
+      expect(staticValueImports(f, [m]), f).toEqual([]);
+      expect(readFileSync(resolve(__dirname, "../..", f), "utf8"), f).toContain(`import("${m}")`);
+    }
   });
 
   it("the reads are still made (dynamic imports present)", () => {

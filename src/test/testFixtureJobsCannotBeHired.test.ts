@@ -23,6 +23,8 @@
  * @mutate scripts/e2e/browseFixture.mjs |     payment_status: "escrow", |     payment_status: "unpaid",
  * @mutate scripts/e2e/browseFixture.mjs |       await call("DELETE", `applications?job_id=eq.${job.id}&helper_id=eq.${helperId}&select=id`); |       // removed
  * @mutate scripts/e2e/browseFixture.mjs |     if (job && job.status === "open") { |     if (false) {
+ * @mutate scripts/e2e/browseFixture.mjs |       if (job.latitude == null \|\| job.longitude == null) Object.assign(patch, FIXTURE_POINT); |
+ * @mutate scripts/e2e/browseFixture.mjs |     ...FIXTURE_POINT,\n |     \n
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -125,7 +127,7 @@ describe("scripts/e2e/browseFixture.mjs keeps exactly one healthy fixture", () =
     return { calls, impl };
   };
   const NOW = Date.parse("2024-10-07T12:00:00Z");
-  const healthy = { id: "j1", status: "open", payment_status: "escrow", is_seed: true, customer_id: POSTER, helper_id: null, date_needed: "2024-10-30" };
+  const healthy = { id: "j1", status: "open", payment_status: "escrow", is_seed: true, customer_id: POSTER, helper_id: null, date_needed: "2024-10-30", latitude: 30.22, longitude: -92.02 };
 
   it("keeps a healthy fixture and removes the helper's leftover application", async () => {
     const f = fakeFetch({ reg: [{ job_id: "j1" }], job: [healthy] });
@@ -141,6 +143,13 @@ describe("scripts/e2e/browseFixture.mjs keeps exactly one healthy fixture", () =
     await ensureBrowseFixture({ supabaseUrl: "https://x.supabase.co", serviceKey: "k", posterId: POSTER, helperId: HELPER, fetchImpl: f.impl, now: NOW });
     const patch = f.calls.find((c) => c.method === "PATCH");
     expect(patch?.body).toEqual({ date_needed: "2024-11-06" });
+  });
+
+  it("gives a kept fixture with no map point one, so Browse and the map count it alike (NIGHT-JOBSMA5-2)", async () => {
+    const f = fakeFetch({ reg: [{ job_id: "j1" }], job: [{ ...healthy, latitude: null, longitude: null }] });
+    await ensureBrowseFixture({ supabaseUrl: "https://x.supabase.co", serviceKey: "k", posterId: POSTER, helperId: HELPER, fetchImpl: f.impl, now: NOW });
+    expect(f.calls.find((c) => c.method === "PATCH")?.body).toEqual({ latitude: 30.22, longitude: -92.02 });
+    expect(fixtureRow(POSTER, NOW)).toMatchObject({ latitude: 30.22, longitude: -92.02 });
   });
 
   it("ends a still-open fixture BEFORE unregistering it, so no open escrow job is left unprotected", async () => {

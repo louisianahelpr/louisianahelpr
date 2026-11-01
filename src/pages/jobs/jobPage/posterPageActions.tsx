@@ -99,7 +99,8 @@ export function usePosterPageActions({
   // The card's other steps (report a no-show, the dispute, a fix asked for, tip and review): "More options" opens it.
   const cardSteps = MORE_ON_CARD.has(status) || (posterWait?.startsWith("overdue_") ?? false);
   // An open job's details (a crew's change only through a request once a member is hired: the card's own rule).
-  const canEdit = !draft && status === "open" && !job.is_group_job;
+  // JA-48 / JA-49: not while an offer or a booking is out to a Helpr (they are answering the job as it stands).
+  const canEdit = !draft && status === "open" && !job.is_group_job && job.direct_offer_status !== "pending";
 
   const primaryOrMessage: PagePrimary | null =
     posterWait === "confirm_still_on"

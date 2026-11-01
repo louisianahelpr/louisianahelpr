@@ -7,7 +7,7 @@
  * decline, the reads and the refund sweeps keep running so nothing in flight is stranded.
  *
  * @mutate supabase/migrations/20261101164117_instant_book_switch_off.sql | ('instant_book', 'off', | ('instant_book', 'testers',
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {instantBookOn && isPoster && !job.is_group_job && job.status === "open" && <div | {isPoster && !job.is_group_job && job.status === "open" && <div
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {instantBookOn && isPoster && !job.is_group_job && job.status === "open" && <InstantBookPanel | {isPoster && !job.is_group_job && job.status === "open" && <InstantBookPanel
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const instantUntil = instantBookOn ? bookedUntil : null; |   const instantUntil = bookedUntil;
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |   if (!instantBookOn) return <GenericOfferedActions {...props} />; |   if (false) return <GenericOfferedActions {...props} />;
  * @mutate src/pages/profile/ProfileTabPanels.tsx |       {tab === "instant_book" && instantBookOn && ( |       {tab === "instant_book" && (
@@ -59,7 +59,7 @@ describe("instant book is off (owner 11-01)", () => {
   it("every screen that offers it reads the switch", () => {
     const page = read("src/pages/jobs/jobPage/JobPage.tsx");
     expect(page).toContain('const instantBookOn = useFeature("instant_book");');
-    expect(page).toContain("{instantBookOn && isPoster && !job.is_group_job && job.status === \"open\" && <div");
+    expect(page).toContain("{instantBookOn && isPoster && !job.is_group_job && job.status === \"open\" && <InstantBookPanel");
     expect(page).toContain("const instantUntil = instantBookOn ? bookedUntil : null;");
     // Every booking card on the page hangs on instantUntil, which is null while off.
     expect((page.match(/<InstantBookingCard\b[^>]*>/g) ?? []).length).toBeGreaterThan(0);

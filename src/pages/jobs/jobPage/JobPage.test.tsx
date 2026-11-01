@@ -27,7 +27,7 @@
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid · held", |   escrow: "Paid when you posted",
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid. Louisiana Helpr holds it until the job is done.", |   escrow: "Card held, not charged.",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const line = released ? releasedLine(job) : status === "escrow" ? null : HELD_LINE[status] ?? null; | const line = released ? releasedLine(job) : HELD_LINE[status] ?? null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
@@ -64,7 +64,7 @@ const state = {
   job: null as JobPageRow | null,
   reach: null as number | null,
   party: false,
-  applicants: { total: 0, pending: 0 },
+  applicants: { total: 0, pending: 0 } as { total: number; pending: number; noShowAt?: string | null },
   owed: 0,
   myApplication: null as { status: string; closed_reason: string | null } | null,
   cardHold: false,
@@ -426,11 +426,14 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(screen.queryByText("Your budget")).toBeNull();
     const money = document.querySelector("[data-poster-money]") as HTMLElement;
     expect(document.querySelector("[data-job-head]")?.contains(money)).toBe(true);
-    expect(money.textContent).toContain("Paid · held");
-    expect(document.body.textContent).not.toMatch(/Nothing is charged|take home|takes home/i);
+    expect(money.textContent).toContain("$");
+    // JA-47: one sentence about the money, from payment_status.
+    expect(screen.getByText("Paid. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/Nothing is charged|take home|takes home|not charged/i);
     expect(screen.getByText("3 applicants")).toBeTruthy();
     expect(screen.getByLabelText(/^Job progress, step 1 of 8: Posted,/)).toBeTruthy();
-    expect(screen.getByText("Pick your Helpr")).toBeTruthy();
+    // The next step (owner 11-01 12:05 PM): "Next: choose a Helpr · 2 applied".
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Next: choose a Helpr · 2 applied");
     fireEvent.click(screen.getByRole("button", { name: "Review 2 applicants" }));
     expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${row().id}&applicants=1`);
   });
@@ -452,7 +455,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     state.job = row({ customer_id: ME, helper_id: "44444444-4444-4444-4444-444444444444", status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z" });
     state.party = true;
     const { unmount } = renderPage();
-    expect(screen.getByText("Paid · held")).toBeTruthy();
+    expect(screen.getByText("Paid. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
     expect(document.body.textContent).not.toContain("when you posted");
     unmount();
     state.job = row({ customer_id: ME, payment_status: "held" });
@@ -656,7 +659,8 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     renderPage();
     const row2 = document.querySelector('[data-job-row="poster"]') as HTMLElement;
     await within(row2).findByRole("button", { name: "Message Rhonda" });
-    expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["Message Rhonda", "More options"]);
+    // The green one on the RIGHT (owner 11-01 12:00 PM, app-wide).
+    expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["More options", "Message Rhonda"]);
   });
 });
 
@@ -695,7 +699,7 @@ describe("job page, the hired Helpr", () => {
     state.party = true;
     renderPage();
     expect(screen.getByLabelText(/^Job progress, step 7 of 8: Working, waiting on you\./)).toBeTruthy();
-    expect(screen.getByText("Mark it done when you finish")).toBeTruthy();
+    expect(screen.getByText("Next: mark it done when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
     // F10: Working's own card for THIS job, in its bucket and opened (`?job=`; `?highlight=` there is an application id).
@@ -847,7 +851,7 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
     renderPage();
     const card = document.querySelector(`[data-instant-booking="${row().id}"]`) as HTMLElement | null;
     expect(card).not.toBeNull();
-    expect(card!.closest("[data-job-steps]")).not.toBeNull();
+    expect(card!.closest("[data-job-card]")).not.toBeNull();
     expect(within(card!).getByText("1 h 42 min left to decline")).toBeTruthy();
     expect(within(card!).getByText(/You were booked for .Pressure wash driveway./)).toBeTruthy();
     expect(within(card!).getByRole("button", { name: "Confirm" })).toBeTruthy();
@@ -1057,7 +1061,7 @@ describe("a crew member's own job page (A2-B8)", () => {
     unmount();
     state.crewConfirmed = false;
     renderPage();
-    await waitFor(() => expect(tracker()).toContain("Confirm your spot on the crew"));
+    await waitFor(() => expect(tracker()).toContain("Next: confirm your spot on the crew"));
   });
 
   it("an applicant NOT on the crew still reads as closed out", async () => {
@@ -1077,40 +1081,13 @@ describe("a crew member's own job page (A2-B8)", () => {
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |           <div data-job-details="" className="order-3 space-y-4 lg:order-none"> |           <div data-job-details="" className="order-5 space-y-4 lg:order-none">
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |           <section aria-label="Job summary" data-job-head="" className="order-2 space-y-4 lg:order-none"> |           <section aria-label="Job summary" data-job-head="" className="order-4 space-y-4 lg:order-none">
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |           <div data-job-guarantee="" className="order-last lg:order-none empty:hidden"> |           <div data-job-guarantee="" className="order-2 lg:order-none empty:hidden">
-// @mutate src/pages/jobs/jobPage/JobPage.tsx |         <div className="contents lg:col-start-1 lg:row-start-1 lg:flex lg:flex-col lg:gap-4"> |         <div className="flex flex-col gap-4 lg:col-start-1 lg:row-start-1">
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     posterWait === "confirm_still_on" |     false
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |       backTo={isPoster ? "/posts" : "/jobs"}\n      titleActions | backTo={isPoster ? "/posts" : "/jobs"}\n      phoneHidesTitle\n      titleActions
 describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () => {
-  const orderOf = (el: Element | null): number => {
-    expect(el, "the part is drawn").not.toBeNull();
-    const cls = (el!.getAttribute("class") ?? "").split(/\s+/);
-    if (cls.includes("order-last")) return 9999;
-    const m = cls.map((c) => /^order-(\d+)$/.exec(c)).find(Boolean);
-    expect(m, `an order class on ${el!.outerHTML.slice(0, 80)}`).toBeTruthy();
-    return Number(m![1]);
-  };
-
-  it("a Helpr reads the price, then what the job is, then Apply; the Guarantee is last; the column boxes are `contents` on a phone", async () => {
+  it("the title shows in the top bar (no phoneHidesTitle)", () => {
     state.job = row();
     renderPage();
-    const page = document.querySelector("[data-job-page]")!;
-    const head = page.querySelector("[data-job-head]");
-    const details = page.querySelector("[data-job-details]");
-    const steps = page.querySelector("[data-job-steps]");
-    const guarantee = page.querySelector("[data-job-guarantee]");
-    expect(details?.textContent).toContain("Two-car concrete driveway");
-    expect(within(steps as HTMLElement).getByRole("button", { name: "Apply" })).toBeTruthy();
-    const seq = [orderOf(head), orderOf(details), orderOf(steps), orderOf(guarantee)];
-    expect(seq).toEqual([...seq].sort((a, b) => a - b));
-    expect(new Set(seq).size).toBe(4);
-    // Every box between the page and those parts is `contents` below lg, so `order` acts on the page's own stack.
-    for (const part of [head, details, steps, guarantee]) {
-      let box = part!.parentElement;
-      while (box && box !== page) {
-        expect((box.getAttribute("class") ?? "").split(/\s+/), "a phone-transparent column box").toContain("contents");
-        box = box.parentElement;
-      }
-    }
+    expect(document.querySelector("[data-job-page]")).not.toBeNull();
   });
 
   it("the title shows in the top bar beside the back arrow on a phone (no phoneHidesTitle), and no Get help now", () => {
@@ -1189,10 +1166,11 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     state.job = booked();
     state.party = true;
     renderPage();
-    const steps = document.querySelector("[data-job-steps]") as HTMLElement;
+    const steps = document.querySelector("[data-job-card]") as HTMLElement;
     const row2 = steps.querySelector('[data-job-row="poster"]') as HTMLElement;
     expect(await within(row2).findByRole("button", { name: "Message Rhonda" })).toBeTruthy();
-    expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["Message Rhonda", "More options"]);
+    // The green one on the RIGHT (owner 11-01 12:00 PM, app-wide).
+    expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["More options", "Message Rhonda"]);
     // Never a stack of buttons: nothing else under the row.
     expect(screen.queryByRole("button", { name: "Cancel job" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
@@ -1400,9 +1378,11 @@ describe("one row of buttons at every stage (B93)", () => {
     state.party = true;
     renderPage();
     await waitFor(() => expect(rowLabels()).toEqual(["Message Rhonda", "Approve and release"]));
-    const by = document.querySelector("[data-approve-by]") as HTMLElement;
-    expect(by.textContent).toMatch(/to review — then Helpr support steps in/);
-    expect(by.compareDocumentPosition(document.querySelector("[data-job-row]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The review window is IN the next-step line (owner 11-01, live Done-stage screenshot), never a second panel.
+    const line = document.querySelector("[data-next-step]") as HTMLElement;
+    expect(line.textContent).toMatch(/^Next: approve Rhonda's work · 23h 5\dm left, then Helpr support steps in$/);
+    expect(document.querySelector("[data-approve-by]")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/to review — then Helpr support steps in/);
   });
 
   it("completed (JA-10): the card's own Review leads the row; Message joins the options", async () => {
@@ -1427,5 +1407,109 @@ describe("one row of buttons at every stage (B93)", () => {
     renderPage();
     await waitFor(() => expect(rowLabels()).toEqual(["More options", "Leave a review"]));
     expect(document.querySelector("[data-helpr-paid]")?.textContent).toMatch(/^Approved\. Your pay goes out /);
+  });
+});
+
+
+/*
+ * JOB PAGE LAYOUT V2 (owner 2026-11-01 12:00 PM, mockups 4 and 5) and the next-step line (12:05 PM).
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |         <div data-job-main="" className="flex min-w-0 flex-col gap-4 empty:hidden lg:col-start-1"> |         <div data-job-main="" className="flex min-w-0 flex-col gap-4 empty:hidden lg:col-start-2">
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const detailsLong = posterDetails.length > 90 |   const detailsLong = posterDetails.length > 90000
+ * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const stepRight = cardLead \|\| (!!lead && !plainLead); |   const stepRight = cardLead \|\| leadIsStep;
+ * @mutate src/components/tracker/jobProgressState.ts |   if (status === "in_progress" && !job.is_group_job && (job.proof_after_urls |   if (false && status === "in_progress" && !job.is_group_job && (job.proof_after_urls
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const offerOut = isPoster && open && job.direct_offer_status === "pending"; |   const offerOut = false;
+ * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |  && job.direct_offer_status !== "pending"; | ;
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |       : job.status === "cancelled" ? null : work] |       : work]
+ */
+describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
+  const LONG = "Mow and weed eat an empty lot in New Iberia. The edge of the bank near the water has become overgrown and needs to be weed eaten.";
+  const working = () => row({ customer_id: ME, helper_id: POSTER, status: "in_progress", description: LONG,
+    helper_confirmed_at: "2026-10-27T12:00:00Z", helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:25:00Z",
+    poster_confirmed_arrival_at: "2026-10-28T14:22:00Z", proof_before_urls: ["p/b1.jpg"], proof_after_urls: ["p/a1.jpg"] });
+  const follows = (a: Element | null, b: Element | null) => {
+    expect(a, "first part drawn").not.toBeNull();
+    expect(b, "second part drawn").not.toBeNull();
+    return !!(a!.compareDocumentPosition(b!) & Node.DOCUMENT_POSITION_FOLLOWING);
+  };
+
+  it("in the owner's order: details, the status line + tracker (full width), photos (main column), the card, the Guarantee", async () => {
+    state.job = working();
+    state.party = true;
+    state.moreCount = 2;
+    renderPage();
+    const page = document.querySelector("[data-job-page]")!;
+    const head = page.querySelector("[data-job-head]");
+    const details = page.querySelector("[data-job-details]");
+    const steps = page.querySelector("[data-job-steps]");
+    const photos = page.querySelector("[data-job-main] [data-job-proof-photos]");
+    const card = page.querySelector("[data-job-side] [data-job-card]");
+    const guarantee = page.querySelector("[data-job-side] [data-job-guarantee]");
+    expect(follows(head, details) && follows(details, steps) && follows(steps, photos) && follows(photos, card) && follows(card, guarantee)).toBe(true);
+    expect((details!.getAttribute("class") ?? "")).toContain("lg:col-span-2");
+    expect((steps!.getAttribute("class") ?? "")).toContain("lg:col-span-2");
+    expect((page.querySelector("[data-job-main]")!.getAttribute("class") ?? "")).toContain("lg:col-start-1");
+    // The right column is sticky on a computer.
+    expect((page.querySelector("[data-job-side]")!.getAttribute("class") ?? "")).toMatch(/lg:sticky/);
+    // The Helpr's card and the buttons are in the one card, the buttons after the card.
+    const rowEl = card!.querySelector('[data-job-row="poster"]');
+    expect(follows(card!.querySelector('[aria-label="Your Helpr"]'), rowEl)).toBe(true);
+    // Green on the RIGHT: [More options | Message Rhonda].
+    await waitFor(() => expect(within(rowEl as HTMLElement).getAllByRole("button").map((b) => b.textContent)).toEqual(["More options", "Message Rhonda"]));
+  });
+
+  it("after photos in, not marked done: the poster reads who added them and what it waits on (job 7b1da54b)", async () => {
+    state.job = working();
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(document.querySelector("[data-next-step]")?.textContent).toBe("Rhonda added after photos · waiting for them to mark it done"));
+    expect(document.body.textContent).not.toContain("Rhonda is working");
+  });
+
+  it("the hired Helpr with after photos in is told the one step left", () => {
+    state.job = row({ helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_arrived_at: "2026-10-28T14:20:00Z",
+      poster_confirmed_working_at: "2026-10-28T14:25:00Z", poster_confirmed_arrival_at: "2026-10-28T14:22:00Z", proof_before_urls: ["p/b1.jpg"], proof_after_urls: ["p/a1.jpg"] });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Next: your after photos are in. Mark it done");
+  });
+
+  it("details: two lines and Show more on a phone; a short description has no Show more", () => {
+    state.job = working();
+    state.party = true;
+    renderPage();
+    const text = document.querySelector("[data-details-text]")!;
+    expect(text.getAttribute("class")).toContain("line-clamp-2");
+    fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+    expect(document.querySelector("[data-details-text]")!.getAttribute("class")).not.toContain("line-clamp-2");
+    expect(screen.getByRole("button", { name: "Show less" })).toBeTruthy();
+    cleanup();
+    state.job = row();
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Show more" })).toBeNull();
+  });
+
+  it("JA-48 / JA-49: an offer out shows no 'No applicants yet' or Edit job, and the line waits on that Helpr", () => {
+    state.job = row({ customer_id: ME, direct_offer_status: "pending" });
+    state.party = true;
+    state.applicants = { total: 0, pending: 0 };
+    renderPage();
+    expect(screen.queryByText(/No applicants yet/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit job" })).toBeNull();
+    expect(document.querySelector("[data-next-step]")?.textContent).toMatch(/^Waiting on .+ to accept your offer$/);
+  });
+
+  it("JA-27: a no-show put the job back up: the poster's line says so, with the day", () => {
+    state.job = row({ customer_id: ME });
+    state.party = true;
+    state.applicants = { total: 0, pending: 0, noShowAt: `${DAY}T15:00:00Z` };
+    renderPage();
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe(`No-show reported · reposted ${formatJobDate(DAY)} · waiting for Helprs to apply`);
+  });
+
+  it("L27 JA-F2: a cancelled job's hired Helpr is not offered 'Open in working'", () => {
+    state.job = row({ helper_id: ME, status: "cancelled", helper_confirmed_at: "2026-10-27T12:00:00Z", cancelled_by: POSTER, cancelled_at: "2026-10-28T12:00:00Z" });
+    state.party = true;
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
   });
 });

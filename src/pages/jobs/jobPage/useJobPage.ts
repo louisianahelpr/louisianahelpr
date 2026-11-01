@@ -155,9 +155,16 @@ async function fetchOnCrew(jobId: string, userId: string): Promise<{ on: boolean
 }
 
 /** Applicants on the poster's own job: everyone who applied, and those still waiting on a decision. */
-async function fetchApplicantCounts(jobId: string): Promise<{ total: number; pending: number }> {
-  const rows = unwrap(await supabase.from("applications").select("status").eq("job_id", jobId)) ?? [];
-  return { total: rows.length, pending: rows.filter((r) => r.status === "pending").length };
+/**
+ * JA-27: a no-show report closes that Helpr's application (closed_reason 'no_show', report_helper_no_show) and puts
+ * the job back up; that row is no applicant any more, and its close time is when the job was reposted.
+ */
+async function fetchApplicantCounts(jobId: string): Promise<{ total: number; pending: number; noShowAt: string | null }> {
+  const rows = (unwrap(await supabase.from("applications").select("status, closed_reason, updated_at").eq("job_id", jobId)) ?? []) as { status: string; closed_reason?: string | null; updated_at?: string | null }[];
+  const noShows = rows.filter((r) => r.closed_reason === "no_show");
+  const noShowAt = noShows.map((r) => r.updated_at ?? "").filter(Boolean).sort().pop() ?? (noShows.length ? "" : null);
+  const live = rows.filter((r) => r.closed_reason !== "no_show");
+  return { total: live.length, pending: live.filter((r) => r.status === "pending").length, noShowAt };
 }
 
 /** The job's latest tracking status (Start working lives there, not on the jobs row), or null. RLS: the parties. */

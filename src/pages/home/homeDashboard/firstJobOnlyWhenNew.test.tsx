@@ -53,4 +53,4 @@ describe("Get your first job shows only to a member with no job history", () => 
   }
 });
 
-// @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |         isNew: (appCount ?? 0) === 0 && (jobCount ?? 0) === 0, |         isNew: (appCount ?? 0) === 0,
+// @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |     isNew: (appCount ?? 0) === 0 && (jobCount ?? 0) === 0, |     isNew: (appCount ?? 0) === 0,

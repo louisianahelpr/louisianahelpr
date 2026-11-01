@@ -45,9 +45,6 @@
     "src/components/MessageAttachment.tsx": {
       "button": 4
     },
-    "src/components/MobileNav.tsx": {
-      "button": 1
-    },
     "src/components/NotificationPanel.tsx": {
       "button": 4
     },

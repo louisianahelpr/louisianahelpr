@@ -1,6 +1,6 @@
 import { Zap } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/language";
-import "@/lib/i18n/enJobs";
+import "@/lib/i18n/enJobCard";
 
 /**
  * Q2438: a browse card for a job dated Louisiana's today wears "Today" in the

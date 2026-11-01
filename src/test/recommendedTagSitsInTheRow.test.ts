@@ -13,7 +13,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { enJobs } from "@/lib/i18n/enJobs";
+import { enJobCard } from "@/lib/i18n/enJobCard";
 
 const card = blankComments(readFileSync(resolve(__dirname, "../components/dashboard/JobCard.tsx"), "utf8"));
 
@@ -26,7 +26,7 @@ describe("the Recommended tag sits inside the card's top row (owner 2026-10-28)"
     // Same words.
     // Same words (A3-3: read through t("jobCard.recommended"), whose English is "Recommended").
     expect(card).toMatch(/data-recommended-tag=""[\s\S]{0,1600}?>\{t\("jobCard\.recommended"\)\}<\/span>/);
-    expect(enJobs["jobCard.recommended"]).toBe("Recommended");
+    expect(enJobCard["jobCard.recommended"]).toBe("Recommended");
   });
 
   it("no hanging-tab shape: not squared to the top edge, no edge border, no shadow", () => {

@@ -4,7 +4,7 @@
  * section at the bottom so merge those 2 into 1".
  *
  * @mutate src/pages/jobs/appliedJobCard/HelperCollapsedStrip.tsx |   return { ...line, detail: `${line.detail} · Reviewed` }; |   return line;
- * @mutate src/pages/jobs/AppliedJobCard.tsx | hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} /> | hideStatus={isOffered} tracking={initialTracking} />
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} progress={faceProgress} | hideStatus={isOffered} tracking={initialTracking} progress={faceProgress}
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

@@ -1799,8 +1799,10 @@ html.web-desktop {
      Both are scoped to `.desktop-rail`, which is only set when the rail — and
      therefore the bar — is actually showing, so a page without them is not
      left with a phantom 3.5rem of dead space at the top. */
+  /* Plus the offline banner: DesktopTopNav sits below it (top = banner offset), and this rule's specificity beats the
+     plain offline-banner #root rule, so it has to carry both (B44 10-31; 0px while the banner is hidden). */
   html.web-desktop.desktop-rail:not(.app-shell) #root {
-    padding-top: var(--desktop-bar-h);
+    padding-top: calc(var(--desktop-bar-h) + var(--offline-banner-offset, 0px));
   }
 }
 

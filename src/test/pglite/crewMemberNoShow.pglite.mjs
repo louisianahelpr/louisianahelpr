@@ -35,6 +35,10 @@
  *      seed boundary, the report still closes the spot            RED before
  *   N8 report BEFORE the others finish: the crew completes on the last
  *      member's own Done (rpc_group_member_mark_done unchanged)   RED before
+ *   N9 a second reporter's no-show: the notice says "restricted", the rung
+ *      the ladder recorded; every notice is a type prod's
+ *      notifications_type_check allows (read from the newest migration) RED before
+ *   N10 the same poster's earlier report never escalates (DISTINCT reporters) RED before
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -88,6 +92,18 @@ const check = (name, ok, detail = "") => {
   if (!ok) failures++;
 };
 
+/** prod's notifications.type list: the newest migration's notifications_type_check, verbatim (a notice of an unlisted
+ *  type aborts the whole report on prod; the harness must refuse it too). */
+function notificationTypeCheck() {
+  let found = null;
+  for (const f of migrationFiles(DIR)) {
+    if (f >= THIS) break;
+    const sql = blankSqlComments(readFileSync(DIR + f, "utf8"));
+    for (const m of sql.matchAll(/ADD\s+CONSTRAINT\s+notifications_type_check\s+(CHECK\s*\([\s\S]*?\)\s*\));/gi)) found = m[1];
+  }
+  if (!found) throw new Error(`no migration before ${THIS} sets notifications_type_check`);
+  return `ALTER TABLE public.notifications ADD CONSTRAINT notifications_type_check ${found};`;
+}
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const POSTER = U(2), M1 = U(3), M2 = U(4), N = U(5), STRANGER = U(6), CREW = U(101);
 
@@ -136,13 +152,15 @@ CREATE FUNCTION public.settle_job_detail_change(uuid) RETURNS void LANGUAGE sql 
 CREATE FUNCTION public.helper_accept_block_reason(uuid) RETURNS text LANGUAGE sql AS $$ SELECT NULL::text $$;
 CREATE FUNCTION public.apply_job_denial_consequence(p_user uuid, p_job uuid, p_desc text) RETURNS jsonb LANGUAGE sql AS
   $$ INSERT INTO public.user_violations (user_id, violation_type, job_id, description) VALUES (p_user, 'job_denial', p_job, p_desc) RETURNING jsonb_build_object('action', 'strike') $$;
--- STUB: the real ladder writes this row and picks the rung; the rung is not under test here.
+-- STUB: the real ladder writes this row and returns rung p_rungs[prior count]; its rules are not under test here.
 CREATE FUNCTION public.apply_consequence_ladder(p_user uuid, p_violation_type text, p_description text, p_job_id uuid,
   p_prior_count int, p_rungs text[], p_effects text[], p_copy jsonb, p_permanent_requires_review boolean,
   p_suspension_days int, p_clamp_to_worse_status boolean, p_admin_message_format text, p_ban_reason text)
   RETURNS jsonb LANGUAGE sql AS
   $$ INSERT INTO public.user_violations (user_id, violation_type, job_id, description) VALUES (p_user, p_violation_type, p_job_id, p_description)
-     RETURNING jsonb_build_object('action', 'warning', 'prior_count', p_prior_count) $$;
+     RETURNING jsonb_build_object('action', p_rungs[LEAST(p_prior_count, array_length(p_rungs, 1) - 1) + 1], 'prior_count', p_prior_count) $$;
+
+${notificationTypeCheck()}
 
 ${FNS.map(fnStmt).join("\n\n")}
 
@@ -233,7 +251,7 @@ async function report(by, member) {
 const roster = async () => (await all(`SELECT helper_id, share_cents FROM public.group_job_helpers WHERE job_id = '${CREW}' ORDER BY slot_no`));
 const job = async () => one(`SELECT status::text AS status, helper_completed_at IS NOT NULL AS done FROM public.jobs WHERE id = '${CREW}'`);
 const strikes = async (u) => Number((await one(`SELECT count(*) AS n FROM public.user_violations WHERE user_id = '${u}' AND job_id = '${CREW}' AND violation_type = 'no_show'`)).n);
-const told = async (u) => (await all(`SELECT 1 FROM public.notifications WHERE user_id = '${u}' AND title = 'Reported as a no-show'`)).length;
+const told = async (u) => (await all(`SELECT 1 FROM public.notifications WHERE user_id = '${u}' AND title = 'No-show warning' AND type = 'warning'`)).length;
 
 // N1-N4: the two who came finish, then the poster reports the one who did not.
 await seed();
@@ -308,10 +326,30 @@ await server();
 check("N8 reported first: the crew completes on the last worker's own Done", !err && !early8.error && early8.job_complete === false
   && last.job_complete === true && (await job()).done === true, `err=${err} early=${JSON.stringify(early8)} last=${JSON.stringify(last)}`);
 
+// N9: a second no-show from a DIFFERENT poster: the member is told the account is restricted (the ladder's rung).
+await seed();
+await server();
+await db.exec(`INSERT INTO public.user_violations (user_id, violation_type, job_id, reported_by) VALUES ('${N}', 'no_show', '${U(999)}', '${STRANGER}')`);
+const r9 = await report(POSTER, N);
+await server();
+const t9 = await all(`SELECT title, type FROM public.notifications WHERE user_id = '${N}'`);
+check("N9 a second reporter's no-show: the notice names the restriction the ladder recorded",
+  r9.action === "pending_ban_review" && t9.length === 1 && t9[0].title === "Account restricted for 7 days" && t9[0].type === "warning",
+  `r=${JSON.stringify(r9)} notices=${JSON.stringify(t9)}`);
+
+// N10: the SAME poster's earlier no-show of this member does not escalate (one poster alone never restricts).
+await seed();
+await server();
+await db.exec(`INSERT INTO public.user_violations (user_id, violation_type, job_id, reported_by) VALUES ('${N}', 'no_show', '${U(998)}', '${POSTER}')`);
+const r10 = await report(POSTER, N);
+await server();
+check("N10 the same poster's earlier report does not escalate: still a warning",
+  r10.action === "warning" && (await told(N)) === 1, `r=${JSON.stringify(r10)}`);
+
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 if (BEFORE) {
   // Only N1 (the control that shows the bug) holds without the function.
-  const expected = 7;
+  const expected = 9;
   console.log(failures === expected ? `RED as expected (${failures}/${expected})` : `NOT RED: ${failures}/${expected} failed`);
   process.exit(failures === expected ? 0 : 1);
 }

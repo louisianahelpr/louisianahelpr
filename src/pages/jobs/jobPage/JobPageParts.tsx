@@ -21,6 +21,7 @@ import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress
 import type { Job } from "@/components/job-card/activityConstants";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 import { NextStep } from "@/components/ui/NextStep";
+import { isExpiredListing } from "@/lib/expiredListing";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
 
 /** The "What to fix" card (RevisionAsk): a card on a phone, flat inside the desktop side column. */
@@ -129,7 +130,11 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
   const released = RELEASED.has(job.payment_status ?? "");
   const status = job.payment_status ?? "";
   // ONE sentence about the money, from payment_status alone (JA-47), "Paid. Louisiana Helpr holds it…" included.
-  const line = released ? releasedLine(job) : HELD_LINE[status] ?? null;
+  // Lead 11-01 (B107): a cancelled job's tracker line already says "... · Your payment was refunded" (JA-26,
+  // jobProgressState cancelledLine), so the refund is said ONCE, there. An expired listing's line says only "No
+  // Helpr was hired in time", so it keeps "Refunded to your card." here. Guard: src/test/refundSaidOnce.test.tsx.
+  const refundInTracker = status === "refunded" && (job.status === "cancelled" || job.status === "expired") && !isExpiredListing(job);
+  const line = released ? releasedLine(job) : refundInTracker ? null : HELD_LINE[status] ?? null;
   const count = job.status === "open" && !loading && total > 0;
   if (!line && !released && !count) return null;
   return (

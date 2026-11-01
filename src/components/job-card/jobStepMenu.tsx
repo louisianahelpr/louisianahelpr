@@ -15,7 +15,9 @@
  */
 import { createContext, Fragment, isValidElement, type ReactElement, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { ShieldAlert } from "lucide-react";
 import { composeAccessibleName, JobActionChip, JobStepPrimaryButton } from "./JobActionRow";
+import { SosShareButton } from "@/components/SosShareButton";
 
 interface JobStepMenu {
   /** The page's second-button slot (exactly one action). */
@@ -65,6 +67,20 @@ export function MenuAction({ chip, className = "", lead = false }: { chip: React
         onClick={p.onClick}
       >
         {p.label}
+      </Button>
+    );
+  }
+  // Lead 11-01 (B107): on the page SOS is never a big red button beside Message. It is the row's ordinary outlined
+  // button with a red shield icon (the card's red-tinted chip drawn full size read as the page's main action).
+  // Guard: src/test/jobPageSosIsSecondary.test.tsx.
+  if (isValidElement(chip) && chip.type === SosShareButton) {
+    const { onOpen } = (chip as ReactElement<{ onOpen: () => void }>).props;
+    return (
+      <Button type="button" variant="outline" size="wrap" data-menu-action="SOS" data-sos-secondary=""
+        className={`min-w-0 gap-1.5 rounded-full px-4 text-ds-15 leading-tight ${className}`}
+        aria-label="SOS — share your location" onClick={onOpen}>
+        <ShieldAlert aria-hidden="true" className="h-4 w-4 shrink-0 text-destructive-ink" />
+        SOS
       </Button>
     );
   }

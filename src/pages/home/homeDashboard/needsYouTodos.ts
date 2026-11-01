@@ -30,6 +30,18 @@ export interface TodoItem {
   action: string;
   /** A real amount tied to the task (rust on Home); omitted when there is none. */
   money?: string;
+  /**
+   * JA-39: the Helpr step the button takes (the Working card's face rule, helperStepRequest.ts): Home leaves the
+   * one-shot request and opens the job's Working card, whose tracker presses its OWN button, so every gate (GPS,
+   * photos) still decides. Omitted for a task that only opens a page.
+   */
+  helperStep?: { jobId: string; key: "arrived" };
+}
+
+/** Run a to-do: leave its step request (if any), then go (Home's Next up button and its See all rows). */
+export function todoTarget(t: Pick<TodoItem, "to" | "helperStep">, request: (jobId: string, step: string) => void): string {
+  if (t.helperStep) request(t.helperStep.jobId, t.helperStep.key);
+  return t.to;
 }
 
 export interface NeedsYouInputs {
@@ -48,6 +60,8 @@ function withBackout<J extends { id: string; status?: string | null }>(j: J, bac
 
 /** JA-39: the on-the-way Helpr's Next up task. */
 export const ON_THE_WAY_TASK = "Tap I've arrived when you get there";
+/** JA-39: its button, the Working card's own step label (helperFaceAction.ts: key "arrived"). */
+export const ARRIVED_ACTION = "I've arrived";
 /** JA-39: which side of the job the Helpr is on, by where the job stands (never "working" before they arrive). */
 function helprSide(job: Job, lineId: string): string {
   if (!job.helper_id) return "You applied";
@@ -165,8 +179,11 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         // says where they are ("You're on the way · Haul off..."), never "You're working" before they arrive.
         title: line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail,
         meta: `${helprSide(a.job!, line.id)} · ${a.job!.title}`,
-        to: `/jobs/${a.job!.id}`,
-        action: "Open job",
+        // JA-39: the button IS the arrival step ("I've arrived"), run by the Working card's tracker (not a crew: a
+        // member's steps are on the roster), instead of "Open job" and a second tap on the page.
+        ...(line.id === "on_the_way" && !a.job!.is_group_job
+          ? { to: `/jobs?tab=working&job=${encodeURIComponent(a.job!.id)}&open=1`, action: ARRIVED_ACTION, helperStep: { jobId: a.job!.id, key: "arrived" as const } }
+          : { to: `/jobs/${a.job!.id}`, action: "Open job" }),
       },
     });
   }

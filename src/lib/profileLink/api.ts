@@ -12,7 +12,7 @@ import { shareNative, type ShareOutcome } from "@/lib/nativeShare";
 import { rpcErrorMessage } from "./errorCopy";
 
 /** What a caller shows when a call fails: the code's words, or a plain fallback. */
-export type HandleResult = { handle: string; error?: undefined } | { handle?: undefined; error: string };
+type HandleResult = { handle: string; error?: undefined } | { handle?: undefined; error: string };
 
 /** The published site (same origin as the Book me and shop links): a link copied in the app opens the website. */
 const SITE_ORIGIN = "https://www.louisianahelpr.com";

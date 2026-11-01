@@ -898,7 +898,7 @@ async function fetchProfileCard(handle: string): Promise<ProfileLookup> {
 function profileImage(avatarUrl: string | null | undefined, name: string): Meta["image"] | undefined {
   if (typeof avatarUrl !== "string" || !SUPABASE_URL) return undefined;
   const prefix = `${SUPABASE_URL}/storage/v1/object/public/avatars/`;
-  if (!avatarUrl.startsWith(prefix)) return undefined;
+  if (avatarUrl.slice(0, prefix.length) !== prefix) return undefined;
   const [userId, file, ...rest] = avatarUrl.slice(prefix.length).split(/[?#]/)[0].split("/");
   if (rest.length || !UUID_RE.test(userId ?? "")) return undefined;
   const ext = /^avatar\.([a-z]+)$/.exec(file ?? "")?.[1];

@@ -836,6 +836,8 @@ export const GAPS: Record<string, string> = {
   // src/test/pglite/declutterListForSeller.pglite.mjs.
   "src/components/declutter/ListedForYouCard.tsx": "no typed text: Approve, Not this one and one checkbox; each approval goes through the normal publish path's checks.",
   "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx": "Not swept yet (new 11-01): title, description, price and area go through declutter_helpr_create_listing's checks (the same price, area and length rules as a listing; contact-leak trigger on the table).",
+  // LEAD-PROFILE-LINK: Settings > Your profile link.
+  "src/components/profile/ProfileLinkRow.tsx": "Not swept yet: one 30-character box (maxLength 30), normalised (trim, lowercase) and checked against HANDLE_PATTERN before Save is enabled; rpc_set_my_handle re-checks the format and refuses reserved words, 7+ digits and a taken link, and allows one change.",
   "src/components/declutter/SellerSetup.tsx": "Not swept yet: it shows only to a seller missing saved settings. Its address and area go through the same lookup and declutter_save_porch_place checks as the pickup places in Settings.",
   "src/components/declutter/declutterUi.tsx": "The four statements' one checkbox: no text to type, and the sell forms that mount it are swept themselves.",
   // LEAD-SHAKE-PROMPT: the shake switch, split out of SecurityTab (componentSizeRatchet).

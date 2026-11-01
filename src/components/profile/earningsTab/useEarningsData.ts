@@ -1,18 +1,17 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
 import type { PayoutLedgerRow, StripePayoutData } from "./types";
 import { functionInvokeError, unwrap } from "@/lib/supabaseResult";
 
-export function useEarningsData(helperId: string) {
-  const qc = useQueryClient();
+const FALLBACK_STRIPE: StripePayoutData = {
+  connected: false, payouts_enabled: false, available: [], pending: [], payouts: [],
+};
 
-  // React Query: caches Stripe payout data so re-opening the tab is instant.
-  const FALLBACK_STRIPE: StripePayoutData = {
-    connected: false, payouts_enabled: false, available: [], pending: [], payouts: [],
-  };
-  const { data: stripeData, isLoading: stripeLoading, isFetching, isError: stripeError, refetch } = useQuery<StripePayoutData>({
+/** The stripe-payouts read (wallet balance and payouts). React Query caches it so re-opening the tab is instant. */
+function stripePayoutsQuery(helperId: string) {
+  return {
     // User-scoped: the persisted IDB cache (24h) would otherwise rehydrate
     // the prior helper's Stripe balance + payout history on a shared device.
     queryKey: queryKeys.stripePayouts.byUser(helperId),
@@ -33,12 +32,14 @@ export function useEarningsData(helperId: string) {
     enabled: !!helperId,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
-  });
+  };
+}
 
-  // payout_transfers ledger — the authoritative record of every
-  // stripe.transfers.create() call to this helper. RLS already restricts
-  // SELECT to `auth.uid() = helper_id` so no extra filter needed here.
-  const { data: payoutLedger = [], isError: ledgerError, isPending: ledgerPending } = useQuery<PayoutLedgerRow[]>({
+// payout_transfers ledger — the authoritative record of every
+// stripe.transfers.create() call to this helper. RLS already restricts
+// SELECT to `auth.uid() = helper_id` so no extra filter needed here.
+function payoutLedgerQuery(helperId: string) {
+  return {
     queryKey: queryKeys.payoutTransfers.byHelper(helperId),
     queryFn: async () => {
       if (!helperId) return [];
@@ -55,7 +56,27 @@ export function useEarningsData(helperId: string) {
     enabled: !!helperId,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
-  });
+  };
+}
+
+/**
+ * Starts Money's two payout reads before EarningsTab's chunk has loaded
+ * (ProfileTabPanels, on the earnings tab): they used to start only once that
+ * chunk had downloaded and run. Same keys and functions as the hook, so the
+ * hook finds them in flight or fresh (staleTime) and does not read twice.
+ */
+export function prefetchEarningsReads(qc: QueryClient, helperId: string): void {
+  if (!helperId) return;
+  void qc.prefetchQuery(stripePayoutsQuery(helperId));
+  void qc.prefetchQuery(payoutLedgerQuery(helperId));
+}
+
+export function useEarningsData(helperId: string) {
+  const qc = useQueryClient();
+
+  const { data: stripeData, isLoading: stripeLoading, isFetching, isError: stripeError, refetch } = useQuery<StripePayoutData>(stripePayoutsQuery(helperId));
+
+  const { data: payoutLedger = [], isError: ledgerError, isPending: ledgerPending } = useQuery<PayoutLedgerRow[]>(payoutLedgerQuery(helperId));
 
   const refreshing = isFetching && !stripeLoading;
   const handleRefresh = () => {

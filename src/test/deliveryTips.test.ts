@@ -14,14 +14,16 @@
  *     declutter-money sends exactly it, from its own charge, as one more part of that payout.
  * Backend proof (55 checks measured 2026-10-28, 3x replay, 11 planted defects each RED): src/test/pglite/helprTaskTips.pglite.mjs.
  *
- * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql |  IF NOT FOUND OR t.customer_id IS DISTINCT FROM v_uid THEN |  IF NOT FOUND THEN
- * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql |  IF t.status <> 'confirmed' THEN |  IF t.status = 'cancelled' THEN
+ * @mutate supabase/migrations/20261101051951_tips_wait_for_helpr_id.sql |   IF public.payout_waits_on_identity(t.helpr_id) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261101051951_tips_wait_for_helpr_id.sql |        AND NOT public.payout_waits_on_identity(t.helpr_id)\n |
+ * @mutate supabase/migrations/20261101051951_tips_wait_for_helpr_id.sql |  IF NOT FOUND OR t.customer_id IS DISTINCT FROM v_uid THEN |  IF NOT FOUND THEN
+ * @mutate supabase/migrations/20261101051951_tips_wait_for_helpr_id.sql |  IF t.status <> 'confirmed' THEN |  IF t.status = 'cancelled' THEN
  * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql | USING (tipper_id = (SELECT auth.uid()) OR helpr_id = (SELECT auth.uid())); | USING (true);
  * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql |  IF r.payment_status = 'paid' THEN\n    RETURN jsonb_build_object('result', 'already' |  IF false THEN\n    RETURN jsonb_build_object('result', 'already'
  * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql | REVOKE ALL ON FUNCTION public.helpr_task_tip_paid(uuid, text, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.helpr_task_tip_paid(uuid, text, text, integer) FROM PUBLIC, anon;
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | {side === "buyer" && v.status === "confirmed" && <DeliveryTipPanel | {side === "buyer" && <DeliveryTipPanel
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | tipCents={tips.data?.get(t.task_id) ?? 0} | tipCents={0}
- * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql |  v_held := NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = t.helpr_id AND pr.stripe_account_id IS NOT NULL); |  v_held := false;
+ * @mutate supabase/migrations/20261101051951_tips_wait_for_helpr_id.sql |  v_held := NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = t.helpr_id AND pr.stripe_account_id IS NOT NULL); |  v_held := false;
  * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql | WHERE x.task_id = t.id AND x.held AND x.payment_status = 'paid' AND x.payout_transfer_id IS NULL), '[]'::jsonb) | WHERE x.task_id = t.id AND x.held AND x.payment_status = 'paid'), '[]'::jsonb)
  * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql |      AND (p.id IS NULL OR p.status NOT IN ('pending', 'failed', 'held_for_review') |      AND (p.id IS NULL
  */
@@ -56,6 +58,15 @@ describe("tips on Declutter deliveries (Q2453)", () => {
     expect(s).toContain("IF t.helpr_id IS NULL OR t.helpr_id = v_uid OR public.are_users_blocked(v_uid, t.helpr_id) THEN RAISE EXCEPTION 'tip_unavailable'");
     // The row is the caller's, for the task's own Helpr: never an id from the request.
     expect(s).toContain("VALUES (t.id, v_uid, t.helpr_id, p_tip_cents, p_attempt_id, v_held)");
+  });
+
+  it("BUY-43: no tip, and no tip row or Stripe page, until the Helpr has passed their ID check (owner 2026-10-30)", () => {
+    const s = flat("helpr_task_tip_start");
+    const gate = s.indexOf("IF public.payout_waits_on_identity(t.helpr_id) THEN RAISE EXCEPTION 'tip_waits_on_identity'");
+    expect(gate).toBeGreaterThan(0);
+    // Before the row is written (declutter-checkout opens the Stripe page only from that row).
+    expect(gate).toBeLessThan(s.indexOf("INSERT INTO public.helpr_task_tips"));
+    expect(flat("declutter_delivery_tip_open")).toContain("AND NOT public.payout_waits_on_identity(t.helpr_id)");
   });
 
   it("the ledger: its two people read it, no member writes it, the money functions are service only", () => {

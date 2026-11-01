@@ -140,6 +140,9 @@ const PAYOUT_WINDOW_MS = PAYOUT_WINDOW_HOURS * 60 * 60 * 1000;
  * moment the Slack message scrolls away.
  */
 const CANCELLING_WINDOW_MINUTES = 60;
+/** A stranded 'cancelling' row held by CMP-4's automatic instant-book refund (job_refund_claims 'instant_book_refund'). */
+const INSTANT_BOOK_REFUND_STRANDED_NOTE =
+  "Automatic instant-book refund in progress (card-hold-sweep retries it). Do NOT set payment_status back to 'escrow': the job is cancelled, so void-cancelled-payments would refund it again. Check Stripe for the refund before touching anything.";
 const CANCELLING_WINDOW_MS = CANCELLING_WINDOW_MINUTES * 60 * 1000;
 
 /**
@@ -435,7 +438,7 @@ serve(async (req) => {
       cancellingStranded: new Check(
         "cancelling_stranded",
         "critical",
-        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand. A row whose claimed_by is admin_refund_general was claimed by a full admin refund (Q1290) whose Stripe refund failed ambiguously: check Stripe for the refund, then set payment_status to 'refunded' (and status 'cancelled') if it went out, or back to what it was if not; never re-run the refund before checking. claimed_by 'unrecorded' means the holder is unknown: check Stripe first either way. A crew job whose blocked members are still owed block fees (crew_block_fees, any row but void) is refused by cancel_escrow (Q2133): check Stripe for a refund, set payment_status back to 'escrow' by hand if none went out, then cancel the job so the sweep keeps the fee.`,
+        `payment_status='cancelling' for more than ${CANCELLING_WINDOW_MINUTES} min — cancel_escrow claimed the job, then a later step (gift restore, the final flip to cancelled, or putting the claim back) failed. Nothing retries it (Q456): the job is out of browse and cannot be hired (not funded), but the poster's money or gift may already be back, or not. Re-run cancel_escrow for it (a repeat does not refund twice; the gift restore is idempotent) or finish the cancel by hand. A row whose claimed_by is admin_refund_general was claimed by a full admin refund (Q1290) whose Stripe refund failed ambiguously: check Stripe for the refund, then set payment_status to 'refunded' (and status 'cancelled') if it went out, or back to what it was if not; never re-run the refund before checking. claimed_by 'unrecorded' means the holder is unknown: check Stripe first either way. A row whose claimed_by is instant_book_refund is an instant booking charged with nobody hired (CMP-4, instant_book_captured_not_hired): its refund is AUTOMATIC (card-hold-sweep retries it every run; a definite Stripe refusal pages once on its own). Do NOT set payment_status back to 'escrow': the job is cancelled, so void-cancelled-payments would then refund the same charge a second time. Check Stripe for the refund; if it went out and the job still reads 'cancelling', leave it for the sweep (instant_book_refund_finished closes it once). A crew job whose blocked members are still owed block fees (crew_block_fees, any row but void) is refused by cancel_escrow (Q2133): check Stripe for a refund, set payment_status back to 'escrow' by hand if none went out, then cancel the job so the sweep keeps the fee.`,
       ),
       // ── The DB's settled state vs Stripe's (docs/OPEN.md Q50) ──────────
       // Every check above grades the DB against itself. A job the DB says is
@@ -1126,6 +1129,9 @@ serve(async (req) => {
         budget: money(job.budget),
         hours_stuck: Math.round(((nowMs - claimedAt) / 3_600_000) * 100) / 100,
         claimed_by: holderByJob.get(String(job.id)) ?? "unrecorded",
+        // CMP-4 money review (2026-11-01): the automatic instant-book refund's claim says so on the row itself, so
+        // nobody "finishes" it by setting escrow back (void-cancelled would refund the cancelled job again).
+        ...(holderByJob.get(String(job.id)) === "instant_book_refund" ? { what_to_do: INSTANT_BOOK_REFUND_STRANDED_NOTE } : {}),
       });
     }
 

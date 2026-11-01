@@ -58,7 +58,8 @@ export function ListedForYouCard() {
       <ul className="mt-3 divide-y divide-border">
         {rows.map((r) => (
           <li key={r.item_id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
-            <div className="min-w-0 flex-1">
+            {/* At least 12rem for the title, so on a phone the two buttons wrap under it instead of crushing it. */}
+            <div className="min-w-[12rem] flex-1">
               <p className="truncate text-ds-15 font-medium">{r.title}</p>
               <p className="text-ds-13 text-muted-foreground">{r.price_cents === 0 ? "Free" : formatPrice(r.price_cents)}</p>
             </div>

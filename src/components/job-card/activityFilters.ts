@@ -277,7 +277,7 @@ export function arrivalNearMissWithin12h(job: { helper_arrival_near_miss_at?: st
  * are confirmed per member on the roster, never on the job row, so a crew underway is Waiting.
  * Guard: src/test/helprWorkingIsWaiting.test.ts.
  */
-export function posterMoveDueWhileInProgress(
+function posterMoveDueWhileInProgress(
   j: {
     is_group_job?: boolean | null;
     helper_completed_at?: string | null;

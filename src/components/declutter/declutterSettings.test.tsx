@@ -66,6 +66,8 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
 // One mock of the module (a second vi.mock of the same path replaces the first). LEAD-OFFERS-CHOICE: fetchMyItems is
 // the listings the "for all my listings" row counts (none here, so it stays hidden).
 vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/api")>()), fetchMyPickupWindows: async () => [], fetchMyItems: async () => [] }));
+// B110: the seller's own meet spots card reads its list and the suggestions (none here).
+vi.mock("@/lib/declutter/meetup", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/meetup")>()), fetchMyMeetupSpots: async () => [], fetchMeetupSuggestions: async () => [] }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/porchPlaces")>()), fetchMyPorchPlaces: async () => state.places }));
 
 function open() {
@@ -200,7 +202,8 @@ describe("Declutter settings", () => {
     await screen.findByRole("button", { name: "Add a pickup place" });
     const card = screen.getByRole("region", { name: "Pickup places" });
     expect(card.previousElementSibling).toBeNull();
-    expect(card.nextElementSibling).toBe(screen.getByRole("region", { name: "Listing defaults" }));
+    // B110: the seller's own meet spots come next, then the listing defaults.
+    expect(card.nextElementSibling).toBe(await screen.findByRole("region", { name: "Meet spots" }));
     expect(card.tagName).toBe("SECTION");
   });
 
@@ -209,7 +212,7 @@ describe("Declutter settings", () => {
     open();
     const card = await screen.findByRole("region", { name: "Pickup places" });
     expect(card.textContent).toBe("Pickup placesLoading…");
-    expect(card.nextElementSibling).toBe(screen.getByRole("region", { name: "Listing defaults" }));
+    expect(card.nextElementSibling).toBe(await screen.findByRole("region", { name: "Meet spots" }));
   });
 
   it("no card at all before the places are on the server", async () => {

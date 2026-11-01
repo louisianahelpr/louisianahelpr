@@ -11,7 +11,7 @@
  *
  * @mutate src/components/declutter/SellFormParts.tsx | <h3 id="sell-tax-head" | <h3 id="sell-tax"
  * @mutate src/components/profile/EarningsTab.tsx | <div id="earnings-bank-connect" | <div id="earnings-bank-account"
- * @mutate src/components/postjob/JobCategoryGroups.tsx | <section aria-label={`In ${open.label}`} | <section id="category-picker" aria-label={`In ${open.label}`}
+ * @mutate src/components/postjob/JobCategoryGroups.tsx | <section aria-label={t("postJob.inGroup", | <section id="category-picker" aria-label={t("postJob.inGroup",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

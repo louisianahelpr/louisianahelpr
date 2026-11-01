@@ -2,7 +2,7 @@
  * Audit 2026-10-29 A2-L12: a done step's button read "What , done. Go back to this step" (the label
  * span and a separate sr-only span joined with a stray space). Its name is now built whole.
  *
- * @mutate src/components/postjob/PostJobStepRail.tsx | aria-label={`${label}, done. Go back to this step`} | data-x=""
+ * @mutate src/components/postjob/PostJobStepRail.tsx | aria-label={t("postJob.railDone", { label })} | data-x=""
  */
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";

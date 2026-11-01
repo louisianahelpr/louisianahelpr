@@ -2912,6 +2912,33 @@ export type Database = {
           },
         ]
       }
+      declutter_photo_purge_queue: {
+        Row: {
+          attempts: number
+          claimed_at: string | null
+          item_id: string
+          queued_at: string
+          seller_id: string
+          storage_path: string
+        }
+        Insert: {
+          attempts?: number
+          claimed_at?: string | null
+          item_id: string
+          queued_at?: string
+          seller_id: string
+          storage_path: string
+        }
+        Update: {
+          attempts?: number
+          claimed_at?: string | null
+          item_id?: string
+          queued_at?: string
+          seller_id?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       declutter_pickup_windows: {
         Row: {
           created_at: string
@@ -14852,6 +14879,13 @@ export type Database = {
       declutter_pair_talking: {
         Args: { p_buyer: string; p_seller: string }
         Returns: boolean
+      }
+      declutter_photo_purge_done: { Args: { p_paths: string[] }; Returns: number }
+      declutter_photo_purge_due: {
+        Args: { p_limit?: number; p_seller?: string }
+        Returns: {
+          storage_path: string
+        }[]
       }
       declutter_place_windows_fill: {
         Args: { p_days: number[]; p_seller: string; p_windows: Json }

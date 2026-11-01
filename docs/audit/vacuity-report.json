@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-01T03:53:30.216Z",
-  "guards": 3041,
-  "registered": 3041,
+  "generated": "2026-11-01T05:47:35.333Z",
+  "guards": 3054,
+  "registered": 3054,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -115,36 +115,6 @@
       ]
     },
     {
-      "module": "src/components/AppLockGate.tsx",
-      "tests": [
-        "src/components/AppLockGate.shieldForEveryone.test.tsx",
-        "src/components/AppLockGate.test.tsx"
-      ],
-      "parents": [
-        "src/App.tsx"
-      ]
-    },
-    {
-      "module": "src/components/ErrorBoundary.tsx",
-      "tests": [
-        "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
-        "src/test/errorSurfacesReport.test.tsx",
-        "src/lib/connectivity.test.tsx"
-      ],
-      "parents": [
-        "src/App.tsx"
-      ]
-    },
-    {
-      "module": "src/components/ForceUpdateGate.tsx",
-      "tests": [
-        "src/components/ForceUpdateGate.test.tsx"
-      ],
-      "parents": [
-        "src/App.tsx"
-      ]
-    },
-    {
       "module": "src/components/GuestBrowseSkeleton.tsx",
       "tests": [
         "src/test/dataAwareSkeletons.test.tsx"
@@ -194,43 +164,12 @@
       ]
     },
     {
-      "module": "src/components/OfflineBanner.tsx",
-      "tests": [
-        "src/lib/connectivity.test.tsx"
-      ],
-      "parents": [
-        "src/App.tsx"
-      ]
-    },
-    {
       "module": "src/components/profile/savedHelpersTab/SavedHelperCard.tsx",
       "tests": [
         "src/components/profile/savedHelpersTab/SavedHelperCard.test.tsx"
       ],
       "parents": [
         "src/components/profile/SavedHelpersTab.tsx"
-      ]
-    },
-    {
-      "module": "src/components/RouteErrorBoundary.tsx",
-      "tests": [
-        "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
-        "src/test/errorSurfacesReport.test.tsx",
-        "src/lib/connectivity.test.tsx",
-        "src/components/RouteErrorBoundary.recoveryInFlight.test.tsx"
-      ],
-      "parents": [
-        "src/App.tsx"
-      ]
-    },
-    {
-      "module": "src/components/SignedInChrome.tsx",
-      "tests": [
-        "src/test/guestLoadsNoSignedInChrome.test.tsx"
-      ],
-      "parents": [
-        "src/App.tsx",
-        "src/components/DeferredToasters.tsx"
       ]
     },
     {

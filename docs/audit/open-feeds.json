@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-01T01:42Z",
+  "measured_at": "2026-11-01T05:47Z",
   "issues": {
     "readable": true,
     "open": [
@@ -86,13 +86,6 @@
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218192294",
-        "runTruncated": false
-      },
-      {
-        "number": 3802,
-        "title": "nightly-red: main: Sensitive review record",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41262033084",
         "runTruncated": false
       },
       {
@@ -581,19 +574,19 @@
         "issue": null
       },
       {
-        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your account.",
-        "issue": null
-      },
-      {
         "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
         "source_kind": "sentry",
         "source": "sentry:assets/ProtectedRoute",
         "status": "open",
         "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
+        "issue": null
+      },
+      {
+        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load your account.",
         "issue": null
       },
       {
@@ -645,19 +638,19 @@
         "issue": null
       },
       {
-        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load deliveries.",
-        "issue": null
-      },
-      {
         "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: payout_setup_incomplete",
+        "issue": null
+      },
+      {
+        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load deliveries.",
         "issue": null
       },
       {
@@ -677,17 +670,17 @@
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
@@ -749,19 +742,19 @@
         "issue": null
       },
       {
-        "fingerprint": "e32aa223d475dd1349363e900374a77e",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "error: script error.",
-        "issue": null
-      },
-      {
         "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
         "source_kind": "sentry",
         "source": "sentry:unknown",
         "status": "open",
         "title": "cr",
+        "issue": null
+      },
+      {
+        "fingerprint": "e32aa223d475dd1349363e900374a77e",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "error: script error.",
         "issue": null
       },
       {
@@ -837,19 +830,19 @@
         "issue": null
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -909,11 +902,11 @@
         "issue": null
       },
       {
-        "fingerprint": "fba95b3590a627d7f7d9e284e9b56c20",
+        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/declutter · error screen shown: we couldn't load offers.",
+        "title": "/declutter · error screen shown: we couldn't load your sales.",
         "issue": null
       },
       {
@@ -925,11 +918,11 @@
         "issue": null
       },
       {
-        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
+        "fingerprint": "fba95b3590a627d7f7d9e284e9b56c20",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/declutter · error screen shown: we couldn't load your sales.",
+        "title": "/declutter · error screen shown: we couldn't load offers.",
         "issue": null
       },
       {
@@ -971,6 +964,14 @@
         "status": "open",
         "title": "/jobs · failed to fetch dynamically imported module: <url>",
         "issue": null
+      },
+      {
+        "fingerprint": "043a7a13b73539a44b5175ae12d3cc3e",
+        "source_kind": "error_logs",
+        "source": "sweep_old_notifications",
+        "status": "open",
+        "title": "sweep_old_notifications: deleted # rows (# read, # unread)",
+        "issue": null
       }
     ]
   },
@@ -989,7 +990,6 @@
     "issue #3491": "Q1816",
     "issue #3743": "Q1816",
     "issue #3784": "Q1816",
-    "issue #3802": "Q1816",
     "issue #3813": "Q1816",
     "issue #3823": "Q2498",
     "issue #3824": "Q1816",
@@ -998,6 +998,7 @@
     "issue #3875": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
+    "ledger 043a7a13b735": "Q2545",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 092de8bb62f5": "Q2533",
     "ledger 0bebf0385b3e": "Q1615",

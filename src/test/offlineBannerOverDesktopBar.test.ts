@@ -10,6 +10,9 @@
  * Inventory from source: every tracked component/page that renders a `fixed top-0` bar. Each must read
  * useOfflineBannerOffset() and move its `top` by it, or be listed in NOT_UNDER_THE_BANNER with the reason.
  *
+ * B47, 10-31: AdminTopBar (the phone admin bar, z-50 under the banner's z-60) was the last listed exception. Measured
+ * offline at 375 on /admin: banner 0-31.9, bar 0-56 (emblem, bell and menu cut), content from 87.9. After: bar 31.9-87.9.
+ *
  * Plus the CSS half: on a document-scroll page at desktop width the #root padding rule for the bar out-ranks the plain
  * offline-banner padding rule, so it must add the banner offset itself (measured on /user/:id: 70px padding under a
  * bar ending at 101.9 before, 101.9 after).
@@ -22,6 +25,7 @@ import { trackedFiles } from "./helpers/trackedFiles";
 import { blankComments, blankCssComments } from "./helpers/blankNonCode";
 
 // @mutate src/components/DesktopTopNav.tsx |         top: bannerOffset, |         top: 0,
+// @mutate src/components/admin/AdminTopBar.tsx |         top: bannerOffset, |         top: 0,
 // @mutate src/index.css |     padding-top: calc(var(--desktop-bar-h) + var(--offline-banner-offset, 0px)); |     padding-top: var(--desktop-bar-h);
 
 const REPO = resolve(__dirname, "../..");
@@ -31,7 +35,6 @@ const read = (f: string) => readFileSync(resolve(REPO, f), "utf8");
 const NOT_UNDER_THE_BANNER: Record<string, string> = {
   "src/components/OfflineBanner.tsx": "the banner itself",
   "src/components/GuestBrowseSkeleton.tsx": "aria-hidden loading skeleton; its spacer must equal PublicLayout's verbatim (listArrivesInOneWave)",
-  "src/components/admin/AdminTopBar.tsx": "admin-only bar; not measured yet (B44 handoff open item)",
 };
 
 const FIXED_TOP_BAR = /className=\{?["'`][^"'`]*\bfixed top-0\b/;
@@ -48,6 +51,7 @@ describe("a fixed top bar sits below the offline banner", () => {
     const found = bars();
     expect(found.length).toBeGreaterThan(3);
     expect(found).toContain("src/components/DesktopTopNav.tsx");
+    expect(found).toContain("src/components/admin/AdminTopBar.tsx");
     const offenders = found
       .filter((f) => !(f in NOT_UNDER_THE_BANNER))
       .filter((f) => {

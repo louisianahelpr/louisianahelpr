@@ -11,11 +11,11 @@ import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
-import { GateSheet } from "@/components/mobileNav/GateSheet";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useLongPress } from "@/hooks/useLongPress";
 import { NavQuickMenuItem } from "@/components/mobileNav/NavQuickMenuItem";
 import { useDockMotionLoader } from "@/components/mobileNav/useDockMotion";
+import { useDockSheetsLoader } from "@/components/mobileNav/useDockSheets";
 import { useRecentConversationsPreview } from "@/components/mobileNav/useRecentConversationsPreview";
 import { useWarmPostedJobs } from "@/components/mobileNav/useWarmPostedJobs";
 import { useWarmAvatar, useWarmTabChunks } from "@/components/mobileNav/useDockWarmups";
@@ -28,7 +28,6 @@ import {
   guestTabPath,
 } from "@/components/mobileNav/mobileNavHelpers";
 import { phoneDockItems, type DockItem } from "@/components/mobileNav/dockItems";
-import { CreateSheet } from "@/components/create/CreateSheet";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
@@ -138,6 +137,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const [quickMenuTab, setQuickMenuTab] = useState<"posts" | "messages" | null>(null);
   const closeQuickMenu = () => setQuickMenuTab(null);
   const dockMotion = useDockMotionLoader(dockHidden, quickMenuTab !== null);
+  // The sheets load after the page settles or on the tap that opens one (useDockSheets.ts, B85).
+  const dockSheets = useDockSheetsLoader(dockHidden, createOpen || gateOpen);
   // A completed long-press still ends in a `touchend`, which browsers follow
   // with a synthetic `click` a beat later — without this guard that trailing
   // click would ALSO fire the tab's normal `onTap` and navigate away right
@@ -686,8 +687,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         </div>
       </nav>
 
-      <GateSheet open={gateOpen} onOpenChange={setGateOpen} />
-      <CreateSheet open={createOpen} onOpenChange={setCreateOpen} />
+      {dockSheets && <dockSheets.GateSheet open={gateOpen} onOpenChange={setGateOpen} />}
+      {dockSheets && <dockSheets.CreateSheet open={createOpen} onOpenChange={setCreateOpen} />}
     </>
   );
 });

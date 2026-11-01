@@ -31,7 +31,7 @@
  * @mutate src/components/declutter/SellPorchPlaces.tsx | lat: point.lat, lng: point.lng | lat: 0, lng: 0
  * @mutate src/components/declutter/SellPorchPlaces.tsx | : places.length < MAX_PORCH_PLACES && ( | : (
  * @mutate src/components/declutter/SellPorchDays.tsx |   if (Array.isArray(places.data) && places.data.length > 0) return null; |
- * @mutate src/components/declutter/DeclutterTradeViews.tsx | (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady} | (sellerDelivering && !sdReady) \|\| !meetupReady}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| | (sellerDelivering && !sdReady) \|\| !meetupReady \|\|
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | disabled={confirm.isPending \|\| offered.length === 0 \|\| !placeReady} | disabled={confirm.isPending \|\| offered.length === 0}
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "porch" && <OrderPorchPlace orderId={order.orderId} side={order.side} />}\n |
  */
@@ -440,7 +440,7 @@ describe("the buyer's pick", () => {
   });
 
   it("paid checkout and the free claim both wait on the pick", () => {
-    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/!meetupReady \|\| !placeReady\}/);
+    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/!meetupReady \|\| !placeReady \|\| !pickupTimeReady\}/);
     expect(SRC("DeclutterTradeViews.tsx")).toMatch(/address\.trim\(\)\.length < 5 \|\| !placeReady/);
     expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/offered\.length === 0 \|\| !placeReady\}/);
   });

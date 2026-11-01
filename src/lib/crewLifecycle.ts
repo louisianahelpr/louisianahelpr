@@ -348,6 +348,10 @@ export function crewNobodyLeft(
   jobStatus: string | null | undefined,
   roster: ReadonlyArray<{ helper_id: string | null }>,
   rosterKnown: boolean,
+  started = false,
 ): boolean {
-  return rosterKnown && jobStatus === "in_progress" && !roster.some((m) => m.helper_id != null);
+  // A3-31 (audit 11-01): a crew turns in_progress only when a member sets out or checks in, so a crew whose every
+  // member was a no-show never set out and is still "accepted". Once its start has passed it is the same case.
+  const underWay = jobStatus === "in_progress" || (jobStatus === "accepted" && started);
+  return rosterKnown && underWay && !roster.some((m) => m.helper_id != null);
 }

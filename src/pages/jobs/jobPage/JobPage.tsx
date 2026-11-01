@@ -383,6 +383,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             <section aria-label={t("jobPage.crew")} data-job-crew="" className={`${CARD} p-4`}>
               <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner jobStatus={job.status}
                 initialHelpers={posterFlows.crewRoster ?? []} dateNeeded={job.date_needed} startTime={job.start_time}
+                onCancelJob={posterFlows.cancel}
                 onMessage={(helprId) => navigate(helprId ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${helprId}` : "/messages")} />
             </section>
           )}

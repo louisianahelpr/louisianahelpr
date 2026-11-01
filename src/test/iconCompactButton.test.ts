@@ -22,6 +22,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx |       size="iconCompact" |       size="icon"
 // @mutate src/components/declutter/DeclutterPickupTimes.tsx |           <Button type="button" variant="ghost" size="iconCompact" onClick={onRemove} | <Button type="button" variant="ghost" size="icon" onClick={onRemove}
 // @mutate src/components/BirthdayPopup.tsx |                   size="iconCompact" |                   size="icon"
+// @mutate src/components/DesktopTopNav.tsx |             size="iconCompact"\n            aria-label="Profile" |             size="icon"\n            aria-label="Profile"
 // @mutate src/pages/profile/SavedSearchesTab.tsx |                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} |                   <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(s)}
 // @mutate src/pages/user/ReviewsSection.tsx |                   size="iconCompact"\n                  aria-label="Report this review" |                   size="icon"\n                  aria-label="Report this review"
 // @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |       className={`relative shrink-0 btn-press | className={`relative h-10 w-10 shrink-0 btn-press
@@ -90,6 +91,10 @@ describe("the compact icon Button", () => {
     // B75 11-01, the birthday card's close X on /jobs (mocked session, birthday today, 375): 44x44 at (191,5) in the
     // card, 16px glyph at 14,14, colour, radius and hover wash unchanged before and after; it still closes the card.
     ["src/components/BirthdayPopup.tsx", /<button\b[^>]*onClick=\{dismiss\}/],
+    // B78 11-01, the desktop top bar's profile photo on /home (1440, mocked session): 44x44 at (1376,20), the 36px photo
+    // at (1380,24), transparent fill, radius 9999px before and after; a press opens /profile. The initials now read
+    // 15px/700, the same as the phone top bar's photo (AppTopBar, already this Button).
+    ["src/components/DesktopTopNav.tsx", /<button\b[^>]*aria-label="Profile"/],
   ])("%s: the ghost icon is the shared Button at iconCompact", (f, handMade) => {
     const src = code(f);
     expect(src).not.toMatch(handMade);

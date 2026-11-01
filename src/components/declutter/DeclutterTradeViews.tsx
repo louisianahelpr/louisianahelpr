@@ -28,7 +28,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
-import { fetchMyActiveStrikes, fetchMyCart, fetchPhotos, photoPublicUrl, startCheckoutPayment, type CartLine, type Handover } from "@/lib/declutter/api";
+import { fetchMyCart, fetchPhotos, photoPublicUrl, startCheckoutPayment, type CartLine, type Handover } from "@/lib/declutter/api";
 import { wayAllowed, waysEveryLineAllows } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -56,24 +56,13 @@ import { RemoveFromCart } from "./DeclutterCartRemove";
 import { invalidateTrades } from "./declutterLightActions";
 import { cartSectionWords, CheckoutCardHead } from "./DeclutterCartWords";
 import { firstPhotos } from "./DeclutterItemCard";
+import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
 export { OffersSection } from "./DeclutterOffersSection";
-
-/** "You have N of 3 strikes" (rows 7, 16, 17). Nothing when there are none. */
-export function StrikeCount({ userId }: { userId: string }) {
-  const strikes = useQuery({ queryKey: ["declutter", "strikes", userId], queryFn: () => fetchMyActiveStrikes(userId) });
-  const n = strikes.data ?? 0;
-  if (n === 0) return null;
-  return (
-    <DeclutterNotice tone="warn" title={`You have ${Math.min(n, 3)} of 3 strikes.`}>
-      {n >= 3
-        ? "Declutter is paused for you until one of them goes away. Each strike goes away 1 year after you got it."
-        : "Each strike goes away 1 year after you got it. At 3 strikes you can't buy or sell on Declutter until one goes away."}
-    </DeclutterNotice>
-  );
-}
+// The strike count is its own small module so Declutter's first screen does not pull this checkout code (B77).
+export { StrikeCount } from "./DeclutterStrikeCount";
 
 /** Q2427: the seller's bundle discount on these lines (useBundleDiscount), then the ordinary checkout panel. */
 function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void; held: boolean }) {
@@ -381,10 +370,11 @@ export function FinishSalesView() {
 
 /** BUY-15: a cart line's small photo; a grey square while it loads, when the item has none, or when it fails. */
 function CartThumb({ path }: { path?: string }) {
-  const [failed, setFailed] = useState(false);
+  // B77: the 160 px square first (the original was 356-560 KB for a 48 px box), the original if that fails, then grey.
+  const [stage, setStage] = useState<"thumb" | "full" | "failed">("thumb");
   return (
     <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted" data-cart-thumb="" aria-hidden="true">
-      {path && !failed && <img src={photoPublicUrl(path)} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} className="h-full w-full object-cover" />}
+      {path && stage !== "failed" && <img src={stage === "thumb" ? squarePhotoUrl(photoPublicUrl(path), THUMB_PHOTO_PX) ?? photoPublicUrl(path) : photoPublicUrl(path)} width={THUMB_PHOTO_PX} height={THUMB_PHOTO_PX} alt="" loading="lazy" decoding="async" onError={() => setStage((s) => (s === "thumb" ? "full" : "failed"))} className="h-full w-full object-cover" />}
     </span>
   );
 }

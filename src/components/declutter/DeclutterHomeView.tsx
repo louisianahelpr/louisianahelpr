@@ -39,20 +39,19 @@ import { DeclutterNotice, sellerStatusLabel } from "./declutterUi";
 import { ChevronRight, Settings, Tags } from "lucide-react";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
-import { ManageListingSheet } from "./DeclutterManageListing";
 import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
 import { StillAvailableSheet } from "./DeclutterStillAvailable";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useMyDropsTonight } from "./useMyDropsTonight";
-import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
+import { SectionHeading, useDeclutterTodo } from "./DeclutterTabBadges";
+import { StrikeCount } from "./DeclutterStrikeCount";
 import { OrdersUpdating } from "./OrdersUpdating";
-import { BuyingDash, SellingDash } from "./DeclutterMineViews";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { SELL_CHOOSER_PATH, SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
-import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
+import type { DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
@@ -66,8 +65,6 @@ import {
   type DeclutterTodo,
   type OldDeclutterView,
 } from "@/lib/declutter/tabs";
-import { WantedView } from "./DeclutterWantedViews";
-import { FreeView } from "./DeclutterFreeView";
 import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine } from "./DeclutterHaulAway";
 import { report } from "@/lib/errorLogger";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
@@ -87,6 +84,23 @@ const haulLib = () => import("@/lib/declutter/haulAway");
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
 const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
+
+// B77 (2026-11-01, "Nothing slow for users"): each tab's own code loads on its own, so the first screen downloads only
+// the tab it draws. Imported statically, every tab's code (Browse's map and filters, Buying's checkout, Selling's
+// sale tools, Wanted, Free: 608 KB gz with the boot code) downloaded beside the boot code and the app first drew at
+// 5.7 s on Slow 4G. src/boot/declutterRoute.ts starts the URL's tab beside the page, so it costs no extra round.
+const BuyingDash = lazy(() => import("./DeclutterMineViews").then((m) => ({ default: m.BuyingDash })));
+const SellingDash = lazy(() => import("./DeclutterMineViews").then((m) => ({ default: m.SellingDash })));
+const DeclutterBrowse = lazy(() => import("./DeclutterBrowseView").then((m) => ({ default: m.DeclutterBrowse })));
+const WantedView = lazy(() => import("./DeclutterWantedViews").then((m) => ({ default: m.WantedView })));
+// Opened from a listing's Manage button (or a price-drop notice), never part of the first screen.
+const ManageListingSheet = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.ManageListingSheet })));
+const FreeView = lazy(() => import("./DeclutterFreeView").then((m) => ({ default: m.FreeView })));
+
+/** While a tab's own code arrives (B77): the listing rows' shimmer, under the tabs row that is already drawn. */
+function TabSkeleton() {
+  return <div className="space-y-6"><Skeleton className="h-24 w-full rounded-[20px]" /><ListingsSkeleton /></div>;
+}
 
 /** Grey shimmer rows shaped like the listing cards (owner 2026-10-18, tweak 5). */
 function ListingsSkeleton() {
@@ -373,6 +387,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
         {asking?.status === "draft" ? "Its photos are removed and it moves to your selling history." : TAKE_DOWN_WORDS}
       </ConfirmSheet>
       {managing && (
+        <Suspense fallback={null}>
         <ManageListingSheet
           key={managing.id}
           item={managing}
@@ -384,6 +399,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
             if (!o) setManagingId(null);
           }}
         />
+        </Suspense>
       )}
     </section>
   );
@@ -500,7 +516,7 @@ function DeclutterGuestHome() {
       tabs={[]}
     />
   );
-  return <DeclutterBrowse userId={null} tabs={tabsFor} top={<DeclutterGuestBrowseJoin />} />;
+  return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} tabs={tabsFor} top={<DeclutterGuestBrowseJoin />} /></Suspense>;
 }
 
 function DeclutterMemberHome() {
@@ -580,7 +596,7 @@ function DeclutterMemberHome() {
     />
   );
   // Browse draws its own section screen, so its tabs row can carry its search, filters, map toggle and count.
-  if (view === "browse") return <DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} />;
+  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} /></Suspense>;
   return (
     // LEAD-DECL-SEARCHBAR (owner 2026-10-31, Deliver at 375): no full-width "Search all sections" bar under the tabs
     // on any tab. Every tab carries the same search as Jobs' 40px icon square, right before the gear (Browse's own
@@ -590,11 +606,13 @@ function DeclutterMemberHome() {
     <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}>
       <StrikeCount userId={user.id} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
+      <Suspense fallback={<TabSkeleton />}>
       {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>
           : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
               : view === "free" ? <FreeView userId={user.id} />
                 : <WantedView />}
+      </Suspense>
     </SectionScreen>
   );
 }

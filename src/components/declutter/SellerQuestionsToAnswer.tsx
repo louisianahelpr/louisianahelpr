@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { fetchUnansweredQuestions } from "@/lib/declutter/api";
 import { myItemsQuery } from "./myItemsQuery";
-import { SectionHeading } from "./DeclutterTabParts";
+import { SectionHeading } from "./DeclutterTabBadges";
 
 /** Listings a buyer can still ask about. */
 const ASKABLE = new Set(["live", "paused"]);

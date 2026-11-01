@@ -540,8 +540,9 @@ describe("Declutter location ask", () => {
     } as never;
     const r = render(<MemoryRouter><ItemCard item={item} photoPath="u2/declutter/i9/a.png" miles={null} approximate={false} /></MemoryRouter>);
     const tile = r.container.querySelector("[data-item-card]")!;
-    // The photo is on top; the icon is already underneath it (a transparent or loading photo shows the icon).
-    expect(tile.querySelector("img")).not.toBeNull();
+    // The photo is on top; the icon is already underneath it (a transparent or loading photo shows the icon). A later
+    // card's photo renders once firstRowPhotoGate opens (at once: no first-row photo is in flight, B77).
+    await waitFor(() => expect(tile.querySelector("img")).not.toBeNull());
     expect(tile.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
     // The card-sized thumbnail fails first (owner 10-31: thumbnails), then the full photo it falls back to.
     fireEvent.error(tile.querySelector("img")!);

@@ -103,8 +103,17 @@ export function publicRoots(root) {
   return [path.join(root, "src/main.tsx"), ...roots];
 }
 
-/** A first screen whose code must not ride in signed-in-shared: see declutterOnly below. */
-const DECLUTTER_ROOT = "src/pages/declutter/DeclutterPage.tsx";
+/**
+ * A first screen whose code must not ride in signed-in-shared: see declutterOnly below. The page, and the two tab
+ * chunks its first screen draws with (B77, 2026-11-01: DeclutterHomeView loads each tab lazily and
+ * src/boot/declutterRoute.ts starts the URL's tab beside the page). Left out, the tabs' signed-in code fell into
+ * signed-in-deep and Buying / Selling downloaded that whole chunk (43 KB gz, mostly other screens' code).
+ */
+const DECLUTTER_ROOTS = [
+  "src/pages/declutter/DeclutterPage.tsx",
+  "src/components/declutter/DeclutterMineViews.tsx",
+  "src/components/declutter/DeclutterBrowseView.tsx",
+];
 /** /profile starts its page through src/boot/profileRoute.ts; the page itself is named so the walk reaches it. */
 const PROFILE_ROOT = "src/pages/profile/Profile.tsx";
 
@@ -139,7 +148,7 @@ export function firstScreenRoots(root) {
   }
   // /declutter and /profile start their pages through boot route files, dynamic imports
   // the walk does not follow, so each page itself is named.
-  return [...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, DECLUTTER_ROOT)), toPosix(path.join(root, PROFILE_ROOT))];
+  return [...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT))];
 }
 
 /**
@@ -159,7 +168,7 @@ export function signedInSplit(root) {
   const reach = staticReach(root, firstScreenRoots(root));
   const firstScreen = new Set([...signedInOnly].filter((f) => reach.has(f)));
   const deep = new Set([...signedInOnly].filter((f) => !reach.has(f)));
-  const others = staticReach(root, firstScreenRoots(root).filter((r) => !toPosix(r).endsWith(DECLUTTER_ROOT)));
+  const others = staticReach(root, firstScreenRoots(root).filter((r) => !DECLUTTER_ROOTS.some((d) => toPosix(r).endsWith(d))));
   const declutterOnly = new Set([...firstScreen].filter((f) => !others.has(f)));
   // `homeOff`: the rest of firstScreen that Home's own first screen never runs
   // (AUD31-60/66). Every signed-in visitor lands on /home, and it downloaded the

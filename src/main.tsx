@@ -25,6 +25,7 @@ import { bounceToNativeAppIfReturning } from "./lib/nativeReturnBounce";
 import { purgeApiCache, purgeApiCacheOnControllerChange } from "./lib/apiCachePurge";
 import { hasPersistedAuthToken as tokenProbeAtBoot } from "./lib/persistedAuthToken";
 import { installLargeTitles } from "./lib/largeTitles";
+import { adoptBrowseShell } from "./boot/browseShellHandoff";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -214,6 +215,8 @@ if (import.meta.env.PROD && typeof navigator !== "undefined" && "serviceWorker" 
 // paints full-width and then reflows 248px narrower when the rail class
 // lands. See prePaintShellClasses for the full reasoning.
 applyPrePaintShellClasses();
+// /browse's server-drawn cards leave #boot-loader before React's first commit removes it (PERF-SHELL, Q652).
+adoptBrowseShell(window.location.pathname, tokenProbeAtBoot());
 
 // If this page is a Stripe return being shown inside the app's in-app browser
 // sheet, hand control back to the app instead of rendering a web page the user

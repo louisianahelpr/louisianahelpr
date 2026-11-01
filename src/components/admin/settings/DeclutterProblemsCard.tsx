@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
-import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
+import { adminDecideDeliveryDamage, adminDecideStuckDelivery, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
 import { offerCentsFromInput } from "@/lib/declutter/refundRequests";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -137,6 +137,11 @@ function ProblemItem({ row }: { row: ProblemRow }) {
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  const stuck = useMutation({
+    mutationFn: (who: "none" | "helpr") => adminDecideStuckDelivery(row.id, who, note.trim() || null),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "admin-problems"] }),
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
   const damage = useMutation({
     mutationFn: () => adminDecideDeliveryDamage(row.id, note.trim() || null),
     onSuccess: () => {
@@ -226,6 +231,19 @@ function ProblemItem({ row }: { row: ProblemRow }) {
           {part.trim() && !partOk ? (
             <p className="text-xs text-destructive-ink" role="alert">Enter an amount above $0 and below the item price{itemsCents ? ` (${formatPrice(itemsCents)})` : ""}.</p>
           ) : null}
+        </div>
+      )}
+      {/* BUY-36: a delivery the Helpr still has and can't finish is decided by fault. */}
+      {row.detail?.helpr_delivery && !falseOn && (
+        <div className="space-y-1" data-admin-stuck-delivery="">
+          <p className="text-xs text-muted-foreground">
+            If the Helpr has it and can't finish. Nobody's fault: the sale is cancelled, the buyer gets back all but the delivery fee and the card fee, the
+            Helpr is paid for the trip. The Helpr's fault: the sale is cancelled, the buyer gets everything back, the Helpr isn't paid, owes the card fee and gets a strike. The seller isn't paid either way.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => stuck.mutate("none")} disabled={stuck.isPending || decide.isPending}>Nobody's fault</Button>
+            <Button variant="outline" onClick={() => stuck.mutate("helpr")} disabled={stuck.isPending || decide.isPending}>The Helpr's fault</Button>
+          </div>
         </div>
       )}
       {deliveryReason && !falseOn && (

@@ -152,7 +152,8 @@ describe("every pop-up title is sentence case", () => {
     // 196: +1 the order chat after the order closes: "Your chat with the ${other}" (DeclutterOrderTalk, b3 train #3892).
     // 197: +1 "Continue where you left off" (DeclutterSellChooser's one Continue row opens a sheet of the kept choices, 2ef8b89f23).
     // 198: +1 "A one-time ID check" (IdentityCheckSheet's DialogHero, B49 train 5, behind identity_check).
-    expect(all.length).toBe(198);
+    // 199: +1 "Message about this delivery" (the delivery chat, BUY-36, DeliveryTalk).
+    expect(all.length).toBe(199);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

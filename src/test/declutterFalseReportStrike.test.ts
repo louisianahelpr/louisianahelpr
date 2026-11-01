@@ -9,11 +9,11 @@
  * 2026-10-28): src/test/pglite/declutterFalseReportStrike.pglite.mjs. The admin screen's explicit choice:
  * src/components/admin/settings/DeclutterProblemsCard.test.tsx.
  *
- * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |   IF p_false_report THEN\n    UPDATE public.declutter_problems SET strike_given = true | IF false THEN\n    UPDATE public.declutter_problems SET strike_given = true
- * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |     PERFORM public.declutter_give_strike(p.reporter_id, p.reporter_side, 'false_report', |     PERFORM public.declutter_give_strike(o.buyer_id, 'buyer', 'false_report',
- * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |                          OR p_fault IS DISTINCT FROM p.reporter_side\n | \n
- * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |                          OR p_decision IS DISTINCT FROM CASE p.reporter_side WHEN 'buyer' THEN 'pay_seller' ELSE 'refund_buyer' END) THEN | ) THEN
- * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |      OR p_false_report IS NULL OR (p_false_report AND p_strike) THEN |      OR (p_false_report AND p_strike) THEN
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF p_false_report THEN\n    UPDATE public.declutter_problems SET strike_given = true | IF false THEN\n    UPDATE public.declutter_problems SET strike_given = true
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     PERFORM public.declutter_give_strike(p.reporter_id, p.reporter_side, 'false_report', |     PERFORM public.declutter_give_strike(o.buyer_id, 'buyer', 'false_report',
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |                          OR p_fault IS DISTINCT FROM p.reporter_side\n | \n
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |                          OR p_decision IS DISTINCT FROM CASE p.reporter_side WHEN 'buyer' THEN 'pay_seller' ELSE 'refund_buyer' END) THEN | ) THEN
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |      OR p_false_report IS NULL OR (p_false_report AND p_strike) THEN |      OR (p_false_report AND p_strike) THEN
  * @mutate supabase/migrations/20261029000048_declutter_false_report_strike.sql |     'not_as_described', 'fake_offer', 'false_report')); |     'not_as_described', 'fake_offer'));
  * @mutate supabase/migrations/20261029000048_declutter_false_report_strike.sql | boolean) FROM PUBLIC, anon; | boolean) FROM PUBLIC;
  * @mutate src/lib/declutter/handover.ts |     ...(falseReport ? { p_false_report: true } : {}), |

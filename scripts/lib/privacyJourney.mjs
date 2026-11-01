@@ -131,7 +131,7 @@ export const EXPORT_SECTIONS = [
   "declutter_bundle_rules",
   "declutter_handover_talks", "declutter_handover_talk_messages",
   // The paid-order chat (20261030004216, exported by 20261030024748).
-  "declutter_order_talks", "declutter_order_talk_messages",
+  "declutter_order_talks", "declutter_order_talk_messages", "helpr_task_talk_messages",
   // The Free change (20261030064021, Q2487): asks for free items and the 30-day pause.
   "declutter_free_requests", "declutter_free_pauses",
   // Quotes (20261015091114, exported by 20261030081455, Q1866).

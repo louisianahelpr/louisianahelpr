@@ -322,14 +322,14 @@ const SignupPending = () => {
                   happens next.
 
                   What is still true is the deferred identity check: signup
-                  collects no ID, and Stripe IDV + payout setup are gated at the
-                  first post / apply (see complete-signup/index.ts's
-                  auto-approve comment). Naming it here is the difference
+                  collects no ID; the check comes once per account when the member
+                  posts a job, gets hired, lists or buys on Declutter, or takes
+                  a first payout (owner decisions 10-30). Naming it here is the difference
                   between "you're all set" and a promise we break later. */}
               <p className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Start right away</p>
               <p className="text-ds-13 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Your profile is already done — you'll land straight in the app.
-                {idCheckOn ? " The first time you hire someone or get paid, there's a one-time quick identity check." : ""}
+                {idCheckOn ? " Once per account there's a quick ID check: when you post a job, get hired, list or buy on Declutter, or at your first payout." : ""}
               </p>
             </div>
           </div>

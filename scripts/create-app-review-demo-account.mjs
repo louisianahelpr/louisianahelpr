@@ -53,9 +53,14 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
 const EMAIL = fs
   .readFileSync(path.join(repoRoot, "fastlane/metadata/review_information/demo_user.txt"), "utf8")
   .trim();
-const PASSWORD = fs
-  .readFileSync(path.join(repoRoot, "fastlane/metadata/review_information/demo_password.txt"), "utf8")
-  .trim();
+// Q1790: the password is no longer in the repo. It comes from the environment
+// (the value behind the ASC_REVIEW_DEMO_PASSWORD secret; the owner's copy is in
+// ~/.lh-backups/review-demo-password-<date>.txt from rotate-review-demo-password.mjs).
+const PASSWORD = String(process.env.ASC_REVIEW_DEMO_PASSWORD ?? "").trim();
+if (!PASSWORD) {
+  console.error("Set ASC_REVIEW_DEMO_PASSWORD (the reviewer password is not kept in the repo, Q1790).");
+  process.exit(1);
+}
 
 const adminHeaders = {
   apikey: SERVICE_ROLE_KEY,

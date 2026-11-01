@@ -93,6 +93,32 @@
       </array>
     </dict>
     <dict>
+      <!-- Chat voice notes: RichMessageInput records with useVoiceRecorder and uploadVoiceNote stores the clip -->
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeAudioData</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+    <dict>
+      <!-- In-app chat: messages are stored and shown to the other person -->
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeEmailsOrTextMessages</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+    <dict>
       <key>NSPrivacyCollectedDataType</key>
       <string>NSPrivacyCollectedDataTypePhotosorVideos</string>
       <key>NSPrivacyCollectedDataTypeLinked</key>
@@ -121,7 +147,7 @@
       <key>NSPrivacyCollectedDataType</key>
       <string>NSPrivacyCollectedDataTypeProductInteraction</string>
       <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
+      <true/><!-- CS-004: PostHog identify() sends the user id -->
       <key>NSPrivacyCollectedDataTypeTracking</key>
       <false/>
       <key>NSPrivacyCollectedDataTypePurposes</key>
@@ -134,7 +160,7 @@
       <key>NSPrivacyCollectedDataType</key>
       <string>NSPrivacyCollectedDataTypeCrashData</string>
       <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
+      <true/><!-- CS-004: Sentry setUser() sends the user id and email -->
       <key>NSPrivacyCollectedDataTypeTracking</key>
       <false/>
       <key>NSPrivacyCollectedDataTypePurposes</key>

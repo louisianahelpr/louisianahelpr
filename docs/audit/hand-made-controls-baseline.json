@@ -429,7 +429,7 @@
       "textarea": 1
     },
     "src/components/declutter/DeclutterQuestions.tsx": {
-      "button": 1,
+      "button": 2,
       "input": 2,
       "textarea": 1
     },
@@ -992,6 +992,9 @@
     "src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx": {
       "button": 2,
       "input": 1
+    },
+    "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx": {
+      "select": 3
     },
     "src/pages/jobs/jobPage/NoApplicantsYet.tsx": {
       "button": 1

@@ -6,6 +6,9 @@
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |   const live = (j: Job \| null \| undefined): j is Job => !!j && j.status === "in_progress" && !jobIsOverdue(j); |   const live = (j: Job \| null \| undefined): j is Job => !!j && j.status === "in_progress";
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       label: who ? `Waiting on ${who}` : "Waiting on a reply", |       label: "Waiting",
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |   ].sort((x, y) => (y.sort > x.sort ? 1 : y.sort < x.sort ? -1 : 0)); |   ];
+ * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       label: j.helper_id ? `Waiting on ${firstOf(hiredName(j, helperNames)) ?? "your Helpr"}` : "Waiting on Helprs", |       label: j.helper_id ? "Waiting on your Helpr" : "Waiting on Helprs",
+ * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       detail: posterStatusLine(j, n, new Date(), undefined, false, hiredName(j, helperNames)).detail, |       detail: posterStatusLine(j, n).detail,
+ * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       detail: posterStatusLine(j, 0, new Date(), undefined, false, hiredName(j, helperNames)).detail, |       detail: posterStatusLine(j).detail,
  */
 import { describe, it, expect } from "vitest";
 import { deriveLiveNow, deriveWaiting } from "@/pages/home/homeDashboard/nextUpStates";
@@ -65,5 +68,23 @@ describe("Waiting (board 83)", () => {
 
   it("nothing waiting: null (Home then says it is all caught up)", () => {
     expect(deriveWaiting([job({ status: "completed" })], {}, [])).toBeNull();
+  });
+});
+
+// JA-38 (audit 11-01): Home's Next up said "Your Helpr is on the way" while the job page and card say "Yusef is on the way".
+describe("the poster's Home lines name their Helpr", () => {
+  const names = { h1: "Yusef Bourgeois" };
+  it("Waiting: 'Waiting on Yusef' and the card's named line", () => {
+    const w = deriveWaiting([job({ id: "p3", status: "in_progress", helper_id: "h1", helper_confirmed_at: "t", helper_on_the_way_at: "2099-01-02T08:00:00Z" })], {}, [], null, names);
+    expect(w?.label).toBe("Waiting on Yusef");
+    expect(w?.detail).toBe("Yusef is on the way");
+  });
+  it("Live now: the card's named line", () => {
+    const l = deriveLiveNow([job({ id: "p4", status: "in_progress", helper_id: "h1", helper_confirmed_at: "t", helper_on_the_way_at: "2099-01-02T08:00:00Z" })], [], names);
+    expect(l?.detail).toMatch(/^Yusef /);
+  });
+  it("no name known: the neutral words stay", () => {
+    const w = deriveWaiting([job({ id: "p5", status: "in_progress", helper_id: "h9", helper_confirmed_at: "t", helper_on_the_way_at: "2099-01-02T08:00:00Z" })], {}, [], null, names);
+    expect(w?.label).toBe("Waiting on your Helpr");
   });
 });

@@ -1,3 +1,4 @@
+// @mutate src/components/sections/SectionTabs.tsx | items-end overflow-x-auto overflow-y-hidden no-scrollbar | items-end overflow-x-auto no-scrollbar
 // THE SECTION TAB ROW STAYS PUT WHEN THE PAGE SCROLLS (owner bug 2026-10-30, iPhone Safari on the live site:
 // on Jobs and Declutter the tab words vanished on a scroll, leaving the row's border and, on Jobs, the icons beside
 // it, and came back at the top).

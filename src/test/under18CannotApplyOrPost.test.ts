@@ -108,8 +108,8 @@ const REFUSAL_READERS: Record<string, RegExp> = {
   "src/pages/home/useApplyFlow.ts": /rpcErrorMessage\(\s*"apply_to_job"/,
   "src/components/job-card/activityActions/useOfferHandlers.ts": /isUnder18Refusal\(/,
   "src/lib/seriesDates.ts": /isUnder18Refusal\(/,
-  // CMP-4: the booked Helpr's Confirm reads respond_to_direct_offer's copy, which carries under_18.
-  "src/components/jobs/InstantBookingCard.tsx": /rpcErrorMessage\(\s*"respond_to_direct_offer"/,
+  // CMP-4: the booked Helpr's Confirm on an instant booking.
+  "src/components/jobs/InstantBookingCard.tsx": /isUnder18Refusal\(/,
 };
 
 const sources = walkSource([join(ROOT, "src")])

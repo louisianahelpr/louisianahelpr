@@ -317,8 +317,6 @@ export const RPC_ERROR_COPY = {
     not_authenticated: "Sign in again to continue.",
     booking_not_pending: "This booking already ended. Refresh the page to see where it stands.",
     decline_window_closed: "The 2 hours to decline have ended, so you're booked.",
-    // Q1586(c): a saved birthday under 18 (the instant booking's Confirm reads this call's copy).
-    under_18: UNDER_18_APPLY_COPY,
   },
   // CMP-4 instant book (20261101063725, 20261101065105, 20261101071621). Guard: src/test/instantBookScreens.test.tsx.
   rpc_my_instant_book_floors: {

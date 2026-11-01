@@ -16,6 +16,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import { pairLabel, PAIR_TEXT } from "@/components/ui/pairLabel";
 
 export type RowAction = {
   key: string;
@@ -29,20 +30,24 @@ export type RowAction = {
 
 // A long step ("Confirm they've arrived") wraps to two centred lines in its half at 375 rather than clipping (B93 look).
 const BTN = "min-w-0 w-full rounded-full px-4 text-ds-15 leading-tight";
+// Owner 11-01: in a side-by-side pair each button reads its SHORT label on ONE line ("Message", "Approve");
+// a button alone (one cell, or the More options sheet) keeps the full words (pairLabel.ts).
+const PAIR_BTN = `min-w-0 w-full rounded-full leading-tight ${PAIR_TEXT}`;
 
-function ActionButton({ a, lead }: { a: RowAction; lead?: boolean }) {
+function ActionButton({ a, lead, pair = false }: { a: RowAction; lead?: boolean; pair?: boolean }) {
   return (
     <Button
       type="button"
       variant={lead ? "primary" : "outline"}
       size="wrap"
       data-row-action={a.key}
-      className={`${BTN} ${a.danger ? "text-destructive-ink" : ""}`}
+      className={`${pair ? PAIR_BTN : BTN} ${a.danger ? "text-destructive-ink" : ""}`}
       disabled={a.disabled}
       onClick={a.go}
+      aria-label={pair && pairLabel(a.label) !== a.label ? a.label : undefined}
       {...(a.gated ?? {})}
     >
-      {a.label}
+      {pair ? pairLabel(a.label) : a.label}
     </Button>
   );
 }
@@ -88,17 +93,18 @@ export function JobPageActionRow({
   // `leadIsStep` still says which kind of lead it is (the callers' own reading); it no longer moves it.
   void leadIsStep;
   const stepRight = cardLead || (!!lead && !plainLead);
+  const pair = others > 0 && (cardLead || !!lead);
   const leadNode = cardLead
     ? <div key="lead" ref={setCardLeadHost} data-card-lead="" className="flex min-w-0" />
-    : lead ? <ActionButton key="lead" a={lead} lead={!plainLead} /> : null;
+    : lead ? <ActionButton key="lead" a={lead} lead={!plainLead} pair={pair} /> : null;
   const second = others === 0
     ? null
     : others === 1
       ? extras.length === 1
-        ? <ActionButton key="second" a={extras[0]} />
+        ? <ActionButton key="second" a={extras[0]} pair={pair} />
         : <div key="second" ref={setCardSecondHost} data-row-one-action="" className="flex min-w-0" />
       : (
-        <Button key="second" type="button" variant="outline" size="wrap" className={BTN} aria-haspopup="dialog" data-row-more="" onClick={() => setOpen(true)}>
+        <Button key="second" type="button" variant="outline" size="wrap" className={pair ? PAIR_BTN : BTN} aria-haspopup="dialog" data-row-more="" onClick={() => setOpen(true)}>
           More options
         </Button>
       );

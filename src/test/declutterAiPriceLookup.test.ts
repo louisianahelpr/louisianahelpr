@@ -1,6 +1,7 @@
 /**
  * LEAD-PRICE-LOOKUP (owner 2026-10-31): the used-price lookup, with the model call mocked.
- * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |   return Math.max(1, Math.min(1000, Math.round(r.low + (r.high - r.low) * 0.8))); |   return Math.max(1, Math.min(1000, Math.round((r.low + r.high) / 2)));
+ * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |   return Math.max(1, Math.min(1000, Math.round(r.low + ((r.high - r.low) * 35) / 100))); |   return Math.max(1, Math.min(1000, Math.round(r.low + (r.high - r.low) * 0.8)));
+ * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts | Online resale sold prices are only a CEILING: | Read the range generously, sellers ask near the top:
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |         tools: [{ type: "web_search_20260209", name: "web_search", max_uses: LOOKUP_MAX_SEARCHES }], |         tools: [],
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |   if (draft.flagged \|\| !draft.title.trim()) return estimate(); |   if (!draft.title.trim()) return estimate();
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts | const LOOKUP_MAX_SEARCHES = 1; | const LOOKUP_MAX_SEARCHES = 3;
@@ -36,8 +37,21 @@ describe("used-price lookup (LEAD-PRICE-LOOKUP)", () => {
     // Never a photo or member data: one text block, the item's words only.
     expect(body.messages[0].content).toEqual([{ type: "text", text: "Oak rocking chair. Brand: Amish made. Used, very good condition." }]);
     expect(JSON.stringify(body)).not.toMatch(/"image"|base64/);
-    expect(priceFromRange(r!)).toBe(80);
+    expect(priceFromRange(r!)).toBe(58);
     expect(lookupReason(r!)).toBe("Based on similar used items selling for $40-$90.");
+  });
+
+  it("owner 2026-11-01: the suggested number is the garage-sale point, low-to-middle of the range, never the top", () => {
+    const ranges: [number, number][] = [[40, 90], [8, 20], [10, 11], [25, 60], [100, 400], [5, 5]];
+    expect(ranges.length).toBeGreaterThan(4);
+    for (const [low, high] of ranges) {
+      const p = priceFromRange({ low, high });
+      expect(p).toBeGreaterThanOrEqual(low);
+      // At or below the middle, so never the high end the 10-30 rule picked.
+      expect(p).toBeLessThanOrEqual(Math.ceil((low + high) / 2));
+      if (high - low >= 4) expect(p).toBeLessThan(high);
+    }
+    expect(priceFromRange({ low: 100, high: 400 })).toBe(205);
   });
 
   it("a lookup that runs past its time box gives null, so the caller keeps its estimate", async () => {
@@ -84,7 +98,7 @@ describe("used-price lookup (LEAD-PRICE-LOOKUP)", () => {
   it("a draft takes the looked-up price and its numbers-only reason", async () => {
     const fetchImpl = vi.fn(async () => answer('{"low": 40, "high": 90}'));
     const d = await priceDraftFromLookup("k", draft(), { fetchImpl: fetchImpl as unknown as typeof fetch });
-    expect(d.priceDollars).toBe(80);
+    expect(d.priceDollars).toBe(58);
     expect(d.priceReason).toBe("Based on similar used items selling for $40-$90.");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -106,7 +120,7 @@ describe("used-price lookup (LEAD-PRICE-LOOKUP)", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
     // Owner 10-31: several bunch items came out with no price. The lookup prices them now.
     const unpriced = await priceDraftFromLookup("k", draft({ priceDollars: null, priceReason: null }), { fetchImpl: fetchImpl as unknown as typeof fetch });
-    expect(unpriced.priceDollars).toBe(80);
+    expect(unpriced.priceDollars).toBe(58);
     expect(unpriced.priceReason).toBe("Based on similar used items selling for $40-$90.");
     const none = vi.fn(async () => answer('{"low": 0, "high": 0}'));
     const still = await priceDraftFromLookup("k", draft({ priceDollars: null, priceReason: null }), { fetchImpl: none as unknown as typeof fetch });
@@ -114,15 +128,15 @@ describe("used-price lookup (LEAD-PRICE-LOOKUP)", () => {
     expect(still.priceReason).toBeNull();
   });
 
-  it("owner 10-31 drafts: ONE search, the label line right after the title, sold used prices, priced near the top", async () => {
+  it("owner 10-31 drafts: ONE search, the label line right after the title, sold used prices, priced like a garage sale", async () => {
     // Mocked model answers (the real API cannot be called locally): what each lookup is SENT is the measurement.
     const OWNER_DRAFTS: [string, string, number, number, number][] = [
-      ["Blue exercise stability ball", "Brand: Gaiam. Size: 65 cm\nInflated, no punctures.", 8, 20, 18],
-      ["Natra Cure gel booties", "Brand: NatraCure\nUsed twice.", 8, 18, 16],
-      ["3-tier letter trays", "Stackable mesh trays.", 8, 15, 14],
-      ["Heated eye mask", "Brand: Sunbeam. Model: USB\nWorks.", 10, 22, 20],
-      ["Brass cup drawer pulls in box", "Set of 12 in the box.", 25, 60, 53],
-      ["Christmas decor lot", "Ornaments and garland.", 15, 40, 35],
+      ["Blue exercise stability ball", "Brand: Gaiam. Size: 65 cm\nInflated, no punctures.", 8, 20, 12],
+      ["Natra Cure gel booties", "Brand: NatraCure\nUsed twice.", 8, 18, 12],
+      ["3-tier letter trays", "Stackable mesh trays.", 8, 15, 10],
+      ["Heated eye mask", "Brand: Sunbeam. Model: USB\nWorks.", 10, 22, 14],
+      ["Brass cup drawer pulls in box", "Set of 12 in the box.", 25, 60, 37],
+      ["Christmas decor lot", "Ornaments and garland.", 15, 40, 24],
     ];
     for (const [title, details, low, high, expected] of OWNER_DRAFTS) {
       const fetchImpl = vi.fn(async () => answer(`{"low": ${low}, "high": ${high}}`));
@@ -133,6 +147,11 @@ describe("used-price lookup (LEAD-PRICE-LOOKUP)", () => {
       expect(body.system).toMatch(/SOLD prices of this exact item/);
       expect(body.system).toMatch(/brand and model/);
       expect(body.system).toMatch(/Never use new or retail prices/);
+      // Owner 2026-11-01: the range is a garage or yard sale range; online sold prices are only its ceiling.
+      expect(body.system).toMatch(/local Louisiana garage or yard sale/);
+      expect(body.system).toMatch(/Online resale sold prices are only a CEILING/);
+      expect(body.system).not.toMatch(/generously|near the top|well-kept one fetches/);
+      expect(body.system).toMatch(/\{"low": <whole dollars>, "high": <whole dollars>\}/);
       const text: string = body.messages[0].content[0].text;
       expect(text.startsWith(`${title}.`)).toBe(true);
       const label = details.split("\n")[0];
@@ -147,7 +166,7 @@ describe("used-price lookup (LEAD-PRICE-LOOKUP)", () => {
     const t0 = Date.now();
     const out = await Promise.all([1, 2, 3].map(() => priceDraftFromLookup("k", draft(), { fetchImpl: slow as unknown as typeof fetch })));
     const took = Date.now() - t0;
-    expect(out.map((d) => d.priceDollars)).toEqual([18, 18, 18]);
+    expect(out.map((d) => d.priceDollars)).toEqual([14, 14, 14]);
     expect(slow).toHaveBeenCalledTimes(3);
     expect(took).toBeLessThan(800);
   });

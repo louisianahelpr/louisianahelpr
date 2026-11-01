@@ -1,18 +1,19 @@
 /**
  * Owner 2026-10-30, on their own listing: "Don't show the next possible drops ... I put it should never drop"; "I would
- * also rather my listing be on the high end"; the four statements "only need to be 1 check box".
+ * also rather my listing be on the high end" (superseded 2026-11-01: AI prices are GARAGE SALE prices); the four
+ * statements "only need to be 1 check box".
  *
  * The class, not just the screen:
  *   - a listing whose lowest price is its price is saved as drops off (buyers read drop_pct, never the lowest price);
  *   - what the form says before Post is what it saves;
  *   - "Never" under make-it-free says it is about free only;
  *   - every sell form takes the four statements through the ONE shared box (inventory: every source file naming them);
- *   - the suggested price asks for the high end of fair, and the sold-price range only bounds it.
+ *   - the suggested price is a garage-sale price (owner 2026-11-01), and the sold-price range only bounds it.
  *
  * @mutate src/components/declutter/sellForm.ts | return { floorCents: floor, dropPct: floor === price ? 0 : f.dropPct }; | return { floorCents: floor, dropPct: f.dropPct };
  * @mutate src/lib/declutter/priceDrop.ts |   return state.drops_stopped \|\| state.floor_price_cents >= currentCents; |   return state.drops_stopped;
  * @mutate src/lib/declutter/autoFree.ts | if (days === null) return "It won't become free on its own. This has nothing to do with price drops."; | if (days === null) return "It stays at your price until it sells or you change it.";
- * @mutate supabase/functions/declutter-ai-draft/index.ts | so pick the HIGH end of the fair range for this exact item, not the middle. | so pick a fair price for a quick local sale.
+ * @mutate supabase/functions/declutter-ai-draft/index.ts | Price it like a local Louisiana garage or yard sale: | Buyers here offer less, so pick the HIGH end of the fair range:
  * @mutate src/components/declutter/useSavedPickup.ts |     .filter((p) => p.address.trim() && p.area.trim() && Number.isFinite(p.lat) && Number.isFinite(p.lng)); |     .filter((p) => p.address.trim() && p.area.trim());
  */
 import { describe, expect, it } from "vitest";
@@ -105,19 +106,23 @@ describe("saved pickup places", () => {
   });
 });
 
-describe("the suggested price is the high end of fair", () => {
+describe("the suggested price is a garage-sale price (owner 2026-11-01)", () => {
   const edge = readFileSync(join(process.cwd(), "supabase/functions/declutter-ai-draft/index.ts"), "utf8");
   const rule = /const PRICE_RULE = `([^`]*)`/.exec(edge)?.[1] ?? "";
 
-  it("the prompt asks for the high end, honestly, not a quick sale; one item and a bunch share it", () => {
-    expect(rule).toMatch(/HIGH end of the fair range/);
-    expect(rule).toMatch(/never above what a similar used item/);
-    expect(rule).not.toMatch(/quick local sale|sell fast/);
+  it("the prompt asks for a local garage or yard sale price, honest to condition, never the high end; one item and a bunch share it", () => {
+    expect(rule.length).toBeGreaterThan(200);
+    expect(rule).toMatch(/local Louisiana garage or yard sale/);
+    expect(rule).toMatch(/quick-sale price/);
+    expect(rule).toMatch(/honest to its condition/);
+    expect(rule).toMatch(/Never mention retail, new, original or store prices/);
+    expect(rule).toMatch(/whole US dollars/);
+    expect(rule).not.toMatch(/high end|near the top|offer less/i);
     // The bunch's prompt is built on the single item's.
     expect(edge).toMatch(/const systemPrompt = `\$\{ITEM_SYSTEM_PROMPT\}/);
   });
 
-  it("our sold range only bounds it: a high figure inside the range stays, one above is held to the top, never the middle", () => {
+  it("our sold range only bounds it: a figure inside the range stays, one above is held to the top, never moved to the middle", () => {
     const d = sanitizeDraft(JSON.parse(JSON.stringify({ title: "Oak dresser", description: "Six drawers.", category: "furniture", delivery_size: "large", condition_stars: 4, possibly_banned: false, price_dollars: 70 })))!;
     const hint = { low_cents: 4000, high_cents: 7500, sales: 20 };
     expect(groundPrice(d, hint).priceDollars).toBe(70);

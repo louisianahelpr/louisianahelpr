@@ -9,7 +9,8 @@
  *
  * @mutate src/components/tracker/jobProgressState.ts |     p.stage === 4 ? !!job.helper_on_the_way_at |     p.stage === 4 ? true
  * @mutate src/components/tracker/jobProgressState.ts |     : p.stage === 5 ? !!(job.helper_arrived_at \|\| job.helper_arrival_verified_at \|\| job.poster_confirmed_arrival_at) |     : p.stage === 5 ? false
- * @mutate src/components/tracker/jobProgressState.ts |     : (job.status === "in_progress" \|\| job.status === "revision_requested") && !(lineId && HELPR_NOT_STARTED.has(lineId)); |     : true;
+ * @mutate src/components/tracker/jobProgressState.ts |     : (job.status === "in_progress" \|\| job.status === "revision_requested") && !(lineId && HELPR_NOT_STARTED.has(lineId)) && workUnderway !== false; |     : true;
+ * @mutate src/components/tracker/jobProgressState.ts |  && !(lineId && HELPR_NOT_STARTED.has(lineId)) && workUnderway !== false; |  && !(lineId && HELPR_NOT_STARTED.has(lineId));
  * @mutate src/components/tracker/JobProgress.tsx |   waiting: BAR.todo, |   waiting: BAR.them,
  * @mutate src/components/tracker/JobProgress.tsx |   happening: "bg-[hsl(var(--live-pill-tint))]", |   happening: "bg-[hsl(var(--amber-solid))]",
  * @mutate src/components/tracker/JobProgress.tsx |           begun={progress.begun} |           begun={undefined}
@@ -97,6 +98,18 @@ describe("Way / Arr. / Work: white while waiting, yellow while happening, filled
     expect(p.begun).toBe(false);
     expect(steps[6].getAttribute("data-step-phase")).toBe("waiting");
     expect(seg(6)).toContain("border border-border bg-transparent");
+  });
+
+  it("the poster's job page: the Helpr's tracking row says not started yet, so Working stays WHITE; started, YELLOW", () => {
+    // JobTracker passes helperProgress(job, trackingStatus).workUnderway: the Helpr's own row wins over the arrival confirm.
+    const waiting = drawn(WORKING, "poster", { viewer: "poster", workUnderway: false, tracking: { status: "arrived" } });
+    expect(waiting.p.stage).toBe(6);
+    expect(waiting.p.begun).toBe(false);
+    expect(waiting.seg(6)).toContain("border border-border bg-transparent");
+    cleanup();
+    const going = drawn(WORKING, "poster", { viewer: "poster", workUnderway: true, tracking: { status: "working" } });
+    expect(going.p.begun).toBe(true);
+    expect(going.seg(6)).toContain("bg-[hsl(var(--live-pill-tint))]");
   });
 
   it("done: every step filled, no yellow, no white current step", () => {

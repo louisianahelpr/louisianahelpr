@@ -113,13 +113,16 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: state.me ? { id: state.me } : null, profile: null, isLoading: false }) }));
 vi.mock("@/lib/declutter/lastDropoff", () => ({ fetchMyLastDropoff: async () => { state.lastDropoffReads += 1; return state.lastDropoff; } }));
-vi.mock("@/lib/declutter/delivery", () => ({
+vi.mock("@/lib/declutter/delivery", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/delivery")>()),
   fetchDeliveryQuote: async (sellerId: string, address: string) => {
     state.quotes.push({ sellerId, address });
     return { road_miles: 5, size: "large", delivery_cents: 4000, base_cents: 1000, per_mile_cents: 1000, size_cents: 2000, dropoff_area: "Baker, LA" };
   },
 }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
+// The Deliver to box is the shared address search; with Apple search off it takes a typed address (no token fetch).
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "error" }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => state.bundleRule,
@@ -1016,7 +1019,8 @@ describe("Declutter slice 3 screens", () => {
     expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/You pay\$3\.85\+ delivery/);
     fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "900 Far Rd, Baker, LA" } });
     fireEvent.click(screen.getByRole("button", { name: "Get price" }));
-    expect(await screen.findByText(/Helpr delivery, about 5 miles/)).toBeInTheDocument();
+    // Owner 2026-11-01: the price list by size, then the priced total under it (DeliveryPriceList).
+    expect(await screen.findByText(/About 5 miles · \$40/)).toBeInTheDocument();
     // The quote joins the bill as its own line: $3 item + $40 delivery, $43.85 in all (no fee line, issue #3672).
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {delivering && liveQuote && ( |         {false && (
     const bill = document.querySelector("[data-checkout-breakdown]")!;
@@ -1033,7 +1037,7 @@ describe("Declutter slice 3 screens", () => {
   // (their own rows only) fills it once; it is asked only when a way that delivers is chosen, and never over typing.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data); |     void 0;
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: !!me?.id && (delivering \|\| sellerDelivering), staleTime: 5 * 60_000 }); |     enabled: !!me?.id, staleTime: 5 * 60_000 });
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | onChange={(e) => { setAddressTouched(true); setAddress(e.target.value); setQuote(null); }} /> | onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}\n            onPicked | onTyped={(a) => { setAddress(a); setQuote(null); }}\n            onPicked
   it("BUY-9: Helpr delivery's Deliver to starts with the buyer's last drop-off, read only once delivery is chosen", async () => {
     state.deliveryOn = true;
     state.lastDropoff = "12 Oak St, Baton Rouge, LA";

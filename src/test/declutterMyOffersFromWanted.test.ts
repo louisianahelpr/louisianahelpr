@@ -28,7 +28,7 @@ const flat = (s: string) => blankSqlComments(s).replace(/\s+/g, " ");
 
 describe("D4-3: declutter_my_offers says which offers answer a Wanted post", () => {
   it("reads the newest definition (BUY-29's migration)", () => {
-    expect(newestFunction("declutter_my_offers").file).toContain("20261031095146");
+    expect(newestFunction("declutter_my_offers").file).toContain("20261101175510");
   });
 
   it("from_wanted is a yes/no from wanted_id; the id leaves only as open_wanted_id, the poster's own open post", () => {

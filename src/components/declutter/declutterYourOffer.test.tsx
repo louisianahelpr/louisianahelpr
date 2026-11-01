@@ -277,7 +277,9 @@ describe("the item page knows the buyer's own open offer (#4)", () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     expect(await screen.findByText("Your offer")).toBeInTheDocument();
     expect(screen.getByText("$25")).toBeInTheDocument();
-    expect(screen.getByText("Waiting for the seller, 39 hours left.")).toBeInTheDocument();
+    // The shared next-step line (owner 11-01): who it waits on, with the time left.
+    // @mutate src/components/declutter/DeclutterYourOffer.tsx |           : { who: "them", text: "Waiting on the seller to answer", by: timeLeft(offer.respond_by) }} |           : { who: "them", text: "Waiting on the seller to answer" }}
+    expect(document.querySelector("[data-your-offer] [data-next-step]")?.textContent).toBe("Waiting on the seller to answer · 39 hours left");
     expect(screen.queryByRole("button", { name: "Make an offer" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Change my offer" }));
     expect(state.responded).toEqual([]);

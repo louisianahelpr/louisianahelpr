@@ -8,6 +8,7 @@ import { withCardHoldCapture } from "@/lib/cardHoldCapture";
 import { queryKeys } from "@/lib/queryKeys";
 import { BOOKING_ENDED_COPY, declineTimeLeft, declineUntilClock, INSTANT_BOOK_GENERIC_ERROR } from "@/lib/instantBook";
 import { rpcErrorCode, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { isUnder18Refusal, UNDER_18_APPLY_COPY } from "@/lib/ageGate";
 
 export type InstantBookingOutcome = "confirmed" | "declined" | "ended" | "booked_now";
 
@@ -53,6 +54,8 @@ export function InstantBookingCard({ jobId, title, declineUntil, now: fixedNow }
     setBusy(null);
     if (!res.error) return done("confirmed");
     if (res.holdMessage === BOOKING_ENDED_COPY) return done("ended");
+    // Q1586(c): a saved birthday under 18 is refused by the accept path; say it in words.
+    if (isUnder18Refusal(res.error)) return setError(UNDER_18_APPLY_COPY);
     setError(res.holdMessage ?? rpcErrorMessage("respond_to_direct_offer", res.error) ?? INSTANT_BOOK_GENERIC_ERROR);
   };
 

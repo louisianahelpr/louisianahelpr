@@ -243,6 +243,35 @@ function cardHtml(job) {
   );
 }
 
+/**
+ * The site Footer (src/components/Footer.tsx) as a signed-out visitor's /browse draws it, byte for byte: React's own
+ * static render with the emblem's file and the year left as slots (src/test/browseShellFooter.test.tsx renders the
+ * real Footer and requires this exact string). WHY (lead decision 11-01 on Builder 66's measurement): while few jobs
+ * are open, the footer's H emblem is on the first screen and is the page's LCP element, and only the app drew it, at
+ * ~4.0 s on Slow 4G. Drawn here at the same place, the app's own emblem lands later on the same pixels at the same
+ * size, which is not a larger paint, so LCP stays at the shell's paint. Edit Footer.tsx, then paste the string the
+ * test prints.
+ */
+export const SHELL_FOOTER_HTML =
+  `<footer class="px-5 sm:px-8 lg:px-12 relative border-t border-[hsl(var(--olivewood))]/15" style="background-color:rgba(255, 255, 255, 0.08);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);color:hsl(var(--olivewood))"><div class="page-measure pt-6 md:pt-8 pb-2"><div class="grid grid-cols-2 min-[360px]:grid-cols-[auto_auto_auto] min-[360px]:justify-between min-[500px]:grid-cols-3 min-[500px]:justify-normal gap-x-4 gap-y-6 md:gap-8 min-[620px]:grid-cols-12"><div class="col-span-2 min-[360px]:col-span-3 min-[620px]:col-span-4 space-y-3"><a aria-label="Helpr home" class="flex items-center gap-2.5 group min-h-11" href="/" data-discover="true"><img src="__EMBLEM_SRC__" srcset="__EMBLEM_SRCSET__" sizes="40px" alt="Helpr" class="helpr-emblem h-10 w-auto select-none transition-transform duration-200 group-hover:scale-105" draggable="false"/></a><p class="text-ds-11 text-[hsl(var(--olivewood))]/80 max-w-xs leading-relaxed">Jobs, Declutter, Shops and Homes<br/>for Louisiana.</p></div><div class="col-span-2 order-1 min-[360px]:col-span-1 min-[360px]:order-none min-[620px]:col-span-3"><h2 class="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]" style="color:hsl(var(--muted-foreground))">Explore</h2><ul class="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85"><li><a class="link-standard" href="/browse" data-discover="true">Jobs</a></li><li><a class="link-standard" href="/help" data-discover="true">Help center</a></li><li><a class="link-standard" href="/support" data-discover="true">Contact us</a></li></ul></div><div class="order-3 min-[360px]:order-none min-[620px]:col-span-2"><h2 class="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]" style="color:hsl(var(--muted-foreground))">Legal</h2><ul class="space-y-2 text-ds-11 text-[hsl(var(--olivewood))]/85"><li><a class="link-standard" href="/terms" data-discover="true">Terms</a></li><li><a class="link-standard" href="/rules" data-discover="true">Rules</a></li><li><a class="link-standard" href="/privacy" data-discover="true">Privacy</a></li></ul></div><div class="order-2 min-[360px]:order-none min-[620px]:col-span-3"><h2 class="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]" style="color:hsl(var(--muted-foreground))">Follow</h2><div class="flex items-center gap-2.5"><a href="https://www.facebook.com/louisianahelpr" target="_blank" rel="noopener noreferrer" class="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--facebook))] text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110" aria-label="Follow us on Facebook (opens in a new tab)" title="Follow us on Facebook"><svg viewBox="0 0 24 24" class="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110" fill="currentColor" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14 13.5h2.5l1-4H14V7c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"></path></svg></a><a href="https://www.instagram.com/louisianahelpr/" target="_blank" rel="noopener noreferrer" class="group inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-all duration-300 ease-out hover:brightness-110" style="background-image:linear-gradient(135deg, #f9ce34 0%, #ee2a7b 50%, #6228d7 100%)" aria-label="Follow us on Instagram (opens in a new tab)" title="Follow us on Instagram"><svg viewBox="0 0 24 24" class="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1" fill="currentColor"></circle></svg></a></div></div></div><div class="mt-5 flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-[hsl(var(--olivewood))]/15"><p class="text-ds-11 text-[hsl(var(--olivewood))]/80 whitespace-nowrap">© __YEAR__ Louisiana Helpr · Helpr LLC</p><p class="text-ds-11 text-[hsl(var(--olivewood))]/80 flex items-center gap-1.5">Made with <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-heart w-3 h-3" aria-hidden="true" style="color:hsl(var(--bark));fill:hsl(var(--bark))"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path></svg> for Louisiana communities</p></div></div></footer>`;
+
+/** The Footer copy for the shell: its emblem (the page's own file), the year as the visitor's clock shows it. */
+export function shellFooterHtml(emblem, now = Date.now()) {
+  const year = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", year: "numeric" }).format(new Date(now));
+  return SHELL_FOOTER_HTML
+    .replace("__EMBLEM_SRC__", escapeShellText(emblem.src))
+    .replace("__EMBLEM_SRCSET__", escapeShellText(emblem.srcset))
+    // "© ", the year and the rest are three text nodes in the app's render (JSX `© {year} ...`); comments split
+    // the HTML's text the same way, so the line is shaped identically (one run measured 31 pixels apart at 375).
+    .replace("© __YEAR__ ", `© <!-- -->${year}<!-- --> `)
+    // A picture only, like the shell's nav: no tab stop and nothing read twice while the overlay covers the app.
+    .replace("<footer ", '<footer aria-hidden="true" inert="" ');
+}
+
+/** PublicLayout's root class for a signed-out web visitor (src/test/browseShellFooter.test.tsx holds them equal). */
+export const SHELL_LAYOUT_CLASS =
+  "min-h-screen page-warmth pb-[calc(var(--safe-area-bottom,0px)_+_var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip";
+
 /** The id main.tsx and DashboardGuest look for (src/boot/browseShellHandoff.ts holds the same string). */
 export const BROWSE_SHELL_ID = "lh-browse-shell";
 
@@ -262,13 +291,20 @@ export function browseShellHtml(rows, now = Date.now(), emblem = null) {
   // at z-index 2 the app's skeleton tabs showed through the overlay.
   return (
     `<div id="${BROWSE_SHELL_ID}" class="min-h-screen bg-premium-page" style="position:fixed;inset:0;z-index:2147483000;overflow:hidden;visibility:hidden">` +
-    `<div class="min-h-screen page-warmth relative flex flex-col overflow-x-clip">` +
+    // PublicLayout's own frame (its class, its mesh, the flex-1 body, then the Footer), so the footer stands where the
+    // app's does: on a short list the flex column pins it to the bottom of the first screen.
+    // --bottom-nav-h 0: the overlay is only ever on a signed-out web /browse, where MobileNav zeroes it
+    // (html.no-bottom-nav) as soon as the app runs; unset, PublicLayout's padding falls back to 96px and the footer
+    // stood 96px higher than the app's (lab 11-01: emblem at y 430 against the app's 526).
+    `<div class="${SHELL_LAYOUT_CLASS}" style="--bottom-nav-h:0px"><div aria-hidden="true" class="mesh-gradient-global"></div>` +
     `<div aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 glass-nav" style="padding-top:max(var(--safe-area-top, 0px), 0.25rem)"><div class="w-full flex items-center justify-between h-[var(--public-nav-h)] px-5 sm:px-8 lg:px-12">${mark}</div></div>` +
     `<div aria-hidden="true" style="height:calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))"></div>` +
-    `<div class="mx-auto page-measure px-5 sm:px-8 lg:px-12 pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6"><div class="flex items-center gap-3"><div class="shrink-0"><span aria-hidden="true" class="w-11 h-11 -ml-2 flex items-center justify-center shrink-0" style="color:hsl(var(--olivewood))"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></span></div><div class="flex flex-col leading-none min-w-0"><h1 class="text-page-title leading-tight truncate">Browse jobs</h1></div></div></div>` +
+    `<div class="flex-1"><div class="mx-auto page-measure px-5 sm:px-8 lg:px-12 pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6"><div class="flex items-center gap-3"><div class="shrink-0"><span aria-hidden="true" class="w-11 h-11 -ml-2 flex items-center justify-center shrink-0" style="color:hsl(var(--olivewood))"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></span></div><div class="flex flex-col leading-none min-w-0"><h1 class="text-page-title leading-tight truncate">Browse jobs</h1></div></div></div>` +
     `<div class="px-5 sm:px-8 lg:px-12 pb-16"><div class="mx-auto page-measure"><div class="grid grid-cols-1 gap-list md:grid-cols-2 md:gap-4">` +
     jobs.map(cardHtml).join("") +
-    `</div></div></div></div></div>`
+    `</div></div></div></div>` +
+    (emblem ? shellFooterHtml(emblem, now) : "") +
+    `</div></div>`
   );
 }
 

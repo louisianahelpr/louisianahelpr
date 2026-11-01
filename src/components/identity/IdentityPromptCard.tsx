@@ -1,4 +1,5 @@
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 import { identityView, openIdentityCheck, type IdentityCheckReason } from "@/lib/identityCheck";
 
@@ -47,9 +48,9 @@ export function IdentityPromptCard({
         <ShieldCheck className="w-4 h-4 shrink-0 text-primary" aria-hidden />
         <span className="flex-1 min-w-0">{line.title}</span>
         {line.cta && (
-          <button type="button" onClick={open} className="min-h-11 -my-2 px-1 text-ds-13 font-bold text-primary whitespace-nowrap">
+          <Button type="button" variant="ghost" size="sm" onClick={open} className="-my-2 px-1 text-ds-13 tracking-normal text-primary">
             {line.cta}
-          </button>
+          </Button>
         )}
       </div>
     );

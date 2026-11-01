@@ -164,6 +164,8 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "car
 const flowCalls = vi.hoisted(() => [] as string[]);
 // OnTheWayNow's position read (onTheWayPosition.ts): no position unless a test sets one.
 vi.mock("./onTheWayPosition", () => ({ fetchOnTheWayPosition: async () => state.position }));
+// The Apple map loads MapKit's script and a token over the network: a stand-in that says where it was pointed.
+vi.mock("@/components/TrackingMap", () => ({ TrackingMap: (p: { helperLive?: boolean }) => <div data-testid="tracking-map" data-live={String(p.helperLive)} /> }));
 vi.mock("./usePosterPageFlows", () => ({
   usePosterPageFlows: () => ({
     ready: true, completing: false, moreCount: state.moreCount, leadCount: state.leadCount,
@@ -706,8 +708,8 @@ describe("job page, the hired Helpr", () => {
     renderPage();
     // The step leads; Message and Open in working sit behind More options, one tap away (owner 2026-11-01).
     await screen.findByRole("button", { name: "Confirm you'll be at the job" });
-    await waitFor(() => expect(pageActions()).toContain("Message Rhonda"));
-    pressAction("Message Rhonda");
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    fireEvent.click(await within(document.querySelector("[data-row-options]") as HTMLElement).findByRole("button", { name: "Message Rhonda" }));
     expect(screen.getByTestId("where").textContent).toBe(`/messages?jobId=${row().id}&userId=${POSTER}`);
   });
 
@@ -1110,7 +1112,7 @@ function pageActions(): string[] {
   fireEvent.click(more);
   const sheet = document.querySelector("[data-row-options]") as HTMLElement;
   const listed = within(sheet).queryAllByRole("button").map((b) => b.textContent ?? "").filter((t) => t && t !== "Close");
-  fireEvent.keyDown(sheet, { key: "Escape" });
+  fireEvent.click(within(sheet).getByRole("button", { name: "Close" }));
   return [...inRow.filter((t) => t !== "More options"), ...listed];
 }
 /** Press an action, opening More options first when it is listed there (one tap). */
@@ -1251,7 +1253,8 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     state.job = booked();
     state.party = true;
     renderPage();
-    await waitFor(() => expect(pageActions()).toEqual(["Message Rhonda", "Change date or time", "Cancel job"]));
+    await screen.findByRole("button", { name: "Message Rhonda" });
+    expect(pageActions()).toEqual(["Message Rhonda", "Change date or time", "Cancel job"]);
     // Nor the card's controls mounted out of sight (their reads), with no step that uses them.
     expect(screen.queryByTestId("card-panel")).toBeNull();
   });
@@ -1285,7 +1288,8 @@ describe("one row of buttons at every stage (B93)", () => {
     expect(screen.getAllByRole("button", { name: "Confirm they've arrived" })).toHaveLength(1);
     expect(screen.queryByRole("button", { name: /Fewer options/ })).toBeNull();
     // Message is in the list, one tap away.
-    await waitFor(() => expect(pageActions()).toContain("Message Rhonda"));
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    expect(await within(document.querySelector("[data-row-options]") as HTMLElement).findByRole("button", { name: "Message Rhonda" })).toBeTruthy();
   });
 
   it("Approve and release (JA-9): how long the poster has to check, beside the button", async () => {

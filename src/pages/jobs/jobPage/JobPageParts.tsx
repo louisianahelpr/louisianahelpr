@@ -151,7 +151,8 @@ function helprNoPayWords(job: Pick<JobPageRow, "status" | "cancellation_fee" | "
   return { title: "Not paid", line: "This job was cancelled, so there's nothing to pay out." };
 }
 
-export function HelprMoney({ job, noShow = false }: { job: JobPageRow; noShow?: boolean }) {
+/** The Helpr's take-home and the words that go with it (one computation: takeHomeOneComputation.test.ts). */
+function useHelprMoney(job: JobPageRow, noShow = false) {
   const noPay = helprNoPayWords(job, noShow);
   // JA-29: during a dispute the money is held, not theirs yet.
   const disputed = job.status === "disputed" || !!job.has_active_dispute;
@@ -171,33 +172,57 @@ export function HelprMoney({ job, noShow = false }: { job: JobPageRow; noShow?: 
   const lines = [
     helpers > 1 ? `Your share of a job for ${helpers} Helprs.` : null,
     firstPayoutFee > 0 && !disputed && !fixedPay ? setupFeeWords(firstPayoutFee) : null,
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
+  return { net, fixedPay, lines, noPay, disputed };
+}
+
+/**
+ * The Helpr's amount, on the RIGHT of the page header like the poster's (owner 2026-11-01), "You take home" under it.
+ * Nothing to take home (JA-24): the word ("Not paid", "Cancelled late") and no figure. A dispute (JA-29): the amount
+ * with "On hold while we review" under it, never a certain take-home.
+ */
+export function HelprPrice({ job, noShow = false }: { job: JobPageRow; noShow?: boolean }) {
+  const { net, fixedPay, noPay, disputed } = useHelprMoney(job, noShow);
   if (noPay) {
     return (
-      <div data-helpr-money="" data-helpr-no-pay="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
-        <p className="text-ds-15 font-semibold">{noPay.title}</p>
-        <p className="mt-1.5 text-ds-13 text-muted-foreground">{noPay.line}</p>
-      </div>
-    );
-  }
-  if (disputed) {
-    return (
-      <div data-helpr-money="" data-helpr-money-held="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
-        <div className="flex items-baseline justify-between gap-3">
-          <p className="text-ds-15 font-semibold">On hold while we review</p>
-          <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
-        </div>
-        {helpers > 1 && <p className="mt-1.5 text-ds-13 text-muted-foreground">Your share of a job for {helpers} Helprs.</p>}
+      <div data-helpr-money="" data-helpr-no-pay="" className="shrink-0 text-right">
+        <p className="text-ds-16 font-bold leading-none">{noPay.title}</p>
       </div>
     );
   }
   return (
-    <div data-helpr-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
-      <div className="flex items-baseline justify-between gap-3">
-        {!fixedPay && <p className="text-ds-15 font-semibold">You take home</p>}
-        <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
+    <div data-helpr-money="" className="shrink-0 text-right">
+      <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
+      {disputed ? <p data-helpr-money-held="" className="mt-1 text-ds-12 font-semibold text-muted-foreground">On hold while we review</p>
+        : !fixedPay && <p className="mt-1 text-ds-12 font-semibold text-muted-foreground">You take home</p>}
+    </div>
+  );
+}
+
+/**
+ * Under the header: a crew share and the one-time setup fee; and for the hired Helpr of a finished, approved job, that
+ * it is paid and when the pay goes out (JA-22, Jobs audit 11-01: the poster's page said it, the Helpr's did not).
+ * A job that pays them nothing says why (JA-24) and nothing else; a held one never says it is paid.
+ */
+export function HelprMoneyNotes({ job, hired, noShow = false }: { job: JobPageRow; hired: boolean; noShow?: boolean }) {
+  const { lines, noPay, disputed } = useHelprMoney(job, noShow);
+  if (noPay) {
+    return (
+      <div data-helpr-money-notes="" className="space-y-1.5">
+        <p className="text-ds-13 text-muted-foreground">{noPay.line}</p>
       </div>
-      {lines.length > 0 && <p className="mt-1.5 text-ds-13 text-muted-foreground">{lines.join(" ")}</p>}
+    );
+  }
+  const approved = hired && !disputed && RELEASED.has(job.payment_status ?? "");
+  const at = approved && job.payout_scheduled_at && new Date(job.payout_scheduled_at).getTime() > Date.now() ? job.payout_scheduled_at : null;
+  const paid = !approved ? null
+    : job.payment_status === "released" ? "Approved and paid out to you."
+    : at ? `Approved. Your pay goes out ${payoutWhen(at)}.` : "Approved. Your pay goes out with the next payout.";
+  if (!paid && lines.length === 0) return null;
+  return (
+    <div data-helpr-money-notes="" className="space-y-1.5">
+      {paid && <p data-helpr-paid="" className="text-ds-14 font-semibold text-foreground">{paid}</p>}
+      {lines.length > 0 && <p className="text-ds-13 text-muted-foreground">{lines.join(" ")}</p>}
     </div>
   );
 }

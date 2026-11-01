@@ -44,6 +44,7 @@ import {
   removeWanted,
   removeWantedPhoto,
   reopenWanted,
+  retryWantedPhotoDeletes,
   updateWanted,
   wantedFormProblems,
   type WantedForm,
@@ -446,6 +447,9 @@ export function WantedView() {
   const { user } = useCurrentUser();
   const { origin, askDevice, asked, asking, deviceNote } = useDeclutterOrigin();
   const mine = useQuery({ queryKey: ["declutter", "wanted"], queryFn: fetchMyWanted });
+  // B67: a photo delete that failed on a bad connection is tried again on the next visit.
+  const userId = user?.id;
+  useEffect(() => { void retryWantedPhotoDeletes(userId); }, [userId]);
   // The sell chooser's "Looking for something? Post a Wanted" (?post=1, owner 2026-10-30) opens the form at once
   // (it shows once the area is known, as the button does).
   const [params, setParams] = useSearchParams();

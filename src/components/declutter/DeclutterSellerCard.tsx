@@ -6,6 +6,7 @@
  * card opens the seller's profile. Messages open after checkout, so there is
  * no "Message seller" here; questions go in the public Questions below.
  */
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, Star } from "lucide-react";
@@ -24,7 +25,11 @@ function joinedLabel(iso: string | null | undefined): string | null {
 }
 
 /** `noun`: who the card is about, for its accessible name (the job page reuses this card for the poster). */
-export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: string; noun?: "seller" | "poster" | "Helpr" }) {
+export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null }: {
+  sellerId: string; noun?: "seller" | "poster" | "Helpr";
+  /** Owner mockup 11-01: the item page folds "12+ more items · check out together" into the card (BundleLine). */
+  extra?: ReactNode;
+}) {
   const card = useQuery({ queryKey: ["declutter", "seller-card", sellerId], queryFn: () => fetchSellerCard(sellerId) });
   const stats = useQuery({ queryKey: ["declutter", "seller-stats", sellerId], queryFn: () => fetchSellerRating(sellerId) });
   // Q2265: what buyers said most (Declutter only; never on the job page's poster card). A failed read shows nothing.
@@ -77,6 +82,7 @@ export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: s
               </span>
             )}
             {joined && <span className="block text-xs text-muted-foreground">{joined}</span>}
+            {extra}
           </span>
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         </>

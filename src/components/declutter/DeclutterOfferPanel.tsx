@@ -4,7 +4,7 @@
  * show, and with no saved card either one asks for a card and comes back to
  * itself; DA-11: an offer asks at Send, after the amount is typed). Moved out of DeclutterTradeViews.tsx unchanged (component size limit).
  */
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -165,10 +165,12 @@ function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDel
   );
 }
 
-export function OfferPanel({ item, userId, askSignal = 0 }: {
+export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   item: DeclutterItem; userId: string;
   /** AUD31-15: the Questions hint's "Make an offer" counts up; each new count opens the offer box, as the button does. */
   askSignal?: number;
+  /** Owner mockup 11-01: the delivery line sits under the two buttons, inside this card. */
+  footer?: ReactNode;
 }) {
   const qc = useQueryClient();
   const { underAge } = useAgeGate();
@@ -389,27 +391,16 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
   }
   return (
     <section ref={panel} tabIndex={-1} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4 focus:outline-none" aria-label="Buy or make an offer">
-      {/* Full width and stacked on a phone (a long price never squeezes them); side by side from sm. */}
-      <div ref={buttons} className={myOffer || offersOff ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}>
-        {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
-            and Buy now steps back to an outline. */}
-        <Button
-          type="button"
-          size="wrap"
-          variant={showCardStep ? "outline" : undefined}
-          className="w-full rounded-full"
-          disabled={buy.isPending || card.isLoading}
-          aria-busy={card.isLoading || undefined}
-          onClick={() => tap("buy")}
-        >
-          <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
-        </Button>
+      {/* Owner mockup 11-01 (Mockup 1/2): Make an offer on the LEFT (outline), Buy now on the RIGHT (solid, with the
+          total), side by side at every width, as in the phone bar below. Alone (offers off, or an offer already sent),
+          Buy now takes the whole row. */}
+      <div ref={buttons} className={myOffer || offersOff ? "grid gap-2" : "grid grid-cols-2 gap-2"} data-offer-buttons="">
         {!myOffer && !offersOff && (
           <Button
             type="button"
             variant="outline"
             size="wrap"
-            className="w-full rounded-full"
+            className="w-full min-w-0 rounded-full"
             aria-expanded={open}
             disabled={offers.isLoading}
             onClick={() => (open ? setOpen(false) : tap("offer"))}
@@ -417,7 +408,21 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
             Make an offer
           </Button>
         )}
+        {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
+            and Buy now steps back to an outline. */}
+        <Button
+          type="button"
+          size="wrap"
+          variant={showCardStep ? "outline" : undefined}
+          className="w-full min-w-0 rounded-full"
+          disabled={buy.isPending || card.isLoading}
+          aria-busy={card.isLoading || undefined}
+          onClick={() => tap("buy")}
+        >
+          <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
+        </Button>
       </div>
+      {footer}
       {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
       {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
       {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons; the card step says when the card is charged. */}

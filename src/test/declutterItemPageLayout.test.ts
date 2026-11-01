@@ -1,12 +1,12 @@
 /**
- * LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31, screenshots ~/.lh-shots/owner-shots/item-page-1031-a/-b.png): on the
- * Declutter item page the Buy now / Make an offer box sits right under the price, title, place and delivery lines;
- * the seller card (and the "more from this seller" note) comes BELOW Questions; the "Pickup in <town>" line shows
- * only when no pickup places are listed under it. (The two lines under the buttons and the place labels:
- * declutterTradeViews.test.tsx and placeHours.test.tsx.) The sticky bottom bar is unchanged.
+ * The Declutter item page's order (owner mockups 11-01, Mockup 1 computer / Mockup 2 phone; replaces
+ * LEAD-ITEM-PAGE-LAYOUT of 2026-10-31): the price and place lines, then the Make an offer / Buy now card with the
+ * delivery line inside it, then the seller card (with "N more items" folded in) RIGHT under the buttons, then
+ * "About this item", then ONE pickup block, then Questions, then Report at the bottom. The pickup block never repeats
+ * "Pickup in <town>" (ItemPickupBlock says the cities once).
  *
- * @mutate src/components/declutter/DeclutterItemView.tsx | {!placesListed && ( | {true && (
- * @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />} |           {!isSeller && user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={false} preview={preview} free={free} />}
+ * @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} extra={bundle && canAct ? <BundleLine summary={bundle} /> : null} />} |           {!isSeller && user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={false} preview={preview} free={free} />}
+ * @mutate src/components/declutter/ItemPickupBlock.tsx | {how.join(" or ")} · {orList(cities)} | {how.join(" or ")} · Pickup in {orList(cities)}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -24,25 +24,29 @@ describe("the Declutter item page's order (owner 2026-10-31)", () => {
     expect(src.length).toBeGreaterThan(5000);
   });
 
-  it("price lines, then Buy now / Make an offer, then Details, Pickup, Questions, then the seller", () => {
+  it("price lines, then Make an offer / Buy now (delivery line inside), then the seller, About, Pickup, Questions, Report", () => {
     const delivered = at("data-item-delivered");
     const actions = at(") : actions}");
-    const details = at('id="declutter-details"');
-    const pickup = at('id="declutter-pickup"');
-    const questions = at("<DeclutterQuestions");
     const seller = at("<DeclutterSellerCard");
     const guestSeller = at("<DeclutterGuestSeller");
-    const moving = at("<DeclutterMovingSaleNote");
+    const details = at('id="declutter-details"');
+    const pickup = at("<ItemPickupBlock");
+    const questions = at("<DeclutterQuestions");
+    const report = at("<DeclutterReportListing");
     expect(delivered).toBeLessThan(actions);
-    expect(actions).toBeLessThan(details);
+    expect(src).toContain("footer={deliveredLine}");
+    expect(actions).toBeLessThan(Math.min(seller, guestSeller));
+    expect(Math.max(seller, guestSeller)).toBeLessThan(details);
     expect(details).toBeLessThan(pickup);
     expect(pickup).toBeLessThan(questions);
-    expect(Math.min(seller, guestSeller, moving)).toBeGreaterThan(questions);
+    expect(questions).toBeLessThan(report);
     expect(src.lastIndexOf("<DeclutterQuestions")).toBe(questions);
   });
 
-  it('"Pickup in <town>" shows only when no pickup places are listed', () => {
-    expect(src).toContain("{!placesListed && (");
-    expect(at("{!placesListed && (")).toBeLessThan(at("<ItemHandoverTimes"));
+  it("the pickup block names the cities once, never \"Pickup in <town>\"", () => {
+    const block = blankComments(readFileSync("src/components/declutter/ItemPickupBlock.tsx", "utf8"));
+    expect(block).toContain("{how.join(\" or \")} · {orList(cities)}");
+    expect(block).not.toMatch(/Pickup in /);
+    expect(src).not.toMatch(/Pickup in /);
   });
 });

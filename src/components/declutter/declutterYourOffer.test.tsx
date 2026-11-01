@@ -27,7 +27,7 @@
  *   (freeWaysOffered) as the free checkout.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -36,6 +36,8 @@ const state = {
   offers: [] as unknown[],
   responded: [] as { offerId: string; action: string }[],
   claimed: 0,
+  /** requestFreeAt: the pickup time the asker picked in the Ask sheet (owner 11-01, Mockup 3). */
+  askedAt: null as string | null,
   /** The member's own open asks for free items (the Free change, Q2487). */
   asks: [] as { id: string; item_id: string; status: string; created_at: string }[],
   withdrawn: [] as string[],
@@ -48,7 +50,14 @@ const state = {
 };
 
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
+// The Ask sheet's read (owner 11-01, Mockup 3): one place, open 7 AM to 9 PM every day.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({
+  ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null,
+  fetchItemPickupPlaces: async () => [{
+    id: "p1", label: "Home", area: "New Iberia", weekdays: [0, 1, 2, 3, 4, 5, 6],
+    windows: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "07:00", ends: "21:00" })),
+  }],
+}));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
@@ -69,10 +78,12 @@ vi.mock("@/lib/declutter/api", () => ({
     state.responded.push({ offerId, action });
     return "withdrawn";
   },
-  requestFree: async () => {
+  requestFreeAt: async (_item: string, at: string) => {
     state.claimed++;
+    state.askedAt = at;
     return "r2";
   },
+  fetchSellerCard: async () => ({ name: "Lexi Lombas" }),
   fetchMyFreeRequests: async () => state.asks,
   withdrawFreeRequest: async (id: string) => {
     state.withdrawn.push(id);
@@ -181,7 +192,22 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     const ask = await screen.findByRole("button", { name: "Ask for it" });
     await waitFor(() => expect(ask).not.toBeDisabled());
     fireEvent.click(ask);
+    // Owner 11-01 (Mockup 3): the button opens the sheet; the asker picks a time, and the ask carries it.
+    // @mutate src/components/declutter/FreeAskSheet.tsx |     mutationFn: (iso: string) => requestFreeAt(item.id, iso), |     mutationFn: (iso: string) => requestFreeAt(item.id, new Date().toISOString()),
+    // @mutate src/components/declutter/FreeAskSheet.tsx | : "the time you pick"} is already set, and you'll get the address. | : "the time you pick"}. If it's you, you'll confirm the pickup and get the address.
+    const times = await screen.findByRole("group", { name: /^Pickup time on / });
+    const firstTime = within(times).getAllByRole("button")[0];
+    fireEvent.click(firstTime);
+    const note = document.querySelector("[data-sheet-note]")!;
+    expect(note.textContent).toMatch(/^Free, nothing is charged\. Lexi picks who gets it\. If it's you, .+ is already set, and you'll get the address\.$/);
+    expect(state.claimed).toBe(0);
+    const send = screen.getByRole("button", { name: /^Ask for it · / });
+    expect(send.textContent).toContain(note.querySelector("strong")!.textContent!);
+    fireEvent.click(send);
     await waitFor(() => expect(state.claimed).toBe(1));
+    const at = new Date(state.askedAt!);
+    expect(at.getTime()).toBeGreaterThan(Date.now());
+    expect(at.getUTCMinutes()).toBe(0);
     expect(where).not.toBe("/declutter?tab=buying");
     show(<FreeCheckoutForSeller sellerId="s1" porchOk onDone={() => undefined} />);
     // Porch comes first; it is picked by a time in the place's hours (LEAD-PLACE-TIMES; was a day, BUY-18).
@@ -192,18 +218,29 @@ describe("the item page knows the buyer's own hold (#3)", () => {
   // DA-5 (Declutter audit 2026-10-30): the ask line said "at their home or from their porch" whatever the giver ticked.
   it("the ask line names only the ways this free item offers (DA-5)", async () => {
     const FREE = { ...ITEM, current_price_cents: 0, price_cents: 0 };
+    // Owner mockup 11-01: the rules sit behind "How it works"; the picked person's time is already set.
+    const rules = async () => {
+      fireEvent.click(await screen.findByRole("button", { name: "How it works" }));
+      return (await waitFor(() => { const el = document.querySelector("[data-free-rules]"); expect(el).not.toBeNull(); return el!; })).textContent!;
+    };
     state.ticks = ["porch"];
     const one = show(<FreeClaimPanel item={FREE} />);
-    expect(await screen.findByText(/48 hours to choose a time to collect it from their porch\./)).toBeInTheDocument();
-    expect(screen.queryByText(/their home/)).toBeNull();
+    await waitFor(async () => expect(document.querySelector("[data-free-claim]")).not.toBeNull());
+    await new Promise((r) => setTimeout(r, 20));
+    let text = await rules();
+    expect(text).toMatch(/that time is already set and you'll get the address to collect it from their porch\./);
+    expect(text).not.toMatch(/their home|48 hours/);
     one.unmount();
     state.ticks = null;
     const two = show(<FreeClaimPanel item={{ ...FREE, porch_ok: false }} />);
-    expect(await screen.findByText(/48 hours to choose a time to pick it up at their home\./)).toBeInTheDocument();
-    expect(screen.queryByText(/porch/)).toBeNull();
+    await new Promise((r) => setTimeout(r, 20));
+    text = await rules();
+    expect(text).toMatch(/you'll get the address to pick it up at their home\./);
+    expect(text).not.toMatch(/porch/);
     two.unmount();
     show(<FreeClaimPanel item={FREE} />);
-    expect(await screen.findByText(/48 hours to choose a pickup at their home or from their porch\./)).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(await rules()).toMatch(/you'll get the address to pick it up at their home or from their porch\./);
   });
 
   it("with the member's ask open: You asked for this, and Take back my ask withdraws that ask", async () => {

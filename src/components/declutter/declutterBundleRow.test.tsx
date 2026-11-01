@@ -3,7 +3,7 @@
  * discount can never apply. The row now asks declutter_bundle_applies (checkout's own bound) and shows the offer
  * only when one of the items can take it; before that read is deployed it shows as it did.
  *
- * @mutate src/components/declutter/DeclutterBundleRow.tsx | {offer && rule.data ? <span | {rule.data ? <span
+ * @mutate src/components/declutter/DeclutterBundleRow.tsx | offer: offer && rule.data ? bundleLabel(rule.data) : null | offer: rule.data ? bundleLabel(rule.data) : null
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";

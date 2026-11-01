@@ -156,7 +156,7 @@ BEGIN
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('sweep-unread-message-reminders', '0-59/5',
+    PERFORM cron.schedule('sweep-unread-message-reminders', '1-59/5 * * * *',
       $c$SELECT public.cron_record_work('sweep-unread-message-reminders', to_jsonb(public.sweep_unread_message_reminders()));$c$);
   END IF;
 END

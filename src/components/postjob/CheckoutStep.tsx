@@ -12,7 +12,6 @@ import {
   CreditCard,
   CheckCircle2,
   BookOpen,
-  DollarSign,
   ShieldCheck,
   Loader2,
   Gift,
@@ -261,45 +260,9 @@ export function CheckoutStep({
             </div>
           )}
 
-          {/* Budget with fee breakdown (none while asking for quotes: there is no price yet) */}
-          {!quoteAsk && <div className="px-4 py-3 flex items-start justify-between gap-3">
-            {/* Label is "Total", not "Budget" — it names the figure that now
-                leads this row (what the poster is charged), so the label and
-                the number agree. */}
-            <span className="text-ds-12 text-muted-foreground w-20 shrink-0 pt-0.5 flex items-center gap-1">
-              <DollarSign className="w-3 h-3" />Total
-            </span>
-            {/* The number that LEAVES the poster's account leads; the budget
-                (which does not) is the secondary line.
-                It previously read the other way round — budget bold at ds-13,
-                "You pay" beneath it at ds-11 — so the smaller figure was the
-                real one.
-
-                `totalCharge` is rendered here, NOT re-derived. This used to
-                compute `budgetNum + customerFeeAmount + urgentFeeNum +
-                onboardingFeeAmount` inline while the breakdown below rendered
-                the hook's `totalCharge` — the same formula in two places, 150
-                lines apart. They agreed only by coincidence: the moment a fee
-                is waived, capped or made conditional in useJobDerived, this
-                screen would show the poster two different answers to "what
-                will you charge me". One source, both places. */}
-            <div className="text-right">
-              <p className="text-ds-13 font-bold text-foreground">
-                ${formatPriceExact(totalWithTax)}
-                {/* A taxable job whose parish isn't known yet can only be
-                    quoted pre-tax — mark it rather than let this read as the
-                    final number. */}
-                {/* Never on the gift path: that total is exact, and a
-                    "+ tax" caveat on a $0.00 charge is noise that reads as
-                    doubt. */}
-                {!hasGift && salesTax === null && <span className="font-normal text-ds-11 text-muted-foreground"> + tax</span>}
-              </p>
-              <CheckoutBudgetLine budgetNum={budgetNum} totalWithTax={totalWithTax} hasGift={hasGift} giftAppliedAmount={giftAppliedAmount}
-                isUrgent={isUrgent} urgentFeeNum={urgentFeeNum} onboardingFeeAmount={onboardingFeeAmount}
-                visitCount={isRecurring ? seriesDates.length : 1} crewSize={isGroupJob ? helpersNeeded : 1} taxable={hasTaxableLine(category)} />
-
-            </div>
-          </div>}
+          {/* No money row here (audit 11-01 JA-45): the summary's "Total" printed the same figure the Payment
+              breakdown's Total prints below. The total is said once, in the breakdown, with the series / crew
+              lines under it. */}
 
           {/* Location — full street address (the poster's own job, so
               showing the complete address once at checkout is fine). No parish
@@ -398,7 +361,11 @@ export function CheckoutStep({
               Checking your gift card…
             </div>
           )}
-          <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} />
+          {/* JA-45: a plain job (nothing added, nothing taken off) shows its Total alone, not "Job budget $40"
+              over "Total $40". Any fee, bonus, gift or tax line brings the budget row back as the sum's first term. */}
+          {(hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category) && salesTax === null)) && (
+            <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} />
+          )}
           {/* Roadmap F3 (owner 2026-10-14/15): the poster pays exactly the job
               price. No service fee and no card-cost line; the row shows only
               if a fee is ever passed in (never for a post made today, since
@@ -592,6 +559,16 @@ export function CheckoutStep({
               </>
             );
           })()}
+          {/* What the one total covers (the lines the summary's Total row used to carry, JA-45): a Repeats
+              series ("$40 a visit · 4 visits", when later visits are charged) and a crew's split. The urgent
+              bonus and gift are itemised rows above, so they are not repeated here. */}
+          {!quoteAsk && (
+            <div data-testid="checkout-total-notes">
+              <CheckoutBudgetLine budgetNum={budgetNum} totalWithTax={budgetNum} hasGift={false} giftAppliedAmount={0}
+                isUrgent={false} urgentFeeNum={0} onboardingFeeAmount={0}
+                visitCount={isRecurring ? seriesDates.length : 1} crewSize={isGroupJob ? helpersNeeded : 1} taxable={hasTaxableLine(category)} />
+            </div>
+          )}
           {/* Escrow was explained FIVE times on this one screen: this pill and
               its auto-opening popover, the sentence below it, the three-step
               EscrowFlowExplainer panel, the confirmation checkbox, and the
@@ -692,7 +669,7 @@ export function CheckoutStep({
           className="mt-0.5 shrink-0"
         />
         <span className="text-ds-13 text-foreground leading-snug">
-          I've reviewed all details above and confirm everything is correct. I understand the Helpr's payout will be released after both parties confirm job completion.
+          {/* JA-45 (audit 11-01): only what is true. The old words promised payout "after both parties confirm job completion", which is not the rule when the poster does not answer. */}I've checked the details above, and they're right.
         </span>
       </label>
 

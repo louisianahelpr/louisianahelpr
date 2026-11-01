@@ -429,19 +429,10 @@ async function sweepJudge(admin: Client, claim: SweepClaim): Promise<SweepOutcom
       console.error("[declutter-ai-draft] sweep photo download failed:", claim.itemId, dlErr?.message);
       return "defect";
     }
-    let bytes = new Uint8Array(await blob.arrayBuffer());
-    let mediaType = imageMediaType(bytes);
-    if (!mediaType && bytes.length > 0) {
-      // Not a type the model reads (an iPhone HEIC): ask Storage's image transform for a rendered copy.
-      // NOT measured live (lead 10-31): if the transform hands back the same type, the check fails for this photo.
-      const { data: rendered } = await admin.storage.from("job-photos").download(p.storage_path, {
-        transform: { width: 2048, height: 2048, resize: "contain", quality: 80 },
-      });
-      if (rendered) {
-        bytes = new Uint8Array(await rendered.arrayBuffer());
-        mediaType = imageMediaType(bytes);
-      }
-    }
+    // No HEIC can get here: job-photos refuses image/heic and declutter_add_item_photo takes only JPEG, PNG or WebP
+    // objects (src/test/declutterCheckNeverSeesHeic.test.ts). Anything else the model can't read fails the try.
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const mediaType = imageMediaType(bytes);
     if (!mediaType || bytes.length === 0 || bytes.length > MAX_PHOTO_BYTES) {
       console.error("[declutter-ai-draft] sweep: a photo the model can't read", claim.itemId, bytes.length);
       return "failed";

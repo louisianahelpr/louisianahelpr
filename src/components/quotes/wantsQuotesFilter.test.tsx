@@ -92,7 +92,7 @@ describe('the "Wants Quotes" filter in Jobs browse (owner answer 12)', () => {
     expect(d).toContain("onToggleWantsQuotes={quotesOn ? toggleWantsQuotes : undefined}");
     expect(d).toMatch(/<WantsQuotesSlot active=\{wantsQuotes\} onShowAllJobs=\{showAllJobs\}>\s*<BrowseTasksFeed/);
     // While the lens is on, Browse shows no job count beside it (the count is of the job feed, not quotes).
-    expect(d).toContain("count: wantsQuotes ? undefined : headerCount");
+    expect(d).toContain("count: wantsQuotes || feedShowingLoadError ? undefined : headerCount");
     // Its own lazy chunk: the quotes reader never rides a signed-in first screen.
     const slot = src("src/components/quotes/WantsQuotesSlot.tsx");
     expect(slot).toContain('const WantsQuotesFeed = lazy(() => import("@/components/quotes/WantsQuotesFeed")');

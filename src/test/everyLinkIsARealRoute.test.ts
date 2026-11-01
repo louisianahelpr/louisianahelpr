@@ -102,7 +102,8 @@ function misses(text: string, found: Set<string>, where: string): string[] {
     }
     if (/\.[a-z0-9]+$/i.test(seg) && existsSync(join(REPO, "public", seg))) continue;
     // A route prefix used with startsWith ("/user" for /user/:userId) is served when a child of it is.
-    if (!served(path) && !served(`${path}/x`)) out.push(`${where} :: ${path}`);
+    // A prefix ending in "/" for a route two segments deep ("/hire/" for /hire/:service/:town) is served when a grandchild is.
+    if (!served(path) && !served(`${path}/x`) && !(path.endsWith("/") && served(`${path}x/x`))) out.push(`${where} :: ${path}`);
   }
   return out;
 }

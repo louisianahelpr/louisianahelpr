@@ -30,11 +30,11 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 function renderCard() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
+  return Object.assign(render(
     <QueryClientProvider client={qc}>
       <SignupSources />
     </QueryClientProvider>,
-  );
+  ), { qc });
 }
 
 beforeEach(() => {
@@ -65,9 +65,12 @@ describe("Admin sign-up sources (OPS-5)", () => {
       data: null,
       error: { code: "PGRST202", message: "Could not find the function public.admin_signup_source_report", hint: null },
     };
-    const { container } = renderCard();
-    await vi.waitFor(() => expect(rpcResult.calls).toHaveLength(1));
-    await vi.waitFor(() => expect(container).toBeEmptyDOMElement());
+    const { container, qc } = renderCard();
+    // Wait for the DATA (the read settled to "not deployed" = null), then assert the card is out.
+    await vi.waitFor(() => expect(qc.getQueryState(["admin", "signup-sources", 30])?.status).toBe("success"));
+    expect(qc.getQueryData(["admin", "signup-sources", 30])).toBeNull();
+    expect(rpcResult.calls).toHaveLength(1);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("any other failure is an error with a retry, never an empty table", async () => {

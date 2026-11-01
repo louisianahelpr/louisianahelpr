@@ -214,6 +214,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}
+      {!sellerNextFirst && !problem && <OrderTalkButton orderId={order.orderId} side={order.side} />}
       {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus orderId={order.orderId} side={order.side} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
       {!view && (order.handover === "porch" || order.handover === "pickup_home" || order.handover === "meetup") && (
         <PickupStatus
@@ -231,8 +232,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       {/* NIGHT-BUYINGopenpr-8: the same order as the buyer's card: the tracker, then the problem note, then each side. */}
       {problem && !view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
-      {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). */}
-      {!sellerNextFirst && <OrderTalkButton orderId={order.orderId} side={order.side} />}
+      {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). On a held order it comes after
+          the tracker, the note and each side (openpr-8); otherwise above the tracker (soldstates-3). */}
+      {!sellerNextFirst && problem && <OrderTalkButton orderId={order.orderId} side={order.side} />}
       {done ? (
         <>
           {/* BUY-31: said once. The buyer's head line says it, and SellerDeliveryStatus says it to the seller. */}

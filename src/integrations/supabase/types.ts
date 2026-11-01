@@ -2062,6 +2062,35 @@ export type Database = {
           },
         ]
       }
+      declutter_item_price_drops: {
+        Row: {
+          at: string
+          from_cents: number
+          item_id: string
+          to_cents: number
+        }
+        Insert: {
+          at?: string
+          from_cents: number
+          item_id: string
+          to_cents: number
+        }
+        Update: {
+          at?: string
+          from_cents?: number
+          item_id?: string
+          to_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_item_price_drops_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_item_private: {
         Row: {
           auto_free_day12: boolean

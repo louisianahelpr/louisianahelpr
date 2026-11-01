@@ -337,7 +337,7 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
      confirm". */
   confirm_arrival: { detail: "Confirm they arrived", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   /* FINDING #2 again, same rule, later step. */
-  working: { detail: "Work is underway", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
+  working: { detail: "Your Helpr is working", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
   approve: { detail: "Approve & release pay" },
   /* FINDING #3: `postedActivityBucket` returns Needs You for EVERY
      `revision_requested` job, including the half of it where the poster has

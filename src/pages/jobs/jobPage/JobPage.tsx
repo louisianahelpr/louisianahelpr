@@ -13,6 +13,7 @@
  * (§1.6): the page prints the city only.
  */
 import { InstantBookPanel } from "@/components/jobs/InstantBookPanel";
+import { useFeature } from "@/hooks/useFeature";
 import { InstantBookingCard } from "@/components/jobs/InstantBookingCard";
 import { Link, useNavigate } from "react-router-dom";
 import { Briefcase } from "lucide-react";
@@ -73,7 +74,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew, crewConfirmed } = useJobPage(id, userId);
   const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
   // CMP-4: the booked Helpr's instant booking (Confirm / Decline, the 2-hour countdown), the Working offer card's own.
-  const instantUntil = useMyInstantBooking(id, !isPoster && q.data?.job.direct_offer_status === "pending");
+  // Instant book is off for everyone (owner 11-01, switch 'instant_book'): no Book now list, no booking card.
+  const instantBookOn = useFeature("instant_book");
+  // The offer read is shared (useOfferedToMe), so the cached row is ignored too while the switch is off.
+  const bookedUntil = useMyInstantBooking(id, instantBookOn && !isPoster && q.data?.job.direct_offer_status === "pending");
+  const instantUntil = instantBookOn ? bookedUntil : null;
   // Q1586(c): the same under-18 grey-out as every other Apply; a tap says why, before the sheet and its uploads (JOBS-17).
   const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const trackingStatus = tracking.data ?? null;
@@ -226,7 +231,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {!isPoster && job.customer_id && <div className="order-6 lg:order-none"><PostedBy posterId={job.customer_id} /></div>}
           {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>}
           {/* CMP-4: the poster's top 3 with Book now, or who is booked and until when. Nothing when nobody qualifies. */}
-          {isPoster && !job.is_group_job && job.status === "open" && <div className="order-5 lg:order-none"><InstantBookPanel jobId={job.id} /></div>}
+          {instantBookOn && isPoster && !job.is_group_job && job.status === "open" && <div className="order-5 lg:order-none"><InstantBookPanel jobId={job.id} /></div>}
         </div>
 
         <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-4 lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5">

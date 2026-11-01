@@ -82,7 +82,11 @@ describe("Home loads section data code lazily", () => {
     expect(TITLE_BARS.length).toBeGreaterThan(3);
     for (const f of TITLE_BARS) {
       expect(staticValueImports(f, ["@/components/NotificationPanel"]), f).toEqual([]);
-      expect(readFileSync(resolve(__dirname, "../..", f), "utf8"), f).toContain('from "@/components/notificationPanel/NotificationBell"');
+      // DashboardTitleBar's DEFAULT bell never renders on /browse (its one caller passes `trailing`), so it keeps main's
+      // lazy NotificationPanel (B47, browseFirstPaintLoadsOverlaysLazily); either way the panel is off the first load.
+      const src = readFileSync(resolve(__dirname, "../..", f), "utf8");
+      if (f === "src/components/dashboard/DashboardTitleBar.tsx") expect(src, f).toContain('lazy(() => import("@/components/NotificationPanel"))');
+      else expect(src, f).toContain('from "@/components/notificationPanel/NotificationBell"');
     }
     const bell = "src/components/notificationPanel/NotificationBell.tsx";
     expect(staticValueImports(bell, ["@/components/NotificationPanel"])).toEqual([]);

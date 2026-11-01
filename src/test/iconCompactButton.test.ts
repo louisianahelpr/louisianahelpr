@@ -13,6 +13,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import ts from "typescript";
 import { buttonVariants } from "@/components/ui/button";
 import { trackedFiles } from "./helpers/trackedFiles";
 import { blankComments } from "./helpers/blankNonCode";
@@ -23,6 +24,28 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const REPO = resolve(__dirname, "../..");
 const code = (f: string) => blankComments(readFileSync(resolve(REPO, f), "utf8"));
+
+/** Every <Button> opening tag in a file, parsed (a `>` inside an attribute expression cannot cut it short). */
+function buttonTags(f: string): { size: string | null; className: string }[] {
+  const sf = ts.createSourceFile(f, readFileSync(resolve(REPO, f), "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const out: { size: string | null; className: string }[] = [];
+  const visit = (n: ts.Node) => {
+    if ((ts.isJsxOpeningElement(n) || ts.isJsxSelfClosingElement(n)) && n.tagName.getText(sf) === "Button") {
+      let size: string | null = null;
+      let className = "";
+      for (const a of n.attributes.properties) {
+        if (!ts.isJsxAttribute(a) || !a.initializer) continue;
+        const name = a.name.getText(sf);
+        if (name === "size") size = a.initializer.getText(sf).replace(/^["'{]+|["'}]+$/g, "");
+        if (name === "className") className = a.initializer.getText(sf);
+      }
+      out.push({ size, className });
+    }
+    ts.forEachChild(n, visit);
+  };
+  visit(sf);
+  return out;
+}
 
 describe("the compact icon Button", () => {
   it("is a 44px box whose fill sits in a 40px padding box", () => {
@@ -40,14 +63,13 @@ describe("the compact icon Button", () => {
       const src = code(f);
       // The toolbar's icon squares; BrowseSearchBar's raw buttons are a text "Clear", combobox options and the in-field ✕.
       if (named.some((n) => f.endsWith(`/${n}`)) && /<button\b/.test(src)) offenders.push(`${f}: hand-made <button>`);
-      for (const m of src.matchAll(/<Button\b[\s\S]*?>/g)) {
-        const tag = m[0];
-        if (/size="icon"/.test(tag)) offenders.push(`${f}: size="icon" (56px) in the toolbar`);
-        if (/className=\{?[`"'][^`"']*\b(?:h|w)-(?:\d|\[)/.test(tag)) offenders.push(`${f}: hand-set h-/w- on a Button`);
+      for (const tag of buttonTags(f)) {
+        if (tag.size === "icon") offenders.push(`${f}: size="icon" (56px) in the toolbar`);
+        if (/(^|[\s`"'])(?:[a-z-]+:)*!?(?:min-)?[hw]-(?:\d|\[)/.test(tag.className)) offenders.push(`${f}: hand-set h-/w- on a Button`);
       }
     }
     expect(offenders).toEqual([]);
-    const compact = files.flatMap((f) => [...code(f).matchAll(/size="iconCompact"/g)]).length;
+    const compact = files.flatMap((f) => buttonTags(f).filter((t) => t.size === "iconCompact")).length;
     expect(compact).toBeGreaterThan(3);
   });
 });

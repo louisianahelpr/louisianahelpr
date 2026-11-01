@@ -26,6 +26,10 @@
 export const BROWSE_FIXTURE_PURPOSE = "browse-apply";
 export const BROWSE_FIXTURE_TITLE = "SEED Deep clean a kitchen";
 const ADDRESS = "2000 Johnston St, Lafayette, LA 70503";
+/** NIGHT-JOBSMA5-2 (measured on prod 2026-10-31: the fixture row had latitude/longitude NULL): Browse listed it and
+ *  get_open_jobs_for_map, which needs a point, left it off the map ("list says 4, map shows 3"). Lafayette's centre,
+ *  not the street's own point: the map and the browse view round to 2 places (~1 km) anyway. */
+export const FIXTURE_POINT = { latitude: 30.22, longitude: -92.02 };
 const DAY = 86_400_000;
 
 const isoDate = (ms) => new Date(ms).toISOString().slice(0, 10);
@@ -53,6 +57,7 @@ export function fixtureRow(posterId, now = Date.now()) {
     pricing_mode: "set_price",
     is_seed: true,
     location: ADDRESS,
+    ...FIXTURE_POINT,
     date_needed: isoDate(now + 30 * DAY),
     created_at: new Date(now - DAY).toISOString(),
   };
@@ -74,11 +79,15 @@ export async function ensureBrowseFixture({ supabaseUrl, serviceKey, posterId, h
 
   const [reg] = await call("GET", `test_fixture_jobs?purpose=eq.${BROWSE_FIXTURE_PURPOSE}&select=job_id`);
   if (reg) {
-    const [job] = await call("GET", `jobs?id=eq.${reg.job_id}&select=id,status,payment_status,is_seed,customer_id,helper_id,date_needed`);
+    const [job] = await call("GET", `jobs?id=eq.${reg.job_id}&select=id,status,payment_status,is_seed,customer_id,helper_id,date_needed,latitude,longitude`);
     if (fixtureHealthy(job, posterId)) {
-      if (!job.date_needed || job.date_needed < isoDate(now + 7 * DAY)) {
-        const moved = await call("PATCH", `jobs?id=eq.${job.id}&select=id`, { date_needed: isoDate(now + 30 * DAY) });
-        if (!moved?.length) throw new Error(`browseFixture: could not move fixture ${job.id}'s date forward`);
+      const patch = {};
+      if (!job.date_needed || job.date_needed < isoDate(now + 7 * DAY)) patch.date_needed = isoDate(now + 30 * DAY);
+      // A fixture with no point is listed but never pinned on the map (NIGHT-JOBSMA5-2): give it one.
+      if (job.latitude == null || job.longitude == null) Object.assign(patch, FIXTURE_POINT);
+      if (Object.keys(patch).length > 0) {
+        const moved = await call("PATCH", `jobs?id=eq.${job.id}&select=id`, patch);
+        if (!moved?.length) throw new Error(`browseFixture: could not update fixture ${job.id} (${Object.keys(patch).join(", ")})`);
       }
       await call("DELETE", `applications?job_id=eq.${job.id}&helper_id=eq.${helperId}&select=id`);
       return { jobId: job.id, action: "kept" };

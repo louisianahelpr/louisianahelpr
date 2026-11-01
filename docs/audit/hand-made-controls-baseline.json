@@ -781,9 +781,6 @@
       "button": 2,
       "input": 1
     },
-    "src/components/profile/profileEditForm/SaveBar.tsx": {
-      "button": 2
-    },
     "src/components/profile/profileLanding/PayoutStatusRow.tsx": {
       "button": 2
     },

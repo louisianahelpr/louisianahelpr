@@ -419,6 +419,8 @@ async function settleOrder(
       message: `Order ${orderId}'s card hold (${dollars(amount)}) was not taken (${answer.result}) and was released at no cost. Its refund row: ${closed}.`,
       fields: { "Payment intent": paymentIntentId, Order: orderId },
       oncePerDayKey: `declutter-ship-hold-released:${paymentIntentId}`,
+      // A test-mode hold (every ship order until the owner turns shipping on) is test data: digest only, never a page.
+      seed: event.livemode !== true,
     });
     return;
   }

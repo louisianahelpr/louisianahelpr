@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPostJob";
+import type { MsgKey } from "@/lib/i18n/en";
 import { Search } from "lucide-react";
 import { SuggestCategory } from "@/components/SuggestCategory";
 import { GROUP_EMOJI, categoryEmoji } from "@/lib/categoryEmoji";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
-import { GROUP_TILE_LABEL, JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
+import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 
 
 /**
@@ -17,9 +20,9 @@ const SEARCH_HINTS: [RegExp, JobCategory[]][] = [
   [/\b(?:furniture|boxes|haul)\b/, ["moving", "declutter_help"]],
 ];
 
-/** Shorter tile labels where the group name wraps to three lines at 375 (lead 2026-10-21; the mock-up's own wording).
- *  One list with Edit profile's skill headings: jobCategoryGroups GROUP_TILE_LABEL. */
-const TILE_LABEL = GROUP_TILE_LABEL;
+/* A tile's title and examples are t("postJob.group.<id>") / t("postJob.groupEx.<id>"): their English is
+ * groupTileLabel(g) and g.examples word for word (src/test/postJobInSpanish.test.tsx), so the shorter tile label
+ * ("Moving & errands") stays one list with Edit profile's skill headings (jobCategoryGroups GROUP_TILE_LABEL). */
 
 interface Props {
   category: string;
@@ -46,6 +49,8 @@ interface Props {
  */
 export function JobCategoryGroups({ category, setCategory, group, setGroup, onPicked }: Props) {
   const [query, setQuery] = useState("");
+  // Post a job in Spanish (A3-3): the grid's words follow the member's language.
+  const { t } = useLanguage();
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -110,8 +115,8 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
         <span data-tile-icon="" className="inline-flex shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] leading-none" aria-hidden>
           {GROUP_EMOJI[g.id]}
         </span>
-        <span data-tile-title="" className="block min-w-0 text-ds-15 font-semibold">{TILE_LABEL[g.id] ?? g.label}</span>
-        <span data-tile-sub="" title={g.examples} className="block min-w-0 line-clamp-2 text-ds-13 font-normal text-muted-foreground">{g.examples}</span>
+        <span data-tile-title="" className="block min-w-0 text-ds-15 font-semibold">{t(`postJob.group.${g.id}` as MsgKey)}</span>
+        <span data-tile-sub="" title={t(`postJob.groupEx.${g.id}` as MsgKey)} className="block min-w-0 line-clamp-2 text-ds-13 font-normal text-muted-foreground">{t(`postJob.groupEx.${g.id}` as MsgKey)}</span>
       </button>
     );
   };
@@ -123,37 +128,37 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
   return (
     <div id="category-picker" className={open ? "pj-cq" : "pj-cq space-y-5"}>
       {open ? (
-        <section aria-label={`In ${open.label}`} className="pj-tiles grid gap-2.5">
+        <section aria-label={t("postJob.inGroup", { group: t(`postJob.group.${open.id}` as MsgKey) })} className="pj-tiles grid gap-2.5">
           {open.items.map(categoryTile)}
         </section>
       ) : (
         <>
           <label className="flex min-h-[52px] items-center gap-3 rounded-full border border-border bg-card px-4 focus-within:ring-2 focus-within:ring-ring">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="sr-only">Search categories</span>
+            <span className="sr-only">{t("postJob.searchCategories")}</span>
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="e.g. wash my driveway"
+              placeholder={t("postJob.searchPlaceholder")}
               className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
           </label>
 
           {matches ? (
-            <section aria-label="Matching categories" className="space-y-2.5">
-              <h2 className="font-sans text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Matches</h2>
+            <section aria-label={t("postJob.matchingCategories")} className="space-y-2.5">
+              <h2 className="font-sans text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t("postJob.matches")}</h2>
               {matches.length > 0 ? (
                 <div className="pj-tiles grid gap-2.5">{matches.map(categoryTile)}</div>
               ) : (
                 <p className="font-sans text-ds-14 text-muted-foreground">
-                  No category matches "{query.trim()}". Pick a group below, or Something else.
+                  {t("postJob.noMatch", { query: query.trim() })}
                 </p>
               )}
             </section>
           ) : null}
 
-          <section aria-label="Category groups" className="pj-group-tiles grid gap-2.5">
+          <section aria-label={t("postJob.categoryGroups")} className="pj-group-tiles grid gap-2.5">
             {JOB_CATEGORY_GROUPS.map(groupTile)}
           </section>
 

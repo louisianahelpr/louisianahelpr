@@ -167,6 +167,13 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     // A real cancel (a person did it) stays Cancelled.
     expect(jobProgress({ ...expired, cancelled_by: "p" }, { viewer: "poster", now: NOW })).toMatchObject({ label: "Cancelled" });
   });
+  // @mutate src/components/tracker/jobProgressState.ts | return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${when(doneMs)}`, held); | return at(8, false, "Done", "", held);
+  it("JA-11: a finished job's line says when it finished, on both sides", () => {
+    const done: ProgressJob = { ...base, status: "completed", helper_id: "h", helper_confirmed_at: "t", payment_status: "payout_pending",
+      helper_completed_at: "2037-10-21T14:00:00Z", poster_completed_at: "2037-10-21T14:20:00Z" };
+    expect(jobProgress(done, { viewer: "poster", otherFirst: "Yusef", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
+    expect(jobProgress(done, { viewer: "helpr", otherFirst: "Dana", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
+  });
   it("the job page reads the columns the expired rule needs", () => {
     const src = readFileSync(resolve(__dirname, "../../pages/jobs/jobPage/useJobPage.ts"), "utf8");
     const party = src.match(/const PARTY_COLUMNS =\s*"([^"]+)"/)?.[1] ?? "";

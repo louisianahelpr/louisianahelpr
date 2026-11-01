@@ -6,15 +6,18 @@
  * The Fastfile stages the secret into the temporary upload copy only.
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { rotate, refusal, REVIEWER_EMAIL } from "../../scripts/rotate-review-demo-password.mjs";
+import { rotate, refusal, REVIEWER_EMAIL, newPassword, meetsAuthPolicy } from "../../scripts/rotate-review-demo-password.mjs";
 
 // @mutate scripts/rotate-review-demo-password.mjs |   if (freeze.frozen) return `App Review | if (false) return `App Review
 // @mutate scripts/rotate-review-demo-password.mjs |   if (!stored.ok) return { code: 1, | if (false) return { code: 1,
 // @mutate scripts/rotate-review-demo-password.mjs |   lines.push(`GitHub secret ${SECRET_NAME} set`); |   lines.push(`GitHub secret ${SECRET_NAME} set ${password}`);
 // @mutate scripts/rotate-review-demo-password.mjs |   if (!apply) { |   if (false) {
 // @mutate fastlane/Fastfile | stage_review_demo_password!(staged_metadata_dir)\n\n      staged_screenshots_dir | \n\n      staged_screenshots_dir
+// @mutate scripts/rotate-review-demo-password.mjs |     if (meetsAuthPolicy(p)) return p; |     return p;
+// @mutate .github/workflows/deploy.yml |           ASC_REVIEW_DEMO_PASSWORD: ${{ secrets.ASC_REVIEW_DEMO_PASSWORD }} |           ASC_REVIEW_DEMO_PASSWORD_UNUSED: ${{ secrets.ASC_REVIEW_DEMO_PASSWORD }}
+// @mutate scripts/rotate-review-demo-password.mjs |  && /[^A-Za-z0-9]/.test(p); |;
 
 const ROOT = join(__dirname, "..", "..");
 const URL_ = "https://example.supabase.co";
@@ -94,11 +97,33 @@ describe("rotate-review-demo-password (Q1790)", () => {
     expect(r.lines.join("\n")).toMatch(/OLD password still works/);
   });
 
+  it("every generated password meets prod Auth's policy (lower, upper, digit, symbol; 422 weak_password otherwise)", () => {
+    expect(meetsAuthPolicy("abcdefghijkl")).toBe(false);
+    expect(meetsAuthPolicy("AbcDef123456")).toBe(false);
+    expect(meetsAuthPolicy("AbcDef12345-")).toBe(true);
+    // A draw with no symbol (base64url gives one only from - or _) is refused and drawn again.
+    const draws = [Buffer.from("A".repeat(17) + "B"), Buffer.from("Ab1-Ab1-Ab1-Ab1-Ab1-Ab1-", "base64url")];
+    const seen: string[] = [];
+    const p = newPassword(() => { const b = draws.shift() ?? Buffer.from("x"); seen.push(b.toString("base64url")); return b; });
+    expect(seen.length).toBe(2);
+    expect(p).toBe(seen[1]);
+    for (let i = 0; i < 200; i += 1) expect(meetsAuthPolicy(newPassword())).toBe(true);
+  });
+
   it("both upload lanes stage the secret into the temporary metadata copy", () => {
     const fastfile = readFileSync(join(ROOT, "fastlane", "Fastfile"), "utf8");
     const calls = fastfile.match(/^\s*stage_review_demo_password!\(staged_metadata_dir\)$/gm) ?? [];
     expect(calls.length).toBe(2);
     const wf = readFileSync(join(ROOT, ".github", "workflows", "ios-metadata.yml"), "utf8");
     expect(wf).toMatch(/ASC_REVIEW_DEMO_PASSWORD: \$\{\{ secrets\.ASC_REVIEW_DEMO_PASSWORD \}\}/);
+    // deploy.yml's release lane uploads review_information too (rotated 2026-11-01).
+    const deploy = readFileSync(join(ROOT, ".github", "workflows", "deploy.yml"), "utf8");
+    expect(deploy).toMatch(/^\s+ASC_REVIEW_DEMO_PASSWORD: \$\{\{ secrets\.ASC_REVIEW_DEMO_PASSWORD \}\}$/m);
+  });
+
+  it("the password is no longer in the repo: the tracked file is gone and ignored", () => {
+    expect(existsSync(join(ROOT, "fastlane", "metadata", "review_information", "demo_password.txt"))).toBe(false);
+    const ignored = readFileSync(join(ROOT, ".gitignore"), "utf8").split("\n").map((l) => l.trim());
+    expect(ignored).toContain("fastlane/metadata/review_information/demo_password.txt");
   });
 });

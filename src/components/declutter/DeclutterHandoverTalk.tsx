@@ -16,6 +16,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -59,10 +60,10 @@ export function NoWayWorks({ sellerId, who = "seller" }: { sellerId: string; who
         None of the ways this {who} offers works for you here. Message the {who} to agree one. Your checkout time waits
         while you talk (up to 3 days), and nobody gets a strike if you can't agree.
       </p>
-      <button type="button" className="min-h-11 rounded-full border border-border px-4 py-2 text-sm font-semibold"
+      <Button type="button" variant="ghost" size="sm" className="border border-border py-2 text-sm font-semibold tracking-normal"
         disabled={start.isPending} onClick={() => start.mutate()}>
         {start.isPending ? "Opening…" : `Message the ${who}`}
-      </button>
+      </Button>
     </div>
   );
 }

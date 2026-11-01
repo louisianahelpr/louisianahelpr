@@ -151,8 +151,8 @@ export default function MaintenanceRequestView() {
             <fieldset className="space-y-1">
               <legend className="text-sm font-medium mb-1">Or say no, with a reason your tenant will see</legend>
               {(Object.keys(DECLINE_REASON_LABEL) as DeclineReason[]).map((k) => (
-                <label key={k} className="flex items-center gap-2 text-sm">
-                  <input type="radio" name="decline-reason" checked={reason === k} onChange={() => setReason(k)} />
+                <label key={k} className="flex min-h-11 items-center gap-2 text-sm">
+                  <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name="decline-reason" checked={reason === k} onChange={() => setReason(k)} />
                   {DECLINE_REASON_LABEL[k]}
                 </label>
               ))}

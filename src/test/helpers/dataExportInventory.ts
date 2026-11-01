@@ -178,6 +178,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   job_post_drafts: { by: ["user_id"] },
   // LEAD-EXPORT-SIGNUP-SOURCE (20261101022048): the member's own sign-up source words.
   member_signup_sources: { by: ["user_id"] },
+  profile_handles_retired: { by: ["user_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.

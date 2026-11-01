@@ -74,7 +74,14 @@ const def = await defOf();
 
 // 1. The old body VERBATIM except the one dropped key.
 const CHANGE = ["- 'seller_id' END), '[]'::jsonb) FROM public.declutter_order_porch_places t", "- 'seller_id' - 'label' END), '[]'::jsonb) FROM public.declutter_order_porch_places t"];
-ok(oldDef.split(CHANGE[0]).length === 2 && def === oldDef.replace(CHANGE[0], CHANGE[1]), "the new body is 20261101025001's verbatim except the buyer's copy drops 'label'", skip ? "skip" : "");
+const RETIRED = `  -- LEAD-PROFILE-LINK (20261101034834): the profile links this member used before, kept so old links still find them.
+  v_out := v_out || jsonb_build_object('profile_handles_retired', (SELECT coalesce(jsonb_agg(jsonb_build_object(
+             'handle', t.handle, 'retired_at', t.retired_at)), '[]'::jsonb) FROM public.profile_handles_retired t
+             WHERE t.user_id = v_uid));
+
+  RETURN v_out;`;
+ok(oldDef.split(CHANGE[0]).length === 2 && def === oldDef.replace(CHANGE[0], CHANGE[1]).replace("  RETURN v_out;", RETIRED),
+  "the new body is 20261101025001's verbatim except the buyer's copy drops 'label' and the retired-handles section", skip ? "skip" : "");
 
 // 2. ACL.
 const acl = (await db.query(`SELECT
@@ -162,6 +169,12 @@ ok(seller?.declutter_order_porch_places?.[0]?.label === "Camp", "  the seller's 
 ok(bf && !("address" in bf) && !("lat" in bf) && !("lng" in bf) && !("seller_id" in bf), "  and has no address, point or seller id", JSON.stringify(bf));
 ok(Array.isArray(stranger?.declutter_order_porch_places) && stranger.declutter_order_porch_places.length === 0 && stranger.declutter_porch_places.length === 0, "a stranger gets none of it");
 ok(Array.isArray(seller?.declutter_seller_porch_days), "the porch days section is still there");
+await db.exec(`CREATE TABLE IF NOT EXISTS public.profile_handles_retired (handle text PRIMARY KEY, user_id uuid NOT NULL, retired_at timestamptz NOT NULL DEFAULT now());
+  INSERT INTO public.profile_handles_retired (handle, user_id, retired_at) VALUES ('old-seller', '${SELLER}', now())`);
+const s2 = await exportOf(SELLER);
+const b2 = await exportOf(BUYER);
+ok(s2?.profile_handles_retired?.[0]?.handle === "old-seller" && Object.keys(s2.profile_handles_retired[0]).sort().join() === "handle,retired_at"
+   && b2?.profile_handles_retired?.length === 0, "a member's own old profile links are in their export, nobody else's", JSON.stringify([s2?.profile_handles_retired, b2?.profile_handles_retired]));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

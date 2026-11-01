@@ -7,7 +7,9 @@
 -- seller id, so the label ("Home", "Mom's house") still reached the buyer through their data export.
 --
 -- WHAT: export_my_data restated from the NEWEST CREATE (20261101025001_export_my_data_released_helpr.sql)
--- VERBATIM, with one change: the buyer's copy also drops 'label'. The seller's own copy (t.seller_id = v_uid) is
+-- VERBATIM, with two changes: the buyer's copy also drops 'label'; and a new last section, profile_handles_retired
+-- (the member's own old profile links, 20261101034834: handle and when it was retired), so the new table is in
+-- Download My Data (dataExportCoversEveryUserTable). The seller's own copy (t.seller_id = v_uid) is
 -- unchanged and keeps their label and address; declutter_porch_places (the seller's own places) is unchanged. Same
 -- (uuid) overload, EXECUTE for service_role only. Replay-safe: DROP IF EXISTS / CREATE OR REPLACE, applied 3x.
 --
@@ -548,6 +550,11 @@ BEGIN
   -- kept once at sign-up. The member's own row only (LEAD-EXPORT-SIGNUP-SOURCE).
   v_out := v_out || jsonb_build_object('member_signup_sources', (SELECT coalesce(jsonb_agg(jsonb_build_object(
              'source', t.source, 'campaign', t.campaign, 'recorded_at', t.recorded_at)), '[]'::jsonb) FROM public.member_signup_sources t
+             WHERE t.user_id = v_uid));
+
+  -- LEAD-PROFILE-LINK (20261101034834): the profile links this member used before, kept so old links still find them.
+  v_out := v_out || jsonb_build_object('profile_handles_retired', (SELECT coalesce(jsonb_agg(jsonb_build_object(
+             'handle', t.handle, 'retired_at', t.retired_at)), '[]'::jsonb) FROM public.profile_handles_retired t
              WHERE t.user_id = v_uid));
 
   RETURN v_out;

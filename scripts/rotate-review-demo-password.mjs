@@ -49,9 +49,26 @@ export function refusal({ apply, freeze }) {
   return null;
 }
 
-/** A 24-character URL-safe password. */
+/**
+ * Prod Auth refuses a password without a lowercase letter, an uppercase letter,
+ * a digit and a symbol (422 weak_password, measured 2026-11-01).
+ */
+export function meetsAuthPolicy(p) {
+  return p.length >= 12 && /[a-z]/.test(p) && /[A-Z]/.test(p) && /[0-9]/.test(p) && /[^A-Za-z0-9]/.test(p);
+}
+
+/**
+ * A 24-character URL-safe password that meets the Auth policy. base64url's only
+ * symbols are - and _, absent from about half of all draws (2026-11-01 the
+ * first --apply drew one without and the account update answered 422), so it
+ * draws again until every class is present.
+ */
 export function newPassword(bytes = randomBytes) {
-  return bytes(18).toString("base64url");
+  for (let i = 0; i < 200; i += 1) {
+    const p = bytes(18).toString("base64url");
+    if (meetsAuthPolicy(p)) return p;
+  }
+  throw new Error("could not draw a password that meets the Auth policy in 200 tries");
 }
 
 /** The reviewer's auth user id, paging the admin list; null when absent. */

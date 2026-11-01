@@ -175,3 +175,6 @@ docs/audit/morning/*.md
 # measurements.json; they are evidence for a CI artifact or ~/.lh-shots, never
 # the repo (src/test/auditBinariesFrozen.test.ts fails on a new one).
 docs/audit/loading-states/**/*.png
+
+# Q1790: the App Review demo password lives only in the ASC_REVIEW_DEMO_PASSWORD secret.
+fastlane/metadata/review_information/demo_password.txt

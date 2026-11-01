@@ -40,7 +40,7 @@
 // @mutate src/lib/shops/publicShop.ts |     url: shopLink(shop.id), |     url: SHOP_LINK_ORIGIN,
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |                  'id', ph.id, 'kind', ph.photo_kind, 'position', ph.position) |                  'id', ph.id, 'kind', ph.photo_kind, 'storage_path', ph.storage_path, 'position', ph.position)
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |        WHERE ph.id = p_photo_id AND public.shop_link_visible(ph.shop_id)) |        WHERE ph.id = p_photo_id)
-// @mutate api/share.ts | return respond(withStaticBody(applyMeta(shell, meta), url), meta.cdnCache); | return respond(withStaticBody(applyMeta(shell, meta), url));
+// @mutate api/share.ts | return respond(page, meta.cdnCache); | return respond(page);
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

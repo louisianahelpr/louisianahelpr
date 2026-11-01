@@ -9,7 +9,7 @@
  *   3. vercel.json sends each URL to api/share (and no file in public/ shadows it: Vercel serves files first);
  *   4. api/share answers that exact rewrite with 200 HTML whose #root holds the text, and its own head.
  *
- * @mutate api/share.ts | return respond(withStaticBody(applyMeta(shell, meta), url), meta.cdnCache); | return respond(applyMeta(shell, meta), meta.cdnCache);
+ * @mutate api/share.ts | const page = withStaticBody(applyMeta(shell, meta), url); | const page = applyMeta(shell, meta);
  * @mutate package.json |  && node scripts/prerender-static-pages.mjs && | &&
  * @mutate src/pages/info/legal/TermsSection.tsx |         title="SMS Terms" |         title="Text alerts"
  */

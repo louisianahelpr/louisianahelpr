@@ -40,12 +40,12 @@
  * @mutate src/components/declutter/DeclutterTabHeads.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
  * Row 101 (porch is the default; a seller can turn it off per item).
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = picked && offered.includes(picked) ? picked : offered[0]; |   const chosen = picked ?? offered[0];
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order; |   const ticked: Handover[] = wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady} |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady} |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = (sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} onBack= | porchOk={true} onBack=
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
@@ -56,6 +56,8 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 
 const state = {
+  /** B110: the seller's pickup times for the checkout chips (none unless a test sets them). */
+  pickupWindows: [] as { weekday: number; starts: string; ends: string }[],
   /** The seller's pickup places in the cart (none unless a test sets them). */
   sellerPlaces: [] as unknown[],
   underAge: false,
@@ -114,6 +116,7 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: state.me ? { id: state.me } : null, profile: null, isLoading: false }) }));
 vi.mock("@/lib/declutter/lastDropoff", () => ({ fetchMyLastDropoff: async () => { state.lastDropoffReads += 1; return state.lastDropoff; } }));
 vi.mock("@/lib/declutter/delivery", async (orig) => ({
+  // The price-by-size list (owner 11-01) reads the real constants.
   ...(await orig<typeof import("@/lib/declutter/delivery")>()),
   fetchDeliveryQuote: async (sellerId: string, address: string) => {
     state.quotes.push({ sellerId, address });
@@ -123,6 +126,11 @@ vi.mock("@/lib/declutter/delivery", async (orig) => ({
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 // The Deliver to box is the shared address search; with Apple search off it takes a typed address (no token fetch).
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "error" }));
+// B110: the checkout's pickup-time chips read the seller's times (state.pickupWindows; none unless a case sets them).
+vi.mock("@/lib/declutter/handover", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/handover")>()),
+  fetchItemPickupWindows: async () => state.pickupWindows,
+}));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => state.bundleRule,
@@ -161,7 +169,7 @@ vi.mock("@/lib/declutter/api", () => ({
   removeCartItem: async (lineId: string) => { state.removed.push(lineId); return "removed"; },
   startCardSave: async () => "https://checkout.stripe.test/setup",
   startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null) => {
-    state.paid.push(handover === "seller_delivery" ? { sellerId, handover, slot, handoff } : { sellerId, handover });
+    state.paid.push(handover === "seller_delivery" ? { sellerId, handover, slot, handoff } : slot ? { sellerId, handover, slot } : { sellerId, handover });
     return { url: "https://checkout.stripe.test/pay", paid: false };
   },
 }));
@@ -224,6 +232,7 @@ const OFFER = {
 
 describe("Declutter slice 3 screens", () => {
   beforeEach(() => {
+    state.pickupWindows = [];
     state.sellerPlaces = [];
     state.underAge = false;
     state.responded = [];
@@ -983,7 +992,7 @@ describe("Declutter slice 3 screens", () => {
 
   // Owner 2026-11-01 (checkout screenshot): the seller's pickup places sat after Helpr delivery in a box of their own.
   // They go UNDER the chosen way that uses them: porch pickup (the default), a door pickup or Helpr delivery.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |           {chosen === h && needsPlace && ( |           {false && (
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |               {needsPlace && ( |               {false && (
   it("the pickup places sit under Porch pickup, inside its option, while it is chosen", async () => {
     state.sellerPlaces = [
       { id: "p1", label: null, area: "New Iberia", weekdays: [6], chosen: false },
@@ -1005,6 +1014,34 @@ describe("Declutter slice 3 screens", () => {
       expect(porch.querySelector("[data-places-under]")).toBeNull();
       expect(document.querySelector('[data-handover-option="pickup_home"] [data-places-under]')).toBeInTheDocument();
     });
+  });
+
+  it("B110: porch pickup picks a 2-hour window before paying; Pay waits on it and checkout sends it", async () => {
+    // Every day 9 AM-5 PM: the chips are the porch windows, and a door pickup switches to 30-minute times.
+    state.pickupWindows = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "09:00", ends: "17:00" }));
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    show(<CartView />);
+    await screen.findAllByRole("radio");
+    const porch = document.querySelector('[data-handover-option="porch"]') as HTMLElement;
+    await waitFor(() => expect(within(porch).getByText("When you'll pick it up")).toBeInTheDocument());
+    const times = within(porch).getByRole("group", { name: /Pickup time on/ });
+    expect(within(times).getAllByRole("button").every((b) => /^\d{1,2}(:\d\d)?( [AP]M)?–\d{1,2}(:\d\d)? [AP]M$/.test(b.textContent ?? ""))).toBe(true);
+    const pay = screen.getByRole("button", { name: /^Pay / });
+    expect(pay).toBeDisabled();
+    expect(screen.getByText("Choose a pickup day and time above to pay.")).toBeInTheDocument();
+    fireEvent.click(within(times).getAllByRole("button")[0]);
+    await waitFor(() => expect(pay).toBeEnabled());
+    fireEvent.click(pay);
+    await waitFor(() => expect(state.paid).toHaveLength(1));
+    expect(state.paid[0]).toMatchObject({ sellerId: "s2", handover: "porch" });
+    expect(typeof (state.paid[0] as { slot?: string }).slot).toBe("string");
+    // A door pickup: exact half-hour times, nested under that option.
+    fireEvent.click(screen.getByLabelText(/Meet at the seller's home/));
+    const home = document.querySelector('[data-handover-option="pickup_home"]') as HTMLElement;
+    await waitFor(() => expect(within(home).getByText("When you'll pick it up")).toBeInTheDocument());
+    expect(within(within(home).getByRole("group", { name: /Pickup time on/ })).getAllByRole("button")[0].textContent).toMatch(/^\d{1,2}:\d\d [AP]M$/);
   });
 
   it("slice 5: Helpr delivery is offered, priced by the server for the typed address, and Pay carries the delivery fee", async () => {

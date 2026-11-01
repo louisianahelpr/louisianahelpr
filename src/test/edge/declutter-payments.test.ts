@@ -25,7 +25,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}` }, |     {},
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
- * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged)) { |     if (false) {
+ * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged)) { |     if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |     bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0); |     bundleChanged = false; void off;
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (refused) return json({ error: "porch_unavailable" }, 400); |         if (false) return json({ error: "porch_unavailable" }, 400);
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (parties && !partyGone && (parties.buyer_id !== meta.buyer_id \|\| parties.seller_id !== meta.seller_id)) { |   if (false) {

@@ -9,7 +9,7 @@
  * Behaviour (22 checks, 3x replay, migration skipped = RED, server check
  * planted off = RED, measured 2026-10-16): src/test/pglite/declutterPorchDefault.pglite.mjs.
  *
- * @mutate supabase/migrations/20261101032626_declutter_checkout_page_inside_hold.sql | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT true; | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT false;
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   IF v_status <> 'draft' THEN\n    RAISE EXCEPTION 'item_not_editable' | IF false THEN\n    RAISE EXCEPTION 'item_not_editable'
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   UPDATE public.declutter_items SET porch_ok = p_porch_ok, updated_at = now() |   UPDATE public.declutter_items SET status = 'draft', porch_ok = p_porch_ok, updated_at = now()

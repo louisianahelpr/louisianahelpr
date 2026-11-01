@@ -94,7 +94,7 @@ function chicagoDay(utcMs: number): { ymd: string; weekday: number } {
 }
 
 type PickupSlot = { iso: string; label: string };
-type PickupDay = { ymd: string; label: string; slots: PickupSlot[] };
+export type PickupDay = { ymd: string; label: string; slots: PickupSlot[] };
 
 /**
  * Every bookable 30-minute slot from now to the deadline, by Chicago day: inside a window on that weekday
@@ -126,3 +126,41 @@ export function pickupDays(windows: readonly SellerWindow[], nowMs: number, dead
   return out;
 }
 
+
+/** The porch window a checkout books (lead 11-01: a porch pickup is a 2-hour window the seller leaves it out for). */
+export const PORCH_WINDOW_MIN = 120;
+
+/**
+ * B110: the porch pickup WINDOWS from now to the deadline, by Chicago day: from each window's start in 2-hour steps,
+ * each cut at the window's end (at least 30 minutes; the server's declutter_checkout_pickup_end, 20261101191500).
+ * The chip reads "3–5 PM"; its ISO is the window's start (what checkout sends).
+ */
+export function porchWindowDays(windows: readonly SellerWindow[], nowMs: number, deadlineMs: number | null): PickupDay[] {
+  const end = deadlineMs ?? nowMs + 7 * 86_400_000;
+  const out: PickupDay[] = [];
+  const seen = new Set<string>();
+  for (let t = nowMs; t <= end + 86_400_000; t += 86_400_000) {
+    const { ymd, weekday } = chicagoDay(t);
+    if (seen.has(ymd)) continue;
+    seen.add(ymd);
+    const spans = new Map<number, number>();
+    for (const w of windows) {
+      if (w.weekday !== weekday) continue;
+      const wEnd = minutes(w.ends);
+      for (let m = minutes(w.starts); m + SLOT_MIN <= wEnd; m += PORCH_WINDOW_MIN) {
+        spans.set(m, Math.max(spans.get(m) ?? 0, Math.min(m + PORCH_WINDOW_MIN, wEnd)));
+      }
+    }
+    const slots = [...spans.entries()].sort((a, b) => a[0] - b[0])
+      .map(([m, e]) => ({ m, e, at: chicagoInstant(ymd, m) }))
+      .filter(({ at }) => at > nowMs && at + SLOT_MIN * 60_000 <= end)
+      .map(({ m, e, at }) => ({ iso: new Date(at).toISOString(), label: rangeLabel(hhmm(m), hhmm(e)) }));
+    if (slots.length === 0) continue;
+    const date = new Date(chicagoInstant(ymd, 12 * 60));
+    const label = new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short", month: "short", day: "numeric" }).format(date);
+    out.push({ ymd, label, slots });
+  }
+  return out;
+}
+
+const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;

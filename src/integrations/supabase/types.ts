@@ -16205,6 +16205,7 @@ export type Database = {
       }
       my_job_post_draft: { Args: never; Returns: Json }
       objectionable_reason: { Args: { p_text: string }; Returns: string }
+      public_profile_by_handle: { Args: { p_handle: string }; Returns: Json }
       referral_member_has_completed_job: {
         Args: { p_user: string }
         Returns: boolean

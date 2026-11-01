@@ -213,6 +213,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   rpc_close_test_mode_dispute: "money-gate",
   saved_search_new_counts: "hides",
   declutter_dropped_into_budget: "hides", // 20261031224850: a seed listing's price drop counts only where seed listings show (seed_hidden_in_discovery), like saved_search_new_counts
+  // LEAD-PROFILE-LINK (20261101041833): no page for a test member; every list on the page drops is_seed rows.
+  public_profile_by_handle: "hides",
   search_profiles_by_name: "hides",
   seed_hidden_for: "hides",
   seed_hidden_from_caller: "hides",

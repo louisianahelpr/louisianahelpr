@@ -670,8 +670,8 @@ export function posterStatusLine(
 /** The poster's line for a listing that expired with no Helpr (never "Cancelled"). */
 export const EXPIRED_LISTING_DETAIL = "No Helpr was hired in time";
 /** What an APPLICANT reads for a listing that expired (owner 10-31: "Expired" is the poster's word only). */
-export const APPLICANT_CLOSED_EYEBROW = "Closed";
-export const APPLICANT_CLOSED_DETAIL = "No longer open";
+const APPLICANT_CLOSED_EYEBROW = "Closed";
+const APPLICANT_CLOSED_DETAIL = "No longer open";
 
 /** The cancelled line's tail for the POSTER: the reason, and that their money
  *  came back when it did (owner, 2026-10-06). Only on payment_status

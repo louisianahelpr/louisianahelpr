@@ -12,6 +12,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { DECLUTTER_PHOTO_BUCKET, invokeAiBody, rpcData } from "@/lib/declutter/api";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { report } from "@/lib/errorLogger";
 
 /** The distances a wanted post can reach (W5; the Browse choices without "any"). */
 export const WANTED_RADIUS_CHOICES = [5, 10, 25, 50] as const;
@@ -269,10 +270,7 @@ export async function reopenWanted(id: string): Promise<string> {
 /** Audit 10-30 #9: take a post off your list for good, and delete its photos (best effort: it no longer holds them). */
 export async function removeWanted(id: string): Promise<void> {
   const paths = rpcData(await supabase.rpc("declutter_remove_wanted", { p_wanted_id: id }), (e) => rpcErrorMessage("declutter_remove_wanted", e)) as string[] | null;
-  if (paths && paths.length > 0) {
-    const { error } = await supabase.storage.from(DECLUTTER_PHOTO_BUCKET).remove(paths);
-    if (error) console.warn("[declutter] could not delete a removed Wanted post's photos", error.message);
-  }
+  if (paths && paths.length > 0) await deleteWantedObjects(paths);
 }
 
 /** Audit 10-30 #8: block a post's poster. The post is the handle, so the app never holds their id. */
@@ -358,7 +356,78 @@ export async function removeWantedPhoto(wantedId: string, path: string): Promise
     await supabase.rpc("declutter_remove_wanted_photo", { p_wanted_id: wantedId, p_storage_path: path }),
     (e) => rpcErrorMessage("declutter_remove_wanted_photo", e),
   ) as number;
-  const { error } = await supabase.storage.from(DECLUTTER_PHOTO_BUCKET).remove([path]);
-  if (error) console.warn("[declutter] could not delete a removed Wanted photo", error.message);
+  await deleteWantedObjects([path]);
   return left;
+}
+
+/** Where a Wanted photo object that could not be deleted yet waits for the next try (this device only). */
+export const WANTED_PURGE_KEY = "lh.declutter.wantedPhotoPurge.v1";
+/** Tries per delete before the paths are kept for later; the pause before each retry, in ms. */
+const WANTED_PURGE_TRIES = 3;
+export const wantedPurgeTiming = { retryMs: 800 };
+
+function readPurgeQueue(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(WANTED_PURGE_KEY) ?? "[]") as unknown;
+    return Array.isArray(raw) ? raw.filter((p): p is string => typeof p === "string") : [];
+  } catch (e) {
+    // No storage (private mode) or a damaged value: nothing is waiting here.
+    console.warn("[declutter] Wanted photo retry list unreadable", e instanceof Error ? e.message : String(e));
+    return [];
+  }
+}
+
+function writePurgeQueue(paths: string[]): void {
+  try {
+    if (paths.length === 0) localStorage.removeItem(WANTED_PURGE_KEY);
+    else localStorage.setItem(WANTED_PURGE_KEY, JSON.stringify([...new Set(paths)].slice(-50)));
+  } catch (e) {
+    // Storage full or blocked: the failure was already reported to ops with the paths, so it is not lost.
+    console.warn("[declutter] Wanted photo retry list not saved", e instanceof Error ? e.message : String(e));
+  }
+}
+
+/** One delete through the Storage API; a network failure may come back as an error OR be thrown. */
+async function tryRemove(paths: string[]): Promise<string | null> {
+  try {
+    const { error } = await supabase.storage.from(DECLUTTER_PHOTO_BUCKET).remove(paths);
+    return error ? error.message : null;
+  } catch (e) {
+    // Not swallowed: the failure is returned, retried, and reported by deleteWantedObjects.
+    return e instanceof Error ? e.message : String(e);
+  }
+}
+
+/**
+ * B67: delete a Wanted post's photo objects from the poster's own folder (the storage rule allows it once no post
+ * holds them). The post already let go of them, so a failure must not undo or block that, but it must not vanish
+ * either: the object would stay public by URL. Retried, then reported to ops (error_logs, with the paths) and kept
+ * on this device; the next visit to Wanted (fetchMyWanted) tries again. Says whether the objects are gone.
+ */
+export async function deleteWantedObjects(paths: string[]): Promise<boolean> {
+  if (paths.length === 0) return true;
+  let failure: string | null = null;
+  for (let attempt = 1; attempt <= WANTED_PURGE_TRIES; attempt++) {
+    if (attempt > 1) await new Promise((r) => setTimeout(r, wantedPurgeTiming.retryMs * (attempt - 1)));
+    failure = await tryRemove(paths);
+    if (failure === null) {
+      writePurgeQueue(readPurgeQueue().filter((p) => !paths.includes(p)));
+      return true;
+    }
+  }
+  writePurgeQueue([...readPurgeQueue(), ...paths]);
+  report(new Error(`Wanted photo objects not deleted: ${failure}`), {
+    severity: "warning",
+    tags: { area: "declutter", op: "wanted_photo_delete" },
+    context: { paths: paths.join(","), tries: WANTED_PURGE_TRIES },
+  });
+  return false;
+}
+
+/** B67: retry the Wanted photo deletes kept on this device; only the signed-in poster's own folder is tried. */
+export async function retryWantedPhotoDeletes(userId: string | null | undefined): Promise<void> {
+  if (!userId) return;
+  const mine = readPurgeQueue().filter((p) => p.startsWith(`${userId}/wanted/`));
+  if (mine.length === 0) return;
+  if ((await tryRemove(mine)) === null) writePurgeQueue(readPurgeQueue().filter((p) => !mine.includes(p)));
 }

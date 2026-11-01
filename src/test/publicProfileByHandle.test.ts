@@ -23,6 +23,10 @@
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND NOT public.is_test_member(rv.reviewer_id) | 
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND j.is_seed IS NOT TRUE\n         AND NOT public.is_test_member(rv.reviewer_id) |          AND NOT public.is_test_member(rv.reviewer_id)
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | 'id', i.id, | 'id', i.id, 'pickup_address', i.pickup_address,
+ * @mutate supabase/migrations/20261101034834_profile_handle.sql | VALUES (OLD.handle, CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE OLD.user_id END) | VALUES (OLD.handle, OLD.user_id)
+ * @mutate supabase/migrations/20261101034834_profile_handle.sql | r.user_id IS DISTINCT FROM NEW.user_id | r.user_id <> NEW.user_id
+ * @mutate supabase/migrations/20261101034834_profile_handle.sql | user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL, | user_id uuid NOT NULL,
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | WHERE r.handle = v_handle AND r.user_id IS NOT NULL)) | WHERE r.handle = v_handle))
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -51,7 +55,7 @@ describe("the newest public_profile_by_handle keeps every rule", () => {
     ["no page for a banned (any form), unverified or deleted member", "AND p.email_verified AND p.ban_status IS DISTINCT FROM 'banned' AND p.ban_status IS DISTINCT FROM 'temp_banned' AND p.ban_status IS DISTINCT FROM 'permanently_banned' AND p.is_seed IS NOT TRUE AND p.anonymized_at IS NULL"],
     ["no page for a member out of Declutter (review 2026-11-01)", "OR public.declutter_member_out(v_p.user_id)"],
     ["no page for a member under 18 (lead 2026-11-01)", "OR COALESCE(public.member_under_18(v_p.user_id), true)"],
-    ["an old handle opens only its owner's page", "p.user_id = (SELECT r.user_id FROM public.profile_handles_retired r WHERE r.handle = v_handle)"],
+    ["an old handle opens only its owner's page", "p.user_id = (SELECT r.user_id FROM public.profile_handles_retired r WHERE r.handle = v_handle AND r.user_id IS NOT NULL))"],
     ["the job's town, never its address", "'town', public.mask_job_location(j.location),"],
     ["open jobs only", "AND j.status = 'open'"],
     ["never past the offer cutoff", "AND public.job_offer_cutoff(j.date_needed, j.start_time) > now()"],
@@ -95,5 +99,16 @@ describe("the newest handle functions keep the review's rules (2026-11-01)", () 
   });
   it("a retired handle is refused to anyone else", () => {
     expect(body("profile_handle_retire")).toContain("RAISE EXCEPTION 'handle_retired' USING ERRCODE = '23505';");
+  });
+  // Lead 2026-11-01: a deleted member's handles stay reserved but unlinked. Behaviour (and the account-deletion FK
+  // failure the CASE prevents) in src/test/pglite/profileHandle.pglite.mjs H11; the redirect in
+  // publicProfileByHandle.pglite.mjs P14.
+  it("a deleted member's handle stays reserved, unlinked, and resolves to nothing", () => {
+    const retire = body("profile_handle_retire");
+    expect(retire).toContain("VALUES (OLD.handle, CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE OLD.user_id END)");
+    expect(retire).toContain("WHERE r.handle = NEW.handle AND r.user_id IS DISTINCT FROM NEW.user_id) THEN");
+    expect(blankSqlComments(readFileSync(resolve(MIGRATIONS, "20261101034834_profile_handle.sql"), "utf8")))
+      .toMatch(/user_id uuid REFERENCES auth\.users\(id\) ON DELETE SET NULL,/);
+    expect(body(RPC)).toContain("WHERE r.handle = v_handle AND r.user_id IS NOT NULL))");
   });
 });

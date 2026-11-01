@@ -42,7 +42,9 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 
 const DIR = resolve(__dirname, "../../supabase/migrations");
 
-type Kind = "link" | "caller" | "explicit" | "sum" | "gap";
+// member   (not an admin alert) it reads ONE member's own admin role to decide that member's path, and every notice
+//          it writes goes to a member it names (never to the admins): checked below, each recipient is that member.
+type Kind = "link" | "caller" | "explicit" | "sum" | "gap" | "member";
 const ADMIN_NOTIFIERS: Record<string, Kind> = {
   apply_consequence_ladder: "link",
   apply_low_rating_flag: "link",
@@ -53,6 +55,8 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   declutter_alert_overdue_checks: "explicit", // 20261101042045: listings on sale 45+ min with no check; NOT is_test_subject(i.seller_id) and NOT is_seed in the select
   declutter_handover_sweep: "explicit", // 20261031004529: the 60-day held sale
   declutter_helpr_answer_no_show: "explicit", // 20261031134217: the Helpr answers a seller's "didn't come"; is_test_subject on buyer, seller and caller, and is_seed
+  // 20261101181129 (L29): the giver picks an asker; the asker's own admin role skips their ID check; notices go to askers.
+  declutter_pick_free_request: "member",
   declutter_hold_unchecked_listings: "explicit", // 20261031152545: a reserved or sold listing never checked; is_test_subject on the seller
   declutter_problem_add_side: "caller",
   declutter_record_ai_check: "explicit", // 20261031152545: a flag after a buyer paid; is_test_subject on the seller
@@ -152,6 +156,10 @@ describe("every function that notifies admins skips test accounts", () => {
         if (!/auth\.uid\(\)/.test(b)) wrong.push(`${fn}: caller class but never reads auth.uid()`);
       } else if (kind === "explicit") {
         if (!/public\.is_test_subject\(/.test(b)) wrong.push(`${fn}: explicit class but never calls is_test_subject`);
+      } else if (kind === "member") {
+        const to = [...b.matchAll(/declutter_notify\(\s*([^,]+),/g)].map((m) => m[1].trim());
+        if (to.length === 0 || to.some((r) => !/\.requester_id$/.test(r)) || /notify_admins|INSERT\s+INTO\s+(?:public\.)?notifications/i.test(b))
+          wrong.push(`${fn}: member class but a notice goes to ${JSON.stringify(to)}`);
       } else if (kind === "sum") {
         const sums = SUM_SOURCES[fn] ?? [];
         if (sums.length === 0) wrong.push(`${fn}: sum class but no SUM_SOURCES entry`);

@@ -57,6 +57,10 @@ import { isAutomatedBrowser } from "./automatedBrowser";
 import { attachColdLaunchSink } from "./coldLaunchPhases";
 import { redactInviteToken } from "./redactInviteToken";
 
+// Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
+// failure reads as a broken chunk (dynamicImportThenDoesNoWork).
+const sentryReact = () => import("@sentry/react");
+
 /**
  * Audit #2 from the 2026-05-27 cold-launch regression triage: a tag that
  * lets us write a Sentry alert rule for "any error during the cold-launch
@@ -338,7 +342,7 @@ export function initSentry() {
         // is already a static dependency, but the replayIntegration() call and
         // the DOM recording it triggers are deferred until the browser is idle.
         // (@sentry-internal/replay was removed in @sentry/react ≥10.58.)
-        import("@sentry/react")
+        sentryReact()
           .then(({ replayIntegration }) => {
             // A test profile signed in before the idle tick: never start.
             if (replayBlocked) return;

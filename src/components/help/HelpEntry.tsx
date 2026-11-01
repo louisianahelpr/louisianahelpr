@@ -4,6 +4,10 @@ import { LifeBuoy } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type HelpEntryPanel from "./HelpEntryPanel";
 
+// Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
+// failure reads as a broken chunk (dynamicImportThenDoesNoWork).
+const helpEntryPanel = () => import("./HelpEntryPanel");
+
 const SUPPORT_PATH = "/support?topic=message";
 
 /**
@@ -33,7 +37,7 @@ export function HelpEntry({ triggerClassName = "h-11 w-11" }: { triggerClassName
       setOpen(true);
       return;
     }
-    import("./HelpEntryPanel").then(
+    helpEntryPanel().then(
       (mod) => {
         setPanel(() => mod.default);
         setOpen(true);

@@ -13,11 +13,14 @@
  * with R the wrapped import.
  *
  * 1. No `queryFn` / `mutationFn` makes a call inside an `import(...).then` callback (zero, exact).
- * 2. Anywhere else, the files that still do it are pinned, exact both ways, so no new one is added and a fixed one
- *    is removed from the list (each is a non-query use: boot, auth, a toast loader; worth fixing in its own pass).
+ * 2. Nowhere else either (B65, 11-01): the 16 non-query sites pinned on 11-01 each got a loader. Some made real
+ *    reads or writes in the wrapper (the inbox's blocked-user read, Post a Job's repair-request read, the Senior
+ *    Mode session write, the refetch after a held sign-in), so a failed one could reload the page.
  *
  * @mutate src/components/create/CreateSheet.tsx | queryFn: () => shopsApi().then((m) => m.fetchMyShopId()), | queryFn: () => import("@/lib/shops/api").then((m) => m.fetchMyShopId()),
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | queryFn: () => rentalsApi().then((m) => m.fetchMyProperties(uid)), | queryFn: () => import("@/lib/rentals/api").then((m) => m.fetchMyProperties(uid)),
+ * @mutate src/pages/messages/messagesData/loadConversations.ts |   const blockedPromise = userBlocks().then( |   const blockedPromise = import("@/lib/userBlocks").then(
+ * @mutate src/lib/sonnerFacade.ts |   loading = sonnerReal().then( |   loading = import("sonner-real").then(
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -62,26 +65,9 @@ export function importThenWork(file: string, src: string): Hit[] {
   return hits;
 }
 
-// Non-query sites that still read inside the wrapper (11-01). Exact both ways: a fixed one must leave the list.
+// Non-query sites that still read inside the wrapper. Empty since B65 (11-01); exact both ways if one is ever pinned.
 // @two-way src/test/dynamicImportThenDoesNoWork.test.ts:still pinned but no longer reads inside import().then
-const KNOWN_IMPORT_THEN_WORK: Record<string, number> = {
-  "src/components/SessionManager.tsx": 1,
-  "src/components/auth/SocialAuthButtons.tsx": 1,
-  "src/components/dashboard/lazyBrowseMap.ts": 1,
-  "src/components/help/HelpEntry.tsx": 1,
-  "src/entry.ts": 1,
-  "src/hooks/useSignOutAction.ts": 1,
-  "src/integrations/supabase/client.ts": 2,
-  "src/integrations/supabase/keychainStorageAdapter.ts": 1,
-  "src/lib/authSignOut.ts": 2,
-  "src/lib/enRouteLocation.ts": 1,
-  "src/lib/i18n/language.ts": 1,
-  "src/lib/sentry.ts": 1,
-  "src/lib/sonnerFacade.ts": 1,
-  "src/pages/auth/signup/useCityZipMismatch.ts": 1,
-  "src/pages/messages/messagesData/loadConversations.ts": 1,
-  "src/pages/post-job/useJobFormEffects.ts": 1,
-};
+const KNOWN_IMPORT_THEN_WORK: Record<string, number> = {};
 
 describe("no read runs inside Vite's dynamic-import wrapper", () => {
   const files = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })
@@ -94,7 +80,9 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
 
   it("reads the tree and sees the pattern (cannot pass vacuously)", () => {
     expect(files.length).toBeGreaterThan(1000);
-    expect(hits.length).toBeGreaterThan(10);
+    // The loaders the fixed sites use: a dynamic import kept alone in its own arrow, called later.
+    const loaders = files.filter((f) => /^const \w+ = \(\) => import\(/m.test(readFileSync(join(ROOT, f), "utf8")));
+    expect(loaders.length).toBeGreaterThan(15);
     const bad = importThenWork("x.ts", 'const q = { queryFn: () => import("@/a").then((m) => m.f()) };');
     expect(bad).toEqual([{ file: "x.ts", line: 1, inQueryFn: true }]);
     expect(importThenWork("y.ts", 'const a = () => import("@/a"); const q = { queryFn: () => a().then((m) => m.f()) };')).toEqual([]);

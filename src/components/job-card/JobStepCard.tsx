@@ -9,7 +9,7 @@ import {
 } from "./jobStepRow";
 import { useClaimedPersonTile } from "./jobCardPerson";
 import { JobStepOverflowChip } from "./JobActionRow";
-import { JobStepMenuContext, MenuAction } from "./jobStepMenu";
+import { JobStepMenuContext, MenuAction, primaryButtons } from "./jobStepMenu";
 
 /** React keys of chips that ALWAYS live inside `More`, at every width, even
  *  when the row has room (owner, 2026-09-27: "report a problem should be under
@@ -359,10 +359,18 @@ export function JobStepCard({
   const moreChips = [...moreOnly, ...rowChips.overflow];
   // On the job page (jobStepMenu.tsx) the page draws these, minus Message (the page has its own Message button).
   const menu = useContext(JobStepMenuContext);
-  const menuChips = menu ? moreChips.filter((c) => !(isValidElement(c) && c.key === "message")) : [];
+  // Its own primaries (Review, Tip): the first leads the page's row when the page mounts a lead slot (it has no
+  // step of its own); the rest join the options. With the page's own step showing, they are that step: not repeated.
+  const menuPrimaries = menu ? primaryButtons(ownPrimary) : [];
+  const menuLead = menu?.leadHost ? menuPrimaries[0] ?? null : null;
+  const menuChips = menu
+    ? [...(menu.leadHost ? menuPrimaries.slice(1) : []), ...moreChips.filter((c) => !(isValidElement(c) && c.key === "message"))]
+    : [];
   const menuCount = menuChips.length;
   const setMenuCount = menu?.setCount;
+  const setMenuLeadCount = menu?.setLeadCount;
   useEffect(() => { setMenuCount?.(menuCount); }, [setMenuCount, menuCount]);
+  useEffect(() => { setMenuLeadCount?.(menuPrimaries.length); }, [setMenuLeadCount, menuPrimaries.length]);
 
   return (
     <div
@@ -465,8 +473,9 @@ export function JobStepCard({
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}
         {escape}
         {dialogs}
+        {menu?.leadHost && menuLead ? createPortal(<MenuAction chip={menuLead} lead className="w-full" />, menu.leadHost) : null}
         {menu?.secondHost && menuCount === 1 ? createPortal(<MenuAction chip={menuChips[0]} className="w-full" />, menu.secondHost) : null}
-        {menu?.listHost && menuCount > 1
+        {menu?.listHost && menuCount >= 1
           ? createPortal(<>{menuChips.map((c, i) => <MenuAction key={isValidElement(c) && c.key != null ? String(c.key) : i} chip={c} className="w-full" />)}</>, menu.listHost)
           : null}
       </JobStepRowContext.Provider>

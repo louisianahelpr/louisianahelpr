@@ -107,6 +107,10 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   respond_job_detail_change: "Q1254: matches job_detail_change_answers.helper_id (the caller's own answer row); who is booked comes from job_booked_helpr_ids, which reads the crew roster, so a crew's every member answers",
   enforce_identity_before_start: "the single booked Helpr's On the way (trg_jobs_identity_before_start on jobs); a crew member's start is gated by its own trg_crew_identity_before_start (20261021081258)",
   rpc_helper_mark_done: "single-helper Done; a crew uses rpc_group_member_mark_done",
+  // CMP-4 instant book: a booking is a single-Helpr direct offer; rpc_instant_book refuses a crew job
+  // (instant_book_block_reason), so neither has a crew version.
+  rpc_instant_book_decline: "single-Helpr instant booking (a crew job is never booked)",
+  rpc_set_instant_book_floor: "the Helpr's own floors; reads helper_id of instant_book_floors, not a job's",
   withdraw_job_schedule_change: "withdraws a date/time request; request_job_schedule_change refuses group jobs (is_group_job), so no crew request exists to withdraw (board 66/172 slice 3)",
   save_weekly_availability: "matches helper_availability.helper_id (the caller's own weekly hours), not jobs: nothing crew-specific (re-read for Q728)",
   user_has_pending_application: "a pending application, not a hire",

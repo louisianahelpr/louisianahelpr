@@ -3,7 +3,7 @@ import { wrappedSeasonLabel } from "@/lib/format";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility" | "pets" | "work_record" | "home_history" | "str_settings" | "auto_tip" | "wrapped" | "analytics" | "gift_card" | "settings" | "saved_searches" | "payout_history" | "receipts" | "blocked";
+export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility" | "pets" | "work_record" | "home_history" | "str_settings" | "auto_tip" | "wrapped" | "analytics" | "gift_card" | "settings" | "saved_searches" | "payout_history" | "receipts" | "blocked" | "instant_book";
 
 /**
  * Human name for each Profile tab, used to build a distinct `document.title`
@@ -51,6 +51,8 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   saved_searches: "Saved searches",
   // A3-C16 (app audit 2026-10-29): You › Settings › Your account › Blocked people.
   blocked: "Blocked people",
+  // CMP-4: Jobs settings › When you work › Instant book (the private floors).
+  instant_book: "Instant book",
   accessibility: "Accessibility",
   // Was the standalone route /pets until 2026-09-02.
   pets: "My pets",

@@ -169,6 +169,8 @@ const PROVEN_PRIMITIVES = [
 ];
 // @two-way src/test/clientCountdownsMoveWithTheClock.test.tsx:a NOT_PROVEN module that keeps no clock state any more
 const NOT_PROVEN: Record<string, string> = {
+  "src/components/jobs/InstantBookingCard.tsx":
+    "CMP-4: the booked Helpr's 2-hour decline window (instant_decline_until, a 30 s tick) hides Confirm and Decline; the server is the gate: rpc_instant_book_decline refuses once now() >= instant_decline_until (decline_window_closed, 20261101071621), so a late tick only shows the buttons up to 30 s longer and the refusal is worded",
   "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx":
     "the payout request floor (MIN_WORK_MS, a 60 s tick) on the money path; its button's greyed state is useDoneFloorActive's, proven above",
   "src/components/shops/ShopDashboardView.tsx":

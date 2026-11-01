@@ -133,6 +133,8 @@ vi.mock("@/hooks/usePendingSaveConsumer", () => ({ usePendingSaveConsumer: () =>
 vi.mock("@/hooks/useJobRef", () => ({ useJobRef: () => undefined }));
 // Board 184: the reach read is a hidden-switch RPC; the tests set it through state.reach.
 vi.mock("./useJobReach", () => ({ useJobReach: () => state.reach }));
+// CMP-4: the poster's Book now panel reads its own data; it is proven in src/test/instantBookScreens.test.tsx.
+vi.mock("@/components/jobs/InstantBookPanel", () => ({ InstantBookPanel: () => null }));
 // An accepted (offered) job asks whether it was rescheduled; these jobs never were.
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
 // Q2399 card_hold_at_post: the poster's money line follows it (F4).

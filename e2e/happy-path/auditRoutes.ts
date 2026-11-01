@@ -391,6 +391,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "pets", url: "/profile?tab=pets" },
   // Settings › Your account › Blocked people (app audit A3-C16, 2026-10-29).
   { name: "profile-blocked", url: "/profile?tab=blocked" },
+  // Jobs settings › When you work › Instant book (CMP-4, 2026-11-01): the private floors.
+  { name: "profile-instant-book", url: "/profile?tab=instant_book" },
   // The alias rows for /activity, /availability, /earnings, /gift-card,
   // /saved-helprs, /saved-helpers, /schedule and /settings went with their
   // routes (Q194, 2026-09-23): every link now names the tab directly, and each

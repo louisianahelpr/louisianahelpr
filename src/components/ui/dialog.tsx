@@ -153,8 +153,14 @@ const DialogContent = React.forwardRef<
      * a46d6bdc5, and the real distinction was never named. This is the name.
      */
     stepped?: boolean;
+    /**
+     * Keep the corner X even though the footer offers a labelled way out (audit 11-01 JA-54). For a dialog that
+     * is a SHEET on a phone (the Job done review): owner 10-31, "every sheet has an X" (popupDismiss.tsx's
+     * sheet exception), and its footer's "Skip for now" is a later-not-never, not a plain Cancel.
+     */
+    keepClose?: boolean;
   }
->(({ className, children, onOpenAutoFocus, onCloseAutoFocus, topRightSlot, closeDisabled, stepped, ...props }, ref) => {
+>(({ className, children, onOpenAutoFocus, onCloseAutoFocus, topRightSlot, closeDisabled, stepped, keepClose, ...props }, ref) => {
   const focus = useDialogFocus(onOpenAutoFocus, onCloseAutoFocus);
   // See popupDismiss.tsx: a dialog whose footer offers Cancel drops the X.
   const [hasDismiss, setHasDismiss] = usePopupDismissPresence();
@@ -173,7 +179,7 @@ const DialogContent = React.forwardRef<
         // The X gets its OWN ROW now, so the card reserves that row ONLY when
         // the X is actually there. A confirm dialog offers Cancel, drops the X,
         // and keeps its normal p-4 — no dead band above the title.
-        !hasDismiss && !closeDisabled && "pt-11 sm:pt-11",
+        (keepClose || !hasDismiss) && !closeDisabled && "pt-11 sm:pt-11",
         // WHY THE FOUR slide-* CLASSES ARE LOAD-BEARING (they are not decoration)
         //
         // tailwindcss-animate's `enter` keyframe writes a whole `transform`:
@@ -421,7 +427,7 @@ const DialogContent = React.forwardRef<
           `getComputedStyle(btn).position === "absolute"` and exempts them from
           the content-box edge assertion — the X intentionally spans the padding
           gutter, so it needs that exemption. */}
-      {!hasDismiss && !closeDisabled && (
+      {(keepClose || !hasDismiss) && !closeDisabled && (
       <DialogPrimitive.Close
         // NO HOVER LIFT. The icon used to carry `group-hover:-translate-y-0.5`
         // to match the small rise the chrome icons (Share/Save/Flag) get

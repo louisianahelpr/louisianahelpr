@@ -210,13 +210,15 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
                scored. No external page, no extra route. */
             <Popover>
               <PopoverTrigger asChild>
-                <button
+                <Button
                   type="button"
-                  className="inline-flex items-center gap-1.5 text-ds-11 font-sans font-semibold active:opacity-70 transition-opacity"
+                  variant="ghost"
+                  size="sm"
+                  className="px-0 gap-1.5 text-ds-11 font-sans font-semibold tracking-normal active:opacity-70 [&_svg]:size-3.5"
                   style={{ color: "hsl(var(--bark))" }}
                 >
-                  <Info className="w-3.5 h-3.5" /> How reviews work
-                </button>
+                  <Info /> How reviews work
+                </Button>
               </PopoverTrigger>
               <PopoverContent
                 // Radix gives PopoverContent role="dialog", so without a name a

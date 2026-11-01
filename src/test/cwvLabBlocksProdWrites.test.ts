@@ -26,12 +26,21 @@
  * @mutate scripts/perf/readAllowance.mjs |   if (reads.refresh && u.pathname === "/auth/v1/token" | if (u.pathname === "/auth/v1/token"
  * @mutate scripts/perf/readAllowance.mjs |     return action === "status" ? "fn:stripe-connect:status" : null; |     return "fn:stripe-connect:status";
  * @mutate scripts/perf/readAllowance.mjs |   if (!/(^\|\.)supabase\.co$/.test(u.hostname)) return null; |
+ *
+ * The MOCKED READS (2026-11-01, B72): stripe-payouts' list read calls Stripe's
+ * LIVE balance server side, so it is never let through; the lab answers it in
+ * the browser with fixed test data and only with --allow-reads. Its
+ * payout-detail read (payout_id) and every other function stay blocked.
+ *
+ * @mutate scripts/perf/readAllowance.mjs |   if (!parsed \|\| typeof parsed !== "object" \|\| "payout_id" in parsed) return null; |   if (!parsed) return null;
+ * @mutate scripts/perf/readAllowance.mjs |   if (u.pathname !== "/functions/v1/stripe-payouts") return null; |
+ * @mutate scripts/perf/cwv-lab.mjs |         return route.fulfill({ status: 200, | return route.continue({ status: 200,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { allowedRead } from "../../scripts/perf/readAllowance.mjs";
+import { allowedRead, mockedRead, LAB_STRIPE_PAYOUTS } from "../../scripts/perf/readAllowance.mjs";
 
 const ROOT = resolve(__dirname, "../..");
 const src = blankComments(readFileSync(resolve(ROOT, "scripts/perf/cwv-lab.mjs"), "utf8"));
@@ -97,8 +106,31 @@ describe("cwv-lab blocks every prod write before it measures", () => {
 
   it("cwv-lab routes every non-GET through the allowance before it blocks", () => {
     expect(allowSrc).toContain("export function allowedRead(");
-    expect(src).toMatch(/import \{ allowedRead \} from "\.\/readAllowance\.mjs";/);
+    expect(src).toMatch(/import \{ allowedRead, mockedRead \} from "\.\/readAllowance\.mjs";/);
     expect(src).toMatch(/const read = allowedRead\(reads, m, req\.url\(\), req\.postData\(\)\);\s*\n\s*if \(read\) \{ allowed\.push/);
+  });
+
+  it("the stripe-payouts list read is answered in the browser with test data, never sent", () => {
+    const S = "https://fncmgoasalhdgfwzhsqa.supabase.co";
+    const reads = { rpcs: new Set(["get_my_thing"]), refresh: false };
+    const url = `${S}/functions/v1/stripe-payouts`;
+    expect(mockedRead(null, "POST", url, "{}")).toBeNull();
+    expect(mockedRead(reads, "POST", url, "{}")).toEqual({ read: "mock:stripe-payouts:list", body: LAB_STRIPE_PAYOUTS });
+    // The detail read and every other function or host stay blocked.
+    expect(mockedRead(reads, "POST", url, JSON.stringify({ payout_id: "po_1" }))).toBeNull();
+    expect(mockedRead(reads, "POST", url, "not json")).toBeNull();
+    expect(mockedRead(reads, "POST", `${S}/functions/v1/stripe-connect`, "{}")).toBeNull();
+    expect(mockedRead(reads, "POST", `${S}/functions/v1/create-checkout`, "{}")).toBeNull();
+    expect(mockedRead(reads, "POST", "https://api.stripe.com/functions/v1/stripe-payouts", "{}")).toBeNull();
+    for (const m of ["PATCH", "DELETE", "PUT"]) expect(mockedRead(reads, m, url, "{}")).toBeNull();
+    // Never through the allowance itself: a pass there would call live Stripe.
+    expect(allowedRead(reads, "POST", url, "{}")).toBeNull();
+    // Test data only: every payout id is a lab id.
+    expect(LAB_STRIPE_PAYOUTS.payouts.length).toBeGreaterThan(0);
+    for (const p of LAB_STRIPE_PAYOUTS.payouts) expect(p.id).toMatch(/^po_lab_test_/);
+    // cwv-lab fulfills it locally before the allowance, and never continues it.
+    expect(src).toMatch(/const mock = mockedRead\(reads, m, req\.url\(\), req\.postData\(\)\);\s*\n\s*if \(mock\) \{\s*\n\s*allowed\.push\(\{ read: mock\.read, at: clock\(\) \}\);\s*\n\s*return route\.fulfill\(\{ status: 200,/);
+    expect(src.indexOf("const mock = mockedRead(")).toBeLessThan(src.indexOf("const read = allowedRead("));
   });
 
   it("an --allow-reads run refuses a list too short to be the STABLE/IMMUTABLE set", () => {

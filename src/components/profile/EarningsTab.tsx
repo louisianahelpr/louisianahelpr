@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -14,7 +14,7 @@ import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
 import { safeStorage } from "@/lib/safeStorage";
-import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
+import { hasPayoutToCelebrate } from "@/components/wallet/payoutCelebrationGate";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
 import { EarningsPageSkeleton, EarningsPayoutSetupSkeleton, EarningsWalletBones } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -71,10 +71,14 @@ import { FeesOwedLine } from "@/components/money/FeesOwedLine";
 // and payouts are the same. So do earning and spent instead"): EARNED (wallet,
 // the earned summary, ONE payouts list with each transfer inside its job and
 // the bank payouts, the insights, the bank account) and SPENT (SpentSection).
-const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
+// Lazy, so Money's payout reads do not wait on recharts (src/test/adminAndMoneySkipChartLibrary.test.ts).
+// The "you got paid" card (framer-motion) loads only when there is a payout to
+// celebrate (payoutCelebrationGate.ts says why).
+const PayoutCelebration = lazy(() => import("@/components/wallet/PayoutCelebration").then(m => ({ default: m.PayoutCelebration })));
 // AUD31-61 (B63, 2026-11-01): the breakdown charts (recharts, about 100 KB gz) render only inside the closed
 // "breakdown" disclosure, so Money's first screen no longer downloads them; they load when it is opened.
 const EarningsBreakdownCharts = lazy(() => import("@/components/profile/EarningsBreakdownCharts").then(m => ({ default: m.EarningsBreakdownCharts })));
+const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
 
 /**
  * Quiet in-page section rule. Deliberately NOT a second header: the merged
@@ -133,6 +137,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   );
 
   const { stripeData, stripeLoading, stripeError, ledgerError, ledgerPending, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
+  // Latched: the card advances the last-seen marker as it opens, so the gate then reads false.
+  const celebrateRef = useRef(false);
+  if (!celebrateRef.current && hasPayoutToCelebrate(payoutLedger)) celebrateRef.current = true;
+  const celebrate = celebrateRef.current;
 
   // ONE PAINT for the page's OWN data (Q169): the earnings rows, then (capped)
   // the streak badge and the transfer ledger, whose rows sit INSIDE the
@@ -296,7 +304,11 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           as the last layout shift on a cold load). */}
       <div className="relative h-0 z-20">
         <div className="absolute inset-x-0 top-0">
-          <PayoutCelebration payouts={payoutLedger} />
+          {celebrate && (
+            <Suspense fallback={null}>
+              <PayoutCelebration payouts={payoutLedger} />
+            </Suspense>
+          )}
         </div>
       </div>
 

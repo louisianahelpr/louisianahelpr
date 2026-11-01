@@ -46,6 +46,7 @@
  *   --ihe    (ignoreHTTPSErrors instead of the SPKI allow-list, as the spec loads)
  *   --allow-reads <file>   (let STABLE RPC reads, the expired refresh and the
  *            payout-status read through the write block: READ ALLOWANCE below)
+ *   --ready "<css>[!<text>]|..."   (first-real-content marks: READY_INIT)
  *
  * WebKit cannot be network- or CPU-throttled from Playwright (no CDP) and has
  * no layout-shift entries (Playwright WebKit 2026-10-03 lists event,
@@ -54,7 +55,7 @@
  * budget, so the audit table and the budget are one measurement.
  */
 import { chromium, webkit } from "@playwright/test";
-import { allowedRead } from "./readAllowance.mjs";
+import { allowedRead, mockedRead } from "./readAllowance.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../../src/lib/browseShellCards.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
@@ -168,6 +169,37 @@ export const CWV_INIT = () => {
   });
 };
 
+/**
+ * `--ready "<css>[!<text>]|..."`: when each first-real-content mark first
+ * matched and then painted (the next animation frame), for a screen whose LCP
+ * is the boot splash (/admin: its splash is larger than anything the dashboard
+ * paints, so LCP never moves past it). `!<text>` waits until the element's
+ * text no longer contains <text> (a placeholder such as "—").
+ */
+export const READY_INIT = (specs) => {
+  const w = window;
+  const marks = (w.__cwvReady = specs.map((s) => ({ spec: s, t: null })));
+  const check = () => {
+    let left = 0;
+    for (const m of marks) {
+      if (m.t != null || m.pending) continue;
+      const [sel, not] = m.spec.split("!");
+      let el = null;
+      try { el = document.querySelector(sel); } catch { m.t = -1; continue; }
+      if (!el || (not && (el.textContent || "").includes(not))) { left++; continue; }
+      m.pending = true;
+      requestAnimationFrame(() => { m.t = performance.now(); m.pending = false; });
+    }
+    return left;
+  };
+  const start = () => {
+    if (!check()) return;
+    const mo = new MutationObserver(() => { if (!check()) mo.disconnect(); });
+    mo.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+};
+
 /** web-vitals' CLS: the largest session window (gap < 1 s, span < 5 s) of shifts without recent input. */
 export function clsOf(shifts) {
   let best = 0, cur = 0, first = null, last = null, bestWin = [], win = [];
@@ -188,7 +220,7 @@ export async function readCwv(page) {
     const res = performance.getEntriesByType("resource").map((e) => ({
       name: e.name, type: e.initiatorType, start: e.startTime, reqStart: e.requestStart || e.startTime, end: e.responseEnd, size: e.transferSize || 0,
     }));
-    return { cwv: window.__cwv, ttfb: nav ? nav.responseStart : null, dcl: nav ? nav.domContentLoadedEventEnd : null, load: nav ? nav.loadEventEnd : null, res, origin: location.origin };
+    return { cwv: window.__cwv, ready: window.__cwvReady ?? [], ttfb: nav ? nav.responseStart : null, dcl: nav ? nav.domContentLoadedEventEnd : null, load: nav ? nav.loadEventEnd : null, res, origin: location.origin };
   });
   const { cwv, res, origin } = raw;
   const last = cwv.lcp[cwv.lcp.length - 1] ?? null;
@@ -235,7 +267,11 @@ export async function readCwv(page) {
     marks: {
       dcl: raw.dcl == null ? null : Math.round(raw.dcl),
       appDrawn: cwv.appDrawn == null ? null : Math.round(cwv.appDrawn),
+      ready: raw.ready.map((r) => ({ spec: r.spec, t: r.t == null ? null : Math.round(r.t) })),
       jsBeforeLcp: jsBeforeLcp.map((r) => ({ name: short(r.name), start: Math.round(r.start), end: Math.round(r.end), kb: Math.round(r.size / 102.4) / 10 })).sort((a, b) => a.start - b.start),
+      // Every JS file of the load (after LCP too): for a screen whose LCP is
+      // the splash (--ready), what its first real content waited on.
+      jsAll: js.map((r) => ({ name: short(r.name), start: Math.round(r.start), end: Math.round(r.end), kb: Math.round(r.size / 102.4) / 10 })).sort((a, b) => a.start - b.start),
       jsDone: jsBeforeLcp.length ? Math.round(Math.max(...jsBeforeLcp.map((r) => r.end))) : null,
       jsKBbeforeLcp: Math.round(jsBeforeLcp.reduce((a, r) => a + r.size, 0) / 1024),
       jsCountBeforeLcp: jsBeforeLcp.length,
@@ -297,6 +333,10 @@ export function sessionInit({ key, value, expired }) {
  *   - POST /functions/v1/stripe-connect whose JSON body is {action: "status"}
  *     (the payout-status read the Profile landing makes; it re-syncs only the
  *     test account's own cached gate from Stripe).
+ * MOCKED READS (readAllowance.mjs mockedRead): stripe-payouts' list read is
+ * answered IN THE BROWSER with fixed test data (LAB_STRIPE_PAYOUTS) and never
+ * sent: server side it reads Stripe's live balance, so Money is measured with
+ * a payout screen, not its error state, and nothing reaches prod or Stripe.
  * Every other non-GET is still aborted, the probe (an RPC no list names) must
  * still be blocked, and each allowed request is recorded on its row.
  */
@@ -309,6 +349,11 @@ async function installWriteBlock(ctx, clock = () => 0, reads = null, allowed = [
       const req = route.request();
       const m = req.method();
       if (m === "GET" || m === "HEAD" || m === "OPTIONS") return route.continue();
+      const mock = mockedRead(reads, m, req.url(), req.postData());
+      if (mock) {
+        allowed.push({ read: mock.read, at: clock() });
+        return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(mock.body) });
+      }
       const read = allowedRead(reads, m, req.url(), req.postData());
       if (read) { allowed.push({ read, at: clock() }); return route.continue(); }
       const u = new URL(req.url());
@@ -505,7 +550,7 @@ async function main() {
     ? { rpcs: new Set(readFileSync(readsFile, "utf8").split(/[\s,]+/).filter(Boolean)), refresh: flag("expired") }
     : null;
   if (reads && reads.rpcs.size < 20) throw new Error(`--allow-reads ${readsFile}: ${reads.rpcs.size} names, expected the STABLE/IMMUTABLE function list`);
-  if (reads) console.log(`read allowance: ${reads.rpcs.size} STABLE/IMMUTABLE RPCs from ${readsFile}${reads.refresh ? ", the expired session's refresh" : ""}, stripe-connect status`);
+  if (reads) console.log(`read allowance: ${reads.rpcs.size} STABLE/IMMUTABLE RPCs from ${readsFile}${reads.refresh ? ", the expired session's refresh" : ""}, stripe-connect status, stripe-payouts list MOCKED (test data, never sent)`);
   const PUBLIC = new Set(["/", "/browse", "/login", "/signup", "/about", "/terms", "/privacy", "/help", "/how-it-works"]);
 
   mkdirSync(out, { recursive: true });
@@ -540,6 +585,8 @@ async function main() {
             const blocked = await installWriteBlock(ctx, () => Date.now() - navWallNow, reads, allowed);
             await probeWriteBlock(ctx, blocked);
             await ctx.addInitScript(CWV_INIT);
+            const ready = arg("ready", "");
+            if (ready) await ctx.addInitScript(READY_INIT, ready.split("|"));
             if (signedIn) await ctx.addInitScript(...sessionInit({ key: session.key, value: session.value, expired: flag("expired") }));
             // --return: a second load in the same context with the HTTP cache
             // CLEARED but site storage kept, as a returning visitor's first load
@@ -652,6 +699,7 @@ async function main() {
               const r = rows[rows.length - 1];
               console.log(`${browserName.padEnd(8)} ${profileName.padEnd(7)} ${kind.padEnd(4)} ${route.padEnd(10)} ttfb=${String(r.ttfb).padStart(4)} fcp=${String(r.fcp).padStart(5)} lcp=${String(r.lcp).padStart(5)} cls=${String(r.cls).padEnd(6)} ${landed !== route ? "→" + landed + " " : ""}${error ?? ""}`);
               console.log(`    lcpEl: ${r.lcpEl}  breakdown: ${JSON.stringify(r.breakdown)}  appDrawn=${r.marks?.appDrawn} jsDone=${r.marks?.jsDone} js=${r.marks?.jsCountBeforeLcp}/${r.marks?.jsKBbeforeLcp}KB`);
+              if (r.marks?.ready?.length) console.log(`    READY ${r.marks.ready.map((x) => `${x.spec}=${x.t}`).join("  ")}`);
               if (r.allowedReads.length) console.log(`    ALLOWED ${r.allowedReads.length} reads: ${[...new Set(r.allowedReads.map((x) => x.read))].join("  ")}`);
               if (r.blocked.length) console.log(`    BLOCKED ${r.blocked.length} non-GET: ${r.blocked.slice(0, 8).map((x) => `${x.method} ${x.path}@${x.at}`).join("  ")}`);
               if (r.marks?.data?.length) console.log(`    data: ${r.marks.data.slice(0, 12).map((d) => `${d.name}@${d.start}-${d.end}`).join("  ")}`);
@@ -689,11 +737,13 @@ async function main() {
       browser: browserName, profile: profileName, route, kind, n: rs.length,
       ttfb: median(rs.map((r) => r.ttfb)), fcp: median(rs.map((r) => r.fcp)), lcp: median(rs.map((r) => r.lcp)),
       cls: rs.reduce((a, r) => Math.max(a, r.cls ?? 0), 0), lcpEl: rs[rs.length - 1].lcpEl, errors: rs.filter((r) => r.error).length,
+      ready: (rs[0].marks?.ready ?? []).map((x, i) => ({ spec: x.spec, t: median(rs.map((r) => r.marks?.ready?.[i]?.t ?? null)) })),
     };
   });
   console.log(`\n${"browser".padEnd(8)} ${"profile".padEnd(7)} ${"load".padEnd(4)} ${"route".padEnd(10)} ${"TTFB".padStart(5)} ${"FCP".padStart(6)} ${"LCP".padStart(6)} ${"CLSmax".padStart(7)}  LCP element`);
   for (const s of summary) {
     console.log(`${s.browser.padEnd(8)} ${s.profile.padEnd(7)} ${s.kind.padEnd(4)} ${s.route.padEnd(10)} ${String(s.ttfb).padStart(5)} ${String(s.fcp).padStart(6)} ${String(s.lcp).padStart(6)} ${String(s.cls).padStart(7)}  ${(s.lcpEl ?? "").slice(0, 90)}`);
+    for (const x of s.ready) console.log(`    ready ${x.spec}: ${x.t} ms (median)`);
   }
   const file = join(out, `${label}.json`);
   writeFileSync(file, JSON.stringify({ base, at: new Date().toISOString(), argv: process.argv.slice(2), summary, rows }, null, 2));

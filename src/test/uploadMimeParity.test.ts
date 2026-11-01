@@ -93,6 +93,8 @@ const SITES: Site[] = [
   // Declutter returns (Q2486, 20261030071818): the drop-off / got-it-back photo, cleaned to JPEG, into the handover bucket's return folder.
   { file: "src/lib/declutter/refundReturns.ts", bucket: "declutter-handover", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   // Wanted photos (B77, 20261030064727): cleaned to JPEG like listing photos, into job-photos (DECLUTTER_PHOTO_BUCKET in api.ts).
+  // LEAD-LIST-FOR-SELLER (20261101034159): a Helpr's photos of a seller's listing, cleaned to JPEG first.
+  { file: "src/lib/declutter/listForSeller.ts", bucket: "job-photos", bucketSrc: "src/lib/declutter/api.ts", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto"] },
   { file: "src/lib/declutter/wanted.ts", bucket: "job-photos", bucketSrc: "src/lib/declutter/api.ts", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["cleanListingPhoto", "LISTING_PHOTO_UPLOAD_TYPES"] },
   // Quote past-work photos: cleaned to JPEG the same way (src/lib/quotes/api.ts).
   { file: "src/lib/quotes/api.ts", bucket: "job-photos", gate: ["src/lib/declutter/photos.ts", "LISTING_PHOTO_UPLOAD_TYPES"], via: ["LISTING_PHOTO_UPLOAD_TYPES"] },
@@ -128,6 +130,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/postjob/detailsSection/VideoScope.tsx": { bucket: "job-photos" },
   // The listing photo picker moved to the photo-first step 1 (DeclutterSellPhotos, 2026-10-19).
   "src/components/declutter/DeclutterSellPhotos.tsx": { bucket: "job-photos" },
+  "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx": { bucket: "job-photos" },
   // Sell a bunch (owner 2026-10-29): the photos go up as listing photos through addPhotoSteadily (src/lib/declutter/bunch.ts listBunch).
   "src/components/declutter/DeclutterBunchPhotos.tsx": { bucket: "job-photos" },
   "src/components/declutter/DeclutterBunchView.tsx": { bucket: "job-photos" },

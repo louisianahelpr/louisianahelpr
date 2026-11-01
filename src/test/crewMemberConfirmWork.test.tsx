@@ -15,7 +15,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const toastSuccess = vi.hoisted(() => vi.fn());
-vi.mock("sonner", () => ({ toast: { success: (...a: unknown[]) => toastSuccess(...a), error: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: (...a: unknown[]) => toastSuccess(...a), error: vi.fn(), warning: vi.fn() }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }));
 vi.mock("@/lib/haptics", () => ({ hapticSuccess: vi.fn(), hapticError: vi.fn(), hapticMedium: vi.fn(), hapticLight: vi.fn(), hapticWarning: vi.fn() }));
 
@@ -47,7 +47,7 @@ describe("the poster's crew roster offers Confirm work", () => {
     expect(rpc).not.toHaveBeenCalled();
     fireEvent.click(await screen.findByRole("button", { name: /^confirm work$/i }));
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("rpc_poster_approve_member", { _job_id: "j", _member_id: "m1" }));
-    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("Hallie's work is confirmed. They're paid on Tue, Nov 2."));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("Hallie's work is confirmed. They're paid on Tue, Nov 2.", undefined));
     expect(await screen.findByText("Work confirmed")).toBeInTheDocument();
     expect(chip()).toBeNull();
   });

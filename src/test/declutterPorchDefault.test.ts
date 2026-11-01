@@ -82,17 +82,26 @@ describe("Declutter porch default (row 101, 20261017055504)", () => {
     expect(sql).toContain("WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE;");
   });
 
+  // LEAD-LIST-FOR-SELLER (20261101034159, 2026-11-01): the seller's approval moves a Helpr-written listing from
+  // 'pending_seller_approval' (never listed, never in a cart or order) to draft, then publishes it in the same
+  // transaction (declutter_approve_listed_for_me), so every listing rule runs as for any new listing. Allowed only
+  // when the UPDATE's own WHERE pins status = 'pending_seller_approval'.
+  const PENDING_APPROVAL = "20261101034159_declutter_list_for_seller.sql";
   it("porch_ok is frozen once listed because no migration ever moves an item back to draft (lh-money-escrow review nit #4)", () => {
     let updates = 0;
+    let fromPending = 0;
     const back: string[] = [];
     for (const f of readdirSync(MIG_DIR).filter((x: string) => x.endsWith(".sql")).sort()) {
       const sql = blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"));
-      for (const m of sql.matchAll(/UPDATE\s+public\.declutter_items(?:\s+\w+)?\s+SET\s+([\s\S]*?)(?:\bWHERE\b|;)/gi)) {
+      for (const m of sql.matchAll(/UPDATE\s+public\.declutter_items(?:\s+\w+)?\s+SET\s+([\s\S]*?)(?:\bWHERE\b([^;]*))?;/gi)) {
         updates++;
-        if (/\bstatus\s*=\s*'draft'/i.test(m[1]) && f !== REOPEN) back.push(`${f}: ${flat(m[0]).slice(0, 120)}`);
+        if (!/\bstatus\s*=\s*'draft'/i.test(m[1]) || f === REOPEN) continue;
+        if (f === PENDING_APPROVAL && /\bstatus\s*=\s*'pending_seller_approval'/i.test(m[2] ?? "")) { fromPending++; continue; }
+        back.push(`${f}: ${flat(m[0]).slice(0, 120)}`);
       }
     }
     expect(updates).toBeGreaterThan(20);
+    expect(fromPending).toBe(1); // exact: the one approval UPDATE (two-way: a removed or second one fails)
     expect(back).toEqual([]);
   });
 

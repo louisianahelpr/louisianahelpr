@@ -5320,7 +5320,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 86,
+      "line": 85,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5330,7 +5330,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 87,
+      "line": 86,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5340,7 +5340,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 95,
+      "line": 94,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5390,7 +5390,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 104,
+      "line": 103,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6166,7 +6166,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterYourOffer.tsx",
-      "line": 74,
+      "line": 75,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6176,7 +6176,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterYourOffer.tsx",
-      "line": 80,
+      "line": 81,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

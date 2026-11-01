@@ -292,14 +292,17 @@ const ExceptionQueueInner = () => {
           {rows.map((r) => (
             <div key={r.id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  className="mt-3 shrink-0 h-4 w-4 accent-[hsl(var(--primary))]"
-                  checked={checkedIds.has(r.id)}
-                  onChange={() => toggleChecked(r.id)}
-                  disabled={bulkRunning}
-                  aria-label={`Select the ${EXCEPTION_TYPE_LABELS[r.exception_type] ?? r.exception_type} exception for ${r.full_name || r.email || "this user"}`}
-                />
+                {/* Q2047: a 44px tap row around a box drawn at its own size (index.css floors a bare box at 44px). */}
+                <label className="-my-0.5 -ml-3.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--primary))]"
+                    checked={checkedIds.has(r.id)}
+                    onChange={() => toggleChecked(r.id)}
+                    disabled={bulkRunning}
+                    aria-label={`Select the ${EXCEPTION_TYPE_LABELS[r.exception_type] ?? r.exception_type} exception for ${r.full_name || r.email || "this user"}`}
+                  />
+                </label>
                 <div className={cn("w-10 h-10 shrink-0 rounded-full bg-warning/10 flex items-center justify-center text-ds-13 font-bold", toneTextClasses.warning)}>
                   <AlertTriangle className="w-4 h-4" />
                 </div>

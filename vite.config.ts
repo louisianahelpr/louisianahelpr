@@ -674,7 +674,9 @@ export default defineConfig(({ mode, command }) => ({
                 ) {
                   return "react-vendor";
                 }
-                if (id.includes("lucide-react")) return "lucide";
+                // B68 11-01: only lucide's runtime (Icon, createLucideIcon, context) is pinned here; the icon
+                // modules go to the "icons" group below.
+                if (id.includes("lucide-react")) return id.includes("/icons/") ? undefined : "lucide";
                 // NOTE: Do NOT manually chunk recharts/d3 OR framer-motion. The
                 // same Rolldown behaviour that hoisted clsx into "charts" also
                 // hoisted react/jsx-runtime (a CJS interop virtual module) into
@@ -690,7 +692,10 @@ export default defineConfig(({ mode, command }) => ({
                 // React.lazy'd — keep it off the critical path by not pinning it to
                 // the eagerly-loaded "dates" chunk.
                 if (id.includes("date-fns")) return "dates";
-                if (id.includes("@tanstack")) return "tanstack";
+                // B68 11-01: only react-query rides in "tanstack" (boot needs it). The virtualizer (@tanstack/
+                // react-virtual + virtual-core, ~7 KB gz) was captured too, so every first screen downloaded it
+                // though only long lists (VirtualList, VirtualizedJobList) use it; it now rides with them.
+                if (id.includes("@tanstack")) return /@tanstack[\\/](react-)?virtual/.test(id) ? undefined : "tanstack";
                 if (id.includes("react-hook-form") || id.includes("zod") || id.includes("@hookform")) return "forms";
                 // Split Sentry and PostHog out of the main bundle. They're only
                 // imported from src/lib/sentry.ts and src/lib/posthog.ts, which are
@@ -713,6 +718,18 @@ export default defineConfig(({ mode, command }) => ({
                 if (id.includes("@sentry") || id.includes("sentry-internal")) return "sentry";
                 if (id.includes("posthog-js")) return "posthog";
               },
+            },
+            // B68 11-01: lucide's icon modules, grouped by the set of chunks that import them (entriesAware),
+            // with sets under 40 KB merged into their nearest neighbour. One "lucide" chunk holding all 280 icons put
+            // every icon the app draws on every first screen (26 KB gz of the 258 KB boot); one chunk per icon set
+            // without the merge made ~120 tiny files. Measured with the virtualizer cut: boot 251 -> 236 KB gz for
+            // +1 file (a 20 KB merge gave 230, but grew the entry's preload lists to 5.4 KB gz).
+            {
+              name: "icons",
+              test: /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/,
+              priority: 90,
+              entriesAware: true,
+              entriesAwareMergeThreshold: 40_000,
             },
             // Vite's dynamic-import preload helper (Q178). Every chunk that
             // lazy-loads imports it, so rolldown parked it inside app-shared —

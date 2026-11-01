@@ -84,9 +84,11 @@ const NotFound = () => {
                 <Button asChild variant="primary" size="lg" className="w-full max-w-[280px] rounded-full">
                   <Link to="/">Go home</Link>
                 </Button>
-                <button
+                <Button
                   type="button"
-                  className="min-h-[44px] px-3 text-ds-14 font-bold"
+                  variant="ghost"
+                  size="sm"
+                  className="px-3 tracking-normal"
                   style={{ color: "hsl(var(--bark))" }}
                   // A bare history.back() is a no-op on a cold deep-link / direct
                   // landing where this 404 is the first history entry — fall back
@@ -94,7 +96,7 @@ const NotFound = () => {
                   onClick={() => (window.history.length <= 1 ? navigate("/") : window.history.back())}
                 >
                   Go back
-                </button>
+                </Button>
               </div>
             }
           />

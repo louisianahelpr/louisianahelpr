@@ -7,7 +7,6 @@ import { useSectionIsOn, useSectionIsPreview } from "@/components/sections/Explo
 import { sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
-import { fetchMyShopId } from "@/lib/shops/api";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import { hapticLight } from "@/lib/haptics";
 import { SoonPill } from "@/components/sections/SoonPill";
@@ -35,7 +34,8 @@ function useCreateRows() {
   const isOn = useSectionIsOn();
   const isPreview = useSectionIsPreview();
   const shopsOn = useFeature("shops");
-  const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: fetchMyShopId, enabled: shopsOn });
+  // The Shops data code loads with this query (only when Shops is on), not with the dock on every screen (/home cut).
+  const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: () => import("@/lib/shops/api").then((m) => m.fetchMyShopId()), enabled: shopsOn });
   const hasShop = !!myShop.data;
   const actions: Record<SectionKey, CreateAction[]> = {
     jobs: [{ label: "Post a job", path: "/post-job", gated: true }],

@@ -7,7 +7,7 @@ import { StorageApiError as LazyStorageApiError, StorageClient as LazyStorage } 
  * leaves the boot path. Each case runs the same call through the real client and the stand-in and compares what
  * reaches the network (URL, method, headers, body) and what comes back.
  */
-// @mutate src/integrations/supabase/lazyStorage.ts | encodeURI(`${url}/object/public/${finalPath}`) | encodeURI(`${url}/object/${finalPath}`)
+// @mutate src/integrations/supabase/lazyStorage.ts | encodeURI(`${url}/${renderPath}/public/${finalPath}`) | encodeURI(`${url}/${renderPath}/${finalPath}`)
 // @mutate src/integrations/supabase/lazyStorage.ts | ? "render/image" : "object" | ? "object" : "object"
 // @mutate src/integrations/supabase/lazyStorage.ts |           load().then((c) => (c.from(bucketId) as | load().then((c) => (c.from(bucketId + "x") as
 

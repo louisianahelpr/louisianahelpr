@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { MapPin, Share2, Star, UserX } from "lucide-react";
 import AppPage from "@/components/AppPage";
+import { PUBLIC_LINK_COLUMN } from "@/lib/pageColumn";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -59,7 +60,7 @@ function BookBody({ card, signedIn, isMe }: { card: BookCard; signedIn: boolean;
   const first = firstNameOf(card.name);
   const trust = trustLine(card);
   return (
-    <div className="mx-auto w-full max-w-md space-y-4 pb-8">
+    <div className={`${PUBLIC_LINK_COLUMN} space-y-4 pb-8`}>
       <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-labelledby="book-name">
         <UserAvatar userId={card.userId} src={card.avatarUrl} name={card.name} pixelSize={96} className="mx-auto h-24 w-24" />
         <h2 id="book-name" className="mt-3 text-xl font-semibold text-foreground">
@@ -148,7 +149,7 @@ export default function BookHelprPage() {
         // A status line, not card bones (loadingStateShape): the same link can land on the
         // card or on "This Helpr isn't available", and bones shaped like one jump into the
         // other. Measured anon: /book/<test Helpr> resolves to the unavailable state.
-        <p role="status" className="mx-auto w-full max-w-md text-center text-ds-14 text-muted-foreground" data-testid="book-loading">
+        <p role="status" className={`${PUBLIC_LINK_COLUMN} text-center text-ds-14 text-muted-foreground`} data-testid="book-loading">
           Loading this Helpr…
         </p>
       ) : card.isError ? (

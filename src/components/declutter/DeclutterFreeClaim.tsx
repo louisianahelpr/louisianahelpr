@@ -1,22 +1,26 @@
 /**
  * The Free section (20261027170717, owner 2026-10-27 for the launch): on someone else's FREE item, one
  * button in place of Buy now / Make an offer. No card is asked and nothing is charged.
- * The Free change (Q2487, owner 2026-10-29): the button ASKS for the item (declutter_request_free); the item stays
- * up and the giver picks who gets it (FreeRequestsForGiver below). Only the picked person gets the 48 hours to
- * choose how to collect it in the cart (pickup at the giver's home, or porch pickup). At most 3 at a time (asks
+ * The Free change (Q2487, owner 2026-10-29): the button ASKS for the item; the item stays
+ * up and the giver picks who gets it (FreeRequestsForGiver below). The picked person's asked time is booked at the
+ * pick (20261101181129); an ask with no time (an older app build) still gets the 48 hours to choose in the cart. At most 3 at a time (asks
  * plus free items waiting); the server says so in plain words when a fourth is tried.
+ * Owner 11-01 (Mockup 3): the button opens FreeAskSheet, where the asker picks the pickup time from the giver's
+ * times (declutter_request_free_at); the giver's list shows each asker's time.
  */
+import { NextStep } from "@/components/ui/NextStep";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import {
-  checkoutFree, fetchFreeRequestsForItem, fetchItemHandovers, fetchMyCart, fetchMyFreePause, fetchMyFreeRequests, pickFreeRequest,
-  requestFree, withdrawFreeRequest, type DeclutterItem, type Handover,
+  checkoutFree, fetchFreeRequestsForItem, fetchSellerCard, fetchItemHandovers, fetchMyCart, fetchMyFreePause, fetchMyFreeRequests, pickFreeRequest,
+  withdrawFreeRequest, type DeclutterItem, type Handover,
 } from "@/lib/declutter/api";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { wayAllowed } from "@/lib/declutter/handovers";
@@ -26,6 +30,21 @@ import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { DeclutterNotice } from "./declutterUi";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
+import { formatName } from "@/lib/utils";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+
+// Owner 11-01 (Mockup 3): the "Ask for it" sheet loads when the button is pressed, never with the item page.
+const FreeAskSheet = lazy(() => import("./FreeAskSheet"));
+
+/** "Today 3 PM" for a time the asker picked (the sheet's own words), without loading the sheet. */
+function pickedTimeLabel(iso: string): string {
+  const zone = "America/Chicago";
+  const d = new Date(iso);
+  const day = (x: Date) => new Intl.DateTimeFormat("en-US", { timeZone: zone, year: "numeric", month: "numeric", day: "numeric" }).format(x);
+  const time = new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", minute: "2-digit" }).format(d).replace(":00", "");
+  if (day(d) === day(new Date())) return `Today ${time}`;
+  return `${new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", month: "numeric", day: "numeric" }).format(d)}, ${time}`;
+}
 
 /** Is this listing free? (price and current price are both 0, a CHECK keeps them together). */
 export function isFreeItem(item: Pick<DeclutterItem, "current_price_cents">): boolean {
@@ -46,13 +65,15 @@ function freeWaysOffered(porchOk: boolean, ways: Handover[] | null): FreeHandove
  * It now names only the ways this item offers (undefined = still loading: no way named yet).
  */
 function freeAskLine(offered: FreeHandover[] | undefined, oneTimeCheckAhead = false): string {
-  const how = offered === undefined ? "to choose a pickup"
-    : offered.length === 2 ? "to choose a pickup at their home or from their porch"
-    : offered[0] === "porch" ? "to choose a time to collect it from their porch"
-    : offered[0] === "pickup_home" ? "to choose a time to pick it up at their home"
-    : "to agree with them how you'll get it";
+  const how = offered === undefined ? ""
+    : offered.length === 2 ? " to pick it up at their home or from their porch"
+    : offered[0] === "porch" ? " to collect it from their porch"
+    : offered[0] === "pickup_home" ? " to pick it up at their home"
+    : "; agree with them how you'll get it";
   // Asking is free (owner 2026-10-30). "Nothing is charged" would overpromise to a member whose first pick carries the one-time ID check.
-  return `${oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} The giver picks who gets it; if it's you, you'll have 48 hours ${how}. You can ask for up to 3 free items at a time.`;
+  // Owner 11-01 (Mockup 3): the asker picks the pickup time when they ask, and the giver's pick books it
+  // (declutter_pick_free_request, 20261101181129).
+  return `${oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} When you ask, you pick a pickup time from the giver's times. The giver picks who gets it; if it's you, that time is already set and you'll get the address${how}. You can ask for up to 3 free items at a time.`;
 }
 
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
@@ -75,14 +96,10 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
     enabled: !!user && item.status === "live",
   });
   const myAsk = (asks.data ?? []).find((r) => r.item_id === item.id) ?? null;
-  const ask = useMutation({
-    mutationFn: () => requestFree(item.id),
-    onSuccess: () => {
-      toast("Asked. The giver picks who gets it, and we'll tell you.");
-      void qc.invalidateQueries({ queryKey: ["declutter"] });
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
+  const [asking, setAsking] = useState(false);
+  const [rules, setRules] = useState(false);
+  const giver = useQuery({ queryKey: ["declutter", "seller-card", item.seller_id], queryFn: () => fetchSellerCard(item.seller_id) });
+  const giverFirstName = giver.data?.name?.trim() ? formatName(giver.data.name).split(" ")[0] : "The giver";
   const takeBack = useMutation({
     mutationFn: (id: string) => withdrawFreeRequest(id),
     onSuccess: () => {
@@ -107,7 +124,8 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
     return (
       <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="You asked for this item" data-free-claim="">
         <p className="text-ds-15 font-semibold text-foreground">You asked for this.</p>
-        <p className="text-sm text-muted-foreground">The giver picks who gets it. We'll tell you either way.</p>
+        {/* The shared next-step line (owner 11-01 12:02 PM): nothing is the asker's to do; it waits on the giver. */}
+        <NextStep className="!text-sm" value={{ who: "them", text: `Waiting on ${giverFirstName === "The giver" ? "the giver" : giverFirstName} to pick who gets it. We'll tell you either way.` }} />
         <Button type="button" variant="outline" size="wrap" className="w-full rounded-full" disabled={takeBack.isPending}
           onClick={() => takeBack.mutate(myAsk.id)}>
           Take back my ask
@@ -116,19 +134,40 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
     );
   }
   return (
-    <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Ask for this item" data-free-claim="">
-      <Button type="button" size="wrap" className="w-full rounded-full" disabled={ask.isPending || asks.isLoading} onClick={() => ask.mutate()}>
+    <section className="rounded-2xl border border-border bg-card p-4 space-y-2" aria-label="Ask for this item" data-free-claim="">
+      {/* Owner mockup 11-01: ONE button; the asker picks the pickup time in the sheet it opens (Mockup 3). */}
+      <Button type="button" size="wrap" className="w-full rounded-full" disabled={asks.isLoading} onClick={() => setAsking(true)}>
         Ask for it
       </Button>
-      <p className="text-xs text-muted-foreground">{freeAskLine(offered, oneTimeCheckAhead)}</p>
+      <p className="text-xs text-muted-foreground" data-free-ask-note="">
+        {oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} You pick a pickup time when you ask.{" "}
+        {/* A text link inside the sentence (B106: as a <Button> it kept the global 44px button box, so the note's two
+            lines sat 30px apart). InlineTextButton (the shared text link) gives it the 44px tap area as an overlay on a touch screen instead. */}
+        <InlineTextButton className="text-xs font-semibold text-foreground underline underline-offset-2" onClick={() => setRules(true)} data-free-how="">
+          How it works
+        </InlineTextButton>
+      </p>
+      {asking && (
+        <Suspense fallback={null}>
+          <FreeAskSheet item={item} giverFirstName={giverFirstName} open={asking} onClose={() => setAsking(false)} />
+        </Suspense>
+      )}
+      {/* The long rules sit behind the link (owner mockup 11-01). */}
+      <Sheet open={rules} onOpenChange={setRules}>
+        <SheetContent side="bottom" className="bg-premium-page max-h-[90dvh] overflow-y-auto" data-free-rules="">
+          <SheetHero title="How free items work" />
+          <p className="mt-2 text-ds-14 text-foreground">{freeAskLine(offered, oneTimeCheckAhead)}</p>
+        </SheetContent>
+      </Sheet>
     </section>
   );
 }
 
 /**
  * The giver's side of the Free change (Q2487): who asked for this free item, oldest first, each with their name and
- * rating, and one Pick button each. Picking gives that person the item (their 48 hours start); everyone else who
- * asked is told it went to someone else.
+ * rating, the pickup time they picked, and one Pick button each. Picking gives that person the item and books their
+ * time (20261101181129; an ask with no time still gives them 48 hours to choose); everyone else is told it went to
+ * someone else.
  */
 export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
   const qc = useQueryClient();
@@ -136,7 +175,8 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
   const pick = useMutation({
     mutationFn: (requestId: string) => pickFreeRequest(requestId),
     onSuccess: () => {
-      toast("Picked. They have 48 hours to choose a pickup.");
+      // The server books their asked time when it can, else gives them 48 hours (20261101181129): say only what is sure.
+      toast("Picked. We've told them.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -149,14 +189,20 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Who asked for this item" data-free-requests="">
       <h2 className="text-base font-semibold">Requests ({rows.length})</h2>
+      {/* The shared next-step line (owner 11-01 12:02 PM): with asks in, picking one is the giver's move. */}
       {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nobody has asked yet. It stays up until you pick someone.</p>
+        <NextStep className="!text-sm" value={{ who: "info", text: "Nobody has asked yet. It stays up until you pick someone." }} />
       ) : (
+        <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it" }} />
+      )}
+      {rows.length === 0 ? null : (
         <ul className="space-y-2">
           {rows.map((r) => (
             <li key={r.request_id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
               <span className="min-w-0">
                 <span className="block font-semibold truncate">{r.display_name}</span>
+                {/* Owner 11-01: each asker's chosen pickup time (null for an ask made before times were asked). */}
+                {r.pickup_at && <span className="block text-ds-13 font-semibold text-foreground" data-free-ask-time="">Pickup {pickedTimeLabel(r.pickup_at)}</span>}
                 <span className="block text-xs text-muted-foreground">
                   {r.review_count ? `${Number(r.avg_rating ?? 0).toFixed(1)} stars, ${r.review_count} ${r.review_count === 1 ? "review" : "reviews"}` : "No reviews yet"}
                 </span>

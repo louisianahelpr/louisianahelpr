@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -15,6 +15,9 @@ const shopOrdersApi = () => loadModule(() => import("@/lib/shops/orders"));
 // JAVASCRIPT-54, '["shops","mine"] data is undefined'). Guard: src/test/dynamicImportThenDoesNoWork.test.ts.
 const rentalsApi = () => loadModule(() => import("@/lib/rentals/api"));
 const handoverApi = () => loadModule(() => import("@/lib/declutter/handover"));
+// The section cards' live counts load after Home has painted (owner request 2026-11-01): their module and reads.
+const nearCountsApi = () => loadModule(() => import("./sectionNearCounts"));
+import { whenPageSettled } from "@/lib/routePrefetch";
 import { useFeature } from "@/hooks/useFeature";
 import { useNeedsYouTodos } from "./needsYouTodos";
 import { deriveLiveNow, deriveWaiting } from "./nextUpStates";
@@ -46,11 +49,42 @@ export function countLine(parts: ReadonlyArray<readonly [number, string, string?
 }
 
 /**
+ * The Jobs and Declutter cards' lines with their live counts (owner request 2026-11-01): Jobs keeps "N need you" when
+ * something needs the member, otherwise "N open near you"; Declutter says "N items near you". A count that is 0 or
+ * not in yet keeps the card's current line (its own counts, or the invitation), so a card never looks empty and the
+ * line only changes once, when the count arrives.
+ */
+export function sectionCardLines(
+  current: { jobs: string | null; declutter: string | null },
+  jobTodos: number,
+  near: { jobs?: number; declutter?: number },
+): { jobs: string | null; declutter: string | null } {
+  const jobsNear = jobTodos === 0 && (near.jobs ?? 0) > 0 ? `${near.jobs} open near you` : null;
+  const declutterNear = (near.declutter ?? 0) > 0 ? `${near.declutter} ${near.declutter === 1 ? "item" : "items"} near you` : null;
+  return { jobs: jobsNear ?? current.jobs, declutter: declutterNear ?? current.declutter };
+}
+
+/** True once the page has finished loading (routePrefetch's whenPageSettled): the cards' counts wait for it. */
+function usePageSettled(): boolean {
+  const [settled, setSettled] = useState(false);
+  useEffect(() => whenPageSettled(() => setSettled(true), 300, 4000), []);
+  return settled;
+}
+
+/**
  * Home's numbers, all from data the section screens already read (no new
  * query shape): the poster's and helper's activity (the same buckets Jobs
  * uses), the member's Declutter listings, Shops orders and Homes properties.
  * A section whose switch is off for the viewer is never queried.
  */
+const BOOKED_STATUSES: ReadonlySet<string> = new Set(["accepted", "in_progress", "revision_requested"]);
+
+/** A job of mine, either side, with a Helpr booked on it and not finished (JA-36). */
+export function hasBookedJob(postedJobs: readonly { status: string; helper_id?: string | null; is_group_job?: boolean | null }[], appliedApps: readonly { helper_id?: string | null; job?: { status: string; helper_id?: string | null } | null }[]): boolean {
+  return postedJobs.some((j) => BOOKED_STATUSES.has(j.status) && (!!j.helper_id || j.is_group_job === true))
+    || appliedApps.some((a) => !!a.job && BOOKED_STATUSES.has(a.job.status) && !!a.helper_id && a.job.helper_id === a.helper_id);
+}
+
 export function useHomeSummary(user: SupaUser | null) {
   const posted = useActivityData(user, "posted");
   const applied = useActivityData(user, "applied");
@@ -69,6 +103,21 @@ export function useHomeSummary(user: SupaUser | null) {
   const paidIds = [...new Set((cart.data ?? []).filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id!))];
   const bookings = useQuery({ queryKey: ["declutter", "bookings", paidIds.join(",")], queryFn: () => handoverApi().then((m) => (m ? m.fetchMyBookings(paidIds) : untilReload())), enabled: paidIds.length > 0 });
   const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchShopOrders(uid) : untilReload())), enabled: !!uid && shopsOn });
+  // Live "near you" counts for the Jobs and Declutter cards: head-only count reads, started after first paint.
+  const settled = usePageSettled();
+  const appliedIds = useMemo(() => [...new Set((applied.appliedApps ?? []).map((a) => a.job_id))].sort(), [applied.appliedApps]);
+  const jobsNear = useQuery({
+    queryKey: ["home", "jobs-open-near", uid, appliedIds],
+    queryFn: () => nearCountsApi().then((m) => (m ? m.fetchOpenJobsNearCount(uid, appliedIds) : untilReload())),
+    enabled: !!uid && settled && !applied.loading,
+    staleTime: 60_000,
+  });
+  const declutterNear = useQuery({
+    queryKey: ["home", "declutter-near", uid],
+    queryFn: () => nearCountsApi().then((m) => (m ? m.fetchDeclutterNearCount(uid) : untilReload())),
+    enabled: !!uid && settled && declutterOn,
+    staleTime: 60_000,
+  });
 
   return useMemo(() => {
     const now = Date.now();
@@ -98,15 +147,18 @@ export function useHomeSummary(user: SupaUser | null) {
     const props = homes.data ?? [];
 
     // Board 165: a job happening now sits above Next up. Board 83: with nothing to do, who is up (never the live job again).
-    const liveNow = deriveLiveNow(pj, aa);
+    const liveNow = deriveLiveNow(pj, aa, posted.helperNames ?? {});
     return {
       loading: posted.loading && applied.loading,
       todos,
       liveNow,
-      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null),
+      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, posted.helperNames ?? {}),
       thisWeek,
       upcoming: upcoming.slice(0, COMING_UP_MAX),
       upcomingFailed,
+      // JA-36 (audit 11-01): a booked job is live (on the way, under way) but not in Coming up: the empty line says
+      // "Nothing else booked", never "Nothing booked yet" under that very job.
+      hasBookedJob: hasBookedJob(pj, aa),
       // You tab's activity tiles (board 18): real counts, 0 = no number shown.
       counts: {
         posted: postedLive.length,
@@ -118,11 +170,17 @@ export function useHomeSummary(user: SupaUser | null) {
         // H5 (Cowork audit 2026-10-20): "N in progress" counted open jobs still
         // WAITING for applicants as in progress. The second count is the jobs that
         // are booked and ahead of you, in the Jobs status boxes' own word.
-        jobs: countLine([[jobTodos, "need you"], [postedUpcoming.length + appliedLive.length, "upcoming"]]),
-        declutter: countLine([[items.filter((i) => i.status === "live").length, "listed"], [items.filter((i) => i.status === "pending_review").length, "in review"]]),
+        ...sectionCardLines(
+          {
+            jobs: countLine([[jobTodos, "needs you", "need you"], [postedUpcoming.length + appliedLive.length, "upcoming"]]),
+            declutter: countLine([[items.filter((i) => i.status === "live").length, "listed"], [items.filter((i) => i.status === "pending_review").length, "in review"]]),
+          },
+          jobTodos,
+          { jobs: jobsNear.data, declutter: declutterOn ? declutterNear.data : undefined },
+        ),
         shops: countLine([[shopTodos, "to answer"], [myOrders.length, "open order", "open orders"]]),
         homes: countLine([[props.length, "property", "properties"]]),
       },
     };
-  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError]);
+  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data]);
 }

@@ -1,6 +1,7 @@
 import { Bell, Headphones, LogOut, Settings, ShieldAlert, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHomeMoney } from "@/pages/home/homeDashboard/homeMoney";
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
@@ -138,23 +139,27 @@ export function YouMenu({
       />
 
       <div className="pt-1 space-y-1">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="md"
           onClick={onRequestLogout}
-          className="glass-press w-full rounded-full bg-card min-h-[48px] inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all font-semibold"
+          className="glass-press w-full bg-card px-0 active:scale-[0.99] transition-all font-semibold tracking-normal [&_svg]:size-4"
           style={{ color: "hsl(var(--foreground))", border: "1px solid hsl(var(--border))" }}
         >
           <LogOut className="w-4 h-4" aria-hidden /> Log out
-        </button>
+        </Button>
         {/* Quiet: a small muted text button, never a second pill. Its confirm dialog does the warning. */}
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onRequestDelete}
           data-testid="profile-delete-account"
-          className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground transition-colors"
+          className="w-full px-0 text-ds-13 font-semibold tracking-normal text-muted-foreground"
         >
           Delete account
-        </button>
+        </Button>
       </div>
     </div>
   );

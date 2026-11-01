@@ -46,6 +46,13 @@ export interface PosterFaceHandlers {
   viewDispute: () => void;
 }
 
+/**
+ * JA-35 (Jobs audit 11-01): the control that opens the card's own controls is named as the job page names the same
+ * thing, "More options". The page dropped "Manage job" on the owner's word (10-31: "never a generic Manage job"), and
+ * the card still said it, so card and page disagreed. Guard: src/test/posterCardNamesLikeThePage.test.ts.
+ */
+const POSTER_CONTROLS_LABEL = "More options";
+
 /** "Hallie H." -> "Hallie": a button label names the person, short. */
 const first = (name: string) => name.trim().split(/\s+/)[0] || name;
 
@@ -82,7 +89,7 @@ export function posterFaceAction(
     case "done_tip_open_review_closed":
       // A crew is tipped member by member, in the card.
       return job.is_group_job || h.tipsReady === false
-        ? { label: "Manage job", onClick: h.manage, tone: "secondary" }
+        ? { label: POSTER_CONTROLS_LABEL, onClick: h.manage, tone: "secondary" }
         : { label: `Tip ${first(h.helperName)}`, onClick: h.tip, tone: "primary" };
     case "stalled":
       // No poster "it's done" path exists: a stalled job is released or refunded
@@ -110,10 +117,10 @@ export function posterFaceAction(
       return { label: "Open the dispute", onClick: h.viewDispute, tone: "secondary" };
     default:
       // WAITING ON THE HELPR (owner, 2026-10-23, card critique item 13; board 14): the one button talks to them,
-      // and "Manage job" (the card's controls) is a small text link beside it. No Helpr yet, or a crew: Manage job.
+      // and "More options" (the card's controls, JA-35) is a small text link beside it. No Helpr yet, or a crew: More options.
       return job.helper_id && !job.is_group_job
-        ? { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary", also: { label: "Manage job", onClick: h.manage } }
-        : { label: "Manage job", onClick: h.manage, tone: "secondary" };
+        ? { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary", also: { label: POSTER_CONTROLS_LABEL, onClick: h.manage } }
+        : { label: POSTER_CONTROLS_LABEL, onClick: h.manage, tone: "secondary" };
   }
 }
 

@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "delivery" && !view && <DeliveryDoneStatus | {(order.handover === "delivery" \|\| order.handover === "seller_delivery") && <DeliveryDoneStatus
  * @mutate src/lib/declutter/refundRequests.ts |   return request?.status === "agreed" && !!request.returned_at; |   return request?.status === "agreed";
  * @mutate src/components/declutter/BuyingOrders.tsx | `Returned. You got ${back} back.` | `Handed over. It's yours.`
- * @mutate src/components/declutter/BuyingOrders.tsx | {standing ?? view.standing} | {view.standing}
+ * @mutate src/components/declutter/BuyingOrders.tsx | value={standing ? { who: "info", text: standing } : view.next} | value={view.next}
  * @mutate src/lib/declutter/refundRequests.ts |   return status === "returning" \|\| status === "to_admin"; |   return false;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

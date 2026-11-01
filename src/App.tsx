@@ -181,7 +181,8 @@ const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
 // Lazy load route wrappers
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));
-const AdminRoute = lazy(() => import("./components/AdminRoute"));
+// B90: Admin's page chunk starts WITH its gate, not a round later (AdminRoute still decides; see boot/profileRoute.ts).
+const AdminRoute = lazy(() => (Admin.preload(), import("./components/AdminRoute")));
 
 /**
  * Wraps a single route's lazy content in its own `<Suspense>` with a

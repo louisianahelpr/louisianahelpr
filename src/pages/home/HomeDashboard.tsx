@@ -10,6 +10,8 @@ import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHomeSummary, SECTION_INVITE } from "./homeDashboard/useHomeSummary";
+import { todoTarget } from "./homeDashboard/needsYouTodos";
+import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
 import { useHomeMoney } from "./homeDashboard/homeMoney";
 import { HomeMoneyTiles } from "./homeDashboard/HomeMoneyTiles";
@@ -159,9 +161,9 @@ function HomeDashboardScreen() {
                   {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? `Next up · ${at + 1} of ${todoCount}` : "Next up"}
                 </h2>
                 {!next && summary.waiting && (
-                  <button type="button" data-testid="next-up-see-job" onClick={() => navigate(`/jobs/${summary.waiting!.jobId}`)} className="min-h-11 px-1 -my-2 -mr-1 text-ds-13 font-bold text-primary whitespace-nowrap">
+                  <Button type="button" variant="ghost" size="sm" data-testid="next-up-see-job" onClick={() => navigate(`/jobs/${summary.waiting!.jobId}`)} className="px-1 -my-2 -mr-1 text-ds-13 tracking-normal text-primary">
                     See job
-                  </button>
+                  </Button>
                 )}
                 {next && (() => {
                   // Board 7: the to-do's section, by icon and name, top right.
@@ -219,7 +221,7 @@ function HomeDashboardScreen() {
                           {todoOpen ? "Hide" : `See all (${todoCount})`}
                         </button>
                       ) : <span />}
-                      <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(next.to)} className="px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
+                      <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(todoTarget(next, requestHelperStep))} className="px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
                         {next.action}
                       </Button>
                     </div>
@@ -243,7 +245,7 @@ function HomeDashboardScreen() {
               <div data-testid="todo-list" id="home-todo-list">
                 <GroupSection title="To do" count={todoCount}>
                   {summary.todos.map((t, i, arr) => (
-                    <GroupRow key={t.id} title={t.title} meta={t.meta} onClick={() => navigate(t.to)} last={i === arr.length - 1} />
+                    <GroupRow key={t.id} title={t.title} meta={t.meta} onClick={() => navigate(todoTarget(t, requestHelperStep))} last={i === arr.length - 1} />
                   ))}
                 </GroupSection>
               </div>
@@ -269,7 +271,7 @@ function HomeDashboardScreen() {
             ) : (
             <GroupSection title="Coming up">
               {summary.upcoming.length === 0 ? (
-                <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">Nothing booked yet.</p>
+                <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">{summary.hasBookedJob ? "Nothing else booked." : "Nothing booked yet."}</p>
               ) : (
                 summary.upcoming.map((c, i) => {
                   const d = sectionDef(c.section);
@@ -341,7 +343,9 @@ function HomeDashboardScreen() {
                   >
                     <Icon className="w-6 h-6 lg:w-5 lg:h-5 text-primary" strokeWidth={1.75} aria-hidden />
                     <span className="text-ds-16 lg:text-ds-15 font-bold mt-2 lg:mt-1.5 truncate text-foreground">{s.label}</span>
-                    <span data-tile-line className="text-ds-14 lg:text-ds-13 text-muted-foreground leading-snug">{line}</span>
+                    {/* Two lines' room always (leading-snug x 2): the live "near you" count replaces the line after
+                        first paint, and a shorter line must not shrink the card under the reader (owner 2026-11-01). */}
+                    <span data-tile-line className="text-ds-14 lg:text-ds-13 text-muted-foreground leading-snug min-h-[2.75em]">{line}</span>
                   </button>
                 );
               })}

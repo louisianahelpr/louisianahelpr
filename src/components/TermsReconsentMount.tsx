@@ -1,9 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LATEST_TERMS_VERSION, termsAcceptanceIsCurrent } from "@/lib/consent";
-import { report } from "@/lib/errorLogger";
 
 const TermsReconsentDialog = lazy(() =>
   import("@/components/TermsReconsentDialog").then((m) => ({ default: m.TermsReconsentDialog })),
@@ -34,41 +32,28 @@ export function termsReconsentEligible(
  * on Slow 4G for a dialog that is closed for everyone who is current, which is
  * nearly everyone.
  *
- * This part reads the one column the dialog decides on and fetches the dialog
- * only when that version is behind LATEST_TERMS_VERSION. The dialog then does
- * its own read and opens (it stays the one place the rule and the write live).
- * A failed read fetches nothing: the same fail-closed choice the dialog makes.
- * Once fetched it stays mounted, so it can close by itself after I Agree.
+ * This part reads the one column the dialog decides on from the signed-in
+ * profile row (useCurrentUser reads profiles select=* from the server on every
+ * load, never from the device) and fetches the dialog only when that version
+ * is behind LATEST_TERMS_VERSION. It sent its own profiles read until
+ * 2026-11-01: one more request on every signed-in page (Q104 budget, release
+ * gate). The dialog then does its own read and opens (it stays the one place
+ * the rule and the write live). No profile yet fetches nothing: the same
+ * fail-closed choice the dialog makes. Once fetched it stays mounted, so it
+ * can close by itself after I Agree.
  *
  * Guard: src/test/chromeWaitsOnlyForItsOwnCode.test.tsx.
  */
 export function TermsReconsentMount() {
   const { user, profile } = useCurrentUser();
   const eligible = termsReconsentEligible(user, profile);
-  const userId = user?.id ?? null;
+  const accepted = (profile as { terms_version_accepted?: string | null } | null)?.terms_version_accepted ?? "";
   const [behind, setBehind] = useState(false);
 
   useEffect(() => {
-    if (!eligible || !userId || behind) return;
-    let cancelled = false;
-    void (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("terms_version_accepted")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (cancelled) return;
-      if (error) {
-        report(error, { tags: { source: "TermsReconsentMount.load" } });
-        return;
-      }
-      const accepted = (data?.terms_version_accepted as string | null) ?? "";
-      if (!termsAcceptanceIsCurrent(accepted, LATEST_TERMS_VERSION)) setBehind(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [eligible, userId, behind]);
+    if (!eligible || behind) return;
+    if (!termsAcceptanceIsCurrent(accepted, LATEST_TERMS_VERSION)) setBehind(true);
+  }, [eligible, accepted, behind]);
 
   if (!behind) return null;
   return (

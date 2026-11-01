@@ -1,11 +1,9 @@
 /**
- * /declutter/item/:id — one Declutter item, photo-first (owner, 2026-10-19:
- * Facebook Marketplace / OfferUp / Mercari): the swipeable gallery, then the
- * price, condition and title, the seller card, Buy now / Make an offer
- * (OfferPanel, with a bar above the dock on a phone), the details, pickup
- * (area + miles: rows 5, 27), and the public Q&A (row 35, board 162:
- * DeclutterQuestions; messages open after checkout). Share and
- * the watch heart (row 46) sit on the title row. Two columns from lg.
+ * /declutter/item/:id — one Declutter item (owner mockups 11-01, Mockup 1 computer / Mockup 2 phone): the gallery,
+ * then the title with Save and Share beside it, the price with the condition chip, the place line; Make an offer
+ * (left) and Buy now (right) with the delivery line under them (OfferPanel, with a bar above the dock on a phone);
+ * the seller card with "12+ more items" folded in; "About this item" then Category and Size; ONE pickup block;
+ * the public Questions (board 162); Report at the bottom. Two columns from lg, the item column sticky.
  */
 import { lazy, Suspense, useState, type ReactNode } from "react";
 
@@ -17,11 +15,9 @@ import AppPage from "@/components/AppPage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { DeclutterItemSkeleton, DeclutterItemUnavailable, isItemId } from "./DeclutterSkeletons";
-import { noDeliveryWay } from "@/lib/declutter/pickupWords";
 import {
   fetchItem,
   fetchItemDropState,
-  fetchItemHandovers,
   fetchManageState,
   fetchMyItemReview,
   fetchPhotos,
@@ -47,12 +43,10 @@ import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
 import { DeclutterMovingSaleNote } from "./DeclutterMovingSaleNote";
 import { DeclutterItemRows } from "./DeclutterItemRows";
-import { DeclutterBundleRow } from "./DeclutterBundleRow";
+import { BundleLine, useBundleSummary } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
 import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
-import { ItemHandoverTimes, itemTimesPlan } from "./ItemHandoverTimes";
-import { fetchItemPickupPlaces } from "@/lib/declutter/porchPlaces";
-import { ItemPickupWays } from "./ItemPickupWays";
+import { ItemPickupBlock } from "./ItemPickupBlock";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop, sellerStateStopsDrops } from "@/lib/declutter/priceDrop";
 import { shareListing } from "./DeclutterShareCard";
@@ -64,12 +58,6 @@ import { pagePhoto } from "@/lib/declutter/pagePhoto";
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
 // loads when it shows, not on every buyer's and guest's cold item page.
 const SellerListingPanel = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.SellerListingPanel })));
-
-/** When the exact pickup address is shared, said to whoever is reading (audit DC-7: the seller is not the one paying). */
-function addressNote(free: boolean, isSeller: boolean): string {
-  if (isSeller) return free ? "Buyers see your exact address only once they choose a pickup." : "Buyers see your exact address only after they pay.";
-  return free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay.";
-}
 
 /** What a pressed Buy or Offer says in the seller's own preview. */
 const PREVIEW_ACTION_NOTE = "This is your listing. Buyers can press this; you can't buy your own.";
@@ -127,11 +115,9 @@ export default function ItemView({ itemId }: { itemId: string }) {
     queryFn: () => fetchMyItemReview(itemId),
     enabled: isSeller && (item.data?.status === "rejected" || item.data?.status === "removed"),
   });
-  // Audit 1030 DB-4: the Pickup block says pickup only when the seller offers one (ItemPickupWays reads the same key).
-  const ways = useQuery({ queryKey: ["declutter", "item-handovers", itemId], queryFn: () => fetchItemHandovers(itemId), enabled: validId });
-  // The same read (and cache) as ItemHandoverTimes: whether the pickup places list is shown below "Pickup".
-  const pickupPlaces = useQuery({ queryKey: ["declutter", "item-pickup-places", itemId], queryFn: () => fetchItemPickupPlaces(itemId), enabled: validId && !!user });
-  const way = noDeliveryWay(ways.data);
+  // Owner mockup 11-01: "12+ more items · check out together" folded into the seller card (the same reads as before).
+  const bundle = useBundleSummary(item.data ?? null, user?.id ?? null, !!user && !!item.data && item.data.seller_id !== user.id
+    && (item.data.status === "live" || item.data.status === "reserved"));
   const isWatching = watching.data?.has(itemId) ?? false;
   const toggleWatch = useMutation({
     mutationFn: () => setWatch(itemId, !isWatching),
@@ -154,7 +140,6 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // Audit DC-7: the seller's own listing is not "About 52 mi away" from them; no distance on their own page.
   const away = ownListing ? null : milesLabel(miles, geo.status === "ready" && geo.approximate);
   const forSale = it.status === "live" || it.status === "reserved";
-  const placesListed = forSale && !!user && itemTimesPlan(ways.data, pickupPlaces.isPending ? null : Array.isArray(pickupPlaces.data) && pickupPlaces.data.length > 0).places;
   const canAct = !isSeller && forSale;
   // On the page, not a toast: toast.info renders nothing (src/lib/toastPolicy.ts), so Tester 5's press showed no note.
   const noteOwnListing = () => setPreviewPressed(true);
@@ -169,12 +154,18 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // The seller's own listing also knows its private lowest price and whether they stopped the drops: one that can't drop says nothing.
   const sellerState = isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" ? sellerDrops.data : null;
   const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null;
+  // Owner mockup 11-01: the delivery line sits under Make an offer / Buy now, inside their card.
+  // Helpr delivery is offered on every bought item while Declutter is open (the cart's own rule); a free item is
+  // claimed, never bought. The figure is the least it can cost in all (fromDeliveredCents), so "from".
+  const deliveredLine = canAct && !free ? (
+    <p data-item-delivered="" className="text-sm text-muted-foreground">
+      Or have it delivered by a local Helpr from <span className="font-semibold tabular-nums text-foreground">{formatPrice(fromDeliveredCents(it.current_price_cents, it.delivery_size))}</span>
+    </p>
+  ) : null;
   const actions = (<>
-    {canAct && user && <DeclutterBundleRow item={it} viewerId={user.id} />}
-
-    {/* Buy now and Make an offer sit right under the price and seller (owner, 2026-10-19). */}
+    {/* Owner mockup 11-01: Make an offer (left) and Buy now (right) sit right under the price and place. */}
     {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
-    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />)}
+    {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />)}
     {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />}
   </>);
@@ -182,48 +173,57 @@ export default function ItemView({ itemId }: { itemId: string }) {
   // B67 (DECL-ITEM-SPEED): the frame shows a resized WebP (462 -> 124 KB measured on a live photo), the viewer the original.
   const display = urls.map(pagePhoto);
 
+  const saveShare = (
+    <div className="flex shrink-0 items-center gap-2" data-item-save-share="">
+      {canAct && user && (
+        <button
+          type="button"
+          aria-pressed={isWatching}
+          aria-label={isWatching ? "Stop watching this item" : "Watch this item"}
+          className={`w-11 h-11 rounded-full border border-border bg-card flex items-center justify-center ${isWatching ? "text-[hsl(var(--burnt-sienna))]" : ""}`}
+          disabled={toggleWatch.isPending}
+          onClick={() => (preview ? noteOwnListing() : toggleWatch.mutate())}
+        >
+          <Heart className="w-5 h-5" fill={isWatching ? "currentColor" : "none"} />
+        </button>
+      )}
+      <button
+        type="button"
+        aria-label="Share this item"
+        className="w-11 h-11 rounded-full border border-border bg-card flex items-center justify-center"
+        onClick={() => shareListing(it)}
+      >
+        <Share2 className="w-5 h-5" aria-hidden />
+      </button>
+    </div>
+  );
+
   return (
     <AppPage
       title={it.title}
       backTo="/declutter"
-      // Phone (lead, 2026-10-19): back + share + heart only, the photo is the hero; the full title sits under the price.
+      // Owner mockup 11-01: the title is painted once, in the item column with Save and Share beside it; the header
+      // keeps back (pinned while the buyer scrolls, DA-9) and the h1 for screen readers.
       phoneHidesTitle
-      // DA-9 (Declutter audit 2026-10-30): back, share and heart stay pinned while the buyer scrolls the page.
+      hidesTitle
       stickyHeader
-      titleActions={
-        <>
-          <button
-            type="button"
-            aria-label="Share this item"
-            className="w-11 h-11 rounded-full border border-border flex items-center justify-center"
-            onClick={() => shareListing(it)}
-          >
-            <Share2 className="w-5 h-5" aria-hidden />
-          </button>
-          {canAct && user && (
-            <button
-              type="button"
-              aria-pressed={isWatching}
-              aria-label={isWatching ? "Stop watching this item" : "Watch this item"}
-              className={`w-11 h-11 rounded-full border border-border flex items-center justify-center ${isWatching ? "text-[hsl(var(--burnt-sienna))]" : ""}`}
-              disabled={toggleWatch.isPending}
-              onClick={() => (preview ? noteOwnListing() : toggleWatch.mutate())}
-            >
-              <Heart className="w-5 h-5" fill={isWatching ? "currentColor" : "none"} />
-            </button>
-          )}
-        </>
-      }
     >
       <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
-        <div className="lg:sticky lg:top-0">
+        <div>
           <DeclutterGallery urls={urls} display={display} category={it.category} title={it.title} />
         </div>
 
-        <div className="mt-4 lg:mt-0 min-w-0 space-y-5">
-          <section aria-label="Price and condition" className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p data-item-price="" className="min-w-0 text-ds-32 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
+        {/* Owner mockup 11-01: on a computer the item column stays in view while the photos scroll. */}
+        <div className="mt-4 lg:mt-0 min-w-0 space-y-5 lg:sticky lg:top-0" data-item-column="">
+          <section aria-label="Price and condition" className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              {/* The title once (audit #47), with Save and Share beside it (owner mockup 11-01). */}
+              <h2 className="min-w-0 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere] lg:text-ds-28">{it.title}</h2>
+              {saveShare}
+            </div>
+            {/* The condition chip beside the price (board D5, owner mockup 11-01), not again as a Details row. */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <p data-item-price="" className="text-ds-32 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
                 {itemPriceLabel(it.current_price_cents)}
                 {dropped && (
                   <span className="ml-2 text-lg font-medium text-muted-foreground">
@@ -234,21 +234,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
               </p>
               <ConditionChip stars={it.condition_stars} />
             </div>
-            {drop && (
-              <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} />
-            )}
-            {/* The title once (audit #47): the desktop page header already prints it. The condition is said once too:
-                the chip beside the price (board D5), not again as a Details row. */}
-            <h2 className="pt-1 text-ds-22 font-bold leading-snug [overflow-wrap:anywhere] lg:sr-only">{it.title}</h2>
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {[it.area_label, away, it.porch_ok !== false ? "Porch pickup" : null].filter(Boolean).join(" · ")}
             </p>
-            {/* Helpr delivery is offered on every bought item while Declutter is open (the cart's own rule); a free item is
-                claimed, never bought. The figure is the least it can cost in all (fromDeliveredCents), so "from". */}
-            {canAct && !free && (
-              <p data-item-delivered="" className="text-sm text-muted-foreground">
-                Or from <span className="font-semibold tabular-nums text-foreground">{formatPrice(fromDeliveredCents(it.current_price_cents, it.delivery_size))}</span> delivered by a local Helpr
-              </p>
+            {drop && (
+              <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} />
             )}
           </section>
 
@@ -295,45 +285,36 @@ export default function ItemView({ itemId }: { itemId: string }) {
             </div>
           ) : actions}
 
-          {!free && user && <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />}
-
-          <section className="space-y-1" aria-labelledby="declutter-details">
-            <h2 id="declutter-details" className="text-base font-semibold">Details</h2>
-            <dl className="divide-y divide-border">
-              <Detail label="Category">{CATEGORY_LABEL[it.category] ?? "Other"}</Detail>
-              <Detail label="Size">{SIZE_LABEL[it.delivery_size]}</Detail>
-            </dl>
-            {it.description && <p className="pt-2 text-sm whitespace-pre-line [overflow-wrap:anywhere]">{it.description}</p>}
-          </section>
-
-          <section className="space-y-1" aria-labelledby="declutter-pickup">
-            <h2 id="declutter-pickup" className="text-base font-semibold">{way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup"}</h2>
-            {/* The miles sit once, under the title (board 4). */}
-            {/* LEAD-ITEM-PAGE-LAYOUT: the places below already name the city; the line stays only when none are listed. */}
-            {!placesListed && (
-              <p className="text-sm" data-item-pickup-in="">{way === "none" ? "Comes from" : way === "meetup" ? "Meet near" : "Pickup in"} {it.area_label}</p>
-            )}
-            {/* Deep audit #58: when the seller is around, before anyone buys. */}
-            {/* Only while it is for sale: the item read answers item_not_found after that (the buyer's times are in Buying). */}
-            {/* Lead's product call 2026-10-31 (LEAD-PLACE-TIMES review): pickup places for porch, pickup and delivery,
-                each with its own days and hours, never an address; the usual times only as Meetup times (or as the
-                pickup times of a seller with no place). Never both lists for the same way. BUY-18's porch day stays. */}
-            {forSale && user && <ItemHandoverTimes itemId={itemId} handovers={ways.data} />}
-            {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
-            <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
-            {/* DC-7: the owner reads what buyers see, not the buyer's "after you pay". DA-6: the buyer who already
-                bought or claimed it gets no "shared after you pay" line. */}
-            {!boughtByMe && <p className="text-xs text-muted-foreground" data-item-address-note="">{addressNote(free, isSeller)}</p>}
-          </section>
-
-          {user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={() => setOfferAsk((n) => n + 1)} />}
-
-          {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): Buy now / Make an offer sit right under the price, title, place and
-              delivery lines; the seller card moved here, below Questions. */}
-          {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} />}
+          {/* Owner mockup 11-01: the seller card right under the buttons, with "12+ more items" folded into it. */}
+          {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} extra={bundle && canAct ? <BundleLine summary={bundle} /> : null} />}
           {/* BUY-16: a guest sees the seller's first name only (declutter_guest_seller_first_name). */}
           {!user && <DeclutterGuestSeller itemId={it.id} />}
           {!isSeller && user && <DeclutterMovingSaleNote itemId={it.id} sellerId={it.seller_id} />}
+
+          {/* Owner mockup 11-01: "About this item" (the description) first, then the Category and Size rows. */}
+          <section className="space-y-1" aria-labelledby="declutter-details">
+            <h2 id="declutter-details" className="text-base font-semibold">About this item</h2>
+            {it.description && <p className="pb-1 text-ds-15 whitespace-pre-line [overflow-wrap:anywhere]" data-item-description="">{it.description}</p>}
+            <dl className="divide-y divide-border border-t border-border">
+              <Detail label="Category">{CATEGORY_LABEL[it.category] ?? "Other"}</Detail>
+              <Detail label="Size">{SIZE_LABEL[it.delivery_size]}</Detail>
+            </dl>
+          </section>
+
+          {!free && user && <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />}
+
+          {/* Owner mockup 11-01: ONE pickup block, the ways and cities once, identical hours once. */}
+          <ItemPickupBlock
+            itemId={itemId}
+            porchOk={it.porch_ok !== false}
+            areaLabel={it.area_label}
+            free={free}
+            isSeller={isSeller}
+            showAddressNote={!boughtByMe}
+            readTimes={forSale && !!user}
+          />
+
+          {user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={() => setOfferAsk((n) => n + 1)} />}
 
           {/* Item B (owner 2026-10-29): listings go live when posted; a member's report is what reaches an admin. */}
           {!ownListing && user && <DeclutterReportListing itemId={itemId} />}

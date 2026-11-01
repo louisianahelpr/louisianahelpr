@@ -21,7 +21,7 @@
  * @mutate src/pages/post-job/FormStep.tsx |           if (!askingQuotes) return form.handleReview(e); |           return form.handleReview(e);
  * @mutate src/pages/post-job/FormStep.tsx |     submitLabel = "Review"; |     submitLabel = "Ask for quotes";
  * @mutate src/pages/post-job/FormStep.tsx |           form.handleReview(e, { quotes: true }); |           void 0;
- * @mutate src/components/postjob/CheckoutStep.tsx | {!quoteAsk && <div className="px-4 py-3 flex items-start justify-between gap-3"> | {<div className="px-4 py-3 flex items-start justify-between gap-3">
+ * @mutate src/components/postjob/CheckoutStep.tsx |           {!quoteAsk && (\n            <div data-testid="checkout-total-notes"> |           {(\n            <div data-testid="checkout-total-notes">
  * @mutate src/components/postjob/CheckoutStep.tsx | {quoteAsk ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <> | {false ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <>
  * @mutate src/pages/post-job/CheckoutStepView.tsx | {form.quoteReview ? <WithQuoteAsk | {false ? <WithQuoteAsk
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           { value: "price", label: "Set a price" }, |           { value: "price", label: "Set my price" },

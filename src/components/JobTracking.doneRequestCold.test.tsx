@@ -5,7 +5,7 @@
  * job row alone (arrived, no poster tap: next step Start working), and that first draw dropped the "done" request
  * before the row said Working. The tracker now takes a request only once its tracking row has settled.
  *
- * @mutate src/components/JobTracking.tsx |         if (trackingSettled && takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext); |         if (takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext);
+ * @mutate src/components/JobTracking.tsx |         if (trackingSettled && !ctaDisabled && takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext); |         if (!ctaDisabled && takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext);
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

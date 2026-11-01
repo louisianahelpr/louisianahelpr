@@ -22,7 +22,7 @@
  * @mutate src/pages/jobs/JobsSection.tsx | end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} | end={<><SectionSettingsButton settings={JOBS_SETTINGS} />{browse?.end}</>}
  * @mutate src/components/sections/AppTopBar.tsx |       onClick={() => navigate(settings.path, { replace: false })} |       onClick={() => navigate("/profile")}
  * @mutate src/App.tsx |       <Route path="/jobs/settings" element= |       <Route path="/jobs/settings-old" element=
- * @mutate src/components/profile/profileLanding/YouMenu.tsx |           className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground | className="w-full rounded-ds-lg py-3.5 border inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx |           className="w-full px-0 text-ds-13 font-semibold tracking-normal text-muted-foreground" |           className="w-full px-0 rounded-ds-lg py-3.5 border text-ds-13 font-semibold tracking-normal text-muted-foreground"
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -145,8 +145,9 @@ describe("Log Out clear, Delete account quiet", () => {
     expect(del).toMatch(/text-muted-foreground/);
     expect(del).not.toMatch(/border|rounded|py-3\.5|background|bg-/);
     const o = s.indexOf("onClick={onRequestLogout}");
-    const out = s.slice(o, s.indexOf("Log out", o));
-    expect(out).toMatch(/rounded-full/);
+    const out = s.slice(s.lastIndexOf("<Button", o), s.indexOf("Log out", o));
+    // The pill is the shared Button's own rounded-full base (buttonsArePills.test.ts), at its 48px md size.
+    expect(out).toMatch(/^<Button[\s\S]*size="md"/);
     expect(out).toMatch(/border: "1px solid/);
   });
 });

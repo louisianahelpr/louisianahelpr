@@ -72,6 +72,17 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Owner 11-01 (20261101181129): declutter_pick_free_request raises free_pick_time_unusable inside its own
+  // BEGIN ... EXCEPTION WHEN SQLSTATE 'LHFP1' block, which undoes the confirmed-time order and runs the old path.
+  declutter_pick_free_request: {
+    free_pick_time_unusable: { reason: "caught in the same function (EXCEPTION WHEN SQLSTATE 'LHFP1'): the asked time is dropped and the old pick path runs; it never reaches a client" },
+  },
+  // Q104 (20261101181403): fetchActivityCores (src/lib/activityCores.ts) runs only for a signed-in member's activity
+  // cores and sends the client's own fixed column lists; any error returns null and the old reads run. No message exists.
+  get_my_activity_cores: {
+    not_signed_in: { reason: "no message exists at this site: fetchActivityCores only runs signed in, and any error falls back to the old reads" },
+    bad_columns: { reason: "fetchActivityCores sends the fixed JOB_READABLE_COLUMN_LIST and APPLICATION_READABLE_COLUMN_LIST, never caller input; any error falls back to the old reads" },
+  },
   // OPS-5 (20261031220447): reportSignupSource (src/lib/signupSource.ts) runs in the background only once a member is
   // signed in (SessionManager, user id set); any error is report()ed and no message exists.
   record_my_signup_source: {

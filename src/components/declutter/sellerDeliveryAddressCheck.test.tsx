@@ -9,11 +9,14 @@
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onError: (err) => setFailed(sellerDeliveryErrorMessage(err)), |     onError: () => undefined,
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onMutate: () => { setFailed(null); onSlot(null); onChecked(null); }, |     onMutate: () => { setFailed(null); onChecked(null); },
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     onMutate: () => { setFailed(null); onSlot(null); onChecked(null); }, |     onMutate: () => { setFailed(null); onSlot(null); },
- * @mutate src/components/declutter/SellerDeliveryChoice.tsx | onChange={(e) => { setAddress(e.target.value); onTyped?.(e.target.value); setFailed(null); if (checked | onChange={(e) => { setAddress(e.target.value); onTyped?.(e.target.value); if (checked
+ * @mutate src/components/declutter/SellerDeliveryChoice.tsx | onTyped={(typed) => { setAddress(typed); onTyped?.(typed); setFailed(null); if (checked | onTyped={(typed) => { setAddress(typed); onTyped?.(typed); if (checked
+ * The box itself (not its wrapper) carries aria-invalid and the alert's id, so a screen reader hears the failure.
+ * @mutate src/components/postjob/AddressAutocomplete.tsx |         aria-invalid={invalid ? true : undefined}\n |
+ * @mutate src/components/postjob/AddressAutocomplete.tsx |         aria-describedby={describedBy}\n |
  * BUY-9 (buying audit 10-30 #9): switching between Seller delivers and Helpr delivery showed an empty Deliver to box
  * again. Both boxes now carry what the buyer typed in this checkout (it still has to be checked / priced).
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |   const [address, setAddress] = useState(checked ?? typed); |   const [address, setAddress] = useState(checked ?? "");
- * @mutate src/components/declutter/SellerDeliveryChoice.tsx | setAddress(e.target.value); onTyped?.(e.target.value); | setAddress(e.target.value);
+ * @mutate src/components/declutter/SellerDeliveryChoice.tsx | onTyped={(typed) => { setAddress(typed); onTyped?.(typed); | onTyped={(typed) => { setAddress(typed);
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |           typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }} |
  */
 import { useState } from "react";
@@ -24,6 +27,8 @@ import type { SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 
 const state = { fail: true };
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
+// The Deliver to box is the shared address search; with Apple search off it takes a typed address (no token fetch).
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "error" }));
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/sellerDelivery")>()),
   quoteSellerDelivery: async () => {

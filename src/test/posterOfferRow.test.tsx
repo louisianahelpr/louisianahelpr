@@ -69,13 +69,13 @@ if (!Element.prototype.scrollTo) Element.prototype.scrollTo = () => {};
 describe("11. the date-change ask is a button left of Message", () => {
   // Owner, 2026-10-21: while nothing is confirmable, "Message <Helpr>" IS the row's primary, so More
   // no longer carries Message (primaryChipKey); the primary is asserted here too.
-  it("an unanswered offer has no ask yet: Message is the primary, More holds Cancel", async () => {
+  it("an unanswered offer has no ask yet: Message is the primary, Cancel sits on the row (one extra is not a menu)", async () => {
     renderRow(job);
-    // Everything but the primary is under More (owner, 2026-10-08).
-    await openMore();
-    const labels = [...document.querySelectorAll("[data-job-step-overflow-panel] button")]
+    // Owner 2026-11-01: ONE extra action is not a menu; it sits on the row beside the primary, and there is no More.
+    expect(document.querySelector("[data-job-step-overflow]")).toBeNull();
+    const labels = [...document.querySelectorAll("button")]
       .map((b) => b.textContent?.trim() ?? "")
-      .filter((t) => /Ask for a new date or time|Message|Cancel/.test(t));
+      .filter((t) => /Ask for a new date or time|^Cancel/.test(t));
     expect(labels).toEqual(["Cancel"]);
     expect(document.querySelector("[data-job-step-primary]")?.textContent ?? "").toMatch(/^Message /);
   });

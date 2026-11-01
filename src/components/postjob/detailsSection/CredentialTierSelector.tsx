@@ -25,10 +25,8 @@ interface CredentialTierSelectorProps {
 //     two-column grid shipped, and the reason this block was stacked in the
 //     first place.
 // So the label stays whole and is allowed to WRAP inside the chip, and the
-// per-chip italic subtitles collapse into ONE line beneath the row that
-// describes the SELECTED tier. That is what buys back the vertical room the
-// chips need: the row carries three names, the line under it carries the
-// meaning of the one that's chosen.
+// per-chip subtitles live only in each chip's accessible name (the visible
+// line under the row was dropped in audit 11-01 JA-42: it repeated the chip).
 //
 // The chips are a grid (`grid-cols-3`), so all three share the height of the
 // tallest — the two-line "Licensed + Insured" sets it and "Open"/"Licensed"
@@ -76,9 +74,6 @@ export function CredentialTierSelector({
         break;
     }
   };
-
-  const selected =
-    CREDENTIAL_TIERS.find((t) => t.value === credentialTier) ?? CREDENTIAL_TIERS[0];
 
   return (
     <div className="space-y-2.5">
@@ -175,16 +170,8 @@ export function CredentialTierSelector({
         })}
       </div>
 
-      {/* The subtitles that used to sit in every row, reduced to the one that
-          is currently true. aria-live keeps a screen-reader user informed when
-          the selection changes without moving focus. */}
-      <p
-        aria-live="polite"
-        className="text-ds-11 font-sans leading-snug"
-        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-      >
-        {selected.sub}
-      </p>
+      {/* No line under the tiles (audit 11-01 JA-42): it only repeated the picked tile ("Open" then "Anyone can
+          apply"). Each tile's meaning stays in its accessible name (the sr-only sub above). */}
     </div>
   );
 }

@@ -207,13 +207,15 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
   );
 }
 
-export function JobProgress({ progress, compact = false, barOnly = false }: {
+export function JobProgress({ progress, compact = false, barOnly = false, noLine = false }: {
   progress: JobProgressState;
   compact?: boolean;
   /** The bar alone (a job card, whose status line already says what happens next). */
   barOnly?: boolean;
+  /** The bar with its step tips, but no line under it: the caller draws the next step itself (chat's DealCard). */
+  noLine?: boolean;
 }) {
-  const line = barOnly ? "" : progress.next || (progress.stage === null ? progress.word : "");
+  const line = barOnly || noLine ? "" : progress.next || (progress.stage === null ? progress.word : "");
   if (progress.stage === null && !line) return null;
   return (
     <div data-job-progress="" className="job-steps space-y-1.5">

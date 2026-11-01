@@ -6,11 +6,14 @@
  * Earlier (2026-10-01) this file pinned the "Use $X" chip agreeing with the
  * field; the chip is gone with the suggestions.
  *
+ * Audit 11-01 JA-43: ONE budget control. The big number is the field; the separate "Budget * $0.00" field
+ * under it (the same value twice) is gone, and − / + move that one field.
+ * @mutate src/components/postjob/BudgetSection.tsx |               hero\n | \n
  * @mutate src/components/postjob/BudgetSection.tsx |   const underBudgetMin = budgetNum > 0 && budgetNum < MIN_JOB_BUDGET_DOLLARS; |   const underBudgetMin = false;
  */
 import { describe, it, expect } from "vitest";
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { BudgetSection } from "./BudgetSection";
 
 function Harness({ initial = "" }: { initial?: string }) {
@@ -48,5 +51,18 @@ describe("Post a job budget: the poster's own number", () => {
   it("no minimum message at or above the minimum", () => {
     render(<Harness initial="10" />);
     expect(screen.queryByText(/minimum budget is/i)).toBeNull();
+  });
+
+  it("JA-43: one budget control; the big number is the field and the steppers move it", () => {
+    cleanup();
+    const { container } = render(<Harness initial="120" />);
+    expect(container.querySelectorAll('input[type="text"]')).toHaveLength(1);
+    const budget = screen.getByRole("textbox", { name: "Job budget in dollars" });
+    expect(screen.getAllByRole("textbox")).toHaveLength(1);
+    expect(screen.queryByText(/^Budget$/)).toBeNull();
+    expect((budget as HTMLInputElement).value).toBe("120");
+    expect(budget.className).toMatch(/text-ds-40/);
+    fireEvent.click(screen.getByRole("button", { name: "Raise the budget by $5" }));
+    expect((screen.getByRole("textbox", { name: "Job budget in dollars" }) as HTMLInputElement).value).toBe("125");
   });
 });

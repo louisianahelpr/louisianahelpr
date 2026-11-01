@@ -405,3 +405,34 @@ export function uploadVehiclePhoto(userId: string, file: File): Promise<string> 
 // photo without importing this module (it would then be shared by two lazy
 // chunks and ride in signed-in-shared, on every signed-in page's boot path).
 export { taskPhotoUrl } from "./photoUrl";
+
+/**
+ * Delivery live map (owner 11-01; 20261101184555). The Helpr's phone shares its position only after Start on the
+ * route map, for their deliveries in hand; the server keeps ONE row per delivery (overwritten, deleted on every
+ * status change and on Stop). Null until the migration is deployed (PGRST202).
+ */
+export async function shareMyPosition(lat: number, lng: number): Promise<number | null> {
+  const res = await supabase.rpc("helpr_share_position", { p_lat: lat, p_lng: lng });
+  if (res.error && isMissingRpcNamed(res.error, "helpr_share_position")) return null;
+  return data<number>(res, (e) => rpcErrorMessage("helpr_share_position", e));
+}
+
+/** Stop or leaving the route map: the caller's live rows are deleted (zero rows is fine: nothing was shared). */
+export async function stopSharingPosition(): Promise<void> {
+  const res = await supabase.rpc("helpr_stop_sharing");
+  if (res.error && isMissingRpcNamed(res.error, "helpr_stop_sharing")) return;
+  data<number>(res, (e) => rpcErrorMessage("helpr_stop_sharing", e));
+}
+
+/** Where the Helpr is now, for the seller (Start to Picked up) or the buyer (Picked up to delivered); RLS decides. */
+export interface LivePosition { lat: number; lng: number; dest_lat: number; dest_lng: number; eta_minutes: number; updated_at: string }
+
+export async function fetchLivePosition(taskId: string): Promise<LivePosition | null> {
+  const res = await supabase.from("helpr_task_live_positions")
+    .select("lat, lng, dest_lat, dest_lng, eta_minutes, updated_at").eq("task_id", taskId).maybeSingle();
+  // Not deployed yet (the table is missing): no map, as before.
+  if (res.error && /helpr_task_live_positions|PGRST205|42P01/.test(`${res.error.code ?? ""} ${res.error.message}`)) return null;
+  // numeric columns can arrive as strings from PostgREST: read them as numbers.
+  const row = unwrap(res);
+  return row ? { ...row, lat: Number(row.lat), lng: Number(row.lng), dest_lat: Number(row.dest_lat), dest_lng: Number(row.dest_lng) } : null;
+}

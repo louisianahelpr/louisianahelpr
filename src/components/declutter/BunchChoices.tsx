@@ -41,7 +41,7 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
     const row = saved.data ?? null;
     const lastSetup = last.data ?? null;
     // LEAD-OFFERS-CHOICE part (2): each item's Accept offers starts from the saved default.
-    if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers });
+    if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers, freeAfterDays: row.freeAfterDays });
     else if (lastSetup?.dropPct != null) setChoices((c) => ({ ...c, dropPct: lastSetup.dropPct! }));
     const ways = (row?.handovers ?? lastSetup?.ways ?? []).filter((w) => w !== "delivery");
     // The default is porch pickup alone; a seller who already ticked something keeps it.
@@ -52,7 +52,7 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
   async function remember(ways: SellerHandover[]): Promise<void> {
     if (!userId) return;
     try {
-      await saveSellerDefaults(userId, { ...choices, freeAfterDays: saved.data?.freeAfterDays ?? SELLER_DEFAULTS.freeAfterDays, handovers: ways, acceptsOffers: saved.data?.acceptsOffers ?? SELLER_DEFAULTS.acceptsOffers });
+      await saveSellerDefaults(userId, { ...choices, freeAfterDays: choices.freeAfterDays ?? saved.data?.freeAfterDays ?? SELLER_DEFAULTS.freeAfterDays, handovers: ways, acceptsOffers: saved.data?.acceptsOffers ?? SELLER_DEFAULTS.acceptsOffers });
     } catch (err) {
       // Remembering is extra: logged, never a second error on a screen that says what was listed.
       console.warn("[declutter] could not save the seller's listing choices", err);
@@ -63,13 +63,8 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
   return { choices, set, remember };
 }
 
-/** The run's price choice in the words the single form uses before Post. */
-export function bunchDropsLine(c: Pick<BunchChoices, "drops" | "dropPct" | "floorPct">): string {
-  return c.drops ? `Price drops: on, ${c.dropPct}% each evening, never below ${c.floorPct}% of each price.` : "Price drops: off. Each priced item stays at its price.";
-}
-
-/** The price-drops switch for the whole bunch: on the setup form, and behind "Change" when settings are saved. */
-export function BunchDropsSwitch({ c }: { c: ReturnType<typeof useBunchChoices> }) {
+/** The price-drops switch for the whole bunch, on the setup form (no saved settings yet). */
+function BunchDropsSwitch({ c }: { c: ReturnType<typeof useBunchChoices> }) {
   const { drops, dropPct, floorPct } = c.choices;
   return (
     <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-bunch-drops={drops ? "on" : "off"}>

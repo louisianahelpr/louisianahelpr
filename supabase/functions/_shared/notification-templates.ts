@@ -88,6 +88,8 @@ export interface TemplateFacts {
   application?: { status: string | null; decline_reason: string | null } | null;
   /** First word of the poster's profiles.full_name (application_declined). */
   posterFirstName?: string | null;
+  /** First word of the SENDER's profiles.full_name (audit 11-01 JA-57: notices name people, as the app does). */
+  senderFirstName?: string | null;
   /** user_violations.action_taken of the no-show row for (target, job). */
   noShowAction?: string | null;
   now: Date;
@@ -101,7 +103,7 @@ export interface BuiltNotification {
 }
 
 /** Extra reads a template needs before it can be built. */
-type TemplateNeed = "revision" | "application" | "posterName" | "noShow" | "dispute" | "tracking";
+type TemplateNeed = "revision" | "application" | "posterName" | "senderName" | "noShow" | "dispute" | "tracking";
 
 export interface NotificationTemplate {
   /**
@@ -129,6 +131,29 @@ function bothConfirmedDay(date: string | null | undefined): string {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 }
 
+/**
+ * "Sat 9 AM" / "Sat 9:30 AM" in Louisiana time, for a notice's "Next: ... by <when>" (owner 11-01: every Jobs
+ * notice ends with the next step and its deadline). "" when there is no time.
+ */
+export function noticeWhen(iso: string | null | undefined): string {
+  const t = iso ? Date.parse(iso) : NaN;
+  if (!Number.isFinite(t)) return "";
+  const d = new Date(t);
+  const day = d.toLocaleDateString("en-US", { weekday: "short", timeZone: "America/Chicago" });
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" }).replace(":00 ", " ");
+  return `${day} ${time}`;
+}
+
+/** The sender's first name, or the plain fallback for their side (JA-57: never "The person who posted this job"). */
+function sender(f: TemplateFacts, fallback: string): string {
+  return f.senderFirstName?.trim() || fallback;
+}
+
+/** The job page itself (JA-58: a notice opens the job, not the list). */
+function jobPage(f: TemplateFacts): string {
+  return `/jobs/${f.job.id}`;
+}
+
 function jobTitle(f: TemplateFacts): string {
   return f.job.title?.trim() || "your job";
 }
@@ -147,26 +172,27 @@ function senderWithdrewDispute(f: TemplateFacts): boolean {
 export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
   work_started: {
     sender: "helper",
-    needs: ["tracking"],
+    needs: ["tracking", "senderName"],
     build: (f) => f.job.status !== "in_progress" || f.trackingStatus !== "working" ? null : ({
-      title: "Work has started",
-      message: `Your Helpr started working on "${jobTitle(f)}".`,
+      title: `${sender(f, "Your Helpr")} started work`,
+      message: `${sender(f, "Your Helpr")} started work on "${jobTitle(f)}". Next: check it and confirm it's done once they mark it done.`,
       type: "info",
-      link: `/posts?job=${f.job.id}`,
+      link: jobPage(f),
     }),
   },
   dispute_withdrawn: {
     sender: "helper",
-    needs: ["dispute"],
+    needs: ["dispute", "senderName"],
     build: (f) => !senderWithdrewDispute(f) ? null : ({
-      title: "Dispute withdrawn",
-      message: `The Helpr withdrew the dispute on "${jobTitle(f)}". The payment is off hold and back on its normal schedule.`,
+      title: "Issue withdrawn",
+      message: `${sender(f, "Your Helpr")} withdrew the issue on "${jobTitle(f)}". The payment is back on its normal schedule. Next: nothing for you to do.`,
       type: "info",
-      link: `/posts?job=${f.job.id}`,
+      link: jobPage(f),
     }),
   },
   dispute_response: {
     sender: "helper",
+    needs: ["senderName"],
     build: (f) => {
       // jobs.dispute_status, not the disputes row: two live jobs (2026-09-26)
       // carry an active dispute_status with no disputes row at all.
@@ -174,29 +200,31 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       // Same rule as helperDisputeCopy.ts: escalated / under_review means an
       // admin owns the outcome, so the poster has nothing to decide.
       const awaitingAdmin = f.job.dispute_status === "escalated" || f.job.dispute_status === "under_review";
+      const who = sender(f, "Your Helpr");
       return {
-        title: "Helpr responded to dispute",
+        title: `${who} answered the issue`,
         message: awaitingAdmin
-          ? `The Helpr added their side of the dispute on "${jobTitle(f)}". An admin is reviewing it.`
-          : `The Helpr has responded to the dispute on "${jobTitle(f)}". Please review and mark resolved or escalate.`,
+          ? `${who} added their side of the issue on "${jobTitle(f)}". Next: Helpr support decides; nothing for you to do.`
+          : `${who} answered the issue on "${jobTitle(f)}". Next: read it, then mark it resolved or ask Helpr support to step in.`,
         type: "info",
-        link: `/posts?job=${f.job.id}`,
+        link: jobPage(f),
       };
     },
   },
   revision_acknowledged: {
     sender: "helper",
-    needs: ["revision"],
+    needs: ["revision", "senderName"],
     build: (f) =>
       f.revisionStatus !== "accepted" || !f.job.customer_id || f.revisionRequestedBy !== f.job.customer_id ? null : ({
-      title: "Helpr acknowledged the revision",
-      message: "Your Helpr has seen your revision request and will fix it. Payment stays held until you confirm.",
+      title: `${sender(f, "Your Helpr")} will fix it`,
+      message: `${sender(f, "Your Helpr")} saw your fix request on "${jobTitle(f)}" and will fix it. Payment stays held until you confirm. Next: confirm it's done once it's fixed.`,
       type: "info",
-      link: `/posts?job=${f.job.id}`,
+      link: jobPage(f),
     }),
   },
   job_confirmed: {
     sender: "either",
+    needs: ["senderName"],
     build: (f) => {
       const byPoster = f.senderRole === "poster";
       // The sender's OWN confirmation stamp, the one JobConfirmation writes.
@@ -209,62 +237,70 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
           title: "You're both confirmed",
           message: `You're both confirmed for "${jobTitle(f)}"${day ? ` on ${day}` : ""}.`,
           type: "info",
-          link: byPoster ? `/jobs?job=${f.job.id}` : `/posts?job=${f.job.id}`,
+          link: jobPage(f),
         };
       }
+      const who = sender(f, byPoster ? "The person who posted this job" : "Your Helpr");
+      const day = bothConfirmedDay(f.job.date_needed);
       return {
-        title: byPoster ? "The person who posted this job confirmed it!" : "Helpr confirmed the job!",
-        message: `${byPoster ? "The person who posted this job" : "The Helpr"} confirmed they're committed to "${jobTitle(f)}". Tap to confirm your side too.`,
+        title: `${who} confirmed the job`,
+        message: `${who} confirmed "${jobTitle(f)}". Next: confirm your side${day ? ` before ${day}` : ""}.`,
         type: "info",
-        link: byPoster ? `/jobs?job=${f.job.id}` : `/posts?job=${f.job.id}`,
+        link: jobPage(f),
       };
     },
   },
   dispute_resolved: {
     sender: "poster",
-    needs: ["dispute"],
+    needs: ["dispute", "senderName"],
+    // JA-60 (audit 11-01): no symbol in the title, and the copy says whose pay and where it goes. The state check
+    // above (payout_pending / released) is what makes "is on its way" true; no date is promised because the
+    // payout's arrival date is the bank's, not a fact this function holds.
     build: (f) => !senderWithdrewDispute(f) || !RELEASED.has(f.job.payment_status ?? "") ? null : ({
-      title: "Dispute resolved ✓",
-      message: `The person who posted this job confirmed the issue on "${jobTitle(f)}" is resolved. Payment will be released.`,
+      title: "Issue resolved",
+      message: `${sender(f, "The person who posted this job")} marked the issue on "${jobTitle(f)}" resolved, and your pay is on its way to your payout account. Next: nothing for you to do; track it in Money.`,
       type: "payment",
-      link: `/jobs?job=${f.job.id}`,
+      link: jobPage(f),
     }),
   },
   revision_requested: {
     sender: "poster",
-    needs: ["revision"],
+    needs: ["revision", "senderName"],
     build: (f) => {
       const d = f.revisionDescription?.trim();
       if (!d) return null;
+      const who = sender(f, "The person who posted this job");
       return {
-        title: "Revision requested",
-        message: `The person who posted this job wants a small fix on "${d.slice(0, 80)}${d.length > 80 ? "…" : ""}". Tap to see details.`,
+        title: `${who} asked for a fix`,
+        message: `${who} asked for a small fix on "${jobTitle(f)}": "${d.slice(0, 80)}${d.length > 80 ? "…" : ""}". Next: fix it, then mark the job done again.`,
         type: "warning",
-        link: `/jobs?job=${f.job.id}`,
+        link: jobPage(f),
       };
     },
   },
   arrival_confirmed: {
     sender: "poster",
+    needs: ["senderName"],
     build: (f) => !f.job.poster_confirmed_arrival_at ? null : ({
       title: "Arrival confirmed",
-      message: `The person who posted this job confirmed you've arrived for "${jobTitle(f)}".`,
+      message: `${sender(f, "The person who posted this job")} confirmed you've arrived for "${jobTitle(f)}". Next: start the work, and mark it done when you finish.`,
       type: "success",
-      link: `/jobs?job=${f.job.id}`,
+      link: jobPage(f),
     }),
   },
   work_confirmed: {
     sender: "poster",
+    needs: ["senderName"],
     build: (f) => !f.job.poster_confirmed_working_at ? null : ({
       title: "Work confirmed",
-      message: `The person who posted this job confirmed you're working on "${jobTitle(f)}".`,
+      message: `${sender(f, "The person who posted this job")} confirmed you're working on "${jobTitle(f)}". Next: mark it done when you finish.`,
       type: "success",
-      link: `/jobs?job=${f.job.id}`,
+      link: jobPage(f),
     }),
   },
   job_offer: {
     sender: "poster",
-    needs: ["application"],
+    needs: ["application", "senderName"],
     build: (f) => {
       // accept_application / accept_group_application set the target's
       // application to accepted before this is sent.
@@ -272,15 +308,14 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       // The deadline is the one the offer RPC stamped on the job, not a number
       // the caller typed.
       const deadline = f.job.response_deadline ? Date.parse(f.job.response_deadline) : NaN;
-      const hours = Number.isFinite(deadline) ? Math.ceil((deadline - f.now.getTime()) / 3_600_000) : NaN;
-      const respond = Number.isFinite(hours) && hours >= 1
-        ? `Respond within ${hours} hour${hours > 1 ? "s" : ""} or the offer expires.`
-        : "Respond soon or the offer expires.";
+      const by = Number.isFinite(deadline) && deadline > f.now.getTime() ? noticeWhen(f.job.response_deadline) : "";
+      const who = sender(f, "The person who posted this job");
       return {
+        // The title stays "New job offer": sms_kind_for keys the offer text on it (20261030215251).
         title: "New job offer",
-        message: `You've been selected for "${jobTitle(f)}". ${respond}`,
+        message: `${who} picked you for "${jobTitle(f)}". Next: accept ${by ? `by ${by}` : "soon"}, or the offer expires.`,
         type: "new_offers",
-        link: `/jobs?job=${f.job.id}`,
+        link: jobPage(f),
       };
     },
   },
@@ -294,8 +329,8 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       return {
         title: "Application declined",
         message: note
-          ? `${who} declined your application for "${jobTitle(f)}": ${note.slice(0, 500)}`
-          : `${who} declined your application for "${jobTitle(f)}".`,
+          ? `${who} declined your application for "${jobTitle(f)}": ${note.slice(0, 500)} Next: find another job in Find work.`
+          : `${who} declined your application for "${jobTitle(f)}". Next: find another job in Find work.`,
         type: "info",
         link: `/jobs?job=${f.job.id}`,
       };

@@ -12,8 +12,8 @@
  * @mutate src/lib/declutter/bunchStage.ts |         given.set(it.key, id); |         void given;
  * @mutate src/lib/declutter/bunch.ts |       if ((await prepareOne(i, items[i])) === "already_posted") { |       if ((await prepareOne(i, items[i])) === "never") {
  * @mutate src/lib/declutter/bunch.ts |   await Promise.all(Array.from({ length: Math.min(PREPARE_AT_ONCE, items.length) }, readyWorker)); |   await Promise.all(Array.from({ length: Math.min(1, items.length) }, readyWorker));
- * @mutate src/lib/declutter/bunch.ts |       const [sent, settled, kept, offers] = await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff()]); |       const [sent, settled, kept, offers] = [await Promise.allSettled([sendPhotos()]), await Promise.allSettled([settle()]), await Promise.allSettled([keepUp()]), await Promise.allSettled([offersOff()])].map((r) => r[0]);
- * @mutate src/lib/declutter/bunch.ts | await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff()]); | await Promise.all([sendPhotos(), settle(), keepUp(), offersOff()]);
+ * @mutate src/lib/declutter/bunch.ts |       const [sent, settled, kept, offers] = await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff(), autoFree()]); |       const [sent, settled, kept, offers] = [await Promise.allSettled([sendPhotos()]), await Promise.allSettled([settle()]), await Promise.allSettled([keepUp()]), await Promise.allSettled([offersOff()]), await Promise.allSettled([autoFree()])].map((r) => r[0]);
+ * @mutate src/lib/declutter/bunch.ts | await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff(), autoFree()]); | await Promise.all([sendPhotos(), settle(), keepUp(), offersOff(), autoFree()]);
  * @mutate src/lib/declutter/bunch.ts |       if (failed) throw failed.reason; |       void failed;
  * @mutate src/lib/declutter/bunch.ts |   prepared.sort((a, b) => a.at - b.at); |   prepared.reverse();
  * @mutate src/lib/declutter/bunchStage.ts |         if (!this.staged.has(at)) this.staged.set(at, this.queued(id, file)); |         void at;
@@ -64,6 +64,7 @@ function slowDeps(log: string[]) {
     setHandovers: vi.fn(async (_id, w) => (await lag(RPC_MS), w)),
     setDropPct: vi.fn(async (_id, p) => (await lag(RPC_MS), p)),
     setKeepUp: vi.fn(async (_id, on) => (await lag(RPC_MS), on)),
+    setAutoFreeDays: vi.fn(async (_id: string, d: number | null) => d),
     setOfferRules: vi.fn(async () => {}),
     publishMany: vi.fn(async (ids: string[], onProgress) => {
       let next = 0;

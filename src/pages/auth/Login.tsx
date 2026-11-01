@@ -500,14 +500,10 @@ const Login = () => {
                 aria-describedby={passwordError ? "login-password-error" : undefined}
                 className={`pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
-                className="absolute right-0 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+              <Button type="button" variant="ghost" size="iconCompact" onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")} className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground [&_svg]:size-4">
+                {showPassword ? <EyeOff /> : <Eye />}
+              </Button>
             </div>
             {passwordError && (
               <p id="login-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">

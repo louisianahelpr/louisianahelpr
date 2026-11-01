@@ -3,8 +3,8 @@
  * job the figure stands alone at $50, with no setup-fee line; "You take home"
  * stays on every other job (owner rule 2026-10-25). Mounts the real components.
  *
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |         {!fixedPay && <p className="text-ds-15 font-semibold">You take home</p>} |         <p className="text-ds-15 font-semibold">You take home</p>
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     firstPayoutFee > 0 && job.status !== "disputed" && !fixedPay ? setupFeeWords(firstPayoutFee) : null, |     firstPayoutFee > 0 && job.status !== "disputed" ? setupFeeWords(firstPayoutFee) : null,
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |         : !fixedPay && <p className="mt-1 text-ds-12 font-semibold text-muted-foreground">You take home</p>} |         : <p className="mt-1 text-ds-12 font-semibold text-muted-foreground">You take home</p>}
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     firstPayoutFee > 0 && !disputed && !fixedPay ? setupFeeWords(firstPayoutFee) : null, |     firstPayoutFee > 0 && !disputed ? setupFeeWords(firstPayoutFee) : null,
  * @mutate src/components/dashboard/helprTakeHome.tsx |       {!fixedPay && "You take home "}<span className="font-semibold |       {"You take home "}<span className="font-semibold
  * @mutate src/components/dashboard/helprTakeHome.tsx |         {!fixedPay && <span className="sr-only">You take home </span>}${formatPriceFloor(net)} |         <span className="sr-only">You take home </span>${formatPriceFloor(net)}
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |       {!isGiveawayFixedPayJob(confirmApplyJob) && ( |       {true && (
@@ -21,7 +21,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { ApplyEarningsBreakdown } from "./applyConfirmDialog/ApplyEarningsBreakdown";
 import { JobPriceTakeHome, type TakeHomeJob } from "./helprTakeHome";
-import { HelprMoney } from "@/pages/jobs/jobPage/JobPageParts";
+import { HelprPrice, HelprMoneyNotes } from "@/pages/jobs/jobPage/JobPageParts";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 const owed = vi.hoisted(() => ({ cents: 200 }));
@@ -49,7 +49,7 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
   afterEach(cleanup);
 
   const surfaces: Array<[string, (j: typeof giveaway) => React.ReactElement]> = [
-    ["the job page's money box", (j) => <HelprMoney job={j as never} />],
+    ["the job page's amount and notes", (j) => <><HelprPrice job={j as never} /><HelprMoneyNotes job={j as never} hired={false} /></>],
     ["the sentence (quick view, Application sent)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} after=", paid once it's confirmed done" />],
     ["the bare figure (job sheet)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} bare />],
     ["the apply sheet", (j) => <ApplyEarningsBreakdown confirmApplyJob={j as unknown as EnrichedJob} platformFee={12} />],

@@ -25,6 +25,7 @@ import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
 import { JobRemindersGroup } from "./notificationPreferences/JobRemindersGroup";
 import { NotificationPrefsLoadFailed } from "./notificationPreferences/NotificationPrefsLoadFailed";
+import { PushDeviceHint } from "./notificationPreferences/PushDeviceHint";
 import { emailSkipCopy, joinList, type TestSendResult } from "./notificationPreferences/testNotificationCopy";
 
 const NotificationPreferences = () => {
@@ -444,17 +445,12 @@ const NotificationPreferences = () => {
 
   return (
     <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
+      {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />}
       {/* The saved settings could not be read: say so, offer a retry, and keep
           every switch below disabled so no press can save the defaults over
           them (Q2311). */}
       {loadFailed && (
-        <NotificationPrefsLoadFailed
-          onRetry={() => {
-            setLoaded(false);
-            setLoadFailed(false);
-            setLoadAttempt((n) => n + 1);
-          }}
-        />
+        <NotificationPrefsLoadFailed onRetry={() => { setLoaded(false); setLoadFailed(false); setLoadAttempt((n) => n + 1); }} />
       )}
       {/* Column header — App / Email column labels sit directly above
           the master switches (and every row's switches) below, since

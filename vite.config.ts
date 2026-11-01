@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -187,6 +187,7 @@ function restartOnDependencyChange(): Plugin {
 const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd());
 const { itemDeep: declutterItemDeep, itemPages: declutterItemPages } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
+const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
 const homeIcons = homeIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
 // B88: Home's PAGE reach. The every-page roots load after Home's first paint; with them here, their shared code
@@ -897,6 +898,16 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
+            // The shared address search and its "Use my current location" pill (Post a job, the seller's address, and
+            // since 11-01 checkout's Deliver to). Several screens share both, so each was its own chunk, and each chunk an
+            // entry route reaches is named in the entry (budget 5.0 KB gz): one chunk for the pair.
+            {
+              name: "address-search",
+              test: /[\\/]src[\\/]components[\\/]postjob[\\/](AddressAutocomplete|CurrentLocationPill)\.tsx$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             // The auth/account screens' words (Log in, Sign up, Finish your
             // profile, Delete account). Several lazy screens import them, so
             // app-shared would capture them onto EVERY page's boot (+~2 KB gz
@@ -1091,6 +1102,28 @@ export default defineConfig(({ mode, command }) => ({
             // beside signed-in-shared, in the same round; Home does not fetch it.
             // src/test/homeSkipsOtherScreensCode.test.ts reads the built graph.
             // The signed-in-pages modules the Declutter item page reaches (declutterItemSplit itemPages, B67).
+            // The signed-in-pages modules Profile's first screen reaches (bootReach.mjs profileFirstScreenModules, B90):
+            // their own chunk, so /profile (Money, Notifications) fetches neither signed-in-pages nor, through it,
+            // declutter-item-pages. Above both so it wins its modules from them.
+            {
+              name: "profile-first-screen",
+              test: (id: string) => profileFirstScreen.has(id.split("?")[0].replace(/\\/g, "/")),
+              priority: 15.8, // above declutter-item-pages (15.7) and signed-in-pages (15.5)
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // The few of those the other big signed-in pages also run (profileFirstScreenModules `shared`): a tiny chunk.
+            // Short name on purpose: each chunk an entry route reaches is named once in the entry (budget 5.0 KB gz).
+            // Not in signed-in-chrome: App mounts that beside Home too, and there they cost Home ~0.1 s (B90 lab).
+            {
+              name: "leaves",
+              // NextStep and jobNextStep (owner 11-01, the shared next-step line): the job page, Messages and Declutter's
+              // cards share them, so on their own they were two more chunks named in the entry (5.3 KB gz, over its band).
+              test: (id: string) => profileSharedLeaves.has(id.split("?")[0].replace(/\\/g, "/")) || /[\\/]src[\\/]components[\\/](ui[\\/]NextStep\.tsx|tracker[\\/]jobNextStep\.ts)$/.test(id.split("?")[0]),
+              priority: 15.8,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "declutter-item-pages",
               test: (id: string) => declutterItemPages.has(id.split("?")[0].replace(/\\/g, "/")),

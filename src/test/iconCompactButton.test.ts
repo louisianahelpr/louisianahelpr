@@ -25,6 +25,10 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/DesktopTopNav.tsx |             size="iconCompact"\n            aria-label="Profile" |             size="icon"\n            aria-label="Profile"
 // @mutate src/pages/profile/SavedSearchesTab.tsx |                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} |                   <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(s)}
 // @mutate src/pages/user/ReviewsSection.tsx |                   size="iconCompact"\n                  aria-label="Report this review" |                   size="icon"\n                  aria-label="Report this review"
+// @mutate src/pages/auth/Login.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}
+// @mutate src/pages/auth/signup/SignupStep1.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}
+// @mutate src/pages/info/Legal.tsx | size="iconCompact" onClick={closeSearch} | size="icon" onClick={closeSearch}
+// @mutate src/pages/search/SearchPage.tsx | size="iconCompact" onClick={() => setDraft("")} | size="icon" onClick={() => setDraft("")}
 // @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |       className={`relative shrink-0 btn-press | className={`relative h-10 w-10 shrink-0 btn-press
 
 const REPO = resolve(__dirname, "../..");
@@ -95,6 +99,18 @@ describe("the compact icon Button", () => {
     // at (1380,24), transparent fill, radius 9999px before and after; a press opens /profile. The initials now read
     // 15px/700, the same as the phone top bar's photo (AppTopBar, already this Button).
     ["src/components/DesktopTopNav.tsx", /<button\b[^>]*aria-label="Profile"/],
+    // B88 11-01, the password eye on /login and /signup (guest, every backend call answered locally): 44x44 at
+    // (290,303.6) / (835,330.3) on /login and (290,380.5) / (827,415.1) on /signup at 375 / 1440, 16px glyph at 14,14,
+    // colour rgb(97,94,86), no fill, before and after; element screenshots byte-identical; a press still shows the
+    // password (input type password -> text).
+    ["src/pages/auth/Login.tsx", /<button\b[\s\S]{0,120}?setShowPassword/],
+    ["src/pages/auth/signup/SignupStep1.tsx", /<button\b[\s\S]{0,120}?setShowPassword/],
+    // B88 11-01, /legal's search close X (guest, search opened): 44x44 at (306,131) at 375 and (1343,169) at 1440,
+    // 16px glyph at 14,14, colour rgba(46,47,34,0.8), radius 9999px, no fill at rest; screenshots byte-identical.
+    ["src/pages/info/Legal.tsx", /<button\b[\s\S]{0,80}?onClick=\{closeSearch\}/],
+    // B88 11-01, /search's clear X (mocked session, "couch" typed): 44x44 at (306,70) at 375 and (1367,80) at 1440,
+    // 16px glyph at 14,14, colour rgb(97,94,86), no fill; screenshots byte-identical; a press still clears the field.
+    ["src/pages/search/SearchPage.tsx", /<button\b[^\n]*aria-label="Clear search"/],
   ])("%s: the ghost icon is the shared Button at iconCompact", (f, handMade) => {
     const src = code(f);
     expect(src).not.toMatch(handMade);

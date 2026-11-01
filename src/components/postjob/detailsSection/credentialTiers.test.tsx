@@ -6,7 +6,11 @@
  */
 // @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts |   "plumbing",\n  "hvac", |   "hvac",
 // @mutate src/components/postjob/DetailsSection.tsx |           <CredentialTierSelector |           <div
+// @mutate src/components/postjob/detailsSection/detailsSectionConstants.ts |   "painting",\n  "assembly", |   "painting",\n  "moving",\n  "assembly",
+// @mutate src/components/postjob/detailsSection/CredentialTierSelector.tsx |       {/* No line under the tiles | <p>{CREDENTIAL_TIERS.find((t) => t.value === credentialTier)?.sub}</p>{/* No line under the tiles
 import { describe, it, expect } from "vitest";
+import { render } from "@testing-library/react";
+import { CredentialTierSelector } from "./CredentialTierSelector";
 import { readFileSync, statSync } from "node:fs";
 import { readdirSync } from "@/test/helpers/trackedFiles";
 import { join } from "node:path";
@@ -15,7 +19,8 @@ import { CREDENTIAL_TIER_CATEGORIES, CREDENTIAL_TIERS } from "./detailsSectionCo
 import { JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 
 const LICENSED_TRADES = ["electrical", "plumbing", "hvac", "roofing", "carpentry", "flooring", "concrete_masonry", "fencing", "appliance_repair"];
-const UNLICENSED_TRADES = ["welding", "auto_repair", "pressure_washing"];
+// JA-42 (audit 11-01): Moving is not a licensed trade, so a Moving job is not asked "Who can apply?".
+const UNLICENSED_TRADES = ["welding", "auto_repair", "pressure_washing", "moving"];
 
 const walk = (dir: string): string[] =>
   readdirSync(dir).flatMap((f) => {
@@ -47,5 +52,14 @@ describe("Who can apply? and no licensing heads-up", () => {
     const details = readFileSync(join(process.cwd(), "src/components/postjob/DetailsSection.tsx"), "utf8");
     expect(details).not.toMatch(/LicenseWarning/);
     expect(details).toContain("<CredentialTierSelector");
+  });
+
+  it("JA-42: no visible line under the tiles repeats the picked tile", () => {
+    const { container } = render(<CredentialTierSelector credentialTier={0} setCredentialTier={() => {}} />);
+    const visible = [...container.querySelectorAll("p, span")].filter((el) => !el.closest(".sr-only") && !el.classList.contains("sr-only"));
+    expect(visible.length).toBeGreaterThan(2);
+    const own = visible.map((el) => [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent).join(""));
+    expect(own.join("|")).not.toMatch(/Anyone can apply/);
+    expect(container.textContent).toContain("Anyone can apply"); // still in the accessible name
   });
 });

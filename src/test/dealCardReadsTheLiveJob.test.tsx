@@ -22,6 +22,8 @@ import { render, screen, waitFor, act, cleanup } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
+import { jobNextStep } from "@/components/tracker/jobNextStep";
+import { nextStepWords } from "@/components/ui/NextStep";
 
 type Row = Record<string, unknown>;
 const hoisted = vi.hoisted(() => ({
@@ -120,7 +122,9 @@ function workingLine(job: Row, trackingStatus: string | null): string {
   const tracking = trackingStatus ? ({ id: "t", status: trackingStatus, updated_at: T } as never) : null;
   const line = helperCardLine(app, job as unknown as Job, new Set<string>(), tracking);
   const p = jobProgress(job as ProgressJob, { viewer: "helpr", otherFirst: "E2E", card: { line, face: null } as never });
-  return `${p.word}|${p.next}`;
+  // Owner 11-01 (B107): the card prints the line as the shared next step (jobNextStep / NextStep), as the job page does.
+  const step = jobNextStep(p, { side: "helpr", otherFirst: "E2E" });
+  return `${p.word}|${step ? nextStepWords(step) : p.next}`;
 }
 
 /** The deal card's bar word (its aria sentence) and its line, in the same shape. */
@@ -128,7 +132,7 @@ function dealLine(): string {
   const card = screen.getByTestId("deal-card");
   const aria = card.querySelector("[aria-label^='Job progress']")?.getAttribute("aria-label") ?? "";
   const word = /step \d of 8: ([^,]+),/.exec(aria)?.[1] ?? aria;
-  const next = card.querySelector("[data-job-progress-next]")?.textContent ?? "";
+  const next = card.querySelector("[data-next-step]")?.textContent ?? card.querySelector("[data-job-progress-next]")?.textContent ?? "";
   return `${word}|${next}`;
 }
 
@@ -158,7 +162,7 @@ describe("the chat's job card reads the Working card's live job", () => {
     hoisted.db.job_tracking = [{ id: "t", job_id: JOB, status: "arrived", created_at: T, updated_at: T }];
     mount();
     const expected = workingLine(arrivedJob({ proof_before_urls: [], proof_after_urls: [] }), "arrived");
-    expect(expected).toMatch(/Take the before photo/);
+    expect(expected).toMatch(/take the before photo/i);
     await screen.findByTestId("deal-card");
     await waitFor(() => expect(dealLine()).toBe(expected));
   });
@@ -178,7 +182,7 @@ describe("the chat's job card reads the Working card's live job", () => {
     hoisted.db.jobs = [arrivedJob({ proof_before_urls: [], proof_after_urls: [] })];
     hoisted.db.job_tracking = [{ id: "t", job_id: JOB, status: "arrived", created_at: T, updated_at: T }];
     mount();
-    await waitFor(() => expect(screen.getByTestId("deal-card").textContent).toMatch(/Take the before photo/));
+    await waitFor(() => expect(screen.getByTestId("deal-card").textContent).toMatch(/take the before photo/i));
 
     // Both photos land and work starts (what Hallie did between the two screens).
     hoisted.db.jobs = [arrivedJob()];

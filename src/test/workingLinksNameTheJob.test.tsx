@@ -11,7 +11,7 @@
  * (useManageDeepLink, the Posted side's `manage=1`).
  *
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const highlight = `/jobs?tab=working&job=${encodeURIComponent(job.id)}&open=1`; |   const highlight = `/jobs?tab=working&highlight=${encodeURIComponent(job.id)}`;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |       ? { label: "Open in working", go: () => navigate(highlight) } |       ? { label: "Open in working", go: () => navigate("/jobs?tab=working") }
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const openWorking = () => navigate(highlight); |   const openWorking = () => navigate(`/jobs?tab=working&highlight=${job.id}`);
  * @mutate src/components/job-card/useManageDeepLink.ts | useManageDeepLink(jobId, refs, cards); | void refs;
  * @mutate src/components/messages/chatView/DealCard.tsx |         : `/jobs?tab=working&job=${job.id}&open=1`, |         : `/jobs?tab=working&highlight=${job.id}`,
  */

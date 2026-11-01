@@ -98,6 +98,7 @@ const POSTED_JOBS_KEY = "jobs|select,eq:customer_id=u1,order:created_at";
 const APPLICANT_COUNT_KEY = "applications|select,eq:jobs.customer_id=u1";
 const APPS_KEY = "applications|select,eq:helper_id=u1,order:created_at";
 const OFFERS_KEY = "rpc:get_my_pending_direct_offers";
+const CORES_KEY = "rpc:get_my_activity_cores";
 const APPLIED_JOBS_KEY = "rpc:get_jobs_for_my_applications";
 const VIOLATIONS_KEY = "user_violations|select,eq:user_id=u1,eq:violation_type=job_denial";
 const HELPER_REVIEWS_KEY = "reviews|select,eq:reviewer_id=u1";
@@ -322,7 +323,10 @@ describe("fetchAppliedActivity — My Jobs core", () => {
        five reads are issued together, before any of them resolves. `issued`
        records at call time, so a read that waited on another's reply cannot
        be in this set. */
-    expect(issued.slice(0, 5).sort()).toEqual(
+    // The one-read RPC (get_my_activity_cores) is asked first; this mock gives it no payload, so these are the
+    // fallback reads, and they still leave together.
+    expect(issued[0]).toBe(CORES_KEY);
+    expect(issued.slice(1, 6).sort()).toEqual(
       [APPS_KEY, APPLIED_JOBS_KEY, OFFERS_KEY, VIOLATIONS_KEY, HELPER_REVIEWS_KEY].sort(),
     );
   });
@@ -404,3 +408,48 @@ describe("fetchAppliedActivityDetail — My Jobs decoration", () => {
 // row create-payment writes before Stripe counts as a tip, locking the Tip
 // button to a disabled "Tipped" forever.
 // @mutate src/hooks/useActivityData.ts | .eq("payment_status", "paid") |
+
+// Q104 (release gate 41330878323): with get_my_activity_cores deployed, both cores are ONE request between them.
+// @mutate src/hooks/useActivityData.ts |   const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = cores ? [ |   const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = false ? [
+// @mutate src/lib/activityCores.ts |   if (inFlight?.userId === userId) return inFlight.p; |   if (false) return inFlight!.p;
+describe("both activity cores in one read (get_my_activity_cores)", () => {
+  const payload = {
+    posted_jobs: [{ id: "p1", customer_id: "u1", status: "open", created_at: "2026-01-02" }],
+    poster_applications: [{ job_id: "p1", status: "pending", closed_reason: null }, { job_id: "p1", status: "declined", closed_reason: null }],
+    offer_targets: [{ job_id: "p1", offered_to_helper_id: "h9" }],
+    my_applications: [{ id: "a1", job_id: "j1", helper_id: "u1", status: "pending", created_at: "2026-01-01" }],
+    application_jobs: [{ id: "j1", customer_id: "poster-1", status: "open" }],
+    direct_offers: [{ id: "d1", customer_id: "poster-2", title: "Offer", created_at: "2026-01-03", updated_at: "2026-01-03" }],
+    violations: [{ job_id: "j7" }],
+    reviews: [{ job_id: "j1" }],
+  };
+  beforeEach(() => {
+    setResponse(CORES_KEY, { data: payload, error: null });
+  });
+
+  it("the badge's two cores, asked together, send one request and read the same rows", async () => {
+    const [posted, applied] = await Promise.all([fetchPostedActivity("u1"), fetchAppliedActivity("u1")]);
+    expect(issued.filter((k) => !k.startsWith("rpc:get_job_series_state") && !k.startsWith("job_series"))).toEqual([CORES_KEY]);
+    expect(posted.postedJobs.map((j) => j.id)).toEqual(["p1"]);
+    expect(posted.postedJobs[0].offered_to_helper_id).toBe("h9");
+    expect(posted.applicantCounts.p1).toBe(2);
+    expect(posted.pendingApplicantCounts.p1).toBe(1);
+    expect(applied.appliedApps.map((a) => a.job_id).sort()).toEqual(["d1", "j1"]);
+    expect(applied.appliedApps.find((a) => a.job_id === "j1")?.job?.customer_id).toBe("poster-1");
+    expect(applied.declinedJobIds.has("j7")).toBe(true);
+    expect(applied.helperReviewedJobIds.has("j1")).toBe(true);
+  });
+
+  it("a refetch after the first answer reads again: a finished call is never reused", async () => {
+    await fetchPostedActivity("u1");
+    await fetchPostedActivity("u1");
+    expect(issued.filter((k) => k === CORES_KEY)).toHaveLength(2);
+  });
+
+  it("not deployed yet (PGRST202): the old reads, quietly", async () => {
+    setResponse(CORES_KEY, { data: null, error: { code: "PGRST202", message: "not found" } });
+    await fetchAppliedActivity("u1");
+    expect(issued).toContain(APPS_KEY);
+    expect(issued).toContain(APPLIED_JOBS_KEY);
+  });
+});

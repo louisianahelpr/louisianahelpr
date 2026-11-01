@@ -9,6 +9,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHiredPayoutPrompt } from "@/components/payouts/useHiredPayoutPrompt";
 import { HiredPayoutSetupDialog } from "@/components/payouts/HiredPayoutSetupDialog";
@@ -43,10 +44,10 @@ function SuggestionRow({ s, onTaken }: { s: RouteSuggestion; onTaken: () => void
         <span className="font-normal">, about {s.extra_minutes} extra {s.extra_minutes === 1 ? "minute" : "minutes"}</span>
       </p>
       <p className="text-ds-13">Pickup {when(s.pickup_slot_start)}</p>
-      <button type="button" className="btn-grad-primary min-h-11 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-50"
+      <Button type="button" size="sm" className="py-2 text-sm font-semibold tracking-normal shadow-none"
         disabled={take.isPending} onClick={() => take.mutate()}>
         {take.isPending ? "Adding…" : "Add to my route"}
-      </button>
+      </Button>
       {hiredPayout.open && <HiredPayoutSetupDialog open onOpenChange={(o) => { if (!o) hiredPayout.close(); }} />}
     </li>
   );

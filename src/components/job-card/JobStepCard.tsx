@@ -1,4 +1,4 @@
-import { isValidElement, useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { isValidElement, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   JobStepRowContext,
@@ -9,6 +9,7 @@ import {
 } from "./jobStepRow";
 import { useClaimedPersonTile } from "./jobCardPerson";
 import { JobStepOverflowChip } from "./JobActionRow";
+import { JobStepMenuContext, MenuAction, primaryButtons } from "./jobStepMenu";
 
 /** React keys of chips that ALWAYS live inside `More`, at every width, even
  *  when the row has room (owner, 2026-09-27: "report a problem should be under
@@ -356,6 +357,22 @@ export function JobStepCard({
   );
 
   const moreChips = [...moreOnly, ...rowChips.overflow];
+  // On the job page (jobStepMenu.tsx) the page draws these, minus Message (the page has its own Message button).
+  const menu = useContext(JobStepMenuContext);
+  // Its own primaries (Review, Tip): the first leads the page's row when the page mounts a lead slot (it has no
+  // step of its own); the rest join the options. With the page's own step showing, they are that step: not repeated.
+  // A primary that stands in for the Message chip (primaryChipKey "message") IS Message: the page has its own, so it
+  // is not handed over (it drew "Message | Message" on a hired job before its start, happy-path smoke 11-01).
+  const menuPrimaries = menu && primaryChipKey !== "message" ? primaryButtons(ownPrimary) : [];
+  const menuLead = menu?.leadHost ? menuPrimaries[0] ?? null : null;
+  const menuChips = menu
+    ? [...(menu.leadHost ? menuPrimaries.slice(1) : []), ...moreChips.filter((c) => !(isValidElement(c) && c.key === "message"))]
+    : [];
+  const menuCount = menuChips.length;
+  const setMenuCount = menu?.setCount;
+  const setMenuLeadCount = menu?.setLeadCount;
+  useEffect(() => { setMenuCount?.(menuCount); }, [setMenuCount, menuCount]);
+  useEffect(() => { setMenuLeadCount?.(menuPrimaries.length); }, [setMenuLeadCount, menuPrimaries.length]);
 
   return (
     <div
@@ -437,7 +454,10 @@ export function JobStepCard({
               pinned end into the popover — the `More` control lands where the
               chips it holds came from. */}
           {rowChips.lead}
-          {moreChips.length > 0 ? (
+          {/* ONE extra action is not a menu (owner 2026-11-01: "if no show is the only option then just remove the
+              more button bc there isn't really more"): it sits on the row itself, beside the primary. */}
+          {moreChips.length === 1 ? moreChips[0] : null}
+          {moreChips.length > 1 ? (
             <JobStepOverflowChip
               count={moreChips.length}
               /* THE PANEL IS THE ROW'S BOX, not the viewport's. Anchored to
@@ -458,6 +478,12 @@ export function JobStepCard({
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}
         {escape}
         {dialogs}
+        {menu?.askHost && ask ? createPortal(ask, menu.askHost) : null}
+        {menu?.leadHost && menuLead ? createPortal(<MenuAction chip={menuLead} lead pair className="w-full" />, menu.leadHost) : null}
+        {menu?.secondHost && menuCount === 1 ? createPortal(<MenuAction chip={menuChips[0]} pair className="w-full" />, menu.secondHost) : null}
+        {menu?.listHost && menuCount >= 1
+          ? createPortal(<>{menuChips.map((c, i) => <MenuAction key={isValidElement(c) && c.key != null ? String(c.key) : i} chip={c} className="w-full" />)}</>, menu.listHost)
+          : null}
       </JobStepRowContext.Provider>
     </div>
   );

@@ -159,7 +159,7 @@ export type DeadlineSource =
  * the reader, so every leading `[…]` tag is stripped. What is left is dropped
  * when it is empty: "Cancelled ·" over nothing is worse than "Cancelled".
  */
-function sanitizeCancellationReason(reason: string | null | undefined): string | null {
+export function sanitizeCancellationReason(reason: string | null | undefined): string | null {
   if (typeof reason !== "string") return null;
   let out = reason.trim();
   for (;;) {
@@ -194,7 +194,7 @@ function columnDeadline(
 }
 
 /** When the poster's approval window on submitted work ends (Helpr support steps in), or null. */
-function autoCompleteAt(job: Pick<Job, "helper_completed_at">): string | null {
+export function autoCompleteAt(job: Pick<Job, "helper_completed_at">): string | null {
   if (!job.helper_completed_at) return null;
   const t = new Date(job.helper_completed_at).getTime();
   if (Number.isNaN(t)) return null;
@@ -658,7 +658,9 @@ export function posterStatusLine(
   // "working" says "is working" exactly when the tracker's Working step has begun (workHasBegun: one rule for the
   // card line, the tracker's line and the step colour; lead 2026-10-31), else "is at the job".
   const atTheJob = id === "working" && !workHasBegun(job, { workUnderway: progress?.workUnderway });
-  const named = helperName ? (atTheJob ? `${firstName(helperName)} is at the job` : POSTER_NAMED[id]?.(helperName, job)) : undefined;
+  // JA-49: an offer whose Helpr is not named here still says when the answer is due.
+  const offerBy = id === "offer_out" && !helperName ? offerAnswerByMs(job) : null;
+  const named = offerBy ? `Your offer is out · answer due ${dayTime(offerBy)}` : helperName ? (atTheJob ? `${firstName(helperName)} is at the job` : POSTER_NAMED[id]?.(helperName, job)) : undefined;
   // Expired is not cancelled (owner 10-31, src/lib/expiredListing.ts): the poster's
   // own card says "Expired", never "Cancelled", and keeps its Post again.
   const expired = id === "cancelled" && isExpiredListing(job);
@@ -1079,8 +1081,17 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
 const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
 /** "Sat 1:00 PM" in Louisiana time. */
 const dayTime = (ms: number) => new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+/** When the offered Helpr's answer is due (the same column offerDeadline reads), or null; never a time already passed. */
+function offerAnswerByMs(job: Job): number | null {
+  const at = Date.parse((job.response_deadline ?? job.direct_offer_expires_at ?? "") as string);
+  return Number.isFinite(at) && at > Date.now() ? at : null;
+}
 const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => string>> = {
-  offer_out: (n) => `Your offer is with ${firstName(n)}`,
+  // Audit 11-01 JA-49: the name AND the answer-by time ("Yusef has until Mon 6:00 AM to answer").
+  offer_out: (n, job) => {
+    const by = offerAnswerByMs(job);
+    return by ? `${firstName(n)} has until ${dayTime(by)} to answer` : `Your offer is with ${firstName(n)}`;
+  },
   unconfirmed: (n) => `Offer sent — ${firstName(n)} hasn't accepted yet`,
   // WHAT IS NEXT, AND BY WHEN (owner, 2026-10-23, card critique item 5): not just "Hallie accepted".
   confirmed: (n, job) => {

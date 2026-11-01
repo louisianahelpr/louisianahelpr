@@ -16,6 +16,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows } from "@/lib/jobColumns";
 import { readApplicationRows, readableApplicationRows } from "@/lib/applicationColumns";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
+import { fetchActivityCores, offerTargetMap } from "@/lib/activityCores";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { fetchClosedJobLabels } from "@/lib/closedJobLabels";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
@@ -187,7 +188,14 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   // Start" button. Nothing in this app has ever inserted a job_checkins row
   // (0 in prod), so the set was always empty and the button never rendered —
   // one query per Activity load, forever, for a control nobody could see.
-  const [jobsRes, appCountRes, offerTargets] = await Promise.all([
+  // Both cores in one request when the database has get_my_activity_cores (Q104; src/lib/activityCores.ts).
+  // Null: the three reads below, as before.
+  const cores = await fetchActivityCores(userId);
+  const [jobsRes, appCountRes, offerTargets] = cores ? [
+    { data: cores.posted_jobs, error: null },
+    { data: cores.poster_applications, error: null },
+    offerTargetMap(cores.offer_targets),
+  ] as const : await Promise.all([
     // Named columns, not `*`: jobs.offered_to_helper_id is not selectable by a
     // signed-in client (20260915045110, owner decision 2026-09-14), and `*`
     // would 42501 the whole read. The poster gets their own offerees from
@@ -490,7 +498,16 @@ export async function fetchPostedActivityDetail(
  * set is scoped to the map of apps in THIS payload, not trusted to match it.
  */
 export async function fetchAppliedActivity(userId: string): Promise<AppliedActivity> {
-  const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = await Promise.all([
+  // Both cores in one request when the database has get_my_activity_cores (Q104; src/lib/activityCores.ts).
+  // Null: the five reads below, as before.
+  const cores = await fetchActivityCores(userId);
+  const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = cores ? [
+    { data: cores.my_applications, error: null },
+    { data: cores.application_jobs as Job[], error: null },
+    { data: cores.direct_offers as Job[], error: null },
+    { data: cores.violations, error: null },
+    { data: cores.reviews, error: null },
+  ] as const : await Promise.all([
     // The readable columns, not "*": flag_reason is withheld from clients (Q1232).
     // Through readApplicationRows: it retries without a column the database
     // does not have yet (42703) when the web ships ahead of db-deploy (Q1206).

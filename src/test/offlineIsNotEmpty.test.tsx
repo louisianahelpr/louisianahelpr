@@ -49,7 +49,6 @@ const NOT_QUERY_DRIVEN: Record<string, string> = {
   "src/pages/post-job/OfferToSavedHelpr.tsx": "shows 'Loading your saved Helprs…' until the list has rows (`!helpers`), so a paused read never reaches the empty card",
   "src/components/admin/AdminPayoutBatches.tsx": "its empty card is driven by useInstantQuery's isInitialLoading (paused counts as loading); its own useQuery is the transfer ledger, which renders nothing when empty",
   "src/components/rentals/RentalsHomeView.tsx": "renders RentalsHomeSkeleton while its read has no data (`!data.isError && !data.data`), so a paused first load stays the skeleton; the two empty cards render only from a successful read",
-  "src/components/rentals/listings/RentBrowse.tsx": "shows the listing bones while `!q.data` (a paused read has none) and its empty state only for a successful read with zero rows",
   "src/components/admin/adminAnalytics/SignupLeadsCard.tsx": "gates on isPending (a paused first load stays the spinner) and renders its empty card only from a successful read's rows",
   "src/pages/search/SearchPage.tsx": "its empty state needs !loading, and loading reads isPending on the jobs and Declutter reads, so a search paused offline stays loading (audit #27)",
   "src/pages/tips/TipMoment.tsx": "gates on isPending, so a tip read paused offline stays the spinner; its EmptyState renders only from a settled read (no tip, or not paid yet)",

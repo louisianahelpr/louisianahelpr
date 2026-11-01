@@ -15,6 +15,10 @@
  * leftover; a key no migration creates reads as OFF forever.
  */
 export const FEATURE_SWITCH_KEYS = [
+  // Instant book (CMP-4): a poster books one of up to 3 Helprs who set a price floor. Turned OFF for everyone by
+  // 20261101164117 (owner 11-01: "jobs can be hours away"); rpc_instant_book, instant_book_candidates and
+  // rpc_set_instant_book_floor refuse without it. The decline, the reads and the refund sweeps keep running.
+  "instant_book",
   // Gates no product feature. Admin -> Settings reads it to show the viewer
   // that hidden switches reach them; the nightly feature-switch-audience check
   // uses it as its positive control.

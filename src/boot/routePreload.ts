@@ -94,6 +94,11 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [protectedRoute],
     signedIn: [() => import("@/boot/profileRoute"), protectedRoute],
   },
+  // profileRoute also starts /admin's gate and page together (see accountPageChunksFor there).
+  "/admin": {
+    guest: [protectedRoute],
+    signedIn: [() => import("@/boot/profileRoute"), protectedRoute],
+  },
   // A signed-out visitor is sent to /login by ProtectedRoute, so Login is the page they will see.
   // declutterRoute keeps Declutter's long preload list out of the entry (see that file).
   "/declutter": {

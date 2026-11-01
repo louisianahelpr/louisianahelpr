@@ -37,6 +37,7 @@ function deps(log: string[], over: Partial<ListDeps> = {}): ListDeps {
     setHandovers: vi.fn(async (_id, w) => w),
     setDropPct: vi.fn(async (_id, p) => p),
     setKeepUp: vi.fn(async (_id, on) => on),
+    setAutoFreeDays: vi.fn(async (_id: string, d: number | null) => d),
     setOfferRules: vi.fn(async (id: string, accepts: boolean, auto: boolean) => void log.push(`offers ${id} ${accepts} ${auto}`)),
     publishMany: vi.fn(async (ids: string[]) => {
       log.push(`publish ${ids.join(",")}`);

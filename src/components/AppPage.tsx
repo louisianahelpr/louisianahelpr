@@ -64,6 +64,8 @@ interface AppPageProps {
   titleActions?: ReactNode;
   /** Phone: keep the h1 for screen readers but paint only back + titleActions (PageHeader's `phoneHidesTitle`). */
   phoneHidesTitle?: boolean;
+  /** Every width: keep the h1 for screen readers but do not paint it (PageHeader's `hidesTitle`). */
+  hidesTitle?: boolean;
   /**
    * Phone: the title row (back + titleActions) stays pinned at the top while the page scrolls, with the title
    * shown in it once scrolled, instead of scrolling away under the title-only compact bar (DA-9, Declutter audit
@@ -76,7 +78,7 @@ interface AppPageProps {
   children: ReactNode;
 }
 
-function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, stickyHeader, wrapTitle, children }: AppPageProps) {
+function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, hidesTitle, stickyHeader, wrapTitle, children }: AppPageProps) {
   // D12 (Cowork audit 2026-10-20): the browser tab names the page (an item, Sell an
   // item, ...), not the landing page. A page's own usePageTitle / usePageMeta wins.
   usePageTitle(`${title} — Helpr`);
@@ -117,7 +119,7 @@ function AppPage({ title, backTo, onBack, titleActions, phoneHidesTitle, stickyH
                 on 2026-09-19. ProfileTabHeader's `-mb-4` is keyed to
                 PROFILE_TAB_BODY_CLASS's 16px. */}
             <ProfileTabBody>
-              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} />
+              <ProfileTabHeader title={title} backTo={backTo} onBack={onBack} rightSlot={titleActions} phoneHidesTitle={phoneHidesTitle} hidesTitle={hidesTitle} sticky={stickyHeader} wrapTitle={wrapTitle} />
               {children}
             </ProfileTabBody>
           </div>

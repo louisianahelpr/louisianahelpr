@@ -84,12 +84,13 @@ test.describe("customer post-job happy path", () => {
       timeout: 15_000,
     });
 
-    // "Start from scratch" transitions into the multi-step form.
-    await page.getByRole("button", { name: /start from scratch/i }).click();
-    // J1 (2026-10-20): the form is five screens, one question each; screen 1 asks "What do you need done?" (owner 2026-10-21).
+    // JA-41 (owner pick 2026-11-01): the first screen IS the group grid ("What do you need done?"); a group tap
+    // starts the form. "Something else" is one category, so it goes straight on to Details.
     await expect(page.getByRole("heading", { name: /what do you need done/i })).toBeVisible({
       timeout: 10_000,
     });
+    await page.getByRole("button", { name: /^something else/i }).click();
+    await expect(page.getByRole("heading", { name: /tell us about it/i })).toBeVisible({ timeout: 10_000 });
 
     // The page must NOT redirect to /login (auth seeding worked).
     expect(page.url()).toContain("/post-job");
@@ -179,6 +180,6 @@ test.describe("customer post-job happy path", () => {
 
 // The entry-landing → form transition is what "post a job" actually IS on this
 // screen: ProtectedRoute can pass, the heading can render, and the page is
-// still a dead end if "Start from scratch" does not advance the step. Neutering
+// still a dead end if a group tap (JA-41: the first screen's grid) does not advance the step. Neutering
 // `startFresh` must red test 2.
 // @mutate src/pages/post-job/useJobEntry.ts | const startFresh = () => { | const startFresh = () => { return;

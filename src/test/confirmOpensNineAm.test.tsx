@@ -6,7 +6,7 @@
  * pins the instant and the words both cards and the tracker print.
  */
 // @mutate supabase/functions/_shared/confirmDeadline.ts |   return jobLocalMidnightMs(previousDay(dateNeeded)); |   return jobLocalMidnightMs(dateNeeded);
-// @mutate src/components/tracker/jobProgressState.ts |  : `Confirm the day before. Opens ${when(opens)}`; |  : `Confirm the day before.`;
+// @mutate src/components/tracker/jobProgressState.ts |  : `Confirm on ${day}, the day before`; |  : `Confirm the day before.`;
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { confirmDeadlineMs, confirmOpensMs } from "@/lib/jobDate";
@@ -30,8 +30,8 @@ describe("a Thu 9:00 AM job's confirm window", () => {
 
   it("the tracker says when it opens, on both sides", () => {
     const job = { status: "accepted", helper_id: "h", helper_confirmed_at: "t", date_needed: DAY, start_time: "09:00" };
-    expect(jobProgress(job, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).toBe("Yusef confirms the day before. Opens Wed 12:00 AM");
-    expect(jobProgress(job, { viewer: "helpr", otherFirst: "Ben", now: NOW }).next).toBe("Confirm the day before. Opens Wed 12:00 AM");
+    expect(jobProgress(job, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).toBe("Yusef confirms on Wed, the day before");
+    expect(jobProgress(job, { viewer: "helpr", otherFirst: "Ben", now: NOW }).next).toBe("Confirm on Wed, the day before");
   });
 
   it("the Helpr's inline confirm draws nothing before the window: no greyed button (the tracker line carries the moment)", () => {

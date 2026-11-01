@@ -55,6 +55,11 @@ interface PageHeaderProps {
    */
   phoneHidesTitle?: boolean;
   /**
+   * Every width: the h1 is read by screen readers but not painted, because the page paints its own title in its body
+   * (the Declutter item page, owner mockup 11-01: the title with Save and Share in the right column).
+   */
+  hidesTitle?: boolean;
+  /**
    * With `phoneHidesTitle`, on a pinned title row (AppPage `stickyHeader`, DA-9): paint the title, aria-hidden (the
    * h1 stays the heading), between back and the actions once the page has scrolled (index.css `.sticky-title-row`).
    */
@@ -210,10 +215,14 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   },
 };
 
+/** A wrapping title longer than this is set smaller on a phone (JA-14): the job page's "Haul off an old couch and two
+ *  chairs" is 36. Short titles ("Declutter settings") keep the full size. */
+const LONG_TITLE_CHARS = 24;
+
 // `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
 // recorded in the retirement note below (title only; ~15 call sites still pass it).
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, stickyTitle = false, wrapTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, hidesTitle = false, stickyTitle = false, wrapTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -255,6 +264,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
       title={title}
       back={hideBack ? undefined : { onBack, backTo }}
       actions={desktopActions}
+      titleHidden={hidesTitle}
       phone={<>
       {showTopBar && (
         <header className="glass-header sticky top-0 z-50">
@@ -353,7 +363,10 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
                   Prop kept for the same reason as `eyebrow`: ~15 call sites
                   pass it, and neither churning them nor breaking their types
                   buys anything. One line restores it. */}
-              <h1 className={`text-page-title leading-tight ${wrapTitle ? "break-words" : "truncate"}${phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
+              {/* JA-14 (Jobs audit 11-01; lead 11-01, B107): a long wrapping title (a 7-word job title took 3-4 lines of
+                  heading at 375) is set SMALLER on a phone (index.css `.page-title-long`), never cut with "...": the
+                  whole title is always on the page. */}
+              <h1 className={`text-page-title leading-tight ${wrapTitle ? `break-words${title.length > LONG_TITLE_CHARS ? " page-title-long" : ""}` : "truncate"}${hidesTitle ? " sr-only" : phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
                 {title}
               </h1>
             </div>

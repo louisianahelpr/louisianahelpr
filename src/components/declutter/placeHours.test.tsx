@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |     return `${days.length === 7 ? "Every day" : shortDays(days)} ${range(ws[0])}`; |     return shortDays(days);
  * @mutate src/components/declutter/ItemPickupDisplay.tsx |       {places.map((p, i) => ( |       {places.slice(0, 1).map((p, i) => (
- * @mutate src/components/declutter/SellOneScreen.tsx |           {hasPlaces && <MyPickupPlacesSummary />}\n |
+ * @mutate src/components/declutter/SellOneScreen.tsx |   const pickup = usePickupLines(savedWays, form.areaLabel, windows); |   const pickup: string[] = [];
  * @mutate src/components/declutter/ItemHandoverTimes.tsx |     {(plan.places \|\| read.isError) && <ItemPickupPlaces itemId={itemId} />}\n |
  */
 import { render, screen } from "@testing-library/react";
@@ -55,7 +55,7 @@ describe("every place shows, each with its own days and times", () => {
   it("the posting summary and the item page both render the list (source)", () => {
     const sell = readFileSync("src/components/declutter/SellOneScreen.tsx", "utf8");
     const item = readFileSync("src/components/declutter/ItemHandoverTimes.tsx", "utf8");
-    expect(sell).toContain("{hasPlaces && <MyPickupPlacesSummary />}");
+    expect(sell).toContain("const pickup = usePickupLines(savedWays, form.areaLabel, windows);");
     expect(item).toContain("<ItemPickupPlaces itemId={itemId} />");
   });
 });

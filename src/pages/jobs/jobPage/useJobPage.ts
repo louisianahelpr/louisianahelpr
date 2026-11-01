@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { queryKeys } from "@/lib/queryKeys";
+import { reviewWindowOpen } from "@/lib/reviewWindow";
 
 export interface JobPageRow {
   id: string;
@@ -47,6 +48,9 @@ export interface JobPageRow {
   helper_dayof_confirmed_at?: string | null;
   poster_confirmed_at?: string | null;
   helper_on_the_way_at?: string | null;
+  /** The job's point (party read only): the poster's on-the-way map's destination (OnTheWayNow). */
+  latitude?: number | null;
+  longitude?: number | null;
   helper_arrived_at?: string | null;
   helper_arrival_verified_at?: string | null;
   poster_confirmed_arrival_at?: string | null;
@@ -56,6 +60,16 @@ export interface JobPageRow {
   /** When the job was done (stamped by the server); the Helpr Guarantee's 48-hour window starts here. */
   completed_at?: string | null;
   has_active_dispute?: boolean | null;
+  dispute_deadline?: string | null;
+  /** Why and by whom it was cancelled, and the late-cancel fee (party read only): an auto-expired listing is never
+   *  shown as cancelled (JA-23, isExpiredListing), and a cancelled job's Helpr is never told "You take home" (JA-24). */
+  cancellation_reason?: string | null;
+  cancelled_by?: string | null;
+  cancelled_at?: string | null;
+  cancellation_fee?: number | null;
+  /** The poster's fix note and its deadline (party read only): the page says what to fix and by when (JA-31). */
+  revision_note?: string | null;
+  revision_deadline?: string | null;
   /** The photo rule and the photos taken (party read only): the hired Helpr's line and button hang on them, as on
    *  the Working card (audit 2026-10-28 F1/F26: without them every arrived job read "Take the before photo"). */
   require_photo_proof?: boolean | null;
@@ -72,12 +86,14 @@ export interface JobPageRow {
   recurring_helper_id?: string | null;
   /** A pending direct offer on this job (party read only); whether it is to the viewer is useOfferedToMe's answer. */
   direct_offer_status?: string | null;
+  /** When a pending direct offer runs out (party read only): the poster's line says until when (JA-49). */
+  direct_offer_expires_at?: string | null;
 }
 
 const BASE_COLUMNS =
   "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date";
 const PARTY_COLUMNS =
-  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, has_active_dispute, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status";
+  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, direct_offer_expires_at, has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, cancelled_at, cancellation_fee, revision_note, revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude";
 
 function toRow(raw: Record<string, unknown>): JobPageRow {
   return {
@@ -133,17 +149,25 @@ async function fetchMyApplication(jobId: string, userId: string): Promise<MyAppl
  * city only (audit 2026-10-28 A2-B8). The member's own roster row is readable to them (RLS "Admins and job
  * participants can view group helpers"), and user_may_see_job_address already gives them the street.
  */
-async function fetchOnCrew(jobId: string, userId: string): Promise<boolean> {
+async function fetchOnCrew(jobId: string, userId: string): Promise<{ on: boolean; confirmed: boolean }> {
+  // helper_confirmed_at: the member confirmed their spot, so their tracker never says "offered you this job" (JA-33).
   const row = unwrap(
-    await supabase.from("group_job_helpers").select("id").eq("job_id", jobId).eq("helper_id", userId).maybeSingle(),
-  ) as { id: string } | null;
-  return !!row;
+    await supabase.from("group_job_helpers").select("id, helper_confirmed_at").eq("job_id", jobId).eq("helper_id", userId).maybeSingle(),
+  ) as { id: string; helper_confirmed_at: string | null } | null;
+  return { on: !!row, confirmed: !!row?.helper_confirmed_at };
 }
 
 /** Applicants on the poster's own job: everyone who applied, and those still waiting on a decision. */
-async function fetchApplicantCounts(jobId: string): Promise<{ total: number; pending: number }> {
-  const rows = unwrap(await supabase.from("applications").select("status").eq("job_id", jobId)) ?? [];
-  return { total: rows.length, pending: rows.filter((r) => r.status === "pending").length };
+/**
+ * JA-27: a no-show report closes that Helpr's application (closed_reason 'no_show', report_helper_no_show) and puts
+ * the job back up; that row is no applicant any more, and its close time is when the job was reposted.
+ */
+async function fetchApplicantCounts(jobId: string): Promise<{ total: number; pending: number; noShowAt: string | null }> {
+  const rows = (unwrap(await supabase.from("applications").select("status, closed_reason, updated_at").eq("job_id", jobId)) ?? []) as { status: string; closed_reason?: string | null; updated_at?: string | null }[];
+  const noShows = rows.filter((r) => r.closed_reason === "no_show");
+  const noShowAt = noShows.map((r) => r.updated_at ?? "").filter(Boolean).sort().pop() ?? (noShows.length ? "" : null);
+  const live = rows.filter((r) => r.closed_reason !== "no_show");
+  return { total: live.length, pending: live.filter((r) => r.status === "pending").length, noShowAt };
 }
 
 /** The job's latest tracking status (Start working lives there, not on the jobs row), or null. RLS: the parties. */
@@ -172,6 +196,21 @@ function myPendingOfferQuery(jobId: string | undefined, enabled: boolean) {
     enabled: enabled && !!jobId,
     staleTime: 30 * 1000,
   };
+}
+
+/**
+ * JA-22 (Jobs audit 11-01): the hired Helpr owes a review of the poster on a finished, paid job (the Working card's own
+ * owesReview: paid or paying out, a poster to review, the review window open, no review of theirs on this job yet).
+ */
+export function useOwesReview(job: JobPageRow | undefined, userId: string, enabled: boolean): { owes: boolean; refetch: () => void } {
+  const may = enabled && !!job && job.helper_id === userId && !job.is_group_job && !!job.customer_id && job.status === "completed"
+    && (job.payment_status === "released" || job.payment_status === "payout_pending") && reviewWindowOpen(job);
+  const q = useQuery({
+    queryKey: ["job-page", "my-review", job?.id, userId],
+    queryFn: async () => unwrap(await supabase.from("reviews").select("job_id").eq("job_id", job!.id).eq("reviewer_id", userId).limit(1)),
+    enabled: may,
+  });
+  return { owes: may && q.isSuccess && (q.data ?? []).length === 0, refetch: () => void q.refetch() };
 }
 
 export function useOfferedToMe(jobId: string | undefined, enabled: boolean): boolean {
@@ -228,5 +267,5 @@ export function useJobPage(id: string | undefined, userId: string | undefined) {
     enabled: !!job.data && !isPoster && !!userId && job.data.job.is_group_job === true,
     staleTime: 30 * 1000,
   });
-  return { job, applicants, isPoster, myApplication, tracking, onCrew: onCrew.data === true };
+  return { job, applicants, isPoster, myApplication, tracking, onCrew: onCrew.data?.on === true, crewConfirmed: onCrew.data?.confirmed === true };
 }

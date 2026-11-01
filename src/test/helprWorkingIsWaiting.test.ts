@@ -17,7 +17,7 @@
  * @mutate src/components/job-card/activityFilters.ts |   if (j.is_group_job) return false; |   if (j.is_group_job) return true;
  * @mutate src/components/job-card/activityFilters.ts |  \|\| Number(b.status === "in_progress") - Number(a.status === "in_progress")), | ),
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |     if (j.id === liveJobId \|\| postedActivityBucket(j, n) !== "waiting") continue; |     if (postedActivityBucket(j, n) !== "waiting") continue;
- * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null) | deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa)
+ * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, | deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, null,
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -115,7 +115,7 @@ describe("Home: a working job is Live now, never a to-do, and never named twice"
 
   it("useHomeSummary hands deriveWaiting the live job", () => {
     const src = blankComments(readFileSync(resolve(process.cwd(), "src/pages/home/homeDashboard/useHomeSummary.ts"), "utf8"));
-    expect(src).toContain("deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null)");
+    expect(src).toContain("deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null,");
   });
 });
 

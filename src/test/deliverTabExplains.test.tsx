@@ -40,8 +40,9 @@ describe("the Deliver tab explains itself", () => {
     const pay = container.querySelector("[data-deliver-pay]")!.textContent ?? "";
     const small = formatPrice(helprTakeHomeCents(deliveryPriceCents(EXAMPLE_MILES, ["small"])));
     const large = formatPrice(helprTakeHomeCents(deliveryPriceCents(EXAMPLE_MILES, ["large"])));
-    // 5 road miles: $20 small -> $18 to the driver; $40 large -> $37 (2026-10-28 rule: less 5% + 70c, rounded down).
-    expect([small, large]).toEqual(["$18", "$37"]);
+    // 5 road miles at $6 + $1.50 a mile (owner 11-01): $13.50 small -> $12 to the driver; $33.50 large -> $31
+    // (2026-10-28 rule: less 5% + 70c, rounded down).
+    expect([small, large]).toEqual(["$12", "$31"]);
     expect(pay).toBe(`A ${EXAMPLE_MILES}-mile trip pays you ${small}, or ${large} for a large item. Every delivery shows your pay before you take it, and tips are all yours.`);
     expect(card.textContent).not.toMatch(/fee|%|¢|70c/i);
     // BUY-45: the limit and the no-show strike the server applies (helpr_task_accept: 2 taken; helpr_task_sweep: 2 hours).

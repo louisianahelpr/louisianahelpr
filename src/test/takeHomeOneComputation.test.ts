@@ -2,7 +2,7 @@
  * #62 (audit 2026-10-21): the quick view and the "Application sent" sheet showed a
  * Helpr's take-home from a different path than the job page ("$103" beside "posted
  * at $120"). They now read useHelprTakeHome (src/components/dashboard/helprTakeHome.tsx),
- * which must run the job page's OWN computation (HelprMoney in JobPageParts.tsx):
+ * which must run the job page's OWN computation (useHelprMoney in JobPageParts.tsx):
  * the same computeNet call, argument for argument. If one side changes how it
  * prices a take-home, this fails until the other does too.
  *
@@ -21,7 +21,7 @@ describe("one take-home computation for the job page, the quick view and Applica
   it("useHelprTakeHome's computeNet call is the job page's, argument for argument", () => {
     const page = read("src/pages/jobs/jobPage/JobPageParts.tsx").match(CALL)?.[1];
     const shared = read("src/components/dashboard/helprTakeHome.tsx").match(CALL)?.[1];
-    expect(page, "HelprMoney no longer calls computeNet(...).netEarnings").toBeTruthy();
+    expect(page, "useHelprMoney no longer calls computeNet(...).netEarnings").toBeTruthy();
     expect(shared, "useHelprTakeHome no longer calls computeNet(...).netEarnings").toBeTruthy();
     expect(shared).toBe(page);
   });

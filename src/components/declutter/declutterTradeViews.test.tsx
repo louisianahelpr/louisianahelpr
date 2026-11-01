@@ -56,6 +56,8 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 
 const state = {
+  /** The seller's pickup places in the cart (none unless a test sets them). */
+  sellerPlaces: [] as unknown[],
   underAge: false,
   handovers: null as string[] | null,
   card: null as unknown,
@@ -111,13 +113,16 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: state.me ? { id: state.me } : null, profile: null, isLoading: false }) }));
 vi.mock("@/lib/declutter/lastDropoff", () => ({ fetchMyLastDropoff: async () => { state.lastDropoffReads += 1; return state.lastDropoff; } }));
-vi.mock("@/lib/declutter/delivery", () => ({
+vi.mock("@/lib/declutter/delivery", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/delivery")>()),
   fetchDeliveryQuote: async (sellerId: string, address: string) => {
     state.quotes.push({ sellerId, address });
     return { road_miles: 5, size: "large", delivery_cents: 4000, base_cents: 1000, per_mile_cents: 1000, size_cents: 2000, dropoff_area: "Baker, LA" };
   },
 }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
+// The Deliver to box is the shared address search; with Apple search off it takes a typed address (no token fetch).
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "error" }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => state.bundleRule,
@@ -163,7 +168,7 @@ vi.mock("@/lib/declutter/api", () => ({
 // Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
 // The cart reads the seller's porch places (D-NEW14); these sellers have none. Places are proved in porchPlacesUi.test.tsx.
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchSellerPorchPlaces: async () => [] }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchSellerPorchPlaces: async () => state.sellerPlaces }));
 vi.mock("@/lib/declutter/handoverTalk", () => ({
   openHandoverTalk: async (other: string) => { state.talksOpened.push(other); return "t1"; },
   fetchMyOpenHandoverTalks: async () => [],
@@ -219,6 +224,7 @@ const OFFER = {
 
 describe("Declutter slice 3 screens", () => {
   beforeEach(() => {
+    state.sellerPlaces = [];
     state.underAge = false;
     state.responded = [];
     state.setupFeeCents = 0;
@@ -577,7 +583,10 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getAllByRole("button", { name: "Answer with a price" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Say no" })).toHaveLength(2);
     expect(screen.getByText(/under your lowest price \(\$30\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Waiting for the seller/)).toBeInTheDocument();
+    // The shared next-step line (owner 11-01): the seller's two to answer say "Next: answer their offer"; the buyer's waits.
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx |             ? { who: "you", text: "Answer their offer", by: timeLeft(o.respond_by) } |             ? { who: "info", text: "Your turn to answer.", by: timeLeft(o.respond_by) }
+    expect(screen.getByText("Waiting on the seller to answer")).toBeInTheDocument();
+    expect(screen.getAllByText("Next: answer their offer")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
     expect(screen.getAllByText(/under your lowest price/)).toHaveLength(1);
   });
@@ -972,6 +981,32 @@ describe("Declutter slice 3 screens", () => {
     expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]);
   });
 
+  // Owner 2026-11-01 (checkout screenshot): the seller's pickup places sat after Helpr delivery in a box of their own.
+  // They go UNDER the chosen way that uses them: porch pickup (the default), a door pickup or Helpr delivery.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |           {chosen === h && needsPlace && ( |           {false && (
+  it("the pickup places sit under Porch pickup, inside its option, while it is chosen", async () => {
+    state.sellerPlaces = [
+      { id: "p1", label: null, area: "New Iberia", weekdays: [6], chosen: false },
+      { id: "p2", label: null, area: "Delcambre", weekdays: [0], chosen: false },
+    ];
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    show(<CartView />);
+    await screen.findAllByRole("radio");
+    expect(screen.getByLabelText(/Porch pickup/)).toBeChecked();
+    const porch = document.querySelector('[data-handover-option="porch"]') as HTMLElement;
+    await waitFor(() => expect(within(porch).getByText(/New Iberia/)).toBeInTheDocument());
+    expect(within(porch).getByText(/Delcambre/)).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-places-under]")).toHaveLength(1);
+    // A door pickup is at the chosen place too (LEAD-PLACE-TIMES): they move under that way instead.
+    fireEvent.click(screen.getByLabelText(/Meet at the seller's home/));
+    await waitFor(() => {
+      expect(porch.querySelector("[data-places-under]")).toBeNull();
+      expect(document.querySelector('[data-handover-option="pickup_home"] [data-places-under]')).toBeInTheDocument();
+    });
+  });
+
   it("slice 5: Helpr delivery is offered, priced by the server for the typed address, and Pay carries the delivery fee", async () => {
     state.deliveryOn = true;
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
@@ -989,7 +1024,8 @@ describe("Declutter slice 3 screens", () => {
     expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/You pay\$3\.85\+ delivery/);
     fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "900 Far Rd, Baker, LA" } });
     fireEvent.click(screen.getByRole("button", { name: "Get price" }));
-    expect(await screen.findByText(/Helpr delivery, about 5 miles/)).toBeInTheDocument();
+    // Owner 2026-11-01: the price list by size, then the priced total under it (DeliveryPriceList).
+    expect(await screen.findByText(/About 5 miles · \$40/)).toBeInTheDocument();
     // The quote joins the bill as its own line: $3 item + $40 delivery, $43.85 in all (no fee line, issue #3672).
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {delivering && liveQuote && ( |         {false && (
     const bill = document.querySelector("[data-checkout-breakdown]")!;
@@ -1006,7 +1042,7 @@ describe("Declutter slice 3 screens", () => {
   // (their own rows only) fills it once; it is asked only when a way that delivers is chosen, and never over typing.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data); |     void 0;
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: !!me?.id && (delivering \|\| sellerDelivering), staleTime: 5 * 60_000 }); |     enabled: !!me?.id, staleTime: 5 * 60_000 });
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | onChange={(e) => { setAddressTouched(true); setAddress(e.target.value); setQuote(null); }} /> | onChange={(e) => { setAddress(e.target.value); setQuote(null); }} />
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}\n            onPicked | onTyped={(a) => { setAddress(a); setQuote(null); }}\n            onPicked
   it("BUY-9: Helpr delivery's Deliver to starts with the buyer's last drop-off, read only once delivery is chosen", async () => {
     state.deliveryOn = true;
     state.lastDropoff = "12 Oak St, Baton Rouge, LA";

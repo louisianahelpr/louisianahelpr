@@ -90,9 +90,8 @@ afterEach(() => {
 describe("a long run is honest and keeps going", () => {
   it("says how long it really takes, before it starts", async () => {
     await reachListing();
-    const copy = screen.getByText(/Listing takes about 15 seconds each/).textContent ?? "";
-    expect(copy).toContain("about 1 minute for these");
-    expect(copy).toContain("Keep this page open and your phone unlocked");
+    // One line under List (owner 2026-11-01): the honest time and to keep the page open.
+    expect(document.querySelector("[data-bunch-time]")?.textContent).toBe("Takes about 1 minute. Keep this page open.");
     expect(document.body.textContent).not.toContain("a few seconds each");
   });
 
@@ -104,6 +103,11 @@ describe("a long run is honest and keeps going", () => {
     fireEvent.click(list);
     await waitFor(() => expect(h.request).toHaveBeenCalledWith("screen"));
     await waitFor(() => expect(finish).toBeTruthy());
+    // Owner 2026-11-01: while the run works, each item's progress shows (not only a greyed button).
+    // @mutate src/components/declutter/DeclutterBunchListStep.tsx |           {listing && listingProgress && ( |           {false && listingProgress && (
+    const progress = document.querySelector("[data-sell-progress]") as HTMLElement;
+    expect(progress).not.toBeNull();
+    expect([...progress.querySelectorAll("[data-progress-row]")].map((r) => r.textContent)).toEqual(["Thing 0Uploading photos", "Thing 1Waiting"]);
 
     h.request.mockClear();
     act(() => { document.dispatchEvent(new Event("visibilitychange")); });
@@ -112,6 +116,7 @@ describe("a long run is honest and keeps going", () => {
     h.release.mockClear();
     await act(async () => { finish([]); });
     await waitFor(() => expect(h.release).toHaveBeenCalled());
+    expect(document.querySelector("[data-sell-progress]")).toBeNull();
   });
 
   it("a browser without it still lists", async () => {
@@ -201,6 +206,7 @@ describe("listBunch marks what stays", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: async (_id: string, p: number) => p,
       setKeepUp: async (_id: string, on: boolean) => on,
+      setAutoFreeDays: async (_id: string, d: number | null) => d,
       setOfferRules: async () => {},
       publishMany: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, error: new Error("attestation_required") }))),
     };

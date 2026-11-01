@@ -13,9 +13,9 @@
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     cancel: () => void handlers.tryCancelJob(job), |     cancel: () => setCancelDialogJob(job),
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at` | JOB_READABLE_COLUMNS}`
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | .eq("id", jobId).eq("customer_id", userId).limit(1)); | .eq("id", jobId).limit(1));
- * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     <div data-poster-more="" hidden={!moreOpen} | <div data-poster-more="" hidden
- * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     if (moreOpen) moreRef.current?.scrollIntoView | if (false) moreRef.current?.scrollIntoView
- * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |       {job.is_group_job && job.status === "in_progress" && ( |       {false && (
+ * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     <div data-poster-more="" hidden> |     <div data-poster-more="">
+ * @mutate src/components/job-card/JobStepCard.tsx | menu?.secondHost && menuCount === 1 ? | menu?.secondHost && menuCount === 2 ?
+ * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     crewRoster: job.is_group_job && detail ? detail.groupHelpersByJob?.[job.id] ?? [] : undefined, |     crewRoster: undefined,
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -75,15 +75,21 @@ vi.mock("@/components/CancellationDialog", () => ({
 
 import { usePosterPageFlows } from "./usePosterPageFlows";
 
+// Whether the page's options sheet (its list host) is open in this harness.
+const listOpen = { value: false };
+
 function Harness() {
   const f = usePosterPageFlows({ jobId: "job-1", enabled: true, trackingStatus: null, onChanged: () => {} });
   return (
     <>
       <p data-testid="ready">{String(f.ready)}</p>
       <p data-testid="nobody">{String(f.crewNobodyLeft)}</p>
+      <p data-testid="roster">{f.crewRoster === undefined ? "none" : `rows=${f.crewRoster.length}`}</p>
       <button onClick={f.approve}>approve</button>
       <button onClick={f.cancel}>cancel</button>
-      <button onClick={f.toggleMore}>more</button>
+      <p data-testid="count">{f.moreCount}</p>
+      <div data-testid="second" ref={f.setSecondHost} />
+      {listOpen.value && <div data-testid="list" ref={f.setListHost} />}
       {f.panel}
       {f.dialogs}
     </>
@@ -99,6 +105,7 @@ beforeEach(() => {
   cleanup();
   calls.from.length = 0;
   calls.invoke.length = 0;
+  listOpen.value = false;
 });
 
 describe("the job page runs the Posted card's own flows (usePosterPageFlows)", () => {
@@ -131,17 +138,16 @@ describe("the job page runs the Posted card's own flows (usePosterPageFlows)", (
     expect(calls.from.some((c) => c.table === "job_tracking" && c.eq.some(([k, v]) => k === "job_id" && v === "job-1"))).toBe(true);
   });
 
-  // JOBS-3: an under-way crew. Its roster sits in More options (per-member "Didn't show"), and with no roster row
-  // left (every member reported) the page knows nobody is left, so its Cancel job row shows (JobPage.test.tsx).
-  it("an under-way crew: More options holds the crew roster, and an empty roster means nobody is left", async () => {
+  // JOBS-3 / JA-32 (audit 11-01): an under-way crew. Its roster is the PAGE's (JobPage "Your crew", from crewRoster),
+  // never hidden in More options; with no roster row left (every member reported) nobody is left, so Cancel job shows.
+  it("an under-way crew: the roster is handed to the page, not hidden in More options; an empty roster means nobody is left", async () => {
     const saved = { is_group_job: JOB.is_group_job, helper_id: JOB.helper_id, helper_completed_at: JOB.helper_completed_at };
     Object.assign(JOB, { is_group_job: true, helper_id: null, helper_completed_at: null, helpers_needed: 2 });
     try {
       const { container } = mount();
       await waitFor(() => expect(screen.getByTestId("ready").textContent).toBe("true"));
-      const crew = container.querySelector("[data-poster-more] [data-poster-crew]") as HTMLElement;
-      expect(crew).toBeTruthy();
-      await waitFor(() => expect(crew.textContent).toContain("Your crew · 0 of 2 hired"));
+      await waitFor(() => expect(screen.getByTestId("roster").textContent).toBe("rows=0"));
+      expect(container.querySelector("[data-poster-more]")!.textContent).not.toContain("Your crew");
       expect(screen.getByTestId("nobody").textContent).toBe("true");
     } finally {
       Object.assign(JOB, saved);
@@ -152,26 +158,29 @@ describe("the job page runs the Posted card's own flows (usePosterPageFlows)", (
   it("a one-Helpr job has no crew roster and is never 'nobody left'", async () => {
     const { container } = mount();
     await waitFor(() => expect(screen.getByTestId("ready").textContent).toBe("true"));
-    expect(container.querySelector("[data-poster-crew]")).toBeNull();
+    expect(screen.getByTestId("roster").textContent).toBe("none");
+    expect(container.textContent).not.toContain("Your crew");
     expect(screen.getByTestId("nobody").textContent).toBe("false");
   });
 
-  it("More options shows the card's own step controls in place; closed, they are mounted but hidden", async () => {
-    const { container } = mount();
-    await waitFor(() => expect(screen.getByTestId("ready").textContent).toBe("true"));
-    const panel = container.querySelector("[data-poster-more]") as HTMLElement;
-    expect(panel.hidden).toBe(true);
-    expect(panel.textContent!.length).toBeGreaterThan(0);
-    const scrolled: Element[] = [];
-    const orig = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this); };
+  // Owner 2026-11-01: one tap to the options. The card stays mounted out of sight; its actions (minus Message, which
+  // the page has) reach the page: one is the page's second button, two or more are the options sheet's list.
+  it("the card is mounted but never shown; a lone action (No-Show while the Helpr is on the way) is the page's second button", async () => {
+    const saved = { ...JOB };
+    Object.assign(JOB, { date_needed: "2025-01-10", helper_on_the_way_at: "2025-01-10T14:00:00Z", helper_arrived_at: null,
+      poster_confirmed_arrival_at: null, helper_completed_at: null });
     try {
-      fireEvent.click(screen.getByRole("button", { name: "more" }));
-      expect((container.querySelector("[data-poster-more]") as HTMLElement).hidden).toBe(false);
-      // Opened below the fold at 375, it is brought into view.
-      expect(scrolled).toContain(container.querySelector("[data-poster-more]"));
+      const { container } = mount();
+      await waitFor(() => expect(screen.getByTestId("ready").textContent).toBe("true"));
+      expect((container.querySelector("[data-poster-more]") as HTMLElement).hidden).toBe(true);
+      await waitFor(() => expect(screen.getByTestId("count").textContent).toBe("1"));
+      const second = screen.getByTestId("second");
+      const noShow = second.querySelector("button") as HTMLButtonElement;
+      expect(noShow.textContent).toBe("No-Show");
+      expect(second.textContent).not.toMatch(/Message/);
     } finally {
-      Element.prototype.scrollIntoView = orig;
+      Object.assign(JOB, saved);
+      delete (JOB as { helper_on_the_way_at?: string }).helper_on_the_way_at;
     }
   });
 });

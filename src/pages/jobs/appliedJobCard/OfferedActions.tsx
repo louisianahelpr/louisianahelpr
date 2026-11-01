@@ -12,6 +12,7 @@ import type { Application, AppliedApp, Job } from "../../../components/job-card/
 import { DEFAULT_RESPONSE_WINDOW_HOURS, isDirectOffer, offerClock } from "../../../components/job-card/offerClock";
 import { seriesSummary } from "@/lib/format";
 import { InstantBookingCard } from "@/components/jobs/InstantBookingCard";
+import { useFeature } from "@/hooks/useFeature";
 
 interface OfferedActionsProps {
   app: AppliedApp;
@@ -39,14 +40,19 @@ interface OfferedActionsProps {
 export function OfferedActions(props: OfferedActionsProps) {
   // CMP-4: an instant booking is answered with its own card (Confirm / Decline,
   // the 2-hour countdown), never the generic offer's Accept and 24-hour clock.
-  if (props.job.instant_decline_until) {
-    return (
-      <div className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-        <InstantBookingCard jobId={props.job.id} title={props.job.title} declineUntil={props.job.instant_decline_until} />
-      </div>
-    );
-  }
+  if (props.job.instant_decline_until) return <InstantOfferedActions {...props} declineUntil={props.job.instant_decline_until} />;
   return <GenericOfferedActions {...props} />;
+}
+
+/** Instant book is off for everyone (owner 11-01, switch 'instant_book'): no booking card while it is off. */
+function InstantOfferedActions(props: OfferedActionsProps & { declineUntil: string }) {
+  const instantBookOn = useFeature("instant_book");
+  if (!instantBookOn) return <GenericOfferedActions {...props} />;
+  return (
+    <div className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+      <InstantBookingCard jobId={props.job.id} title={props.job.title} declineUntil={props.declineUntil} />
+    </div>
+  );
 }
 
 function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperAppId }: OfferedActionsProps) {

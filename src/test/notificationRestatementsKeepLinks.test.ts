@@ -56,6 +56,9 @@ const Q194 = "20260923152630_notification_links_point_direct_not_at_redirects.sq
  * Two-way: each must actually change one.
  */
 const INTENDED_LINK_CHANGES = new Set([
+  // Audit 11-01 JA-58 + owner 11-01: the direct-offer notice opens the job page itself, '/jobs/<id>', instead of
+  // the jobs list '/jobs?job=<id>' (lead verdict b100: "link to the job page the recipient can already open").
+  "20261101180708_direct_offer_notice_next_step.sql::notify_helper_on_direct_offer",
   // Quotes (owner answer 10, 2026-10-17): quote_notify is a thin wrapper; the
   // same '/quotes' / '/quotes?user=<actor>' link is now written by
   // quote_notify_about, which it calls with auth.uid() as the actor.

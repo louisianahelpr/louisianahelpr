@@ -3993,6 +3993,7 @@ export type Database = {
           created_at: string
           id: string
           item_id: string
+          pickup_at: string | null
           requester_id: string
           seller_id: string
           status: string
@@ -4002,6 +4003,7 @@ export type Database = {
           created_at?: string
           id?: string
           item_id: string
+          pickup_at?: string | null
           requester_id: string
           seller_id: string
           status?: string
@@ -4011,6 +4013,7 @@ export type Database = {
           created_at?: string
           id?: string
           item_id?: string
+          pickup_at?: string | null
           requester_id?: string
           seller_id?: string
           status?: string
@@ -5250,6 +5253,37 @@ export type Database = {
         Relationships: [
         ]
       }
+      helpr_task_live_positions: {
+        Row: {
+          dest_lat: number
+          dest_lng: number
+          eta_minutes: number
+          lat: number
+          lng: number
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          dest_lat: number
+          dest_lng: number
+          eta_minutes: number
+          lat: number
+          lng: number
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          dest_lat?: number
+          dest_lng?: number
+          eta_minutes?: number
+          lat?: number
+          lng?: number
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+        ]
+      }
       helpr_tasks: {
         Row: {
           accepted_at: string | null
@@ -5273,6 +5307,7 @@ export type Database = {
           helpr_id: string | null
           id: string
           in_hand_nudged_at: string | null
+          started_at: string | null
           stuck_at: string | null
           stuck_reason: string | null
           stuck_note: string | null
@@ -5338,6 +5373,7 @@ export type Database = {
           helpr_id?: string | null
           id?: string
           in_hand_nudged_at?: string | null
+          started_at?: string | null
           stuck_at?: string | null
           stuck_reason?: string | null
           stuck_note?: string | null
@@ -5403,6 +5439,7 @@ export type Database = {
           helpr_id?: string | null
           id?: string
           in_hand_nudged_at?: string | null
+          started_at?: string | null
           stuck_at?: string | null
           stuck_reason?: string | null
           stuck_note?: string | null
@@ -13591,6 +13628,38 @@ export type Database = {
           },
         ]
       }
+      unread_message_reminder_sends: {
+        Row: {
+          conversation: string
+          message_id: string
+          rung: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation: string
+          message_id: string
+          rung: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation?: string
+          message_id?: string
+          rung?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unread_message_reminder_sends_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_bans: {
         Row: {
           ban_type: string
@@ -15218,6 +15287,18 @@ export type Database = {
         Args: { p_items_cents: number; p_shipping_cents: number }
         Returns: number
       }
+      helpr_task_position_viewer: {
+        Args: { p_task_id: string }
+        Returns: boolean
+      }
+      sweep_unread_message_reminders: {
+        Args: { p_now?: string }
+        Returns: number
+      }
+      unread_reminder_quiet: {
+        Args: { p_at: string }
+        Returns: boolean
+      }
       declutter_check_sweep_claim: {
         Args: { p_limit?: number }
         Returns: { sweep_attempt: number; sweep_item_id: string; sweep_seller_id: string }[]
@@ -15230,6 +15311,10 @@ export type Database = {
       }
       declutter_claim_free: { Args: { p_item_id: string }; Returns: string }
       declutter_request_free: { Args: { p_item_id: string }; Returns: string }
+      declutter_request_free_at: {
+        Args: { p_item_id: string; p_pickup_at: string }
+        Returns: string
+      }
       declutter_stop_my_seller_delivery: { Args: never; Returns: number }
       declutter_withdraw_free_request: { Args: { p_request_id: string }; Returns: undefined }
       declutter_free_claim_gate: { Args: { p_member: string }; Returns: undefined }
@@ -15239,6 +15324,7 @@ export type Database = {
           avg_rating: number
           created_at: string
           display_name: string
+          pickup_at: string | null
           request_id: string
           requester_id: string
           review_count: number
@@ -16204,6 +16290,10 @@ export type Database = {
         Args: { p_card_fee_cents: number; p_job_id: string }
         Returns: number
       }
+      declutter_seller_slot_open: {
+        Args: { p_seller: string; p_start: string }
+        Returns: boolean
+      }
       declutter_slot_in_windows: {
         Args: { p_seller: string; p_start: string }
         Returns: boolean
@@ -16469,6 +16559,10 @@ export type Database = {
       file_approval_escalation: {
         Args: { p_anchor: string; p_job_id: string; p_reason: string }
         Returns: boolean
+      }
+      get_my_activity_cores: {
+        Args: { p_application_columns: string[]; p_job_columns: string[] }
+        Returns: Json
       }
       get_my_job_card_hold: {
         Args: { p_job_id: string }
@@ -17725,6 +17819,8 @@ export type Database = {
       }
       helpr_task_vehicle_fits: { Args: { p_size: string; p_user: string }; Returns: boolean }
       helpr_task_view: { Args: { p_task_id: string }; Returns: Json }
+      helpr_share_position: { Args: { p_lat: number; p_lng: number }; Returns: number }
+      helpr_stop_sharing: { Args: never; Returns: number }
       helpr_tasks_open_count: {
         Args: never
         Returns: {

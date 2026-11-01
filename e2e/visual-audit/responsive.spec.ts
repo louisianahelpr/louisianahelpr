@@ -4,6 +4,7 @@ import {
   installSupabaseMocks,
   seedAuthedSession,
 } from "../happy-path/fixtures";
+import { findOffCanvas } from "./offCanvas";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -137,51 +138,18 @@ for (const screen of SCREENS) {
         await page.screenshot({ path: filePath, fullPage: false });
 
         // --- Heuristic bug detection ---
+        const offCanvas = await page.evaluate(findOffCanvas);
         const evalResult = await page.evaluate(() => {
           const doc = document.documentElement;
           const horizontalScroll =
             doc.scrollWidth > doc.clientWidth + 1;
           const viewportW = window.innerWidth;
           const viewportH = window.innerHeight;
-          const offCanvas: Array<{
-            tag: string;
-            cls: string;
-            id: string;
-            rect: { x: number; y: number; w: number; h: number };
-          }> = [];
-          // Inspect text-bearing or interactive elements that are visible
-          // but extend past the right edge of the viewport.
-          const nodes = Array.from(
-            document.querySelectorAll<HTMLElement>(
-              "button, a, input, textarea, select, [role=button], h1, h2, h3, p, li, label",
-            ),
-          );
-          for (const el of nodes) {
-            const r = el.getBoundingClientRect();
-            if (r.width === 0 || r.height === 0) continue;
-            const style = getComputedStyle(el);
-            if (style.visibility === "hidden" || style.display === "none") continue;
-            if (r.right > viewportW + 2 && r.left < viewportW) {
-              offCanvas.push({
-                tag: el.tagName.toLowerCase(),
-                cls: (el.className || "").toString().slice(0, 60),
-                id: el.id || "",
-                rect: {
-                  x: Math.round(r.left),
-                  y: Math.round(r.top),
-                  w: Math.round(r.width),
-                  h: Math.round(r.height),
-                },
-              });
-              if (offCanvas.length >= 5) break;
-            }
-          }
           return {
             horizontalScroll,
             docScrollWidth: doc.scrollWidth,
             viewportW,
             viewportH,
-            offCanvas,
             currentUrl: window.location.pathname + window.location.search,
             title: document.title,
             bodyTextLength: (document.body.innerText || "").length,
@@ -208,10 +176,10 @@ for (const screen of SCREENS) {
           result.status = "issue";
         }
 
-        if (evalResult.offCanvas.length > 0) {
+        if (offCanvas.length > 0) {
           notes.push(
-            `${evalResult.offCanvas.length} element(s) overflow right of viewport: ` +
-              evalResult.offCanvas
+            `${offCanvas.length} element(s) overflow right of viewport: ` +
+              offCanvas
                 .map(
                   (e) =>
                     `<${e.tag}${e.cls ? " ." + e.cls.split(" ")[0] : ""}> right=${e.rect.x + e.rect.w}`,

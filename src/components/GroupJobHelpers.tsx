@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, MessageCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { applicationStatusLabel } from "@/lib/statusLabels";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -13,7 +12,7 @@ import { MapPin } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
-import { CrewActionError, crewMemberStatusLabel, crewNobodyLeft, posterApproveMember, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
+import { CrewActionError, crewRosterPill, crewNobodyLeft, posterApproveMember, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
 import { payoutDayLabel, STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../supabase/functions/_shared/escrowTiming";
 import { Button } from "@/components/ui/button";
 import { hasJobStarted } from "@/lib/dateUtils";
@@ -56,6 +55,7 @@ export function GroupJobHelpers({
   dateNeeded,
   startTime,
   onCancelJob,
+  onMessage,
 }: {
   jobId: string;
   helpersNeeded: number;
@@ -82,6 +82,8 @@ export function GroupJobHelpers({
   /** The card's own Cancel (tryCancelJob -> CancellationDialog -> poster_cancel_job), offered when every
    *  member was reported a no-show and nobody is left (crewNobodyLeft, JOBS-3). */
   onCancelJob?: () => void;
+  /** The job page's roster (JA-32): a Message button per hired member. Omitted (the Posted card) = none. */
+  onMessage?: (helperId: string) => void;
 }) {
   // Seed from the parent-batched rows when present so we don't fire two
   // queries per group-job card on every Activity render.
@@ -408,7 +410,7 @@ export function GroupJobHelpers({
       {helpers.length > 0 && (
         <div className="space-y-2">
           {helpers.map((h) => (
-            <div key={h.id} className="flex min-h-14 items-center justify-between gap-2 border-b border-border py-2 last:border-b-0">
+            <div key={h.id} data-crew-member="" className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-border py-2 last:border-b-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-muted text-foreground flex items-center justify-center text-ds-13 font-bold" aria-hidden>
                   {(h.helperName || "?")[0].toUpperCase()}
@@ -417,19 +419,20 @@ export function GroupJobHelpers({
                 <span className={`text-ds-11 px-1.5 py-0.5 rounded-full ${
                   h.status === "accepted" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"
                 }`}>
-                  {h.status === "accepted" && h.poster_confirmed_completion_at
-                    ? "Work confirmed"
-                    : h.status === "accepted" && h.helper_confirmed_at !== undefined
-                    ? crewMemberStatusLabel({
-                        helper_confirmed_at: h.helper_confirmed_at ?? null,
-                        helper_on_the_way_at: h.helper_on_the_way_at ?? null,
-                        helper_arrived_at: h.helper_arrived_at ?? null,
-                        poster_confirmed_arrival_at: h.poster_confirmed_arrival_at ?? null,
-                        helper_completed_at: h.helper_completed_at ?? null,
-                      })
-                    : applicationStatusLabel(h.status)}
+                  {crewRosterPill(h)}
                 </span>
               </div>
+              {onMessage && h.helper_id && h.status === "accepted" && (
+                <div className="shrink-0">
+                  <JobActionChip
+                    icon={MessageCircle}
+                    label="Message"
+                    ariaLabel={`Message ${h.helperName || "this Helpr"}`}
+                    tone="message"
+                    onClick={() => { if (h.helper_id) onMessage(h.helper_id); }}
+                  />
+                </div>
+              )}
               {arrivalConfirmable(h) && (
                 <div className="shrink-0">
                   <JobActionChip

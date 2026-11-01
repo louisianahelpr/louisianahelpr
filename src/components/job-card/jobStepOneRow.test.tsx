@@ -12,6 +12,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 // @mutate src/components/JobConfirmation.tsx |           label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"} |           label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
 // @mutate src/components/JobConfirmation.tsx |       {isOwner ? `Confirm the new time, ${newSlot}` : `Confirm you'll be there ${newSlot}`} |       {isOwner ? `Confirm the new time` : `Confirm you'll be there`}
 // @mutate src/components/JobConfirmation.tsx |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm ${newSlot}` |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm`
+// @mutate src/components/job-card/JobStepCard.tsx |           {moreChips.length > 1 ? ( |           {moreChips.length > 0 ? (
 /**
  * VN-21 — EVERY BUTTON ON A STEP CARD SITS ON ONE ROW (owner, 2026-09-14).
  *
@@ -820,11 +821,13 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
       // 2026-10-08: "move everything besides the primary button into the more
       // tab ... more button will be to the left of the primary button").
       const kids = [...row.children].filter((k) => !(k as HTMLElement).hasAttribute("data-job-step-primary"));
-      expect(
-        kids.map((k) => (k.getAttribute("aria-label") || k.textContent || "").trim()),
-        "only the More control may sit beside the primary",
-      ).toEqual(moreTrigger ? [(moreTrigger.getAttribute("aria-label") || "").trim()] : []);
+      // ONE extra action is not a menu (owner 2026-11-01: "if no show is the only option then just remove the more
+      // button bc there isn't really more"): a lone action sits there itself; More only ever holds two or more.
+      const besides = kids.map((k) => (k.getAttribute("aria-label") || k.textContent || "").trim());
+      expect(besides.length, `only More, or the one extra action, may sit beside the primary: [${besides.join(" | ")}]`).toBeLessThanOrEqual(1);
       if (moreTrigger) {
+        const held = Number(/More — (\d+) more/.exec(moreTrigger.getAttribute("aria-label") ?? "")?.[1] ?? NaN);
+        expect(held, "a More menu holding ONE action").toBeGreaterThanOrEqual(2);
         expect(moreTrigger.nextElementSibling?.hasAttribute("data-job-step-primary"), "More sits directly left of the primary").toBe(true);
       }
       // The primary TRAILS the row on the right (owner, 2026-09-15, V2/V3:
@@ -1089,3 +1092,49 @@ describe("VN-21 — a nested CTA replaces the step's own primary", () => {
 // primary button into the more tab, for poster and Helpr"): put Message, Cancel,
 // Edit... back on the row beside the primary and every state above goes red.
 // @mutate src/components/job-card/JobStepCard.tsx | const isMoreOnly = (_c: ReactNode) => true; | const isMoreOnly = (c: ReactNode) => isValidElement(c) && MORE_ONLY_CHIP_KEYS.includes(String(c.key));
+
+// Owner 2026-11-01 (job page): the card's actions reach the page's row MINUS Message, which the page draws itself.
+// A card holding Message and No-Show hands the page exactly one action, No-Show, for its second button.
+// @mutate src/components/job-card/JobStepCard.tsx | ...moreChips.filter((c) => !(isValidElement(c) && c.key === "message"))] | ...moreChips]
+describe("on the job page, the card hands over its actions minus Message", () => {
+  it("Message and No-Show: one action reaches the page's second slot, and it is No-Show", async () => {
+    const { JobStepMenuContext } = await import("./jobStepMenu");
+    const second = document.createElement("div");
+    document.body.appendChild(second);
+    const counts: number[] = [];
+    try {
+      render(
+        <JobStepMenuContext.Provider value={{ secondHost: second, listHost: null, leadHost: null, setCount: (n) => counts.push(n), setLeadCount: () => {} }}>
+          <JobStepCard side="poster" step="t"
+            actions={[<button key="message" type="button">Message</button>, <button key="noshow" type="button">No-Show</button>]} />
+        </JobStepMenuContext.Provider>,
+      );
+      await act(async () => { await Promise.resolve(); });
+      expect(counts.length).toBeGreaterThan(0);
+      expect(counts[counts.length - 1]).toBe(1);
+      expect(second.textContent).toBe("No-Show");
+    } finally {
+      second.remove();
+    }
+  });
+
+  // L29 (happy-path smoke 11-01): a Message primary standing in for the Message chip was handed to the page as the
+  // card's lead, so the page drew its own Message AND the card's: "Message | Message".
+  // @mutate src/components/job-card/JobStepCard.tsx | const menuPrimaries = menu && primaryChipKey !== "message" ? primaryButtons(ownPrimary) : []; | const menuPrimaries = menu ? primaryButtons(ownPrimary) : [];
+  it("a Message primary (primaryChipKey message) is not offered as the card's lead: the page has its own Message", async () => {
+    const { JobStepMenuContext } = await import("./jobStepMenu");
+    const { JobStepPrimaryButton } = await import("./JobActionRow");
+    const { MessageSquare } = await import("lucide-react");
+    const leads: number[] = [];
+    render(
+      <JobStepMenuContext.Provider value={{ secondHost: null, listHost: null, leadHost: null, setCount: () => {}, setLeadCount: (n) => leads.push(n) }}>
+        <JobStepCard side="poster" step="t" primaryChipKey="message"
+          primary={<JobStepPrimaryButton icon={MessageSquare} label="Message Marcus" onClick={() => {}} />}
+          actions={[<button key="message" type="button">Message</button>, <button key="noshow" type="button">No-Show</button>]} />
+      </JobStepMenuContext.Provider>,
+    );
+    await act(async () => { await Promise.resolve(); });
+    expect(leads.length).toBeGreaterThan(0);
+    expect(leads[leads.length - 1]).toBe(0);
+  });
+});

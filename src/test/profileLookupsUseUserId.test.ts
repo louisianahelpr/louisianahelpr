@@ -1,6 +1,6 @@
 // @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |                     WHERE p.user_id = v_uid AND nullif | WHERE p.id = v_uid AND nullif
 // @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql | FROM public.profiles p WHERE p.user_id = v_uid) | FROM public.profiles p WHERE p.id = v_uid)
-// @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql | LEFT JOIN public.profiles p ON p.user_id = r.requester_id | LEFT JOIN public.profiles p ON p.id = r.requester_id
+// @mutate supabase/migrations/20261101174857_free_ask_picks_a_pickup_time.sql | LEFT JOIN public.profiles p ON p.user_id = r.requester_id | LEFT JOIN public.profiles p ON p.id = r.requester_id
 //
 // Lead 10-31: three live lookups read a member's profile by profiles.id = <the member's auth id>. A member's id is
 // profiles.user_id (handle_new_user inserts user_id = auth.users.id; profiles.id is the row's own generated uuid), so

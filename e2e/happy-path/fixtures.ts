@@ -289,6 +289,42 @@ export async function installSupabaseMocks(
       }
     }
 
+    // get_my_activity_cores (20261101181403) is the eight reads the two
+    // activity cores used to send, in one answer. Each part is answered
+    // exactly as that read would be (this test's rules first, then the
+    // default answers), so the one call and the eight cannot disagree.
+    if (method === "POST" && url.pathname === "/rest/v1/rpc/get_my_activity_cores") {
+      const uid = user?.id ?? "";
+      const headers = req.headers();
+      const part = (path: string, m: string) => {
+        const u = new URL(`${url.origin}/rest/v1/${path}`);
+        for (const rule of rules) {
+          if (rule.match(u, m)) {
+            const r = rule.handle(u, m);
+            if (r) return r;
+          }
+        }
+        return handleRest(u, m, user, seed, m === "POST" ? "{}" : null, headers);
+      };
+      const rows = (r: SupabaseResponse) => (Array.isArray(r.body) ? (r.body as Record<string, unknown>[]) : []);
+      const get = (path: string) => rows(part(path, "GET"));
+      const rpc = (name: string) => rows(part(`rpc/${name}`, "POST"));
+      return route.fulfill(buildFulfill({
+        status: 200,
+        body: {
+          posted_jobs: get(`jobs?select=*&customer_id=eq.${uid}&order=created_at.desc`),
+          poster_applications: get(`applications?select=job_id,status,closed_reason,jobs!inner(customer_id)&jobs.customer_id=eq.${uid}`)
+            .map((a) => ({ job_id: a.job_id, status: a.status, closed_reason: a.closed_reason ?? null })),
+          offer_targets: rpc("get_job_offer_targets"),
+          my_applications: get(`applications?select=*&helper_id=eq.${uid}&order=created_at.desc`),
+          application_jobs: rpc("get_jobs_for_my_applications"),
+          direct_offers: rpc("get_my_pending_direct_offers"),
+          violations: get(`user_violations?select=job_id&user_id=eq.${uid}&violation_type=eq.job_denial`),
+          reviews: get(`reviews?select=job_id&reviewer_id=eq.${uid}`),
+        },
+      }));
+    }
+
     // 2. Auth endpoints
     if (url.pathname.startsWith("/auth/v1/")) {
       return route.fulfill(buildFulfill(handleAuth(url, method, user)));
@@ -428,12 +464,23 @@ function withCount(headers: Record<string, string>, resp: SupabaseResponse, isHe
   };
 }
 
+/**
+ * What prod's REST answers expose to the page across origins, copied from a
+ * live response (2026-11-01, HEAD /rest/v1/open_jobs_browse with Origin set).
+ * Without it a plain `fetch` cannot read Content-Range: the Home prefetch
+ * (src/boot/homePrefetch.ts) saw no count, handed nothing over, and Home read
+ * its three first-card reads twice on every mocked /home load, which the Q104
+ * request budget counted as app load (release gate 41330878323).
+ */
+export const PROD_REST_EXPOSE_HEADERS =
+  "Content-Encoding, Content-Location, Content-Range, Content-Type, Date, Location, Server, Transfer-Encoding, Range-Unit";
+
 function buildFulfill(resp: SupabaseResponse) {
   return {
     status: resp.status ?? 200,
     contentType: resp.headers?.["content-type"] ?? "application/json",
     body: typeof resp.body === "string" ? resp.body : JSON.stringify(resp.body ?? null),
-    headers: resp.headers ?? {},
+    headers: { "access-control-expose-headers": PROD_REST_EXPOSE_HEADERS, ...(resp.headers ?? {}) },
   };
 }
 

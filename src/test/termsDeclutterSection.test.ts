@@ -14,7 +14,7 @@
  * @mutate src/pages/info/legal/TermsSection.tsx | the item price plus a buyer&apos;s fee, once per checkout | the item price plus a buyer&apos;s fee of 5% of the item total + $0.70, once per checkout
  * @mutate src/pages/info/legal/TermsSection.tsx | everything back, delivery included. | everything back, the $24 delivery fee too.
  * @mutate src/pages/info/legal/TermsSection.tsx | at least 1 and at most 12 photos | at least 3 and at most 12 photos
- * @mutate src/pages/info/legal/TermsSection.tsx | $10, plus $2 for each road mile, plus $20 for each large item and $40 for each extra-large item | $10, plus $3 for each road mile, plus $20 for each large item and $40 for each extra-large item
+ * @mutate src/pages/info/legal/TermsSection.tsx | $6, plus $1.50 for each road mile, plus $20 for each large item and $40 for each extra-large item | $6, plus $3 for each road mile, plus $20 for each large item and $40 for each extra-large item
  * @mutate src/pages/info/legal/TermsSection.tsx | an item unsold 14 days after | an item unsold 30 days after
  * @mutate src/pages/info/legal/TermsSection.tsx | Up to 10 items from one pickup address | Up to 12 items from one pickup address
  * @mutate src/pages/info/legal/TermsSection.tsx | Each strike lasts 1 year. | Each strike lasts 6 months.

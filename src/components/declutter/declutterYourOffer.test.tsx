@@ -27,7 +27,7 @@
  *   (freeWaysOffered) as the free checkout.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -36,8 +36,11 @@ const state = {
   offers: [] as unknown[],
   responded: [] as { offerId: string; action: string }[],
   claimed: 0,
+  /** requestFreeAt: the pickup time the asker picked in the Ask sheet (owner 11-01, Mockup 3). */
+  askedAt: null as string | null,
   /** The member's own open asks for free items (the Free change, Q2487). */
   asks: [] as { id: string; item_id: string; status: string; created_at: string }[],
+  giverAsks: undefined as unknown[] | undefined,
   withdrawn: [] as string[],
   /** fetchItemHandovers: the ways the giver ticked (null = an older item with none recorded). DA-5. */
   ticks: null as string[] | null,
@@ -48,7 +51,14 @@ const state = {
 };
 
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
+// The Ask sheet's read (owner 11-01, Mockup 3): one place, open 7 AM to 9 PM every day.
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({
+  ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null,
+  fetchItemPickupPlaces: async () => [{
+    id: "p1", label: "Home", area: "New Iberia", weekdays: [0, 1, 2, 3, 4, 5, 6],
+    windows: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "07:00", ends: "21:00" })),
+  }],
+}));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
@@ -69,11 +79,15 @@ vi.mock("@/lib/declutter/api", () => ({
     state.responded.push({ offerId, action });
     return "withdrawn";
   },
-  requestFree: async () => {
+  requestFreeAt: async (_item: string, at: string) => {
     state.claimed++;
+    state.askedAt = at;
     return "r2";
   },
+  fetchSellerCard: async () => ({ name: "Lexi Lombas" }),
   fetchMyFreeRequests: async () => state.asks,
+  fetchFreeRequestsForItem: async () => state.giverAsks ?? [],
+  pickFreeRequest: async () => undefined,
   withdrawFreeRequest: async (id: string) => {
     state.withdrawn.push(id);
   },
@@ -82,7 +96,7 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 
 import { OfferPanel } from "./DeclutterOfferPanel";
-import { FreeCheckoutForSeller, FreeClaimPanel } from "./DeclutterFreeClaim";
+import { FreeCheckoutForSeller, FreeClaimPanel, FreeRequestsForGiver } from "./DeclutterFreeClaim";
 import type { DeclutterItem } from "@/lib/declutter/api";
 
 const ITEM = {
@@ -181,7 +195,22 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     const ask = await screen.findByRole("button", { name: "Ask for it" });
     await waitFor(() => expect(ask).not.toBeDisabled());
     fireEvent.click(ask);
+    // Owner 11-01 (Mockup 3): the button opens the sheet; the asker picks a time, and the ask carries it.
+    // @mutate src/components/declutter/FreeAskSheet.tsx |     mutationFn: (iso: string) => requestFreeAt(item.id, iso), |     mutationFn: (iso: string) => requestFreeAt(item.id, new Date().toISOString()),
+    // @mutate src/components/declutter/FreeAskSheet.tsx | : "the time you pick"} is already set, and you'll get the address. | : "the time you pick"}. If it's you, you'll confirm the pickup and get the address.
+    const times = await screen.findByRole("group", { name: /^Pickup time on / });
+    const firstTime = within(times).getAllByRole("button")[0];
+    fireEvent.click(firstTime);
+    const note = document.querySelector("[data-sheet-note]")!;
+    expect(note.textContent).toMatch(/^Free, nothing is charged\. Lexi picks who gets it\. If it's you, .+ is already set, and you'll get the address\.$/);
+    expect(state.claimed).toBe(0);
+    const send = screen.getByRole("button", { name: /^Ask for it · / });
+    expect(send.textContent).toContain(note.querySelector("strong")!.textContent!);
+    fireEvent.click(send);
     await waitFor(() => expect(state.claimed).toBe(1));
+    const at = new Date(state.askedAt!);
+    expect(at.getTime()).toBeGreaterThan(Date.now());
+    expect(at.getUTCMinutes()).toBe(0);
     expect(where).not.toBe("/declutter?tab=buying");
     show(<FreeCheckoutForSeller sellerId="s1" porchOk onDone={() => undefined} />);
     // Porch comes first; it is picked by a time in the place's hours (LEAD-PLACE-TIMES; was a day, BUY-18).
@@ -189,23 +218,50 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
   });
 
+  // B106 (item page shots 11-01): the note under Ask for it had a tall gap between its two lines (noteH 60 for two
+  // 16px lines at 375, measured ~/.lh-shots/b109): the inline "How it works" <Button> kept the global 44px button
+  // min-height (index.css :where(button)). It is now a text-sized link button with the shared 44px tap overlay on touch.
+  // @mutate src/components/ui/InlineTextButton.tsx | link-standard min-h-0 min-w-0 p-0 align-baseline | link-standard p-0 align-baseline
+  it("the note under Ask for it reads as one paragraph: How it works flows inline, no 44px box", async () => {
+    show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
+    const how = await screen.findByRole("button", { name: "How it works" });
+    expect(how.closest("[data-free-ask-note]")).not.toBeNull();
+    const cls = how.className.split(/\s+/);
+    expect(cls).toEqual(expect.arrayContaining(["min-h-0", "min-w-0"]));
+    expect(how.className).toMatch(/\blink-[a-z]+\b/); // the shared text link (its 44px overlay on a touch screen)
+    expect(cls).not.toEqual(expect.arrayContaining(["inline-flex"]));
+    expect(cls.filter((c) => /^h-/.test(c))).toEqual([]);
+  });
+
   // DA-5 (Declutter audit 2026-10-30): the ask line said "at their home or from their porch" whatever the giver ticked.
   it("the ask line names only the ways this free item offers (DA-5)", async () => {
     const FREE = { ...ITEM, current_price_cents: 0, price_cents: 0 };
+    // Owner mockup 11-01: the rules sit behind "How it works"; the picked person's time is already set.
+    const rules = async () => {
+      fireEvent.click(await screen.findByRole("button", { name: "How it works" }));
+      return (await waitFor(() => { const el = document.querySelector("[data-free-rules]"); expect(el).not.toBeNull(); return el!; })).textContent!;
+    };
     state.ticks = ["porch"];
     const one = show(<FreeClaimPanel item={FREE} />);
-    expect(await screen.findByText(/48 hours to choose a time to collect it from their porch\./)).toBeInTheDocument();
-    expect(screen.queryByText(/their home/)).toBeNull();
+    await waitFor(async () => expect(document.querySelector("[data-free-claim]")).not.toBeNull());
+    await new Promise((r) => setTimeout(r, 20));
+    let text = await rules();
+    expect(text).toMatch(/that time is already set and you'll get the address to collect it from their porch\./);
+    expect(text).not.toMatch(/their home|48 hours/);
     one.unmount();
     state.ticks = null;
     const two = show(<FreeClaimPanel item={{ ...FREE, porch_ok: false }} />);
-    expect(await screen.findByText(/48 hours to choose a time to pick it up at their home\./)).toBeInTheDocument();
-    expect(screen.queryByText(/porch/)).toBeNull();
+    await new Promise((r) => setTimeout(r, 20));
+    text = await rules();
+    expect(text).toMatch(/you'll get the address to pick it up at their home\./);
+    expect(text).not.toMatch(/porch/);
     two.unmount();
     show(<FreeClaimPanel item={FREE} />);
-    expect(await screen.findByText(/48 hours to choose a pickup at their home or from their porch\./)).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(await rules()).toMatch(/you'll get the address to pick it up at their home or from their porch\./);
   });
 
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | value={{ who: "them", text: `Waiting on ${giverFirstName === "The giver" ? "the giver" : giverFirstName} to pick who gets it. We'll tell you either way.` }} | value={{ who: "info", text: "The giver picks who gets it. We'll tell you either way." }}
   it("with the member's ask open: You asked for this, and Take back my ask withdraws that ask", async () => {
     state.asks = [
       { id: "r1", item_id: "i1", status: "open", created_at: "2026-10-30T00:00:00Z" },
@@ -213,9 +269,28 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     ];
     show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
     expect(await screen.findByText("You asked for this.")).toBeInTheDocument();
+    // The shared next-step line (owner 11-01): nothing is the asker's to do; it waits on the giver (named).
+    await waitFor(() => expect(document.querySelector("[data-free-claim] [data-next-step]")?.textContent).toBe("Waiting on Lexi to pick who gets it. We'll tell you either way."));
+    expect(document.querySelector("[data-free-claim] [data-next-step]")?.getAttribute("data-next-step")).toBe("them");
     expect(screen.queryByRole("button", { name: "Ask for it" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Take back my ask" }));
     await waitFor(() => expect(state.withdrawn).toEqual(["r1"]));
+  });
+});
+
+// The giver's request list says the giver's move once someone asked (owner 11-01 12:02 PM: the shared next-step line).
+// @mutate src/components/declutter/DeclutterFreeClaim.tsx |         <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it" }} /> |         null
+describe("the giver's request list: Next: pick who gets it", () => {
+  it("with asks: 'Next: pick who gets it'; with none: it stays up, no step", async () => {
+    state.giverAsks = [{ request_id: "r1", requester_id: "u1", display_name: "Kaci B.", avg_rating: 5, review_count: 3, created_at: "2026-10-30T00:00:00Z", pickup_at: null }];
+    const one = show(<FreeRequestsForGiver item={{ ...ITEM, current_price_cents: 0, price_cents: 0 } as never} />);
+    expect(await screen.findByText("Next: pick who gets it")).toBeInTheDocument();
+    one.unmount();
+    state.giverAsks = [];
+    show(<FreeRequestsForGiver item={{ ...ITEM, current_price_cents: 0, price_cents: 0 } as never} />);
+    expect(await screen.findByText("Nobody has asked yet. It stays up until you pick someone.")).toBeInTheDocument();
+    expect(screen.queryByText(/^Next:/)).toBeNull();
+    state.giverAsks = undefined;
   });
 });
 
@@ -225,7 +300,9 @@ describe("the item page knows the buyer's own open offer (#4)", () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     expect(await screen.findByText("Your offer")).toBeInTheDocument();
     expect(screen.getByText("$25")).toBeInTheDocument();
-    expect(screen.getByText("Waiting for the seller, 39 hours left.")).toBeInTheDocument();
+    // The shared next-step line (owner 11-01): who it waits on, with the time left.
+    // @mutate src/components/declutter/DeclutterYourOffer.tsx |           : { who: "them", text: "Waiting on the seller to answer", by: timeLeft(offer.respond_by) }} |           : { who: "them", text: "Waiting on the seller to answer" }}
+    expect(document.querySelector("[data-your-offer] [data-next-step]")?.textContent).toBe("Waiting on the seller to answer · 39 hours left");
     expect(screen.queryByRole("button", { name: "Make an offer" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Change my offer" }));
     expect(state.responded).toEqual([]);
@@ -261,14 +338,14 @@ describe("Buy now names the charge, setup fee included (A1-B2)", () => {
     state.setupFeeCents = 200;
     show(<OfferPanel item={ITEM} userId="u1" />);
     // $40 price -> $42.70 checkout total (5% + 70c) -> $44.70 with the $2 setup fee: the Stripe charge.
-    expect((await screen.findAllByText("$44.70 total")).length).toBeGreaterThan(0);
-    expect(screen.queryByText("$42.70 total")).toBeNull();
+    expect((await screen.findAllByRole("button", { name: "Buy now · $44.70 total" })).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /\$42\.70/ })).toBeNull();
     expect(screen.queryByText("+ any one-time setup fee")).toBeNull();
   });
 
   it("once paid it is the checkout total alone", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
-    expect((await screen.findAllByText("$42.70 total")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("button", { name: "Buy now · $42.70 total" })).length).toBeGreaterThan(0);
   });
 
   it("while the fee answer is not in, it says a setup fee may be added, never a figure $2 low on its own", async () => {
@@ -278,12 +355,60 @@ describe("Buy now names the charge, setup fee included (A1-B2)", () => {
   });
 });
 
+// Owner 11-01 (app-wide): side-by-side buttons are ONE line with short labels. At 375 "Make an offer" took 2 lines
+// and Buy now 4 ("Buy now / $37.45 total + any one-time setup fee"). Now "Offer" (outline, left) and "Buy · $37.45"
+// (filled, right), each nowrap, the setup-fee words a small line UNDER the pair. Screen readers keep the full names.
+// The pixel half (each label inside its button at 320 and 375, one line tall) is measured in WebKit by
+// ~/.lh-shots/b109/shots.mjs (measure-*.json).
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |       <span aria-hidden>Buy ·</span> |       <span aria-hidden>Buy now ·</span>
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |     <span className="whitespace-nowrap font-semibold" data-buy-label=""> |     <span className="font-semibold" data-buy-label="">
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |         pendingClassName="sr-only" |         pendingClassName="block text-xs"
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |             <span aria-hidden className="whitespace-nowrap" data-offer-label="">Offer</span> |             <span aria-hidden className="whitespace-nowrap" data-offer-label="">Make an offer</span>
+describe("Offer and Buy are one line each, the setup fee under them (owner 11-01)", () => {
+  /** What a sighted buyer reads on a button: its text without the screen-reader-only spans. */
+  const seen = (el: Element) => {
+    const c = el.cloneNode(true) as Element;
+    c.querySelectorAll(".sr-only").forEach((n) => n.remove());
+    return (c.textContent ?? "").replace(/\s+/g, " ").trim();
+  };
+  for (const known of [true, false]) {
+    it(`short nowrap labels, setup fee ${known ? "known" : "not yet known"}`, async () => {
+      state.setupFeeKnown = known;
+      show(<OfferPanel item={ITEM} userId="u1" />);
+      const region = await screen.findByRole("region", { name: "Buy or make an offer" });
+      const buy = await within(region).findByRole("button", { name: /^Buy now · \$42\.70 total/ });
+      const offer = within(region).getByRole("button", { name: "Make an offer" });
+      expect(seen(offer)).toBe("Offer");
+      expect(seen(buy)).toBe("Buy · $42.70");
+      // Fits the narrow column at 320 up to $999.99 ("Buy · $999.99", 13 characters).
+      expect(seen(buy).length).toBeLessThanOrEqual(13);
+      for (const b of [buy, offer]) {
+        const label = b.querySelector("[data-buy-label], [data-offer-label]");
+        expect(label?.className, seen(b)).toMatch(/whitespace-nowrap/);
+        expect(seen(b)).not.toMatch(/setup fee|total/);
+      }
+      // Offer left, Buy right, in one row; the fee words are a line UNDER the row, never inside a button.
+      const row = region.querySelector("[data-offer-buttons]")!;
+      expect([...row.querySelectorAll("button")]).toEqual([offer, buy]);
+      expect(row.className).toMatch(/grid-cols-\[/);
+      const note = region.querySelector("[data-setup-fee-note]");
+      if (known) expect(note).toBeNull();
+      else {
+        expect(note?.textContent).toBe("+ any one-time setup fee");
+        expect(row.compareDocumentPosition(note!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(row.contains(note)).toBe(false);
+        expect(buy.textContent).toContain("+ any one-time setup fee"); // heard by screen readers in the button
+      }
+    });
+  }
+});
+
 // Smart offers (owner 2026-10-29): a seller who turned offers off sells Buy only. The item page shows no
 // "Make an offer" (panel or phone bar) and says so; an item read before the column existed counts as offers on.
 describe("offers off = Buy only (smart offers)", () => {
   it("no Make an offer when the seller turned offers off", async () => {
     show(<OfferPanel item={{ ...ITEM, accepts_offers: false }} userId="u1" />);
-    expect((await screen.findAllByText("$42.70 total")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("button", { name: "Buy now · $42.70 total" })).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Make an offer" })).toBeNull();
     expect(screen.getByText("The seller isn't taking offers on this one.")).toBeTruthy();
   });

@@ -59,8 +59,8 @@ async function openWhenAndWhere(browser: Browser, session: Session, desktop: boo
   );
   const page = await ctx.newPage();
   await page.goto("/post-job");
-  await page.getByRole("button", { name: /Start from scratch/ }).click({ timeout: 60_000 });
-  await expect(page.getByRole("heading", { name: "What do you need done?" })).toBeVisible({ timeout: 30_000 });
+  // JA-41: the group grid is the first screen (no "Start from scratch" tap).
+  await expect(page.getByRole("heading", { name: "What do you need done?" })).toBeVisible({ timeout: 60_000 });
   await fillJobDetails(page, "Day tap journey (never posted)");
   await fillBudget(page);
   await expect(page.getByRole("heading", { name: "When and where?" })).toBeVisible({ timeout: 20_000 });

@@ -7,14 +7,19 @@
  * current stop's Picked up / Left at the door right under the map.
  *
  * Location: navigator.geolocation.watchPosition only after "Start", only while this screen is
- * open (cleared on "Stop" and on unmount), never sent to our server or stored. Apple's Directions
- * receives it as the route start, rounded to ~100 m (lh-authz-rls review #1). Open in Maps stays
- * for spoken turn-by-turn.
+ * open (cleared on "Stop" and on unmount). Apple's Directions receives it as the route start,
+ * rounded to ~100 m (lh-authz-rls review #1). Open in Maps stays for spoken turn-by-turn.
+ *
+ * Delivery live map (owner 11-01; 20261101184555): while tracking, the position is also sent to
+ * our server at most every SHARE_MS (helpr_share_position) for the Helpr's deliveries in hand: the
+ * seller sees it from Start to Picked up, the buyer from Picked up to delivered. The server keeps
+ * one row per delivery, overwritten, deleted on every status change; "Stop" and leaving this
+ * screen delete it (helpr_stop_sharing). No history is kept.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { nextStep, routeVisits, type LatLng, type NavStep } from "@/lib/declutter/route";
-import type { RouteStop } from "@/lib/helprTasks/api";
+import { shareMyPosition, stopSharingPosition, type RouteStop } from "@/lib/helprTasks/api";
 
 // The MapKit JS members this map touches (Apple's runtime is loosely typed; see AppleMapPreview).
 interface MkCoordinate { latitude: number; longitude: number }
@@ -74,6 +79,8 @@ const toSteps = (r: MkRoute | null): NavStep[] =>
 /** Re-ask Directions for the current leg after moving this far, at most this often. */
 const REROUTE_M = 400;
 const REROUTE_MS = 30_000;
+/** Send the live position to the seller/buyer at most this often (the viewers poll every 10 s). */
+const SHARE_MS = 15_000;
 /**
  * Audit 1c D3-9: with one pin, showItems zoomed to the street around it. Never closer than about 3 km across (MapKit
  * JS showItems `minimumSpan`), so the area around a lone stop shows.
@@ -181,6 +188,31 @@ export default function DeliveryRouteMap({ stops }: { stops: RouteStop[] }) {
     return () => navigator.geolocation.clearWatch(id);
   }, [tracking]);
 
+  // Delivery live map: share the position while tracking (throttled); Stop and leaving the screen delete it.
+  // Also on a timer, so a Helpr standing still (no new GPS fix) does not drop off the viewers' map after 2 minutes.
+  const lastShare = useRef(0);
+  const hereRef = useRef<LatLng | null>(null);
+  hereRef.current = here;
+  useEffect(() => {
+    if (!tracking || !here || Date.now() - lastShare.current < SHARE_MS) return;
+    lastShare.current = Date.now();
+    shareMyPosition(here.lat, here.lng).catch((err) => console.warn("[route map] share", err));
+  }, [tracking, here]);
+  useEffect(() => {
+    if (!tracking) return;
+    const id = window.setInterval(() => {
+      const p = hereRef.current;
+      if (!p || Date.now() - lastShare.current < SHARE_MS) return;
+      lastShare.current = Date.now();
+      shareMyPosition(p.lat, p.lng).catch((err) => console.warn("[route map] share", err));
+    }, SHARE_MS);
+    return () => {
+      window.clearInterval(id);
+      lastShare.current = 0;
+      stopSharingPosition().catch((err) => console.warn("[route map] stop sharing", err));
+    };
+  }, [tracking]);
+
   // The Helpr's own dot.
   useEffect(() => {
     if (!ready || !map.current || !here) return;
@@ -222,7 +254,7 @@ export default function DeliveryRouteMap({ stops }: { stops: RouteStop[] }) {
           </button>
         </div>
         {locError && <p className="text-ds-13" role="alert">{locError}</p>}
-        <p className="text-ds-12 text-muted-foreground">Your location is used only on this screen, while it's open. It isn't saved.</p>
+        <p className="text-ds-12 text-muted-foreground">After Start, the seller sees where you are until you pick it up, then the buyer until you deliver it. Only while this screen is open; it's deleted when you tap Stop or deliver.</p>
         {current && (
           <div className="space-y-2 border-t border-border pt-3">
             {/* Audit 1c D3-9: the photo step showed here, on the stop card and on Your deliveries. It lives on the stop

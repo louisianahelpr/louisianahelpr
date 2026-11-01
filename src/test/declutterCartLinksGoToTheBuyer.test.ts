@@ -30,6 +30,7 @@ const CART_SENDERS: Record<string, string> = {
   declutter_hand_refund_failed: "v_buyer",
   declutter_handover_sweep: "r.buyer_id",
   declutter_mark_order_paid: "o.buyer_id",
+  declutter_pick_free_request: "v_req.requester_id",
   declutter_pickup_reminder_sweep: "r.buyer_id",
   declutter_record_hand_refund: "v_buyer",
   declutter_refund_after_handover: "o.buyer_id",
@@ -46,6 +47,8 @@ const CART_SENDERS: Record<string, string> = {
 /** v_uid is the buyer in declutter_checkout_free: the member claiming the free item. */
 const BUYER_VALUE = /^((o|r|d|v_line|NEW)\.buyer_id|v_buyer|p_buyer)$/;
 const CALLER_IS_BUYER: Record<string, true> = { declutter_checkout_free: true };
+/** The picked asker IS the buyer of the $0 free order declutter_pick_free_request makes for them (20261101181129). */
+const REQUESTER_IS_BUYER: Record<string, true> = { declutter_pick_free_request: true };
 
 function cartRecipients(): Record<string, string> {
   const out: Record<string, string[]> = {};
@@ -74,7 +77,7 @@ describe("every ?view=cart notice goes to the buyer", () => {
   it("every recipient is the buyer", () => {
     for (const [fn, who] of Object.entries(found)) {
       for (const r of who.split(",")) {
-        expect(BUYER_VALUE.test(r) || (r === "v_uid" && CALLER_IS_BUYER[fn]), `${fn} sends ?view=cart to ${r}`).toBe(true);
+        expect(BUYER_VALUE.test(r) || (r === "v_uid" && CALLER_IS_BUYER[fn]) || (r === "v_req.requester_id" && REQUESTER_IS_BUYER[fn]), `${fn} sends ?view=cart to ${r}`).toBe(true);
       }
     }
   });

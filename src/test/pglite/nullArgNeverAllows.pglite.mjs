@@ -210,7 +210,11 @@ CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), 
   -- A3-8 / A2-18 (20261028210552): the columns the class SQL's 'tip' step writes.
   size text, title text, pickup_area text, dropoff_area text, pickup_address text, pickup_lat numeric, pickup_lng numeric,
   dropoff_address text, dropoff_lat numeric, dropoff_lng numeric, trip_miles integer, pay_cents integer, fee_cents integer,
-  latest_pickup_at timestamptz, pickup_slot_start timestamptz, dropoff_code text, confirmed_at timestamptz, confirmed_by text);
+  latest_pickup_at timestamptz, pickup_slot_start timestamptz, dropoff_code text, confirmed_at timestamptz, confirmed_by text,
+  -- Live position (20261101184555): helpr_task_position_viewer reads whether the delivery has started.
+  started_at timestamptz);
+-- Free ask's confirmed time (20261101174857): declutter_seller_slot_open reads the seller's places first.
+CREATE TABLE public.declutter_porch_places (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid, weekdays smallint[], windows jsonb);
 -- A3-8 / A2-18: declutter_delivery_tip_open reads whether a Helpr with no payout account still has pay waiting.
 CREATE TABLE public.helpr_task_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), task_id uuid UNIQUE, helpr_id uuid, status text);
 -- Q1929: helpr_task_source_held (a deny helper the raise check calls) reads open problem reports.
@@ -323,7 +327,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // LEAD-LIST-FOR-SELLER (20261101034159): may a Have a Helpr list it job be marked done (a listing was sent).
   "sell_for_me_listings_sent",
   // Instant book (20261101063725): is this Helpr free on this day (their calendar).
-  "instant_book_helper_free_on"];
+  "instant_book_helper_free_on",
+  // Free ask's confirmed time (20261101174857), after declutter_slot_in_windows which it calls; live position (20261101184555).
+  "declutter_seller_slot_open", "helpr_task_position_viewer"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

@@ -832,6 +832,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // LEAD-PROFILE-LINK: Settings > Your profile link.
+  "src/components/profile/ProfileLinkRow.tsx": "Not swept yet: one 30-character box (maxLength 30), normalised (trim, lowercase) and checked against HANDLE_PATTERN before Save is enabled; rpc_set_my_handle re-checks the format and refuses reserved words, 7+ digits and a taken link, and allows one change.",
   "src/components/declutter/SellerSetup.tsx": "Not swept yet: it shows only to a seller missing saved settings. Its address and area go through the same lookup and declutter_save_porch_place checks as the pickup places in Settings.",
   "src/components/declutter/declutterUi.tsx": "The four statements' one checkbox: no text to type, and the sell forms that mount it are swept themselves.",
   // LEAD-SHAKE-PROMPT: the shake switch, split out of SecurityTab (componentSizeRatchet).

@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />} |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") { |   if (false) {
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") return null; |   if (false) return null;
  * @mutate src/components/declutter/paidOrders.ts |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/DeclutterOrderBits.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
@@ -340,6 +340,8 @@ describe("Declutter slice 4: paid-order cards", () => {
       await screen.findByText(/^Paid\. Waiting on Dana to /);
       expect(screen.getAllByText(/waiting (on|for) (the buyer|Dana)/i)).toHaveLength(1);
       expect(screen.queryByText(/within 7 days of paying/)).toBeNull();
+      // The buyer books; the seller's card never offers the booking form.
+      expect(screen.queryByRole("button", { name: "Book" })).toBeNull();
       unmount();
     }
   });

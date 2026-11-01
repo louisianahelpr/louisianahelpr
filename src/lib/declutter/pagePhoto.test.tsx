@@ -17,15 +17,15 @@ import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
 
 vi.mock("@/components/dashboard/PhotoLightbox", () => ({ PhotoLightbox: () => null }));
 
-const ORIGINAL = "https://x.supabase.co/storage/v1/object/public/job-photos/u1/declutter/i1/a.jpg";
+const ORIGINAL = "https://unit-test.invalid/storage/v1/object/public/job-photos/u1/declutter/i1/a.jpg";
 
 describe("the item page's photo", () => {
   it("is the Storage transform of the same object, width only (the aspect and the frame's crop are unchanged)", () => {
     // What supabase-js getPublicUrl(path, { transform: { width: 720, quality: 75 } }) returns for this object.
-    expect(pagePhotoUrl(ORIGINAL, 720)).toBe("https://x.supabase.co/storage/v1/render/image/public/job-photos/u1/declutter/i1/a.jpg?width=720&quality=75");
+    expect(pagePhotoUrl(ORIGINAL, 720)).toBe("https://unit-test.invalid/storage/v1/render/image/public/job-photos/u1/declutter/i1/a.jpg?width=720&quality=75");
     expect(pagePhoto(ORIGINAL)?.srcSet).toBe(
-      "https://x.supabase.co/storage/v1/render/image/public/job-photos/u1/declutter/i1/a.jpg?width=720&quality=75 720w, "
-      + "https://x.supabase.co/storage/v1/render/image/public/job-photos/u1/declutter/i1/a.jpg?width=1080&quality=75 1080w",
+      "https://unit-test.invalid/storage/v1/render/image/public/job-photos/u1/declutter/i1/a.jpg?width=720&quality=75 720w, "
+      + "https://unit-test.invalid/storage/v1/render/image/public/job-photos/u1/declutter/i1/a.jpg?width=1080&quality=75 1080w",
     );
   });
 

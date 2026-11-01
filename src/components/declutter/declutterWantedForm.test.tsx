@@ -79,7 +79,7 @@ vi.mock("@/lib/declutter/wanted", async (orig) => ({
 }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
-  photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
+  photoPublicUrl: (p: string) => `https://unit-test.invalid/storage/v1/object/public/job-photos/${p}`, photoCardUrl: (p: string) => `https://unit-test.invalid/storage/v1/object/public/job-photos/${p}`, CARD_PHOTO_PX: 480,
 }));
 
 import { toast } from "sonner";
@@ -162,7 +162,7 @@ describe("the Wanted hub", () => {
     mine.rows = [POST];
     open();
     const img = await screen.findByAltText("Photo 1 of Kids bike");
-    expect(img).toHaveAttribute("src", "https://cdn/u1/wanted/w9/a.jpg");
+    expect(img).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/public/job-photos/u1/wanted/w9/a.jpg");
     fireEvent.click(screen.getByRole("button", { name: "Remove photo 1" }));
     await waitFor(() => expect(photoCalls).toEqual([["remove", "w9", "u1/wanted/w9/a.jpg"]]));
     expect(screen.getByRole("button", { name: "Add a photo" })).toBeInTheDocument();
@@ -294,7 +294,7 @@ describe("the Wanted hub", () => {
     open();
     await screen.findByText(/Green bike/);
     expect(screen.getAllByText(/Red bike/)).toHaveLength(1);
-    expect(document.querySelector("[data-wanted-reply-photo]")).toHaveAttribute("src", "https://cdn/s/declutter/i1/a.jpg");
+    expect(document.querySelector("[data-wanted-reply-photo]")).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/public/job-photos/s/declutter/i1/a.jpg");
   });
 
   it("a post with no replies says so", async () => {
@@ -325,7 +325,7 @@ describe("the Wanted hub", () => {
   it("a Wanted near you card shows the post's first photo", async () => {
     near.rows = [{ id: "n1", what: "Crib", category: "baby_kids", max_price_cents: 4000, poster_name: "Sam R.", miles: 3, expires_at: "2026-11-20", replied: false, photo_path: "u2/wanted/n1/c.jpg" }];
     open();
-    expect(await screen.findByAltText("Crib")).toHaveAttribute("src", "https://cdn/u2/wanted/n1/c.jpg");
+    expect(await screen.findByAltText("Crib")).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/public/job-photos/u2/wanted/n1/c.jpg");
   });
 
   it("opens on the hub, not the form: the pill, Your Wanted posts and Wanted near you, each with an empty state", async () => {

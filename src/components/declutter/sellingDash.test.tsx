@@ -149,7 +149,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMySales: async () => state.sales,
   fetchPhotos: async () => [{ id: "p1", item_id: "i1", storage_path: "u1/i1/a.jpg", position: 0 }],
   fetchDropStates: async () => new Map(),
-  photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
+  photoPublicUrl: (p: string) => `https://unit-test.invalid/storage/v1/object/public/job-photos/${p}`, photoCardUrl: (p: string) => `https://unit-test.invalid/storage/v1/object/public/job-photos/${p}`, CARD_PHOTO_PX: 480,
   withdrawItem: withdrawSpy,
   fetchMyCard: async () => ({ brand: "visa", last4: "4242" }),
   fetchMyActiveStrikes: async () => 0,

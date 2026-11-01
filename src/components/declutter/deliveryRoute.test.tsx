@@ -20,7 +20,7 @@ const state = { route: null as unknown, calls: [] as unknown[][], toasts: [] as 
 vi.mock("sonner", () => ({ toast: Object.assign((m: string) => { state.toasts.push(m); }, { success: (m: string) => { state.toasts.push(m); }, error: vi.fn() }) }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
-vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}`, photoCardUrl: (p: string) => `https://cdn.test/${p}`, CARD_PHOTO_PX: 480 }));
+vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://unit-test.invalid/storage/v1/object/public/job-photos/${p}`, photoCardUrl: (p: string) => `https://unit-test.invalid/storage/v1/object/public/job-photos/${p}`, CARD_PHOTO_PX: 480 }));
 vi.mock("@/lib/helprTasks/api", () => ({
   fetchMyRoute: async () => state.route,
   fetchRouteSuggestions: async () => ({ suggestions: [], reason: "none_near" }),
@@ -71,7 +71,7 @@ describe("My route", () => {
     expect(cards[0]).toHaveTextContent("9 Buyer Ln");
     expect(cards[1]).toHaveTextContent("Pick up");
     expect(cards[1]).toHaveTextContent("On the seller's porch");
-    expect(within(cards[1]).getByRole("img", { name: "Oak dresser" })).toHaveAttribute("src", "https://cdn.test/s/declutter/i/a.jpg");
+    expect(within(cards[1]).getByRole("img", { name: "Oak dresser" })).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/public/job-photos/s/declutter/i/a.jpg");
     expect(cards[1]).toHaveTextContent("Mirror");
     // D3-9: whole miles rounded up, as the delivery's own "about N miles" reads (declutter_road_miles).
     // @mutate src/components/declutter/DeliveryRoute.tsx | Math.max(1, Math.ceil(miles)) | Math.max(1, Math.round(miles))

@@ -11,6 +11,9 @@
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  SELECT item_id INTO v_item | SELECT item_id INTO v_item
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  PERFORM public.declutter_list_for_seller_draft(p_item_id);\n  DELETE FROM | PERFORM public.declutter_list_for_seller_draft(p_item_id);\n  DELETE FROM
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | title text, price_cents integer, floor_price_cents integer, | title text, price_cents integer,
+// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | THEN pv.floor_price_cents END, | THEN pv.floor_price_cents ELSE pv.floor_price_cents END,
+// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |                  AND j.status::text IN ('accepted', 'in_progress', 'revision_requested')\n | 
+// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n
 //
 // LEAD-LIST-FOR-SELLER (owner 10-31 ~10:30 PM, POST-H3; lead decision): a "Have a Helpr list it" job is done for the
 // Helpr once they have SENT its listings to the seller for approval (never stranded waiting for the seller). Mark done
@@ -60,10 +63,15 @@ describe("the list-for-seller functions (lh-authz-rls review, 11-01)", () => {
     expect(definers.length).toBeGreaterThan(12);
     expect(definers.filter((f) => !/SET search_path TO 'public', 'pg_temp'/.test(f.head)).map((f) => f.name)).toEqual([]);
   });
-  it("every Helpr write refuses a banned caller", () => {
-    const writes = fns.filter((f) => /^declutter_helpr_(create|update|add|remove|delete|send)_/.test(f.name));
-    expect(writes.length).toBeGreaterThan(5);
+  it("every Helpr write, and the seller's approve and decline, refuses a banned caller", () => {
+    const writes = fns.filter((f) => /^declutter_helpr_(create|update|add|remove|delete|send)_|^declutter_(approve|decline)_listed_for_me$/.test(f.name));
+    expect(writes.length).toBeGreaterThan(7);
     expect(writes.filter((f) => !/IF public\.is_caller_banned\(\) THEN\s+RAISE EXCEPTION 'account_restricted'/.test(f.body)).map((f) => f.name)).toEqual([]);
+  });
+  it("the Helpr reads the hidden lowest price only while writing it, on an open job", () => {
+    const f = fns.find((x) => x.name === "declutter_helpr_job_listings");
+    expect(flat(f?.body ?? "")).toContain("CASE WHEN i.status IN ('draft', 'pending_seller_approval') AND j.status::text IN ('accepted', 'in_progress', 'revision_requested') THEN pv.floor_price_cents END");
+    expect(flat(f?.body ?? "").match(/pv\.floor_price_cents/g)?.length).toBe(1);
   });
   it("the seller's approval card returns the lowest price the Helpr set", () => {
     const f = fns.find((x) => x.name === "declutter_listed_for_me");

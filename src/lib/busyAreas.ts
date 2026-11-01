@@ -99,6 +99,15 @@ export function busyCircleOpacity(total: number, maxTotal: number): number {
   return Math.round((0.3 + 0.35 * (Math.min(total, maxTotal) / maxTotal)) * 100) / 100;
 }
 
+/**
+ * NIGHT-JOBSMA5-4: zoomed in to street level a parish circle (5-20 km across) tints the whole map. Below this
+ * north-south span (degrees, ~17 km) the circles are dimmed to BUSY_DIM_FACTOR of their usual fill.
+ */
+const BUSY_DIM_BELOW_LAT_DELTA = 0.15;
+export const BUSY_DIM_FACTOR = 0.3;
+export const busyCirclesDimmed = (latitudeDelta: number | null | undefined): boolean =>
+  typeof latitudeDelta === "number" && latitudeDelta > 0 && latitudeDelta < BUSY_DIM_BELOW_LAT_DELTA;
+
 const n = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
 
 /** "Lafayette Parish: 5 jobs, 2 deliveries" (a zero side is left out). */

@@ -6,7 +6,8 @@
  * @mutate src/boot/browseShellHandoff.ts |   if (path !== "/browse" \|\| signedIn) { |   if (path !== "/browse") {
  * @mutate src/boot/browseShellHandoff.ts |   doc.body.appendChild(el); |   void doc.body;
  * @mutate src/boot/browseShellHandoff.ts |   setTimeout(() => el.remove(), SHELL_MAX_MS); |   void SHELL_MAX_MS;
- * @mutate src/pages/home/DashboardGuest.tsx |     if (shellCanGo) document.getElementById("lh-browse-shell")?.remove(); |     if (shellCanGo) void 0;
+ * @mutate src/pages/home/useBrowseShellHandoff.ts |     if (settled) document.getElementById("lh-browse-shell")?.remove(); |     if (settled) void 0;
+ * @mutate src/pages/home/DashboardGuest.tsx |   useBrowseShellHandoff(sessionChecked && (feedReady \|\| phase === "offline-empty")); // PERF-SHELL | useBrowseShellHandoff(sessionChecked); // PERF-SHELL
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -23,7 +24,7 @@ describe("adoptBrowseShell", () => {
   afterEach(() => vi.useRealTimers());
   it("one id everywhere", () => {
     expect(BROWSE_SHELL_ELEMENT_ID).toBe(BROWSE_SHELL_ID);
-    const guest = blankComments(readFileSync("src/pages/home/DashboardGuest.tsx", "utf8"));
+    const guest = blankComments(readFileSync("src/pages/home/useBrowseShellHandoff.ts", "utf8"));
     expect(guest.match(/document\.getElementById\("([^"]+)"\)\?\.remove\(\)/g)?.length).toBe(2);
     for (const m of guest.matchAll(/document\.getElementById\("([^"]+)"\)\?\.remove\(\)/g)) expect(m[1]).toBe(BROWSE_SHELL_ID);
   });
@@ -53,10 +54,12 @@ describe("adoptBrowseShell", () => {
     expect(at).toBeGreaterThan(0);
     expect(at).toBeLessThan(main.indexOf("createRoot(document.getElementById"));
   });
-  it("DashboardGuest removes it once the feed has settled, in a layout effect", () => {
+  it("DashboardGuest removes it once the session check is done and the feed has settled, in a layout effect", () => {
     const guest = blankComments(readFileSync("src/pages/home/DashboardGuest.tsx", "utf8")).replace(/\s+/g, " ");
-    expect(guest).toContain('const shellCanGo = sessionChecked && (feedReady || phase === "offline-empty"); useLayoutEffect(() => { if (shellCanGo) document.getElementById("lh-browse-shell")?.remove(); }, [shellCanGo]);');
+    expect(guest).toContain('useBrowseShellHandoff(sessionChecked && (feedReady || phase === "offline-empty"));');
     // The page's own settled flag is the same condition (the footer waits on it).
     expect(guest).toContain('const feedSettled = feedReady || phase === "offline-empty";');
+    const hook = blankComments(readFileSync("src/pages/home/useBrowseShellHandoff.ts", "utf8")).replace(/\s+/g, " ");
+    expect(hook).toContain('useLayoutEffect(() => { if (settled) document.getElementById("lh-browse-shell")?.remove(); }, [settled]);');
   });
 });

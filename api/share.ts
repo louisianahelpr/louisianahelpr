@@ -894,14 +894,28 @@ function metaForUser(url: string): Meta {
 function metaForPublicPage(id: string, tab: string | null): Meta | null {
   const page = publicPageMetaFor(`/${id}`, tab);
   if (!page) return null;
+  const card = SECTION_CARDS[id];
   return {
     title: page.title,
     description: page.description,
     ogTitle: page.ogTitle,
     ogDescription: page.ogDescription,
     url: page.canonical,
+    ...(card ? { image: { url: `${SITE_ORIGIN}${card.path}`, type: "image/png", width: 1200, height: 630, alt: card.alt } } : {}),
   };
 }
+
+/**
+ * A section page's own link card (owner 10-31, "Fix this": a shared /declutter link previewed in iMessage as the bare
+ * H mark, twice, cut off, titled only "Declutter on Louisiana Helpr"). Each file is exactly 1200x630 (1.91:1): the
+ * mark centred on its own background, the section's name and one line under it; never a square mark stretched or
+ * tiled. Rendered from local files by ~/.lh-shots/b53/og/make.mjs. ?v= is the cache bust: bump it when the art
+ * changes. Guard: src/test/sectionShareCards.test.ts.
+ */
+const SECTION_CARDS: Record<string, { path: string; alt: string }> = {
+  declutter: { path: "/og-declutter.png?v=1", alt: "Declutter on Louisiana Helpr: used things for sale from your Louisiana neighbors" },
+  browse: { path: "/og-browse.png?v=1", alt: "Local jobs on Louisiana Helpr: hire help or find work near you" },
+};
 
 /**
  * A public page that is deliberately NOT indexed (Q401a): /login, /signup,

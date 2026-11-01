@@ -36,6 +36,7 @@ import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterPrice, PosterMoneyNotes, HelprMoney, PostedBy, HiredHelpr } from "./JobPageParts";
 import { OnTheWayNow, showsOnTheWay } from "./OnTheWayNow";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
+import { mapsSearchUrl } from "@/lib/mapsLink";
 import { HiredSeriesSection } from "./HiredSeriesSection";
 import { NoApplicantsYet } from "./NoApplicantsYet";
 import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
@@ -244,10 +245,14 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               {/* JOBS-18: every visit, before they apply or answer; a hired Helpr reads it in HiredSeriesSection. */}
               {!isHired && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
               {/* The hired Helpr is owed the street address (the party read carries it; RLS gives it only to parties). */}
-              {isHired && job.location && (
+              {/* JA-20: the address opens Maps (directions), the card's own mapsSearchUrl (the address, never the
+                  coordinates). JA-25: not once the job is cancelled; it is no longer theirs to go to. */}
+              {isHired && job.location && job.status !== "cancelled" && (
                 <p data-job-address="" className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
                   <span className="font-semibold">Address: </span>
-                  {job.location}
+                  <a href={mapsSearchUrl(job.location)} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                    {job.location}
+                  </a>
                 </p>
               )}
             </div>

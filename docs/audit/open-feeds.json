@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-01T11:50Z",
+  "measured_at": "2026-11-01T15:53Z",
   "issues": {
     "readable": true,
     "open": [
@@ -125,7 +125,7 @@
         "number": 3875,
         "title": "nightly-red: code-scanning-alerts",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41203680439",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41312760442",
         "runTruncated": false
       }
     ]
@@ -574,19 +574,19 @@
         "issue": null
       },
       {
-        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ProtectedRoute",
-        "status": "open",
-        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
-        "issue": null
-      },
-      {
         "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
         "source_kind": "sentry",
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load your account.",
+        "issue": null
+      },
+      {
+        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ProtectedRoute",
+        "status": "open",
+        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
         "issue": null
       },
       {
@@ -638,19 +638,19 @@
         "issue": null
       },
       {
-        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load deliveries.",
-        "issue": null
-      },
-      {
         "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: payout_setup_incomplete",
+        "issue": null
+      },
+      {
+        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load deliveries.",
         "issue": null
       },
       {
@@ -670,17 +670,17 @@
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
@@ -830,19 +830,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -910,19 +910,19 @@
         "issue": null
       },
       {
-        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
-        "issue": null
-      },
-      {
         "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
         "title": "/declutter · error screen shown: we couldn't load your sales.",
+        "issue": null
+      },
+      {
+        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
         "issue": null
       },
       {
@@ -988,6 +988,22 @@
         "status": "open",
         "title": "cron http failure: declutter-check-sweep returned 401",
         "issue": null
+      },
+      {
+        "fingerprint": "36f557b1afefdce3b349fbfa4fa4ca9e",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · lazystorage: getpublicurl with transform is not supported; add it here first",
+        "issue": null
+      },
+      {
+        "fingerprint": "f433ca04d33640120f26c22e2025580c",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter/item/<id> · lazystorage: getpublicurl with transform is not supported; add it here first",
+        "issue": null
       }
     ]
   },
@@ -1044,6 +1060,7 @@
     "ledger 346e19be0736": "Q1596",
     "ledger 34e050b1bba0": "Q2539",
     "ledger 36bcfb8c2391": "Q1696",
+    "ledger 36f557b1afef": "Q2549",
     "ledger 3712b62a9839": "Q2510",
     "ledger 379653db0e8d": "Q1596",
     "ledger 384f33fc7d1b": "Q2318",
@@ -1159,6 +1176,7 @@
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
     "ledger f3c752b3230f": "Q1596",
+    "ledger f433ca04d336": "Q2550",
     "ledger fba95b3590a6": "Q2538",
     "ledger fcb359880524": "Q2513"
   }

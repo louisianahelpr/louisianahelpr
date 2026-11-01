@@ -21,7 +21,6 @@ import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress
 import type { Job } from "@/components/job-card/activityConstants";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
-const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
 const MONEY = "text-[hsl(var(--burnt-sienna))]";
 
 /**

@@ -132,8 +132,12 @@ export function usePosterPageActions({
     const lead: RowAction | null = step ? { key: "step", label: step.label, go: step.go, disabled: step.disabled } : cardLead ? null : msg;
     const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras()];
     return (
+      <>
+      {/* The card's own words above its buttons (a crew's Tip rows; why a Tip can't be sent yet). */}
+      {cardSteps && <div ref={flows.setAskHost} data-card-ask="" className="empty:hidden" />}
       <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} extras={extras} cardCount={cardCount}
         cardLead={cardLead} setCardLeadHost={flows.setLeadHost} setCardSecondHost={flows.setSecondHost} setCardListHost={flows.setListHost} />
+      </>
     );
   };
   // The card's own step controls, mounted (hidden) whenever the row is read, so "Approve and release" opens the

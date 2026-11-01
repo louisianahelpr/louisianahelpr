@@ -104,7 +104,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(MIG)).toContain("WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee'");
     expect(flat(MIG)).toContain("WHEN fee_policy = 'keep_buyer_fee' THEN paid_cents - kept_cents");
     expect(flat(body("declutter_record_refund"))).toContain("v_kept := v_order.premium_cents;");
-    expect(flat(body("declutter_record_refund"))).toContain("WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN 'full_seller_pays_fee'");
+    // BUY-36 (20261031231150) adds 'helpr_fault': the Helpr's fault is a full refund too, its card fee a debt on the Helpr.
+    expect(flat(body("declutter_record_refund"))).toContain("WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN 'full_seller_pays_fee'");
   });
 
   it("row 25 (owner 2026-10-18: porch pickup, no code): no code reaches either side; the handover table stays service-only", () => {
@@ -168,15 +169,18 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(body("declutter_delivery_on_task_event"))).not.toMatch(/4-digit|drop-off code/);
     expect(flat(NO_QR)).toContain("CREATE TRIGGER trg_declutter_handovers_no_new_code BEFORE INSERT OR UPDATE OF confirmed_by ON public.declutter_handovers");
     expect(flat(body("declutter_no_new_code_confirmation"))).toContain("IF NEW.confirmed_by = 'code' AND (TG_OP = 'INSERT' OR OLD.confirmed_by IS DISTINCT FROM 'code') THEN");
-    expect(DEFS.get("helpr_task_delivered")?.file).toBe(NO_DROPOFF_CODE_FILE);
+    // BUY-36 (20261031231150, can't finish) restated helpr_task_delivered; the no-code body checks below read it.
+    expect(DEFS.get("helpr_task_delivered")?.file).toBe("20261031231150_helpr_delivery_cant_finish.sql");
     // helpr_task_view was restated verbatim from that file by 20261021131322 (only its Helpr-name line changed),
     // then it and helpr_task_confirm by 20261021181118 (only the take-home / payout amount rounded down to the
     // whole dollar, owner 2026-10-21), and helpr_task_view again by 20261027201327 (only the drop-off shown to the
     // assigned Helpr from accept, owner 2026-10-27), then by 20261030012018 (app audit 1c: adds handed_over_at and
     // problem_open for the three parties); the body checks below still read the newest definition.
     // Then audit 1c D3-5 (20261030031642: only the "Delivery done" words and link; the payout is as above).
-    expect(DEFS.get("helpr_task_confirm")?.file).toBe("20261030031642_helpr_delivery_notices_name_the_item.sql");
-    expect(DEFS.get("helpr_task_view")?.file).toBe("20261030012018_helpr_delivery_seller_handover.sql");
+    // BUY-36 (20261031231150) restated helpr_task_confirm; the p_by check below reads it.
+    expect(DEFS.get("helpr_task_confirm")?.file).toBe("20261031231150_helpr_delivery_cant_finish.sql");
+    // BUY-36 (20261031231150) restated helpr_task_view (the can't-finish fields); the no-code check below reads it.
+    expect(DEFS.get("helpr_task_view")?.file).toBe("20261031231150_helpr_delivery_cant_finish.sql");
     expect(flat(body("helpr_task_confirm"))).toContain("IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN");
     expect(flat(body("helpr_task_view"))).not.toMatch(/dropoff_code|code_locked/);
     expect(flat(body("helpr_task_delivered"))).not.toMatch(/dropoff_code|wrong_code|'confirmed', 'code'/);

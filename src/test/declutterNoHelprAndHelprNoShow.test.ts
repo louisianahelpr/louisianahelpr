@@ -55,7 +55,8 @@ describe("soldstates-5: the seller's 'The Helpr didn't come'", () => {
     expect(flat("declutter_report_helpr_no_show")).toContain("seller_no_show_answer_by = now() + interval '24 hours'");
     expect(flat("helpr_task_source_held")).toContain("x.seller_no_show_reported_at IS NOT NULL AND x.seller_no_show_answered_at IS NULL AND x.seller_no_show_settled_at IS NULL");
     const sweep = flat("helpr_task_sweep");
-    expect(newestFunction("helpr_task_sweep").file).toContain("20261031134217");
+    // BUY-36 (20261031231150) restated the sweep; the strike line below still reads the newest one.
+    expect(newestFunction("helpr_task_sweep").file).toContain("20261031231150");
     expect(sweep).toContain("PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id, 'The seller said");
   });
 

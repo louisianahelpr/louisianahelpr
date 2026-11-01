@@ -118,7 +118,7 @@ export function useHomeSummary(user: SupaUser | null) {
         // H5 (Cowork audit 2026-10-20): "N in progress" counted open jobs still
         // WAITING for applicants as in progress. The second count is the jobs that
         // are booked and ahead of you, in the Jobs status boxes' own word.
-        jobs: countLine([[jobTodos, "need you"], [postedUpcoming.length + appliedLive.length, "upcoming"]]),
+        jobs: countLine([[jobTodos, "needs you", "need you"], [postedUpcoming.length + appliedLive.length, "upcoming"]]),
         declutter: countLine([[items.filter((i) => i.status === "live").length, "listed"], [items.filter((i) => i.status === "pending_review").length, "in review"]]),
         shops: countLine([[shopTodos, "to answer"], [myOrders.length, "open order", "open orders"]]),
         homes: countLine([[props.length, "property", "properties"]]),

@@ -15,6 +15,9 @@
 // @mutate src/components/tracker/jobProgressState.ts |     const pending = o.pendingApplicants ?? (o.application === "pending" ? 1 : 0); |     const pending = o.application === "pending" ? 1 : 0;
 // @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD | if (false) return at(null, false, poster ? EXPIRED_WORD
 // @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return { ...base, stage: 0 | if (false) return { ...base, stage: 0
+// @mutate src/components/tracker/jobProgressState.ts | const wait = poster ? `${other} confirms on ${day}, the day before` | const wait = poster ? `${other} confirms the day before. Opens ${when(opens)}`
+// JA-4 (audit 11-01): the line named a button ("I'm still on") the job page calls "Confirm it's still on"; it now says the step.
+// @mutate src/components/tracker/jobProgressState.ts | !posterIn ? "Confirm the job is still on" : | !posterIn ? "Tap I'm still on to confirm" :
 // @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, cancellation_reason, cancelled_by, | has_active_dispute,
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -60,8 +63,8 @@ describe("jobProgress (the one tracker)", () => {
   it("Accepted, before the day-before window: says when confirming opens (the server's rule)", () => {
     // Job Fri 2037-10-23 9:00; the window opens Thu 2037-10-22 00:00 Louisiana time.
     const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-23", start_time: "09:00" };
-    expect(poster(j)).toMatchObject({ stage: 2, waitingOnYou: false, word: "Hired", next: "Jolie confirms the day before. Opens Thu 12:00 AM" });
-    expect(helpr({ ...j, helper_id: ME })).toMatchObject({ stage: 2, waitingOnYou: false, next: "Confirm the day before. Opens Thu 12:00 AM" });
+    expect(poster(j)).toMatchObject({ stage: 2, waitingOnYou: false, word: "Hired", next: "Jolie confirms on Thu, the day before" });
+    expect(helpr({ ...j, helper_id: ME })).toMatchObject({ stage: 2, waitingOnYou: false, next: "Confirm on Thu, the day before" });
   });
 
   // A2-C40 (audit 2026-10-29, AA9 1a): between the start and the next auto-start sweep (up to 15 min) the
@@ -72,12 +75,12 @@ describe("jobProgress (the one tracker)", () => {
     expect(poster(j)).toMatchObject({ stage: 3, next: "It's start time. Jolie hasn't confirmed" });
     expect(poster({ ...j, helper_dayof_confirmed_at: "t" }).next).not.toMatch(/Tap I'm still on|confirm by/);
     // Vacuity floor: an hour before the start the ask (and its button) is still there.
-    expect(poster({ ...j, start_time: "11:00" })).toMatchObject({ stage: 3, waitingOnYou: true, next: "Tap I'm still on to confirm" });
+    expect(poster({ ...j, start_time: "11:00" })).toMatchObject({ stage: 3, waitingOnYou: true, next: "Confirm the job is still on" });
   });
 
   it("window open: who still owes the confirm, and by when", () => {
     const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-22", start_time: "09:00" };
-    expect(poster(j)).toMatchObject({ stage: 3, waitingOnYou: true, next: "Tap I'm still on to confirm" });
+    expect(poster(j)).toMatchObject({ stage: 3, waitingOnYou: true, next: "Confirm the job is still on" });
     expect(poster({ ...j, poster_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: false, next: "Waiting on Jolie to confirm by Thu 7:00 AM" });
     expect(helpr({ ...j, helper_id: ME, poster_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: true });
     // Both in: Confirmed is done; On the way is next.
@@ -102,7 +105,7 @@ describe("jobProgress (the one tracker)", () => {
     // Both in: the normal confirmed state.
     expect(rp({ ...j, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ next: "You're both confirmed. Yusef taps On my way when they leave" });
     // Moved to a day whose window has not opened: the new slot, then when confirming opens.
-    expect(rp({ ...j, date_needed: "2037-10-23" })).toMatchObject({ next: "New time Fri 9:00 AM. Yusef confirms the day before. Opens Thu 12:00 AM" });
+    expect(rp({ ...j, date_needed: "2037-10-23" })).toMatchObject({ next: "New time Fri 9:00 AM. Yusef confirms on Thu, the day before" });
     // No start time: the weekday alone.
     expect(rp({ ...j, start_time: null })).toMatchObject({ next: "Confirm the new time, Thu" });
   });

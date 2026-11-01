@@ -144,6 +144,9 @@ import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import * as api from "@/lib/declutter/api";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
+/** A settings row's value in the listing summary (owner 2026-11-01): "drops", "free" or "pickup". */
+const settingsValue = (id: string) => document.querySelector(`[data-settings-row="${id}"] [data-settings-value]`)?.textContent ?? null;
+
 /** Where Post lands: the address and the router state the "Your listing is live" sheet reads. */
 function SellingTabProbe() {
   const loc = useLocation();
@@ -224,7 +227,7 @@ describe("photo-first selling, one screen", () => {
     // The one switch is the Price row's Accept offers (LEAD-OFFERS-CHOICE part (2), owner 2026-10-31); no other setting is here.
     expect(screen.queryAllByRole("switch").map((s) => s.id)).toEqual(["sell-offers"]);
     expect(document.querySelector("[data-auto-free]")).toBeNull();
-    expect(document.querySelector("[data-uses-settings]")).not.toBeNull();
+    expect(document.querySelector("[data-selling-settings]")).not.toBeNull();
     expect(document.querySelector("[data-sell-tax]")).not.toBeNull();
     // Once the photo tool answers it, the owner's six are what is left.
     addPhotos("a.jpg");
@@ -303,7 +306,7 @@ describe("photo-first selling, one screen", () => {
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
     // Owner 2026-10-30 (via the lead): drops are ON by default, with the lowest price at half the asking price.
     // @mutate src/lib/declutter/sellerDefaults.ts | { keepUp: true, drops: true, dropPct: 5, | { keepUp: true, drops: false, dropPct: 5,
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 5% each evening, never below $20."));
+    await waitFor(() => expect(settingsValue("drops")).toBe("5% each evening, lowest $20"));
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() =>
@@ -596,6 +599,11 @@ describe("photo-first selling, one screen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     // Already up since they were added (LEAD-POST-SLOW (a)): Post only attaches them.
     expect(await screen.findByRole("button", { name: "Adding photo 1 of 2" })).toBeDisabled();
+    // Owner 2026-11-01: a clear in-progress view while it goes up, with the listing's step.
+    // @mutate src/components/declutter/SellOneScreen.tsx |         {s.publishing && <SellProgress | {false && <SellProgress
+    const progress = document.querySelector("[data-sell-progress]") as HTMLElement;
+    expect(progress.querySelector("[data-progress-row]")?.getAttribute("data-progress-row")).toBe("photos");
+    expect(progress).toHaveTextContent("Adding photo 1 of 2. Keep this page open.");
     release();
     await screen.findByTestId("landed");
   });
@@ -623,7 +631,7 @@ describe("photo-first selling, one screen", () => {
     await screen.findByText("We wrote your listing. Check it before you post");
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: off. It stays at $40 until you change it."));
+    await waitFor(() => expect(settingsValue("drops")).toBe("Off"));
     fillWaysAndTax();
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     // @mutate src/components/declutter/sellForm.ts |   if (!f.drops \|\| priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 }; |   if (priceTooLowForDrops(f.price)) return { floorCents: price, dropPct: 0 };
@@ -831,7 +839,7 @@ describe("photo-first selling, one screen", () => {
     await screen.findByText("We wrote your listing. Check it before you post");
     fillWaysAndTax();
     // None usable: it will not post, and says where to fix it.
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")).not.toBeNull());
+    await waitFor(() => expect(document.querySelector("[data-selling-settings]")).not.toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     expect(screen.getByTestId("sell-form-problem")).toHaveTextContent("Choose a way buyers can get it in Settings.");
     expect(calls).toEqual([]);
@@ -842,7 +850,7 @@ describe("photo-first selling, one screen", () => {
     addPhotos("a.jpg");
     await screen.findByText("We wrote your listing. Check it before you post");
     fillWaysAndTax();
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Safe meeting spot"));
+    await waitFor(() => expect(settingsValue("pickup")).toContain("Safe meeting spot"));
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(api.setHandovers).toHaveBeenCalledWith(NEW_ID, ["meetup"]));
     cleanup();

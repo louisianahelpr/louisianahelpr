@@ -25,7 +25,6 @@ import { PickupTimesEditor, pickupWindowsProblem, placeHoursLine } from "./Declu
 import { SellerAddressField } from "./SellerAddressField";
 import { NO_CITY_IN_ADDRESS } from "./sellForm";
 import { useExactAddressPoint } from "./useExactAddressPoint";
-import { PickupPlacesHoursList } from "./ItemPickupDisplay";
 
 /**
  * `saved`: a saved place's own point. Kept while its address is unchanged, so editing its hours moves nothing buyers rely on.
@@ -244,9 +243,3 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
   );
 }
 
-/** The posting summary's places: every saved place, not just the listing's own area (null while none are saved). */
-export function MyPickupPlacesSummary() {
-  const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
-  if (!Array.isArray(mine.data) || mine.data.length === 0) return null;
-  return <PickupPlacesHoursList places={mine.data} />;
-}

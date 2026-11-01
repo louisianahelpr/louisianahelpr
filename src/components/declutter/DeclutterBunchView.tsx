@@ -60,6 +60,7 @@ import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useSortingThumbs } from "./useBunchThumbs";
 import { useBunchStager } from "./useBunchStager";
 import { BunchIntake } from "./DeclutterBunchIntake";
+import { ReadingPhotos } from "./SellProgress";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
@@ -514,6 +515,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
             <label htmlFor="bunch-files">{photos.length > 0 ? "Add more photos" : "Add photos"}</label>
           </Button>
         )}
+        {sorting && <ReadingPhotos adding={adding} sorting={sorting} found={found} />}
         {sorting && (
           <BunchIntake keys={photos.filter((p) => !items.some((it) => it.photoKeys.includes(p.key))).map((p) => p.key)} urls={thumbs}
             ready={adding?.ready ?? 0} total={adding?.total ?? 0} />
@@ -585,7 +587,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       {items.length > 0 && (
         <BunchListStep
           step={firstStep + 2} items={items} pricedDraftsOffered={pricedDraftsOffered} readyCount={ready.length} heldForFee={heldForFee} savedSetup={savedSetup} savedWindows={savedWindows} savedWays={savedWays} windows={windows} setWindows={setWindows}
-          choices={choices} ways={ways} setWays={setWays} sellerDeliveryOpen={sellerDeliveryOpen} attested={attested} setAttested={setAttested} problem={problem} blocked={blocked} listing={!!listing} photoProgress={photoProgress} onList={() => void onListAll()}
+          choices={choices} ways={ways} setWays={setWays} sellerDeliveryOpen={sellerDeliveryOpen} attested={attested} setAttested={setAttested} problem={problem} blocked={blocked} listing={!!listing} photoProgress={photoProgress} listingProgress={listing} runNames={runNames.current} onList={() => void onListAll()}
         />
       )}
 

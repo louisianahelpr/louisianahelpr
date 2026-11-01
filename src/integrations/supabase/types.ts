@@ -17859,6 +17859,7 @@ export type Database = {
         Args: { p_new_user_id: string; p_referral_code: string }
         Returns: boolean
       }
+      profile_handle_base: { Args: { p_full_name: string }; Returns: string }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
       prune_cron_http_requests: { Args: never; Returns: number }
       prune_cron_run_details: { Args: never; Returns: number }
@@ -18705,6 +18706,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      rpc_ensure_my_handle: { Args: never; Returns: string }
       rpc_escalate_dispute: { Args: { _job_id: string }; Returns: string }
       rpc_group_member_confirm: { Args: { _job_id: string }; Returns: Json }
       rpc_group_member_mark_arrival: {
@@ -18785,6 +18787,7 @@ export type Database = {
         Args: { _applicant_id: string }
         Returns: undefined
       }
+      rpc_set_my_handle: { Args: { p_handle: string }; Returns: string }
       rpc_settle_dispute_without_payment: {
         Args: { _dispute_id: string; _note: string }
         Returns: undefined

@@ -1101,6 +1101,20 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     order_not_paid: DC.order_not_paid,
   },
+  // The delivery chat (BUY-36, 20261031231948).
+  helpr_task_talk_view: {
+    not_authenticated: DC.not_authenticated,
+    task_not_found: "We couldn't find that delivery.",
+  },
+  helpr_task_send_message: {
+    account_restricted: DC.account_restricted,
+    invalid_message: DC.invalid_message,
+    message_rate_limited: DC.message_rate_limited,
+    not_authenticated: DC.not_authenticated,
+    talk_blocked: DC.talk_blocked,
+    talk_closed: DC.talk_closed,
+    task_not_found: "We couldn't find that delivery.",
+  },
   declutter_send_order_message: {
     account_restricted: DC.account_restricted,
     invalid_message: DC.invalid_message,

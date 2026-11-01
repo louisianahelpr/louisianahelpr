@@ -5,12 +5,17 @@
  *  - a guest's Apply goes to signup and back to the job; a member's goes straight to the job;
  *  - a handle that can never be one makes no request and says the profile isn't available;
  *  - the owner of the page gets "Share my profile".
+ * The page sits in the centred public link column (PUBLIC_LINK_COLUMN), the same as /book/<id>, never full
+ * width at 1440 (lead 2026-11-01, B88; measured before: 1392px wide at x=24).
  * The link card: api/share.ts serves /u/<handle> with the member's name, their photo at 1200x630 and exactly
  * ONE og:image; an unknown handle is a noindex "isn't available" card.
  *
  * @mutate src/pages/u/PublicProfilePage.tsx | return signedIn ? path : signupUrlFor(path); | return path;
  * @mutate src/pages/u/PublicProfilePage.tsx | enabled: !!handle, | enabled: true,
  * @mutate src/pages/u/PublicProfilePage.tsx | isMe={!!me?.handle && me.handle === q.data.handle} | isMe={false}
+ * @mutate src/pages/u/PublicProfilePage.tsx | <div className={`${PUBLIC_LINK_COLUMN} space-y-4 pb-8`} data-public-profile={p.handle}> | <div className="w-full space-y-4 pb-8" data-public-profile={p.handle}>
+ * @mutate src/pages/book/BookHelprPage.tsx | <div className={`${PUBLIC_LINK_COLUMN} space-y-4 pb-8`}> | <div className="w-full space-y-4 pb-8">
+ * @mutate src/lib/pageColumn.ts | export const PUBLIC_LINK_COLUMN = "mx-auto w-full max-w-md"; | export const PUBLIC_LINK_COLUMN = "w-full";
  * @mutate api/share.ts | (tag) => (seen++ === 0 ? tag : "")); | (tag) => tag);
  * @mutate api/share.ts | ?width=1200&height=630&resize=cover&quality=80&format=origin | ?width=630&height=630&resize=cover&quality=80&format=origin
  * @mutate vercel.json | "destination": "/api/share?_og=profile&_id=:handle" | "destination": "/index.html"
@@ -23,6 +28,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
+import { blankComments } from "./helpers/blankNonCode";
 
 const rpc = vi.fn();
 let signedIn: { id: string } | null = null;
@@ -35,6 +41,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: myH
 vi.mock("@/lib/nativeShare", () => ({ shareNative: vi.fn(async () => "shared") }));
 
 const { default: PublicProfilePage } = await import("@/pages/u/PublicProfilePage");
+const { PUBLIC_LINK_COLUMN } = await import("@/lib/pageColumn");
 
 const PAGE = {
   handle: "eli-b",
@@ -93,6 +100,17 @@ describe("the /u/:handle page", () => {
     rpc.mockResolvedValue({ data: PAGE, error: null });
     show("/u/eli-b");
     expect(await screen.findByRole("button", { name: /share my profile/i })).toBeTruthy();
+  });
+
+  it("sits in the centred public link column, the same one /book uses", async () => {
+    rpc.mockResolvedValue({ data: PAGE, error: null });
+    const { container } = show("/u/eli-b");
+    await screen.findByText("Oak dresser");
+    const body = container.querySelector("[data-public-profile]");
+    expect(body?.className.split(" ")).toEqual(expect.arrayContaining(["mx-auto", "w-full", "max-w-md"]));
+    expect(PUBLIC_LINK_COLUMN).toBe("mx-auto w-full max-w-md");
+    const book = blankComments(readFileSync(resolve(import.meta.dirname, "../pages/book/BookHelprPage.tsx"), "utf8"));
+    expect(book.match(/\$\{PUBLIC_LINK_COLUMN\}/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
   it("a handle that can never be one makes no request", async () => {

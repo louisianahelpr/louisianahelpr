@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { Briefcase, Share2, ShoppingBag, Star, UserX, Search } from "lucide-react";
 import AppPage from "@/components/AppPage";
+import { PUBLIC_LINK_COLUMN } from "@/lib/pageColumn";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -83,7 +84,7 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
   const since = memberSinceLabel(p.member_since);
   const nothing = p.listings.length + p.jobs.length + p.wanted.length + p.helpr.reviews.length + (p.helpr.jobs_done ?? 0) === 0;
   return (
-    <div className="w-full space-y-4 pb-8" data-public-profile={p.handle}>
+    <div className={`${PUBLIC_LINK_COLUMN} space-y-4 pb-8`} data-public-profile={p.handle}>
       <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-labelledby="pp-name">
         <UserAvatar userId={p.handle} src={p.photo_url} name={p.name} pixelSize={96} className="mx-auto h-24 w-24" />
         <h2 id="pp-name" className="mt-3 text-xl font-semibold text-foreground">{p.name}</h2>
@@ -114,7 +115,7 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
 
       {p.listings.length > 0 && (
         <Section id="pp-listings" title="For sale" icon={ShoppingBag}>
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <ul className="grid grid-cols-2 gap-3">
             {p.listings.map((l) => (
               <li key={l.id}>
                 {/* Guests may open an item (BUY-16); buying there asks them to sign up. */}
@@ -237,7 +238,7 @@ export default function PublicProfilePage() {
       {!handle ? (
         unavailable
       ) : q.isPending ? (
-        <p role="status" className="mx-auto w-full max-w-md text-center text-ds-14 text-muted-foreground">Loading this profile…</p>
+        <p role="status" className={`${PUBLIC_LINK_COLUMN} text-center text-ds-14 text-muted-foreground`}>Loading this profile…</p>
       ) : q.isError ? (
         <ErrorState variant="inline" title="We couldn't load this profile." onRetry={() => void q.refetch()} />
       ) : !q.data ? (

@@ -15,3 +15,11 @@
  * Guard: src/test/onePageColumn.test.ts.
  */
 export const PAGE_COLUMN = "page-column";
+
+/**
+ * THE PUBLIC LINK COLUMN: a page opened from a shared link (/book/<id>, /u/<handle>) reads as one centred
+ * card column, the same at every width, never a full-width page at 1440 (lead 2026-11-01, B88). Both pages
+ * and their loading lines use this one string, so they cannot drift apart.
+ * Guard: src/test/publicProfilePage.test.tsx.
+ */
+export const PUBLIC_LINK_COLUMN = "mx-auto w-full max-w-md";

@@ -76,7 +76,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       if (status === "live" && !photosChanged) return "saved";
       // A big change: the automatic check judges the new words and photos now (asked twice); the server puts a clean
       // listing back live by itself. What the seller is told is read back from the row, never assumed.
-      await requestAiCheckWithRetry(item.id);
+      await requestAiCheckWithRetry(item.id, { tries: 2 });
       const now = await fetchItem(item.id);
       return now?.status === "live" ? "live_again" : "held";
     },

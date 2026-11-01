@@ -68,6 +68,7 @@ import {
 } from "./sanitize.ts";
 import { fetchModelWithRetry } from "./modelRetry.ts";
 import { priceDraftFromLookup } from "./priceLookup.ts";
+import { CHECK_HOURLY_LIMIT, CHECK_MINUTE_LIMIT } from "./checkLimits.ts";
 import { claudeFetch, claudeJson, type ClaudeImage } from "../_shared/claudeMessages.ts";
 import { sanitizeShopItemDraft, SHOP_ITEM_SYSTEM_PROMPT, SHOP_ITEM_TOOL } from "./shopItemSanitize.ts";
 import { BANNED_RULE } from "./bannedRule.ts";
@@ -205,12 +206,22 @@ function toBase64(bytes: Uint8Array): string {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const { allowed, retryAfter } = await checkRateLimit(req, {
-    // LEAD-BUNCH-34-SLOW (owner 10-31): 12 a minute (was 6), so Sell a bunch's sorting calls go every 5.25 s
-    // (AI_CHECK_GAP_MS). Cost stays capped by each mode's hourly limit below (group: 20 calls an hour).
-    windowMs: 60_000, maxRequests: 12, keyPrefix: "declutter-ai-draft",
-  });
+  // The body is read first so a listing's banned-item CHECK has its own limit (below).
+  const body = await req.json().catch(() => ({}));
+  // A posted listing's CHECK has its own bucket (./checkLimits.ts, owner 10-31: a bunch's checks were starved here).
+  const isCheck = body?.mode === "check";
+  const { allowed, retryAfter } = isCheck
+    ? await checkRateLimit(req, CHECK_MINUTE_LIMIT)
+    : await checkRateLimit(req, {
+      // LEAD-BUNCH-34-SLOW (owner 10-31): 12 a minute (was 6), so Sell a bunch's sorting calls go every 5.25 s
+      // (AI_CHECK_GAP_MS). Cost stays capped by each mode's hourly limit below (group: 20 calls an hour).
+      windowMs: 60_000, maxRequests: 12, keyPrefix: "declutter-ai-draft",
+    });
   if (!allowed) return rateLimitResponse(retryAfter!, corsHeaders);
+  if (isCheck) {
+    const hourly = await checkRateLimit(req, CHECK_HOURLY_LIMIT);
+    if (!hourly.allowed) return rateLimitResponse(hourly.retryAfter!, corsHeaders);
+  }
 
   const authHeader = req.headers.get("Authorization") ?? "";
   const anon = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -222,7 +233,6 @@ serve(async (req) => {
   if (unconfirmed) return unconfirmed;
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const body = await req.json().catch(() => ({}));
   // Which listing this is for: a Declutter listing (the default) or a shop item.
   const shopItem = body?.target === "shop_item";
   const refused = await requireFeature(admin, shopItem ? "shops" : "declutter", authData.user, corsHeaders);

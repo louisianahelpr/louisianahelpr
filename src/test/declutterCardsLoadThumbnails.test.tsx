@@ -13,7 +13,7 @@
  * @mutate src/components/declutter/DeclutterItemCard.tsx |             src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)} |             src={photoPublicUrl(photoPath)}
  * @mutate src/lib/declutter/api.ts |     .getPublicUrl(path, { transform: { width: CARD_PHOTO_PX, height: CARD_PHOTO_PX, resize: "cover", quality: 70 } }).data.publicUrl; |     .getPublicUrl(path).data.publicUrl;
  * @mutate src/components/declutter/DeclutterItemCard.tsx |             onError={() => setPhotoStage((s) => (s === "card" ? "full" : "failed"))} |             onError={() => setPhotoStage("failed")}
- * @mutate src/components/declutter/DeclutterItemCard.tsx |             decoding="async" |
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | decoding="async"\n            {...(firstRow | {...(firstRow
  * @mutate src/components/declutter/useLoadPhotoAhead.ts |         img.setAttribute("loading", "eager"); |
  * @mutate src/components/declutter/useLoadPhotoAhead.ts |       { root: scrollParent(img), rootMargin: `0px 0px ${LOAD_AHEAD_PX}px 0px` }, |       { root: null },
  */

@@ -14,9 +14,9 @@
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |  'application'::text, 'declutter_item'::text, 'declutter_wanted'::text])); |  'application'::text, 'declutter_wanted'::text]));
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN |   IF v_uid IS NULL THEN
  * @mutate supabase/migrations/20261030071816_declutter_live_on_post.sql |           jsonb_build_object('note', v_note, 'report_id', p_report_id, 'was', v_item.status)); |           jsonb_build_object('note', v_note, 'was', v_item.status));
- * @mutate src/lib/declutter/api.ts |   for (let attempt = 1; attempt <= 2; attempt++) { |   for (let attempt = 1; attempt <= 1; attempt++) {
+ * @mutate src/lib/declutter/api.ts |   for (let attempt = 1; attempt <= tries; attempt++) { |   for (let attempt = 1; attempt <= 1; attempt++) {
  * @mutate src/components/declutter/useSellFlowState.ts |       void requestAiCheckWithRetry(id); |       void id;
- * @mutate src/components/declutter/DeclutterEditListing.tsx |       await requestAiCheckWithRetry(item.id); |       void item.id;
+ * @mutate src/components/declutter/DeclutterEditListing.tsx |       await requestAiCheckWithRetry(item.id, { tries: 2 }); |       void item.id;
  * @mutate src/components/declutter/DeclutterItemView.tsx |           {!ownListing && user && <DeclutterReportListing itemId={itemId} />} |           {null}
  * @mutate src/components/declutter/declutterUi.tsx | "Our automatic check flagged something, or it didn't finish, | "Someone from Louisiana Helpr checks a new seller's first 3 listings, and
  * @mutate src/pages/info/legal/TermsSection.tsx | a listing goes live when you post it. | your first 3 listings wait for a Louisiana Helpr admin.
@@ -89,7 +89,9 @@ describe("item B: a listing goes live when posted; only a failed automatic check
 
   it("every screen that publishes or edits asks for the check twice before leaving it held", () => {
     const api = code("src/lib/declutter/api.ts");
-    expect(api).toMatch(/export async function requestAiCheckWithRetry[\s\S]{0,200}for \(let attempt = 1; attempt <= 2; attempt\+\+\)/);
+    // Asked at least twice (owner 10-31: a posted listing retries up to 4 times, waiting between; Edit asks twice).
+    expect(api).toMatch(/export async function requestAiCheckWithRetry[\s\S]{0,400}for \(let attempt = 1; attempt <= tries; attempt\+\+\)/);
+    expect(api).toMatch(/\{ tries = CHECK_RETRY_WAITS_MS\.length \+ 1,/);
     const callers = ["src/components/declutter/useSellFlowState.ts", "src/lib/declutter/moves.ts", "src/components/declutter/DeclutterEditListing.tsx"];
     let calls = 0;
     for (const p of callers) {

@@ -13,6 +13,7 @@
  */
 import os from "node:os";
 import { readFileSync } from "node:fs";
+import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs";
 import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE, NO_QR_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
 
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
@@ -223,6 +224,29 @@ ok(late === 0, "10 PM: nothing is sent");
 // 7. Grants: members cannot run the sweep or read the sends.
 ok(refused(await me(BUYER, `SELECT public.sweep_declutter_talk_reminders()`), /permission denied/), "members cannot run the sweep");
 ok(refused(await me(BUYER, `SELECT * FROM public.declutter_talk_reminder_sends`), /permission denied/), "members cannot read the sends");
+
+// 8. FIXED CLOCK (Q1357): the cron job calls "sweep_chat_unread_reminders" with no time, so it and
+// "sweep_declutter_talk_reminders" read now() (their DEFAULT). Both newest bodies reloaded with now() fixed, either
+// side of 15 minutes. The job-chat half is stubbed when absent (its own probe: unreadMessageReminders.pglite.mjs).
+await installClock(db);
+if (!one(await svc(`SELECT to_regprocedure('public.sweep_unread_message_reminders(timestamptz)') IS NOT NULL AS x`)))
+  await db.exec(`CREATE FUNCTION public.sweep_unread_message_reminders(p timestamptz) RETURNS integer LANGUAGE sql AS $s$ SELECT 0 $s$;`);
+if (!one(await svc(`SELECT to_regprocedure('public.log_cron_defect(text, text, text, jsonb)') IS NOT NULL AS x`)))
+  await db.exec(`CREATE FUNCTION public.log_cron_defect(a text, b text, c text, d jsonb) RETURNS void LANGUAGE sql AS $s$ SELECT NULL::void $s$;`);
+await db.exec(onFixedClock(newestFunction("sweep_declutter_talk_reminders").stmt));
+await db.exec(onFixedClock(newestFunction("sweep_chat_unread_reminders").stmt));
+// Only this section's message is unread: the earlier sections' messages would also be due a day later.
+await db.exec(`DELETE FROM public.declutter_order_talk_messages; DELETE FROM public.declutter_handover_talk_messages;`);
+const D = await paidOrder("d", BUYER, SELLER3, 4, "Floor lamp");
+const tD = await talkOf(D);
+await say(tD, BUYER, "buyer", 60 * 26);
+const fixedAt = async (mins) => setClock(db, one(await svc(`SELECT (${at(60 * 26 + mins)})::text AS t`)));
+await fixedAt(14);
+const w1 = (await svc(`SELECT public.sweep_chat_unread_reminders() AS j`))[0]?.j;
+ok(w1 && Number(w1.declutter_chats) === 0, `fixed clock: 14 minutes, the no-argument wrapper sends nothing (${JSON.stringify(w1)})`);
+await fixedAt(15);
+const w2 = (await svc(`SELECT public.sweep_chat_unread_reminders() AS j`))[0]?.j;
+ok(w2 && Number(w2.declutter_chats) === 1 && !w2.failed, `fixed clock: at 15 minutes, one reminder through the wrapper (${JSON.stringify(w2)})`);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

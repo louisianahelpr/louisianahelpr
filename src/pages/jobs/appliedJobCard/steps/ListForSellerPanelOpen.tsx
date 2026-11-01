@@ -145,7 +145,7 @@ export default function ListForSellerPanelOpen({ jobId, posterName }: PanelProps
     onError: (e: Err) => toast(e.userMessage ?? "We couldn't send those. Try again."),
   });
   const remove = useMutation({
-    mutationFn: (id: string) => helprDeleteListing(id),
+    mutationFn: (id: string) => helprDeleteListing(user?.id ?? "", id),
     onSuccess: refresh,
     onError: (e: Err) => toast(e.userMessage ?? "We couldn't delete that. Try again."),
   });

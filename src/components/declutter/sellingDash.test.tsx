@@ -299,6 +299,31 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(lines).toEqual(["For sale · Porch pickup · Meet at a safe spot", "For sale · Porch pickup"]);
   });
 
+  // Next-step line (owner 2026-11-01: "people aren't told what to do next"): a row that waits on the seller (a draft,
+  // a rejected listing) says "Next: …" in the shared NextStep words; a live, paused or checked one says where it stands.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |   rejected: "Open it to see why it wasn't approved", |
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | : next.who === "you" ? "font-medium text-foreground" : "text-muted-foreground" | : "text-muted-foreground"
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | const statusLine = drop ? "May drop tonight" : nextStepWords(next); | const statusLine = drop ? "May drop tonight" : next.text;
+  it("Next-step line: a row that waits on the seller says 'Next: …'; the rest say where they stand", async () => {
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByText("Mirror");
+    const line = (title: string) => {
+      const row = Array.from(container.querySelectorAll("[data-listing-row]")).find((r) => r.textContent!.includes(title))!;
+      return row.querySelector("[data-listing-status]") as HTMLElement;
+    };
+    expect(line("Desk").textContent).toBe("Next: finish it to sell it");
+    expect(line("Mirror").textContent).toBe("Next: open it to see why it wasn't approved");
+    for (const t of ["Desk", "Mirror"]) {
+      expect(line(t).getAttribute("data-next-step"), t).toBe("you");
+      expect(line(t).className, t).toMatch(/text-foreground/);
+    }
+    for (const t of ["Lamp", "Rug", ITEM.title]) {
+      expect(line(t).getAttribute("data-next-step"), t).not.toBe("you");
+      expect(line(t).textContent, t).not.toMatch(/^Next:/);
+    }
+    expect(line("Rug").textContent).toBe("Paused. Hidden from buyers.");
+  });
+
   it("every listing row: a thumbnail, ONE status line, the actions in one group", async () => {
     const { container } = at("/declutter?tab=selling");
     await screen.findByText("Oak rocking chair");

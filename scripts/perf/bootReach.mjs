@@ -230,6 +230,45 @@ export function declutterItemSplit(root, split = signedInSplit(root)) {
 }
 
 /**
+ * Profile's page and its first-screen panels (B90, 11-01): Money's tab and bank card, Notifications' settings list.
+ */
+export const PROFILE_FIRST_SCREEN_ROOTS = [
+  "src/pages/profile/Profile.tsx",
+  "src/components/profile/EarningsTab.tsx",
+  "src/components/PaymentTab.tsx",
+  "src/components/NotificationPreferences.tsx",
+];
+// Not SmsAlertsCard (Notifications' SMS card): it reaches lifecycleErrors and the error copy behind it, which the
+// Declutter item page shares; in this group they cost the item page +5 KB gz and /declutter +5 (B90 build).
+/** The other big signed-in pages that share a few of Profile's helpers (see profileFirstScreenModules). */
+export const PROFILE_SHARING_PAGE_ROOTS = [
+  "src/pages/declutter/DeclutterItemPage.tsx",
+  "src/pages/declutter/DeclutterPage.tsx",
+  "src/pages/jobs/JobsSection.tsx",
+  "src/pages/messages/Messages.tsx",
+  "src/pages/post-job/PostJob.tsx",
+];
+
+/**
+ * The signed-in-pages modules (homeOff) Profile's first screen reaches (B90, 11-01). In signed-in-pages they made every
+ * /profile load fetch that whole chunk AND, through its other modules' static imports (lifecycleErrors,
+ * declutter/api, ...), the 26.5 KB declutter-item-pages chunk: lab, Slow 4G x4 CPU, both ended ~4.0-4.1 s on Money.
+ * Their own group; the other screens that use them fetch it beside signed-in-pages, in the same round.
+ */
+export function profileFirstScreenModules(root, split = signedInSplit(root)) {
+  const reach = staticReach(root, PROFILE_FIRST_SCREEN_ROOTS.map((r) => path.join(root, r)));
+  const others = staticReach(root, PROFILE_SHARING_PAGE_ROOTS.map((r) => path.join(root, r)));
+  const mine = [...split.homeOff].filter((f) => reach.has(f));
+  // `shared`: the few small helpers the other big signed-in pages also run (openExternalUrl, storageCacheControl,
+  // ...). In `own` they cost the Declutter item page +4 KB gz and /declutter +5 (B90 build); in their own tiny chunk
+  // those pages fetch only them. Both sets are closed under static imports (each is a reach intersected with homeOff).
+  return {
+    own: new Set(mine.filter((f) => !others.has(f))),
+    shared: new Set(mine.filter((f) => others.has(f))),
+  };
+}
+
+/**
  * Home's PAGE roots (B88, 11-01): homeFirstScreenRoots without EVERY_PAGE_ROOTS. App mounts those (the dock, Legal,
  * the ID sheet, ...) lazily beside every page, after Home's first paint, so their shared code is not Home's first
  * round: vite.config.ts's app-shared admits Home's shared code by this reach, and signedInSplit's homeLate and

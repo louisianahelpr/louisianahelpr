@@ -25,3 +25,6 @@ export function guestBrowseSplit(root: string): { browseOnly: Set<string>; homeS
 export const DECLUTTER_ITEM_ROOT: string;
 export function declutterItemSplit(root: string, split?: { deep: Set<string>; homeOff: Set<string> }): { itemDeep: Set<string>; itemPages: Set<string> };
 export function homeIconFiles(root: string): Set<string>;
+export const PROFILE_FIRST_SCREEN_ROOTS: string[];
+export const PROFILE_SHARING_PAGE_ROOTS: string[];
+export function profileFirstScreenModules(root: string, split?: { deep: Set<string>; homeOff: Set<string> }): { own: Set<string>; shared: Set<string> };

@@ -220,8 +220,8 @@ describe("SH2b: link preview + search engines", () => {
     // By photo id through shop-photo, never a storage path (it names the owner).
     expect(html).toContain('<meta property="og:image" content="https://example.supabase.co/functions/v1/shop-photo?id=7c0c9a4e-1111-4222-8333-444455556666&amp;kind=shop&amp;w=1200&amp;og=1"');
     expect(html).not.toMatch(/job-photos|storage\/v1/);
-    // Values only: still exactly two og:image tags, in the shell's order.
-    expect(html.match(/<meta property="og:image" /g)?.length).toBe(2);
+    // Values only: still exactly one og:image tag (owner 10-31: no second, square one).
+    expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
   });
 
   it("a non-id shop path is a noindex 'not available' card, no lookup", async () => {

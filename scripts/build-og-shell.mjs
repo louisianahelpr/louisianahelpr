@@ -86,7 +86,7 @@ const REQUIRED_ANCHORS = [
 
 /** The image block must survive untouched — assert it is still intact. */
 const IMAGE_ORDER_GUARD =
-  /<meta property="og:image" content="[^"]*og-image\.png[^"]*" \/>\s*<meta property="og:image:type"[^>]*\/>\s*<meta property="og:image:width" content="1200" \/>\s*<meta property="og:image:height" content="630" \/>\s*<meta property="og:image:alt"[^>]*\/>\s*<meta property="og:image" content="[^"]*og-image-square\.png"/;
+  /<meta property="og:image" content="[^"]*og-image\.png[^"]*" \/>\s*<meta property="og:image:type"[^>]*\/>\s*<meta property="og:image:width" content="1200" \/>\s*<meta property="og:image:height" content="630" \/>\s*<meta property="og:image:alt"[^>]*\/>/;
 
 async function main() {
   let html;
@@ -110,11 +110,13 @@ async function main() {
     process.exit(1);
   }
 
-  if (!IMAGE_ORDER_GUARD.test(html)) {
+  const ogImageCount = (html.match(/<meta property="og:image" /g) ?? []).length;
+  if (!IMAGE_ORDER_GUARD.test(html) || ogImageCount !== 1) {
     console.error(
-      "✗ The og:image block in index.html is no longer in the expected order.\n" +
-        "  Banner (1200x630) must come FIRST with its width/height/alt immediately\n" +
-        "  after it, then the 1024x1024 square. See the comment above those tags.",
+      "✗ The og:image block in index.html is not the one 1200x630 banner.\n" +
+        `  Found ${ogImageCount} og:image tags; there must be exactly one, the banner (1200x630),\n` +
+        "  with its type/width/height/alt immediately after it. A second (square) og:image\n" +
+        "  let iMessage show the H mark doubled and cut off (owner, 10-31).",
     );
     process.exit(1);
   }

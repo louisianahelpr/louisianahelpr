@@ -1,7 +1,7 @@
 /**
  * Boards 79 and 80: Declutter's "What next" sheets on the shared WhatNextSheet.
  * 79 (after an offer): the real rules from the offer panel's fine print, read 2026-10-20 (48 hours to answer,
- * 48 hours to check out, nothing charged until then), the pickup total from buyNowTotalCents.
+ * 24 hours to check out, nothing charged until then), the pickup total from buyNowTotalCents.
  * 80 (after listing): price and next drop read back from the item via priceDrop.ts; a fixed-price
  * listing shows no drop step; a listing sent for review says so.
  *

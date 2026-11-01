@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -178,9 +179,9 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
             <span className="block text-ds-15 font-semibold text-foreground">Get told about new jobs nearby</span>
             <span className="block text-ds-13 text-muted-foreground">Your job alerts are off. Be first to apply.</span>
           </span>
-          <button type="button" onClick={() => navigate("/profile?tab=notifications")} className="btn-grad-primary btn-press shrink-0 rounded-full min-h-11 px-5 text-ds-15 font-semibold">
+          <Button type="button" variant="primary" size="sm" onClick={() => navigate("/profile?tab=notifications")} className="shrink-0 px-5 text-ds-15 font-semibold">
             Turn on
-          </button>
+          </Button>
         </section>
       )}
 

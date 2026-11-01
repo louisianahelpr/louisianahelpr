@@ -72,6 +72,12 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Q104 (20261101181403): fetchActivityCores (src/lib/activityCores.ts) runs only for a signed-in member's activity
+  // cores and sends the client's own fixed column lists; any error returns null and the old reads run. No message exists.
+  get_my_activity_cores: {
+    not_signed_in: { reason: "no message exists at this site: fetchActivityCores only runs signed in, and any error falls back to the old reads" },
+    bad_columns: { reason: "fetchActivityCores sends the fixed JOB_READABLE_COLUMN_LIST and APPLICATION_READABLE_COLUMN_LIST, never caller input; any error falls back to the old reads" },
+  },
   // OPS-5 (20261031220447): reportSignupSource (src/lib/signupSource.ts) runs in the background only once a member is
   // signed in (SessionManager, user id set); any error is report()ed and no message exists.
   record_my_signup_source: {

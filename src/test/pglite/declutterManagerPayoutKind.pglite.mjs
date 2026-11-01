@@ -29,7 +29,10 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const DIR = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.url));
 const SPLIT = readdirSync(DIR).find((f) => f.endsWith("_declutter_manager_share_split.sql"));
 const FILE = readdirSync(DIR).find((f) => f.endsWith("_declutter_manager_payout_kind.sql"));
+const FILE2 = readdirSync(DIR).find((f) => f.endsWith("_declutter_manager_payout_admin_held.sql"));
 const SKIP = process.env.NEW_MIGRATION === "skip";
+// ADMIN_MIGRATION=skip: everything but the admin-held migration (the A checks FAIL).
+const SKIP2 = SKIP || process.env.ADMIN_MIGRATION === "skip";
 const PLANT = process.env.PLANT ?? "";
 const PLANTS = {
   // the waits table keeps the old kind CHECK: a manager payout cannot wait for the manager's setup
@@ -43,13 +46,23 @@ const PLANTS = {
   // condition b: the old items + delivery proportion
   old_ratio: ["(p.items_cents - least(p_refunded_cents, p.items_cents))\n                               / p.items_cents)", "(p.items_cents + p.delivery_cents - p_refunded_cents)\n                               / (p.items_cents + p.delivery_cents))"],
   // the prune drops a pending manager row's send mark (a re-send after a lost record)
+  // the admin list leaves the manager rows out
+  no_list: ["      SELECT 'declutter_manager', p.id, p.manager_id, p.amount_cents, p.review_reason, p.review_held_at,", "      SELECT 'declutter_manager', p.id, p.manager_id, p.amount_cents, p.review_reason, p.review_held_at, NULL::text WHERE false UNION ALL SELECT 'x', p.id, p.manager_id, p.amount_cents, p.review_reason, p.review_held_at,"],
+  // release does not put the manager row back in the queue
+  no_release: ["    UPDATE public.declutter_manager_payouts SET status = 'pending', next_attempt_at = now(), attempts = 0, review_reason = NULL,", "    UPDATE public.declutter_manager_payouts SET status = status, next_attempt_at = now(), attempts = 0, review_reason = NULL,"],
+  // settle does not close the manager row
+  no_settle: ["    UPDATE public.declutter_manager_payouts SET status = CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END,", "    UPDATE public.declutter_manager_payouts SET status = status,"],
+  // the daily held check leaves the manager rows out (no notice to the manager)
+  no_check: ["      SELECT 'declutter_manager', p.id, p.manager_id, p.amount_cents, p.review_reason, p.held_notified_at, p.is_seed\n        FROM public.declutter_manager_payouts p WHERE p.status = 'held_for_review'", "      SELECT 'declutter_manager', p.id, p.manager_id, p.amount_cents, p.review_reason, p.held_notified_at, p.is_seed\n        FROM public.declutter_manager_payouts p WHERE false"],
   prune_mark: ["        AND p.status IN ('pending', 'failed', 'held_for_review'));", "        AND false);"],
 };
 let FIX = readFileSync(DIR + FILE, "utf8");
+let FIX2 = readFileSync(DIR + FILE2, "utf8");
 if (PLANT) {
   const [find, repl] = PLANTS[PLANT] ?? [];
-  if (!find || !FIX.includes(find)) throw new Error(`PLANT=${PLANT}: not found in the migration`);
-  FIX = FIX.replace(find, repl);
+  if (!find || !(FIX.includes(find) || FIX2.includes(find))) throw new Error(`PLANT=${PLANT}: not found in the migrations`);
+  if (FIX.includes(find)) FIX = FIX.replace(find, repl);
+  else FIX2 = FIX2.replace(find, repl);
   console.log(`PLANT=${PLANT}: planted`);
 }
 if (SKIP) console.log("NEW_MIGRATION=skip: the newest bodies before this migration (expect FAILs)");
@@ -81,6 +94,7 @@ const K = U(1), M = U(2), B = U(3), M2 = U(4);
 const WORLD = `
   create role anon; create role authenticated; create role service_role;
   create schema auth;
+  create table public.t_admins (user_id uuid primary key);
   create table auth.users (id uuid primary key);
   insert into auth.users values ('${K}'), ('${M}'), ('${B}'), ('${M2}');
   create function auth.uid() returns uuid language sql stable as $f$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $f$;
@@ -105,11 +119,12 @@ const WORLD = `
   ${table(W, "payout_payee_waits")}
   ${table(W, "payout_payee_reminders")}
   ${table(H, "payout_holds")}
+  ${table(W, "payout_settlements")}
   alter table public.profiles add column ban_status text, add column auto_suspended_until timestamptz, add column is_seed boolean default false;
   create table public.helpr_task_payouts (id uuid primary key, status text, attempts int default 0, next_attempt_at timestamptz);
   create table public.shop_payouts (id uuid primary key, status text, attempts int default 0, next_attempt_at timestamptz);
   create table public.declutter_delivery_refunds (id uuid primary key, status text, attempts int default 0, next_attempt_at timestamptz);
-  create table public.admin_audit_log (action text, target_type text, target_id text);
+  create table public.admin_audit_log (action text, target_type text, target_id text, admin_id uuid, details jsonb);
   create table public.declutter_manager_grants (id uuid primary key default gen_random_uuid(), seller_id uuid, manager_id uuid,
     status text not null, share_type text not null, share_pct integer, share_cents integer);
   create table public.declutter_payouts (
@@ -124,6 +139,7 @@ const WORLD = `
   -- The delivery branch's types (never reached: pickup orders only).
   create table public.helpr_tasks (id uuid primary key, status text, stuck_stage text);
   create table public.declutter_order_deliveries (order_id uuid, task_id uuid);
+  alter table public.helpr_tasks add column source_kind text, add column source_id uuid;
   create table public.notices (user_id uuid, title text, body text);
   create function public.declutter_notify(p_user uuid, p_kind text, p_title text, p_body text, p_link text, p_actor uuid default null)
     returns void language sql as $f$ insert into public.notices values (p_user, p_title, p_body) $f$;
@@ -133,7 +149,20 @@ const WORLD = `
   create table public.t_final (order_id uuid primary key);
   create function public.declutter_sale_final(p uuid) returns boolean language sql stable as $f$ select exists (select 1 from public.t_final where order_id = p) $f$;
   create function public.declutter_order_refunds_recorded_cents(uuid) returns integer language sql as $f$ select 0 $f$;
-  create function public.has_role(uuid, text) returns boolean language sql as $f$ select false $f$;
+  create function public.has_role(u uuid, r text) returns boolean language sql as $f$ select r = 'admin' and exists (select 1 from public.t_admins a where a.user_id = u) $f$;
+  alter table public.helpr_task_payouts add column helpr_id uuid, add column amount_cents int, add column review_reason text,
+    add column review_held_at timestamptz, add column held_notified_at timestamptz, add column task_id uuid, add column stripe_transfer_id text;
+  alter table public.shop_payouts add column order_id uuid, add column amount_cents int, add column review_reason text,
+    add column review_held_at timestamptz, add column held_notified_at timestamptz, add column stripe_transfer_id text;
+  create table public.shop_orders (id uuid primary key, seller_id uuid, buyer_id uuid, is_seed boolean, status text, close_reason text);
+  create table public.shop_refunds (id uuid primary key, order_id uuid, refund_cents int, review_reason text, review_held_at timestamptz,
+    held_notified_at timestamptz, is_seed boolean, status text, stripe_payment_intent_id text);
+  alter table public.declutter_refunds add column refund_cents int, add column review_reason text, add column review_held_at timestamptz,
+    add column held_notified_at timestamptz, add column is_seed boolean;
+  alter table public.declutter_delivery_refunds add column order_id uuid, add column refund_cents int, add column stripe_payment_intent_id text,
+    add column review_reason text, add column review_held_at timestamptz, add column held_notified_at timestamptz, add column is_seed boolean;
+  alter table public.declutter_orders add column is_seed boolean default false;
+  alter table public.declutter_payouts add column review_reason text, add column held_notified_at timestamptz;
   ${real("declutter_consume_fee_debt")}
   ${real("declutter_order_items_named")}
   ${real("declutter_manager_first_name")}
@@ -143,16 +172,22 @@ await db.exec(WORLD);
 await db.exec(SPLIT_SQL);
 for (const n of ["payout_defer", "payout_hold_for_review", "payout_payee_wait_seen", "payout_payee_waits_prune",
   "payout_mark_sending", "payout_send_marks_for", "payout_payee_wait_cleared", "payout_payee_paged"]) await db.exec(real(n));
+for (const n of ["admin_payouts_held_for_review", "admin_payout_release", "admin_payout_settle_by_hand", "payout_held_check",
+  "money_ref_in_use"]) await db.exec(real(n));
 if (!SKIP) {
   for (let i = 0; i < 3; i++) await db.exec(FIX);
   console.log(`applied ${SPLIT}, then ${FILE} 3x`);
+}
+if (!SKIP2) {
+  for (let i = 0; i < 3; i++) await db.exec(FIX2);
+  console.log(`applied ${FILE2} 3x`);
 }
 const one = async (sql) => {
   try {
     return (await db.query(sql)).rows[0];
   } catch (e) {
     // NEW_MIGRATION=skip: the manager kind is refused; the check reading the answer FAILs on undefined.
-    if (SKIP || PLANT) return { error: String(e.message).split("\n")[0] };
+    if (SKIP2 || PLANT) return { error: String(e.message).split("\n")[0] };
     throw e;
   }
 };
@@ -161,7 +196,7 @@ const all = async (sql) => {
     return (await db.query(sql)).rows;
   } catch (e) {
     // NEW_MIGRATION=skip, as above.
-    if (SKIP || PLANT) return [];
+    if (SKIP2 || PLANT) return [];
     throw e;
   }
 };
@@ -171,7 +206,7 @@ const ex = async (sql) => {
     await db.exec(sql);
   } catch (e) {
     // NEW_MIGRATION=skip: a write the old CHECKs refuse fails; the checks after it FAIL on what is missing.
-    if (SKIP || PLANT) return;
+    if (SKIP2 || PLANT) return;
     throw e;
   }
 };
@@ -287,6 +322,44 @@ check("K12 a $10 part refund of $40 items (+$10 delivery) at 20%: the $8 share b
 await one(`select public.declutter_rebook_payout('${so}', 5000) as r`);
 after = await one(`select m.amount_cents as m, m.status from public.declutter_manager_payouts m where m.order_id = '${so}'`);
 check("K13 a full refund (items + delivery) leaves the share 0", after?.m === 0 && after?.status === "nothing_due", JSON.stringify(after));
+
+// A1-A5, the lead's condition on 266e149865: the admin money page lists, releases and settles a held manager row.
+const ADMIN = U(9);
+await ex(`insert into auth.users values ('${ADMIN}'); insert into public.t_admins values ('${ADMIN}');`);
+const asAdmin = async (sql) => {
+  await ex(`select set_config('request.jwt.claim.sub', '${ADMIN}', false)`);
+  try {
+    return await one(sql);
+  } finally {
+    await ex(`select set_config('request.jwt.claim.sub', '', false)`);
+  }
+};
+o = await sale([["Mirror", 5000]]);
+await handover(o);
+id = await mgrId(o);
+await ex(`select public.payout_hold_for_review('declutter_manager', '${id}', 'rejected', 'stripe rejected')`);
+let list = await asAdmin(`select public.admin_payouts_held_for_review() as l`);
+const row = (list?.l ?? []).find((x) => x.id === id);
+check("A1 the admin money page lists the held manager row, to the manager, in the order's group",
+  row?.kind === "declutter_manager" && row?.payee_id === M && row?.payee_account === "acct_m" && row?.stripe_group === `declutter_order_${o}`, JSON.stringify(row ?? list));
+await ex(`delete from public.notices`);
+await one(`select public.payout_held_check() as n`);
+let nm2 = await lastNotice(M);
+r = await one(`select held_notified_at is not null as told from public.declutter_manager_payouts where id = '${id}'`);
+check("A2 the daily held check tells the manager once (\"Your payout needs a quick review\")", nm2?.title === "Your payout needs a quick review" && r?.told === true, JSON.stringify({ nm2, r }));
+let rel = await asAdmin(`select public.admin_payout_release('declutter_manager', '${id}', 'checked Stripe: nothing sent', true) as r`);
+r = await one(`select status, attempts, review_held_at from public.declutter_manager_payouts where id = '${id}'`);
+check("A3 release puts it back in the queue with fresh tries, logged", rel?.r?.result === "released" && r?.status === "pending" && r?.attempts === 0
+  && (await one(`select count(*)::int as n from public.admin_audit_log where action = 'admin_payout_release' and target_type = 'declutter_manager' and target_id = '${id}'`))?.n === 1,
+  JSON.stringify({ rel, r }));
+await ex(`select public.payout_hold_for_review('declutter_manager', '${id}', 'rejected', 'again')`);
+let st = await asAdmin(`select public.admin_payout_settle_by_hand('declutter_manager', '${id}', 'tr_hand1', 1000, 'sent by hand in Stripe') as r`);
+r = await one(`select status, stripe_transfer_id, settled_by_hand_cents from public.declutter_manager_payouts where id = '${id}'`);
+check("A4 settle by hand with the transfer id closes the row as succeeded, in the ledger", st?.r?.status === "succeeded" && r?.status === "succeeded"
+  && r?.stripe_transfer_id === "tr_hand1" && (await one(`select count(*)::int as n from public.payout_settlements where row_kind = 'declutter_manager' and row_id = '${id}'`))?.n === 1,
+  JSON.stringify({ st, r }));
+const notAdmin = await one(`select public.admin_payouts_held_for_review() as l`).catch((e) => ({ error: e.message }));
+check("A5 only an admin reads the list", /admin_only/.test(notAdmin?.error ?? ""), JSON.stringify(notAdmin));
 
 // K14: authz: every restated function stays service_role only.
 const priv = await one(`select bool_or(has_function_privilege('authenticated', f, 'EXECUTE') or has_function_privilege('anon', f, 'EXECUTE')) as any

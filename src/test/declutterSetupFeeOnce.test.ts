@@ -28,12 +28,12 @@
  *
  * @mutate supabase/migrations/20261026154738_declutter_setup_fee_once.sql |    WHERE user_id = o.buyer_id AND onboarding_fee_paid IS NOT TRUE\n |    WHERE user_id = o.buyer_id\n
  * @mutate supabase/functions/release-payout/index.ts |       .eq("user_id", job.helper_id)\n      .eq("onboarding_fee_paid", false)\n |       .eq("user_id", job.helper_id)\n
- * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |   PERFORM public.declutter_claim_setup_fee(p_order_id);\n  RETURN jsonb_build_object('result', 'paid');\nEND; |   RETURN jsonb_build_object('result', 'paid');\nEND;
+ * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |   PERFORM public.declutter_claim_setup_fee(p_order_id);\n  RETURN jsonb_build_object('result', 'paid');\nEND; |   RETURN jsonb_build_object('result', 'paid');\nEND;
  * @mutate supabase/migrations/20261031164337_declutter_door_pickup_uses_places.sql |   v_setup := public.declutter_setup_fee_due_cents(v_uid); |   v_setup := 0;
  * @mutate supabase/migrations/20261026154738_declutter_setup_fee_once.sql |     OR NEW.setup_fee_cents IS DISTINCT FROM OLD.setup_fee_cents THEN |     OR false THEN
  * @mutate supabase/functions/declutter-checkout/index.ts |   const chargeCents = order.total_cents + setupFeeCents; |   const chargeCents = order.total_cents;
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (answer.result === "paid" \|\| answer.result === "already_paid") { |   if (answer.result === "paid") {
- * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |     UPDATE public.declutter_orders SET setup_fee_state = 'not_charged' WHERE id = p_order_id;\n |
+ * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |     UPDATE public.declutter_orders SET setup_fee_state = 'not_charged' WHERE id = p_order_id;\n |
  * @mutate supabase/migrations/20261031214749_seller_setup_fee_from_payout_restated.sql |     IF public.declutter_setup_fee_due_cents(auth.uid()) > 0 THEN |     IF false THEN
  * @mutate supabase/migrations/20261031214749_seller_setup_fee_from_payout_restated.sql |     IF public.has_role(auth.uid(), 'admin') OR COALESCE(( |     IF public.has_role(auth.uid(), 'admin') OR public.identity_check_exempt(auth.uid()) OR COALESCE((
  * @mutate src/lib/declutter/api.ts |   else if (setupFeeRefusal(err)) promptAccountSetupFee(); |
@@ -122,7 +122,8 @@ describe("Q2352 the setup fee is charged once per account", () => {
     expect(paid).toContain("IF p_amount_cents IS DISTINCT FROM o.total_cents + o.setup_fee_cents AND NOT (o.setup_fee_cents > 0 AND p_amount_cents = o.total_cents) THEN");
     expect(paid).toContain("IF o.setup_fee_cents > 0 AND p_amount_cents = o.total_cents AND o.setup_fee_state IS NULL THEN UPDATE public.declutter_orders SET setup_fee_state = 'not_charged' WHERE id = p_order_id; END IF;");
     const answers = [...paid.matchAll(/RETURN jsonb_build_object\('result', 'paid'\);/g)];
-    expect(answers.length).toBeGreaterThan(1);
+    // BUY-1 (20261101030040): one 'paid' answer left (a payment on a released hold is refunded, never honoured).
+    expect(answers.length).toBeGreaterThan(0);
     for (const a of answers) {
       expect(paid.slice(Math.max(0, a.index! - 70), a.index)).toContain("PERFORM public.declutter_claim_setup_fee(p_order_id);");
     }

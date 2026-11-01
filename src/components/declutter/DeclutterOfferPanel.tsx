@@ -477,7 +477,7 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
           <p id="declutter-offer-help" className="text-xs text-muted-foreground">
             {amount.trim() && offerProblem
               ? offerProblem
-              : `The seller has 48 hours to accept, say no or answer with another price. If they accept, you have 48 hours to check out. Nothing is charged until you pay.`}
+              : `The seller has 48 hours to accept, say no or answer with another price. If they accept, you have 24 hours to check out. Nothing is charged until you pay.`}
           </p>
         </form>
       )}

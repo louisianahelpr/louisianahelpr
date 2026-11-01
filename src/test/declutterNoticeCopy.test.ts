@@ -11,7 +11,7 @@
  * src/test/pglite/declutterNoticeCopy.pglite.mjs (BEFORE on prod's bodies, 3x replay, 6 planted defects RED).
  */
 // @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_notice_names_item(p_user, p_other, v_link, p_message), v_link);
-// @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id)),\n    '/declutter?view=selling', o.buyer_id); | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id)),\n    '/declutter?view=offers', o.buyer_id);
+// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id)),\n    '/declutter?view=selling', o.buyer_id); | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id)),\n    '/declutter?view=offers', o.buyer_id);
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -53,7 +53,9 @@ describe("Declutter notice copy", () => {
   it("no notice tells a buyer an item is theirs before they paid", () => {
     const offenders = all.filter((c) => /It''s yours: check out/.test(c.title)).map((c) => c.fn);
     expect(offenders).toEqual([]);
-    expect(code("declutter_take_item")).toContain("'Reserved for you: check out within 48 hours'");
+    // BUY-1 (owner 10-31): Buy now holds 30 minutes, an accepted offer 24 hours.
+    expect(code("declutter_take_item")).toContain("'Reserved for you: check out within 30 minutes'");
+    expect(code("declutter_take_item")).toContain("'Reserved for you: check out within 24 hours'");
   });
 
   it("the seller's sale notices open Selling", () => {

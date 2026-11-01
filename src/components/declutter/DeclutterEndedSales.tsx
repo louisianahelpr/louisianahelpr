@@ -40,7 +40,7 @@ function endedSaleWords(l: Pick<CartLine, "status" | "order_status" | "price_cen
     if (l.status === "missed") return free ? "Cancelled after it was claimed. Your item is back up." : "Cancelled after the buyer paid. They were refunded, and your item is back on sale.";
     return free ? "Cancelled on your side after it was claimed." : "Cancelled on your side after the buyer paid. They were refunded.";
   }
-  if (l.status === "missed") return free ? "The buyer didn't pick a pickup in 48 hours." : "The buyer didn't check out in 48 hours. Nothing was charged.";
+  if (l.status === "missed") return free ? "The buyer didn't pick a pickup in 48 hours." : "The buyer didn't check out in time. Nothing was charged.";
   return "You called off the sale. Nothing was charged.";
 }
 

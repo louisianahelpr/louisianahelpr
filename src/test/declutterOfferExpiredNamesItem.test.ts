@@ -5,11 +5,11 @@
  * who can have several open. Reads the EFFECTIVE sweep; the backend proof on a real database is
  * src/test/pglite/declutterOfferExpiredNamesItem.pglite.mjs (3x; red without the migration and on its planted defects).
  */
-// @mutate supabase/migrations/20261030152217_declutter_offer_expired_names_item.sql | (SELECT i.title FROM public.declutter_items i WHERE i.id = o.item_id) AS title | NULL::text AS title
-// @mutate supabase/migrations/20261030152217_declutter_offer_expired_names_item.sql | format('The seller did not answer your offer on "%s" within 48 hours, so it closed. Nothing was charged.', r.title) | 'The seller did not answer your offer within 48 hours, so it closed. Nothing was charged.'
-// @mutate supabase/migrations/20261030152217_declutter_offer_expired_names_item.sql | format('You did not answer the counteroffer on "%s" within 48 hours, so it closed.', r.title) | 'You did not answer the counteroffer within 48 hours, so it closed.'
-// @mutate supabase/migrations/20261030152217_declutter_offer_expired_names_item.sql | format('You did not answer an offer on "%s" within 48 hours, so it closed.', r.title) | 'You did not answer an offer within 48 hours, so it closed.'
-// @mutate supabase/migrations/20261030152217_declutter_offer_expired_names_item.sql | format('The buyer did not answer your counteroffer on "%s" within 48 hours, so it closed.', r.title) | 'The buyer did not answer your counteroffer within 48 hours, so it closed.'
+// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | RETURNING o.id, o.buyer_id, o.seller_id, o.awaiting, o.item_id,\n      (SELECT i.title FROM public.declutter_items i WHERE i.id = o.item_id) AS title | RETURNING o.id, o.buyer_id, o.seller_id, o.awaiting, o.item_id,\n      NULL::text AS title
+// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | format('The seller did not answer your offer on "%s" within 48 hours, so it closed. Nothing was charged.', r.title) | 'The seller did not answer your offer within 48 hours, so it closed. Nothing was charged.'
+// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | format('You did not answer the counteroffer on "%s" within 48 hours, so it closed.', r.title) | 'You did not answer the counteroffer within 48 hours, so it closed.'
+// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | format('You did not answer an offer on "%s" within 48 hours, so it closed.', r.title) | 'You did not answer an offer within 48 hours, so it closed.'
+// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | format('The buyer did not answer your counteroffer on "%s" within 48 hours, so it closed.', r.title) | 'The buyer did not answer your counteroffer within 48 hours, so it closed.'
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

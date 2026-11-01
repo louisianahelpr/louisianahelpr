@@ -306,7 +306,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/postjob/detailsSection/VideoScope.tsx` | input×1 | file |  | Remove video |
 | `src/components/postjob/JobCategoryGroups.tsx` | input×1 | search |  | category-picker · e.g. wash my driveway · Matching categories · Category groups |
 | `src/components/postjob/LogisticsSection.tsx` | input×1, textarea×2, checkbox/switch/radio×1 | number | 500 | job-type-label · Number of Helprs needed · when-label · flexible · need-it-today · need-it-today-note · date-label · date-closed-error |
-| `src/components/postjob/SellForMeBlanks.tsx` | input×1 | text | 40 | About how many? |
+| `src/components/postjob/SellForMeBlanks.tsx` | input×1 | text | 40 | About how many? · Suggested price |
 | `src/components/SuggestCategory.tsx` | input×1 | text |  | suggest-category-input · e.g. Tutoring · suggest-category-help |
 | `src/components/TimePickerWheel.tsx` | input×4, date/calendar×4 | time |  | time-pick-period |
 | `src/lib/offerResponseWindow.ts` | select×1 |  |  |  |

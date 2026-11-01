@@ -137,16 +137,19 @@ const BirthdayPopup = ({ dateOfBirth, firstName, deferred = false }: BirthdayPop
                 }}
               >
                 {/* 44px box like the shared close X; the bare 16px glyph was
-                    also the whole tap target. */}
-                <button
+                    also the whole tap target. The shared compact ghost icon
+                    Button, not a hand-made one; 16px glyph kept (B75 11-01). */}
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="iconCompact"
                   onClick={dismiss}
-                  className="absolute top-1 right-1 inline-flex h-11 w-11 items-center justify-center ctl-exit ctl-tint transition-colors active:opacity-70"
+                  className="absolute top-1 right-1 ctl-exit active:opacity-70 [&_svg]:size-4"
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   aria-label="Close"
                 >
-                  <X className="w-4 h-4" />
-                </button>
+                  <X />
+                </Button>
 
                 {/* `mt-1` clears the absolutely-positioned close X above-right
                     of it now that the card hugs its content and the two are no

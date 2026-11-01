@@ -13,7 +13,7 @@
 // coverage, minus the map plumbing it never depended on.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { EMPTY_VIEWER_FEED_EXCLUSIONS, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 
 import JobCard from "./dashboard/JobCard";
@@ -86,6 +86,7 @@ vi.mock("@/hooks/useMapKitJs", () => ({
 const mapInstances: Array<{
   setRegionAnimated: ReturnType<typeof vi.fn>;
   addAnnotations: ReturnType<typeof vi.fn>;
+  addOverlays: ReturnType<typeof vi.fn>;
 }> = [];
 
 /** The smallest `window.mapkit` the component's lifecycle can run against. */
@@ -332,6 +333,57 @@ describe("BrowseMap — viewer-local exclusions (B1/B3, and 2026-09-19)", () => 
 // The map surface itself: MapKit is loaded on demand and can fail to
 // authorize. That must read as a stated outage with a way forward, never as a
 // blank grey box.
+// NIGHT-JOBSMA5-4 (audit 10-30 night): the shaded "Busy right now" circles had no label on the map. A key says what
+// they are while a circle is drawn, and is absent when no pin has a parish to shade.
+// @mutate src/components/BrowseMap.tsx | {!mapKitUnusable && mapReady && busyShown && <BusyAreasMapKey />} | {null}
+// @mutate src/components/browseMap/useMapLayersSync.ts |       setShown(overlaysRef.current.length > 0); |       setShown(true);
+describe("BrowseMap busy-area key (NIGHT-JOBSMA5-4)", () => {
+  it("says what the shaded circles are while one is drawn", async () => {
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+    await screen.findByTestId("browse-map-surface");
+    expect(await screen.findByTestId("browse-map-busy-key")).toHaveTextContent("Shaded circles: parishes busy right now");
+    const map = mapInstances[mapInstances.length - 1];
+    expect(map.addOverlays).toHaveBeenCalled();
+  });
+
+  // @mutate src/components/busyAreas/busyAreaOverlays.ts | busyCircleOpacity(a.total, max) * (dimmed ? BUSY_DIM_FACTOR : 1) | busyCircleOpacity(a.total, max)
+  // @mutate src/components/browseMap/useMapLayersSync.ts |     map.addEventListener("region-change-end", onRegion); |     void onRegion;
+  it("dims the circles once the map is zoomed in to street level, and restores them zoomed out", async () => {
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+    await screen.findByTestId("browse-map-busy-key");
+    const map = mapInstances[mapInstances.length - 1] as unknown as {
+      addOverlays: ReturnType<typeof vi.fn>; addEventListener: ReturnType<typeof vi.fn>; region?: unknown;
+    };
+    const fill = () => {
+      const calls = map.addOverlays.mock.calls;
+      const first = (calls[calls.length - 1][0] as { options: { style: { options: { fillOpacity: number } } } }[])[0];
+      return first.options.style.options.fillOpacity;
+    };
+    const full = fill();
+    expect(full).toBeGreaterThan(0);
+    const regionEnd = () => map.addEventListener.mock.calls.filter((c) => c[0] === "region-change-end").forEach((c) => (c[1] as () => void)());
+    map.region = { span: { latitudeDelta: 0.05, longitudeDelta: 0.05 } };
+    act(() => regionEnd());
+    await waitFor(() => expect(fill()).toBeCloseTo(full * 0.3, 5));
+    map.region = { span: { latitudeDelta: 1.5, longitudeDelta: 1.5 } };
+    act(() => regionEnd());
+    await waitFor(() => expect(fill()).toBeCloseTo(full, 5));
+  });
+
+  it("shows no key when no pin has a parish (nothing is shaded)", async () => {
+    rpcResolver.value = [makeJob(1, { parish: null }), makeJob(2, { parish: null })];
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+    await screen.findByTestId("browse-map-surface");
+    await waitFor(() => expect(mapInstances.length).toBeGreaterThan(0));
+    const map = mapInstances[mapInstances.length - 1];
+    await waitFor(() => expect(map.addAnnotations).toHaveBeenCalled());
+    expect(screen.queryByTestId("browse-map-busy-key")).toBeNull();
+  });
+});
+
 describe("BrowseMap MapKit availability", () => {
   it("mounts a map surface and a my-location control when MapKit is ready", async () => {
     const { BrowseMap } = await import("./BrowseMap");

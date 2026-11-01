@@ -82,6 +82,16 @@ export type JobProgressState = {
    * confirm), Done (the Helpr's, else the poster's). Posted, Offered and Working have no single stamp: no time.
    */
   stamps?: readonly (string | null)[];
+  /**
+   * HAS THE CURRENT STEP BEGUN (owner, 2026-10-31: "it should be white right now while we wait"; yellow "until he
+   * is actually on the way" while it happens). Set only on On the way, Arrived and Working while the job is on its
+   * path: false = the step has not started yet (both confirmed, not set out; arrived, not started working), drawn
+   * WHITE like a later step but still marked (the hand / hourglass and the bold word); true = the step is happening
+   * (helper_on_the_way_at, an arrival on the row, work underway), drawn the app's bright yellow. Undefined (every
+   * other step) keeps the amber "you are here". Read from the job row and the card's own line, never the base rules.
+   * Guard: src/test/trackerStepWhiteUntilBegun.test.tsx.
+   */
+  begun?: boolean;
 };
 
 const at = (stage: Stage | null, waitingOnYou: boolean, word: string, next: string, held: boolean): JobProgressState => ({ stage, waitingOnYou, tone: "progress", word, next, held });
@@ -160,13 +170,13 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   const now = o.now ?? new Date();
   const card = o.card ?? cardFaceFor(job, o, now);
   const bar = card ? cardBar(o.viewer, card, job, now.getTime()) : null;
-  if (!card || !bar) return base.word === "Cancelled" ? { ...base, stage: 0, waitingOnYou: false, tone: "cancelled", label: "Cancelled" } : base;
+  if (!card || !bar) return base.word === "Cancelled" ? { ...base, stage: 0, waitingOnYou: false, tone: "cancelled", label: "Cancelled" } : withBegun(base, job, null, o.workUnderway);
   if (bar.stage === null) return { ...base, stage: null, waitingOnYou: false };
   // The tracker's own sentence is kept only where it describes the step the card is on; otherwise the line under
   // the bar is the card's own sentence, so the job page's bar and line can never disagree either.
   const sameStep = bar.tone === "progress" && base.stage === bar.stage && base.waitingOnYou === bar.waitingOnYou;
   const offPath = bar.tone === "cancelled" || (bar.label === "Dispute" && base.word === "Under review");
-  return {
+  return withBegun({
     ...base,
     stage: bar.stage,
     waitingOnYou: bar.waitingOnYou,
@@ -175,7 +185,24 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     word: sameStep || offPath ? base.word : bar.label ?? ((JOB_PROGRESS_STEPS as readonly string[])[bar.stage] ?? "Done"),
     // JOBS3-48: arrived and not started, the Helpr's bar is on Working, but the line is the card's ("Tap Start working"), never "Mark it done".
     next: (sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id) ? base.next : card.line.detail,
-  };
+  }, job, card.line.id, o.workUnderway);
+}
+
+/**
+ * JobProgressState.begun for the FINAL stage (owner 2026-10-31: white while waiting, yellow while it happens).
+ * On the way begins when the Helpr taps On my way; Arrived when an arrival is on the row (their tap, the geofence,
+ * or the poster's confirm); Working once the job is in progress past arrival, except while the Helpr's own card
+ * still says Start working / take the before photo (JOBS3-48: the bar sits on Working before work starts), or while
+ * the surface's tracking row says work has not started (`workUnderway` false: the job page and the open card pass
+ * helperProgress, where the Helpr's own tracking row wins over the poster's arrival confirm).
+ */
+function withBegun(p: JobProgressState, job: ProgressJob, lineId: string | null, workUnderway?: boolean): JobProgressState {
+  if (p.tone !== "progress" || p.stage === null || p.stage < 4 || p.stage > 6) return p;
+  const begun =
+    p.stage === 4 ? !!job.helper_on_the_way_at
+    : p.stage === 5 ? !!(job.helper_arrived_at || job.helper_arrival_verified_at || job.poster_confirmed_arrival_at)
+    : (job.status === "in_progress" || job.status === "revision_requested") && !(lineId && HELPR_NOT_STARTED.has(lineId)) && workUnderway !== false;
+  return { ...p, begun };
 }
 
 /**

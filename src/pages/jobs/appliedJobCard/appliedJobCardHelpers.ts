@@ -181,3 +181,5 @@ export function closedCardLabel(app: { closed_reason?: string | null; status?: s
   if (app.closed_reason === "helper_cancelled") return "You cancelled this job";
   return app.status === "rejected" ? "Not selected" : "Job no longer available";
 }
+
+export { posterFirstName } from "@/lib/deletedPerson";

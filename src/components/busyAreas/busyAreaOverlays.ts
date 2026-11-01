@@ -1,4 +1,4 @@
-import { busyAreaCircles, busyCircleOpacity, type BusyArea } from "@/lib/busyAreas";
+import { BUSY_DIM_FACTOR, busyAreaCircles, busyCircleOpacity, type BusyArea } from "@/lib/busyAreas";
 import type { MKMap, MapKitRuntime } from "@/components/browseMap/mapkitRuntime";
 
 type Overlay = Parameters<MKMap["addOverlays"]>[0][number];
@@ -16,7 +16,7 @@ function busyColor(): string {
  * new one, so a caller keeps exactly one set on the map. Circles are not
  * interactive: the counts are read from the list beside the map.
  */
-export function drawBusyAreas(mk: MapKitRuntime, map: MKMap, areas: readonly BusyArea[], previous: readonly Overlay[]): Overlay[] {
+export function drawBusyAreas(mk: MapKitRuntime, map: MKMap, areas: readonly BusyArea[], previous: readonly Overlay[], dimmed = false): Overlay[] {
   if (previous.length) {
     try { map.removeOverlays([...previous]); } catch { /* the map was destroyed under us: nothing left to remove */ }
   }
@@ -28,7 +28,8 @@ export function drawBusyAreas(mk: MapKitRuntime, map: MKMap, areas: readonly Bus
   const overlays = areas.map(
     (a, i) =>
       new mk.CircleOverlay(new mk.Coordinate(circles[i].lat, circles[i].lng), circles[i].radiusMeters, {
-        style: new mk.Style({ fillColor: color, fillOpacity: busyCircleOpacity(a.total, max), strokeColor: color, strokeOpacity: 0.55, lineWidth: 1 }),
+        // NIGHT-JOBSMA5-4: dimmed at street zoom, where one circle would tint the whole map.
+        style: new mk.Style({ fillColor: color, fillOpacity: busyCircleOpacity(a.total, max) * (dimmed ? BUSY_DIM_FACTOR : 1), strokeColor: color, strokeOpacity: dimmed ? 0.2 : 0.55, lineWidth: 1 }),
         enabled: false,
       }),
   );

@@ -133,7 +133,7 @@ describe("vite.config.ts wires the group", () => {
   it("has a signed-in-deep group fed by signedInSplit, above signed-in-shared's priority", () => {
     const deepGroup = cfg.match(/name:\s*"signed-in-deep"[\s\S]*?\n\s*\},/)?.[0] ?? "";
     expect(deepGroup).not.toBe("");
-    expect(cfg).toMatch(/\{\s*deep:\s*signedInDeep,\s*declutterOnly,\s*homeOff\s*\}\s*=\s*signedInSplit\(process\.cwd\(\)\)/);
+    expect(cfg).toMatch(/\{\s*deep:\s*signedInDeep,\s*declutterOnly,\s*homeOff,\s*homeLate\s*\}\s*=\s*signedInSplit\(process\.cwd\(\)\)/);
     expect(deepGroup).toMatch(/signedInDeep\.has\(/);
     expect(deepGroup).toMatch(/includeDependenciesRecursively:\s*false/);
     expect(Number(deepGroup.match(/priority:\s*(\d+)/)?.[1])).toBeGreaterThan(Number(group.match(/priority:\s*(\d+)/)?.[1]));

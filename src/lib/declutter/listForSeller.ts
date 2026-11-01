@@ -8,7 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
-import { DECLUTTER_PHOTO_BUCKET, rpcData } from "./api";
+import { DECLUTTER_PHOTO_BUCKET, purgeQueuedPhotos, rpcData } from "./api";
 import { cleanListingPhoto, listingPhotoPath } from "./photos";
 
 /** One listing of the job, as the Helpr sees it. After the seller decides, only "approved" or "declined". */
@@ -156,4 +156,6 @@ export async function approveListedForMe(itemIds: string[]): Promise<ApprovalRes
 export async function declineListedForMe(itemId: string): Promise<void> {
   rpcData(await supabase.rpc("declutter_decline_listed_for_me", { p_item_id: itemId }),
     (e) => rpcErrorMessage("declutter_decline_listed_for_me", e));
+  // The decline detached the listing's photos (they sit in the Helpr's folder): the server removes them (B63).
+  await purgeQueuedPhotos();
 }

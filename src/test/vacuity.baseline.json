@@ -41,7 +41,6 @@
     "src/components/messages/ChatView.tsx",
     "src/components/messages/ConversationList.tsx",
     "src/components/profile/savedHelpersTab/SavedHelperCard.tsx",
-    "src/pages/jobs/AppliedJobCard.tsx",
     "src/pages/post-job/CheckoutStepView.tsx",
     "src/pages/post-job/EntryChoice.tsx",
     "src/pages/post-job/FormStep.tsx",

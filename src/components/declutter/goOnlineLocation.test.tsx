@@ -109,12 +109,12 @@ describe("Go online: the location it needs is said first and asked for on the pr
     expect(state.calls[0]).toEqual(["helpr_go_online", { p_on: true, p_hours: 4, p_lat: 30.4415, p_lng: -91.1301, p_radius_miles: 15 }]);
   });
 
-  // @mutate src/components/declutter/GoOnlineCard.tsx |         ? "Turn on location, or add your area in your profile, to go online." |         ? "Turn on location so we can confirm you're at the pickup address."
+  // @mutate src/components/declutter/GoOnlineCard.tsx |         ? "Turn on location, or add your ZIP code to your profile, to go online." |         ? "Turn on location so we can confirm you're at the pickup address."
   it("location refused: nothing is sent, and the words say both ways to fix it", async () => {
     state.refuse = true;
     show();
     await press();
-    await waitFor(() => expect(state.toasts.error).toEqual(["Turn on location, or add your area in your profile, to go online."]));
+    await waitFor(() => expect(state.toasts.error).toEqual(["Turn on location, or add your ZIP code to your profile, to go online."]));
     expect(state.calls).toEqual([]);
   });
 });

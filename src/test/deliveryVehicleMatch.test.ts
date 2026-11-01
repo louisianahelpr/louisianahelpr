@@ -69,6 +69,8 @@ const EXEMPT: Record<string, string> = {
   declutter_helpr_answer_no_show: "its 'open' is a PROBLEM's status; the booked Helpr answers a report, no Helpr is shown a delivery",
   helpr_task_source_held: "its 'open' is a PROBLEM's status (the money hold); no Helpr is shown a delivery",
   helpr_task_reopen: "puts a task back to open for the readers above; picks no Helpr",
+  declutter_delivery_return_finish: "a re-post after a Helpr could not finish puts the task back to open for the readers above; picks no Helpr",
+  declutter_admin_decide_stuck_delivery: "its 'open' is a PROBLEM's status; an admin decides a stuck delivery, no Helpr is shown a delivery",
   helpr_task_sweep: "the cron that closes unfilled tasks; picks no Helpr",
   helpr_tasks_open_count: "counts open deliveries by pickup area for a Helpr with no car yet (audit 1c D3-6); lists, offers, suggests and hands no task",
 };

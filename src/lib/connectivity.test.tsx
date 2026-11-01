@@ -5,7 +5,7 @@
 // error boundary's offline copy or TanStack's query pausing say "offline".
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { onlineManager } from "@tanstack/react-query";
 import {
@@ -101,14 +101,16 @@ describe("while marked offline it asks again", () => {
   it("on window focus", async () => {
     await confirmedOffline();
     await act(async () => { window.dispatchEvent(new Event("focus")); });
-    await waitFor(() => expect(screen.queryByText(BANNER)).toBeNull());
+    // The banner was on screen before the event (confirmedOffline found it); act() has flushed the probe's answer.
+    expect(screen.queryByText(BANNER)).toBeNull();
     expect(probe).toHaveBeenCalledTimes(1);
   });
 
   it("on the 'online' event", async () => {
     await confirmedOffline();
     await act(async () => { window.dispatchEvent(new Event("online")); });
-    await waitFor(() => expect(screen.queryByText(BANNER)).toBeNull());
+    // The banner was on screen before the event (confirmedOffline found it); act() has flushed the probe's answer.
+    expect(screen.queryByText(BANNER)).toBeNull();
   });
 
   it(`every ${OFFLINE_REPROBE_MS / 1000} s, and stops once back online`, async () => {

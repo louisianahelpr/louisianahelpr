@@ -30,6 +30,7 @@ const PLACE: Record<string, string[]> = {
   helpr_task_picked_up: ["t.pickup_lat"],
   helpr_task_delivered: ["t.dropoff_lat"],
   helpr_task_pickup_no_show: ["t.pickup_lat"], // "the seller was not there": a photo at the pickup point
+  helpr_task_returned: ["t.pickup_lat"], // BUY-36: a Helpr who could not finish brings the item back to the pickup point
   declutter_return_dropped_off: ["pt.lat"], // returns (Q2486): the buyer drops it at the order's pickup point, its frozen place when it has one
 };
 // Functions that check a handover-bucket photo but are not a handover photo, and why.

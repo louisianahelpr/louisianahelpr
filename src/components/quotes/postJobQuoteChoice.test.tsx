@@ -19,7 +19,7 @@
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           quotesComingSoon\n            ? { |           false\n            ? {
  * @mutate src/pages/post-job/FormStep.tsx | quotesComingSoon={!quotesOn} | quotesComingSoon={false}
  * @mutate src/pages/post-job/FormStep.tsx |           if (!askingQuotes) return form.handleReview(e); |           return form.handleReview(e);
- * @mutate src/pages/post-job/FormStep.tsx |     submitLabel = "Review"; |     submitLabel = "Ask for quotes";
+ * @mutate src/pages/post-job/FormStep.tsx |     submitLabel = t("postJob.review"); |     submitLabel = "Ask for quotes";
  * @mutate src/pages/post-job/FormStep.tsx |           form.handleReview(e, { quotes: true }); |           void 0;
  * @mutate src/components/postjob/CheckoutStep.tsx |           {!quoteAsk && (\n            <div data-testid="checkout-total-notes"> |           {(\n            <div data-testid="checkout-total-notes">
  * @mutate src/components/postjob/CheckoutStep.tsx | {quoteAsk ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <> | {false ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <>

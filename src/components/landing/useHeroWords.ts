@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
  */
 export type HeroWords = { titleLead: string; titleAccent: string; subhead: string; searchLabel: string; searchButton: string };
 
-export function heroLangIsSpanish(): boolean {
+function heroLangIsSpanish(): boolean {
   let saved: string | null;
   try {
     saved = typeof localStorage !== "undefined" ? localStorage.getItem("helpr_lang") : null;

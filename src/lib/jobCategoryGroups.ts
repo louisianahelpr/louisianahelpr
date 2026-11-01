@@ -163,7 +163,7 @@ export function sentenceCaseLabel(label: string): string {
  * ("Moving & errands"; lead 2026-10-21, the mock-up's own wording). Post a job's group tiles and Edit
  * profile's "I can help with" headings read it, so the two say the same words.
  */
-export const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" };
+const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" };
 
 export function groupTileLabel(g: { id: JobCategoryGroupId; label: string }): string {
   return GROUP_TILE_LABEL[g.id] ?? g.label;

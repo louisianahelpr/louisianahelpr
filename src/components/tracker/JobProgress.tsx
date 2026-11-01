@@ -10,7 +10,9 @@ import { JOB_PROGRESS_DRAWN, JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type JobPro
  *
  * Colour (owner): done steps GREEN; the current step AMBER (2026-10-23, the old rail's rule: one "you are here"
  * colour), with a hand when it waits on the viewer and an hourglass when it waits on the other person; later steps
- * grey. A no-show or an overdue job puts the step it never got past in the warning
+ * grey. ON THE WAY, ARRIVED AND WORKING (owner, 2026-10-31: "it should be white right now while we wait"): WHITE
+ * (the later-step outline, still with its hand / hourglass and bold word) until that step has begun, the app's
+ * bright YELLOW (--live-pill-tint) while it is happening, filled when done (JobProgressState.begun). A no-show or an overdue job puts the step it never got past in the warning
  * colour with an alert icon and its own word ("No-show?", "Overdue"); a dispute is RED on its step (the old rail's
  * rule: "red is ONLY the step that went wrong"); a cancelled job is all grey with "Cancelled" under it. Colour is
  * never the only signal: the current step carries an icon (a hand for "your move", an hourglass for "theirs") and
@@ -41,6 +43,17 @@ const BAR: Record<StepState, string> = {
   alarm: "bg-destructive",
   todo: "border border-border bg-transparent",
 };
+/** On the way / Arrived / Working as the current step (JobProgressState.begun): WHITE while it waits to begin
+ *  (the later-step outline), the app's bright yellow while it is happening (owner 2026-10-31). */
+type Phase = "waiting" | "happening";
+const PHASE_BAR: Record<Phase, string> = {
+  waiting: BAR.todo,
+  happening: "bg-[hsl(var(--live-pill-tint))]",
+};
+const PHASE_TEXT: Record<Phase, string> = {
+  waiting: "font-semibold text-foreground",
+  happening: "font-semibold text-[hsl(var(--live-pill-ink))]",
+};
 const TEXT: Record<StepState, string> = {
   done: "text-[hsl(var(--bark))]",
   you: "font-semibold text-[hsl(var(--amber-ink))]",
@@ -70,7 +83,7 @@ export function jobStepsLabel(stage: Stage, waitingOnYou: boolean, tone: StepTon
   ].filter(Boolean).join(" ");
 }
 
-function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = false, stamps, why }: {
+function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = false, stamps, why, begun }: {
   stage: Stage;
   waitingOnYou: boolean;
   tone?: StepTone;
@@ -80,8 +93,11 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
   stamps?: readonly (string | null)[];
   /** What the current step is waiting on (the tracker's line), shown when the current step is tapped. */
   why?: string;
+  /** JobProgressState.begun: the current On the way / Arrived / Working has started (yellow) or not (white). */
+  begun?: boolean;
 }) {
   const tip = useStepTooltip();
+  const phase: Phase | null = tone === "progress" && stage >= 4 && stage <= 6 && begun !== undefined ? (begun ? "happening" : "waiting") : null;
   const current: StepState = tone === "problem" ? (label === "Dispute" ? "alarm" : "problem") : waitingOnYou ? "you" : "them";
   const states: StepState[] = JOB_PROGRESS_STEPS.map((_, i) =>
     tone === "cancelled" ? "todo" : i < stage ? "done" : i === stage ? current : "todo");
@@ -99,7 +115,8 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
     );
   }
   // The current step pulses while the job is live (the old rail's railStepPulses: not on Done, not on a problem).
-  const pulses = detailed && tone === "progress" && stage < JOB_PROGRESS_STEPS.length;
+  // A step still waiting to begin is drawn like a later one (white), so it does not pulse either.
+  const pulses = detailed && tone === "progress" && stage < JOB_PROGRESS_STEPS.length && phase !== "waiting";
   return (
     <div
       // The full tracker is a group (its done and current steps are tappable); the card's bar is one image. Both are
@@ -116,6 +133,9 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
     >
       {JOB_PROGRESS_STEPS.map((full, i) => {
         const s = states[i];
+        const stepPhase = i === stage ? phase : null;
+        const barCls = stepPhase ? PHASE_BAR[stepPhase] : BAR[s];
+        const textCls = stepPhase ? PHASE_TEXT[stepPhase] : TEXT[s];
         const Icon = JOB_STEP_ICONS[i];
         const ts = s === "done" ? stamps?.[i] ?? null : null;
         // A done step with a time, or the current step with a reason, is a control (full tracker only).
@@ -125,11 +145,11 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
           <>
             {detailed && (
               <span className="mb-0.5 flex justify-center" data-step-icon="">
-                <Icon className={`h-3.5 w-3.5 ${TEXT[s]}`} strokeWidth={1.75} aria-hidden />
+                <Icon className={`h-3.5 w-3.5 ${textCls}`} strokeWidth={1.75} aria-hidden />
               </span>
             )}
-            <span data-step-seg="" className={`block h-1.5 rounded-full ${BAR[s]} ${pulses && i === stage ? "step-current-pulse" : ""}`} />
-            <span className={`mt-1 flex min-w-0 items-center justify-center gap-0.5 text-ds-11 leading-tight ${TEXT[s]}`}>
+            <span data-step-seg="" className={`block h-1.5 rounded-full ${barCls} ${pulses && i === stage ? "step-current-pulse" : ""}`} />
+            <span className={`mt-1 flex min-w-0 items-center justify-center gap-0.5 text-ds-11 leading-tight ${textCls}`}>
               {/* `job-step-cur-icon`: a tracker under 260px wide (/payment-success and job cards at 320) drops it so every word
                   fits; the amber fill and the bold word still mark the current step (index.css, audit F17). */}
               {s === "you" && <Hand className="job-step-cur-icon h-3 w-3 shrink-0" />}
@@ -145,7 +165,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
           </>
         );
         return (
-          <div key={full} data-step-state={s} className="relative min-w-0">
+          <div key={full} data-step-state={s} {...(stepPhase ? { "data-step-phase": stepPhase } : {})} className="relative min-w-0">
             {tipText ? (
               <button
                 type="button"
@@ -206,6 +226,7 @@ export function JobProgress({ progress, compact = false, barOnly = false }: {
           detailed={!barOnly}
           stamps={progress.stamps}
           why={progress.next || undefined}
+          begun={progress.begun}
         />
       )}
       {line && (

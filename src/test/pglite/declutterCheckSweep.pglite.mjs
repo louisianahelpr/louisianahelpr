@@ -262,7 +262,7 @@ const g = await one(`SELECT has_function_privilege('anon', 'public.declutter_che
   has_function_privilege('service_role', 'public.declutter_check_sweep_claim(integer)', 'EXECUTE') AS s`).catch((e) => ({ err: e.message }));
 check("S14 members cannot claim (anon, authenticated); the service role can", g?.a === false && g?.u === false && g?.s === true, JSON.stringify(g));
 const job = (await db.query("SELECT schedule, command FROM cron.job WHERE jobname = 'declutter-check-sweep'")).rows;
-check("S15 scheduled once, every 5 minutes, posting mode check_sweep with the service key", job.length === 1 && job[0].schedule === "*/5 * * * *"
+check("S15 scheduled once, every 5 minutes, posting mode check_sweep with the service key", job.length === 1 && job[0].schedule === "1-59/5 * * * *"
   && job[0].command.includes('{"mode":"check_sweep"}') && job[0].command.includes("name = 'service_role_key'") && job[0].command.includes("/functions/v1/declutter-ai-draft"), JSON.stringify(job));
 
 console.log(failures === 0 ? "ALL PASS" : `${failures} FAIL`);

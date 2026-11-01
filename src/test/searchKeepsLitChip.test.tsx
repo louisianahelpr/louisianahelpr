@@ -11,6 +11,13 @@
  * control at its end any more, so it keeps every chip and every count, open or closed. Desktop keeps every tab (its
  * 260px pill leaves room).
  *
+ * HELP-WORKIN (lead 10-31): with counts at 360 the 4th chip ("Booked") starts just past the edge with no cue that the
+ * row scrolls. The row now carries Declutter's right-edge fade (AUD31-4): a mask over the last 40px and an end padding
+ * at least as wide, so the last chip scrolls clear of it.
+ *
+ * @mutate src/components/job-card/embeddedActivity.tsx |             fade\n          /> |           />
+ * @mutate src/components/sections/StatusBoxes.tsx | : fade ? "pl-1 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]" : "px-1" | : "px-1"
+ *
  * @mutate src/components/job-card/embeddedActivity.tsx | header({ end: searchEnd, onlySelected: searchOpen && !desktop }) | header({ end: searchEnd, onlySelected: false })
  * @mutate src/components/job-card/embeddedActivity.tsx | header({ end: searchEnd, onlySelected: searchOpen && !desktop }) | header({ end: searchEnd, onlySelected: searchOpen })
  * @mutate src/components/job-card/embeddedActivity.tsx | ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${"-ml-1 shrink-0"}
@@ -63,7 +70,7 @@ const classes = (el: Element) => (el.getAttribute("class") ?? "").split(/\s+/);
 const open = () => fireEvent.click(screen.getByRole("button", { name: "Search jobs you're working" }));
 
 describe("Posted / Working: the open search keeps only the selected tab on a phone, and every chip", () => {
-  it("closed: every tab, every chip with its count, in a scroller with no end fade (nothing sits at its end)", () => {
+  it("closed: every tab, every chip with its count, in a scroller whose right edge fades (HELP-WORKIN, Declutter's AUD31-4)", () => {
     renderHeader();
     expect(tabs().length).toBeGreaterThan(2);
     // Inventory floor: All plus the five buckets.
@@ -71,7 +78,14 @@ describe("Posted / Working: the open search keeps only the selected tab on a pho
     expect(chips()[0]).toBe("All · 57");
     const row = classes(screen.getByRole("group", { name: "Filter by status" }));
     expect(row).toContain("overflow-x-auto");
-    expect(row.join(" ")).not.toMatch(/mask-image|pr-11/);
+    expect(row).not.toContain("flex-wrap");
+    const fade = row.map((c) => /^\[mask-image:linear-gradient\(to_right,#000_calc\(100%-(\d+)px\),transparent\)\]$/.exec(c)).find(Boolean);
+    expect(fade, "a right-edge fade on the chip row").toBeTruthy();
+    const fadePx = Number(fade![1]);
+    expect(fadePx).toBeGreaterThanOrEqual(24);
+    const pr = row.map((c) => /^pr-(\d+)$/.exec(c)).find(Boolean);
+    expect(pr, "an end padding on the chip row").toBeTruthy();
+    expect(Number(pr![1]) * 4, "end padding >= the fade, so the last chip scrolls clear of it").toBeGreaterThanOrEqual(fadePx);
   });
 
   it("open: only the selected tab stays, whole; the field fills the rest of the tabs row; every chip and count stay", () => {

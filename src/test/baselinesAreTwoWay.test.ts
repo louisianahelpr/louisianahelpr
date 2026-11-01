@@ -126,6 +126,9 @@ type SectionDecl = string | { out: string };
  * { out: reason } for a section that is deliberately NOT shrink-checked.
  */
 const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
+  "docs/audit/hand-made-controls-baseline.json": {
+    files: "src/test/noNewHandMadeControls.test.ts:if (a < b) diffs.push(",
+  },
   "scripts/ci/definer-exec-allowlist.json": {
     anon: "scripts/check-live-privileges.mjs:const definerStale = [...allowedDefiner]",
     authenticated: "scripts/check-live-privileges.mjs:const definerStale = [...allowedDefiner]",

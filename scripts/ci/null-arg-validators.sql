@@ -101,6 +101,9 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_seller_hidden',       'deny',     'TRUE hides a seller''s Declutter listings (20261014210518)'),
   ('declutter_pair_needs_talk',     'allow',    'TRUE = this buyer and seller have an agreed sale whose shared ways leave out every way that always works, so a handover chat may open and the missed-checkout strike waits (Q2462, 20261028235249); a NULL side matches no cart line and COALESCE makes it FALSE'),
   ('declutter_in_agreed_sale',      'allow',    'TRUE = this member is a side of an agreed sale (in a cart or paid) on this item: may read its pickup details (20261015042253)'),
+  ('declutter_seller_slot_open',    'allow',    'TRUE = this pickup time fits one of the seller''s places'' windows (or, with no places, their pickup windows): the free ask''s time can be confirmed (20261101174857)'),
+  ('helpr_task_position_viewer',    'allow',    'TRUE = the caller may see the Helpr''s live position on this started delivery (the seller before pickup, the buyer on the road; 20261101184555)'),
+  ('unread_reminder_quiet',         'classify', 'TRUE = this moment is in the 9 PM to 8 AM quiet hours for unread-message reminders; no access decision (20261101183017)'),
   ('declutter_slot_in_windows',     'allow',    'TRUE = a 30-minute pickup slot at this time fits one of this seller''s windows: the booking is valid (20261015042253)'),
   ('declutter_handover_photo_access', 'allow',  'TRUE = the caller may write (own folder, paid order) or read (a party or an admin) this declutter-handover object (20261017055502)'),
   ('declutter_handover_photo_unattached', 'allow', 'audit 1a #10 (20261029222816): TRUE = this declutter-handover path is in the caller''s own handover folder and no handover row holds it, so the uploader may delete it (storage DELETE policy)'),
@@ -289,6 +292,10 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('declutter_in_agreed_sale',      NULL, ARRAY['''00000000-0000-4000-8140-000000000301''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
   -- A's Monday window is 09:00-18:00 Louisiana time; 20:00Z on Monday 2026-10-19 is 15:00 CDT, inside it.
   ('declutter_slot_in_windows',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''2026-10-19 20:00:00+00''::timestamptz'], ARRAY[1,2]),
+  -- Seller A has no porch places, so the same slot is open through declutter_slot_in_windows.
+  ('declutter_seller_slot_open',    NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''2026-10-19 20:00:00+00''::timestamptz'], ARRAY[1,2]),
+  -- Task 603: accepted and started, A is its pickup contact (the 'tip' fixture).
+  ('helpr_task_position_viewer',    '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000603''::uuid'], ARRAY[1]),
   -- D is an admin, so reading a well-formed declutter-handover path is TRUE for D (no order row needed).
   ('declutter_handover_photo_access', '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/declutter/handover/00000000-0000-4000-8140-000000000401/x.jpg''', 'false'], ARRAY[1,2]),
   -- Audit 1a #10: A's own handover-folder path that no declutter_handovers row holds, so the non-NULL call is TRUE for A.
@@ -512,6 +519,18 @@ BEGIN
                                                                     road_miles, size, delivery_cents, task_id)
                    VALUES ('00000000-0000-4000-8140-000000000503', '2 Dropoff St', 'Lafayette', 30.21, -92.01, 5, 'small', 1200,
                            '00000000-0000-4000-8140-000000000601')$q$;
+          -- Task 603 (20261101184555 live position): accepted by D and started; A, the seller, is its pickup contact.
+          IF to_regprocedure('public.helpr_task_position_viewer(uuid)') IS NOT NULL THEN
+            EXECUTE $q$INSERT INTO public.helpr_tasks (id, source_kind, source_id, status, size, title, pickup_area, dropoff_area,
+                                                      pickup_address, pickup_lat, pickup_lng, dropoff_address, dropoff_lat, dropoff_lng,
+                                                      trip_miles, pay_cents, fee_cents, customer_id, pickup_contact_id, helpr_id,
+                                                      open_until, latest_pickup_at, pickup_slot_start, dropoff_code, started_at)
+                     VALUES ('00000000-0000-4000-8140-000000000603', 'declutter_delivery', '00000000-0000-4000-8140-000000000503',
+                             'accepted', 'small', '[q140] live', 'Lafayette', 'Lafayette', '1 Pickup St', 30.2, -92.0,
+                             '2 Dropoff St', 30.21, -92.01, 5, 1200, 0, '00000000-0000-4000-8140-00000000000b',
+                             '00000000-0000-4000-8140-00000000000a', '00000000-0000-4000-8140-00000000000d',
+                             now() + interval '1 day', now() + interval '1 day', now() + interval '1 hour', '1235', now())$q$;
+          END IF;
           EXECUTE $q$UPDATE public.profiles SET stripe_account_id = 'acct_q140_d' WHERE user_id = '00000000-0000-4000-8140-00000000000d'$q$;
         END IF;
       WHEN 'ship' THEN

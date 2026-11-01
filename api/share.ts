@@ -65,7 +65,7 @@
 import { SHELL_HTML } from "../scripts/generated/og-shell.js";
 import { STATIC_PAGE_BODIES } from "../scripts/generated/static-pages.js";
 import { noindexPageMetaFor, publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
-import { SHELL_JOB_COLUMNS, withBrowseShell } from "../src/lib/browseShellCards.mjs";
+import { browseShellRowsUrl, withBrowseShell } from "../src/lib/browseShellCards.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -1176,8 +1176,8 @@ function withStaticBody(html: string, url: URL): string {
 /**
  * /browse's first job cards in the raw HTML (PERF-SHELL, Q652; lead decision 11-01): a guest's first screen used to
  * wait ~4 s on Slow 4G for the whole app before any card painted. The rows come from the same anon read of the
- * masked open_jobs_browse view the guest feed makes (src/lib/guestJobsQuery.ts: payment_status, order, limit), with
- * only the columns src/lib/browseShellCards.mjs draws from; it picks, checks and renders them (title, category,
+ * masked open_jobs_browse view the guest feed makes (browseShellRowsUrl: the feed's payment_status, order and limit,
+ * open jobs only, only the columns src/lib/browseShellCards.mjs draws from); it picks, checks and renders them (title, category,
  * town, take-home; nothing else). A slow or failed read serves the page exactly as before (null rows draw nothing),
  * and its budget is short because this read sits in front of the HTML on a CDN miss.
  */
@@ -1187,14 +1187,8 @@ const BROWSE_SHELL_CDN_CACHE = "public, s-maxage=120, stale-while-revalidate=600
 
 async function fetchBrowseShellRows(): Promise<unknown[] | null> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-  const u = new URL(`${SUPABASE_URL}/rest/v1/open_jobs_browse`);
-  u.searchParams.set("select", SHELL_JOB_COLUMNS);
-  u.searchParams.set("status", "eq.open");
-  u.searchParams.set("payment_status", "neq.abandoned");
-  u.searchParams.set("order", "boosted_at.desc.nullslast,created_at.desc");
-  u.searchParams.set("limit", "40");
   try {
-    const res = await fetch(u.toString(), {
+    const res = await fetch(browseShellRowsUrl(SUPABASE_URL), {
       headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, Accept: "application/json" },
       signal: AbortSignal.timeout(BROWSE_SHELL_TIMEOUT_MS),
     });

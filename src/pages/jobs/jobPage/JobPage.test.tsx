@@ -77,6 +77,8 @@ const state = {
   position: null as { status: string | null; latitude: number | null; longitude: number | null } | null,
   /** usePosterPageFlows' crewNobodyLeft (JOBS-3: every crew member reported a no-show). */
   crewNobodyLeft: false,
+  /** usePosterPageFlows' crewRoster (JA-32: the page draws the crew). */
+  crewRoster: undefined as Array<Record<string, unknown>> | undefined,
   /** CMP-4: the viewer's instant booking's decline-by (useMyInstantBooking), or null. */
   instantUntil: null as string | null,
   /** useOfferedToMe: a pending direct offer to the viewer (an instant booking is one). */
@@ -165,7 +167,7 @@ vi.mock("./usePosterPageFlows", () => ({
     ready: true, completing: false, moreCount: state.moreCount,
     approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
-    crewNobodyLeft: state.crewNobodyLeft, panel: <div data-testid="card-panel" />, crew: null, dialogs: null,
+    crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, panel: <div data-testid="card-panel" />, dialogs: null,
   }),
 }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
@@ -243,6 +245,7 @@ beforeEach(() => {
   state.owed = 0;
   state.cardHold = false;
   state.crewNobodyLeft = false;
+  state.crewRoster = undefined;
   state.instantUntil = null;
   state.offeredToMe = false;
   state.moreCount = 2;
@@ -1124,6 +1127,44 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: "Cancel job" }));
     expect(flowCalls).toEqual(["cancel"]);
+  });
+
+  // JA-32 (audit 11-01): a crew job's page showed no crew. The roster is on the page: each member, their step, a
+  // Message per member and the per-member Confirm work (JOBS-3); the tracker never says "accept the offer".
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && job.is_group_job && posterFlows.ready && CREW_ROSTER_STATUSES.has(job.status ?? "") && ( |             {false && (
+  // @mutate src/components/GroupJobHelpers.tsx |               {onMessage && h.helper_id && h.status === "accepted" && ( |               {false && (
+  // @mutate src/components/tracker/jobProgressState.ts |   if (poster && crewBookedOnRow(job)) return at(2 | if (false) return at(2
+  // @mutate src/components/tracker/jobProgressState.ts | if (o.viewer === "poster" && crewBookedOnRow(job) && base.word === "Hired") return base; | if (false) return base;
+  it("a crew job: the roster on the page, with each member's step, Message and Confirm work", () => {
+    const m = (id: string, name: string, over: Record<string, unknown>) => ({
+      id: `slot-${id}`, helper_id: id, status: "accepted", helperName: name, helper_confirmed_at: "2026-10-27T12:00:00Z",
+      helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_arrival_at: null, helper_completed_at: null,
+      poster_confirmed_completion_at: null, ...over,
+    });
+    state.job = row({ customer_id: ME, status: "in_progress", is_group_job: true, helpers_needed: 2, date_needed: jobLocalDateISO(-1) });
+    state.party = true;
+    state.crewRoster = [
+      m("44444444-4444-4444-4444-444444444444", "Ann B.", { helper_arrived_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "t" }),
+      m("55555555-5555-5555-5555-555555555555", "Marcus T.", {}),
+    ];
+    renderPage();
+    const crew = document.querySelector("[data-job-crew]") as HTMLElement;
+    expect(crew).toBeTruthy();
+    expect(crew.textContent).toContain("Your crew · 2 of 2 hired");
+    expect(crew.querySelectorAll("[data-crew-member]").length).toBe(2);
+    expect(screen.getByRole("button", { name: /Confirm Ann B\.'s work/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Message Marcus T\./ }));
+    expect(screen.getByTestId("where").textContent).toBe(`/messages?jobId=${encodeURIComponent(row().id)}&userId=55555555-5555-5555-5555-555555555555`);
+  });
+
+  it("a booked crew's tracker follows the crew, never 'Waiting on your Helpr to accept the offer'", () => {
+    state.job = row({ customer_id: ME, status: "accepted", is_group_job: true, helpers_needed: 2 });
+    state.party = true;
+    state.crewRoster = [];
+    renderPage();
+    expect(document.body.textContent).not.toContain("accept the offer");
+    expect(document.body.textContent).toContain("Your crew is booked");
+    expect(document.querySelector("[data-job-crew]")).toBeTruthy();
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       : status === "cancelled" |       : false

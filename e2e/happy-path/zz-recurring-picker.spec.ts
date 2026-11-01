@@ -65,7 +65,9 @@ for (const width of [375, 1440]) {
     // Case-INSENSITIVE on purpose: the accessible name also carries the description ("Start from scratch
     // Build your request from a blank form."), so an exact or case-sensitive
     // match silently waits out its full timeout instead of failing usefully.
-    const startFresh = page.getByRole("button", { name: /^start from scratch/i }).first();
+    // JA-41 (owner pick 2026-11-01): the first screen is the group grid; "Something else" (one category) starts
+    // the form at Details.
+    const startFresh = page.getByRole("button", { name: /^something else/i }).first();
     await startFresh.waitFor({ timeout: 20_000 });
     await startFresh.click();
     // J1 (2026-10-20): Post a job is one question per screen and Repeats lives on

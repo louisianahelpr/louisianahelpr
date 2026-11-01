@@ -720,10 +720,10 @@ export const FORMS: FormSpec[] = [
     covers: ["src/components/profile/CredentialsTab.tsx"],
   },
   {
-    // The AI builder opens from step 0's "Get help from AI" card (EntryChoice.tsx).
+    // The AI builder opens from the first screen's "Describe it with AI" link (EntryChoice.tsx, JA-41).
     name: "ai-job-builder", url: "/post-job", as: "poster",
     prepare: async (page) => {
-      const card = page.getByRole("button", { name: /^get help from ai/i });
+      const card = page.getByRole("button", { name: /^describe it with ai/i });
       await card.waitFor({ timeout: 20_000 });
       await card.click();
       await page.getByRole("textbox", { name: /^describe your job$/i }).waitFor({ timeout: 10_000 });

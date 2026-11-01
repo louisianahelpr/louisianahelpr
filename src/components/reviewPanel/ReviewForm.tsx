@@ -280,7 +280,8 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
+      {/* keepClose: the Job done review is a sheet on a phone and keeps its X (audit 11-01 JA-54). */}
+      <DialogContent keepClose>
         {/* Boards 35/36: the Job done moment, then the review card. The same
             layout the poster sees right after release (CompletionPrompts). */}
         <DialogHero moment title="Job done" />

@@ -16,18 +16,15 @@ import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { StepHead } from "./DeclutterSellSteps";
-import { windowsSummary } from "./DeclutterPickupTimes";
-import { MyPickupPlacesSummary, useHasPorchPlaces } from "./SellPorchPlaces";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
-import { autoFreeOutcomeLine } from "@/lib/declutter/autoFree";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { SellItForMeEntry } from "./SellItForMe";
 import { SellAiDraftPanel } from "./SellAiDraft";
-import { handoverSummary } from "./SellHandoverChoices";
-import { UsesSettingsNote } from "./SellLastSetup";
 import { DeclutterNotice } from "./declutterUi";
-import { dropsOutcomeLine, formProblem } from "./sellForm";
+import { formProblem } from "./sellForm";
+import { dropsValue, makeFreeValue, SellingSettingsRows, usePickupLines } from "./SellingSettingsRows";
 import { SellFreeNote, SellOffersToggle, SellTaxBox } from "./SellFormParts";
+import { SellProgress, postStepOf } from "./SellProgress";
 import { SellSummaryCard, type SummaryField } from "./SellSummaryCard";
 import { useSellFlowState, type SellFlow } from "./useSellFlowState";
 import { photoPublicUrl } from "@/lib/declutter/api";
@@ -81,8 +78,9 @@ export function SellOneScreen() {
 
 function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
   const s = useSellFlowState(null);
-  const hasPlaces = useHasPorchPlaces();
   const { user, underAge, form, held, setHeld, photos, uploading, aiAsk, ai, savedWays, windows, autoFreeWanted } = s;
+  // LEAD-POST-PLACES (owner 2026-10-31): with saved places, each shows with its own days and hours, not one area.
+  const pickup = usePickupLines(savedWays, form.areaLabel, windows);
   const [open, setOpen] = useState<SummaryField | null>(null);
   const [tried, setTried] = useState(false);
   // Post was tapped while the AI was still writing: it posts by itself when that finishes, unless something is missing.
@@ -110,7 +108,6 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
     );
   }
 
-  const dropsLine = dropsOutcomeLine(form);
   const problems = postProblems(s);
   const bad = problems[0] ?? null;
   /** The words for what blocks Post, shown in the row they belong to once Post was tapped. */
@@ -179,23 +176,20 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
           // (?free=1), not a tick on the Price row; a free listing's row says what free means and offers "Charge for it".
           // LEAD-OFFERS-CHOICE part (2): a priced listing's row has its own Accept offers switch.
           priceExtras={form.free ? <div className="pt-1"><SellFreeNote /></div> : <div className="pt-1"><SellOffersToggle s={s} /></div>}
+          // What will happen, before Post (owner 2026-11-01): the seller's settings as rows of this card, one Change to
+          // Settings. The choices themselves are made ahead (owner 2026-10-30).
+          settingsRows={(
+            <SellingSettingsRows
+              pickup={pickup}
+              drops={form.free ? null : dropsValue(form)}
+              makeFree={form.free ? null : makeFreeValue(autoFreeWanted)}
+              problem={problemAt("settings")}
+            />
+          )}
         />
 
         <div className="space-y-2" data-sell-row="tax"><SellTaxBox s={s} />{problemAt("tax")}</div>
 
-        {/* What will happen, in plain words, before Post; the choices themselves are made ahead (owner 2026-10-30). */}
-        <div className="space-y-1" data-sell-outcome="" data-sell-row="settings">
-          <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
-            {/* LEAD-POST-PLACES (owner 2026-10-31): with saved places, each shows below with its own days and hours, not one area. */}
-            {(hasPlaces ? [handoverSummary(savedWays)] : [handoverSummary(savedWays), form.areaLabel.trim(), windowsSummary(windows)]).filter(Boolean).join(" · ")}
-          </p>
-          {hasPlaces && <MyPickupPlacesSummary />}
-          {s.saved.pickup && <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]" data-saved-pickup="">{s.saved.pickup.line}</p>}
-          {!form.free && dropsLine && <p className="text-ds-14 font-semibold text-foreground">{dropsLine}</p>}
-          {!form.free && <p className="text-ds-13 text-muted-foreground">{autoFreeOutcomeLine(autoFreeWanted)}</p>}
-          <UsesSettingsNote />
-          {problemAt("settings")}
-        </div>
         <BuyerPreview s={s} />
         {s.failedHeld > 0 && (
           <div role="alert" className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-photo-trouble="">
@@ -220,6 +214,9 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setPostWhenWritten(false)}>Don't post yet</Button>
           </div>
         )}
+        {/* Owner 2026-11-01: while it goes up, a clear in-progress view (Uploading photos -> Checking -> Live), not only a
+            greyed button; the done view after is unchanged. */}
+        {s.publishing && <SellProgress title="Posting your listing…" rows={[{ name: form.title.trim() || "Your item", step: postStepOf(s.postStep) }]} note={s.postStep ? `${s.postStep}. Keep this page open.` : "Keep this page open."} />}
         <Button type="button" className="w-full rounded-full" disabled={s.publishing || s.saving || postWhenWritten} onClick={post}>
           {s.publishing ? (s.postStep ?? "Posting…") : "Post it"}
         </Button>

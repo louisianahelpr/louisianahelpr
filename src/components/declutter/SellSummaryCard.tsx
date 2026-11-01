@@ -77,8 +77,10 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
   );
 }
 
-export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
+export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, settingsRows }: {
   s: SellFlow;
+  /** The seller's settings as rows below Details (owner 2026-11-01: "included with the posting info"): SellingSettingsRows. */
+  settingsRows?: ReactNode;
   open: SummaryField | null;
   setOpen: (u: (o: SummaryField | null) => SummaryField | null) => void;
   priceExtras: ReactNode;
@@ -134,6 +136,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems }: {
             <textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Works great. Small scuff on the base." />
           </div>
         </Row>
+        {settingsRows}
       </ul>
     </section>
   );

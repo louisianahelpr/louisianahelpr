@@ -538,15 +538,23 @@ export function usePostJobForm() {
       // Back from a way to start is the four cards.
       setEntryPanel(null);
     } else if (step === "form" && formPage === 1 && categoryGroup) {
-      // Back from a group's categories (1b) is the groups.
+      // Back from a group's categories (1b) is the groups: the first screen since JA-41 (a deep link has no entry).
       setCategoryGroup(null);
+      if (!skipEntry) setStep("entry");
     } else if (step === "form" && formPage > 1) {
       // Back steps through the form's screens; entered data stays (state
       // lives here, every screen stays mounted). Back from Details (4 of 7) is the picked
       // category's group (3 of 7), unless that group has one category ("Something else": 2 of 7).
       if (formPage === 2) {
         const g = jobCategoryGroupOf(category);
-        setCategoryGroup(g && (JOB_CATEGORY_GROUPS.find((x) => x.id === g)?.items.length ?? 0) > 1 ? g : null);
+        const hasKind = !!g && (JOB_CATEGORY_GROUPS.find((x) => x.id === g)?.items.length ?? 0) > 1;
+        setCategoryGroup(hasKind ? g : null);
+        // JA-41: with no kind screen, the screen before Details is the first one (the grid on the entry screen).
+        if (!hasKind && !skipEntry) {
+          setFormPage(1);
+          setStep("entry");
+          return;
+        }
       }
       setFormPage((p) => p - 1);
     } else if (step === "checkout") {
@@ -583,6 +591,8 @@ export function usePostJobForm() {
     // step / nav
     step,
     setStep,
+    // JA-41: a deep link opens the form with no entry screen behind it.
+    skipEntry,
     formPage,
     setFormPage,
     // A3-3: FormStep opens such a link at Details once its pre-filled category lands (usePrefillOpensDetails).

@@ -41,11 +41,15 @@ function makeForm(over: Record<string, unknown> = {}): ReturnType<typeof usePost
   } as unknown as ReturnType<typeof usePostJobForm>;
 }
 
-/** The text of the summary card's Total row (its label is the DollarSign + "Total" span). */
+/**
+ * The text of the ONE total: the Payment breakdown's card, from its Total row through the notes under it
+ * (audit 11-01 JA-45 moved the summary card's Total row's lines here; the total is printed once).
+ */
 function totalRow(): string {
-  const label = screen.getAllByText("Total").find((el) => el.tagName === "SPAN" && el.querySelector("svg"));
-  expect(label, "the summary card's Total row is gone").toBeTruthy();
-  return (label!.parentElement?.textContent ?? "").replace(/\s+/g, " ");
+  const notes = screen.getByTestId("checkout-total-notes");
+  const card = notes.parentElement!;
+  expect(card.textContent, "the breakdown has its Total").toMatch(/Total/);
+  return (card.textContent ?? "").replace(/\s+/g, " ");
 }
 
 describe("A2-C36: a Repeats job's review says the total is one visit of several", () => {

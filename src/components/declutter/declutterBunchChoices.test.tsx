@@ -4,7 +4,7 @@
  * are remembered; pickup times already saved are not written over.
  *
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const ready = bunchListable(items, feeDue != null); |   const ready = bunchListable(items, false);
- * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers }); |     void row;
+ * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers, freeAfterDays: row.freeAfterDays }); |     void row;
  * @mutate src/components/declutter/BunchChoices.tsx |     if (ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? ways : w)); |     void ways;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows); |       await setPickupWindows(windows);
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (result.out.some((o) => "status" in o)) void choices.remember(savedWays); |       void result.out;
@@ -145,22 +145,29 @@ describe("Sell a bunch: listing choices", () => {
   it("saved choices start the switches and the ways, and a switch the seller flips is what lists", async () => {
     state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: 14, handovers: ["meetup"], acceptsOffers: true };
     await open();
-    // Saved settings are one line (owner 2026-10-30), saying the price choice; no form, and they reach the listing.
-    const line = await waitFor(() => { const el = document.querySelector("[data-bunch-list-saved]") as HTMLElement; expect(el).not.toBeNull(); return el; });
-    expect(line.textContent).toContain("Price drops: off.");
-    expect(within(line).getByRole("link", { name: "Settings" })).toBeTruthy();
+    // Saved settings are the summary's three labeled rows (owner 2026-11-01, as on Sell one), with ONE Change link to
+    // Settings; no form, and they reach the listing.
+    // @mutate src/components/declutter/DeclutterBunchListStep.tsx |                 drops={anyPriced ? bunchDropsValue(choices.choices) : null} |                 drops={null}
+    const card = await waitFor(() => { const el = document.querySelector("[data-bunch-list-saved]") as HTMLElement; expect(el).not.toBeNull(); return el; });
+    const value = (id: string) => card.querySelector(`[data-settings-row="${id}"] [data-settings-value]`)?.textContent;
+    expect([...card.querySelectorAll("[data-settings-row] > div > div > p:first-child")].map((p) => p.textContent)).toEqual(["Pickup", "Price drops", "Make it free"]);
+    expect(value("pickup")).toBe("Safe meeting spot · Saturdays 9:00 AM–12:00 PM");
+    expect(value("drops")).toBe("Off");
+    // Sell a bunch never sets "make it free" on what it lists, whatever is saved: the row says what will happen.
+    expect(value("free")).toBe("Never");
+    expect(within(card).getAllByRole("link").map((l) => [l.textContent, l.getAttribute("href")])).toEqual([["Change", "/declutter/settings"]]);
+    expect(card.textContent).not.toMatch(/Uses your settings|Price drops: |Pickup at /);
     expect(screen.queryByText(/Tick every way that works for you/)).toBeNull();
-    expect(screen.queryByRole("switch", { name: DROPS })).toBeNull();
-    // LEAD-BUNCH-PCT-LABEL: the drops choice is findable from that line ("Change"), for this bunch.
-    // @mutate src/components/declutter/DeclutterBunchListStep.tsx | {changingDrops && <BunchDropsSwitch c={choices} />} | {null}
-    fireEvent.click(within(line).getByRole("button", { name: "Change" }));
+    // LEAD-BUNCH-PCT-LABEL: the drops choice can still be switched for this bunch, in its row.
+    expect(within(card).getAllByRole("switch").map((sw) => sw.getAttribute("aria-label"))).toEqual(["Lower the price over time for this bunch"]);
     fireEvent.click(switchOf(DROPS));
-    expect(line.textContent).toContain("Price drops: on, 15% each evening");
+    expect(value("drops")).toBe("15% each evening, lowest 70% of each price");
     fireEvent.click(switchOf(DROPS));
+    expect(value("drops")).toBe("Off");
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
     // LEAD-OFFERS-CHOICE: the saved Accept offers reaches the run, as each item's starting choice.
-    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, acceptsOffers: true, moveOutOn: null });
+    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, acceptsOffers: true, moveOutOn: null, freeAfterDays: 14 }); // the saved "make it free after" reaches the listing (lead 11-01)
     expect(state.listed[0].ways).toEqual(["meetup"]);
     await waitFor(() => expect(state.remembered[0]?.freeAfterDays).toBe(14));
   });
@@ -172,8 +179,9 @@ describe("Sell a bunch: listing choices", () => {
     ];
     state.saved = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     await open();
-    const where = await waitFor(() => { const el = document.querySelector("[data-saved-pickup]") as HTMLElement; expect(el).not.toBeNull(); return el; });
-    expect(where.textContent).toContain("Pickup at Home, Mom's house. Buyers pick one.");
+    // Each place on its own line under the ways, in the seller's order (owner 2026-11-01: no separate "Pickup at" line).
+    const where = await waitFor(() => { const el = document.querySelector('[data-settings-row="pickup"] [data-settings-value]') as HTMLElement; expect(el).not.toBeNull(); return el; });
+    expect([...where.querySelectorAll("p")].map((p) => p.textContent)).toEqual(["Porch", "Home, Mid-City · Sundays", "Mom's house, Garden District · Saturdays"]);
     expect(screen.queryByRole("heading", { name: /Where buyers pick up/ })).toBeNull();
     expect(screen.queryByLabelText("Pickup address")).toBeNull();
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });

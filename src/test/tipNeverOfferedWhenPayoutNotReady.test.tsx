@@ -11,6 +11,7 @@
  * says why. Unknown (loading, read error) still offers it; create-payment stays
  * the backstop.
  *
+ * @mutate src/hooks/useHelprTakesTips.ts |   if (waitsOnId) return `Tips open once ${first \|\| "this Helpr"} finishes verifying.`; |   if (waitsOnId) return `${first \|\| "This Helpr"} can receive tips once verified. Nothing was charged.`;
  * @mutate src/hooks/useHelprTakesTips.ts |     return row ? { payoutReady: row.is_payout_ready === true, idVerified: row.is_id_verified === true } : null; |     return null;
  * @mutate src/hooks/useHelprTakesTips.ts |   return a.payoutReady && (!idCheckOn \|\| a.idVerified); |   return a.payoutReady;
  * @mutate src/components/TipDialog.tsx |         {takesTips === false ? ( |         {false ? (
@@ -101,7 +102,8 @@ beforeEach(() => {
 });
 
 describe("Owner 2026-10-30: tips wait until the Helpr has verified their ID", () => {
-  const ID_LINE = "Hallie can receive tips once verified. You can tip them then.";
+  // Audit 11-01 JA-61: shown before any tip is tried, so no "Nothing was charged".
+  const ID_LINE = "Tips open once Hallie finishes verifying.";
   beforeEach(() => { db.ready = true; db.idVerified = false; });
   afterEach(() => { cleanup(); setIdentityCheckOn(false); db.idVerified = false; });
 

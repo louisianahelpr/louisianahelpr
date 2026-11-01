@@ -40,7 +40,7 @@ const QUERY_KEY = ["sms-consent"] as const;
  * no "Turn off" (that is Settings' job); `onAllSet` fires once texts are on,
  * with `alreadyOn` true when they were on from the first read.
  */
-export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt?: boolean; onAllSet?: (alreadyOn: boolean) => void } = {}) {
+export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = false }: { inPrompt?: boolean; onAllSet?: (alreadyOn: boolean) => void; atTop?: boolean } = {}) {
   const enabled = useFeature("sms_alerts");
   const { user } = useAuthReady();
   const queryClient = useQueryClient();
@@ -77,6 +77,17 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt
     if (inPrompt && optedIn) onAllSet?.(firstOptedIn.current === true);
   }, [inPrompt, optedIn, onAllSet]);
   const pendingPhone = consent?.pending_phone ?? null;
+  // NO SILENT OPT-OUT (owner bug, 2026-11-01): she confirmed her phone here at 10:03 PM and at 10:04 tapped the
+  // card's only button, a full-width "Turn off text alerts", to close it; texts went off. Now a confirm seen on
+  // this screen shows "You're all set" with a primary Done that keeps texts on, and Turn off is a small link
+  // that asks first. src/components/notificationPreferences/smsAlertsNoSilentOptOut.test.tsx.
+  const [justConfirmed, setJustConfirmed] = useState(false);
+  const [askStop, setAskStop] = useState(false);
+  const wasWaiting = useRef(false);
+  useEffect(() => {
+    if (wasWaiting.current && optedIn) setJustConfirmed(true);
+    wasWaiting.current = !!pendingPhone && !optedIn;
+  }, [pendingPhone, optedIn]);
   if (!user) return null;
   // Switch off: only someone with texts on (or a request waiting) sees the card.
   if (!enabled && !optedIn && !pendingPhone) return null;
@@ -99,6 +110,9 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt
           return;
         }
       }
+      // Cancelling a request that never confirmed: no opt-out is recorded (the server writes one only for a
+      // member who was opted in), so say what really happened.
+      const cancellingRequest = !optIn && !optedIn;
       const res = await supabase.rpc("set_sms_consent", { p_opt_in: optIn, p_phone: optIn ? phone : "" });
       if (res.error) {
         toast.error(rpcErrorMessage("set_sms_consent", res.error) ?? "We couldn't save that. Try again.");
@@ -114,7 +128,11 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt
       }
       queryClient.setQueryData([...QUERY_KEY, user.id], next);
       setAgreed(false);
-      toast.success(optIn ? "Check your phone: reply YES and the 4-digit code in the text we just sent." : "Text alerts are off.");
+      setAskStop(false);
+      if (optIn) toast.success("Check your phone: reply YES and the 4-digit code in the text we just sent.");
+      else if (cancellingRequest) {
+        toast.success("Request cancelled. Text alerts stay off.");
+      } else toast.success("Text alerts are off.");
     } finally {
       setSaving(false);
     }
@@ -123,7 +141,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt
   return (
     <section
       aria-labelledby={`${consentId}-title`}
-      className="mt-4 rounded-2xl liquid-glass overflow-hidden shadow-sm"
+      className={`${atTop ? "mb-4" : "mt-4"} rounded-2xl liquid-glass overflow-hidden shadow-sm`}
       data-testid="sms-alerts-card"
     >
       <div
@@ -171,13 +189,22 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt
               Nothing else is sent to this number until it replies with the code. No text after a few minutes? Check the number and try again.
             </p>
             <Button variant="outline" className="w-full" disabled={saving} onClick={() => { void save(false); }}>
-              Cancel
+              Cancel this request
             </Button>
           </>
         ) : optedIn && inPrompt ? (
           <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }} role="status">
             You're all set, texts go to <span className="font-semibold whitespace-nowrap">{formatUsPhone(consent?.phone_e164 ?? null)}</span>.
           </p>
+        ) : optedIn && justConfirmed ? (
+          <>
+            <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }} role="status">
+              You're all set, texts go to <span className="font-semibold whitespace-nowrap">{formatUsPhone(consent?.phone_e164 ?? null)}</span>.
+            </p>
+            <Button variant="primary" className="w-full" onClick={() => setJustConfirmed(false)}>
+              Done
+            </Button>
+          </>
         ) : optedIn ? (
           <>
             <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -188,9 +215,31 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt
               changes and problems on your jobs, payment or payout problems, and new messages. Nothing non-urgent
               between 9pm and 8am (it waits until morning). Texts never include names or addresses. Reply STOP to any text to stop.
             </p>
-            <Button variant="outline" className="w-full" disabled={saving} onClick={() => { void save(false); }}>
-              Turn off text alerts
-            </Button>
+            {askStop ? (
+              <div className="rounded-xl p-3 space-y-2" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} role="group" aria-label="Stop text alerts?">
+                <p className="text-ds-14 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>Stop text alerts?</p>
+                <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep) / 0.75)" }}>You won't get texts about messages or jobs.</p>
+                {/* App-wide rule (owner 11-01): in a side-by-side pair the primary sits on the RIGHT. */}
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" disabled={saving} onClick={() => { void save(false); }}>
+                    Stop
+                  </Button>
+                  <Button variant="primary" className="flex-1" disabled={saving} onClick={() => setAskStop(false)}>
+                    Keep them
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="min-h-[44px] font-sans text-ds-13 font-semibold underline underline-offset-2"
+                style={{ color: "hsl(var(--ink-deep) / 0.7)" }}
+                disabled={saving}
+                onClick={() => setAskStop(true)}
+              >
+                Turn off text alerts
+              </button>
+            )}
           </>
         ) : (
           <>

@@ -30,7 +30,9 @@ export const HANDOFF_WORDS: Record<DeliveryHandoff, { title: string; words: stri
 };
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { ChoicePill } from "@/components/ui/ChoicePill";
+import { DropoffAddressField } from "./DropoffAddressField";
 import { formatPrice } from "@/lib/declutter/distance";
 import {
   deliveryTermsLabel,
@@ -115,19 +117,14 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
   return (
     <div className="space-y-3 rounded-xl border border-border p-3" data-seller-delivery-picker="">
       <div className="space-y-2">
-        <label htmlFor={addressId} className="block text-xs font-medium">
-          Deliver to (street number, street and town)
-        </label>
-        <div className="flex gap-2">
-          <input id={addressId} className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            autoComplete="street-address" maxLength={300} value={address}
-            aria-invalid={failed ? true : undefined} aria-describedby={failed ? errorId : undefined}
-            onChange={(e) => { setAddress(e.target.value); onTyped?.(e.target.value); setFailed(null); if (checked !== null && e.target.value.trim() !== checked) onChecked(null); }} />
-          <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
-            disabled={check.isPending || address.trim().length < 5} onClick={() => check.mutate(address.trim())}>
-            {check.isPending ? "Checking…" : "Check"}
-          </button>
-        </div>
+        {/* Owner 2026-11-01: the shared address search, so a picked whole address is checked at once (DropoffAddressField). */}
+        <DropoffAddressField id={addressId} value={address} invalid={!!failed} describedBy={failed ? errorId : undefined}
+          onTyped={(typed) => { setAddress(typed); onTyped?.(typed); setFailed(null); if (checked !== null && typed.trim() !== checked) onChecked(null); }}
+          onPicked={(picked) => { setAddress(picked); onTyped?.(picked); setFailed(null); check.mutate(picked); }} />
+        <Button type="button" variant="outline" size="sm" className="rounded-full"
+          disabled={check.isPending || address.trim().length < 5} onClick={() => check.mutate(address.trim())}>
+          {check.isPending ? "Checking…" : "Check"}
+        </Button>
         {failed ? (
           <p id={errorId} role="alert" className="rounded-lg px-3 py-2 text-sm text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
             data-sd-check-failed="">

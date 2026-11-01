@@ -13591,6 +13591,38 @@ export type Database = {
           },
         ]
       }
+      unread_message_reminder_sends: {
+        Row: {
+          conversation: string
+          message_id: string
+          rung: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation: string
+          message_id: string
+          rung: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation?: string
+          message_id?: string
+          rung?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unread_message_reminder_sends_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_bans: {
         Row: {
           ban_type: string

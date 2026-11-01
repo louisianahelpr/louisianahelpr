@@ -13,9 +13,9 @@
  *
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |              THEN LEAST(b.base, GREATEST(100, COALESCE(b.floor, 100),\n                         round(b.base * (100 - (SELECT percent FROM r)) / 100.0)::integer)) |              THEN round(b.base * (100 - (SELECT percent FROM r)) / 100.0)::integer
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |         CASE WHEN b.base > 0 AND (SELECT paid FROM n) >= 2 AND EXISTS (SELECT 1 FROM r) |         CASE WHEN b.base > 0 AND (SELECT paid FROM n) >= 1 AND EXISTS (SELECT 1 FROM r)
- * @mutate supabase/migrations/20261101032626_declutter_checkout_page_inside_hold.sql |      AND v_existing.items_cents = v_items |
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |      AND v_existing.items_cents = v_items |
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   IF p_percent NOT BETWEEN 5 AND 50 THEN |   IF p_percent NOT BETWEEN 1 AND 100 THEN
- * @mutate supabase/migrations/20261101032626_declutter_checkout_page_inside_hold.sql |    v_delivery := public.declutter_seller_delivery_rate_cents(sd.base_rate_cents, sd.free_over_cents, v_items); |    v_delivery := sd.rate_cents;
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |    v_delivery := public.declutter_seller_delivery_rate_cents(sd.base_rate_cents, sd.free_over_cents, v_items); |    v_delivery := sd.rate_cents;
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   SELECT COALESCE(sum(t.target_cents), 0)::integer INTO v_items FROM public.declutter_bundle_targets(p_seller, p_lines) t; |   SELECT COALESCE(sum(c.price_cents), 0)::integer INTO v_items FROM public.declutter_cart_items c WHERE c.id = ANY (p_lines);
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |         {offer && rule.data ? <span className="font-semibold text-primary" data-bundle-offer=""> {bundleLabel(rule.data)}.</span> : null} |
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       <BundleDiscountCard />\n |
@@ -37,8 +37,8 @@ describe("Q2427 bundle discounts: the server", () => {
     // declutter_start_checkout and declutter_my_cart: restated by 20261028235247 (the ways the seller ticked), the bundle rule kept;
     // declutter_my_cart again by DB-5 (20261030064929, each line's source) and DC-18 (20261030131715, the kept title and
     // closed_at), the bundle rule kept (asserted below).
-    const RESTATED: Record<string, string> = { declutter_start_checkout: "20261101032626", declutter_my_cart: "20261030131715" };
-    // declutter_start_checkout: restated again by 20261101032626 (BUY-1 follow-up: no new page after the hold + 10 min, two predicates only), 20261030164712 (D-NEW14 porch places, insertion only) and 20261031164337
+    const RESTATED: Record<string, string> = { declutter_start_checkout: "20261101191500", declutter_my_cart: "20261030131715" };
+    // declutter_start_checkout: restated again by 20261101191500 (B110: the pickup time, kept and frozen; the bundle rule verbatim), 20261101032626 (BUY-1 follow-up: no new page after the hold + 10 min, two predicates only), 20261030164712 (D-NEW14 porch places, insertion only) and 20261031164337
     // (LEAD-PLACE-TIMES: door pickup at the place, one condition), the bundle rule kept.
     for (const n of names) expect(newestFunction(n).file, n).toContain(RESTATED[n] ?? FILE);
     expect(names.length).toBeGreaterThan(5);

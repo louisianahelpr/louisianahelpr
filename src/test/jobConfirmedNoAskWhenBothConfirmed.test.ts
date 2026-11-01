@@ -37,12 +37,13 @@ describe("job_confirmed never asks a side that already confirmed", () => {
   it("poster confirms after the Helpr: the Helpr is told the same", () => {
     const n = build("poster", { poster_confirmed_at: T2, helper_dayof_confirmed_at: T1 })!;
     expect(n.message).toMatch(/^You're both confirmed for "Mow and Weed Eat" on Sun, Nov 7\.$/);
-    expect(n.link).toBe("/jobs?job=7b1da54b-0000-4000-8000-000000000000");
+    expect(n.link).toBe("/jobs/7b1da54b-0000-4000-8000-000000000000"); // the job page (audit 11-01 JA-58)
   });
 
   it("only the sender has confirmed: the other side is still asked", () => {
-    expect(build("helper", { poster_confirmed_at: null, helper_dayof_confirmed_at: T2 })!.message).toMatch(/Tap to confirm your side too\./);
-    expect(build("poster", { poster_confirmed_at: T2, helper_dayof_confirmed_at: null })!.message).toMatch(/Tap to confirm your side too\./);
+    // Owner 11-01: the ask is the notice's "Next:" step, with the day it is due by.
+    expect(build("helper", { poster_confirmed_at: null, helper_dayof_confirmed_at: T2 })!.message).toMatch(/Next: confirm your side before Sun, Nov 7\./);
+    expect(build("poster", { poster_confirmed_at: T2, helper_dayof_confirmed_at: null })!.message).toMatch(/Next: confirm your side before Sun, Nov 7\./);
   });
 
   it("no date: the both-confirmed line leaves the day out", () => {

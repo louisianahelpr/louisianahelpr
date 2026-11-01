@@ -1244,7 +1244,9 @@ export type MyFreeRequest = { id: string; item_id: string; status: string; creat
 /** The member's own open asks, with each item's title (RLS: the asker or the giver reads a row). */
 export async function fetchMyFreeRequests(userId: string): Promise<MyFreeRequest[]> {
   return (unwrap(
-    await supabase.from("declutter_free_requests").select("id, item_id, status, created_at, declutter_items(title)")
+    // declutter_items!inner: an ask whose item the caller may not read (a test item, hidden by the items read policy's
+    // seed rule, 20261020033623) is left out, as the offers and cart lists leave it out (owner 2026-11-01).
+    await supabase.from("declutter_free_requests").select("id, item_id, status, created_at, declutter_items!inner(title)")
       .eq("requester_id", userId).eq("status", "open").order("created_at", { ascending: true }),
   ) ?? []) as MyFreeRequest[];
 }
@@ -1349,7 +1351,9 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
     ...(handover === "seller_delivery"
       ? { slot_start: slotStart ?? null, handoff: handoff ?? null,
           ...(typeof expectedDeliveryCents === "number" ? { expected_delivery_cents: expectedDeliveryCents } : {}) }
-      : {}),
+      // B110: a porch / door / meetup pickup carries the day and time the buyer chose before paying (none: they book after).
+      : (handover === "porch" || handover === "pickup_home" || handover === "meetup") && slotStart ? { slot_start: slotStart }
+        : {}),
   });
   return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true };
 }

@@ -32,7 +32,7 @@
  * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |   AFTER INSERT ON public.user_blocks | AFTER INSERT ON public.job_quotes
  * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |          OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id)); |          OR false);
  * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |   EXCEPTION WHEN OTHERS THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes | EXCEPTION WHEN unique_violation THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes
- * @mutate supabase/migrations/20261101065105_instant_book_booking.sql |      AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)\n |      AND true\n
+ * @mutate supabase/migrations/20261101180708_direct_offer_notice_next_step.sql |      AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)\n |      AND true\n
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |         IF FOUND AND NOT public.are_users_blocked(v_quoter, NEW.customer_id) THEN | IF FOUND THEN
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |        AND q.quoter_id = p_helper\n |        AND true\n
  * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |        WHERE r.status = 'agreed'\n |        WHERE r.status = 'open'\n

@@ -37,6 +37,12 @@ function formatUsd(value: number | undefined): string {
   }).format(value);
 }
 
+/** The hero field's form: `120` for a whole amount, `120.50` otherwise (the big number reads like a price tag). */
+function formatUsdHero(value: number | undefined): string {
+  const full = formatUsd(value);
+  return full.endsWith(".00") ? full.slice(0, -3) : full;
+}
+
 /**
  * Renders the raw editable digits for an in-progress edit — e.g. `1234.5`.
  * Returns an empty string for `undefined` so the placeholder shows on focus.
@@ -84,6 +90,12 @@ interface CurrencyInputProps
    * during typing but get clamped on blur.
    */
   max?: number;
+  /**
+   * The screen's big number (Post a job's budget, audit 11-01 JA-43): the field IS the large centred price,
+   * with the "$" drawn the same size beside it and no box, so the screen has one budget control, not a big
+   * read-out plus a second small field for the same value.
+   */
+  hero?: boolean;
 }
 
 /**
@@ -111,8 +123,9 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       min,
       max,
       className,
-      placeholder = "0.00",
+      placeholder,
       inputMode = "decimal",
+      hero = false,
       ...props
     },
     ref,
@@ -121,8 +134,9 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     // while focused (so partial entries like `12.` work), and is rewritten
     // from the parent `value` prop on blur and when the prop changes
     // externally while not focused.
+    const fmt = hero ? formatUsdHero : formatUsd;
     const [display, setDisplay] = React.useState<string>(() =>
-      formatUsd(value),
+      fmt(value),
     );
     const [focused, setFocused] = React.useState(false);
     // The last value this field itself reported. A prop that differs from it
@@ -141,7 +155,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
     // over the 55 on blur (owner, 2026-10-01).
     React.useEffect(() => {
       if (!focused) {
-        setDisplay(formatUsd(value));
+        setDisplay(fmt(value));
       } else if (!sameAmount(value, emitted.current)) {
         setDisplay(toEditableString(value));
       }
@@ -169,7 +183,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         } else {
           if (typeof min === "number" && parsed < min) parsed = min;
           if (typeof max === "number" && parsed > max) parsed = max;
-          setDisplay(formatUsd(parsed));
+          setDisplay(fmt(parsed));
           emit(parsed);
         }
       }
@@ -208,6 +222,31 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
       onPaste?.(event);
     };
 
+    if (hero) {
+      return (
+        <div className={cn("flex items-center justify-center", className)}>
+          <span aria-hidden="true" className="font-sans text-ds-40 font-bold" style={{ color: "hsl(var(--burnt-sienna))" }}>
+            $
+          </span>
+          <Input
+            ref={ref}
+            type="text"
+            inputMode={inputMode}
+            value={display}
+            onChange={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onPaste={handlePaste}
+            placeholder={placeholder ?? "0"}
+            // Sized to its digits (ch) so "$" and the number sit together centred; a 44px-plus tap target.
+            style={{ width: `${Math.max(1, (display || placeholder || "0").length) + 0.5}ch`, color: "hsl(var(--burnt-sienna))" }}
+            className="h-auto min-h-[56px] min-w-[2ch] max-w-[9ch] border-0 bg-transparent p-0 shadow-none text-center font-sans text-ds-40 font-bold tabular-nums placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background rounded-ds-md"
+            {...props}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className={cn("relative", className)}>
         <span
@@ -229,7 +268,7 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
           onFocus={handleFocus}
           onBlur={handleBlur}
           onPaste={handlePaste}
-          placeholder={placeholder}
+          placeholder={placeholder ?? "0.00"}
           className="pl-8 tabular-nums"
           {...props}
         />

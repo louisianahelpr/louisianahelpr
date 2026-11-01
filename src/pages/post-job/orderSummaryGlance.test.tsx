@@ -86,8 +86,8 @@ describe("Order Summary review card (owner 2026-10-01)", () => {
   it("every glance row is a label plus one right-aligned value", () => {
     render(<CheckoutStepView form={makeForm()} />);
     const rows = glanceRows();
-    // Job, Category, Details, Total, Location, When at minimum.
-    expect(rows.length).toBeGreaterThanOrEqual(6);
+    // Job, Category, Details, Location, When at minimum (the Total row moved to the Payment breakdown, audit 11-01 JA-45).
+    expect(rows.length).toBeGreaterThanOrEqual(5);
     for (const row of rows) {
       const kids = Array.from(row.children) as HTMLElement[];
       expect(kids.length, `row "${row.textContent}" has label + value`).toBe(2);

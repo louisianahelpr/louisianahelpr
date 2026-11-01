@@ -4,8 +4,7 @@
  * Applied once, and only to what is still blank or at its default, so nothing the seller already
  * chose is replaced.
  */
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { SellerHandover } from "@/lib/declutter/api";
 import { fetchLastSetup, type LastSetup } from "@/lib/declutter/lastSetup";
@@ -50,21 +49,4 @@ export function useLastListingSetup(
   // A failed read is extra help lost, not a blocker: the form starts blank as before, and the app's
   // QueryCache reports the error to error_logs.
   return used;
-}
-
-/**
- * What a posting form says instead of asking (owner 2026-10-30): the choices are made ahead, in setup and Settings, and
- * one listing's are changed in Manage listing after it's posted. No form here.
- */
-export function UsesSettingsNote({ children }: { children?: ReactNode }) {
-  return (
-    <div className="space-y-0.5 text-ds-13 text-muted-foreground" data-uses-settings="">
-      {children}
-      <p className="flex flex-wrap items-center gap-x-2">
-        <span>Uses your settings</span>
-        <span aria-hidden>·</span>
-        <Link to="/declutter/settings" className="min-h-11 inline-flex items-center font-semibold text-foreground underline underline-offset-2">Settings</Link>
-      </p>
-    </div>
-  );
 }

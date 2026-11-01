@@ -30,6 +30,7 @@ describe("each sharded check passes only when every one of its shards passed", (
   const shardJobs = entries.filter(([, j]) => (j.steps ?? []).some((s) => /vitest run[^\n]*--shard=\$\{\{ matrix\.shard \}\}\/(\d+)/.test(s.run ?? "")));
 
   it("finds both shard jobs and both gates (floor: 2 pairs)", () => {
+    expect(shardJobs.length).toBeGreaterThan(1);
     expect(shardJobs.map(([id]) => id).sort()).toEqual(PAIRS.map((p) => p.shardJob).sort());
     for (const p of PAIRS) expect(entries.find(([, j]) => j.name === p.gate), `a job named '${p.gate}'`).toBeTruthy();
   });

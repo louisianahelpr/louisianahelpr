@@ -31,7 +31,7 @@ vi.mock("sonner", () => ({ toast: toasts }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: viewer.id ? { id: viewer.id } : null }) }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => [],
-  photoPublicUrl: (p: string) => p,
+  photoPublicUrl: (p: string) => p, photoCardUrl: (p: string) => p, CARD_PHOTO_PX: 480,
   fetchWatching: async () => new Set(watched),
   setWatch: async (id: string, on: boolean) => {
     watchCalls.push([id, on]);

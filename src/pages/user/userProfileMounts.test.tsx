@@ -99,7 +99,7 @@ vi.mock("@/components/BlockUserDialog", () => ({ BlockUserDialog: () => null }))
 // The banner's own reads (as in movingSaleBanner.test.tsx).
 vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => [],
-  photoPublicUrl: (p: string) => p,
+  photoPublicUrl: (p: string) => p, photoCardUrl: (p: string) => p, CARD_PHOTO_PX: 480,
   // Board 40's Selling now row.
   fetchSellerItems: async (sellerId: string) => {
     sellerReads.push(sellerId);

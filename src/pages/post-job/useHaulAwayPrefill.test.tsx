@@ -23,7 +23,7 @@ vi.mock("sonner", () => ({
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchMyItemPrivate: async () => ({ pickup_address: "1234 Example St, Baton Rouge, LA 70806" }),
-  photoPublicUrl: (p: string) => `https://cdn.test/${p}`,
+  photoPublicUrl: (p: string) => `https://cdn.test/${p}`, photoCardUrl: (p: string) => `https://cdn.test/${p}`, CARD_PHOTO_PX: 480,
 }));
 vi.mock("@/lib/declutter/haulAway", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/haulAway")>()),

@@ -70,7 +70,7 @@ describe("GROW-6: job and Helpr links preview with their own photo (api/share.ts
     expect(h).toContain('<meta name="twitter:image" content="' + `${SB}/functions/v1/shop-photo?id=${JOB}&amp;kind=job`);
     expect(h).not.toContain(POSTER);
     expect(h).not.toMatch(/job-photos/);
-    expect(h.match(/<meta property="og:image" /g)?.length).toBe(2);
+    expect(h.match(/<meta property="og:image" /g)?.length).toBe(1);
   });
 
   it("a job with no photo keeps the shell's card image", async () => {
@@ -91,7 +91,7 @@ describe("GROW-6: job and Helpr links preview with their own photo (api/share.ts
     expect(h).toContain('<meta property="og:image:type" content="image/png"');
     expect(h).toContain('<meta property="og:image:width" content="630"');
     expect(h).toContain('<meta property="og:image:alt" content="Marie T. on Louisiana Helpr"');
-    expect(h.match(/<meta property="og:image" /g)?.length).toBe(2);
+    expect(h.match(/<meta property="og:image" /g)?.length).toBe(1);
   });
 
   it("a photo outside the Helpr's own avatar folder, or of an unmeasured type, gives no image block", async () => {

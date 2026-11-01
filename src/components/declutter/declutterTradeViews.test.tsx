@@ -583,7 +583,10 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getAllByRole("button", { name: "Answer with a price" })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: "Say no" })).toHaveLength(2);
     expect(screen.getByText(/under your lowest price \(\$30\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Waiting for the seller/)).toBeInTheDocument();
+    // The shared next-step line (owner 11-01): the seller's two to answer say "Next: answer their offer"; the buyer's waits.
+    // @mutate src/components/declutter/DeclutterOffersSection.tsx |             ? { who: "you", text: "Answer their offer", by: timeLeft(o.respond_by) } |             ? { who: "info", text: "Your turn to answer.", by: timeLeft(o.respond_by) }
+    expect(screen.getByText("Waiting on the seller to answer")).toBeInTheDocument();
+    expect(screen.getAllByText("Next: answer their offer")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
     expect(screen.getAllByText(/under your lowest price/)).toHaveLength(1);
   });

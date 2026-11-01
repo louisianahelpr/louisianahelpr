@@ -3,6 +3,7 @@
  * (side="seller", the Selling tab) and "Your offers" (side="buyer", the Buying tab), each offer a card with
  * accept / decline / counter. Every rule is enforced by the server (20261014210518); the app only explains it.
  */
+import { NextStep } from "@/components/ui/NextStep";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -23,8 +24,6 @@ import { invalidateTrades } from "./declutterLightActions";
 
 /** Every Declutter read refetches after a trade (offers, cart, orders). */
 
-/** "3 hours left" -> "3 hours left.", "time is up" -> "Time is up.": a status line is a sentence. */
-const sentence = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}.`;
 
 /**
  * The counter box's example (audit 1030 DC-12: it was a hard-coded "30" on every offer, whatever the numbers). The
@@ -142,11 +141,14 @@ function OfferRow({ o }: { o: MyOffer }) {
       )}
       {underFloor && <p className="text-xs text-amber-700 dark:text-amber-300">This is under your lowest price ({formatPrice(o.floor_price_cents as number)}). Only you can see that.</p>}
       {o.status === "open" && (
-        <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">
-          {/* A plain sentence, never "Your turn to answer · 3 hours left" (lead 2026-10-28). */}
-          {myTurn ? "Your turn to answer. " : `Waiting for the ${o.my_side === "buyer" ? "seller" : "buyer"}. `}
-          {sentence(timeLeft(o.respond_by))}
-        </p>
+        // The shared next-step line (owner 11-01 12:02 PM, "Next: <what> · <deadline>"; replaces lead 10-28's "Your turn to
+        // answer. 3 hours left."): the viewer's move, or who it waits on, with the time left.
+        <NextStep
+          className="!text-ds-13"
+          value={myTurn
+            ? { who: "you", text: "Answer their offer", by: timeLeft(o.respond_by) }
+            : { who: "them", text: `Waiting on the ${o.my_side === "buyer" ? "seller" : "buyer"} to answer`, by: timeLeft(o.respond_by) }}
+        />
       )}
       {myTurn && o.my_side === "seller" && (
         // Sellers keep the whole price (spec v2 §9.11). Members never see a fee name or number (owner 2026-10-25).

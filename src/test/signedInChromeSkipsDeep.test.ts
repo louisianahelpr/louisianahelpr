@@ -22,7 +22,7 @@ import { blankComments } from "./helpers/blankNonCode";
 const ROOT = resolve(__dirname, "../..");
 const rel = (abs: string) => abs.slice(ROOT.length + 1).split("\\").join("/");
 /** App.tsx mounts these lazily beside every signed-in page. */
-const CHROME = ["src/components/DesktopTopNav.tsx", "src/components/declutter/DeliveryOnlinePill.tsx", "src/components/TermsReconsentDialog.tsx"];
+const CHROME = ["src/components/DesktopTopNav.tsx", "src/components/declutter/DeliveryOnlinePill.tsx", "src/components/TermsReconsentMount.tsx"];
 
 const config = blankComments(readFileSync(resolve(ROOT, "vite.config.ts"), "utf8"));
 const groupOf = (name: string) => config.match(new RegExp(`name:\\s*"${name}",[\\s\\S]*?\\}`))?.[0] ?? "";

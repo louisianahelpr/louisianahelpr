@@ -64,8 +64,8 @@ describe("payout setup after the hire", () => {
     const hook = code("src/hooks/useAwardBlockReason.ts");
     expect(hook.match(/acceptMissingFromProfile\(profile,\s*\{\s*payoutAfterHire\s*\}\)/g)?.length).toBe(2);
     expect(hook.match(/usePayoutAfterHireOn\(\)/g)?.length).toBe(2);
-    // The one switch read the store is published from (IdentityCheckHost).
-    expect(code("src/components/identity/IdentityCheckSheet.tsx")).toMatch(/const payoutAfterHire = useFeature\("payout_after_hire"\);\s*useEffect\(\(\) => setPayoutAfterHireOn\(payoutAfterHire\), \[payoutAfterHire\]\);/);
+    // The one switch read the store is published from (IdentityCheckMount, always mounted; B83 moved it off the sheet).
+    expect(code("src/components/identity/IdentityCheckMount.tsx")).toMatch(/const payoutAfterHire = useFeature\("payout_after_hire"\);\s*useEffect\(\(\) => setPayoutAfterHireOn\(payoutAfterHire\), \[payoutAfterHire\]\);/);
   });
 
   it("(p1) the ID check gates the payout claim, whatever payout_after_hire says (owner 2026-10-30)", () => {

@@ -90,17 +90,11 @@ import { SidePanelProvider } from "./components/sidePanelOpen";
 const PermissionRationaleDialog = lazy(() =>
   import("@/components/PermissionRationaleDialog").then((m) => ({ default: m.PermissionRationaleDialog }))
 );
-// Fires when the authed user's terms_version_accepted is older than
-// LATEST_TERMS_VERSION. Lazy — the dialog chunk is only fetched when a
-// version bump actually needs it (which is rare and out of the hot path).
-const TermsReconsentDialog = lazy(() =>
-  import("@/components/TermsReconsentDialog").then((m) => ({ default: m.TermsReconsentDialog }))
-);
-// The one Stripe Identity sheet (owner 2026-10-21): opened from any entry
-// point through openIdentityCheck(), and by /…?verify_id=1 and Stripe's return.
-const IdentityCheckHost = lazy(() =>
-  import("@/components/identity/IdentityCheckSheet").then((m) => ({ default: m.IdentityCheckHost }))
-);
+// Terms re-consent and the one Stripe Identity sheet (owner 2026-10-21): small
+// always-mounted parts that fetch their dialog only when it has to show
+// (src/components/TermsReconsentMount.tsx, identity/IdentityCheckMount.tsx).
+const TermsReconsentMount = lazy(() => import("@/components/TermsReconsentMount").then((m) => ({ default: m.TermsReconsentMount })));
+const IdentityCheckMount = lazy(() => import("@/components/identity/IdentityCheckMount").then((m) => ({ default: m.IdentityCheckMount })));
 
 // Lazy load all pages including landing
 const Index = lazyWithPreload(() => import("./pages/info/Index"));
@@ -568,16 +562,19 @@ const App = () => (
           {/* A lazy chunk is fetched as soon as it renders, so these wait for a
               maybe-signed-in visitor: a guest draws none of them. The rationale
               dialog stays out: anyone can be asked for a device permission. */}
+          {/* One Suspense per piece (B83, 11-01): under one shared boundary
+              the dock waited for the slowest chunk beside it, and drew ~1.6 s
+              after /home was ready on Slow 4G (lab, main and b78/b79 alike).
+              The Terms and ID mounts are small chunks that fetch their dialogs only
+              when one has to show. Guard: chromeWaitsOnlyForItsOwnCode. */}
           <SignedInChrome>
-            <Suspense fallback={null}>
-              <NeedsYouMount />
-              <MobileNav />
-              <DesktopSidebarNav />
-              <DesktopTopNav />
-              <DeliveryOnlinePill />
-              <TermsReconsentDialog />
-              <IdentityCheckHost />
-            </Suspense>
+            <Suspense fallback={null}><MobileNav /></Suspense>
+            <Suspense fallback={null}><NeedsYouMount /></Suspense>
+            <Suspense fallback={null}><DesktopSidebarNav /></Suspense>
+            <Suspense fallback={null}><DesktopTopNav /></Suspense>
+            <Suspense fallback={null}><DeliveryOnlinePill /></Suspense>
+            <Suspense fallback={null}><TermsReconsentMount /></Suspense>
+            <Suspense fallback={null}><IdentityCheckMount /></Suspense>
           </SignedInChrome>
           <Suspense fallback={null}>
             <PermissionRationaleDialog />

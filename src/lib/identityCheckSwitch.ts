@@ -8,7 +8,7 @@
  * decides; this module only lets plain functions that cannot call a hook
  * (openIdentityCheck, needsIdentityCheck...) ask the same question.
  *
- * The value is published by IdentityCheckHost (mounted once in App) from
+ * The value is published by IdentityCheckMount (mounted once in App) from
  * useFeatureStatus("identity_check") via useIdentityCheckStatus(). Until it
  * publishes it reads FALSE; an entry link (?verify_id=1) waits for the answer
  * instead of being spent. Components subscribe with useIdentityCheckOnStore().
@@ -20,12 +20,12 @@ import { useSyncExternalStore } from "react";
 let on = false;
 const listeners = new Set<() => void>();
 
-/** The current answer (false until IdentityCheckHost publishes one). */
+/** The current answer (false until IdentityCheckMount publishes one). */
 export function identityCheckOn(): boolean {
   return on;
 }
 
-/** IdentityCheckHost publishes useFeature("identity_check") here. */
+/** IdentityCheckMount publishes useFeature("identity_check") here. */
 export function setIdentityCheckOn(next: boolean): void {
   if (next === on) return;
   on = next;

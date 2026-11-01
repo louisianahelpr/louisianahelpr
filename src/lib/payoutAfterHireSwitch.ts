@@ -6,7 +6,7 @@
  * switch); this module lets the app's plain readers and small components ask
  * without each opening its own switch query.
  *
- * Published by IdentityCheckHost (mounted once in App, the host that publishes
+ * Published by IdentityCheckMount (mounted once in App, the mount that publishes
  * switches for plain functions) from useFeature("payout_after_hire"). Until it
  * publishes it reads FALSE: today's behaviour (the accept waits on setup, no
  * prompt, no job line). Components subscribe with usePayoutAfterHireOn().
@@ -16,12 +16,12 @@ import { useSyncExternalStore } from "react";
 let on = false;
 const listeners = new Set<() => void>();
 
-/** The current answer, for a plain call (false until IdentityCheckHost publishes one). */
+/** The current answer, for a plain call (false until IdentityCheckMount publishes one). */
 export function payoutAfterHireOn(): boolean {
   return on;
 }
 
-/** IdentityCheckHost publishes useFeature("payout_after_hire") here. */
+/** IdentityCheckMount publishes useFeature("payout_after_hire") here. */
 export function setPayoutAfterHireOn(next: boolean): void {
   if (next === on) return;
   on = next;

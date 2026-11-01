@@ -1,9 +1,11 @@
 /**
  * The two money rows say what each one covers: their names alone can't, because the
- * senders don't split them cleanly (prod titles, 60 days, read 2026-10-30).
+ * senders don't split them cleanly (prod titles, 60 days, read 2026-10-30). NOID-15 (10-31)
+ * moved payouts and tips to financial_alerts (src/test/payoutAndTipNoticesOneRow.test.ts),
+ * so Job payments no longer owns up to an overlap.
  *
  * @mutate src/components/notificationPreferences/CategoryRow.tsx | {item.description && ( | {false && (
- * @mutate src/components/notificationPreferences/constants.tsx |  description: "Finished jobs, refunds and saved cards. Some payouts and tips too.", |
+ * @mutate src/components/notificationPreferences/constants.tsx |  description: "Finished jobs, refunds and saved cards.", |  description: "Finished jobs, refunds and saved cards. Some payouts and tips too.",
  * @mutate src/components/notificationPreferences/constants.tsx |  description: "Money held for a job, payout setup, payouts and tips.", |
  */
 import { describe, expect, it } from "vitest";
@@ -20,9 +22,10 @@ const show = (key: string) => {
 };
 
 describe("the money rows' descriptions", () => {
-  it("Job payments says refunds and finished jobs, and owns up to the overlap", () => {
+  it("Job payments says refunds and finished jobs, and no longer claims payouts or tips", () => {
     show("payments");
-    expect(screen.getByText(/Finished jobs, refunds and saved cards\. Some payouts and tips too\./)).toBeInTheDocument();
+    expect(screen.getByText("Finished jobs, refunds and saved cards.")).toBeInTheDocument();
+    expect(screen.queryByText(/payouts|tips/i)).toBeNull();
   });
 
   it("Payments and tips says held money, payouts and tips", () => {

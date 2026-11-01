@@ -91,8 +91,9 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // members' titles on prod, last 60 days (read 2026-10-30): `financial_alerts`
 // held money secured for a job, payout setup, payouts released and a tip;
 // `payment` held refunds, job completed or approved, card saved, and also
-// "Payout sent!" and tips. So each row's description says what it covers,
-// overlap included, because neither label can.
+// "Payout sent!" and tips. NOID-15 (10-31) moved "Payout sent!"
+// (process-scheduled-payouts) and "You received a tip!" (checkout and the held
+// tip repay) to `financial_alerts`, so each kind now sits under one row.
 export const rows: Row[] = [
   { key: "new_offers", emailKey: "email_new_offers", label: "Job offers", icon: <Briefcase className="w-3.5 h-3.5" /> },
   { key: "job_applications", emailKey: "email_job_applications", label: "Applications", icon: <Users className="w-3.5 h-3.5" /> },
@@ -104,7 +105,7 @@ export const rows: Row[] = [
   { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", icon: <Navigation className="w-3.5 h-3.5" /> },
   { key: "work_status", emailKey: "email_work_status", label: "Work status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-  { key: "payments", emailKey: "email_payments", label: "Job payments", description: "Finished jobs, refunds and saved cards. Some payouts and tips too.", icon: <Receipt className="w-3.5 h-3.5" /> },
+  { key: "payments", emailKey: "email_payments", label: "Job payments", description: "Finished jobs, refunds and saved cards.", icon: <Receipt className="w-3.5 h-3.5" /> },
   { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments and tips", description: "Money held for a job, payout setup, payouts and tips.", icon: <DollarSign className="w-3.5 h-3.5" /> },
   { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },
   { key: "system_alerts", emailKey: "email_system_alerts", label: "System alerts", icon: <ShieldAlert className="w-3.5 h-3.5" /> },

@@ -144,6 +144,6 @@ export default defineConfig({
     ],
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src"), "sonner-real": path.resolve(__dirname, "./node_modules/sonner/dist/index.mjs") },
+    alias: { "@": path.resolve(__dirname, "./src"), "sonner-real": path.resolve(__dirname, "./node_modules/sonner/dist/index.mjs"), "supabase-realtime-real": path.resolve(__dirname, "./node_modules/@supabase/realtime-js/dist/module/index.js"), "supabase-storage-real": path.resolve(__dirname, "./node_modules/@supabase/storage-js/dist/index.mjs") },
   },
 });

@@ -11,6 +11,7 @@ import {
   type ActivityBucket,
 } from "@/components/job-card/activityFilters";
 import { assertNever } from "@/lib/assertNever";
+import { posterFirstName } from "@/lib/deletedPerson";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { afterPhotoIsThePrimary, beforePhotoIsThePrimary } from "./primaryPhotoAsk";
 import { arrivalEstablished } from "@/lib/arrivalGate";
@@ -993,7 +994,8 @@ export function helperStatusLine(
   const id = deriveHelperWait(app, progress);
   const copy = HELPER_WAIT[id];
   const bucket = appliedActivityBucket(app);
-  const named = app.posterName ? HELPER_NAMED[id]?.(firstName(app.posterName)) : undefined;
+  const posterFirst = posterFirstName(app.posterName);
+  const named = posterFirst ? HELPER_NAMED[id]?.(posterFirst) : undefined;
   return {
     id,
     eyebrow: copy.eyebrow ?? BUCKET_LABEL[bucket],

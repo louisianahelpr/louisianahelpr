@@ -235,6 +235,9 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
       "src/components/messages/chatView/DealCard.tsx",
       "src/components/profile/EarningsForecastCard.tsx",
       "src/hooks/useDashboardData.ts",
+      // PERF-SHELL (b66): /browse's first job cards drawn into the served HTML (api/share) price the guest take-home
+      // from open_jobs_browse; the list names the pay inputs and the stamp (helper_fee_flat_cents), like guestJobsQuery.
+      "src/lib/browseShellCards.mjs",
       "src/lib/guestJobsQuery.ts",
       "src/pages/home/QuickApplyHandler.tsx",
       // The guest job preview's take-home (lead 10-31): the guest card's own figure, so it names the stamp too.

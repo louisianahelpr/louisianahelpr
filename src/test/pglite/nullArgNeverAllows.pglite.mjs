@@ -176,6 +176,9 @@ CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id
   paid_with text,
   -- Shipping S2 (20261030000030): the class SQL's 'ship' step writes a shipped order; shipping_rate_buyable reads it.
   fee_rule text, shipping_cents integer NOT NULL DEFAULT 0);
+-- LEAD-LIST-FOR-SELLER (20261101034159): the link sell_for_me_listings_sent reads; the class SQL's 'list_for_seller' step writes it.
+CREATE TABLE public.declutter_listed_for_seller (item_id uuid PRIMARY KEY, job_id uuid NOT NULL, helpr_id uuid NOT NULL,
+  seller_id uuid NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), sent_at timestamptz, decided_at timestamptz);
 -- Shipping S2 (20261030000030): the label claim shipping_rate_buyable reads, with the columns the 'ship' step writes.
 CREATE TABLE public.shipments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), declutter_order_id uuid, idempotency_key text,
   label_mode text, service text, quoted_cents integer, ship_to jsonb, parcel jsonb, label_state text NOT NULL DEFAULT 'claimed');
@@ -184,6 +187,9 @@ CREATE TABLE public.shipments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), de
 CREATE TABLE public.declutter_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, seller_id uuid,
   items_cents integer, debt_cents integer, amount_cents integer, status text, stripe_transfer_id text, attempts integer NOT NULL DEFAULT 0);
 CREATE TABLE public.payout_send_marks (payout_kind text, payout_id uuid);
+-- 20261031204932: the newest declutter_payout_unsent also reads an admin's manual release from the audit log.
+CREATE TABLE IF NOT EXISTS public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text,
+  target_id text, target_type text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.declutter_handovers (order_id uuid PRIMARY KEY, confirmed_by text, set_out_photo_path text, picked_up_photo_path text);
 CREATE TABLE public.declutter_refund_requests (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, status text,
   declined_at timestamptz);
@@ -310,7 +316,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Porch places (D-NEW14, 20261030164712): after declutter_is_porch_day, which its SQL body calls.
   "declutter_order_is_porch_day",
   // Place hours (20261031145652): the order's frozen place hours, else declutter_slot_in_windows (loaded FIRST).
-  "declutter_order_slot_in_windows"];
+  "declutter_order_slot_in_windows",
+  // LEAD-LIST-FOR-SELLER (20261101034159): may a Have a Helpr list it job be marked done (a listing was sent).
+  "sell_for_me_listings_sent"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).
@@ -330,7 +338,11 @@ const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_c
   "declutter_pair_shared_ways"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 // declutter_order_slot_in_windows (20261031145652): declutter_delivery_slot_ok's SQL body calls it.
-const FIRST = ["job_payment_is_funded", "job_payment_is_listed", "declutter_order_slot_in_windows"];
+// BUY-43 (20261101051951): declutter_delivery_tip_open's SQL body calls payout_waits_on_identity, whose SQL body calls
+// feature_enabled_for_user (after has_role, which it calls), identity_check_exempt (which calls feature_enabled_for_user) and identity_is_verified,
+// so those load before it.
+const FIRST = ["job_payment_is_funded", "job_payment_is_listed", "declutter_order_slot_in_windows",
+  "has_role", "feature_enabled_for_user", "identity_check_exempt", "identity_is_verified", "payout_waits_on_identity"];
 const ORDER = [...HELPERS, ...FIRST, ...ALLOW.filter((f) => !FIRST.includes(f) && !AFTER_STUBS.includes(f))];
 const loaded = [];
 // Skip mode loads the newest definition that exists BEFORE the fix. A function

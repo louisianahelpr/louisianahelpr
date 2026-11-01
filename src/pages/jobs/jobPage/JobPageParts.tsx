@@ -29,8 +29,10 @@ const MONEY = "text-[hsl(var(--burnt-sienna))]";
  * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
  * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
  */
-export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null }: {
+export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, crewMember }: {
   job: JobPageRow; side: "poster" | "helpr" | null; trackingStatus?: string | null; pendingApplicants?: number;
+  /** The viewer is on this crew's roster (JA-33): whether they confirmed their spot. Undefined = not a crew member. */
+  crewMember?: { confirmed: boolean };
   /** The other person's first name, as the page's own buttons name them ("Message Eli"); null reads "Your Helpr". */
   otherFirst?: string | null;
 }) {
@@ -44,6 +46,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
     workUnderway: helperProgress(job as unknown as Job, trackingStatus).workUnderway,
     tracking: trackingStatus ? { status: trackingStatus } : null,
     pendingApplicants,
+    crewMember,
   });
   if (progress.stage === null && !progress.next) return null;
   return (

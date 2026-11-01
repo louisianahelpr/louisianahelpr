@@ -71,6 +71,8 @@ const state = {
   /** The job's latest job_tracking.status (useJobPage's tracking read). */
   tracking: null as string | null,
   onCrew: false,
+  /** useJobPage's crewConfirmed: the member's roster row has helper_confirmed_at (JA-33). */
+  crewConfirmed: false,
   /** usePosterPageFlows' crewNobodyLeft (JOBS-3: every crew member reported a no-show). */
   crewNobodyLeft: false,
   /** usePosterPageFlows' crewRoster (JA-32: the page draws the crew). */
@@ -92,6 +94,7 @@ vi.mock("./useJobPage", () => ({
     myApplication: { data: state.myApplication },
     tracking: { data: state.tracking },
     onCrew: state.onCrew,
+    crewConfirmed: state.crewConfirmed,
   }),
 }));
 vi.mock("@/hooks/useProofPhotoUrls", () => ({
@@ -226,6 +229,7 @@ function renderPage(userId = ME) {
 
 beforeEach(() => {
   state.onCrew = false;
+  state.crewConfirmed = false;
   state.job = null;
   state.party = false;
   state.applicants = { total: 0, pending: 0 };
@@ -901,6 +905,25 @@ describe("a crew member's own job page (A2-B8)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "See your crew steps" }));
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
     expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
+  });
+
+  // JA-33 (audit 11-01): a member already on the roster, spot confirmed, read "Dana offered you this job" (your move).
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} | crewMember={undefined}
+  // @mutate src/components/tracker/jobProgressState.ts |   if (o.viewer === "helpr" && o.crewMember && job.is_group_job === true | if (false && job.is_group_job === true
+  it("a crew member's tracker follows their own spot: confirmed, or theirs to confirm", async () => {
+    state.job = row({ status: "accepted", is_group_job: true, helpers_needed: 2, helper_id: null });
+    state.party = true;
+    state.myApplication = { status: "accepted", closed_reason: null };
+    state.onCrew = true;
+    state.crewConfirmed = true;
+    const { unmount } = renderPage();
+    const tracker = () => document.querySelector("[data-job-tracker]")?.textContent ?? "";
+    await waitFor(() => expect(tracker()).toContain("You're on the crew. Your spot is confirmed"));
+    expect(tracker()).not.toMatch(/offered you this job/);
+    unmount();
+    state.crewConfirmed = false;
+    renderPage();
+    await waitFor(() => expect(tracker()).toContain("Confirm your spot on the crew"));
   });
 
   it("an applicant NOT on the crew still reads as closed out", async () => {

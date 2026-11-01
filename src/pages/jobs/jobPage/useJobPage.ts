@@ -142,11 +142,12 @@ async function fetchMyApplication(jobId: string, userId: string): Promise<MyAppl
  * city only (audit 2026-10-28 A2-B8). The member's own roster row is readable to them (RLS "Admins and job
  * participants can view group helpers"), and user_may_see_job_address already gives them the street.
  */
-async function fetchOnCrew(jobId: string, userId: string): Promise<boolean> {
+async function fetchOnCrew(jobId: string, userId: string): Promise<{ on: boolean; confirmed: boolean }> {
+  // helper_confirmed_at: the member confirmed their spot, so their tracker never says "offered you this job" (JA-33).
   const row = unwrap(
-    await supabase.from("group_job_helpers").select("id").eq("job_id", jobId).eq("helper_id", userId).maybeSingle(),
-  ) as { id: string } | null;
-  return !!row;
+    await supabase.from("group_job_helpers").select("id, helper_confirmed_at").eq("job_id", jobId).eq("helper_id", userId).maybeSingle(),
+  ) as { id: string; helper_confirmed_at: string | null } | null;
+  return { on: !!row, confirmed: !!row?.helper_confirmed_at };
 }
 
 /** Applicants on the poster's own job: everyone who applied, and those still waiting on a decision. */
@@ -237,5 +238,5 @@ export function useJobPage(id: string | undefined, userId: string | undefined) {
     enabled: !!job.data && !isPoster && !!userId && job.data.job.is_group_job === true,
     staleTime: 30 * 1000,
   });
-  return { job, applicants, isPoster, myApplication, tracking, onCrew: onCrew.data === true };
+  return { job, applicants, isPoster, myApplication, tracking, onCrew: onCrew.data?.on === true, crewConfirmed: onCrew.data?.confirmed === true };
 }

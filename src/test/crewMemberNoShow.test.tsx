@@ -20,7 +20,7 @@
  * @mutate src/components/GroupJobHelpers.tsx |     !!h.helper_confirmed_at && |     true &&
  * @mutate src/components/GroupJobHelpers.tsx |               {noShowReportable(h) && ( |               {false && (
  * @mutate src/lib/crewLifecycle.ts |   if (!d \|\| d.helper_id !== memberId) { |   if (!d) {
- * @mutate src/lib/crewLifecycle.ts |     if ((error as { code?: string }).code === "PGRST202") { |     if (false) {
+ * @mutate src/lib/crewLifecycle.ts |     if (isMissingRpcNamed(error, "rpc_poster_report_member_no_show")) { |     if (false) {
  * @mutate src/components/GroupJobHelpers.tsx |  If someone never shows, tap Didn&apos;t show: they aren&apos;t paid and most of their share comes back to you. | 
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";

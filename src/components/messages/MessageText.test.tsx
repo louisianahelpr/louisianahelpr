@@ -37,7 +37,7 @@ describe("MessageText", () => {
   it("other sites stay plain text, including ones dressed up as ours", () => {
     show("Go to https://evil.example/x or https://louisianahelpr.com.evil.example/x or http://notlouisianahelpr.com/x or https://evil.example/louisianahelpr.com or me@louisianahelpr.com");
     // Floor: the message rendered (an empty render has no links either).
-    expect(screen.getByText(/^Go to /).textContent?.length ?? 0).toBeGreaterThan(100);
+    expect(String(screen.getByText(/^Go to /).textContent).length).toBeGreaterThan(100);
     expect(screen.queryAllByRole("link")).toEqual([]);
     expect(ownLinkPath("https://louisianahelpr.com.evil.example/x")).toBeNull();
     expect(ownLinkPath("https://evil.example/louisianahelpr.com")).toBeNull();

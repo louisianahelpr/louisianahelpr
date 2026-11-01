@@ -96,6 +96,17 @@ export function staticReach(root, roots) {
   return seen;
 }
 
+/**
+ * What boot runs on every page: the static closure of src/main.tsx (B83, 11-01). vite.config.ts gives the shared
+ * directories' modules in it, and only those, to `app-shared`, the chunk main.tsx imports statically. A shared module
+ * outside it is code some page runs later; in app-shared it rode on every page's boot.
+ */
+export function bootModules(root) {
+  const main = path.join(root, "src/main.tsx");
+  if (!fs.existsSync(main)) throw new Error("bootReach: src/main.tsx not found. Fix bootModules.");
+  return staticReach(root, [main]);
+}
+
 /** The files a public cold load starts from, read from routePreload.ts. */
 export function publicRoots(root) {
   const src = stripComments(fs.readFileSync(path.join(root, "src/boot/routePreload.ts"), "utf8"));

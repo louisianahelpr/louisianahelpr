@@ -61,6 +61,8 @@ interface TemplateJob {
   dispute_helper_response?: string | null;
   poster_confirmed_at?: string | null;
   helper_dayof_confirmed_at?: string | null;
+  /** The job's day (YYYY-MM-DD), for "You're both confirmed for <date>." (job_confirmed). */
+  date_needed?: string | null;
   poster_confirmed_arrival_at?: string | null;
   poster_confirmed_working_at?: string | null;
   payment_status?: string | null;
@@ -117,6 +119,14 @@ export interface NotificationTemplate {
    * caller then refuses the send instead of announcing something untrue.
    */
   build(f: TemplateFacts): BuiltNotification | null;
+}
+
+/** "Sat, Nov 1" for a YYYY-MM-DD job day; "" when there is none or it does not parse. */
+function bothConfirmedDay(date: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date ?? "");
+  if (!m) return "";
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 function jobTitle(f: TemplateFacts): string {
@@ -191,6 +201,17 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       const byPoster = f.senderRole === "poster";
       // The sender's OWN confirmation stamp, the one JobConfirmation writes.
       if (!(byPoster ? f.job.poster_confirmed_at : f.job.helper_dayof_confirmed_at)) return null;
+      // Owner 10-31 (job 7b1da54b): the OTHER side had already confirmed, and was still told "Tap to confirm your
+      // side too". When both stamps are set the notice only says so, with no ask.
+      if (byPoster ? f.job.helper_dayof_confirmed_at : f.job.poster_confirmed_at) {
+        const day = bothConfirmedDay(f.job.date_needed);
+        return {
+          title: "You're both confirmed",
+          message: `You're both confirmed for "${jobTitle(f)}"${day ? ` on ${day}` : ""}.`,
+          type: "info",
+          link: byPoster ? `/jobs?job=${f.job.id}` : `/posts?job=${f.job.id}`,
+        };
+      }
       return {
         title: byPoster ? "The person who posted this job confirmed it!" : "Helpr confirmed the job!",
         message: `${byPoster ? "The person who posted this job" : "The Helpr"} confirmed they're committed to "${jobTitle(f)}". Tap to confirm your side too.`,

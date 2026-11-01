@@ -60,6 +60,19 @@ export function continueDayNextStep(
     : { who: "you", text: "Confirm you'll be there", by: `continuing ${when}` };
 }
 
+/**
+ * The job as its tracker should read it while it continues on a SET day (B118 follow-up, lead 11-01): the new day
+ * and start time stand in for day 1's, so the bar and its "late" checks measure the next visit, never the first
+ * day that has passed (the bar read "Late" on Arrived with a day set). A proposed day is not agreed yet: day 1 stands.
+ */
+export function jobOnContinueDay<J extends { date_needed?: string | null; start_time?: string | null }>(
+  job: J,
+  row: ContinueDay | null | undefined,
+): J {
+  if (!row || row.status !== "set" || !row.new_date) return job;
+  return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) };
+}
+
 /** The job's active continue day, or null. */
 export async function fetchContinueDay(jobId: string): Promise<ContinueDay | null> {
   const rows = unwrap(

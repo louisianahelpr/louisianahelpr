@@ -58,6 +58,7 @@ import { hiredHelprFace } from "./hiredHelprFace";
 import { HAS_HELPR, usePosterPageActions } from "./posterPageActions";
 import { usePosterPageFlows } from "./usePosterPageFlows";
 import { useContinueDayActions } from "./useContinueDayActions";
+import { jobOnContinueDay } from "@/lib/continueDay";
 import { MineFaceNote } from "@/components/job-card/MineJobFace";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
@@ -141,6 +142,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     job: q.data?.job,
     side: isPoster ? "poster" : q.data?.job.helper_id && q.data.job.helper_id === userId ? "helpr" : null,
     otherFirst: isPoster ? helperFirst : posterFirst,
+    trackingStatus,
     onChanged: () => void q.refetch(),
   });
 
@@ -345,7 +347,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {/* Owner 2026-11-01: "Yusef is on the way · since 8:51 AM" and where he is, ABOVE the tracker. */}
           {/* A continue day replaces the first day's "arrived" line: the next visit is what matters now. */}
           {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
-          <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
+          {/* A SET continue day: the bar reads the new day, never day 1's passed date ("Late" on Arrived). */}
+          <JobTracker job={jobOnContinueDay(job, continueDay.row)} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
             hideNext={isPoster && !continueDay.row && showsNow(job, trackingStatus)}
             otherFirst={isPoster ? helperFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}

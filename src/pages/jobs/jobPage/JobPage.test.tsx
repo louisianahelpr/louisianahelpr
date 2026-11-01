@@ -210,6 +210,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { pinJobClock } from "@/test/helpers/pinJobClock";
+import { jobOnContinueDay } from "@/lib/continueDay";
 
 /** A day ahead, never a literal that ages into the past (jobDayFixtureTimezone). */
 const DAY = jobLocalDateISO(11);
@@ -1722,5 +1723,42 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "Confirm I'll be there" }));
     await waitFor(() => expect(continueCalls).toEqual(["confirm:c1"]));
+  });
+
+  // B118 follow-up (lead 11-01): with a SET day the bar read day 1 ("Late" on Arrived on a day that had passed).
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | <JobTracker job={jobOnContinueDay(job, continueDay.row)} side= | <JobTracker job={job} side=
+  // @mutate src/lib/continueDay.ts |   return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) }; |   return job;
+  it("a set day: the tracker bar reads the new day, never 'Late' off day 1's passed date", async () => {
+    continueState.row = setRow({ new_date: jobLocalDateISO(3), proposed_by: POSTER });
+    state.job = underWay({ customer_id: POSTER, helper_id: ME, date_needed: jobLocalDateISO(-1), helper_arrived_at: null });
+    state.party = true;
+    renderPage();
+    await screen.findByRole("button", { name: "Confirm I'll be there" });
+    const bar = document.querySelector("[data-job-tracker] [data-job-steps]") as HTMLElement;
+    expect(bar).toBeTruthy();
+    expect(bar.getAttribute("data-tone")).toBe("progress");
+    expect(within(document.querySelector("[data-job-tracker]") as HTMLElement).queryByText("Late")).toBeNull();
+  });
+
+  it("a proposed day is not agreed: day 1 stands for the bar (only a set day moves it)", () => {
+    const job = { date_needed: "2026-10-31", start_time: "09:00" };
+    expect(jobOnContinueDay(job, setRow({ status: "proposed" }) as never)).toBe(job);
+    expect(jobOnContinueDay(job, setRow() as never)).toEqual({ date_needed: "2026-11-05", start_time: "09:00" });
+    expect(jobOnContinueDay(job, null)).toBe(job);
+  });
+
+  // B118 follow-up (lead 11-01): "Need another day" showed after arrival, before any day-1 work had started.
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |   const offerSetDay = workStarted \|\| !!row; |   const offerSetDay = true;
+  it("arrived but not started on day 1: no 'Need another day' yet; once working, it shows", async () => {
+    state.job = underWay({ customer_id: POSTER, helper_id: ME, poster_confirmed_arrival_at: null });
+    state.tracking = "arrived";
+    state.party = true;
+    const { unmount } = renderPage();
+    await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Need another day" })).toBeNull();
+    unmount();
+    state.tracking = "working";
+    renderPage();
+    expect(await screen.findByRole("button", { name: "Need another day" })).toBeTruthy();
   });
 });

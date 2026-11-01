@@ -36,6 +36,8 @@ const state = {
   messages: [] as { id: string; talk_id: string; sender_id: string; body: string; created_at: string }[],
 };
 
+// B112: the open chat marks the viewer's side read (declutter_mark_talk_read); stubbed here.
+vi.mock("@/lib/declutter/talkRead", () => ({ markTalkRead: async () => undefined }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: state.me } }) }));

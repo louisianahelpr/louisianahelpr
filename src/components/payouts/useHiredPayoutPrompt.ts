@@ -9,7 +9,7 @@ import { payoutAfterHireOn } from "@/lib/payoutAfterHireSwitch";
  * Set up payouts to get paid." opens (HiredPayoutSetupDialog) in place of the
  * payment-held notice (its words already say the pay is held).
  *
- * `offer(userId)` reads the switch answer IdentityCheckHost published
+ * `offer(userId)` reads the switch answer IdentityCheckMount published
  * (payoutAfterHireOn) and the member's own profile row, fresh after the
  * accept, then opens the prompt and
  * answers true only when the switch is on, the profile was read and payouts

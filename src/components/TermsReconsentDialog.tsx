@@ -14,6 +14,7 @@ import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogBody, DialogContent, DialogHero, DialogFooter, DialogPrimaryAction } from "@/components/ui/dialog";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { termsReconsentEligible } from "@/components/TermsReconsentMount";
 import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION, termsAcceptanceIsCurrent } from "@/lib/consent";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
@@ -43,16 +44,7 @@ export function TermsReconsentDialog() {
   // component matters. A confirmed email is the whole front door (the
   // approval_status check that sat here was retired, Q205b); the profile must
   // have loaded so the ban check below reads a real value.
-  const isEligible =
-    !!userId &&
-    !!user?.email_confirmed_at &&
-    !!profile &&
-    // `ban_status` is NEVER empty: the column defaults to 'active' (verified in
-    // prod 2026-09-07 — every row reads 'active'), so the previous
-    // `!profile?.ban_status` was false for every user and this dialog could
-    // not open for anyone, however stale their accepted version. Name the
-    // states that actually mean "banned" instead.
-    !["temp_banned", "permanently_banned", "banned"].includes(profile?.ban_status ?? "");
+  const isEligible = termsReconsentEligible(user, profile);
 
   // Fetch the accepted version off the user's own profile row. Kept
   // separate from useCurrentUser's SharedProfile shape so the shared slice

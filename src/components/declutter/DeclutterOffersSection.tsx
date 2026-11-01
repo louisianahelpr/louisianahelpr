@@ -95,7 +95,7 @@ function OfferRow({ o }: { o: MyOffer }) {
       setCountering(false);
       setCounter("");
       toast(
-        res === "accepted" ? (o.my_side === "buyer" ? "Accepted. Check out within 48 hours." : "Accepted. The buyer has 48 hours to pay.")
+        res === "accepted" ? (o.my_side === "buyer" ? "Accepted. Check out within 24 hours." : "Accepted. The buyer has 24 hours to pay.")
           : res === "countered" ? "Sent. They have 48 hours to answer."
             : res === "withdrawn" ? "Offer taken back."
               : "Declined.",
@@ -228,8 +228,8 @@ function OfferRow({ o }: { o: MyOffer }) {
         title={o.my_side === "seller" ? `Sell it for ${formatPrice(takeCents)}?` : `Buy it for ${formatPrice(takeCents)}?`}
         confirmLabel="Accept" testId="accept-offer">
         {o.my_side === "seller"
-          ? `${takeCents < o.amount_cents ? `Their ${formatPrice(o.amount_cents)} offer is above your price now, so it sells at ${formatPrice(takeCents)}. ` : ""}"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
-          : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 48 hours to check out and pay, or you get a strike. Nothing is charged until you do.`}</>}
+          ? `${takeCents < o.amount_cents ? `Their ${formatPrice(o.amount_cents)} offer is above your price now, so it sells at ${formatPrice(takeCents)}. ` : ""}"${o.item_title}": every other offer on it closes, and the buyer gets 24 hours to pay.`
+          : <>{`"${o.item_title}": you pay at most `}<BuyerTotal priceCents={takeCents} />{` ${totalPhrase(noDeliveryWay(ways.data))}. You'll have 24 hours to check out and pay, or you get a strike. Nothing is charged until you do.`}</>}
       </ConfirmSheet>
       <ConfirmSheet open={withdrawing} pending={act.isPending} onConfirm={() => act.mutate({ action: "withdraw" })} onClose={() => setWithdrawing(false)}
         title="Take back your offer?" confirmLabel="Take it back" cancelLabel="Keep my offer" testId="withdraw-offer">

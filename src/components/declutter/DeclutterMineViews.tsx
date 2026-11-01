@@ -98,7 +98,7 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {orders && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
       {t.ready && !orders && offers.has === false && !settling.settling && (
         <DeclutterNotice title="Nothing bought yet.">
-          When a seller accepts your offer, or you tap Buy, the item comes here. You then have 48 hours to check out.
+          When a seller accepts your offer, or you tap Buy, the item comes here. Buy now holds it 30 minutes; an accepted offer gives you 24 hours to check out.
         </DeclutterNotice>
       )}
       {showCart && <CartView />}

@@ -53,11 +53,13 @@ describe("the poster's money after the release (F32)", () => {
     expect(screen.getByRole("link", { name: "See your receipt" })).toBeTruthy();
   });
 
-  // JA-47: one sentence about the money, from payment_status alone (no "Paid · held" word beside it).
-  it("still held: $40 and the one 'Paid … holds it' sentence, no receipt link", () => {
+  // Owner 11-01: "Remove paid Louisiana Helpr holds until job is done." A paid (escrow) job: $40 and no money line.
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   unpaid: "Not paid yet. Helprs can't see this job until it's paid.", |   unpaid: "Not paid yet. Helprs can't see this job until it's paid.", escrow: "Paid. Louisiana Helpr holds it until the job is done.",
+  it("still held (escrow): $40 and no 'holds it until the job is done' line, no receipt link", () => {
     show(row({ status: "in_progress", payment_status: "escrow" }));
     expect(price()).toBe("$40");
-    expect(notes()).toBe("Paid. Louisiana Helpr holds it until the job is done.");
+    expect(notes()).toBe("");
+    expect(document.body.textContent).not.toMatch(/holds it until the job is done/i);
     expect(screen.queryByRole("link", { name: "See your receipt" })).toBeNull();
   });
 

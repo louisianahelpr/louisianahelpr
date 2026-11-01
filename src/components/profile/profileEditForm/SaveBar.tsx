@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { Loader2, Check } from "lucide-react";
 import { useDockYield } from "@/components/mobileNav/useDockYield";
 
@@ -51,18 +52,22 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
           "0 -8px 22px -10px hsl(var(--olivewood) / 0.18)",
       }}
     >
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={onBack}
-        className="flex-1 h-11 rounded-ds-md inline-flex items-center justify-center text-ds-13 font-semibold text-foreground hover:bg-secondary/40 active:scale-[0.98] transition-all"
+        className="flex-1 px-0 rounded-ds-md text-ds-13 font-semibold tracking-normal text-foreground hover:bg-secondary/40 active:scale-[0.98]"
       >
         Cancel
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={(e) => onSave(e as unknown as React.FormEvent)}
         disabled={saving || justSaved}
-        className="flex-[2] h-11 rounded-ds-md inline-flex items-center justify-center gap-2 text-ds-13 font-bold transition-all active:scale-[0.98] disabled:active:scale-100"
+        className="flex-[2] px-0 rounded-ds-md gap-2 text-ds-13 tracking-normal active:scale-[0.98] disabled:active:scale-100 disabled:opacity-100 [&_svg]:size-4"
         style={{
           background: saving ? "hsl(var(--muted))" : "hsl(var(--bark))",
           color: saving ? "hsl(var(--muted-foreground))" : "hsl(var(--parchment))",
@@ -75,7 +80,7 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
         }}
       >
         {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : "Save changes"}
-      </button>
+      </Button>
     </div>
   );
 }

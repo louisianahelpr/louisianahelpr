@@ -54,7 +54,20 @@ function fixture(files: Record<string, string>, html: string): string {
   for (const [name, body] of Object.entries(files)) writeFileSync(join(dir, "assets", name), body);
   return dir;
 }
-const PAGES = ROUTES.map((r) => `${r.chunk}-abcdefgh.js`);
+const PAGES = [...new Set(ROUTES.map((r) => `${r.chunk}-abcdefgh.js`))];
+/**
+ * A route's `with` chunks (B77: /declutter's tab chunks) and the host whose dynamic imports start them, each tab
+ * importing the fixture's shared chunk like its page.
+ */
+function withFiles(tag: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const withs = [...new Set(ROUTES.flatMap((r) => (r as { with?: string[] }).with ?? []))];
+  for (const host of new Set(ROUTES.map((r) => (r as { withHost?: string }).withHost).filter(Boolean))) {
+    out[`${host}-${tag}.js`] = withs.map((w) => `()=>import("./${w}-${tag}.js");`).join("");
+  }
+  for (const w of withs) out[`${w}-${tag}.js`] = `import{x}from"./shared-${tag}.js";`;
+  return out;
+}
 const made: string[] = [];
 afterEach(() => {
   for (const d of made.splice(0)) rmSync(d, { recursive: true, force: true });
@@ -69,6 +82,7 @@ describe("critical-path analyser (scripts/perf/critical-path.mjs)", () => {
       "app-aaaaaaaa.js": `import{s}from"./shell-aaaaaaaa.js";${PAGES.map((p) => `()=>import("./${p}");`).join("")}`,
       "shell-aaaaaaaa.js": `export const s=1;`,
       "shared-aaaaaaaa.js": `export const x=1;`,
+      ...withFiles("aaaaaaaa"),
     };
     for (const p of PAGES) files[p] = `import{x}from"./shared-aaaaaaaa.js";`;
     const dir = fixture(files, `<script type="module" crossorigin src="/assets/index-aaaaaaaa.js"></script>`);
@@ -96,6 +110,7 @@ describe("critical-path analyser (scripts/perf/critical-path.mjs)", () => {
       "main-bbbbbbbb.js": `import{s}from"./shell-bbbbbbbb.js";`,
       "shell-bbbbbbbb.js": `export const s=1;`,
       "shared-bbbbbbbb.js": `export const x=1;`,
+      ...withFiles("bbbbbbbb"),
     };
     for (const p of PAGES) files[p] = `import{x}from"./shared-bbbbbbbb.js";`;
     const dir = fixture(

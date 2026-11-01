@@ -15,7 +15,6 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -64,7 +63,7 @@ import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 // Types only: the predicates (oneTripGroup, haulJobToDelete) come with the lazily loaded haul-away code (Q178).
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
-import { DeclutterHomeSkeleton, DeclutterTabBones } from "./DeclutterSkeletons";
+import { DeclutterHomeSkeleton, DeclutterTabBones, ListingsSkeleton, TabSkeleton } from "./DeclutterSkeletons";
 import { ListingThumb } from "./ListingThumb";
 import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
@@ -88,35 +87,6 @@ const WantedView = lazy(() => import("./DeclutterWantedViews").then((m) => ({ de
 // Opened from a listing's Manage button (or a price-drop notice), never part of the first screen.
 const ManageListingSheet = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.ManageListingSheet })));
 const FreeView = lazy(() => import("./DeclutterFreeView").then((m) => ({ default: m.FreeView })));
-
-/** While a tab's own code arrives (B77): the listing rows' shimmer, under the tabs row that is already drawn. */
-function TabSkeleton() {
-  return <div className="space-y-6"><Skeleton className="h-24 w-full rounded-[20px]" /><ListingsSkeleton /></div>;
-}
-
-/** Grey shimmer rows shaped like the listing cards (owner 2026-10-18, tweak 5). */
-function ListingsSkeleton() {
-  return (
-    <ul className="space-y-3" role="status" aria-label="Loading your listings">
-      {[0, 1, 2].map((i) => (
-        <li key={i} className="rounded-2xl bg-card p-4 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-3/5" />
-              <Skeleton className="h-3.5 w-1/4" />
-            </div>
-            <Skeleton className="h-6 w-16 rounded-full" />
-          </div>
-          <Skeleton className="h-3 w-4/5" />
-          <div className="flex gap-2">
-            <Skeleton className="h-8 w-24 rounded-full" />
-            <Skeleton className="h-8 w-20 rounded-full" />
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 /**
  * A listing row's ONE status line (owner 2026-10-28: "Not listed yet" + "Finish the listing to put it up for sale."

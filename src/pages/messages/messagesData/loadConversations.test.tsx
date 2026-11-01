@@ -62,7 +62,7 @@ const MARIE_AVATAR = "https://cdn.example.test/marie.png";
 /** Chainable, awaitable stand-in for a PostgREST query builder. */
 function makeBuilder(response: unknown) {
   const builder: Record<string, unknown> = {};
-  for (const method of ["select", "or", "order", "limit", "in", "eq", "maybeSingle"]) {
+  for (const method of ["select", "or", "order", "limit", "in", "eq", "not", "maybeSingle"]) {
     builder[method] = () => builder;
   }
   builder.then = (

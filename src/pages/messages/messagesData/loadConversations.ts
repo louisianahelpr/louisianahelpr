@@ -20,6 +20,7 @@ import {
   teamThreadKey,
   teamUserIdFromKey,
 } from "@/lib/teamThread";
+import { groupThreads, inboxShowsRow, threadUnread, unreadRowsQuery } from "@/lib/unreadConversations";
 
 /**
  * The inbox row for a "Louisiana Helpr Team" thread. On the user's side it is
@@ -50,7 +51,7 @@ function teamConversation({
     jobStatus: null,
     lastMessage: last?.content ?? "",
     lastAt: last?.created_at ?? new Date().toISOString(),
-    unread: messages.filter((m) => m.receiver_id === uid && !m.read).length,
+    unread: threadUnread(messages, uid),
     lastMessageSenderId: last?.sender_id ?? null,
     lastMessageAttachmentPath: null,
     lastMessageAttachmentMime: null,
@@ -203,76 +204,36 @@ export async function fetchConversations(
 
   // unwrap: a failed inbox fetch must surface as the query's error state
   // (→ recoverable ErrorState), never fall through to "No messages yet".
-  const msgsRes = await supabase
-    .from("messages")
-    .select("*")
-    .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
-    .order("created_at", { ascending: false })
-    .limit(200);
+  // NOID-20 (lead 2026-10-31): the unread rows the nav badge counts (unreadRowsQuery) fly beside the newest-200
+  // window and are merged into it, so every thread the badge counts is a thread this inbox shows and marks.
+  const [msgsRes, unreadRes] = await Promise.all([
+    supabase
+      .from("messages")
+      .select("*")
+      .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
+      .order("created_at", { ascending: false })
+      .limit(200),
+    unreadRowsQuery(uid, "*"),
+  ]);
 
   const blockedSet = await blockedPromise;
   // A team-thread row's NULL job becomes its `team:<user>` key here, once, so
   // the grouping below treats it like any other thread (src/lib/teamThread.ts).
-  const msgs = unwrap(msgsRes)?.map(normalizeMessageRow);
+  const windowRows = unwrap(msgsRes) ?? [];
+  const seen = new Set(windowRows.map((m) => m.id));
+  const olderUnread = (unwrap(unreadRes) as unknown as typeof windowRows | null ?? []).filter((m) => !seen.has(m.id));
+  const msgs = [...windowRows, ...olderUnread]
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0))
+    .map(normalizeMessageRow);
 
-  if (!msgs || msgs.length === 0) return [];
+  if (msgs.length === 0) return [];
 
-  const filteredMsgs = msgs.filter((m) => {
-    // System messages (sender_id IS NULL) never drive the conversation
-    // list — they belong inside the thread view only. Skip them here so
-    // they don't inflate unread counts or appear as the "last message"
-    // preview in the inbox.
-    if (m.is_system) return false;
-    // Messages the server hid (scan_message_content sets flagged_hidden when
-    // it detects off-platform contact info) must not surface HERE either. The
-    // three thread-level queries in useMessagesData.ts all filter this; the
-    // inbox query did not, so a message the server had already hidden still
-    // rendered in full — phone number and all — as the conversation's preview
-    // line. That made the off-platform-contact defence bypassable by anyone
-    // POSTing straight to the API: flagged on the server, delivered anyway.
-    // Matches the thread queries' `sender_id.eq.<me>,flagged_hidden.eq.false`
-    // semantics exactly: the SENDER still sees what they wrote (so a blocked
-    // message doesn't just vanish on them), the RECIPIENT does not.
-    if (m.flagged_hidden && m.sender_id !== uid) return false;
-    // Q1591(b) (owner, 2026-10-11, "Team messages get through"): a
-    // "Louisiana Helpr Team" row is delivered through a block of the staff
-    // member's personal account, both ways (the server's block gate lets it
-    // through since 20261012030525), so the inbox must not drop it either.
-    // Job (personal) rows are still filtered below.
-    if (isTeamThreadKey(m.job_id)) return true;
-    const other: string | null = m.sender_id === uid ? m.receiver_id : m.sender_id;
-    // Q262: null = the other party deleted their account (receiver_id SET
-    // NULL). Nobody to be blocked with.
-    return other === null || !blockedSet.has(other);
-  });
+  // The inbox's hide rules (system rows, rows the server hid from me, blocked senders; Team rows pass a block):
+  // one copy, shared with the nav badge (src/lib/unreadConversations.ts).
+  const filteredMsgs = msgs.filter((m) => inboxShowsRow(m, uid, blockedSet));
 
-  // Q262: `otherUserId: null` is the deleted-account thread for this job. Its
-  // map key uses a token no uuid can equal; the value keeps the real null.
-  const convoMap = new Map<string, { otherUserId: string | null; jobId: string; messages: Message[] }>();
-  for (const m of filteredMsgs) {
-    const other: string | null = m.sender_id === uid ? m.receiver_id : m.sender_id;
-    // A team thread is ONE thread per user however many staff wrote in it, so
-    // it is keyed by its sentinel alone. Its "other" is the thread's user on
-    // the staff side, and the staff member on the newest row on the user's.
-    const teamUser = teamUserIdFromKey(m.job_id);
-    if (teamUser !== null) {
-      const teamOther = teamUser === uid ? other : teamUser;
-      const entry = convoMap.get(m.job_id);
-      if (!entry) convoMap.set(m.job_id, { otherUserId: teamOther, jobId: m.job_id, messages: [m] });
-      else {
-        entry.messages.push(m);
-        // Newest row first, but a deleted staff account leaves the user's own
-        // reply with receiver_id NULL (SET NULL): take the newest staff member
-        // still there, so the thread never reads as a deleted account while
-        // another admin can still answer (review 2026-10-09 #1).
-        if (entry.otherUserId === null && teamOther !== null) entry.otherUserId = teamOther;
-      }
-      continue;
-    }
-    const key = `${m.job_id}_${other === null ? "deleted-account" : other}`;
-    if (!convoMap.has(key)) convoMap.set(key, { otherUserId: other, jobId: m.job_id, messages: [] });
-    convoMap.get(key)!.messages.push(m);
-  }
+  // The inbox's threads (job + the other person; one Team thread per user), the same grouping the badge counts.
+  const convoMap = groupThreads(filteredMsgs, uid);
 
   // Q262: the deleted-account thread has no person to resolve; the profile,
   // last-active and mute reads are asked only about real ids.
@@ -437,7 +398,7 @@ export async function fetchConversations(
         jobMap.get(v.jobId)?.offered_to_helper_id === uid),
     lastMessage: last.content,
     lastAt: last.created_at,
-    unread: v.messages.filter((m) => m.receiver_id === uid && !m.read).length,
+    unread: threadUnread(v.messages, uid),
     // Rich-preview metadata for the inbox row: who sent the last
     // message (drives the "You: " prefix) and whether it carried an
     // attachment (drives the image-thumbnail preview).

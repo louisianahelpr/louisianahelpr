@@ -28,8 +28,9 @@
  * @mutate supabase/migrations/20261012030525_team_messages_pass_blocks.sql |      AND NEW.sender_id = auth.uid()\n | \n
  * @mutate supabase/migrations/20261012030525_team_messages_pass_blocks.sql |   IF NEW.team_thread_user_id IS NOT NULL\n | IF false\n
  * @mutate supabase/migrations/20261012030525_team_messages_pass_blocks.sql | REVOKE ALL ON FUNCTION public.enforce_block_on_message_insert() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.enforce_block_on_message_insert() FROM PUBLIC;
- * @mutate src/pages/messages/messagesData/loadConversations.ts |     if (isTeamThreadKey(m.job_id)) return true;\n | \n
- * @mutate src/components/mobileNav/useNavUnreadCount.ts | ,team_thread_user_id.not.is.null` | `
+ * @mutate src/lib/unreadConversations.ts |   if (isTeamThreadKey(m.job_id)) return true;\n | \n
+ * @mutate src/components/mobileNav/useNavUnreadCount.ts |     const next = unreadConversationCount( |     const next = (data ?? []).filter((m: { sender_id: string }) => !blockedSet.has(m.sender_id)).length + 0 * unreadConversationCount(
+ * @mutate src/pages/messages/messagesData/loadConversations.ts |   const filteredMsgs = msgs.filter((m) => inboxShowsRow(m, uid, blockedSet)); |   const filteredMsgs = msgs.filter((m) => !blockedSet.has(m.sender_id));
  * @mutate supabase/functions/send-push-notification/index.ts | ,team_thread_user_id.not.is.null` | `
  */
 import { describe, it, expect } from "vitest";
@@ -129,7 +130,8 @@ function teamExemptionGaps(code: string): string[] {
   if (/\bblockedSet\.has\(/.test(code) && !/if\s*\(\s*isTeamThreadKey\(\s*m\.job_id\s*\)\s*\)\s*return\s+true;[\s\S]{0,600}blockedSet\.has\(/.test(code)) {
     gaps.push("blockedSet.has(...) filters messages without returning early on isTeamThreadKey(m.job_id)");
   }
-  const handled = /isTeamThreadKey\(|team_thread_user_id\.not\.is\.null/.test(code);
+  // NOID-20: the inbox and the badge delegate their hide rules to src/lib/unreadConversations.ts (checked below).
+  const handled = /isTeamThreadKey\(|team_thread_user_id\.not\.is\.null|\b(?:inboxShowsRow|unreadConversationCount)\(/.test(code);
   if (!handled) gaps.push("no Team-row exemption at all");
   return gaps;
 }
@@ -144,6 +146,12 @@ describe("client and edge: every block-filtered messages reader exempts Team row
       "src/pages/messages/messagesData/loadConversations.ts",
       "supabase/functions/send-push-notification/index.ts",
     ]);
+  });
+
+  it("the shared hide rules the inbox and badge delegate to exempt Team rows (NOID-20)", () => {
+    const code = blankComments(readFileSync(join(ROOT, "src/lib/unreadConversations.ts"), "utf8"));
+    expect(code).toMatch(/blockedSet\.has\(/);
+    expect(teamExemptionGaps(code)).toEqual([]);
   });
 
   it("each one exempts Team rows from its block filter", () => {

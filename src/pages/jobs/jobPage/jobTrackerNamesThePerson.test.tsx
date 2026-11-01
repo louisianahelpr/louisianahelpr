@@ -5,7 +5,7 @@
  * first name from the same card read its Message button uses.
  *
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     otherFirst,\n    rescheduled, |     rescheduled,
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |               otherFirst={isPoster ? helperFirst : posterFirst} |               otherFirst={null}
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             otherFirst={isPoster ? helperFirst : posterFirst} |             otherFirst={null}
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -38,9 +38,10 @@ const show = (otherFirst: string | null, trackingStatus: string | null = null) =
   render(<MemoryRouter><JobTracker job={JOB} side="poster" trackingStatus={trackingStatus} otherFirst={otherFirst} /></MemoryRouter>);
 
 describe("the job page's tracker line names the Helpr the page names", () => {
-  it("with a name: 'Eli is working'", () => {
+  // Owner 11-01 12:05 PM: the line is the next step, "Waiting on Eli to mark it done" (it still names Eli).
+  it("with a name: 'Waiting on Eli to mark it done'", () => {
     show("Eli");
-    expect(screen.getByText("Eli is working")).toBeTruthy();
+    expect(screen.getByText("Waiting on Eli to mark it done")).toBeTruthy();
   });
 
   it("while the Helpr's own row says arrived, not started: 'Eli is at the job'", () => {
@@ -48,9 +49,9 @@ describe("the job page's tracker line names the Helpr the page names", () => {
     expect(screen.getByText("Eli is at the job")).toBeTruthy();
   });
 
-  it("with no name yet: 'Your Helpr is working'", () => {
+  it("with no name yet: 'Waiting on your Helpr to mark it done'", () => {
     show(null);
-    expect(screen.getByText("Your Helpr is working")).toBeTruthy();
+    expect(screen.getByText("Waiting on your Helpr to mark it done")).toBeTruthy();
   });
 
   it("JobPage passes the poster the Helpr's first name and the Helpr the poster's", () => {

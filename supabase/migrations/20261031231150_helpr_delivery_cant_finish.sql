@@ -50,11 +50,12 @@ ALTER TABLE public.helpr_task_payouts ADD COLUMN IF NOT EXISTS debt_cents intege
 DO $do$
 BEGIN
   -- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.helpr_task_payouts.helpr_task_payouts_amount
-  -- ACK-REASON: re-added on the next line with debt_cents taken off; every existing row has debt_cents 0, so it still validates.
+  -- ACK-REASON: re-added on the next line with debt_cents taken off as well as B49's setup_fee_cents (newest before
+  -- this: 20261031220617, kept); every existing row has debt_cents 0, so it still validates.
   -- ACK-DATA-LOSS: none; no rows are deleted or rewritten.
   ALTER TABLE public.helpr_task_payouts DROP CONSTRAINT IF EXISTS helpr_task_payouts_amount;
   ALTER TABLE public.helpr_task_payouts ADD CONSTRAINT helpr_task_payouts_amount CHECK (
-    debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents AND amount_cents >= 0);
+    debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents - setup_fee_cents AND amount_cents >= 0);
   -- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.helpr_task_events.helpr_task_events_task_event_check
   -- ACK-REASON: re-added on the next line with every event it allowed (newest: 20261031134217) plus the can't-finish steps.
   -- ACK-DATA-LOSS: none; no rows are deleted or rewritten.
@@ -316,7 +317,13 @@ BEGIN
       WHEN p_by = 'admin' THEN format('$%s is on its way to your payout account.', to_char((o.items_cents + v_rate - v_debt) / 100.0, 'FM999990.00'))
       ELSE format('We send your $%s once the sale is final, 24 hours after the handover, unless the buyer asks for a refund.',
                   to_char((o.items_cents + v_rate - v_debt) / 100.0, 'FM999990.00'))
-    END,
+    END
+    -- Kept from B49's 20261031214749 (train 5). Owner 2026-10-30: said before the money moves. Taken when the payout is sent (declutter_payout_take_setup_fee).
+    || CASE WHEN public.declutter_setup_fee_from_payout_cents(o.seller_id) > 0
+              AND o.items_cents + v_rate - v_debt - public.declutter_setup_fee_from_payout_cents(o.seller_id) >= 100 THEN
+         format(' Your one-time $%s account setup fee comes out of your payout. It is only ever charged once.',
+                to_char(public.declutter_setup_fee_from_payout_cents(o.seller_id) / 100.0, 'FM999990.00'))
+       ELSE '' END,
     '/declutter?tab=selling', o.buyer_id);
   -- 20261028232338: a caller that tells the buyer its own outcome (declutter_admin_decide_delivery_damage: refunded in full)
   -- names this order in declutter.no_enjoy_notice for its transaction, so the buyer never also reads "the sale is final".

@@ -30,7 +30,7 @@ import { getCity } from "@/lib/locationUtils";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobEyebrow } from "./jobEyebrow";
-import { useJobPage, useMyInstantBooking, useOfferedToMe, type JobPageRow } from "./useJobPage";
+import { useJobPage, useMyInstantBooking, useOfferedToMe, useOwesReview, type JobPageRow } from "./useJobPage";
 import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes, PostedBy, HiredHelpr } from "./JobPageParts";
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
@@ -43,6 +43,7 @@ import { NoApplicantsYet } from "./NoApplicantsYet";
 import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
 import { jobPageViewerState } from "./viewerState";
 import { useQuery } from "@tanstack/react-query";
+import { lazy, Suspense, useState } from "react";
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
@@ -57,6 +58,8 @@ import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
+
+const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow): string {
@@ -90,6 +93,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // The poster's Instant Release (the card's own read, PostedJobActions): the work is approved for them, so no clock.
   const { profile: ownProfile } = useCurrentUser();
   const instantRelease = !!(ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
+  // JA-22 (Jobs audit 11-01): the hired Helpr's finished, paid job leads with "Leave a review" (the Working card's own
+  // owesReview: paid or paying out, a poster to review, the window open, no review of theirs yet).
+  const owed = useOwesReview(q.data?.job, userId, !isPoster);
+  const owesReview = owed.owes;
+  const [reviewOpen, setReviewOpen] = useState(false);
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
   // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
@@ -158,7 +166,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${job.customer_id}` : "/messages");
   const openWorking = () => navigate(highlight);
   const hiredFace = isHired && viewer.action.kind === "open_working"
-    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster })
+    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true) })
     : null;
   // The poster's own step on this page, over posterPageActions' (undefined: theirs).
   const posterStep = posterWait === "confirm_arrival"
@@ -176,9 +184,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     if (!hiredFace) return null;
     const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;
     const work: RowAction = { key: "working", label: "Open in working", go: openWorking };
-    const faceIs = hiredFace.onClick === messagePoster ? "message" : hiredFace.onClick === openWorking && hiredFace.label === "Open in working" ? "working" : "step";
+    // JA-18: a face that opens the Working card ("See your crew steps") IS "Open in working": never both.
+    const faceIs = hiredFace.onClick === messagePoster ? "message" : hiredFace.onClick === openWorking ? "working" : "step";
     const lead: RowAction = faceIs === "message" && msg ? msg
-      : faceIs === "working" ? work
+      : faceIs === "working" ? { ...work, label: hiredFace.label }
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     const extras = [msg, work].filter((a): a is RowAction => !!a && a.key !== lead.key);
     return <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={extras} />;
@@ -346,6 +355,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         </div>
       </div>
       {!isPoster && <PageApplySheet apply={apply} />}
+      {reviewOpen && job.customer_id && (
+        <Suspense fallback={null}>
+          {/* The Working card's own review of the poster (ActivityDialogs' helper mount). */}
+          <ReviewForm revieweeRole="poster" open onClose={() => { setReviewOpen(false); owed.refetch(); }}
+            jobId={job.id} revieweeId={job.customer_id} revieweeName={posterCard.data?.name ?? "the person who posted this job"} />
+        </Suspense>
+      )}
       {posterActions.dialogs}
     </AppPage>
   );

@@ -193,6 +193,16 @@ export const ADMIN_RPC_ERROR_COPY = {
     refund_amount_unknown: DC.refund_amount_unknown,
   },
   declutter_admin_decide_stuck_delivery: {
+    // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
+    already_paid_out: DC.already_paid_out,
+    delivery_not_done: DC.delivery_not_done,
+    invalid_method: DC.invalid_method,
+    invalid_payout: DC.invalid_payout,
+    invalid_status: DC.invalid_status,
+    item_not_found: DC.item_not_found,
+    order_not_paid: DC.order_not_paid,
+    problem_open: DC.problem_open,
+    refund_amount_unknown: DC.refund_amount_unknown,
     account_restricted: DC.account_restricted,
     invalid_decision: DC.invalid_decision,
     not_a_delivery_in_transit: DC.not_a_delivery_in_transit,

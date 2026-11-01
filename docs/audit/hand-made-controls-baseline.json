@@ -546,9 +546,6 @@
     "src/components/guarantee/HelprGuaranteePanel.tsx": {
       "input": 1
     },
-    "src/components/identity/IdentityPromptCard.tsx": {
-      "button": 1
-    },
     "src/components/job-card/ActivityBucketGroups.tsx": {
       "button": 2
     },
@@ -1002,9 +999,6 @@
       "textarea": 1
     },
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantSortControls.tsx": {
-      "button": 1
-    },
-    "src/pages/posts/postedJobs/applicantsPanel/ApplicantsCompareCard.tsx": {
       "button": 1
     },
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx": {

@@ -477,8 +477,8 @@ export function JobStepCard({
         {escape}
         {dialogs}
         {menu?.askHost && ask ? createPortal(ask, menu.askHost) : null}
-        {menu?.leadHost && menuLead ? createPortal(<MenuAction chip={menuLead} lead className="w-full" />, menu.leadHost) : null}
-        {menu?.secondHost && menuCount === 1 ? createPortal(<MenuAction chip={menuChips[0]} className="w-full" />, menu.secondHost) : null}
+        {menu?.leadHost && menuLead ? createPortal(<MenuAction chip={menuLead} lead pair className="w-full" />, menu.leadHost) : null}
+        {menu?.secondHost && menuCount === 1 ? createPortal(<MenuAction chip={menuChips[0]} pair className="w-full" />, menu.secondHost) : null}
         {menu?.listHost && menuCount >= 1
           ? createPortal(<>{menuChips.map((c, i) => <MenuAction key={isValidElement(c) && c.key != null ? String(c.key) : i} chip={c} className="w-full" />)}</>, menu.listHost)
           : null}

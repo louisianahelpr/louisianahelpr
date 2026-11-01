@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldAlert } from "lucide-react";
 import { composeAccessibleName, JobActionChip, JobStepPrimaryButton } from "./JobActionRow";
 import { SosShareButton } from "@/components/SosShareButton";
+import { pairLabel, PAIR_TEXT } from "@/components/ui/pairLabel";
 
 interface JobStepMenu {
   /** The page's second-button slot (exactly one action). */
@@ -51,7 +52,10 @@ export function primaryButtons(primary: ReactNode): ReactElement[] {
 }
 
 /** A JobActionChip drawn as a full-size Button (its own label, tone and onClick); any other chip as itself. */
-export function MenuAction({ chip, className = "", lead = false }: { chip: ReactNode; className?: string; lead?: boolean }) {
+export function MenuAction({ chip, className = "", lead = false, pair = false }: { chip: ReactNode; className?: string; lead?: boolean; pair?: boolean }) {
+  // Owner 11-01: a button in the page's side-by-side pair wears its SHORT label on one line (pairLabel.ts); the sheet's
+  // list (a button alone on its row) keeps the full words. The accessible name keeps the full words either way.
+  const pairCls = pair ? PAIR_TEXT : "px-4 text-ds-15";
   if (isValidElement(chip) && (chip.type === JobActionChip || chip.type === JobStepPrimaryButton)) {
     const p = (chip as ReactElement<ChipProps>).props;
     const danger = p.tone === "danger";
@@ -61,12 +65,12 @@ export function MenuAction({ chip, className = "", lead = false }: { chip: React
         variant={lead ? "primary" : "outline"}
         size="wrap"
         data-menu-action={p.label}
-        className={`min-w-0 rounded-full px-4 text-ds-15 leading-tight ${danger ? "text-destructive-ink" : ""} ${className}`}
+        className={`min-w-0 rounded-full ${pairCls} leading-tight ${danger ? "text-destructive-ink" : ""} ${className}`}
         disabled={p.disabled}
         aria-label={composeAccessibleName(p.label, p.ariaLabel)}
         onClick={p.onClick}
       >
-        {p.label}
+        {pair ? pairLabel(p.label) : p.label}
       </Button>
     );
   }
@@ -77,7 +81,7 @@ export function MenuAction({ chip, className = "", lead = false }: { chip: React
     const { onOpen } = (chip as ReactElement<{ onOpen: () => void }>).props;
     return (
       <Button type="button" variant="outline" size="wrap" data-menu-action="SOS" data-sos-secondary=""
-        className={`min-w-0 gap-1.5 rounded-full px-4 text-ds-15 leading-tight ${className}`}
+        className={`min-w-0 gap-1.5 rounded-full ${pairCls} leading-tight ${className}`}
         aria-label="SOS — share your location" onClick={onOpen}>
         <ShieldAlert aria-hidden="true" className="h-4 w-4 shrink-0 text-destructive-ink" />
         SOS

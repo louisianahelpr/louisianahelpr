@@ -33,12 +33,10 @@ import { CHAT_RULES_DISMISSED_KEY, readBannerDismissed } from "./chatView/chatRu
 import { DealCard } from "./chatView/DealCard";
 
 /**
- * The centred reading column for the safety banner and the message scroller.
- * Deliberately NOT on the column that holds the composer: VN-25 (owner,
- * 2026-09-14) wants only the composer dock across the bottom of the pane.
+ * The reading column for the safety banner and the message scroller, NOT the composer's (VN-25, owner 09-14). Owner
+ * 11-01 (B107, ~1900px: "narrow column, big empty sides"): from lg it is the pane's whole width; the bubbles cap
+ * themselves (MessageBubble: 65% of the pane, theirs left, mine right). Phone unchanged (780px, centred).
  */
-// Owner 11-01 (B107, /messages at ~1900px: "narrow column, big empty sides"): from lg the thread uses the pane's
-// whole width; the bubbles cap themselves (MessageBubble: 65% of the pane, theirs left, mine right). Phone unchanged.
 const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto lg:max-w-none";
 
 interface ChatViewProps {

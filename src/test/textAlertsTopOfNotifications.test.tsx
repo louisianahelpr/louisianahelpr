@@ -5,7 +5,7 @@
  * ("Get alerts on your phone: allow notifications for Louisiana Helpr."), not only the "Send a test" row at the bottom.
  *
  * @mutate src/pages/profile/ProfileTabPanels.tsx |             <SmsAlertsCard atTop />\n            <NotificationPreferences /> |             <NotificationPreferences />\n            <SmsAlertsCard atTop />
- * @mutate src/components/NotificationPreferences.tsx |       {!loadFailed && pushTokenCount === 0 && ( |       {false && (
+ * @mutate src/components/NotificationPreferences.tsx |       {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />} |       {false && <PushDeviceHint />}
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";

@@ -16175,6 +16175,26 @@ export type Database = {
         Args: { p_seller_id: string; p_spot_id: string }
         Returns: string
       }
+      declutter_my_meetup_spots: {
+        Args: never
+        Returns: { id: string; name: string; address: string; area: string; lat: number; lng: number; windows: Json | null }[]
+      }
+      declutter_save_my_meetup_spot: {
+        Args: { p_id: string | null; p_name: string; p_address: string; p_area: string; p_lat: number; p_lng: number; p_windows?: Json | null }
+        Returns: string
+      }
+      declutter_remove_my_meetup_spot: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
+      declutter_chosen_meetup_hours: {
+        Args: { p_seller_id: string }
+        Returns: Json
+      }
+      declutter_meetup_spot_suggestions: {
+        Args: never
+        Returns: { id: string; name: string; address: string; area: string; lat: number; lng: number }[]
+      }
       declutter_set_move_out_date: {
         Args: { p_move_out_on: string | null }
         Returns: number

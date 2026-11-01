@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1080,
-    "files": 300,
-    "rendering": 997,
-    "suppressedByPolicy": 83,
+    "calls": 1082,
+    "files": 301,
+    "rendering": 998,
+    "suppressedByPolicy": 84,
     "byKind": {
       "confirmConsequential": 32,
       "errorToast": 6,
       "successToast": 2,
       "toast": 181,
-      "toast.error": 742,
+      "toast.error": 743,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 89,
+      "toast.success": 90,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 464,
+      "literal": 465,
       "template": 97,
-      "dynamic": 570,
+      "dynamic": 571,
       "jsx": 0
     }
   },
@@ -5073,7 +5073,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMeetup.tsx",
-      "line": 32,
+      "line": 34,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5098,7 +5098,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMeetup.tsx",
-      "line": 71,
+      "line": 75,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5108,7 +5108,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMeetup.tsx",
-      "line": 74,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5876,7 +5876,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 350,
+      "line": 354,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5886,7 +5886,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 359,
+      "line": 363,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5911,7 +5911,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 365,
+      "line": 369,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6467,6 +6467,41 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/SellMeetupSpots.tsx",
+      "line": 44,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Meet spot saved."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/SellMeetupSpots.tsx",
+      "line": 86,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "meetupErrorMessage(err)",
+        "from": "src/lib/declutter/meetupErrors.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.userMessage"
+          },
+          {
+            "form": "dynamic",
+            "text": "MEETUP_ERROR_COPY[message]"
+          },
+          {
+            "form": "dynamic",
+            "text": "declutterErrorMessage(err)"
+          }
+        ]
       },
       "renders": true
     },

@@ -48,7 +48,7 @@ export async function takeMineQuestions(
   const s = (window as unknown as Record<string, Slot | undefined>)[KEY];
   if (!s?.questions || now - s.at > DECLUTTER_MINE_PREFETCH_MAX_AGE_MS || s.taken?.has("questions")) return null;
   const userId = typeof member === "function" ? await member() : member;
-  if (!userId || s.userId !== userId) return null;
+  if (!userId || userId !== s.userId) return null;
   s.taken ??= new Set();
   if (s.taken.has("questions")) return null;
   s.taken.add("questions");

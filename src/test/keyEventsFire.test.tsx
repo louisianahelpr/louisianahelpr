@@ -162,7 +162,7 @@ vi.mock("@/lib/celebrate", () => ({ maybeCelebrate: () => Promise.resolve() }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));
 vi.mock("@/lib/pushPermissionNudge", () => ({ usePushPermissionNudge: () => vi.fn() }));
-vi.mock("@/hooks/useNotificationPermissionPrompt", () => ({ recordJobActionForPermissionPrompt: vi.fn() }));
+vi.mock("@/hooks/useNotificationPermissionPrompt", () => ({ recordJobActionForPermissionPrompt: vi.fn(), offerPushAfterAction: vi.fn() }));
 vi.mock("@/lib/inAppReview", () => ({ maybeRequestInAppReview: vi.fn() }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: vi.fn(async () => undefined) }));
 vi.mock("@/pages/post-job/firstPostConfetti", () => ({ maybeFireFirstPostConfetti: vi.fn() }));

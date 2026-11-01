@@ -155,7 +155,8 @@ describe("every pop-up title is sentence case", () => {
     // 199: +1 "Message about this delivery" (the delivery chat, BUY-36, DeliveryTalk).
     // 200: +1 the guest job preview's DialogHero, its title the job's own title or "Job" (b46 GuestJobPreview, train 8).
     // 201: +1 "Report a no-show?" (GroupJobHelpers' crew no-show confirm, b54 JOBS-3, train 10).
-    expect(all.length).toBe(201);
+    // 202: +1 "Confirm their work?" (GroupJobHelpers, the poster confirms one crew member's work, b60 JOBS-3, train 11).
+    expect(all.length).toBe(202);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

@@ -4,7 +4,7 @@
  * stays on every other job (owner rule 2026-10-25). Mounts the real components.
  *
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |         {!fixedPay && <p className="text-ds-15 font-semibold">You take home</p>} |         <p className="text-ds-15 font-semibold">You take home</p>
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     firstPayoutFee > 0 && job.status !== "disputed" && !fixedPay ? setupFeeWords(firstPayoutFee) : null, |     firstPayoutFee > 0 && job.status !== "disputed" ? setupFeeWords(firstPayoutFee) : null,
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     firstPayoutFee > 0 && !disputed && !fixedPay ? setupFeeWords(firstPayoutFee) : null, |     firstPayoutFee > 0 && !disputed ? setupFeeWords(firstPayoutFee) : null,
  * @mutate src/components/dashboard/helprTakeHome.tsx |       {!fixedPay && "You take home "}<span className="font-semibold |       {"You take home "}<span className="font-semibold
  * @mutate src/components/dashboard/helprTakeHome.tsx |         {!fixedPay && <span className="sr-only">You take home </span>}${formatPriceFloor(net)} |         <span className="sr-only">You take home </span>${formatPriceFloor(net)}
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |       {!isGiveawayFixedPayJob(confirmApplyJob) && ( |       {true && (

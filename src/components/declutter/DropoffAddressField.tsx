@@ -33,7 +33,7 @@ export function DropoffAddressField({ id, value, onTyped, onPicked, invalid, des
     if (line.length >= 5) onPicked(line);
   };
   return (
-    <div className="space-y-2" data-dropoff-address="" aria-invalid={invalid ? true : undefined} aria-describedby={describedBy}>
+    <div className="space-y-2" data-dropoff-address="">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <label htmlFor={id} className="block text-xs font-medium">Deliver to</label>
         <CurrentLocationPill onResolved={take} />
@@ -46,6 +46,8 @@ export function DropoffAddressField({ id, value, onTyped, onPicked, invalid, des
         className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
         plainWithoutMapKit
         keepListInView
+        invalid={invalid}
+        describedBy={describedBy}
         onChange={onTyped}
         onPick={take}
       />

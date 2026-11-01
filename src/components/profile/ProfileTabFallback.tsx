@@ -142,6 +142,8 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   // A3-C16: the intro line, two lines at 375 (customer-e2e with no blocks, 2026-10-29; it drew the two-card
   // default and collapsed 706px). Someone with blocks gets their list below it, growing down, never collapsing.
   blocked: [{ h: 40 }],
+  // CMP-4: the intro, the private line, the 2-hour line, the add form (375, mocked, no floors yet, 2026-11-01).
+  instant_book: [{ h: 101 }, { h: 38 }, { h: 38 }, { h: 298 }],
   analytics: [{ h: 481 }],
   // Board 177 (375, helper-e2e, 2026-10-21): Payout history's one body row (no payout account: the set-up line;
   // a list grows below), and Receipts' one column (nothing paid yet, the tax-form card).

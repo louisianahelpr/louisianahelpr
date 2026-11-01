@@ -151,6 +151,8 @@ const OWNERS = {
   "?tab=saved_helpers": ["lh-trust-safety"],
   // A3-C16: the member's own blocks and Unblock (user_blocks, own rows).
   "?tab=blocked": ["lh-trust-safety", "lh-authz-rls"],
+  // CMP-4: a Helpr's private instant-book floors (rpc_my_instant_book_floors, owner-only).
+  "?tab=instant_book": ["lh-money-escrow", "lh-authz-rls"],
   // Co-owned: the a11y lane judges whether the settings WORK across screens,
   // lh-input-boundary owns the tab as a form. A structural lane may co-own a
   // surface; it may never be the only owner (see the rule below).

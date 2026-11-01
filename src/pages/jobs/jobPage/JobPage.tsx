@@ -12,6 +12,7 @@
  * Every number is real or hidden (§1.5); no street address before a hire
  * (§1.6): the page prints the city only.
  */
+import { InstantBookPanel } from "@/components/jobs/InstantBookPanel";
 import { Link, useNavigate } from "react-router-dom";
 import { Briefcase } from "lucide-react";
 import AppPage from "@/components/AppPage";
@@ -214,6 +215,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           )}
           {!isPoster && job.customer_id && <div className="order-6 lg:order-none"><PostedBy posterId={job.customer_id} /></div>}
           {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>}
+          {/* CMP-4: the poster's top 3 with Book now, or who is booked and until when. Nothing when nobody qualifies. */}
+          {isPoster && !job.is_group_job && job.status === "open" && <div className="order-5 lg:order-none"><InstantBookPanel jobId={job.id} /></div>}
         </div>
 
         <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-4 lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5">

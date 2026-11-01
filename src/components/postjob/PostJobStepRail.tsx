@@ -1,4 +1,7 @@
 import { Check } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPostJob";
+import type { MsgKey } from "@/lib/i18n/en";
 import { POST_JOB_SCREENS, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 /**
@@ -19,10 +22,13 @@ export const POST_JOB_DESKTOP_GRID =
 /** `canPick` says which passed screens can be reopened from here (form pages only). */
 export function PostJobStepRail({ screen, onPick, canPick }: { screen: PostJobScreen; onPick?: (s: PostJobScreen) => void; canPick?: (s: PostJobScreen) => boolean }) {
   const step = screenNumber(screen);
+  const { t } = useLanguage();
   return (
-    <nav aria-label="Post a job steps" className="hidden lg:block sticky top-6">
+    <nav aria-label={t("postJob.steps")} className="hidden lg:block sticky top-6">
       <ol className="space-y-1">
-        {POST_JOB_SCREENS.map(({ key, rail: label }, i) => {
+        {POST_JOB_SCREENS.map(({ key }, i) => {
+          // The rail word in the member's language (A3-3); POST_JOB_SCREENS.rail is its English.
+          const label = t(`postJob.rail.${key}` as MsgKey);
           const n = i + 1;
           const current = n === step;
           const done = n < step;
@@ -45,7 +51,7 @@ export function PostJobStepRail({ screen, onPick, canPick }: { screen: PostJobSc
               {done && onPick && (canPick?.(key) ?? true) ? (
                 // One name, built whole: the label span and a separate sr-only ", done…" span read as
                 // "What , done." (audit 2026-10-29 A2-L12). The visible label still starts the name.
-                <button type="button" className={`${row} ctl-tint`} onClick={() => onPick(key)} aria-label={`${label}, done. Go back to this step`}>
+                <button type="button" className={`${row} ctl-tint`} onClick={() => onPick(key)} aria-label={t("postJob.railDone", { label })}>
                   {body}
                 </button>
               ) : (

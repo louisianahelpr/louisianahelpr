@@ -29,8 +29,10 @@ export function jobPageViewerState(o: {
   if (o.onCrew) return { action: { kind: "open_working" }, status: null };
   const them = o.posterFirst || "the person who posted it";
   const mineAssigned = !!o.userId && o.job.helper_id === o.userId;
+  // JA-16 (audit 11-01): the hired-but-not-accepted Helpr's tracker already says "<Name> offered you this job"; no
+  // second bold line saying it again under it.
   if (mineAssigned && !o.job.helper_confirmed_at && o.job.status === "accepted") {
-    return { action: { kind: "see_offer" }, status: `${o.posterFirst || "The person who posted it"} offered you this job` };
+    return { action: { kind: "see_offer" }, status: null };
   }
   if (mineAssigned) return { action: { kind: "open_working" }, status: null };
   if (o.offeredToMe && o.job.status === "open") {

@@ -171,19 +171,54 @@ $fn$;
 REVOKE ALL ON FUNCTION public.sweep_declutter_talk_reminders(timestamptz) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.sweep_declutter_talk_reminders(timestamptz) TO service_role;
 
+-- Both chats' unread sweeps in one call, for the one cron job below. Service role only. Each half runs in its own
+-- block and is recorded on its own: its count in the job's cron_run_log row ({"job_chats": n, "declutter_chats": n}),
+-- or, when it fails, NULL there, its name in "failed" and a cron defect (log_cron_defect), so one failing half
+-- shows up and never stops the other.
+CREATE OR REPLACE FUNCTION public.sweep_chat_unread_reminders(p_now timestamptz DEFAULT now())
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_jobs integer;
+  v_declutter integer;
+  v_failed text[] := ARRAY[]::text[];
+BEGIN
+  BEGIN
+    v_jobs := public.sweep_unread_message_reminders(p_now);
+  EXCEPTION WHEN OTHERS THEN
+    v_failed := array_append(v_failed, 'job_chats');
+    PERFORM public.log_cron_defect('sweep_chat_unread_reminders', 'sweep_unread_message_reminders', SQLERRM, NULL);
+  END;
+  BEGIN
+    v_declutter := public.sweep_declutter_talk_reminders(p_now);
+  EXCEPTION WHEN OTHERS THEN
+    v_failed := array_append(v_failed, 'declutter_chats');
+    PERFORM public.log_cron_defect('sweep_chat_unread_reminders', 'sweep_declutter_talk_reminders', SQLERRM, NULL);
+  END;
+  RETURN jsonb_build_object('job_chats', v_jobs, 'declutter_chats', v_declutter)
+         || CASE WHEN cardinality(v_failed) > 0 THEN jsonb_build_object('failed', to_jsonb(v_failed)) ELSE '{}'::jsonb END;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.sweep_chat_unread_reminders(timestamptz) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.sweep_chat_unread_reminders(timestamptz) TO service_role;
+
+-- The sweep rides the job-chat unread sweep's cron job (sweep-unread-message-reminders, 20261101183017) instead of a
+-- job of its own: every 5-minute offset already starts CRON_RESERVE_FLOOR jobs at some minute of the day
+-- (cronStartsSpreadAcrossMinutes), so a sixth /5 job cannot fit. Same cadence, same quiet hours; the job records
+-- both sweeps' sends as one count. Re-scheduled by name (replay-safe).
 DO $do$
 BEGIN
   IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
-    INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
-    VALUES ('sweep-declutter-talk-reminders', interval '30 minutes',
-            'Lead 11-01: a Declutter order or handover chat message unread at 15 minutes and at 2 hours reminds its recipient (2 a day per chat, none 9 PM-8 AM).',
-            'exempt', 'Most runs find no unread message at a reminder edge: nothing to send is the healthy state.')
-    ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,
-      work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
+    UPDATE public.cron_work_expectations
+       SET note = 'Owner 11-01: a job-chat message, and (lead 11-01) a Declutter order or handover chat message, unread at 15 minutes and at 2 hours reminds its recipient (2 a day per conversation, none 9 PM-8 AM).'
+     WHERE jobname = 'sweep-unread-message-reminders';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('sweep-declutter-talk-reminders', '2-59/5',
-      $c$SELECT public.cron_record_work('sweep-declutter-talk-reminders', to_jsonb(public.sweep_declutter_talk_reminders()));$c$);
+    PERFORM cron.schedule('sweep-unread-message-reminders', '1-59/5 * * * *',
+      $c$SELECT public.cron_record_work('sweep-unread-message-reminders', to_jsonb(public.sweep_chat_unread_reminders()));$c$);
   END IF;
 END
 $do$;

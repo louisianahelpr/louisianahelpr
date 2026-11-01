@@ -3,7 +3,7 @@
  * public view with only the columns the card draws, and degrades to the plain page on any failed read.
  * What a card may carry is pinned by browseShellCards.test.tsx; this pins the handler's read and placement.
  *
- * @mutate api/share.ts |   u.searchParams.set("status", "eq.open"); |   u.searchParams.set("status", "neq.cancelled");
+ * @mutate src/lib/browseShellCards.mjs |   u.searchParams.set("status", "eq.open"); |   u.searchParams.set("status", "neq.cancelled");
  * @mutate api/share.ts |       if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows()), BROWSE_SHELL_CDN_CACHE); |       if (isBrowsePage(url)) return respond(page, BROWSE_SHELL_CDN_CACHE);
  * @mutate api/share.ts |   return !!route && route.kind === "page" && route.id === "browse"; |   return !!route && route.kind === "page";
  */

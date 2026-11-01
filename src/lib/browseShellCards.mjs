@@ -62,6 +62,21 @@ export const SHELL_CATEGORY_LABELS = {
 export const SHELL_JOB_COLUMNS =
   "title,category,budget,location,status,expires_at,boost_expires_at,boosted_at,created_at,is_urgent,urgent_fee,is_group_job,helpers_needed,helper_fee_flat_cents,helper_fee_percent";
 
+/**
+ * The anon REST read api/share.ts (and the lab's dist server, scripts/perf/cwv-lab.mjs) makes: the masked
+ * open_jobs_browse view, open jobs only, the guest feed's own filter, order and limit (src/lib/guestJobsQuery.ts),
+ * only the drawn columns.
+ */
+export function browseShellRowsUrl(supabaseUrl) {
+  const u = new URL(`${String(supabaseUrl).replace(/\/$/, "")}/rest/v1/open_jobs_browse`);
+  u.searchParams.set("select", SHELL_JOB_COLUMNS);
+  u.searchParams.set("status", "eq.open");
+  u.searchParams.set("payment_status", "neq.abandoned");
+  u.searchParams.set("order", "boosted_at.desc.nullslast,created_at.desc");
+  u.searchParams.set("limit", "40");
+  return u.toString();
+}
+
 const blank = (v) => v === null || v === undefined || v === "";
 
 function isFlat(job) {

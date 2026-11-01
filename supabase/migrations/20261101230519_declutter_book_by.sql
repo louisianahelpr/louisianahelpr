@@ -3,8 +3,9 @@
 --     received" notice show it ("Pickup Sat 11/2, 3–5 PM · porch"), with no "by".
 --   * No time yet (the old path, or a checkout time already past when the payment landed): the order carries
 --     book_by, the cards say "· by <book_by>", and the buyer is reminded 24 hours and 2 hours before it.
---   * NOTHING is cancelled at book_by (owner Q2477: paid orders are never cancelled). This migration only stores a
---     date, words and reminders.
+--   * This migration cancels nothing. book_by IS the handover sweep's existing 7-day buyer-no-show cutoff
+--     (20261031181404 loop (b): an unbooked paid pickup order is closed and the item price refunded at paid + 7 days;
+--     lead 11-01 5:31 PM: that safety net stays, Q2477 is about members cancelling). The reminders say so.
 -- The ONE number (A3-50): a paid order's pickup must be booked within 7 days of paying. It is the rule already in
 -- force in declutter_book_pickup / declutter_order_pickup_windows (20261031145652: slot end <= paid_at + 7 days) and
 -- in the help centre ("within 7 days of paying"). 48 hours is only the FREE claim's hold before checkout
@@ -34,7 +35,7 @@ ALTER TABLE public.declutter_orders ADD COLUMN IF NOT EXISTS book_by timestamptz
 ALTER TABLE public.declutter_orders ADD COLUMN IF NOT EXISTS book_by_reminded_24_at timestamptz;
 ALTER TABLE public.declutter_orders ADD COLUMN IF NOT EXISTS book_by_reminded_2_at timestamptz;
 COMMENT ON COLUMN public.declutter_orders.book_by IS
-  'B117 (A3-18/19/50): the time by which a paid pickup order should be booked: paid_at + 7 days, the rule declutter_book_pickup enforces. Shown while nothing is booked; reminders 24 h and 2 h before. Nothing is cancelled at it (Q2477).';
+  'B117 (A3-18/19/50): the time by which a paid pickup order should be booked: paid_at + 7 days, the rule declutter_book_pickup enforces. Shown while nothing is booked; reminders 24 h and 2 h before. It equals the handover sweep''s buyer-no-show cutoff (paid_at + 7 days).';
 
 GRANT SELECT (book_by, pickup_slot_start, pickup_slot_end) ON TABLE public.declutter_orders TO authenticated;
 
@@ -46,6 +47,7 @@ AS $fn$
 BEGIN
   IF NEW.status = 'paid' AND NEW.handover IN ('porch', 'pickup_home', 'meetup')
      AND (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM 'paid') AND NEW.book_by IS NULL THEN
+    -- The same expression as the handover sweep's no-show cutoff (o2.paid_at + interval '7 days'), so they never drift.
     NEW.book_by := COALESCE(NEW.paid_at, now()) + interval '7 days';
   END IF;
   RETURN NEW;
@@ -192,7 +194,10 @@ BEGIN
     PERFORM public.declutter_pickup_remind(r.buyer_id,
       CASE WHEN v_last THEN 'Pick a pickup time: 2 hours left'
            ELSE 'Pick a pickup time by ' || to_char(r.book_by AT TIME ZONE 'America/Chicago', 'Dy FMHH12:MI AM') END,
-      format('You paid for %s. Next: %s, by %s. Open your order in Buying.', v_what, v_step, v_by),
+      -- Lead 11-01 5:31 PM: the deadline is honest. At paid + 7 days the handover sweep closes an unbooked order as a
+      -- buyer no-show and refunds the item price (20261031181404 loop (b)), so the reminder says so.
+      format('%s for %s by %s, or the order is cancelled and the item price refunded. Open your order in Buying.',
+             upper(left(v_step, 1)) || substr(v_step, 2), v_what, v_by),
       '/declutter?view=cart', r.seller_id);
     v_sent := v_sent + 1;
    EXCEPTION WHEN OTHERS THEN
@@ -214,7 +219,7 @@ BEGIN
   IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
     INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
     VALUES ('declutter-book-by-reminders', interval '30 minutes',
-            'B117 (lead 11-01, A3-18/19): a paid Declutter pickup with no time booked reminds the buyer 24 h and 2 h before book_by (paid + 7 days). Nothing is cancelled.',
+            'B117 (lead 11-01, A3-18/19): a paid Declutter pickup with no time booked reminds the buyer 24 h and 2 h before book_by (paid + 7 days), the handover sweep''s no-show cutoff.',
             'exempt', 'Most runs find no unbooked order at a reminder edge: nothing to send is the healthy state.')
     ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;

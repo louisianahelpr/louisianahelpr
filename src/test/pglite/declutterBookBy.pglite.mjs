@@ -5,7 +5,7 @@
  *   1. book_by = paid_at + 7 days is set on payment for every pickup order (and backfilled on a replay).
  *   2. the "Payment received" notice names the checkout time ("Pickup <when> · porch.") or says "by <book_by>".
  *   3. the reminder sweep: 24 h and 2 h before book_by, once each, never in quiet hours, never for a booked order,
- *      and it never changes the order's status (nothing is cancelled, owner Q2477).
+ *      and it never changes the order's status itself; book_by IS the handover sweep's 7-day no-show cutoff.
  *   4. grants: the two sides read book_by; nobody else does; the sweep and helper are service_role only.
  *
  *   node src/test/pglite/declutterBookBy.pglite.mjs                    # GREEN
@@ -114,6 +114,11 @@ const oA = await openOrder(BUYER);
 await pay(oA, "pi_b117a");
 const rA = await row(oA.id);
 ok(rA?.status === "paid" && sevenDays(rA), `paid porch order: book_by = paid_at + 7 days (${short(rA)})`);
+// Lead 11-01 5:31 PM: book_by is exactly the handover sweep's no-show cutoff (o2.paid_at + interval '7 days').
+const cutoff = one(await svc(`SELECT book_by = paid_at + interval '7 days' FROM public.declutter_orders WHERE id = '${oA.id}'`));
+const sweepDef = one(await svc(`SELECT pg_get_functiondef('public.declutter_handover_sweep()'::regprocedure)`)) ?? "";
+ok(cutoff === true && /o2\.paid_at \+ interval '7 days' <= now\(\)/.test(sweepDef) && /buyer_no_show/.test(sweepDef),
+  `book_by = paid_at + interval '7 days', the sweep's no-show cutoff (${cutoff}; sweep has the cutoff: ${/o2\.paid_at \+ interval '7 days'/.test(sweepDef)})`);
 const noteA = await svc(`SELECT message FROM public.notifications WHERE user_id = '${BUYER}' AND title = 'Payment received'`);
 ok(Array.isArray(noteA) && noteA.some((x) => /Pickup \w{3} \d{1,2}\/\d{1,2}, 3–5 PM · porch\.$/.test(x.message)) && !noteA.some((x) => /\bby\b/.test(x.message)),
   `the buyer's "Payment received" names the chosen window, no "by" (${short(noteA)})`);
@@ -145,7 +150,7 @@ const reminders = async (uid) => (await svc(`SELECT title, message FROM public.n
 ok(await sweep(D(0, "22:00")) == 0 && (await reminders(BUYER2)).length === 0, "quiet hours (10 PM, 11 h before): nothing sent");
 const s1 = await sweep(D(0, "10:00"));
 const r1 = await reminders(BUYER2);
-ok(s1 == 1 && r1.length === 1 && /^Pick a pickup time by \w{3} 9:00 AM$/.test(r1[0].title) && /Next: book a pickup time, by \w{3} \d{1,2}\/\d{1,2}, 9:00 AM/.test(r1[0].message),
+ok(s1 == 1 && r1.length === 1 && /^Pick a pickup time by \w{3} 9:00 AM$/.test(r1[0].title) && /^Book a pickup time for Time item 2 by \w{3} \d{1,2}\/\d{1,2}, 9:00 AM, or the order is cancelled and the item price refunded\./.test(r1[0].message),
   `24-hour edge (23 h before): one reminder to the unbooked buyer (${s1}, ${short(r1)})`);
 ok((await reminders(BUYER)).length === 0, "  and none to the buyer whose time is booked");
 ok(await sweep(D(0, "10:10")) == 0, "  the next run sends it again: no (once per edge)");
@@ -157,7 +162,7 @@ ok(s2 == 1 && r2.length === 2 && r2.some((x) => /2 hours left/.test(x.title)), `
 ok(await sweep(D(1, "08:30")) == 0, "  once only");
 ok(await sweep(D(1, "10:00")) == 0, "after book_by: nothing");
 const rB2 = await row(oB.id);
-ok(rB2?.status === "paid", `nothing is cancelled: the order is still paid after book_by (${short(rB2)})`);
+ok(rB2?.status === "paid", `the reminder sweep itself closes nothing: still paid after book_by (${short(rB2)})`);
 const closed = one(await svc(`SELECT count(*) FROM public.declutter_cart_items WHERE order_id = '${oB.id}' AND status <> 'paid'`));
 ok(closed == 0, "  and its lines are still paid");
 

@@ -16,7 +16,7 @@ export interface LiveNow {
   title: string;
   /** Which side you are on ("You hired" / "You're working"). */
   side: string;
-  /** The job card's own sentence for this moment ("Finish and mark it done", "Work is underway"). */
+  /** The job card's own sentence for this moment ("Finish and mark it done", "Your Helpr is working"). */
   detail: string;
   /** When the Helpr arrived, if the row says so: the card's "Started 2:04 PM". */
   startedAt: string | null;

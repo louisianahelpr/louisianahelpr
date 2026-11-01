@@ -703,7 +703,11 @@ export function refundInstantBookingWith(deps: HoldDeps, jobId: string, record: 
     db: deps.db,
     stripe: {
       retrievePi: async (piId) => await deps.stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge"] }) as unknown as InstantRefundPi,
-      refund: async (params, idempotencyKey) => await deps.stripe.refunds.create({ ...params, reason: "requested_by_customer" }, { idempotencyKey }),
+      refund: async (params, keySuffix) =>
+        // own-mistake full refund (owner, 2026-10-14): an instant booking charged
+        // whose hire was then refused (instantBookRefund.ts); the hold model
+        // charges only at a hire (Q2399), so everything the charge holds goes back.
+        await deps.stripe.refunds.create({ ...params, reason: "requested_by_customer" }, { idempotencyKey: `instant-book-refund-${keySuffix}` }),
     },
     unclaimSetupFee: (id, posterId, at) => unclaimSetupFee(deps.db, id, posterId, at),
     record,

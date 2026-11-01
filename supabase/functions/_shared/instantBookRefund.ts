@@ -56,7 +56,8 @@ export type InstantRefundDeps = {
   db: any;
   stripe: {
     retrievePi: (piId: string) => Promise<InstantRefundPi>;
-    refund: (params: { payment_intent: string; amount: number; metadata: Record<string, string> }, idempotencyKey: string) => Promise<{ id: string }>;
+    /** keySuffix: the job and the already-refunded amount; the caller prefixes "instant-book-refund-". */
+    refund: (params: { payment_intent: string; amount: number; metadata: Record<string, string> }, keySuffix: string) => Promise<{ id: string }>;
   };
   /** cardHold.ts unclaimSetupFee: the $2 setup fee claim goes back (matched on its own time). */
   unclaimSetupFee: (jobId: string, posterId: string | null, at: string | null) => Promise<void>;
@@ -118,7 +119,7 @@ export async function refundInstantBooking(deps: InstantRefundDeps, jobId: strin
         // charge still holds goes back, card fee included.
         await deps.stripe.refund(
           { payment_intent: piId, amount: remainingCents, metadata: { job_id: jobId, card_hold: "1", why: "instant_booking_charged_not_hired" } },
-          `instant-book-refund-${jobId}-r${alreadyRefundedCents}`,
+          `${jobId}-r${alreadyRefundedCents}`,
         );
       } catch (e) {
         if (isDefinitiveStripeRefusal(e)) return stuck(`Stripe refused the refund: ${String((e as { message?: unknown }).message ?? e).slice(0, 200)}`);

@@ -12,7 +12,7 @@
  * @mutate src/vendorStubs/authJsPasskeyStub.ts | export const getCredential = unsupported; | const getCredential = unsupported;
  * @mutate vite.config.ts |     authJsNoPasskeys(),\n | \n
  */
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -24,7 +24,7 @@ const stub = blankComments(readFileSync(resolve(root, "src/vendorStubs/authJsPas
 const config = blankComments(readFileSync(resolve(root, "vite.config.ts"), "utf8"));
 
 const importedFrom = (spec: string) => {
-  const m = gotrue.match(new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*'${spec.replace(/[./]/g, "\\$&")}'`));
+  const m = gotrue.match(new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*'${spec.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}'`));
   return (m?.[1] ?? "").split(",").map((s) => s.trim().split(/\s+as\s+/)[0]).filter(Boolean);
 };
 const stubExports = new Set([...stub.matchAll(/^export (?:const|class|function) (\w+)/gm)].map((m) => m[1]));
@@ -50,9 +50,10 @@ describe("auth-js passkey stand-in", () => {
     const hits: string[] = [];
     let files = 0;
     const walk = (dir: string) => {
-      for (const name of readdirSync(dir)) {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const name = entry.name;
         const p = join(dir, name);
-        if (statSync(p).isDirectory()) {
+        if (entry.isDirectory()) {
           if (name !== "test" && name !== "vendorStubs") walk(p);
           continue;
         }

@@ -15,21 +15,29 @@ import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
 import { POST_JOB_SCREENS, screenNumber, screenOfFormPage } from "@/components/postjob/postJobScreens";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
+import { enPostJob } from "@/lib/i18n/enPostJob";
 
 const read = (f: string) => readFileSync(f, "utf8");
 
 /** Each header in the flow: the file, the screen key it passes, and the question it asks. */
 const EXPECTED: [file: string, key: string, question: RegExp][] = [
-  ["src/pages/post-job/EntryChoice.tsx", "groups", /question="What do you need done\?"/],
-  ["src/pages/post-job/FormStep.tsx", "groups", /question="What do you need done\?"/],
+  // A3-3 (Spanish): the questions are t() keys; their English is pinned in the test below.
+  ["src/pages/post-job/EntryChoice.tsx", "groups", /question=\{t\("postJob\.groupsQ"\)\}/],
+  ["src/pages/post-job/FormStep.tsx", "groups", /question=\{t\("postJob\.groupsQ"\)\}/],
   ["src/pages/post-job/FormStep.tsx", "kind", /question=\{groupQuestion\(/],
-  ["src/pages/post-job/FormStep.tsx", "details", /question="Tell us about it"/],
-  ["src/pages/post-job/FormStep.tsx", "price", /question="What will you pay\?"/],
-  ["src/pages/post-job/FormStep.tsx", "where", /question="When and where\?"/],
+  ["src/pages/post-job/FormStep.tsx", "details", /question=\{t\("postJob\.detailsQ"\)\}/],
+  ["src/pages/post-job/FormStep.tsx", "price", /question=\{t\("postJob\.priceQ"\)\}/],
+  ["src/pages/post-job/FormStep.tsx", "where", /question=\{t\("postJob\.whereQ"\)\}/],
   ["src/pages/post-job/CheckoutStepView.tsx", "review", /question="Look good\?"/],
 ];
 
 describe("Post a Job screen numbers (owner 2026-10-21)", () => {
+  it("the questions' English is unchanged (A3-3 moved them into enPostJob.ts)", () => {
+    expect([enPostJob["postJob.groupsQ"], enPostJob["postJob.detailsQ"], enPostJob["postJob.priceQ"], enPostJob["postJob.whereQ"]]).toEqual([
+      "What do you need done?", "Tell us about it", "What will you pay?", "When and where?",
+    ]);
+  });
+
   it("the one list is the six screens in order", () => {
     expect(POST_JOB_SCREENS.map((s) => s.key)).toEqual(["groups", "kind", "details", "price", "where", "review"]);
   });

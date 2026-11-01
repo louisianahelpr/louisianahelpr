@@ -11,7 +11,7 @@
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/admin", "/post-job", "/declutter/sell"]; | "/admin", "/declutter/sell"];
  * @mutate src/pages/post-job/usePostJobForm.ts |     if (step === "entry" && entryPanel) { |     if (false) {
  * @mutate src/components/postjob/JobCategoryGroups.tsx | tile(it.value, categoryEmoji(it.value), it.label, | tile(it.value, "", it.label,
- * @mutate src/lib/jobCategoryGroups.ts | export const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" }; | export const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = {};
+ * @mutate src/lib/i18n/enPostJob.ts |   "postJob.group.moving_errands": "Moving & errands", |   "postJob.group.moving_errands": "Moving and errands",
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -20,6 +20,7 @@ import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { noNavPages } from "@/components/mobileNav/mobileNavHelpers";
 import { CATEGORY_EMOJI, GROUP_EMOJI } from "@/lib/categoryEmoji";
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
+import { enPostJob } from "@/lib/i18n/enPostJob";
 
 vi.mock("@/components/SuggestCategory", () => ({ SuggestCategory: () => null }));
 
@@ -67,12 +68,15 @@ describe("Post a Job start (owner 2026-10-21)", () => {
 
   it("the first screen is the groups with three small start links; screen 1 has no floating button; the flow has no dock", () => {
     const entry = read("src/pages/post-job/EntryChoice.tsx");
-    for (const t of ['"Use a template"', '"Hire a saved Helpr"', '"Describe it with AI"']) expect(entry).toContain(t);
+    // A3-3 (Spanish): the links read t(); their English is unchanged (enPostJob.ts).
+    for (const k of ["useTemplate", "hireSaved", "describeAi"]) expect(entry).toContain(`t("postJob.${k}")`);
+    expect([enPostJob["postJob.useTemplate"], enPostJob["postJob.hireSaved"], enPostJob["postJob.describeAi"]]).toEqual(["Use a template", "Hire a saved Helpr", "Describe it with AI"]);
     expect(entry).not.toContain('"Start from scratch"');
-    expect(entry).toContain('question="What do you need done?"');
+    expect(entry).toContain('question={t("postJob.groupsQ")}');
+    expect(enPostJob["postJob.groupsQ"]).toBe("What do you need done?");
     const step = read("src/pages/post-job/FormStep.tsx");
     expect(step).toContain("{page !== 1 && (");
-    expect(step).toContain('question="What do you need done?"');
+    expect(step).toContain('question={t("postJob.groupsQ")}');
     expect(noNavPages).toContain("/post-job");
     // Owner: no bottom bar in flows; selling an item is a flow too (audit #45).
     expect(noNavPages).toContain("/declutter/sell");

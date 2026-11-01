@@ -30,7 +30,14 @@ export interface LiveNow {
  * is an overdue job, which Next up already asks about, not a live one).
  * The most recently started one wins; only one card is ever shown.
  */
-export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly AppliedApp[]): LiveNow | null {
+/** The hired Helpr's name for a posted job, when the activity read has it (useActivityData.helperNames, by user id). */
+function hiredName(j: Job, helperNames: Readonly<Record<string, string>>): string | null {
+  return (j.helper_id && helperNames[j.helper_id]) || null;
+}
+const firstOf = (n: string | null) => (n ? n.trim().split(/\s+/)[0] || null : null);
+
+/** JA-38 (audit 11-01): the poster's lines name their Helpr ("Yusef is on the way"), as the job page and card do. */
+export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly AppliedApp[], helperNames: Readonly<Record<string, string>> = {}): LiveNow | null {
   const live = (j: Job | null | undefined): j is Job => !!j && j.status === "in_progress" && !jobIsOverdue(j);
   const started = (j: Job) => j.helper_arrived_at ?? j.helper_on_the_way_at ?? j.updated_at ?? "";
   const candidates: LiveNow[] = [
@@ -39,9 +46,9 @@ export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly 
       jobId: j.id,
       title: j.title,
       side: "You hired",
-      detail: posterStatusLine(j).detail,
+      detail: posterStatusLine(j, 0, new Date(), undefined, false, hiredName(j, helperNames)).detail,
       startedAt: j.helper_arrived_at ?? null,
-      progress: jobProgress(j, { viewer: "poster" }),
+      progress: jobProgress(j, { viewer: "poster", otherFirst: firstOf(hiredName(j, helperNames)) }),
       sort: started(j),
     })),
     ...appliedApps
@@ -85,6 +92,7 @@ export function deriveWaiting(
    * so Next up names the next one instead of repeating it ("Your Helpr is working" twice).
    */
   liveJobId: string | null = null,
+  helperNames: Readonly<Record<string, string>> = {},
 ): Waiting | null {
   const firstName = (n?: string | null) => (n ? n.trim().split(/\s+/)[0] : null);
   for (const a of appliedApps) {
@@ -105,9 +113,9 @@ export function deriveWaiting(
     return {
       id: `wp-${j.id}`,
       jobId: j.id,
-      label: j.helper_id ? "Waiting on your Helpr" : "Waiting on Helprs",
+      label: j.helper_id ? `Waiting on ${firstOf(hiredName(j, helperNames)) ?? "your Helpr"}` : "Waiting on Helprs",
       title: j.title,
-      detail: posterStatusLine(j, n).detail,
+      detail: posterStatusLine(j, n, new Date(), undefined, false, hiredName(j, helperNames)).detail,
     };
   }
   return null;

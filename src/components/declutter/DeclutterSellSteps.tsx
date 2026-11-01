@@ -4,6 +4,7 @@
  * that file stays under the component-size threshold.
  */
 import { formatPrice } from "@/lib/declutter/distance";
+import { Button } from "@/components/ui/button";
 import { PRICE_DROP_RUN_UTC, dropStepCents } from "@/lib/declutter/priceDrop";
 
 /** A step's Bodoni question and its one-line helper (spec §1.2, §3 "Step-by-step flows"). */
@@ -69,9 +70,9 @@ export function ReviewRow({ title, body, onEdit }: { title: string; body: string
         <span className="block text-ds-13 text-muted-foreground">{body}</span>
       </span>
       {onEdit && (
-        <button type="button" onClick={onEdit} aria-label={`Edit ${title.toLowerCase()}`} className="min-h-11 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
+        <Button type="button" variant="ghost" size="sm" onClick={onEdit} aria-label={`Edit ${title.toLowerCase()}`} className="px-2 tracking-normal text-[hsl(var(--sage-ink))]">
           Edit
-        </button>
+        </Button>
       )}
     </li>
   );

@@ -38,7 +38,7 @@ import { readdirSync } from "./helpers/trackedFiles";
  * properties CI can assert on every push without a Postgres.
  */
 
-// @mutate supabase/migrations/20261029042735_done_floor_from_arrival.sql |   IF OLD.is_group_job IS TRUE\n     AND COALESCE(current_setting |   IF COALESCE(current_setting
+// @mutate supabase/migrations/20261101024656_sell_for_me_done_waits_for_listings.sql |   IF OLD.is_group_job IS TRUE\n     AND COALESCE(current_setting |   IF COALESCE(current_setting
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'helper_completed_at',\n    'poster_confirmed_completion_at', |     'poster_confirmed_completion_at',
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql | REVOKE INSERT, UPDATE, DELETE ON public.group_job_helpers FROM PUBLIC, anon; | REVOKE INSERT ON public.group_job_helpers FROM PUBLIC;
 // @mutate supabase/migrations/20261008203441_arrival_gps_or_poster_and_step_order.sql |     IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN |     IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN

@@ -18,7 +18,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { doneFloorStart } from "@/lib/doneFloor";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { blankComments } from "./helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 const ROOT = resolve(__dirname, "../..");
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
@@ -58,7 +59,11 @@ describe("the done floor counts from the arrival (F12)", () => {
   });
 
   it("the server's newest floor is LEAST in all three functions", () => {
-    const sql = readFileSync(resolve(ROOT, "supabase/migrations/20261029042735_done_floor_from_arrival.sql"), "utf8");
+    // The NEWEST definition of each (POST-H3's 20261101024656 restated two of them), never a pinned file.
+    const defs = effectiveDefs(resolve(ROOT, "supabase/migrations"));
+    const names = ["enforce_helper_completion_gates", "enforce_group_member_completion_gates", "rpc_helper_mark_done"];
+    const sql = names.map((n) => blankSqlComments(defs.get(n)?.stmt ?? "")).join("\n");
+    expect(names.every((n) => defs.has(n))).toBe(true);
     expect(sql.match(/LEAST\((OLD|NEW|v_job)\.poster_confirmed_working_at, \1\.helper_arrived_at\) IS NOT NULL/g)?.length).toBe(3);
     expect(sql).not.toMatch(/COALESCE\((OLD|NEW|v_job)\.poster_confirmed_working_at/);
   });

@@ -477,6 +477,8 @@ export const RPC_ERROR_COPY = {
     completion_requires_confirmed_arrival: LIFECYCLE_REASONS.completion_requires_confirmed_arrival,
     completion_requires_proof_photos: "Add before and after photos before marking the job done.",
     completion_min_work_time: "You can mark it done 30 minutes after you arrived.",
+    // POST-H3 (owner 10-31): a Have-a-Helpr-list-it job is done once the listings are live (they are the proof).
+    completion_requires_live_listings: "The listings are the proof: mark it done once the seller's listings are live on Declutter.",
   },
   // userBlocks — block and settle shared jobs.
   block_user_and_settle: {

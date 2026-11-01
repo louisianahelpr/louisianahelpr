@@ -302,10 +302,10 @@ const AdminCredentialQueue = () => {
                 {r.license_status === "pending" && r.license_url && (
                   <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex min-h-11 items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 accent-[hsl(var(--bark))] disabled:opacity-40"
+                          className="h-4 w-4 min-h-0 min-w-0 shrink-0 accent-[hsl(var(--bark))] disabled:opacity-40"
                           checked={selected.has(`${r.user_id}:license`)}
                           disabled={!hasExpiry(`${r.user_id}:license`)}
                           onChange={() => toggleSelected(`${r.user_id}:license`)}
@@ -352,10 +352,10 @@ const AdminCredentialQueue = () => {
                 {r.insurance_status === "pending" && r.insurance_url && (
                   <div className="rounded-ds-md border border-border bg-secondary/40 p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <label className="flex min-h-11 items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 accent-[hsl(var(--bark))] disabled:opacity-40"
+                          className="h-4 w-4 min-h-0 min-w-0 shrink-0 accent-[hsl(var(--bark))] disabled:opacity-40"
                           checked={selected.has(`${r.user_id}:insurance`)}
                           disabled={!hasExpiry(`${r.user_id}:insurance`)}
                           onChange={() => toggleSelected(`${r.user_id}:insurance`)}

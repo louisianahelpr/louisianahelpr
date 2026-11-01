@@ -5,7 +5,7 @@
  * ending by the 7-day deadline).
  *
  * @mutate src/lib/declutter/pickupSlots.ts |       for (let m = minutes(w.starts); m + SLOT_MIN <= minutes(w.ends); m += SLOT_MIN) starts.add(m); |       for (let m = minutes(w.starts); m <= minutes(w.ends); m += SLOT_MIN) starts.add(m);
- * @mutate src/lib/declutter/pickupSlots.ts |       .filter(({ at }) => at > nowMs && at + SLOT_MIN * 60_000 <= end) |       .filter(({ at }) => at + SLOT_MIN * 60_000 <= end)
+ * @mutate src/lib/declutter/pickupSlots.ts |       .filter(({ at }) => at > nowMs && at + SLOT_MIN * 60_000 <= end)\n      .map(({ m, at }) => | .filter(({ at }) => at + SLOT_MIN * 60_000 <= end)\n      .map(({ m, at }) =>
  * @mutate src/lib/declutter/pickupSlots.ts |   const second = wall - zoneOffsetMs(first); |   const second = first;
  * @mutate src/lib/declutter/pickupSlots.ts |     runs.push(j - i >= 2 ? |     runs.push(false ?
  */

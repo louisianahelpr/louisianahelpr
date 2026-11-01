@@ -11,7 +11,7 @@
  * src/test/pglite/declutterNoticeCopy.pglite.mjs (BEFORE on prod's bodies, 3x replay, 6 planted defects RED).
  */
 // @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_notice_names_item(p_user, p_other, v_link, p_message), v_link);
-// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id)),\n    '/declutter?view=selling', o.buyer_id); | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id)),\n    '/declutter?view=offers', o.buyer_id);
+// @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id), COALESCE(v_pickup \|\| ' ', '')),\n    '/declutter?view=selling', o.buyer_id); | You get paid after the handover.', public.declutter_price_text(o.items_cents),\n           public.declutter_order_items_named(p_order_id), COALESCE(v_pickup \|\| ' ', '')),\n    '/declutter?view=offers', o.buyer_id);
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

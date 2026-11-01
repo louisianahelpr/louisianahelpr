@@ -151,6 +151,7 @@ const ALLOWED: Record<string, string> = {
   rpc_decide_crew_dispute: MONEY,
   rpc_group_member_mark_done: SPOTS,
   rpc_open_dispute: LIMIT,
+  rpc_poster_report_member_no_show: "logic: the no-show ladder for one member and the crew roster on one job",
   rpc_open_refund_request: LIMIT,
   run_missed_cron_catch_up: OPS,
   send_ops_daily_digest: OPS,

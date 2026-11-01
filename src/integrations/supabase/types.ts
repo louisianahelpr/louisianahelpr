@@ -1846,6 +1846,7 @@ export type Database = {
         Row: {
           buyer_id: string
           buyer_notified_at: string | null
+          buyer_read_at: string | null
           closed_at: string | null
           expires_at: string
           id: string
@@ -1853,10 +1854,12 @@ export type Database = {
           opened_by: string
           seller_id: string
           seller_notified_at: string | null
+          seller_read_at: string | null
         }
         Insert: {
           buyer_id: string
           buyer_notified_at?: string | null
+          buyer_read_at?: string | null
           closed_at?: string | null
           expires_at: string
           id?: string
@@ -1864,10 +1867,12 @@ export type Database = {
           opened_by: string
           seller_id: string
           seller_notified_at?: string | null
+          seller_read_at?: string | null
         }
         Update: {
           buyer_id?: string
           buyer_notified_at?: string | null
+          buyer_read_at?: string | null
           closed_at?: string | null
           expires_at?: string
           id?: string
@@ -1875,6 +1880,7 @@ export type Database = {
           opened_by?: string
           seller_id?: string
           seller_notified_at?: string | null
+          seller_read_at?: string | null
         }
         Relationships: []
       }
@@ -2352,7 +2358,9 @@ export type Database = {
           name: string
           note: string | null
           parish: string
+          seller_id: string | null
           updated_at: string
+          windows: Json | null
         }
         Insert: {
           active?: boolean
@@ -2366,7 +2374,9 @@ export type Database = {
           name: string
           note?: string | null
           parish: string
+          seller_id?: string | null
           updated_at?: string
+          windows?: Json | null
         }
         Update: {
           active?: boolean
@@ -2380,7 +2390,9 @@ export type Database = {
           name?: string
           note?: string | null
           parish?: string
+          seller_id?: string | null
           updated_at?: string
+          windows?: Json | null
         }
         Relationships: []
       }
@@ -2654,6 +2666,33 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_talk_reminder_sends: {
+        Row: {
+          conversation: string
+          kind: string
+          message_id: string
+          rung: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation: string
+          kind: string
+          message_id: string
+          rung: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation?: string
+          kind?: string
+          message_id?: string
+          rung?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       helpr_task_talk_messages: {
         Row: {
           body: string
@@ -2711,24 +2750,30 @@ export type Database = {
       declutter_order_talks: {
         Row: {
           buyer_notified_at: string | null
+          buyer_read_at: string | null
           created_at: string
           id: string
           order_id: string
           seller_notified_at: string | null
+          seller_read_at: string | null
         }
         Insert: {
           buyer_notified_at?: string | null
+          buyer_read_at?: string | null
           created_at?: string
           id?: string
           order_id: string
           seller_notified_at?: string | null
+          seller_read_at?: string | null
         }
         Update: {
           buyer_notified_at?: string | null
+          buyer_read_at?: string | null
           created_at?: string
           id?: string
           order_id?: string
           seller_notified_at?: string | null
+          seller_read_at?: string | null
         }
         Relationships: []
       }

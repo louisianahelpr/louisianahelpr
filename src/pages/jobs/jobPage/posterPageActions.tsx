@@ -15,8 +15,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { ChangeJobSheet } from "@/components/schedule/ChangeJobSheet";
 import { scheduleChangeAllowed, type SeriesCardJob } from "@/components/series/JobSeriesCardControls";
@@ -59,7 +58,16 @@ export function usePosterPageActions({
   onChanged: () => void;
   /** The Posted card's own flows, mounted on this page (usePosterPageFlows). */
   flows: PosterPageFlows;
-}): { primary: PagePrimary | null; secondary: React.ReactNode; dialogs: React.ReactNode; edit: () => void } {
+}): {
+  /** The step due now, or Message when none is (the page's lead without an override). */
+  primary: PagePrimary | null;
+  /** The one row of buttons; `override` is the page's own step (Confirm they've arrived), null for none. */
+  row: (override?: PagePrimary | null) => React.ReactNode;
+  /** The hidden card (its flows and dialogs). */
+  panel: React.ReactNode;
+  dialogs: React.ReactNode;
+  edit: () => void;
+} {
   const navigate = useNavigate();
   const helperId = enabled ? job?.helper_id ?? null : null;
   // "Yusef" from the Helpr's card, the read PostedBy already shares (seller-card key).
@@ -70,17 +78,18 @@ export function usePosterPageActions({
   // Each tap remounts the confirm, so "Not now" then a second tap opens it again.
   const [confirmAsk, setConfirmAsk] = useState(0);
   const [changeOpen, setChangeOpen] = useState(false);
-  const [optionsOpen, setOptionsOpen] = useState(false);
   // Q1586(c): "Post this job again" opens /post-job, so under 18 it explains instead (as Posted's own Repost).
   const { gate: ageGate } = useAgeGate();
-  if (!enabled || !job) return { primary: null, secondary: null, dialogs: null, edit: () => {} };
+  if (!enabled || !job) return { primary: null, row: () => null, panel: null, dialogs: null, edit: () => {} };
 
   const id = encodeURIComponent(job.id);
   const status = job.status ?? "";
   const message = job.helper_id && HAS_HELPR.has(status)
     ? { label: helperFirst ? `Message ${helperFirst}` : "Message your Helpr", go: () => job.helper_id ? navigate(`/messages?jobId=${id}&userId=${job.helper_id}`) : undefined }
     : null;
-  const canChange = !!job.date_needed && scheduleChangeAllowed(job as unknown as SeriesCardJob, userId, "poster");
+  // JA-6 (Jobs audit 11-01): not once the Helpr set off or arrived (the same rule as Cancel below).
+  const canChange = !!job.date_needed && !job.helper_on_the_way_at && !job.helper_arrived_at
+    && scheduleChangeAllowed(job as unknown as SeriesCardJob, userId, "poster");
   // Not once the Helpr set off or arrived: the card's cancel refuses it then (tryCancelJob's tracking check).
   // A never-paid draft is on no Posted list (JOBS-9), so a trip to its card would land on nothing: no Edit or Cancel.
   const draft = jobIsUnfundedDraft(job);
@@ -107,45 +116,29 @@ export function usePosterPageActions({
       ? { label: "Post this job again", go: ageGate("post", () => navigate(`/post-job?rebook=${id}`)) }
       : null;
 
-  // ONE TAP TO THE OPTIONS (owner 2026-11-01): the card's actions sit beside Message. None: Message alone. One: that
-  // action IS the second button ("if no show is the only option then just remove the more button"). Two or more:
-  // "More options" opens them as one list. When Message was the step-less primary, it moves into that row.
-  const messageInRow = cardSteps && !!message && primaryOrMessage === message;
-  const primary = messageInRow ? null : primaryOrMessage;
-  const buttons = [
-    message && primary !== message && (
-      <Button key="message" variant={messageInRow ? "primary" : "outline"} size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={message.go}>
-        {message.label}
-      </Button>
-    ),
-    canEdit && (
-      <Button key="edit" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" disabled={!flows.ready} onClick={flows.edit}>
-        Edit job
-      </Button>
-    ),
-    canChange && (
-      <Button key="change" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={() => setChangeOpen(true)}>
-        Change date or time
-      </Button>
-    ),
-    canCancel && (
-      <Button key="cancel" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15 text-destructive-ink" disabled={!flows.ready} onClick={flows.cancel}>
-        Cancel job
-      </Button>
-    ),
-    cardSteps && flows.moreCount === 1 && <div key="one" ref={flows.setSecondHost} data-poster-one-action="" className="flex min-w-0 flex-1" />,
-    cardSteps && flows.moreCount > 1 && (
-      <Button key="more" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" disabled={!flows.ready} aria-haspopup="dialog" onClick={() => setOptionsOpen(true)}>
-        More options
-      </Button>
-    ),
-  ].filter(Boolean);
-  // Two buttons are equal halves (owner 2026-11-01); a flex row gave the padded Button 64px more than a lone action's slot.
-  const row = buttons.length > 0 ? <div data-poster-actions="" className={buttons.length === 2 ? "grid grid-cols-2 gap-2" : "flex flex-wrap gap-2"}>{buttons}</div> : null;
-  // The card's own step controls, in place under the buttons; mounted (hidden) whenever the row is read, so
-  // "Approve and release" opens the card's CompletionChoiceSheet even with More options closed.
+  // ONE ROW (owner 2026-11-01, JobPageActionRow.tsx): the step due now leads on the right; with none, Message leads on
+  // the left. Every other action is the one button beside it, or "More options" opening them all in one tap.
+  const pageExtras = (): RowAction[] => [
+    canEdit && { key: "edit", label: "Edit job", go: flows.edit, disabled: !flows.ready },
+    canChange && { key: "change", label: "Change date or time", go: () => setChangeOpen(true) },
+    canCancel && { key: "cancel", label: "Cancel job", go: flows.cancel, disabled: !flows.ready, danger: true },
+  ].filter(Boolean) as RowAction[];
+  const cardCount = cardSteps ? flows.moreCount : 0;
+  const row = (override: PagePrimary | null | undefined) => {
+    const step = override !== undefined ? override : primaryOrMessage === message ? null : primaryOrMessage;
+    const msg: RowAction | null = message ? { key: "message", label: message.label, go: message.go } : null;
+    // No step of the page's own, and the card has one (Review, Tip on a finished job): the card's leads.
+    const cardLead = !step && cardSteps && flows.leadCount > 0;
+    const lead: RowAction | null = step ? { key: "step", label: step.label, go: step.go, disabled: step.disabled } : cardLead ? null : msg;
+    const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras()];
+    return (
+      <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} extras={extras} cardCount={cardCount}
+        cardLead={cardLead} setCardLeadHost={flows.setLeadHost} setCardSecondHost={flows.setSecondHost} setCardListHost={flows.setListHost} />
+    );
+  };
+  // The card's own step controls, mounted (hidden) whenever the row is read, so "Approve and release" opens the
+  // card's CompletionChoiceSheet and each card action keeps its own confirm step.
   const panel = cardSteps || posterWait === "approve" ? flows.panel : null;
-  const secondary = row || panel ? <>{row}{panel}</> : null;
 
   const dialogs = (
     <>
@@ -187,17 +180,8 @@ export function usePosterPageActions({
           onCancelJob={flows.cancel}
         />
       )}
-      {cardSteps && (
-        <Sheet open={optionsOpen && flows.moreCount > 1} onOpenChange={setOptionsOpen}>
-          <SheetContent side="bottom" data-poster-options="">
-            <SheetHero title="More options" />
-            {/* The card's own actions, drawn here by its JobStepCard (jobStepMenu.tsx); a tap runs one and closes this. */}
-            <div ref={flows.setListHost} className="flex flex-col gap-2 pb-2" onClick={() => setOptionsOpen(false)} />
-          </SheetContent>
-        </Sheet>
-      )}
       {flows.dialogs}
     </>
   );
-  return { primary, secondary, dialogs, edit: flows.edit };
+  return { primary: primaryOrMessage, row, panel, dialogs, edit: flows.edit };
 }

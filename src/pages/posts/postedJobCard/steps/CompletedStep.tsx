@@ -16,7 +16,7 @@ import { tipsNotReadyLine, useHelprTakesTips, useTipWaitsOnId } from "@/hooks/us
  *
  * Nothing is being asked and nothing is primary: the job is over and every
  * remaining control is optional. So this state is a review surface plus one
- * row — Tip · Review · Hire again.
+ * row — Tip · Review · Book <Helpr> again.
  *
  * No Dispute and no Report Job here (owner rule, 2026-09-14, VN-28: "they
  * can't report a job once it's done"). This reverses the earlier 7-day
@@ -214,32 +214,19 @@ export function CompletedStep({
             onClick={() => navigate(SELL_FOR_ME_LISTINGS_PATH)}
           />
         ) : null,
-        /* Book <Helpr> again (Q2471 #3, owner 2026-10-29): the SAME job copied
-           (never its date) as a direct offer to this Helpr, opening at When
-           and where so only the date is left. One Helpr only: a crew job has
-           no one Helpr to offer it to. */
+        /* ONE "book them again" (owner 2026-11-01: the done list showed "Book Eli again" AND "Hire again"; keep one,
+           the clearer label). "Book <Helpr> again" (Q2471 #3, owner 2026-10-29): the SAME job copied (never its
+           date) as a direct offer to this Helpr, opening at When and where; every field stays editable there, so a
+           different job for the same Helpr starts here too. A crew job has no one Helpr: Re-Post.
+           Guard: src/test/bookAgainOneTap.test.tsx ("one book-again"). */
         job.helper_id && !crew ? (
           <JobActionChip
-            key="book-again"
+            key="again"
             icon={CalendarPlus}
             label={bookAgainLabel(helperName)}
             ariaLabel={`${bookAgainLabel(helperName)} — the same job for ${helperName}, you pick the date`}
             tone="primary"
             onClick={ageGate("post", () => navigate(bookAgainLink(job.id, job.helper_id as string)))}
-            ageGated={ageGatedProps("post")}
-          />
-        ) : null,
-        /* Hire again — direct offer to the same helper for ANY job: a blank
-           PostJob with offerTo only (owner 2026-10-25: not prefilled from this
-           job). Post again below is the prefilled copy. */
-        job.helper_id ? (
-          <JobActionChip
-            key="again"
-            icon={RotateCcw}
-            label="Hire again"
-            ariaLabel={`Hire again — hire ${helperName} for a new job`}
-            tone="primary"
-            onClick={ageGate("post", () => navigate(`/post-job?offerTo=${job.helper_id}`))}
             ageGated={ageGatedProps("post")}
           />
         ) : (

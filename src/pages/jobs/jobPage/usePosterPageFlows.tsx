@@ -43,6 +43,10 @@ export interface PosterPageFlows {
   edit: () => void;
   /** How many card actions the page offers beside Message (jobStepMenu.tsx): 0, 1 (drawn in `setSecondHost`), or a list. */
   moreCount: number;
+  /** How many primaries the card holds (Review, Tip): the first leads the row when the page has no step. */
+  leadCount: number;
+  /** The page's lead slot, where the card's first primary is drawn. */
+  setLeadHost: (el: HTMLElement | null) => void;
   /** The page's second-button slot, where a lone card action is drawn. */
   setSecondHost: (el: HTMLElement | null) => void;
   /** The open options sheet's list, where two or more card actions are drawn (null while it is closed). */
@@ -126,7 +130,9 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   const [moreCount, setMoreCount] = useState(0);
   const [secondHost, setSecondHost] = useState<HTMLElement | null>(null);
   const [listHost, setListHost] = useState<HTMLElement | null>(null);
-  const menu = useMemo(() => ({ secondHost, listHost, setCount: setMoreCount }), [secondHost, listHost]);
+  const [leadCount, setLeadCount] = useState(0);
+  const [leadHost, setLeadHost] = useState<HTMLElement | null>(null);
+  const menu = useMemo(() => ({ secondHost, listHost, leadHost, setCount: setMoreCount, setLeadCount }), [secondHost, listHost, leadHost]);
 
   const handlers = createLifecycleHandlers({
     user,
@@ -152,7 +158,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   });
 
   if (!enabled || !job) {
-    return { ready: false, completing: false, approve: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, crew: null, dialogs: null };
+    return { ready: false, completing: false, approve: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, setLeadHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, crew: null, dialogs: null };
   }
 
   // JOBS-3: an under-way crew's roster, as the Posted card draws it (per-member "Didn't show" and arrival), shown on the
@@ -245,6 +251,8 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     cancel: () => void handlers.tryCancelJob(job),
     edit: () => setEditJob(job),
     moreCount,
+    leadCount,
+    setLeadHost,
     setSecondHost,
     setListHost,
     // The detail read is done (q.data), so a crew with no roster entry has nobody left on it.

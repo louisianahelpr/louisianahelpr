@@ -133,7 +133,8 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
   );
 }
 
-export function HelprMoney({ job }: { job: JobPageRow }) {
+/** The Helpr's take-home and the words that go with it (one computation: takeHomeOneComputation.test.ts). */
+function useHelprMoney(job: JobPageRow) {
   const firstPayoutFee = useFirstPayoutFeeDollars();
   const { profile } = useCurrentUser();
   // Split only on a group job (helperShareCount; helpersNeededSplitIsGroupGated).
@@ -150,14 +151,37 @@ export function HelprMoney({ job }: { job: JobPageRow }) {
   const lines = [
     helpers > 1 ? `Your share of a job for ${helpers} Helprs.` : null,
     firstPayoutFee > 0 && job.status !== "disputed" && !fixedPay ? setupFeeWords(firstPayoutFee) : null,
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
+  return { net, fixedPay, lines };
+}
+
+/** The Helpr's amount, on the RIGHT of the page header like the poster's (owner 2026-11-01), "You take home" under it. */
+export function HelprPrice({ job }: { job: JobPageRow }) {
+  const { net, fixedPay } = useHelprMoney(job);
   return (
-    <div data-helpr-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
-      <div className="flex items-baseline justify-between gap-3">
-        {!fixedPay && <p className="text-ds-15 font-semibold">You take home</p>}
-        <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
-      </div>
-      {lines.length > 0 && <p className="mt-1.5 text-ds-13 text-muted-foreground">{lines.join(" ")}</p>}
+    <div data-helpr-money="" className="shrink-0 text-right">
+      <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
+      {!fixedPay && <p className="mt-1 text-ds-12 font-semibold text-muted-foreground">You take home</p>}
+    </div>
+  );
+}
+
+/**
+ * Under the header: a crew share and the one-time setup fee; and for the hired Helpr of a finished, approved job, that
+ * it is paid and when the pay goes out (JA-22, Jobs audit 11-01: the poster's page said it, the Helpr's did not).
+ */
+export function HelprMoneyNotes({ job, hired }: { job: JobPageRow; hired: boolean }) {
+  const { lines } = useHelprMoney(job);
+  const approved = hired && RELEASED.has(job.payment_status ?? "");
+  const at = approved && job.payout_scheduled_at && new Date(job.payout_scheduled_at).getTime() > Date.now() ? job.payout_scheduled_at : null;
+  const paid = !approved ? null
+    : job.payment_status === "released" ? "Approved and paid out to you."
+    : at ? `Approved. Your pay goes out ${payoutWhen(at)}.` : "Approved. Your pay goes out with the next payout.";
+  if (!paid && lines.length === 0) return null;
+  return (
+    <div data-helpr-money-notes="" className="space-y-1.5">
+      {paid && <p data-helpr-paid="" className="text-ds-14 font-semibold text-foreground">{paid}</p>}
+      {lines.length > 0 && <p className="text-ds-13 text-muted-foreground">{lines.join(" ")}</p>}
     </div>
   );
 }

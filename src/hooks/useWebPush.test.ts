@@ -6,7 +6,11 @@
  *  - iPhone Safari outside the Home Screen gets the Add to Home Screen sheet instead;
  *  - one ask per 14 days; SessionManager mounts both hooks.
  *
- * @mutate src/hooks/useWebPush.ts |     if (answer === "granted") await subscribeWebPushOnUse(); |     await subscribeWebPushOnUse();
+ * @mutate src/hooks/useWebPush.ts |     if (answer === "granted") { |     if (true) {
+ * @mutate src/hooks/useWebPush.ts |   track("web_push_ask", { kind, step: "shown" }); |
+ * @mutate src/hooks/useWebPush.ts |   if (!agreed) track("web_push_ask", { kind, step: "not_now" }); |
+ * @mutate src/pages/messages/messagesData/sendHandlers.ts |     if (!alreadyLanded) offerPushAfterAction(); |
+ * @mutate src/hooks/useNotificationPermissionPrompt.ts |   window.dispatchEvent(ask); |
  * @mutate src/hooks/useWebPush.ts |   if (Number.isFinite(last) && last > 0 && now - last < WEB_PUSH_ASK_COOLDOWN_MS) return null; |
  * @mutate src/components/SessionManager.tsx |   useWebPushBootSync(user?.id); |
  */
@@ -33,6 +37,8 @@ vi.mock("@/hooks/usePermissionRationale", () => ({
   explainPermission: (kind: string, run: () => unknown) => explain(kind, run),
 }));
 vi.mock("@/lib/pushPermissionNudge", () => ({ waitForNoModal: async () => true }));
+const tracked = vi.hoisted(() => [] as Array<[string, Record<string, unknown>]>);
+vi.mock("@/lib/analytics", () => ({ track: (e: string, p: Record<string, unknown>) => tracked.push([e, p]) }));
 
 import {
   offerWebPushAfterJobAction,
@@ -59,6 +65,7 @@ const setPermission = (permission: string, answer = "granted") =>
 beforeEach(() => {
   localStorage.clear();
   order.length = 0;
+  tracked.length = 0;
   env.apis = true;
   env.iosTab = false;
   subscribe.mockReset().mockImplementation(async () => {
@@ -118,6 +125,33 @@ describe("offerWebPushAfterJobAction", () => {
     expect(webPushAskKind()).toBeNull();
     setPermission("denied");
     expect(webPushAskKind()).toBeNull();
+  });
+});
+
+// PUSH-REACH (11-01, prod: 2 web subscriptions, 0 native tokens): the ask's funnel is recorded, and a sent message
+// offers the ask too (it was only a job post or an application).
+describe("PUSH-REACH: the ask is measured and offered after a sent message", () => {
+  const steps = () => tracked.filter(([e]) => e === "web_push_ask").map(([, p]) => p);
+  it("records shown, the browser's answer and the save", async () => {
+    setPermission("default", "granted");
+    await offerWebPushAfterJobAction();
+    expect(steps()).toEqual([
+      { kind: "ask", step: "shown" },
+      { kind: "ask", step: "browser_answer", answer: "granted" },
+      { kind: "ask", step: "saved", result: "saved" },
+    ]);
+  });
+  it("records a Not now on the in-app sheet", async () => {
+    setPermission("default");
+    explain.mockImplementationOnce(async () => false);
+    await offerWebPushAfterJobAction();
+    expect(steps()).toEqual([{ kind: "ask", step: "shown" }, { kind: "ask", step: "not_now" }]);
+  });
+  it("a stored message offers the ask; a retry that only recovered its row does not", () => {
+    const src = readFileSync("src/pages/messages/messagesData/sendHandlers.ts", "utf8");
+    expect(src).toMatch(/if \(!alreadyLanded\) offerPushAfterAction\(\);/);
+    const hook = readFileSync("src/hooks/useNotificationPermissionPrompt.ts", "utf8");
+    expect(hook).toMatch(/export const offerPushAfterAction = \(\): void => \{[^}]*const ask = new Event\(JOB_ACTION_EVENT\);\s*window\.dispatchEvent\(ask\);\s*\};/);
   });
 });
 

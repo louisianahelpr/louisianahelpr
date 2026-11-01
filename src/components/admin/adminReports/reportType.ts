@@ -24,6 +24,8 @@ export type Report = {
   reported_listing_down_ok?: boolean;
   /** Audit 10-30 #8: a reported Wanted post, read through declutter_admin_reported_wanted. */
   reported_wanted?: ReportedWanted;
+  /** B48: a reported Declutter question already removed, so the card offers no take-down. */
+  reported_question_gone?: boolean;
   /** Q366: the person behind the subject — `reported_id` for a user report,
    *  the application's helper for an application report, null otherwise. */
   subject_user_id?: string | null;

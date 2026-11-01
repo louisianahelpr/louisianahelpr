@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1060,
-    "files": 296,
-    "rendering": 979,
+    "calls": 1062,
+    "files": 297,
+    "rendering": 981,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 170,
-      "toast.error": 737,
+      "toast": 171,
+      "toast.error": 738,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 458,
       "template": 96,
-      "dynamic": 557,
+      "dynamic": 559,
       "jsx": 0
     }
   },
@@ -2496,7 +2496,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 275,
+      "line": 281,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2506,7 +2506,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 278,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2516,7 +2516,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 293,
+      "line": 299,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2526,7 +2526,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 316,
+      "line": 322,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2536,7 +2536,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 319,
+      "line": 325,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2546,7 +2546,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 340,
+      "line": 346,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2556,7 +2556,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 380,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3501,6 +3501,36 @@
     {
       "file": "src/components/admin/adminReports/DeclutterTakeDown.tsx",
       "line": 39,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminReports/ReportedCopy.tsx",
+      "line": 34,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "part === \"question\" ? \"Question removed. The report is resolved.\" : \"Answer removed. The report is resolved.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Question removed. The report is resolved."
+          },
+          {
+            "form": "literal",
+            "text": "Answer removed. The report is resolved."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminReports/ReportedCopy.tsx",
+      "line": 37,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5430,7 +5460,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 95,
+      "line": 120,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5440,7 +5470,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 192,
+      "line": 217,
       "kind": "toast",
       "title": {
         "form": "literal",

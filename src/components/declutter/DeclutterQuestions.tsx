@@ -9,7 +9,7 @@
  * neighbor"); the seller's first name comes from the same public profile read
  * as the seller card, and falls back to "the seller".
  */
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from 
 import { answerQuestion, askQuestion, fetchMyQuestionIds, fetchQuestions, fetchSellerCard, type DeclutterQuestion } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DeclutterSuggestedReply } from "./DeclutterSuggestedReply";
+
+const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -49,14 +51,26 @@ function QuestionCard({
   sellerName,
   onAnswer,
   mine,
+  canReport,
+  isSeller,
 }: {
   q: DeclutterQuestion;
   sellerName: string | null;
   onAnswer: (() => void) | null;
   /** AUD31-15: the viewer asked it (declutter_my_question_ids); only the asker is ever told. */
   mine: boolean;
+  /** B48 (owner decision 10-31, App Store 1.2): a signed-in member reports a question or an answer, never their own. */
+  canReport: boolean;
+  /** The viewer sells this item, so the answer is their own words. */
+  isSeller: boolean;
 }) {
   const asked = askedWhen(q.created_at);
+  const [reporting, setReporting] = useState<"declutter_question" | "declutter_answer" | null>(null);
+  const reportLink = (type: "declutter_question" | "declutter_answer", label: string) => (
+    <button type="button" className="min-h-11 pr-4 text-ds-13 text-muted-foreground" onClick={() => setReporting(type)} data-report={type}>
+      {label}
+    </button>
+  );
   return (
     <li className="rounded-2xl border border-border bg-card px-4 py-3 space-y-1" data-question="" data-mine={mine ? "" : undefined}>
       <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p>
@@ -77,6 +91,17 @@ function QuestionCard({
         <Button type="button" size="sm" className="mt-2" onClick={onAnswer}>
           Answer
         </Button>
+      )}
+      {canReport && (!mine || (q.answer && !isSeller)) && (
+        <div className="flex flex-wrap">
+          {!mine && reportLink("declutter_question", "Report question")}
+          {q.answer && !isSeller && reportLink("declutter_answer", "Report answer")}
+        </div>
+      )}
+      {reporting && (
+        <Suspense fallback={null}>
+          <ReportDialog open onClose={() => setReporting(null)} reportedType={reporting} reportedId={q.id} />
+        </Suspense>
       )}
     </li>
   );
@@ -217,7 +242,7 @@ export function DeclutterQuestions({
       ) : (
         <ul className="space-y-2">
           {list.map((q) => (
-            <QuestionCard key={q.id} q={q} sellerName={sellerName} onAnswer={isSeller ? () => setAnswering(q) : null} mine={!!myIds.data?.has(q.id)} />
+            <QuestionCard key={q.id} q={q} sellerName={sellerName} onAnswer={isSeller ? () => setAnswering(q) : null} mine={!!myIds.data?.has(q.id)} canReport={!!user} isSeller={isSeller} />
           ))}
         </ul>
       )}

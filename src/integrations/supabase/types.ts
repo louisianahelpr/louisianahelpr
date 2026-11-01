@@ -15959,6 +15959,24 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_admin_remove_question: {
+        Args: { p_note: string; p_part: string; p_question_id: string; p_report_id: string }
+        Returns: string
+      }
+      declutter_admin_reported_questions: {
+        Args: { p_question_ids: string[] }
+        Returns: {
+          answer: string
+          asker_id: string
+          is_seed: boolean
+          item_id: string
+          item_title: string
+          question: string
+          question_id: string
+          removed: boolean
+          seller_id: string
+        }[]
+      }
       declutter_admin_reported_wanted: {
         Args: { p_wanted_ids: string[] }
         Returns: {

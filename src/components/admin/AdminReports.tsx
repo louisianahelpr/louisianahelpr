@@ -40,6 +40,8 @@ import { hydrateReportedListings, listingCanComeDown, listingSubject, LISTING_RE
 import { DeclutterTakeDown } from "@/components/admin/adminReports/DeclutterTakeDown";
 import { hydrateReportedWanted, wantedSubject, WANTED_REPORT } from "@/components/admin/adminReports/reportedWanted";
 import { WantedReportPanel } from "@/components/admin/adminReports/WantedReportPanel";
+import { ReportedCopy } from "@/components/admin/adminReports/ReportedCopy";
+import { hydrateReportedQuestions, isQuestionReport, questionAuthor, questionSubject } from "@/components/admin/adminReports/reportedQuestions";
 import { ReportSubjectButton } from "@/components/admin/adminReports/ReportSubjectButton";
 import { SLA_BREACH_HOURS, slaInfo, typeIcon } from "@/components/admin/adminReports/reportRowBits";
 
@@ -82,9 +84,9 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
   // fallback exists to distinguish — gone vs. unreadable — were both wrong
   // for every job report.
   // Item B: a listing report holds a declutter_items id; its person is the seller (reportedListings.ts).
-  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT;
+  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type);
   const { listings, failed: listingsFailed } = await hydrateReportedListings(reportRows);
-  const { posts: wantedPosts, failed: wantedFailed } = await hydrateReportedWanted(reportRows);
+  const [{ posts: wantedPosts, failed: wantedFailed }, { questions, failed: questionsFailed }] = await Promise.all([hydrateReportedWanted(reportRows), hydrateReportedQuestions(reportRows)]);
   // Q366: an 'application' report holds an APPLICATION id. The person is
   // its helper and the context is its job; both are read from the row.
   const appIds = [...new Set(reportRows.filter(r => r.reported_type === "application").map(r => r.reported_id))];
@@ -105,6 +107,7 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
     r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null
       : r.reported_type === LISTING_REPORT ? listings.get(r.reported_id)?.seller_id ?? null
       : r.reported_type === WANTED_REPORT ? wantedPosts.get(r.reported_id)?.poster_id ?? null
+      : isQuestionReport(r.reported_type) ? questionAuthor(r.reported_type, questions.get(r.reported_id))
       : isUserSubject(r) ? r.reported_id : null;
   const userIds = [
     ...new Set(reportRows.flatMap(r => [
@@ -182,6 +185,7 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
       }
       if (r.reported_type === LISTING_REPORT) return listingSubject(listings.get(r.reported_id), listingsFailed);
       if (r.reported_type === WANTED_REPORT) return wantedSubject(wantedPosts.get(r.reported_id), wantedFailed);
+      if (isQuestionReport(r.reported_type)) return questionSubject(r.reported_type, questions.get(r.reported_id), questionsFailed);
       return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
     };
 
@@ -191,6 +195,7 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
       // A Wanted report with no reporter came from the automatic photo check, never from a deleted account.
       reporter_name: r.reported_type === WANTED_REPORT && !r.reporter_id ? "Automatic check" : nameFor(r.reporter_id),
       reported_wanted: r.reported_type === WANTED_REPORT ? wantedPosts.get(r.reported_id) : undefined,
+      reported_question_gone: isQuestionReport(r.reported_type) && questions.get(r.reported_id)?.removed === true,
       reported_name: subjectFor(r),
       // Deleted actors cannot receive a message — the notification would
       // be written against a user_id with nothing behind it.
@@ -204,6 +209,7 @@ export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
       is_test: seedIds.has(r.reported_id)
         || (r.reported_type === LISTING_REPORT && listings.get(r.reported_id)?.is_seed === true)
         || (r.reported_type === WANTED_REPORT && wantedPosts.get(r.reported_id)?.is_seed === true)
+        || (isQuestionReport(r.reported_type) && questions.get(r.reported_id)?.is_seed === true)
         || (r.reporter_id !== null && seedIds.has(r.reporter_id))
         || (r.reported_type === "application"
           && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
@@ -505,19 +511,13 @@ const AdminReports = () => {
               {report.description && (
                 <p className="text-ds-11 text-muted-foreground bg-muted/50 rounded-ds-sm p-3">{report.description}</p>
               )}
-              {/* The reported message as it read when it was reported (kept even if it is later deleted). */}
-              {report.reported_type === "message" && report.reported_content && (
-                <p className="text-ds-11 bg-muted/50 rounded-ds-sm p-3 whitespace-pre-wrap [overflow-wrap:anywhere]">
-                  <span className="font-semibold">Reported message: </span>{report.reported_content}
-                </p>
-              )}
+              {/* The reported message or Declutter question as it read when it was reported (kept even if later deleted). */}
+              <ReportedCopy report={report} onDone={loadReports} gone={report.reported_question_gone} />
 
               {report.reported_wanted && <WantedReportPanel post={report.reported_wanted} reportId={report.id} open={report.status !== "resolved" && report.status !== "dismissed"} onDone={loadReports} />}
 
-              {/* AUD31-44 (audit 10-31): the seven actions WRAP. They used to stay on one
-                  scrolling row under a fade, which hid "Dismiss" at 1440 and everything after
-                  "Assign to Me" at 375, so Resolve and Dismiss were never seen without a sideways
-                  scroll nobody knew to try. */}
+              {/* AUD31-44 (audit 10-31): the seven actions WRAP. One scrolling row under a fade hid "Dismiss" at 1440 and
+                  everything after "Assign to Me" at 375, so Resolve and Dismiss were never seen without a sideways scroll. */}
               <div data-report-actions className="flex flex-wrap gap-2 pt-1 [&>button]:shrink-0">
                 <ReportSubjectButton report={report} />
                 {(report.status === "pending" || report.status === "new" || report.status === "investigating") && (

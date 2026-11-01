@@ -1058,6 +1058,26 @@ export async function takeDownWanted(wantedId: string, note: string, reportId: s
   return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_take_down_wanted", e) ?? null) as string;
 }
 
+export type ReportedQuestion = {
+  question_id: string; item_id: string; item_title: string; asker_id: string; seller_id: string;
+  question: string; answer: string | null; removed: boolean; is_seed: boolean;
+};
+
+/** B48 (owner decision 10-31): the questions behind question and answer reports, read as admin. */
+export async function fetchReportedQuestions(questionIds: string[]): Promise<ReportedQuestion[]> {
+  if (!questionIds.length) return [];
+  const res = await supabase.rpc("declutter_admin_reported_questions", { p_question_ids: questionIds });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return (rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_reported_questions", e) ?? null) ?? []) as ReportedQuestion[];
+}
+
+/** B48 (owner decision 10-31, App Store 1.2): an admin removes a reported question, or only its answer; the report resolves. */
+export async function removeReportedQuestion(questionId: string, part: "question" | "answer", reportId: string): Promise<string> {
+  const res = await supabase.rpc("declutter_admin_remove_question", { p_question_id: questionId, p_part: part, p_note: "", p_report_id: reportId });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_remove_question", e) ?? null) as string;
+}
+
 /** Audit 10-30 #8: a held Wanted photo an admin looked at and found fine: members see it now. */
 export async function releaseWantedPhotos(wantedId: string, reportId: string): Promise<string> {
   const res = await supabase.rpc("declutter_admin_release_wanted_photos", { p_wanted_id: wantedId, p_report_id: reportId });

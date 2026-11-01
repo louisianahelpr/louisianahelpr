@@ -7,5 +7,9 @@ export function reportSubmitError(error: { message?: string } | null | undefined
   if (error?.message?.includes("report_rate_limited")) {
     return "You've sent a lot of reports in a short time. Please try again in a little while.";
   }
+  // B48 (owner decision 10-31): a Declutter question or answer is never reported by the person who wrote it, and a
+  // removed one reads as not found (report_message_party_and_copy, 20261101021934).
+  if (error?.message?.includes("report_own_content")) return "You wrote this, so you can't report it.";
+  if (error?.message?.includes("report_target_not_found")) return "We couldn't find that. It may have been removed.";
   return fallback;
 }

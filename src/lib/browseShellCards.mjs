@@ -232,13 +232,13 @@ export const BROWSE_SHELL_ID = "lh-browse-shell";
 
 /**
  * The whole overlay: GuestBrowseSkeleton's web frame (nav box, its spacer, the "Browse jobs" header, the card grid)
- * with real cards in the grid. "" when no row may be drawn: the page is then exactly what it was.
+ * with real cards in the grid. Hidden inline until the app's stylesheet (async) applies: src/index.css shows it. "" when no row may be drawn: the page is then exactly what it was.
  */
 export function browseShellHtml(rows, now = Date.now()) {
   const jobs = selectShellJobs(rows, now);
   if (jobs.length === 0) return "";
   return (
-    `<div id="${BROWSE_SHELL_ID}" class="min-h-screen bg-premium-page" style="position:fixed;inset:0;z-index:2;overflow:hidden">` +
+    `<div id="${BROWSE_SHELL_ID}" class="min-h-screen bg-premium-page" style="position:fixed;inset:0;z-index:2;overflow:hidden;visibility:hidden">` +
     `<div class="min-h-screen page-warmth relative flex flex-col overflow-x-clip">` +
     `<div aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 glass-nav" style="padding-top:max(var(--safe-area-top, 0px), 0.25rem)"><div class="w-full h-[var(--public-nav-h)]"></div></div>` +
     `<div aria-hidden="true" style="height:calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))"></div>` +

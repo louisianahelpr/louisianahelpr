@@ -167,7 +167,7 @@ const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff } = signedInSplit(process.cwd());
 const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => ({
   define: {
     __APP_COMMIT__: JSON.stringify(appCommit),
     __APP_BUILT_AT__: JSON.stringify(appBuiltAt),
@@ -527,6 +527,10 @@ export default defineConfig(({ mode }) => ({
       { find: /^react-dom\/client$/, replacement: reactDomClientEntry },
       { find: /^react\/jsx-runtime$/, replacement: reactJsxRuntimeEntry },
       { find: /^react\/jsx-dev-runtime$/, replacement: reactJsxDevRuntimeEntry },
+      // B56 speed: in the build, "sonner" is src/lib/sonnerFacade.ts (a queueing `toast`), so Sonner's Toaster UI
+      // leaves the boot path; "sonner-real" is the package, loaded on the first toast or once the page settles.
+      ...(command === "build" ? [{ find: /^sonner$/, replacement: path.resolve(import.meta.dirname, "./src/lib/sonnerFacade.ts") }] : []),
+      { find: /^sonner-real$/, replacement: path.resolve(import.meta.dirname, "./node_modules/sonner/dist/index.mjs") },
     ],
     dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
@@ -817,6 +821,15 @@ export default defineConfig(({ mode }) => ({
             // /signup's ZIP hint loads it on demand, so it leaves parish-data, which
             // Home and the job lists do fetch first (check-deferred-vendors). Its
             // importers are lazy screens: same shape as rentals.
+            // B56 speed: the build's "sonner" (src/lib/sonnerFacade.ts) is imported from boot and from every
+            // screen; on its own it was captured by signed-in-deep, which then rode onto the boot path.
+            {
+              name: "toast-facade",
+              test: /[\\/]src[\\/]lib[\\/]sonnerFacade\.ts$/,
+              priority: 30,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the facade alone */,
+            },
             {
               name: "parish-names",
               test: /[\\/]src[\\/]lib[\\/]parishes\.ts$/,

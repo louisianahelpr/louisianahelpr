@@ -58,6 +58,9 @@ function resolveSpecifier(root, from, spec) {
   let base;
   if (spec.startsWith("@/")) base = path.join(root, "src", spec.slice(2));
   else if (spec.startsWith(".")) base = path.resolve(path.dirname(from), spec);
+  // The production build aliases "sonner" to the queueing facade (vite.config.ts, B56), so an import of "sonner"
+  // reaches that module there, and the boot sets must see it.
+  else if (spec === "sonner") base = path.join(root, "src", "lib", "sonnerFacade");
   else return null;
   for (const ext of EXTS) {
     const p = base + ext;

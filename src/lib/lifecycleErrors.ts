@@ -313,6 +313,37 @@ export const RPC_ERROR_COPY = {
     job_expired: "This posting has expired.",
     job_not_funded: "This job's payment isn't secured right now, so the offer can't be accepted yet.",
     account_restricted: "Your account is restricted right now, so you can't accept jobs.",
+    // CMP-4: a decline of an instant booking is the instant decline (20261101071621).
+    not_authenticated: "Sign in again to continue.",
+    booking_not_pending: "This booking already ended. Pull to refresh to see where it stands.",
+    decline_window_closed: "The 2 hours to decline have ended, so you're booked.",
+  },
+  // CMP-4 instant book (20261101063725, 20261101065105, 20261101071621). Guard: src/test/instantBookScreens.test.tsx.
+  rpc_my_instant_book_floors: {
+    not_authenticated: "Sign in again to see your instant book settings.",
+  },
+  rpc_set_instant_book_floor: {
+    not_authenticated: "Sign in again to save this.",
+    account_restricted: "Your account is restricted right now, so you can't change this.",
+    invalid_category: "Choose a kind of work from the list.",
+    floor_out_of_range: "Pick an amount between $10 and $1,000.",
+    too_many_categories: "You can pick up to 3 kinds of work. Remove one to add another.",
+  },
+  instant_book_candidates: {
+    account_restricted: "Your account is restricted right now, so you can't book a Helpr.",
+    not_authorized: "Only the person who posted this job can book a Helpr for it.",
+  },
+  rpc_instant_book: {
+    not_authenticated: "Sign in again to book a Helpr.",
+    account_restricted: "Your account is restricted right now, so you can't book a Helpr.",
+    not_authorized: "Only the person who posted this job can book a Helpr for it.",
+    instant_book_unavailable: "That Helpr can't be booked now. Pick another, or wait for applications.",
+  },
+  rpc_instant_book_decline: {
+    not_authenticated: "Sign in again to continue.",
+    not_your_offer: "This booking isn't yours anymore.",
+    booking_not_pending: "This booking already ended. Pull to refresh to see where it stands.",
+    decline_window_closed: "The 2 hours to decline have ended, so you're booked.",
   },
   // useOfferHandlers — the Helpr's Accept (Q1180).
   accept_job_offer: {

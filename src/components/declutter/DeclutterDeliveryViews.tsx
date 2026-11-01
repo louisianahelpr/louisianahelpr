@@ -38,6 +38,7 @@ import { DeliveryTipPanel } from "./DeliveryTipPanel";
 import { ProblemForm } from "./DeclutterProblemForm";
 import { fetchTipsOnMyDeliveries } from "@/lib/declutter/deliveryTip";
 import { TaskPickupTime } from "./DeclutterPickupWindows";
+import { DeliveryLiveMap } from "./DeliveryLiveMap";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -228,6 +229,8 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
           ))}
         </ul>
       )}
+      {/* Owner 11-01: the seller sees the Helpr coming (Start to Picked up), the buyer from Picked up to delivered. */}
+      <DeliveryLiveMap taskId={taskId} side={side} status={v.status} who={who} />
       <TaskPhotos view={v} />
       {/* Q1929 (row 40): the buyer may raise the pay while no Helpr has it; it also lists their raises. */}
       {side === "buyer" && <DeliveryRaisePanel orderId={orderId} />}

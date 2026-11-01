@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 460,
+      "literal": 459,
       "template": 96,
-      "dynamic": 565,
+      "dynamic": 566,
       "jsx": 0
     }
   },
@@ -11839,17 +11839,27 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx",
-      "line": 58,
+      "line": 71,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Listing saved. Send it when you're ready."
+        "form": "dynamic",
+        "text": "editing ? \"Listing updated.\" : \"Listing saved. Send it when you're ready.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Listing updated."
+          },
+          {
+            "form": "literal",
+            "text": "Listing saved. Send it when you're ready."
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx",
-      "line": 59,
+      "line": 72,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11859,7 +11869,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx",
-      "line": 126,
+      "line": 144,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11879,7 +11889,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx",
-      "line": 127,
+      "line": 145,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11889,7 +11899,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx",
-      "line": 132,
+      "line": 150,
       "kind": "toast",
       "title": {
         "form": "dynamic",

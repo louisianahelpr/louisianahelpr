@@ -37,6 +37,13 @@ export function isSellForMeJob(category: string | null | undefined): boolean {
  */
 export const SELL_FOR_ME_LISTINGS_PATH = "/declutter?tab=selling";
 
+/**
+ * LEAD-LIST-FOR-SELLER (lead, 10-31 ~10:30 PM): the Helpr's line while the work is on. The job is done once the Helpr
+ * has SENT the listings for the seller's approval (server: completion_requires_listings_sent, 20261101034159). Replaces
+ * b51's "once the seller's listings are live" note (849ff74536, unlanded).
+ */
+export const SELL_FOR_ME_DONE_NOTE = "Mark it done once you've sent the listings to the seller for approval.";
+
 /** The Shops category option B lists (migration 20261019210636). */
 export const SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales";
 

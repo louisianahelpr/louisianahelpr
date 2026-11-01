@@ -4,6 +4,8 @@
  *   1. A released hold closes the order: expired / not_payable, hold 'released', claim 'failed', lines 'removed', items
  *      back 'live', a claimed setup fee given back to the account (never charged) and 'not_charged'; both sides told;
  *      a replay answers 'already' and changes nothing; a bought label refuses; signed-in members cannot call it.
+ *   3. (20261101221604) A hold the order does not take: its refund row is closed (settled_by_hand, 0 cents, nothing
+ *      captured) so declutter-money never refunds a cancelled hold; replay 'already'; a non-ship row is refused.
  *   2. The capture amount: a 'refund_due' setup fee is not captured (total only, state 'not_charged', same answer on a
  *      retry); a 'claimed' fee is captured with the total.
  *
@@ -15,6 +17,7 @@ import { readFileSync } from "node:fs";
 import { buildHandoverWorld, MIG_DIR } from "../../../scripts/declutter/handoverPhotoWorld.mjs";
 
 const NEW_FILE = "20261101220810_shipping_hold_released.sql";
+const NEW_FILE2 = "20261101221604_shipping_hold_refund_row.sql";
 const BASES = [
   "20261012031120_hidden_feature_switches.sql",
   "20261028151647_feature_switch_members.sql",
@@ -58,11 +61,24 @@ for (const f of BASES) {
   const r = await run(readFileSync(`${MIG_DIR}${f}`, "utf8"));
   ok(!r?.error, `base ${f} applies${r?.error ? `: ${r.error}` : ""}`);
 }
+// The refund columns and statuses of 20261019070737 (prod shape), without the rest of that file (it needs tables this
+// world does not build).
+ok(!(await run(`ALTER TABLE public.declutter_refunds DROP CONSTRAINT IF EXISTS declutter_refunds_status_check;
+  ALTER TABLE public.declutter_refunds ADD CONSTRAINT declutter_refunds_status_check
+    CHECK (status IN ('pending', 'succeeded', 'failed', 'held_for_review', 'settled_by_hand'));
+  ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS review_reason text, ADD COLUMN IF NOT EXISTS review_held_at timestamptz,
+    ADD COLUMN IF NOT EXISTS settled_by_hand_ref text, ADD COLUMN IF NOT EXISTS settled_by_hand_cents integer,
+    ADD COLUMN IF NOT EXISTS settled_by_hand_note text`))?.error, "the prod refund columns are added");
 if (!skip) {
   const sql = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}${NEW_FILE}`, "utf8");
   for (let i = 0; i < 3; i++) {
     const r = await run(sql);
     ok(!r?.error, `the migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
+  }
+  const sql2 = readFileSync(process.env.MIGRATION2_PATH ?? `${MIG_DIR}${NEW_FILE2}`, "utf8");
+  for (let i = 0; i < 3; i++) {
+    const r = await run(sql2);
+    ok(!r?.error, `the refund-row migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
   }
 }
 // BUYER and BUYER2 are testers (the world enrols every fixture user); BUYER3 is an ordinary account.
@@ -166,6 +182,39 @@ const dc2 = await call("declutter_ship_setup_fee_at_capture", d.o?.id);
 ok(dc2 === dc, `a retry asks the same amount (${dc2})`);
 const notHeld = await svc(`SELECT public.declutter_ship_setup_fee_at_capture('${a.o?.id}')`);
 ok(refused(notHeld, /ship_not_held/), `a closed order: refused (${short(notHeld)})`);
+
+// 3. A hold the order does not take: its refund row is closed.
+const acl2 = one(await svc(`SELECT NOT has_function_privilege('authenticated', 'public.declutter_ship_hold_refund_released(text)', 'EXECUTE')
+  AND NOT has_function_privilege('anon', 'public.declutter_ship_hold_refund_released(text)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.declutter_ship_hold_refund_released(text)', 'EXECUTE')`));
+ok(acl2 === true, `the refund-row function is service-role only (got ${short(acl2)})`);
+await svc(`UPDATE public.profiles SET onboarding_fee_paid = true WHERE user_id = '${BUYER}'`);
+const lineE = await hold(15, BUYER, 1300);
+const qE = await quote(BUYER, [lineE], 700);
+await checkout(BUYER, "ship", qE);
+const oE = await openOrder(BUYER);
+await svc(`UPDATE public.declutter_orders SET status = 'expired', close_reason = 'session_expired', closed_at = now() WHERE id = '${oE?.id}'`);
+const late = await svc(`SELECT public.declutter_mark_order_paid('${oE?.id}', 'pi_late15', ${oE?.total_cents ?? 0}, now(), 40) AS r`);
+const lateR = Array.isArray(late) ? late[0]?.r : late;
+ok(lateR?.result === "refund", `set-up: a hold for a closed ship order records a refund row (${short(late)})`);
+const r5 = await call("declutter_ship_hold_refund_released", "pi_late15");
+const row5 = await q(`SELECT status, settled_by_hand_cents, settled_by_hand_ref FROM public.declutter_refunds WHERE stripe_payment_intent_id = 'pi_late15'`);
+ok(r5 === "closed" && row5?.status === "settled_by_hand" && row5.settled_by_hand_cents === 0 && row5.settled_by_hand_ref === "pi_late15",
+  `the released hold's refund row is closed: nothing captured, nothing owed (${short(r5)} ${short(row5)})`);
+await svc(`UPDATE public.declutter_refunds SET created_at = now() - interval '1 hour' WHERE stripe_payment_intent_id = 'pi_late15'`);
+const due = one(await svc(`SELECT count(*) FROM public.declutter_refunds_due(100) d WHERE d.payment_intent_id = 'pi_late15'`));
+ok(due == 0, `declutter-money's refund queue never offers it (${due})`);
+ok((await call("declutter_ship_hold_refund_released", "pi_late15")) === "already", "a replay answers 'already'");
+ok((await call("declutter_ship_hold_refund_released", "pi_nothing")) === "none", "an unknown payment answers 'none'");
+const lineH = await hold(16, BUYER2, 1100);
+await checkout(BUYER2, "pickup_home");
+const oH = await openOrder(BUYER2);
+await svc(`UPDATE public.declutter_orders SET status = 'expired', close_reason = 'session_expired', closed_at = now() WHERE id = '${oH?.id}'`);
+await svc(`SELECT public.declutter_mark_order_paid('${oH?.id}', 'pi_home16', ${(oH?.total_cents ?? 0) + (oH?.setup_fee_cents ?? 0)}, now(), 40)`);
+const r6 = await call("declutter_ship_hold_refund_released", "pi_home16");
+const row6 = await q(`SELECT status FROM public.declutter_refunds WHERE stripe_payment_intent_id = 'pi_home16'`);
+ok(r6 === "refused" && row6?.status === "pending", `a card payment's (not ship) refund row is refused and stays owed (${short(r6)} ${short(row6)})`);
+void lineH;
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

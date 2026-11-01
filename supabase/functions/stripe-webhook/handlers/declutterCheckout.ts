@@ -336,6 +336,8 @@ async function settleOrder(
     if (!paymentIntentId) throw new Error(`declutter ship session ${session.id} has no payment_intent`);
     const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (pi.status === "canceled") {
+      // A redelivery after the release below: close the refund row too, in case the first delivery stopped between.
+      await closeReleasedHoldRefund(supabase, paymentIntentId);
       logStep("Declutter ship hold already released", { id: session.id, pi: paymentIntentId });
       return;
     }
@@ -407,11 +409,14 @@ async function settleOrder(
     await stripe.paymentIntents.cancel(paymentIntentId).catch((e: unknown) => {
       throw new Error(`declutter ship hold ${paymentIntentId} release failed: ${String(e).slice(0, 200)}`);
     });
+    // The refund row the answer recorded is closed (nothing was captured), so declutter-money never tries to refund
+    // a cancelled hold (20261101221604).
+    const closed = await closeReleasedHoldRefund(supabase, paymentIntentId);
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "warning",
-      title: "Declutter shipped order: hold released, refund row to close",
-      message: `Order ${orderId}'s card hold (${dollars(amount)}) was not taken (${answer.result}) and was released at no cost. Its refund row records money that was never captured: close it by hand until Shipping S6.`,
+      title: "Declutter shipped order: hold released",
+      message: `Order ${orderId}'s card hold (${dollars(amount)}) was not taken (${answer.result}) and was released at no cost. Its refund row: ${closed}.`,
       fields: { "Payment intent": paymentIntentId, Order: orderId },
       oncePerDayKey: `declutter-ship-hold-released:${paymentIntentId}`,
     });
@@ -566,6 +571,14 @@ async function settleSetupFee(
       `Refund ${feeRefund.id} (${dollars(cents)}) sent the setup fee back on order ${orderId}, but the order answered ${String(recorded)}. Check the payment's refunds in Stripe.`);
   }
   logStep("Declutter setup fee sent back (paid elsewhere first)", { order: orderId, refund: feeRefund.id, result: recorded });
+}
+
+/** Shipping: a released hold's refund row is closed (nothing was captured). Throws on a database error, so Stripe
+ *  redelivers and the redelivery's canceled branch closes it. */
+async function closeReleasedHoldRefund(supabase: WebhookContext["supabase"], paymentIntentId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("declutter_ship_hold_refund_released", { p_payment_intent_id: paymentIntentId });
+  if (error) throw new Error(`declutter_ship_hold_refund_released failed: ${error.message}`);
+  return String(data);
 }
 
 async function executeRefund(

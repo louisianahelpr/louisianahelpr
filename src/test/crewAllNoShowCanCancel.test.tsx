@@ -18,12 +18,12 @@
  * poster's strike) is is_late_cancellation(v_committed, ...), false when nobody is committed. Each no-show already
  * got their strike when reported (crewMemberNoShow.test.tsx / crewMemberNoShow.pglite.mjs).
  *
- * @mutate src/lib/crewLifecycle.ts |   return rosterKnown && jobStatus === "in_progress" && !roster.some((m) => m.helper_id != null); |   return jobStatus === "in_progress" && !roster.some((m) => m.helper_id != null);
- * @mutate src/lib/crewLifecycle.ts |   return rosterKnown && jobStatus === "in_progress" && !roster.some((m) => m.helper_id != null); |   return rosterKnown && jobStatus === "in_progress";
+ * @mutate src/lib/crewLifecycle.ts |   return rosterKnown && underWay && !roster.some((m) => m.helper_id != null); |   return underWay && !roster.some((m) => m.helper_id != null);
+ * @mutate src/lib/crewLifecycle.ts |   return rosterKnown && underWay && !roster.some((m) => m.helper_id != null); |   return rosterKnown && underWay;
  * @mutate src/components/GroupJobHelpers.tsx |       {nobodyLeft && ( |       {false && (
  * @mutate src/components/GroupJobHelpers.tsx |           <Button variant="outline" size="lg" className="w-full rounded-full text-ds-15 text-destructive-ink" onClick={onCancelJob}> |           <Button variant="outline" size="lg" className="w-full rounded-full text-ds-15 text-destructive-ink">
  * @mutate src/pages/posts/PostedJobCard.tsx |  onCancelJob={() => onCancel(job)} /> |  />
- * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true), |     crewNobodyLeft: false,
+ * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true, hasJobStarted(job.date_needed, job.start_time)), |     crewNobodyLeft: false,
  * @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |     if (crewOnRoster) trackingQuery = trackingQuery.in("helper_id", crewOnRoster); |     void crewOnRoster;
  */
 import { describe, expect, it, vi } from "vitest";
@@ -123,7 +123,7 @@ describe("the wiring", () => {
   });
   it("the job page knows nobody is left once its detail read is in (posterPageActions then offers Cancel job: JobPage.test.tsx)", () => {
     const f = blankComments(readFileSync(resolve(ROOT, "src/pages/jobs/jobPage/usePosterPageFlows.tsx"), "utf8"));
-    expect(f).toContain("crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true),");
+    expect(f).toContain("crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true, hasJobStarted(job.date_needed, job.start_time)),");
   });
   it("the cancel's pre-check reads only the members still on the roster for a crew", () => {
     const h = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/activityActions/useLifecycleHandlers.ts"), "utf8"));

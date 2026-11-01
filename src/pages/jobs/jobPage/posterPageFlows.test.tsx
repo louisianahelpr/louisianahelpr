@@ -169,7 +169,7 @@ describe("the job page runs the Posted card's own flows (usePosterPageFlows)", (
   // the page has) reach the page: one is the page's second button, two or more are the options sheet's list.
   it("the card is mounted but never shown; a lone action (No-Show while the Helpr is on the way) is the page's second button", async () => {
     const saved = { ...JOB };
-    Object.assign(JOB, { date_needed: "2026-01-10", helper_on_the_way_at: "2026-01-10T14:00:00Z", helper_arrived_at: null,
+    Object.assign(JOB, { date_needed: "2025-01-10", helper_on_the_way_at: "2025-01-10T14:00:00Z", helper_arrived_at: null,
       poster_confirmed_arrival_at: null, helper_completed_at: null });
     try {
       const { container } = mount();

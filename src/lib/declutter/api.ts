@@ -459,7 +459,8 @@ export const CARD_PHOTO_PX = 480;
  * (storage/v1/render/image/public, WebP when the browser accepts it), never the full-size original. Measured
  * 2026-10-31 on 12 live listing photos (GET only): originals 356-560 KB each, these 16-54 KB. The transform answered
  * 200 that day (it 403'd on 2026-08-31, src/lib/imageUrl.ts), so a card falls back to photoPublicUrl when it fails.
- * The item page keeps the full photo (photoPublicUrl). Guard: src/test/declutterCardsLoadThumbnails.test.tsx.
+ * The item page shows its own resized photo (src/lib/declutter/pagePhoto.ts), its viewer the original. Guard:
+ * src/test/declutterCardsLoadThumbnails.test.tsx.
  */
 export function photoCardUrl(path: string): string {
   return supabase.storage

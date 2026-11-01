@@ -45,7 +45,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null; |     return (payouts.data ?? [])[0] ?? null;
  * @mutate src/lib/declutter/soldPayout.ts |   if (saleCents === undefined \|\| saleCents === 0) return null; |   if (saleCents === undefined) return null;
  * @mutate src/lib/declutter/soldPayout.ts |       return payout.executed_at ? `Paid out ${formatDay(payout.executed_at)}` : "Paid out"; |       return "Paid out";
- * @mutate src/components/declutter/DeclutterTakenDown.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
+ * @mutate src/components/declutter/DeclutterReopenListing.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";

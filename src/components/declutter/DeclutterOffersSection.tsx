@@ -19,11 +19,9 @@ import { NoSellerOffers, SectionHeading } from "./DeclutterTabParts";
 import { GOOD_NEWS_NOTE } from "./goodNews";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { invalidateTrades } from "./declutterLightActions";
 
 /** Every Declutter read refetches after a trade (offers, cart, orders). */
-export function invalidateTrades(qc: ReturnType<typeof useQueryClient>) {
-  void qc.invalidateQueries({ queryKey: ["declutter"] });
-}
 
 /** "3 hours left" -> "3 hours left.", "time is up" -> "Time is up.": a status line is a sentence. */
 const sentence = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}.`;

@@ -8,8 +8,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { SellerHandover } from "@/lib/declutter/api";
 import { fetchItemPickupPlaces } from "@/lib/declutter/porchPlaces";
-import { ItemPickupTimes } from "./DeclutterPickupWindows";
-import { ItemPickupPlaces } from "./SellPorchPlaces";
+import { ItemPickupPlaces, ItemPickupTimes } from "./ItemPickupDisplay";
 
 export type ItemTimesPlan = { places: boolean; usual: null | "Meetup times" | "Pickup times" | "Pickup and meetup times" };
 

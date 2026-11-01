@@ -16310,6 +16310,18 @@ export type Database = {
         Args: { p_card_fee_cents: number; p_job_id: string }
         Returns: number
       }
+      declutter_checkout_pickup_end: {
+        Args: { p_handover: string; p_order_id: string; p_seller: string; p_start: string }
+        Returns: string
+      }
+      declutter_meetup_windows_ok: {
+        Args: { p_windows: Json }
+        Returns: boolean
+      }
+      declutter_pickup_time_words: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       declutter_seller_slot_open: {
         Args: { p_seller: string; p_start: string }
         Returns: boolean

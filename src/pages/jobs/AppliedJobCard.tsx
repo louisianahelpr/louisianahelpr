@@ -18,7 +18,7 @@ import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
 import { formatPriceFloor, formatShortDate } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
-import { closedCardLabel, deriveAppliedJobCardState, describeCancellation } from "./appliedJobCard/appliedJobCardHelpers";
+import { closedCardLabel, deriveAppliedJobCardState, describeCancellation, posterFirstName } from "./appliedJobCard/appliedJobCardHelpers";
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
@@ -310,7 +310,7 @@ function AppliedJobCardInner({
   const addressOnFace = !isMinimalCard && (isOffered || isConfirmed || isActive || isDisputed);
   const cardLine = helperCardLine(app, job, unsettledDisputeJobIds, initialTracking); // ONE line: the strip, the face's button (board 21), the 8-step bar
   const faceAction = helperFaceAction({
-    isMinimalCard, isOffered, isPending, message: (isConfirmed || isActive || isDisputed) && !job.is_group_job && posterId ? { name: (app.posterName ?? "").split(" ")[0] || "them", onClick: () => navigate(`/messages?jobId=${job.id}&userId=${posterId}`) } : undefined,
+    isMinimalCard, isOffered, isPending, message: (isConfirmed || isActive || isDisputed) && !job.is_group_job && posterId ? { name: posterFirstName(app.posterName) || "them", onClick: () => navigate(`/messages?jobId=${job.id}&userId=${posterId}`) } : undefined,
     owesReview: isCompleted && !isFullyDone && canLeaveReview && !helperReviewedJobIds.has(app.job_id),
     posterId, review: (id) => onHelperReview(app.job_id, id, app.posterName || "the person who posted this job"), wait: cardLine.id, jobId: job.id, viewDispute: () => onViewDispute(job),
     manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },

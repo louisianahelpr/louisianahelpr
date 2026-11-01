@@ -7612,7 +7612,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 226,
+      "line": 228,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7639,7 +7639,7 @@
     },
     {
       "file": "src/components/messages/ChatView.tsx",
-      "line": 236,
+      "line": 238,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

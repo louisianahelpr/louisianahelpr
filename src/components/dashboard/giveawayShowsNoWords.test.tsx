@@ -58,6 +58,8 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
   for (const [name, ui] of surfaces) {
     it(`${name}: $50 and no words on the giveaway, even with the setup fee owed`, () => {
       const text = textOf(ui(giveaway));
+      // Floor: the surface rendered (an empty render has none of the words either).
+      expect(text.length).toBeGreaterThan(2);
       expect(text).toContain("$50");
       expect(text).not.toMatch(WORDS);
       expect(text).not.toMatch(/setup fee/i);

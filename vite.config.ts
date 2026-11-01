@@ -92,6 +92,9 @@ const authJsNoPasskeys = (): Plugin => ({
   enforce: "pre",
   resolveId(source, importer) {
     if (!importer || !/[\\/]@supabase[\\/]auth-js[\\/]dist[\\/]module[\\/]GoTrueClient\.js$/.test(importer)) return null;
+    // B87: GoTrueAdminApi (auth.admin) is a stand-in keeping only signOut, the one call a browser client makes
+    // (src/vendorStubs/authJsAdminStub.ts; 1.4 KB gz). Guard: src/test/authJsAdminStubKeepsSignOut.test.ts.
+    if (source === "./GoTrueAdminApi") return path.resolve(__dirname, "src/vendorStubs/authJsAdminStub.ts");
     if (!AUTH_JS_STUBBED.includes(source)) return null;
     return path.resolve(__dirname, "src/vendorStubs/authJsPasskeyStub.ts");
   },

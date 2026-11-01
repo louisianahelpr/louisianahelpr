@@ -1742,6 +1742,22 @@ serve(async (req) => {
         const comeBack = await refundComeBackPending(supabaseAdmin, jobId);
         if (!comeBack.ok) throw new PublicError("We couldn't check this job right now, so it wasn't marked done. Try again in a minute.");
         if (comeBack.pending) throw new PublicError(COME_BACK_PENDING_MESSAGE);
+
+        // 2c. LISTINGS SENT (LEAD-LIST-FOR-SELLER, owner 10-31 ~10:30 PM; lead:
+        //     done once SENT, so a Helpr is never stranded). A "Have a Helpr
+        //     list it" job is done once its Helpr has sent its listings to the
+        //     seller for approval: the trigger asks
+        //     public.sell_for_me_listings_sent, and this service-role write
+        //     skips the trigger's caller, so it asks the same SQL rule here.
+        //     Fails CLOSED: an error is never read as "sent".
+        if (job.category === "declutter_help") {
+          const { data: sent, error: sentErr } = await supabaseAdmin.rpc("sell_for_me_listings_sent", { _job_id: jobId });
+          if (sentErr) {
+            console.error("[create-payment] release sell_for_me_listings_sent failed:", sentErr.message);
+            throw new PublicError("We couldn't check this job right now, so it wasn't marked done. Try again in a minute.");
+          }
+          if (sent !== true) throw new PublicError("Send the listings to the seller for approval first, then mark the job done.");
+        }
       };
       if (isHelper && !isPoster && !job.helper_completed_at) await newHelperCompletionGates(job);
 

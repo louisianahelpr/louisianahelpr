@@ -53,6 +53,8 @@ const ALLOWED: Record<string, string> = {
   apply_job_denial_consequence: LADDER,
   apply_low_rating_flag: LADDER,
   apply_to_job: LIMIT,
+  // LEAD-LIST-FOR-SELLER: counts one listing's own photos for the Helpr writing it (a draft's photo count), not a stat.
+  declutter_helpr_job_listings: "counts one listing's own photos for the Helpr writing it, not a stat over members",
   block_user_and_settle: SPOTS,
   can_send_message_to_in_job: LIMIT,
   check_db_saturation: OPS,

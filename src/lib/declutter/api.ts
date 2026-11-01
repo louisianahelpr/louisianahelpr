@@ -63,7 +63,9 @@ export type DeclutterStatus =
   | "draft" | "pending_review" | "live" | "paused" | "reserved" | "sold" | "completed"
   | "ended" | "withdrawn" | "rejected" | "removed"
   // Declutter audit 2 A2-5 (20261028192719): the seller sold it somewhere else; kept in their history.
-  | "sold_elsewhere";
+  | "sold_elsewhere"
+  // LEAD-LIST-FOR-SELLER (20261101034159): written by the seller's hired Helpr, waiting for the seller's approval.
+  | "pending_seller_approval";
 
 export type DeliverySize = "small" | "large" | "xl";
 

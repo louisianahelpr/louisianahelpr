@@ -14616,6 +14616,22 @@ export type Database = {
         Args: { p_item_id: string; p_way: string }
         Returns: string[]
       }
+      declutter_approve_listed_for_me: {
+        Args: {
+          p_bought_for_personal_use: boolean
+          p_item_ids: string[]
+          p_keeps_item_until_handover: boolean
+          p_not_a_frequent_seller: boolean
+          p_not_in_the_business: boolean
+        }
+        Returns: Json
+      }
+      declutter_decline_listed_for_me: {
+        Args: {
+          p_item_id: string
+        }
+        Returns: undefined
+      }
       declutter_delivery_still_in_hand: {
         Args: { p_order_id: string; p_task: string }
         Returns: Json
@@ -14625,6 +14641,77 @@ export type Database = {
         Returns: boolean
       }
       declutter_hold_unchecked_listings: { Args: never; Returns: number }
+      declutter_helpr_add_listing_photo: {
+        Args: {
+          p_item_id: string
+          p_storage_path: string
+        }
+        Returns: string
+      }
+      declutter_helpr_create_listing: {
+        Args: {
+          p_area_label: string
+          p_category: string
+          p_condition_stars: number
+          p_delivery_size: string
+          p_description: string
+          p_floor_price_cents: number
+          p_job_id: string
+          p_price_cents: number
+          p_title: string
+        }
+        Returns: string
+      }
+      declutter_helpr_delete_listing: {
+        Args: {
+          p_item_id: string
+        }
+        Returns: undefined
+      }
+      declutter_helpr_job_listings: {
+        Args: {
+          p_job_id: string
+        }
+        Returns: {
+          area_label: string
+          category: string
+          condition_stars: number
+          delivery_size: string
+          description: string
+          floor_price_cents: number
+          item_id: string
+          photo_count: number
+          price_cents: number
+          sent_at: string
+          status: string
+          title: string
+        }[]
+      }
+      declutter_helpr_remove_listing_photo: {
+        Args: {
+          p_photo_id: string
+        }
+        Returns: undefined
+      }
+      declutter_helpr_send_listings: {
+        Args: {
+          p_job_id: string
+        }
+        Returns: number
+      }
+      declutter_helpr_update_listing: {
+        Args: {
+          p_category: string
+          p_condition_stars: number
+          p_delivery_size: string
+          p_description: string
+          p_floor_price_cents: number
+          p_item_id: string
+          p_price_cents: number
+          p_title: string
+        }
+        Returns: undefined
+      }
       declutter_item_link_visible: {
         Args: { p_item_id: string }
         Returns: boolean
@@ -14632,6 +14719,17 @@ export type Database = {
       declutter_item_pickup_windows: {
         Args: { p_item_id: string }
         Returns: { ends: string; starts: string; weekday: number }[]
+      }
+      declutter_listed_for_me: {
+        Args: never
+        Returns: {
+          helpr_first_name: string
+          item_id: string
+          job_id: string
+          price_cents: number
+          sent_at: string
+          title: string
+        }[]
       }
       declutter_open_handover_talk: {
         Args: { p_other: string }
@@ -16208,6 +16306,12 @@ export type Database = {
         Returns: undefined
       }
       save_my_job_post_draft: { Args: { p_draft: Json }; Returns: undefined }
+      sell_for_me_listings_sent: {
+        Args: {
+          _job_id: string
+        }
+        Returns: boolean
+      }
       sms_claim_owner_support: {
         Args: { p_phone?: string; p_provider_ready: boolean }
         Returns: Json

@@ -3,8 +3,9 @@
  * to photograph and list things themselves picks who helps:
  *   A. Hire a Helpr: Post a Job opens pre-filled in the "Declutter Help"
  *      category. It is an ordinary paid Helpr job (every Jobs rule and fee).
- *      The Helpr helps in person and never gets the seller's account: the
- *      seller posts the listings from their own account.
+ *      The Helpr helps in person and never gets the seller's login: they
+ *      write the listings in the app on the seller's account, and the seller
+ *      approves each one before it goes on sale (LEAD-LIST-FOR-SELLER).
  *   B. Ask a local business: shops in the "Declutter and estate sale
  *      services" category (consignment, estate sales, cleanouts). Shown only
  *      while the 'shops' switch is on for the viewer.
@@ -46,9 +47,12 @@ export const SELL_FOR_ME_SHOP_CATEGORY = "declutter_estate_sales";
  */
 const SELL_FOR_ME_TITLE = "Help me list my things to sell";
 
-/** The no-account-access promise, said in the job itself (owner 2026-10-19), to the Helpr who reads it (audit 10-30 #15). */
+/**
+ * What the Helpr does, said in the job itself (audit 10-30 #15). LEAD-LIST-FOR-SELLER (owner 10-31 ~10:30 PM): the
+ * Helpr writes the listings in the app on the seller's account (never the seller's login); the seller approves each.
+ */
 export const SELL_FOR_ME_NO_ACCOUNT_LINE =
-  "You help take the photos and write the listings; I post them from my account.";
+  "You take the photos and write the listings in the app, on my account; I approve each one before it goes on sale.";
 
 /**
  * POST-H3 photo hand-off: a Helpr who shoots on their own phone sends the photos in the job's chat (it takes

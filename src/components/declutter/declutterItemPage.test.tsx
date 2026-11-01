@@ -336,7 +336,7 @@ describe("the photo-first Declutter item page", () => {
     await screen.findByRole("button", { name: "Ask" });
     const filled = [...container.querySelectorAll("button.btn-grad-primary, a.btn-grad-primary")].map((b) => (b.textContent ?? "").trim());
     expect(filled.length, JSON.stringify(filled)).toBe(1);
-    expect(filled[0]).toMatch(/^Buy now/);
+    expect(filled[0]).toMatch(/^Buy ·/);
   });
 
   it("D5: the condition is a word chip ('Lightly used'), never stars", async () => {

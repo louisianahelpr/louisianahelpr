@@ -4,6 +4,7 @@
  * backend proof is ~/.lh-pglite/b3b-manage-listing.mjs, PGlite 3x). "Edit listing" (audit 1028 D1-1, migration
  * 20261029205908, PGlite T11 in src/test/pglite/declutterHandoverChoices.pglite.mjs) shows for a live listing only.
  * @mutate src/components/declutter/DeclutterManageListing.tsx |               {item.status === "live" && ( |               {false && (
+ * @mutate src/components/declutter/DeclutterManageListing.tsx |               : free ? "Pause it or take it down." : "Change the price, stop the drops, pause it or take it down."} |               : "Change the price, stop the drops, pause it or take it down."}
  * @mutate src/components/declutter/DeclutterManageListing.tsx |         {view === "edit" && <DeclutterEditListing item={item} onDone={close} />} |
  *
  * @mutate src/components/declutter/DeclutterManageListing.tsx |   const deployed = state.data !== "not_deployed"; |   const deployed = true;
@@ -374,6 +375,15 @@ describe("Paused card (board 158)", () => {
     fireEvent.change(price, { target: { value: "35" } });
     fireEvent.click(screen.getByRole("button", { name: "Relist at this price" }));
     await waitFor(() => expect(calls).toEqual([["price", "i1", 3500, 3000], ["relist", "i1"]]));
+  });
+
+  // B106 (item page shots 11-01): a giver's free item said "Change the price, stop the drops" (it has neither).
+  it("a free item's card names only what a free item can do", () => {
+    wrap(<SellerListingPanel item={item({ price_cents: 0, current_price_cents: 0 }) as never} coverUrl={null} />);
+    expect(screen.getByText("Your free item is up")).toBeTruthy();
+    expect(document.querySelector("[data-seller-panel-line]")?.textContent).toBe("Pause it or take it down.");
+    expect(document.body.textContent).not.toMatch(/price|drops|for sale/i);
+    expect(document.body.textContent).toMatch(/The link shows its photo and town, and that it's free\./);
   });
 
   it("a live listing gets one Manage listing button", () => {

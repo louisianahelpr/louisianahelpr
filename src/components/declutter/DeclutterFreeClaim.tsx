@@ -138,7 +138,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       </Button>
       <p className="text-xs text-muted-foreground" data-free-ask-note="">
         {oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} You pick a pickup time when you ask.{" "}
-        <Button type="button" variant="link" size="sm" className="h-auto p-0 align-baseline text-xs font-semibold text-foreground underline underline-offset-2" onClick={() => setRules(true)} data-free-how="">
+        <Button type="button" variant="link" size="sm" className="inline h-auto p-0 align-baseline text-xs font-semibold leading-[inherit] text-foreground underline underline-offset-2" onClick={() => setRules(true)} data-free-how="">
           How it works
         </Button>
       </p>

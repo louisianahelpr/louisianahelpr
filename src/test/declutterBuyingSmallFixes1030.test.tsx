@@ -55,7 +55,7 @@ describe("the buying audit's small findings", () => {
 
   // LEAD-PLACE-TIMES (owner 2026-10-31): a porch claim now picks a time inside the place's hours, as a door claim does.
   it("BUY-18: a free item is never told about a payment, and every claim picks a time", () => {
-    expect(code(`${D}DeclutterBundleRow.tsx`)).toContain('item.current_price_cents === 0 ? "Get them together: one pickup."');
+    expect(code(`${D}DeclutterBundleRow.tsx`)).toContain('{b.free ? "Get them together: one pickup."');
     expect(code(`${D}DeclutterFreeClaim.tsx`)).toContain('{confirm.isPending ? "Confirming…" : "Confirm and pick a time"}');
     expect(code(`${D}DeclutterFreeClaim.tsx`)).not.toContain("pick a day");
   });

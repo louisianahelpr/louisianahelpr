@@ -31,7 +31,7 @@ import { useOptimisticJobCache } from "@/components/job-card/activityActions/use
 import { ActivityDialogs, type TipDialogState, type TipTarget } from "@/components/job-card/ActivityDialogs";
 import { PostedJobActions } from "@/pages/posts/postedJobCard/PostedJobActions";
 import { crewNobodyLeft } from "@/lib/crewLifecycle";
-import { GroupJobHelpers } from "@/components/GroupJobHelpers";
+import type { GroupJobHelpers } from "@/components/GroupJobHelpers";
 
 export interface PosterPageFlows {
   /** The Posted list's row for this job is read: the flows below can run. */
@@ -44,6 +44,8 @@ export interface PosterPageFlows {
   toggleMore: () => void;
   /** JOBS-3: an under-way crew whose every member was reported a no-show (crewNobodyLeft, read from the loaded detail). */
   crewNobodyLeft: boolean;
+  /** A crew job's roster as the Posted list read it (undefined until read, or not a crew): the page draws it (JA-32). */
+  crewRoster?: React.ComponentProps<typeof GroupJobHelpers>["initialHelpers"];
   /** The card's own controls (shown under "More options"; always mounted so Approve opens its sheet). */
   panel: React.ReactNode;
   dialogs: React.ReactNode;
@@ -153,14 +155,8 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   const panel = (
     <Suspense fallback={null}>
     <div data-poster-more="" hidden={!moreOpen} ref={moreRef} className="scroll-mb-28">
-      {/* JOBS-3: an under-way crew's roster, as the Posted card draws it (per-member "Didn't show" and arrival). No
-          onCancelJob here: the page's own Cancel job row covers a crew with nobody left (crewNobodyLeft below). */}
-      {job.is_group_job && job.status === "in_progress" && (
-        <div data-poster-crew="" className="pb-3">
-          <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner jobStatus={job.status}
-            initialHelpers={detail?.groupHelpersByJob?.[job.id]} dateNeeded={job.date_needed} startTime={job.start_time} />
-        </div>
-      )}
+      {/* JOBS-3 / JA-32: a crew's roster (per-member arrival, Confirm work, "Didn't show") is on the page itself
+          (JobPage's "Your crew" card, from crewRoster below), never hidden under More options. */}
       <PostedJobActions
         job={job}
         userId={userId}
@@ -237,6 +233,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     toggleMore: () => setMoreOpen((o) => !o),
     // The detail read is done (q.data), so a crew with no roster entry has nobody left on it.
     crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true),
+    crewRoster: job.is_group_job && detail ? detail.groupHelpersByJob?.[job.id] ?? [] : undefined,
     panel,
     dialogs,
   };

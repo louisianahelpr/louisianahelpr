@@ -33,6 +33,7 @@ import { jobEyebrow } from "./jobEyebrow";
 import { useJobPage, useMyInstantBooking, useOfferedToMe, type JobPageRow } from "./useJobPage";
 import { seriesSummary } from "@/lib/format";
 import { JobTracker, PosterMoney, HelprMoney, PostedBy, HiredHelpr } from "./JobPageParts";
+import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { HiredSeriesSection } from "./HiredSeriesSection";
 import { NoApplicantsYet } from "./NoApplicantsYet";
 import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
@@ -63,6 +64,8 @@ function metaLine(job: JobPageRow): string {
 }
 
 const CARD = "rounded-2xl border border-border bg-card";
+/** A crew job whose roster the poster follows on the page (JA-32): filling, booked, under way, being fixed, done. */
+const CREW_ROSTER_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress", "revision_requested", "completed", "disputed"]);
 
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
@@ -252,6 +255,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
               otherFirst={isPoster ? helperFirst : posterFirst}
               pendingApplicants={isPoster && applicants.data ? pending : undefined} />
+            {/* JA-32 (audit 11-01): a crew's roster on the page itself: each member, their step, Message, and the
+                per-member Confirm Arrived / Confirm work / Didn't show (JOBS-3), never only under More options. */}
+            {isPoster && job.is_group_job && posterFlows.ready && CREW_ROSTER_STATUSES.has(job.status ?? "") && (
+              <section aria-label="Your crew" data-job-crew="" className={`${CARD} p-4`}>
+                <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner jobStatus={job.status}
+                  initialHelpers={posterFlows.crewRoster ?? []} dateNeeded={job.date_needed} startTime={job.start_time}
+                  onMessage={(helprId) => navigate(`/messages?jobId=${encodeURIComponent(job.id)}&userId=${helprId}`)} />
+              </section>
+            )}
             {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. */}
             {party && (isPoster || isHired) && <JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} />}
             {isHired && <HiredSeriesSection job={job} userId={userId} />}

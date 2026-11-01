@@ -126,6 +126,31 @@ describe("money-reconciliation — stranded 'cancelling' (Q456)", () => {
     expect(finding(b, "cancelling_stranded")!.sample[0]).toMatchObject({ claimed_by: "unrecorded" });
   });
 
+  // CMP-4 money review (2026-11-01): an instant booking charged with nobody hired is held 'cancelling' under the
+  // automatic refund's own claim. The page says it is automatic and NOT to set escrow back (void-cancelled would then
+  // refund the cancelled job a second time); other holders carry no such note.
+  // @mutate supabase/functions/money-reconciliation/index.ts |         ...(holderByJob.get(String(job.id)) === "instant_book_refund" ? { what_to_do: INSTANT_BOOK_REFUND_STRANDED_NOTE } : {}), |
+  // @mutate supabase/functions/money-reconciliation/index.ts | A row whose claimed_by is instant_book_refund is an instant booking | A row whose claimed_by is instant_book_X is an instant booking
+  it("CMP-4: an instant_book_refund claim is named automatic, with 'do not set escrow back', on the row and the check", async () => {
+    let fn = await load();
+    seed({ ...cancellingJob(3 * 60), status: "cancelled", stripe_payment_intent_id: "pi_ib" });
+    scenario.reads.job_refund_claims = { rows: [{ job_id: "job-stuck", claimed_by: "instant_book_refund" }] };
+    let { b } = await run(fn);
+    const f = finding(b, "cancelling_stranded")!;
+    expect(f.sample[0]).toMatchObject({ job_id: "job-stuck", claimed_by: "instant_book_refund" });
+    expect(f.sample[0].what_to_do).toMatch(/Automatic instant-book refund/);
+    expect(f.sample[0].what_to_do).toMatch(/Do NOT set payment_status back to 'escrow'/);
+    expect(f.sample[0].what_to_do).toMatch(/refund it again/);
+    expect(JSON.stringify(b)).toMatch(/A row whose claimed_by is instant_book_refund is an instant booking[^"]*Do NOT set payment_status back to 'escrow'/);
+
+    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
+    fn = await load();
+    seed(cancellingJob(3 * 60));
+    scenario.reads.job_refund_claims = { rows: [{ job_id: "job-stuck", claimed_by: "cancel_escrow" }] };
+    ({ b } = await run(fn));
+    expect(finding(b, "cancelling_stranded")!.sample[0].what_to_do).toBeUndefined();
+  });
+
   it("leaves a cancel that is still inside its own round-trips alone", async () => {
     const fn = await load();
     seed(cancellingJob(5));

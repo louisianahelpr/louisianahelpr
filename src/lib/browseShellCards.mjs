@@ -77,6 +77,22 @@ export function browseShellRowsUrl(supabaseUrl) {
   return u.toString();
 }
 
+/**
+ * The anon RPC that answers the view's own seed predicate (`NOT is_seed OR NOT seed_hidden_in_discovery()`, in
+ * open_jobs_browse's WHERE; GRANTed to anon in 20261007033530). The view does not expose `is_seed`, so the view
+ * alone hides seed and test jobs only while that switch hides them. api/share.ts (and the lab server) ask it
+ * beside the rows read, and the HTML draws cards ONLY when it answers exactly `true` (lh-authz-rls should-fix,
+ * 11-01): with the switch showing test rows, or any failed or odd answer, the page carries no cards.
+ */
+export function browseShellSeedsHiddenUrl(supabaseUrl) {
+  return `${String(supabaseUrl).replace(/\/$/, "")}/rest/v1/rpc/seed_hidden_in_discovery`;
+}
+
+/** The rows the HTML may draw from: the read's rows only when seed jobs are known hidden from anon, else null. */
+export function shellRowsWhenSeedsHidden(rows, seedsHidden) {
+  return seedsHidden === true && Array.isArray(rows) ? rows : null;
+}
+
 const blank = (v) => v === null || v === undefined || v === "";
 
 function isFlat(job) {

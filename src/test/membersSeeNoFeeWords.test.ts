@@ -37,7 +37,7 @@
  * "buyer's fee", "seller's fee", "delivery fee" and "5% + 70¢" (it only knew "% + $"), so most Declutter copy
  * never reached the allowlist. They are fee words now, in every quote form a source holds them in (', ’,
  * &apos; and SQL's ''), and Declutter has no allowlist entry left but three ops-ledger lines.
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx | If they accept, you have 48 hours to check out. Nothing is charged until you pay. | If they accept, you have 48 hours to check out. At checkout you pay the price plus a buyer's fee of 5% + 70¢.
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | If they accept, you have 24 hours to check out. Nothing is charged until you pay. | If they accept, you have 24 hours to check out. At checkout you pay the price plus a buyer's fee of 5% + 70¢.
  * @mutate src/components/declutter/DeclutterDeliverExplainer.tsx | your pay before you take it, and tips are all yours. | your pay before you take it: the delivery fee minus 5% + 70¢.
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | the raise comes back with what you paid for delivery.` | the raise comes back with your delivery fee.`
  * @mutate supabase/migrations/20261027172503_declutter_notices_name_no_fee.sql | $q$'Amount owed'$q$ | $q$'Card fee owed'$q$

@@ -56,6 +56,7 @@ const NOT_QUERY_DRIVEN: Record<string, string> = {
   "src/pages/jobs/jobPage/JobPage.tsx": "its EmptyState is driven by the job read (useJobPage), which it gates on isPending, so a read paused offline stays the skeleton; its own useQuery is the poster's name card, which never renders the empty state",
   "src/components/admin/AdminGrowthLinks.tsx": "Who brings customers gates on isPending (a paused first load stays the skeleton) and renders 'No one yet' only from a successful read with zero rows",
   "src/pages/book/BookHelprPage.tsx": "gates on isPending (a read paused offline stays 'Loading this Helpr…'); 'This Helpr isn't available' renders only for a malformed id (no query) or a settled read with no card",
+  "src/pages/u/PublicProfilePage.tsx": "gates on isPending (a read paused offline stays 'Loading this profile…'); 'This profile isn't available' renders only for a malformed handle (no query) or a settled read with no profile",
   "src/components/shops/shopsUi.tsx": "its EmptyState is ShopUnavailable, which ShopView and PublicShopView render only after their own shop read SETTLES (they gate on isPending, so a read paused offline stays the skeleton); shopsUi's own useQuery is the categories list, which never renders it",
 };
 

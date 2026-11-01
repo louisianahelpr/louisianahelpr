@@ -219,6 +219,8 @@
     "public.declutter_item_price_drops.declutter_item_price_drops_item_at",
     "public.declutter_listed_for_seller.declutter_listed_for_seller_job_idx",
     "public.declutter_listed_for_seller.declutter_listed_for_seller_seller_idx",
-    "public.declutter_listed_for_seller.declutter_listed_for_seller_helpr_idx"
+    "public.declutter_listed_for_seller.declutter_listed_for_seller_helpr_idx",
+    "public.declutter_photo_purge_queue.declutter_photo_purge_queue_seller_idx",
+    "public.profile_handles_retired.profile_handles_retired_user_idx"
   ]
 }

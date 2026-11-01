@@ -8,7 +8,7 @@
 import { uploadSteadily, PhotoUploadRefused, type UploadHooks } from "@/lib/declutter/steadyUpload";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
+import { functionErrorMessage, unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { blobToBase64, cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
@@ -774,7 +774,7 @@ async function removeObjects(paths: string[]): Promise<void> {
 export async function purgeQueuedPhotos(): Promise<void> {
   try {
     const { error } = await supabase.functions.invoke("declutter-photo-purge", { body: {} });
-    if (error) console.warn("[declutter] queued photo objects not removed yet", error.message);
+    if (error) console.warn("[declutter] queued photo objects not removed yet", await functionErrorMessage(error, "no reason given"));
   } catch (e) {
     // Logged, never thrown: the seller's change went through and the cron removes the objects within 15 minutes.
     console.warn("[declutter] queued photo objects not removed yet", e instanceof Error ? e.message : String(e));

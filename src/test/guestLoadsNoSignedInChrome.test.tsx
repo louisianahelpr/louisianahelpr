@@ -30,7 +30,7 @@ vi.mock("@/hooks/useStoredSessionHint", () => ({ useStoredSessionHint: () => aut
 /** Lazy components that DO draw for a guest, or that route the visitor. */
 const EVERY_VISITOR: Record<string, string> = {
   ScrollToTop: "scroll restoration for every visitor",
-  PermissionRationaleDialog: "anyone can be asked for a device permission",
+  PermissionRationaleMount: "anyone can be asked for a device permission",
 };
 
 const app = blankComments(readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8"));

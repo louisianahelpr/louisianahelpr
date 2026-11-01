@@ -149,6 +149,10 @@ export const EVERY_PAGE_ROOTS = [
   "src/components/ScrollToTop.tsx",
   "src/components/feedback/SuccessMomentHost.tsx",
   "src/pages/info/Legal.tsx",
+  // B86 (11-01): App mounts it beside every signed-in page. Unlisted, its two switch reads (identityCheck.ts,
+  // payoutAfterHireSwitch.ts) were "other screens' code" in signed-in-pages, so /home preloaded that whole
+  // 53 KB gz chunk (and its closure) in the dock's window to mount a sheet that almost never shows.
+  "src/components/identity/IdentityCheckMount.tsx",
 ];
 
 /** Every first screen: each page in ENTRY_ROUTE_CHUNKS (guest and signed in), protectedRoute, EVERY_PAGE_ROOTS. */

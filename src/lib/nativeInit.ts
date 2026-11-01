@@ -3,7 +3,7 @@
 // hide the splash screen — that is done from src/main.tsx on the frame after
 // React's first paint (see the NOTE beside the SplashScreen import below).
 //
-import { initSocialLogin } from "./socialLogin";
+import { loadModule } from "./loadModule";
 // Safe on web: every call is wrapped in a try/catch and no-ops if the
 // plugin isn't available (i.e. you're in a browser).
 
@@ -60,8 +60,11 @@ export async function initNative() {
   // buttons can call SocialLogin.login() via the native plugin path.
   // Idempotent (the helper guards against re-init). Best-effort —
   // sign-in buttons fall back to the web flow if init fails.
+  // Loaded here, on native only (B86): a static import put socialAuth, authErrors and the OAuth helpers
+  // (~2.5 KB gz) on every web page's boot, where this function returns at its first line.
   try {
-    await initSocialLogin();
+    const social = await loadModule(() => import("./socialLogin"));
+    await social?.initSocialLogin();
   } catch { /* ignore */ }
 
   try {

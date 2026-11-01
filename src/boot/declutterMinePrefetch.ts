@@ -34,6 +34,24 @@ export function declutterMineUrls(supabaseUrl: string, userId: string): { cart: 
   return { cart: `${rest}rpc/declutter_my_cart`, offers: `${rest}rpc/declutter_my_offers`, items: items.toString() };
 }
 
+/** Copy of ASKABLE in src/components/declutter/SellerQuestionsToAnswer.tsx (the test holds them equal). */
+export const ASKABLE_STATUSES = ["live", "paused"];
+
+/**
+ * B82 (2026-11-01): the URL supabase-js builds for fetchUnansweredQuestions(ids) (src/lib/declutter/api.ts; the test
+ * holds them equal). With listings on sale, the tab row also waits on this read (useUnansweredQuestions), which the
+ * page could only start after the app drew and the listings came back: ~0.6 s more on Selling and Buying in the lab.
+ */
+export function unansweredQuestionsUrl(supabaseUrl: string, itemIds: string[]): string {
+  const u = new URL(`${supabaseUrl.replace(/\/$/, "")}/rest/v1/declutter_questions`);
+  u.searchParams.set("select", "id,item_id,question,created_at");
+  u.searchParams.set("item_id", `in.(${itemIds.join(",")})`);
+  u.searchParams.set("answer", "is.null");
+  u.searchParams.set("removed_at", "is.null");
+  u.searchParams.set("order", "created_at.asc");
+  return u.toString();
+}
+
 /** A list answer, or null (a refusal, an error body, anything else). */
 const listOf = (r: Response): Promise<unknown[] | null> =>
   r.ok ? (r.json() as Promise<unknown>).then((x) => (Array.isArray(x) ? x : null)) : Promise.resolve(null);
@@ -53,6 +71,21 @@ export function startDeclutterMinePrefetch(base: string, key: string, session: {
     cart: rpc(urls.cart),
     offers: rpc(urls.offers),
     items: fetch(urls.items, { headers: { ...auth, Accept: "application/json" } }).then(listOf).catch(() => null),
+    questions: Promise.resolve(null as { ids: string[]; rows: unknown[] } | null),
   };
+  // B82: the questions on the listings on sale, as soon as the listings are in (the ids the page will ask about).
+  slot.questions = slot.items
+    .then((rows) => {
+      if (!rows) return null;
+      const ids = (rows as { id?: unknown; status?: unknown }[])
+        .filter((r) => typeof r.id === "string" && ASKABLE_STATUSES.includes(String(r.status)))
+        .map((r) => r.id as string)
+        .sort();
+      if (ids.length === 0) return null;
+      return fetch(unansweredQuestionsUrl(base, ids), { headers: { ...auth, Accept: "application/json" } })
+        .then(listOf)
+        .then((q) => (q ? { ids, rows: q } : null));
+    })
+    .catch(() => null);
   (window as unknown as Record<string, unknown>)[DECLUTTER_MINE_PREFETCH_KEY] = slot;
 }

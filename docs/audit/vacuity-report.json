@@ -1,12 +1,8 @@
 {
-  "generated": "2026-11-01T02:01:28.378Z",
-  "guards": 3017,
-  "registered": 3014,
-  "unregistered": [
-    "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
-    "e2e/prod-audit/admin-chrome.spec.ts",
-    "src/lib/jobPostDraftAccount.test.ts"
-  ],
+  "generated": "2026-11-01T03:07:15.024Z",
+  "guards": 3026,
+  "registered": 3026,
+  "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/dashboard/giveawayShowsNoWords.test.tsx",
@@ -19,14 +15,12 @@
     "src/pages/jobs/jobPage/viewerState.test.ts",
     "src/test/browseEmptySameSpot.test.tsx",
     "src/test/crewHasNoJobLevelNoShow.test.ts",
-    "src/test/declutterOnePreview.test.ts",
     "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
     "src/test/photoViewerArrowsAbovePhoto.test.ts",
     "src/test/radiusCopyNeedsLocation.test.ts",
     "src/test/trackerFullWordsFromMidWidth.test.tsx",
-    "src/test/vitestShardsGateTheCheck.test.ts",
-    "src/test/wantedConfirmationsShow.test.ts"
+    "src/test/vitestShardsGateTheCheck.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -34,6 +28,12 @@
       "why": [
         "blocked (literal declared in this file) is both input and oracle",
         "all (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/offlineBannerOverDesktopBar.test.ts",
+      "why": [
+        "values (literal declared in this file) is both input and oracle"
       ]
     },
     {

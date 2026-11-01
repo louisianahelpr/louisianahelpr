@@ -27,7 +27,7 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, milesBetween, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
-import { fromDeliveredCents } from "@/lib/declutter/delivery";
+import { DeliveryPriceList } from "./DeliveryPriceList";
 import {
   CATEGORY_LABEL,
   ConditionChip,
@@ -156,11 +156,13 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const drop = planned && !(sellerState && sellerStateStopsDrops(sellerState, it.current_price_cents)) ? planned : null;
   // Owner mockup 11-01: the delivery line sits under Make an offer / Buy now, inside their card.
   // Helpr delivery is offered on every bought item while Declutter is open (the cart's own rule); a free item is
-  // claimed, never bought. The figure is the least it can cost in all (fromDeliveredCents), so "from".
+  // claimed, never bought. A3-48 (owner 11-01 11:49 AM): the delivery price BY SIZE up front, this item's size marked,
+  // never an all-in total a member reads as the delivery charge ("from $70.20" on a $40 chair).
   const deliveredLine = canAct && !free ? (
-    <p data-item-delivered="" className="text-sm text-muted-foreground">
-      Or have it delivered by a local Helpr from <span className="font-semibold tabular-nums text-foreground">{formatPrice(fromDeliveredCents(it.current_price_cents, it.delivery_size))}</span>
-    </p>
+    <div data-item-delivered="" className="space-y-1">
+      <p className="text-sm text-muted-foreground">Or a local Helpr delivers it, priced by size:</p>
+      <DeliveryPriceList quote={null} size={it.delivery_size} />
+    </div>
   ) : null;
   const actions = (<>
     {/* Owner mockup 11-01: Make an offer (left) and Buy now (right) sit right under the price and place. */}

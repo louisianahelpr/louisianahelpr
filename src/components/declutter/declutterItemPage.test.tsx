@@ -247,11 +247,12 @@ describe("the photo-first Declutter item page", () => {
     expect(q.className.split(/\s+/)).not.toContain("uppercase");
   });
 
-  it("lead 2026-10-28: \"Or from $X delivered\", the least a Helpr delivery can cost in all; never on a free item or your own", async () => {
-    // @mutate src/lib/declutter/delivery.ts |   return buyNowTotalCents(priceCents) + deliveryPriceCents(1, [size]); |   return buyNowTotalCents(priceCents);
+  it("A3-48 (owner 11-01 11:49 AM): Helpr delivery priced BY SIZE, this item's size marked, never an all-in total; never on a free item or your own", async () => {
     // @mutate src/components/declutter/DeclutterItemView.tsx | askSignal={offerAsk} footer={deliveredLine} /> | askSignal={offerAsk} />
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {footer}\n |
-    // $40 large: Buy now's $42.70 (price + 5% + 70c) + delivery's floor $6 + $1.50 x 1 mile + $20 large = $70.20 (owner price 11-01).
+    // @mutate src/components/declutter/DeclutterItemView.tsx |       <DeliveryPriceList quote={null} size={it.delivery_size} /> |       <DeliveryPriceList quote={null} />
+    // @mutate src/components/declutter/DeliveryPriceList.tsx |           const mine = (quote?.size ?? size) === r.size; |           const mine = quote?.size === r.size;
+    // A $40 large chair: the list says "Large +$20" marked, not "$70.20" (which was Buy now plus the delivery floor).
     const first = open();
     const line = await waitFor(() => {
       const el = document.querySelector("[data-item-delivered]");
@@ -259,7 +260,11 @@ describe("the photo-first Declutter item page", () => {
       return el as HTMLElement;
     });
     // Owner mockup 11-01: the line sits under the two buttons, inside their card.
-    expect(line.textContent).toBe("Or have it delivered by a local Helpr from $70.20");
+    expect(line.querySelector("p")?.textContent).toBe("Or a local Helpr delivers it, priced by size:");
+    const rows = [...line.querySelectorAll("[data-delivery-size]")].map((r) => r.textContent);
+    expect(rows).toEqual(["Small or medium$6 + $1.50 a mile", "Large+$20", "Extra large+$40"]);
+    expect(line.querySelector("[aria-current='true']")?.getAttribute("data-delivery-size")).toBe("large");
+    expect(line.textContent).not.toContain("$70.20");
     expect(line.closest("[aria-label='Buy or make an offer']")).not.toBeNull();
     expect(line.textContent).not.toMatch(/fee|%|¢/i);
     first.unmount();
@@ -715,8 +720,8 @@ describe("the photo-first Declutter item page", () => {
     const first = open();
     expect((await screen.findAllByRole("button", { name: `Buy now · from ${delivered} delivered` })).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /\$42\.70 total/ })).toBeNull();
-    // The page's own "Or from $X delivered" line says the same figure.
-    expect(document.querySelector("[data-item-delivered]")?.textContent).toContain(delivered);
+    // A3-48: the page's delivery block is the size list (this large item marked), not a second total.
+    expect(document.querySelector("[data-item-delivered] [aria-current='true']")?.getAttribute("data-delivery-size")).toBe("large");
     const row = await screen.findByText(/^1 more item · check out together, one payment$/);
     expect(row.textContent).not.toMatch(/pickup/);
     first.unmount();

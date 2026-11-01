@@ -11,7 +11,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { DeliverySize } from "@/lib/declutter/api";
 import { roundPayoutDownCents } from "../../../supabase/functions/_shared/money";
-import { buyNowTotalCents } from "@/lib/declutter/money";
 
 /** $6 base per checkout (owner 2026-11-01; row 29 was $10). */
 export const DELIVERY_BASE_CENTS = 600;
@@ -36,16 +35,6 @@ export function helprTakeHomeCents(payCents: number): number {
   const pay = Math.max(0, Math.round(payCents));
   if (pay === 0) return 0;
   return roundPayoutDownCents(pay - Math.min(pay, Math.round((pay * 5) / 100) + 70));
-}
-
-/**
- * The item page's "Or from $X delivered" (lead walkthrough 2026-10-28): the LEAST a Helpr delivery of this one item
- * can cost in all, so "from" is always true. The pickup total (buyNowTotalCents, what Buy now shows) plus the
- * delivery price at its floor, one road mile (deliveryPriceCents rounds miles UP and never below 1), with the item's
- * size add-on. The real figure comes from the server's quote at checkout, by road miles to the buyer's address.
- */
-export function fromDeliveredCents(priceCents: number, size: DeliverySize): number {
-  return buyNowTotalCents(priceCents) + deliveryPriceCents(1, [size]);
 }
 
 export interface DeliveryQuote {

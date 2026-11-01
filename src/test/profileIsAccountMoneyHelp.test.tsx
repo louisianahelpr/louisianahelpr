@@ -145,8 +145,9 @@ describe("Log Out clear, Delete account quiet", () => {
     expect(del).toMatch(/text-muted-foreground/);
     expect(del).not.toMatch(/border|rounded|py-3\.5|background|bg-/);
     const o = s.indexOf("onClick={onRequestLogout}");
-    const out = s.slice(o, s.indexOf("Log out", o));
-    expect(out).toMatch(/rounded-full/);
+    const out = s.slice(s.lastIndexOf("<Button", o), s.indexOf("Log out", o));
+    // The pill is the shared Button's own rounded-full base (buttonsArePills.test.ts), at its 48px md size.
+    expect(out).toMatch(/^<Button[\s\S]*size="md"/);
     expect(out).toMatch(/border: "1px solid/);
   });
 });

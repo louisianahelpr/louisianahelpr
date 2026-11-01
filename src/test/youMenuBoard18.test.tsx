@@ -68,8 +68,10 @@ describe("You tab, board 18", () => {
 
   it("Log out is a clear pill; Delete account is quiet muted text", () => {
     const menu = read("components/profile/profileLanding/YouMenu.tsx");
-    const logout = menu.slice(menu.indexOf("onClick={onRequestLogout}") - 40, menu.indexOf("Log out"));
-    expect(logout).toMatch(/rounded-full/);
+    // The pill is the shared Button's own (rounded-full base, buttonsArePills.test.ts) at its 48px md size.
+    const logout = menu.slice(menu.lastIndexOf("<Button", menu.indexOf("onClick={onRequestLogout}")), menu.indexOf("Log out"));
+    expect(logout).toMatch(/^<Button[\s\S]*size="md"/);
+    expect(logout).not.toMatch(/rounded-(?!full)/);
     const del = menu.slice(menu.indexOf("onClick={onRequestDelete}"), menu.indexOf("Delete account"));
     expect(del).toMatch(/text-muted-foreground/);
     expect(del).not.toMatch(/rounded-full|destructive|--alert|bg-/);

@@ -63,9 +63,9 @@ export function IdentityPromptCard({
       </div>
       <p className="text-ds-14 text-muted-foreground">{line.body}</p>
       {line.cta && (
-        <button type="button" onClick={open} className="btn-grad-primary btn-press self-start rounded-full min-h-11 px-5 mt-2 text-ds-15 font-semibold">
+        <Button type="button" size="sm" onClick={open} className="btn-press self-start px-5 mt-2 text-ds-15 font-semibold tracking-normal shadow-none">
           {line.cta}
-        </button>
+        </Button>
       )}
     </section>
   );

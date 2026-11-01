@@ -13,9 +13,9 @@
  *
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |              THEN LEAST(b.base, GREATEST(100, COALESCE(b.floor, 100),\n                         round(b.base * (100 - (SELECT percent FROM r)) / 100.0)::integer)) |              THEN round(b.base * (100 - (SELECT percent FROM r)) / 100.0)::integer
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |         CASE WHEN b.base > 0 AND (SELECT paid FROM n) >= 2 AND EXISTS (SELECT 1 FROM r) |         CASE WHEN b.base > 0 AND (SELECT paid FROM n) >= 1 AND EXISTS (SELECT 1 FROM r)
- * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |      AND v_existing.items_cents = v_items |
+ * @mutate supabase/migrations/20261101201500_shipping_s3_checkout_claim.sql |      AND v_existing.items_cents = v_items |
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   IF p_percent NOT BETWEEN 5 AND 50 THEN |   IF p_percent NOT BETWEEN 1 AND 100 THEN
- * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |    v_delivery := public.declutter_seller_delivery_rate_cents(sd.base_rate_cents, sd.free_over_cents, v_items); |    v_delivery := sd.rate_cents;
+ * @mutate supabase/migrations/20261101201500_shipping_s3_checkout_claim.sql |    v_delivery := public.declutter_seller_delivery_rate_cents(sd.base_rate_cents, sd.free_over_cents, v_items); |    v_delivery := sd.rate_cents;
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   SELECT COALESCE(sum(t.target_cents), 0)::integer INTO v_items FROM public.declutter_bundle_targets(p_seller, p_lines) t; |   SELECT COALESCE(sum(c.price_cents), 0)::integer INTO v_items FROM public.declutter_cart_items c WHERE c.id = ANY (p_lines);
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |         {offer && rule.data ? <span className="font-semibold text-primary" data-bundle-offer=""> {bundleLabel(rule.data)}.</span> : null} |
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       <BundleDiscountCard />\n |

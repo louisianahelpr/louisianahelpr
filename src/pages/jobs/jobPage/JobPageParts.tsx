@@ -29,14 +29,17 @@ const MONEY = "text-[hsl(var(--burnt-sienna))]";
  * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
  * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
  */
-export function JobTracker({ job, side, trackingStatus = null, pendingApplicants }: {
+export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null }: {
   job: JobPageRow; side: "poster" | "helpr" | null; trackingStatus?: string | null; pendingApplicants?: number;
+  /** The other person's first name, as the page's own buttons name them ("Message Eli"); null reads "Your Helpr". */
+  otherFirst?: string | null;
 }) {
   const rescheduled = useJobRescheduled(job.id, !!side && job.status === "accepted");
   if (!side) return null;
   // The Working card's own progress (helperProgress off the tracking row), so the page's line and the card's agree.
   const progress = jobProgress(job, {
     viewer: side,
+    otherFirst,
     rescheduled,
     workUnderway: helperProgress(job as unknown as Job, trackingStatus).workUnderway,
     tracking: trackingStatus ? { status: trackingStatus } : null,

@@ -13,7 +13,7 @@
 // coverage, minus the map plumbing it never depended on.
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { EMPTY_VIEWER_FEED_EXCLUSIONS, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 
 import JobCard from "./dashboard/JobCard";
@@ -345,6 +345,31 @@ describe("BrowseMap busy-area key (NIGHT-JOBSMA5-4)", () => {
     expect(await screen.findByTestId("browse-map-busy-key")).toHaveTextContent("Shaded circles: parishes busy right now");
     const map = mapInstances[mapInstances.length - 1];
     expect(map.addOverlays).toHaveBeenCalled();
+  });
+
+  // @mutate src/components/busyAreas/busyAreaOverlays.ts | busyCircleOpacity(a.total, max) * (dimmed ? BUSY_DIM_FACTOR : 1) | busyCircleOpacity(a.total, max)
+  // @mutate src/components/browseMap/useMapLayersSync.ts |     map.addEventListener("region-change-end", onRegion); |     void onRegion;
+  it("dims the circles once the map is zoomed in to street level, and restores them zoomed out", async () => {
+    const { BrowseMap } = await import("./BrowseMap");
+    render(<BrowseMap />);
+    await screen.findByTestId("browse-map-busy-key");
+    const map = mapInstances[mapInstances.length - 1] as unknown as {
+      addOverlays: ReturnType<typeof vi.fn>; addEventListener: ReturnType<typeof vi.fn>; region?: unknown;
+    };
+    const fill = () => {
+      const calls = map.addOverlays.mock.calls;
+      const first = (calls[calls.length - 1][0] as { options: { style: { options: { fillOpacity: number } } } }[])[0];
+      return first.options.style.options.fillOpacity;
+    };
+    const full = fill();
+    expect(full).toBeGreaterThan(0);
+    const regionEnd = () => map.addEventListener.mock.calls.filter((c) => c[0] === "region-change-end").forEach((c) => (c[1] as () => void)());
+    map.region = { span: { latitudeDelta: 0.05, longitudeDelta: 0.05 } };
+    act(() => regionEnd());
+    await waitFor(() => expect(fill()).toBeCloseTo(full * 0.3, 5));
+    map.region = { span: { latitudeDelta: 1.5, longitudeDelta: 1.5 } };
+    act(() => regionEnd());
+    await waitFor(() => expect(fill()).toBeCloseTo(full, 5));
   });
 
   it("shows no key when no pin has a parish (nothing is shaded)", async () => {

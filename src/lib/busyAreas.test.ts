@@ -13,6 +13,7 @@ import {
   busyAreas,
   busyCircleOpacity,
   busyCircleRadiusMeters,
+  busyCirclesDimmed,
   parishForAreaLabel,
 } from "./busyAreas";
 
@@ -60,6 +61,14 @@ describe("busy areas (Q2435)", () => {
     expect(busyCircleOpacity(1, 4)).toBeLessThan(busyCircleOpacity(4, 4));
   });
 
+  // @mutate src/lib/busyAreas.ts | latitudeDelta < BUSY_DIM_BELOW_LAT_DELTA; | latitudeDelta < 0;
+  it("dims the circles only at street zoom (NIGHT-JOBSMA5-4)", () => {
+    expect(busyCirclesDimmed(0.05)).toBe(true);
+    expect(busyCirclesDimmed(0.5)).toBe(false);
+    expect(busyCirclesDimmed(undefined)).toBe(false);
+    expect(busyCirclesDimmed(0)).toBe(false);
+  });
+
   it("labels say counts only, never an address", () => {
     expect(busyAreaLabel({ parish: "Lafayette", jobs: 2, deliveries: 1 })).toBe("Lafayette Parish: 2 jobs, 1 delivery");
     expect(busyAreaLabel({ parish: "Iberia", jobs: 1, deliveries: 0 })).toBe("Iberia Parish: 1 job");
@@ -67,7 +76,7 @@ describe("busy areas (Q2435)", () => {
 
   it("is drawn on the Jobs Browse map and on the Deliver page", () => {
     expect(code("src/components/BrowseMap.tsx")).toContain("useBusyAreaShading(mapRef, mapReady, visibleJobs);");
-    expect(code("src/components/browseMap/useMapLayersSync.ts")).toContain("drawBusyAreas(mk, map, busyAreas(jobs, []).areas, overlaysRef.current)");
+    expect(code("src/components/browseMap/useMapLayersSync.ts")).toContain("drawBusyAreas(mk, map, busyAreas(jobs, []).areas, overlaysRef.current, dimmed)");
     expect(code("src/components/declutter/DeclutterDeliveryViews.tsx")).toContain("{busyRows.length > 0 && <BusyAreasCard deliveries={busyRows} />}");
   });
 });

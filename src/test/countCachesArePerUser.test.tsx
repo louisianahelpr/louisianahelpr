@@ -50,7 +50,7 @@ vi.mock("@/integrations/supabase/client", () => {
     if (table === "applications") return { data: null, count: rig.postsCount, error: null };
     if (table === "messages") {
       const rows = Array.from({ length: rig.messageRows }, (_, i) => ({
-        job_id: `j${i}`, sender_id: `s${i}`, created_at: "2026-09-20T00:00:00Z",
+        job_id: `j${i}`, sender_id: `s${i}`, receiver_id: "user-a", read: false, created_at: "2026-09-20T00:00:00Z",
       }));
       return { data: rows, count: null, error: null };
     }

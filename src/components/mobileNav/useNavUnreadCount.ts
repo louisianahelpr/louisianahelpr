@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { getBlockedUserIds } from "@/lib/userBlocks";
-import { isArchived, ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
+import { ARCHIVE_CHANGED_EVENT } from "@/lib/archivedConversations";
+import { unreadConversationCount, unreadRowsQuery } from "@/lib/unreadConversations";
 import { setAppIconBadge } from "@/lib/appBadge";
 import { readCachedUnread, writeCachedUnread } from "./mobileNavHelpers";
 import {
@@ -54,15 +55,12 @@ function openStore(userId: string): UnreadStore {
     close: () => {},
   };
 
-  const UNREAD_ROW_CAP = 1000;
   const loadCounts = async () => {
-    // Mirror the inbox's own hide rules (Messages.tsx) so the badge can't
-    // claim "1" while the inbox renders empty: the inbox drops system
-    // messages, threads with a blocked sender, AND locally-archived threads,
-    // so the count must too. Archived threads are a client-only (safeStorage)
-    // concept, so we can't filter them in SQL — we fetch the lightweight
-    // unread rows and drop archived ones in JS (LH-54).
-    // getBlockedUserIds now THROWS on a failed read rather than returning an
+    // NOID-20 (lead 2026-10-31): the badge counts UNREAD CONVERSATIONS, the threads the inbox shows with at least one
+    // unread message to you, read through the inbox's own rules (src/lib/unreadConversations.ts): its hide rules
+    // (system rows, rows the server hid, blocked senders, Team rows through a block), its thread key and the local
+    // archive (LH-54: archived threads are client-only, so they are dropped in JS).
+    // getBlockedUserIds THROWS on a failed read rather than returning an
     // empty set, because an empty set reads as "nobody is blocked" and would
     // put blocked people back in the badge. Skip the update instead — a
     // slightly stale count is strictly better than surfacing blocked users.
@@ -73,35 +71,12 @@ function openStore(userId: string): UnreadStore {
       report(err, { severity: "warning", tags: { source: "useNavUnreadCount.unreadCount" } });
       return;
     }
-    const base = supabase
-      .from("messages")
-      .select("job_id, sender_id, created_at")
-      .eq("receiver_id", userId)
-      .eq("read", false)
-      // PD-012: bounded. The nav shows "9+" and the icon badge a number, so
-      // the newest UNREAD_ROW_CAP rows are all either can use.
-      .order("created_at", { ascending: false })
-      .limit(UNREAD_ROW_CAP); // PD-012 bounded
-    let query = base.not("is_system", "is", true);
-    if (blockedSet.size > 0) {
-      // Q1591(b): a Team-thread row (team_thread_user_id set) is delivered
-      // through a block, so it counts here as it shows in the inbox; every
-      // job row from a blocked sender stays out.
-      query = query.or(`sender_id.not.in.(${[...blockedSet].join(",")}),team_thread_user_id.not.is.null`);
-    }
-    const { data, error } = await query;
+    const { data, error } = await unreadRowsQuery(userId);
     // Only overwrite the seeded value on a successful response —
     // a failed query (offline, transient) must NOT zero the badge
     // and surprise the user. The cache stays the floor.
     if (error) return;
-    // Exclude unread messages whose thread the user archived (and that the
-    // archive hasn't auto-resurfaced — `isArchived` checks the message's own
-    // timestamp against the archive moment, exactly like the inbox). For a
-    // received message the other participant is the sender.
-    const next = (data ?? []).filter(
-      (m: { job_id: string | null; sender_id: string | null; created_at: string }) =>
-        !isArchived(userId, m.job_id ?? "", m.sender_id ?? "", m.created_at),
-    ).length;
+    const next = unreadConversationCount((data ?? []) as unknown as Parameters<typeof unreadConversationCount>[0], userId, blockedSet);
     store.publish(next);
     writeCachedUnread(userId, next);
   };

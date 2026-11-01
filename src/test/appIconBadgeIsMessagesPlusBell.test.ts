@@ -30,9 +30,9 @@ vi.mock("@/lib/archivedConversations", () => ({ isArchived: () => false, ARCHIVE
 vi.mock("@/components/mobileNav/mobileNavHelpers", () => ({ readCachedUnread: () => 0, writeCachedUnread: () => {} }));
 
 const MESSAGE_ROWS = [
-  { job_id: "j1", sender_id: "s1", created_at: "2026-09-20T00:00:00Z" },
-  { job_id: "j2", sender_id: "s2", created_at: "2026-09-21T00:00:00Z" },
-  { job_id: "j3", sender_id: "s3", created_at: "2026-09-22T00:00:00Z" },
+  { job_id: "j1", sender_id: "s1", receiver_id: "user-n006", read: false, created_at: "2026-09-20T00:00:00Z" },
+  { job_id: "j2", sender_id: "s2", receiver_id: "user-n006", read: false, created_at: "2026-09-21T00:00:00Z" },
+  { job_id: "j3", sender_id: "s3", receiver_id: "user-n006", read: false, created_at: "2026-09-22T00:00:00Z" },
 ];
 vi.mock("@/integrations/supabase/client", () => {
   const chain: Record<string, unknown> = {};

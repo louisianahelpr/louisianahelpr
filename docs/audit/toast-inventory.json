@@ -8044,7 +8044,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 111,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

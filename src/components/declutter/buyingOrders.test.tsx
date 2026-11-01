@@ -55,6 +55,8 @@ const state = {
   /** declutter_orders.paid_at per order (the book-by read); absent = not answered. */
   paidAt: {} as Record<string, string>,
   bookByReads: [] as string[][],
+  /** B112: declutter_orders.pickup_slot_start/end per order (the window chosen at checkout). */
+  windows: {} as Record<string, { start: string; end: string }>,
 };
 
 vi.mock("@/components/DateTimeField", () => ({
@@ -76,6 +78,9 @@ vi.mock("@/integrations/supabase/client", () => ({
     state.bookByReads.push([...ids]);
     return { data: ids.filter((id) => id in state.paidAt).map((id) => ({ id, paid_at: state.paidAt[id] })), error: null };
   } }) }) },
+}));
+vi.mock("@/lib/declutter/pickupWindow", () => ({
+  fetchPickupWindows: async (ids: string[]) => new Map(ids.filter((id) => id in state.windows).map((id) => [id, state.windows[id]])),
 }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
@@ -194,6 +199,7 @@ function load(cases: Case[]) {
   state.tasks = Object.fromEntries(cases.filter((c) => c.task).map((c) => [`t-${c.id}`, c.task!]));
   state.paidAt = {};
   state.bookByReads = [];
+  state.windows = {};
 }
 
 const card = (id: string) => screen.getByText(`Item ${id}`).closest("article") as HTMLElement;
@@ -385,6 +391,21 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
 
   // A1-C2: a porch pickup is a DAY; its booking's slot_start is only that day's start, so the card never shows a time.
   // @mutate src/components/declutter/BuyingOrders.tsx |     const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day) |     const when = false ? "" 
+  // B112 (B110 leftover 1): a porch order paid with a window picked at checkout says the WINDOW, never the
+  // 30-minute booking made from its start (declutter_mark_order_paid books slot_start + 30 min).
+  // @mutate src/components/declutter/BuyingOrders.tsx |       : porchWindow ? porchWindow\n |
+  // @mutate src/components/declutter/BuyingOrders.tsx |   const porchIds = live.filter((o) => o.handover === "porch") |   const porchIds = live.filter((o) => o.handover === "meetup")
+  // @mutate src/lib/declutter/pickupSlots.ts |   return `${day}, ${rangeLabel(hhmm(chicagoMinutes(a)), hhmm(chicagoMinutes(b)))}`; |   return `${day}, ${rangeLabel(hhmm(chicagoMinutes(a)), hhmm(chicagoMinutes(a) + 30))}`;
+  it("porch window: a porch order booked at checkout reads 'for Sun, Nov 2, 3–5 PM', never the 30-minute booking", async () => {
+    // 3 PM to 5 PM Chicago (CST, UTC-6) on Mon Nov 2 2026.
+    const start = "2026-11-02T21:00:00.000Z", end = "2026-11-02T23:00:00.000Z";
+    load([{ id: "pw1", line: { handover: "porch" }, slot: start, step: 1, bucket: "upcoming", action: null }]);
+    state.windows = { pw1: { start, end } };
+    show();
+    expect(await screen.findByText("The seller puts it out for Mon, Nov 2, 3–5 PM and posts a photo.")).toBeInTheDocument();
+    expect(card("pw1").textContent).not.toMatch(/3:00 PM/);
+  });
+
   it("a porch pickup day reads as the day ('for tomorrow'), never a clock time", async () => {
     load([{ id: "pd1", line: { handover: "porch" }, slot: iso(24), step: 1, bucket: "upcoming", action: null }]);
     const tomorrow = deviceLocalDateISO(1, new Date(NOW));

@@ -131,6 +131,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_seller_defaults: { by: ["member_id"] },
   // Porch days (20261029161347; exported by 20261029223949): the seller's own picked porch weekdays.
   declutter_seller_porch_days: { by: ["seller_id"] },
+  // A seller's own meet spots (20261101194608; exported by 20261101210500).
+  declutter_meetup_spots: { by: ["seller_id"] },
   declutter_questions: { by: ["asker_id"] },
   declutter_watchlist: { by: ["user_id"] },
   declutter_tax_attestations: { by: ["seller_id"] },

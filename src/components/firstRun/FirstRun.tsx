@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
@@ -105,7 +106,7 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-[480px] px-5 pt-[calc(var(--safe-area-top,0px)+12px)] pb-6">
           <div className="flex justify-end">
-            <button type="button" onClick={onSkip} className="min-h-11 px-2 text-ds-15 font-bold" style={{ color: "hsl(var(--bark))" }}>Skip</button>
+            <Button type="button" variant="ghost" size="sm" onClick={onSkip} className="px-2 text-ds-15" style={{ color: "hsl(var(--bark))" }}>Skip</Button>
           </div>
           <h1 id="first-run-title" ref={headingRef} tabIndex={-1} style={{ outline: "none" }} className="font-moment text-page-title text-foreground mt-2">
             What brings you to Helpr?
@@ -146,9 +147,9 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
       </div>
       <div className="border-t border-border bg-background px-5 pt-3 pb-[max(1rem,var(--safe-area-bottom,0px))]">
         <div className="mx-auto w-full max-w-[480px]">
-          <button type="button" onClick={onContinue} className="btn-grad-primary w-full min-h-14 rounded-full text-ds-16 font-bold">
+          <Button type="button" variant="primary" onClick={onContinue} className="w-full">
             Continue
-          </button>
+          </Button>
         </div>
       </div>
     </div>,
@@ -205,16 +206,18 @@ function CoachMarks({ steps, onDone }: { steps: { target: Target; text: string }
           </div>
           <div className="flex items-center gap-1">
             {!last && (
-              <button type="button" onClick={onDone} className="min-h-11 px-3 text-ds-14 font-semibold text-muted-foreground">Skip</button>
+              <Button type="button" variant="ghost" size="sm" onClick={onDone} className="px-3 font-semibold text-muted-foreground">Skip</Button>
             )}
-            <button
+            <Button
               ref={nextRef}
               type="button"
+              variant="primary"
+              size="sm"
               onClick={() => (last ? onDone() : setI(i + 1))}
-              className="btn-grad-primary min-h-11 px-5 rounded-full text-ds-14 font-bold"
+              className="px-5"
             >
               {last ? "Done" : "Next"}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

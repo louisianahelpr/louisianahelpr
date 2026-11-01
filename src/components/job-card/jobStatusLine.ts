@@ -194,7 +194,7 @@ function columnDeadline(
 }
 
 /** When the poster's approval window on submitted work ends (Helpr support steps in), or null. */
-function autoCompleteAt(job: Pick<Job, "helper_completed_at">): string | null {
+export function autoCompleteAt(job: Pick<Job, "helper_completed_at">): string | null {
   if (!job.helper_completed_at) return null;
   const t = new Date(job.helper_completed_at).getTime();
   if (Number.isNaN(t)) return null;

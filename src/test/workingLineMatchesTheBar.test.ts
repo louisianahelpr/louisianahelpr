@@ -10,7 +10,6 @@
  * @mutate src/components/tracker/workHasBegun.ts |   if (job.poster_confirmed_working_at) return true; |   if (job.poster_confirmed_working_at) return false;
  * @mutate src/components/tracker/workHasBegun.ts |   if (o.lineId && HELPR_NOT_STARTED.has(o.lineId)) return false; |
  * @mutate src/components/tracker/jobProgressState.ts | poster ? (workHasBegun(job, { workUnderway: o.workUnderway }) ? | poster ? (job.poster_confirmed_working_at ?
- * @mutate src/components/tracker/jobProgressState.ts | false, o.otherFirst ?? null, o.workUnderway === undefined ? undefined : { workUnderway: o.workUnderway }); | false, o.otherFirst ?? null);
  * @mutate src/components/job-card/jobStatusLine.ts |   const atTheJob = id === "working" && !workHasBegun(job, { workUnderway: progress?.workUnderway }); |   const atTheJob = id === "working" && !job.poster_confirmed_working_at;
  * @mutate src/components/job-card/jobStatusLine.ts |   working: (n) => `${firstName(n)} is working`, |   working: (n) => `${firstName(n)} is at the job`,
  */

@@ -30,11 +30,6 @@ export function autoFreeExplainer(days: number | null): string {
   return `If it hasn't sold by day ${days}, it becomes free and anyone nearby can claim it. Already past day ${days}? It becomes free tonight.`;
 }
 
-/** The line before Post: about free only, so it can't be read as "never drop". */
-export function autoFreeOutcomeLine(days: number | null): string {
-  return days === null ? "Make it free: never. It won't become free on its own." : `Make it free: after ${days} days, if it hasn't sold.`;
-}
-
 /** The toast after a change is saved. */
 export function autoFreeSaved(days: number | null): string {
   return days === null ? "It won't become free on its own." : `If it hasn't sold by day ${days}, it becomes free.`;

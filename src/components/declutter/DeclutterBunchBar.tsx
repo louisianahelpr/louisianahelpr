@@ -1,4 +1,5 @@
 /** The bar that stays in view on Sell a bunch: where sorting and listing have got to, Undo, and what's left before listing. */
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { listingProgressLine, sortProgressLine, type BunchItem, type BunchPhoto } from "@/lib/declutter/bunch";
 
@@ -9,6 +10,23 @@ export interface BunchUndo {
   photos: BunchPhoto[];
   /** A merge set aside a price the seller typed: offered here, as a choice. */
   otherPrice?: { intoKey: string; price: string };
+}
+
+/**
+ * Whether the list step (its List button and the confirm tick above it) is on screen. Owner 2026-11-01: ONE list
+ * button; once the step is in view the bar's "Next: list N items" goes, and the step's own List button, with the tick
+ * visible right above it, is the one. No IntersectionObserver (an old WebView): the bar keeps its Next, as before.
+ */
+export function useListStepInView(active: boolean): boolean {
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const section = active ? document.getElementById("bunch-list")?.closest("section") : null;
+    if (!section || typeof IntersectionObserver === "undefined") { setInView(false); return; }
+    const io = new IntersectionObserver((entries) => setInView(entries.some((e) => e.isIntersecting)), { threshold: 0.15 });
+    io.observe(section);
+    return () => io.disconnect();
+  }, [active]);
+  return inView;
 }
 
 export function BunchBar({ sorting, found, listing, runNames, undo, itemCount, readyCount, needs, onNeeds, onNext, onUndo, onUseOtherPrice }: {
@@ -25,7 +43,9 @@ export function BunchBar({ sorting, found, listing, runNames, undo, itemCount, r
   onUndo: () => void;
   onUseOtherPrice: () => void;
 }) {
-  if (!sorting && !listing && !undo && itemCount === 0) return null;
+  const listStepInView = useListStepInView(itemCount > 0);
+  const nextRow = !listing && !sorting && itemCount > 0 && !(listStepInView && !(needs && onNeeds));
+  if (!sorting && !listing && !undo && !nextRow) return null;
   return (
     <div className="sticky bottom-3 z-20 space-y-2 rounded-2xl border border-border bg-card p-3 shadow-md" data-bunch-bar="">
       {sorting && (
@@ -49,14 +69,14 @@ export function BunchBar({ sorting, found, listing, runNames, undo, itemCount, r
           <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onUndo}>Undo</Button>
         </div>
       )}
-      {!listing && !sorting && itemCount > 0 && (
+      {nextRow && (
         <div className="flex flex-wrap items-center gap-2">
           {needs && onNeeds ? (
             <Button type="button" variant="link" size="sm" className="h-auto min-w-0 flex-1 justify-start whitespace-normal p-0 text-left underline" data-bunch-needs="" onClick={onNeeds}>{needs}</Button>
           ) : (
             <span className="min-w-0 flex-1 text-sm text-muted-foreground">All {itemCount === 1 ? "set" : `${itemCount} set`}.</span>
           )}
-          <Button type="button" size="sm" className="rounded-full" disabled={readyCount === 0} data-bunch-next="" onClick={onNext}>Next: list {readyCount} {readyCount === 1 ? "item" : "items"}</Button>
+          {!listStepInView && <Button type="button" size="sm" className="rounded-full" disabled={readyCount === 0} data-bunch-next="" onClick={onNext}>Next: list {readyCount} {readyCount === 1 ? "item" : "items"}</Button>}
         </div>
       )}
     </div>

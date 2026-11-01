@@ -61,7 +61,7 @@ const OPEN_READERS = [...DEFS.keys()].filter((name) => {
 /** Functions that test 'open' where NO Helpr is listed, offered, suggested or handed the task. */
 const EXEMPT: Record<string, string> = {
   declutter_complete_handover: "its 'open' is a PROBLEM's status at a buyer and seller's handover; no Helpr is shown a delivery",
-  declutter_admin_decide_problem: "its 'open' is a PROBLEM's status; an admin decides it, no Helpr is shown a delivery",
+  declutter_admin_decide_problem: "its 'open' is a PROBLEM's status, and (20261101012052) a released task the admin faults its released Helpr on; no Helpr is shown a delivery",
   declutter_admin_decide_delivery_damage: "its 'open' is a PROBLEM's status; an admin decides it, no Helpr is shown a delivery",
   declutter_delivery_raise_open: "whether the BUYER may raise an open delivery's pay; no Helpr is shown one",
   declutter_delivery_raise_paid: "a buyer's raise is paid onto the open task; offers stay with the readers above",
@@ -69,6 +69,8 @@ const EXEMPT: Record<string, string> = {
   declutter_helpr_answer_no_show: "its 'open' is a PROBLEM's status; the booked Helpr answers a report, no Helpr is shown a delivery",
   helpr_task_source_held: "its 'open' is a PROBLEM's status (the money hold); no Helpr is shown a delivery",
   helpr_task_reopen: "puts a task back to open for the readers above; picks no Helpr",
+  declutter_delivery_return_finish: "re-posts a returned delivery (sets it back to open) for the readers above; picks no Helpr",
+  declutter_admin_decide_stuck_delivery: "its 'open' is a task the admin decides as can't finish (and a PROBLEM's status); no Helpr is shown a delivery",
   helpr_task_sweep: "the cron that closes unfilled tasks; picks no Helpr",
   helpr_tasks_open_count: "counts open deliveries by pickup area for a Helpr with no car yet (audit 1c D3-6); lists, offers, suggests and hands no task",
 };

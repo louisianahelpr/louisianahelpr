@@ -5,7 +5,6 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
-import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -22,6 +21,8 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
+// Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
+const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 const SmsPhonePrompt = lazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })));
 
 function greeting(d = new Date()) {
@@ -78,8 +79,11 @@ function HomeDashboardScreen() {
   // Profile's "Your sections" row opens Home with ?customize=1.
   const [params, setParams] = useSearchParams();
   const [customize, setCustomizeState] = useState(params.get("customize") === "1");
+  // Mounted from the first open on, so the sheet still animates closed.
+  const [customizeMounted, setCustomizeMounted] = useState(customize);
   const setCustomize = (open: boolean) => {
     setCustomizeState(open);
+    if (open) setCustomizeMounted(true);
     if (!open && params.has("customize")) setParams((p) => { const n = new URLSearchParams(p); n.delete("customize"); return n; }, { replace: true });
   };
   const first = profile?.full_name?.split(" ")[0];
@@ -346,7 +350,7 @@ function HomeDashboardScreen() {
         </div>
 
       </div>
-      <CustomizeSheet open={customize} onOpenChange={setCustomize} />
+      {customizeMounted && <Suspense fallback={null}><CustomizeSheet open={customize} onOpenChange={setCustomize} /></Suspense>}
       {/* Board 53 + the short coach-mark tour (owner 2026-10-20). It replaced the 7-step OnboardingTour,
           which only ever opened on /home from the Jobs feed and so never showed once Home moved here. */}
       <FirstRun userId={user?.id} onActiveChange={setFirstRunActive} />

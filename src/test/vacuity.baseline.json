@@ -23,12 +23,8 @@
     "e2e/job-status-fixtures/accepted.spec.ts"
   ],
   "mountWiring": [
-    "src/components/AppLockGate.tsx",
-    "src/components/ErrorBoundary.tsx",
-    "src/components/ForceUpdateGate.tsx",
     "src/components/GuestBrowseSkeleton.tsx",
     "src/components/HelperAvailability.tsx",
-    "src/components/RouteErrorBoundary.tsx",
     "src/components/admin/AdminBanEvasionReview.tsx",
     "src/components/admin/AdminUserDetailDialog.tsx",
     "src/components/admin/BanDialog.tsx",

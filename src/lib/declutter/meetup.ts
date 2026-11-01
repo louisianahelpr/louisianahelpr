@@ -21,7 +21,8 @@ export interface MeetupSpotNear {
   name: string;
   address: string;
   parish: string;
-  kind: MeetupKind;
+  /** B110: "seller" = a public place the seller added (20261101194608). */
+  kind: MeetupKind | "seller";
   note: string | null;
   miles: number | null;
   chosen: boolean;
@@ -108,6 +109,8 @@ export async function fetchAllMeetupSpots(): Promise<MeetupSpotRow[]> {
   const result = await supabase
     .from("declutter_meetup_spots")
     .select("id, parish, name, address, lat, lng, kind, note, active")
+    // B110: sellers' own meet spots are theirs to edit, not the admin list's.
+    .neq("kind", "seller")
     .order("parish")
     .order("name");
   if (isNotDeployedYet(result.error)) return [];
@@ -131,4 +134,52 @@ export async function adminSaveMeetupSpot(spot: Omit<MeetupSpotRow, "id"> & { id
   // Admin-only copy is fetched only on a refusal (lifecycleErrors.ts, loadAdminRpcErrorCopy).
   const admin = res.error ? await loadAdminRpcErrorCopy() : null;
   return rpcData(res, (e) => admin?.rpcErrorMessage("admin_declutter_save_meetup_spot", e) ?? null) as unknown as string;
+}
+
+/**
+ * B110 (owner 11-01 1:00 PM; migration 20261101194608): the SELLER's own public meet spots (a store lot, a library),
+ * each with its days and times. Buyers of this seller see them under "Meet up" at checkout, with the address (a public
+ * place); the police safe spots are offered as one-tap suggestions. Every rule is the server's.
+ */
+export type MeetupWindow = { weekday: number; starts: string; ends: string };
+export interface MyMeetupSpot { id: string; name: string; address: string; area: string; lat: number; lng: number; windows: MeetupWindow[] | null }
+export interface MeetupSuggestion { id: string; name: string; address: string; area: string; lat: number; lng: number }
+export const MY_MEETUP_SPOTS_KEY = ["declutter", "my-meetup-spots"] as const;
+export const MAX_MY_MEETUP_SPOTS = 10;
+/** Before the migration is on the server (PGRST202): the card stays hidden. */
+export const MEETUP_SPOTS_NOT_DEPLOYED = "not_deployed" as const;
+
+export async function fetchMyMeetupSpots(): Promise<MyMeetupSpot[] | typeof MEETUP_SPOTS_NOT_DEPLOYED> {
+  const res = await supabase.rpc("declutter_my_meetup_spots");
+  if (res.error && isMissingRpcNamed(res.error, "declutter_my_meetup_spots")) return MEETUP_SPOTS_NOT_DEPLOYED;
+  return ((rpcData(res, (e) => rpcErrorMessage("declutter_my_meetup_spots", e)) ?? []) as unknown as MyMeetupSpot[]);
+}
+
+export async function saveMyMeetupSpot(s: { id: string | null; name: string; address: string; area: string; lat: number; lng: number; windows: MeetupWindow[] | null }): Promise<string> {
+  const res = await supabase.rpc("declutter_save_my_meetup_spot", {
+    p_id: s.id, p_name: s.name, p_address: s.address, p_area: s.area, p_lat: s.lat, p_lng: s.lng, p_windows: s.windows,
+  });
+  return rpcData(res, (e) => rpcErrorMessage("declutter_save_my_meetup_spot", e)) as unknown as string;
+}
+
+export async function removeMyMeetupSpot(id: string): Promise<void> {
+  const res = await supabase.rpc("declutter_remove_my_meetup_spot", { p_id: id });
+  rpcData(res, (e) => rpcErrorMessage("declutter_remove_my_meetup_spot", e));
+}
+
+export async function fetchMeetupSuggestions(): Promise<MeetupSuggestion[]> {
+  const res = await supabase.rpc("declutter_meetup_spot_suggestions");
+  if (res.error && isMissingRpcNamed(res.error, "declutter_meetup_spot_suggestions")) return [];
+  return ((rpcData(res, (e) => rpcErrorMessage("declutter_meetup_spot_suggestions", e)) ?? []) as unknown as MeetupSuggestion[]);
+}
+
+/**
+ * B110: the days and times of the seller spot this buyer picked for this seller's cart (declutter_chosen_meetup_hours,
+ * 20261101195154), so the checkout's time chips are the spot's; null for an admin spot or a spot with none.
+ */
+export async function fetchChosenMeetupHours(sellerId: string): Promise<MeetupWindow[] | null> {
+  const res = await supabase.rpc("declutter_chosen_meetup_hours", { p_seller_id: sellerId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_chosen_meetup_hours")) return null;
+  const v = rpcData(res, (e) => rpcErrorMessage("declutter_chosen_meetup_hours", e)) as unknown;
+  return Array.isArray(v) && v.length > 0 ? (v as MeetupWindow[]) : null;
 }

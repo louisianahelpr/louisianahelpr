@@ -350,6 +350,10 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // 20260925154606 (Q407): the crew roll-up closes ONE under-filled crew's
     // staffing (open -> accepted) on the job the caller is on.
     ["public.rpc_group_member_mark_done", "single-job mutation on the caller's own crew; status is a precondition"],
+    // b60 per-member crew pay (20261101044659): approve locks ONE job by id; the
+    // due list is service_role only (process-scheduled-payouts), never a client feed.
+    ["public.rpc_poster_approve_member", "single-job mutation on the poster's own crew; status is a precondition"],
+    ["public.crew_members_due_early_payout", "service_role-only payout list for process-scheduled-payouts; no client can read it"],
     ["public.rpc_poster_report_member_no_show", "single-job mutation on the poster's own crew (JOBS-3); status is a precondition"],
     // 20260926034237 (Q342): locks ONE job by id to settle its chargeback; the
     // 'open' it tests is disputes.status, not a jobs feed.

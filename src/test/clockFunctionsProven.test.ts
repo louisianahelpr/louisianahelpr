@@ -70,6 +70,7 @@ const PROVEN: Record<string, string> = {
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
 // @two-way src/test/clockFunctionsProven.test.ts:NOT_PROVEN names a function that is gone, not cron-run, reads no clock, or is proven
 const NOT_PROVEN: Record<string, string> = {
+  declutter_alert_overdue_checks: "b61 overdue-check admin alert (20261101042045): declutterCheckSweep.pglite.mjs proves its windows by rewriting ai_check_cleared_at and ai_check_overdue_alerted_at relative to now(), not by moving the clock; no probe runs it on fixedClock.mjs at a 1 ms edge",
   declutter_hold_unchecked_listings: "B19 fail-safe of the check after posting (20261031152545): declutterCheckAfterPost.pglite.mjs proves its 15-minute window by rewriting live_at (20 and 30 minutes back), not by moving the clock; no probe runs it on fixedClock.mjs at a 1 ms edge",
   declutter_free_still_available_sweep: "declutterFreeStillAvailable.pglite.mjs proves its 14-day windows by rewriting stored timestamps (live_at, asked_at, answered_at), relative to now(), not on fixedClock.mjs at a 1 ms edge.",
   declutter_move_reminder_sweep: "moving-sale reminders: declutterMoveReminders.pglite.mjs writes each sale's date relative to today, not by moving the clock; no probe runs it at a fixed instant yet",

@@ -47,6 +47,7 @@ const RECORDERS = [
   ["declutter_set_offer_rules", "p_item_id uuid, a boolean, b boolean", "void", null],
   ["declutter_set_pickup_windows", "p jsonb", "integer", "jsonb_array_length(p)"],
   ["declutter_confirm_handover", "p_order_id uuid, a text, b text", "jsonb", "jsonb_build_object('ok', true)"],
+  ["declutter_order_talk_view", "p_order_id uuid", "jsonb", "jsonb_build_object('messages', '[]'::jsonb)"],
   ["declutter_complete_handover", "p_order_id uuid, a text", "jsonb", "jsonb_build_object('ok', true)"],
 ].map(([name, args, ret, val]) => `
   create function public.${name}(${args}) returns ${ret} language plpgsql security definer set search_path to 'public' as $f$
@@ -272,6 +273,19 @@ r = await as(M, `do $d$ begin
     if auth.uid() is distinct from '${M}'::uuid then raise exception 'still_acting_as_seller'; end if;
   end $d$`);
 check("after a successful action, in the same transaction, auth.uid() is the manager again", r.ok, r.err);
+
+// ── What the manager sees ────────────────────────────────────────────────────
+let ov = await as(M, `select public.declutter_managed_overview('${K}') as o`);
+let o = ov.rows?.[0]?.o;
+check("overview: the seller's own listings only", ov.ok && o.items.length === 2 && o.items.every((i) => i.title !== "Chair"), JSON.stringify(ov.err ?? o?.items?.map((i) => i.title)));
+check("overview: offers on her items only (Offers on)", o?.offers?.length === 1 && o.offers[0].id === off, JSON.stringify(o?.offers));
+check("overview: her sales as the SELLER only, never her purchases", o?.orders?.length === 1 && o.orders[0].id === ord, JSON.stringify(o?.orders));
+check("a stranger gets no overview", refused(await as(N, `select public.declutter_managed_overview('${K}')`), /not_your_seller/));
+await as(K, `select public.declutter_manager_set_permissions('${g1}', true, false, false, false, false)`);
+o = (await as(M, `select public.declutter_managed_overview('${K}') as o`)).rows?.[0]?.o;
+check("overview, Listing only: no offers, questions or sales", o?.offers?.length === 0 && o?.questions?.length === 0 && o?.orders?.length === 0, JSON.stringify(o && [o.offers, o.questions, o.orders]));
+check("Listing only: can't read an order chat", refused(await manage(M, K, "order_talk_view", { order_id: ord }), /permission_off/));
+await as(K, `select public.declutter_manager_set_permissions('${g1}', true, false, true, true, false)`);
 
 // ── Restricted manager, private tables, ending ──────────────────────────────
 await db.exec(`insert into public.t_banned values ('${M}')`);

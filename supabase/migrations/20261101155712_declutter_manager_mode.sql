@@ -455,6 +455,7 @@ BEGIN
     WHEN 'set_offer_rules' THEN 'offers'
     WHEN 'answer_question' THEN 'messages'
     WHEN 'send_order_message' THEN 'messages'
+    WHEN 'order_talk_view' THEN 'messages'
     WHEN 'set_pickup_windows' THEN 'pickups'
     WHEN 'confirm_handover' THEN 'pickups'
     WHEN 'complete_handover' THEN 'pickups'
@@ -481,7 +482,7 @@ BEGIN
     v_target := (v_a ->> 'question_id')::uuid;
     v_ok := EXISTS (SELECT 1 FROM public.declutter_questions q JOIN public.declutter_items i ON i.id = q.item_id
                      WHERE q.id = v_target AND i.seller_id = p_seller);
-  ELSIF p_action IN ('send_order_message', 'confirm_handover', 'complete_handover') THEN
+  ELSIF p_action IN ('send_order_message', 'order_talk_view', 'confirm_handover', 'complete_handover') THEN
     v_target := (v_a ->> 'order_id')::uuid;
     v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target AND seller_id = p_seller);
   ELSE
@@ -573,6 +574,7 @@ BEGIN
         (v_a ->> 'accepts_offers')::boolean, (v_a ->> 'auto_offers')::boolean)::text)
       WHEN 'answer_question' THEN to_jsonb(public.declutter_answer_question(v_target, v_a ->> 'answer'))
       WHEN 'send_order_message' THEN to_jsonb(public.declutter_send_order_message(v_target, v_a ->> 'body'))
+      WHEN 'order_talk_view' THEN public.declutter_order_talk_view(v_target)
       WHEN 'set_pickup_windows' THEN to_jsonb(public.declutter_set_pickup_windows(COALESCE(v_a -> 'windows', '[]'::jsonb)))
       WHEN 'confirm_handover' THEN public.declutter_confirm_handover(v_target, v_a ->> 'method', v_a ->> 'code')
       WHEN 'complete_handover' THEN public.declutter_complete_handover(v_target, v_a ->> 'by')
@@ -640,3 +642,58 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_manager_message_labels(text, uuid[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_manager_message_labels(text, uuid[]) TO anon, authenticated, service_role;
+
+-- 13. What the manager sees of the seller: her listings (any part on), open offers on them (Offers), questions on them
+--     (Messages), and her sales as the SELLER (Messages or Pickups). Never her purchases, money or address book.
+CREATE OR REPLACE FUNCTION public.declutter_managed_overview(p_seller uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_g public.declutter_manager_grants%ROWTYPE;
+BEGIN
+  PERFORM public.require_feature('declutter');
+  PERFORM public.require_feature('declutter_manager');
+  SELECT * INTO v_g FROM public.declutter_manager_grants
+   WHERE seller_id = p_seller AND manager_id = (SELECT auth.uid()) AND status = 'active';
+  IF v_g.id IS NULL THEN
+    RAISE EXCEPTION 'not_your_seller' USING ERRCODE = '42501';
+  END IF;
+  RETURN jsonb_build_object(
+    'grant_id', v_g.id,
+    'seller_first_name', public.declutter_manager_first_name(p_seller),
+    'parts', jsonb_build_object('list', v_g.can_list, 'prices', v_g.can_prices, 'offers', v_g.can_offers,
+                                'messages', v_g.can_messages, 'pickups', v_g.can_pickups),
+    'items', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('id', i.id, 'title', i.title, 'status', i.status,
+               'price_cents', i.current_price_cents, 'updated_at', i.updated_at,
+               'photo_path', (SELECT ph.storage_path FROM public.declutter_item_photos ph
+                               WHERE ph.item_id = i.id ORDER BY ph.position LIMIT 1))
+               ORDER BY i.updated_at DESC)
+        FROM public.declutter_items i
+       WHERE i.seller_id = p_seller AND i.status NOT IN ('withdrawn', 'removed')), '[]'::jsonb),
+    'offers', CASE WHEN v_g.can_offers THEN COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('id', o.id, 'item_id', o.item_id, 'amount_cents', o.amount_cents,
+               'awaiting', o.awaiting, 'respond_by', o.respond_by,
+               'buyer_first_name', public.declutter_manager_first_name(o.buyer_id)) ORDER BY o.respond_by)
+        FROM public.declutter_offers o
+       WHERE o.seller_id = p_seller AND o.status = 'open'), '[]'::jsonb) ELSE '[]'::jsonb END,
+    'questions', CASE WHEN v_g.can_messages THEN COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('id', q.id, 'item_id', q.item_id, 'question', q.question,
+               'answer', q.answer, 'answered_at', q.answered_at, 'created_at', q.created_at) ORDER BY q.created_at DESC)
+        FROM public.declutter_questions q JOIN public.declutter_items i ON i.id = q.item_id
+       WHERE i.seller_id = p_seller AND q.removed_at IS NULL), '[]'::jsonb) ELSE '[]'::jsonb END,
+    'orders', CASE WHEN v_g.can_messages OR v_g.can_pickups THEN COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('id', d.id, 'status', d.status, 'handover', d.handover,
+               'items_cents', d.items_cents, 'paid_at', d.paid_at, 'closed_at', d.closed_at,
+               'buyer_first_name', public.declutter_manager_first_name(d.buyer_id)) ORDER BY d.paid_at DESC)
+        FROM public.declutter_orders d
+       WHERE d.seller_id = p_seller AND d.status = 'paid'), '[]'::jsonb) ELSE '[]'::jsonb END
+  );
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_managed_overview(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_managed_overview(uuid) TO authenticated, service_role;

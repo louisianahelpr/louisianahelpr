@@ -11,6 +11,9 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   } else if (v.status === "failed") { |   } else if (v.status === "failed_never") {
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   } else if (v.status === "cancelled") { |   } else if (v.status === "cancelled_never") {
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && !v.stuck_stage && toRoute} |           {null}
+ * @mutate src/components/declutter/DeliveryCantFinish.tsx |  ariaLabel="The right address" plainWithoutMapKit keepListInView /> |  ariaLabel="The right address" />
+ * @mutate src/components/declutter/DeliveryCantFinish.tsx | <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" | <input type="radio"
+ * @mutate src/components/declutter/DeliveryCantFinish.tsx |       {!chosen && <p className="text-sm font-semibold">What would you like to happen?</p>} |
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
  * @mutate src/lib/declutter/stillInHand.ts |   if (!pickedUpAt \|\| !heldPastADay(pickedUpAt)) return null; |   if (true) return null;
  * @mutate src/components/declutter/DeliverVehicleForm.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
@@ -52,7 +55,11 @@ vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({
 // Q2435: the Busy right now card reads the Browse map's jobs and loads MapKit; not what this file tests.
 vi.mock("@/components/busyAreas/BusyAreasCard", () => ({ BusyAreasCard: () => null }));
 // BUY-36: the corrected-address field loads MapKit (mapkit-token); its search is not under test here.
-vi.mock("@/components/postjob/AddressAutocomplete", () => ({ AddressAutocomplete: () => null }));
+// B42: it stands in as the plain box the real one keeps only with plainWithoutMapKit (without it, the real one draws
+// nothing until MapKit is ready, and the label sat over an empty space at 375 and 1440).
+vi.mock("@/components/postjob/AddressAutocomplete", () => ({
+  AddressAutocomplete: (p: { id?: string; plainWithoutMapKit?: boolean }) => (p.plainWithoutMapKit ? <input id={p.id} data-address-plain="" /> : null),
+}));
 const position = { off: false };
 vi.mock("@/lib/declutter/position", () => ({
   currentPosition: async () => {
@@ -556,6 +563,11 @@ describe("DeliverView (the Helpr's screen)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "I can't deliver this" }));
     const sheet = await waitFor(() => { const e = document.querySelector<HTMLElement>('[data-confirm-sheet="delivery-cant-finish"]'); expect(e).not.toBeNull(); return e as HTMLElement; });
     fireEvent.click(within(sheet).getByRole("radio", { name: "My vehicle, or I can't finish" }));
+    // B42 (screen check at 375): drawn at their own size, like every other Declutter radio list, inside a 44px row.
+    for (const r of within(sheet).getAllByRole("radio")) {
+      expect(r.className).toMatch(/(^|\s)min-h-0(\s|$)/);
+      expect(r.closest("label")?.className).toMatch(/(^|\s)min-h-11(\s|$)/);
+    }
     expect(within(sheet).getByText(/You aren't paid, and it's a delivery strike\./)).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Send" }));
     await waitFor(() => expect(state.calls).toContainEqual(["cant_finish", "t1", "cant_finish", ""]));
@@ -565,6 +577,8 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", helpr_first_name: "Hank", stuck_stage: "waiting_fix", stuck_fault: "none", stuck_fix_by: "2026-10-31T12:00:00Z", problem_open: false };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText(/less what the delivery cost, which pays the Helpr for the trip, and less the small part the card network kept/)).toBeInTheDocument();
+    // B42: the corrected-address box is there before MapKit is (it was an empty space under its label).
+    expect(screen.getByLabelText("The right address, if it changed")).toHaveAttribute("data-address-plain");
     fireEvent.change(screen.getByLabelText("What the Helpr needs to know"), { target: { value: "Gate code 1234" } });
     fireEvent.click(screen.getByRole("button", { name: "Send it to Hank" }));
     await waitFor(() => expect(state.calls).toContainEqual(["buyer_fix", "t1", "Gate code 1234", null, null]));
@@ -587,6 +601,8 @@ describe("DeliverView (the Helpr's screen)", () => {
   it("BUY-36: the Helpr's fault: the buyer picks a full refund, another Helpr or collecting it", async () => {
     state.view = { ...VIEW, status: "picked_up", picked_up_at: "2026-10-30T12:00:00Z", helpr_first_name: "Hank", stuck_stage: "returning", stuck_fault: "helpr", stuck_return_by: "2026-11-01T12:00:00Z", problem_open: false };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    // B42: the three buttons come with the question they answer.
+    expect(await screen.findByText("What would you like to happen?")).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("button", { name: "Refund me in full" }));
     const sheet = await waitFor(() => { const e = document.querySelector<HTMLElement>('[data-confirm-sheet="delivery-cant-finish-choice"]'); expect(e).not.toBeNull(); return e as HTMLElement; });
     expect(within(sheet).getByText(/All of your money comes back, delivery included/)).toBeInTheDocument();

@@ -6280,11 +6280,11 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "(err as { message?: unknown })?.message === \"location_required\" ? \"Turn on location, or add your area in your profile, to go online.\" : declutterErrorMessage(err)",
+        "text": "(err as { message?: unknown })?.message === \"location_required\" ? \"Turn on location, or add your ZIP code to your profile, to go online.\" : declutterErrorMessage(err)",
         "branches": [
           {
             "form": "literal",
-            "text": "Turn on location, or add your area in your profile, to go online."
+            "text": "Turn on location, or add your ZIP code to your profile, to go online."
           },
           {
             "form": "dynamic",

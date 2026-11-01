@@ -40,10 +40,13 @@ function countOf(r: Response): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-/** Called by the entry. No-op unless this is a cold load of /home with a live session. */
+/**
+ * Called by the entry. No-op unless this is a cold load of /home, or of `/` (B79: a member there is sent on to /home,
+ * by MarketingRedirect on the web and NativeRedirect in the app), with a live session.
+ */
 export function startHomePrefetch(pathname: string): void {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-  if (path !== "/home" || typeof fetch !== "function") return;
+  if ((path !== "/home" && path !== "/") || typeof fetch !== "function") return;
   const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   const session = storedSession(Date.now() / 1000);

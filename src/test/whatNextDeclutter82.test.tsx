@@ -13,7 +13,7 @@
  * @mutate src/components/declutter/BoughtWhatNext.tsx | l.my_side === "buyer" && | true &&
  * @mutate src/components/declutter/BoughtWhatNext.tsx |     return named.length ? named : null; |     return mine.length ? mine : null;
  * @mutate supabase/functions/declutter-checkout/index.ts | `/declutter?view=cart&paid=1&order=${order.order_id}` | "/declutter?view=cart&paid=1"
- * @mutate src/components/declutter/DeclutterHomeView.tsx | <><BoughtWhatNext /><BuyingDash todo={todo} /></> | <BuyingDash todo={todo} />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></> | <Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense>
  * Audit 1028 D1-3 (1a-b-pay-after-p1-375, 1a-b-meetpay-after-p1-1440): "Pick it up from the porch · Now" before any day
  * was booked, while the card behind said "Pick the day you'll come for it". The Now step is the buyer's real next move.
  * @mutate src/components/declutter/BoughtWhatNext.tsx |     : !!booking.data?.some((b) => b.order_id === orderId && b.slot_start)); |     : true);
@@ -125,6 +125,6 @@ describe("board 82: after buying", () => {
     cart = [line({})];
     at("?tab=buying");
     expect(screen.queryByTestId("what-next-sheet")).toBeNull();
-    expect(readFileSync(resolve(__dirname, "../../src/components/declutter/DeclutterHomeView.tsx"), "utf8")).toMatch(/<><BoughtWhatNext \/><BuyingDash todo=\{todo\} \/><\/>/);
+    expect(readFileSync(resolve(__dirname, "../../src/components/declutter/DeclutterHomeView.tsx"), "utf8")).toMatch(/<><BoughtWhatNext \/><Suspense fallback=\{<DeclutterTabBones \/>\}><BuyingDash todo=\{todo\} \/><\/Suspense><\/>/);
   });
 });

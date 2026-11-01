@@ -37,7 +37,7 @@
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && ( | o.my_side === "buyer" && (
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply ? "their price" : "their counter") | : "their counter")
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | : wantedReply\n            ? `"${o.item_title}": this reply ends | : false\n            ? `"${o.item_title}": this reply ends
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
+ * @mutate src/components/declutter/DeclutterTabHeads.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");

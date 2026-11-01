@@ -475,6 +475,8 @@ export const ADMIN_SCREENS: ScreenSpec[] = [
     url: `/admin?view=${view}`,
     rules: adminRules(),
   })),
+  // The member job page at one stage, on made-up data (owner 2026-11-01; src/pages/admin/preview/JobPreviewPage.tsx).
+  { name: "admin-preview-job", url: "/admin/preview/job?stage=working&viewer=poster", rules: adminRules() },
 ];
 
 /**

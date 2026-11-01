@@ -112,7 +112,7 @@ function rpcAnswer(name: string, body: Record<string, unknown>, s: PreviewSample
 const VERB: Record<string, string> = { POST: "save", PATCH: "update", PUT: "save", DELETE: "delete" };
 
 /** A fetch that answers Supabase from the sample. `log` records every Supabase request it saw. */
-export function createPreviewFetch(o: PreviewBackendOptions): { fetch: typeof fetch; log: PreviewRequestLog[] } {
+function createPreviewFetch(o: PreviewBackendOptions): { fetch: typeof fetch; log: PreviewRequestLog[] } {
   const base = o.supabaseUrl.replace(/\/+$/, "");
   const log: PreviewRequestLog[] = [];
   const previewFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {

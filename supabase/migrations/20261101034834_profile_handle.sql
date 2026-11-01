@@ -23,7 +23,16 @@
 --     (handle_has_contact: the profile never shows contact info), one already
 --     taken (handle_taken), and a second change (handle_already_changed).
 --
--- REPLAY-SAFE: ADD COLUMN IF NOT EXISTS; constraint and index guarded;
+-- PRIVACY REVIEW 2026-11-01 (lh-authz-rls, failed; fixed here, file not yet on main):
+--   * every function pins search_path to public, pg_temp;
+--   * one rule for a usable handle (profile_handle_problem): the default handle
+--     runs the same reserved-word and 7-digit checks as a picked one, and its
+--     fallback ("neighbor") is not reserved;
+--   * a handle once used is RETIRED for good (profile_handles_retired): nobody
+--     else can ever claim it, so an old shared link never shows a different
+--     person; public_profile_by_handle sends an old handle to its owner's page.
+--
+-- REPLAY-SAFE: ADD COLUMN IF NOT EXISTS; CREATE TABLE IF NOT EXISTS; constraint and index guarded;
 -- CREATE OR REPLACE; DROP TRIGGER IF EXISTS before CREATE; grants restated.
 -- Proof: src/test/pglite/profileHandle.pglite.mjs (--before is red).
 
@@ -36,16 +45,53 @@ ALTER TABLE public.profiles ADD CONSTRAINT profiles_handle_format
 
 CREATE UNIQUE INDEX IF NOT EXISTS profiles_handle_key ON public.profiles (handle) WHERE handle IS NOT NULL;
 
+-- The one rule for a usable handle, for a picked AND a default one (review 2026-11-01):
+-- NULL when usable, else the refusal: handle_invalid (format), handle_reserved (reads as
+-- the app's own page or staff), handle_has_contact (7+ digits: could be a phone number).
+CREATE OR REPLACE FUNCTION public.profile_handle_problem(p_handle text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT CASE
+    WHEN h IS NULL OR h !~ '^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){2,29}$' OR length(h) NOT BETWEEN 3 AND 30 THEN 'handle_invalid'
+    WHEN h = ANY (ARRAY['admin', 'administrator', 'support', 'help', 'helpr', 'helprs', 'louisianahelpr',
+                        'settings', 'profile', 'jobs', 'job', 'declutter', 'messages', 'account', 'login',
+                        'signup', 'sign-up', 'official', 'team', 'staff', 'moderator', 'security', 'api',
+                        'null', 'undefined', 'me', 'you', 'user', 'users', 'member', 'members'])
+         OR h LIKE 'louisianahelpr%' OR h LIKE 'admin%' THEN 'handle_reserved'
+    WHEN length(regexp_replace(h, '[^0-9]', '', 'g')) >= 7 THEN 'handle_has_contact'
+  END
+    FROM (SELECT p_handle AS h) x
+$function$;
+
+REVOKE ALL ON FUNCTION public.profile_handle_problem(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.profile_handle_problem(text) TO authenticated, service_role;
+
+-- Every handle ever used, kept for good (review 2026-11-01): a released handle is
+-- never claimed by anyone else, and an old shared link still finds its owner.
+CREATE TABLE IF NOT EXISTS public.profile_handles_retired (
+  handle text PRIMARY KEY,
+  user_id uuid NOT NULL,
+  retired_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS profile_handles_retired_user_idx ON public.profile_handles_retired (user_id);
+ALTER TABLE public.profile_handles_retired ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.profile_handles_retired FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.profile_handles_retired TO service_role;
+
 -- The slug of a display name (profiles.full_name): "Eli Broussard" -> "eli-b",
 -- the first word and the last word's initial, as the app shows names publicly
--- ("Eli B."). Pure; never NULL; "member" when the name gives fewer than 3.
+-- ("Eli B."). Pure; never NULL; "neighbor" when the name gives fewer than 3
+-- usable characters or a handle that is reserved or looks like a phone number.
 CREATE OR REPLACE FUNCTION public.profile_handle_base(p_full_name text)
 RETURNS text
 LANGUAGE sql
 IMMUTABLE
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
-  SELECT CASE WHEN length(b) >= 3 THEN b ELSE 'member' END
+  SELECT CASE WHEN length(b) >= 3 AND public.profile_handle_problem(b) IS NULL THEN b ELSE 'neighbor' END
     FROM (
       SELECT left(lower(f), 24) || CASE WHEN l <> '' AND cardinality(w) > 1 THEN '-' || lower(left(l, 1)) ELSE '' END AS b
         FROM (
@@ -64,7 +110,7 @@ GRANT EXECUTE ON FUNCTION public.profile_handle_base(text) TO authenticated, ser
 CREATE OR REPLACE FUNCTION public.enforce_profile_handle_server_owned()
 RETURNS trigger
 LANGUAGE plpgsql
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 BEGIN
   IF (NEW.handle IS DISTINCT FROM OLD.handle OR NEW.handle_changed_at IS DISTINCT FROM OLD.handle_changed_at)
@@ -87,7 +133,7 @@ CREATE TRIGGER trg_profile_handle_server_owned
 CREATE OR REPLACE FUNCTION public.enforce_profile_handle_insert_server_owned()
 RETURNS trigger
 LANGUAGE plpgsql
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 BEGIN
   IF (NEW.handle IS NOT NULL OR NEW.handle_changed_at IS NOT NULL)
@@ -107,12 +153,49 @@ CREATE TRIGGER trg_profile_handle_insert_server_owned
   BEFORE INSERT ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.enforce_profile_handle_insert_server_owned();
 
+-- A handle leaving a row (changed, cleared or the row deleted) is retired; a handle
+-- another member retired is refused as taken (unique_violation, which both RPCs
+-- already turn into the next try / handle_taken). The advisory lock on the handle
+-- orders a claim after a concurrent retirement of the same handle.
+CREATE OR REPLACE FUNCTION public.profile_handle_retire()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $function$
+BEGIN
+  IF TG_OP IN ('UPDATE', 'DELETE') AND OLD.handle IS NOT NULL
+     AND (TG_OP = 'DELETE' OR NEW.handle IS DISTINCT FROM OLD.handle) THEN
+    PERFORM pg_advisory_xact_lock(hashtext('profile_handle:' || OLD.handle));
+    INSERT INTO public.profile_handles_retired (handle, user_id)
+    VALUES (OLD.handle, OLD.user_id)
+    ON CONFLICT (handle) DO NOTHING;
+  END IF;
+  IF TG_OP IN ('INSERT', 'UPDATE') AND NEW.handle IS NOT NULL
+     AND (TG_OP = 'INSERT' OR NEW.handle IS DISTINCT FROM OLD.handle) THEN
+    PERFORM pg_advisory_xact_lock(hashtext('profile_handle:' || NEW.handle));
+    IF EXISTS (SELECT 1 FROM public.profile_handles_retired r
+                WHERE r.handle = NEW.handle AND r.user_id <> NEW.user_id) THEN
+      RAISE EXCEPTION 'handle_retired' USING ERRCODE = '23505';
+    END IF;
+  END IF;
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.profile_handle_retire() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_profile_handle_retire ON public.profiles;
+CREATE TRIGGER trg_profile_handle_retire
+  BEFORE INSERT OR DELETE OR UPDATE OF handle ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_retire();
+
 -- The caller's handle, made from their name the first time it is needed.
 CREATE OR REPLACE FUNCTION public.rpc_ensure_my_handle()
 RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
   v_uid uuid := auth.uid();
@@ -133,21 +216,33 @@ BEGIN
     RETURN v_row.handle;
   END IF;
 
-  v_base := public.profile_handle_base(v_row.full_name);
+  -- The same rule as a picked handle (profile_handle_problem): profile_handle_base never
+  -- returns a reserved or phone-like base, and a numbered try that would reach 7 digits is
+  -- skipped. 23 characters leave room for "-" and a 6-letter tail inside the 30 limit.
+  v_base := rtrim(left(public.profile_handle_base(v_row.full_name), 23), '-');
   v_try := v_base;
   PERFORM set_config('app.profile_handle_rpc', '1', true);
   LOOP
-    BEGIN
-      UPDATE public.profiles SET handle = v_try WHERE user_id = v_uid;
-      EXIT;
-    EXCEPTION WHEN unique_violation THEN
-      v_n := v_n + 1;
-      IF v_n > 500 THEN
-        v_try := v_base || '-' || substr(md5(v_uid::text || clock_timestamp()::text), 1, 6);
-      ELSE
-        v_try := v_base || '-' || v_n::text;
-      END IF;
-    END;
+    IF public.profile_handle_problem(v_try) IS NULL THEN
+      BEGIN
+        UPDATE public.profiles SET handle = v_try WHERE user_id = v_uid;
+        EXIT;
+      EXCEPTION WHEN unique_violation THEN
+        NULL; -- taken or retired by someone else: try the next one
+      END;
+    END IF;
+    v_n := v_n + 1;
+    IF v_n > 2000 THEN
+      RAISE EXCEPTION 'handle_unavailable' USING HINT = 'Try again in a moment.';
+    ELSIF v_n > 1000 THEN
+      -- Never loops forever: past 1,000 tries the base is the plain fallback.
+      v_try := 'neighbor-' || translate(substr(md5(v_uid::text || clock_timestamp()::text), 1, 6), '0123456789', 'ghijklmnop');
+    ELSIF v_n > 500 THEN
+      -- Letters only, so the tail never adds digits.
+      v_try := v_base || '-' || translate(substr(md5(v_uid::text || clock_timestamp()::text), 1, 6), '0123456789', 'ghijklmnop');
+    ELSE
+      v_try := v_base || '-' || v_n::text;
+    END IF;
   END LOOP;
   PERFORM set_config('app.profile_handle_rpc', '0', true);
   RETURN v_try;
@@ -162,31 +257,30 @@ CREATE OR REPLACE FUNCTION public.rpc_set_my_handle(p_handle text)
 RETURNS text
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
   v_uid uuid := auth.uid();
   v_new text := lower(btrim(coalesce(p_handle, '')));
+  v_problem text;
   v_row record;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
-  IF v_new !~ '^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){2,29}$' OR length(v_new) NOT BETWEEN 3 AND 30 THEN
+  v_problem := public.profile_handle_problem(v_new);
+  IF v_problem = 'handle_invalid' THEN
     RAISE EXCEPTION 'handle_invalid'
       USING HINT = 'Use 3 to 30 letters, numbers or single hyphens.';
-  END IF;
-  IF v_new = ANY (ARRAY['admin', 'administrator', 'support', 'help', 'helpr', 'helprs', 'louisianahelpr',
-                        'settings', 'profile', 'jobs', 'job', 'declutter', 'messages', 'account', 'login',
-                        'signup', 'sign-up', 'official', 'team', 'staff', 'moderator', 'security', 'api',
-                        'null', 'undefined', 'me', 'you', 'user', 'users', 'member', 'members'])
-     OR v_new LIKE 'louisianahelpr%' OR v_new LIKE 'admin%' THEN
+  ELSIF v_problem = 'handle_reserved' THEN
     RAISE EXCEPTION 'handle_reserved'
       USING HINT = 'That link is reserved. Try another.';
-  END IF;
-  IF v_new ~ '[0-9]{7,}' OR length(regexp_replace(v_new, '[^0-9]', '', 'g')) >= 7 THEN
+  ELSIF v_problem = 'handle_has_contact' THEN
     RAISE EXCEPTION 'handle_has_contact'
       USING HINT = 'Leave phone numbers out of your link.';
+  ELSIF v_problem IS NOT NULL THEN
+    RAISE EXCEPTION 'handle_invalid'
+      USING HINT = 'Use 3 to 30 letters, numbers or single hyphens.';
   END IF;
 
   SELECT p.user_id, p.handle, p.handle_changed_at INTO v_row

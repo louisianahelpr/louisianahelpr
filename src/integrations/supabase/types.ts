@@ -9227,6 +9227,24 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_handles_retired: {
+        Row: {
+          handle: string
+          retired_at: string
+          user_id: string
+        }
+        Insert: {
+          handle: string
+          retired_at?: string
+          user_id: string
+        }
+        Update: {
+          handle?: string
+          retired_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profile_search_rate_log: {
         Row: {
           created_at: string
@@ -18066,6 +18084,7 @@ export type Database = {
         Returns: boolean
       }
       profile_handle_base: { Args: { p_full_name: string }; Returns: string }
+      profile_handle_problem: { Args: { p_handle: string }; Returns: string }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
       prune_cron_http_requests: { Args: never; Returns: number }
       prune_cron_run_details: { Args: never; Returns: number }

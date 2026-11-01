@@ -7,7 +7,13 @@
  * src/test/pglite/publicProfileByHandle.pglite.mjs (--before red 9/9; 13 planted defects each red). This file pins
  * the newest definition's load-bearing clauses, so a later restatement that drops one is red here.
  *
- * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | IF v_p.user_id IS NULL OR public.is_test_member(v_p.user_id) THEN | IF v_p.user_id IS NULL THEN
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |      OR public.is_test_member(v_p.user_id) THEN | THEN
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |      OR COALESCE(public.member_under_18(v_p.user_id), true) | 
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |      OR public.declutter_member_out(v_p.user_id) | 
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | AND p.ban_status IS DISTINCT FROM 'temp_banned' | 
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | SET search_path TO 'public', 'pg_temp' | SET search_path TO 'public'
+ * @mutate supabase/migrations/20261101034834_profile_handle.sql |     IF public.profile_handle_problem(v_try) IS NULL THEN | IF true THEN
+ * @mutate supabase/migrations/20261101034834_profile_handle.sql |       RAISE EXCEPTION 'handle_retired' USING ERRCODE = '23505'; | NULL;
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | 'town', public.mask_job_location(j.location), | 'town', j.location,
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND w.public | 
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND j.status = 'open' | 
@@ -37,8 +43,11 @@ describe("the newest public_profile_by_handle keeps every rule", () => {
   });
 
   it.each([
-    ["no page for a test member", "IF v_p.user_id IS NULL OR public.is_test_member(v_p.user_id) THEN RETURN NULL;"],
-    ["no page for a banned, unverified or deleted member", "AND p.email_verified AND (p.ban_status IS NULL OR p.ban_status NOT IN ('temp_banned', 'permanently_banned')) AND p.is_seed IS NOT TRUE AND p.anonymized_at IS NULL"],
+    ["no page for a test member", "OR public.is_test_member(v_p.user_id) THEN RETURN NULL;"],
+    ["no page for a banned (any form), unverified or deleted member", "AND p.email_verified AND p.ban_status IS DISTINCT FROM 'banned' AND p.ban_status IS DISTINCT FROM 'temp_banned' AND p.ban_status IS DISTINCT FROM 'permanently_banned' AND p.is_seed IS NOT TRUE AND p.anonymized_at IS NULL"],
+    ["no page for a member out of Declutter (review 2026-11-01)", "OR public.declutter_member_out(v_p.user_id)"],
+    ["no page for a member under 18 (lead 2026-11-01)", "OR COALESCE(public.member_under_18(v_p.user_id), true)"],
+    ["an old handle opens only its owner's page", "p.user_id = (SELECT r.user_id FROM public.profile_handles_retired r WHERE r.handle = v_handle)"],
     ["the job's town, never its address", "'town', public.mask_job_location(j.location),"],
     ["open jobs only", "AND j.status = 'open'"],
     ["never past the offer cutoff", "AND public.job_offer_cutoff(j.date_needed, j.start_time) > now()"],
@@ -56,8 +65,25 @@ describe("the newest public_profile_by_handle keeps every rule", () => {
     expect(keys.filter((k) => banned.test(k))).toEqual([]);
   });
 
+  it("pins search_path to public, pg_temp (review 2026-11-01)", () => {
+    const file = blankSqlComments(def?.file ? readFileSync(resolve(MIGRATIONS, def.file), "utf8") : "");
+    expect(file).toMatch(/FUNCTION public\.public_profile_by_handle\(p_handle text\)[\s\S]*?SET search_path TO 'public', 'pg_temp'/);
+  });
+
   it("anon can call it", () => {
     const file = blankSqlComments(def?.file ? readFileSync(resolve(MIGRATIONS, def.file), "utf8") : "");
     expect(file).toContain(`GRANT EXECUTE ON FUNCTION public.${RPC}(text) TO anon, authenticated, service_role;`);
+  });
+});
+
+describe("the newest handle functions keep the review's rules (2026-11-01)", () => {
+  const body = (fn: string) => blankSqlComments(defs.get(fn)?.body ?? "").replace(/\s+/g, " ");
+  it("a default handle runs the same checks as a picked one", () => {
+    expect(body("rpc_ensure_my_handle")).toContain("IF public.profile_handle_problem(v_try) IS NULL THEN");
+    expect(body("rpc_set_my_handle")).toContain("v_problem := public.profile_handle_problem(v_new);");
+    expect(body("profile_handle_base")).toContain("public.profile_handle_problem(b) IS NULL THEN b ELSE 'neighbor' END");
+  });
+  it("a retired handle is refused to anyone else", () => {
+    expect(body("profile_handle_retire")).toContain("RAISE EXCEPTION 'handle_retired' USING ERRCODE = '23505';");
   });
 });

@@ -25,8 +25,17 @@
 -- (a test member's page is NULL; every list drops is_seed rows), expired or cancelled jobs.
 --
 -- WHO: anon and members alike, the same answer for both (it reads auth.uid() nowhere itself).
--- A banned member, an unverified email, a deleted (anonymized) account or a test member
--- (is_test_member) has no page.
+-- No page (NULL) for: a banned or suspended member (any ban_status of banned, temp_banned or
+-- permanently_banned, lapsed or not) or one out of Declutter (declutter_member_out: 3 active
+-- strikes), a member under 18 (member_under_18, the signal declutter_seller_out and the
+-- hidden-seller rules use; the lead's conservative call 2026-11-01, the owner may loosen it),
+-- an unverified email, a deleted (anonymized) account, a seed or a test member (is_test_member).
+-- Listings also drop while the seller is hidden from Declutter (declutter_seller_out, e.g.
+-- business-like).
+--
+-- OLD LINKS (review 2026-11-01): a handle the member used before (profile_handles_retired,
+-- 20261101034834) opens THEIR current page; the answer's handle is the current one, so the page
+-- moves to it. A retired handle is never anyone else's.
 --
 -- REPLAY-SAFE: CREATE OR REPLACE; grants restated.
 -- Proof: src/test/pglite/publicProfileByHandle.pglite.mjs (--before is red).
@@ -36,7 +45,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 SET "TimeZone" TO 'America/Chicago'
 AS $function$
 DECLARE
@@ -59,12 +68,26 @@ BEGIN
   SELECT p.user_id, p.full_name, p.avatar_url, p.created_at, p.handle INTO v_p
     FROM public.profiles p
    WHERE p.handle = v_handle
-     AND p.email_verified
-     AND (p.ban_status IS NULL OR p.ban_status NOT IN ('temp_banned', 'permanently_banned'))
-     AND p.is_seed IS NOT TRUE
-     AND p.anonymized_at IS NULL
+      OR (p.handle IS NOT NULL
+          AND p.user_id = (SELECT r.user_id FROM public.profile_handles_retired r WHERE r.handle = v_handle))
+   ORDER BY (p.handle = v_handle) DESC
    LIMIT 1;
-  IF v_p.user_id IS NULL OR public.is_test_member(v_p.user_id) THEN
+  IF v_p.user_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+  -- Review 2026-11-01: banned in any form, restricted (out of Declutter), deleted, unverified,
+  -- seed, test or under 18 -> no page.
+  IF NOT EXISTS (SELECT 1 FROM public.profiles p
+                  WHERE p.user_id = v_p.user_id
+                    AND p.email_verified
+                    AND p.ban_status IS DISTINCT FROM 'banned'
+                    AND p.ban_status IS DISTINCT FROM 'temp_banned'
+                    AND p.ban_status IS DISTINCT FROM 'permanently_banned'
+                    AND p.is_seed IS NOT TRUE
+                    AND p.anonymized_at IS NULL)
+     OR public.declutter_member_out(v_p.user_id)
+     OR COALESCE(public.member_under_18(v_p.user_id), true)
+     OR public.is_test_member(v_p.user_id) THEN
     RETURN NULL;
   END IF;
 
@@ -104,6 +127,7 @@ BEGIN
          AND i.status = 'live'
          AND NOT i.seller_hidden
          AND i.is_seed IS NOT TRUE
+         AND NOT public.declutter_seller_out(v_p.user_id)
        ORDER BY coalesce(i.live_at, i.created_at) DESC
        LIMIT 24
     ) l;

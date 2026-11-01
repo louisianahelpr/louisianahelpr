@@ -84,7 +84,7 @@ describe("JA-41: Post a job opens on the group grid", () => {
     fireEvent.click(screen.getByRole("button", { name: /Use a template/ }));
     fireEvent.click(screen.getByRole("button", { name: /Hire a saved Helpr/ }));
     fireEvent.click(screen.getByRole("button", { name: /Describe it with AI/ }));
-    expect(form.setEntryPanel.mock.calls.map((c) => c[0])).toEqual(["templates", "offer", "ai"]);
+    expect(vi.mocked(form.setEntryPanel).mock.calls.map((c) => c[0])).toEqual(["templates", "offer", "ai"]);
   });
 
   it("a group tap goes straight to its kinds; a one-category group goes straight to Details", () => {

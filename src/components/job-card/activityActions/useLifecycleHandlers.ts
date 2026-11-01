@@ -14,6 +14,8 @@ import { safeStorage } from "@/lib/safeStorage";
 import { fireSuccessMoment } from "@/lib/successMoment";
 import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
+import { crewNobodyLeft } from "@/lib/crewLifecycle";
+import { hasJobStarted } from "@/lib/dateUtils";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
@@ -98,7 +100,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       if (crewOnRoster.length === 0) {
         // Nobody is left (every member was a no-show): the dialog says all of the money comes back
         // (CancellationDialog nobodyLeft), from THIS server read, never a roster map that may not have loaded.
-        setCancelDialogJob({ ...job, crewNobodyLeft: job.status === "in_progress" } as Job);
+        setCancelDialogJob({ ...job, crewNobodyLeft: crewNobodyLeft(job.status, [], true, hasJobStarted(job.date_needed, job.start_time)) } as Job);
         return;
       }
     }

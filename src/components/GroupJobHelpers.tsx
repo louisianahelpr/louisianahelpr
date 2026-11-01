@@ -393,7 +393,8 @@ export function GroupJobHelpers({
   const slotTotal = Math.max(1, Math.floor(helpersNeeded) || 1);
   const filledSlots = helpers.filter((h) => h.status === "accepted").length;
   const remaining = Math.max(0, slotTotal - filledSlots);
-  const nobodyLeft = isOwner && !!onCancelJob && crewNobodyLeft(jobStatus, helpers, rosterKnown);
+  const started = hasJobStarted(dateNeeded, startTime, new Date());
+  const nobodyLeft = isOwner && !!onCancelJob && crewNobodyLeft(jobStatus, helpers, rosterKnown, started);
 
   return (
     /* FLAT, like the poster tracker (6e3d2f7d1) and HelperTrackerPanel
@@ -515,9 +516,9 @@ export function GroupJobHelpers({
               The server keeps it booked, lets the poster refill the spot from
               their applicants before the start, and refunds the empty spot's
               share when the job pays out. */}
-          {jobStatus === "accepted"
+          {jobStatus === "accepted" && !started
             ? `${remaining} spot${remaining > 1 ? "s" : ""} open. The rest of your crew is still on: hire from your applicants before the start, or most of that share comes back to you after the job.`
-            : jobStatus === "in_progress" || jobStatus === "revision_requested"
+            : jobStatus === "accepted" || jobStatus === "in_progress" || jobStatus === "revision_requested"
               ? `${remaining} spot${remaining > 1 ? "s" : ""} open. Most of that share comes back to you after the job.`
               : `${remaining} more Helpr${remaining > 1 ? "s" : ""} needed`}
         </p>

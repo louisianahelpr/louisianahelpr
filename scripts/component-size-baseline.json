@@ -10,7 +10,7 @@
     "src/components/job-card/JobListPage.tsx": 639,
     "src/components/JobTracking.tsx": 1835,
     "src/components/messages/ConversationList.tsx": 1748,
-    "src/components/MobileNav.tsx": 696,
+    "src/components/MobileNav.tsx": 695,
     "src/components/NotificationPanel.tsx": 963,
     "src/components/NotificationPreferences.tsx": 873,
     "src/components/postjob/CheckoutStep.tsx": 754,

@@ -3,6 +3,7 @@ import { withCardHoldCapture } from "@/lib/cardHoldCapture";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { arrivalVerdictFromRpc, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { doneFloorStart } from "@/lib/doneFloor";
 import type { AcceptMissing } from "@/lib/awardGate";
 
@@ -283,7 +284,7 @@ export async function posterReportMemberNoShow(jobId: string, memberId: string):
   if (error) {
     // PGRST202: the app is newer than the database (the migration has not deployed yet). Expected for a few
     // minutes after a release, so it is said plainly and not reported as a fault.
-    if ((error as { code?: string }).code === "PGRST202") {
+    if (isMissingRpcNamed(error, "rpc_poster_report_member_no_show")) {
       throw new CrewActionError(CREW_NO_SHOW_NOT_READY, error, error.message);
     }
     throw new CrewActionError(rpcErrorMessage("rpc_poster_report_member_no_show", error), error, error.message);

@@ -9,7 +9,7 @@ import { useFeatureStatus } from "@/hooks/useFeature";
  *
  * Every member-facing place that asks for, offers or promises an ID check reads
  * this (or identityCheckOn() from src/lib/identityCheckSwitch.ts, which
- * IdentityCheckHost keeps equal to it). Guard:
+ * IdentityCheckMount keeps equal to it). Guard:
  * src/test/identityCheckOffEntryPoints.test.ts.
  */
 // (A bare useIdentityCheckOn(): boolean was exported here and read by nothing; deadcodeRatchet. Read .on.)

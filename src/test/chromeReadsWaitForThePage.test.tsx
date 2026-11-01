@@ -138,9 +138,9 @@ describe("the chrome's reads wait for the page's own", () => {
 
   it("Terms and ban checks are not held back, and the chrome starts the watch", () => {
     const code = (p: string) => blankNonCode(readFileSync(resolve(__dirname, "../..", p), "utf8"));
-    expect(code("src/App.tsx")).toContain("<TermsReconsentDialog />");
+    expect(code("src/App.tsx")).toContain("<TermsReconsentMount />");
     expect(code("src/components/SignedInChrome.tsx")).toContain("startPageReadsWatch(queryClient)");
-    for (const f of ["src/components/TermsReconsentDialog.tsx", "src/components/StrikeBanner.tsx", "src/components/ProtectedRoute.tsx"]) {
+    for (const f of ["src/components/TermsReconsentDialog.tsx", "src/components/TermsReconsentMount.tsx", "src/components/StrikeBanner.tsx", "src/components/ProtectedRoute.tsx"]) {
       expect(code(f)).not.toContain("usePageReadsSettled");
     }
   });

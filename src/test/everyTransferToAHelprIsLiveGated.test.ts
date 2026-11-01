@@ -45,7 +45,7 @@ const SENDERS: Record<string, Entry> = {
     why: "its own live accounts.retrieve right before the transfer, on the same three facts as the shared gate (payouts and charges enabled, transfers capability active, not rejected) plus a rejected platform (409 codes auto-release-payment reads as held)",
   },
   "supabase/functions/declutter-money/index.ts": {
-    sites: 3,
+    sites: 4, // + manager mode phase 2b: the manager's share, same live gate (payeeReadyNow)
     gated: false,
     why: "its own live gate before every transfer (_shared/connectReadiness.ts readConnectReadiness: transfers capability active, else deferred)",
   },

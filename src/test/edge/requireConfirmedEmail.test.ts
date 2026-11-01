@@ -54,6 +54,9 @@ const GATED = [
   "declutter-ai-reply",
   "declutter-card",
   "declutter-checkout",
+  // B63 (20261101054258): the member path resolves its caller with getUser() (the cron path is the service secret);
+  // it refuses an unconfirmed caller before it reads or removes anything (lead 11-01).
+  "declutter-photo-purge",
   "geocode-address",
   "shop-checkout",
   // B54 S2 (20261030012052): ship-rates resolves its caller with getUser() and refuses an unconfirmed one.

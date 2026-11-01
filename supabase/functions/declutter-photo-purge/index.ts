@@ -5,6 +5,7 @@ import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { requireFeature } from "../_shared/featureSwitch.ts";
+import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 
 // Declutter photo object purge (B63, migration 20261101054258).
 //
@@ -42,6 +43,8 @@ serve(async (req) => {
       if (!jwt) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
       const { data: auth, error: authError } = await admin.auth.getUser(jwt);
       if (authError || !auth?.user) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+      const unconfirmed = refuseUnconfirmedEmail(auth.user, corsHeaders);
+      if (unconfirmed) return unconfirmed;
       const refused = await requireFeature(admin, "declutter", auth.user, corsHeaders);
       if (refused) return refused;
       seller = auth.user.id;

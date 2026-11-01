@@ -216,6 +216,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     // notification addressed to an ADMIN; returns only that row's title/message, never the id.
     // REVOKEd from PUBLIC, anon and authenticated (called by the notifications trigger).
     "function:notification_admin_full_names": "no-return",
+    // Profile link (20261101041833): reads the offeree only to drop a job under a pending direct offer from the
+    // member's /u page; returns id, title, category, town, budget and date_needed, never the column.
+    "function:public_profile_by_handle": "no-return",
     "function:get_my_pending_direct_offers": "own-row-only",
     "function:get_jobs_for_my_applications": "returns-guarded",
     "view:open_jobs_browse": "returns-guarded",

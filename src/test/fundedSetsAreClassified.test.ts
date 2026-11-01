@@ -49,6 +49,8 @@ const LISTED = [
   "enforce_group_roster_award_gate", "link_str_turnover_job", "rentals_request_job_state",
   // both: an offer is answered on a listed job, the hire completes on captured money
   "accept_job_offer", "respond_to_direct_offer", "enforce_job_funded_before_award",
+  // Profile link (20261101041833): the member's open jobs on /u, the same funded set as open_jobs_browse (read only).
+  "public_profile_by_handle",
   // the predicates themselves
   "job_payment_is_listed",
 ] as const;

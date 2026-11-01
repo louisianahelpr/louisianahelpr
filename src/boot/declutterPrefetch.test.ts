@@ -80,7 +80,8 @@ describe("the entry's /declutter first screen", () => {
   });
 
   it("the server answers every column Browse's reads ask for, and no other", () => {
-    const api = blankComments(readFileSync("src/lib/declutter/api.ts", "utf8"));
+    // ITEM_COLUMNS lives in myReads.ts (B87), DROP_COLUMNS in api.ts.
+    const api = blankComments(readFileSync("src/lib/declutter/api.ts", "utf8") + readFileSync("src/lib/declutter/myReads.ts", "utf8"));
     const quoted = (name: string) => (api.match(new RegExp(`const ${name} =\\s*"([^"]+)"`))?.[1] ?? "").split(", ");
     const asked = [...quoted("ITEM_COLUMNS"), ...quoted("DROP_COLUMNS")];
     expect(asked.length).toBeGreaterThan(15);

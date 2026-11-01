@@ -4,7 +4,7 @@ import { loadModule } from "@/lib/loadModule";
 // The refusal copy (about 100 KB raw) loads only when the server refuses, not with every screen that can ask
 // (AUD31-60/66, the /home cut). Guard: src/test/homeLoadsSectionReadsLazily.test.ts.
 const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors"));
-import { isNotDeployedYet } from "@/lib/seriesDates";
+import { isNotDeployedYet } from "@/lib/notDeployedYet";
 
 /**
  * A booked one-time job's date/time change request (Q407 (8),

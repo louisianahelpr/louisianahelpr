@@ -9,6 +9,10 @@ import { loadModule } from "@/lib/loadModule";
 // (AUD31-60/66, the /home cut). Guard: src/test/homeLoadsSectionReadsLazily.test.ts.
 const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors"));
 import { awardBlockMessage, type AcceptMissing } from "@/lib/awardGate";
+import { isNotDeployedYet } from "@/lib/notDeployedYet";
+
+/** A relation, column or RPC the database does not have yet: src/lib/notDeployedYet.ts. */
+export { isNotDeployedYet };
 
 /**
  * Who holds each visit date of a recurring series (20260927012806,
@@ -41,16 +45,6 @@ export interface SeriesDatesView {
   offered: boolean;
   /** Everyone with an offer (the poster sees them all; a Helpr sees their own). */
   offeredTo: string[];
-}
-
-/**
- * A relation, column or RPC the database does not have yet (the web deploy ran
- * ahead of db-deploy). The panel renders nothing rather than an error.
- */
-export function isNotDeployedYet(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
-  if (!error) return false;
-  const code = String(error.code ?? "");
-  return ["42P01", "42703", "PGRST202", "PGRST204", "PGRST205"].includes(code);
 }
 
 /** Pure: fold the reads into per-date states. Exported for tests. */

@@ -7,8 +7,8 @@
 // @mutate src/boot/declutterPrefetch.ts |   startDeclutterMinePrefetch(base, key, session); |
 // @mutate src/lib/declutter/minePrefetchTake.ts |   s.taken.add(part); |
 // @mutate src/lib/declutter/minePrefetchTake.ts |   if (!userId \|\| s.userId !== userId) return null; |   if (!userId) return null;
-// @mutate src/lib/declutter/api.ts |   const prefetched = await takeMinePrefetch("cart", signedInUserId); |   const prefetched = null;
-// @mutate src/lib/declutter/api.ts |   const prefetched = await takeMinePrefetch("items", userId); |   const prefetched = null;
+// @mutate src/lib/declutter/myReads.ts |   const prefetched = await takeMinePrefetch("cart", signedInUserId); |   const prefetched = null;
+// @mutate src/lib/declutter/myReads.ts |   const prefetched = await takeMinePrefetch("items", userId); |   const prefetched = null;
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -66,8 +66,9 @@ describe("/declutter's tab-row reads start from the entry (B81)", () => {
   it("its URLs are the ones supabase-js builds for fetchMyCart, fetchMyOffers and fetchMyItems", () => {
     const sb = createClient(BASE, "k");
     const url = (q: unknown) => (q as { url: URL }).url.toString();
-    const itemColumns = /const ITEM_COLUMNS =\s*"([^"]+)";/.exec(code("src/lib/declutter/api.ts"))?.[1];
-    expect(itemColumns, "ITEM_COLUMNS found in api.ts").toBeTruthy();
+    // B87 moved the member's own listings and cart reads to myReads.ts (api.ts re-exports them).
+    const itemColumns = /const ITEM_COLUMNS =\s*"([^"]+)";/.exec(code("src/lib/declutter/myReads.ts"))?.[1];
+    expect(itemColumns, "ITEM_COLUMNS found in myReads.ts").toBeTruthy();
     expect(MY_ITEMS_SELECT).toBe(`${itemColumns}, handovers`);
     const want = {
       cart: url(sb.rpc("declutter_my_cart")),
@@ -75,10 +76,11 @@ describe("/declutter's tab-row reads start from the entry (B81)", () => {
       items: url(sb.from("declutter_items").select(`${itemColumns}, handovers`).eq("seller_id", UID).order("created_at", { ascending: false })),
     };
     expect(declutterMineUrls(BASE, UID)).toEqual(want);
-    // ...and the reads ask exactly those (the same chains in api.ts).
+    // ...and the reads ask exactly those (the same chains in myReads.ts and api.ts).
+    const mine = code("src/lib/declutter/myReads.ts");
     const src = code("src/lib/declutter/api.ts");
-    expect(src).toContain('supabase.from("declutter_items").select(`${cols}, handovers`).eq("seller_id", userId).order("created_at", { ascending: false })');
-    expect(src).toContain('await supabase.rpc("declutter_my_cart")');
+    expect(mine).toContain('supabase.from("declutter_items").select(`${cols}, handovers`).eq("seller_id", userId).order("created_at", { ascending: false })');
+    expect(mine).toContain('await supabase.rpc("declutter_my_cart")');
     expect(src).toContain('await supabase.rpc("declutter_my_offers")');
   });
 

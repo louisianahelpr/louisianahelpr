@@ -19,12 +19,13 @@ import ts from "typescript";
 // @mutate src/components/notificationPanel/NotificationBell.tsx |     const mod = await import("@/components/NotificationPanel"); |     const mod = await Promise.resolve(NotificationPanelNow);
 // @mutate src/components/firstRun/FirstRunHost.tsx | const FirstRunScreens = lazy(() => import("./FirstRun")); | import FirstRunScreens from "./FirstRun";
 // @mutate src/pages/home/HomeDashboard.tsx | import { FirstRun } from "@/components/firstRun/FirstRunHost"; | import { FirstRun } from "@/components/firstRun/FirstRun";
-// @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterApi = () => loadModule(() => import("@/lib/declutter/api")); | import * as declutterApiNow from "@/lib/declutter/api";\nconst declutterApi = async () => declutterApiNow;
+// @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterApi = () => loadModule(() => import("@/lib/declutter/myReads")); | import * as declutterApiNow from "@/lib/declutter/myReads";\nconst declutterApi = async () => declutterApiNow;
 
 const HOME_FILES = ["src/pages/home/homeDashboard/useHomeSummary.ts", "src/pages/home/homeDashboard/needsYouTodos.ts"];
-const SECTION_DATA = ["@/lib/declutter/api", "@/lib/declutter/handover", "@/lib/shops/orders", "@/lib/rentals/api"];
+// B87: Home reads Declutter through myReads, never api.ts (src/test/homeLazyReadsStayLight.test.ts).
+const SECTION_DATA = ["@/lib/declutter/myReads", "@/lib/declutter/handover", "@/lib/shops/orders", "@/lib/rentals/api"];
 /** On Home's path (dock unread count -> userBlocks; Activity -> scheduleChange / seriesDates); refusal copy loads on a refusal. */
-const REFUSAL_COPY_SITES = ["src/lib/userBlocks.ts", "src/lib/scheduleChange.ts", "src/lib/seriesDates.ts"];
+const REFUSAL_COPY_SITES = ["src/lib/userBlocks.ts", "src/lib/scheduleChange.ts", "src/lib/seriesDates.ts", "src/lib/declutter/myReads.ts"];
 
 /** Static value imports (not `import type`, not type-only specifiers) of a section data module. */
 function staticValueImports(file: string, modules: string[] = SECTION_DATA): string[] {

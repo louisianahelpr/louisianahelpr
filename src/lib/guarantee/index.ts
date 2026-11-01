@@ -76,6 +76,7 @@ export interface GuaranteeJob {
   helper_completed_at?: string | null;
   poster_completed_at?: string | null;
   completed_at?: string | null;
+  has_active_dispute?: boolean | null;
 }
 
 /** When the job was done: jobs.completed_at, the column the server's 48-hour rule reads; else the later done stamp. */
@@ -86,6 +87,22 @@ function jobDoneAt(job: GuaranteeJob): Date | null {
 }
 
 /** "Not done right" is offered to the poster of a finished one-Helpr job, unpaid out, within 48 hours, with no claim yet. */
+/** The live work statuses where the poster's guarantee explainer applies (JA-28). */
+const EXPLAINER_LIVE = new Set(["in_progress", "revision_requested"]);
+
+/**
+ * Whether the poster's Helpr Guarantee EXPLAINER belongs on the job (audit 11-01 JA-28): from Working until the
+ * 48-hour window after Done closes. Never on a job that cannot use it (posted, booked, cancelled, expired, a
+ * no-show) and never while a dispute is open (the advice would be wrong). An open claim shows its own view instead.
+ */
+export function guaranteeExplainerApplies(job: GuaranteeJob, now: Date = new Date()): boolean {
+  if (job.has_active_dispute || job.status === "disputed") return false;
+  if (EXPLAINER_LIVE.has(job.status ?? "")) return true;
+  if (job.status !== "completed") return false;
+  const done = jobDoneAt(job);
+  return !!done && now.getTime() - done.getTime() < GUARANTEE_RULES.claimWindowHours * 3600_000;
+}
+
 export function canAskForFix(job: GuaranteeJob, viewerId: string, claim: GuaranteeClaim | null, now: Date = new Date()): boolean {
   if (claim) return false;
   if (job.customer_id !== viewerId || job.status !== "completed" || job.payment_status !== "payout_pending") return false;

@@ -7,6 +7,7 @@ import { SectionHeading } from "@/components/declutter/DeclutterTradeViews";
 import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { MeetupTimesCard } from "@/components/declutter/MeetupTimesCard";
 import { SellPorchPlaces } from "@/components/declutter/SellPorchPlaces";
+import { SellMeetupSpots } from "@/components/declutter/SellMeetupSpots";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
@@ -24,6 +25,8 @@ function DeclutterSettings() {
     <AppPage title="Declutter settings" backTo="/declutter?tab=selling">
       <div className="space-y-section pb-6" data-testid="declutter-settings">
         <SellPorchPlaces card />
+        {/* B110 (owner 11-01): the seller's own public meet spots, for buyers choosing Meet up. */}
+        <SellMeetupSpots />
         {/* Lead's call 2026-10-31: the usual times are only for meetups, so they show only when a meetup is offered. */}
         <MeetupTimesCard userId={user.id} />
         <section className="space-y-2" aria-label="Listing defaults">

@@ -52,7 +52,7 @@ for (const f of BASES) {
 if (!skip) {
   const sql = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}${NEW_FILE}`, "utf8");
   for (let i = 0; i < 3; i++) {
-    const r = await run(sql);
+    const r = await run(sql + "\n" + readFileSync(`${MIG_DIR}20261101195154_declutter_chosen_meetup_hours.sql`, "utf8"));
     ok(!r?.error, `the migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
   }
 }
@@ -61,7 +61,9 @@ const acl = one(await svc(`SELECT has_function_privilege('authenticated', 'publi
   AND has_function_privilege('authenticated', 'public.declutter_remove_my_meetup_spot(uuid)', 'EXECUTE')
   AND has_function_privilege('authenticated', 'public.declutter_meetup_spot_suggestions()', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.declutter_meetup_spot_near_lines(uuid, uuid[])', 'EXECUTE')
-  AND NOT has_function_privilege('authenticated', 'public.declutter_meetup_windows_ok(jsonb)', 'EXECUTE')`));
+  AND NOT has_function_privilege('authenticated', 'public.declutter_meetup_windows_ok(jsonb)', 'EXECUTE')
+  AND has_function_privilege('authenticated', 'public.declutter_chosen_meetup_hours(uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('anon', 'public.declutter_chosen_meetup_hours(uuid)', 'EXECUTE')`));
 ok(acl === true, `grants: the seller RPCs for signed-in members, not anon; the helpers service_role only (got ${short(acl)})`);
 
 
@@ -105,6 +107,10 @@ ok(Array.isArray(near) && near.some((x) => x.id === s1) && !near.some((x) => x.i
   `the buyer sees this seller's spot (any distance) and not another seller's (${short(near)})`);
 ok(refused(await me(BUYER, `SELECT public.declutter_set_meetup_spot('${SELLER2}', '${otherSpot}')`), /meetup_spot_unavailable/), "another seller's spot cannot be picked");
 ok(Array.isArray(await me(BUYER, `SELECT public.declutter_set_meetup_spot('${SELLER2}', '${s1}')`)), "the seller's spot is picked");
+const hours = one(await me(BUYER, `SELECT public.declutter_chosen_meetup_hours('${SELLER2}') AS h`));
+ok(Array.isArray(hours) && hours.length === 1 && hours[0].starts === "10:00", `the buyer reads the chosen spot's days and times for the chips (${short(hours)})`);
+const strangerHours = one(await me(BUYER2, `SELECT public.declutter_chosen_meetup_hours('${SELLER2}') AS h`));
+ok(strangerHours === null, `  another buyer (no choice) reads none (${short(strangerHours)})`);
 const outside = await me(BUYER, `SELECT * FROM public.declutter_start_checkout('${SELLER2}', 'meetup', '${await iso(at(1, "15:00"))}'::timestamptz)`);
 ok(refused(outside, /invalid_slot/), `3 PM (inside the seller's pickup times, outside the spot's 10-12): refused (${short(outside)})`);
 const inside = await me(BUYER, `SELECT * FROM public.declutter_start_checkout('${SELLER2}', 'meetup', '${await iso(at(1, "10:30"))}'::timestamptz)`);

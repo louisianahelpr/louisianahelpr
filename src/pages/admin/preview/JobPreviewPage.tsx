@@ -15,7 +15,6 @@ import { createPortal } from "react-dom";
 import { UNSAFE_NavigationContext, useNavigate, useSearchParams, type To } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/ui/chipClasses";
@@ -116,12 +115,12 @@ function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
       className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-[60] mx-auto max-w-2xl rounded-2xl border border-border bg-card p-3 shadow-lg pointer-events-auto lg:bottom-4 lg:left-[calc(var(--desktop-sidebar-w,0px)+1rem)] lg:right-auto lg:mx-0 lg:w-[34rem]"
     >
       <div className="flex items-center gap-2">
-        <Eye className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+        <PreviewGlyph d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" className="h-4 w-4 shrink-0 text-primary" />
         <p className="min-w-0 flex-1 truncate text-ds-14 font-semibold">
           Preview: {label} · {viewer === "poster" ? "Poster" : "Helpr"}
         </p>
         <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-          {open ? <ChevronDown className="h-4 w-4" aria-hidden /> : <ChevronUp className="h-4 w-4" aria-hidden />}
+          <PreviewGlyph d={open ? "m6 9 6 6 6-6" : "m18 15-6-6-6 6"} className="h-4 w-4" />
           {open ? "Hide" : "Change"}
         </Button>
       </div>
@@ -192,5 +191,18 @@ export default function JobPreviewPage() {
       </PreviewBackend>
       <PreviewControls stage={stage} viewer={viewer} onStage={(s) => set({ stage: s })} onViewer={(v) => set({ viewer: v })} onLeave={() => navigate("/admin?view=jobs")} />
     </>
+  );
+}
+
+/**
+ * The preview's three marks (eye, chevron down/up), drawn inline instead of from lucide-react (B111, 11-01): a new
+ * importer of lucide icons regroups the entriesAware icon chunks, and the extra group was named in the entry's preload
+ * lists (entry 5363 -> 5383 B gz, over budget; ~/.lh-shots/b111/cp-prev1.log). Same 24-unit stroke style as lucide.
+ */
+function PreviewGlyph({ d, className }: { d: string; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d={d} />
+    </svg>
   );
 }

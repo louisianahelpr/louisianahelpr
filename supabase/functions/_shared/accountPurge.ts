@@ -1152,6 +1152,31 @@ async function purgeIdentityStorage(
     }
   }
 
+  // The exact-path removals (chat attachments, a seller's listing photos in a Helpr's folder) are re-listed too:
+  // each one's own folder is read again and the path must be gone (lh-silent-failure review of 040208ea91).
+  for (const { bucket, paths } of extraPaths) {
+    const dirs = new Map<string, Set<string>>();
+    for (const p of paths) {
+      const cut = p.lastIndexOf("/");
+      if (cut <= 0) continue;
+      const dir = p.slice(0, cut);
+      dirs.set(dir, (dirs.get(dir) ?? new Set()).add(p));
+    }
+    for (const [dir, want] of dirs) {
+      try {
+        const left = (await listAllObjects(admin, bucket, dir)).filter((p) => want.has(p));
+        if (left.length > 0) {
+          failures.push(`${bucket}/${dir}: ${left.length} named object(s) still present after remove`);
+          allOk = false;
+        }
+      } catch (err) {
+        const msg = caughtMessage(err);
+        failures.push(`${bucket}/${dir}: could not verify removal (${msg})`);
+        allOk = false;
+      }
+    }
+  }
+
   // Verify by re-listing rather than trusting the null error. This is the
   // storage twin of the "a null error does not mean the write happened" rule,
   // and it matters here because these are government ID scans.
@@ -1332,18 +1357,26 @@ async function purgeDatabaseRows(
 
 /** PostgREST answers at most this many rows per request; every read below pages by it. */
 const PHOTO_PAGE = 1000;
+/** Below every uuid: the first page's keyset bound. */
+const NIL_UUID = "00000000-0000-0000-0000-000000000000";
 
-/** Every page of a photo read, ordered by id, until a short page: a cut-off at the row cap is never silent. */
+/**
+ * Every page of a photo read, by KEYSET (id > the last id seen, ordered by id) until a short page: a cut-off at the
+ * row cap is never silent, and a row deleted between two pages cannot shift the next page past one still there
+ * (an offset would skip it; lh-silent-failure review of 040208ea91).
+ */
 async function readAllPhotoPages(
-  build: (from: number, to: number) => PromiseLike<PostgrestLike<ListingPhotoRow[]>>,
+  build: (afterId: string | null, limit: number) => PromiseLike<PostgrestLike<(ListingPhotoRow & { id: string })[]>>,
 ): Promise<PostgrestLike<ListingPhotoRow[]>> {
   const all: ListingPhotoRow[] = [];
-  for (let from = 0; ; from += PHOTO_PAGE) {
-    const res = await build(from, from + PHOTO_PAGE - 1);
+  let after: string | null = null;
+  for (;;) {
+    const res = await build(after, PHOTO_PAGE);
     if (res.error) return { data: null, error: res.error };
     const rows = res.data ?? [];
     all.push(...rows);
     if (rows.length < PHOTO_PAGE) return { data: all, error: null };
+    after = rows[rows.length - 1].id;
   }
 }
 
@@ -1361,15 +1394,15 @@ export async function collectListedForSellerPhotos(
 ): Promise<{ ok: boolean; sellerExtra: string[]; helprKeep: Set<string> }> {
   const cols = "id, item_id, storage_path, seller_id";
   // The seller's own listings' photos stored in another member's folder.
-  const asSeller = await readAllPhotoPages((from, to) => admin
+  const asSeller = await readAllPhotoPages((afterId, limit) => admin
     .from("declutter_item_photos").select(cols)
     .eq("seller_id", userId).not("storage_path", "like", `${userId}/%`)
-    .order("id").range(from, to));
+    .gt("id", afterId ?? NIL_UUID).order("id").limit(limit));
   // Photos in this member's folder that belong to someone else's listing.
-  const asHelpr = asSeller.error ? asSeller : await readAllPhotoPages((from, to) => admin
+  const asHelpr = asSeller.error ? asSeller : await readAllPhotoPages((afterId, limit) => admin
     .from("declutter_item_photos").select(cols)
     .like("storage_path", `${userId}/declutter/%`).neq("seller_id", userId)
-    .order("id").range(from, to));
+    .gt("id", afterId ?? NIL_UUID).order("id").limit(limit));
   const err = asSeller.error ?? asHelpr.error;
   if (err) {
     console.error(`[accountPurge] could not read listed-for-seller photos for ${userId}:`, err.message);

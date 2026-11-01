@@ -21,6 +21,7 @@ import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 import { confirmDeadlineMs, confirmOpensMs, posterConfirmClosesMs } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
+import { workHasBegun } from "@/components/tracker/workHasBegun";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
@@ -647,15 +648,20 @@ export function posterStatusLine(
   instantRelease = false,
   /** The hired Helpr's display name: the sentence names them (Q1552). */
   helperName?: string | null,
+  /** The surface's tracking-row progress, when it has it (the job page's tracker): see workHasBegun. */
+  progress?: { workUnderway?: boolean },
 ): JobStatusLine {
   const id = derivePosterWait(job, pendingApplicantCount, now, completion);
   const copy = POSTER_WAIT[id];
   const bucket = postedActivityBucket(job, pendingApplicantCount, now);
-  const named = helperName ? POSTER_NAMED[id]?.(helperName, job) : undefined;
+  // "working" says "is working" exactly when the tracker's Working step has begun (workHasBegun: one rule for the
+  // card line, the tracker's line and the step colour; lead 2026-10-31), else "is at the job".
+  const atTheJob = id === "working" && !workHasBegun(job, { workUnderway: progress?.workUnderway });
+  const named = helperName ? (atTheJob ? `${firstName(helperName)} is at the job` : POSTER_NAMED[id]?.(helperName, job)) : undefined;
   return {
     id,
     eyebrow: copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: named ?? copy.detail,
+    detail: named ?? (atTheJob ? "Your Helpr is at the job" : copy.detail),
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival",
     suffix: id === "cancelled" ? cancelledSuffix(job) : null,
@@ -1072,8 +1078,8 @@ const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => strin
     `${firstName(n)} ${job.helper_dayof_confirmed_at ? "confirmed" : "accepted"} · confirm the job is still on`,
   on_the_way: (n) => `${firstName(n)} is on the way`,
   confirm_arrival: (n) => `${firstName(n)} arrived — confirm it`,
-  // The same truth as the tracker (jobProgress): "is working" only once the poster vouched for it.
-  working: (n, job) => `${firstName(n)} ${job.poster_confirmed_working_at ? "is working" : "is at the job"}`,
+  // Work has begun (posterStatusLine sends the not-begun case to "is at the job"): the tracker's own rule, workHasBegun.
+  working: (n) => `${firstName(n)} is working`,
   revision_out: (n) => `${firstName(n)} is making the fix`,
   revision_fixed: (n) => `${firstName(n)} sent the fix — check it`,
   stalled: (n) => `${firstName(n)} hasn't marked it done`,

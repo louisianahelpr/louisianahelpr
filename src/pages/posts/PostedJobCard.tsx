@@ -289,6 +289,8 @@ function PostedJobCardInner({
             </>
   );
 
+  // The one tracker state for the face: its bar and (A3-15) its next-step line read the same value.
+  const faceProgress = jobProgress(job, { viewer: "poster", otherFirst: helperName.split(" ")[0], rescheduled, card: { line: cardLine, face: faceAction }, pendingApplicants: pendingApplicantCounts ? pendingApplicantCounts[job.id] ?? 0 : undefined });
   return (
         /* The Helpr's tile, published to whichever JobStepCard this status mounts (jobCardPerson.tsx). The
            provider wraps the WHOLE card, so the fallback below and the claim above it answer one question. */
@@ -319,11 +321,13 @@ function PostedJobCardInner({
                   completedMeta={completedJobMeta[job.id]}
                   showStartClock={job.status === "accepted"}
                   helperName={job.helper_id ? helperNames[job.helper_id] ?? null : null}
+                  progress={faceProgress}
+                  otherFirst={job.helper_id ? helperName.split(" ")[0] : null}
                 />
               )}
               extra={<JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} variant="card" />} // opening them releases nothing
               action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined}
-              progress={isExpanded ? null : jobProgress(job, { viewer: "poster", otherFirst: helperName.split(" ")[0], rescheduled, card: { line: cardLine, face: faceAction }, pendingApplicants: pendingApplicantCounts ? pendingApplicantCounts[job.id] ?? 0 : undefined })} /* the 8 steps on the card (owner, 2026-10-22) */
+              progress={isExpanded ? null : faceProgress} /* the 8 steps on the card (owner, 2026-10-22) */
             />
             {isExpanded && <MineOpenMeta jobId={job.id} meta={metaRow} />}
 

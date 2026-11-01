@@ -328,16 +328,19 @@ export const RPC_ERROR_COPY = {
     invalid_category: "Choose a kind of work from the list.",
     floor_out_of_range: "Pick an amount between $10 and $1,000.",
     too_many_categories: "You can pick up to 3 kinds of work. Remove one to add another.",
+    feature_disabled: "Instant book is turned off right now.",
   },
   instant_book_candidates: {
     account_restricted: "Your account is restricted right now, so you can't book a Helpr.",
     not_authorized: "Only the person who posted this job can book a Helpr for it.",
+    feature_disabled: "Instant book is turned off right now.",
   },
   rpc_instant_book: {
     not_authenticated: "Sign in again to book a Helpr.",
     account_restricted: "Your account is restricted right now, so you can't book a Helpr.",
     not_authorized: "Only the person who posted this job can book a Helpr for it.",
     instant_book_unavailable: "That Helpr can't be booked now. Pick another, or wait for applications.",
+    feature_disabled: "Instant book is turned off right now.",
   },
   rpc_instant_book_decline: {
     not_authenticated: "Sign in again to continue.",

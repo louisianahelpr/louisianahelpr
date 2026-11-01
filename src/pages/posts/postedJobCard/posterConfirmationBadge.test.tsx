@@ -86,7 +86,7 @@ describe("the collapsed posted card's confirmation signal", () => {
       job({ helper_arrived_at: T(3), poster_confirmed_arrival_at: T(2), poster_confirmed_working_at: T(1) }),
     );
     expect(container.querySelector("[data-poster-owes-confirmation]")).toBeNull();
-    expect(container.textContent).toContain("Work is underway");
+    expect(container.textContent).toContain("Your Helpr is working");
   });
 
   it("stays silent on a state with no ladder at all", () => {

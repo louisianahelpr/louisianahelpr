@@ -12,6 +12,7 @@
  * @mutate src/components/tracker/jobProgressState.ts | poster ? (workHasBegun(job, { workUnderway: o.workUnderway }) ? | poster ? (job.poster_confirmed_working_at ?
  * @mutate src/components/job-card/jobStatusLine.ts |   const atTheJob = id === "working" && !workHasBegun(job, { workUnderway: progress?.workUnderway }); |   const atTheJob = id === "working" && !job.poster_confirmed_working_at;
  * @mutate src/components/job-card/jobStatusLine.ts |   working: (n) => `${firstName(n)} is working`, |   working: (n) => `${firstName(n)} is at the job`,
+ * @mutate src/components/job-card/jobStatusLine.ts |   working: { detail: "Your Helpr is working", eyebrow: BUCKET_LABEL.waiting, tone: "them" }, |   working: { detail: "Work is underway", eyebrow: BUCKET_LABEL.waiting, tone: "them" },
  */
 import { describe, it, expect } from "vitest";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
@@ -56,6 +57,8 @@ describe("the poster's Working line follows the bar's Working step (one rule: wo
         if (begun) expect(line.detail).not.toMatch(/at the job/);
         else expect(line.detail).toMatch(/is at the job$/);
         if (name) expect(line.detail).toBe(begun ? "Hallie is working" : "Hallie is at the job");
+        // B49 (375 look, 10-31): unnamed (Home Next up, any card with no name yet) read "Work is underway" under Live now's "Your Helpr is working".
+        else expect(line.detail).toBe(begun ? "Your Helpr is working" : "Your Helpr is at the job");
         cardChecked++;
       }
     }

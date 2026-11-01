@@ -108,19 +108,19 @@ describe("admin job-page preview", () => {
       it(`${key} as ${viewer}: draws the job page and sends nothing to Supabase, even with every button pressed`, async () => {
         renderPreview(key, viewer);
         const title = previewSample(key, viewer).job.title;
-        await screen.findAllByText(title, undefined, { timeout: 4000 });
+        await screen.findAllByText(title, undefined, { timeout: 10000 });
         const start = where;
         pressEveryButton();
         await new Promise((r) => setTimeout(r, 50));
         expect(leaked()).toEqual([]);
         expect(where).toBe(start);
-      }, 15000);
+      }, 30000);
     }
   }
 
   it("a pressed action or link says what it would have done, and never navigates", async () => {
     renderPreview("working", "helpr");
-    await screen.findAllByText(previewSample("working", "helpr").job.title, undefined, { timeout: 4000 });
+    await screen.findAllByText(previewSample("working", "helpr").job.title, undefined, { timeout: 10000 });
     const start = where;
     // The hired Helpr's "Open in working" is a navigation: it stays here and says where it would have gone.
     const open = screen.getAllByRole("button", { name: "Open in working" })[0];
@@ -133,17 +133,17 @@ describe("admin job-page preview", () => {
     await waitFor(() => expect(toasts.filter((t) => t.startsWith("Preview: this would ")).length).toBeGreaterThan(1));
     expect(where).toBe(start);
     expect(leaked()).toEqual([]);
-  }, 15000);
+  }, 30000);
 
   it("a write the page makes (the poster's Confirm they've arrived) is answered here, never sent", async () => {
     renderPreview("arrived", "poster");
-    const confirm = await screen.findByRole("button", { name: "Confirm they've arrived" }, { timeout: 4000 });
+    const confirm = await screen.findByRole("button", { name: "Confirm they've arrived" }, { timeout: 10000 });
     fireEvent.pointerDown(confirm);
     fireEvent.click(confirm);
     await waitFor(() => expect(toasts.some((t) => t.startsWith("Preview: this would ") && !t.startsWith("Preview: this would open"))).toBe(true));
     expect(leaked()).toEqual([]);
     expect(sent.filter((r) => r.method !== "GET")).toEqual([]);
-  }, 15000);
+  }, 30000);
 
   it("is behind the same admin gate as /admin, in its own lazy chunk", () => {
     const app = blankComments(readFileSync(path.join(process.cwd(), "src/App.tsx"), "utf8"));

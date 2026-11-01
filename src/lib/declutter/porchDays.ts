@@ -24,3 +24,20 @@ export async function saveMyPorchDays(weekdays: number[]): Promise<number[]> {
   return (rpcData(await supabase.rpc("declutter_set_porch_days", { p_weekdays: weekdays }),
     (e) => rpcErrorMessage("declutter_set_porch_days", e)) ?? []) as number[];
 }
+
+/**
+ * B112 (B110 leftover 2): the seller's porch weekdays for THIS buyer's checkout (declutter_checkout_porch_days,
+ * 20261101200349: the server's own rule, asked only with a line from that seller in the cart). Checkout's porch
+ * window chips keep to them when no porch place is chosen, so a day the server would refuse at Pay is never offered.
+ * Null before it is on the server (PGRST202): the chips stay as they were.
+ */
+export async function fetchCheckoutPorchDays(sellerId: string): Promise<number[] | null> {
+  const r = await supabase.rpc("declutter_checkout_porch_days", { p_seller_id: sellerId });
+  if (r.error && isMissingRpcNamed(r.error, "declutter_checkout_porch_days")) return null;
+  return ((rpcData(r, (e) => rpcErrorMessage("declutter_checkout_porch_days", e)) ?? []) as number[]).map(Number);
+}
+
+/** The pickup windows kept to the porch days; null days (not known): unchanged. Pure. */
+export function onPorchDays<T extends { weekday: number }>(windows: readonly T[], days: readonly number[] | null | undefined): T[] {
+  return days ? windows.filter((w) => days.includes(w.weekday)) : [...windows];
+}

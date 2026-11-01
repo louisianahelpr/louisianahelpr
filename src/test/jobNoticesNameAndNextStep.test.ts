@@ -31,13 +31,16 @@ const JOB = "11111111-2222-3333-4444-555555555555";
 const SENDER = "aaaaaaaa-0000-0000-0000-000000000001";
 const NOW = new Date("2026-11-01T15:00:00Z");
 
+/** The newest dispute, withdrawn by the sender (kept out of the job literal below). */
+const WITHDRAWN = { status: "withdrawn", opener_id: SENDER };
+
 /** Facts under which every template's own state check passes. */
 function facts(name: string): TemplateFacts {
   const poster = ["dispute_resolved", "revision_requested", "arrival_confirmed", "work_confirmed", "job_offer", "application_declined", "no_show_reported"].includes(name);
   return {
     job: {
-      id: JOB, title: "Move a couch", customer_id: poster ? SENDER : "c", helper_id: poster ? "h" : SENDER,
-      response_deadline: "2026-11-07T15:00:00Z", dispute_status: "open", status: "in_progress",
+      id: JOB, status: "in_progress", title: "Move a couch", customer_id: poster ? SENDER : "c", helper_id: poster ? "h" : SENDER,
+      response_deadline: "2026-11-07T15:00:00Z", dispute_status: "open",
       dispute_helper_response: "I did it", poster_confirmed_at: poster ? NOW.toISOString() : null,
       helper_dayof_confirmed_at: poster ? null : NOW.toISOString(), date_needed: "2026-11-07",
       poster_confirmed_arrival_at: NOW.toISOString(), poster_confirmed_working_at: NOW.toISOString(), payment_status: "released",
@@ -45,7 +48,7 @@ function facts(name: string): TemplateFacts {
     senderRole: poster ? "poster" : "helper",
     senderId: SENDER,
     revisionDescription: "Wipe the floor", revisionStatus: "accepted", revisionRequestedBy: "c",
-    dispute: { status: "withdrawn", opener_id: SENDER },
+    dispute: WITHDRAWN,
     trackingStatus: "working",
     application: { status: name === "application_declined" ? "rejected" : "accepted", decline_reason: null },
     posterFirstName: "Dana", senderFirstName: "Dana",

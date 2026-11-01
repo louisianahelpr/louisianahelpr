@@ -55,7 +55,7 @@
  */
 import { chromium, webkit } from "@playwright/test";
 import { allowedRead } from "./readAllowance.mjs";
-import { browseShellRowsUrl, withBrowseShell } from "../../src/lib/browseShellCards.mjs";
+import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../../src/lib/browseShellCards.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -400,11 +400,12 @@ async function browseShellPage(distDir) {
   const key = meta("lh-supabase-key");
   if (!base || !key) return null;
   try {
-    const res = await fetch(browseShellRowsUrl(base), {
-      headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: "application/json" },
-      signal: AbortSignal.timeout(5000),
-    });
-    const rows = res.ok ? await res.json() : null;
+    const headers = { apikey: key, Authorization: `Bearer ${key}`, Accept: "application/json" };
+    const [res, seeds] = await Promise.all([
+      fetch(browseShellRowsUrl(base), { headers, signal: AbortSignal.timeout(5000) }),
+      fetch(browseShellSeedsHiddenUrl(base), { headers, signal: AbortSignal.timeout(5000) }),
+    ]);
+    const rows = res.ok && seeds.ok ? shellRowsWhenSeedsHidden(await res.json(), await seeds.json()) : null;
     const page = withBrowseShell(html, rows);
     return page === html ? null : Buffer.from(page);
   } catch (e) {

@@ -1,4 +1,6 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
@@ -94,6 +96,8 @@ interface JobCardProps {
 // gradient tints are kept for the boosted/recommended highlight strip.
 const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index: _index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false, bare = false, hero = false }: JobCardProps) => {
   const isGuest = variant === "guest";
+  // Jobs in Spanish (A3-3): the card's chips follow the member's language.
+  const { t } = useLanguage();
 
   // A tap always opens the job detail view. Saving lives behind the
   // bookmark control in the detail dialog — the card tap is reserved for
@@ -391,7 +395,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                  and the category label gives instead. */}
           {isJustIn ? (
             <span role="img"
-              aria-label="Just posted"
+              aria-label={t("jobCard.justPosted")}
               className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",
@@ -412,7 +416,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.55)",
                 }}
               />
-              <span className="font-sans uppercase tracking-[0.14em] whitespace-nowrap">Just in</span>
+              <span className="font-sans uppercase tracking-[0.14em] whitespace-nowrap">{t("jobCard.justIn")}</span>
             </span>
           ) : recommended ? (
             /* Inside the top row, bottom-aligned on the category line (owner 2026-10-28). Guard: recommendedTagSitsInTheRow. */
@@ -434,7 +438,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 strokeWidth={2}
                 style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
               />
-              <span className="font-sans font-semibold whitespace-nowrap">Recommended</span>
+              <span className="font-sans font-semibold whitespace-nowrap">{t("jobCard.recommended")}</span>
             </span>
           ) : null}
           {/* 3. Elastic gap — the ONLY thing on the rail allowed to grow or
@@ -452,7 +456,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             return (
               <span role="img"
                 className={`boosted-pulse ${corner}`}
-                aria-label="Boosted"
+                aria-label={t("jobCard.boosted")}
                 style={{
                   // --boost, not gold (P1). A --boost token already existed for
                   // exactly this chip; painting it gold made a paid promotion
@@ -466,7 +470,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 }}
               >
                 <Rocket className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
-                Boosted
+                {t("jobCard.boosted")}
               </span>
             );
           if (job.is_urgent) {
@@ -474,7 +478,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             return (
               <span role="img"
                 className={`urgent-pulse ${corner}`}
-                aria-label={bonus > 0 ? `Urgent — $${formatPrice(bonus)} bonus` : "Urgent"}
+                aria-label={bonus > 0 ? `Urgent — $${formatPrice(bonus)} bonus` : t("jobCard.urgent")}
                 style={{
                   // --accent-ink, not --accent: 9px bold label text on the
                   // accent's own 15% tint. Raw --accent measured 3.75:1 in
@@ -489,7 +493,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               >
                 <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
                 {/* Just "Urgent", not "+$10 Urgent" (owner 2026-08-30: read as on top of the budget); the bonus stays in the aria-label. */}
-                Urgent
+                {t("jobCard.urgent")}
               </span>
             );
           }

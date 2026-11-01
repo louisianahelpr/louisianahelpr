@@ -54,7 +54,14 @@ const haulAwayLibLoaded = async () => {
   return lib;
 };
 /** The same, or null when the chunk could not load (the caller then has nothing to undo or word). */
-const haulAwayLibOrNull = () => haulAwayLib().catch((err: unknown) => { report(err, { severity: "warning", tags: { source: "useJobSubmit.haulAwayLib" } }); return null; });
+const haulAwayLibOrNull = () =>
+  haulAwayLib()
+    .then((lib) => {
+      // Empty (a prevented preload): reported like a failed load, never dropped unseen.
+      if (!lib) report(new Error("haul-away code came back empty"), { severity: "warning", tags: { source: "useJobSubmit.haulAwayLib" } });
+      return lib;
+    })
+    .catch((err: unknown) => { report(err, { severity: "warning", tags: { source: "useJobSubmit.haulAwayLib" } }); return null; });
 
 /**
  * Remove a job whose payment setup failed, and PROVE it went.

@@ -60,10 +60,12 @@ export const DESCRIPTION_MAX = 1000;
 // repair (refrigerant work needs an EPA certificate). Welding, auto and small
 // engine repair and pressure washing have no Louisiana trade license, so a
 // "Licensed" gate there would filter on nothing and empty the pool.
+//
+// `moving` is NOT in the set (audit 11-01 JA-42: a Moving job was asked "Open / Licensed / Licensed + Insured"):
+// carrying boxes and furniture is not a licensed trade a member can show, so the choice only adds a question.
 export const CREDENTIAL_TIER_CATEGORIES = new Set([
   "handyman",
   "painting",
-  "moving",
   "assembly",
   "storm_prep",
   "yard_work",

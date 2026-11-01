@@ -32,6 +32,10 @@
  * @mutate src/components/postjob/LogisticsSection.tsx |   const places = savedAddress ? [savedAddress, ...otherSavedAddresses] : NO_OTHER_PLACES; |   const places = savedAddress ? [savedAddress] : NO_OTHER_PLACES;
  * @mutate src/pages/post-job/useSavedJobAddress.ts |     if (out.some((p) => samePlace(p, place))) continue; |
  * @mutate src/pages/post-job/useSavedJobAddress.ts |     return { savedAddress: places[0] ?? null, otherSavedAddresses: places.slice(1) }; |     return { savedAddress: places[0] ?? null, otherSavedAddresses: [] };
+ * JA-44 (audit 11-01): with today picked, the chips offer only the starts today allows.
+ * @mutate src/components/postjob/whenChoices.ts |   if (dateIso !== todayIso) return TIME_CHIPS; |   return TIME_CHIPS;
+ * @mutate src/components/postjob/whenChoices.ts |   const later = TIME_CHIPS.filter((t) => t.value > earliest); |   const later = TIME_CHIPS;
+ * @mutate src/components/postjob/LogisticsSection.tsx |   const timeChips = timeChipsFor(dateNeeded, today, sameDayStart); |   const timeChips = timeChipsFor("", today, sameDayStart);
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -53,7 +57,7 @@ vi.mock("@/components/postjob/CityAutocomplete", () => ({
 }));
 
 import { LogisticsSection } from "@/components/postjob/LogisticsSection";
-import { dayStrip, DAY_STRIP_LENGTH, TIME_CHIPS } from "@/components/postjob/whenChoices";
+import { dayStrip, DAY_STRIP_LENGTH, TIME_CHIPS, timeChipsFor } from "@/components/postjob/whenChoices";
 import { savedAddressFrom, savedAddressesFrom, SAVED_PLACES_MAX, type SavedAddress } from "@/pages/post-job/useSavedJobAddress";
 import { todayYmd } from "@/lib/jobDate";
 import { SCHEDULE_TOO_SOON_COPY } from "@/lib/jobScheduleCopy";
@@ -318,5 +322,35 @@ describe("board 45 keeps everything the screen already did", () => {
     // stepNumber is the one literal: the section's own number on this screen.
     expect(props.filter((p) => p !== "stepNumber" && !fromForm.has(p))).toEqual([]);
     expect(call).toMatch(/\bstepNumber=\{\d+\}/);
+  });
+});
+
+describe("JA-44 (audit 11-01): today offers only the start times it allows", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("today at 9:47 AM in Louisiana: 12:00 PM first, then 1:00 PM; no 8, 9 or 10 AM chip; another day keeps the board's chips", () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-02T15:47:00Z")); // 9:47 AM CST
+    const today = todayYmd();
+    expect(today).toBe("2026-11-02");
+    render(<Host start={{ date: today }} />);
+    const labels = within(screen.getByRole("radiogroup", { name: "Start time" })).getAllByRole("radio").map((r) => r.textContent);
+    expect(labels.length).toBeGreaterThan(2);
+    expect(labels).toEqual(["12:00 PM", "1:00 PM", "Other time"]);
+    fireEvent.click(radio("Start time", "12:00 PM"));
+    expect(seen.startTime).toBe("12:00");
+    expect(checked(radio("Start time", "12:00 PM"))).toBe(true);
+    // Another day on the strip: the board's four chips again.
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Date needed" })).getAllByRole("radio")[1]);
+    const next = within(screen.getByRole("radiogroup", { name: "Start time" })).getAllByRole("radio").map((r) => r.textContent);
+    expect(next).toEqual([...TIME_CHIPS.map((t) => t.label), "Other time"]);
+  });
+
+  it("timeChipsFor: closed today offers none, an earliest that is a chip is not repeated, other days unchanged", () => {
+    expect(timeChipsFor("2026-11-02", "2026-11-02", null)).toEqual([]);
+    expect(timeChipsFor("2026-11-02", "2026-11-02", "09:00").map((t) => t.label)).toEqual(["9:00 AM", "10:00 AM", "1:00 PM"]);
+    expect(timeChipsFor("2026-11-02", "2026-11-02", "08:00").map((t) => t.value)).toEqual(["08:00", "09:00", "10:00", "13:00"]);
+    expect(timeChipsFor("2026-11-02", "2026-11-02", "17:30").map((t) => t.label)).toEqual(["5:30 PM"]);
+    expect(timeChipsFor("2026-11-03", "2026-11-02", "17:30")).toBe(TIME_CHIPS);
   });
 });

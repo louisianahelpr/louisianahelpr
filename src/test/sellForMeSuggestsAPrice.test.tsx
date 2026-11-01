@@ -12,7 +12,7 @@
  * @mutate src/lib/declutter/sellForMe.ts |   return nums.length ? Math.max(...nums) : null; |   return nums.length ? nums[0] : null;
  * @mutate src/lib/declutter/sellForMe.ts |   const band = SELL_FOR_ME_PRICE_BANDS.find((b) => count <= b.upTo)!; |   const band = SELL_FOR_ME_PRICE_BANDS[0];
  * @mutate src/components/postjob/SellForMeBlanks.tsx | onClick={() => onUse(range.pick)} | onClick={() => onUse(range.high + 50)}
- * @mutate src/components/postjob/SellForMeBlanks.tsx |   if (!range \|\| count == null) return null; |   if (count == null) return null;
+ * @mutate src/components/postjob/SellForMeBlanks.tsx |       {budget !== range.pick && ( |       {true && (
  * @mutate src/pages/post-job/FormStep.tsx |           {isSellForMeJob(form.category) && (\n            <div className="mt-4">\n              <SellForMePriceSuggestion | {false && (\n            <div className="mt-4">\n              <SellForMePriceSuggestion
  */
 import { describe, expect, it, vi } from "vitest";

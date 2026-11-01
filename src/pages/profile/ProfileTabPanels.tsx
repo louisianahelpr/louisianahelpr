@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import { useFeature } from "@/hooks/useFeature";
 import type { User } from "@supabase/supabase-js";
 import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { ProfileTabFallback } from "@/components/profile/ProfileTabFallback";
@@ -187,6 +188,8 @@ export const ProfileTabPanels = ({
 }: ProfileTabPanelsProps) => {
   // Money's payout reads start beside EarningsTab's chunk, not after it runs.
   const qc = useQueryClient();
+  // Instant book is off for everyone (owner 11-01, switch 'instant_book'): its settings tab draws nothing.
+  const instantBookOn = useFeature("instant_book");
   const moneyFor = (tab === "earnings" || tab === "payment") && user ? user.id : null;
   useEffect(() => {
     if (moneyFor) prefetchEarningsReads(qc, moneyFor);
@@ -336,7 +339,7 @@ export const ProfileTabPanels = ({
         </Suspense>
       )}
 
-      {tab === "instant_book" && (
+      {tab === "instant_book" && instantBookOn && (
         <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <InstantBookTab onBack={onBackFromTab} />
         </Suspense>

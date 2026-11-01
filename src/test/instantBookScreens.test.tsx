@@ -46,6 +46,8 @@ const db = vi.hoisted(() => ({
 }));
 const capture = vi.hoisted(() => ({ result: { data: null, error: null } as { data: unknown; error: unknown; holdMessage?: string }, calls: 0 }));
 
+// These are the screens as they are when the switch is ON (it is created off, owner 11-01: instantBookSwitchOff.test.tsx).
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k === "instant_book" }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: ME }, profile: null, isAdmin: false }) }));
 vi.mock("@/lib/cardHoldCapture", () => ({

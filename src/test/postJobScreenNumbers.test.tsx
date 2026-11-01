@@ -1,8 +1,9 @@
 /**
  * Owner 2026-10-21 ("make sure each one is numbered correctly"): every Post a Job screen shows its
- * true position of 7, from ONE ordered list (src/components/postjob/postJobScreens.ts):
- * 1 How do you want to start? · 2 What do you need done? · 3 What kind of <group> job? · 4 Details ·
- * 5 Price · 6 When and where · 7 Review. "Something else" skips 3 (2 -> 4); nothing renumbers.
+ * true position, from ONE ordered list (src/components/postjob/postJobScreens.ts). JA-41 (owner pick
+ * 2026-11-01): "How do you want to start?" is gone, the group grid is the first screen, so six:
+ * 1 What do you need done? · 2 What kind of <group> job? · 3 Details · 4 Price · 5 When and where ·
+ * 6 Review. "Something else" skips 2 (1 -> 3); nothing renumbers.
  * @mutate src/components/postjob/postJobScreens.ts |   { key: "kind", rail: "Kind of job" },\n  { key: "details", rail: "Details" }, |   { key: "details", rail: "Details" },\n  { key: "kind", rail: "Kind of job" },
  * @mutate src/pages/post-job/FormStep.tsx | <PostJobStepHeader screen="where" | <PostJobStepHeader screen="price"
  * @mutate src/pages/post-job/EntryChoice.tsx |                     form.setFormPage(2);\n                  }} |                   }}
@@ -19,7 +20,7 @@ const read = (f: string) => readFileSync(f, "utf8");
 
 /** Each header in the flow: the file, the screen key it passes, and the question it asks. */
 const EXPECTED: [file: string, key: string, question: RegExp][] = [
-  ["src/pages/post-job/EntryChoice.tsx", "start", /question="How do you want to start\?"/],
+  ["src/pages/post-job/EntryChoice.tsx", "groups", /question="What do you need done\?"/],
   ["src/pages/post-job/FormStep.tsx", "groups", /question="What do you need done\?"/],
   ["src/pages/post-job/FormStep.tsx", "kind", /question=\{groupQuestion\(/],
   ["src/pages/post-job/FormStep.tsx", "details", /question="Tell us about it"/],
@@ -29,8 +30,8 @@ const EXPECTED: [file: string, key: string, question: RegExp][] = [
 ];
 
 describe("Post a Job screen numbers (owner 2026-10-21)", () => {
-  it("the one list is the seven screens in order", () => {
-    expect(POST_JOB_SCREENS.map((s) => s.key)).toEqual(["start", "groups", "kind", "details", "price", "where", "review"]);
+  it("the one list is the six screens in order", () => {
+    expect(POST_JOB_SCREENS.map((s) => s.key)).toEqual(["groups", "kind", "details", "price", "where", "review"]);
   });
 
   it("every screen's header passes its own key, next to its own question", () => {
@@ -45,13 +46,13 @@ describe("Post a Job screen numbers (owner 2026-10-21)", () => {
     }
   });
 
-  it("each header shows 'n of 7' with n segments filled", () => {
+  it("each header shows 'n of 6' with n segments filled", () => {
     POST_JOB_SCREENS.forEach(({ key }, i) => {
       const { unmount } = render(<PostJobStepHeader screen={key} question="q" helper="h" />);
       const bar = screen.getByRole("progressbar");
-      expect(bar.getAttribute("aria-valuetext")).toBe(`Step ${i + 1} of 7`);
+      expect(bar.getAttribute("aria-valuetext")).toBe(`Step ${i + 1} of 6`);
       expect(bar.querySelectorAll("[data-done]").length).toBe(i + 1);
-      expect(bar.children.length).toBe(7);
+      expect(bar.children.length).toBe(6);
       unmount();
     });
   });
@@ -63,10 +64,10 @@ describe("Post a Job screen numbers (owner 2026-10-21)", () => {
     expect(page).not.toMatch(/title:\s*[^"\n]*\?/);
   });
 
-  it("form pages map to their screens; templates and AI land on Details (4 of 7)", () => {
+  it("form pages map to their screens; templates and AI land on Details (3 of 6)", () => {
     expect(screenOfFormPage(1, false)).toBe("groups");
     expect(screenOfFormPage(1, true)).toBe("kind");
-    expect([2, 3, 4].map((p) => screenNumber(screenOfFormPage(p, false)))).toEqual([4, 5, 6]);
+    expect([2, 3, 4].map((p) => screenNumber(screenOfFormPage(p, false)))).toEqual([3, 4, 5]);
     const entry = read("src/pages/post-job/EntryChoice.tsx");
     expect(entry).toMatch(/form\.applyTemplateFields\(sample\)\);\s*form\.setFormPage\(2\);/);
     expect(entry).toMatch(/form\.setStep\("form"\);\s*\/\/[^\n]*\n\s*form\.setFormPage\(2\);/);

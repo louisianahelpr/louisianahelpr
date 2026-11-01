@@ -1,7 +1,7 @@
 /**
  * Post a Job start, new look (owner 2026-10-21, mock-up ~/Desktop/helpr-postjob-flow-mockup.png):
- *   step 0 "How do you want to start?": four cards;
- *   step 1 "What do you need done?": search, then exactly the 8 groups, no category panel;
+ *   step 1 "What do you need done?": search, then exactly the 8 groups, no category panel (JA-41, owner
+ *   pick 2026-11-01: this is the FIRST screen; template / saved Helpr / AI are small links under it);
  *   step 1b "<Group>": that group's categories; a tap is the choice and goes on to Details;
  *   no floating Continue on screen 1; no dock or "+" anywhere in the flow.
  * @mutate src/components/postjob/JobCategoryGroups.tsx |     setCategory(value);\n    onPicked(); |     setCategory(value);
@@ -65,10 +65,11 @@ describe("Post a Job start (owner 2026-10-21)", () => {
     expect(p.onPicked).toHaveBeenCalledTimes(1);
   });
 
-  it("step 0 is four sentence-case cards; screen 1 has no floating button; the flow has no dock", () => {
+  it("the first screen is the groups with three small start links; screen 1 has no floating button; the flow has no dock", () => {
     const entry = read("src/pages/post-job/EntryChoice.tsx");
-    for (const t of ['"Start from scratch"', '"Use a template"', '"Offer to a saved Helpr"', '"Get help from AI"']) expect(entry).toContain(t);
-    expect(entry).toContain('question="How do you want to start?"');
+    for (const t of ['"Use a template"', '"Hire a saved Helpr"', '"Describe it with AI"']) expect(entry).toContain(t);
+    expect(entry).not.toContain('"Start from scratch"');
+    expect(entry).toContain('question="What do you need done?"');
     const step = read("src/pages/post-job/FormStep.tsx");
     expect(step).toContain("{page !== 1 && (");
     expect(step).toContain('question="What do you need done?"');
@@ -78,7 +79,7 @@ describe("Post a Job start (owner 2026-10-21)", () => {
     // Back from a way to start returns to the cards; back from 1b returns to the groups.
     const form = read("src/pages/post-job/usePostJobForm.ts");
     expect(form).toMatch(/if \(step === "entry" && entryPanel\) \{\s*\/\/[^\n]*\n\s*setEntryPanel\(null\);/);
-    expect(form).toMatch(/else if \(step === "form" && formPage === 1 && categoryGroup\) \{\s*\/\/[^\n]*\n\s*setCategoryGroup\(null\);/);
+    expect(form).toMatch(/else if \(step === "form" && formPage === 1 && categoryGroup\) \{\s*\/\/[^\n]*\n\s*setCategoryGroup\(null\);\s*if \(!skipEntry\) setStep\("entry"\);/);
   });
 
   it("emoji (owner 2026-10-21): one per category from one map, decorative and aria-hidden", () => {
@@ -94,6 +95,6 @@ describe("Post a Job start (owner 2026-10-21)", () => {
     const moving = screen.getByRole("button", { name: /^Moving & errands/ });
     expect(moving.querySelector("[aria-hidden]")?.textContent).toBe(GROUP_EMOJI.moving_errands);
     const entry = read("src/pages/post-job/EntryChoice.tsx");
-    for (const k of ["fresh", "templates", "offer", "ai"]) expect(entry).toContain(`{START_EMOJI.${k}}`);
+    for (const k of ["templates", "offer", "ai"]) expect(entry).toContain(`START_EMOJI.${k}`);
   });
 });

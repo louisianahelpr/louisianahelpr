@@ -8,7 +8,7 @@
  * Shown able to fail: each @mutate below turns a case here red.
  * @mutate src/pages/post-job/EntryChoice.tsx |       repostCard: postedBefore === true, |       repostCard: !!hasRecent,
  * @mutate src/pages/post-job/EntryChoice.tsx |       repostCard: postedBefore === true, |       repostCard: postedBefore !== false,
- * @mutate src/pages/post-job/EntryChoice.tsx |   if (!entryReady) { |   if (!entryReady) { if (postedBefore === null) return <EntryChoiceSkeleton count={0} />;
+ * @mutate src/pages/post-job/EntryChoice.tsx |   if (!entryReady) { |   if (!entryReady) { if (postedBefore === null) return <EntryChoiceSkeleton draftCard={false} links={0} grid={null} />;
  * @mutate src/hooks/useRecentPostedJobs.ts |   return readPostedBefore(user?.id); |   return null;
  * @mutate src/hooks/useRecentPostedJobs.ts |     safeStorage.setItem(postedBeforeKey(userId), posted ? "1" : "0"); |
  * @mutate src/hooks/useRecentPostedJobs.ts |   const answered = !isPending && Array.isArray(data); |   const answered = !isPending;
@@ -45,6 +45,7 @@ vi.mock("./OfferToSavedHelpr", () => ({
 }));
 vi.mock("@/components/postjob/AiJobBuilder", () => ({ AiJobBuilder: () => null }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
+vi.mock("@/components/SuggestCategory", () => ({ SuggestCategory: () => null }));
 
 import { EntryChoice } from "./EntryChoice";
 import { postedBeforeKey } from "@/hooks/useRecentPostedJobs";
@@ -60,7 +61,9 @@ const bones = () => {
     </MemoryRouter>,
   );
   const sk = r.getByTestId("entry-choice-skeleton");
-  return sk.querySelectorAll(":scope > div").length;
+  // JA-41: the data-dependent rows (the three start links, plus Repost and the draft card once known) are bones;
+  // the group grid above them is the real, static grid.
+  return sk.querySelectorAll("[data-entry-bone]").length;
 };
 
 beforeEach(() => {
@@ -70,36 +73,36 @@ beforeEach(() => {
 });
 
 describe("the Post a job skeleton checks job history (owner, 2026-10-17)", () => {
-  it("a poster with past jobs: five cards (the Repost card included)", () => {
+  it("a poster with past jobs: four rows (the Repost link included)", () => {
     recent.value = [{ id: "j1" }];
-    expect(bones()).toBe(5);
+    expect(bones()).toBe(4);
   });
 
-  it("a poster with none: four cards", () => {
+  it("a poster with none: three rows", () => {
     recent.value = [];
-    expect(bones()).toBe(4);
+    expect(bones()).toBe(3);
   });
 
-  it("before the read lands, this device's memory decides: five for a returning poster", () => {
+  it("before the read lands, this device's memory decides: four for a returning poster", () => {
     localStorage.setItem(postedBeforeKey("u1"), "1");
-    expect(bones()).toBe(5);
+    expect(bones()).toBe(4);
   });
 
-  it("before the read lands, this device's memory decides: four for a first-timer", () => {
+  it("before the read lands, this device's memory decides: three for a first-timer", () => {
     localStorage.setItem(postedBeforeKey("u1"), "0");
-    expect(bones()).toBe(4);
+    expect(bones()).toBe(3);
   });
 
   // Lead, 2026-10-17: a blank region during load is the defect class we
   // avoid, so a device that never asked draws the first-time default.
-  it("never asked on this device: the first-time default of four, never an empty column", () => {
-    expect(bones()).toBe(4);
+  it("never asked on this device: the first-time default of three, never an empty column", () => {
+    expect(bones()).toBe(3);
   });
 
   it("the landed read beats a stale memory", () => {
     localStorage.setItem(postedBeforeKey("u1"), "0");
     recent.value = [{ id: "j1" }];
-    expect(bones()).toBe(5);
+    expect(bones()).toBe(4);
   });
 });
 

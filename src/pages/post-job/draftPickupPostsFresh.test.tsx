@@ -29,6 +29,8 @@ const server = vi.hoisted(() => ({
   photoRemovals: [] as string[],
 }));
 
+// JA-41: the entry screen now holds the group grid, whose "suggest a category" link reads a switch.
+vi.mock("@/components/SuggestCategory", () => ({ SuggestCategory: () => null }));
 vi.mock("@/integrations/supabase/client", () => {
   const from = (table: string) => {
     let op: "select" | "insert" | "update" | "delete" = "select";

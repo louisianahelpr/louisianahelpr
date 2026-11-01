@@ -4,7 +4,8 @@
     "src/**/*.{test,spec}.{ts,tsx}",
     "e2e/**/*.ts",
     "scripts/**/*.mjs",
-    "supabase/functions/*/index.ts"
+    "supabase/functions/*/index.ts",
+    "src/vendorStubs/*.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx}",

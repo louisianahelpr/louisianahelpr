@@ -79,6 +79,7 @@ vi.mock("@/integrations/supabase/client", () => {
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { fetchConversations } from "@/pages/messages/messagesData/loadConversations";
 import { archiveConversation } from "@/lib/archivedConversations";
+import { unreadConversationCount } from "@/lib/unreadConversations";
 
 beforeEach(() => {
   localStorage.clear();
@@ -105,6 +106,11 @@ describe("the Messages badge counts the inbox's unread threads, from one source 
     // The blocked sender and the server-hidden row never reach the inbox.
     expect(convos.some((c) => c.jobId === "job-3" || c.jobId === "job-4")).toBe(false);
     expect(await badge()).toBe(unreadThreads.length);
+  });
+
+  it("over any rows that hold every unread one (the inbox's own list), a thread with only read messages is not counted", () => {
+    // WINDOW + the old unread row: the read-only job-5 thread is there and must not count.
+    expect(unreadConversationCount([...WINDOW, UNREAD[3]], ME, new Set([DEE]))).toBe(3);
   });
 
   it("an archived thread leaves the badge as it leaves the inbox", async () => {

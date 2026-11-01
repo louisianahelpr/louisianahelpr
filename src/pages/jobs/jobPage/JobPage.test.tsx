@@ -154,7 +154,8 @@ vi.mock("@/components/jobs/InstantBookPanel", () => ({ InstantBookPanel: () => n
 // An accepted (offered) job asks whether it was rescheduled; these jobs never were.
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
 // Q2399 card_hold_at_post: the poster's money line follows it (F4).
-vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "card_hold_at_post" && state.cardHold }));
+// instant_book is on here: these cases pin the page with the switch on; switched off is instantBookSwitchOff.test.tsx.
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "instant_book" || (key === "card_hold_at_post" && state.cardHold) }));
 // The Posted card's own flows on the page (usePosterPageFlows; its wiring is posterPageFlows.test.tsx): record each call.
 const flowCalls = vi.hoisted(() => [] as string[]);
 // OnTheWayNow's position read (onTheWayPosition.ts): no position unless a test sets one.

@@ -376,10 +376,10 @@ test.describe("money outcomes", () => {
     // 0. A tip is a destination charge: create-payment refuses it unless the
     //    Helpr has a payout account ("This Helpr hasn't set up their payout
     //    account yet and cannot receive tips at this time."). The shared helper
-    //    holds the ONE sanctioned TEST-mode Express fixture for exactly this
-    //    leg (Q?journeys-tip-fixture, lead decision 2026-10-17: option (a), on
-    //    helper-e2e's own acct_1UQigP3qNyg1xGcp, onboarded with Stripe's test
-    //    data). seatStripeAccounts.mjs allows only that pair, payout-ready.
+    //    holds the ONE sanctioned TEST-mode fixture for exactly this leg
+    //    (Q?journeys-tip-fixture, lead decision 2026-10-17: option (a); since
+    //    D4-1 2026-11-01 the Custom acct_1UWzu83VTH7LD6DT, completed with
+    //    Stripe's test data). seatStripeAccounts.mjs allows only that pair, payout-ready.
     //    Unlinked (a --restore, or a reset), the leg fails here, by name and
     //    before any money moves, instead of after funding, hiring and settling
     //    a whole job (e2e-journeys 39004547274, nightly-red #2436).

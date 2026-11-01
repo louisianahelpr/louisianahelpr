@@ -7,7 +7,8 @@
  * complete the crew, and the in-progress card offered no Cancel (derivePosterStep draws none for in_progress). The
  * job sat under way with the poster's money held.
  *
- * Now the poster's crew roster (GroupJobHelpers) offers "Cancel and get a refund" once the roster has loaded, the
+ * The job page (posterPageActions) offers its Cancel job for the same crew (usePosterPageFlows.crewNobodyLeft, from
+ * the loaded detail read). Now the poster's crew roster (GroupJobHelpers) offers "Cancel and get a refund" once the roster has loaded, the
  * job is in_progress and no roster row names a Helpr (crewNobodyLeft). It opens the card's own cancel
  * (tryCancelJob -> CancellationDialog -> poster_cancel_job). The cancel's pre-check reads only members still on the
  * roster, so a reported member's old "on my way" tracking row no longer blocks it.
@@ -22,6 +23,7 @@
  * @mutate src/components/GroupJobHelpers.tsx |       {nobodyLeft && ( |       {false && (
  * @mutate src/components/GroupJobHelpers.tsx |           <Button variant="outline" size="lg" className="w-full rounded-full text-ds-15 text-destructive-ink" onClick={onCancelJob}> |           <Button variant="outline" size="lg" className="w-full rounded-full text-ds-15 text-destructive-ink">
  * @mutate src/pages/posts/PostedJobCard.tsx |  onCancelJob={() => onCancel(job)} /> |  />
+ * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true), |     crewNobodyLeft: false,
  * @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |     if (crewOnRoster) trackingQuery = trackingQuery.in("helper_id", crewOnRoster); |     void crewOnRoster;
  */
 import { describe, expect, it, vi } from "vitest";
@@ -118,6 +120,10 @@ describe("the wiring", () => {
   it("the Posted card hands its own cancel to the crew roster", () => {
     const card = blankComments(readFileSync(resolve(ROOT, "src/pages/posts/PostedJobCard.tsx"), "utf8"));
     expect(card).toContain("onCancelJob={() => onCancel(job)}");
+  });
+  it("the job page knows nobody is left once its detail read is in (posterPageActions then offers Cancel job: JobPage.test.tsx)", () => {
+    const f = blankComments(readFileSync(resolve(ROOT, "src/pages/jobs/jobPage/usePosterPageFlows.tsx"), "utf8"));
+    expect(f).toContain("crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true),");
   });
   it("the cancel's pre-check reads only the members still on the roster for a crew", () => {
     const h = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/activityActions/useLifecycleHandlers.ts"), "utf8"));

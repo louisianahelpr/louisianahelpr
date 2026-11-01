@@ -80,7 +80,8 @@ function EntryChoiceSkeleton({ draftCard, links, grid }: { draftCard: boolean; l
         </div>
       )}
       {/* The real grid, inert until the column lands: same tiles, same place, no jump. */}
-      <div inert aria-hidden>{grid}</div>
+      {/* React 18's types have no `inert` prop: the attribute is set on the element. */}
+      <div ref={(el) => el?.setAttribute("inert", "")} aria-hidden>{grid}</div>
       <div className="flex flex-col">
         {Array.from({ length: links }).map((_, i) => (
           <div key={i} data-entry-bone="" className="flex min-h-[44px] items-center" aria-hidden>

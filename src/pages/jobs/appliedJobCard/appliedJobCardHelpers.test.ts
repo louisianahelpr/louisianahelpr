@@ -120,7 +120,7 @@ describe("describeCancellation — the card names who cancelled", () => {
     expect(describeCancellation(base, HELPER)).toBe("Cancelled automatically");
     expect(
       describeCancellation({ ...base, cancellation_reason: "Job listing expired — scheduled time passed with no Helpr assigned" }, HELPER),
-    ).toBe("Cancelled automatically — the scheduled time passed before anyone was hired");
+    ).toBe("Expired before anyone was hired");
   });
   it("neither party (support)", () => {
     expect(describeCancellation({ ...base, cancelled_by: "admin-9" }, HELPER)).toBe("Cancelled by Helpr support");

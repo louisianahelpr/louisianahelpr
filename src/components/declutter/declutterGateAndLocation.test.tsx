@@ -132,7 +132,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyItemReview: async () => null,
   fetchMyItemPrivate: async () => null,
   fetchMyPickupWindows: async () => [],
-  photoPublicUrl: (p: string) => `https://cdn/${p}`,
+  photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
   withdrawItem: async () => undefined,
   setWatch: async (...a: unknown[]) => { watchCalls.push(a); return "watching"; },
   askQuestion: async () => "q",
@@ -531,7 +531,7 @@ describe("Declutter location ask", () => {
   });
 
   it("a card's tile is never blank (audit #32): the category icon sits under every photo, and a photo that fails to load drops out", async () => {
-    // @mutate src/components/declutter/DeclutterItemCard.tsx |         {photoPath && !photoFailed && ( |         {photoPath && (
+    // @mutate src/components/declutter/DeclutterItemCard.tsx |         {photoPath && photoStage !== "failed" && ( |         {photoPath && (
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />\n |
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
@@ -543,6 +543,8 @@ describe("Declutter location ask", () => {
     // The photo is on top; the icon is already underneath it (a transparent or loading photo shows the icon).
     expect(tile.querySelector("img")).not.toBeNull();
     expect(tile.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
+    // The card-sized thumbnail fails first (owner 10-31: thumbnails), then the full photo it falls back to.
+    fireEvent.error(tile.querySelector("img")!);
     fireEvent.error(tile.querySelector("img")!);
     expect(tile.querySelector("img")).toBeNull();
     expect(tile.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();

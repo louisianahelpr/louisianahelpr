@@ -96,7 +96,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyPickupWindows: async () => [],
   fetchPhotos: async () => [],
   fetchHasAgreedSales: async () => false,
-  photoPublicUrl: (p: string) => `https://cdn/${p}`,
+  photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
   createDraft: async (f: Record<string, unknown>) => { drafts.push(f); return NEW_ID; },
   setDropPct: async (_id: string, pct: number) => pct,
   fetchItemDropState: async () => null,

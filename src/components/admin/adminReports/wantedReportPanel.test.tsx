@@ -12,7 +12,7 @@ import { wantedSubject } from "./reportedWanted";
 
 const calls = vi.hoisted(() => ({ takeDown: [] as unknown[][], release: [] as unknown[][] }));
 vi.mock("@/lib/declutter/api", () => ({
-  photoPublicUrl: (p: string) => `https://photos.test/${p}`,
+  photoPublicUrl: (p: string) => `https://photos.test/${p}`, photoCardUrl: (p: string) => `https://photos.test/${p}`, CARD_PHOTO_PX: 480,
   takeDownWanted: async (...a: unknown[]) => { calls.takeDown.push(a); return "removed"; },
   releaseWantedPhotos: async (...a: unknown[]) => { calls.release.push(a); return "released"; },
 }));

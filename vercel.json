@@ -87,6 +87,10 @@
       "destination": "/api/share?_og=book&_id=:userId"
     },
     {
+      "source": "/u/:handle([a-zA-Z0-9-]{3,30})",
+      "destination": "/api/share?_og=profile&_id=:handle"
+    },
+    {
       "source": "/shops/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})",
       "destination": "/api/share?_og=shop&_id=:id"
     },
@@ -276,6 +280,15 @@
     },
     {
       "source": "/book/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/u/(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",

@@ -151,6 +151,7 @@ const SendQuotePage = lazyWithPreload(() => import("./pages/quotes/SendQuotePage
 const ShopsPage = lazyWithPreload(() => import("./pages/shops/ShopsPage"));
 const ShopPage = lazyWithPreload(() => import("./pages/shops/ShopPage"));
 const BookHelprPage = lazyWithPreload(() => import("./pages/book/BookHelprPage"));
+const PublicProfilePage = lazyWithPreload(() => import("./pages/u/PublicProfilePage"));
 const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"));
 // Rentals S1 (docs/specs/landlord-hub-prep.md): the 404 unless the hidden
 // 'rentals' switch is on for the member (RentalsGate).
@@ -296,6 +297,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ShopPage />)}</RouteErrorBoundary>} />
       {/* /book/:userId: a Helpr's "Book me" link, open to anyone (B59). Card via api/share.ts. */}
       <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<BookHelprPage />)}</RouteErrorBoundary>} />
+      {/* /u/:handle: a member's shareable profile, open to anyone (LEAD-PROFILE-LINK). Card via api/share.ts. */}
+      <Route path="/u/:handle" element={<RouteErrorBoundary>{routeEl(<PublicProfilePage />)}</RouteErrorBoundary>} />
       <Route path="/rentals" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/invite/:token" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsInvitePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/rentals/requests/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><MaintenanceRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

@@ -133,6 +133,16 @@ describe("the poster's own Posted card line", () => {
   });
 });
 
+describe("the poster's expiry notice", () => {
+  it("says the listing expired, never that it was cancelled", () => {
+    const at = blankComments(SWEEP_SRC).indexOf("const autoCancelNotice = {");
+    expect(at).toBeGreaterThan(0);
+    const msg = /message: `([^`]*)`/.exec(blankComments(SWEEP_SRC).slice(at))?.[1] ?? "";
+    expect(msg).toContain("expired");
+    expect(msg).not.toMatch(/cancel/i);
+  });
+});
+
 describe("an applicant to the expired listing", () => {
   const job = { id: "j1", status: "cancelled", helper_id: null, customer_id: POSTER, cancelled_by: null, payment_status: "refunded", cancellation_reason: SWEEP_REASON } as unknown as Job;
 
@@ -153,6 +163,7 @@ describe("an applicant to the expired listing", () => {
 
 // @mutate src/components/job-card/jobStatusLine.ts |   const expired = id === "cancelled" && !!app.job && isExpiredListing(app.job); |   const expired = false;
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | ? "Expired before anyone was hired" | ? "Cancelled automatically"
+// @mutate supabase/functions/auto-expire-jobs/index.ts | expired: the scheduled time passed with no Helpr hired. | was automatically cancelled because the scheduled time passed.
 // @mutate src/lib/expiredListing.ts |     !job.helper_id && |     true &&
 // @mutate src/lib/expiredListing.ts |   return (\n    job.status === "cancelled" && |   return false && (\n    job.status === "cancelled" &&
 // @mutate src/pages/user/JobsList.tsx |             {isExpiredListing(job) ? ( |             {false ? (

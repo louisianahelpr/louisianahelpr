@@ -28,7 +28,8 @@ describe("the copy tables", () => {
   it("holds a real inventory (every refusal code, both tables)", () => {
     expect(Object.keys(DECLUTTER_ERROR_COPY).length).toBeGreaterThanOrEqual(30);
     // address_not_found moved to the server table: declutter_set_return_address raises it (returns, 20261030071818).
-    expect(Object.keys(DECLUTTER_CLIENT_ERROR_COPY).sort()).toEqual(["address_lookup_unavailable", "address_not_exact", "ai_photos_required", "ai_rate_limited", "ai_timed_out", "ai_unavailable", "delivery_check_unavailable", "delivery_rate_changed", "drop_pct_unavailable", "geocode_unavailable", "item_photos_invalid", "location_far_from_address", "payment_review", "payment_unavailable", "photo_unavailable", "porch_places_slow", "raise_unavailable", "room_photos_invalid", "tip_already_paid", "tip_check_failed", "tip_helpr_held", "tip_helpr_no_payout", "tip_not_sent", "tip_page_closed", "tip_waits_on_identity"]);
+    // tip_waits_on_identity moved too: helpr_task_tip_start raises it (BUY-43, 20261101051951).
+    expect(Object.keys(DECLUTTER_CLIENT_ERROR_COPY).sort()).toEqual(["address_lookup_unavailable", "address_not_exact", "ai_photos_required", "ai_rate_limited", "ai_timed_out", "ai_unavailable", "delivery_check_unavailable", "delivery_rate_changed", "drop_pct_unavailable", "geocode_unavailable", "item_photos_invalid", "location_far_from_address", "payment_review", "payment_unavailable", "photo_unavailable", "porch_places_slow", "raise_unavailable", "room_photos_invalid", "tip_already_paid", "tip_check_failed", "tip_helpr_held", "tip_helpr_no_payout", "tip_not_sent", "tip_page_closed"]);
   });
 
   it("no code sits in both tables", () => {

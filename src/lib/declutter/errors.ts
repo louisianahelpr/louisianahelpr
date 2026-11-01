@@ -288,6 +288,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   invalid_tip: "Tips are $3 to $1,000.",
   tip_not_yet: "You can add a tip once the delivery is done.",
   tip_unavailable: "This delivery can't take a tip.",
+  // BUY-43 (20261101051951): helpr_task_tip_start refuses it too now (declutter-checkout's own ID check answers the same code).
+  tip_waits_on_identity: "This Helpr can receive tips once verified. Nothing was charged.",
   task_taken: "Another Helpr took this delivery, or it closed.",
   too_many_releases: "You backed out of or missed 3 deliveries this week. You can take new ones again in a few days.",
   too_many_taken: "Pick up one of your deliveries before you take another.",
@@ -359,7 +361,6 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   payment_review: "This payment can't go through right now. Please contact support.",
   tip_helpr_no_payout: "This Helpr hasn't set up their payout account yet and cannot receive tips at this time.",
   tip_helpr_held: "This Helpr can't receive tips right now. Please try again later.",
-  tip_waits_on_identity: "This Helpr can receive tips once verified. Nothing was charged.",
   tip_check_failed: "Could not verify the Helpr's payout account. Please try again.",
   tip_not_sent: "Your tip couldn't be sent, so nothing was charged. Please try again later.",
   tip_already_paid: "This tip already went through. Thank you!",

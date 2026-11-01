@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
+// The refusal copy (about 100 KB raw) loads only when the server refuses, not with every screen that can ask
+// (AUD31-60/66, the /home cut). Guard: src/test/homeLoadsSectionReadsLazily.test.ts.
+const lifecycleErrors = () => import("@/lib/lifecycleErrors");
 import { isNotDeployedYet } from "@/lib/seriesDates";
 
 /**
@@ -70,13 +72,16 @@ export async function requestScheduleChange(jobId: string, date: string, startTi
   });
   // The daily cap is a trigger on the requests table (Q1501), so its copy is
   // in the shared lifecycle table, not this RPC's own.
-  if (error) throw changeError(error, rpcErrorMessage("request_job_schedule_change", error) ?? lifecycleErrorMessage(error));
+  if (error) {
+    const copy = await lifecycleErrors();
+    throw changeError(error, copy.rpcErrorMessage("request_job_schedule_change", error) ?? copy.lifecycleErrorMessage(error));
+  }
 }
 
 /** Take back a request THIS person made while it is pending (board 66/172 slice 3). Returns the resulting status. */
 export async function withdrawScheduleChange(requestId: string): Promise<string> {
   const { data, error } = await supabase.rpc("withdraw_job_schedule_change", { p_request_id: requestId });
-  if (error) throw changeError(error, rpcErrorMessage("withdraw_job_schedule_change", error));
+  if (error) throw changeError(error, (await lifecycleErrors()).rpcErrorMessage("withdraw_job_schedule_change", error));
   return String(((data as { status?: string } | null) ?? {}).status ?? "");
 }
 
@@ -90,7 +95,7 @@ export async function respondScheduleChange(requestId: string, accept: boolean):
     p_request_id: requestId,
     p_accept: accept,
   });
-  if (error) throw changeError(error, rpcErrorMessage("respond_job_schedule_change", error));
+  if (error) throw changeError(error, (await lifecycleErrors()).rpcErrorMessage("respond_job_schedule_change", error));
   const reply = (data as { status?: string; reason?: string } | null) ?? {};
   if (reply.status === "declined" && reply.reason === "schedule_change_clash") return "clash";
   // Q2326: a come-back offer (board 141) the poster declined goes on to Helpr.

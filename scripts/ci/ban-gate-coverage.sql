@@ -135,6 +135,8 @@ rpc_exempt(fn, why) AS (
   -- Refused by a ban-gated TABLE it writes (the trigger fires inside SECURITY
   -- DEFINER too: auth.uid() is still the caller).
   ('accept_application', 'writes applications + jobs UPDATE, both ban-gated'),
+  ('rpc_ensure_my_handle', 'profile link (20261101034834): writes profiles UPDATE (handle), refused for a banned caller by enforce_banned_profile_text_lock (handle is not on its allowed list; auth.uid() is still the caller inside DEFINER; proven in src/test/pglite/profileHandleBanned.pglite.mjs)'),
+  ('rpc_set_my_handle', 'profile link (20261101034834): writes profiles UPDATE (handle, handle_changed_at), refused for a banned caller by enforce_banned_profile_text_lock (proven in src/test/pglite/profileHandleBanned.pglite.mjs)'),
   ('accept_group_application', 'writes group_job_helpers, applications, jobs: all ban-gated'),
   ('apply_to_job', 'writes applications INSERT, ban-gated'),
   ('apply_to_job_with_time', 'calls apply_to_job first (applications INSERT, ban-gated), then UPDATEs that applications row (ban-gated)'),

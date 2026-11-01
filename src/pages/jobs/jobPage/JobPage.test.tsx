@@ -557,7 +557,7 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
 // Owner 2026-11-01: the on-the-way line and where the Helpr is sit ABOVE the tracker; Message and the card's options
 // share one row (none: Message alone; one: that action; two or more: More options); the Helpr's card sits above them.
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />} |
-// @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx |   const mapped = (arrived ? p?.status === "arrived" : p?.status === "on_the_way") && | const mapped = true &&
+// @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx |   const mapped = p != null && (arrived ? p.status === "arrived" : p.status === "on_the_way") && |   const mapped = p != null &&
 // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |     : others === 1 | : others === -1
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras()]; |     const extras = [msg as RowAction, ...pageExtras()];
 describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => {
@@ -614,6 +614,13 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     const second = renderPage();
     expect((await screen.findByLabelText("Arrived")).querySelector("[data-on-the-way-map]")).toBeNull();
     second.unmount();
+    // The last point is still a driving one (not where he tapped Arrived): no map of a spot he wasn't at.
+    state.position = { status: "on_the_way", latitude: 30.01, longitude: -91.81 };
+    const third = renderPage();
+    const stale = await screen.findByLabelText("Arrived");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(stale.querySelector("[data-on-the-way-map]")).toBeNull();
+    third.unmount();
     state.job = { ...onTheWay(), helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:30:00Z" };
     renderPage();
     expect(document.querySelector("[data-arrived-now]")).toBeNull();

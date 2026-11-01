@@ -21,6 +21,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetS
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useMarkTalkRead } from "./useMarkTalkRead";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
   addHandover,
@@ -119,6 +120,8 @@ function HandoverTalkSheet({ talkId, onClose }: { talkId: string; onClose: () =>
   const key = ["declutter", "handover-talk", talkId] as const;
   // A light poll while the chat is open (the other side's new message shows within 15 seconds; never while hidden).
   const talk = useQuery({ queryKey: key, queryFn: () => fetchHandoverTalk(talkId), refetchInterval: 15_000 });
+  // B112: seen = read, so the unread reminders stop (on open and on each new message).
+  useMarkTalkRead("handover", talkId, talk.data ? talk.data.messages.length : null);
   const [draft, setDraft] = useState("");
   const send = useMutation({
     mutationFn: () => sendHandoverMessage(talkId, draft.trim()),

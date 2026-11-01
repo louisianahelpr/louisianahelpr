@@ -228,7 +228,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx` | input×2, date/calendar×2 | date, time |  | apply-time-question · apply-time-yes · apply-time-suggest · apply-time-date · apply-time-time |
 | `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |
 | `src/components/DisputeDialog.tsx` | input×1, textarea×1 | file | 1000 | dispute-details · dispute-details-requirement · Remove file |
-| `src/components/DisputeTimelineDialog.tsx` | input×1 | file |  | Remove file |
 | `src/components/feedback/NpsPrompt.tsx` | textarea×1 |  | 500 | Rate your experience, 1 to 5 · nps-comment |
 | `src/components/job-card/JobCardMetaRow.tsx` | date/calendar×1 |  |  |  |
 | `src/components/PhotoProof.tsx` | input×1 | file |  |  |
@@ -255,6 +254,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
+| `src/components/DisputeTimelineDialog.tsx` | input×1 | file |  | Remove file |
 | `src/components/guarantee/HelprGuaranteePanel.tsx` | input×1, textarea×2 | file |  | Photos · guarantee-note · guarantee-photos · guarantee-reject · Day to fix it · Helpr Guarantee |
 | `src/components/refund/RefundAnswerDialog.tsx` | input×2, date/calendar×2 | date, time |  |  |
 | `src/components/refund/RefundRequestDialog.tsx` | textarea×1 |  | 1000 | refund-amount · e.g. 20.00 · refund-amount-of · refund-reason · refund-reason-hint |

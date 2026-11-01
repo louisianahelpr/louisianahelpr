@@ -2,7 +2,7 @@
  * Owner 11-01 (phone screenshot of the job page's Done stage): the side-by-side buttons wrapped to two lines
  * ("Message / Yusef", "Approve and / release"). In a pair each button wears its SHORT label on ONE line; a button
  * alone keeps the full words. The cap (PAIR_LABEL_MAX, 12) is the width of half the 320 row at 14px (pairLabel.ts),
- * checked by eye in the 320 and 375 shots (~/.lh-shots/b107/after).
+ * checked by eye in the 320 and 375 shots (~/.lh-shots/b107/after, 2026-11-01).
  * Inventory: every label literal the page's rows draw (posterPageActions, JobPage, helperFaceAction, the release).
  *
  * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |       {pair ? pairLabel(a.label) : a.label} |       {a.label}

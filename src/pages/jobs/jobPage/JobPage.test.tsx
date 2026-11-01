@@ -1629,7 +1629,7 @@ describe("job page, no dead column at 1440", () => {
     expect(main.className.split(/\s+/)).toContain("empty:hidden");
     // The card is the main column's next sibling, and moves to column 1 when it is empty (CSS: :empty + aside).
     expect(main.nextElementSibling).toBe(side);
-    // Full content width, right under the tracker (owner via lead 11-01): column 1 AND both columns.
+    // Full content width, right under the tracker (owner via lead 2026-11-01): the first column, spanning both.
     expect(side.className.split(/\s+/)).toContain("lg:[[data-job-main]:empty+&]:col-start-1");
     expect(side.className.split(/\s+/)).toContain("lg:[[data-job-main]:empty+&]:col-span-2");
   });

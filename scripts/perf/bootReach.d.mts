@@ -22,3 +22,4 @@ export function guestBrowseOnlyModules(root: string): Set<string>;
 export function guestBrowseSplit(root: string): { browseOnly: Set<string>; homeShared: Set<string> };
 export const DECLUTTER_ITEM_ROOT: string;
 export function declutterItemSplit(root: string, split?: { deep: Set<string>; homeOff: Set<string> }): { itemDeep: Set<string>; itemPages: Set<string> };
+export function homeIconFiles(root: string): Set<string>;

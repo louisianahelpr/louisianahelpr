@@ -13,6 +13,8 @@ import { resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "@/test/helpers/blankNonCode";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
 
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
@@ -22,10 +24,12 @@ vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0 
 import { JobTracker } from "./JobPageParts";
 import type { JobPageRow } from "./useJobPage";
 
+pinJobClock();
+
 const T = (h: number) => new Date(Date.now() - h * 3600_000).toISOString();
 const JOB = {
   id: "j1", title: "Mow the front yard", status: "in_progress", payment_status: "escrow", customer_id: "p", helper_id: "h",
-  date_needed: new Date().toISOString().slice(0, 10), start_time: "09:00", is_group_job: false,
+  date_needed: jobLocalDateISO(0), start_time: "09:00", is_group_job: false,
   helper_confirmed_at: T(30), helper_dayof_confirmed_at: T(4), poster_confirmed_at: T(4), helper_on_the_way_at: T(2),
   helper_arrived_at: T(1.5), helper_arrival_verified_at: T(1.5), poster_confirmed_arrival_at: T(1.4),
 } as unknown as JobPageRow;

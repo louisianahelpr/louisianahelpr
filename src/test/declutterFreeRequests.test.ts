@@ -4,8 +4,8 @@
  * src/test/pglite/declutterFreeRequests.pglite.mjs (migration applied 3x; red with NEW_MIGRATION=skip).
  *
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   RETURN public.declutter_request_free(p_item_id); |   RETURN public.declutter_take_item(p_item_id, auth.uid(), 0, 'buy', NULL);
- * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   SELECT (SELECT count(*) FROM public.declutter_free_requests r WHERE r.requester_id = v_uid AND r.status = 'open')\n       + (SELECT | SELECT (SELECT 0)\n       + (SELECT
- * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |  WHERE p.user_id = v_uid AND p.free_blocked_until > now(); |  WHERE false;
+ * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |   SELECT (SELECT count(*) FROM public.declutter_free_requests r WHERE r.requester_id = v_uid AND r.status = 'open')\n       + (SELECT | SELECT (SELECT 0)\n       + (SELECT
+ * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |  WHERE p.user_id = v_uid AND p.free_blocked_until > now(); |  WHERE false;
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   IF NEW.status <> 'live' OR NEW.current_price_cents <> 0 THEN |   IF NEW.status <> 'live' THEN
  * @mutate src/components/declutter/DeclutterHomeView.tsx | data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0}) | data-free-request-count="">View
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       <MyFreeAsks />\n | \n

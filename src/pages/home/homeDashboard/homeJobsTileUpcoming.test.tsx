@@ -7,6 +7,7 @@
  *
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0) === "scheduled"); | ["waiting", "scheduled"].includes(postedActivityBucket(j, posted.pendingApplicantCounts?.[j.id] ?? 0)));
  */
+// @mutate src/pages/home/homeDashboard/useHomeSummary.ts | countLine([[jobTodos, "needs you", "need you"], | countLine([[jobTodos, "need you"],
 import { describe, it, expect, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -44,8 +45,8 @@ describe("H5: Home's Jobs tile counts upcoming jobs, never waiting posts", () =>
     const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
     const { result } = renderHook(() => useHomeSummary({ id: "u1" } as never), { wrapper });
     // The tile is one count line since the design-build lead review (056d4dba80,
-    // countLine: zero counts dropped): "1 need you · 2 upcoming".
-    expect(result.current.tiles.jobs).toBe("1 need you · 2 upcoming");
+    // countLine: zero counts dropped): "1 needs you · 2 upcoming" (JA-37, audit 11-01: one "needs", many "need").
+    expect(result.current.tiles.jobs).toBe("1 needs you · 2 upcoming");
     expect(result.current.tiles.jobs).not.toMatch(/in progress/);
   });
 });

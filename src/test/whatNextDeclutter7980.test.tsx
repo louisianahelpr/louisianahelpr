@@ -33,7 +33,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchItemDropState: async (id: string) => ({ sale_mode: items[id]?.sale_mode ?? null, last_price_drop_on: null, ...(items[id] && "drop_pct" in items[id] ? { drop_pct: items[id].drop_pct as number } : {}) }),
   // Board 192's link card reads the cover.
   fetchPhotos: async () => [],
-  photoPublicUrl: (p: string) => `https://cdn/${p}`,
+  photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
 }));
 const code = (f: string) => readFileSync(resolve(__dirname, "../..", f), "utf8");
 

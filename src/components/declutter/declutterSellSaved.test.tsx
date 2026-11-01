@@ -70,7 +70,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyPickupWindows: async () => [],
   fetchPhotos: async () => h.onDraft,
   fetchHasAgreedSales: async () => false,
-  photoPublicUrl: (p: string) => `https://cdn/${p}`,
+  photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
   createDraft: async (f: { priceCents: number; floorPriceCents: number }) => { h.calls.push("createDraft");
     if (h.alreadyPosted) throw Object.assign(new Error("already_posted"), { itemId: "live-1", userMessage: "Already posted. It's under Selling." }); h.floors.push([f.priceCents, f.floorPriceCents]); return NEW_ID; },
   setDropPct: async (_id: string, pct: number) => { h.drops.push(pct); return pct; },

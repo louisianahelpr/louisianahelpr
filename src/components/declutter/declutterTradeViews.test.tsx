@@ -141,7 +141,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyCart: async () => state.cart,
   // BUY-15: the cart's small photos (first photo per item).
   fetchPhotos: async (ids: string[]) => cartPhotos.filter((p) => ids.includes(p.item_id)),
-  photoPublicUrl: (path: string) => `https://photos.test/${path}`,
+  photoPublicUrl: (path: string) => `https://photos.test/${path}`, photoCardUrl: (path: string) => `https://photos.test/${path}`, CARD_PHOTO_PX: 480,
   makeOffer: async (itemId: string, cents: number) => {
     state.sent.push({ itemId, cents });
     return "o1";

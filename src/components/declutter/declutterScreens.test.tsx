@@ -148,7 +148,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyPickupWindows: async () => [],
   fetchKeepUp: async () => state.keepUp,
   setKeepUp: vi.fn(async (_id: string, on: boolean) => { state.keepUp = on; return on; }),
-  photoPublicUrl: (p: string) => `https://cdn/${p}`,
+  photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
   withdrawItem: async () => undefined,
   setWatch: async () => "watching",
   askQuestion: async () => "q",

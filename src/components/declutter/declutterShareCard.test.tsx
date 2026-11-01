@@ -30,7 +30,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async (id: string) => items[id] ?? null,
   fetchItemDropState: async () => ({ sale_mode: "fixed", last_price_drop_on: null }),
   fetchPhotos: async () => [{ storage_path: "u1/declutter/a/1.jpg" }],
-  photoPublicUrl: (p: string) => `https://cdn/${p}`,
+  photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
 }));
 
 import { toast } from "sonner";

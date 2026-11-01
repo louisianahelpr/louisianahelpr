@@ -11,6 +11,7 @@
  * rows the server already takes (at most 21; it refuses an end before a start).
  */
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { type PickupWindow } from "@/lib/declutter/api";
@@ -91,10 +92,12 @@ function RangeRow({ idBase, w, onChange, onRemove, removeLabel }: {
         <span className="text-ds-13 text-muted-foreground" aria-hidden>to</span>
         <TimeSelect id={`${idBase}-to`} label="Until" value={w.ends} onChange={(v) => onChange({ ...w, ends: v })} />
         {onRemove ? (
-          <button type="button" onClick={onRemove} aria-label={removeLabel}
-            className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
-            <X className="h-4 w-4" aria-hidden />
-          </button>
+          // The shared compact ghost icon (44 tap, 40 wash), not a hand-made button. The 16px X stays: a remove
+          // mark beside two time fields, smaller than a toolbar icon (B47 10-31).
+          <Button type="button" variant="ghost" size="iconCompact" onClick={onRemove} aria-label={removeLabel}
+            className="rounded-full text-muted-foreground hover:text-foreground [&_svg]:size-4">
+            <X aria-hidden />
+          </Button>
         ) : <span className="w-11" aria-hidden />}
       </div>
       {bad && <p className="text-ds-13 font-semibold text-destructive-ink" data-window-problem="">The end time must be after the start.</p>}

@@ -1111,7 +1111,7 @@ describe("on the job page, the card hands over its actions minus Message", () =>
       );
       await act(async () => { await Promise.resolve(); });
       expect(counts.length).toBeGreaterThan(0);
-      expect(counts.at(-1)).toBe(1);
+      expect(counts[counts.length - 1]).toBe(1);
       expect(second.textContent).toBe("No-Show");
     } finally {
       second.remove();

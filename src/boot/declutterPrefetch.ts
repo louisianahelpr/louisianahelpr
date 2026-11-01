@@ -13,6 +13,7 @@
  * FEATURE_SWITCH_KEYS, and src/boot/declutterPrefetch.test.ts holds the two equal.
  */
 import { storedSession } from "./storedSession";
+import { startDeclutterMinePrefetch } from "./declutterMinePrefetch";
 
 /** Copy of FEATURE_SWITCH_KEYS in src/config/featureSwitches.ts (see above). */
 export const FIRST_SCREEN_SWITCH_KEYS = [
@@ -66,4 +67,6 @@ export function startDeclutterPrefetch(pathname: string): void {
     // A failed prefetch is not an error: the page runs today's reads.
     .catch(() => null);
   (window as unknown as Record<string, unknown>)[DECLUTTER_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, answer };
+  // B81: the tab row's three reads (every tab waits on them), beside this one.
+  startDeclutterMinePrefetch(base, key, session);
 }

@@ -22,6 +22,7 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | ? `${msg} We kept what you typed.` : msg); | ? msg : msg);
  */
 import { readFileSync } from "node:fs";
+import { setConnectivity } from "@/lib/connectivity";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
@@ -110,8 +111,13 @@ describe("D4-14: a Declutter call that never reached the server says so", () => 
   afterEach(() => vi.unstubAllGlobals());
 
   it("offline: the offline words; a dropped connection: the shared connection words; a real refusal: its own words", () => {
-    vi.stubGlobal("navigator", { ...navigator, onLine: false });
+    // Offline CONFIRMED (src/lib/connectivity.ts): the offline words.
+    setConnectivity(false);
     expect(declutterErrorMessage(new Error("TypeError: Failed to fetch"))).toBe(DECLUTTER_OFFLINE_COPY);
+    setConnectivity(true);
+    // navigator.onLine=false alone is only a hint (owner 10-31): not "You're offline".
+    vi.stubGlobal("navigator", { ...navigator, onLine: false });
+    expect(declutterErrorMessage(new Error("TypeError: Failed to fetch"))).toBe(CONNECTION_TROUBLE_COPY);
     vi.stubGlobal("navigator", { ...navigator, onLine: true });
     expect(declutterErrorMessage(new Error("TypeError: Failed to fetch"))).toBe(CONNECTION_TROUBLE_COPY);
     expect(declutterErrorMessage(new Error("Load failed"))).toBe(CONNECTION_TROUBLE_COPY);

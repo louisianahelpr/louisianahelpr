@@ -7,13 +7,15 @@
  * @mutate src/components/declutter/GoOnlineCard.tsx |       if (!on) return setOnline(false, {}); |       if (!on) return setOnline(true, { hours, radiusMiles: radius, where });
  * @mutate src/lib/helprTasks/online.ts |   return !!s?.online_until && new Date(s.online_until).getTime() > now; |   return !!s?.online_until;
  * @mutate src/components/declutter/DeliveryOnlinePill.tsx |   if (!online) return null; |   if (false) return null;
+ * @mutate src/lib/helprTasks/online.ts |     if (words) e.userMessage = words; |
+ * @mutate src/lib/helprTasks/online.ts | import { loadModule } from "@/lib/loadModule"; | import { loadModule } from "@/lib/loadModule";\nimport { rpcErrorMessage as eagerWords } from "./errorCopy";\nvoid eagerWords;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const state = { status: null as null | { online_until: string | null; radius_miles: number }, calls: [] as unknown[][] };
+const state = { status: null as null | { online_until: string | null; radius_miles: number }, calls: [] as unknown[][], refusal: null as null | string };
 
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: undefined }) }));
@@ -21,12 +23,15 @@ vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: state.status, error: null }) }) }) }),
-    rpc: async (name: string, args: unknown) => { state.calls.push([name, args]); return { data: null, error: null }; },
+    rpc: async (name: string, args: unknown) => { state.calls.push([name, args]); return { data: null, error: state.refusal ? { message: state.refusal } : null }; },
   },
 }));
 
+import { readFileSync } from "node:fs";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import { GoOnlineCard } from "./GoOnlineCard";
 import { DeliveryOnlinePill } from "./DeliveryOnlinePill";
+import { setOnline } from "@/lib/helprTasks/online";
 
 function show(el: React.ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -37,6 +42,24 @@ const inHours = (h: number) => new Date(Date.now() + h * 3600_000).toISOString()
 beforeEach(() => {
   state.status = null;
   state.calls = [];
+  state.refusal = null;
+});
+
+// B79: DesktopTopNav's online pill runs online.ts beside every signed-in page, so its refusal words load only on a
+// refusal: a static import of ./errorCopy pulled Declutter's first-screen chunk (~25 KB gz) onto every page.
+describe("going online: the refusal words", () => {
+  it("a refusal still throws the server's error with its plain words", async () => {
+    state.refusal = "invalid_hours";
+    const err = await setOnline(true, { hours: 99 }).then(() => null, (e: unknown) => e as Error & { userMessage?: string });
+    expect(err?.message).toBe("invalid_hours");
+    expect(err?.userMessage).toBe("Choose 1 to 12 hours.");
+  });
+
+  it("online.ts does not import the refusal words statically", () => {
+    const src = blankComments(readFileSync("src/lib/helprTasks/online.ts", "utf8"));
+    expect(src).not.toMatch(/(^|\n)\s*import[^;]*from\s*["']\.\/errorCopy["']/);
+    expect(src).toContain('import("./errorCopy")');
+  });
 });
 
 describe("Go online for deliveries", () => {

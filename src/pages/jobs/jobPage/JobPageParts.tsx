@@ -210,9 +210,9 @@ export function HelprPrice({ job, noShow = false }: { job: JobPageRow; noShow?: 
   }
   return (
     <div data-helpr-money="" className="shrink-0 text-right">
-      <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
-      {disputed ? <p data-helpr-money-held="" className="mt-1 text-ds-12 font-semibold text-muted-foreground">On hold while we review</p>
-        : !fixedPay && <p className="mt-1 text-ds-12 font-semibold text-muted-foreground">You take home</p>}
+      {/* Owner 11-01: "Remove you take home." The figure stands alone; a screen reader still hears "Your pay". */}
+      <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>{!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
+      {disputed && <p data-helpr-money-held="" className="mt-1 text-ds-12 font-semibold text-muted-foreground">On hold while we review</p>}
     </div>
   );
 }

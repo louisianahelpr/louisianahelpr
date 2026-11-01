@@ -1,4 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
+import { buttonLabel } from "@/components/ui/pairLabel";
 import { MoreHorizontal, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -400,6 +401,8 @@ export function JobStepPrimaryButton({
    */
   tone?: "primary" | "done";
 }) {
+  // Owner 11-01: every confirm reads just "Confirm" (pairLabel.ts buttonLabel); the full words stay its name.
+  const shown = buttonLabel(label);
   if (tone === "done") {
     return (
       <Button
@@ -413,11 +416,11 @@ export function JobStepPrimaryButton({
         // finished box" from "the row's primary lost its gloss", which is a
         // defect (jobStepOneRow.test.tsx).
         data-job-step-done=""
-        aria-label={composeAccessibleName(label, ariaLabel)}
+        aria-label={composeAccessibleName(label, ariaLabel) ?? (shown !== label ? label : undefined)}
         onClick={onClick}
       >
         <Icon className={`w-4 h-4${iconClassName ? ` ${iconClassName}` : ""}`} />
-        <span className={JOB_ROW_LABEL_CLASS}>{label}</span>
+        <span className={JOB_ROW_LABEL_CLASS}>{shown}</span>
       </Button>
     );
   }
@@ -439,11 +442,11 @@ export function JobStepPrimaryButton({
       size="sm"
       className={JOB_ROW_CONTROL_SHAPE}
       disabled={disabled}
-      aria-label={composeAccessibleName(label, ariaLabel)}
+      aria-label={composeAccessibleName(label, ariaLabel) ?? (shown !== label ? label : undefined)}
       onClick={onClick}
     >
       <Icon className={`w-4 h-4${iconClassName ? ` ${iconClassName}` : ""}`} />
-      <span className={JOB_ROW_LABEL_CLASS}>{label}</span>
+      <span className={JOB_ROW_LABEL_CLASS}>{shown}</span>
     </Button>
   );
 }

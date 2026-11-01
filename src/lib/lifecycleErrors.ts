@@ -516,7 +516,7 @@ export const RPC_ERROR_COPY = {
     job_not_active: JOB_NOT_ACTIVE_STATUS,
     helper_not_confirmed: "Accept this job first, then mark yourself on the way.",
     // 20261008203441 (Q1570): the Helpr's own day-before tap, then 2 h before the start.
-    helper_not_dayof_confirmed: "Tap \"Confirm you'll be at the job\" first, then you can head out.",
+    helper_not_dayof_confirmed: "Tap Confirm first, then you can head out.",
     on_the_way_too_early: "I'm on my way turns on 2 hours before the job starts.",
   },
   nudge_confirm: {

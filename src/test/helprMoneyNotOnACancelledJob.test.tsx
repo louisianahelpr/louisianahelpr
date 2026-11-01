@@ -47,7 +47,7 @@ afterEach(cleanup);
 describe("the Helpr's money box (JA-24, JA-29)", () => {
   it("a live job: the take-home and the setup-fee line (control)", () => {
     const t = box(row({}));
-    expect(t).toContain("You take home");
+    expect(t).toContain("Your pay");
     expect(t).toMatch(/\$\d/);
   });
 
@@ -74,7 +74,7 @@ describe("the Helpr's money box (JA-24, JA-29)", () => {
     for (const j of [row({ status: "disputed" }), row({ status: "in_progress", has_active_dispute: true })]) {
       const t = box(j);
       expect(t).toContain("On hold while we review");
-      expect(t).not.toContain("You take home");
+      expect(t).not.toContain("take home");
       expect(t).not.toMatch(/setup/i);
       cleanup();
     }

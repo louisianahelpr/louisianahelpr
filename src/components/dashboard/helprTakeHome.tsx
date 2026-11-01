@@ -58,13 +58,14 @@ export function JobPriceTakeHome({ job, className = "", after = "", fallback = n
   if (bare) {
     return (
       <span data-job-price-take-home="" className={`font-display text-ds-28 font-bold leading-none tabular-nums text-[hsl(var(--accent-ink))] ${className}`}>
-        {!fixedPay && <span className="sr-only">You take home </span>}${formatPriceFloor(net)}
+        {!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}
       </span>
     );
   }
   return (
     <span data-job-price-take-home="" className={className}>
-      {!fixedPay && "You take home "}<span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">${formatPriceFloor(net)}</span>
+      {/* Owner 11-01: "Remove you take home." The figure alone; a screen reader still hears "Your pay". */}
+      {!fixedPay && <span className="sr-only">Your pay </span>}<span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">${formatPriceFloor(net)}</span>
       {after}
     </span>
   );

@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldAlert } from "lucide-react";
 import { composeAccessibleName, JobActionChip, JobStepPrimaryButton } from "./JobActionRow";
 import { SosShareButton } from "@/components/SosShareButton";
-import { pairLabel, PAIR_TEXT } from "@/components/ui/pairLabel";
+import { buttonLabel, pairLabel, PAIR_TEXT } from "@/components/ui/pairLabel";
 
 interface JobStepMenu {
   /** The page's second-button slot (exactly one action). */
@@ -59,6 +59,8 @@ export function MenuAction({ chip, className = "", lead = false, pair = false }:
   if (isValidElement(chip) && (chip.type === JobActionChip || chip.type === JobStepPrimaryButton)) {
     const p = (chip as ReactElement<ChipProps>).props;
     const danger = p.tone === "danger";
+    // A confirm reads just "Confirm" alone too (owner 11-01, pairLabel.ts buttonLabel); the full words stay its name.
+    const shown = pair ? pairLabel(p.label) : buttonLabel(p.label);
     return (
       <Button
         type="button"
@@ -67,10 +69,10 @@ export function MenuAction({ chip, className = "", lead = false, pair = false }:
         data-menu-action={p.label}
         className={`min-w-0 rounded-full ${pairCls} leading-tight ${danger ? "text-destructive-ink" : ""} ${className}`}
         disabled={p.disabled}
-        aria-label={composeAccessibleName(p.label, p.ariaLabel)}
+        aria-label={composeAccessibleName(p.label, p.ariaLabel) ?? (shown !== p.label ? p.label : undefined)}
         onClick={p.onClick}
       >
-        {pair ? pairLabel(p.label) : p.label}
+        {shown}
       </Button>
     );
   }

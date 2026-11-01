@@ -291,7 +291,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 </Button>
               </div>
             )}
-            {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
+            {/* Not beside an instant booking's "You're booked" (B80 375 look, 11-01): the two read as a contradiction. */}
+            {!isPoster && !isHired && !instantUntil && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
           </section>
 
           {/* Board 57: the poster's open, paid job that nobody has applied to yet. */}

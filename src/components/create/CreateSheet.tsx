@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
-import { useSectionIsOn, useSectionIsPreview } from "@/components/sections/ExploreSwitcher";
+import { useSectionIsListed, useSectionIsOn, useSectionIsPreview } from "@/components/sections/ExploreSwitcher";
 import { sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
@@ -59,8 +59,11 @@ function useCreateRows() {
 export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
   const gate = useAgeGate();
-  const { visible, prefs, setHidden } = useSectionPrefs();
+  const { visible: shownSections, prefs, setHidden } = useSectionPrefs();
   const { isOn, isPreview, actions } = useCreateRows();
+  // In the iPhone app a section not open to everyone has no row (owner 10-31, src/lib/hideUnopenedInApp.ts).
+  const isListed = useSectionIsListed();
+  const visible = shownSections.filter(isListed);
   // A3-C13: a member who hid every OPEN section (allowed before the rule
   // counted open sections) saw only "Coming soon" rows here, with no reason.
   // Say why, and offer to show them again.

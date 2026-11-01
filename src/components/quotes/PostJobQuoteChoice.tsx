@@ -11,6 +11,7 @@
  * holds to create_quote_request; nothing is charged. The poster pays later,
  * when they book a quote, through the one escrow checkout.
  */
+import { hideUnopenedInApp } from "@/lib/hideUnopenedInApp";
 import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -60,6 +61,9 @@ export function PriceModeChoice({
   quotesComingSoon?: boolean;
 }) {
   const [soonTapped, setSoonTapped] = useState(false);
+  // The iPhone app shows no disabled "Get quotes" (owner 10-31, src/lib/hideUnopenedInApp.ts): with quotes not open
+  // the only choice is "Set a price", so the whole choice is left out and the job stays priced. The website keeps it.
+  if (quotesComingSoon && hideUnopenedInApp()) return null;
   return (
     <div data-price-mode-choice>
       <p className="mb-2 text-sm font-semibold text-foreground">

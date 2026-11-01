@@ -64,12 +64,22 @@ export const RESET_FIELDS = Object.freeze({
 });
 
 /**
- * The ONLY Stripe account a test seat may hold: helper-e2e's TEST-mode Express
+ * The ONLY Stripe account a test seat may hold: helper-e2e's TEST-mode Custom
  * fixture (user_id -> account id). Exact pairs, so a second account made for
  * any seat, or this account linked to another seat, is still a violation.
+ *
+ * D4-1 / OPS-6 (owner approved 2026-11-01, one prod write): the Express
+ * account above (acct_1UQigP3qNyg1xGcp) could never be finished by API
+ * (hosted terms + hCaptcha), so it was replaced by acct_1UWzu83VTH7LD6DT, a
+ * Custom TEST-mode account the platform completed with Stripe's published test
+ * values (test SSN 000000000, address_full_match, test bank 110000000 /
+ * 000123456789; metadata lh_fixture=helper-e2e-payout). Measured at Stripe
+ * 2026-11-01 14:39Z: charges_enabled, payouts_enabled, transfers active,
+ * nothing due. Linked to helper-e2e by one service-role write scoped to
+ * user_id + stripe_account_id IS NULL + is_seed (~/.lh-shots/b89-ops6/).
  */
 export const SANCTIONED_TEST_CONNECT_ACCOUNTS = Object.freeze({
-  [ACCOUNTS["helper-e2e"].userId]: "acct_1UQigP3qNyg1xGcp",
+  [ACCOUNTS["helper-e2e"].userId]: "acct_1UWzu83VTH7LD6DT",
 });
 
 /** The profile columns a seat check must read (stripeSeatViolations needs all of them). */

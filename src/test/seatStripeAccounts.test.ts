@@ -63,8 +63,8 @@ describe("nightly-red #2436: a test seat with a Stripe account is named, in ever
     const helper = ACCOUNTS["helper-e2e"];
     const poster = ACCOUNTS["poster-e2e"];
     // Exactly one pair, and it is helper-e2e's own account.
-    expect(SANCTIONED_TEST_CONNECT_ACCOUNTS).toEqual({ [helper.userId]: "acct_1UQigP3qNyg1xGcp" });
-    const ready = { user_id: helper.userId, email: helper.email, is_seed: true, stripe_account_id: "acct_1UQigP3qNyg1xGcp", stripe_payouts_enabled: true, stripe_charges_enabled: true, stripe_identity_verified: true, idv_status: "not_started" };
+    expect(SANCTIONED_TEST_CONNECT_ACCOUNTS).toEqual({ [helper.userId]: "acct_1UWzu83VTH7LD6DT" });
+    const ready = { user_id: helper.userId, email: helper.email, is_seed: true, stripe_account_id: "acct_1UWzu83VTH7LD6DT", stripe_payouts_enabled: true, stripe_charges_enabled: true, stripe_identity_verified: true, idv_status: "not_started" };
     expect(stripeSeatViolations([ready]), "the ready fixture is allowed").toEqual([]);
     // idv_status 'verified' is identity too (identity_is_verified).
     expect(stripeSeatViolations([{ ...ready, stripe_identity_verified: false, idv_status: "verified" }])).toEqual([]);
@@ -74,7 +74,7 @@ describe("nightly-red #2436: a test seat with a Stripe account is named, in ever
       { ...ready, stripe_charges_enabled: false },
       { ...ready, stripe_identity_verified: false },
       { ...ready, stripe_payouts_enabled: undefined },
-      { user_id: helper.userId, email: helper.email, is_seed: true, stripe_account_id: "acct_1UQigP3qNyg1xGcp" },
+      { user_id: helper.userId, email: helper.email, is_seed: true, stripe_account_id: "acct_1UWzu83VTH7LD6DT" },
     ]) {
       const v = stripeSeatViolations([bad]);
       expect(v, JSON.stringify(bad)).toHaveLength(1);
@@ -86,6 +86,8 @@ describe("nightly-red #2436: a test seat with a Stripe account is named, in ever
     // Another account on the fixture's seat, or the fixture on another seat: a violation even when ready.
     expect(stripeSeatViolations([{ ...ready, stripe_account_id: "acct_1SomeOtherAcct00" }])[0]).toContain("not the sanctioned");
     expect(stripeSeatViolations([{ ...ready, user_id: poster.userId, email: poster.email }])[0]).toContain("not the sanctioned");
+    // D4-1 / OPS-6: the retired Express fixture is no longer allowed on helper-e2e, even marked ready.
+    expect(stripeSeatViolations([{ ...ready, stripe_account_id: "acct_1UQigP3qNyg1xGcp" }])[0]).toContain("not the sanctioned");
   });
 
   it("every seat read selects every column the rule needs", () => {

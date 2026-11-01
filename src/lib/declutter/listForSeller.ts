@@ -43,6 +43,8 @@ interface ListedForMe {
   job_id: string;
   title: string;
   price_cents: number;
+  /** The lowest price the Helpr set (equal to the price when they set none). */
+  floor_price_cents: number | null;
   helpr_first_name: string;
   sent_at: string | null;
 }

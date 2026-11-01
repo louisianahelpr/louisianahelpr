@@ -61,7 +61,13 @@ export function ListedForYouCard() {
             {/* At least 12rem for the title, so on a phone the two buttons wrap under it instead of crushing it. */}
             <div className="min-w-[12rem] flex-1">
               <p className="truncate text-ds-15 font-medium">{r.title}</p>
-              <p className="text-ds-13 text-muted-foreground">{r.price_cents === 0 ? "Free" : formatPrice(r.price_cents)}</p>
+              <p className="text-ds-13 text-muted-foreground">
+                {r.price_cents === 0 ? "Free" : formatPrice(r.price_cents)}
+                {/* The lowest price the Helpr set, so the seller sees it before approving. */}
+                {r.floor_price_cents != null && r.floor_price_cents > 0 && r.floor_price_cents < r.price_cents && (
+                  <span data-listed-floor=""> · Lowest {formatPrice(r.floor_price_cents)}</span>
+                )}
+              </p>
             </div>
             <Button variant="outline" className="rounded-full" disabled={busy} onClick={() => decline.mutate(r.item_id)}>
               Not this one

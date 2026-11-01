@@ -10,6 +10,7 @@
  * never reads area_lat/area_lng or any other point. Tapping a pin opens a small preview of the item over the map's
  * bottom edge; tapping the preview opens the item page.
  */
+import { Button } from "@/components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, MapPin, MapPinOff, X } from "lucide-react";
@@ -170,7 +171,7 @@ export default function DeclutterMap({
         <ReportErrorScreen source="DeclutterMap.pins" title="We couldn't load the map." />
         <MapPinOff className="h-6 w-6 text-muted-foreground" aria-hidden />
         <p className="text-ds-15 font-semibold text-foreground">We couldn't load the map.</p>
-        <button type="button" onClick={onRetry} className="min-h-11 rounded-full px-4 text-ds-13 font-bold text-[hsl(var(--sage-ink))]">Try again</button>
+        <Button type="button" variant="ghost" size="sm" onClick={onRetry} className="text-ds-13 tracking-normal text-[hsl(var(--sage-ink))]">Try again</Button>
       </div>
     );
   }

@@ -352,7 +352,7 @@
       "input": 2
     },
     "src/components/declutter/DeclutterMap.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/components/declutter/DeclutterMeetup.tsx": {
       "button": 1,
@@ -386,9 +386,6 @@
       "textarea": 1
     },
     "src/components/declutter/DeclutterPaySettling.tsx": {
-      "button": 1
-    },
-    "src/components/declutter/DeclutterPickupDayCard.tsx": {
       "button": 1
     },
     "src/components/declutter/DeclutterPickupTimes.tsx": {
@@ -495,9 +492,6 @@
       "button": 1
     },
     "src/components/declutter/MovingSaleBanner.tsx": {
-      "button": 1
-    },
-    "src/components/declutter/RouteSuggestions.tsx": {
       "button": 1
     },
     "src/components/declutter/SellFormParts.tsx": {

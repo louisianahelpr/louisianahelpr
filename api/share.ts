@@ -122,6 +122,11 @@ interface Meta {
   image?: { url: string; type: string; width: number; height: number; alt: string };
   /** CDN cache override (shop cards: minutes, so a hidden or paused shop stops previewing). */
   cdnCache?: string;
+  /**
+   * LEAD-PROFILE-LINK: keep exactly ONE og:image (the shell carries a second, square brand fallback). A profile
+   * card is the member's photo; a fallback logo beside it is what some scrapers pick instead.
+   */
+  singleImage?: boolean;
 }
 
 /* ------------------------------------------------------------------ *
@@ -221,6 +226,10 @@ function applyMeta(html: string, meta: Meta): string {
     out = setMetaContent(out, "property", "og:image:alt", meta.image.alt);
     out = setMetaContent(out, "name", "twitter:image", meta.image.url);
     out = setMetaContent(out, "name", "twitter:image:alt", meta.image.alt);
+  }
+  if (meta.singleImage) {
+    let seen = 0;
+    out = out.replace(/[ \t]*<meta property="og:image" content="[^"]*"\s*\/?>\n?/g, (tag) => (seen++ === 0 ? tag : ""));
   }
   return out;
 }
@@ -839,6 +848,114 @@ function bookImage(avatarUrl: string | null | undefined, userId: string, name: s
 }
 
 /* ------------------------------------------------------------------ *
+ * Shareable profile link (LEAD-PROFILE-LINK, owner 2026-10-31): /u/<handle>
+ * ------------------------------------------------------------------ */
+
+/** The same handle rule the database checks (profiles_handle_format). */
+const HANDLE_RE = /^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){2,29}$/;
+const PROFILE_ROBOTS = "noindex, follow";
+const PROFILE_CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=600";
+
+/** The few public fields the card uses from public_profile_by_handle (the same anon read the page makes). */
+interface ProfileCard {
+  name: string | null;
+  photo_url: string | null;
+  stats?: { review_count?: number | null; avg_rating?: number | null } | null;
+  helpr?: { jobs_done?: number | null } | null;
+  listings?: unknown[] | null;
+  jobs?: unknown[] | null;
+}
+type ProfileLookup = { state: "found"; card: ProfileCard } | { state: "absent" } | { state: "unknown" };
+
+async function fetchProfileCard(handle: string): Promise<ProfileLookup> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { state: "unknown" };
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/public_profile_by_handle`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_handle: handle }),
+      signal: AbortSignal.timeout(DB_TIMEOUT_MS),
+    });
+    if (!res.ok) return { state: "unknown" };
+    const card = (await res.json()) as ProfileCard | null;
+    return card && typeof card === "object" ? { state: "found", card } : { state: "absent" };
+  } catch {
+    // Timeout, DNS, connection refused: we did not learn anything.
+    return { state: "unknown" };
+  }
+}
+
+/**
+ * The member's own stored photo at exactly 1200x630, cut by the storage render endpoint (format=origin keeps the
+ * stored type). Only an avatar this project stores under avatars/<user id>/avatar.jpg|png; anything else (a
+ * social-login photo, another folder, an unknown type) gives no image block and the brand image stays.
+ */
+function profileImage(avatarUrl: string | null | undefined, name: string): Meta["image"] | undefined {
+  if (typeof avatarUrl !== "string" || !SUPABASE_URL) return undefined;
+  const prefix = `${SUPABASE_URL}/storage/v1/object/public/avatars/`;
+  if (!avatarUrl.startsWith(prefix)) return undefined;
+  const [userId, file, ...rest] = avatarUrl.slice(prefix.length).split(/[?#]/)[0].split("/");
+  if (rest.length || !UUID_RE.test(userId ?? "")) return undefined;
+  const ext = /^avatar\.([a-z]+)$/.exec(file ?? "")?.[1];
+  const type = ext ? AVATAR_TYPES[ext] : undefined;
+  if (!type) return undefined;
+  return {
+    url: `${SUPABASE_URL}/storage/v1/render/image/public/avatars/${userId}/${file}?width=1200&height=630&resize=cover&quality=80&format=origin`,
+    type,
+    width: 1200,
+    height: 630,
+    alt: clean(`${name} on Louisiana Helpr`, 120),
+  };
+}
+
+function unavailableProfileMeta(url: string): Meta {
+  return {
+    title: "This profile isn't available — Helpr",
+    ogTitle: "This profile isn't available",
+    description: "Find local help and secondhand finds from neighbors on Louisiana Helpr.",
+    url,
+    robots: PROFILE_ROBOTS,
+    cdnCache: PROFILE_CDN_CACHE,
+    singleImage: true,
+  };
+}
+
+async function metaForProfile(rawHandle: string, url: string): Promise<Meta | null> {
+  const handle = rawHandle.trim().toLowerCase();
+  if (!HANDLE_RE.test(handle)) return unavailableProfileMeta(url);
+  const lookup = await fetchProfileCard(handle);
+  if (lookup.state === "unknown") return null;
+  if (lookup.state === "absent") return unavailableProfileMeta(url);
+  const card = lookup.card;
+  const name = clean(card.name, 40) || "A neighbor";
+  const parts: string[] = [];
+  const reviews = Number(card.stats?.review_count ?? 0);
+  const avg = card.stats?.avg_rating == null ? NaN : Number(card.stats.avg_rating);
+  if (reviews > 0 && Number.isFinite(avg)) parts.push(`${avg.toFixed(1)} stars (${reviews} review${reviews === 1 ? "" : "s"})`);
+  const done = Number(card.helpr?.jobs_done ?? 0);
+  if (done > 0) parts.push(`${done} job${done === 1 ? "" : "s"} done`);
+  const selling = Array.isArray(card.listings) ? card.listings.length : 0;
+  if (selling > 0) parts.push(`${selling} item${selling === 1 ? "" : "s"} for sale`);
+  const open = Array.isArray(card.jobs) ? card.jobs.length : 0;
+  if (open > 0) parts.push(`${open} open job${open === 1 ? "" : "s"}`);
+  return {
+    title: `${name} on Louisiana Helpr`,
+    ogTitle: `${name} on Louisiana Helpr`,
+    description: clean(`See what ${name} posts and does on Louisiana Helpr.${parts.length ? ` ${parts.join(" · ")}.` : ""}`, 200),
+    url,
+    robots: PROFILE_ROBOTS,
+    image: profileImage(card.photo_url, name),
+    cdnCache: PROFILE_CDN_CACHE,
+    singleImage: true,
+  };
+}
+
+/* ------------------------------------------------------------------ *
  * Matchmaker links (B59, 2026-10-29): /post-job?mm=1&cat=...&t=...
  * ------------------------------------------------------------------ */
 
@@ -938,9 +1055,9 @@ function metaForNoindexPage(id: string): Meta | null {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book" | "matchmaker"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter" | "book" | "matchmaker" | "profile"; id: string } | null {
   const declared = url.searchParams.get("_og");
-  if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop" || declared === "declutter" || declared === "book") {
+  if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop" || declared === "declutter" || declared === "book" || declared === "profile") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
   }
   if (declared === "signup") return { kind: "signup", id: "" };
@@ -954,6 +1071,8 @@ function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "n
   if (itemMatch) return { kind: "declutter", id: decodeURIComponent(itemMatch[1]) };
   const bookMatch = pathname.match(/^\/book\/([^/]+)$/);
   if (bookMatch) return { kind: "book", id: decodeURIComponent(bookMatch[1]) };
+  const profileMatch = pathname.match(/^\/u\/([^/]+)$/);
+  if (profileMatch) return { kind: "profile", id: decodeURIComponent(profileMatch[1]) };
   const shopMatch = pathname.match(/^\/shops\/([^/]+)$/);
   if (shopMatch) return { kind: "shop", id: decodeURIComponent(shopMatch[1]) };
   const userMatch = pathname.match(/^\/user\/([^/]+)$/);
@@ -990,6 +1109,11 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
   if (route.kind === "book") {
     const seg = safeIdSegment(route.id);
     return metaForBook(route.id, seg ? `${SITE_ORIGIN}/book/${seg}` : `${SITE_ORIGIN}/`);
+  }
+
+  if (route.kind === "profile") {
+    const h = route.id.trim().toLowerCase();
+    return metaForProfile(route.id, HANDLE_RE.test(h) ? `${SITE_ORIGIN}/u/${h}` : `${SITE_ORIGIN}/`);
   }
 
   if (route.kind === "declutter") {

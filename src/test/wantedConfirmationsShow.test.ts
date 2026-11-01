@@ -17,7 +17,7 @@ const code = (f: string) => blankComments(readFileSync(resolve(__dirname, "../..
 
 describe("Wanted confirmations are shown", () => {
   it("reads the screens (floor)", () => {
-    expect(FILES.map((f) => code(f).match(/\btoast\(/g)?.length ?? 0).reduce((a, b) => a + b, 0)).toBeGreaterThan(5);
+    expect(FILES.flatMap((f) => code(f).match(/\btoast\(/g) ?? []).length).toBeGreaterThan(5);
   });
   it.each(FILES)("%s uses no suppressed toast", (f) => {
     expect(code(f).match(/\btoast\.(success|info|message)\(/g) ?? []).toEqual([]);

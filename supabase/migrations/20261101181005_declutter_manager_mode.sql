@@ -450,6 +450,7 @@ DECLARE
   v_item public.declutter_items%ROWTYPE;
   v_path text;
   v_pos smallint;
+  v_attested_at timestamptz;
 BEGIN
   PERFORM public.require_feature('declutter');
   PERFORM public.require_feature('declutter_manager');
@@ -582,6 +583,19 @@ BEGIN
     RETURN v_result;
   END IF;
 
+  -- Lead 11-01 (supersedes 10:31): the seller attests only herself, at approval or on her own edits. A manager's edit
+  -- of a live listing never touches her attestation: declutter_edit_listing requires the four answers and re-stamps
+  -- the row, so the manager's own answers are ignored, hers are passed through, and her row is put back as it was.
+  IF p_action = 'edit_listing' THEN
+    SELECT a.attested_at INTO v_attested_at FROM public.declutter_tax_attestations a WHERE a.item_id = v_target;
+    IF v_attested_at IS NULL THEN
+      RAISE EXCEPTION 'attestation_required' USING ERRCODE = '22023',
+        HINT = 'The seller has to confirm this listing herself first.';
+    END IF;
+    v_a := v_a || jsonb_build_object('bought_for_personal_use', true, 'not_in_the_business', true,
+                                     'not_a_frequent_seller', true, 'keeps_item_until_handover', true);
+  END IF;
+
   -- Act as the seller for this one call.
   v_prev_sub := current_setting('request.jwt.claim.sub', true);
   v_prev_claims := current_setting('request.jwt.claims', true);
@@ -635,6 +649,9 @@ BEGIN
     RAISE EXCEPTION 'act_as_seller_not_restored' USING ERRCODE = '42501';
   END IF;
 
+  IF p_action = 'edit_listing' THEN
+    UPDATE public.declutter_tax_attestations SET seller_id = p_seller, attested_at = v_attested_at WHERE item_id = v_target;
+  END IF;
   INSERT INTO public.declutter_manager_actions (grant_id, seller_id, manager_id, action, target_id)
   VALUES (v_g.id, p_seller, v_mgr, p_action, v_target);
   IF p_action = 'answer_question' THEN

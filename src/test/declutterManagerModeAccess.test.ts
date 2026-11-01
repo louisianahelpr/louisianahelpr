@@ -1,3 +1,4 @@
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |     UPDATE public.declutter_tax_attestations SET seller_id = p_seller, attested_at = v_attested_at WHERE item_id = v_target; |     NULL;
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |     WHEN 'submit_for_approval' THEN 'list' |     WHEN 'submit_for_approval' THEN 'list'\n    WHEN 'publish_item' THEN 'list'
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |       WHEN 'confirm_handover' THEN public.declutter_confirm_handover(v_target, v_a ->> 'method', v_a ->> 'code') |       WHEN 'confirm_handover' THEN public.declutter_confirm_handover(v_target, v_a ->> 'method', v_a ->> 'code')\n      WHEN 'complete_handover' THEN public.declutter_complete_handover(v_target, v_a ->> 'by')
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |     WHEN 'confirm_handover' THEN 'pickups' |     WHEN 'confirm_handover' THEN 'pickups'\n    WHEN 'complete_handover' THEN 'pickups'
@@ -112,6 +113,14 @@ describe("Declutter manager mode: a manager acts only in the parts the seller tu
     expect(g.filter((s) => s.startsWith("GRANT") && /\b(authenticated|anon)\b/.test(s))).toEqual([
       "GRANT SELECT ON TABLE public.declutter_manager_grants TO authenticated;",
     ]);
+  });
+
+  it("a manager's edit_listing puts the seller's attestation back (lead 11-01); the real edit_listing re-stamps it", () => {
+    const b = flat(body("declutter_manage"));
+    expect(b).toContain("UPDATE public.declutter_tax_attestations SET seller_id = p_seller, attested_at = v_attested_at WHERE item_id = v_target;");
+    expect(b).toMatch(/IF v_attested_at IS NULL THEN RAISE EXCEPTION 'attestation_required'/);
+    // The PGlite stub copies this; if the real body stops re-stamping, the stub and this guard are re-read.
+    expect(flat(body("declutter_edit_listing"))).toContain("not_a_frequent_seller = true, keeps_item_until_handover = true, attested_at = now();");
   });
 
   it("ending access never needs the switch", () => {

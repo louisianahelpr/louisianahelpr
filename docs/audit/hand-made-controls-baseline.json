@@ -432,9 +432,6 @@
       "button": 1,
       "textarea": 1
     },
-    "src/components/declutter/DeclutterSalesWaiting.tsx": {
-      "button": 1
-    },
     "src/components/declutter/DeclutterSellPhotos.tsx": {
       "button": 3,
       "input": 1

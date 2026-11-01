@@ -138,7 +138,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const [quickMenuTab, setQuickMenuTab] = useState<"posts" | "messages" | null>(null);
   const closeQuickMenu = () => setQuickMenuTab(null);
   const dockMotion = useDockMotionLoader(dockHidden, quickMenuTab !== null);
-  // The sheets load after the page settles or on the tap that opens one (useDockSheets.ts, B85).
   const dockSheets = useDockSheetsLoader(dockHidden, createOpen || gateOpen);
   // A completed long-press still ends in a `touchend`, which browsers follow
   // with a synthetic `click` a beat later — without this guard that trailing
@@ -652,16 +651,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                   olive disc that opens "What are we doing?". The only loud
                   thing in the bar; it turns into an X while the sheet is open. */}
               <div className="flex flex-1 items-start justify-center relative">
-                {/* The shared primary icon Button, not a hand-made one (B85 11-01): its 60px disc, ring, glyph and
-                    press kept (size iconLarge; the style's ring wins over the variant's shadow). */}
                 <Button
-                  type="button"
-                  variant="primary"
-                  size="iconLarge"
+                  type="button" variant="primary" size="iconLarge"
                   data-testid="dock-create"
                   aria-label={tr("nav.create")}
-                  aria-haspopup="dialog"
-                  aria-expanded={createOpen}
+                  aria-haspopup="dialog" aria-expanded={createOpen}
                   onClick={() => {
                     hapticMedium();
                     setCreateOpen((o) => !o);
@@ -692,8 +686,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         </div>
       </nav>
 
-      {dockSheets && <dockSheets.GateSheet open={gateOpen} onOpenChange={setGateOpen} />}
-      {dockSheets && <dockSheets.CreateSheet open={createOpen} onOpenChange={setCreateOpen} />}
+      {dockSheets && <><dockSheets.GateSheet open={gateOpen} onOpenChange={setGateOpen} /><dockSheets.CreateSheet open={createOpen} onOpenChange={setCreateOpen} /></>}
     </>
   );
 });

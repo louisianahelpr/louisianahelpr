@@ -25,7 +25,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { blankComments } from "./helpers/blankNonCode";
-import { GuestJobPreview, guestJobArea, guestJobFacts, guestTakeHome, GUEST_FEE_PERCENT, GUEST_JOB_FIELDS } from "@/components/dashboard/GuestJobPreview";
+import { GuestJobPreview, guestJobArea, guestJobFacts, guestTakeHome, GUEST_FEE_PERCENT, GUEST_JOB_FIELDS, type GuestJob } from "@/components/dashboard/GuestJobPreview";
 import { JobPrice } from "@/components/dashboard/JobPrice";
 
 // A guest has no profile, so the one-time setup fee they would lose is 0 on the card and in the preview alike
@@ -86,7 +86,7 @@ describe("the guest job preview", () => {
     const guest = readFileSync(resolve(import.meta.dirname, "../pages/home/DashboardGuest.tsx"), "utf8");
     expect(guest).toContain("effectiveFee={TIER_PERKS.free.platformFeePercent}");
     expect(GUEST_FEE_PERCENT).toBe(TIER_PERKS.free.platformFeePercent);
-    const rows = [
+    const rows: Array<GuestJob & { budget: number }> = [
       { ...JOB, budget: 85, helper_fee_flat_cents: 70, helper_fee_percent: 5 },
       { ...JOB, budget: 300, is_group_job: true, helpers_needed: 3, helper_fee_flat_cents: 70, helper_fee_percent: 5 },
       { ...JOB, budget: 120, urgent_fee: 25 },

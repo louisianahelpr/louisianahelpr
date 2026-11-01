@@ -69,8 +69,8 @@ describe("bucket order + the live-day rule are one change", () => {
   });
 
   it("Scheduled still means agreed and AHEAD of you", () => {
-    // A started job is never ahead of you (Q1574).
-    expect(postedActivityBucket({ status: "in_progress", date_needed: day(2) })).toBe("needs_you");
+    // A started job is never ahead of you (Q1574): never Scheduled. Waiting while no poster move is due (lead 10-31).
+    expect(postedActivityBucket({ status: "in_progress", date_needed: day(2) })).toBe("waiting");
     expect(
       postedActivityBucket({
         status: "accepted",

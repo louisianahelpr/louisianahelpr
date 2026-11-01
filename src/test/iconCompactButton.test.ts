@@ -27,6 +27,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/pages/user/ReviewsSection.tsx |                   size="iconCompact"\n                  aria-label="Report this review" |                   size="icon"\n                  aria-label="Report this review"
 // @mutate src/pages/auth/Login.tsx |                 size="iconCompact"\n                onClick={() => setShowPassword(!showPassword)} |                 size="icon"\n                onClick={() => setShowPassword(!showPassword)}
 // @mutate src/pages/auth/signup/SignupStep1.tsx |               size="iconCompact"\n              onClick={() => setShowPassword(!showPassword)} |               size="icon"\n              onClick={() => setShowPassword(!showPassword)}
+// @mutate src/pages/info/Legal.tsx |             size="iconCompact"\n            onClick={closeSearch} |             size="icon"\n            onClick={closeSearch}
 // @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |       className={`relative shrink-0 btn-press | className={`relative h-10 w-10 shrink-0 btn-press
 
 const REPO = resolve(__dirname, "../..");
@@ -103,6 +104,9 @@ describe("the compact icon Button", () => {
     // password (input type password -> text).
     ["src/pages/auth/Login.tsx", /<button\b[\s\S]{0,120}?setShowPassword/],
     ["src/pages/auth/signup/SignupStep1.tsx", /<button\b[\s\S]{0,120}?setShowPassword/],
+    // B88 11-01, /legal's search close X (guest, search opened): 44x44 at (306,131) at 375 and (1343,169) at 1440,
+    // 16px glyph at 14,14, colour rgba(46,47,34,0.8), radius 9999px, no fill at rest; screenshots byte-identical.
+    ["src/pages/info/Legal.tsx", /<button\b[\s\S]{0,80}?onClick=\{closeSearch\}/],
   ])("%s: the ghost icon is the shared Button at iconCompact", (f, handMade) => {
     const src = code(f);
     expect(src).not.toMatch(handMade);

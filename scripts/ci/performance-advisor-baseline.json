@@ -61,6 +61,8 @@
     "public.helper_w9_records.idx_helper_w9_records_helper",
     "public.helper_w9_records.idx_helper_w9_records_job",
     "public.helpr_task_events.helpr_task_events_task_idx",
+    "public.helpr_task_talk_messages.helpr_task_talk_messages_sender_idx",
+    "public.helpr_task_talk_messages.helpr_task_talk_messages_task_idx",
     "public.instant_payouts.idx_instant_payouts_helper",
     "public.instant_payouts.idx_instant_payouts_status",
     "public.job_approval_escalations.job_approval_escalations_open_idx",

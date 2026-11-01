@@ -61,7 +61,7 @@ describe("Declutter: a seller who can no longer sell owes the card fee (20261017
 
   it("seller_out is the seller's fault: full refund, the card fee booked as their debt", () => {
     expect(flat(body("declutter_record_refund"))).toContain(
-      "WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN 'full_seller_pays_fee'");
+      "WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN 'full_seller_pays_fee'");
   });
 
   it("the seller is told after each seller-out refund is recorded, once per payment", () => {

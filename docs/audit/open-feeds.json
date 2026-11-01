@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-01T17:54Z",
+  "measured_at": "2026-11-01T22:56Z",
   "issues": {
     "readable": true,
     "open": [
@@ -43,7 +43,7 @@
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41047645233",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41330880564",
         "runTruncated": false
       },
       {
@@ -78,7 +78,7 @@
         "number": 3743,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41225818194",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41336484997",
         "runTruncated": false
       },
       {
@@ -92,7 +92,7 @@
         "number": 3813,
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218039744",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41330878323",
         "runTruncated": false
       },
       {
@@ -307,7 +307,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 3833
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -734,19 +734,19 @@
         "issue": null
       },
       {
-        "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "cr",
-        "issue": null
-      },
-      {
         "fingerprint": "e32aa223d475dd1349363e900374a77e",
         "source_kind": "sentry",
         "source": "sentry:unknown",
         "status": "open",
         "title": "error: script error.",
+        "issue": null
+      },
+      {
+        "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "cr",
         "issue": null
       },
       {
@@ -822,19 +822,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -894,19 +894,19 @@
         "issue": null
       },
       {
-        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
-        "issue": null
-      },
-      {
         "fingerprint": "fba95b3590a627d7f7d9e284e9b56c20",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
         "title": "/declutter · error screen shown: we couldn't load offers.",
+        "issue": null
+      },
+      {
+        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
         "issue": null
       },
       {
@@ -1003,6 +1003,14 @@
         "source": "user-error-screen",
         "status": "open",
         "title": "/declutter/item/<id> · lazystorage: getpublicurl with transform is not supported; add it here first",
+        "issue": null
+      },
+      {
+        "fingerprint": "c0f60811ad78ca74c20aa21032c5549a",
+        "source_kind": "sentry",
+        "source": "sentry:assets/declutter-first-screen",
+        "status": "open",
+        "title": "error: address_not_found",
         "issue": null
       }
     ]
@@ -1144,6 +1152,7 @@
     "ledger bc6810c9f1ab": "Q1596",
     "ledger bd4c3063280b": "Q1596",
     "ledger bf6860c13035": "Q2544",
+    "ledger c0f60811ad78": "Q2552",
     "ledger c1ad0c081216": "Q1596",
     "ledger c2e77e40435e": "Q1816",
     "ledger c4af5413ec6a": "Q1596",

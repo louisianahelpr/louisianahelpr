@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 511** (437 to do, 74 fixed with protection pending; 1628 done). Feeds mirrored in: 76 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 17 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 512** (438 to do, 74 fixed with protection pending; 1628 done). Feeds mirrored in: 77 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 17 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 14 red, 14 stale, 1 unknown, 48 green of 77 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-22T04:06Z)_
@@ -91,7 +91,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2139 items — 1628 done, 74 partly done (fixed, protection pending), 437 open.**
+**Queue: 2140 items — 1628 done, 74 partly done (fixed, protection pending), 438 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -696,14 +696,14 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41189360102. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/40721330192. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
-  - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41047645233. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
+  - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41330880564. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
   - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41131359413. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
   - vacuity: issue #2894, newest red run: see the issue's latest comment. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41018395640. feed: issue #3454 · feed: ledger a8ceee56bbd5
   - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41045303398. feed: issue #3491 · feed: ledger 2e4f3e726722
-  - db-drift-detect: issue #3743, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41225818194. feed: issue #3743 · feed: ledger 8018e82cb167
+  - db-drift-detect: issue #3743, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41336484997. feed: issue #3743 · feed: ledger 8018e82cb167
   - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41329953949. feed: issue #3784 · feed: ledger db0fb15c4ec3
-  - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218039744. feed: issue #3813 · feed: ledger 3a3460b71be7
+  - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41330878323. feed: issue #3813 · feed: ledger 3a3460b71be7
   - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41330011838. feed: issue #3824 · feed: ledger 4aa239aefeb6
   - core-loop-canary: issue #3833, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41326452336. feed: issue #3833 · feed: ledger 18539240a894
   - codeql: issue #3846, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41151980186. feed: issue #3846 · feed: ledger 11d7173a8901
@@ -774,6 +774,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q2549 MEDIUM /declutter · lazystorage: getpublicurl with transform is not supported; add it here first.** Mirrored 2026-11-01 from alert-ledger row 36f557b1afef (user-error-screen: user-error-screen; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 36f557b1afef. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '36f557b1afefdce3b349fbfa4fa4ca9e'` => closed
 - [ ] **Q2550 MEDIUM /declutter/item/<id> · lazystorage: getpublicurl with transform is not supported; add it here first.** Mirrored 2026-11-01 from alert-ledger row f433ca04d336 (user-error-screen: user-error-screen; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger f433ca04d336. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'f433ca04d33640120f26c22e2025580c'` => closed
 - [ ] **Q2551 MEDIUM error: lazystorage: getpublicurl with transform is not supported; add it here first.** Mirrored 2026-11-01 from alert-ledger row 4a85667a6e22 (sentry: sentry:assets/supabase; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 4a85667a6e22. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '4a85667a6e228c8cc0e6d22fddc76858'` => closed
+- [ ] **Q2552 MEDIUM error: address_not_found.** Mirrored 2026-11-01 from alert-ledger row c0f60811ad78 (sentry: sentry:assets/declutter-first-screen; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger c0f60811ad78. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'c0f60811ad78ca74c20aa21032c5549a'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

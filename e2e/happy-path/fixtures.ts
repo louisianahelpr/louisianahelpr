@@ -595,6 +595,30 @@ function handleRest(
     // e.g. get_jobs_for_my_applications builds the job map behind every
     // AppliedJobCard (without it each card got job:null and rendered as the
     // minimal card), and get_safe_profiles is how most screens hydrate names.
+    // get_my_activity_cores (20261101181403) is the eight reads the two
+    // activity cores used to send, in one answer. Each part is this mock's own
+    // answer to that read, so the one call and the eight cannot disagree.
+    if (rpcName === "get_my_activity_cores") {
+      const uid = user?.id ?? "";
+      const at = (path: string) => new URL(`${url.origin}/rest/v1/${path}`);
+      const rows = (r: SupabaseResponse) => (Array.isArray(r.body) ? (r.body as Record<string, unknown>[]) : []);
+      const get = (path: string) => rows(handleRest(at(path), "GET", user, seed, null, headers));
+      const rpc = (name: string) => rows(handleRest(at(`rpc/${name}`), "POST", user, seed, "{}", headers));
+      return {
+        status: 200,
+        body: {
+          posted_jobs: get(`jobs?customer_id=eq.${uid}&order=created_at.desc`),
+          poster_applications: get(`applications?select=job_id,status,closed_reason,jobs!inner(customer_id)&jobs.customer_id=eq.${uid}`)
+            .map((a) => ({ job_id: a.job_id, status: a.status, closed_reason: a.closed_reason ?? null })),
+          offer_targets: rpc("get_job_offer_targets"),
+          my_applications: get(`applications?helper_id=eq.${uid}&order=created_at.desc`),
+          application_jobs: rpc("get_jobs_for_my_applications"),
+          direct_offers: rpc("get_my_pending_direct_offers"),
+          violations: get(`user_violations?select=job_id&user_id=eq.${uid}&violation_type=eq.job_denial`),
+          reviews: get(`reviews?select=job_id&reviewer_id=eq.${uid}`),
+        },
+      };
+    }
     const answer = seed ? SEED_RPCS[rpcName] : undefined;
     if (answer) {
       let args: Record<string, unknown> = {};

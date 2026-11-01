@@ -3,10 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useActivityData } from "@/hooks/useActivityData";
 import { postedActivityBucket, appliedActivityBucket } from "@/components/job-card/activityFilters";
-import { fetchMyItems, fetchMyCart } from "@/lib/declutter/api";
-import { fetchMyBookings } from "@/lib/declutter/handover";
-import { fetchMyOrders, fetchShopOrders } from "@/lib/shops/orders";
-import { fetchMyProperties } from "@/lib/rentals/api";
+// Declutter / Shops / Rentals reads load with their query, not with Home (AUD31-60/66, the /home cut B84 measured):
+// a section that is off, or a member with nothing there, never downloads that section's data code.
+const declutterApi = () => import("@/lib/declutter/api");
+const shopOrdersApi = () => import("@/lib/shops/orders");
 import { useFeature } from "@/hooks/useFeature";
 import { useNeedsYouTodos } from "./needsYouTodos";
 import { deriveLiveNow, deriveWaiting } from "./nextUpStates";
@@ -50,17 +50,17 @@ export function useHomeSummary(user: SupaUser | null) {
   const shopsOn = useFeature("shops");
   const homesOn = useFeature("rentals");
   const uid = user?.id ?? "";
-  const declutter = useQuery({ queryKey: ["declutter", "mine", uid], queryFn: () => fetchMyItems(uid), enabled: !!uid && declutterOn });
-  const orders = useQuery({ queryKey: ["shops", "my-orders", uid], queryFn: () => fetchMyOrders(uid), enabled: !!uid && shopsOn });
+  const declutter = useQuery({ queryKey: ["declutter", "mine", uid], queryFn: () => declutterApi().then((m) => m.fetchMyItems(uid)), enabled: !!uid && declutterOn });
+  const orders = useQuery({ queryKey: ["shops", "my-orders", uid], queryFn: () => shopOrdersApi().then((m) => m.fetchMyOrders(uid)), enabled: !!uid && shopsOn });
   // The to-do list is the ONE the nav badges count (badge = To-do, owner 2026-10-20).
   const { todos } = useNeedsYouTodos(user);
-  const homes = useQuery({ queryKey: ["rentals", "my-properties", uid], queryFn: () => fetchMyProperties(uid), enabled: !!uid && homesOn });
+  const homes = useQuery({ queryKey: ["rentals", "my-properties", uid], queryFn: () => import("@/lib/rentals/api").then((m) => m.fetchMyProperties(uid)), enabled: !!uid && homesOn });
   // Coming up's Declutter pickups and shop orders: the SAME reads (keys and fetches) the Buying/Selling
   // tabs and the Shop dashboard make, so Home adds no query shape.
-  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: !!uid && declutterOn });
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: () => declutterApi().then((m) => m.fetchMyCart()), enabled: !!uid && declutterOn });
   const paidIds = [...new Set((cart.data ?? []).filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id!))];
-  const bookings = useQuery({ queryKey: ["declutter", "bookings", paidIds.join(",")], queryFn: () => fetchMyBookings(paidIds), enabled: paidIds.length > 0 });
-  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => fetchShopOrders(uid), enabled: !!uid && shopsOn });
+  const bookings = useQuery({ queryKey: ["declutter", "bookings", paidIds.join(",")], queryFn: () => import("@/lib/declutter/handover").then((m) => m.fetchMyBookings(paidIds)), enabled: paidIds.length > 0 });
+  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => m.fetchShopOrders(uid)), enabled: !!uid && shopsOn });
 
   return useMemo(() => {
     const now = Date.now();

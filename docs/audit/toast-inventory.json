@@ -11863,7 +11863,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/loadConversations.ts",
-      "line": 330,
+      "line": 331,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -11873,7 +11873,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 142,
+      "line": 143,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11883,7 +11883,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 246,
+      "line": 247,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11893,17 +11893,17 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 282,
+      "line": 285,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "threadClosedCopy(closedStatus).toast"
+        "text": "(expiredCopyFor({ jobExpired, viewerIsPoster: activeConvo?.viewerIsPoster }) ?? threadClosedCopy(closedStatus)).toast"
       },
       "renders": true
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 310,
+      "line": 313,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11913,7 +11913,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 348,
+      "line": 351,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11940,7 +11940,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 365,
+      "line": 368,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11950,7 +11950,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 451,
+      "line": 454,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11960,7 +11960,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 510,
+      "line": 513,
       "kind": "toast.error",
       "title": {
         "form": "literal",

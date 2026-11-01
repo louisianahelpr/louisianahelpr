@@ -75,7 +75,7 @@
     "adhocTint  src/components/profile/profileEditForm/SaveBar.tsx:45 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/profile/profileLanding/SettingsSection.tsx:38 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/richMessageInput/AttachSourceSheet.tsx:91 <button>  hover:bg-secondary/40",
-    "adhocTint  src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx:13 <button>  hover:bg-[hsl(var(--bark)/0.06)]",
+    "adhocTint  src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx:14 <Button>  hover:bg-[hsl(var(--bark)/0.06)]",
     "adhocTint  src/pages/info/Legal.tsx:421 <button>  hover:bg-primary/5",
     "adhocTint  src/pages/profile/petProfiles/PetCard.tsx:144 <Button>  hover:bg-destructive/5",
     "adhocTint  src/pages/profile/petProfiles/PetDetail.tsx:190 <Button>  hover:bg-destructive/5",

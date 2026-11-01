@@ -44,6 +44,8 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
 const switches = vi.hoisted(() => ({ on: new Set<string>() }));
+// Backstop: any read no module mock above covers answers "nothing" and never reaches prod (B84's /home cut; see the helper).
+vi.mock("@/integrations/supabase/client", async () => (await import("./helpers/emptySupabaseClient")).emptySupabaseModule());
 const noTodos = vi.hoisted(() => ({ on: false }));
 // Boards 83/165: what Home's posted jobs are instead of the two to-dos.
 const homeJobs = vi.hoisted(() => ({ mode: "todos" as "todos" | "waiting" | "live" }));

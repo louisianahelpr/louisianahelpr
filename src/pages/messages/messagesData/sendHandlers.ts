@@ -1,3 +1,4 @@
+import { jobIsExpiredListing, expiredCopyFor } from "@/lib/expiredListingInThread";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError } from "@/lib/haptics";
@@ -275,14 +276,16 @@ export function createSendHandlers({
              the row. */
           const { data: jobRow } = await supabase
             .from("jobs")
-            .select("status")
+            .select("status, helper_id, cancelled_by, cancellation_reason")
             .eq("id", optimistic.job_id)
             .maybeSingle();
           const closedStatus = jobRow?.status ?? activeConvo?.jobStatus ?? null;
-          toast.error(threadClosedCopy(closedStatus).toast);
+          // An expired listing is never "cancelled" to anyone (owner 10-31): Expired for its poster, else no longer open.
+          const jobExpired = jobRow ? jobIsExpiredListing(jobRow) : !!activeConvo?.jobExpired;
+          toast.error((expiredCopyFor({ jobExpired, viewerIsPoster: activeConvo?.viewerIsPoster }) ?? threadClosedCopy(closedStatus)).toast);
           const patch = (c: Conversation) =>
             c.jobId === optimistic.job_id
-              ? { ...c, messagingClosesAt: closesAt, jobStatus: closedStatus }
+              ? { ...c, messagingClosesAt: closesAt, jobStatus: closedStatus, jobExpired }
               : c;
           setConversations((prev) => prev.map(patch));
           setActiveConvo?.((prev) => (prev ? patch(prev) : prev));

@@ -1,3 +1,4 @@
+// @mutate src/lib/jobPostDraftAccount.ts | if (!(await signedIn())) return null; | void signedIn;
 /**
  * The account's copy of a half-finished job post (OPS-3): signed out never calls the server, a failure never throws into
  * typing, and a read that fails or stalls answers null so Post a job doesn't wait. Mocked client: these don't prove the

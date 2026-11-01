@@ -74,6 +74,8 @@ export interface ThreadStatusPatch {
   jobStatus: string;
   /** ISO closing instant implied by that status, or null if it implies none. */
   messagingClosesAt: string | null;
+  /** Set when the row is an expired listing's (20261101011526), so the thread reads Expired/Closed. */
+  jobExpired?: boolean;
 }
 
 /**
@@ -95,7 +97,12 @@ const ANNOUNCEMENTS: {
   matches: RegExp;
   jobStatus: string;
   closesAt: ((atMs: number) => number) | null;
+  /** The row says an unfilled listing expired (20261101011526): the chip reads Expired/Closed, never Cancelled. */
+  expired?: true;
 }[] = [
+  // An expired listing's row (20261101011526): the job is cancelled in the table, closed at once, and never called
+  // that to anyone but its poster (owner 10-31). Before `cancelled` so it is read as the expiry it is.
+  { matches: /\bno longer open\b/i, jobStatus: "cancelled", closesAt: (at) => at, expired: true },
   { matches: /\bawarded\b/i, jobStatus: "accepted", closesAt: null },
   { matches: /\bstarted\b/i, jobStatus: "in_progress", closesAt: null },
   // Before `complete`, because "cancelled" and "completed" both begin "c" and
@@ -130,13 +137,14 @@ export function threadPatchFromSystemMessage(
   if (Number.isNaN(atMs)) {
     // No usable instant — we still know WHAT happened, so the chip can move;
     // we just cannot say when the thread closes, so we do not claim to.
-    return { jobStatus: rule.jobStatus, messagingClosesAt: null };
+    return { jobStatus: rule.jobStatus, messagingClosesAt: null, ...(rule.expired ? { jobExpired: true } : {}) };
   }
   return {
     jobStatus: rule.jobStatus,
     messagingClosesAt: rule.closesAt
       ? new Date(rule.closesAt(atMs)).toISOString()
       : null,
+    ...(rule.expired ? { jobExpired: true } : {}),
   };
 }
 
@@ -172,5 +180,6 @@ export function patchThreadForAnnouncement(
     ...convo,
     jobStatus: patch.jobStatus,
     messagingClosesAt: patch.messagingClosesAt ?? convo.messagingClosesAt,
+    ...(patch.jobExpired ? { jobExpired: true } : {}),
   };
 }

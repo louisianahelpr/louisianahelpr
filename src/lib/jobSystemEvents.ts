@@ -17,6 +17,7 @@
  */
 
 import { type PosterChargedJob } from "@/lib/posterJobCost";
+import { jobIsExpiredListing, EXPIRED_IN_THREAD } from "@/lib/expiredListingInThread";
 import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
 export type JobSystemEventKind =
   | "helper_on_the_way"
@@ -68,6 +69,9 @@ export interface JobTimestamps {
   revision_requested_at: string | null;
   disputed_at: string | null;
   disputed_by: string | null;
+  /** Read so an expired listing (isExpiredListing) is told apart from a cancellation. */
+  cancellation_reason?: string | null;
+  status?: string | null;
 }
 
 /**
@@ -78,6 +82,7 @@ export interface JobTimestamps {
 export function deriveJobSystemEvents(
   job: JobTimestamps | null | undefined,
   jobId: string,
+  viewerId?: string | null,
 ): JobSystemEvent[] {
   if (!job) return [];
   const out: JobSystemEvent[] = [];
@@ -122,7 +127,14 @@ export function deriveJobSystemEvents(
       label: "The person who posted this job requested a revision.",
     });
   }
-  if (job.cancelled_at) {
+  // An expired listing was never cancelled by anyone (owner 10-31): the poster reads that it expired, anyone else
+  // that it is no longer open. Kind stays "cancelled" so buildTimeline still drops the stored "✕ Job cancelled" row.
+  const expired = job.cancelled_at && jobIsExpiredListing(job)
+    ? (viewerId && viewerId === job.customer_id ? EXPIRED_IN_THREAD.poster : EXPIRED_IN_THREAD.other)
+    : null;
+  if (job.cancelled_at && expired) {
+    out.push({ id: `system-cancelled-${jobId}`, kind: "cancelled", at: job.cancelled_at, label: expired.event });
+  } else if (job.cancelled_at) {
     const who =
       job.cancelled_by === job.customer_id
         ? "poster"

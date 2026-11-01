@@ -64,7 +64,8 @@ describe("the desktop page head is level with the rail (owner 2026-10-28)", () =
     expect(code("src/components/AppShell.tsx")).toContain("const topBarOffset = useIsWebDesktop() ? DESKTOP_BAR_H : 0;");
     const css = code("src/index.css");
     expect(css).toContain(`--desktop-bar-h: ${DESKTOP_BAR_H}px;`);
-    expect(css).toMatch(/html\.web-desktop\.desktop-rail:not\(\.app-shell\) #root \{\s*padding-top: var\(--desktop-bar-h\);/);
+    // The bar's height, plus the offline banner's while it shows (the bar sits under it: offlineBannerOverDesktopBar).
+    expect(css).toMatch(/html\.web-desktop\.desktop-rail:not\(\.app-shell\) #root \{\s*padding-top: calc\(var\(--desktop-bar-h\) \+ var\(--offline-banner-offset, 0px\)\);/);
     expect(code("src/components/admin/AdminSidebar.tsx")).toContain("!top-[var(--desktop-bar-h)] !h-[calc(100svh-var(--desktop-bar-h))]");
   });
 

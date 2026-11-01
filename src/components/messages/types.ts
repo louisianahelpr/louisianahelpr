@@ -72,6 +72,9 @@ export type Conversation = {
       see at a glance whether they're discussing an open posting, an
       awarded job, or a completed one. */
   jobStatus?: string | null;
+  /** The job is a listing that expired with no Helpr hired (isExpiredListing). It is never shown as Cancelled: the
+      poster reads "Expired", everyone else "Closed" (src/lib/expiredListingInThread.ts). */
+  jobExpired?: boolean;
   /** When this thread closes to new messages, as reported by the server's
       `get_messaging_closes_at` — the same instant the messages INSERT policy
       starts refusing. TWO ways a thread gets one (migration 20260919220233):

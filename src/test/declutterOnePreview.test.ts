@@ -24,6 +24,8 @@ describe("LEAD-ONE-PREVIEW: one Preview for the seller", () => {
     for (const f of SELLER_FILES) {
       const src = read(f);
       read_ += 1;
+      // A blanked or stubbed surface would pass the two "not" checks below: each one holds real code.
+      expect(src.length, f).toBeGreaterThan(400);
       expect(src, f).not.toMatch(/See what buyers see|See my listing|as a buyer reads it/);
       expect(src, f).not.toMatch(/>View<|label: "View"/);
     }

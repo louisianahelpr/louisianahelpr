@@ -13,10 +13,10 @@ import type { DeliverySize } from "@/lib/declutter/api";
 import { roundPayoutDownCents } from "../../../supabase/functions/_shared/money";
 import { buyNowTotalCents } from "@/lib/declutter/money";
 
-/** Row 29: $10 base per checkout. */
-export const DELIVERY_BASE_CENTS = 1000;
-/** Row 29: $2 per road mile (no limit, row 30). */
-export const DELIVERY_PER_MILE_CENTS = 200;
+/** $6 base per checkout (owner 2026-11-01; row 29 was $10). */
+export const DELIVERY_BASE_CENTS = 600;
+/** $1.50 per road mile, no limit (owner 2026-11-01; row 29 was $2). */
+export const DELIVERY_PER_MILE_CENTS = 150;
 /** Row 29: the size add-on per item: small $0, large $20, extra large (two people) $40. */
 export const DELIVERY_SIZE_CENTS: Record<DeliverySize, number> = { small: 0, large: 2000, xl: 4000 };
 

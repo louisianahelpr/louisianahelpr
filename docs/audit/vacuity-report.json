@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-01T17:33:42.864Z",
-  "guards": 3120,
-  "registered": 3120,
+  "generated": "2026-11-01T23:40:14.914Z",
+  "guards": 3156,
+  "registered": 3156,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -182,12 +182,30 @@
       ]
     },
     {
+      "module": "src/components/notificationPreferences/SmsAlertsCard.tsx",
+      "tests": [
+        "src/components/notificationPreferences/smsAlertsNoSilentOptOut.test.tsx"
+      ],
+      "parents": [
+        "src/components/notificationPreferences/SmsPhonePromptDialog.tsx"
+      ]
+    },
+    {
       "module": "src/components/profile/savedHelpersTab/SavedHelperCard.tsx",
       "tests": [
         "src/components/profile/savedHelpersTab/SavedHelperCard.test.tsx"
       ],
       "parents": [
         "src/components/profile/SavedHelpersTab.tsx"
+      ]
+    },
+    {
+      "module": "src/pages/messages/MessagesTwoPane.tsx",
+      "tests": [
+        "src/test/messagesComposerReachesEdge.test.tsx"
+      ],
+      "parents": [
+        "src/pages/messages/Messages.tsx"
       ]
     },
     {
@@ -211,7 +229,8 @@
       "tests": [
         "src/pages/post-job/draftPickupPostsFresh.test.tsx",
         "src/pages/post-job/entrySkeletonFollowsJobHistory.test.tsx",
-        "src/pages/post-job/giftCardBanner.test.tsx"
+        "src/pages/post-job/giftCardBanner.test.tsx",
+        "src/pages/post-job/postJobStartsAtGroups.test.tsx"
       ],
       "parents": [
         "src/pages/post-job/PostJob.tsx"

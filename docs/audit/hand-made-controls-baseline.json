@@ -1,0 +1,1124 @@
+{
+  "_about": "src/test/noNewHandMadeControls.test.ts: hand-made JSX controls per file, exact both ways (OWN-SHARED).",
+  "files": {
+    "src/components/AttachmentLink.tsx": {
+      "button": 2
+    },
+    "src/components/AwardGateDialog.tsx": {
+      "button": 1
+    },
+    "src/components/BackButton.tsx": {
+      "button": 1
+    },
+    "src/components/BirthdayPopup.tsx": {
+      "button": 1
+    },
+    "src/components/ChatPresence.tsx": {
+      "button": 2
+    },
+    "src/components/DatePickerField.tsx": {
+      "button": 1
+    },
+    "src/components/DateWheelPicker.tsx": {
+      "button": 1
+    },
+    "src/components/DesktopSidebarNav.tsx": {
+      "button": 4
+    },
+    "src/components/DesktopTopNav.tsx": {
+      "button": 1
+    },
+    "src/components/DisputeDialog.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/DisputeTimelineDialog.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/components/GroupJobHelpers.tsx": {
+      "button": 1
+    },
+    "src/components/HelperAvailability.tsx": {
+      "button": 1
+    },
+    "src/components/JobConfirmation.tsx": {
+      "button": 1
+    },
+    "src/components/LanguageToggle.tsx": {
+      "button": 1
+    },
+    "src/components/MessageAttachment.tsx": {
+      "button": 4
+    },
+    "src/components/MobileNav.tsx": {
+      "button": 1
+    },
+    "src/components/NotificationPanel.tsx": {
+      "button": 4
+    },
+    "src/components/NotificationPreferences.tsx": {
+      "button": 1
+    },
+    "src/components/PayoutSetupForm.tsx": {
+      "button": 1
+    },
+    "src/components/PhotoProof.tsx": {
+      "button": 3,
+      "input": 1
+    },
+    "src/components/ReportDialog.tsx": {
+      "button": 1
+    },
+    "src/components/RichMessageInput.tsx": {
+      "button": 4,
+      "input": 3
+    },
+    "src/components/SavedSearches.tsx": {
+      "button": 3
+    },
+    "src/components/ScrollToTop.tsx": {
+      "button": 1
+    },
+    "src/components/SosShareButton.tsx": {
+      "button": 2
+    },
+    "src/components/SuggestCategory.tsx": {
+      "button": 1
+    },
+    "src/components/TimeRangeField.tsx": {
+      "button": 2
+    },
+    "src/components/TipCostBreakdown.tsx": {
+      "button": 2
+    },
+    "src/components/admin/AdminAnalytics.tsx": {
+      "button": 3
+    },
+    "src/components/admin/AdminAnalyticsCards.tsx": {
+      "button": 1
+    },
+    "src/components/admin/AdminAnalyticsDrilldowns.tsx": {
+      "button": 1
+    },
+    "src/components/admin/AdminCommandPalette.tsx": {
+      "button": 1
+    },
+    "src/components/admin/AdminCredentialQueue.tsx": {
+      "button": 1,
+      "input": 2
+    },
+    "src/components/admin/AdminExceptionQueue.tsx": {
+      "input": 1
+    },
+    "src/components/admin/AdminHealth.tsx": {
+      "button": 2
+    },
+    "src/components/admin/AdminIDVReview.tsx": {
+      "input": 1
+    },
+    "src/components/admin/AdminNotificationLogs.tsx": {
+      "button": 1
+    },
+    "src/components/admin/AdminPayoutBatches.tsx": {
+      "button": 4
+    },
+    "src/components/admin/AdminReferrals.tsx": {
+      "button": 3
+    },
+    "src/components/admin/AdminReports.tsx": {
+      "button": 2
+    },
+    "src/components/admin/AdminShopsOrders.tsx": {
+      "input": 1
+    },
+    "src/components/admin/AdminSidebar.tsx": {
+      "button": 1
+    },
+    "src/components/admin/AdminSubscriptions.tsx": {
+      "button": 2
+    },
+    "src/components/admin/AdminUsers.tsx": {
+      "button": 3
+    },
+    "src/components/admin/BanDialog.tsx": {
+      "button": 2
+    },
+    "src/components/admin/RestrictApplicationsDialog.tsx": {
+      "button": 1
+    },
+    "src/components/admin/adminAnalytics/SectionFunnel.tsx": {
+      "select": 2
+    },
+    "src/components/admin/adminAnalytics/SignupLeadsCard.tsx": {
+      "button": 1
+    },
+    "src/components/admin/adminAnalytics/SignupSources.tsx": {
+      "select": 1
+    },
+    "src/components/admin/adminDisputes/DisputeCard.tsx": {
+      "input": 1
+    },
+    "src/components/admin/adminDisputes/DisputeFilters.tsx": {
+      "button": 2
+    },
+    "src/components/admin/adminDisputes/DisputeTabs.tsx": {
+      "button": 2
+    },
+    "src/components/admin/adminJobs/RefundJobDialog.tsx": {
+      "input": 2
+    },
+    "src/components/admin/adminJobs/StatusOverrideDialog.tsx": {
+      "button": 1
+    },
+    "src/components/admin/adminPayoutBatches/HeldForReview.tsx": {
+      "input": 1
+    },
+    "src/components/admin/adminusers/NotesIndicator.tsx": {
+      "button": 1
+    },
+    "src/components/admin/credentialQueue/ExpiryField.tsx": {
+      "input": 1
+    },
+    "src/components/admin/dashboard/DateRangeBar.tsx": {
+      "input": 1
+    },
+    "src/components/admin/dashboard/KpiCard.tsx": {
+      "button": 1
+    },
+    "src/components/admin/dashboard/PriorityAlert.tsx": {
+      "button": 1
+    },
+    "src/components/admin/dashboard/TaxReserveCard.tsx": {
+      "button": 1
+    },
+    "src/components/admin/helprFault/HelprFaultFields.tsx": {
+      "input": 2
+    },
+    "src/components/admin/marketing/MarketingComposerDialog.tsx": {
+      "input": 1
+    },
+    "src/components/admin/marketing/MarketingQueue.tsx": {
+      "button": 1
+    },
+    "src/components/admin/settings/AdminUserSearchField.tsx": {
+      "button": 1
+    },
+    "src/components/admin/settings/CategorySuggestionsCard.tsx": {
+      "input": 1
+    },
+    "src/components/admin/settings/DeclutterProblemsCard.tsx": {
+      "input": 5,
+      "select": 1
+    },
+    "src/components/admin/settings/DeclutterReviewCard.tsx": {
+      "input": 1
+    },
+    "src/components/admin/settings/DonationPartnersCard.tsx": {
+      "input": 7
+    },
+    "src/components/admin/settings/HomesListingsCard.tsx": {
+      "input": 2
+    },
+    "src/components/admin/settings/MeetupSpotsCard.tsx": {
+      "input": 7,
+      "select": 1
+    },
+    "src/components/admin/settings/RentalsOwnershipCard.tsx": {
+      "button": 1,
+      "input": 2
+    },
+    "src/components/admin/settings/ShopItemsReviewCard.tsx": {
+      "input": 1
+    },
+    "src/components/admin/userDetail/DetailHeader.tsx": {
+      "button": 1
+    },
+    "src/components/admin/userDetail/DocumentsTab.tsx": {
+      "button": 1
+    },
+    "src/components/admin/userDetail/UserAuditLog.tsx": {
+      "button": 1
+    },
+    "src/components/auth/TurnstileField.tsx": {
+      "button": 1
+    },
+    "src/components/browseMap/MapLayers.tsx": {
+      "button": 1
+    },
+    "src/components/create/CreateSheet.tsx": {
+      "button": 3
+    },
+    "src/components/dashboard/BrowseTasksToolbar.tsx": {
+      "button": 1
+    },
+    "src/components/dashboard/CompactJobCard.tsx": {
+      "button": 1
+    },
+    "src/components/dashboard/GuestEmptyStateActions.tsx": {
+      "button": 4
+    },
+    "src/components/dashboard/JobDetailDialog.tsx": {
+      "button": 3
+    },
+    "src/components/dashboard/JobFilters.tsx": {
+      "button": 7
+    },
+    "src/components/dashboard/PhotoLightbox.tsx": {
+      "button": 6
+    },
+    "src/components/dashboard/applyConfirmDialog/ApplyBody.tsx": {
+      "button": 1
+    },
+    "src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx": {
+      "button": 2,
+      "input": 2
+    },
+    "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": {
+      "button": 3,
+      "input": 1
+    },
+    "src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx": {
+      "button": 1
+    },
+    "src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx": {
+      "button": 1
+    },
+    "src/components/dashboard/filterSheet/FilterSheetFooter.tsx": {
+      "button": 1
+    },
+    "src/components/dashboard/filterSheet/FilterSheetRows.tsx": {
+      "button": 1
+    },
+    "src/components/dashboard/filterSheet/PayRangeSlider.tsx": {
+      "input": 2
+    },
+    "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx": {
+      "button": 2
+    },
+    "src/components/declutter/AutoFreeRow.tsx": {
+      "select": 1
+    },
+    "src/components/declutter/BundleDiscountCard.tsx": {
+      "select": 1
+    },
+    "src/components/declutter/BuyingOrders.tsx": {
+      "button": 2
+    },
+    "src/components/declutter/DeclutterBunchCard.tsx": {
+      "input": 2,
+      "textarea": 1,
+      "select": 3
+    },
+    "src/components/declutter/DeclutterBunchPhotos.tsx": {
+      "button": 3,
+      "input": 1
+    },
+    "src/components/declutter/DeclutterBunchRow.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/declutter/DeclutterBunchView.tsx": {
+      "input": 1
+    },
+    "src/components/declutter/DeclutterBundleRow.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeclutterCartRemove.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeclutterDeliveryViews.tsx": {
+      "button": 7
+    },
+    "src/components/declutter/DeclutterEditListing.tsx": {
+      "button": 1,
+      "input": 1,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterFilterPanel.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/declutter/DeclutterFoldedTime.tsx": {
+      "button": 3
+    },
+    "src/components/declutter/DeclutterFreeClaim.tsx": {
+      "input": 1
+    },
+    "src/components/declutter/DeclutterGallery.tsx": {
+      "button": 3
+    },
+    "src/components/declutter/DeclutterHandoverSheets.tsx": {
+      "input": 1
+    },
+    "src/components/declutter/DeclutterHandoverTalk.tsx": {
+      "button": 3,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterHandoverViews.tsx": {
+      "button": 7,
+      "input": 1
+    },
+    "src/components/declutter/DeclutterItemCard.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeclutterItemView.tsx": {
+      "button": 2
+    },
+    "src/components/declutter/DeclutterManageListing.tsx": {
+      "button": 7,
+      "input": 2
+    },
+    "src/components/declutter/DeclutterMap.tsx": {
+      "button": 2
+    },
+    "src/components/declutter/DeclutterMeetup.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/declutter/DeclutterMineViews.tsx": {
+      "button": 2
+    },
+    "src/components/declutter/DeclutterMovingSaleDetails.tsx": {
+      "input": 1
+    },
+    "src/components/declutter/DeclutterNoHelpr.tsx": {
+      "button": 3,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterNoShowAnswer.tsx": {
+      "button": 1,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterOfferPanel.tsx": {
+      "input": 1
+    },
+    "src/components/declutter/DeclutterOfferRules.tsx": {
+      "button": 2
+    },
+    "src/components/declutter/DeclutterOffersSection.tsx": {
+      "button": 6,
+      "input": 1
+    },
+    "src/components/declutter/DeclutterOrderTalk.tsx": {
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterPaySettling.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeclutterPickupDayCard.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeclutterPickupTimes.tsx": {
+      "button": 3,
+      "select": 1
+    },
+    "src/components/declutter/DeclutterPorchDay.tsx": {
+      "button": 4
+    },
+    "src/components/declutter/DeclutterPorchPlaces.tsx": {
+      "input": 1
+    },
+    "src/components/declutter/DeclutterPriceNudge.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeclutterProblemForm.tsx": {
+      "button": 3,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterProblemPhotos.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/components/declutter/DeclutterProblemSides.tsx": {
+      "button": 4,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterQuestions.tsx": {
+      "button": 1,
+      "input": 2,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterRefundRequest.tsx": {
+      "button": 8,
+      "input": 1,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterRefundReturn.tsx": {
+      "button": 3,
+      "input": 4,
+      "select": 1
+    },
+    "src/components/declutter/DeclutterReportListing.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeclutterReviewForm.tsx": {
+      "button": 1,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterSalesWaiting.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeclutterSellPhotos.tsx": {
+      "button": 3,
+      "input": 1
+    },
+    "src/components/declutter/DeclutterSellSteps.tsx": {
+      "button": 3
+    },
+    "src/components/declutter/DeclutterSellView.tsx": {
+      "input": 1,
+      "textarea": 1
+    },
+    "src/components/declutter/DeclutterTabParts.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeclutterTradeViews.tsx": {
+      "button": 2,
+      "input": 2
+    },
+    "src/components/declutter/DeclutterWantedReplies.tsx": {
+      "button": 3,
+      "input": 1
+    },
+    "src/components/declutter/DeclutterWantedViews.tsx": {
+      "button": 2,
+      "input": 3
+    },
+    "src/components/declutter/DeliverVehicleForm.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeliveryRaisePanel.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/declutter/DeliveryRouteMap.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/DeliveryTipPanel.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/GoOnlineCard.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/MeetupTimesCard.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/MovingSaleBanner.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/RouteSuggestions.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/SellFormParts.tsx": {
+      "input": 2
+    },
+    "src/components/declutter/SellItForMe.tsx": {
+      "button": 2
+    },
+    "src/components/declutter/SellPorchPlaces.tsx": {
+      "button": 2
+    },
+    "src/components/declutter/SellSummaryCard.tsx": {
+      "button": 2,
+      "input": 1,
+      "textarea": 1
+    },
+    "src/components/declutter/SellerDeliveryChoice.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/declutter/SellerDeliveryOrder.tsx": {
+      "button": 8
+    },
+    "src/components/declutter/SellerDeliverySettings.tsx": {
+      "button": 2,
+      "input": 3
+    },
+    "src/components/declutter/SellerHandedOver.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/SellerMoveHelprPickup.tsx": {
+      "button": 3
+    },
+    "src/components/declutter/SellingNowRow.tsx": {
+      "button": 1
+    },
+    "src/components/declutter/StopActions.tsx": {
+      "button": 2
+    },
+    "src/components/feedback/NpsPrompt.tsx": {
+      "button": 1
+    },
+    "src/components/firstRun/FirstRun.tsx": {
+      "button": 5
+    },
+    "src/components/guarantee/HelprGuaranteePanel.tsx": {
+      "input": 1
+    },
+    "src/components/help/HelpEntry.tsx": {
+      "button": 1
+    },
+    "src/components/identity/IdentityPromptCard.tsx": {
+      "button": 2
+    },
+    "src/components/job-card/ActivityBucketGroups.tsx": {
+      "button": 2
+    },
+    "src/components/job-card/ActivitySectionedView.tsx": {
+      "button": 1
+    },
+    "src/components/job-card/JobCardMetaRow.tsx": {
+      "button": 1
+    },
+    "src/components/job-card/JobCardShell.tsx": {
+      "button": 1
+    },
+    "src/components/job-card/MineJobFace.tsx": {
+      "button": 2
+    },
+    "src/components/job-card/NudgeConfirmLink.tsx": {
+      "button": 1
+    },
+    "src/components/job-card/PagedActivityList.tsx": {
+      "button": 1
+    },
+    "src/components/job-card/RunningLateSheet.tsx": {
+      "button": 2
+    },
+    "src/components/jobs/JobProofPhotos.tsx": {
+      "button": 1
+    },
+    "src/components/jobs/MessageApplicantButton.tsx": {
+      "button": 1
+    },
+    "src/components/landing/HeroSection.tsx": {
+      "input": 1
+    },
+    "src/components/landing/LandingAppleButton.tsx": {
+      "button": 1
+    },
+    "src/components/marketing/FaqRow.tsx": {
+      "button": 1
+    },
+    "src/components/messages/ChatHeader.tsx": {
+      "button": 2
+    },
+    "src/components/messages/ChatView.tsx": {
+      "button": 1,
+      "textarea": 1
+    },
+    "src/components/messages/ConversationList.tsx": {
+      "button": 8,
+      "input": 2
+    },
+    "src/components/messages/ConversationRow.tsx": {
+      "button": 2
+    },
+    "src/components/messages/DeclutterOrderTalkInbox.tsx": {
+      "button": 1
+    },
+    "src/components/messages/HiddenUnreadBar.tsx": {
+      "button": 2
+    },
+    "src/components/messages/InboxMenus.tsx": {
+      "button": 2
+    },
+    "src/components/messages/MessageActionSheet.tsx": {
+      "button": 2
+    },
+    "src/components/messages/MessageBubble.tsx": {
+      "button": 3
+    },
+    "src/components/messages/MuteSheet.tsx": {
+      "button": 2
+    },
+    "src/components/messages/RestoreConversationButton.tsx": {
+      "button": 1
+    },
+    "src/components/messages/chatView/ChatComposer.tsx": {
+      "button": 1
+    },
+    "src/components/messages/chatView/ChatTimeline.tsx": {
+      "button": 1
+    },
+    "src/components/messages/chatView/DealCard.tsx": {
+      "button": 1
+    },
+    "src/components/messages/chatView/JumpToBottomButton.tsx": {
+      "button": 1
+    },
+    "src/components/mobileNav/GateSheet.tsx": {
+      "button": 1
+    },
+    "src/components/mobileNav/NavQuickMenuItem.tsx": {
+      "button": 1
+    },
+    "src/components/mobileNav/TabButton.tsx": {
+      "button": 1
+    },
+    "src/components/notificationPreferences/QuietTimeInput.tsx": {
+      "input": 1
+    },
+    "src/components/postjob/AddressAutocomplete.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/AddressBlock.tsx": {
+      "button": 3
+    },
+    "src/components/postjob/AiJobBuilder.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/BudgetSection.tsx": {
+      "button": 5
+    },
+    "src/components/postjob/CityAutocomplete.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/CurrentLocationPill.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/JobCategoryGroups.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/components/postjob/LogisticsSection.tsx": {
+      "button": 3
+    },
+    "src/components/postjob/MaterialsPanel.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/PetPicker.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/PostJobStepHeader.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/PostJobStepRail.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/RecurringSchedulePicker.tsx": {
+      "button": 3
+    },
+    "src/components/postjob/SellForMeBlanks.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/detailsSection/CredentialTierSelector.tsx": {
+      "button": 1
+    },
+    "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/postjob/detailsSection/PhotoUpload.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/postjob/detailsSection/VideoScope.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/profile/AccessibilityTab.tsx": {
+      "button": 1
+    },
+    "src/components/profile/AvatarCropDialog.tsx": {
+      "input": 1
+    },
+    "src/components/profile/CredentialsTab.tsx": {
+      "button": 1
+    },
+    "src/components/profile/DeleteAccountReauth.tsx": {
+      "button": 4
+    },
+    "src/components/profile/EarningsForecastCard.tsx": {
+      "button": 1
+    },
+    "src/components/profile/EarningsTab.tsx": {
+      "button": 2
+    },
+    "src/components/profile/HelperStreakBadge.tsx": {
+      "button": 1
+    },
+    "src/components/profile/HelperTierBadge.tsx": {
+      "button": 1
+    },
+    "src/components/profile/MonthlyGoalCard.tsx": {
+      "button": 3,
+      "input": 1
+    },
+    "src/components/profile/ProfileEditForm.tsx": {
+      "button": 2
+    },
+    "src/components/profile/ProfileSectionError.tsx": {
+      "button": 1
+    },
+    "src/components/profile/ReviewsTab.tsx": {
+      "button": 3
+    },
+    "src/components/profile/SavedHelpersTab.tsx": {
+      "button": 7,
+      "input": 1
+    },
+    "src/components/profile/ScheduleTab.tsx": {
+      "button": 6
+    },
+    "src/components/profile/SettingsTab.tsx": {
+      "button": 1
+    },
+    "src/components/profile/SubscriptionTab.tsx": {
+      "button": 3
+    },
+    "src/components/profile/SupportInline.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/components/profile/TwoFactorCard.tsx": {
+      "button": 1
+    },
+    "src/components/profile/earningsTab/EarningsToolsMenu.tsx": {
+      "button": 1
+    },
+    "src/components/profile/earningsTab/MoneyRecordRows.tsx": {
+      "button": 1
+    },
+    "src/components/profile/earningsTab/ThresholdBanner.tsx": {
+      "button": 2
+    },
+    "src/components/profile/earningsTab/WalletCard.tsx": {
+      "button": 1
+    },
+    "src/components/profile/profileEditForm/PhotoNameSection.tsx": {
+      "input": 1
+    },
+    "src/components/profile/profileEditForm/RecentWorkSection.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/components/profile/profileEditForm/SaveBar.tsx": {
+      "button": 2
+    },
+    "src/components/profile/profileEditForm/TrustMarksCard.tsx": {
+      "button": 1
+    },
+    "src/components/profile/profileLanding/PayoutStatusRow.tsx": {
+      "button": 2
+    },
+    "src/components/profile/profileLanding/SettingsSection.tsx": {
+      "button": 1
+    },
+    "src/components/profile/profileLanding/YouCard.tsx": {
+      "button": 3
+    },
+    "src/components/profile/profileLanding/YouMenu.tsx": {
+      "button": 3
+    },
+    "src/components/profile/profileLanding/YourActivity.tsx": {
+      "button": 1
+    },
+    "src/components/profile/reviewsTab/reviewsAboutYou.tsx": {
+      "button": 1
+    },
+    "src/components/profile/savedHelpersTab/SavedHelperCard.tsx": {
+      "textarea": 1
+    },
+    "src/components/quotes/QuotePriceStepper.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/components/refund/RefundAnswerDialog.tsx": {
+      "input": 2
+    },
+    "src/components/refund/RefundRequestPanel.tsx": {
+      "button": 2
+    },
+    "src/components/rentals/EndTenancyButton.tsx": {
+      "button": 1
+    },
+    "src/components/rentals/LandlordIdReview.tsx": {
+      "input": 1
+    },
+    "src/components/rentals/LeasePanel.tsx": {
+      "button": 1
+    },
+    "src/components/rentals/MaintenanceRequestForm.tsx": {
+      "input": 2,
+      "select": 1
+    },
+    "src/components/rentals/MaintenanceRequestView.tsx": {
+      "input": 1
+    },
+    "src/components/rentals/RentPanel.tsx": {
+      "button": 1,
+      "input": 1,
+      "select": 2
+    },
+    "src/components/rentals/listings/ListingEditor.tsx": {
+      "select": 6
+    },
+    "src/components/rentals/listings/RentBrowse.tsx": {
+      "button": 3
+    },
+    "src/components/rentals/listings/SaleListingEditor.tsx": {
+      "select": 3
+    },
+    "src/components/rentals/listings/editorParts.tsx": {
+      "button": 1,
+      "input": 2
+    },
+    "src/components/reviewPanel/ReviewForm.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/components/reviewPanel/ReviewList.tsx": {
+      "button": 2
+    },
+    "src/components/reviewPanel/ReviewQuestionCard.tsx": {
+      "button": 1
+    },
+    "src/components/reviewPanel/StarRow.tsx": {
+      "button": 1
+    },
+    "src/components/richMessageInput/AttachSourceSheet.tsx": {
+      "button": 1
+    },
+    "src/components/savedSearches/SaveSearchButton.tsx": {
+      "button": 1
+    },
+    "src/components/savedSearches/SaveSearchSheet.tsx": {
+      "button": 1
+    },
+    "src/components/schedule/ChangeJobSheet.tsx": {
+      "button": 3
+    },
+    "src/components/schedule/ScheduleChangeControl.tsx": {
+      "button": 5,
+      "input": 2
+    },
+    "src/components/sections/AppTopBar.tsx": {
+      "button": 1
+    },
+    "src/components/sections/ChoiceFilterRow.tsx": {
+      "button": 1
+    },
+    "src/components/sections/CustomizeSheet.tsx": {
+      "button": 2
+    },
+    "src/components/sections/InlineListSearch.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/components/sections/SectionSearchRow.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/components/sections/SectionTabs.tsx": {
+      "button": 3
+    },
+    "src/components/sections/StatusBoxes.tsx": {
+      "button": 3
+    },
+    "src/components/series/EndSeriesControl.tsx": {
+      "button": 1
+    },
+    "src/components/series/SeriesDatesPanel.tsx": {
+      "button": 4,
+      "input": 1
+    },
+    "src/components/shops/PublicShopView.tsx": {
+      "button": 1
+    },
+    "src/components/shops/ShopDailyCap.tsx": {
+      "button": 1
+    },
+    "src/components/shops/ShopEditView.tsx": {
+      "input": 1
+    },
+    "src/components/shops/ShopHandoverActions.tsx": {
+      "input": 1
+    },
+    "src/components/shops/ShopItemEditor.tsx": {
+      "input": 1,
+      "select": 2
+    },
+    "src/components/shops/ShopOrderCard.tsx": {
+      "button": 1
+    },
+    "src/components/tracker/JobProgress.tsx": {
+      "button": 1
+    },
+    "src/components/wallet/PayoutCelebration.tsx": {
+      "button": 2
+    },
+    "src/pages/auth/CompleteProfile.tsx": {
+      "input": 1
+    },
+    "src/pages/auth/Login.tsx": {
+      "button": 2
+    },
+    "src/pages/auth/ResetPassword.tsx": {
+      "button": 1
+    },
+    "src/pages/auth/SignupPending.tsx": {
+      "button": 1
+    },
+    "src/pages/auth/signup/SignupStep1.tsx": {
+      "button": 1
+    },
+    "src/pages/auth/signup/SignupStep2.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/pages/home/HomeDashboard.tsx": {
+      "button": 8
+    },
+    "src/pages/home/homeDashboard/FirstJobHome.tsx": {
+      "button": 3
+    },
+    "src/pages/home/homeDashboard/HomeMoneyTiles.tsx": {
+      "button": 1
+    },
+    "src/pages/info/HelpCenter.tsx": {
+      "button": 1
+    },
+    "src/pages/info/Legal.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/pages/info/NotFound.tsx": {
+      "button": 1
+    },
+    "src/pages/jobs/AppliedJobsTab.tsx": {
+      "button": 1
+    },
+    "src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/pages/jobs/jobPage/NoApplicantsYet.tsx": {
+      "button": 1
+    },
+    "src/pages/messages/useMessageSections.tsx": {
+      "button": 1
+    },
+    "src/pages/post-job/EntryChoice.tsx": {
+      "button": 3
+    },
+    "src/pages/post-job/GiftCardTeaser.tsx": {
+      "button": 1
+    },
+    "src/pages/post-job/OfferToSavedHelpr.tsx": {
+      "button": 2
+    },
+    "src/pages/posts/BulkDismissBar.tsx": {
+      "button": 2
+    },
+    "src/pages/posts/CompletionChoiceSheet.tsx": {
+      "button": 3,
+      "input": 1
+    },
+    "src/pages/posts/postedJobs/BulkDismissibleWrapper.tsx": {
+      "button": 1
+    },
+    "src/pages/posts/postedJobs/DeclineApplicantSheet.tsx": {
+      "button": 1
+    },
+    "src/pages/posts/postedJobs/RecurringVisitPayments.tsx": {
+      "button": 1
+    },
+    "src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx": {
+      "input": 1
+    },
+    "src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx": {
+      "button": 2,
+      "textarea": 1
+    },
+    "src/pages/posts/postedJobs/applicantsPanel/ApplicantSortControls.tsx": {
+      "button": 1
+    },
+    "src/pages/posts/postedJobs/applicantsPanel/ApplicantsCompareCard.tsx": {
+      "button": 1
+    },
+    "src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx": {
+      "button": 1
+    },
+    "src/pages/profile/AutoTip.tsx": {
+      "input": 2
+    },
+    "src/pages/profile/BlockedPeopleTab.tsx": {
+      "button": 1
+    },
+    "src/pages/profile/GiftCard.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/pages/profile/HelperAnalytics.tsx": {
+      "button": 2
+    },
+    "src/pages/profile/HelprWrapped.tsx": {
+      "button": 1
+    },
+    "src/pages/profile/HomeHistory.tsx": {
+      "button": 1
+    },
+    "src/pages/profile/PayoutHistory.tsx": {
+      "button": 2
+    },
+    "src/pages/profile/Receipts.tsx": {
+      "button": 1
+    },
+    "src/pages/profile/SavedSearchesTab.tsx": {
+      "button": 2
+    },
+    "src/pages/profile/StrSettings.tsx": {
+      "button": 1
+    },
+    "src/pages/profile/WorkRecord.tsx": {
+      "button": 2
+    },
+    "src/pages/profile/giftCards/RecipientPicker.tsx": {
+      "button": 2,
+      "input": 1
+    },
+    "src/pages/profile/petProfiles/PetCard.tsx": {
+      "button": 1
+    },
+    "src/pages/profile/petProfiles/PetForm.tsx": {
+      "button": 2,
+      "input": 9,
+      "textarea": 3
+    },
+    "src/pages/profile/petProfiles/PetRailRow.tsx": {
+      "button": 3
+    },
+    "src/pages/profile/strSettings/AddCalendarForm.tsx": {
+      "button": 1
+    },
+    "src/pages/profile/strSettings/ConnectionCard.tsx": {
+      "button": 1
+    },
+    "src/pages/quotes/SendQuotePage.tsx": {
+      "button": 1,
+      "input": 1
+    },
+    "src/pages/search/SearchPage.tsx": {
+      "button": 4,
+      "input": 1
+    },
+    "src/pages/tips/TipMoment.tsx": {
+      "button": 1
+    },
+    "src/pages/user/AtAGlanceCard.tsx": {
+      "button": 1
+    },
+    "src/pages/user/ProfileBadge.tsx": {
+      "button": 1
+    },
+    "src/pages/user/RecognitionRow.tsx": {
+      "button": 1
+    },
+    "src/pages/user/ReviewsSection.tsx": {
+      "button": 9,
+      "textarea": 1
+    }
+  }
+}

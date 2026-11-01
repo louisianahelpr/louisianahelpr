@@ -4,6 +4,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { sectionItems } from "@/components/mobileNav/mobileNavHelpers";
 import { useOpenToEveryoneAnswer } from "@/components/landing/useSectionsOpen";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
+import { hideUnopenedInApp, sectionListedHere } from "@/lib/hideUnopenedInApp";
 
 /**
  * The section tabs (owner, 2026-10-18, option 1A): Declutter, Shops and Homes,
@@ -30,7 +31,11 @@ export function useSectionTabs() {
   const openToEveryone = useOpenToEveryoneAnswer(declutter || shops || rentals || guest);
   // Declutter only: it is the one section with guest pages (BUY-16's DeclutterGuestGate).
   const on = { declutter: declutter || (guest && !!openToEveryone?.has("declutter")), shops, rentals } as const;
-  return sectionItems.map((s) => ({ ...s, on: on[s.feature], preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) }));
+  return sectionItems.map((s) => {
+    const preview = sectionIsPreview(on[s.feature], s.feature, openToEveryone);
+    // `listed`: false only in the iPhone app for a section not open to everyone (owner 10-31, hideUnopenedInApp).
+    return { ...s, on: on[s.feature], preview, listed: sectionListedHere({ on: on[s.feature], preview }) };
+  });
 }
 
 /**
@@ -71,7 +76,8 @@ const OPEN_FOR_THOSE_WHO_HAVE_IT: ReadonlySet<string> = new Set(["declutter"]);
  * "Homes is opening soon"; null when every section is open.
  */
 export function openingSoonLine(labels: readonly string[]): string | null {
-  if (labels.length === 0) return null;
+  // The iPhone app says nothing about sections that are not open (owner 10-31, hideUnopenedInApp).
+  if (labels.length === 0 || hideUnopenedInApp()) return null;
   const names = labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
   return `${names} ${labels.length === 1 ? "is" : "are"} opening soon`;
 }
@@ -80,6 +86,8 @@ const shownComingSoon = new Set<string>();
 
 /** What a tap on a switched-off section does instead of navigating. */
 export function sayComingSoon(label: string) {
+  // The iPhone app lists no closed section, so nothing there may say "coming soon" (owner 10-31, hideUnopenedInApp).
+  if (hideUnopenedInApp()) return;
   const id = `coming-soon-${label}`;
   shownComingSoon.add(id);
   toast(`${label} is coming soon`, { id });

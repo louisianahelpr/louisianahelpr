@@ -44,6 +44,15 @@ export function useSectionIsPreview() {
   return (s: SectionDef) => s.feature !== null && !!live.find((t) => t.path === s.path)?.preview;
 }
 
+/**
+ * Is this section LISTED here (useSectionTabs `listed`)? Always on the website; in the iPhone app only once it is
+ * open to everyone (owner 10-31: closed sections are hidden in the app, src/lib/hideUnopenedInApp.ts). Jobs always.
+ */
+export function useSectionIsListed() {
+  const live = useSectionTabs();
+  return (s: SectionDef) => s.feature === null || live.find((t) => t.path === s.path)?.listed !== false;
+}
+
 /** One section's preview answer: its empty Browse says "Opens soon" to a tester (owner, 2026-10-22). */
 export function useSectionPreview(key: SectionKey): boolean {
   return useSectionIsPreview()(sectionByKey(key));
@@ -73,6 +82,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
   const { visible } = useSectionPrefs();
   const isOn = useSectionIsOn();
   const isPreview = useSectionIsPreview();
+  const isListed = useSectionIsListed();
   const { t: tr } = useLanguage();
   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]);
   // FOUR CHIPS ON ONE LINE, EVEN WHEN THEY DO NOT FIT (measured 2026-10-23, WebKit: the track is 237px at 375 and
@@ -103,7 +113,8 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
     };
   }, [current, visible.length]);
   if (isWebDesktop) return null;
-  const options = visible.map((s) => {
+  // In the iPhone app a section not open to everyone has no chip at all (owner 10-31, hideUnopenedInApp).
+  const options = visible.filter(isListed).map((s) => {
     const on = isOn(s);
     const navKeyed = navKey(s.path, s.navLabel);
     const name = navKeyed ? tr(navKeyed) : s.navLabel;

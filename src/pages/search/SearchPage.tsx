@@ -1,3 +1,4 @@
+import { hideUnopenedInApp } from "@/lib/hideUnopenedInApp";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -133,6 +134,8 @@ function Group({ title, count, onSeeAll, children }: { title: string; count: num
 }
 
 function SoonRow({ name }: { name: string }) {
+  // The iPhone app shows no closed section (owner 10-31, src/lib/hideUnopenedInApp.ts); the website keeps the row.
+  if (hideUnopenedInApp()) return null;
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl px-4 min-h-[52px]" style={{ background: "hsl(var(--card))" }}>
       <span className="font-sans font-semibold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>{name}</span>

@@ -28,7 +28,7 @@
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       liveNow: deriveLiveNow(pj, aa), |       liveNow: null,
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       waiting: todos.length ? null : deriveWaiting( |       waiting: true ? null : deriveWaiting(
  * @mutate src/components/mobileNav/dockItems.ts |     right: [{ path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }, youItem], |     right: [youItem],
- * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.map((s) => { |   const options = [...visible].reverse().map((s) => {
+ * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.filter(isListed).map((s) => { |   const options = [...visible].reverse().filter(isListed).map((s) => {
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/sections/StatusBoxes.tsx |           if (p.get("status") === k) p.delete("status"); |           if (false) p.delete("status");
  * @mutate src/components/sections/useSectionPrefs.ts |   const visible = prefs.order.filter((k) => !prefs.hidden.includes(k)) |   const visible = prefs.order.filter(() => true)

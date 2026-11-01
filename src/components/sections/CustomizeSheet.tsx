@@ -38,7 +38,8 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
 
         <h3 className="mt-3 mb-2 px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your sections</h3>
         <ul className="flex flex-col gap-2">
-          {prefs.order.map((key, i) => {
+          {/* In the iPhone app a section not open to everyone is not listed (owner 10-31, hideUnopenedInApp). */}
+          {prefs.order.filter((key) => live.find((t) => t.path === sectionByKey(key).path)?.listed !== false).map((key, i, order) => {
             const s = sectionByKey(key);
             const shown = !prefs.hidden.includes(key);
             const on = s.feature === null || live.find((t) => t.path === s.path)?.on;
@@ -52,7 +53,7 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
                   <button type="button" aria-label={`Move ${s.label} up`} disabled={i === 0} onClick={() => move(key, -1)} className="w-8 h-9 flex items-center justify-center rounded-full text-muted-foreground disabled:invisible">
                     <ChevronUp className="w-4 h-4" aria-hidden />
                   </button>
-                  <button type="button" aria-label={`Move ${s.label} down`} disabled={i === prefs.order.length - 1} onClick={() => move(key, 1)} className="w-8 h-9 flex items-center justify-center rounded-full text-muted-foreground disabled:invisible">
+                  <button type="button" aria-label={`Move ${s.label} down`} disabled={i === order.length - 1} onClick={() => move(key, 1)} className="w-8 h-9 flex items-center justify-center rounded-full text-muted-foreground disabled:invisible">
                     <ChevronDown className="w-4 h-4" aria-hidden />
                   </button>
                 </span>

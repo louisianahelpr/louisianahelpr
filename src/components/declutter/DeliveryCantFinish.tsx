@@ -156,7 +156,8 @@ export function HelprCantFinish({ taskId, userId }: { taskId: string; userId: st
             <legend className="sr-only">What's stopping you?</legend>
             {REASONS.map((r) => (
               <label key={r.value} className="flex min-h-11 items-center gap-2 text-sm">
-                <input type="radio" name={`${id}-reason`} checked={reason === r.value} onChange={() => setReason(r.value)} />
+                <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }}
+                  name={`${id}-reason`} checked={reason === r.value} onChange={() => setReason(r.value)} />
                 {r.label}
               </label>
             ))}
@@ -203,7 +204,7 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
     return (
       <div className="space-y-2 rounded-xl border border-border p-3" data-cant-finish-fix="">
         <label htmlFor={`${id}-address`} className="block text-xs font-medium">The right address, if it changed</label>
-        <AddressAutocomplete id={`${id}-address`} value={address} onChange={setAddress} onPick={(p) => setAddress([p.street, p.city, p.state, p.zipCode].filter(Boolean).join(", "))} className={input} ariaLabel="The right address" />
+        <AddressAutocomplete id={`${id}-address`} value={address} onChange={setAddress} onPick={(p) => setAddress([p.street, p.city, p.state, p.zipCode].filter(Boolean).join(", "))} className={input} ariaLabel="The right address" plainWithoutMapKit keepListInView />
         <label htmlFor={`${id}-note`} className="block text-xs font-medium">What the Helpr needs to know</label>
         <textarea id={`${id}-note`} rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className={input} />
         {failed && <p role="alert" className="text-sm text-destructive-ink">{failed}</p>}
@@ -216,6 +217,7 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
   const canCollect = v.stuck_stage === "returning" || v.stuck_stage === "collecting";
   return (
     <div className="space-y-2 rounded-xl border border-border p-3" data-cant-finish-choose="">
+      {!chosen && <p className="text-sm font-semibold">What would you like to happen?</p>}
       {chosen === "refund" && <p className="text-sm" role="status">You chose a full refund. It's sent once the item is back with the seller.</p>}
       {chosen === "repost" && <p className="text-sm" role="status">You chose another Helpr. It's posted again once the item is back with the seller.</p>}
       <div className="flex flex-wrap gap-2">

@@ -5,6 +5,8 @@
  * real fee rule, or it is not shown (§1.5).
  */
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { setupFeeWords } from "@/lib/takeHomeFeeWords";
 import { computeNet } from "@/components/dashboard/JobPrice";
@@ -267,8 +269,9 @@ export function RevisionAsk({ job, side, posterFirst }: { job: JobPageRow; side:
 }
 
 export function PostedBy({ posterId }: { posterId: string }) {
+  const { t } = useLanguage();
   return (
-    <section aria-label="Posted by">
+    <section aria-label={t("jobPage.postedBy")}>
       <DeclutterSellerCard sellerId={posterId} noun="poster" />
     </section>
   );
@@ -279,8 +282,9 @@ export function PostedBy({ posterId }: { posterId: string }) {
  * sees the same person card for their Helpr; "Message <name>" is already the page's own button (posterPageActions).
  */
 export function HiredHelpr({ helprId }: { helprId: string }) {
+  const { t } = useLanguage();
   return (
-    <section aria-label="Your Helpr">
+    <section aria-label={t("jobPage.yourHelpr")}>
       <DeclutterSellerCard sellerId={helprId} noun="Helpr" />
     </section>
   );

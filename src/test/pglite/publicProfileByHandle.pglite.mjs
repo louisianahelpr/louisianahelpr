@@ -320,6 +320,26 @@ check("P13 test, seed, cancelled, blind and unpublished reviews never show, for 
   lists.every((l) => Array.isArray(l) && l.length === 1 && l[0].feedback === "Great work" && !bad.test(JSON.stringify(l))),
   JSON.stringify(lists.map((l) => l?.map((x) => x.feedback))));
 
+// P14 (review 2026-11-01): the reviewer's name shows only under the hidden-member rules; a banned (any form),
+// out (3 strikes), deleted or under-18 reviewer is "A neighbor". Their review itself stays.
+const masked = [];
+for (const [sql, label] of [
+  [`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${REVIEWER}'`, "banned"],
+  [`UPDATE public.profiles SET ban_status = 'temp_banned', auto_suspended_until = now() + interval '3 day' WHERE user_id = '${REVIEWER}'`, "temp"],
+  [`UPDATE public.profiles SET ban_status = 'temp_banned', auto_suspended_until = now() - interval '1 day' WHERE user_id = '${REVIEWER}'`, "temp lapsed"],
+  [`UPDATE public.profiles SET date_of_birth = current_date - interval '16 years' WHERE user_id = '${REVIEWER}'`, "under 18"],
+  [`UPDATE public.profiles SET anonymized_at = now() WHERE user_id = '${REVIEWER}'`, "deleted"],
+  [`INSERT INTO public.member_flags VALUES ('${REVIEWER}', 'strike'), ('${REVIEWER}', 'strike'), ('${REVIEWER}', 'strike')`, "3 strikes"]]) {
+  await db.exec(sql);
+  const r = (await page("eli-b")).v?.helpr?.reviews ?? [];
+  if (r.length !== 1 || r[0].reviewer_name !== "A neighbor") masked.push(`${label}: ${JSON.stringify(r.map((x) => x.reviewer_name))}`);
+  await db.exec(`UPDATE public.profiles SET ban_status = NULL, auto_suspended_until = NULL, date_of_birth = NULL, anonymized_at = NULL
+    WHERE user_id = '${REVIEWER}'; DELETE FROM public.member_flags`);
+}
+const named = (await page("eli-b")).v?.helpr?.reviews?.[0]?.reviewer_name;
+check("P14 a banned, out, deleted or under-18 reviewer shows as 'A neighbor'; otherwise First L.", masked.length === 0 && named === "Rita T.",
+  masked.join("; ") || String(named));
+
 if (BEFORE) {
   console.log(`--before: ${failures}/${checks} FAIL (expected ${checks})`);
   process.exit(failures === checks ? 0 : 1);

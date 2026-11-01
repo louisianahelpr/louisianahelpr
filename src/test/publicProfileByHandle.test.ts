@@ -18,6 +18,8 @@
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND w.public | 
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND j.status = 'open' | 
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | 'reviewer_name', public.member_display_name(r.reviewer_full_name), | 'reviewer_name', r.reviewer_full_name,
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |                  AND NOT COALESCE(public.member_under_18(rp.user_id), true) | 
+ * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |                  AND rp.anonymized_at IS NULL | 
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND NOT public.is_test_member(rv.reviewer_id) | 
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql |          AND j.is_seed IS NOT TRUE\n         AND NOT public.is_test_member(rv.reviewer_id) |          AND NOT public.is_test_member(rv.reviewer_id)
  * @mutate supabase/migrations/20261101041833_public_profile_by_handle.sql | 'id', i.id, | 'id', i.id, 'pickup_address', i.pickup_address,
@@ -57,6 +59,7 @@ describe("the newest public_profile_by_handle keeps every rule", () => {
     ["live listings only", "AND i.status = 'live' AND NOT i.seller_hidden AND i.is_seed IS NOT TRUE"],
     ["public Wanted posts only", "AND w.status = 'open' AND w.public AND w.removed_at IS NULL AND w.expires_at > now() AND w.is_seed IS NOT TRUE"],
     ["reviewers as First L.", "'reviewer_name', public.member_display_name(r.reviewer_full_name),"],
+    ["a reviewer's name only under the hidden-member rules (review 2026-11-01)", "AND rp.email_verified AND rp.ban_status IS DISTINCT FROM 'banned' AND rp.ban_status IS DISTINCT FROM 'temp_banned' AND rp.ban_status IS DISTINCT FROM 'permanently_banned' AND rp.anonymized_at IS NULL AND NOT public.declutter_member_out(rp.user_id) AND NOT COALESCE(public.member_under_18(rp.user_id), true)"],
     ["reviews: the stats' rules, for every caller (re-review 2026-11-01)", "WHERE rv.reviewee_id = v_p.user_id AND rv.status = 'published' AND rv.feedback_visible_at IS NOT NULL AND rv.feedback_visible_at <= now() AND j.status <> 'cancelled' AND j.is_seed IS NOT TRUE AND NOT public.is_test_member(rv.reviewer_id) AND NOT public.is_test_member(rv.reviewee_id)"],
     ["the public name as First L.", "'name', public.member_display_name(v_p.full_name),"],
   ])("%s", (_what, clause) => {

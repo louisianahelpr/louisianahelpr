@@ -428,12 +428,23 @@ function withCount(headers: Record<string, string>, resp: SupabaseResponse, isHe
   };
 }
 
+/**
+ * What prod's REST answers expose to the page across origins, copied from a
+ * live response (2026-11-01, HEAD /rest/v1/open_jobs_browse with Origin set).
+ * Without it a plain `fetch` cannot read Content-Range: the Home prefetch
+ * (src/boot/homePrefetch.ts) saw no count, handed nothing over, and Home read
+ * its three first-card reads twice on every mocked /home load, which the Q104
+ * request budget counted as app load (release gate 41330878323).
+ */
+export const PROD_REST_EXPOSE_HEADERS =
+  "Content-Encoding, Content-Location, Content-Range, Content-Type, Date, Location, Server, Transfer-Encoding, Range-Unit";
+
 function buildFulfill(resp: SupabaseResponse) {
   return {
     status: resp.status ?? 200,
     contentType: resp.headers?.["content-type"] ?? "application/json",
     body: typeof resp.body === "string" ? resp.body : JSON.stringify(resp.body ?? null),
-    headers: resp.headers ?? {},
+    headers: { "access-control-expose-headers": PROD_REST_EXPOSE_HEADERS, ...(resp.headers ?? {}) },
   };
 }
 

@@ -1,57 +1,22 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/queryKeys";
+import { useLayoutEffect, useRef } from "react";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useBannerContribution, useSetBannerContribution } from "@/lib/offlineBannerLayout";
 import { AlertTriangle, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { formatTimestamp } from "@/lib/format";
-import { report } from "@/lib/errorLogger";
-import { unwrap } from "@/lib/supabaseResult";
 
 export default function StrikeBanner() {
-  // The signed-in user's id, tracked off the auth stream exactly as before —
-  // but the READ is now a keyed query rather than a fetch fired from the
-  // effect. It used to fire once from getSession() and again from every
-  // onAuthStateChange event (INITIAL_SESSION, TOKEN_REFRESHED, …), so
-  // `profiles?select=ban_status` went out two or three times per session with
-  // nothing to dedupe it. One key, one request, shared with any future reader.
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!cancelled) setUserId(session?.user.id ?? null);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user.id ?? null);
-    });
-    return () => { cancelled = true; sub.subscription.unsubscribe(); };
-  }, []);
-
-  const { data: status = null } = useQuery({
-    queryKey: queryKeys.banStatus.byUser(userId),
-    queryFn: async () => {
-      const result = await supabase
-        .from("profiles")
-        .select("ban_status, auto_suspended_until")
-        .eq("user_id", userId as string)
-        .maybeSingle();
-      if (result.error) {
-        console.error("[StrikeBanner] failed to load ban status:", result.error);
-        report(result.error, { severity: "warning", tags: { source: "StrikeBanner.load" } });
-      }
-      return unwrap(result) ?? null;
-    },
-    enabled: !!userId,
-    staleTime: 30_000,
-    // NEVER persisted, and deliberately short-lived. This is enforcement
-    // state: a ban applied while the app was closed must not be papered over
-    // by a rehydrated "active" from yesterday's IndexedDB snapshot. Same
-    // reason escrow/payment_status and idv_status stay off disk.
-    gcTime: 60_000,
-    meta: { persist: false },
-  });
+  // The ban state comes from the signed-in profile row (profiles select=*),
+  // which useCurrentUser reads from the server on every load and every 30 s
+  // of focus, and NEVER restores from the device (meta.persist false: a
+  // pre-ban copy must not paper over a ban). This banner sent its own
+  // profiles?select=ban_status,auto_suspended_until read until 2026-11-01:
+  // the same row, one more request on every signed-in page (Q104 budget,
+  // release gate e2e-real-backend 41330878323).
+  const { profile } = useCurrentUser();
+  const status = profile
+    ? { ban_status: profile.ban_status ?? null, auto_suspended_until: profile.auto_suspended_until ?? null }
+    : null;
 
   // Reserve space for this banner the way OfflineBanner does, or every
   // fixed-shell page header (title card, back arrow, filter row) renders

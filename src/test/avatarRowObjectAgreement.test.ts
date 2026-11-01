@@ -455,6 +455,10 @@ const DYNAMIC_REMOVERS: Record<string, { why: string; check?: (src: Source) => s
     why: "B77 Wanted photos: removes only the object it just uploaded when declutter_add_wanted_photo refuses it, from DECLUTTER_PHOTO_BUCKET (job-photos); never the avatars bucket",
     check: (src) => (/["']avatars["']/.test(src.text) ? "wanted.ts now names the avatars bucket" : null),
   },
+  "src/lib/declutter/listForSeller.ts": {
+    why: "LEAD-LIST-FOR-SELLER: removes only the Helpr's own upload it just made when declutter_helpr_add_listing_photo refuses it, from DECLUTTER_PHOTO_BUCKET (job-photos); never the avatars bucket",
+    check: (src) => (/["']avatars["']/.test(src.text) ? "listForSeller.ts now names the avatars bucket" : null),
+  },
   "src/lib/shops/storageCleanup.ts": {
     why: "Shops shop and item photos only: its callers (src/lib/shops/api.ts, items.ts) pass job-photos; never the avatars bucket",
     check: (src) => (/["']avatars["']/.test(src.text) ? "shops storageCleanup now names the avatars bucket" : null),

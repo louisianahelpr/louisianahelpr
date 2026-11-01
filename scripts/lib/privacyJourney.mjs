@@ -72,6 +72,8 @@ export const EXPECTED_PURGE_STEPS = [
   "database",
   "job_media",
   "message_attachments",
+  // LEAD-LIST-FOR-SELLER: plans the listing photos a Helpr uploaded for a seller (reports on every run).
+  "listed_for_seller_photos",
 ];
 
 /** Steps that appear only when the purge REFUSES (a malformed user id): absent on a good run. */

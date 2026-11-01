@@ -42,7 +42,15 @@
  */
 
 import { removeJobMedia, type JobMediaOwner } from "./jobMedia.ts";
-import { classifyMissingSubfolderBuckets, IDENTITY_BUCKETS, identitySubfolderPrefixes, missingBuckets } from "./purgeBuckets.ts";
+import {
+  classifyMissingSubfolderBuckets,
+  IDENTITY_BUCKETS,
+  identitySubfolderPrefixes,
+  listedForSellerPhotoPlan,
+  missingBuckets,
+  type ListedForSellerLink,
+  type ListingPhotoRow,
+} from "./purgeBuckets.ts";
 import { caughtMessage } from "./caughtMessage.ts";
 import { recurringVisitDates } from "./recurringSchedule.ts";
 import { louisianaToday } from "./louisianaDate.ts";
@@ -1049,8 +1057,11 @@ async function purgeIdentityStorage(
   userId: string,
   steps: PurgeStep[],
   extraPaths: { bucket: string; paths: string[] }[] = [],
+  /** job-photos objects under this member's folder that belong to someone else's listing (listedForSellerPhotoPlan). */
+  keepJobPhotos: ReadonlySet<string> = new Set(),
 ): Promise<boolean> {
   let allOk = true;
+  const kept = (bucket: string, paths: string[]) => (bucket === "job-photos" ? paths.filter((p) => !keepJobPhotos.has(p)) : paths);
   let totalRemoved = 0;
   const failures: string[] = [];
   const notes: string[] = [];
@@ -1112,7 +1123,7 @@ async function purgeIdentityStorage(
   }
   for (const { bucket, prefix } of presentSubfolders) {
     try {
-      targets.push({ bucket, paths: await listAllObjects(admin, bucket, prefix) });
+      targets.push({ bucket, paths: kept(bucket, await listAllObjects(admin, bucket, prefix)) });
     } catch (err) {
       const msg = caughtMessage(err);
       console.error(`[accountPurge] list ${bucket}/${prefix} failed:`, msg);
@@ -1161,7 +1172,7 @@ async function purgeIdentityStorage(
 
   for (const { bucket, prefix } of presentSubfolders) {
     try {
-      const left = await listAllObjects(admin, bucket, prefix);
+      const left = kept(bucket, await listAllObjects(admin, bucket, prefix));
       if (left.length > 0) {
         failures.push(`${bucket}/${prefix}: ${left.length} object(s) still present after remove`);
         allOk = false;
@@ -1318,6 +1329,54 @@ async function purgeDatabaseRows(
 
   steps.push({ step: "database", ok: true, detail: JSON.stringify(data) });
   return { ok: true, notDeployed: false };
+}
+
+/**
+ * LEAD-LIST-FOR-SELLER: the listing photos a hired Helpr uploaded into their own folder for a seller's listing
+ * (purgeBuckets.ts listedForSellerPhotoPlan). Read BEFORE the RPC, which deletes the rows that name them. A failed
+ * read is recorded and fails the storage step: going on would erase the seller's photos with the Helpr's folder, or
+ * leave the seller's behind.
+ */
+async function collectListedForSellerPhotos(
+  admin: PurgeCapableClient,
+  userId: string,
+  steps: PurgeStep[],
+): Promise<{ ok: boolean; sellerExtra: string[]; helprKeep: Set<string> }> {
+  const links: PostgrestLike<ListedForSellerLink[]> = await admin
+    .from("declutter_listed_for_seller")
+    .select("item_id, helpr_id, seller_id")
+    .or(`seller_id.eq.${userId},helpr_id.eq.${userId}`);
+  if (links.error) {
+    // Before 20261101034159 is applied the table is missing (42P01 / PGRST205): nothing was listed for anyone.
+    if (links.error.code === "42P01" || links.error.code === "PGRST205") {
+      steps.push({ step: "listed_for_seller_photos", ok: true, detail: "table not deployed yet, nothing to plan" });
+      return { ok: true, sellerExtra: [], helprKeep: new Set() };
+    }
+    console.error(`[accountPurge] could not read listed-for-seller links for ${userId}:`, links.error.message);
+    steps.push({ step: "listed_for_seller_photos", ok: false, detail: `read failed (${links.error.code ?? "?"}: ${links.error.message})` });
+    return { ok: false, sellerExtra: [], helprKeep: new Set() };
+  }
+  const rows = links.data ?? [];
+  let photos: ListingPhotoRow[] = [];
+  if (rows.length > 0) {
+    const res: PostgrestLike<ListingPhotoRow[]> = await admin
+      .from("declutter_item_photos")
+      .select("item_id, storage_path")
+      .in("item_id", rows.map((r) => r.item_id));
+    if (res.error) {
+      console.error(`[accountPurge] could not read listed-for-seller photos for ${userId}:`, res.error.message);
+      steps.push({ step: "listed_for_seller_photos", ok: false, detail: `read failed (${res.error.code ?? "?"}: ${res.error.message})` });
+      return { ok: false, sellerExtra: [], helprKeep: new Set() };
+    }
+    photos = res.data ?? [];
+  }
+  const plan = listedForSellerPhotoPlan(userId, rows, photos);
+  steps.push({
+    step: "listed_for_seller_photos",
+    ok: true,
+    detail: `${plan.sellerExtra.length} seller photo(s) in a Helpr's folder queued; ${plan.helprKeep.size} kept for their sellers`,
+  });
+  return { ok: true, ...plan };
 }
 
 /**
@@ -1564,9 +1623,12 @@ export async function purgeAccount(
   const attachmentPaths = await collectMessageAttachments(admin, userId, steps);
   // The row lets go of the avatar before the object goes (see clearAvatarPointer).
   await clearAvatarPointer(admin, userId, steps);
-  const storageOk = await purgeIdentityStorage(admin, userId, steps, [
+  // LEAD-LIST-FOR-SELLER: also before the RPC (see collectListedForSellerPhotos).
+  const listed = await collectListedForSellerPhotos(admin, userId, steps);
+  const storageOk = (await purgeIdentityStorage(admin, userId, steps, [
     { bucket: "message-attachments", paths: attachmentPaths },
-  ]);
+    { bucket: "job-photos", paths: listed.sellerExtra },
+  ], listed.helprKeep)) && listed.ok;
   // BEFORE purgeDatabaseRows, always. It reads `profiles.email`, which step 4e
   // of `purge_user_data` nulls — reversing these two lines turns the retention
   // into a silent no-op that returns 0 and no error. See retainBanIfAny.

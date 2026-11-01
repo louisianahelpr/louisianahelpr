@@ -153,3 +153,34 @@ export async function missingBuckets(
   }
   return wanted.filter((b) => !have.has(b));
 }
+
+/**
+ * LEAD-LIST-FOR-SELLER (20261101034159): a hired Helpr writes Declutter listings on the SELLER's account, and the photos
+ * are uploaded into the HELPR's folder (`job-photos/<helpr>/declutter/<item>/...`, the storage policy lets a member
+ * write only their own folder). So the `<uid>/declutter` sweep alone gets both sides wrong:
+ *  - the SELLER deletes their account: the photos of their listings in the Helpr's folder are theirs and must go too
+ *    (`sellerExtra`, removed by exact path);
+ *  - the HELPR deletes theirs: those photos are the seller's listing photos, not the Helpr's, and must stay
+ *    (`helprKeep`, skipped by the sweep and by its re-list check).
+ * Only a photo under `<that link's helpr>/declutter/<that link's item>/` counts, so a row naming any other path is
+ * ignored either way (never a primitive to delete someone else's files).
+ */
+export interface ListedForSellerLink { item_id: string; helpr_id: string; seller_id: string }
+export interface ListingPhotoRow { item_id: string; storage_path: string }
+
+export function listedForSellerPhotoPlan(
+  userId: string,
+  links: readonly ListedForSellerLink[],
+  photos: readonly ListingPhotoRow[],
+): { sellerExtra: string[]; helprKeep: Set<string> } {
+  const byItem = new Map(links.map((l) => [l.item_id, l]));
+  const sellerExtra: string[] = [];
+  const helprKeep = new Set<string>();
+  for (const p of photos) {
+    const l = byItem.get(p.item_id);
+    if (!l || l.helpr_id === l.seller_id || !p.storage_path.startsWith(`${l.helpr_id}/declutter/${l.item_id}/`)) continue;
+    if (l.seller_id === userId) sellerExtra.push(p.storage_path);
+    else if (l.helpr_id === userId) helprKeep.add(p.storage_path);
+  }
+  return { sellerExtra, helprKeep };
+}

@@ -15,7 +15,7 @@
  * the real 20261012031120; job_payment_is_listed is its newest definition.
  * Helpers not under test are stubs driven by tables (_ready, _banned, _shadow, _blocked).
  *
- *   F1  switch 'instant_book' is created 'testers'; an ordinary account is refused (feature_disabled) by all three RPCs
+ *   F1  on for everyone: no 'instant_book' switch row; an ordinary account sets and reads its own floors; anon cannot call the RPCs
  *   F2  nobody but service_role touches instant_book_floors directly (the owner included)
  *   F3  set: a banned member, bad category, out-of-range floor and a 4th category are refused; a change updates; NULL removes
  *   F4  rpc_my_instant_book_floors returns only the caller's own floors
@@ -100,7 +100,7 @@ CREATE FUNCTION public.is_helper_shadowbanned(u uuid) RETURNS boolean LANGUAGE s
 `;
 
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
-const TP = id(1); // tester poster (the switch is 'testers')
+const TP = id(1); // a test-account poster
 const RP = id(2); // a real poster, for the Helprs' job history
 const ORD = id(3); // an ordinary account
 const TP2 = id(4); // another tester
@@ -197,8 +197,7 @@ await rate(HIGH, 5); await rate(TH, 5);
 for (const h of ALL_H.filter((x) => ![NOAVAIL, DAYON].includes(x))) await owner(`INSERT INTO public.helper_availability (helper_id, day_of_week, is_available) VALUES ('${h}', ${dow}, true)`);
 await owner(`INSERT INTO public.helper_availability (helper_id, specific_date, is_available) VALUES ('${DAYOFF}', ${day}, false), ('${DAYON}', ${day}, true)`);
 
-// Floors, set by each Helpr through the RPC (the switch is 'testers': enrol them for the set call, then un-enrol).
-await owner(`INSERT INTO public.test_accounts (user_id) SELECT unnest(ARRAY[${ALL_H.filter((h) => h !== TH).map((u) => `'${u}'::uuid`).join(",")}])`);
+// Floors, set by each Helpr through the RPC (on for everyone: no switch, no enrolment).
 const setFloor = (h, cat, cents) => as("authenticated", h, `SELECT public.rpc_set_instant_book_floor('${cat}', ${cents})`);
 const setRes = [];
 for (const h of ALL_H.filter((x) => ![HIGH, OTHERCAT, BANNED].includes(x))) setRes.push(await setFloor(h, "yard_work", 5000));
@@ -209,7 +208,7 @@ setRes.push(await setFloor(A, "yard_work", 6000)); // change: exactly the price 
 setRes.push(await setFloor(HIGH, "yard_work", 6001));
 setRes.push(await setFloor(OTHERCAT, "cleaning", 1000));
 
-// ─── F3 set rules (while enrolled) ──────────────────────────────────────────
+// ─── F3 set rules ──────────────────────────────────────────────────────────
 const badCat = await setFloor(B, "not_a_category", 2000);
 const low = await setFloor(B, "cleaning", 999);
 const high = await setFloor(B, "cleaning", 100001);
@@ -231,17 +230,18 @@ const mine = await as("authenticated", B, `SELECT * FROM public.rpc_my_instant_b
 check("F4 rpc_my_instant_book_floors returns only the caller's own floors",
   ok(mine) && mine.length === 3 && mine.every((r) => typeof r.floor_cents === "number"), err(mine) || JSON.stringify(mine));
 await owner(`DELETE FROM public.instant_book_floors WHERE helper_id = '${B}' AND category <> 'yard_work'`);
-await owner(`DELETE FROM public.test_accounts WHERE user_id IN (${ALL_H.filter((h) => h !== TH).map((u) => `'${u}'`).join(",")})`);
 
 // ─── F1 switch and refusal ──────────────────────────────────────────────────
 const sw = await owner(`SELECT audience FROM public.feature_switches WHERE key = 'instant_book'`);
 const r1 = await as("authenticated", ORD, `SELECT public.rpc_set_instant_book_floor('yard_work', 2000)`);
 const r2 = await as("authenticated", ORD, `SELECT * FROM public.rpc_my_instant_book_floors()`);
-const r3 = await as("authenticated", ORD, `SELECT * FROM public.instant_book_candidates('${J.real}')`);
 const r4 = await as("anon", null, `SELECT * FROM public.instant_book_candidates('${J.real}')`);
-check("F1 switch 'instant_book' is 'testers'; an ordinary account is refused by all three RPCs, anon cannot call them",
-  ok(sw) && sw[0]?.audience === "testers" && [r1, r2, r3].every((r) => /feature_disabled/.test(err(r))) && /permission denied/.test(err(r4)),
-  [JSON.stringify(sw), err(r1), err(r2), err(r3), err(r4)].join(" | "));
+const r5 = await as("anon", null, `SELECT public.rpc_set_instant_book_floor('yard_work', 2000)`);
+await owner(`DELETE FROM public.instant_book_floors WHERE helper_id = '${ORD}'`);
+check("F1 on for everyone: no 'instant_book' switch row; an ordinary account sets and reads its own floor; anon cannot call the RPCs",
+  ok(sw) && sw.length === 0 && ok(r1) && ok(r2) && r2.length === 1 && r2[0].floor_cents === 2000
+    && /permission denied/.test(err(r4)) && /permission denied/.test(err(r5)),
+  [JSON.stringify(sw), err(r1), err(r2) || JSON.stringify(r2), err(r4), err(r5)].join(" | "));
 
 // ─── F2 direct table access ─────────────────────────────────────────────────
 const t1 = await as("authenticated", A, `SELECT * FROM public.instant_book_floors`);

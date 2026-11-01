@@ -55,7 +55,14 @@ const BASES = [
   "20261031184929_declutter_damage_notices_name_the_item.sql",
   "20261031200034_declutter_payout_tries_restart.sql",
   "20261031202929_helpr_my_tasks_ended_at.sql",
+  // Train 6 (lander 13): B49's setup fee out of the payout (train 5), applied first in timestamp order. 20261031231150
+  // keeps both: its payout CHECK takes off debt_cents AND setup_fee_cents, and its complete_handover is B49's body
+  // plus the collect change. 20261031232943 (after this file) is applied after it, below.
+  "20261031214749_seller_setup_fee_from_payout_restated.sql",
+  "20261031220617_helpr_setup_fee_from_payout_restated.sql",
+  "20261031225132_setup_fee_never_after_a_send.sql",
 ];
+const AFTER = ["20261031232943_setup_fee_admin_check_reads_roles.sql"];
 const skip = process.env.NEW_MIGRATION === "skip";
 if (skip) console.log("NEW_MIGRATION=skip: running WITHOUT the new migration (expect FAILs)");
 const { svc, run, one, me, refused, liveItemSql, USERS } = await buildHandoverWorld();
@@ -69,6 +76,16 @@ let fail = 0;
 const ok = (cond, label) => { if (cond) pass++; else fail++; console.log(`${cond ? "PASS" : "FAIL"}  ${label}`); };
 const short = (r) => JSON.stringify(r)?.slice(0, 260);
 
+// What B49's fee migrations read and the world does not build. Stubbed, and said so: identity_check_exempt reads a
+// proof-only switch row (the real one reads feature_switches, whose 'everyone' a trigger refuses outside the admin flip);
+// the send-tried columns 20261031225132 backfills from.
+const stub6 = await run(`CREATE TABLE public.proof_identity_check (on_for_all boolean NOT NULL);
+  INSERT INTO public.proof_identity_check VALUES (false);
+  CREATE OR REPLACE FUNCTION public.identity_check_exempt(p_user_id uuid) RETURNS boolean LANGUAGE sql STABLE AS
+    $$ SELECT NOT (SELECT on_for_all FROM public.proof_identity_check) $$;
+  ALTER TABLE public.declutter_payouts ADD COLUMN IF NOT EXISTS review_held_at timestamptz;
+  ALTER TABLE public.helpr_task_payouts ADD COLUMN IF NOT EXISTS review_held_at timestamptz;`);
+ok(!stub6?.error, `stubs for B49's fee migrations${stub6?.error ? `: ${stub6.error}` : ""}`);
 for (const f of BASES) {
   const r = await run(readFileSync(`${MIG_DIR}${f}`, "utf8"));
   ok(!r?.error, `base ${f} applies${r?.error ? `: ${r.error}` : ""}`);
@@ -82,6 +99,10 @@ if (!skip) {
     const r2 = await run(readFileSync(process.env.TALK_PATH ?? `${MIG_DIR}${TALK_FILE}`, "utf8"));
     ok(!r2?.error, `the chat's migration applies (run ${i + 1} of 3)${r2?.error ? `: ${r2.error}` : ""}`);
   }
+}
+for (const f of AFTER) {
+  const r = await run(readFileSync(`${MIG_DIR}${f}`, "utf8"));
+  ok(!r?.error, `after: ${f} applies${r?.error ? `: ${r.error}` : ""}`);
 }
 
 const I = (n) => `dddddddd-0000-0000-0000-${String(n).padStart(12, "0")}`;
@@ -240,6 +261,39 @@ ok(pR?.debt_cents === 200 && pR?.amount_cents === fullR - 200 && pR.amount_cents
   `a debt bigger than a raised payout: the take stops at $1 of order part (${short(pR)}, full ${fullR}, raised ${raisedR})`);
 ok(one(await svc(`SELECT remaining_cents FROM public.declutter_seller_fee_debts WHERE seller_id = '${HELPR}' AND remaining_cents > 0`)) === 4800, "  the rest waits for the next payout");
 await svc(`UPDATE public.declutter_seller_fee_debts SET remaining_cents = 0 WHERE seller_id = '${HELPR}'`);
+
+// Train 6 reconcile (lander 13): a Helpr payout with BOTH a card-fee debt (BUY-36) and the one-time setup fee (B49),
+// with identity_check ON. Before the reconcile, 20261031231150's CHECK named only debt_cents, so taking the setup fee
+// off a payout broke helpr_task_payouts_amount and the payout could not be sent.
+await svc(`UPDATE public.proof_identity_check SET on_for_all = true`);
+await svc(`UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = '${HELPR}'`);
+const S6 = await carried(13);
+await svc(`UPDATE public.helpr_tasks SET picked_up_at = now() - interval '25 hours' WHERE id = '${S6.task}'`);
+// One debt per refund (UNIQUE refund_id): the paid-off debt from the raised case above owes $1.50 again.
+const owe6 = await svc(`UPDATE public.declutter_seller_fee_debts d SET remaining_cents = 150 FROM public.declutter_refunds r
+  WHERE r.id = d.refund_id AND r.order_id = '${A.order}' AND d.seller_id = '${HELPR}' RETURNING d.id`);
+ok(owe6?.length === 1, `  (the Helpr owes $1.50: ${short(owe6)})`);
+await me(BUYER, `SELECT public.helpr_task_customer_confirm('${S6.task}')`);
+const full6 = one(await svc(`SELECT public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) FROM public.helpr_tasks t WHERE t.id = '${S6.task}'`));
+const p6 = (await svc(`SELECT id, amount_cents, debt_cents, setup_fee_cents, status FROM public.helpr_task_payouts WHERE task_id = '${S6.task}'`))?.[0];
+ok(p6?.debt_cents === 150 && p6?.amount_cents === full6 - 150 && p6?.setup_fee_cents === 0, `switch ON: the debt comes off at confirm (${short(p6)}, full ${full6})`);
+const take6 = await svc(`SELECT public.helpr_task_payout_take_setup_fee('${p6?.id}') AS a`);
+const q6 = (await svc(`SELECT amount_cents, debt_cents, setup_fee_cents, status FROM public.helpr_task_payouts WHERE task_id = '${S6.task}'`))?.[0];
+ok(!take6?.error && q6?.setup_fee_cents === 200 && q6?.debt_cents === 150 && q6?.amount_cents === full6 - 150 - 200,
+  `  and the setup fee comes off too: the CHECK takes both (${short(take6)} ${short(q6)})`);
+ok(one(await svc(`SELECT onboarding_fee_paid FROM public.profiles WHERE user_id = '${HELPR}'`)) === true, "  the fee is marked paid, once");
+ok(refused(await svc(`UPDATE public.helpr_task_payouts SET amount_cents = amount_cents - 100 WHERE task_id = '${S6.task}'`), /helpr_task_payouts_amount/),
+  "  a lower amount that names neither is still refused");
+await svc(`UPDATE public.declutter_seller_fee_debts SET remaining_cents = 0 WHERE seller_id = '${HELPR}'`);
+// complete_handover keeps B49's notice: a seller who has not paid the fee is told it comes out of the payout.
+await svc(`UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL WHERE user_id = '${SELLER}'`);
+const S7 = await carried(14);
+await svc(`UPDATE public.helpr_tasks SET picked_up_at = now() - interval '25 hours' WHERE id = '${S7.task}'`);
+await me(BUYER, `SELECT public.helpr_task_customer_confirm('${S7.task}')`);
+const sold7 = one(await svc(`SELECT message FROM public.notifications WHERE user_id = '${SELLER}' AND message LIKE '%account setup fee comes out of your payout%' ORDER BY created_at DESC LIMIT 1`));
+ok(/one-time \$2\.00 account setup fee comes out of your payout/.test(sold7 ?? ""), `  the seller's handover notice keeps B49's setup-fee line (${short(sold7)})`);
+await svc(`UPDATE public.profiles SET onboarding_fee_paid = true WHERE user_id IN ('${HELPR}', '${SELLER}')`);
+await svc(`UPDATE public.proof_identity_check SET on_for_all = false`);
 
 // 4. Helpr's fault, re-post; a buyer who hasn't chosen.
 const E = await carried(5);

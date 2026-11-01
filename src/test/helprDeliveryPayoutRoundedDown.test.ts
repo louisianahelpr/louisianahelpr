@@ -33,8 +33,9 @@
  */
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |               ELSE (p_cents / 100) * 100 END; |               ELSE p_cents END;
 // @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   v_amount := public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents); |   v_amount := t.pay_cents - t.fee_cents;
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents AND amount_cents >= 0); |     debt_cents >= 0 AND amount_cents = pay_cents - fee_cents - debt_cents AND amount_cents >= 0);
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents | amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents
+// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents - setup_fee_cents AND amount_cents >= 0); |     debt_cents >= 0 AND amount_cents = pay_cents - fee_cents - debt_cents - setup_fee_cents AND amount_cents >= 0);
+// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents - setup_fee_cents | amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents - setup_fee_cents
+// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents - setup_fee_cents AND | debt_cents >= 0 AND amount_cents = public.helpr_payout_round_down_cents(pay_cents - fee_cents) - debt_cents AND
 // @mutate supabase/migrations/20261031075157_helpr_open_deliveries_hide_backed_out.sql |          public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents), t.open_until, t.latest_pickup_at |          t.pay_cents - t.fee_cents, t.open_until, t.latest_pickup_at
 // @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | THEN public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) END, | THEN t.pay_cents - t.fee_cents END,
 // @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, to_char(v_amount / 100.0, 'FM999990.00')) END, | ELSE format('"%s" is delivered. $%s is on its way to your payout account.', t.title, (v_amount / 100)::text) END,
@@ -92,7 +93,9 @@ describe("Helpr delivery payouts are whole dollars, rounded down (owner 2026-10-
   it("the payout row's CHECK stores the rounded amount less the row's own debt (Q2165)", () => {
     const def = newestCheckBody("helpr_task_payouts_amount");
     expect(def, "no live CHECK helpr_task_payouts_amount").not.toBeNull();
-    expect(flat(def!.body)).toBe(`debt_cents >= 0 AND amount_cents = public.${TWIN}(pay_cents - fee_cents) - debt_cents AND amount_cents >= 0`);
+    // Owner 2026-10-30 (B49's 20261031220617): the one-time setup fee, in its own column, lowers it; BUY-36 (20261031231150):
+    // so does a card fee the Helpr owes (debt_cents). Nothing else may.
+    expect(flat(def!.body)).toBe(`debt_cents >= 0 AND amount_cents = public.${TWIN}(pay_cents - fee_cents) - debt_cents - setup_fee_cents AND amount_cents >= 0`);
   });
 
   it("helpr_task_confirm rounds first, takes the debt in exact cents (capped), and the notice says the cents (Q2165)", () => {

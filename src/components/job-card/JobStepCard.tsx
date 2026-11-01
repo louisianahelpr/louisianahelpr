@@ -476,6 +476,7 @@ export function JobStepCard({
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}
         {escape}
         {dialogs}
+        {menu?.askHost && ask ? createPortal(ask, menu.askHost) : null}
         {menu?.leadHost && menuLead ? createPortal(<MenuAction chip={menuLead} lead className="w-full" />, menu.leadHost) : null}
         {menu?.secondHost && menuCount === 1 ? createPortal(<MenuAction chip={menuChips[0]} className="w-full" />, menu.secondHost) : null}
         {menu?.listHost && menuCount >= 1

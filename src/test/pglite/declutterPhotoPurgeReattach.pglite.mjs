@@ -122,6 +122,28 @@ r = await recheck([path("b")]);
 check("a claimed path a photo row names (attached around the trigger) is not returned and its entry is dropped",
   r.ok && r.rows.length === 0 && !(await queued()).includes(path("b")), JSON.stringify(r));
 
+// 4b. A stalled run: its claim is past the 15-minute window, so the re-check refuses to let it remove the path.
+await attach(path("d"), 3);
+await detach(path("d"));
+r = await due();
+check("a fresh detach is claimed", r.ok && r.rows.some((x) => x.storage_path === path("d")), JSON.stringify(r));
+await db.exec(`update public.declutter_photo_purge_queue set claimed_at = now() - interval '16 minutes' where storage_path = '${path("d")}'`);
+r = await recheck([path("d")]);
+check("a claim older than the in-flight window is not returned (a stalled run removes nothing)", r.ok && r.rows.length === 0, JSON.stringify(r));
+
+// 4c. Lock ordering (one PGlite session cannot race two transactions, so this reads the LIVE body): the trigger
+// locks the path's entry with NO claimed_at filter in the locking statement, then decides. A filter there would
+// read an in-flight claim's old NULL, take no lock, and let an attach through on a path being removed.
+if (!SKIP) {
+  const def = (await db.query(`select pg_get_functiondef('public.declutter_item_photo_unqueue_purge()'::regprocedure) d`)).rows[0].d;
+  const code = def.split("\n").filter((l) => !/^\s*--/.test(l)).join("\n");
+  const lock = code.match(/SELECT[^;]*?FROM public\.declutter_photo_purge_queue q[^;]*?FOR UPDATE\s*;/s)?.[0] ?? "";
+  check("the trigger locks the path's queue entry FOR UPDATE", lock !== "", code.slice(0, 200));
+  check("…with no claimed_at filter in the locking statement's WHERE",
+    lock !== "" && !/WHERE[^;]*claimed_at/s.test(lock), lock);
+  check("…and decides on claimed_at only after the lock", code.indexOf("IF v_found AND v_claimed_at IS NOT NULL") > code.indexOf(lock), "");
+} else check("lock ordering (skipped run)", false);
+
 // 5. Service role only.
 r = await recheck([path("b")], "authenticated");
 check("a member cannot call the re-check", !r.ok && /permission denied/.test(r.err), JSON.stringify(r));

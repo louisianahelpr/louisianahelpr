@@ -6,6 +6,8 @@ To see the core flow: browse open jobs on the home screen, open one and apply, o
 
 Payments for jobs (a real-world service performed in person by another member) are processed by Stripe and are live. You do not need to complete a payment to review the app; please do not enter a real card. This version sells no digital goods and contains no in-app purchases or memberships.
 
+Declutter, in the section switcher, lets members sell their own used household items to neighbors. The buyer pays through Stripe for a physical item that is handed over in person or brought by another member. Gift cards are bought through Stripe and are spent when paying for a job, an in-person service; they buy nothing digital.
+
 Location is optional. While the app is open it is used to show nearby jobs. Background location (UIBackgroundModes: location) is used for one feature only: after a Helpr has been hired for a job and taps "I'm On My Way", the app shares their position with the job's poster, including while the screen is off, so the poster can see them approaching. Sharing stops automatically as soon as the Helpr marks themselves arrived. The app never requests Always access and never uses location in the background at any other time.
 
 Push notifications are optional and are requested with an explanation first.

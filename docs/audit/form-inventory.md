@@ -230,7 +230,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/CancellationDialog.tsx` | textarea×1 |  |  | cancel-reason |
+| `src/components/CancellationDialog.tsx` | textarea×1 |  |  | cancel-nobody-left · cancel-reason |
 | `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · apply-message-help · save-default-pitch |
 | `src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx` | input×2, date/calendar×2 | date, time |  | apply-time-question · apply-time-yes · apply-time-suggest · apply-time-date · apply-time-time |
 | `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |

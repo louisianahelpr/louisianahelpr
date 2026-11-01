@@ -183,6 +183,10 @@ vi.mock("./usePosterPageFlows", () => ({
     crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, panel: <div data-testid="card-panel" />, dialogs: null,
   }),
 }));
+// JA-30: the case dialog the page opens (the cards' own DisputeTimelineDialog), recorded rather than reading Supabase.
+vi.mock("@/components/DisputeTimelineDialog", () => ({
+  DisputeTimelineDialog: (p: { jobId: string; open: boolean }) => (p.open ? <div data-testid="dispute-case" data-job={p.jobId} /> : null),
+}));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
 
 import JobPage from "./JobPage";
@@ -489,7 +493,9 @@ describe("job page, poster side (boards 15, 168)", () => {
     renderPage();
     // The one tracker (owner 2026-10-21): off the path it is the line alone, no step bar.
     expect(screen.getByText(/This job was cancelled/)).toBeTruthy();
-    expect(screen.getByText("Refunded to your card.")).toBeTruthy();
+    // The refund is said ONCE (lead 11-01, B107): on the tracker line, not again under the price.
+    expect(screen.getByText(/Your payment was refunded/)).toBeTruthy();
+    expect(screen.queryByText("Refunded to your card.")).toBeNull();
     // No misleading progress colour (lead review 2026-10-22): an all-grey bar that says Cancelled.
     expect(screen.getByLabelText(/^Job progress: Cancelled/).getAttribute("data-tone")).toBe("cancelled");
   });
@@ -1531,5 +1537,54 @@ describe("job page: the booked job's clock, as its card shows it (JA-34)", () =>
     state.party = true;
     renderPage();
     expect(document.querySelector("[data-job-steps] [data-countdown-row]")).toBeNull();
+  });
+});
+
+/**
+ * JA-30 (Jobs audit 11-01): a disputed job's page says when they hear back AND links to the case.
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && (job.status === "disputed" | {false && party && (isPoster \|\| isHired) && (job.status === "disputed"
+ */
+describe("job page, a disputed job (JA-30)", () => {
+  it("both parties get 'See the case', which opens the dispute's own case view", async () => {
+    for (const viewer of [ME, POSTER]) {
+      state.job = row({ customer_id: POSTER, helper_id: ME, status: "disputed", payment_status: "escrow", has_active_dispute: true });
+      state.party = true;
+      renderPage(viewer);
+      fireEvent.click(screen.getByRole("button", { name: "See the case" }));
+      expect((await screen.findByTestId("dispute-case")).getAttribute("data-job")).toBe(state.job.id);
+      cleanup();
+    }
+  });
+
+  it("not on a job with no dispute, nor for someone outside the job", () => {
+    state.job = row({ customer_id: POSTER, helper_id: ME, status: "in_progress", payment_status: "escrow" });
+    state.party = true;
+    renderPage();
+    expect(screen.queryByRole("button", { name: "See the case" })).toBeNull();
+    cleanup();
+    state.job = row({ customer_id: POSTER, helper_id: "someone-else", status: "disputed", has_active_dispute: true });
+    state.party = false;
+    renderPage();
+    expect(screen.queryByRole("button", { name: "See the case" })).toBeNull();
+  });
+});
+
+/**
+ * Lead 11-01 (B107): at 1440 a stage with nothing in the main column (Done, Cancelled: no photos, crew or fix) left the
+ * left column EMPTY beside the side card. The main column hides when empty, and the card then takes its place.
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |  lg:[[data-job-main]:empty+&]:col-start-1"> | ">
+ */
+describe("job page, no dead column at 1440", () => {
+  it("a Done job with no photos: the main column is empty (hidden) and the card moves into it", () => {
+    state.job = row({ customer_id: ME, helper_id: POSTER, status: "completed", payment_status: "released" });
+    state.party = true;
+    renderPage();
+    const main = document.querySelector("[data-job-main]")!;
+    const side = document.querySelector("[data-job-side]")!;
+    expect(main.childNodes.length).toBe(0);
+    expect(main.className.split(/\s+/)).toContain("empty:hidden");
+    // The card is the main column's next sibling, and moves to column 1 when it is empty (CSS: :empty + aside).
+    expect(main.nextElementSibling).toBe(side);
+    expect(side.className.split(/\s+/)).toContain("lg:[[data-job-main]:empty+&]:col-start-1");
   });
 });

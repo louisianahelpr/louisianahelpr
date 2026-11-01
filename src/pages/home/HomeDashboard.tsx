@@ -10,6 +10,8 @@ import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHomeSummary, SECTION_INVITE } from "./homeDashboard/useHomeSummary";
+import { todoTarget } from "./homeDashboard/needsYouTodos";
+import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
 import { useHomeMoney } from "./homeDashboard/homeMoney";
 import { HomeMoneyTiles } from "./homeDashboard/HomeMoneyTiles";
@@ -219,7 +221,7 @@ function HomeDashboardScreen() {
                           {todoOpen ? "Hide" : `See all (${todoCount})`}
                         </button>
                       ) : <span />}
-                      <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(next.to)} className="px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
+                      <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(todoTarget(next, requestHelperStep))} className="px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
                         {next.action}
                       </Button>
                     </div>
@@ -243,7 +245,7 @@ function HomeDashboardScreen() {
               <div data-testid="todo-list" id="home-todo-list">
                 <GroupSection title="To do" count={todoCount}>
                   {summary.todos.map((t, i, arr) => (
-                    <GroupRow key={t.id} title={t.title} meta={t.meta} onClick={() => navigate(t.to)} last={i === arr.length - 1} />
+                    <GroupRow key={t.id} title={t.title} meta={t.meta} onClick={() => navigate(todoTarget(t, requestHelperStep))} last={i === arr.length - 1} />
                   ))}
                 </GroupSection>
               </div>

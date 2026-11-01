@@ -244,7 +244,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {isPoster ? (
               <PosterMoney job={job} total={total} loading={applicants.isLoading} />
             ) : (
-              <HelprMoney job={job} />
+              <HelprMoney job={job} noShow={myApplication.data?.closed_reason === "no_show"} />
             )}
           </section>
 

@@ -5250,6 +5250,37 @@ export type Database = {
         Relationships: [
         ]
       }
+      helpr_task_live_positions: {
+        Row: {
+          dest_lat: number
+          dest_lng: number
+          eta_minutes: number
+          lat: number
+          lng: number
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          dest_lat: number
+          dest_lng: number
+          eta_minutes: number
+          lat: number
+          lng: number
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          dest_lat?: number
+          dest_lng?: number
+          eta_minutes?: number
+          lat?: number
+          lng?: number
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+        ]
+      }
       helpr_tasks: {
         Row: {
           accepted_at: string | null
@@ -17725,6 +17756,8 @@ export type Database = {
       }
       helpr_task_vehicle_fits: { Args: { p_size: string; p_user: string }; Returns: boolean }
       helpr_task_view: { Args: { p_task_id: string }; Returns: Json }
+      helpr_share_position: { Args: { p_lat: number; p_lng: number }; Returns: number }
+      helpr_stop_sharing: { Args: never; Returns: number }
       helpr_tasks_open_count: {
         Args: never
         Returns: {

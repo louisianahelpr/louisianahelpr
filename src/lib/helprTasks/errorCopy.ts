@@ -38,6 +38,15 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_found: DC.task_not_found,
     under_18: DC.under_18,
   },
+  // 20261101184555: the delivery live map (the Helpr's position, shared while driving).
+  helpr_share_position: {
+    account_restricted: DC.account_restricted,
+    bad_position: "We couldn't read your location. Try again.",
+    not_authenticated: DC.not_authenticated,
+  },
+  helpr_stop_sharing: {
+    not_authenticated: DC.not_authenticated,
+  },
   helpr_my_route: {
     feature_disabled: DC.feature_disabled,
     invalid_location: DC.invalid_location,

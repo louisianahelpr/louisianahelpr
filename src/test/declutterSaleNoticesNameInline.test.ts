@@ -13,9 +13,9 @@
  * helpr_task_tip_start takes a tip).
  */
 // @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql | format('The Helpr left %s at the drop-off address. Tap "I got it", or report a problem within 24 hours.',\n             public.declutter_order_items_named(o.id)), | 'The Helpr left your item at the drop-off address. Tap "I got it", or report a problem within 24 hours.',
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | THEN ' You can add a tip for your Helpr in Buying.' ELSE '' END | THEN '' ELSE '' END
+// @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql | THEN ' You can add a tip for your Helpr in Buying.' ELSE '' END | THEN '' ELSE '' END
 // @mutate supabase/migrations/20261101051951_tips_wait_for_helpr_id.sql |        AND NOT public.are_users_blocked(o.buyer_id, t.helpr_id)\n |
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     format('The handover of %s is done. ', public.declutter_order_items_named(o.id)) \|\|\n |
+// @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |     format('The handover of %s is done. ', public.declutter_order_items_named(o.id)) \|\| v_split \|\|\n |
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

@@ -242,6 +242,9 @@ function Where() {
   return <p data-testid="where">{l.pathname + l.search}</p>;
 }
 
+/** A row button's full words: a pair shows the short label (pairLabel.ts) and keeps the full one as its name. */
+const fullName = (b: HTMLElement) => b.getAttribute("aria-label") ?? b.textContent ?? "";
+
 function renderPage(userId = ME) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -666,14 +669,14 @@ describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => 
     const { unmount } = renderPage();
     const actions = document.querySelector('[data-job-row="poster"]') as HTMLElement;
     await within(actions).findByRole("button", { name: "Message Rhonda" });
-    expect(within(actions).getAllByRole("button").map((b) => b.textContent)).toEqual(["Message Rhonda"]);
+    expect(within(actions).getAllByRole("button").map(fullName)).toEqual(["Message Rhonda"]);
     unmount();
     state.moreCount = 3;
     renderPage();
     const row2 = document.querySelector('[data-job-row="poster"]') as HTMLElement;
     await within(row2).findByRole("button", { name: "Message Rhonda" });
     // The green one on the RIGHT (owner 11-01 12:00 PM, app-wide).
-    expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["More options", "Message Rhonda"]);
+    expect(within(row2).getAllByRole("button").map(fullName)).toEqual(["More options", "Message Rhonda"]);
   });
 });
 
@@ -1135,7 +1138,7 @@ describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () =
     // ONE row (owner 2026-11-01): the confirm leads on the right; Message, Change date or time and Cancel job are behind
     // More options on its left (the open sheet hides the page from roles).
     const row2 = document.querySelector('[data-job-row="poster"]') as HTMLElement;
-    expect(within(row2).getAllByRole("button", { hidden: true }).map((b) => b.textContent)).toEqual(["More options", "Confirm it's still on"]);
+    expect(within(row2).getAllByRole("button", { hidden: true }).map(fullName)).toEqual(["More options", "Confirm it's still on"]);
   });
 
 });
@@ -1144,12 +1147,12 @@ describe("job page, one screen in the owner's order (LEAD-JOBPAGE-LAYOUT)", () =
 function pageActions(): string[] {
   const rowEl = document.querySelector("[data-job-row]");
   if (!rowEl) return [];
-  const inRow = within(rowEl as HTMLElement).queryAllByRole("button").map((b) => b.textContent ?? "");
+  const inRow = within(rowEl as HTMLElement).queryAllByRole("button").map(fullName);
   const more = within(rowEl as HTMLElement).queryByRole("button", { name: "More options" });
   if (!more) return inRow;
   fireEvent.click(more);
   const sheet = document.querySelector("[data-row-options]") as HTMLElement;
-  const listed = within(sheet).queryAllByRole("button").map((b) => b.textContent ?? "").filter((t) => t && t !== "Close");
+  const listed = within(sheet).queryAllByRole("button").map(fullName).filter((t) => t && t !== "Close");
   fireEvent.click(within(sheet).getByRole("button", { name: "Close" }));
   return [...inRow.filter((t) => t !== "More options"), ...listed];
 }
@@ -1178,13 +1181,13 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     const row2 = steps.querySelector('[data-job-row="poster"]') as HTMLElement;
     expect(await within(row2).findByRole("button", { name: "Message Rhonda" })).toBeTruthy();
     // The green one on the RIGHT (owner 11-01 12:00 PM, app-wide).
-    expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["More options", "Message Rhonda"]);
+    expect(within(row2).getAllByRole("button").map(fullName)).toEqual(["More options", "Message Rhonda"]);
     // Never a stack of buttons: nothing else under the row.
     expect(screen.queryByRole("button", { name: "Cancel job" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
     fireEvent.click(within(row2).getByRole("button", { name: "More options" }));
     const sheet = await screen.findByRole("dialog", { name: "More options" });
-    expect(within(sheet).getAllByRole("button").map((b) => b.textContent).filter((t) => t !== "Close")).toEqual(["Change date or time", "Cancel job"]);
+    expect(within(sheet).getAllByRole("button").map(fullName).filter((t) => t !== "Close")).toEqual(["Change date or time", "Cancel job"]);
     // jsdom has no scrollTo (the sheet's date strip scrolls itself into view).
     Element.prototype.scrollTo ??= () => {};
     fireEvent.click(within(sheet).getByRole("button", { name: "Change date or time" }));
@@ -1365,7 +1368,7 @@ describe("one row of buttons at every stage (B93)", () => {
   const live = { customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
     helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
     helper_on_the_way_at: "2026-10-28T13:51:00Z" } as const;
-  const rowLabels = () => within(document.querySelector("[data-job-row]") as HTMLElement).getAllByRole("button").map((b) => b.textContent);
+  const rowLabels = () => within(document.querySelector("[data-job-row]") as HTMLElement).getAllByRole("button").map(fullName);
 
   it("arrived (JA-3, JA-7, JA-8): never three in a row; the confirm leads on the right, its options one tap away, no duplicate", async () => {
     state.tracking = "arrived";
@@ -1404,7 +1407,7 @@ describe("one row of buttons at every stage (B93)", () => {
     const rowEl = document.querySelector("[data-job-row]") as HTMLElement;
     // The lead slot is the row's right half; Message + the card's one other action make two, so More options.
     expect(rowEl.lastElementChild?.hasAttribute("data-card-lead")).toBe(true);
-    expect(within(rowEl).getAllByRole("button").map((b) => b.textContent)).toEqual(["More options"]);
+    expect(within(rowEl).getAllByRole("button").map(fullName)).toEqual(["More options"]);
   });
 
   it("the hired Helpr's finished job (JA-22): Leave a review leads; Message and Open in working one tap away", async () => {
@@ -1462,7 +1465,7 @@ describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
     const rowEl = card!.querySelector('[data-job-row="poster"]');
     expect(follows(card!.querySelector('[aria-label="Your Helpr"]'), rowEl)).toBe(true);
     // Green on the RIGHT: [More options | Message Rhonda].
-    await waitFor(() => expect(within(rowEl as HTMLElement).getAllByRole("button").map((b) => b.textContent)).toEqual(["More options", "Message Rhonda"]));
+    await waitFor(() => expect(within(rowEl as HTMLElement).getAllByRole("button").map(fullName)).toEqual(["More options", "Message Rhonda"]));
   });
 
   it("after photos in, not marked done: the poster reads who added them and what it waits on (job 7b1da54b)", async () => {

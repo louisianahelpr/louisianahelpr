@@ -43,7 +43,7 @@ describe("every place shows, each with its own days and times", () => {
     expect(rows.map((r) => r.textContent)).toEqual(["Home · New IberiaEvery day 7:00 AM–9:00 PM", "Camp · JeaneretteSat 9:00 AM–12:00 PM"]);
   });
   it("the item page shows the city only, never the place's own label (LEAD-ITEM-PAGE-LAYOUT, owner 2026-10-31)", () => {
-    // @mutate src/components/declutter/SellPorchPlaces.tsx | {cityOnly ? p.area : [p.label, p.area].filter(Boolean).join(" · ")} | {[p.label, p.area].filter(Boolean).join(" · ")}
+    // @mutate src/components/declutter/SellPorchPlaces.tsx | {cityOnly \|\| !p.label ? p.area : [p.label, p.area].filter(Boolean).join(" · ")} | {[p.label, p.area].filter(Boolean).join(" · ")}
     // @mutate src/components/declutter/SellPorchPlaces.tsx |       <PickupPlacesHoursList places={read.data} cityOnly /> |       <PickupPlacesHoursList places={read.data} />
     render(<PickupPlacesHoursList cityOnly places={[
       { label: "Home", area: "New Iberia", weekdays: [0, 1, 2, 3, 4, 5, 6], windows: EVERY_DAY },

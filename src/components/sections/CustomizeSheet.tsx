@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
@@ -49,12 +50,12 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
                   <span className="block text-ds-13 text-muted-foreground truncate">{SECTION_INVITE[key]}</span>
                 </span>
                 <span className="flex items-center">
-                  <button type="button" aria-label={`Move ${s.label} up`} disabled={i === 0} onClick={() => move(key, -1)} className="w-8 h-9 flex items-center justify-center rounded-full text-muted-foreground disabled:invisible">
+                  <Button type="button" variant="ghost" size="iconCompact" aria-label={`Move ${s.label} up`} disabled={i === 0} onClick={() => move(key, -1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
                     <ChevronUp className="w-4 h-4" aria-hidden />
-                  </button>
-                  <button type="button" aria-label={`Move ${s.label} down`} disabled={i === prefs.order.length - 1} onClick={() => move(key, 1)} className="w-8 h-9 flex items-center justify-center rounded-full text-muted-foreground disabled:invisible">
+                  </Button>
+                  <Button type="button" variant="ghost" size="iconCompact" aria-label={`Move ${s.label} down`} disabled={i === prefs.order.length - 1} onClick={() => move(key, 1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
                     <ChevronDown className="w-4 h-4" aria-hidden />
-                  </button>
+                  </Button>
                 </span>
                 {on ? (
                   <Switch

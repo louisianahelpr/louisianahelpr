@@ -357,7 +357,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time", by); |       if (at === 0) return you("Book a pickup time");
   // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time", by) |       return at === 0 ? you("Pick a pickup time", null)
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a time to meet at the safe spot", by); |       if (at === 0) return you("Book a time to meet at the safe spot");
-  // @mutate src/lib/declutter/orderPickupTimes.ts |   return { chosen, by: !booked && t.book_by ? bookByWords(t.book_by) : null }; |   return { chosen, by: t.book_by ? bookByWords(t.book_by) : null };
+  // @mutate src/lib/declutter/orderPickupTimes.ts |   return { chosen, by: !booked && t.book_by ? bookByWords(t.book_by) : null }; |   return { chosen, by: null };
   it("book-by deadline: an unbooked pickup says 'Next: book a pickup time · by <book_by>'; booked ones never do", async () => {
     const unbooked = CASES.filter((c) => c.id === "home0" || c.id === "porch0" || c.id === "meet0");
     expect(unbooked.length).toBe(3);

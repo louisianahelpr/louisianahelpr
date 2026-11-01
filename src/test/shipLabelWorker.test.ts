@@ -16,6 +16,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     shipHeld = pi.status === "requires_capture"; |     shipHeld = false;
  * @mutate supabase/functions/_shared/shipLabelWorker.ts |     const closed = await p.closeReleased(s.declutter_order_id); |     const closed = "skipped";
  * @mutate supabase/functions/_shared/shipLabelWorker.ts |     const captured = await p.capture(pi, s.declutter_order_id, amount); |     const captured = await p.capture(pi, s.declutter_order_id, 99999);
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     const closed = await closeReleasedHoldRefund(supabase, paymentIntentId); |     const closed = "left";
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |       await closeReleasedHoldRefund(supabase, paymentIntentId);\n      logStep("Declutter ship hold already released" |       logStep("Declutter ship hold already released"
  * @mutate supabase/functions/_shared/shipLabelRun.ts | testStripe.paymentIntents.capture(pi, { amount_to_capture: amountCents }, | testStripe.paymentIntents.capture(pi, {},
  */
 import { readFileSync } from "node:fs";
@@ -126,5 +128,10 @@ describe("the shipped order's page is a test-mode card hold", () => {
     expect(hook).toContain(`shipHeld = pi.status === "requires_capture";`);
     expect(hook).toContain("await stripe.paymentIntents.cancel(paymentIntentId)");
     expect((hook.match(/shipHeld/g) ?? []).length).toBeGreaterThan(4);
+  });
+  it("a released hold's refund row is closed by the webhook, on first delivery and on a redelivery (20261101221604)", () => {
+    expect(hook).toContain(`supabase.rpc("declutter_ship_hold_refund_released", { p_payment_intent_id: paymentIntentId })`);
+    // Both branches: after the cancel, and the redelivery that finds the hold already cancelled.
+    expect((hook.match(/await closeReleasedHoldRefund\(supabase, paymentIntentId\)/g) ?? []).length).toBe(2);
   });
 });

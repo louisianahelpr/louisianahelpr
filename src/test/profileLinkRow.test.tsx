@@ -15,7 +15,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const rpc = vi.fn();
-const share = vi.fn(async () => "shared");
+const share = vi.fn(async (_c: unknown) => "shared");
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 vi.mock("@/lib/nativeShare", () => ({ shareNative: (c: unknown) => share(c) }));
 

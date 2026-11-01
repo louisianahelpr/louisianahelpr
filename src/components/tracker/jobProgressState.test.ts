@@ -193,6 +193,18 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     const j: ProgressJob = { ...base, status: "in_progress", helper_id: ME, helper_confirmed_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "2037-10-21T14:30:00Z" };
     expect(jobProgress(j, { viewer: "helpr", otherFirst: "Dana", threadHelprId: ME, now: NOW }).next).toMatch(/^You marked it done\. Dana has until \w{3} \d{1,2}:\d{2} [AP]M to check it$/);
   });
+  // @mutate src/components/tracker/jobProgressState.ts |   if (mins <= LATE_GRACE_MIN) return null; |   return null;
+  // @mutate src/components/tracker/jobProgressState.ts |     next: posterLate \|\| ((sameStep | next: false \|\| ((sameStep
+  it("JA-12 / JA-13: past the start the poster reads that the Helpr is late, set out or not", () => {
+    const j: ProgressJob = { ...base, status: "accepted", helper_id: "h", helper_confirmed_at: "t", helper_dayof_confirmed_at: "t", poster_confirmed_at: "t",
+      payment_status: "escrow", date_needed: "2037-10-21", start_time: "08:45" };
+    expect(jobProgress(j, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).toBe("Yusef is 1 h 15 min late and hasn't set out");
+    // Moved to in_progress by the start sweep: the card's own "hasn't checked in", never the calm line.
+    expect(jobProgress({ ...j, status: "in_progress", start_time: "09:35" }, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).not.toMatch(/taps On my way/);
+    expect(jobProgress({ ...j, helper_on_the_way_at: "2037-10-21T13:40:00Z" }, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).toBe("Yusef is on the way, 1 h 15 min late");
+    // Inside the grace, or before the start: the calm line.
+    expect(jobProgress({ ...j, start_time: "09:55" }, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).not.toMatch(/late/);
+  });
   it("the job page reads the columns the expired rule needs", () => {
     const src = readFileSync(resolve(__dirname, "../../pages/jobs/jobPage/useJobPage.ts"), "utf8");
     const party = src.match(/const PARTY_COLUMNS =\s*"([^"]+)"/)?.[1] ?? "";

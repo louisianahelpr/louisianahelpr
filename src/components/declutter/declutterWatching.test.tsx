@@ -24,7 +24,8 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchWatchedItems: async () => state.items,
 }));
 
-import { WatchingList, goneLine, toastWatching, watchedLine } from "./DeclutterWatching";
+import { WatchingList, goneLine, watchedLine } from "./DeclutterWatching";
+import { toastWatching } from "./declutterLightActions";
 
 const item = (id: string, title: string, status: string, cents: number) => ({ id, title, status, current_price_cents: cents });
 

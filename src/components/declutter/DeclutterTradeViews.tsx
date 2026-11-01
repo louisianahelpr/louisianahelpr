@@ -53,7 +53,7 @@ import { timeLeft } from "@/lib/declutter/timeLeft";
 import { PaySettlingNotice, rememberPaying, usePaySettling } from "./DeclutterPaySettling";
 import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { RemoveFromCart } from "./DeclutterCartRemove";
-import { invalidateTrades } from "./DeclutterOffersSection";
+import { invalidateTrades } from "./declutterLightActions";
 import { cartSectionWords, CheckoutCardHead } from "./DeclutterCartWords";
 import { firstPhotos } from "./DeclutterItemCard";
 

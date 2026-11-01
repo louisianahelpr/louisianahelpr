@@ -4,41 +4,13 @@
  * (declutter_reopen_listing, 20261028180400; its words and prices kept, its photos were deleted at take-down) and
  * opens the sell flow on it, where every listing rule runs again at publish.
  */
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
-import { reopenListing, type CartLine, type DeclutterItem } from "@/lib/declutter/api";
-import { declutterErrorMessage } from "@/lib/declutter/errors";
+import type { CartLine, DeclutterItem } from "@/lib/declutter/api";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { SectionHeading } from "./DeclutterTabParts";
 import { EndedSaleRows } from "./DeclutterEndedSales";
-
-/** Relist a taken-down listing: back to a draft, then the sell flow on it (photos first: they were deleted). */
-function useReopenListing() {
-  const qc = useQueryClient();
-  const navigate = useNavigate();
-  return useMutation({
-    mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId),
-    onSuccess: (itemId) => {
-      toast("Back in your listings. Add photos and put it up again.");
-      void qc.invalidateQueries({ queryKey: ["declutter"] });
-      navigate(`/declutter/sell?item=${itemId}`);
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-}
-
-export function ReopenListingButton({ itemId }: { itemId: string }) {
-  const reopen = useReopenListing();
-  return (
-    <Button type="button" size="sm" disabled={reopen.isPending} onClick={() => reopen.mutate(itemId)}>
-      {reopen.isPending ? "Relisting…" : "Relist"}
-    </Button>
-  );
-}
+import { ReopenListingButton } from "./DeclutterReopenListing";
 
 /**
  * The Selling tab's history: every listing taken down (withdrawn, with Relist) or marked sold elsewhere (A2-5,

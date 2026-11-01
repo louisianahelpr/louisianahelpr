@@ -4993,7 +4993,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 139,
+      "line": 143,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5320,7 +5320,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 88,
+      "line": 86,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5330,7 +5330,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 89,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5340,7 +5340,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 97,
+      "line": 95,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5390,7 +5390,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 106,
+      "line": 104,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5729,6 +5729,26 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterReopenListing.tsx",
+      "line": 19,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Back in your listings. Add photos and put it up again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterReopenListing.tsx",
+      "line": 23,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterReviewForm.tsx",
       "line": 96,
       "kind": "toast",
@@ -5837,26 +5857,6 @@
     {
       "file": "src/components/declutter/DeclutterStillAvailable.tsx",
       "line": 40,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterTakenDown.tsx",
-      "line": 26,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Back in your listings. Add photos and put it up again."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterTakenDown.tsx",
-      "line": 30,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6161,16 +6161,6 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterWatching.tsx",
-      "line": 30,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Saved. Find it under Buying, in Watching."
       },
       "renders": true
     },
@@ -6482,7 +6472,7 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 100,
+      "line": 101,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6492,7 +6482,7 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 153,
+      "line": 154,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6737,6 +6727,16 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/declutterLightActions.ts",
+      "line": 11,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Saved. Find it under Buying, in Watching."
       },
       "renders": true
     },

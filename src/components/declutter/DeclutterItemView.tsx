@@ -7,7 +7,7 @@
  * DeclutterQuestions; messages open after checkout). Share and
  * the watch heart (row 46) sit on the title row. Two columns from lg.
  */
-import { useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
@@ -53,13 +53,17 @@ import { DeclutterGuestJoin, DeclutterGuestSeller } from "./DeclutterGuest";
 import { ItemHandoverTimes, itemTimesPlan } from "./ItemHandoverTimes";
 import { fetchItemPickupPlaces } from "@/lib/declutter/porchPlaces";
 import { ItemPickupWays } from "./ItemPickupWays";
-import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop, sellerStateStopsDrops } from "@/lib/declutter/priceDrop";
 import { shareListing } from "./DeclutterShareCard";
-import { ReopenListingButton } from "./DeclutterTakenDown";
+import { ReopenListingButton } from "./DeclutterReopenListing";
 import { DeclutterReportListing } from "./DeclutterReportListing";
-import { toastWatching } from "./DeclutterWatching";
+import { toastWatching } from "./declutterLightActions";
+import { pagePhoto } from "@/lib/declutter/pagePhoto";
+
+// B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
+// loads when it shows, not on every buyer's and guest's cold item page.
+const SellerListingPanel = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.SellerListingPanel })));
 
 /** When the exact pickup address is shared, said to whoever is reading (audit DC-7: the seller is not the one paying). */
 function addressNote(free: boolean, isSeller: boolean): string {
@@ -175,6 +179,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />}
   </>);
   const urls = (photos.data ?? []).map((p) => photoPublicUrl(p.storage_path));
+  // B67 (DECL-ITEM-SPEED): the frame shows a resized WebP (462 -> 124 KB measured on a live photo), the viewer the original.
+  const display = urls.map(pagePhoto);
 
   return (
     <AppPage
@@ -211,7 +217,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
     >
       <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
         <div className="lg:sticky lg:top-0">
-          <DeclutterGallery urls={urls} category={it.category} title={it.title} />
+          <DeclutterGallery urls={urls} display={display} category={it.category} title={it.title} />
         </div>
 
         <div className="mt-4 lg:mt-0 min-w-0 space-y-5">
@@ -257,7 +263,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
           {/* The Free change (Q2487): the giver sees who asked and picks one. */}
           {isSeller && it.status === "live" && free && <FreeRequestsForGiver item={it} />}
-          {isSeller && (it.status === "live" || it.status === "paused") && <SellerListingPanel item={it} coverUrl={urls[0] ?? null} />}
+          {isSeller && (it.status === "live" || it.status === "paused") && <Suspense fallback={null}><SellerListingPanel item={it} coverUrl={urls[0] ?? null} /></Suspense>}
           {isSeller && it.status !== "live" && it.status !== "paused" && (
             <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it)}`}>
               {STATUS_HELP[it.status] ?? null}

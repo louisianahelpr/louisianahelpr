@@ -10,7 +10,7 @@
  * evidence, where an empty box would hide that the photo is missing.
  *
  * @mutate src/components/declutter/SellingNowRow.tsx | <FallbackImg src={photoPublicUrl(cover.get(it.id)!)} | <img src={photoPublicUrl(cover.get(it.id)!)}
- * @mutate src/components/declutter/FallbackImg.tsx |   if (failedSrc === src) return <>{fallback}</>; |
+ * @mutate src/components/declutter/FallbackImg.tsx |   if (stage === "gone" \|\| (stage === "retry" && !retrySrc)) return <>{fallback}</>; |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

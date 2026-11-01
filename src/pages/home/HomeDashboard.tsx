@@ -269,7 +269,7 @@ function HomeDashboardScreen() {
             ) : (
             <GroupSection title="Coming up">
               {summary.upcoming.length === 0 ? (
-                <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">Nothing booked yet.</p>
+                <p data-testid="coming-up-empty" className="px-4 py-4 text-ds-14 text-muted-foreground">{summary.hasBookedJob ? "Nothing else booked." : "Nothing booked yet."}</p>
               ) : (
                 summary.upcoming.map((c, i) => {
                   const d = sectionDef(c.section);

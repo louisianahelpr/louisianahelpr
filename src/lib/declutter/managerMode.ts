@@ -49,7 +49,7 @@ export interface ManagerGrant {
 /** The checklist's words, in the order the offer screen shows them. */
 export const MANAGER_PART_LABELS: Record<ManagerPart, string> = {
   list: "Listing (create, edit, post)",
-  prices: "Prices and relisting",
+  prices: "Prices",
   offers: "Offers",
   messages: "Messages",
   pickups: "Pickups",
@@ -98,6 +98,20 @@ export async function answerManageOffer(grantId: string, accept: boolean): Promi
     (e) => rpcErrorMessage("declutter_manager_respond", e)) as "active" | "declined";
 }
 
+/** The seller OKs a draft her manager sent: she attests here and it posts as hers (owner 11-01). */
+export async function approveManagerDraft(itemId: string, attest: { personalUse: boolean; notBusiness: boolean; notFrequent: boolean; keepsItem: boolean }): Promise<unknown> {
+  return rpcData(await supabase.rpc("declutter_manager_approve", {
+    p_item_id: itemId, p_bought_for_personal_use: attest.personalUse, p_not_in_the_business: attest.notBusiness,
+    p_not_a_frequent_seller: attest.notFrequent, p_keeps_item_until_handover: attest.keepsItem,
+  }), (e) => rpcErrorMessage("declutter_manager_approve", e));
+}
+
+/** The seller sends a draft back to her manager with a note. */
+export async function sendManagerDraftBack(itemId: string, note: string): Promise<string> {
+  return rpcData(await supabase.rpc("declutter_manager_send_back", { p_item_id: itemId, p_note: note }),
+    (e) => rpcErrorMessage("declutter_manager_send_back", e)) as string;
+}
+
 export async function endManaging(grantId: string): Promise<string> {
   return rpcData(await supabase.rpc("declutter_manager_end", { p_grant_id: grantId }),
     (e) => rpcErrorMessage("declutter_manager_end", e)) as string;
@@ -112,9 +126,9 @@ export async function setManagerParts(grantId: string, parts: ManagerParts): Pro
 
 /** The actions declutter_manage accepts (the server's fixed list). */
 export type ManageAction =
-  | "create_item" | "update_draft" | "add_item_photo" | "remove_item_photo" | "attest_item" | "publish_item"
+  | "create_item" | "update_draft" | "add_item_photo" | "remove_item_photo" | "submit_for_approval"
   | "edit_listing" | "set_handovers" | "pause_listing" | "withdraw_item"
-  | "set_listing_price" | "set_listing_drops" | "relist_listing" | "reopen_listing"
+  | "set_listing_price" | "set_listing_drops"
   | "respond_offer" | "set_offer_rules"
   | "answer_question" | "send_order_message" | "order_talk_view"
   | "set_pickup_windows" | "confirm_handover";

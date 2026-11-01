@@ -1,3 +1,4 @@
+import { jobIsExpiredListing } from "@/lib/expiredListingInThread";
 import type { MutableRefObject } from "react";
 import { formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -330,7 +331,7 @@ export async function fetchConversations(
     // No offered_to_helper_id here: it is not selectable (20260915045110,
     // owner decision 2026-09-14). Whether *I* am a job's offeree comes from
     // get_job_offer_targets, which answers only the poster and the offeree.
-    supabase.from("jobs").select("id, title, status, customer_id, helper_id").in("id", jobIds),
+    supabase.from("jobs").select("id, title, status, customer_id, helper_id, cancelled_by, cancellation_reason").in("id", jobIds),
     getMessageAttachmentSignedUrls(imageThumbPaths),
     getMutedThreadMap(uid, mutePairs),
     supabase.rpc("get_user_last_active", { user_ids: otherIds }),
@@ -383,7 +384,7 @@ export async function fetchConversations(
       tags: { source: "loadConversations.jobs" },
     });
   }
-  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: offerTargets.get(j.id) ?? null }]) || []);
+  const jobMap = new Map(jobsRes.data?.map((j) => [j.id, { title: j.title, status: j.status, expired: jobIsExpiredListing(j), customer_id: j.customer_id, helper_id: j.helper_id, offered_to_helper_id: offerTargets.get(j.id) ?? null }]) || []);
 
   const convos: Conversation[] = [...convoMap.entries()].map(([, v]) => {
     const last = v.messages[0];
@@ -418,6 +419,7 @@ export async function fetchConversations(
     jobTitle: jobMap.get(v.jobId)?.title || "a job",
     jobId: v.jobId,
     jobStatus: jobMap.get(v.jobId)?.status ?? null,
+    jobExpired: jobMap.get(v.jobId)?.expired ?? false,
     messagingClosesAt: closesAtMap.get(v.jobId) ?? null,
     // Track whether the current user is the poster on this job so the
     // chat can render poster-specific quick replies (vs helper-specific).
@@ -485,7 +487,7 @@ export async function buildDeepLinkPlaceholder(
   const [profileRes, jobRes, closesAtMap, offerTargets] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
     // offered_to_helper_id via get_job_offer_targets, as in the list path.
-    supabase.from("jobs").select("id, title, status, customer_id, helper_id").eq("id", deepLinkJobId).maybeSingle(),
+    supabase.from("jobs").select("id, title, status, customer_id, helper_id, cancelled_by, cancellation_reason").eq("id", deepLinkJobId).maybeSingle(),
     fetchMessagingClosesAt([deepLinkJobId]),
     fetchJobOfferTargets([deepLinkJobId]),
   ]);
@@ -538,6 +540,7 @@ export async function buildDeepLinkPlaceholder(
     jobTitle: jobRes.data?.title || "a job",
     jobId: deepLinkJobId,
     jobStatus: jobRes.data?.status ?? null,
+    jobExpired: jobRes.data ? jobIsExpiredListing(jobRes.data) : false,
     messagingClosesAt: closesAtMap.get(deepLinkJobId) ?? null,
     viewerIsPoster: jobRes.data?.customer_id === uid,
     posterId: jobRes.data?.customer_id ?? null,

@@ -4,7 +4,7 @@ import { BellOff, Briefcase, Check } from "lucide-react";
 import { PinnedChip } from "./PinnedChip";
 import { isImageMime } from "@/lib/messageAttachments";
 import { LastMessageImageThumb } from "./LastMessageImageThumb";
-import { jobStatusLabel } from "@/lib/statusLabels";
+import { threadJobChipLabel } from "@/lib/expiredListingInThread";
 import { MESSAGE_STATUS_CHIP } from "./messageStatusChip";
 import UserAvatar from "@/components/UserAvatar";
 import type { Conversation } from "./types";
@@ -162,7 +162,8 @@ const ConversationRowBase = ({
     // "Accepted" — the exact three-labels-one-state bug that module was
     // written to close. Owner dislikes "Awarded"; the canonical label is
     // what they get.
-    const label = jobStatusLabel(s);
+    // An expired listing is never "Cancelled": the poster reads Expired, anyone else Closed (owner 10-31).
+    const label = threadJobChipLabel(s, c);
     return { label, color: palette.text, bg: palette.bg };
   })();
 

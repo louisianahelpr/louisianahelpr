@@ -23,16 +23,16 @@ import { ListingThumb } from "@/components/declutter/ListingThumb";
 import { cardPhotoSrcSet, squarePhotoUrl, THUMB_PHOTO_PX, CARD_PHOTO_SIZES, CARD_PHOTO_SMALL_PX } from "./photoSizes";
 
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { storage: { from: (bucket: string) => ({ getPublicUrl: (path: string) => ({ data: { publicUrl: `https://ref.supabase.co/storage/v1/object/public/${bucket}/${path}` } }) }) } },
+  supabase: { storage: { from: (bucket: string) => ({ getPublicUrl: (path: string) => ({ data: { publicUrl: `https://unit-test.invalid/storage/v1/object/public/${bucket}/${path}` } }) }) } },
 }));
 
 afterEach(cleanup);
 
-const ORIGINAL = "https://ref.supabase.co/storage/v1/object/public/job-photos/u1/a.jpg";
+const ORIGINAL = "https://unit-test.invalid/storage/v1/object/public/job-photos/u1/a.jpg";
 
 describe("Declutter photos are asked for at the size they draw", () => {
   it("(c) builds the square transform from a public object URL, and nothing from any other URL", () => {
-    expect(squarePhotoUrl(ORIGINAL, 160)).toBe("https://ref.supabase.co/storage/v1/render/image/public/job-photos/u1/a.jpg?width=160&height=160&resize=cover&quality=70");
+    expect(squarePhotoUrl(ORIGINAL, 160)).toBe("https://unit-test.invalid/storage/v1/render/image/public/job-photos/u1/a.jpg?width=160&height=160&resize=cover&quality=70");
     expect(squarePhotoUrl("https://photos.test/a.jpg", 160)).toBeNull();
     expect(squarePhotoUrl(`${ORIGINAL}?x=1`, 160)).toBeNull();
     expect(cardPhotoSrcSet("https://photos.test/a.jpg", "C480", 480)).toBeUndefined();

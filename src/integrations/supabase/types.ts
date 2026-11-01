@@ -15281,6 +15281,18 @@ export type Database = {
         Args: { p_items_cents: number; p_shipping_cents: number }
         Returns: number
       }
+      helpr_task_position_viewer: {
+        Args: { p_task_id: string }
+        Returns: boolean
+      }
+      sweep_unread_message_reminders: {
+        Args: { p_now?: string }
+        Returns: number
+      }
+      unread_reminder_quiet: {
+        Args: { p_at: string }
+        Returns: boolean
+      }
       declutter_check_sweep_claim: {
         Args: { p_limit?: number }
         Returns: { sweep_attempt: number; sweep_item_id: string; sweep_seller_id: string }[]
@@ -16271,6 +16283,10 @@ export type Database = {
       declutter_setup_job_fee_debt: {
         Args: { p_card_fee_cents: number; p_job_id: string }
         Returns: number
+      }
+      declutter_seller_slot_open: {
+        Args: { p_seller: string; p_start: string }
+        Returns: boolean
       }
       declutter_slot_in_windows: {
         Args: { p_seller: string; p_start: string }

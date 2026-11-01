@@ -56,8 +56,8 @@ export const GUEST_FEE_PERCENT = TIER_PERKS.free.platformFeePercent;
 export function guestTakeHome(job: GuestJob, firstPayoutFeeDollars = 0): number | null {
   if (!(typeof job.budget === "number" && Number.isFinite(job.budget) && job.budget > 0)) return null;
   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const fee = job.status === "disputed" || isGiveawayFixedPayJob(job) ? 0 : firstPayoutFeeDollars;
-  const net = computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, fee, job).netEarnings;
+  const firstPayoutFee = job.status === "disputed" || isGiveawayFixedPayJob(job) ? 0 : firstPayoutFeeDollars;
+  const net = computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, job).netEarnings;
   return net > 0 ? net : null;
 }
 

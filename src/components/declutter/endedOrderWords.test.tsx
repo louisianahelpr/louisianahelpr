@@ -2,7 +2,7 @@
  * An order cancelled after it was paid or claimed keeps a record on Buying, in words that fit it (audit 2 A2-4 /
  * B2-1, 2026-10-28, a2-42-buyer-noshow-done-p1-390): after a no-show closed a free order, the buyer's card left
  * Buying with no "cancelled" record. declutter_close_paid_order sets the lines to missed / cancelled_by_seller and
- * the order to refunded, so the line now lands under "Ended" with the unpaid-checkout words ("The 48 hours to check
+ * the order to refunded, so the line now lands under "Ended" with the unpaid-checkout words ("The time to check
  * out ran out. Nothing was charged."), which are false for a sale being refunded. Each kind now says what happened.
  *
  * @mutate src/components/declutter/BuyingOrders.tsx |   const closedAfterPaying = !!line.order_id && line.order_status === "refunded"; |   const closedAfterPaying = false;
@@ -30,10 +30,10 @@ function words(over: Partial<CartLine>): string {
 
 describe("Ended on Buying: every kind of ended order says what happened (A2-4)", () => {
   it("a checkout that ran out, or a seller who called it off before paying: nothing was charged", () => {
-    expect(words({ status: "missed" })).toBe("The 48 hours to check out ran out. Nothing was charged.");
+    expect(words({ status: "missed" })).toBe("The time to check out ran out. Nothing was charged.");
     expect(words({ status: "cancelled_by_seller" })).toBe("The seller called off the sale. Nothing was charged.");
     // An expired checkout can carry its unpaid order: still the unpaid words.
-    expect(words({ status: "missed", order_id: "o1", order_status: "superseded" })).toBe("The 48 hours to check out ran out. Nothing was charged.");
+    expect(words({ status: "missed", order_id: "o1", order_status: "superseded" })).toBe("The time to check out ran out. Nothing was charged.");
   });
 
   it("a free pickup cancelled after it was claimed (the no-show in the audit): cancelled, nothing charged", () => {

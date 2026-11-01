@@ -57,7 +57,7 @@ describe("Declutter sale notices name the item", () => {
 
   it("the seven named in the audit name the order's items, every call", () => {
     const hits = all.filter((c) => SEVEN.includes(c.title));
-    expect(hits.length).toBe(12); // Payment received 2, Buyer paid 2, Helpr pickup booked 1, Picked up 1, Delivered 2 (the seller too since LEAD-BUY44, 20261031140431), Handover done 2, Enjoy your item 2
+    expect(hits.length).toBe(10); // Payment received 1, Buyer paid 1 (BUY-1, 20261101030040: a payment that lands after the hold ended is refunded in full, so declutter_mark_order_paid no longer has the late "sale stands" pair), Helpr pickup booked 1, Picked up 1, Delivered 2 (the seller too since LEAD-BUY44, 20261031140431), Handover done 2, Enjoy your item 2
     expect(hits.filter((c) => !/declutter_order_items_named\((p_order_id|o\.id)\)/.test(c.message)).map((c) => `${c.fn}: ${c.title}`)).toEqual([]);
     expect(flat("declutter_order_items_named")).toContain("WHEN 2 THEN format('\"%s\" and \"%s\"'");
   });

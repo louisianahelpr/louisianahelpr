@@ -526,7 +526,7 @@ describe("Selling history: sales that ended without a handover (A2-20)", () => {
       { ...seller({ item_title: "Bought by me", status: "missed" }), my_side: "buyer" },
     ];
     const WORDS: Record<string, string> = {
-      "Ran out": "The buyer didn't check out in 48 hours. Nothing was charged.",
+      "Ran out": "The buyer didn't check out in time. Nothing was charged.",
       "Called off": "You called off the sale. Nothing was charged.",
       // BUY-46: no cause the status can't prove ('missed' is every no-fault close, no Helpr in time included).
       "No-show": "Cancelled after the buyer paid. They were refunded, and your item is back on sale.",

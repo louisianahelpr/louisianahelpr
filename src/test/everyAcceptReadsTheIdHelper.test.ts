@@ -72,6 +72,8 @@ const BOOKING_WRITES: RegExp[] = [
 const ALLOWED: Record<string, string> = {
   complete_job_accept:
     "the one completion's UPDATE; jobs_award_gate (enforce_helper_award_gate, checked below) calls helper_accept_block_reason on it in every user session, and every server caller (complete_pending_accepts_on_setup, complete_direct_offer_accept) calls the helper first",
+  declutter_admin_decide_problem:
+    "not a booking: an admin deciding a problem as the Helpr's fault closes the delivery as 'failed' and stamps back the Helpr the fault falls on (the task's Helpr or the one released, 20261101020052), so the strike and refund find them; admin only, and no delivery is taken",
   series_holds_on_hire:
     "seeds a series' holds for the recurring_helper_id when the parent is hired; that hire is the parent's accept, which went through accept_job_offer / respond_to_direct_offer (both call the helper), and charge-recurring-visits judges every holder again at booking",
 };
@@ -132,10 +134,11 @@ describe("every booking path asks the one ID-once helper (owner 2026-10-20)", ()
     // EXACT, measured 2026-10-20 from the migrations and diffed against live
     // pg_proc (lh-authz-rls review: the live writers of helper_confirmed_at and
     // helpr_tasks.helpr_id are all here). A new booking path must be added here
-    // AND call the helper.
+    // AND call the helper. declutter_admin_decide_problem since 20261101020052: it writes helpr_tasks.helpr_id
+    // on a 'failed' close (the faulted Helpr stamped back), not a booking; allowlisted below.
     expect(sql.map((s) => s.name)).toEqual([
       "accept_job_offer", "claim_series_dates", "complete_direct_offer_accept", "complete_job_accept",
-      "complete_pending_accepts_on_setup", "complete_pending_crew_confirms_on_setup", "helpr_task_accept",
+      "complete_pending_accepts_on_setup", "complete_pending_crew_confirms_on_setup", "declutter_admin_decide_problem", "helpr_task_accept",
       "quote_job_funded_hires_quoter", "respond_to_direct_offer", "rpc_group_member_confirm", "series_holds_on_hire",
     ]);
     expect(sql.length).toBeGreaterThan(8);

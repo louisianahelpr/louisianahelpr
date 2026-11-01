@@ -330,11 +330,15 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2170: the admin "Bill the Helpr" button READS whether the ruling is billed yet (no write; the bill is server-side).
   'src/components/admin/helprFault/BillHelprFaultButton.tsx: .select("card_fee_cents")',
   "src/components/admin/helprFault/BillHelprFaultButton.tsx: if (live) setUnbilled({ jobId, value: !error && !!data && data.card_fee_cents == null });",
+  // B112: READS the buyer's own unbooked orders' paid_at for the book-by deadline (paid + 7 days); no money column, no write.
+  'src/lib/declutter/bookBy.ts: .from("declutter_orders").select("id, paid_at").in("id", [...orderIds])) ?? []) as { id: string',
   // Q1929: the buyer's raise panel row TYPE names each raise's card fee (shown, never written).
   "src/lib/declutter/deliveryRaise.ts: card_fee_cents: number;",
   // BUY-2: the buyer's no-Helpr choice row TYPE names the card fee declutter_no_helpr_choice reports (read only, never written;
   // members see only "You get $X back", membersSeeNoFeeWords).
   "src/lib/declutter/noHelpr.ts: card_fee_cents: number;",
+  // B112 (20261101200035): READS the order's pickup window chosen at checkout (column grant); no money column, no write.
+  'src/lib/declutter/pickupWindow.ts: .from("declutter_orders").select("id, pickup_slot_start, pickup_slot_end").in("id", [...orderIds])',
   // Declutter reviews (Builder 3c s3): READS the order's two parties to name who is being reviewed; no money column, no write.
   'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
   // Board 177 Receipts: READS the buyer's own paid orders (total and date) to list what left their card; no fee column, no write.

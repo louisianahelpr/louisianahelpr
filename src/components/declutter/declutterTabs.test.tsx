@@ -133,6 +133,10 @@ vi.mock("@/lib/declutter/handoverTalk", () => ({ fetchMyOpenHandoverTalks: async
 // A1-B2 (b28): "You paid" reads the card charge per order (declutter_my_paid_cents); which tab an order lands on is
 // what this file checks, so no figure is answered here.
 vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
+// B112: the order cards' book-by deadline, the porch window picked at checkout and checkout's porch days (none here).
+vi.mock("@/lib/declutter/bookBy", async (orig) => ({ ...(await orig<object>()), fetchBookBy: async () => new Map() }));
+vi.mock("@/lib/declutter/pickupWindow", async (orig) => ({ ...(await orig<object>()), fetchPickupWindows: async () => new Map() }));
+vi.mock("@/lib/declutter/porchDays", async (orig) => ({ ...(await orig<object>()), fetchCheckoutPorchDays: async () => null }));
 // One marker per paid order: which tab it lands on is what this file checks.
 vi.mock("./DeclutterHandoverViews", () => ({
   PaidOrdersSection: ({ cart, heading, show }: { cart: { status: string; order_id: string | null; my_side: string }[]; heading?: React.ReactNode; show?: (id: string) => boolean }) => (

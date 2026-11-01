@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Check, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
 import { hasIdBadge } from "@/lib/awardGate";
 import type { Profile } from "./types";
@@ -73,22 +74,24 @@ export function YouCard({
           {displayName || "Your profile"}
         </Heading>
         {facts && <p className="max-w-full text-ds-13 text-muted-foreground truncate mt-0.5" title={facts}>{facts}</p>}
-        <button type="button" onClick={open} disabled={!userId} className="min-h-11 -my-2 text-ds-13 font-bold" style={{ color: "hsl(var(--bark))" }}>
+        <Button type="button" variant="ghost" size="sm" onClick={open} disabled={!userId} className="-my-2 px-0 text-ds-13 tracking-normal disabled:opacity-100" style={{ color: "hsl(var(--bark))" }}>
           View my public profile
-        </button>
+        </Button>
       </div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         data-testid="you-card-edit"
         aria-label="Edit profile"
         onClick={() => navigate(EDIT_PROFILE_PATH)}
-        className="btn-press ml-auto shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center gap-1.5 px-2 text-ds-13 font-bold"
+        className="btn-press ml-auto shrink-0 min-w-11 gap-1.5 px-2 text-ds-13 tracking-normal [&_svg]:size-4"
         style={{ color: "hsl(var(--bark))" }}
       >
-        <Pencil className="w-4 h-4" aria-hidden />
+        <Pencil aria-hidden />
         {/* Icon only on a phone: the word cost "View my public profile" its one line at 375. */}
         <span className="max-sm:hidden">Edit</span>
-      </button>
+      </Button>
     </div>
   );
 }

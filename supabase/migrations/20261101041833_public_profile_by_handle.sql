@@ -14,8 +14,9 @@
 --     street or ZIP), budget, date. The owner overrides the 9-2 "no poster on shared jobs" rule FOR
 --     THIS PAGE ONLY. Never expired (past the offer cutoff or expires_at), cancelled, unfunded, a
 --     series visit, under a pending direct offer, credential-gated, or a test job;
---   * helpr: jobs done as the Helpr, the categories of those jobs, and the latest public reviews
---     (get_public_profile_reviews; the reviewer's name masked to "Eli B." too);
+--   * helpr: jobs done as the Helpr, the categories of those jobs, and the latest 10 public reviews, read
+--     here with the stats' own rules (published and visible, no cancelled or seed job, nothing from or about a
+--     test member), the same for every caller; the reviewer's name masked to "Eli B." too;
 --   * wanted: open, unexpired, PUBLIC Wanted posts (declutter_wanted.public): what, category,
 --     max price, only while the declutter_wanted switch is open to everyone, with the Wanted browse's
 --     poster rules (not out, not under 18, not hidden). Never the area point.
@@ -167,16 +168,40 @@ BEGIN
      AND j.is_seed IS NOT TRUE
      AND NOT public.is_test_member(j.customer_id);
 
+  -- Re-review 2026-11-01: the list is read here, not through get_public_profile_reviews, whose seed rule reads the
+  -- caller (seed_hidden_from_caller), so test reviews showed to an admin, to test accounts, and to everyone while
+  -- the seed switch is off. Same rules as the stats' review count (get_public_profile_stats.visible_reviews):
+  -- published and visible, not on a cancelled or seed job, not from or about a test member; for every caller.
   SELECT coalesce(jsonb_agg(jsonb_build_object(
            'rating', r.rating,
            'feedback', r.feedback,
            'created_at', r.created_at,
-           'reviewer_name', public.member_display_name(r.reviewer_name),
+           'reviewer_name', public.member_display_name(r.reviewer_full_name),
            'job_category', r.job_category,
            'response_text', r.response_text,
            'response_at', r.response_at) ORDER BY r.created_at DESC), '[]'::jsonb)
     INTO v_reviews
-    FROM public.get_public_profile_reviews(v_p.user_id, 10, 0) r;
+    FROM (
+      SELECT rv.rating, rv.feedback, rv.created_at, rv.response_text, rv.response_at, j.category::text AS job_category,
+             -- The reviewer's public name only while they are approved and not banned, else "A neighbor".
+             (SELECT rp.full_name FROM public.profiles rp
+               WHERE rp.user_id = rv.reviewer_id
+                 AND rp.email_verified
+                 AND (rp.ban_status IS NULL OR rp.ban_status NOT IN ('temp_banned', 'permanently_banned'))
+               LIMIT 1) AS reviewer_full_name
+        FROM public.reviews rv
+        JOIN public.jobs j ON j.id = rv.job_id
+       WHERE rv.reviewee_id = v_p.user_id
+         AND rv.status = 'published'
+         AND rv.feedback_visible_at IS NOT NULL
+         AND rv.feedback_visible_at <= now()
+         AND j.status <> 'cancelled'
+         AND j.is_seed IS NOT TRUE
+         AND NOT public.is_test_member(rv.reviewer_id)
+         AND NOT public.is_test_member(rv.reviewee_id)
+       ORDER BY rv.created_at DESC
+       LIMIT 10
+    ) r;
 
   SELECT coalesce(jsonb_agg(x ORDER BY x->>'created_at' DESC), '[]'::jsonb) INTO v_wanted
     FROM (

@@ -15,7 +15,7 @@
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const only = asked && t.counts[asked] > 0 ? asked : null; |   const only = asked;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
- * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></> | {view === "buying" ? <WantedView />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></> | {view === "buying" ? <WantedView />
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(

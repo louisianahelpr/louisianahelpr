@@ -388,7 +388,8 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.handover = { side: "seller" };
     show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
     expect(await screen.findByText("You can take the porch photo tomorrow.")).toBeInTheDocument();
-    expect(document.body.textContent!.match(/Put it out tomorrow/g)).toHaveLength(1);
+    expect(document.body.textContent!.match(/[Pp]ut it out tomorrow/g)).toHaveLength(1);
+    expect(screen.getByText("Next: put it out tomorrow and post the porch photo")).toBeInTheDocument();
   });
 
   // Deep audit #32 (44-seller-sold-p2/p3-390): a booked porch card stacked two full date-and-time pickers and 5 buttons (audit 2026-10-28).
@@ -743,7 +744,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.handover = { set_out_at: "2026-10-20T15:00:00Z", set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     show([line({ handover: "porch", porch_ok: true })]);
     expect(await screen.findByRole("list", { name: "Step 3 of 4: On the porch" })).toBeInTheDocument();
-    expect(screen.getByText("It's out. Pick it up at your pickup time.")).toBeInTheDocument();
+    expect(screen.getByText("Next: pick it up at your pickup time")).toBeInTheDocument();
     expect((await screen.findByText(/You paid/)).textContent).toMatch(/You paid \$44\.70\. The seller is paid after you pick it up\./);
     expect(await screen.findByAltText("Where the item was left")).toHaveAttribute("src", "https://signed.test/s1/declutter/handover/o1/out.jpg");
   });
@@ -755,7 +756,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
     expect((await screen.findAllByText(/^Pickup:/)).length).toBeGreaterThan(0);
     expect(screen.getByRole("list", { name: "Step 2 of 4: Time booked" })).toBeInTheDocument();
-    expect(screen.getByText("Paid. Put it out and take one photo where the buyer will find it.")).toBeInTheDocument();
+    expect(screen.getByText("Next: put it out and take one photo where the buyer will find it")).toBeInTheDocument();
     // Deep audit #31: one payout rule, the live one, never "when the buyer marks it". LEAD-DOOR-PAYLINE: the porch rule.
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {sellerPayoutRule(kind)} | You're paid when the buyer marks it picked up.
     expect(screen.getByText(/You get/).textContent).toBe('You get $40. You\'re paid 24 hours after the buyer taps "I got it" or takes their pickup photo, unless they ask for a refund. If the buyer says nothing, you\'re paid about 48 hours after the later of the pickup time and your porch photo. With no porch photo, the money stays held until the buyer confirms.');
@@ -797,10 +798,17 @@ describe("Declutter slice 4: paid-order cards", () => {
     v.unmount();
   });
 
+  // Next-step line (owner 11-01 12:02 PM): on a sale card the viewer's own move reads "Next: <step>" in the shared
+  // NextStep line; the other side's move reads "Waiting on the buyer to …". Pinned by board 72, the free-claim loop,
+  // the seller-delivers and meetup cases below.
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : you("Put it out and take one photo where the buyer will find it"); | : info("Put it out and take one photo where the buyer will find it.");
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | you("Have it ready at the pickup time below") | info("Have it ready at the pickup time below.")
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | { who: "you", text: "Deliver it at the time below" } | { who: "info", text: "Booked. The delivery time is below." }
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | them(`${paid} Waiting on the buyer to book a time to meet.`) | them(`${paid} The buyer books a time to meet.`)
   // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |     if (at === 0) return side === "buyer" ? "Paid. Book a pickup time." : "Paid. The buyer books a pickup time."; |     if (at === 0) return side === "buyer" ? "Paid · book a pickup time." : "Paid. The buyer books a pickup time.";
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | them(`${paid} Waiting on the buyer to book a pickup time.`); | them(`${paid} · waiting on the buyer to book a pickup time.`);
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
   // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"
@@ -847,7 +855,8 @@ describe("Declutter slice 4: paid-order cards", () => {
           expect(lines.length).toBeGreaterThan(0);
           for (const t of lines) {
             expect(t, `${handover}/${side}/step ${at}`).not.toMatch(/ · /);
-            expect(t, `${handover}/${side}/step ${at}`).toMatch(/[.!?]$/);
+            // A next-step line (owner 11-01) is "Next: <step>", a step and not a sentence; every other line is one.
+            expect(t, `${handover}/${side}/step ${at}`).toMatch(/^Next: [a-z]|[.!?]$/);
           }
           const head = container.querySelector("[data-order-head]")?.textContent ?? "";
           if (side === "buyer") expect(head).not.toMatch(/You're buying/);
@@ -866,8 +875,8 @@ describe("Declutter slice 4: paid-order cards", () => {
   // a day booked under the 10-28 design keeps its day card (steps 2-4 below).
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | order.handover === "porch" && booking?.pickup_day\n            ? <PorchDayPanel | order.handover === "porch"\n            ? <PorchDayPanel
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | order.handover === "porch" && booking?.pickup_day\n            ? <PorchDayPanel | false\n            ? <PorchDayPanel
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return "Not out yet. We'll tell you when it's on the porch. Don't go before then."; |       return "Booked. Pick it up on your day.";
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return porchDayIsNow(day) ? "It's out. Pick it up today." | return porchDayIsNow(day) ? "It's out. Pick it up at your pickup time."
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return them("Not out yet. We'll tell you when it's on the porch. Don't go before then."); |       return them("Booked. Pick it up on your day.");
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return porchDayIsNow(day) ? you("Pick it up today") | return porchDayIsNow(day) ? you("Pick it up at your pickup time")
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "seller" && !booking.pickup_day && ( |       {order.side === "seller" && (
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | slotStart={noShowFrom(booking) ?? booking.slot_start} | slotStart={booking.slot_start}
   it("owner 10-28 / 10-31: a new porch pickup books a time; a day already booked: told not to go until it's out, then 'Pick it up today'", async () => {
@@ -878,7 +887,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.porchDays = [tomorrow, later];
     // 1. Not booked (LEAD-PLACE-TIMES): the buyer picks a time inside the place's hours, never a bare day.
     const first = show([line({ handover: "porch", porch_ok: true })]);
-    expect(await screen.findByText("Paid. Pick a time to collect it from the porch.")).toBeInTheDocument();
+    expect(await screen.findByText("Next: pick a time to collect it from the porch")).toBeInTheDocument();
     expect(await screen.findByLabelText("Pick a pickup time")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Book this day" })).toBeNull();
     expect(screen.getByRole("list", { name: "Step 1 of 4: Paid" })).toBeInTheDocument();
@@ -906,7 +915,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     state.bookings = [{ ...slot(-60), pickup_day: key(today) }];
     const third = show([line({ handover: "porch", porch_ok: true })]);
-    expect(await screen.findByText("It's out. Pick it up today.")).toBeInTheDocument();
+    expect(await screen.findByText("Next: pick it up today")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Step 3 of 4: On the porch" })).toBeInTheDocument();
     third.unmount();
 
@@ -914,7 +923,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     // @mutate src/components/declutter/DeclutterHandoverViews.tsx | !porchBuyer \|\| !!handoverRow.data?.set_out_at \|\| | !porchBuyer \|\|
     state.bookings = [{ ...slot(-60), pickup_day: tomorrow }];
     const early3 = show([line({ handover: "porch", porch_ok: true })]);
-    expect(await screen.findByText("It's out. Pick it up tomorrow.")).toBeInTheDocument();
+    expect(await screen.findByText("Next: pick it up tomorrow")).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
     early3.unmount();
 
@@ -922,7 +931,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.handover = { side: "seller" };
     state.bookings = [{ ...slot(-60), pickup_day: tomorrow }];
     show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
-    expect(await screen.findByText("Put it out tomorrow and post the porch photo.")).toBeInTheDocument();
+    expect(await screen.findByText("Next: put it out tomorrow and post the porch photo")).toBeInTheDocument();
     // A1-C3: the seller is never told "once the seller posts the porch photo".
     // @mutate src/components/declutter/DeclutterPorchDay.tsx | {side === "seller" ? "The buyer can come any time that day once you post the porch photo." : | {false ? "" :
     expect((await screen.findByText(/Pickup day:/)).textContent).toMatch(/The buyer can come any time that day once you post the porch photo\./);
@@ -1059,7 +1068,7 @@ describe("boards 159 + 160: handover sheets", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && <p | {order.side === "seller" && payout && <p
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${payWords ? "; they're paid 24 hours later." : "."} | you have it${"; they're paid 24 hours later."}
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   if (free && at === 0) return |   if (false && at === 0) return
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const paid = free ? "Claimed." : "Paid."; |   const paid = false ? "Claimed." : "Paid.";
 describe("#6: a free claim never reads like a paid order", () => {
   // No leading \b: textContent runs the step labels together ("DonePaid").
   const MONEY = /paid\b|refund|payout|order total|\$\d/i;
@@ -1082,7 +1091,7 @@ describe("#6: a free claim never reads like a paid order", () => {
           const { container, unmount } = show([free({ handover, my_side: side })]);
           const card = (await screen.findByText("Claimed")).closest("article")!;
           // Wait for the booking read: a booked door pickup moves to its second step.
-          if (at !== null && handover === "pickup_home") await within(card).findByText("Booked. The pickup time is below.");
+          if (at !== null && handover === "pickup_home") await within(card).findByText(side === "buyer" ? "Booked. The pickup time is below." : "Next: have it ready at the pickup time below");
           const name = side === "buyer" ? "I got it" : "Picked up";
           // A1-C2: a porch buyer's "I got it" waits for the pickup time (or the porch photo), so not for one in an hour.
           const acts = side === "buyer" ? at !== null && (handover !== "porch" || at === 30) : handover === "pickup_home" && at === 30;
@@ -1348,7 +1357,7 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payoutLine(payout, !!problem)} | {payoutLine(payout, false)}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const problems = useOpenProblems(ids); |   const problems = new Map<string, OpenProblem>();
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : problemOpen\n | : false\n
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx | : problemOpen && !done ? PROBLEM_ON_HOLD : standing( | : false ? PROBLEM_ON_HOLD : standing(
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx | : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing( | : false ? { who: "info", text: PROBLEM_ON_HOLD } : standing(
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemOpen={!!problem}\n          refunded={fullRefund}\n          part= | refunded={fullRefund}\n          part=
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (problem_open).\n    if (anyProblem) return null;\n | (problem_open).\n
 
@@ -1622,7 +1631,7 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     const steps = await parts("seller_delivery");
     expect(steps.getAttribute("data-order-step")).toBe("1");
     expect(within(steps).getByText("Time booked")).toBeInTheDocument();
-    expect(screen.getByText("Booked. The delivery time is below.")).toBeInTheDocument();
+    expect(screen.getByText("Next: deliver it at the time below")).toBeInTheDocument();
     // The panel below still draws the booking itself.
     expect(screen.getByText("Seller delivery panel")).toBeInTheDocument();
   });
@@ -1643,14 +1652,14 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null,
       proposed_start: "2026-11-01T15:00:00Z", proposed_by: "buyer" };
     show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
-    const said = await screen.findByText(/^The buyer asked to move it to .+\. Accept the new time or keep it, below\.$/);
+    const said = await screen.findByText(/^Next: accept the buyer's new time, .+, or keep yours, below$/);
     expect(said.textContent!.length).toBeGreaterThan(40);
-    expect(screen.queryByText("Booked. The delivery time is below.")).toBeNull();
+    expect(screen.queryByText("Next: deliver it at the time below")).toBeNull();
     // Its own request is not something to answer: the sentence stays as it was.
     cleanup();
     state.sd = { ...state.sd, proposed_by: "seller" };
     show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
-    expect(await screen.findByText("Booked. The delivery time is below.")).toBeInTheDocument();
+    expect(await screen.findByText("Next: deliver it at the time below")).toBeInTheDocument();
   });
 
   it("delivered: step 3, and the seller is told the buyer confirms", async () => {
@@ -1658,14 +1667,14 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
     const steps = await parts("seller_delivery");
     expect(steps.getAttribute("data-order-step")).toBe("2");
-    expect(screen.getByText("Delivered. The buyer says when they have it.")).toBeInTheDocument();
+    expect(screen.getByText("Delivered. Waiting on the buyer to say they have it.")).toBeInTheDocument();
   });
 
   it("a meetup sale shows the same three parts, in meetup words", async () => {
     show([line({ handover: "meetup", my_side: "seller" })]);
     const steps = await parts("meetup");
     expect(within(steps).getByText("Met")).toBeInTheDocument();
-    expect(screen.getByText("Paid. The buyer books a time to meet.")).toBeInTheDocument();
+    expect(screen.getByText("Paid. Waiting on the buyer to book a time to meet.")).toBeInTheDocument();
   });
 
   it("porch and door pickup keep theirs (the kinds that had it)", async () => {

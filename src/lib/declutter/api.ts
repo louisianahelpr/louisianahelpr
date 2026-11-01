@@ -762,6 +762,22 @@ async function removeObjects(paths: string[]): Promise<void> {
   // The rows are already gone; a failed object delete leaves an unattached
   // object the seller's account deletion (or a retry) still removes (B4/B5).
   if (error) console.warn("[declutter] photo objects not removed", error.message);
+  await purgeQueuedPhotos();
+}
+
+/**
+ * B63: a photo a Helpr uploaded for the seller sits in the HELPR's folder, so the remove above is refused there (and
+ * Storage reports that refusal as success). The server queued every detached photo's object; this asks it to remove
+ * the caller's own queued ones now (the 15-minute cron is the backstop). Best effort: the change already happened.
+ */
+export async function purgeQueuedPhotos(): Promise<void> {
+  try {
+    const { error } = await supabase.functions.invoke("declutter-photo-purge", { body: {} });
+    if (error) console.warn("[declutter] queued photo objects not removed yet", error.message);
+  } catch (e) {
+    // Logged, never thrown: the seller's change went through and the cron removes the objects within 15 minutes.
+    console.warn("[declutter] queued photo objects not removed yet", e instanceof Error ? e.message : String(e));
+  }
 }
 
 export async function removePhoto(photoId: string): Promise<void> {

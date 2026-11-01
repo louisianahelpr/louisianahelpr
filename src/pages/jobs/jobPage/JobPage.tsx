@@ -72,6 +72,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterId = q.data?.job.customer_id ?? null;
   const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
   const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  // The hired Helpr's first name, off the same card read the poster's Message button uses (posterPageActions), so
+  // the tracker line names who the page names: "Eli is working", not "Your Helpr is working" (B49 375 look, 10-31).
+  const helperId = isPoster ? q.data?.job.helper_id ?? null : null;
+  const helperCard = useQuery({ queryKey: ["declutter", "seller-card", helperId], queryFn: () => fetchSellerCard(helperId!), enabled: !!helperId });
+  const helperFirst = (helperCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
   // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
@@ -235,6 +240,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
           <section aria-label="Where the job is" data-job-steps="" className="order-4 space-y-4 lg:order-none">
             <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
+              otherFirst={isPoster ? helperFirst : posterFirst}
               pendingApplicants={isPoster && applicants.data ? pending : undefined} />
             {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. */}
             {party && (isPoster || isHired) && <JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} />}

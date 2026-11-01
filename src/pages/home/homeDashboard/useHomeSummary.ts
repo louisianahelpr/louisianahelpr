@@ -98,12 +98,12 @@ export function useHomeSummary(user: SupaUser | null) {
     const props = homes.data ?? [];
 
     // Board 165: a job happening now sits above Next up. Board 83: with nothing to do, who is up (never the live job again).
-    const liveNow = deriveLiveNow(pj, aa);
+    const liveNow = deriveLiveNow(pj, aa, posted.helperNames ?? {});
     return {
       loading: posted.loading && applied.loading,
       todos,
       liveNow,
-      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null),
+      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, posted.helperNames ?? {}),
       thisWeek,
       upcoming: upcoming.slice(0, COMING_UP_MAX),
       upcomingFailed,
@@ -124,5 +124,5 @@ export function useHomeSummary(user: SupaUser | null) {
         homes: countLine([[props.length, "property", "properties"]]),
       },
     };
-  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError]);
+  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError]);
 }

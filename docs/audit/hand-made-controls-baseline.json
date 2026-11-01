@@ -39,9 +39,6 @@
     "src/components/JobConfirmation.tsx": {
       "button": 1
     },
-    "src/components/LanguageToggle.tsx": {
-      "button": 1
-    },
     "src/components/MessageAttachment.tsx": {
       "button": 4
     },

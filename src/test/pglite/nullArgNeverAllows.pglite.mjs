@@ -179,6 +179,9 @@ CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id
 -- LEAD-LIST-FOR-SELLER (20261101034159): the link sell_for_me_listings_sent reads; the class SQL's 'list_for_seller' step writes it.
 CREATE TABLE public.declutter_listed_for_seller (item_id uuid PRIMARY KEY, job_id uuid NOT NULL, helpr_id uuid NOT NULL,
   seller_id uuid NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), sent_at timestamptz, decided_at timestamptz);
+-- Instant book (20261101063725): the calendar instant_book_helper_free_on reads; the class SQL's 'availability' step writes it.
+CREATE TABLE public.helper_availability (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), helper_id uuid NOT NULL, day_of_week integer,
+  specific_date date, start_time time, end_time time, is_available boolean DEFAULT true);
 -- Shipping S2 (20261030000030): the label claim shipping_rate_buyable reads, with the columns the 'ship' step writes.
 CREATE TABLE public.shipments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), declutter_order_id uuid, idempotency_key text,
   label_mode text, service text, quoted_cents integer, ship_to jsonb, parcel jsonb, label_state text NOT NULL DEFAULT 'claimed');
@@ -318,7 +321,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Place hours (20261031145652): the order's frozen place hours, else declutter_slot_in_windows (loaded FIRST).
   "declutter_order_slot_in_windows",
   // LEAD-LIST-FOR-SELLER (20261101034159): may a Have a Helpr list it job be marked done (a listing was sent).
-  "sell_for_me_listings_sent"];
+  "sell_for_me_listings_sent",
+  // Instant book (20261101063725): is this Helpr free on this day (their calendar).
+  "instant_book_helper_free_on"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from "react";
-import { FirstRun } from "@/components/firstRun/FirstRun";
+import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";

@@ -22,6 +22,10 @@ const toggleSidebar = vi.hoisted(() => vi.fn());
 vi.mock("@/components/NotificationPanel", () => ({
   default: () => <button type="button" data-testid="notification-panel" aria-label="Notifications" />,
 }));
+// The title bars draw NotificationBell, which swaps the panel in: the same stand-in.
+vi.mock("@/components/notificationPanel/NotificationBell", () => ({
+  default: () => <button type="button" data-testid="notification-panel" aria-label="Notifications" />,
+}));
 vi.mock("@/components/ui/sidebar", () => ({
   useSidebar: () => ({ toggleSidebar, state: "collapsed" }),
 }));

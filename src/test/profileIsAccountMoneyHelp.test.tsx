@@ -47,6 +47,8 @@ import { JOBS_SETTINGS_GROUPS } from "@/components/profile/profileLanding/jobsSe
 import JobsSection from "@/pages/jobs/JobsSection";
 
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+// The title bars draw NotificationBell, which swaps the panel in: the same stand-in.
+vi.mock("@/components/notificationPanel/NotificationBell", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ gate: (_k: string, f: () => void) => f, gatedProps: () => ({}) }) }));
 
 afterEach(() => { cleanup(); desktop.on = false; });

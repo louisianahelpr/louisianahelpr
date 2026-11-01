@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import HelprMark from "@/components/HelprMark";
-import NotificationPanel from "@/components/NotificationPanel";
+import NotificationPanel from "@/components/notificationPanel/NotificationBell";
 import { useSidebar } from "@/components/ui/sidebar";
 
 /**

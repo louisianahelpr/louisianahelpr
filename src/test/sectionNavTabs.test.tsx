@@ -82,6 +82,8 @@ vi.mock("@/hooks/useAgeGate", () => ({
 }));
 
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+// The title bars draw NotificationBell, which swaps the panel in: the same stand-in.
+vi.mock("@/components/notificationPanel/NotificationBell", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 
 import { ExploreSwitcher } from "@/components/sections/ExploreSwitcher";
 import { sectionItems } from "@/components/mobileNav/mobileNavHelpers";

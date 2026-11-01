@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import HelprMark from "@/components/HelprMark";
-import NotificationPanel from "@/components/NotificationPanel";
+import NotificationPanel from "@/components/notificationPanel/NotificationBell";
 
 interface DashboardTitleBarProps {
   /** Where the emblem links. Home points at itself; the signed-out guest

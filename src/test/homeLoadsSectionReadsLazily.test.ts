@@ -15,6 +15,10 @@ import ts from "typescript";
 // @mutate src/components/create/CreateSheet.tsx | const shopsApi = () => import("@/lib/shops/api"); | import { fetchMyShopId } from "@/lib/shops/api";\nconst shopsApi = async () => ({ fetchMyShopId });
 // @mutate src/hooks/useActivityData.ts | const scheduleChangeApi = () => import("@/lib/scheduleChange"); | import * as scheduleChangeNow from "@/lib/scheduleChange";\nconst scheduleChangeApi = async () => scheduleChangeNow;
 // @mutate src/pages/home/HomeDashboard.tsx | const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet }))); | import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
+// @mutate src/components/sections/AppTopBar.tsx | import NotificationPanel from "@/components/notificationPanel/NotificationBell"; | import NotificationPanel from "@/components/NotificationPanel";
+// @mutate src/components/notificationPanel/NotificationBell.tsx |     const mod = await import("@/components/NotificationPanel"); |     const mod = await Promise.resolve(NotificationPanelNow);
+// @mutate src/components/firstRun/FirstRunHost.tsx | const FirstRunScreens = lazy(() => import("./FirstRun")); | import FirstRunScreens from "./FirstRun";
+// @mutate src/pages/home/HomeDashboard.tsx | import { FirstRun } from "@/components/firstRun/FirstRunHost"; | import { FirstRun } from "@/components/firstRun/FirstRun";
 // @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterApi = () => import("@/lib/declutter/api"); | import * as declutterApiNow from "@/lib/declutter/api";\nconst declutterApi = async () => declutterApiNow;
 
 const HOME_FILES = ["src/pages/home/homeDashboard/useHomeSummary.ts", "src/pages/home/homeDashboard/needsYouTodos.ts"];
@@ -67,6 +71,27 @@ describe("Home loads section data code lazily", () => {
       expect(staticValueImports(f, [m]), f).toEqual([]);
       expect(readFileSync(resolve(__dirname, "../..", f), "utf8"), f).toContain(`import("${m}")`);
     }
+  });
+
+  // B65 (11-01): the bell's panel and the first run's screens leave Home's first load. Every title bar draws the
+  // light NotificationBell (the trigger and the shared count) and swaps the panel in once the page settles or on a
+  // tap; Home keeps only the first run's gate and loads its picker and coach marks when the gate opens.
+  // /home 377 -> 344 KB gz (70 -> 62 chunks), /browse 358 -> 351, local build.
+  it("the bell's panel and the first run's screens load through dynamic imports", () => {
+    const TITLE_BARS = ["src/components/sections/AppTopBar.tsx", "src/components/dashboard/DashboardTitleBar.tsx", "src/components/DesktopTopNav.tsx", "src/components/admin/AdminTopBar.tsx"];
+    expect(TITLE_BARS.length).toBeGreaterThan(3);
+    for (const f of TITLE_BARS) {
+      expect(staticValueImports(f, ["@/components/NotificationPanel"]), f).toEqual([]);
+      expect(readFileSync(resolve(__dirname, "../..", f), "utf8"), f).toContain('from "@/components/notificationPanel/NotificationBell"');
+    }
+    const bell = "src/components/notificationPanel/NotificationBell.tsx";
+    expect(staticValueImports(bell, ["@/components/NotificationPanel"])).toEqual([]);
+    expect(readFileSync(resolve(__dirname, "../..", bell), "utf8")).toContain('await import("@/components/NotificationPanel")');
+    const host = "src/components/firstRun/FirstRunHost.tsx";
+    expect(staticValueImports(host, ["./FirstRun"])).toEqual([]);
+    expect(readFileSync(resolve(__dirname, "../..", host), "utf8")).toContain('lazy(() => import("./FirstRun"))');
+    expect(staticValueImports("src/pages/home/HomeDashboard.tsx", ["@/components/firstRun/FirstRun"])).toEqual([]);
+    expect(readFileSync(resolve(__dirname, "../..", "src/pages/home/HomeDashboard.tsx"), "utf8")).toContain('from "@/components/firstRun/FirstRunHost"');
   });
 
   it("the reads are still made (dynamic imports present)", () => {

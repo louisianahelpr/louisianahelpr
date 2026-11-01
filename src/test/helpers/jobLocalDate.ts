@@ -34,12 +34,11 @@ import { JOB_TIMEZONE } from "../../../supabase/functions/_shared/cancellationFe
  * code under test reads.
  */
 export function jobLocalDateISO(daysFromToday = 0, now: Date = new Date()): string {
-  // en-CA formats as YYYY-MM-DD, the exact shape of a Postgres `date`.
-  // Offsetting the INSTANT and then resolving the zone (rather than doing
-  // calendar arithmetic on the resolved string) keeps this to one line; the
-  // two DST Sundays shift the instant by an hour, which cannot move the
-  // calendar day for any offset used here.
-  return new Intl.DateTimeFormat("en-CA", { timeZone: JOB_TIMEZONE }).format(
-    new Date(now.getTime() + daysFromToday * 86_400_000),
-  );
+  // en-CA formats as YYYY-MM-DD, the exact shape of a Postgres `date`. Resolve TODAY in the zone, then add whole
+  // CALENDAR days. Offsetting the instant by 24 h instead is wrong for an hour a year: on the fall-back Sunday
+  // (2026-11-01, a 25-hour day) 00:15 CDT + 24 h is 23:15 CST the SAME day, so "tomorrow" was today and two
+  // Activity tests went red on CI between 00:00 and 01:00 Central (Lander 18, 2026-11-01).
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: JOB_TIMEZONE }).format(now);
+  const [y, m, d] = today.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + daysFromToday)).toISOString().slice(0, 10);
 }

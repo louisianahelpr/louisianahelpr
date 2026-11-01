@@ -164,22 +164,3 @@ export function porchWindowDays(windows: readonly SellerWindow[], nowMs: number,
 }
 
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
-
-/** Minutes past midnight in Chicago of an instant. */
-function chicagoMinutes(ms: number): number {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: ZONE, hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date(ms));
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
-  return get("hour") * 60 + get("minute");
-}
-
-/**
- * B112 (B110 leftover 1): the pickup window the buyer chose at checkout, as the order card says it:
- * "Sun, Nov 2, 3–5 PM" (Chicago time, the checkout chip's own words). Null when either end is missing or bad.
- */
-export function pickupWindowWords(startIso: string | null | undefined, endIso: string | null | undefined): string | null {
-  const a = startIso ? Date.parse(startIso) : NaN;
-  const b = endIso ? Date.parse(endIso) : NaN;
-  if (Number.isNaN(a) || Number.isNaN(b) || b <= a) return null;
-  const day = new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short", month: "short", day: "numeric" }).format(new Date(a));
-  return `${day}, ${rangeLabel(hhmm(chicagoMinutes(a)), hhmm(chicagoMinutes(b)))}`;
-}

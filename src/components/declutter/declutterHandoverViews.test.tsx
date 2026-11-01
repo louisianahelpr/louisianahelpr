@@ -85,6 +85,8 @@ vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat
 vi.mock("@/lib/declutter/paidCents", () => ({
   fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.paid).map((id) => [id, state.paid[id]])),
 }));
+// A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => [] }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => state.payouts,
@@ -804,11 +806,11 @@ describe("Declutter slice 4: paid-order cards", () => {
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : you("Put it out and take one photo where the buyer will find it"); | : info("Put it out and take one photo where the buyer will find it.");
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | you("Have it ready at the pickup time below") | info("Have it ready at the pickup time below.")
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | { who: "you", text: "Deliver it at the time below" } | { who: "info", text: "Booked. The delivery time is below." }
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | them(`${paid} Waiting on the buyer to book a time to meet.`) | them(`${paid} The buyer books a time to meet.`)
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a time to meet") | them(`${paid} The buyer books a time to meet.`)
   // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | them(`${paid} Waiting on the buyer to book a pickup time.`); | them(`${paid} · waiting on the buyer to book a pickup time.`);
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a pickup time"); | them(`${paid} · waiting on the buyer to book a pickup time.`);
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
   // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"

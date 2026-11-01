@@ -1107,7 +1107,9 @@ export default defineConfig(({ mode, command }) => ({
             // Not in signed-in-chrome: App mounts that beside Home too, and there they cost Home ~0.1 s (B90 lab).
             {
               name: "leaves",
-              test: (id: string) => profileSharedLeaves.has(id.split("?")[0].replace(/\\/g, "/")),
+              // NextStep and jobNextStep (owner 11-01, the shared next-step line): the job page, Messages and Declutter's
+              // cards share them, so on their own they were two more chunks named in the entry (5.3 KB gz, over its band).
+              test: (id: string) => profileSharedLeaves.has(id.split("?")[0].replace(/\\/g, "/")) || /[\\/]src[\\/]components[\\/](ui[\\/]NextStep\.tsx|tracker[\\/]jobNextStep\.ts)$/.test(id.split("?")[0]),
               priority: 15.8,
               minSize: 0,
               includeDependenciesRecursively: false

@@ -76,6 +76,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   complete_pending_accepts_on_setup: "alerts",
   create_quote_request: "tags",
   // Admin review card leaves out test sellers' listings (owner rule, 2026-10-28).
+  declutter_check_sweep_claim: "hides", // LEAD-CHECK-SWEEP (20261101031241): test data is never claimed for a sweep check
   declutter_admin_open_problems: "hides",
   declutter_admin_pending_items: "hides",
   declutter_admin_reported_questions: "tags", // B48 (20261101021934): the admin's read returns is_seed so the queue drops test questions and answers

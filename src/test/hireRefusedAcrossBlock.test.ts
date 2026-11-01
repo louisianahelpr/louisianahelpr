@@ -90,6 +90,9 @@ const NOT_HIRES: Record<string, string> = {
   // it done. It adds no one; every member on it was hired (and block-checked)
   // by accept_group_application.
   rpc_group_member_mark_done: "closes an under-filled crew's staffing; hires nobody",
+  // 20261101031804 (JOBS-3): the crew no-show report runs rpc_group_member_mark_done's roll-up when the rest are
+  // done (open -> accepted on an under-filled crew); it removes the no-show and adds no one.
+  rpc_poster_report_member_no_show: "removes a no-show member and runs the crew roll-up; hires nobody",
   // 20261006225402 (Q1460): books a crew whose hiring has closed with the
   // members it already has (open -> accepted). It adds no one; every member on
   // it was hired (and block-checked) by accept_group_application.

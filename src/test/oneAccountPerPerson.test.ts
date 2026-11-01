@@ -157,7 +157,7 @@ describe("one account per person: a no-match social sign-in never silently creat
     // note for Log in is written BEFORE the download (seen in a browser,
     // 2026-10-05) and Log in reads it.
     expect(buttons).toMatch(/markAccountChoiceRetry\(\);\s*accountChoiceDialog\(\)/);
-    expect(buttons).toContain('const accountChoiceDialog = () => import("@/components/auth/AccountChoiceDialog");');
+    expect(buttons).toContain('const accountChoiceDialog = () => loadModule(() => import("@/components/auth/AccountChoiceDialog"));');
     // ...and the buttons themselves read it, so Log in and Sign Up both say it.
     expect(buttons).toMatch(/useState\(\(\) => peekAccountChoiceRetry\(\)\)/);
     expect(buttons).toMatch(/if \(retryNote\) clearAccountChoiceRetry\(\);/);

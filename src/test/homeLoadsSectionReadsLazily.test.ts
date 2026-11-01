@@ -11,15 +11,15 @@ import { resolve } from "node:path";
 import ts from "typescript";
 
 // @mutate src/pages/home/homeDashboard/needsYouTodos.ts | import type { ShopOrder } from "@/lib/shops/orders"; | import { type ShopOrder, fetchShopOrders } from "@/lib/shops/orders";
-// @mutate src/lib/userBlocks.ts | const lifecycleErrors = () => import("@/lib/lifecycleErrors"); | import * as lifecycleErrorsNow from "@/lib/lifecycleErrors";\nconst lifecycleErrors = async () => lifecycleErrorsNow;
-// @mutate src/components/create/CreateSheet.tsx | const shopsApi = () => import("@/lib/shops/api"); | import { fetchMyShopId } from "@/lib/shops/api";\nconst shopsApi = async () => ({ fetchMyShopId });
-// @mutate src/hooks/useActivityData.ts | const scheduleChangeApi = () => import("@/lib/scheduleChange"); | import * as scheduleChangeNow from "@/lib/scheduleChange";\nconst scheduleChangeApi = async () => scheduleChangeNow;
+// @mutate src/lib/userBlocks.ts | const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors")); | import * as lifecycleErrorsNow from "@/lib/lifecycleErrors";\nconst lifecycleErrors = async () => lifecycleErrorsNow;
+// @mutate src/components/create/CreateSheet.tsx | const shopsApi = () => loadModule(() => import("@/lib/shops/api")); | import { fetchMyShopId } from "@/lib/shops/api";\nconst shopsApi = async () => ({ fetchMyShopId });
+// @mutate src/hooks/useActivityData.ts | const scheduleChangeApi = () => loadModule(() => import("@/lib/scheduleChange")); | import * as scheduleChangeNow from "@/lib/scheduleChange";\nconst scheduleChangeApi = async () => scheduleChangeNow;
 // @mutate src/pages/home/HomeDashboard.tsx | const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet }))); | import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 // @mutate src/components/sections/AppTopBar.tsx | import NotificationPanel from "@/components/notificationPanel/NotificationBell"; | import NotificationPanel from "@/components/NotificationPanel";
 // @mutate src/components/notificationPanel/NotificationBell.tsx |     const mod = await import("@/components/NotificationPanel"); |     const mod = await Promise.resolve(NotificationPanelNow);
 // @mutate src/components/firstRun/FirstRunHost.tsx | const FirstRunScreens = lazy(() => import("./FirstRun")); | import FirstRunScreens from "./FirstRun";
 // @mutate src/pages/home/HomeDashboard.tsx | import { FirstRun } from "@/components/firstRun/FirstRunHost"; | import { FirstRun } from "@/components/firstRun/FirstRun";
-// @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterApi = () => import("@/lib/declutter/api"); | import * as declutterApiNow from "@/lib/declutter/api";\nconst declutterApi = async () => declutterApiNow;
+// @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterApi = () => loadModule(() => import("@/lib/declutter/api")); | import * as declutterApiNow from "@/lib/declutter/api";\nconst declutterApi = async () => declutterApiNow;
 
 const HOME_FILES = ["src/pages/home/homeDashboard/useHomeSummary.ts", "src/pages/home/homeDashboard/needsYouTodos.ts"];
 const SECTION_DATA = ["@/lib/declutter/api", "@/lib/declutter/handover", "@/lib/shops/orders", "@/lib/rentals/api"];

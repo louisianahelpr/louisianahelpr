@@ -1,8 +1,9 @@
 import { lazy } from "react";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const browseMapModule = () => import("@/components/BrowseMap");
+const browseMapModule = () => loadModule(() => import("@/components/BrowseMap"));
 
 // Lazy-load BrowseMap so the map chunk (and the MapKit JS script it pulls
 // from Apple's CDN) only loads when an authenticated user toggles to map
@@ -21,6 +22,7 @@ export const BrowseMap = lazy(() => {
     performance.mark("browse-map:load-start");
   }
   return browseMapModule().then((m) => {
+    if (!m) return untilReload();
     if (timed) {
       try {
         performance.mark("browse-map:load-end");

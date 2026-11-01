@@ -53,6 +53,7 @@ function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): Acco
     markAccountChoiceRetry();
     accountChoiceDialog()
       .then((m) => {
+        if (!m) return; // a recovery reload is under way: it asks again on the next page
         clearAccountChoiceRetry();
         if (live) setDialog(() => m.AccountChoiceDialog);
       })
@@ -69,11 +70,12 @@ function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): Acco
 }
 import { userFacingError } from "@/lib/userFacingError";
 import { useLanguage } from "@/lib/i18n/language";
+import { loadModule } from "@/lib/loadModule";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const accountChoiceDialog = () => import("@/components/auth/AccountChoiceDialog");
+const accountChoiceDialog = () => loadModule(() => import("@/components/auth/AccountChoiceDialog"));
 
 interface SocialAuthButtonsProps {
   // Where to navigate after a successful native sign-in. Defaults to /home.

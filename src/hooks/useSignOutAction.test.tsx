@@ -64,7 +64,7 @@ describe("useSignOutAction (owner, 2026-10-09: 'I pressed Log Out and nothing ha
   });
 });
 
-// @mutate src/hooks/useSignOutAction.ts | .then(({ report }) => report(err, { severity: "error", tags: { area: "auth", op: "signOutAfter" } })) | .then(() => undefined)
+// @mutate src/hooks/useSignOutAction.ts | .then((m) => m?.report(err, { severity: "error", tags: { area: "auth", op: "signOutAfter" } })) | .then(() => undefined)
 // @mutate src/hooks/useSignOutAction.ts | if (pending.current) return undefined; |
 // @mutate src/hooks/useSignOutAction.ts | signOutWithPushCleanup(scope ? { scope } : undefined) | signOutWithPushCleanup({ scope })
 // @mutate src/hooks/useSignOutAction.ts | setSigningOut(true); |

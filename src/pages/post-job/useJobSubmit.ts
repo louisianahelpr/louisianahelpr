@@ -42,9 +42,17 @@ import { endSentence } from "@/lib/endSentence";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import { DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
 import { LISTED_PAYMENT_STATUSES } from "../../../supabase/functions/_shared/listedPaymentStatus";
+import { loadModule } from "@/lib/loadModule";
 
 // Declutter haul-away: loaded only for a haul-away post (off the critical path, Q178).
-const haulAwayLib = () => import("@/lib/declutter/haulAway");
+const haulAwayLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
+// The relink sites below run inside try/catch blocks that report and keep the job: a load that came back empty
+// during a recovery reload goes the same way as a failed one, never a TypeError.
+const haulAwayLibLoaded = async () => {
+  const lib = await haulAwayLib();
+  if (!lib) throw new Error("haul-away code unavailable: a recovery reload is under way");
+  return lib;
+};
 /** The same, or null when the chunk could not load (the caller then has nothing to undo or word). */
 const haulAwayLibOrNull = () => haulAwayLib().catch((err: unknown) => { report(err, { severity: "warning", tags: { source: "useJobSubmit.haulAwayLib" } }); return null; });
 
@@ -666,7 +674,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       // another job meanwhile, this job must not be paid for them.
       if (haulAwayItemIds && haulAwayItemIds.length > 0) {
         try {
-          await (await haulAwayLib()).linkHaulAwayForJob(haulAwayItemIds, attempt.jobId);
+          await (await haulAwayLibLoaded()).linkHaulAwayForJob(haulAwayItemIds, attempt.jobId);
         } catch (linkErr) {
           report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.relinkHaulAway" }, context: { job_id: attempt.jobId } });
           // Never clean up a job that may hold money: this job's payment
@@ -859,7 +867,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
        item the link did take off sale is put back, and the seller is told why. */
     if (haulAwayItemIds && haulAwayItemIds.length > 0) {
       try {
-        await (await haulAwayLib()).linkHaulAwayForJob(haulAwayItemIds, jobData.id);
+        await (await haulAwayLibLoaded()).linkHaulAwayForJob(haulAwayItemIds, jobData.id);
       } catch (linkErr) {
         report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkHaulAway" }, context: { job_id: jobData.id } });
         await cleanupOrphanJob(jobData.id);

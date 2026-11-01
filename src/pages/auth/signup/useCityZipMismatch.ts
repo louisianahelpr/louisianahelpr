@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { report } from "@/lib/errorLogger";
+import { loadModule } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const loadCityZipMismatch = () => import("@/lib/cityZipMismatch");
+const loadCityZipMismatch = () => loadModule(() => import("@/lib/cityZipMismatch"));
 
 /**
  * The hint needs the parish tables (9 KB gz), and only once a ZIP has resolved, so
@@ -19,8 +20,8 @@ export function useCityZipMismatch(location: string, resolvedZipParish: string |
     }
     let live = true;
     void loadCityZipMismatch().then(
-      ({ cityZipMismatchHint }) => {
-        if (live) setCityZipMismatch(cityZipMismatchHint(location, resolvedZipParish));
+      (m) => {
+        if (live && m) setCityZipMismatch(m.cityZipMismatchHint(location, resolvedZipParish));
       },
       (err: unknown) => report(err, { severity: "warning", tags: { source: "Signup.cityZipMismatch" } }),
     );

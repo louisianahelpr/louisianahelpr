@@ -211,9 +211,9 @@ describe("create-notification — server-built copy only (Q223)", () => {
     expect(ins[0].payload).toMatchObject({
       user_id: POSTER,
       // Audit 11-01 JA-57/58 + owner 11-01 next-step rule: named sender (the harness profile read is empty, so the
-      // side's fallback), a "Next:" step, and the job page.
+      // fallback for that side), a "Next:" step, and the job page.
       title: "Your Helpr started work",
-      message: 'Your Helpr started work on "Mow the lawn". Next: check it and confirm it\'s done once they mark it done.',
+      message: `Your Helpr started work on "Mow the lawn". Next: check it and confirm it's done once they mark it done.`,
       type: "info",
       link: `/jobs/${JOB}`,
       job_id: JOB,

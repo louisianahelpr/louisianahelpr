@@ -137,7 +137,7 @@ BEGIN
                         WHERE n.user_id = ur.user_id
                           AND n.type = 'admin_alert'
                           AND n.title = 'Declutter photo checks are not running'
-                          AND n.read_at IS NULL);
+                          AND n.read = false);
   END IF;
   RETURN v_n;
 END;

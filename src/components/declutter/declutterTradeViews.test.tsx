@@ -25,7 +25,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n      showPanel(); |       setNeedCard(resume);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         setCardSaved(true); |         setCardSaved(false);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null }); |       void navigate;
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {!showCardStep && <p className="text-xs | {true && <p className="text-xs
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | {offersOff && !myOffer && <p | <p className="text-xs">You're only charged when you buy.</p>{offersOff && !myOffer && <p
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (underAge) { |   if (false) {
  * DB-5 (owner 2026-10-30): Buy now goes straight to that seller's checkout: no reserve sheet, never window.confirm.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (!buy.isPending) buy.mutate(); |     if (window.confirm("Buy?")) buy.mutate();

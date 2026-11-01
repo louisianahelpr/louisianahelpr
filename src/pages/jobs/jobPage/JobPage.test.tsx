@@ -41,7 +41,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew, offeredToMe }); | myApplication: myApplication.data, posterFirst, offeredToMe });
  * @mutate src/components/tracker/jobProgressState.ts | poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") | poster ? ("Pick your Helpr")
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  pendingApplicants={isPoster && applicants.data ? pending : undefined} /> |  />
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && !instantUntil && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {false && <JobProofPhotos
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {<JobProofPhotos
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {party && (isPoster \|\| isHired) && <JobProofPhotos | {(isPoster \|\| isHired) && <JobProofPhotos
@@ -49,6 +49,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && instantUntil && <InstantBookingCard | {instantUntil && <InstantBookingCard
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     : instantUntil\n      ? null\n |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {viewer.status && !(!isPoster && instantUntil) && | {viewer.status &&
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && <p | {!isPoster && !isHired && <p
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -74,10 +75,12 @@ const state = {
   crewNobodyLeft: false,
   /** CMP-4: the viewer's instant booking's decline-by (useMyInstantBooking), or null. */
   instantUntil: null as string | null,
+  /** useOfferedToMe: a pending direct offer to the viewer (an instant booking is one). */
+  offeredToMe: false,
 };
 
 vi.mock("./useJobPage", () => ({
-  useOfferedToMe: () => false,
+  useOfferedToMe: () => state.offeredToMe,
   // CMP-4: the viewer's instant booking (its read and latch are src/test/jobPageInstantBooking.test.tsx).
   useMyInstantBooking: () => state.instantUntil,
   useJobPage: (_id: string, userId: string) => ({
@@ -233,6 +236,7 @@ beforeEach(() => {
   state.cardHold = false;
   state.crewNobodyLeft = false;
   state.instantUntil = null;
+  state.offeredToMe = false;
 });
 
 describe("job page, Helpr side (boards 42, 169)", () => {
@@ -684,6 +688,7 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
   it("inside the 2 hours: the card with its countdown, Confirm and Decline, and no See the offer", () => {
     state.job = openOffer();
     state.party = true;
+    state.offeredToMe = true;
     state.instantUntil = new Date(Date.now() + 102 * 60_000 + 30_000).toISOString();
     renderPage();
     const card = document.querySelector(`[data-instant-booking="${row().id}"]`) as HTMLElement | null;
@@ -696,17 +701,29 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
     expect(screen.queryByRole("button", { name: "See the offer" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
     expect(document.querySelector("[data-viewer-status]")).toBeNull();
+    expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
   });
 
   it("past the 2 hours: the card says they're booked, with no buttons", () => {
     state.job = openOffer();
     state.party = true;
+    state.offeredToMe = true;
     state.instantUntil = new Date(Date.now() - 60_000).toISOString();
     renderPage();
     const card = document.querySelector(`[data-instant-booking="${row().id}"]`) as HTMLElement;
     expect(within(card).getByText("The 2 hours to decline have ended, so you're booked.")).toBeTruthy();
     expect(within(card).queryByRole("button", { name: "Confirm" })).toBeNull();
     expect(within(card).queryByRole("button", { name: "Decline" })).toBeNull();
+  });
+
+  it("a plain direct offer on an open job (no decline window): See the offer and 'offered you', no card", () => {
+    state.job = openOffer();
+    state.party = true;
+    state.offeredToMe = true;
+    renderPage();
+    expect(document.querySelector("[data-instant-booking]")).toBeNull();
+    expect(screen.getByRole("button", { name: "See the offer" })).toBeTruthy();
+    expect(document.querySelector("[data-viewer-status]")?.textContent).toMatch(/offered you this job$/);
   });
 
   it("no instant booking: no card, and the page is as before", () => {

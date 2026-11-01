@@ -14,7 +14,7 @@
  */
 
 /** The statuses that hold a job: a day proposed by the Helpr and not answered, or a day the poster set. */
-export const CONTINUE_DAY_ACTIVE_STATUSES = ["proposed", "set"] as const;
+const CONTINUE_DAY_ACTIVE_STATUSES = ["proposed", "set"] as const;
 
 const tableMissing = (error: unknown) => {
   const code = String((error as { code?: string } | null)?.code ?? "");

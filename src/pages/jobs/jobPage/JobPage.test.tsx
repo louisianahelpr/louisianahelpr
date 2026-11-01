@@ -16,9 +16,9 @@
  *
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx | go: () => navigate(`/posts?highlight=${id}&applicants=1`) | go: () => navigate(`/posts?highlight=${id}`)
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {hasPhoto && ( |         {true && (
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isHired && isSellForMeJob(job.category) && !job.helper_completed_at && primary && ( |             {false && (
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isHired && isSellForMeJob(job.category) && !job.helper_completed_at && hiredFace && ( |             {false && (
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {hasVideo && <ScopeVideo url={job.scope_video_url} />} |
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const primary = isPoster && posterWait === "confirm_arrival" |   const primary = isPoster && false
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const posterStep = posterWait === "confirm_arrival" |   const posterStep = false && posterWait === "confirm_arrival"
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | arrival.confirming ? "Confirming…" : "Confirm they've arrived" | arrival.confirming ? "Confirming…" : "Confirm arrival"
  * @mutate src/pages/jobs/jobPage/usePageConfirmArrival.ts |       await confirmPosterArrival(job); |       void job;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const hiredFace = isHired && viewer.action.kind === "open_working" |   const hiredFace = false && viewer.action.kind === "open_working"
@@ -1210,7 +1210,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | const CANCELLABLE = new Set(["open", "accepted"]); | const CANCELLABLE = new Set(["open", "accepted", "in_progress"]);
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | && !job.helper_on_the_way_at && | &&
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | (CANCELLABLE.has(status) && !job.helper_on_the_way_at && | (CANCELLABLE.has(status) &&
   // JA-6 (Jobs audit 11-01): nor Change date or time, by the same rule.
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canChange = !!job.date_needed && !job.helper_on_the_way_at && !job.helper_arrived_at | const canChange = !!job.date_needed
   it("no Cancel or Change date or time once the Helpr set off, and an open job with no applicants offers Cancel", () => {

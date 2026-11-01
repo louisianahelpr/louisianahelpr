@@ -1,3 +1,4 @@
+// @mutate src/components/tracker/jobProgressState.ts | const picking = poster && (o.pendingApplicants ?? 0) > 0; | const picking = false;
 // Board 2 (deal-room chat) and the chat halves of 59, 61, 62, 63, now the ONE tracker (owner, 2026-10-21):
 // the stage is named from the job's own stamps and never runs ahead of them, and the deal card never writes.
 // @mutate src/components/tracker/jobProgressState.ts | (workHasBegun(job, { workUnderway: o.workUnderway }) ? `${other} is working` : `${other} is at the job`) | `${other} is working`
@@ -11,6 +12,10 @@
 // @mutate src/components/tracker/jobStepFromWait.ts |   approve: at(7), |   approve: at(6),
 // @mutate src/components/tracker/jobProgressState.ts |       if (poster && !posterIn && now >= posterConfirmClosesMs(job.date_needed, job.start_time)) { |       if (false) {
 // @mutate src/components/job-card/jobStatusLine.ts |     if (Date.now() >= posterConfirmClosesMs(job.date_needed, job.start_time)) return | if (false) return
+// @mutate src/components/tracker/jobProgressState.ts |     const pending = o.pendingApplicants ?? (o.application === "pending" ? 1 : 0); |     const pending = o.application === "pending" ? 1 : 0;
+// @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD | if (false) return at(null, false, poster ? EXPIRED_WORD
+// @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return { ...base, stage: 0 | if (false) return { ...base, stage: 0
+// @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, cancellation_reason, cancelled_by, | has_active_dispute,
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -136,6 +141,34 @@ describe("jobProgress (the one tracker)", () => {
     expect(poster({ status: "cancelled" })).toMatchObject({ tone: "cancelled", label: "Cancelled", waitingOnYou: false });
     expect(poster({ status: "in_progress", helper_id: JO, has_active_dispute: true })).toMatchObject({ stage: 7, tone: "problem", label: "Dispute" });
     expect(helpr({}, "rejected").stage).toBeNull();
+  });
+});
+
+describe("audit 11-01 (JA-1, JA-23)", () => {
+  beforeAll(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(NOW); });
+  afterAll(() => { vi.useRealTimers(); });
+  const paid: ProgressJob = { ...base, payment_status: "escrow" };
+  it("JA-1: the job page's applicant count reaches the poster's line (never 'No applicants yet' with 2 waiting)", () => {
+    const p = jobProgress(paid, { viewer: "poster", now: NOW, pendingApplicants: 2 });
+    expect(p.next).not.toMatch(/no applicants/i);
+    expect(p).toMatchObject({ next: "Pick your Helpr", waitingOnYou: true });
+    // Control: nobody applied still says so.
+    expect(jobProgress(paid, { viewer: "poster", now: NOW, pendingApplicants: 0 }).next).not.toMatch(/applied/);
+  });
+  it("JA-23: an expired listing is Expired for its poster, Closed for anyone else, never Cancelled", () => {
+    const expired: ProgressJob = { ...base, status: "cancelled", cancelled_by: null, cancellation_reason: "Job listing expired: no Helpr was hired" };
+    const p = jobProgress(expired, { viewer: "poster", now: NOW });
+    expect(p).toMatchObject({ tone: "cancelled", label: "Expired", word: "Expired", next: "No Helpr was hired in time" });
+    const h = jobProgress(expired, { viewer: "helpr", now: NOW });
+    expect(`${h.label} ${h.word} ${h.next}`).not.toMatch(/ancel/);
+    // A real cancel (a person did it) stays Cancelled.
+    expect(jobProgress({ ...expired, cancelled_by: "p" }, { viewer: "poster", now: NOW })).toMatchObject({ label: "Cancelled" });
+  });
+  it("the job page reads the columns the expired rule needs", () => {
+    const src = readFileSync(resolve(__dirname, "../../pages/jobs/jobPage/useJobPage.ts"), "utf8");
+    const party = src.match(/const PARTY_COLUMNS =\s*"([^"]+)"/)?.[1] ?? "";
+    expect(party.length).toBeGreaterThan(100);
+    for (const c of ["cancellation_reason", "cancelled_by", "cancellation_fee"]) expect(party.split(/,\s*/)).toContain(c);
   });
 });
 

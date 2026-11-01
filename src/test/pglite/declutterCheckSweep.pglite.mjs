@@ -120,7 +120,7 @@ await db.exec(`
     created_at timestamptz DEFAULT now(), closed_at timestamptz);
   CREATE TABLE public.payout_holds (helper_id uuid PRIMARY KEY, reason text NOT NULL CHECK (length(btrim(reason)) BETWEEN 1 AND 1000),
     held_by uuid, held_at timestamptz NOT NULL DEFAULT now());
-  CREATE TABLE public.notifications (user_id uuid, title text, message text, type text, link text);
+  CREATE TABLE public.notifications (user_id uuid, title text, message text, type text, link text, read_at timestamptz);
   -- Stand-in for the ledger's normaliser (lower case, as admin_alert_manual_close's prefixes are).
   CREATE FUNCTION public.ops_alert_normalise(t text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT lower(t) $$;
   CREATE TABLE public.test_subjects (user_id uuid);
@@ -328,6 +328,25 @@ check("S25 one alert to the admin naming the 2 overdue listings (never test data
   && note[0].message.includes('"Item 30"') && note[0].message.includes('"Item 36"') && !/Item 3[1-5]/.test(note[0].message), `${JSON.stringify(r)} ${JSON.stringify(note)}`);
 r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
 check("S26 each listing is alerted once", r.ok?.[0]?.n === 0 && (await alertsNow()) === 1, `${JSON.stringify(r)} ${await alertsNow()}`);
+// Review of 5fcb074cca: while that notice is unread, a new overdue listing on the next run gets no second notice.
+await liveUnchecked(37, SELLER, 50);
+await clearedAgo(50, [I(37)]);
+r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
+check("S30 two runs in a row with the first notice unread: one notice, not two", r.ok?.[0]?.n === 1 && (await alertsNow()) === 1,
+  `${JSON.stringify(r)} ${await alertsNow()}`);
+// No admin at all: nothing is stamped, so the listing is still alerted once there is one.
+await liveUnchecked(38, SELLER, 50);
+await clearedAgo(50, [I(38)]);
+await db.query("UPDATE public.notifications SET read_at = now()");
+await db.query("DELETE FROM public.user_roles WHERE role = 'admin'");
+r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
+const noAdmin = r.ok?.[0]?.n === 0 && (await alertsNow()) === 1;
+await db.query(`INSERT INTO public.user_roles VALUES ('${ADMIN}', 'admin')`);
+r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
+check("S31 with no admin nothing is stamped; once there is one, the listing is alerted", noAdmin && r.ok?.[0]?.n === 1 && (await alertsNow()) === 2,
+  `${noAdmin} ${JSON.stringify(r)} ${await alertsNow()}`);
+// The admin read it: a later overdue listing alerts again.
+await db.query("UPDATE public.notifications SET read_at = now()");
 // An edit clears its check again: alerted again only after another 45 minutes with no check. (The first alert is
 // moved 55 minutes back, so the clock moved back below still falls after it, as it would in real time.)
 if (!SKIP_FOLLOWUP) await db.query("UPDATE public.declutter_item_private SET ai_check_overdue_alerted_at = now() - interval '55 minutes' WHERE item_id = $1", [I(30)]);
@@ -336,7 +355,7 @@ r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
 const quiet = r.ok?.[0]?.n === 0;
 await clearedAgo(50, [I(30)]);
 r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
-check("S28 an edit re-arms it: no alert right after, one once it is 45 minutes unchecked again", quiet && r.ok?.[0]?.n === 1 && (await alertsNow()) === 2,
+check("S28 an edit re-arms it: no alert right after, one once it is 45 minutes unchecked again", quiet && r.ok?.[0]?.n === 1 && (await alertsNow()) === 3,
   `${quiet} ${JSON.stringify(r)} ${await alertsNow()}`);
 const mc = await one(`SELECT public.admin_alert_manual_close('Declutter photo checks are not running') AS n,
   public.admin_alert_manual_close('A sold Declutter listing was never checked') AS s,

@@ -280,12 +280,12 @@ describe("the Wanted hub", () => {
   it("#16: once an answer is accepted, the post asks to be closed", async () => {
     mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], status: "accepted" }] }];
     open();
-    expect(await screen.findByText(/Got what you needed\? Close this post/)).toBeInTheDocument();
+    expect(await screen.findByText("Next: close this post if you got what you needed")).toBeInTheDocument();
     cleanup();
     mine.rows = [POST];
     open();
     await screen.findByText("Red bike");
-    expect(screen.queryByText(/Got what you needed/)).toBeNull();
+    expect(screen.queryByText(/got what you needed/)).toBeNull();
   });
 
   it("#19: a reply shows its photo, and a listing that answered isn't listed again as a match", async () => {
@@ -295,6 +295,35 @@ describe("the Wanted hub", () => {
     await screen.findByText(/Green bike/);
     expect(screen.getAllByText(/Red bike/)).toHaveLength(1);
     expect(document.querySelector("[data-wanted-reply-photo]")).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/public/job-photos/s/declutter/i1/a.jpg");
+  });
+
+  // Next-step line (owner 2026-11-01: "people aren't told what to do next"): each of your posts says your move (a
+  // reply waiting on you, an accepted answer, a post that ran out) or who it waits on and how long it stays up.
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |       <NextStep value={wantedNextStep(post, gotIt)} /> |
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (yours > 0) return { who: "you", |   if (yours < 0) return { who: "you",
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (post.status === "expired") return { who: "you", text: "Post it again to keep looking" }; |
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx | text: "Waiting on sellers near you to answer", by: postTimeLeft(post.expires_at, now) | text: "Waiting on sellers near you to answer"
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |   return ms > 2 * 86_400_000 ? `${Math.floor(ms / 86_400_000)} days left` : timeLeft(expiresAt, now); |   return timeLeft(expiresAt, now);
+  it("Next-step line: your move on each post, or who it waits on and the days left", async () => {
+    const line = async (rows: WantedPost[]) => {
+      cleanup();
+      mine.rows = rows;
+      open();
+      await screen.findByText(rows[0].what);
+      return document.querySelector("li[data-wanted-post] [data-next-step]") as HTMLElement;
+    };
+    let l = await line([POST]);
+    expect(l.textContent).toBe("Next: answer the seller's reply in Buying");
+    expect(l.getAttribute("data-next-step")).toBe("you");
+    const second = { ...POST.replies[0], offer_id: "o3", item_title: "Pink bike" };
+    expect((await line([{ ...POST, replies: [POST.replies[0], second] }])).textContent).toBe("Next: answer the 2 sellers' replies in Buying");
+    expect((await line([{ ...POST, status: "expired", replies: [] }])).textContent).toBe("Next: post it again to keep looking");
+    l = await line([{ ...POST, status: "closed", replies: [] }]);
+    expect(l.getAttribute("data-next-step")).toBe("info");
+    const in12 = new Date(Date.now() + 12.5 * 86_400_000).toISOString();
+    l = await line([{ ...POST, expires_at: in12, replies: [] }]);
+    expect(l.textContent).toBe("Waiting on sellers near you to answer · 12 days left");
+    expect(l.getAttribute("data-next-step")).toBe("them");
   });
 
   it("a post with no replies says so", async () => {

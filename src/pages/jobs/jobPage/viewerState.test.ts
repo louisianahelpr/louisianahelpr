@@ -5,8 +5,8 @@
  * @mutate src/pages/jobs/jobPage/viewerState.ts |   if (mineAssigned && !o.job.helper_confirmed_at && o.job.status === "accepted") { |   if (false) {
  * @mutate src/pages/jobs/jobPage/viewerState.ts |   if (o.offeredToMe && o.job.status === "open") { |   if (false) {
  * @mutate src/pages/jobs/jobPage/viewerState.ts |   if (o.onCrew) return { action: { kind: "open_working" }, status: null }; |
- * @mutate src/pages/jobs/jobPage/useJobPage.ts |   return { job, applicants, isPoster, myApplication, tracking, onCrew: onCrew.data === true }; |   return { job, applicants, isPoster, myApplication, tracking, onCrew: false };
- * @mutate src/pages/jobs/jobPage/useJobPage.ts | .from("group_job_helpers").select("id").eq("job_id", jobId).eq("helper_id", userId) | .from("group_job_helpers").select("id").eq("job_id", jobId)
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts | onCrew: onCrew.data?.on === true, | onCrew: false,
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts | .from("group_job_helpers").select("id, helper_confirmed_at").eq("job_id", jobId).eq("helper_id", userId) | .from("group_job_helpers").select("id, helper_confirmed_at").eq("job_id", jobId)
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -41,9 +41,9 @@ describe("job page: what each viewer is offered", () => {
   it("A2-B8: the page's data hook reads the viewer's OWN roster row on a crew job and hands it to the page", () => {
     const hook = blankComments(readFileSync(resolve(__dirname, "useJobPage.ts"), "utf8"));
     expect(hook.length).toBeGreaterThan(1000);
-    expect(hook).toContain('.from("group_job_helpers").select("id").eq("job_id", jobId).eq("helper_id", userId)');
+    expect(hook).toContain('.from("group_job_helpers").select("id, helper_confirmed_at").eq("job_id", jobId).eq("helper_id", userId)');
     expect(hook).toMatch(/enabled: !!job\.data && !isPoster && !!userId && job\.data\.job\.is_group_job === true/);
-    expect(hook).toContain("onCrew: onCrew.data === true }");
+    expect(hook).toContain("onCrew: onCrew.data?.on === true,");
   });
   it("an applied member is never offered Apply", () => {
     expect(table.filter(([n]) => n !== "not applied, open").every(([, g]) => g.action.kind !== "apply")).toBe(true);

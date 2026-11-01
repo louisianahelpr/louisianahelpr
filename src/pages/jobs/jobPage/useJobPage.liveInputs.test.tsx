@@ -4,7 +4,7 @@
  * ("Take the before photo" after both photos). The supabase mock trims each row to the columns selected, the way
  * PostgREST does, so a column the read forgets is missing here exactly as on prod.
  *
- * @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id | has_active_dispute, parent_job_id
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts | revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id | revision_deadline, parent_job_id
  * @mutate src/pages/jobs/jobPage/useJobPage.ts |     enabled: !!job.data?.party && !!job.data.job.helper_id, |     enabled: false,
  */
 import { describe, it, expect, vi } from "vitest";

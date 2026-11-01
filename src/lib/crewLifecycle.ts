@@ -6,6 +6,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { doneFloorStart } from "@/lib/doneFloor";
 import type { AcceptMissing } from "@/lib/awardGate";
+import { applicationStatusLabel } from "@/lib/statusLabels";
 
 /**
  * A CREW MEMBER'S OWN LIFECYCLE (Q1382, owner 2026-10-05: group jobs ON at
@@ -113,6 +114,21 @@ export function withCrewSlotStamps<J extends object>(job: J, slot: CrewSlot | nu
     poster_confirmed_arrival_at: slot.poster_confirmed_arrival_at,
     helper_completed_at: slot.helper_completed_at,
   };
+}
+
+/** The poster's roster pill for one member: work confirmed, their step (when the row carries stamps), else the hire status. */
+export function crewRosterPill(h: Partial<StepStamps> & { status: string; poster_confirmed_completion_at?: string | null }): string {
+  if (h.status === "accepted" && h.poster_confirmed_completion_at) return "Work confirmed";
+  if (h.status === "accepted" && h.helper_confirmed_at !== undefined) {
+    return crewMemberStatusLabel({
+      helper_confirmed_at: h.helper_confirmed_at ?? null,
+      helper_on_the_way_at: h.helper_on_the_way_at ?? null,
+      helper_arrived_at: h.helper_arrived_at ?? null,
+      poster_confirmed_arrival_at: h.poster_confirmed_arrival_at ?? null,
+      helper_completed_at: h.helper_completed_at ?? null,
+    });
+  }
+  return applicationStatusLabel(h.status);
 }
 
 /** What one roster member is doing, for the poster's roster. */

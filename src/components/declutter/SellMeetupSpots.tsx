@@ -92,10 +92,10 @@ function SpotRow({ spot }: { spot: MyMeetupSpot }) {
         <p className="text-ds-13 text-muted-foreground">{spot.address}</p>
         {spot.windows && spot.windows.length > 0 && <p className="text-ds-13 text-muted-foreground">{placeHoursLine(spot.windows, [])}</p>}
       </div>
-      <button type="button" aria-label={`Remove ${spot.name}`} disabled={remove.isPending} onClick={() => remove.mutate()}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <Button type="button" variant="ghost" size="iconCompact" aria-label={`Remove ${spot.name}`} disabled={remove.isPending} onClick={() => remove.mutate()}
+        className="text-muted-foreground">
         <Trash2 className="h-4 w-4" aria-hidden="true" />
-      </button>
+      </Button>
     </li>
   );
 }
@@ -131,10 +131,10 @@ export function SellMeetupSpots() {
               <p className="text-ds-13 font-semibold text-foreground">Or start from a police safe exchange spot</p>
               <div className="flex flex-wrap gap-2">
                 {suggestions.map((s) => (
-                  <button key={s.id} type="button" onClick={() => setDraft(fromSuggestion(s))}
-                    className="min-h-11 rounded-full border border-foreground/25 bg-background px-3 text-left text-ds-13 text-foreground">
+                  <Button key={s.id} type="button" variant="outline" size="sm" onClick={() => setDraft(fromSuggestion(s))}
+                    className="px-3 text-left text-ds-13">
                     + {s.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

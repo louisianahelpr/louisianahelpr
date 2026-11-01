@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/re
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
- * LEAD-LIST-FOR-SELLER follow-ups (B55 handoff b, and the 375 check):
+ * LEAD-LIST-FOR-SELLER follow-ups (B55 handoff b, and the 375 check of 2026-11-01):
  *  - the Helpr can EDIT an unsent draft: Edit opens the form filled with that listing, and Save changes calls
  *    declutter_helpr_update_listing (helprUpdateListing) for that item, never create;
  *  - Send and Add come BEFORE the list, so on a phone they are on screen without scrolling past every listing

@@ -46,6 +46,13 @@ function withBackout<J extends { id: string; status?: string | null }>(j: J, bac
   return open && backoutNoticeApplies(open.backout_kind, j.status) ? { ...j, backout_notice: open } : j;
 }
 
+/** JA-39: the on-the-way Helpr's Next up task. */
+export const ON_THE_WAY_TASK = "Tap I've arrived when you get there";
+/** JA-39: which side of the job the Helpr is on, by where the job stands (never "working" before they arrive). */
+function helprSide(job: Job, lineId: string): string {
+  if (!job.helper_id) return "You applied";
+  return lineId === "on_the_way" ? "You're on the way" : "You're working";
+}
 const HOUR = 3_600_000;
 
 /** Spec v2 §5.2 tier 2: someone is waiting on the member (applicants, an offer, an order, a finished job). */
@@ -154,8 +161,10 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       item: {
         id: `a-${a.id}`,
         section: "jobs",
-        title: line.detail,
-        meta: `${a.job!.helper_id ? "You're working" : "You applied"} · ${a.job!.title}`,
+        // JA-39 (Jobs audit 11-01): on the way is not working yet. The task is the arrival tap, and the side word
+        // says where they are ("You're on the way · Haul off..."), never "You're working" before they arrive.
+        title: line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail,
+        meta: `${helprSide(a.job!, line.id)} · ${a.job!.title}`,
         to: `/jobs/${a.job!.id}`,
         action: "Open job",
       },

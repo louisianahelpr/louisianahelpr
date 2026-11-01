@@ -24,7 +24,7 @@
  * @mutate src/components/declutter/useSellFlowState.ts | useState<FormState>(() => (!urlItemId && startsFree(params) ? { ...EMPTY, free: true } : EMPTY)) | useState<FormState>(EMPTY)
  */
 import { afterEach, describe, expect, it, vi, beforeEach } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { LastSetup } from "@/lib/declutter/lastSetup";
@@ -119,6 +119,9 @@ import * as api from "@/lib/declutter/api";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { applyLastSetup } from "./SellLastSetup";
 
+/** A settings row's value in the listing summary (owner 2026-11-01): "drops", "free" or "pickup". */
+const settingsValue = (id: string) => document.querySelector(`[data-settings-row="${id}"] [data-settings-value]`)?.textContent ?? null;
+
 function open(url = "/declutter/sell") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
@@ -153,15 +156,41 @@ describe("posting says what the settings will do, and asks nothing (owner 2026-1
     remembered.value = null;
   });
 
+  // Owner 2026-11-01 11:29/11:30 AM (screenshot: "could have been better organized"; "include it with the posting
+  // info"): the settings are three labeled rows inside "Your listing", below Details, with ONE Change to Settings. No
+  // bold sentence, no "Uses your settings · Settings" line, no repeated "Pickup at Home", no lone short day.
+  // @mutate src/components/declutter/SellSummaryCard.tsx |         {settingsRows}\n |
+  // @mutate src/components/declutter/SellingSettingsRows.tsx |   return c.drops ? `${c.dropPct}% each evening, lowest ${c.floorPct}% of each price` : "Off"; |   return c.drops ? `Price drops: on, ${c.dropPct}% each evening, never below ${c.floorPct}% of each price.` : "Off";
+  it("the settings are labeled rows of Your listing, below Details, with one Change link (owner 2026-11-01)", async () => {
+    places.value = [PLACE];
+    open();
+    await addPhotoAndWait();
+    await waitFor(() => expect(settingsValue("pickup")).toBe("Porch · Home, Mid-City · Saturdays"));
+    const card = document.querySelector("[data-sell-summary]") as HTMLElement;
+    const rows = [...card.querySelectorAll("[data-summary-row],[data-settings-row]")].map((r) => r.getAttribute("data-summary-row") ?? r.getAttribute("data-settings-row"));
+    expect(rows.slice(-4)).toEqual(["description", "pickup", "drops", "free"]);
+    const labels = [...card.querySelectorAll("[data-settings-row] > div > div > p:first-child")].map((p) => p.textContent);
+    expect(labels).toEqual(["Pickup", "Price drops", "Make it free"]);
+    expect(settingsValue("drops")).toBe("5% each evening, lowest $23");
+    expect(settingsValue("free")).toBe("Never");
+    const change = within(card).getAllByRole("link");
+    expect(change.map((l) => [l.textContent, l.getAttribute("href")])).toEqual([["Change", "/declutter/settings"]]);
+    const text = document.body.textContent ?? "";
+    expect(text).not.toContain("Uses your settings");
+    expect(text).not.toContain("Pickup at Home");
+    expect(text).not.toMatch(/Price drops: on/);
+    expect(document.querySelector("[data-sell-outcome],[data-uses-settings],[data-saved-pickup]")).toBeNull();
+  });
+
   it("no switches or address boxes; what will happen is said before Post, with a link to Settings; the tax box stays", async () => {
     open();
     await addPhotoAndWait();
     expect(screen.queryByRole("switch", { name: /Lower the price over time/ })).toBeNull();
     expect(screen.queryByLabelText("Pickup address")).toBeNull();
     expect(document.querySelector("[data-auto-free]")).toBeNull();
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 5% each evening, never below $23."));
-    expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Make it free: never.");
-    expect(screen.getByRole("link", { name: "Settings" }).getAttribute("href")).toBe("/declutter/settings");
+    await waitFor(() => expect(settingsValue("drops")).toBe("5% each evening, lowest $23"));
+    expect(settingsValue("free")).toBe("Never");
+    expect(screen.getByRole("link", { name: "Change your selling settings" }).getAttribute("href")).toBe("/declutter/settings");
     expect(document.getElementById("sell-tax")).not.toBeNull();
   });
 
@@ -169,14 +198,14 @@ describe("posting says what the settings will do, and asks nothing (owner 2026-1
     remembered.value = { keepUp: true, drops: false, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     open();
     await addPhotoAndWait();
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toMatch(/Price drops: off\. It stays at \$\d+/));
+    await waitFor(() => expect(settingsValue("drops")).toBe("Off"));
   });
 
   it("a saved place beats the last listing's address, says which, and its exact point is sent", async () => {
     places.value = [{ id: "p1", position: 1, label: "Home", address: "9 Saved Pl, Baton Rouge, LA", area: "Mid-City", lat: 30.45123, lng: -91.15456, weekdays: [6] }];
     open();
     await addPhotoAndWait();
-    await waitFor(() => expect(document.querySelector("[data-saved-pickup]")?.textContent).toBe("Pickup at Home"));
+    await waitFor(() => expect(settingsValue("pickup")).toBe("Porch · Home, Mid-City · Saturdays"));
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(drafts).toHaveLength(1));
@@ -200,8 +229,8 @@ describe("a new listing remembers the last listing's setup", () => {
     open();
     await addPhotoAndWait();
     // The drop step comes along as the seller set it last time.
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("10% each evening"));
-    expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain(LAST.areaLabel);
+    await waitFor(() => expect(settingsValue("drops")).toMatch(/^10% each evening/));
+    expect(settingsValue("pickup")).toContain(LAST.areaLabel);
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(api.setHandovers).toHaveBeenCalledWith(NEW_ID, ["porch", "meetup"]));
@@ -235,7 +264,7 @@ describe("a new listing starts from the seller's remembered choices", () => {
     places.value = [PLACE];
     open();
     await addPhotoAndWait();
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 5% each evening, never below $23."));
+    await waitFor(() => expect(settingsValue("drops")).toBe("5% each evening, lowest $23"));
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(remembered.saves).toHaveLength(1));
@@ -248,8 +277,8 @@ describe("a new listing starts from the seller's remembered choices", () => {
     remembered.value = { keepUp: false, drops: true, dropPct: 15, floorPct: 60, freeAfterDays: 14, handovers: ["porch", "meetup"], acceptsOffers: true };
     open();
     await addPhotoAndWait();
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 15% each evening, never below $27."));
-    expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Make it free: after 14 days");
+    await waitFor(() => expect(settingsValue("drops")).toBe("15% each evening, lowest $27"));
+    expect(settingsValue("free")).toBe("After 14 days");
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(api.setHandovers).toHaveBeenCalledWith(NEW_ID, ["porch", "meetup"]));
@@ -261,7 +290,7 @@ describe("a new listing starts from the seller's remembered choices", () => {
     await addPhotoAndWait();
     fireEvent.click(screen.getByRole("button", { name: "Edit price" }));
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "1" } });
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: off."));
+    await waitFor(() => expect(settingsValue("drops")).toBe("Off"));
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(remembered.saves).toHaveLength(1));

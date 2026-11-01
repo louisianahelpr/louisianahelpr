@@ -151,7 +151,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       )}
       {/* The long rules sit behind the link (owner mockup 11-01). */}
       <Sheet open={rules} onOpenChange={setRules}>
-        <SheetContent side="bottom" className="bg-premium-page max-h-[90dvh] overflow-y-auto sm:max-w-[440px]" data-free-rules="">
+        <SheetContent side="bottom" className="bg-premium-page max-h-[90dvh] overflow-y-auto" data-free-rules="">
           <SheetHero title="How free items work" />
           <p className="mt-2 text-ds-14 text-foreground">{freeAskLine(offered, oneTimeCheckAhead)}</p>
         </SheetContent>

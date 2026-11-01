@@ -356,6 +356,8 @@ describe("one footer convention", () => {
    * here.
    */
   const FOOTERLESS_BY_DESIGN: Record<string, string> = {
+    "src/components/declutter/DeclutterFreeClaim.tsx": "How free items work: words only, nothing to act on; the sheet's X is the exit (FreeAskSheet, the ask itself, has its footer)",
+    "src/pages/jobs/jobPage/JobPageActionRow.tsx": "More options: a menu, each row acts and closes; the sheet's X is the exit",
     "src/components/declutter/DeclutterBunchPhotos.tsx": "a photo viewer: each action acts and closes, and Done sits in the same row",
     "src/components/create/CreateSheet.tsx": "a menu (board 1): each row's chips go straight to their flow; the sheet's close is the exit",
     "src/components/sections/ChoiceFilterRow.tsx": "a radio list: a tap picks and closes",

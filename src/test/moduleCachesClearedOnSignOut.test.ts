@@ -76,6 +76,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/errorLogger.ts:bgFailureSends": { kind: "not-user-data", why: "report rate limit" },
   "src/lib/jobCompletedEvent.ts:emitted": { kind: "not-user-data", why: "analytics emit-once job ids" },
   "src/lib/chunkReload.ts:failedAssetUrls": { kind: "not-user-data", why: "same-origin /assets chunk paths that failed to load this page" },
+  "src/lib/loadModule.ts:waiters": { kind: "not-user-data", why: "pending untilReload() callbacks for this page, failed when a recovery reload is called off" },
   "src/lib/pushPermissionNudge.ts:inFlight": { kind: "not-user-data", why: "nudge reasons in flight" },
   "src/lib/routePrefetch.ts:warmed": { kind: "not-user-data", why: "route chunk names" },
   "src/lib/declutter/setupFee.ts:firstTimeListeners": { kind: "not-user-data", why: "the mounted first-claim screen's own subscription; holds no member data" },

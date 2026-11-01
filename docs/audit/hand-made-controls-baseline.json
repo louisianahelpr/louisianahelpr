@@ -893,9 +893,6 @@
       "button": 5,
       "input": 2
     },
-    "src/components/sections/AppTopBar.tsx": {
-      "button": 1
-    },
     "src/components/sections/ChoiceFilterRow.tsx": {
       "button": 1
     },

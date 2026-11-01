@@ -63,14 +63,15 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(size(bar)).toBeTruthy();
     expect(size(skeleton)).toBe(size(bar));
     expect(call(skeleton, "HelprMark")).toContain("emblemOnly");
-    // The right cluster: the bar's gap classes, and on Home exactly two controls (bell h-11, avatar h-10).
+    // The right cluster: the bar's gap classes, and on Home exactly two controls (bell h-11, avatar h-10 in the
+    // skeleton; the bar's avatar is the shared iconCompact Button since B61, 11-01, its box 44x44 before and after).
     expect(bar).toContain('className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0"');
     const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0"'));
     expect(cluster.length).toBeGreaterThan(100);
     const boxes = cluster.slice(0, cluster.indexOf("</div>")).match(/<span className="h-1[01] w-1[01]/g) ?? [];
     expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-10 w-10']);
     expect(bar).toMatch(/NotificationPanel triggerClassName="h-11 w-11/);
-    expect(bar).toMatch(/className="btn-press h-10 w-10 rounded-full/);
+    expect(bar).toMatch(/variant="ghost"\s+size="iconCompact"\s+aria-label=\{tr\("nav\.profile"\)\}/);
   });
 
   it("then Home's body: greeting, the Next up card, Coming up, the 2x2 section tiles (board 7)", () => {

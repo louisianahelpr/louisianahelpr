@@ -120,15 +120,16 @@ export function AppTopBar({
       </span>
       )}
       {user && !isWebDesktop && showProfile && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="iconCompact"
           aria-label={tr("nav.profile")}
           data-testid="top-bar-profile"
           onClick={() => navigate("/profile")}
-          className="btn-press h-10 w-10 rounded-full flex items-center justify-center"
         >
           <UserAvatar userId={user.id} src={profile?.avatar_url} name={profile?.full_name} pixelSize={72} alt="" className="w-9 h-9" />
-        </button>
+        </Button>
       )}
     </>
   );

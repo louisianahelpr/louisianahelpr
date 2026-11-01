@@ -5435,6 +5435,27 @@ export type Database = {
         }
         Relationships: []
       }
+      instant_book_declines: {
+        Row: {
+          declined_at: string
+          helper_id: string
+          job_id: string
+          reason: string
+        }
+        Insert: {
+          declined_at?: string
+          helper_id: string
+          job_id: string
+          reason?: string
+        }
+        Update: {
+          declined_at?: string
+          helper_id?: string
+          job_id?: string
+          reason?: string
+        }
+        Relationships: []
+      }
       instant_book_floors: {
         Row: {
           category: Database["public"]["Enums"]["job_category"]
@@ -6999,6 +7020,8 @@ export type Database = {
           id: string
           is_auto_created: boolean
           is_flexible_schedule: boolean
+          instant_booked_at: string | null
+          instant_decline_until: string | null
           is_group_job: boolean | null
           is_recurring: boolean | null
           is_seed: boolean
@@ -7123,6 +7146,8 @@ export type Database = {
           id?: string
           is_auto_created?: boolean
           is_flexible_schedule?: boolean
+          instant_booked_at?: string | null
+          instant_decline_until?: string | null
           is_group_job?: boolean | null
           is_recurring?: boolean | null
           is_seed?: boolean
@@ -7247,6 +7272,8 @@ export type Database = {
           id?: string
           is_auto_created?: boolean
           is_flexible_schedule?: boolean
+          instant_booked_at?: string | null
+          instant_decline_until?: string | null
           is_group_job?: boolean | null
           is_recurring?: boolean | null
           is_seed?: boolean
@@ -15477,6 +15504,13 @@ export type Database = {
       instant_book_helper_free_on: { Args: { p_day: string; p_helper: string }; Returns: boolean }
       instant_book_real_jobs_done: { Args: { p_helper: string }; Returns: number }
       instant_book_block_reason: { Args: { p_helper: string; p_job_id: string }; Returns: string }
+      rpc_instant_book: { Args: { p_helper_id: string; p_job_id: string }; Returns: Json }
+      rpc_instant_book_decline: { Args: { p_job_id: string }; Returns: Json }
+      instant_book_payment_failed: { Args: { p_job_id: string }; Returns: boolean }
+      rpc_my_instant_bookings: {
+        Args: never
+        Returns: { budget: number; date_needed: string; decline_until: string; job_id: string; title: string }[]
+      }
       instant_book_candidates: {
         Args: { p_job_id: string }
         Returns: { avatar_url: string | null; display_name: string; helper_id: string; jobs_done: number; rating: number | null; review_count: number }[]

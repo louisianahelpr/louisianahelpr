@@ -54,7 +54,9 @@ export function IdentityCheckMount() {
     const ric = (window as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
     const warm = () => {
       void loadSheet().catch(() => {
-        // A failed warm-up is retried by the real open (React.lazy fetches again).
+        // A failed warm-up is retried by the real open: the warm-up calls loadSheet()
+        // directly, not through the lazy component, so React.lazy has not cached this
+        // rejection and its factory runs (and fetches) again on the first render.
       });
     };
     const id = ric ? ric(warm, { timeout: 8000 }) : window.setTimeout(warm, 4000);

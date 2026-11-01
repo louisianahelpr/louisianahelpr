@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchMyCart, sellerCancelSale, type CartLine } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -94,14 +95,16 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
               <li key={l.line_id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
                 <p className="font-semibold">{l.item_title} · {itemPriceLabel(l.price_cents)}</p>
                 <p className="text-sm text-muted-foreground">{WORDS[kind].line} · {timeLeft(l.checkout_by)}</p>
-                <button
+                <Button
                   type="button"
-                  className="min-h-11 rounded-full border border-border px-4 py-2 text-sm font-semibold"
+                  variant="ghost"
+                  size="sm"
+                  className="border border-border py-2 text-sm font-semibold tracking-normal disabled:opacity-100"
                   disabled={cancel.isPending || !l.item_id}
                   onClick={() => l.item_id && setAsking({ itemId: l.item_id, kind })}
                 >
                   {WORDS[kind].cancel}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

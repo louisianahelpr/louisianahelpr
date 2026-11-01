@@ -60,7 +60,7 @@ export function NoWayWorks({ sellerId, who = "seller" }: { sellerId: string; who
         None of the ways this {who} offers works for you here. Message the {who} to agree one. Your checkout time waits
         while you talk (up to 3 days), and nobody gets a strike if you can't agree.
       </p>
-      <Button type="button" variant="ghost" size="sm" className="border border-border py-2 text-sm font-semibold tracking-normal"
+      <Button type="button" variant="ghost" size="sm" className="border border-border py-2 text-sm font-semibold tracking-normal disabled:opacity-100"
         disabled={start.isPending} onClick={() => start.mutate()}>
         {start.isPending ? "Opening…" : `Message the ${who}`}
       </Button>

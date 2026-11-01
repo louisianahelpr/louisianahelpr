@@ -6,6 +6,7 @@
  * declutter_manage(p_seller, p_action, p_args), which checks the part is on and the target is the seller's selling
  * side, then runs the seller's own RPC. Server rules: migration 20261101181005_declutter_manager_mode.sql.
  */
+import type { Json } from "@/integrations/supabase/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeature } from "@/hooks/useFeature";
@@ -120,7 +121,7 @@ export type ManageAction =
 
 /** One action for the seller. Returns the seller RPC's own result. */
 export async function manageForSeller(sellerId: string, action: ManageAction, args: Record<string, unknown>): Promise<unknown> {
-  const out = rpcData(await supabase.rpc("declutter_manage", { p_seller: sellerId, p_action: action, p_args: args }),
+  const out = rpcData(await supabase.rpc("declutter_manage", { p_seller: sellerId, p_action: action, p_args: args as Json }),
     (e) => rpcErrorMessage("declutter_manage", e)) as { result?: unknown } | null;
   return out?.result ?? null;
 }
@@ -146,5 +147,5 @@ export interface ManagedOverview {
 
 export async function fetchManagedOverview(sellerId: string): Promise<ManagedOverview> {
   return rpcData(await supabase.rpc("declutter_managed_overview", { p_seller: sellerId }),
-    (e) => rpcErrorMessage("declutter_managed_overview", e)) as ManagedOverview;
+    (e) => rpcErrorMessage("declutter_managed_overview", e)) as unknown as ManagedOverview;
 }

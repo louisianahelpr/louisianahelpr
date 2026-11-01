@@ -1,5 +1,5 @@
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | IF NOT COALESCE(v_on, false) THEN | IF false THEN
-// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | WHERE seller_id = p_seller AND manager_id = (SELECT auth.uid()) AND status = 'active' | WHERE seller_id = p_seller AND manager_id = (SELECT auth.uid())
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | AND manager_id = (SELECT auth.uid()) AND status = 'active'\n   FOR SHARE; | AND manager_id = (SELECT auth.uid())\n   FOR SHARE;
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target AND seller_id = p_seller); | v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target);
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | v_ok := EXISTS (SELECT 1 FROM public.declutter_offers WHERE id = v_target AND seller_id = p_seller); | v_ok := EXISTS (SELECT 1 FROM public.declutter_offers WHERE id = v_target);
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |     WHEN 'answer_question' THEN 'messages' |     WHEN 'answer_question' THEN 'list'
@@ -100,7 +100,7 @@ describe("Declutter manager mode: a manager acts only in the parts the seller tu
     for (const t of ["declutter_manager_actions", "declutter_manager_messages"]) {
       const g = grantsOn(t);
       expect(g.length).toBeGreaterThan(0);
-      expect(g.at(-2) ?? "").toContain(`REVOKE ALL ON TABLE public.${t} FROM PUBLIC, anon, authenticated;`);
+      expect(g[g.length - 2] ?? "").toContain(`REVOKE ALL ON TABLE public.${t} FROM PUBLIC, anon, authenticated;`);
       expect(g.filter((s) => s.startsWith("GRANT") && /\b(authenticated|anon)\b/.test(s))).toEqual([]);
     }
     const g = grantsOn("declutter_manager_grants");

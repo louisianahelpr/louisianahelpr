@@ -76,6 +76,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   complete_pending_accepts_on_setup: "alerts",
   create_quote_request: "tags",
   // Admin review card leaves out test sellers' listings (owner rule, 2026-10-28).
+  declutter_alert_overdue_checks: "alerts", // check-sweep follow-up (20261101042045): a test listing never raises the overdue-check admin alert
+  declutter_decline_listed_for_me: "alerts", // list-for-seller (20261101034159): a test seller's decline never notifies a real Helpr
   declutter_check_sweep_claim: "hides", // LEAD-CHECK-SWEEP (20261101031241): test data is never claimed for a sweep check
   declutter_admin_open_problems: "hides",
   declutter_admin_pending_items: "hides",

@@ -836,6 +836,8 @@ export const GAPS: Record<string, string> = {
   // src/test/pglite/declutterListForSeller.pglite.mjs.
   "src/components/declutter/ListedForYouCard.tsx": "no typed text: Approve, Not this one and one checkbox; each approval goes through the normal publish path's checks.",
   "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx": "Not swept yet (new 11-01): title, description, price and area go through declutter_helpr_create_listing's checks (the same price, area and length rules as a listing; contact-leak trigger on the table).",
+  // CMP-4 instant book (20261101063725): Settings > Instant book.
+  "src/pages/profile/InstantBookTab.tsx": "Not swept yet (new 11-01): one kind of work from a fixed list and one dollar box (CurrencyInput, min and max shown); rpc_set_instant_book_floor re-checks the category and the dollar range and refuses anything else.",
   // LEAD-PROFILE-LINK: Settings > Your profile link.
   "src/components/profile/ProfileLinkRow.tsx": "Not swept yet: one 30-character box (maxLength 30), normalised (trim, lowercase) and checked against HANDLE_PATTERN before Save is enabled; rpc_set_my_handle re-checks the format and refuses reserved words, 7+ digits and a taken link, and allows one change.",
   "src/components/declutter/SellerSetup.tsx": "Not swept yet: it shows only to a seller missing saved settings. Its address and area go through the same lookup and declutter_save_porch_place checks as the pickup places in Settings.",

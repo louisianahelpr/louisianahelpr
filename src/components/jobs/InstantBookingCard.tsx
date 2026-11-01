@@ -93,7 +93,7 @@ export function InstantBookingCard({ jobId, title, declineUntil, now: fixedNow }
         <Timer className="h-4 w-4 shrink-0" aria-hidden />
         {left ? `${left} to decline` : "The 2 hours to decline have ended, so you're booked."}
       </p>
-      {error && <p role="alert" className="text-ds-14" style={{ color: "hsl(var(--destructive))" }}>{error}</p>}
+      {error && <p role="alert" className="text-ds-14" style={{ color: "hsl(var(--destructive-ink))" }}>{error}</p>}
       {left && (
         <div className="flex gap-2">
           <Button className="flex-1 rounded-full" disabled={busy !== null} onClick={() => void onConfirm()}>

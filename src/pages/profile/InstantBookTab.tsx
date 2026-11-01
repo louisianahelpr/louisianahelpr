@@ -5,6 +5,7 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -66,13 +67,13 @@ export default function InstantBookTab({ onBack }: { onBack: () => void }) {
       {floors.isLoading ? (
         <ProfileTabBodyReserve tab="instant_book" />
       ) : floors.isError ? (
-        <ErrorState variant="inline" title={rpcErrorMessage("rpc_my_instant_book_floors", floors.error) ?? "We couldn't load your instant book settings."} onRetry={() => void floors.refetch()} />
+        <ErrorState variant="inline" title="We couldn't load your instant book settings." body={rpcErrorMessage("rpc_my_instant_book_floors", floors.error) ?? undefined} onRetry={() => void floors.refetch()} />
       ) : (
         <>
           <p className="font-sans text-ds-14 text-muted-foreground px-1" data-instant-book-intro="">
             Let people book you right away. Pick up to {INSTANT_BOOK_MAX_CATEGORIES} kinds of work and the least you&apos;d take for
-            each. When a job pays at least that much and you&apos;re free that day, you can show up in the poster&apos;s top 3 with a
-            Book now button.
+            each. When a job pays at least that much and you&apos;re free that day, you can show up in the top 3 someone sees when they post a
+            job, with a Book now button.
           </p>
           <p className="font-sans text-ds-13 px-1 font-semibold" style={{ color: "hsl(var(--ink-deep))" }} data-instant-book-private="">
             Your lowest price is private. Nobody else ever sees it.
@@ -95,16 +96,16 @@ export default function InstantBookTab({ onBack }: { onBack: () => void }) {
                       At least ${(r.floor_cents / 100).toLocaleString("en-US", { maximumFractionDigits: 2 })}
                     </span>
                   </span>
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => save.mutate({ category: r.category, cents: null })}
                     disabled={save.isPending}
                     aria-label={`Remove ${JOB_CATEGORY_LABELS[r.category as JobCategory] ?? r.category}`}
-                    className="btn-press shrink-0 min-h-11 px-4 rounded-full border text-ds-14 font-semibold text-foreground disabled:opacity-60"
-                    style={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))" }}
+                    className="shrink-0 min-h-11 px-4 rounded-full"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </li>
               ))}
               {Array.from({ length: Math.max(0, INSTANT_BOOK_MAX_CATEGORIES - rows.length) }, (_, i) => (
@@ -127,17 +128,14 @@ export default function InstantBookTab({ onBack }: { onBack: () => void }) {
               }}
             >
               <label className="block font-sans text-ds-14 font-semibold text-foreground" htmlFor="instant-book-category">Kind of work</label>
-              <select
-                id="instant-book-category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value as JobCategory | "")}
-                className="w-full min-h-11 rounded-md border border-input bg-background px-3 text-ds-15 text-foreground"
-              >
-                <option value="">Choose one</option>
-                {JOB_CATEGORIES.filter((c) => !used.has(c.value)).map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
+              <Select value={category} onValueChange={(v) => setCategory(v as JobCategory)}>
+                <SelectTrigger id="instant-book-category" className="min-h-11"><SelectValue placeholder="Choose one" /></SelectTrigger>
+                <SelectContent>
+                  {JOB_CATEGORIES.filter((c) => !used.has(c.value)).map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <label className="block font-sans text-ds-14 font-semibold text-foreground" htmlFor="instant-book-amount">The least you&apos;d take</label>
               <CurrencyInput
                 id="instant-book-amount"
@@ -148,7 +146,7 @@ export default function InstantBookTab({ onBack }: { onBack: () => void }) {
                 placeholder="50.00"
               />
               <p className="font-sans text-ds-12 text-muted-foreground">Between ${INSTANT_BOOK_FLOOR_MIN_DOLLARS} and ${INSTANT_BOOK_FLOOR_MAX_DOLLARS.toLocaleString("en-US")}.</p>
-              {error && <p role="alert" className="font-sans text-ds-13" style={{ color: "hsl(var(--destructive))" }}>{error}</p>}
+              {error && <p role="alert" className="font-sans text-ds-13" style={{ color: "hsl(var(--destructive-ink))" }}>{error}</p>}
               <Button type="submit" className="w-full" disabled={!category || !amountOk || save.isPending}>
                 {save.isPending ? "Saving…" : "Save"}
               </Button>

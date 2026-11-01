@@ -251,6 +251,10 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Profile link (20261101041833): one member's own open jobs on their /u page; always drops is_seed jobs and test
     // members (stricter than the switch); not the browse feed.
     ["public.public_profile_by_handle", "one member's own open jobs on their /u page; always drops is_seed jobs and test members, stricter than the switch; not the browse feed"],
+    // CMP-4 instant book (20261101065105, 20261101074901): the booked Helpr's own pending instant bookings
+    // (offered_to_helper_id = auth.uid()), and the service-only end of ONE captured booking; not a feed.
+    ["public.rpc_my_instant_bookings", "the caller's own pending instant bookings (offered_to_helper_id = auth.uid()); not a feed"],
+    ["public.instant_book_captured_not_hired", "service-only single-job mutation; status is a precondition"],
     // Helpr Guarantee (Q2450, 20261027200455): the poster opens a request on ONE job they posted, read FOR UPDATE.
     ["public.rpc_guarantee_open", "single-job mutation on the caller's own completed job; status is a precondition"],
     // Card hold at posting (Q2399, 20261027185146): the crew-seat trigger reads ONE job's status to refuse a seat confirm on a held card.

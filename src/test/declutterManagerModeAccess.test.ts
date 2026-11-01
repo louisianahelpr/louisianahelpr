@@ -1,3 +1,4 @@
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |     WHEN 'submit_for_approval' THEN 'list' |     WHEN 'submit_for_approval' THEN 'list'\n    WHEN 'publish_item' THEN 'list'
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |       WHEN 'confirm_handover' THEN public.declutter_confirm_handover(v_target, v_a ->> 'method', v_a ->> 'code') |       WHEN 'confirm_handover' THEN public.declutter_confirm_handover(v_target, v_a ->> 'method', v_a ->> 'code')\n      WHEN 'complete_handover' THEN public.declutter_complete_handover(v_target, v_a ->> 'by')
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |     WHEN 'confirm_handover' THEN 'pickups' |     WHEN 'confirm_handover' THEN 'pickups'\n    WHEN 'complete_handover' THEN 'pickups'
 // @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | IF NOT COALESCE(v_on, false) THEN | IF false THEN
@@ -29,6 +30,7 @@ const DEFS = effectiveDefs(MIG);
 const body = (n: string) => blankSqlComments(DEFS.get(n)?.stmt ?? "");
 const flat = (s: string) => s.replace(/\s+/g, " ");
 const PARTS = ["list", "prices", "offers", "messages", "pickups"];
+const IN_PLACE = ["add_item_photo", "submit_for_approval"];
 
 /** The action -> part table of declutter_manage's newest body. */
 function actionParts(): Map<string, string> {
@@ -59,9 +61,10 @@ describe("Declutter manager mode: a manager acts only in the parts the seller tu
     const parts = actionParts();
     const run = runActions();
     expect(parts.size).toBeGreaterThan(15);
-    // add_item_photo is the one action run in place (the manager's own upload), not through a seller RPC.
+    // Run in place, not through a seller RPC: add_item_photo (the manager's own upload) and submit_for_approval (owner
+    // 11-01: the draft waits for the seller's OK; only she posts).
     expect(run.filter((a) => !parts.has(a))).toEqual([]);
-    expect([...parts.keys()].filter((a) => a !== "add_item_photo" && !run.includes(a))).toEqual([]);
+    expect([...parts.keys()].filter((a) => !IN_PLACE.includes(a) && !run.includes(a))).toEqual([]);
     expect([...new Set(parts.values())].filter((p) => !PARTS.includes(p))).toEqual([]);
   });
 
@@ -122,8 +125,8 @@ describe("Declutter manager mode: a manager acts only in the parts the seller tu
  * p_by ('admin' skips the open-problem check and the 24 h refund window), a power the seller does not have.
  */
 const PINNED_ACTIONS = [
-  "answer_question", "attest_item", "confirm_handover", "create_item", "edit_listing", "order_talk_view", "pause_listing",
-  "publish_item", "relist_listing", "remove_item_photo", "reopen_listing", "respond_offer", "send_order_message",
+  "answer_question", "confirm_handover", "create_item", "edit_listing", "order_talk_view", "pause_listing",
+  "remove_item_photo", "respond_offer", "send_order_message",
   "set_handovers", "set_listing_drops", "set_listing_price", "set_offer_rules", "set_pickup_windows", "update_draft",
   "withdraw_item",
 ];
@@ -154,7 +157,9 @@ describe("Declutter manager mode: the act-as-seller list is pinned, and never ex
     const run = runActions();
     expect(run.length).toBeGreaterThan(15);
     expect([...run].sort()).toEqual(PINNED_ACTIONS);
-    expect([...actionParts().keys()].filter((a) => a !== "add_item_photo").sort()).toEqual(PINNED_ACTIONS);
+    expect([...actionParts().keys()].filter((a) => !IN_PLACE.includes(a)).sort()).toEqual(PINNED_ACTIONS);
+    // Owner 11-01: the manager never posts, relists, reopens or attests; the seller does, at approval.
+    for (const a of ["publish_item", "attest_item", "relist_listing", "reopen_listing"]) expect(actionParts().has(a)).toBe(false);
   });
 
   it("every function a manager reaches is one the seller may call herself (newest grant includes authenticated)", () => {

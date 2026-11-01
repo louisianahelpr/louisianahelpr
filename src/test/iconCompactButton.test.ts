@@ -21,6 +21,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/ui/button.tsx |         iconCompact: "h-11 w-11 border-2 border-transparent bg-clip-padding [&_svg]:size-5", |         iconCompact: "h-10 w-10 [&_svg]:size-5",
 // @mutate src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx |       size="iconCompact" |       size="icon"
 // @mutate src/components/declutter/DeclutterPickupTimes.tsx |           <Button type="button" variant="ghost" size="iconCompact" onClick={onRemove} | <Button type="button" variant="ghost" size="icon" onClick={onRemove}
+// @mutate src/pages/profile/SavedSearchesTab.tsx |                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} |                   <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(s)}
 // @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |       className={`relative shrink-0 btn-press | className={`relative h-10 w-10 shrink-0 btn-press
 
 const REPO = resolve(__dirname, "../..");
@@ -77,10 +78,14 @@ describe("the compact icon Button", () => {
   // B47 10-31: the pickup-time window's remove X (Declutter sell / settings) was a hand-made rounded-full <button>.
   // Measured at 375 and 1440 on /declutter/sell (mocked session): 44x44 box at the same x/y, same radius, colour and
   // 16px glyph before and after; the hover wash now paints at 40 (clientWidth 44 -> 40).
-  it("a pickup time's remove X is the shared Button at iconCompact", () => {
-    const f = "src/components/declutter/DeclutterPickupTimes.tsx";
+  // B47 10-31, same measurement on /profile?tab=saved_searches: a saved search's settings (…) button, 44x44 at the
+  // same x/y before and after (307,128 at 375; 1368,124 at 1440), radius, colour and 16px glyph unchanged, wash at 40.
+  it.each([
+    ["src/components/declutter/DeclutterPickupTimes.tsx", /<button\b[^>]*aria-label=\{removeLabel\}/],
+    ["src/pages/profile/SavedSearchesTab.tsx", /<button\b[^>]*aria-label=\{`Settings for/],
+  ])("%s: the ghost icon is the shared Button at iconCompact", (f, handMade) => {
     const src = code(f);
-    expect(src).not.toMatch(/<button\b[^>]*aria-label=\{removeLabel\}/);
+    expect(src).not.toMatch(handMade);
     const tags = buttonTags(f).filter((t) => t.size === "iconCompact");
     expect(tags.length).toBeGreaterThan(0);
     for (const t of tags) expect(/(^|[\s`"'])(?:[a-z-]+:)*!?(?:min-)?[hw]-(?:\d|\[)/.test(t.className)).toBe(false);

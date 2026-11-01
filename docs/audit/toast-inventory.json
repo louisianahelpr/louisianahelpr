@@ -13095,7 +13095,7 @@
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 51,
+      "line": 52,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13105,7 +13105,7 @@
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 64,
+      "line": 65,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13115,7 +13115,7 @@
     },
     {
       "file": "src/pages/profile/SavedSearchesTab.tsx",
-      "line": 137,
+      "line": 138,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -32,7 +32,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobEyebrow } from "./jobEyebrow";
 import { useJobPage, useMyInstantBooking, useOfferedToMe, type JobPageRow } from "./useJobPage";
 import { seriesSummary } from "@/lib/format";
-import { JobTracker, PosterMoney, HelprMoney, PostedBy, HiredHelpr } from "./JobPageParts";
+import { JobTracker, PosterMoney, HelprMoney, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 import { HiredSeriesSection } from "./HiredSeriesSection";
@@ -260,6 +260,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
               otherFirst={isPoster ? helperFirst : posterFirst}
               pendingApplicants={isPoster && applicants.data ? pending : undefined} />
+            {(isPoster || isHired) && <RevisionAsk job={job} side={isPoster ? "poster" : "helpr"} posterFirst={posterFirst} />}
             {/* JA-32 (audit 11-01): a crew's roster on the page itself: each member, their step, Message, and the
                 per-member Confirm Arrived / Confirm work / Didn't show (JOBS-3), never only under More options. */}
             {isPoster && job.is_group_job && posterFlows.ready && CREW_ROSTER_STATUSES.has(job.status ?? "") && (

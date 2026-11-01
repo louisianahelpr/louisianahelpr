@@ -186,6 +186,28 @@ export function HelprMoney({ job, noShow = false }: { job: JobPageRow; noShow?: 
   );
 }
 
+/**
+ * WHAT TO FIX, ON THE PAGE (audit 11-01 JA-31): a job sent back for a fix said "Dana asked for a fix" and never what or
+ * by when; the Helpr had to open the Working card. The poster's own words (revision_note) and the fix deadline
+ * (revision_deadline, Louisiana time) show here for both parties while the fix is open. Nothing when neither is set.
+ * Guard: src/test/revisionNoteOnJobPage.test.tsx.
+ */
+export function RevisionAsk({ job, side, posterFirst }: { job: JobPageRow; side: "poster" | "helpr"; posterFirst?: string | null }) {
+  if (job.status !== "revision_requested") return null;
+  const note = (job.revision_note ?? "").trim();
+  const dueMs = Date.parse(job.revision_deadline ?? "");
+  if (!note && Number.isNaN(dueMs)) return null;
+  const due = Number.isNaN(dueMs) ? null : new Date(dueMs).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const whose = side === "poster" ? "Your note" : posterFirst?.trim() ? `${posterFirst.trim()}'s note` : "Their note";
+  return (
+    <section aria-label="What to fix" data-revision-ask="" className={CARD}>
+      <p className="text-ds-15 font-semibold">What to fix</p>
+      {note && <p className="mt-1.5 whitespace-pre-line text-ds-14 [overflow-wrap:anywhere]"><span className="font-semibold">{whose}: </span>{note}</p>}
+      {due && <p className="mt-1.5 text-ds-13 text-muted-foreground">{side === "poster" ? "The fix is due by" : "Send the fix by"} {due}.</p>}
+    </section>
+  );
+}
+
 export function PostedBy({ posterId }: { posterId: string }) {
   return (
     <section aria-label="Posted by">

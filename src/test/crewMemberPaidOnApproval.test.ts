@@ -10,6 +10,8 @@
  * @mutate supabase/migrations/20261101044659_crew_member_paid_on_approval.sql |   IF v_slot.helper_completed_at IS NULL THEN |   IF false THEN
  * @mutate supabase/migrations/20261101044659_crew_member_paid_on_approval.sql |      WHERE g.poster_confirmed_completion_at IS NOT NULL\n  ) OR EXISTS ( |      WHERE false\n  ) OR EXISTS (
  * @mutate supabase/migrations/20261101044659_crew_member_paid_on_approval.sql | REVOKE ALL ON FUNCTION public.crew_members_due_early_payout() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.crew_members_due_early_payout() FROM PUBLIC, anon;
+ * @mutate supabase/migrations/20261101044659_crew_member_paid_on_approval.sql |           AND NOT (t.status = 'pending' AND t.stripe_transfer_id IS NULL |           AND NOT (false AND t.stripe_transfer_id IS NULL
+ * @mutate supabase/migrations/20261101044659_crew_member_paid_on_approval.sql |                    AND t.created_at < now() - interval '2 minutes')) |                    AND t.created_at < now() - interval '0 minutes'))
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -50,11 +52,26 @@ describe("JOBS-3: a crew member the poster confirms is paid on their own", () =>
 
   it.each([
     ["approved long enough ago", "g.poster_confirmed_completion_at + public.crew_member_payout_delay() <= now()"],
-    ["no live transfer for the member", "AND t.status IN ('pending', 'paid', 'reversed'))"],
+    ["no live transfer for the member", "AND t.status IN ('pending', 'paid', 'reversed') AND NOT (t.status = 'pending'"],
     ["no refund on the job", "AND NOT EXISTS (SELECT 1 FROM public.payment_refunds r WHERE r.job_id = g.job_id)"],
     ["not disputed", "AND j.status::text <> 'disputed'"],
   ])("due list: %s", (_w, clause) => {
     expect(body("crew_members_due_early_payout")).toContain(clause);
+  });
+
+  // lh-money-escrow review 11-01: an orphaned claim keeps the member listed, after the SAME in-flight window the
+  // claim code uses (payoutClaim.ts OPEN_CLAIM_INFLIGHT_MS), so the cron resumes it on the same idempotency key.
+  it("the due list keeps an orphaned claim past the claim code's in-flight window", () => {
+    const b = body("crew_members_due_early_payout");
+    expect(b).toContain("AND NOT (t.status = 'pending' AND t.stripe_transfer_id IS NULL AND t.created_at < now() - interval '2 minutes'))");
+    const claim = readFileSync(resolve(ROOT, "supabase/functions/_shared/payoutClaim.ts"), "utf8");
+    expect(/const OPEN_CLAIM_INFLIGHT_MS = (\d+) \* 60 \* 1000;/.exec(claim)?.[1]).toBe("2");
+  });
+
+  it("every definer pins search_path to public, pg_temp", () => {
+    const file = blankSqlComments(readFileSync(resolve(MIGRATIONS, defs.get("rpc_poster_approve_member")!.file), "utf8"));
+    expect(file.match(/SECURITY DEFINER\s+SET search_path TO 'public', 'pg_temp'/g)?.length).toBe(3);
+    expect(file.match(/SECURITY DEFINER\s+SET search_path TO 'public'\s*\n/g)).toBeNull();
   });
 
   it("the due list is service_role only; the approve RPC is not anon's", () => {

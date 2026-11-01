@@ -84,6 +84,7 @@ afterEach(() => {
 describe("BUY-16: guests browse Declutter", () => {
   it("/declutter lets a signed-out visitor through (DeclutterGate then decides), as the item page does", () => {
     const app = blankComments(readFileSync("src/App.tsx", "utf8"));
+    expect(app.length).toBeGreaterThan(5000);
     const route = app.split("\n").find((l) => l.includes('path="/declutter"'));
     expect(route).toBeDefined();
     expect(route).toContain("<DeclutterGuestOrMember><DeclutterPage /></DeclutterGuestOrMember>");

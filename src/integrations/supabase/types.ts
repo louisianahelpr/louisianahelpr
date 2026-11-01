@@ -14887,6 +14887,12 @@ export type Database = {
           storage_path: string
         }[]
       }
+      declutter_photo_purge_recheck: {
+        Args: { p_paths: string[] }
+        Returns: {
+          storage_path: string
+        }[]
+      }
       declutter_place_windows_fill: {
         Args: { p_days: number[]; p_seller: string; p_windows: Json }
         Returns: Json

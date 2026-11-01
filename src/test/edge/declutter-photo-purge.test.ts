@@ -9,6 +9,10 @@
  * @mutate supabase/functions/declutter-photo-purge/index.ts |       seller = auth.user.id; |       seller = null;
  * @mutate supabase/functions/declutter-photo-purge/index.ts |       const { error: rmError } = await admin.storage.from(BUCKET).remove(batch); |       const rmError = null as { message: string } \| null;
  * @mutate supabase/functions/declutter-photo-purge/index.ts |       if (refused) return refused; |       void refused;
+ * B67 (lead review 11-01): a claimed path is re-checked right before the remove; one attached again is never removed
+ * (SQL side proven in src/test/pglite/declutterPhotoPurgeReattach.pglite.mjs).
+ * @mutate supabase/functions/declutter-photo-purge/index.ts |       const batch = ((still ?? []) as { storage_path: string }[]).map((r) => r.storage_path); |       const batch = claimed; void still;
+ * @mutate supabase/functions/declutter-photo-purge/index.ts |       if (recheckError) { |       if (recheckError && false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -26,6 +30,8 @@ async function load(): Promise<EdgeHarness> {
 const run = (fn: EdgeHarness, auth = "Bearer service-key", body: unknown = {}) =>
   fn.fetch(fn.request({ headers: { Authorization: auth }, body }));
 const dueCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "declutter_photo_purge_due").map((c) => c.args);
+/** The re-check answers "all still due" unless a test says otherwise. */
+const recheckAll = () => { scenario.rpc.declutter_photo_purge_recheck = (a?: unknown) => ((a as { p_paths: string[] }).p_paths ?? []).map((storage_path) => ({ storage_path })); };
 const declutterOn = () => {
   const base = scenario.rpc.feature_enabled_for_user as (a?: unknown) => unknown;
   scenario.rpc.feature_enabled_for_user = (a?: unknown) =>
@@ -37,6 +43,7 @@ describe("declutter-photo-purge", () => {
     resetSupabaseMock();
     resetSharedMocks();
     resetEnv();
+    recheckAll();
   });
 
   it("refuses a caller with neither the cron secret nor a valid sign-in, and reads nothing", async () => {
@@ -84,6 +91,28 @@ describe("declutter-photo-purge", () => {
     const res = await run(fn);
     expect(res.status).toBe(500);
     expect((scenario.rpcCalls ?? []).some((c) => c.name === "declutter_photo_purge_done")).toBe(false);
+  });
+
+  it("a claimed path attached again since the claim is not removed (re-checked right before the remove)", async () => {
+    const other = PATH.replace("a.jpg", "b.jpg");
+    scenario.rpc.declutter_photo_purge_due = [{ storage_path: PATH }, { storage_path: other }];
+    scenario.rpc.declutter_photo_purge_recheck = [{ storage_path: other }];
+    scenario.rpc.declutter_photo_purge_done = 1;
+    const fn = await load();
+    const res = await run(fn);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, due: 2, removed: 1 });
+    const recheck = (scenario.rpcCalls ?? []).filter((c) => c.name === "declutter_photo_purge_recheck").map((c) => c.args);
+    expect(recheck).toEqual([{ p_paths: [PATH, other] }]);
+    expect(scenario.storage.removeCalls).toEqual([[other]]);
+  });
+
+  it("a failed re-check removes nothing and fails the run", async () => {
+    scenario.rpc.declutter_photo_purge_due = [{ storage_path: PATH }];
+    scenario.rpcErrors = { declutter_photo_purge_recheck: { message: "connection reset", code: "08006" } };
+    const fn = await load();
+    expect((await run(fn)).status).toBe(500);
+    expect(scenario.storage.removeCalls ?? []).toEqual([]);
   });
 
   it("an unreadable queue is a failed run, never 'nothing due'", async () => {

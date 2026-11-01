@@ -11,7 +11,7 @@
  * @mutate src/App.tsx | <Suspense fallback={null}><MobileNav /></Suspense> | <Suspense fallback={null}><MobileNav /><IdentityCheckMount /></Suspense>
  * @mutate src/components/TermsReconsentMount.tsx |   if (!behind) return null; |   if (false) return null;
  * @mutate src/components/TermsReconsentMount.tsx | if (!termsAcceptanceIsCurrent(accepted, LATEST_TERMS_VERSION)) setBehind(true); | void accepted;
- * @mutate src/components/TermsReconsentMount.tsx |   }, [eligible, userId, behind]); |   }, [behind]);
+ * @mutate src/components/TermsReconsentMount.tsx |   }, [eligible, accepted, behind]); |   }, [behind]);
  * @mutate src/components/identity/IdentityCheckMount.tsx |   if (!wanted && !mounted) return null; |   if (false) return null;
  * @mutate src/components/identity/IdentityCheckMount.tsx |   const wanted = open \|\| hasIdentityEntryParam(params); |   const wanted = open;
  */
@@ -22,7 +22,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 
-const st = vi.hoisted(() => ({ terms: 0, sheet: 0, accepted: "Oct 2026" as string, idOn: true, userId: "u1" as string | null }));
+const st = vi.hoisted(() => ({ reads: 0, terms: 0, sheet: 0, accepted: "Oct 2026" as string, idOn: true, userId: "u1" as string | null }));
 
 vi.mock("@/components/TermsReconsentDialog", () => {
   st.terms += 1;
@@ -35,14 +35,14 @@ vi.mock("@/components/identity/IdentityCheckSheet", () => {
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({
     user: st.userId ? { id: st.userId, email_confirmed_at: "2026-01-01T00:00:00Z" } : null,
-    profile: st.userId ? { ban_status: "active" } : null,
+    profile: st.userId ? { ban_status: "active", terms_version_accepted: st.accepted } : null,
     refresh: async () => {},
   }),
 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({
-      select: () => ({
+      select: () => (st.reads += 1, {
         eq: () => ({ maybeSingle: async () => ({ data: { terms_version_accepted: st.accepted }, error: null }) }),
       }),
     }),
@@ -60,6 +60,7 @@ import { LATEST_TERMS_VERSION } from "@/lib/consent";
 const ROOT = resolve(__dirname, "../..");
 
 beforeEach(() => {
+  st.reads = 0;
   st.terms = 0;
   st.sheet = 0;
   st.accepted = LATEST_TERMS_VERSION;
@@ -86,6 +87,19 @@ describe("App.tsx: every chrome piece has its own Suspense", () => {
 });
 
 describe("TermsReconsentMount fetches the dialog only for an account that is behind", () => {
+  // Q104 (release gate 2026-11-01): the accepted version comes from the profile row useCurrentUser already read;
+  // its own profiles?select=terms_version_accepted read went out on every signed-in page.
+  // @mutate src/components/TermsReconsentMount.tsx |   const accepted = (profile as { terms_version_accepted?: string \| null } \| null)?.terms_version_accepted ?? ""; |   const accepted = "";
+  it("sends no request of its own: current and behind alike", async () => {
+    render(<MemoryRouter><TermsReconsentMount /></MemoryRouter>);
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    st.accepted = "";
+    cleanup();
+    render(<MemoryRouter><TermsReconsentMount /></MemoryRouter>);
+    expect(await screen.findByText("terms dialog")).toBeTruthy();
+    expect(st.reads).toBe(0);
+  });
+
   it("current: no dialog code is fetched", async () => {
     render(<MemoryRouter><TermsReconsentMount /></MemoryRouter>);
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });

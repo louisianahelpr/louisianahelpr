@@ -11,7 +11,7 @@
 // @mutate src/pages/home/homeDashboard/homePrefetchTake.ts |   if (!s \|\| now - s.at > HOME_PREFETCH_MAX_AGE_MS \|\| s.userId !== userId) return null; |   if (!s \|\| now - s.at > HOME_PREFETCH_MAX_AGE_MS) return null;
 // @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |       if (pre) return firstJobState(pre.appCount, pre.jobCount, pre.prefs); |
 // @mutate src/boot/signedInPrefetch.ts |   startHomePrefetch(pathname); |
-// @mutate src/entry.ts | /^\/(declutter|home)\/?$/.test(window.location.pathname) | /^\/(declutter)\/?$/.test(window.location.pathname)
+// @mutate src/entry.ts | /^\/(declutter\|home)\/?$/.test(window.location.pathname) | /^\/(declutter)\/?$/.test(window.location.pathname)
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

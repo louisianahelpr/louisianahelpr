@@ -11,6 +11,14 @@
  * @mutate scripts/vacuity/scan.mjs | export const MOUNT_DEPTH = 3; | export const MOUNT_DEPTH = 2;
  * @mutate scripts/vacuity/scan.mjs | for (let d = 1; d <= depth && level.size && !covered; d++) { | for (let d = 1; d <= 99 && level.size && !covered; d++) {
  * @mutate scripts/vacuity/scan.mjs | if (renderedByTests.has(p)) { covered = true; break; } | if (renderedByTests.has(p)) { break; }
+ *
+ * The app root (lead 10-31): a component App.tsx mounts DIRECTLY is mounted on
+ * every app start, so it is no gap (SignedInChrome, AppLockGate, ErrorBoundary,
+ * ForceUpdateGate, RouteErrorBoundary). A grandchild still needs a rendered
+ * ancestor.
+ * @mutate scripts/vacuity/scan.mjs | if ([...parents].some((p) => roots.has(p))) continue; | if (false) continue;
+ * @mutate scripts/vacuity/scan.mjs | export const APP_ROOTS = new Set(["src/App.tsx"]); | export const APP_ROOTS = new Set([]);
+ * @mutate scripts/vacuity/scan.mjs | if ([...parents].some((p) => roots.has(p))) continue; | if ([...parents].some((p) => roots.has(p)) \|\| true) continue;
  */
 import { beforeAll, describe, it, expect } from "vitest";
 import { join } from "node:path";
@@ -21,7 +29,7 @@ const url = (f: string) => pathToFileURL(join(process.cwd(), "scripts", "vacuity
 
 type Gap = { module: string; parents: string[] };
 type Graph = Map<string, Set<string>>;
-let findMountGaps: (mountedBy: Graph, renderedByTests: Graph) => Gap[];
+let findMountGaps: (mountedBy: Graph, renderedByTests: Graph, depth?: number, roots?: Set<string>) => Gap[];
 let scanMountWiring: () => Gap[];
 
 beforeAll(async () => {
@@ -60,9 +68,28 @@ describe("mount-wiring depth", () => {
     expect(findMountGaps(m, r).map((g) => g.module)).toEqual(["Leaf"]);
   });
 
-  it("on the real tree SellItForMe is not a gap, and the scan still finds gaps", () => {
-    const real = scanMountWiring();
-    expect(real.length).toBeGreaterThan(5);
-    expect(real.map((g) => g.module)).not.toContain("src/components/declutter/SellItForMe.tsx");
+  it("a component the app root mounts directly is no gap; its grandchild still is", () => {
+    const [m, r] = chain(["Leaf", "Mid", "Root"], ["Leaf", "Mid"]);
+    const roots = new Set(["Root"]);
+    expect(findMountGaps(m, r, 3, roots).map((g) => g.module)).toEqual([]);
+    expect(findMountGaps(m, r, 3, new Set()).map((g) => g.module)).toEqual(["Mid"]);
+    const [m2, r2] = chain(["Leaf", "Mid", "Root"], ["Leaf"]);
+    expect(findMountGaps(m2, r2, 3, roots).map((g) => g.module)).toEqual(["Leaf"]);
   });
+
+  // One real-tree scan (~7 s alone, far longer beside other files) shared by the two cases below.
+  let realScan: Gap[] | null = null;
+  const real = () => (realScan ??= scanMountWiring());
+
+  it("on the real tree App.tsx's direct children are no gaps", () => {
+    const gaps = real().map((g) => g.module);
+    for (const mod of ["SignedInChrome", "AppLockGate", "ErrorBoundary", "ForceUpdateGate", "RouteErrorBoundary"])
+      expect(gaps).not.toContain(`src/components/${mod}.tsx`);
+  }, 120_000);
+
+  it("on the real tree SellItForMe is not a gap, and the scan still finds gaps", () => {
+    const gaps = real();
+    expect(gaps.length).toBeGreaterThan(5);
+    expect(gaps.map((g) => g.module)).not.toContain("src/components/declutter/SellItForMe.tsx");
+  }, 120_000);
 });

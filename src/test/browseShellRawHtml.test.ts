@@ -6,6 +6,8 @@
  * @mutate src/lib/browseShellCards.mjs |   u.searchParams.set("status", "eq.open"); |   u.searchParams.set("status", "neq.cancelled");
  * @mutate api/share.ts |       if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows()), BROWSE_SHELL_CDN_CACHE); |       if (isBrowsePage(url)) return respond(page, BROWSE_SHELL_CDN_CACHE);
  * @mutate api/share.ts |   return !!route && route.kind === "page" && route.id === "browse"; |   return !!route && route.kind === "page";
+ * @mutate api/share.ts |     return shellRowsWhenSeedsHidden(Array.isArray(rows) ? rows : null, seedsHidden); |     return Array.isArray(rows) ? rows : null;
+ * @mutate src/lib/browseShellCards.mjs |   return seedsHidden === true && Array.isArray(rows) ? rows : null; |   return Array.isArray(rows) ? rows : null;
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { resolve } from "node:path";
@@ -20,6 +22,8 @@ const ROWS = [
 describe("/browse's raw HTML carries its first job cards", () => {
   let handler: { fetch: (req: Request) => Promise<Response> };
   let mode: "ok" | "fail" | "throw" = "ok";
+  // What the anon seed_hidden_in_discovery() read answers: the switch hiding test rows (true), showing them, or failing.
+  let seeds: unknown = true;
   const asked: string[] = [];
   beforeAll(async () => {
     vi.stubEnv("VITE_SUPABASE_URL", "https://example.supabase.co");
@@ -29,6 +33,11 @@ describe("/browse's raw HTML carries its first job cards", () => {
       expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer anon-key");
       if (mode === "throw") throw new Error("timeout");
       if (mode === "fail") return new Response("{}", { status: 503 });
+      if (String(url).includes("/rpc/seed_hidden_in_discovery")) {
+        expect(init?.method ?? "GET").toBe("GET");
+        if (seeds === "fail") return new Response("{}", { status: 503 });
+        return new Response(JSON.stringify(seeds), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
       return new Response(JSON.stringify(ROWS), { status: 200, headers: { "Content-Type": "application/json" } });
     });
     ensureOgShellSnapshot(resolve("."));
@@ -45,8 +54,9 @@ describe("/browse's raw HTML carries its first job cards", () => {
     mode = "ok";
     asked.length = 0;
     const res = await get("_og=page&_id=browse");
-    expect(asked).toHaveLength(1);
-    const u = new URL(asked[0]);
+    expect(asked).toHaveLength(2);
+    expect(asked).toContain("https://example.supabase.co/rest/v1/rpc/seed_hidden_in_discovery");
+    const u = new URL(asked.find((a) => a.includes("/open_jobs_browse"))!);
     expect(u.pathname).toBe("/rest/v1/open_jobs_browse");
     expect(u.searchParams.get("select")).toBe(SHELL_JOB_COLUMNS);
     expect(SHELL_JOB_COLUMNS.split(",")).not.toEqual(expect.arrayContaining(["id"]));
@@ -71,6 +81,20 @@ describe("/browse's raw HTML carries its first job cards", () => {
       expect(html, m).not.toContain("lh-browse-shell");
       expect(html, m).toContain('id="boot-loader"');
     }
+  });
+
+  it("a seed or test job never reaches the HTML: no cards unless the seed switch is known to hide them from anon", async () => {
+    // The view does not expose is_seed, so a seed row looks like any other row; while the switch shows test rows
+    // (or its read fails or answers anything but true) the page must carry no card at all.
+    mode = "ok";
+    for (const answer of [false, null, "true", 1, [true], { seed_hidden_in_discovery: true }, "fail"]) {
+      seeds = answer;
+      const html = await (await get("_og=page&_id=browse")).text();
+      expect(html, JSON.stringify(answer)).not.toContain("lh-browse-shell");
+      expect(html, JSON.stringify(answer)).not.toContain("Mow the front yard");
+    }
+    seeds = true;
+    expect(await (await get("_og=page&_id=browse")).text()).toContain("lh-browse-shell");
   });
 
   it("no other page reads jobs or carries cards", async () => {

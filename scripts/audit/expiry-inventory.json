@@ -204,6 +204,7 @@
     }
   ],
   "undated": {
+    "STRIPE_IDENTITY_RESULTS_KEY": "Stripe restricted key that reads ID check results (date of birth for the ID ban check, B49, stripe-idv-webhook); Stripe keys carry no expiry date unless one is set when rolled, rotated by hand in the Stripe dashboard",
     "OWNER_ALERT_PHONE": "config (the owner's phone number for support texts), not a credential; no expiry date",
     "VAPID_PRIVATE_KEY": "web push VAPID signing key (B65, an ES256 key we generate); no expiry date, rotated by hand (rotation unsubscribes every browser)",
     "VAPID_PUBLIC_KEY": "web push VAPID public key (B65), the pair of VAPID_PRIVATE_KEY; no expiry date",

@@ -28,6 +28,7 @@ describe("Browse empty states share one spot", () => {
   });
   it.each(SCREENS)("%s uses the shared layout, no bare EmptyState", (file) => {
     const src = read(file);
+    expect(src.length).toBeGreaterThan(1000);
     expect(src).toContain("<BrowseEmptyState");
     expect(src).not.toMatch(/<EmptyState\s+variant="bare"/);
   });

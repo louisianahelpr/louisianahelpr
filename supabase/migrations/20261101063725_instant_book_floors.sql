@@ -283,9 +283,11 @@ BEGIN
                p.avatar_url,
                public.instant_book_real_jobs_done(f.helper_id) AS jobs_done,
                (SELECT round(avg(r.rating)::numeric, 1) FROM public.reviews r
-                 WHERE r.reviewee_id = f.helper_id AND r.status = 'published') AS rating,
+                 WHERE r.reviewee_id = f.helper_id AND r.status = 'published'
+                   AND NOT public.is_test_member(r.reviewer_id)) AS rating,
                (SELECT count(*)::int FROM public.reviews r
-                 WHERE r.reviewee_id = f.helper_id AND r.status = 'published') AS review_count
+                 WHERE r.reviewee_id = f.helper_id AND r.status = 'published'
+                   AND NOT public.is_test_member(r.reviewer_id)) AS review_count
           FROM public.instant_book_floors f
           JOIN public.profiles p ON p.user_id = f.helper_id
          WHERE f.category = v_category

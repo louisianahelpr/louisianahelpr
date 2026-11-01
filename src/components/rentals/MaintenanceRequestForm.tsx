@@ -148,11 +148,11 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
             <span className="block mb-1 font-medium">When may someone come in?</span>
             <Input maxLength={300} placeholder="e.g. weekdays after 5pm" value={accessWindows} onChange={(e) => setAccessWindows(e.target.value)} />
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-2 text-sm">
             <Checkbox checked={petsOnSite} onCheckedChange={(v) => setPetsOnSite(v === true)} />
             Pets are at home
           </label>
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex min-h-11 items-center gap-2 text-sm">
             <Checkbox checked={okToEnterAlone} onCheckedChange={(v) => setOkToEnterAlone(v === true)} />
             OK to enter without me
           </label>

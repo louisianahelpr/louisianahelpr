@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1060,
-    "files": 296,
-    "rendering": 979,
+    "calls": 1061,
+    "files": 297,
+    "rendering": 980,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 170,
-      "toast.error": 737,
+      "toast.error": 738,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 458,
+      "literal": 459,
       "template": 96,
       "dynamic": 557,
       "jsx": 0
@@ -4280,7 +4280,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 106,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4290,7 +4290,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 206,
+      "line": 210,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -4318,7 +4318,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 211,
+      "line": 215,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6841,6 +6841,16 @@
       "rawError": [
         "title: e.message"
       ]
+    },
+    {
+      "file": "src/components/help/HelpEntry.tsx",
+      "line": 53,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Help didn't open. Tap Help to try again."
+      },
+      "renders": true
     },
     {
       "file": "src/components/identity/IdentityCheckSheet.tsx",
@@ -12050,7 +12060,7 @@
     },
     {
       "file": "src/pages/post-job/useHaulAwayPrefill.ts",
-      "line": 99,
+      "line": 101,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -12060,7 +12070,7 @@
     },
     {
       "file": "src/pages/post-job/useHaulAwayPrefill.ts",
-      "line": 102,
+      "line": 104,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -12080,7 +12090,7 @@
     },
     {
       "file": "src/pages/post-job/useHaulAwayPrefill.ts",
-      "line": 108,
+      "line": 110,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -12090,7 +12100,7 @@
     },
     {
       "file": "src/pages/post-job/useHaulAwayPrefill.ts",
-      "line": 117,
+      "line": 119,
       "kind": "toast.error",
       "title": {
         "form": "literal",

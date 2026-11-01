@@ -92,9 +92,10 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
       <fieldset className="space-y-1">
         <legend className="text-sm font-medium mb-1">How urgent?</legend>
         {(Object.keys(URGENCY_LABEL) as Urgency[]).map((u) => (
-          <label key={u} className="flex items-center gap-2 text-sm">
+          <label key={u} className="flex min-h-11 items-center gap-2 text-sm">
             <input
               type="radio"
+              className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }}
               name={`urgency-${tenancyId}`}
               value={u}
               checked={urgency === u}

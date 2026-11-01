@@ -50,7 +50,7 @@ export function GoOnlineCard({ userId, where }: { userId: string; where: { lat: 
     },
     onError: (err) =>
       toast.error((err as { message?: unknown })?.message === "location_required"
-        ? "Turn on location, or add your area in your profile, to go online."
+        ? "Turn on location, or add your ZIP code to your profile, to go online."
         : declutterErrorMessage(err)),
   });
   const id = `go-online-${userId}`;

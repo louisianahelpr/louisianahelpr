@@ -87,10 +87,13 @@ const state = {
   instantUntil: null as string | null,
   /** useOfferedToMe: a pending direct offer to the viewer (an instant booking is one). */
   offeredToMe: false,
+  /** useOwesReview: the hired Helpr has not reviewed the poster on this finished job. */
+  owesReview: false,
 };
 
 vi.mock("./useJobPage", () => ({
   useOfferedToMe: () => state.offeredToMe,
+  useOwesReview: () => ({ owes: state.owesReview, refetch: () => {} }),
   // CMP-4: the viewer's instant booking (its read and latch are src/test/jobPageInstantBooking.test.tsx).
   useMyInstantBooking: () => state.instantUntil,
   useJobPage: (_id: string, userId: string) => ({
@@ -256,6 +259,7 @@ beforeEach(() => {
   state.offeredToMe = false;
   state.moreCount = 2;
   state.leadCount = 0;
+  state.owesReview = false;
   state.position = null;
 });
 
@@ -1002,7 +1006,9 @@ describe("a crew member's own job page (A2-B8)", () => {
     state.myApplication = { status: "accepted", closed_reason: null };
     state.onCrew = true;
     renderPage();
-    expect(await screen.findByRole("button", { name: "Open in working" })).toBeTruthy();
+    // JA-18: "See your crew steps" opens the Working card, so no "Open in working" beside it (two buttons, one place).
+    expect(await screen.findByRole("button", { name: "See your crew steps" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
     expect(screen.queryByText("This job is no longer available")).toBeNull();
     expect(document.querySelector("[data-job-address]")?.textContent).toContain("4412 Highland Rd");
     expect(screen.queryByText(/street address is shared once/)).toBeNull();
@@ -1337,5 +1343,64 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
       expect(src.length).toBeGreaterThan(1000);
       expect(src).not.toMatch(/label: [^,]*"Manage job"/);
     }
+  });
+});
+
+// B93 (owner 2026-11-01, 9:13 to 9:40 AM, and the Jobs audit's JA-3/7/8/9/10/22): the same one row at every stage.
+// @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const cells = (stepRight ? [second, leadNode] : [leadNode, second]).filter(Boolean); |   const cells = [leadNode, second].filter(Boolean);
+// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0; |     const cardLead = false;
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease && ( |             {false && (
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | owesReview, review: () => setReviewOpen(true) }) | review: () => setReviewOpen(true) })
+describe("one row of buttons at every stage (B93)", () => {
+  const live = { customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_on_the_way_at: "2026-10-28T13:51:00Z" } as const;
+  const rowLabels = () => within(document.querySelector("[data-job-row]") as HTMLElement).getAllByRole("button").map((b) => b.textContent);
+
+  it("arrived (JA-3, JA-7, JA-8): never three in a row; the confirm leads on the right, its options one tap away, no duplicate", async () => {
+    state.tracking = "arrived";
+    state.job = row({ ...live, helper_arrived_at: "2026-10-28T14:20:00Z" });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(rowLabels()).toEqual(["More options", "Confirm they've arrived"]));
+    expect(screen.getAllByRole("button", { name: "Confirm they've arrived" })).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /Fewer options/ })).toBeNull();
+    // Message is in the list, one tap away.
+    await waitFor(() => expect(pageActions()).toContain("Message Rhonda"));
+  });
+
+  it("Approve and release (JA-9): how long the poster has to check, beside the button", async () => {
+    state.moreCount = 0;
+    state.job = row({ ...live, helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:25:00Z", helper_completed_at: new Date().toISOString() });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(rowLabels()).toEqual(["Message Rhonda", "Approve and release"]));
+    const by = document.querySelector("[data-approve-by]") as HTMLElement;
+    expect(by.textContent).toMatch(/to review — then Helpr support steps in/);
+    expect(by.compareDocumentPosition(document.querySelector("[data-job-row]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("completed (JA-10): the card's own Review leads the row; Message joins the options", async () => {
+    state.leadCount = 1;
+    state.moreCount = 1;
+    state.job = row({ ...live, status: "completed", payment_status: "payout_pending", helper_arrived_at: "2026-10-28T14:20:00Z",
+      helper_completed_at: "2026-10-28T15:00:00Z", poster_completed_at: "2026-10-28T15:10:00Z" });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(flowCalls).toContain("lead-host"));
+    const rowEl = document.querySelector("[data-job-row]") as HTMLElement;
+    // The lead slot is the row's right half; Message + the card's one other action make two, so More options.
+    expect(rowEl.lastElementChild?.hasAttribute("data-card-lead")).toBe(true);
+    expect(within(rowEl).getAllByRole("button").map((b) => b.textContent)).toEqual(["More options"]);
+  });
+
+  it("the hired Helpr's finished job (JA-22): Leave a review leads; Message and Open in working one tap away", async () => {
+    state.owesReview = true;
+    state.job = row({ helper_id: ME, status: "completed", payment_status: "payout_pending", helper_completed_at: "2026-10-28T15:00:00Z",
+      poster_completed_at: "2026-10-28T15:10:00Z", payout_scheduled_at: new Date(Date.now() + 86_400_000).toISOString() });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(rowLabels()).toEqual(["More options", "Leave a review"]));
+    expect(document.querySelector("[data-helpr-paid]")?.textContent).toMatch(/^Approved\. Your pay goes out /);
   });
 });

@@ -12,6 +12,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 // @mutate src/components/JobConfirmation.tsx |           label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"} |           label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
 // @mutate src/components/JobConfirmation.tsx |       {isOwner ? `Confirm the new time, ${newSlot}` : `Confirm you'll be there ${newSlot}`} |       {isOwner ? `Confirm the new time` : `Confirm you'll be there`}
 // @mutate src/components/JobConfirmation.tsx |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm ${newSlot}` |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm`
+// @mutate src/components/job-card/JobStepCard.tsx |           {moreChips.length > 1 ? ( |           {moreChips.length > 0 ? (
 /**
  * VN-21 — EVERY BUTTON ON A STEP CARD SITS ON ONE ROW (owner, 2026-09-14).
  *
@@ -820,11 +821,13 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
       // 2026-10-08: "move everything besides the primary button into the more
       // tab ... more button will be to the left of the primary button").
       const kids = [...row.children].filter((k) => !(k as HTMLElement).hasAttribute("data-job-step-primary"));
-      expect(
-        kids.map((k) => (k.getAttribute("aria-label") || k.textContent || "").trim()),
-        "only the More control may sit beside the primary",
-      ).toEqual(moreTrigger ? [(moreTrigger.getAttribute("aria-label") || "").trim()] : []);
+      // ONE extra action is not a menu (owner 2026-11-01: "if no show is the only option then just remove the more
+      // button bc there isn't really more"): a lone action sits there itself; More only ever holds two or more.
+      const besides = kids.map((k) => (k.getAttribute("aria-label") || k.textContent || "").trim());
+      expect(besides.length, `only More, or the one extra action, may sit beside the primary: [${besides.join(" | ")}]`).toBeLessThanOrEqual(1);
       if (moreTrigger) {
+        const held = Number(/More — (\d+) more/.exec(moreTrigger.getAttribute("aria-label") ?? "")?.[1] ?? NaN);
+        expect(held, "a More menu holding ONE action").toBeGreaterThanOrEqual(2);
         expect(moreTrigger.nextElementSibling?.hasAttribute("data-job-step-primary"), "More sits directly left of the primary").toBe(true);
       }
       // The primary TRAILS the row on the right (owner, 2026-09-15, V2/V3:

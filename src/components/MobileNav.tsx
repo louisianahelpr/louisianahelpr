@@ -10,6 +10,7 @@ import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
 import { TabButton } from "@/components/mobileNav/TabButton";
+import { Button } from "@/components/ui/button";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -651,8 +652,12 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                   olive disc that opens "What are we doing?". The only loud
                   thing in the bar; it turns into an X while the sheet is open. */}
               <div className="flex flex-1 items-start justify-center relative">
-                <button
+                {/* The shared primary icon Button, not a hand-made one (B85 11-01): its 60px disc, ring, glyph and
+                    press kept (size iconLarge; the style's ring wins over the variant's shadow). */}
+                <Button
                   type="button"
+                  variant="primary"
+                  size="iconLarge"
                   data-testid="dock-create"
                   aria-label={tr("nav.create")}
                   aria-haspopup="dialog"
@@ -662,19 +667,19 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                     setCreateOpen((o) => !o);
                   }}
                   // HELPR-DESIGN-SPEC §3: a 60px disc raised half above the bar, in a 4px ring of the page's own ground.
-                  className="btn-grad-primary btn-press absolute -top-[30px] w-[60px] h-[60px] rounded-full flex items-center justify-center [-webkit-tap-highlight-color:transparent]"
+                  className="btn-press absolute -top-[30px] [-webkit-tap-highlight-color:transparent]"
                   style={{
                     color: "hsl(var(--primary-foreground))",
                     boxShadow: "0 0 0 4px hsl(var(--background)), 0 4px 18px rgba(32, 30, 26, 0.12)",
                   }}
                 >
                   <Plus
-                    className="w-7 h-7 transition-transform duration-200"
+                    className="transition-transform duration-200"
                     strokeWidth={2.25}
                     aria-hidden
                     style={{ transform: createOpen ? "rotate(45deg)" : undefined }}
                   />
-                </button>
+                </Button>
               </div>
               {dock.right.map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">

@@ -1,6 +1,7 @@
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { HelperPhotoAsk } from "./HelperPhotoAsk";
 import { PayoutPrimary, PayoutUnlockNote } from "./PayoutPrimary";
+import { ListForSellerPanel } from "./ListForSellerPanel";
 import type { HelperStepProps } from "./stepContract";
 
 /**
@@ -48,6 +49,8 @@ export function OnSiteStep({
           <PayoutUnlockNote hasPhotos={payout.hasPhotos} tooEarly={payout.tooEarly} minutesLeft={payout.minutesLeft} />
           {/* The owed photo is the primary (owner, 2026-10-08: photo first). */}
           <HelperPhotoAsk jobId={app.job_id} job={job} step="on_site" mode="primary" />
+          {/* LEAD-LIST-FOR-SELLER: the listings can be written from arrival on, as on the working step. */}
+          <ListForSellerPanel jobId={app.job_id} job={job} posterName={app.posterName} />
         </>
       }
       primary={<PayoutPrimary {...payout} />}

@@ -95,17 +95,23 @@ function AddListingForm({ jobId, helprId, seller, onDone }: { jobId: string; hel
   );
 }
 
-export function ListForSellerPanel({ jobId, job, posterName }: {
+type PanelProps = {
   jobId: string;
   job: { category?: string | null; helper_completed_at?: string | null };
   posterName?: string | null;
-}) {
+};
+
+/** Mounted on every Helpr job's on-site and working steps; renders (and reads) only on an open Have a Helpr list it job. */
+export function ListForSellerPanel(props: PanelProps) {
+  return isSellForMeJob(props.job.category) && !props.job.helper_completed_at ? <ListForSellerPanelOpen {...props} /> : null;
+}
+
+function ListForSellerPanelOpen({ jobId, posterName }: PanelProps) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
-  const on = isSellForMeJob(job.category) && !job.helper_completed_at;
   const key = ["declutter", "helpr-job-listings", jobId];
-  const { data: rows = [] } = useQuery({ queryKey: key, queryFn: () => fetchHelprJobListings(jobId), enabled: on });
+  const { data: rows = [] } = useQuery({ queryKey: key, queryFn: () => fetchHelprJobListings(jobId) });
   const refresh = () => void qc.invalidateQueries({ queryKey: key });
   const send = useMutation({
     mutationFn: () => helprSendListings(jobId),
@@ -117,7 +123,7 @@ export function ListForSellerPanel({ jobId, job, posterName }: {
     onSuccess: refresh,
     onError: (e: Err) => toast(e.userMessage ?? "We couldn't delete that. Try again."),
   });
-  if (!on || !user) return null;
+  if (!user) return null;
   const seller = posterFirstName(posterName) || "the seller";
   const drafts = rows.filter((r) => r.status === "draft").length;
 

@@ -331,7 +331,7 @@ export const TermsContent = () => {
         title="Checkout and what buyers pay"
         body={
           <>
-            <p><strong className="text-foreground">48 hours to check out.</strong> After you buy, or your offer is accepted, the item is reserved for you and you have 48 hours to check out and pay. We remind you 24 hours and 2 hours before. Missing the deadline on an accepted offer is 1 Declutter strike, and the item goes back on sale. If you tapped Buy now and don&apos;t pay, the item just goes back on sale, with no strike.</p>
+            <p><strong className="text-foreground">Time to check out.</strong> Buy now holds an item for 30 minutes while you check out; an accepted offer gives you 24 hours to pay. On an accepted offer we remind you 2 hours before the end. Missing the deadline on an accepted offer is 1 Declutter strike, and the item goes back on sale. If you tapped Buy now and don&apos;t pay, the item just goes back on sale, with no strike. When an item goes back on sale, the offers its hold closed open again. A payment that arrives after the hold has ended is refunded in full.</p>
             <p>Your saved card is charged only when you check out and pay, or automatically in a part of Louisiana Helpr where you turned on automatic charges.</p>
             <p><strong className="text-foreground">What you pay:</strong> the item price plus a buyer&apos;s fee, once per checkout, which covers running Declutter and card processing. You see one total before you pay, delivery included.</p>
             <p>Items from the same seller go into one checkout: one payment, one pickup or delivery.</p>

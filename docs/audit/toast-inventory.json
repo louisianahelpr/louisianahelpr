@@ -11574,7 +11574,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ConfirmedSection.tsx",
-      "line": 73,
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11584,7 +11584,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ConfirmedSection.tsx",
-      "line": 90,
+      "line": 91,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",

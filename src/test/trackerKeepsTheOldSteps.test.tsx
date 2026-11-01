@@ -13,6 +13,8 @@
  *           showed) -> the full tracker's done steps, the same stamps
  *   colour  one AMBER "you are here" step; red ONLY on the step a dispute stopped the job at; all green at Done
  *           -> the current step amber (owner 2026-10-23: the old rule wins), a hand / an hourglass for whose move;
+ *           EXCEPT On the way / Arrived / Working (owner 2026-10-31: white until that step begins, bright yellow
+ *           while it happens; JobProgressState.begun, guard src/test/trackerStepWhiteUntilBegun.test.tsx);
  *           Dispute red (bg-destructive); stage 8 all done
  *   pulse   the current step pulsed until Done (never on a dispute or a finished job) -> step-current-pulse on the
  *           current step's bar (a span, never a control: finishedJobDoesNotPulse)
@@ -25,7 +27,7 @@
  * @mutate src/components/tracker/JobProgress.tsx |         const tipText = !detailed ? null : ts ? stampText(ts) : i === stage && why ? why : null; |         const tipText = null;
  * @mutate src/components/tracker/JobProgress.tsx |   them: "bg-[hsl(var(--amber-solid))]", |   them: "bg-primary",
  * @mutate src/hooks/useStepTooltip.ts |       if (hoverOpened.current === key) { |       if (false) {
- * @mutate src/components/tracker/JobProgress.tsx |   const pulses = detailed && tone === "progress" && stage < JOB_PROGRESS_STEPS.length; |   const pulses = false;
+ * @mutate src/components/tracker/JobProgress.tsx |   const pulses = detailed && tone === "progress" && stage < JOB_PROGRESS_STEPS.length && phase !== "waiting"; |   const pulses = false;
  * @mutate src/components/tracker/JobProgress.tsx |   const current: StepState = tone === "problem" ? (label === "Dispute" ? "alarm" : "problem") : waitingOnYou ? "you" : "them"; |   const current: StepState = tone === "problem" ? "problem" : waitingOnYou ? "you" : "them";
  * @mutate src/components/tracker/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return at(3); |   if (job.date_needed && !job.helper_dayof_confirmed_at) return at(3);
  * @mutate src/components/JobTracking.tsx |   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" }, |   { key: "arrived", label: "Arrived", action: null, icon: MapPin, color: "text-primary" },
@@ -114,6 +116,7 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
     expect(pulsing(live({ stage: 7, tone: "problem", label: "Dispute" }))).toBe(0);
   });
 
+  // Way / Arr. / Work with a known `begun` are white or yellow instead (owner 2026-10-31): trackerStepWhiteUntilBegun.
   it("the current step is AMBER, whoever's move it is (the old rail's rule; owner 2026-10-23)", () => {
     for (const waitingOnYou of [true, false]) {
       const { container } = render(<JobProgress progress={live({ waitingOnYou })} />);

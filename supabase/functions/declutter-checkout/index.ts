@@ -118,6 +118,8 @@ type OrderRow = {
   checkout_session_id: string | null;
   /** Slice 5: the Helpr delivery fee frozen on the order (absent before slice 5 = 0). */
   delivery_cents?: number | null;
+  /** Shipping S3 (20261101201500): the postage frozen from the buyer's quote (0 for every other way). */
+  shipping_cents?: number | null;
 };
 
 /** An RPC refusal as the app's error code (the SQL message) + a status. */
@@ -143,10 +145,14 @@ async function expirePage(stripe: Stripe, sessionId: string): Promise<void> {
 /** B110: the pickups whose day and time the buyer may choose at checkout. */
 const PICKUP_TIMED = ["porch", "pickup_home", "meetup"];
 
-async function startCheckout(asBuyer: Db, sellerId: string, handover: string, slotStart: string | null, handoff: string | null): Promise<{ row?: OrderRow; refusal?: Response }> {
+async function startCheckout(asBuyer: Db, sellerId: string, handover: string, slotStart: string | null, handoff: string | null,
+  quoteId: string | null = null): Promise<{ row?: OrderRow; refusal?: Response }> {
   // p_slot_start and p_handoff for a seller delivery; p_slot_start alone for a pickup whose time the buyer chose at
-  // checkout (B110, 20261101191500). Every other call is the same call as before.
-  const args = handover === "seller_delivery"
+  // checkout (B110, 20261101191500); p_quote_id for a shipped order (Shipping S3, 20261101201500: the buyer's stored
+  // ship-rates quote; the RPC prices it, never this function). Every other call is the same call as before.
+  const args = handover === "ship"
+    ? { p_seller_id: sellerId, p_handover: handover, p_quote_id: quoteId }
+    : handover === "seller_delivery"
     ? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart, p_handoff: handoff }
     : slotStart && PICKUP_TIMED.includes(handover)
       ? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart }
@@ -190,6 +196,8 @@ async function porchRefused(admin: Db, buyerId: string, sellerId: string): Promi
  * 20261028235247 reaches prod the column is missing (42703): nothing is refused for it then.
  */
 async function handoverNotOffered(admin: Db, buyerId: string, sellerId: string, handover: string): Promise<boolean | null> {
+  // Shipping S3: 'ship' is not one of the ticked ways; the RPC checks every item has a parcel (ship_preset) instead.
+  if (handover === "ship") return false;
   // The lines the RPC groups: in the cart and not past their checkout time (review nit 6).
   const { data: lines, error: linesErr } = await admin.from("declutter_cart_items").select("item_id, price_cents")
     .eq("buyer_id", buyerId).eq("seller_id", sellerId).eq("status", "in_cart").gt("checkout_by", new Date().toISOString());
@@ -247,8 +255,15 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   const expectedRate = handover === "seller_delivery" && typeof body.expected_delivery_cents === "number"
     && Number.isInteger(body.expected_delivery_cents) && body.expected_delivery_cents >= 0 ? body.expected_delivery_cents : null;
   const native = isNativeRequest(body);
+  // Shipping S3 (Q2259): the buyer's own ship-rates quote, by id only (the RPC checks it is theirs, fresh and for
+  // these lines, and takes the price from it).
+  const quoteId = handover === "ship" && typeof body.quote_id === "string" && UUID_RE.test(body.quote_id) ? body.quote_id : null;
+  if (handover === "ship" && !quoteId) return json({ error: "shipping_quote_needed" }, 400);
 
   const mode = await stripeModeForParties(admin, [user.id, sellerId], { caller: user.id });
+  // Labels are bought in EasyPost TEST mode only until the owner turns shipping on (lead 2026-10-30, money review
+  // fix 8): a shipped order is never paid on the live Stripe key.
+  if (handover === "ship" && mode !== "test") return json({ error: "shipping_test_only" }, 409);
   const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
   /** A stored page runs in the mode its id was minted in (lh-money-escrow review 3b #9). */
   const stripeOf = (sessionId: string): Stripe => {
@@ -262,14 +277,14 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // can never be paid next to the new one. A page that cannot be closed
   // stays the buyer's page.
   const { data: openOrder, error: openErr } = await admin.from("declutter_orders")
-    .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, pickup_slot_start")
+    .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, pickup_slot_start, shipping_quote_id")
     .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle();
   if (openErr) {
     console.error(`[declutter-checkout] open order read failed: ${openErr.message}`);
     return json({ error: TRY_AGAIN }, 503);
   }
   const open = openOrder as { id: string; handover: string; stripe_checkout_session_id: string | null; delivery_cents?: number | null;
-    bundle_discount_cents?: number | null; pickup_slot_start?: string | null } | null;
+    bundle_discount_cents?: number | null; pickup_slot_start?: string | null; shipping_quote_id?: string | null } | null;
   // lh-money-escrow review #4: a seller delivery whose TIME changed replaces the open order
   // too, so its page is closed first exactly as for a changed handover.
   let slotChanged = false;
@@ -305,6 +320,8 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // B110: a pickup whose chosen TIME changed replaces the open order too, so its page is closed first.
   const pickupChanged = !!open && PICKUP_TIMED.includes(handover) && open.handover === handover
     && (open.pickup_slot_start ? Date.parse(open.pickup_slot_start) : null) !== (slotStart ? Date.parse(slotStart) : null);
+  // Shipping S3: a new quote (a new price or address) replaces the open order too, so its page is closed first.
+  const quoteChanged = !!open && handover === "ship" && open.handover === "ship" && (open.shipping_quote_id ?? null) !== quoteId;
   if (open?.stripe_checkout_session_id) {
     const page = await stripeOf(open.stripe_checkout_session_id).checkout.sessions.retrieve(open.stripe_checkout_session_id);
     if (page.status === "complete") return json({ paid: true, order_id: open.id });
@@ -325,7 +342,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       }
       bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0);
     }
-    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged)) {
+    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged || quoteChanged)) {
       // Owner 2026-10-28: a way the seller did not tick must not cost the buyer their open page either
       // (declutter_start_checkout refuses it: handover_not_offered; the RPC stays the protection).
       const notOffered = await handoverNotOffered(admin, user.id, sellerId, handover);
@@ -366,7 +383,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     }
   }
 
-  let { row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart, handoff);
+  let { row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart, handoff, quoteId);
   if (refusal) return refusal;
 
   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id);
@@ -382,7 +399,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       console.error(`[declutter-checkout] retire failed: ${retireErr.message}`);
       return json({ error: TRY_AGAIN }, 503);
     }
-    ({ row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart, handoff));
+    ({ row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart, handoff, quoteId));
     if (refusal) return refusal;
   }
   const order = row!;
@@ -399,8 +416,12 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   const deliveryShapeOk = handover === "delivery" ? deliveryCents > 0
     : handover === "seller_delivery" ? Number.isInteger(deliveryCents) && deliveryCents >= 0
     : deliveryCents === 0;
-  if (!deliveryShapeOk
-      || order.items_cents + order.premium_cents + order.tax_cents + deliveryCents !== order.total_cents || order.total_cents <= 0) {
+  // Shipping S3: postage only on a shipped order, and always there (the RPC took it from the quote).
+  const shippingCents = Number(order.shipping_cents ?? 0);
+  const shippingShapeOk = handover === "ship" ? Number.isInteger(shippingCents) && shippingCents > 0 : shippingCents === 0;
+  if (!deliveryShapeOk || !shippingShapeOk
+      || order.items_cents + order.premium_cents + order.tax_cents + deliveryCents + shippingCents !== order.total_cents
+      || order.total_cents <= 0) {
     console.error(`[declutter-checkout] order ${order.order_id} amounts do not add up`);
     return json({ error: TRY_AGAIN }, 500);
   }
@@ -450,6 +471,9 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     seller_id: sellerId,
     // Q2352: what the page charges beyond the sale (the webhook's receipt names it).
     setup_fee_cents: String(setupFeeCents),
+    // Shipping S3: a shipped order's page is a card HOLD (money review fix 2); the webhook records the hold and the
+    // label worker captures only after the label is bought (a failed label releases the hold at no cost).
+    ...(handover === "ship" ? { ship: "1" } : {}),
   };
   // Casual sellers' sales are exempt (row 54 (1)); a business-like seller is
   // refused at checkout until the tax slice (B33), so no tax line exists yet.
@@ -480,6 +504,11 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: deliveryCents,
       product_data: { name: handover === "seller_delivery" ? "Seller delivery" : "Helpr delivery", tax_code: NONTAXABLE_TAX_CODE } } });
   }
+  if (shippingCents > 0) {
+    // The postage the buyer picked (ship-rates quote), the exact rate the label is bought at.
+    lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: shippingCents,
+      product_data: { name: "Shipping", tax_code: NONTAXABLE_TAX_CODE } } });
+  }
   if (setupFeeCents > 0) {
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: setupFeeCents,
       product_data: { name: "One-time account setup fee", tax_code: NONTAXABLE_TAX_CODE } } });
@@ -498,7 +527,8 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       ...(customerId ? { customer: customerId } : { customer_email: user.email ?? undefined }),
       client_reference_id: order.order_id,
       metadata: meta,
-      payment_intent_data: { metadata: meta, transfer_group: `declutter_order_${order.order_id}` },
+      payment_intent_data: { metadata: meta, transfer_group: `declutter_order_${order.order_id}`,
+        ...(handover === "ship" ? { capture_method: "manual" as const } : {}) },
       // Q202: 3D Secure from $300 up (card-fraud disputes move to the issuer).
       payment_method_options: threeDSecureOptions(chargeCents),
       expires_at: expiresAt,

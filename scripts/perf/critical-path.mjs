@@ -51,8 +51,11 @@ export const ROUTES = [
   { path: "/profile?tab=earnings", chunk: "EarningsTab" },
   // Admin's Dashboard KPI trend lines (lazy from KpiCard), walked from their own chunk: they were recharts.
   { path: "/admin?kpi-sparkline", chunk: "KpiSparkline" },
-  // Declutter (Buying and Selling tabs share one page chunk), started by the entry (declutterRoute.ts).
-  { path: "/declutter", chunk: "DeclutterPage" },
+  // Declutter, started by the entry (declutterRoute.ts). B77: each tab's code is its own chunk, which declutterRoute.ts
+  // starts beside the page (`with`: walked from the same round), so each row is the page plus the tab it opens on.
+  // Browse is the default tab; Buying and Selling share DeclutterMineViews.
+  { path: "/declutter", chunk: "DeclutterPage", with: ["DeclutterBrowseView"], withHost: "declutterRoute" },
+  { path: "/declutter?tab=selling", chunk: "DeclutterPage", with: ["DeclutterMineViews"], withHost: "declutterRoute" },
 ];
 
 function die(msg) {
@@ -126,6 +129,22 @@ export function analyse(dist = DIST) {
   if (mainChunk) boot = walk([mainChunk, ...entryDyn.get(mainChunk)], entryRound + 1, boot);
   const bootRounds = Math.max(...boot.values());
 
+  // A route's `with` chunks start in the same round as its page chunk (B77, /declutter's tabs), each with the preload
+  // list its dynamic import in `withHost` carries.
+  const chunkFile = (r, p) => {
+    const f = files.find((x) => new RegExp(`^${p}-[\\w-]{6,}\\.js$`).test(x));
+    if (!f) die(`no built chunk for ${r.path}'s ${p} (expected ${p}-<hash>.js)`);
+    return f;
+  };
+  const withChunks = (r) => {
+    if (!r.with) return [];
+    const host = dynamicImports(chunkFile(r, r.withHost));
+    return r.with.flatMap((p) => {
+      const f = chunkFile(r, p);
+      if (!host.has(f)) die(`${r.withHost} does not import ${p} for ${r.path}`);
+      return [f, ...host.get(f)];
+    });
+  };
   const routes = ROUTES.map((r) => {
     const re = new RegExp(`^${r.chunk}-[\\w-]{6,}\\.js$`);
     const chunk = files.find((f) => re.test(f));
@@ -138,13 +157,13 @@ export function analyse(dist = DIST) {
     } else if (entryDyn.has(chunk)) {
       // Started by the entry itself (src/boot/routePreload.ts), beside main.
       routeRound = entryRound + 1;
-      at = walk([chunk, ...entryDyn.get(chunk)], routeRound, boot);
+      at = walk([chunk, ...entryDyn.get(chunk), ...withChunks(r)], routeRound, boot);
     } else {
       // Otherwise the route's lazy import fires once the app graph has run.
       routeRound = bootRounds + 1;
       const host = [...boot.keys()].find((h) => dynamicImports(h).has(chunk));
       const deps = host ? dynamicImports(host).get(chunk) : [];
-      at = walk([chunk, ...deps], routeRound, boot);
+      at = walk([chunk, ...deps, ...withChunks(r)], routeRound, boot);
     }
     const onPath = [...at.keys()];
     return {

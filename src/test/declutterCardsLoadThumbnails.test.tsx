@@ -12,7 +12,7 @@
  *
  * @mutate src/components/declutter/DeclutterItemCard.tsx |             src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)} |             src={photoPublicUrl(photoPath)}
  * @mutate src/lib/declutter/api.ts |     .getPublicUrl(path, { transform: { width: CARD_PHOTO_PX, height: CARD_PHOTO_PX, resize: "cover", quality: 70 } }).data.publicUrl; |     .getPublicUrl(path).data.publicUrl;
- * @mutate src/components/declutter/DeclutterItemCard.tsx |             onError={() => setPhotoStage((s) => (s === "card" ? "full" : "failed"))} |             onError={() => setPhotoStage("failed")}
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | setPhotoStage((s) => (s === "card" ? "full" : "failed")); }} | setPhotoStage("failed"); }}
  * @mutate src/components/declutter/DeclutterItemCard.tsx | decoding="async"\n            {...(firstRow | {...(firstRow
  * @mutate src/components/declutter/useLoadPhotoAhead.ts |         img.setAttribute("loading", "eager"); |
  * @mutate src/components/declutter/useLoadPhotoAhead.ts |       { root: scrollParent(img), rootMargin: `0px 0px ${LOAD_AHEAD_PX}px 0px` }, |       { root: null },
@@ -47,6 +47,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 import { ItemCard } from "@/components/declutter/DeclutterItemCard";
 import { CARD_PHOTO_PX } from "@/lib/declutter/api";
 import { LOAD_AHEAD_PX } from "@/components/declutter/useLoadPhotoAhead";
+import { resetFirstRowPhotoGate } from "@/components/declutter/firstRowPhotoGate";
 import type { DeclutterItem } from "@/lib/declutter/api";
 
 const ROOT = resolve(__dirname, "../..");
@@ -67,6 +68,7 @@ class FakeIO {
 
 beforeEach(() => {
   observers.length = 0;
+  resetFirstRowPhotoGate();
   vi.stubGlobal("IntersectionObserver", FakeIO);
 });
 afterEach(() => {
@@ -74,12 +76,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const card = (firstRow = false) =>
-  render(<MemoryRouter><ItemCard item={item} photoPath="u/declutter/i1/p.jpg" miles={1} approximate={false} firstRow={firstRow} /></MemoryRouter>);
+// A later card's photo renders once firstRowPhotoGate opens (at once here: no first-row photo is in flight, B77).
+const card = async (firstRow = false) => {
+  const r = render(<MemoryRouter><ItemCard item={item} photoPath="u/declutter/i1/p.jpg" miles={1} approximate={false} firstRow={firstRow} /></MemoryRouter>);
+  await vi.waitFor(() => expect(r.container.querySelector("img")).not.toBeNull());
+  return r;
+};
 
 describe("Declutter cards load thumbnails, not originals", () => {
-  it("(a) asks for the card-sized transform with its shape and async decoding", () => {
-    const { container } = card();
+  it("(a) asks for the card-sized transform with its shape and async decoding", async () => {
+    const { container } = await card();
     const img = container.querySelector("img")!;
     expect(CARD_PHOTO_PX).toBeGreaterThanOrEqual(400);
     expect(CARD_PHOTO_PX).toBeLessThanOrEqual(512);
@@ -90,16 +96,16 @@ describe("Declutter cards load thumbnails, not originals", () => {
     expect(img.getAttribute("decoding")).toBe("async");
   });
 
-  it("(b) a failed thumbnail falls back to the full photo, then to the icon", () => {
-    const { container } = card();
+  it("(b) a failed thumbnail falls back to the full photo, then to the icon", async () => {
+    const { container } = await card();
     fireEvent.error(container.querySelector("img")!);
     expect(container.querySelector("img")!.getAttribute("src")).toBe("https://ref.supabase.co/storage/v1/object/public/job-photos/u/declutter/i1/p.jpg");
     fireEvent.error(container.querySelector("img")!);
     expect(container.querySelector("img")).toBeNull();
   });
 
-  it("(c) a later card's photo is lazy until it is within LOAD_AHEAD_PX of the scroller; the first row is eager", () => {
-    const { container } = card();
+  it("(c) a later card's photo is lazy until it is within LOAD_AHEAD_PX of the scroller; the first row is eager", async () => {
+    const { container } = await card();
     const img = container.querySelector("img")!;
     expect(img.getAttribute("loading")).toBe("lazy");
     expect(observers).toHaveLength(1);
@@ -109,7 +115,7 @@ describe("Declutter cards load thumbnails, not originals", () => {
     expect(img.getAttribute("loading")).toBe("eager");
     cleanup();
     observers.length = 0;
-    const first = card(true).container.querySelector("img")!;
+    const first = (await card(true)).container.querySelector("img")!;
     expect(first.getAttribute("loading")).toBe("eager");
     expect(first.getAttribute("fetchpriority")).toBe("high");
     expect(observers).toHaveLength(0);

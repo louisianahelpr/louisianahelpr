@@ -56,6 +56,7 @@ import { RemoveFromCart } from "./DeclutterCartRemove";
 import { invalidateTrades } from "./declutterLightActions";
 import { cartSectionWords, CheckoutCardHead } from "./DeclutterCartWords";
 import { firstPhotos } from "./DeclutterItemCard";
+import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
@@ -370,10 +371,11 @@ export function FinishSalesView() {
 
 /** BUY-15: a cart line's small photo; a grey square while it loads, when the item has none, or when it fails. */
 function CartThumb({ path }: { path?: string }) {
-  const [failed, setFailed] = useState(false);
+  // B77: the 160 px square first (the original was 356-560 KB for a 48 px box), the original if that fails, then grey.
+  const [stage, setStage] = useState<"thumb" | "full" | "failed">("thumb");
   return (
     <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted" data-cart-thumb="" aria-hidden="true">
-      {path && !failed && <img src={photoPublicUrl(path)} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} className="h-full w-full object-cover" />}
+      {path && stage !== "failed" && <img src={stage === "thumb" ? squarePhotoUrl(photoPublicUrl(path), THUMB_PHOTO_PX) ?? photoPublicUrl(path) : photoPublicUrl(path)} width={THUMB_PHOTO_PX} height={THUMB_PHOTO_PX} alt="" loading="lazy" decoding="async" onError={() => setStage((s) => (s === "thumb" ? "full" : "failed"))} className="h-full w-full object-cover" />}
     </span>
   );
 }

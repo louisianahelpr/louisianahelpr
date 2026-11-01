@@ -217,7 +217,9 @@ const EXEMPT: Record<string, string> = {
   // 2026-09-27 live switch (the feature did not exist before), and each is read on the client of the mode it was
   // placed in: create-payment's job money mode, card-hold-sweep's hold row stripe_mode, or the webhook event's own.
   "_shared/cardHold.ts::stripe.paymentIntents.retrieve(piId)": "the hold being captured or released, re-read after Stripe refused the capture / cancel, on the hold's own mode; minted after the live switch",
-  "_shared/cardHold.ts::stripe.paymentIntents.retrieve(piId)#2": "the hold being released, re-read after Stripe refused the cancel, on the hold's own mode; minted after the live switch",
+  // CMP-4 (2026-11-01): refundInstantBookingWith's read sits between the two re-reads in file order, so it is #2 and the release re-read is #3.
+  "_shared/cardHold.ts::stripe.paymentIntents.retrieve(piId)#2": "CMP-4: an instant booking charged with nobody hired, read before its automatic full refund, on the hold's own mode (card-hold-sweep depsFor(hold), create-payment's job mode); a refusal (a test-mode id under the live key included) is definitive in instantBookRefund.ts, which keeps the claim and pages a person once; minted after the live switch",
+  "_shared/cardHold.ts::stripe.paymentIntents.retrieve(piId)#3": "the hold being released, re-read after Stripe refused the cancel, on the hold's own mode; minted after the live switch",
   "_shared/cardHold.ts::stripe.paymentIntents.retrieve(hold.payment_intent_id)": "a resumed off-session charge this claim recorded while it was processing (round 4): read, never re-created; on the hold's own mode (the claim refuses another); minted after the live switch",
   "_shared/cardHold.ts::stripe.paymentIntents.retrieve(hold.payment_intent_id)#2": "a closed job's stale claim on a SAVED card: did its recorded off-session charge go through? On the hold's own mode; minted after the live switch",
   "_shared/cardHold.ts::stripe.paymentIntents.retrieve(hold.payment_intent_id)#3": "a closed job's stale capture claim: is the hold captured at Stripe? On the hold's own mode; minted after the live switch",

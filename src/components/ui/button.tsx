@@ -157,6 +157,12 @@ const buttonVariants = cva(
         lg: "h-[60px] px-8 text-ds-17",
         xl: "h-16 px-10 text-ds-18",
         icon: "h-14 w-14",
+        // A 40px visual circle inside a 44px tap area (lead decision 10-31, B41 handoff): the HIT AREA is padded, not the
+        // visual. The 2px transparent border keeps the box (and the tap target) at 44 while `bg-clip-padding` paints
+        // the fill, and an inset ring, inside it, at 40. For quiet toolbar icons (`variant="ghost"`): an outline
+        // variant's own border and a filled variant's outer shadow would sit on the 44 edge, so they do not use it.
+        // Guard: src/test/iconCompactButton.test.ts.
+        iconCompact: "h-11 w-11 border-2 border-transparent bg-clip-padding [&_svg]:size-5",
         // NOTE: an "icon-sm" size (h-9 w-9 = 36px) used to live here. It was a
         // 36×36 tap target — under Apple's 44pt and Android's 48dp minimums —
         // sitting in the shared primitive where it was the variant most likely

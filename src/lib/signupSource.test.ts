@@ -12,6 +12,7 @@
  * @mutate src/lib/signupSource.ts |   if (safeStorage.getItem(SENT_KEY) === userId) return; |
  * @mutate src/lib/signupSource.ts |       if (!isMissingRpcNamed(error, "record_my_signup_source")) report(error, { tags: { source: "signup-source" } });\n      return; |       if (!isMissingRpcNamed(error, "record_my_signup_source")) report(error, { tags: { source: "signup-source" } });
  * @mutate src/lib/signupSource.ts |       if (!isMissingRpcNamed(error, "record_my_signup_source")) report | if (false) report
+ * @mutate src/lib/signupSource.ts |       if (/^\s*email_unconfirmed\b/.test(String(error.message ?? ""))) return; |
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -105,6 +106,17 @@ describe("reportSignupSource", () => {
     await reportSignupSource("u1");
     expect(rpc).toHaveBeenCalledTimes(2);
     expect(report).not.toHaveBeenCalled();
+  });
+
+  it("an unconfirmed email's refusal is quiet and tried again once confirmed (lead 10-31)", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "42501", message: "email_unconfirmed" } });
+    await reportSignupSource("u1");
+    expect(report).not.toHaveBeenCalled();
+    rpc.mockResolvedValueOnce({ data: true, error: null });
+    await reportSignupSource("u1");
+    expect(rpc).toHaveBeenCalledTimes(2);
+    await reportSignupSource("u1");
+    expect(rpc).toHaveBeenCalledTimes(2);
   });
 
   it("any other failure is reported, never thrown", async () => {

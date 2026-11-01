@@ -47,8 +47,8 @@
  *     process-scheduled-payouts, money-reconciliation), and the confirm/repost
  *     sweep skips seed posters (job_posted_by_seed);
  *   - no test account holds a LIVE Stripe Connect account. Only one holds any:
- *     helper-e2e's TEST-mode Express fixture acct_1UQigP3qNyg1xGcp (the
- *     journeys' tip leg, Q?journeys-tip-fixture, 2026-10-17; the exact pair is
+ *     helper-e2e's TEST-mode Custom fixture acct_1UWzu83VTH7LD6DT (the
+ *     journeys' tip leg, Q?journeys-tip-fixture, 2026-10-17; D4-1 2026-11-01; the exact pair is
  *     pinned in scripts/e2e/seatStripeAccounts.mjs). Every party of these jobs
  *     is a test account, so _shared/stripeMode.ts would run any money call on
  *     the TEST key, and the live key cannot reach a test-mode account; the two

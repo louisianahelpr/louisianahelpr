@@ -41,6 +41,8 @@ export interface ProblemCase {
   helpr_delivered_at: string | null;
   helpr_dropoff_photo_path: string | null;
   helpr_dropoff_distance_m: number | null;
+  /** B48: the Helpr this delivery would fault (on it, or released) already has its one strike for it. Absent on an older server. */
+  helpr_has_delivery_strike?: boolean | null;
 }
 
 /** The order's step facts and the Helpr's photos for one problem. Null before the read is on the server (PGRST202). */

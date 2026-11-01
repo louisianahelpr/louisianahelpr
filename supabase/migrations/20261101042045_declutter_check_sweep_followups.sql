@@ -21,7 +21,8 @@
 --    live AND since their check was last cleared, with no check, and sends ONE notice per run to every admin naming
 --    how many and up to three titles. Each listing is alerted once (ai_check_overdue_alerted_at), and again only after
 --    a later edit clears its check. Never test data (is_seed, a test account's listing; owner 10-30), never one an
---    admin approved since it went live.
+--    admin approved since it went live. An admin who still has an unread one gets no new one (while the sweep stays
+--    down that would be one every 15 minutes); with no admin at all nothing is stamped, so nothing is lost.
 --
 --    The alert closes by hand, like its two siblings (20261031184552): admin_alert_manual_close() restated from that
 --    newest definition, verbatim but for the added row (adminQueueAlertsClose, Q355).
@@ -91,6 +92,10 @@ DECLARE
   v_titles text[] := ARRAY[]::text[];
   r record;
 BEGIN
+  -- No admin to tell: stamp nothing, so the listings are still alerted once one exists (review of 5fcb074cca).
+  IF NOT EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.role = 'admin') THEN
+    RETURN 0;
+  END IF;
   FOR r IN
     SELECT i.id, i.title
       FROM public.declutter_items i
@@ -125,7 +130,14 @@ BEGIN
            'admin_alert',
            '/admin?view=health'
       FROM public.user_roles ur
-     WHERE ur.role = 'admin';
+     WHERE ur.role = 'admin'
+       -- One open notice at a time: while the sweep stays down, an admin who has not read the last one gets no
+       -- new one every 15 minutes (review of 5fcb074cca: up to 96 a day otherwise).
+       AND NOT EXISTS (SELECT 1 FROM public.notifications n
+                        WHERE n.user_id = ur.user_id
+                          AND n.type = 'admin_alert'
+                          AND n.title = 'Declutter photo checks are not running'
+                          AND n.read_at IS NULL);
   END IF;
   RETURN v_n;
 END;

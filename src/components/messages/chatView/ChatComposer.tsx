@@ -6,6 +6,7 @@ import { QuickReplies } from "@/components/QuickReplies";
 import { RichMessageInput } from "@/components/RichMessageInput";
 import { assertWritable } from "@/hooks/useImpersonation";
 import { threadClosedCopy } from "@/lib/messagingLockout";
+import { expiredCopyFor } from "@/lib/expiredListingInThread";
 import { recipientRestrictedNotice } from "@/lib/recipientGate";
 import { offJobNotice, type OffJobState } from "@/lib/offJobGate";
 import { DELETED_ACCOUNT_NOTICE } from "@/lib/deletedCounterparty";
@@ -217,7 +218,7 @@ export function ChatComposer({
         >
           <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-            {threadClosedCopy(activeConvo.jobStatus).notice}
+            {(expiredCopyFor(activeConvo) ?? threadClosedCopy(activeConvo.jobStatus)).notice}
           </p>
         </div>
         {/* ── THE DRAFT THAT WAS MID-SENTENCE ──────────────────────────────

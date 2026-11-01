@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-01T07:08Z",
+  "measured_at": "2026-11-01T11:36Z",
   "issues": {
     "readable": true,
     "open": [
@@ -15,7 +15,7 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/40832806380",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41285011360",
         "runTruncated": false
       },
       {
@@ -132,7 +132,7 @@
         "number": 3933,
         "title": "nightly-red: main: Supabase DB Deploy",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41282691077",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41297086460",
         "runTruncated": false
       }
     ]
@@ -291,14 +291,6 @@
         "status": "open",
         "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
         "issue": null
-      },
-      {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: sensitive review record",
-        "issue": 3802
       },
       {
         "fingerprint": "0bebf0385b3e217facd52bb36536de1f",
@@ -589,19 +581,19 @@
         "issue": null
       },
       {
-        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your account.",
-        "issue": null
-      },
-      {
         "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
         "source_kind": "sentry",
         "source": "sentry:assets/ProtectedRoute",
         "status": "open",
         "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
+        "issue": null
+      },
+      {
+        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load your account.",
         "issue": null
       },
       {
@@ -653,19 +645,19 @@
         "issue": null
       },
       {
-        "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: payout_setup_incomplete",
-        "issue": null
-      },
-      {
         "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
         "source_kind": "sentry",
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load deliveries.",
+        "issue": null
+      },
+      {
+        "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: payout_setup_incomplete",
         "issue": null
       },
       {
@@ -685,17 +677,17 @@
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
@@ -757,19 +749,19 @@
         "issue": null
       },
       {
-        "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "cr",
-        "issue": null
-      },
-      {
         "fingerprint": "e32aa223d475dd1349363e900374a77e",
         "source_kind": "sentry",
         "source": "sentry:unknown",
         "status": "open",
         "title": "error: script error.",
+        "issue": null
+      },
+      {
+        "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "cr",
         "issue": null
       },
       {
@@ -925,19 +917,19 @@
         "issue": null
       },
       {
-        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/declutter · error screen shown: we couldn't load your sales.",
-        "issue": null
-      },
-      {
         "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
         "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
+        "issue": null
+      },
+      {
+        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't load your sales.",
         "issue": null
       },
       {
@@ -989,6 +981,14 @@
         "issue": null
       },
       {
+        "fingerprint": "0d4554b4c366883be346d82b6e9203e3",
+        "source_kind": "sentry",
+        "source": "sentry:assets/tanstack",
+        "status": "open",
+        "title": "error: [\"shops\",\"mine\"] data is undefined",
+        "issue": null
+      },
+      {
         "fingerprint": "b785447b81e879352e644ca078458cd0",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -1027,6 +1027,7 @@
     "ledger 092de8bb62f5": "Q2533",
     "ledger 0bebf0385b3e": "Q1615",
     "ledger 0d3beba829ae": "Q2500",
+    "ledger 0d4554b4c366": "Q2548",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 104294997a13": "Q2293",
     "ledger 11d7173a8901": "Q1816",
@@ -1158,7 +1159,6 @@
     "ledger e06748071241": "Q1596",
     "ledger e306dea6b044": "Q1596",
     "ledger e32aa223d475": "Q2518",
-    "ledger e41c806b9175": "Q1816",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e62e32bec0c4": "Q2144",
     "ledger e6fb014ab099": "Q2511",

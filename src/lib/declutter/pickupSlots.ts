@@ -164,3 +164,36 @@ export function porchWindowDays(windows: readonly SellerWindow[], nowMs: number,
 }
 
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+/** Today's weekday in Louisiana (0 = Sun). */
+export function chicagoWeekday(now: Date = new Date()): number {
+  return DAY.indexOf(new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short" }).format(now));
+}
+
+/**
+ * A3-47: one way's hours on the item page, in ONE time format ("Sat 9 AM–12 PM"). Days that all share one range read
+ * as a run ("Mon–Fri 5–8 PM", "Every day 7 AM–9 PM"); otherwise each day says its own hours, in week order starting
+ * today ("Sun 1–5 PM, Sat 9 AM–12 PM" on a Sunday). With no hours, only the days ("Sat, Sun"); "" when nothing is set.
+ */
+export function weekHoursLine(windows: readonly SellerWindow[] | null | undefined, weekdays: readonly number[] | null | undefined = null,
+  today: number = chicagoWeekday()): string {
+  const ws = (windows ?? []).filter((w) => w && typeof w.starts === "string" && typeof w.ends === "string");
+  const fromToday = (d: number) => (d - today + 7) % 7;
+  if (ws.length === 0) {
+    const days = [...new Set(weekdays ?? [])];
+    return days.length === 7 ? "Every day" : days.sort((a, b) => fromToday(a) - fromToday(b)).map((d) => DAY[d]).join(", ");
+  }
+  const key = (w: SellerWindow) => `${w.starts.slice(0, 5)}|${w.ends.slice(0, 5)}`;
+  const ranges = new Set(ws.map(key));
+  if (ranges.size === 1) {
+    const days = [...new Set(ws.map((w) => w.weekday))];
+    return `${days.length === 7 ? "Every day" : dayRuns(days)} ${rangeLabel(ws[0].starts.slice(0, 5), ws[0].ends.slice(0, 5))}`;
+  }
+  const byDay = new Map<number, SellerWindow[]>();
+  for (const w of [...ws].sort((x, y) => fromToday(x.weekday) - fromToday(y.weekday) || minutes(x.starts) - minutes(y.starts))) {
+    byDay.set(w.weekday, [...(byDay.get(w.weekday) ?? []), w]);
+  }
+  return [...byDay.entries()]
+    .map(([d, list]) => `${DAY[d]} ${list.map((w) => rangeLabel(w.starts.slice(0, 5), w.ends.slice(0, 5))).join(" and ")}`)
+    .join(", ");
+}

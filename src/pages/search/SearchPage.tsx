@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X, type LucideIcon } from "lucide-react";
 import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -215,9 +216,9 @@ export default function SearchPage() {
             className="flex-1 min-w-0 bg-transparent outline-none focus-visible:outline-none font-sans text-ds-15"
           />
           {draft && (
-            <button type="button" onClick={() => setDraft("")} aria-label="Clear search" className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-muted-foreground ctl-exit">
-              <X className="w-4 h-4" />
-            </button>
+            <Button type="button" variant="ghost" size="iconCompact" onClick={() => setDraft("")} aria-label="Clear search" className="shrink-0 text-muted-foreground ctl-exit [&_svg]:size-4">
+              <X />
+            </Button>
           )}
         </form>
 

@@ -3834,7 +3834,7 @@
     },
     {
       "file": "src/components/admin/settings/DeclutterProblemsCard.tsx",
-      "line": 135,
+      "line": 138,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -3882,7 +3882,7 @@
     },
     {
       "file": "src/components/admin/settings/DeclutterProblemsCard.tsx",
-      "line": 138,
+      "line": 141,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3892,7 +3892,7 @@
     },
     {
       "file": "src/components/admin/settings/DeclutterProblemsCard.tsx",
-      "line": 143,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3902,7 +3902,7 @@
     },
     {
       "file": "src/components/admin/settings/DeclutterProblemsCard.tsx",
-      "line": 148,
+      "line": 151,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3912,7 +3912,7 @@
     },
     {
       "file": "src/components/admin/settings/DeclutterProblemsCard.tsx",
-      "line": 151,
+      "line": 154,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

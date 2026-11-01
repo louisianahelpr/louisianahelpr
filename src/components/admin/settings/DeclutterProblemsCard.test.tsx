@@ -351,3 +351,30 @@ describe("DeclutterProblemsCard: one dispute screen (AL-4)", () => {
     expect(await screen.findByAltText("The other side's photo")).toHaveAttribute("src", "https://signed.test/s1/declutter/problem/o1/b.jpg");
   });
 });
+
+// LEAD-ADMIN-HELPR-FAULT (owner rule 10-30 "Helpr's fault, Helpr bears it"; 20261101000817): a disputed "the Helpr
+// didn't come" can be decided as the Helpr's fault, on a Helpr delivery only, and only as a full refund.
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |         {row.detail?.helpr_delivery ? <option value="helpr">The Helpr's</option> : null} |
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | disabled={decide.isPending \|\| helprFault \|\| (falseOn | disabled={decide.isPending \|\| (falseOn
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |         {row.detail?.helpr_delivery ? <option value="helpr">The Helpr's</option> : null} |         <option value="helpr">The Helpr's</option>
+describe("DeclutterProblemsCard: the Helpr's fault (LEAD-ADMIN-HELPR-FAULT)", () => {
+  it("on a Helpr delivery: the Helpr's fault refunds the buyer in full, with a strike; Pay the seller is off", async () => {
+    state.rows = [row("other", "buyer", [], detail({ helpr_delivery: true }))];
+    show();
+    const fault = await screen.findByLabelText("Whose fault?");
+    expect([...(fault as HTMLSelectElement).options].map((o) => o.textContent)).toEqual(["Nobody's", "The seller's", "The buyer's", "The Helpr's"]);
+    fireEvent.change(fault, { target: { value: "helpr" } });
+    expect(screen.getByRole("button", { name: "Pay the seller" })).toBeDisabled();
+    expect(screen.getByText(/The Helpr's fault \(they took it and never picked it up\) = the whole payment back, delivery included/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Give the at-fault side a strike" }));
+    fireEvent.click(screen.getByRole("button", { name: "Refund the buyer" }));
+    await waitFor(() => expect(state.calls).toEqual([["decide", "p1", "refund_buyer", "helpr", true, null, false]]));
+  });
+
+  it("not on a sale no Helpr carries", async () => {
+    state.rows = [row("other", "buyer", [], detail({ helpr_delivery: false }))];
+    show();
+    const fault = await screen.findByLabelText("Whose fault?");
+    expect([...(fault as HTMLSelectElement).options].map((o) => o.value)).toEqual(["none", "seller", "buyer"]);
+  });
+});

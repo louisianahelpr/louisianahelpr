@@ -1,3 +1,4 @@
+// @mutate src/components/admin/AdminSupport.tsx |             {pillLabel(label, counts.get(value))} |             {label}
 /**
  * The admin console's chrome, measured on the real screen as admin-e2e against
  * prod data, read-only (every write refused at the wire). Owner, 2026-10-27,

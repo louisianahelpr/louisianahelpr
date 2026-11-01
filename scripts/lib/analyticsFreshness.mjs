@@ -162,6 +162,7 @@ export const NOT_MONITORED = {
   address_lookup_result: "diagnostic count of the address lookup's outcomes and source, read by hand after a deploy; carries no address",
   address_location_used: "diagnostic: a seller's shared location stood in for an address the lookup found only the area of",
   address_location_refused: "diagnostic: a shared location was too far from the area the lookup found; zero is the good case",
+  web_push_ask: "funnel count of the website's push ask (PUSH-REACH 2026-11-01: shown, the browser's answer, saved), read by hand; the outcome is the push_subscriptions rows, and zero asks on a quiet week is not a fault",
   page_load: "performance sample (Q762), not a product action; scripts/slo.mjs reads its p95 and goes UNKNOWN when none arrive",
   push_token_buffered: "diagnostic (Q82/Q1475, lane-c-1): the device sent a push token before a session existed, so it waits for the next sign-in; zero is the normal case and the outcome (a push_tokens row) is checked by check_push_token_health()",
   signup_started: "funnel step before signup_completed; signup_completed is the monitored outcome",

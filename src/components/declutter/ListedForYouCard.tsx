@@ -50,7 +50,7 @@ export function ListedForYouCard() {
 
   return (
     <section aria-labelledby="listed-for-you-title" data-listed-for-you="" className="rounded-[20px] border border-border bg-card p-4">
-      <h2 id="listed-for-you-title" className="text-ds-17 font-semibold">Waiting for your approval</h2>
+      <h2 id="listed-for-you-title" className="text-base font-semibold">Waiting for your approval</h2>
       <p className="mt-1 text-ds-13 text-muted-foreground">
         {who} wrote {rows.length === 1 ? "this listing" : `these ${rows.length} listings`} for you. Nothing goes on sale until you approve it.
       </p>

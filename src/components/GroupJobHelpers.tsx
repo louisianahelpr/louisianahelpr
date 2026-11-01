@@ -246,7 +246,8 @@ export function GroupJobHelpers({
       const { approvedAt, payoutDueAt } = await posterApproveMember(jobId, h.helper_id);
       setHelpers((prev) => prev.map((x) => (x.id === h.id ? { ...x, poster_confirmed_completion_at: approvedAt } : x)));
       hapticSuccess();
-      toast.success(`${h.helperName || "Your Helpr"}'s work is confirmed. They're paid on ${payoutDayLabel(payoutDueAt) ?? "their pay day"}.`);
+      // A money step: the poster is told the member's pay day (a plain toast.success renders nothing under toastPolicy).
+      confirmConsequential(`${h.helperName || "Your Helpr"}'s work is confirmed. They're paid on ${payoutDayLabel(payoutDueAt) ?? "their pay day"}.`);
       void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
     } catch (err) {
       hapticError();

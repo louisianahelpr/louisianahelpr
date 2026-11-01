@@ -44,9 +44,9 @@ import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
 import { StillAvailableSheet } from "./DeclutterStillAvailable";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { useMyDropsTonight } from "./useMyDropsTonight";
-import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
+import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTabHeads";
+import { BuyingDash, SellingDash, useWarmMineViews } from "./DeclutterMineLazy";
 import { OrdersUpdating } from "./OrdersUpdating";
-import { BuyingDash, SellingDash } from "./DeclutterMineViews";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
@@ -74,7 +74,7 @@ import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 // Types only: the predicates (oneTripGroup, haulJobToDelete) come with the lazily loaded haul-away code (Q178).
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
-import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
+import { DeclutterHomeSkeleton, DeclutterTabBones } from "./DeclutterSkeletons";
 import { ListingThumb } from "./ListingThumb";
 import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
@@ -406,7 +406,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
         <Button asChild className="shrink-0 rounded-full"><Link to={SELL_ONE_PATH}>Sell an item</Link></Button>
         <Link to={SELL_CHOOSER_PATH} className="min-h-11 content-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Free, a bunch, or moving out?</Link>
       </div>
-      <SellingDash
+      <Suspense fallback={<DeclutterTabBones />}><SellingDash
         todo={todo}
         userId={userId}
         listings={
@@ -427,7 +427,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
           <SellingSettingsEntry />
           <DeliverEntry />
         </>}
-      />
+      /></Suspense>
     </div>
   );
 }
@@ -548,6 +548,7 @@ function DeclutterMemberHome() {
       return next;
     }, { replace: true, state: location.state });
   }, [fromView, tabsReady, setParams, location.state]);
+  useWarmMineViews(view === "buying" || view === "selling");
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
   // Browse adds its search and filters at the row's end, and on desktop its count and map: Jobs' layout (owner 10-30,
@@ -590,7 +591,7 @@ function DeclutterMemberHome() {
     <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}>
       <StrikeCount userId={user.id} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
-      {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>
+      {view === "buying" ? <><BoughtWhatNext /><Suspense fallback={<DeclutterTabBones />}><BuyingDash todo={todo} /></Suspense></>
           : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
               : view === "free" ? <FreeView userId={user.id} />

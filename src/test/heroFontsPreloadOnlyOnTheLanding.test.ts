@@ -35,7 +35,7 @@ function withoutHtmlComments(src: string): string {
     out = end < 0 ? out.slice(0, start) : out.slice(0, start) + out.slice(end + 3);
   }
 }
-const script = [...withoutHtmlComments(html).matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).find((b) => b.includes("data-lh-hero-font"));
+const script = [...withoutHtmlComments(html).matchAll(/<script\b[^>]*>([\s\S]*?)<\/script[^>]*>/gi)].map((m) => m[1]).find((b) => b.includes("data-lh-hero-font"));
 
 /** Runs index.html's inline script on a path; returns each hero font link's media afterwards. */
 function mediaAfter(pathname: string): string[] {

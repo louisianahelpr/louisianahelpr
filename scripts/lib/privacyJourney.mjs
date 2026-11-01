@@ -121,6 +121,8 @@ export const EXPORT_SECTIONS = [
   "instant_book_declines",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
+  // A seller's own meet spots (20261101194608; exported by 20261101210500).
+  "declutter_meetup_spots",
   "declutter_porch_places",
   "declutter_porch_place_choices",
   "declutter_order_porch_places",

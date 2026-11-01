@@ -240,7 +240,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
           link: jobPage(f),
         };
       }
-      const who = sender(f, byPoster ? "The poster" : "Your Helpr");
+      const who = sender(f, byPoster ? "The person who posted this job" : "Your Helpr");
       const day = bothConfirmedDay(f.job.date_needed);
       return {
         title: `${who} confirmed the job`,
@@ -258,7 +258,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     // payout's arrival date is the bank's, not a fact this function holds.
     build: (f) => !senderWithdrewDispute(f) || !RELEASED.has(f.job.payment_status ?? "") ? null : ({
       title: "Issue resolved",
-      message: `${sender(f, "The poster")} marked the issue on "${jobTitle(f)}" resolved, and your pay is on its way to your payout account. Next: nothing for you to do; track it in Money.`,
+      message: `${sender(f, "The person who posted this job")} marked the issue on "${jobTitle(f)}" resolved, and your pay is on its way to your payout account. Next: nothing for you to do; track it in Money.`,
       type: "payment",
       link: jobPage(f),
     }),
@@ -269,7 +269,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     build: (f) => {
       const d = f.revisionDescription?.trim();
       if (!d) return null;
-      const who = sender(f, "The poster");
+      const who = sender(f, "The person who posted this job");
       return {
         title: `${who} asked for a fix`,
         message: `${who} asked for a small fix on "${jobTitle(f)}": "${d.slice(0, 80)}${d.length > 80 ? "…" : ""}". Next: fix it, then mark the job done again.`,
@@ -283,7 +283,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     needs: ["senderName"],
     build: (f) => !f.job.poster_confirmed_arrival_at ? null : ({
       title: "Arrival confirmed",
-      message: `${sender(f, "The poster")} confirmed you've arrived for "${jobTitle(f)}". Next: start the work, and mark it done when you finish.`,
+      message: `${sender(f, "The person who posted this job")} confirmed you've arrived for "${jobTitle(f)}". Next: start the work, and mark it done when you finish.`,
       type: "success",
       link: jobPage(f),
     }),
@@ -293,7 +293,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     needs: ["senderName"],
     build: (f) => !f.job.poster_confirmed_working_at ? null : ({
       title: "Work confirmed",
-      message: `${sender(f, "The poster")} confirmed you're working on "${jobTitle(f)}". Next: mark it done when you finish.`,
+      message: `${sender(f, "The person who posted this job")} confirmed you're working on "${jobTitle(f)}". Next: mark it done when you finish.`,
       type: "success",
       link: jobPage(f),
     }),
@@ -309,7 +309,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       // the caller typed.
       const deadline = f.job.response_deadline ? Date.parse(f.job.response_deadline) : NaN;
       const by = Number.isFinite(deadline) && deadline > f.now.getTime() ? noticeWhen(f.job.response_deadline) : "";
-      const who = sender(f, "The poster");
+      const who = sender(f, "The person who posted this job");
       return {
         // The title stays "New job offer": sms_kind_for keys the offer text on it (20261030215251).
         title: "New job offer",
@@ -324,7 +324,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
     needs: ["application", "posterName"],
     build: (f) => {
       if (f.application?.status !== "rejected") return null;
-      const who = f.posterFirstName?.trim() || "The poster";
+      const who = f.posterFirstName?.trim() || "The person who posted this job";
       const note = f.application.decline_reason?.trim();
       return {
         title: "Application declined",

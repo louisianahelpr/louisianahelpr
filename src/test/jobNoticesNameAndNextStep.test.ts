@@ -3,7 +3,7 @@
  * Jobs notice ... end with the next step and its deadline ... and link to the page where that step is done."
  *
  * Every job template create-notification builds (push, email and the in-app bell all carry these words):
- *  - names the sender by first name, never "The person who posted this job" / "The Helpr" (JA-57);
+ *  - names the sender by first name, the role-neutral phrase only as the blank-name fallback (JA-57);
  *  - says "Next:" (the owner's next-step rule);
  *  - opens the job page /jobs/<id>, not a list (JA-58), except the decline, whose next step is Find work,
  *    and the no-show warning, whose page is the warnings tab.
@@ -13,10 +13,18 @@
  * @mutate supabase/functions/_shared/notification-templates.ts |       message: `${who} confirmed "${jobTitle(f)}". Next: confirm your side | message: `The person who posted this job confirmed "${jobTitle(f)}". Next: confirm your side
  * @mutate supabase/functions/_shared/notification-templates.ts |         message: `${who} picked you for "${jobTitle(f)}". Next: accept ${by ? `by ${by}` : "soon"}, or the offer expires.`, |         message: `You've been selected for "${jobTitle(f)}". Respond soon or the offer expires.`,
  * @mutate supabase/functions/_shared/notification-templates.ts |   return `/jobs/${f.job.id}`; |   return `/jobs?job=${f.job.id}`;
+ * @mutate supabase/migrations/20261101180708_direct_offer_notice_next_step.sql |       '/jobs/' \|\| NEW.id::text, |       '/jobs?job=' \|\| NEW.id::text,
+ * @mutate supabase/migrations/20261101180708_direct_offer_notice_next_step.sql | offered you "' \|\| NEW.title \|\| '". Next: accept' | offered you a job: "' \|\| NEW.title \|\| '" for $' \|\| NEW.budget \|\| '. Next: accept'
+ *
+ * The direct offer (SQL, notify_helper_on_direct_offer) is proved in
+ * src/test/pglite/directOfferNoticeNextStep.pglite.mjs; this reads its NEWEST definition.
  * @mutate supabase/functions/_shared/notification-templates.ts |       title: "Issue resolved", |       title: "Dispute resolved ✓",
- * @mutate supabase/functions/_shared/notification-templates.ts |       message: `${sender(f, "The poster")} confirmed you've arrived for "${jobTitle(f)}". Next: start the work, and mark it done when you finish.`, |       message: `${sender(f, "The poster")} confirmed you've arrived for "${jobTitle(f)}".`,
+ * @mutate supabase/functions/_shared/notification-templates.ts |       message: `${sender(f, "The person who posted this job")} confirmed you've arrived for "${jobTitle(f)}". Next: start the work, and mark it done when you finish.`, |       message: `${sender(f, "The person who posted this job")} confirmed you've arrived for "${jobTitle(f)}".`,
  */
 import { describe, it, expect } from "vitest";
+import { join } from "node:path";
+import { blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { NOTIFICATION_TEMPLATES, noticeWhen, type TemplateFacts } from "../../supabase/functions/_shared/notification-templates";
 
 const JOB = "11111111-2222-3333-4444-555555555555";
@@ -58,7 +66,7 @@ describe("job notices name people, say what's next, and open the job (JA-57/58/6
       const out = NOTIFICATION_TEMPLATES[name].build(facts(name));
       expect(out, `${name} built nothing under its own state`).not.toBeNull();
       const words = `${out!.title} ${out!.message}`;
-      expect(words).not.toMatch(/person who posted this job|\bThe Helpr\b/);
+      expect(words).not.toMatch(/person who posted this job|\bThe Helpr\b/); // a name is known here
       expect(words, name).toContain("Dana");
       expect(out!.message, name).toMatch(/Next: /);
       if (name !== "application_declined") expect(out!.link).toBe(`/jobs/${JOB}`);
@@ -78,8 +86,18 @@ describe("job notices name people, say what's next, and open the job (JA-57/58/6
     expect(out.message).toContain("your pay is on its way");
   });
 
-  it("a blank sender name falls back to the side, never the long phrase", () => {
+  it("only a blank sender name falls back to the role-neutral phrase (roleNeutralCopy)", () => {
     const f = { ...facts("arrival_confirmed"), senderFirstName: null };
-    expect(NOTIFICATION_TEMPLATES.arrival_confirmed.build(f)!.message).toMatch(/^The poster confirmed/);
+    expect(NOTIFICATION_TEMPLATES.arrival_confirmed.build(f)!.message).toMatch(/^The person who posted this job confirmed/);
+  });
+
+  it("the direct offer (SQL) shows no budget, says answer-by, and opens the job page (JA-58)", () => {
+    const def = effectiveDefs(join(process.cwd(), "supabase", "migrations")).get("notify_helper_on_direct_offer");
+    expect(def?.file).toMatch(/\d{14}_/);
+    const body = blankSqlComments(def!.stmt);
+    expect(body).not.toMatch(/NEW\.budget/);
+    expect(body).toMatch(/Next: accept/);
+    expect(body).toMatch(/'\/jobs\/' \|\| NEW\.id::text/);
+    expect(body).not.toMatch(/'\/jobs\?job='/);
   });
 });

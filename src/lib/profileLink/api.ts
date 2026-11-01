@@ -103,3 +103,15 @@ export async function fetchPublicProfile(handle: string): Promise<PublicProfile 
   }
   return (data as unknown as PublicProfile | null) ?? null;
 }
+
+/** A Declutter item's cover through the shop-photo edge function (kind=declutter): by photo id, never a storage path. */
+export function listingPhotoUrl(photoId: string, width = 480): string {
+  const base = String(import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/$/, "");
+  return `${base}/functions/v1/shop-photo?id=${encodeURIComponent(photoId)}&kind=declutter&w=${width}`;
+}
+
+/** A handle from the URL, normalised as the server does; null when it can never be one (no request is made). */
+export function handleFromPath(raw: string | undefined): string | null {
+  const h = (raw ?? "").trim().toLowerCase();
+  return HANDLE_PATTERN.test(h) ? h : null;
+}

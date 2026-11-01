@@ -69,10 +69,10 @@ describe("one job, start to finish, both sides", () => {
   });
 
   const confirmed = { ...accepted, helper_dayof_confirmed_at: "2032-10-13T13:00:00Z", poster_confirmed_at: "2032-10-13T14:00:00Z" };
-  it("7 On the way: started -> Needs You; 'Lexi is on the way'; the poster WAITS (no greyed box), saying what comes next", () => {
+  it("7 On the way: started -> Waiting (lead 10-31: no poster move is due); 'Lexi is on the way'; the poster WAITS (no greyed box), saying what comes next", () => {
     const j = job({ ...confirmed, status: "in_progress", helper_on_the_way_at: "2032-10-14T17:30:00Z" });
     const now = T("2032-10-14T17:40:00Z");
-    expect(poster(j, now)).toEqual({ tab: "needs_you", line: "Lexi is on the way" });
+    expect(poster(j, now)).toEqual({ tab: "waiting", line: "Lexi is on the way" });
     const r = posterConfirmationRung(j, "in_progress", now)!;
     expect([r.action, r.enabled, r.waiting]).toEqual(["arrival", false, true]);
     expect(r.reason).toMatch(/You'll confirm once they say they've arrived/);

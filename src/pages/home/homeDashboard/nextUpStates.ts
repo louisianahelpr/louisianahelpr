@@ -80,10 +80,15 @@ export function deriveWaiting(
   postedJobs: readonly Job[],
   pendingApplicantCounts: Readonly<Record<string, number>>,
   appliedApps: readonly AppliedApp[],
+  /**
+   * The job Live now already shows (lead 10-31): a Helpr at work is Waiting, and Live now says so above Next up,
+   * so Next up names the next one instead of repeating it ("Your Helpr is working" twice).
+   */
+  liveJobId: string | null = null,
 ): Waiting | null {
   const firstName = (n?: string | null) => (n ? n.trim().split(/\s+/)[0] : null);
   for (const a of appliedApps) {
-    if (!a.job || appliedActivityBucket(a) !== "waiting") continue;
+    if (!a.job || a.job.id === liveJobId || appliedActivityBucket(a) !== "waiting") continue;
     const who = firstName(a.posterName);
     return {
       id: `wa-${a.id}`,
@@ -96,7 +101,7 @@ export function deriveWaiting(
   for (const j of postedJobs) {
     if (jobIsUnfundedDraft(j)) continue;
     const n = pendingApplicantCounts[j.id] ?? 0;
-    if (postedActivityBucket(j, n) !== "waiting") continue;
+    if (j.id === liveJobId || postedActivityBucket(j, n) !== "waiting") continue;
     return {
       id: `wp-${j.id}`,
       jobId: j.id,

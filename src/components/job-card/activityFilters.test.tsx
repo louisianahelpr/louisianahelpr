@@ -249,8 +249,9 @@ describe("Activity — whose move is it", () => {
     // strictly "agreed, and still ahead of you". This assertion read
     // "scheduled" until that reorder.
     expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(0) })).toBe("needs_you");
-    // Started is started (Q1574): an in-progress job is Needs You whatever its day.
-    expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(1) })).toBe("needs_you");
+    // Started is never Scheduled (Q1574). Whose move it is follows the card (lead 10-31): a job started early by
+    // the clock with its start still ahead and nobody checked in owes the poster nothing yet, so it is Waiting.
+    expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(1) })).toBe("waiting");
 
     // Terminal states are unaffected — there is nothing left to chase.
     expect(postedActivityBucket({ status: "completed", date_needed: fmt(-9) })).toBe("done");

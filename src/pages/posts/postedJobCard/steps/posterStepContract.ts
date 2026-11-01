@@ -6,6 +6,7 @@ import {
   STALLED_APPROVE_DISABLED_REASON,
 } from "../../../../../supabase/functions/_shared/stalledCompletion";
 import type { Job } from "../../../../components/job-card/activityConstants";
+import { arrivalNearMissWithin12h } from "@/components/job-card/activityFilters";
 
 /**
  * What a step of the POSTER's job card is handed.
@@ -172,8 +173,8 @@ export interface PosterConfirmRung {
  *  can say they are there. Same 12h window as the trigger. Lives here so the
  *  ladder and the No-Show gate cannot drift apart. */
 export function recentArrivalNearMiss(job: Job): boolean {
-  const at = (job as { helper_arrival_near_miss_at?: string | null }).helper_arrival_near_miss_at;
-  return !!at && Date.now() - new Date(at).getTime() < 12 * 3_600_000;
+  // One rule with the Jobs bucket (activityFilters' posterMoveDueWhileInProgress reads the same 12 hours).
+  return arrivalNearMissWithin12h(job as { helper_arrival_near_miss_at?: string | null });
 }
 
 /**

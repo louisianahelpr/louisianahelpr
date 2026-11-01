@@ -258,9 +258,60 @@ export function submissionAwaitingPoster(j: {
   return submitted > sentBack;
 }
 
+/**
+ * The Helpr's "I've arrived" that missed the geofence, within the last 12 hours: it stands in for an arrival on the
+ * in-progress step (posterStepContract's ladder enables Confirm arrival on it). One rule for the ladder and the bucket.
+ */
+export function arrivalNearMissWithin12h(job: { helper_arrival_near_miss_at?: string | null }, now: number = Date.now()): boolean {
+  const at = job.helper_arrival_near_miss_at;
+  return !!at && now - new Date(at).getTime() < 12 * 3_600_000;
+}
+
+/**
+ * IS A POSTER MOVE DUE on a single-Helpr job that is in progress (lead 10-31, on b49's finding)? A Helpr who is
+ * working is the Helpr's move, not the poster's: the card says "Eli is working" under a Waiting eyebrow, so Home's
+ * Jobs count, the Explore badge and Next up must not call it a to-do. The poster's moves while the work runs are
+ * the card's own "you" lines (derivePosterWait): confirm an arrival the Helpr claimed ("confirm_arrival"), and a
+ * start time that passed with nobody checked in ("started_no_checkin", Report no-show). Approving submitted work
+ * and a job past its day are filed before this is asked (submissionAwaitingPoster, jobIsOverdue). A crew's arrivals
+ * are confirmed per member on the roster, never on the job row, so a crew underway is Waiting.
+ * Guard: src/test/helprWorkingIsWaiting.test.ts.
+ */
+export function posterMoveDueWhileInProgress(
+  j: {
+    is_group_job?: boolean | null;
+    helper_completed_at?: string | null;
+    helper_on_the_way_at?: string | null;
+    helper_arrived_at?: string | null;
+    helper_arrival_near_miss_at?: string | null;
+    poster_confirmed_arrival_at?: string | null;
+    poster_confirmed_working_at?: string | null;
+    date_needed?: string | null;
+    start_time?: string | null;
+  },
+  now: Date = new Date(),
+): boolean {
+  if (j.is_group_job) return false;
+  if (j.helper_completed_at) return false;
+  // Confirm arrival: the Helpr says they are there (or their tap just missed the geofence) and the poster has not confirmed.
+  if (!j.poster_confirmed_arrival_at && (j.helper_arrived_at || arrivalNearMissWithin12h(j, now.getTime()))) return true;
+  // On the way, at the job, or working: the Helpr's move.
+  if (j.helper_on_the_way_at || j.helper_arrived_at || j.poster_confirmed_arrival_at || j.poster_confirmed_working_at) return false;
+  // Started by the clock with no check-in: the poster's Report no-show, once the start time has passed.
+  const start = jobStartDateTime(j.date_needed ?? null, j.start_time ?? null);
+  return !(start && start.getTime() > now.getTime());
+}
+
 export function postedActivityBucket(
   j: {
     status: string;
+    is_group_job?: boolean | null;
+    helper_on_the_way_at?: string | null;
+    helper_arrived_at?: string | null;
+    helper_arrival_near_miss_at?: string | null;
+    poster_confirmed_arrival_at?: string | null;
+    poster_confirmed_working_at?: string | null;
+    start_time?: string | null;
     helper_id?: string | null;
     helper_confirmed_at?: string | null;
     helper_dayof_confirmed_at?: string | null;
@@ -313,7 +364,11 @@ export function postedActivityBucket(
   ) {
     return "needs_you";
   }
-  if (j.status === "in_progress") return workIsBackWithHelper(j) ? "scheduled" : "needs_you";
+  // IN PROGRESS (lead 10-31): Needs You only while a poster move is due; a Helpr at work is Waiting, as the card says.
+  if (j.status === "in_progress") {
+    if (workIsBackWithHelper(j)) return "scheduled";
+    return posterMoveDueWhileInProgress(j, now) ? "needs_you" : "waiting";
+  }
   if (j.status === "accepted" && j.helper_confirmed_at) {
     if (agreedJobStage(j, "poster", now) !== "scheduled") return "needs_you";
     // FILED WHERE THE LINE SAYS (owner, 2026-10-23, card critique item 10): the confirm window is open, the poster
@@ -626,7 +681,10 @@ export function useActivityFilters({
       // ever pulls the jobs whose day has already gone past the ones still to
       // come. Needs You can hold both a fresh application and a job that is
       // four days late, and the late one is not something to scroll for.
-      .sort((a, b) => Number(jobIsOverdue(b)) - Number(jobIsOverdue(a))),
+      //
+      // Then a job under way leads its group (lead 10-31): a Helpr at work now files under Waiting, and it is the
+      // most live row there, above listings still waiting for applicants.
+      .sort((a, b) => Number(jobIsOverdue(b)) - Number(jobIsOverdue(a)) || Number(b.status === "in_progress") - Number(a.status === "in_progress")),
     [postedJobs, statusFilter, searchLower, pendingApplicantCounts, now]);
 
   // Re-read exactly when a held offer's answer window closes, so the card

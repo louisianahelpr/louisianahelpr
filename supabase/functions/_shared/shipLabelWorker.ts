@@ -40,9 +40,15 @@ export interface ShipLabelPorts {
   recordFailed(shipmentId: string, reason: string): Promise<void>;
   /** A retry later: attempts + 1, next_attempt_at pushed back, the error kept (never the buyer's address). */
   recordRetry(shipmentId: string, attempts: number, error: string): Promise<void>;
-  capture(paymentIntentId: string, orderId: string): Promise<"captured" | "hold_lost">;
+  /** The cents to capture (declutter_ship_setup_fee_at_capture): the total, plus the setup fee only when this order
+   *  claimed it; a fee the account paid elsewhere first is simply not captured (20261101220810). */
+  captureAmount(orderId: string): Promise<number>;
+  capture(paymentIntentId: string, orderId: string, amountCents: number): Promise<"captured" | "hold_lost">;
   release(paymentIntentId: string, orderId: string): Promise<void>;
   setCapture(orderId: string, state: "captured" | "released"): Promise<void>;
+  /** declutter_ship_hold_released: the order closes (never left 'paid'), items back on sale, a claimed setup fee
+   *  given back to the account, both sides told (20261101220810). */
+  closeReleased(orderId: string): Promise<string>;
   page(title: string, message: string, fields: Record<string, string>): Promise<void>;
 }
 
@@ -79,8 +85,9 @@ export async function runShipLabel(s: ClaimedShipment, order: ShipOrder | null, 
     await p.recordFailed(s.id, reason);
     await p.release(pi, s.declutter_order_id);
     await p.setCapture(s.declutter_order_id, "released");
+    const closed = await p.closeReleased(s.declutter_order_id);
     await p.page("Shipping label could not be bought: hold released",
-      `The label for a shipped Declutter order could not be bought (${reason}). The buyer's hold was released at no cost; the order needs closing by hand until Shipping S6.`,
+      `The label for a shipped Declutter order could not be bought (${reason}). The buyer's hold was released at no cost and the order was closed (${closed}); both sides were told.`,
       { Order: s.declutter_order_id, Shipment: s.provider_shipment_id });
     return "released";
   };
@@ -94,7 +101,8 @@ export async function runShipLabel(s: ClaimedShipment, order: ShipOrder | null, 
         `A label cost ${label.costCents} cents against ${s.quoted_cents} quoted. Recorded; check the rate.`,
         { Order: s.declutter_order_id, Shipment: s.provider_shipment_id });
     }
-    const captured = await p.capture(pi, s.declutter_order_id);
+    const amount = await p.captureAmount(s.declutter_order_id);
+    const captured = await p.capture(pi, s.declutter_order_id, amount);
     if (captured === "hold_lost") {
       await p.page("Shipped order: label bought but the hold could not be captured",
         "The card hold lapsed or was cancelled after the label was bought. Void the label (Shipping S6) and close the order by hand.",

@@ -86,9 +86,19 @@ export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, recor
           }).eq("id", id).eq("label_state", "claimed").select("id");
           if (e) throw new Error(`label retry record failed: ${e.message}`);
         },
-        capture: async (pi, orderId) => {
+        captureAmount: async (orderId) => {
+          const { data, error: e } = await admin.rpc("declutter_ship_setup_fee_at_capture", { p_order_id: orderId });
+          if (e) throw new Error(`capture amount failed: ${e.message}`);
+          if (!Number.isInteger(data) || (data as number) <= 0) throw new Error(`capture amount unreadable: ${String(data)}`);
+          return data as number;
+        },
+        capture: async (pi, orderId, amountCents) => {
           try {
-            const r = await testStripe.paymentIntents.capture(pi, {}, { idempotencyKey: `declutter-ship-capture-${orderId}` });
+            // amount_to_capture: a setup fee the account already paid elsewhere stays on the card (released with the
+            // rest of the hold), never captured then refunded. The same amount on every retry (the RPC's answer is
+            // stable), so the per-order idempotency key never sees different parameters.
+            const r = await testStripe.paymentIntents.capture(pi, { amount_to_capture: amountCents },
+              { idempotencyKey: `declutter-ship-capture-${orderId}` });
             return r.status === "succeeded" ? "captured" : "hold_lost";
           } catch (e) {
             const code = (e as { code?: string }).code;
@@ -105,6 +115,11 @@ export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, recor
           const { error: e } = await admin.from("declutter_orders").update({ ship_capture: st })
             .eq("id", orderId).eq("ship_capture", "held").select("id");
           if (e) throw new Error(`order capture state failed: ${e.message}`);
+        },
+        closeReleased: async (orderId) => {
+          const { data, error: e } = await admin.rpc("declutter_ship_hold_released", { p_order_id: orderId });
+          if (e) throw new Error(`closing the released order failed: ${e.message}`);
+          return String(data);
         },
         page: (title, message, fields) => postSlackOpsAlert({
           kind: "money_at_risk", severity: "warning", title, message, fields, oncePerDayKey: `ship-label-${s.id}-${title}`,

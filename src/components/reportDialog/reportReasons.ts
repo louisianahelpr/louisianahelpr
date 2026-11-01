@@ -1,6 +1,6 @@
 
 // Moved out of ReportDialog.tsx unchanged (component-size ratchet, Q806).
-export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted";
+export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer";
 
 interface Reason {
   label: string;
@@ -78,6 +78,21 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Shares contact info" },
     { label: "Something else" },
   ],
+  // B48 (owner decision 10-31, App Store 1.2): the public questions and answers on a listing.
+  declutter_answer: [
+    { label: "Harassment or abuse" },
+    { label: "Offensive" },
+    { label: "Spam or scam" },
+    { label: "Shares contact info" },
+    { label: "Something else" },
+  ],
+  declutter_question: [
+    { label: "Harassment or abuse" },
+    { label: "Offensive" },
+    { label: "Spam or scam" },
+    { label: "Shares contact info" },
+    { label: "Something else" },
+  ],
 };
 
 /**
@@ -94,6 +109,8 @@ export const REPORTED_NOUN: Record<ReportedType, string> = {
   application: "Application",
   declutter_item: "Listing",
   declutter_wanted: "Wanted Post",
+  declutter_question: "Question",
+  declutter_answer: "Answer",
 };
 
 /**
@@ -110,6 +127,8 @@ export const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   application: "application",
   declutter_item: "listing",
   declutter_wanted: "Wanted post",
+  declutter_question: "question",
+  declutter_answer: "answer",
 };
 
 /**
@@ -125,4 +144,6 @@ export const REASON_PROMPT: Record<ReportedType, string> = {
   application: "What's wrong with this application?",
   declutter_item: "What's wrong with this listing?",
   declutter_wanted: "What's wrong with this Wanted post?",
+  declutter_question: "What's wrong with this question?",
+  declutter_answer: "What's wrong with this answer?",
 };

@@ -282,6 +282,18 @@ export const ADMIN_RPC_ERROR_COPY = {
     report_not_for_post: "That report is about something else. Refresh the reports list.",
     wanted_not_found: DC.wanted_not_found,
   },
+  // B48 (owner decision 10-31): a reported Declutter question or answer, from the reports queue (ReportedCopy).
+  declutter_admin_reported_questions: { feature_disabled: DC.feature_disabled, not_admin: DC.not_admin },
+  declutter_admin_remove_question: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    invalid_part: "Something went wrong. Refresh the reports list.",
+    not_admin: DC.not_admin,
+    own_question: "Another admin has to decide on a question you asked or a listing you sell.",
+    question_not_found: "That question or answer is already gone. Refresh the reports list.",
+    report_not_for_question: "That report is about something else. Refresh the reports list.",
+    review_note_too_long: DC.review_note_too_long,
+  },
   // "Suggest a category" review (I1, migration 20261015051141): CategorySuggestionsCard.
   admin_list_category_suggestions: {
     feature_disabled: "Category suggestions are switched off for your account.",

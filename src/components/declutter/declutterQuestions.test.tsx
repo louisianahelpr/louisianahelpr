@@ -63,6 +63,11 @@ vi.mock("@/lib/declutter/aiReply", () => ({
   suggestedReplyErrorMessage: () => "A suggested reply isn't available right now. You can write your own.",
 }));
 
+// B48: the shared report flow, as a stand-in that says what it was opened for.
+vi.mock("@/components/ReportDialog", () => ({
+  default: (p: { reportedType: string; reportedId: string }) => <div data-testid="report-dialog" data-type={p.reportedType} data-id={p.reportedId} />,
+}));
+
 import { DeclutterQuestions, askedWhen } from "./DeclutterQuestions";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
 import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
@@ -314,3 +319,46 @@ describe("board 162: public questions", () => {
     expect(src).toContain('className="space-y-2 pb-[var(--bottom-nav-h,0px)] [&_*]:scroll-mb-[calc(var(--bottom-nav-h,0px)+1rem)]"');
   });
 });
+
+// B48 (owner decision 10-31, App Store 1.2): Report on every question and answer, through the shared report flow,
+// never on your own words (the server refuses that too: report_own_content, declutterQuestionReport.pglite.mjs).
+// @mutate src/components/declutter/DeclutterQuestions.tsx | {!mine && reportLink("declutter_question", "Report question")} | {reportLink("declutter_question", "Report question")}
+// @mutate src/components/declutter/DeclutterQuestions.tsx | {q.answer && !isSeller && reportLink("declutter_answer", "Report answer")} | {q.answer && reportLink("declutter_answer", "Report answer")}
+// @mutate src/components/declutter/DeclutterQuestions.tsx | <ReportDialog open onClose={() => setReporting(null)} reportedType={reporting} reportedId={q.id} /> | <ReportDialog open onClose={() => setReporting(null)} reportedType="declutter_question" reportedId={q.id} />
+describe("B48: report a question or an answer", () => {
+  it("a buyer can report each question and the seller's answer; each opens the report flow for exactly that", async () => {
+    renderIt({ isSeller: false, canAsk: true });
+    const cards = await screen.findAllByRole("listitem");
+    expect(cards.length).toBeGreaterThan(1);
+    expect(within(cards[0]).getByRole("button", { name: "Report question" })).toBeInTheDocument();
+    fireEvent.click(within(cards[0]).getByRole("button", { name: "Report answer" }));
+    const dialog = await screen.findByTestId("report-dialog");
+    expect([dialog.dataset.type, dialog.dataset.id]).toEqual(["declutter_answer", "q1"]);
+    // No answer yet: nothing to report but the question.
+    expect(within(cards[1]).queryByRole("button", { name: "Report answer" })).toBeNull();
+    fireEvent.click(within(cards[1]).getByRole("button", { name: "Report question" }));
+    await waitFor(() => expect(screen.getAllByTestId("report-dialog").map((d) => [d.dataset.type, d.dataset.id])).toContainEqual(["declutter_question", "q2"]));
+  });
+
+  it("never your own: the asker can't report their question (but can report the answer to it); the seller can't report an answer", async () => {
+    mineState.ids = new Set(["q1"]);
+    renderIt({ isSeller: false, canAsk: true });
+    await screen.findByText("Your question · today");
+    const cards = screen.getAllByRole("listitem");
+    expect(within(cards[0]).queryByRole("button", { name: "Report question" })).toBeNull();
+    expect(within(cards[0]).getByRole("button", { name: "Report answer" })).toBeInTheDocument();
+    cleanupAll();
+    renderIt({ isSeller: true, canAsk: false });
+    const sellerCards = await screen.findAllByRole("listitem");
+    expect(within(sellerCards[0]).queryByRole("button", { name: "Report answer" })).toBeNull();
+    expect(within(sellerCards[0]).getByRole("button", { name: "Report question" })).toBeInTheDocument();
+  });
+
+  it("a guest sees no Report", async () => {
+    mineState.user = null;
+    renderIt({ isSeller: false, canAsk: false });
+    await screen.findAllByRole("listitem");
+    expect(screen.queryByRole("button", { name: /^Report/ })).toBeNull();
+  });
+});
+

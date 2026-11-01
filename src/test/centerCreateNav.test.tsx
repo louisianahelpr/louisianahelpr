@@ -314,6 +314,7 @@ describe("moment titles match page titles (owner 2026-10-25: one consistent font
 describe("a section's phone top bar (mock-up 6)", () => {
   it("reads Explore and carries no +; the bell and avatar stay", async () => {
     vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+    vi.doMock("@/components/notificationPanel/NotificationBell", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
     const { AppTopBar } = await import("@/components/sections/AppTopBar");
     renderAt(<AppTopBar title="Declutter" explore />, "/declutter");
     const bar = screen.getByTestId("app-top-bar");
@@ -324,6 +325,7 @@ describe("a section's phone top bar (mock-up 6)", () => {
 
   it("on one of the four sections it is the chips row (owner, 2026-10-22): no visible title, no +, no gear; the bell and avatar stay", async () => {
     vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+    vi.doMock("@/components/notificationPanel/NotificationBell", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
     const { AppTopBar } = await import("@/components/sections/AppTopBar");
     renderAt(
       <AppTopBar title="Jobs" explore section="jobs" />,
@@ -345,6 +347,7 @@ describe("a section's phone top bar (mock-up 6)", () => {
   // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {!isWebDesktop && (\n      <span data-testid="top-bar-bell">
   it("a guest on Declutter gets no bell (and no photo); the chips stay", async () => {
     vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+    vi.doMock("@/components/notificationPanel/NotificationBell", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
     const { AppTopBar } = await import("@/components/sections/AppTopBar");
     who.guest = true;
     try {

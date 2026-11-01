@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserAvatar } from "@/components/UserAvatar";
-import NotificationPanel from "@/components/NotificationPanel";
+import NotificationPanel from "@/components/notificationPanel/NotificationBell";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";

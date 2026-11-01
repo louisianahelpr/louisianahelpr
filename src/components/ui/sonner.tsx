@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Toaster as Sonner, toast } from "sonner";
+import { Toaster as Sonner, toast } from "sonner-real";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 

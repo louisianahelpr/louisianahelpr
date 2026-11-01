@@ -1,6 +1,6 @@
 /**
  * EVERY POSTED LISTING GETS ITS CHECK RECORDED (owner 10-31 ~9:15 PM: 27 of a Sell a bunch post were held by the
- * 15-minute fail-safe, declutter_item_private.ai_checked_at NULL). Measured in the edge request logs 02:18-02:21Z
+ * 15-minute fail-safe, declutter_item_private.ai_checked_at NULL). Measured 2026-10-31 in the edge request logs 02:18-02:21Z (2026-11-01 UTC)
  * (B50, read-only Management API): 12 calls in a minute answered 200, then 40+ in a row answered 429. The checks shared
  * the 12-a-minute "declutter-ai-draft" bucket, the app asked again at once (both tries in the same full minute), and
  * every refused try still counted, so the bucket never emptied while the bunch kept checking.

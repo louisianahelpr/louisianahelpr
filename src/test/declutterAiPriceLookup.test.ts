@@ -3,6 +3,9 @@
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |   return Math.max(1, Math.min(1000, Math.round(r.low + (r.high - r.low) * 0.8))); |   return Math.max(1, Math.min(1000, Math.round((r.low + r.high) / 2)));
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |         tools: [{ type: "web_search_20260209", name: "web_search", max_uses: LOOKUP_MAX_SEARCHES }], |         tools: [],
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |   if (draft.flagged \|\| !draft.title.trim()) return estimate(); |   if (!draft.title.trim()) return estimate();
+ * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts | const LOOKUP_MAX_SEARCHES = 1; | const LOOKUP_MAX_SEARCHES = 3;
+ * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |   const parts = [item.title.trim(), ...labels, ...rest] |   const parts = [item.title.trim(), ...rest, ...labels]
+ * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |     draft.priceDollars === null ? draft : { | true ? draft : {
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts | draft.priceReason ? estimateReason(draft.priceReason) : "Our estimate." | draft.priceReason
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |       console.warn("[price-lookup]", res.status, | console.debug("[price-lookup]", res.status,
  * @mutate supabase/functions/declutter-ai-draft/priceLookup.ts |     console.warn("[price-lookup] failed", (e as Error)?.name); |     console.debug("[price-lookup] failed", (e as Error)?.name);
@@ -29,7 +32,7 @@ describe("used-price lookup (LEAD-PRICE-LOOKUP)", () => {
     const r = await lookupUsedPrice("k", { title: "Oak rocking chair", details: "Brand: Amish made", conditionStars: 4 }, { fetchImpl: fetchImpl as unknown as typeof fetch });
     expect(r).toEqual({ low: 40, high: 90 });
     const body = JSON.parse((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
-    expect(body.tools).toEqual([{ type: "web_search_20260209", name: "web_search", max_uses: 3 }]);
+    expect(body.tools).toEqual([{ type: "web_search_20260209", name: "web_search", max_uses: 1 }]);
     // Never a photo or member data: one text block, the item's words only.
     expect(body.messages[0].content).toEqual([{ type: "text", text: "Oak rocking chair. Brand: Amish made. Used, very good condition." }]);
     expect(JSON.stringify(body)).not.toMatch(/"image"|base64/);
@@ -95,14 +98,48 @@ describe("used-price lookup (LEAD-PRICE-LOOKUP)", () => {
     expect(bare.priceReason).toBe("Our estimate.");
   });
 
-  it("a flagged item is never looked up; a draft with no price keeps none", async () => {
+  it("a flagged item is never looked up; a draft the model left unpriced is looked up, and keeps none (never $0) without a range", async () => {
     const fetchImpl = vi.fn(async () => answer('{"low": 40, "high": 90}'));
     const flagged = await priceDraftFromLookup("k", draft({ flagged: true }), { fetchImpl: fetchImpl as unknown as typeof fetch });
     expect(flagged.priceDollars).toBe(60);
     expect(flagged.priceReason).toMatch(/^Our estimate/);
-    const unpriced = await priceDraftFromLookup("k", draft({ priceDollars: null, priceReason: null }), { fetchImpl: fetchImpl as unknown as typeof fetch });
-    expect(unpriced.priceDollars).toBeNull();
     expect(fetchImpl).not.toHaveBeenCalled();
+    // Owner 10-31: several bunch items came out with no price. The lookup prices them now.
+    const unpriced = await priceDraftFromLookup("k", draft({ priceDollars: null, priceReason: null }), { fetchImpl: fetchImpl as unknown as typeof fetch });
+    expect(unpriced.priceDollars).toBe(80);
+    expect(unpriced.priceReason).toBe("Based on similar used items selling for $40-$90.");
+    const none = vi.fn(async () => answer('{"low": 0, "high": 0}'));
+    const still = await priceDraftFromLookup("k", draft({ priceDollars: null, priceReason: null }), { fetchImpl: none as unknown as typeof fetch });
+    expect(still.priceDollars).toBeNull();
+    expect(still.priceReason).toBeNull();
+  });
+
+  it("owner 10-31 drafts: ONE search, the label line right after the title, sold used prices, priced near the top", async () => {
+    // Mocked model answers (the real API cannot be called locally): what each lookup is SENT is the measurement.
+    const OWNER_DRAFTS: [string, string, number, number, number][] = [
+      ["Blue exercise stability ball", "Brand: Gaiam. Size: 65 cm\nInflated, no punctures.", 8, 20, 18],
+      ["Natra Cure gel booties", "Brand: NatraCure\nUsed twice.", 8, 18, 16],
+      ["3-tier letter trays", "Stackable mesh trays.", 8, 15, 14],
+      ["Heated eye mask", "Brand: Sunbeam. Model: USB\nWorks.", 10, 22, 20],
+      ["Brass cup drawer pulls in box", "Set of 12 in the box.", 25, 60, 53],
+      ["Christmas decor lot", "Ornaments and garland.", 15, 40, 35],
+    ];
+    for (const [title, details, low, high, expected] of OWNER_DRAFTS) {
+      const fetchImpl = vi.fn(async () => answer(`{"low": ${low}, "high": ${high}}`));
+      const out = await priceDraftFromLookup("k", draft({ title, description: details, priceDollars: 5 }), { fetchImpl: fetchImpl as unknown as typeof fetch });
+      const body = JSON.parse((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+      expect(body.tools).toEqual([{ type: "web_search_20260209", name: "web_search", max_uses: 1 }]);
+      expect(body.system).toMatch(/ONE web search/);
+      expect(body.system).toMatch(/SOLD prices of this exact item/);
+      expect(body.system).toMatch(/brand and model/);
+      expect(body.system).toMatch(/Never use new or retail prices/);
+      const text: string = body.messages[0].content[0].text;
+      expect(text.startsWith(`${title}.`)).toBe(true);
+      const label = details.split("\n")[0];
+      if (/Brand:/.test(label)) expect(text.indexOf(label.replace(/\.$/, ""))).toBe(title.length + 2);
+      expect(out.priceDollars).toBe(expected);
+      expect(out.priceDollars).toBeGreaterThan(5);
+    }
   });
 
   it("Sell a bunch: three lookups run at once, so three items take about one lookup's time", async () => {

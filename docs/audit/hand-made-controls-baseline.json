@@ -334,7 +334,7 @@
       "input": 1
     },
     "src/components/declutter/DeclutterHandoverTalk.tsx": {
-      "button": 3,
+      "button": 2,
       "textarea": 1
     },
     "src/components/declutter/DeclutterHandoverViews.tsx": {
@@ -427,9 +427,6 @@
       "button": 3,
       "input": 4,
       "select": 1
-    },
-    "src/components/declutter/DeclutterReportListing.tsx": {
-      "button": 1
     },
     "src/components/declutter/DeclutterReviewForm.tsx": {
       "button": 1,

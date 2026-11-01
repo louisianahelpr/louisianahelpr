@@ -86,7 +86,7 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
     <div className="mx-auto w-full max-w-2xl space-y-4 pb-8" data-public-profile={p.handle}>
       <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-labelledby="pp-name">
         <UserAvatar userId={p.handle} src={p.photo_url} name={p.name} pixelSize={96} className="mx-auto h-24 w-24" />
-        <h1 id="pp-name" className="mt-3 text-xl font-semibold text-foreground">{p.name}</h1>
+        <h2 id="pp-name" className="mt-3 text-xl font-semibold text-foreground">{p.name}</h2>
         <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
           {since && <span>Member since {since}</span>}
           {p.stats.is_id_verified && (
@@ -119,8 +119,12 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
               <li key={l.id}>
                 {/* Guests may open an item (BUY-16); buying there asks them to sign up. */}
                 <Link to={`/declutter/item/${l.id}`} className="block overflow-hidden rounded-xl border border-border bg-background">
-                  <div className="aspect-square w-full bg-muted">
-                    {l.photo_id && <img src={listingPhotoUrl(l.photo_id)} alt="" loading="lazy" className="h-full w-full object-cover" />}
+                  <div className="flex aspect-square w-full items-center justify-center bg-muted">
+                    {l.photo_id ? (
+                      <img src={listingPhotoUrl(l.photo_id)} alt="" loading="lazy" className="h-full w-full object-cover" />
+                    ) : (
+                      <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden />
+                    )}
                   </div>
                   <div className="p-2">
                     <p className="truncate text-ds-14 font-semibold text-foreground">{l.title}</p>
@@ -141,7 +145,7 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
             {p.jobs.map((j) => (
               <li key={j.id} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-ds-15 font-semibold text-foreground">{j.title}</p>
+                  <p className="line-clamp-2 text-ds-15 font-semibold text-foreground">{j.title}</p>
                   <p className="text-ds-13 text-muted-foreground">
                     {[jobCategoryLabel(j.category), j.town, `$${Math.round(Number(j.budget))}`].filter(Boolean).join(" · ")}
                   </p>

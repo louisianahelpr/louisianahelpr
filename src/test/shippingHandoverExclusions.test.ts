@@ -32,8 +32,11 @@ const REFUSALS: Record<string, string> = {
   "declutter_accept_refund_with_return|o.handover NOT IN ('pickup_home', 'porch')": "a drop-off is only where the seller offered pickup; anything else, shipped included, raises drop_off_not_offered",
   "declutter_on_my_way|o.handover NOT IN ('pickup_home', 'porch', 'meetup')": "I'm on my way is for a pickup; anything else raises not_a_pickup",
   "declutter_seller_picked_up|o.handover NOT IN ('pickup_home', 'meetup')": "\"Picked up\" is for a door pickup or a meetup; anything else raises not_a_door_pickup",
-  "declutter_start_checkout|p_handover NOT IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup')":
-    "checkout raises invalid_handover for anything else, so no member can open a shipped order until shipping S3 adds 'ship' here",
+  // B110 (20261101191500): the pickup time is only for the three timed pickups; a shipped order has none.
+  "declutter_checkout_pickup_end|p_handover NOT IN ('porch', 'pickup_home', 'meetup')":
+    "a pickup end time exists only for porch, door and meetup pickups; anything else (shipped included) gets none",
+  "declutter_start_checkout|p_handover NOT IN ('porch', 'pickup_home', 'meetup')":
+    "the same-order comparison checks the pickup time only for the timed pickups; a shipped order compares its quote instead (Shipping S3)",
 };
 
 function notInLists(): string[] {

@@ -118,6 +118,7 @@ const partyWhy = (e: StripeModeRefused, what: string): string =>
 import { captureShopHold, releaseShopHold, shopOrderMode, type ShopHoldRow } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
 import { heldTipParts, helprPayoutParts, type PayoutPart } from "../_shared/helprPayoutParts.ts";
+import { runShipLabels } from "../_shared/shipLabelRun.ts";
 
 const FN = "declutter-money";
 const BATCH = 25;
@@ -911,6 +912,9 @@ serve(async (req) => {
       });
     }
   }
+  // 7. Shipping S3 (Q2259): buy each claimed label, then capture its hold (shipLabelWorker.ts). TEST mode only.
+  const shipLabels = await runShipLabels(admin, () => modes.clientFor("test"), (d) => defects.record(d));
+  Object.assign(out, { ship_labels: shipLabels });
   if (refunds.length === 0 && payouts.length === 0 && helprPayouts.length === 0 && deliveryRefunds.length === 0 && raiseRefunds.length === 0) {
     return cronResult(FN, out, defects.defects);
   }

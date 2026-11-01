@@ -326,13 +326,29 @@ async function settleOrder(
     logStep("Declutter order session ignored (shape)", { id: session.id, mode: session.mode });
     return;
   }
-  if (session.payment_status !== "paid") {
+  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+  // Shipping S3 (Q2259, money review fix 2): a shipped order's page is a card HOLD (capture_method manual), so its
+  // session completes 'unpaid' with the PaymentIntent in requires_capture. The hold is recorded like a payment
+  // (declutter_mark_order_paid; the same transaction writes the one label claim); the label worker captures only
+  // after the label is bought. Read from the PaymentIntent itself, as Shops does (shopCheckout.ts).
+  let shipHeld = false;
+  if (meta.ship === "1" && session.payment_status !== "paid") {
+    if (!paymentIntentId) throw new Error(`declutter ship session ${session.id} has no payment_intent`);
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (pi.status === "canceled") {
+      logStep("Declutter ship hold already released", { id: session.id, pi: paymentIntentId });
+      return;
+    }
+    if (pi.status !== "requires_capture" && pi.status !== "succeeded") {
+      throw new Error(`declutter ship session ${session.id}: payment ${paymentIntentId} is ${pi.status}, not a hold`);
+    }
+    shipHeld = pi.status === "requires_capture";
+  } else if (session.payment_status !== "paid") {
     // Card only (declutter-checkout sets payment_method_types ['card']), so
     // completion is payment; anything else is logged and left alone.
     logStep("Declutter order session completed unpaid", { id: session.id, payment_status: session.payment_status });
     return;
   }
-  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
   const amount = session.amount_total;
   if (!paymentIntentId || typeof amount !== "number") {
     throw new Error(`declutter order session ${session.id} paid without a PaymentIntent or amount`);
@@ -383,7 +399,32 @@ async function settleOrder(
   if (!answer || typeof answer !== "object" || !("result" in answer)) {
     throw new Error(`${partyGone ? "declutter_refund_party_gone" : "declutter_mark_order_paid"} gave no answer for order ${orderId}`);
   }
-  logStep("Declutter order settled", { order: orderId, result: answer.result });
+  logStep("Declutter order settled", { order: orderId, result: answer.result, shipHeld });
+  if (shipHeld && answer.result !== "paid" && answer.result !== "already_paid") {
+    // A hold the order does not take (closed, wrong amount, a second page): release it, which costs nobody
+    // anything; never a refund of money that was never taken. The refund row the answer recorded is left for ops
+    // (Shipping S6 teaches declutter-money to close a released hold's row).
+    await stripe.paymentIntents.cancel(paymentIntentId).catch((e: unknown) => {
+      throw new Error(`declutter ship hold ${paymentIntentId} release failed: ${String(e).slice(0, 200)}`);
+    });
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "warning",
+      title: "Declutter shipped order: hold released, refund row to close",
+      message: `Order ${orderId}'s card hold (${dollars(amount)}) was not taken (${answer.result}) and was released at no cost. Its refund row records money that was never captured: close it by hand until Shipping S6.`,
+      fields: { "Payment intent": paymentIntentId, Order: orderId },
+      oncePerDayKey: `declutter-ship-hold-released:${paymentIntentId}`,
+    });
+    return;
+  }
+  // A held payment cannot be partly refunded (nothing was taken): a setup fee owed back is settled at capture (S5).
+  if (answer.result === "already_paid" && shipHeld) return;
+  if (answer.result === "paid" && shipHeld) {
+    await sendMoneyEmail(ctx, meta.buyer_id, "declutter_receipt", "Your Declutter order",
+      `We're holding ${dollars(amount)} on your card for your Declutter order. You're charged once the shipping label is made; if it can't be made, the hold is released and you pay nothing. You'll get tracking in the app.`);
+    await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep, 0);
+    return;
+  }
   if (answer.result === "paid") {
     // lh-money-escrow review of the Q2352 rebase #4: the receipt names the setup fee only when this order's claim
     // WON ('claimed'); a lost claim (refund_due: "Setup fee coming back" follows) or a page without it (not_charged)

@@ -50,6 +50,8 @@ export type ProgressJob = {
   poster_confirmed_working_at?: string | null;
   helper_completed_at?: string | null;
   poster_completed_at?: string | null;
+  /** When the job was done (the server's stamp); the finished line's time (JA-11). */
+  completed_at?: string | null;
   has_active_dispute?: boolean | null;
   /** isExpiredListing reads these: an auto-expired listing is never shown as cancelled (JA-23). */
   cancellation_reason?: string | null;
@@ -288,7 +290,11 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     return at(0, false, "Filled", poster ? "You hired someone else" : `${other} hired someone else`, false);
   }
 
-  if (status === "completed" || job.poster_completed_at) return at(8, false, "Done", "", held);
+  // JA-11 (audit 11-01): a finished job's tracker says when it finished, never a blank line under eight full steps.
+  if (status === "completed" || job.poster_completed_at) {
+    const doneMs = Date.parse(job.poster_completed_at ?? job.completed_at ?? job.helper_completed_at ?? "");
+    return at(8, false, "Done", Number.isNaN(doneMs) ? "Finished" : `Finished ${when(doneMs)}`, held);
+  }
   if (!LIVE.has(status) || !someoneHired(job)) return at(null, false, "", "", held);
 
   // JA-32: a booked crew's job row carries no one Helpr's stamps (each member's are on their roster row), so it is

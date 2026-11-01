@@ -852,7 +852,10 @@ describe("job page, the street address follows the Working card", () => {
     state.job = row({ helper_id: ME, status: "accepted", helper_confirmed_at: null });
     state.party = true;
     renderPage();
-    expect(document.querySelector("[data-viewer-status]")?.textContent).toMatch(/offered you this job$/);
+    // JA-16 (audit 11-01): said once, by the tracker, never again as a bold status line under it.
+    // @mutate src/pages/jobs/jobPage/viewerState.ts |     return { action: { kind: "see_offer" }, status: null }; |     return { action: { kind: "see_offer" }, status: "Lexi offered you this job" };
+    expect(document.querySelector("[data-viewer-status]")).toBeNull();
+    expect(document.body.textContent!.match(/offered you this job/g)?.length).toBe(1);
     expect(document.querySelector("[data-job-address]")?.textContent).toBe("Address: 123 Main St, Delcambre, LA 70528");
     expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();

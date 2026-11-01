@@ -233,6 +233,10 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.stuck-payment-check]
     verify_jwt = false
+  # declutter-photo-purge (B63): pg_cron posts `Bearer <service_role_key>` (verifyCronSecret), or the app posts the
+  # member's own JWT, which the function verifies itself (auth.getUser) and uses only to pick that member's own paths.
+  [functions.declutter-photo-purge]
+    verify_jwt = false
   # listing-photo-purge (Q2211): pg_cron posts `Bearer <service_role_key>`; verifyCronSecret checks it.
   [functions.listing-photo-purge]
     verify_jwt = false

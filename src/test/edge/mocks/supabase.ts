@@ -265,6 +265,8 @@ export interface SupabaseScenario {
     /** Forced failures. `null` (the default) means the call succeeds. */
     listError: { message: string } | null;
     uploadError: { message: string } | null;
+    /** A forced `remove()` failure (Storage refused the call itself); `null` by default. */
+    removeError?: { message: string } | null;
     /** Every `remove()` call, in order — lets a test assert NOTHING was deleted. */
     removeCalls: string[][];
   };
@@ -699,6 +701,7 @@ function storageBucket(_bucket: string) {
     remove: async (paths: string[]) => {
       const s = store();
       s.removeCalls.push(paths);
+      if (s.removeError) return { data: null, error: s.removeError };
       // BOTH branches answer `error: null` — that is the whole point.
       if (s.removeBehaviour !== "silent-noop") for (const p of paths) s.objects.delete(p);
       return { data: [], error: null };

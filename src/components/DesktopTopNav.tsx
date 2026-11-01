@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { UserAvatar } from "@/components/UserAvatar";
+import { Button } from "@/components/ui/button";
 import NotificationPanel from "@/components/notificationPanel/NotificationBell";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -83,15 +84,16 @@ const DesktopTopNav = () => {
           <HelpEntry />
           <NotificationPanel />
           {/* Board 11: bell, then the member's photo (opens You). */}
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="iconCompact"
             aria-label="Profile"
             data-testid="desktop-top-profile"
             onClick={() => navigate("/profile")}
-            className="btn-press rounded-full flex items-center justify-center"
           >
             <UserAvatar userId={user.id} src={profile?.avatar_url} name={profile?.full_name} pixelSize={72} alt="" className="w-9 h-9" />
-          </button>
+          </Button>
         </div>
       </div>
     </header>

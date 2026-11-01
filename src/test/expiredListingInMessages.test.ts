@@ -27,7 +27,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/messages/ConversationRow.tsx |     const label = threadJobChipLabel(s, c); |     const label = jobStatusLabel(s);
 // @mutate src/pages/messages/messagesData/loadConversations.ts | select("id, title, status, customer_id, helper_id, cancelled_by, cancellation_reason").in("id", jobIds) | select("id, title, status, customer_id, helper_id").in("id", jobIds)
 // @mutate src/components/messages/jobStatusAnnouncement.ts |   { matches: /\bno longer open\b/i, jobStatus: "cancelled", closesAt: (at) => at, expired: true }, |
-// @mutate src/components/messages/chatView/chatViewHelpers.ts |     { kind: "cancelled", matches: /\bcancell?ed\b|\bno longer open\b/i }, |     { kind: "cancelled", matches: /\bcancell?ed\b/i },
+// @mutate src/components/messages/chatView/chatViewHelpers.ts |     { kind: "cancelled", matches: /\bcancell?ed\b\|\bno longer open\b/i }, |     { kind: "cancelled", matches: /\bcancell?ed\b/i },
 // @mutate src/components/messages/chatView/ChatComposer.tsx | {(expiredCopyFor(activeConvo) ?? threadClosedCopy(activeConvo.jobStatus)).notice} | {threadClosedCopy(activeConvo.jobStatus).notice}
 
 const REPO = resolve(__dirname, "../..");

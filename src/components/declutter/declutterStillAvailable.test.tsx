@@ -66,7 +66,10 @@ describe("StillAvailableSheet", () => {
   });
 
   it("the thanks is shown: toastPolicy suppresses toast.success, the bare toast() renders", () => {
-    expect(readFileSync("src/components/declutter/DeclutterStillAvailable.tsx", "utf8")).toMatch(/\btoast\(gone \? "Thanks\./);
+    const src = readFileSync("src/components/declutter/DeclutterStillAvailable.tsx", "utf8");
+    // Floor (vacuity scan): the real sheet was read (3.2 KB on 10-31).
+    expect(src.length).toBeGreaterThan(1_000);
+    expect(src).toMatch(/\btoast\(gone \? "Thanks\./);
   });
 
   it("the selling screen mounts it", () => {

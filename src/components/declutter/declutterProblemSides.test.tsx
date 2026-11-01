@@ -27,7 +27,7 @@ vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchOrderProblem: async () => state.problem,
   addProblemSide: async (...a: unknown[]) => { state.added.push(a); return { result: "added", problem_id: "p1" }; },
-  handoverPhotoUrl: async (p: string) => `https://signed.example/${p}`,
+  handoverPhotoUrl: async (p: string) => `https://unit-test.invalid/storage/v1/object/sign/job-photos/${p}`,
   uploadProblemPhoto: async (orderId: string, f: File) => { state.uploaded.push(f.name); return `s/declutter/problem/${orderId}/${f.name}`; },
   withdrawProblem: async (id: unknown) => { state.withdrawn.push(id); return { result: "withdrawn", problem_id: id }; },
 }));
@@ -54,7 +54,7 @@ describe("DeclutterProblemSides", () => {
     expect((await screen.findByText(/The buyer's report:/)).closest("p")?.textContent)
       .toBe('The buyer\'s report: "The leg is cracked."');
     expect(screen.queryByText(/reported a problem|It's damaged/)).toBeNull();
-    expect(await screen.findByAltText("Problem photo 1")).toHaveAttribute("src", "https://signed.example/b/declutter/problem/o1/a.jpg");
+    expect(await screen.findByAltText("Problem photo 1")).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/sign/job-photos/b/declutter/problem/o1/a.jpg");
     fireEvent.click(screen.getByRole("button", { name: "Add your side" }));
     fireEvent.change(screen.getByLabelText("Your side, for Louisiana Helpr"), { target: { value: "  It left here in one piece.  " } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));

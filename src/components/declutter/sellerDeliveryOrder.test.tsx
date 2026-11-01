@@ -23,7 +23,7 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 
-const state = { booking: null as SellerDeliveryBooking | null, fail: false, calls: [] as string[], photoUrl: "https://signed.test/s1/declutter/handover/o/door.jpg" as string | null };
+const state = { booking: null as SellerDeliveryBooking | null, fail: false, calls: [] as string[], photoUrl: "https://unit-test.invalid/storage/v1/object/sign/job-photos/s1/declutter/handover/o/door.jpg" as string | null };
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 const handoverRow = vi.hoisted(() => ({ reported: null as string | null, reads: 0 }));
@@ -75,7 +75,7 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     state.booking = { ...BASE };
     state.fail = false;
     state.calls = [];
-    state.photoUrl = "https://signed.test/s1/declutter/handover/o/door.jpg";
+    state.photoUrl = "https://unit-test.invalid/storage/v1/object/sign/job-photos/s1/declutter/handover/o/door.jpg";
     vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
@@ -142,7 +142,7 @@ describe("seller-delivery order: the money moments ask in the app", () => {
       state.booking = { ...BASE, side, delivered_at: iso(-HOUR), delivered_photo_path: "s1/declutter/handover/o/door.jpg" };
       const { unmount } = show();
       const img = await screen.findByAltText(words);
-      expect(img).toHaveAttribute("src", "https://signed.test/s1/declutter/handover/o/door.jpg");
+      expect(img).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/sign/job-photos/s1/declutter/handover/o/door.jpg");
       expect(document.querySelector("[data-delivered-photo] figcaption")?.textContent).toMatch(new RegExp(`^${words}, taken \\w{3}, \\w{3} \\d+, \\d+:\\d{2} (AM|PM)$`));
       unmount();
     }

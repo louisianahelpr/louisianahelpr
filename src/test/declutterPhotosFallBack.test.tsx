@@ -61,13 +61,13 @@ describe("Declutter photos fall back to their placeholder", () => {
   });
 
   it("FallbackImg shows its placeholder once the photo fails, and tries a new photo again", () => {
-    const { rerender } = render(<FallbackImg src="https://x.test/a.jpg" alt="" fallback={<span data-testid="ph" />} />);
+    const { rerender } = render(<FallbackImg src="https://unit-test.invalid/a.jpg" alt="" fallback={<span data-testid="ph" />} />);
     const img = document.querySelector("img")!;
     expect(screen.queryByTestId("ph")).toBeNull();
     fireEvent.error(img);
     expect(screen.getByTestId("ph")).toBeInTheDocument();
     expect(document.querySelector("img")).toBeNull();
-    rerender(<FallbackImg src="https://x.test/b.jpg" alt="" fallback={<span data-testid="ph" />} />);
+    rerender(<FallbackImg src="https://unit-test.invalid/b.jpg" alt="" fallback={<span data-testid="ph" />} />);
     expect(document.querySelector("img")).not.toBeNull();
   });
 

@@ -60,7 +60,7 @@ vi.mock("@/lib/declutter/problemPhotos", () => ({
 }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, ...handover.row }),
-  handoverPhotoUrl: async (p: string) => `https://signed.example/${p}`,
+  handoverPhotoUrl: async (p: string) => `https://unit-test.invalid/storage/v1/object/sign/job-photos/${p}`,
   uploadProblemPhoto: async (orderId: string, f: File) => { state.uploaded.push([orderId, f.name]); return `me/declutter/problem/${orderId}/${f.name}`; },
 }));
 vi.mock("@/lib/declutter/refundRequests", async (orig) => {
@@ -121,8 +121,8 @@ async function sendAnswer() {
 describe("the seller's answer shows the buyer's photos", () => {
   it("each photo is a signed link beside the buyer's words", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...REQ, photo_paths: ["b/declutter/problem/o1/a.jpg", "b/declutter/problem/o1/b.jpg"] } });
-    expect(await screen.findByAltText("Problem photo 1")).toHaveAttribute("src", "https://signed.example/b/declutter/problem/o1/a.jpg");
-    expect(await screen.findByAltText("Problem photo 2")).toHaveAttribute("src", "https://signed.example/b/declutter/problem/o1/b.jpg");
+    expect(await screen.findByAltText("Problem photo 1")).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/sign/job-photos/b/declutter/problem/o1/a.jpg");
+    expect(await screen.findByAltText("Problem photo 2")).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/sign/job-photos/b/declutter/problem/o1/b.jpg");
   });
 });
 

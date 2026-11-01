@@ -898,6 +898,16 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
+            // The shared address search and its "Use my current location" pill (Post a job, the seller's address, and
+            // since 11-01 checkout's Deliver to). Several screens share both, so each was its own chunk, and each chunk an
+            // entry route reaches is named in the entry (budget 5.0 KB gz): one chunk for the pair.
+            {
+              name: "address-search",
+              test: /[\\/]src[\\/]components[\\/]postjob[\\/](AddressAutocomplete|CurrentLocationPill)\.tsx$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             // The auth/account screens' words (Log in, Sign up, Finish your
             // profile, Delete account). Several lazy screens import them, so
             // app-shared would capture them onto EVERY page's boot (+~2 KB gz

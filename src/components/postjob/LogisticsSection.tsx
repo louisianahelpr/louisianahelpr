@@ -14,7 +14,7 @@ import { todayLocalISO } from "@/lib/dateUtils";
 import { jobStartTimeLabel, todayYmd } from "@/lib/jobDate";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { RadioCardList } from "@/components/ui/RadioCardList";
-import { dayStrip, TIME_CHIPS, timeChipOf } from "@/components/postjob/whenChoices";
+import { dayStrip, timeChipOf, timeChipsFor } from "@/components/postjob/whenChoices";
 import { samePlace as sameAddress, type SavedAddress } from "@/pages/post-job/useSavedJobAddress";
 import { formatPriceExact } from "@/lib/format";
 import { crewSmallestShare } from "@/components/postjob/crewSmallestShare";
@@ -182,10 +182,7 @@ export function LogisticsSection({
   const dateOnStrip = !dateNeeded || strip.some((d) => d.iso === dateNeeded);
   const [moreDates, setMoreDates] = useState(false);
   const showCalendar = moreDates || !dateOnStrip;
-  const chip = timeChipOf(startTime);
   const [otherTime, setOtherTime] = useState(false);
-  // A stored time no chip names (a draft, a rebook, the wheel) IS "Other time".
-  const showWheel = otherTime || (!!startTime.trim() && !chip);
   const pickTime = (v: string) => {
     setOtherTime(false);
     setStartTime(v);
@@ -198,6 +195,11 @@ export function LogisticsSection({
   const todayClosed = !sameDayStart;
   const isToday = !isRecurring && dateNeeded === today && !todayClosed;
   const holdsClosedToday = todayClosed && dateNeeded === today;
+  // JA-44: today offers only the starts it allows (the earliest first); any other day, the board's chips.
+  const timeChips = timeChipsFor(dateNeeded, today, sameDayStart);
+  const chip = timeChipOf(startTime, timeChips);
+  // A stored time no chip names (a draft, a rebook, the wheel) IS "Other time".
+  const showWheel = otherTime || (!!startTime.trim() && !chip);
   const needItToday = () => {
     if (!sameDayStart) return;
     setIsFlexibleSchedule(false);
@@ -466,7 +468,7 @@ export function LogisticsSection({
           {isFlexibleSchedule && (
             <ChoicePill selected={!startTime.trim() && !showWheel} onClick={() => pickTime("")}>No set time</ChoicePill>
           )}
-          {TIME_CHIPS.map((t) => (
+          {timeChips.map((t) => (
             <ChoicePill key={t.value} selected={!showWheel && chip === t.value} onClick={() => pickTime(t.value)}>{t.label}</ChoicePill>
           ))}
           <ChoicePill selected={showWheel} onClick={() => setOtherTime(true)}>Other time</ChoicePill>

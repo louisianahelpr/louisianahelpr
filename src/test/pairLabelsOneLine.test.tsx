@@ -11,6 +11,7 @@
  * @mutate src/components/job-card/jobStepMenu.tsx |         {pair ? pairLabel(p.label) : p.label} |         {p.label}
  */
 import { describe, expect, it, vi } from "vitest";
+import { MessageCircle } from "lucide-react";
 import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
 import { JobPageActionRow } from "@/pages/jobs/jobPage/JobPageActionRow";
@@ -39,7 +40,7 @@ describe("a side-by-side pair reads on one line", () => {
   });
 
   it("the card's own action in the pair is short too; in the More options list it keeps the full words", () => {
-    const chip = <JobActionChip label="Message Yusef" onClick={go} />;
+    const chip = <JobActionChip icon={MessageCircle} tone="message" label="Message Yusef" onClick={go} />;
     const { unmount } = render(<MenuAction chip={chip} pair />);
     expect(screen.getByRole("button").textContent).toBe("Message");
     expect(screen.getByRole("button").className).toMatch(/whitespace-nowrap/);

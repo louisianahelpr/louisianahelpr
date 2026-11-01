@@ -27,8 +27,8 @@
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid. Louisiana Helpr holds it until the job is done.", |   escrow: "Card held, not charged.",
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const line = released ? releasedLine(job) : refundInTracker ? null : HELD_LINE[status] ?? null; | const line = released ? releasedLine(job) : status === "escrow" \|\| refundInTracker ? null : HELD_LINE[status] ?? null;
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire. |   escrow: "Paid. Louisiana Helpr holds it until the job is done.",
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const line = released ? releasedLine(job) : refundInTracker ? null : HELD_LINE[status] ?? null; | const line = released ? releasedLine(job) : status === "held" \|\| refundInTracker ? null : HELD_LINE[status] ?? null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
@@ -452,8 +452,8 @@ describe("job page, poster side (boards 15, 168)", () => {
     const money = document.querySelector("[data-poster-money]") as HTMLElement;
     expect(document.querySelector("[data-job-head]")?.contains(money)).toBe(true);
     expect(money.textContent).toContain("$");
-    // JA-47: one sentence about the money, from payment_status.
-    expect(screen.getByText("Paid. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
+    // Owner 11-01: "Remove paid Louisiana Helpr holds until job is done." A paid (escrow) job prints no money line.
+    expect(document.body.textContent).not.toMatch(/holds it until the job is done/i);
     expect(document.body.textContent).not.toMatch(/Nothing is charged|take home|takes home|not charged/i);
     expect(screen.getByText("3 applicants")).toBeTruthy();
     expect(screen.getByLabelText(/^Job progress, step 1 of 8: Posted,/)).toBeTruthy();
@@ -475,12 +475,12 @@ describe("job page, poster side (boards 15, 168)", () => {
 
   // Audit 2026-10-28 F4: with card_hold_at_post on, the card is charged at the hire, so a paid job's line
   // never says "when you posted"; a job whose card is only held says it is not charged yet.
-  it("under the card hold: 'Paid. Louisiana Helpr holds it…', and a held card is not charged until the hire", () => {
+  it("under the card hold: a paid job prints no 'holds it' line (owner 11-01), and a held card is not charged until the hire", () => {
     state.cardHold = true;
     state.job = row({ customer_id: ME, helper_id: "44444444-4444-4444-4444-444444444444", status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z" });
     state.party = true;
     const { unmount } = renderPage();
-    expect(screen.getByText("Paid. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/holds it until the job is done/i);
     expect(document.body.textContent).not.toContain("when you posted");
     unmount();
     state.job = row({ customer_id: ME, payment_status: "held" });

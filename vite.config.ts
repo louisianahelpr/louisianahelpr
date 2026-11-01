@@ -637,6 +637,10 @@ export default defineConfig(({ mode, command }) => ({
       // post-job price stats) with "Failed to resolve module specifier".
       external: ["@capacitor-community/in-app-review"],
       output: {
+        // B85 11-01: the entriesAware icon groups are named after every chunk that shares them
+        // ("icons~Login~Signup~DashboardGuest~...~rk4z2qol", ~100 characters), and each name is written into the entry's
+        // preload list and into every importer. A short name changes no chunk, only those strings.
+        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
         // ── Chunk graph shape ────────────────────────────────────────────
         // Expressed as rolldown's `codeSplitting` rather than `manualChunks`
         // because the two are MUTUALLY EXCLUSIVE — rolldown logs
@@ -760,6 +764,15 @@ export default defineConfig(({ mode, command }) => ({
               priority: 90,
               entriesAware: true,
               entriesAwareMergeThreshold: 40_000,
+            },
+            // B85 11-01 (train 13): the icons the entriesAware split above leaves on their own (car, flame, map, x, ...)
+            // were emitted one file per icon, and every route's preload list in the entry named each (entry 5.3 -> 5.7
+            // KB gz). This catches those leftovers in one chunk.
+            {
+              name: "icons-rest",
+              test: /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/,
+              priority: 89,
+              minSize: 0,
             },
             // Vite's dynamic-import preload helper (Q178). Every chunk that
             // lazy-loads imports it, so rolldown parked it inside app-shared —
@@ -890,6 +903,27 @@ export default defineConfig(({ mode, command }) => ({
             {
               name: "job-lifecycle",
               test: /[\\/]src[\\/]lib[\\/](arrivalGate|cardHoldCapture)\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // Money's payout reads (useEarningsData). Profile's tab panels start them beside the Earnings tab's chunk
+            // (B72), so rolldown put the module in the Profile chunk, and the lazy Earnings tab then imported the whole
+            // Profile chunk and its closure: 7 rounds and 500 KB gz on /profile?tab=earnings against 6 and 460 (train
+            // 13, B85 11-01). Alone, both import this small chunk.
+            // The Earnings tab's own skeleton (B85 11-01, train 13). Rolldown merged it with Profile's page skeleton and
+            // You menu, so the lazy tab imported that chunk and, through ProfilePageSkeleton, the title bar's chain
+            // (AppTopBar -> ExploreSwitcher -> useSectionTabs -> ...): 8 rounds on /profile?tab=earnings against 6.
+            {
+              name: "earnings-skeleton",
+              test: /[\\/]src[\\/]components[\\/](profile[\\/]earningsTab[\\/]EarningsPageSkeleton\.tsx|payouts[\\/]payoutSourcesLine\.ts)$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            {
+              name: "earnings-reads",
+              test: /[\\/]src[\\/]components[\\/]profile[\\/]earningsTab[\\/]useEarningsData\.ts$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

@@ -210,7 +210,13 @@ async function savePushToken(token: string, platform: "ios" | "android") {
     // below exists for: report it, so a device whose auth keeps failing can't
     // stop registering in silence (Q82 review). Still buffer — a later auth
     // event may succeed.
-    if (userError) report(userError, { severity: "warning", tags: { source: "savePushToken.getUser" } });
+    // A GUEST is not an error: supabase-js answers "nobody is signed in" with AuthSessionMissingError. Measured
+    // 11-01 on prod: all 4 savePushToken.getUser rows since 10-20 were exactly that, on guest boots (/browse,
+    // /signup, /login), each one buffered as designed; reporting them only made noise in error_logs (sentry.ts
+    // already drops the class).
+    if (userError && (userError as { name?: string }).name !== "AuthSessionMissingError") {
+      report(userError, { severity: "warning", tags: { source: "savePushToken.getUser" } });
+    }
     if (user) {
       await persistPushToken(user.id, token, platform);
       return;

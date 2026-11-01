@@ -6,7 +6,9 @@ import { postedActivityBucket, appliedActivityBucket } from "@/components/job-ca
 import { loadModule, untilReload } from "@/lib/loadModule";
 // Declutter / Shops / Rentals reads load with their query, not with Home (AUD31-60/66, the /home cut B84 measured):
 // a section that is off, or a member with nothing there, never downloads that section's data code.
-const declutterApi = () => loadModule(() => import("@/lib/declutter/api"));
+// B87: Home's two Declutter reads have their own small module (myReads.ts): through api.ts this import fetched
+// signed-in-pages and its ~150 KB gz closure beside the dock. src/test/homeLazyReadsStayLight.test.ts.
+const declutterApi = () => loadModule(() => import("@/lib/declutter/myReads"));
 const shopOrdersApi = () => loadModule(() => import("@/lib/shops/orders"));
 // Only the import goes through Vite's preload wrapper: a read made INSIDE `import(...).then(...)` runs inside it, so
 // its failure is dispatched as vite:preloadError (a chunk-reload) and, prevented, resolves undefined (Sentry

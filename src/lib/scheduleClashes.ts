@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { unwrap } from "@/lib/supabaseResult";
 import { isNetworkFailure } from "@/lib/networkFailure";
-import { isNotDeployedYet } from "@/lib/seriesDates";
+import { isNotDeployedYet } from "@/lib/notDeployedYet";
 import { formatShortDate } from "@/lib/format";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 

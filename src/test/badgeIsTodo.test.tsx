@@ -80,6 +80,8 @@ vi.mock("@/lib/shops/orders", () => ({
 }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyItems: async () => [], fetchMyCart: async () => [] }));
+// B87: Home reads these two through their own module.
+vi.mock("@/lib/declutter/myReads", () => ({ fetchMyItems: async () => [], fetchMyCart: async () => [] }));
 vi.mock("@/integrations/supabase/client", async () => (await import("./helpers/emptySupabaseClient")).emptySupabaseModule());
 // Home's money tiles read the Money tab's own queries; homeMoneyTiles/homeMoneyGating prove them.
 vi.mock("@/pages/home/homeDashboard/homeMoney", () => ({ useHomeMoney: () => ({ coming: null, held: null }) }));

@@ -48,6 +48,7 @@ describe("a crew never gets the job-level no-show", () => {
 
   it("the card's No-Show chip stands down on a crew", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../..", "src/pages/posts/postedJobCard/steps/InProgressStep.tsx"), "utf8"));
+    expect(src.length).toBeGreaterThan(500);
     expect(src).toMatch(/const showNoShow =\s*!job\.is_group_job &&/);
   });
 });

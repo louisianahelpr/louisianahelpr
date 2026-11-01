@@ -33,7 +33,7 @@ describe("distance copy only claims a radius that ran (A2-B5)", () => {
   });
   // Vacuity floor: both Browse feeds, three call sites.
   it("checks both Browse feeds", () => {
-    expect(SURFACES.reduce((n, [, k]) => n + k, 0)).toBeGreaterThan(2);
+    expect(SURFACES.flatMap(([f]) => src(f).match(/= filters\.nearbyApplied;/g) ?? []).length).toBeGreaterThan(2);
   });
   for (const [f, n] of SURFACES) {
     it(`${f} reads filters.nearbyApplied (${n}x) and never the raw radius`, () => {

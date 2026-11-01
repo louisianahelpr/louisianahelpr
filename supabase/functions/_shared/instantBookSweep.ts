@@ -20,7 +20,7 @@
 
 /** Exactly the shape captureCardHold answers (supabase/functions/_shared/cardHold.ts). */
 export type InstantCaptureResult =
-  | { ok: true; already: boolean }
+  | { ok: true; already: boolean; /** No card hold at all: the job was paid at post, nothing was captured for the booking. */ paidAtPost?: boolean }
   | { ok: false; reason: "poster_must_pay" }
   | { ok: false; reason: "retry"; detail: string }
   | { ok: false; reason: "not_held" };
@@ -39,12 +39,14 @@ export type InstantSweepOutcome =
   | "hired" // captured (now or already) and the hire completed
   | "payment_failed" // the card was refused: the booking ended, both told
   | "retry" // Stripe did not answer, or another capture holds the claim
-  | "captured_not_hired"; // charged, and the completion refused: paged, retried next run
+  | "ended_unhireable" // the hire's own checks failed before any capture: the booking ended, nothing charged, both told
+  | "captured_not_hired"; // charged, and the completion refused in the moment between: the booking ended, poster told, ops paged once
 
 export type InstantSweepDeps = {
   // deno-lint-ignore no-explicit-any
   db: any;
-  capture: (jobId: string) => Promise<InstantCaptureResult>;
+  /** captureCardHold for this Helpr's offer (offerTo): the claim goes back if the offer moved on. */
+  capture: (jobId: string, helperId: string) => Promise<InstantCaptureResult>;
   now: number;
   record: (defect: string) => void;
   page: (title: string, message: string, fields: Record<string, string | number | null | undefined>) => Promise<unknown>;
@@ -78,38 +80,58 @@ async function endForPayment(deps: InstantSweepDeps, jobId: string): Promise<Ins
 export async function settleInstantBooking(deps: InstantSweepDeps, jobId: string): Promise<InstantSweepOutcome> {
   const row = await readBooking(deps.db, jobId);
   if (!isLiveBooking(row)) return "none";
-  // An early confirm's capture was refused: the job is off the listing already.
   if (row.payment_status === "failed") return endForPayment(deps, jobId);
   if (Date.parse(row.instant_decline_until) > deps.now) return "none";
 
   const helperId = row.offered_to_helper_id;
-  const captured = await deps.capture(jobId);
+  // Before any capture, the checks complete_direct_offer_accept runs (block,
+  // ban, ID and payout setup, the job still open, the offer still pending):
+  // a Helpr who can't be hired ends the booking with nothing charged.
+  const { data: ended, error: endErr } = await deps.db.rpc("instant_book_end_if_unhireable", { p_job_id: jobId });
+  if (endErr) {
+    deps.record(`job ${jobId}: an instant booking's hire checks were not read (${endErr.message}); retried next run`);
+    return "retry";
+  }
+  if (ended === true) return "ended_unhireable";
+
+  const captured = await deps.capture(jobId, helperId);
   if (!captured.ok) {
     if (captured.reason === "retry") {
       deps.record(`job ${jobId}: instant booking capture will retry: ${captured.detail}`);
       return "retry";
     }
     if (captured.reason === "poster_must_pay") return endForPayment(deps, jobId);
-    // not_held: the job moved under us (closed, paid another way). Re-read: a
-    // booking still live on money that is not a hold is a defect to look at.
     if (isLiveBooking(await readBooking(deps.db, jobId))) {
       deps.record(`job ${jobId}: an instant booking is live but its job is not on a card hold`);
     }
     return "none";
   }
 
-  // Captured (now, or by an earlier run / the Helpr's own confirm): complete the hire.
   const { data: done, error: doneErr } = await deps.db.rpc("complete_direct_offer_accept", { p_job_id: jobId, p_helper: helperId });
   if (!doneErr && done != null) return "hired";
-  // Another run (or the Helpr's confirm) hired them in the moment between.
   const after = await readBooking(deps.db, jobId);
   if (after && after.status !== "open" && after.helper_id === helperId) return "hired";
-  const why = doneErr?.message ?? "the hire did not complete";
-  deps.record(`job ${jobId}: captured for an instant booking that did not complete (${why}); retried next run`);
+  if (doneErr || captured.paidAtPost) {
+    // An error is not a refusal (the next run's hire is free: the capture
+    // answers "already"). Paid at post, nothing was captured for the booking:
+    // the next run's hire checks end it if the Helpr can't be hired.
+    deps.record(`job ${jobId}: an instant booking's hire did not complete (${doneErr?.message ?? "refused"}); retried next run`);
+    return "retry";
+  }
+  // The true race: charged, and the hire refused in the moment between. The
+  // booking ends and the poster hears their payment is being returned; ops is
+  // paged once per job (true only the first time).
+  const { data: first, error: endErr2 } = await deps.db.rpc("instant_book_captured_not_hired", { p_job_id: jobId, p_helper: helperId });
+  if (endErr2) {
+    deps.record(`job ${jobId}: captured for an instant booking that did not complete, and the booking was not ended (${endErr2.message}); retried next run`);
+    return "retry";
+  }
+  if (first !== true) return "none";
+  deps.record(`job ${jobId}: captured for an instant booking whose hire was refused; the person who posted it was told the payment is being returned`);
   await deps.page(
     "An instant booking was charged but the hire did not complete",
-    "card-hold-sweep captured the poster's held card when the 2-hour window ended, and complete_direct_offer_accept refused. The next run retries; if it keeps failing, the job is funded with nobody hired.",
-    { job_id: jobId, helpr: helperId, error: why.slice(0, 200) },
+    "card-hold-sweep captured the job's held card when the 2-hour window ended, and complete_direct_offer_accept then refused. The booking was ended and the person who posted the job was told their payment is being returned within a day: refund the job's payment in full by hand.",
+    { job_id: jobId, helpr: helperId },
   );
   return "captured_not_hired";
 }

@@ -347,7 +347,9 @@ serve(async (req) => {
         factReadError ??= e2;
         facts.application = app ?? null;
       }
-      if (needs.includes("posterName")) {
+      // The caller's own name: "posterName" (the poster sends it) and "senderName" (JA-57, either side) read the
+      // same row, the sender's profile, once.
+      if (needs.includes("posterName") || needs.includes("senderName")) {
         const { data: prof, error: e3 } = await adminClient
           .from("profiles")
           .select("full_name")
@@ -356,6 +358,7 @@ serve(async (req) => {
         factReadError ??= e3;
         // First word of the "First L." form: a split on " " alone kept a tab- or no-break-space-joined surname.
         facts.posterFirstName = memberDisplayName(prof?.full_name, "").split(" ")[0] || null;
+        facts.senderFirstName = facts.posterFirstName;
       }
       if (needs.includes("noShow")) {
         const { data: v, error: e4 } = await adminClient

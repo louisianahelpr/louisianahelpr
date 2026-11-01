@@ -5,10 +5,10 @@
  * checked by eye in the 320 and 375 shots (~/.lh-shots/b107/after).
  * Inventory: every label literal the page's rows draw (posterPageActions, JobPage, helperFaceAction, the release).
  *
- * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |       {pair ? pairLabel(a.label) : a.label} |       {a.label}
+ * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const shown = pair ? pairLabel(a.label) : buttonLabel(a.label); |   const shown = pair ? a.label : buttonLabel(a.label);
  * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx | const PAIR_BTN = `min-w-0 w-full rounded-full leading-tight ${PAIR_TEXT}`; | const PAIR_BTN = BTN;
  * @mutate src/components/ui/pairLabel.ts |   [/^Approve and release$/, "Approve"], |
- * @mutate src/components/job-card/jobStepMenu.tsx |         {pair ? pairLabel(p.label) : p.label} |         {p.label}
+ * @mutate src/components/job-card/jobStepMenu.tsx |     const shown = pair ? pairLabel(p.label) : buttonLabel(p.label); |     const shown = pair ? p.label : buttonLabel(p.label);
  */
 import { describe, expect, it, vi } from "vitest";
 import { MessageCircle } from "lucide-react";

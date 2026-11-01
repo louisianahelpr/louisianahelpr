@@ -832,6 +832,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Continue another day (20261101231015, owner 11-01): the job page's "Not finished? Set a day" / "Need another day".
+  "src/components/jobs/ContinueDaySheet.tsx": "Not swept yet (new 11-01): it opens only on a solo job under way after day-1 work started, which the sweep's accounts never hold. A date and time picker and one note box (maxLength 300); propose_job_continue_day re-checks the party, the 1 hour to 30 days window and the 300-character note and refuses anything else.",
   // LEAD-LIST-FOR-SELLER (20261101034159): not swept yet (new 11-01); its server checks are proven in
   // src/test/pglite/declutterListForSeller.pglite.mjs.
   "src/components/declutter/ListedForYouCard.tsx": "no typed text: Approve, Not this one and one checkbox; each approval goes through the normal publish path's checks.",

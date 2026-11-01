@@ -16,7 +16,7 @@
  * @mutate supabase/functions/_shared/instantBookRefund.ts | if ((claim as { claimed_by?: string } \| null)?.claimed_by !== INSTANT_REFUND_HOLDER) return "none"; | if (!claim) return "none";
  * @mutate supabase/functions/_shared/instantBookRefund.ts |     const remainingCents = capturedCents - alreadyRefundedCents; |     const remainingCents = capturedCents - alreadyRefundedCents - 104;
  * @mutate supabase/functions/_shared/instantBookRefund.ts |     if (remainingCents > 0) { |     if (remainingCents > -1) {
- * @mutate supabase/functions/_shared/instantBookRefund.ts |           `instant-book-refund-${jobId}-r${alreadyRefundedCents}`, |           `instant-book-refund-${jobId}-${Math.random()}`,
+ * @mutate supabase/functions/_shared/instantBookRefund.ts |           `${jobId}-r${alreadyRefundedCents}`, |           `${jobId}-${Math.random()}`,
  * @mutate supabase/functions/_shared/instantBookRefund.ts |         if (isDefinitiveStripeRefusal(e)) return stuck(`Stripe refused the refund: | if (false) return stuck(`Stripe refused the refund:
  * @mutate supabase/functions/_shared/instantBookRefund.ts |         return "retry";\n      }\n    }\n  } |         return "refunded";\n      }\n    }\n  }
  * @mutate supabase/functions/_shared/instantBookRefund.ts |   if (feeAt) { |   if (false) {
@@ -105,7 +105,7 @@ describe("instant book: the automatic full refund (CMP-4)", () => {
   it("refunds everything the charge holds, card fee included, once; closes the claim; the setup fee is owed again", async () => {
     const w = world({ feeAt: "2026-11-01T07:00:00Z" });
     expect(await refundInstantBooking(w.deps, JOB)).toBe("refunded");
-    expect(w.calls.refunds).toEqual([{ amount: 6386, key: `instant-book-refund-${JOB}-r0` }]);
+    expect(w.calls.refunds).toEqual([{ amount: 6386, key: `${JOB}-r0` }]);
     expect(w.charge.refunded).toBe(6386);
     expect(w.calls.unclaimed).toBe(1);
     expect(w.calls.finished).toBe(1);
@@ -150,7 +150,7 @@ describe("instant book: the automatic full refund (CMP-4)", () => {
   it("an earlier partial refund on the charge: only the rest goes back", async () => {
     const w = world({ refunded: 200 });
     expect(await refundInstantBooking(w.deps, JOB)).toBe("refunded");
-    expect(w.calls.refunds).toEqual([{ amount: 6186, key: `instant-book-refund-${JOB}-r200` }]);
+    expect(w.calls.refunds).toEqual([{ amount: 6186, key: `${JOB}-r200` }]);
   });
 
   it("Stripe did not answer: retried under the same key, the claim stays, then one refund", async () => {

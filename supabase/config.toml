@@ -53,6 +53,10 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # function via resend.webhooks.verify() + RESEND_WEBHOOK_SECRET.
   [functions.resend-webhook]
     verify_jwt = false
+  # EasyPost delivers tracking events with no Supabase JWT. Authenticity is its HMAC (X-Hmac-Signature),
+  # checked over the raw body before anything is read (easypost-webhook; shipping S4, Q2259).
+  [functions.easypost-webhook]
+    verify_jwt = false
   # PayPal delivers webhooks over plain HTTPS with no Supabase JWT. Authenticity
   # is enforced INSIDE the function, fail closed: PayPal's verify-webhook-signature
   # postback, or its certificate when PayPal is unreachable

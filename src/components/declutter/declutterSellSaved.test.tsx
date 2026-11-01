@@ -100,6 +100,9 @@ vi.mock("@/lib/declutter/api", () => ({
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
+/** A settings row's value in the listing summary (owner 2026-11-01): "drops", "free" or "pickup". */
+const settingsValue = (id: string) => document.querySelector(`[data-settings-row="${id}"] [data-settings-value]`)?.textContent ?? null;
+
 function open(entry = "/declutter/sell") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   qc.setQueryData(featureSwitchBatchKey("u1"), { declutter: true });
@@ -259,13 +262,13 @@ describe("a new listing is kept on this device", () => {
   it("LEAD-BUNCH-DROPS-IGNORED: a kept listing posts with the drops choice in Settings now, not the one it was kept with", async () => {
     h.defaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 78, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     await startAndEdit();
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: on, 5% each evening"));
+    await waitFor(() => expect(settingsValue("drops")).toMatch(/^5% each evening, lowest \$\d+$/));
     cleanup();
     // Settings: drops off. Then back to the kept listing.
     h.defaults = { keepUp: true, drops: false, dropPct: 5, floorPct: 78, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
     open();
     await screen.findByText("We kept your listing from last time.");
-    await waitFor(() => expect(document.querySelector("[data-sell-outcome]")?.textContent).toContain("Price drops: off. It stays at $45 until you change it."));
+    await waitFor(() => expect(settingsValue("drops")).toBe("Off"));
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await screen.findByText("Selling tab");

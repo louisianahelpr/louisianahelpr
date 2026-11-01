@@ -173,6 +173,7 @@ vi.mock("./usePosterPageFlows", () => ({
   usePosterPageFlows: () => ({
     ready: true, completing: false, moreCount: state.moreCount, leadCount: state.leadCount,
     setLeadHost: (el: HTMLElement | null) => { if (el) flowCalls.push("lead-host"); },
+    setAskHost: () => {},
     approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
     crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, panel: <div data-testid="card-panel" />, dialogs: null,

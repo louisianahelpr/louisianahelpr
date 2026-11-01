@@ -26,14 +26,14 @@ export type RowAction = {
 };
 
 // A long step ("Confirm they've arrived") wraps to two centred lines in its half at 375 rather than clipping (B93 look).
-const BTN = "min-w-0 w-full h-auto min-h-[60px] whitespace-normal rounded-full px-4 py-2 text-center text-ds-15 leading-tight";
+const BTN = "min-w-0 w-full rounded-full px-4 text-ds-15 leading-tight";
 
 function ActionButton({ a, lead }: { a: RowAction; lead?: boolean }) {
   return (
     <Button
       type="button"
       variant={lead ? "primary" : "outline"}
-      size="lg"
+      size="wrap"
       data-row-action={a.key}
       className={`${BTN} ${a.danger ? "text-destructive-ink" : ""}`}
       disabled={a.disabled}
@@ -93,7 +93,7 @@ export function JobPageActionRow({
         ? <ActionButton key="second" a={extras[0]} />
         : <div key="second" ref={setCardSecondHost} data-row-one-action="" className="flex min-w-0" />
       : (
-        <Button key="second" type="button" variant="outline" size="lg" className={BTN} aria-haspopup="dialog" data-row-more="" onClick={() => setOpen(true)}>
+        <Button key="second" type="button" variant="outline" size="wrap" className={BTN} aria-haspopup="dialog" data-row-more="" onClick={() => setOpen(true)}>
           More options
         </Button>
       );

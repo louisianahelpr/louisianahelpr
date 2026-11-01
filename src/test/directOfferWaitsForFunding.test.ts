@@ -54,7 +54,7 @@
  * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |            v_job.id\n           WHERE public.job_payment_is_funded(v_job.payment_status); |            v_job.id\n           WHERE true;
  * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |          CASE WHEN public.job_payment_is_funded(v_job.payment_status) THEN\n            format('The person you offered |          CASE WHEN true THEN\n            format('The person you offered
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |              CASE WHEN public.job_payment_is_listed(NEW.payment_status) THEN |              CASE WHEN true THEN
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |          CASE WHEN public.job_payment_is_listed(payment_status) THEN\n           'Your direct offer |          CASE WHEN true THEN\n           'Your direct offer
+ * @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |          CASE WHEN public.job_payment_is_listed(payment_status) THEN\n           'Your direct offer |          CASE WHEN true THEN\n           'Your direct offer
  * @mutate supabase/migrations/20261029162907_poster_own_reopen_files_no_backout_notice.sql |      AND public.job_payment_is_listed(NEW.payment_status) THEN\n    v_recipient := OLD.customer_id; |      AND true THEN\n    v_recipient := OLD.customer_id;
  * Behaviour (real Postgres): src/test/pglite/offerNoticesWaitForFunding.pglite.mjs
  * (12 PASS on the fix; with --before U1-U5 FAIL, and G: the fixture grants

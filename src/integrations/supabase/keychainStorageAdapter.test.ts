@@ -353,7 +353,7 @@ describe("keychainStorageAdapter — native (isNativePlatform=true)", () => {
   // A sign-out whose Keychain delete fails is undone on the next launch
   // (hydrate restores the token), so it is retried once, then reported.
   // @mutate src/integrations/supabase/keychainStorageAdapter.ts | for (let attempt = 0; attempt < 2; attempt++) { | for (let attempt = 0; attempt < 1; attempt++) {
-  // @mutate src/integrations/supabase/keychainStorageAdapter.ts | .then(({ report }) => report(err, | .then(({ report }) => void (err,
+  // @mutate src/integrations/supabase/keychainStorageAdapter.ts | .then((m) => m?.report(err, | .then((m) => void (m, err,
   it("removeItem retries a failed Keychain delete once, so one bridge hiccup cannot undo a sign-out", async () => {
     kcRemoveMock.mockRejectedValueOnce(new Error("errSecInteractionNotAllowed")).mockResolvedValueOnce(undefined);
     const { keychainStorageAdapter } = await loadAdapter();

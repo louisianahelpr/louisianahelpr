@@ -1,3 +1,4 @@
+import { loadModule } from "@/lib/loadModule";
 /**
  * The `toast` every screen imports, without Sonner on the boot path (B56 speed, 10-31).
  *
@@ -11,7 +12,7 @@
 type RealToast = typeof import("sonner-real").toast;
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const sonnerReal = () => import("sonner-real");
+const sonnerReal = () => loadModule(() => import("sonner-real"));
 type Data = Record<string, unknown> | undefined;
 const METHODS = ["success", "error", "warning", "info", "message", "loading", "custom"] as const;
 
@@ -24,6 +25,11 @@ function load(): void {
   if (loading) return;
   loading = sonnerReal().then(
     (m) => {
+      // A recovery reload is under way: the queued toasts go with the page, and the next toast tries again.
+      if (!m) {
+        loading = null;
+        return;
+      }
       real = m.toast;
       for (const run of queue.splice(0)) run(real);
     },

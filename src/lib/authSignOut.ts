@@ -11,10 +11,11 @@ import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
 import { purgeApiCache } from "@/lib/apiCachePurge";
 import { beginSignOutAbortScope, endSignOutAbortScope } from "@/lib/signOutAbort";
 import { forceSignedOutSnapshot } from "@/hooks/useAuthReady";
+import { loadModule } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const errorLogger = () => import("@/lib/errorLogger");
+const errorLogger = () => loadModule(() => import("@/lib/errorLogger"));
 
 // "others" is deliberately absent: everything below tears down THIS device
 // (push token, remembered route, caches). Ending only the other sessions is
@@ -51,7 +52,7 @@ export const CACHE_WIPE_CAP_MS = 1_500;
 function reportCap(message: string, area: "auth" | "push" | "cache") {
   console.error(`[signOut] ${message}`);
   void errorLogger()
-    .then(({ report }) => report(new Error(message), { severity: "warning", tags: { area, op: "signOutCap" } }))
+    .then((m) => m?.report(new Error(message), { severity: "warning", tags: { area, op: "signOutCap" } }))
     .catch(() => { /* Silent by design: the logger itself failed to load; the console line above still says it. */ });
 }
 
@@ -226,7 +227,7 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
       // Signed out in this process; the Keychain copy may outlive it.
       console.error("[signOut] the Keychain clear did not finish in 1.5s — the next launch may restore the session");
       void errorLogger()
-        .then(({ report }) => report(new Error("sign-out Keychain clear exceeded its 1.5s cap"), { severity: "error", tags: { area: "keychain_session" }, context: { step: "sign-out cap" } }))
+        .then((m) => m?.report(new Error("sign-out Keychain clear exceeded its 1.5s cap"), { severity: "error", tags: { area: "keychain_session" }, context: { step: "sign-out cap" } }))
         .catch(() => { /* Silent by design: the logger itself failed to load; the console line above still says it. */ });
     }
   }

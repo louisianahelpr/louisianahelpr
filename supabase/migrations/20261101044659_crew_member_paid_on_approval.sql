@@ -153,7 +153,7 @@ BEGIN
   INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
   VALUES (_member_id,
           'Your work was confirmed',
-          'The poster of "' || COALESCE(v_job.title, 'the job') || '" confirmed your work. You''ll be paid on '
+          'The person who posted "' || COALESCE(v_job.title, 'the job') || '" confirmed your work. You''ll be paid on '
             || to_char(v_due AT TIME ZONE 'America/Chicago', 'Dy, Mon FMDD') || '.',
           'financial_alerts',
           '/jobs?job=' || _job_id::text,
@@ -318,7 +318,7 @@ BEGIN
      WHERE t.status IN ('pending', 'paid', 'reversed')
   ) THEN
     RAISE EXCEPTION 'crew_dispute_member_already_paid'
-      USING HINT = 'A Helpr the poster already confirmed is paid (or being paid); their share cannot be refunded.';
+      USING HINT = 'A Helpr whose work was already confirmed is paid (or being paid); their share cannot be refunded.';
   END IF;
 
   -- JOBS-3 (b): money that moved refuses the decision, EXCEPT an early

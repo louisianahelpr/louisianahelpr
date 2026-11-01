@@ -142,7 +142,6 @@ const SWALLOW_OK: Allow[] = [
   { file: ".github/workflows/deploy.yml", match: "ESLint (advisory — does not block deploy) :: npm run lint", reason: "advisory on the release path only; lint BLOCKS every push in test.yml (`npm run lint`), so a lint error cannot reach main green" },
   { file: ".github/workflows/deploy.yml", match: "OFFENDERS=$(grep -lE", reason: "grep -v exits 1 when every file is filtered out (= no offenders); the bundle floor added above (Q52) fails first when there is no dist/assets/*.js to scan" },
   { file: ".github/workflows/deploy.yml", match: "npm outdated \"@capacitor/*\"", reason: "npm outdated exits 1 whenever anything is outdated; this is an advisory listing for the release log, not a gate" },
-  { file: ".github/workflows/deploy.yml", match: "cp fastlane/changelog.txt", reason: "copies optional App Review notes; fastlane's own upload fails if required metadata is missing, and a missing optional note is not a check" },
   { file: ".github/workflows/deploy.yml", match: "Read final version + build number :: ", reason: "reads the version for a log line and step output, with explicit 0.0.0 / 0 fallbacks; the build itself already succeeded or failed before this step" },
   { file: ".github/workflows/deploy.yml", match: "Notify Slack — failure :: node scripts/ops-alert-ledger.mjs record", reason: LEDGER },
   { file: ".github/workflows/deploy.yml", match: "Notify Slack — failure :: curl -sS --fail", reason: SLACK_FAIL },

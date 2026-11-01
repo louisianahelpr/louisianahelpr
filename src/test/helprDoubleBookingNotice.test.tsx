@@ -95,7 +95,9 @@ describe("Q1326: a double-booked Helpr is told on the card", () => {
   it("the Activity data tags each job with its clash, from one read", () => {
     const src = blankComments(readFileSync(join(ROOT, "src/hooks/useActivityData.ts"), "utf8"));
     expect(src.length).toBeGreaterThan(10_000);
-    expect(src).toMatch(/queryFn: fetchMyScheduleClashes/);
+    // Loaded with its query since B61 (11-01, AUD31-60): the same one read, through a dynamic import.
+    expect(src).toMatch(/queryFn: \(\) => scheduleClashesApi\(\)\.then\(\(m\) => m\.fetchMyScheduleClashes\(\)\)/);
+    expect(src).toContain('import("@/lib/scheduleClashes")');
     expect(src).toMatch(/schedule_clash: c/);
   });
 

@@ -61,6 +61,8 @@ import { MineFaceNote } from "@/components/job-card/MineJobFace";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
 import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
@@ -83,6 +85,8 @@ const CREW_ROSTER_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "
 
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
+  // Jobs in Spanish (A3-3): the page's headings, states and links follow the member's language.
+  const { t } = useLanguage();
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew, crewConfirmed } = useJobPage(id, userId);
   const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
   // CMP-4: the booked Helpr's instant booking (Confirm / Decline, the 2-hour countdown), the Working offer card's own.
@@ -137,27 +141,27 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
   if (q.isPending) {
     return (
-      <AppPage title="Job" backTo="/jobs">
-        <div role="status" aria-busy="true" aria-label="Loading job"><JobCardSkeleton /></div>
+      <AppPage title={t("jobPage.title")} backTo="/jobs">
+        <div role="status" aria-busy="true" aria-label={t("jobPage.loading")}><JobCardSkeleton /></div>
       </AppPage>
     );
   }
   if (q.isError) {
     return (
-      <AppPage title="Job" backTo="/jobs">
-        <ErrorState variant="inline" title="We couldn't load this job." body="Check your connection and try again." onRetry={() => void q.refetch()} />
+      <AppPage title={t("jobPage.title")} backTo="/jobs">
+        <ErrorState variant="inline" title={t("jobPage.loadFailed")} body={t("jobPage.checkConnection")} onRetry={() => void q.refetch()} />
       </AppPage>
     );
   }
   if (!q.data) {
     return (
-      <AppPage title="Job" backTo="/jobs">
+      <AppPage title={t("jobPage.title")} backTo="/jobs">
         <EmptyState
           variant="inline"
           icon={Briefcase}
-          title="This job isn't available."
-          body="It may have been filled, expired or taken down."
-          action={<Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate("/jobs")}>Browse jobs</Button>}
+          title={t("jobPage.unavailable")}
+          body={t("jobPage.unavailableBody")}
+          action={<Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate("/jobs")}>{t("jobPage.browseJobs")}</Button>}
         />
       </AppPage>
     );
@@ -281,7 +285,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       titleActions={share ?? undefined}
     >
       <div data-job-page="" data-layout="v2" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-6 lg:gap-y-5">
-        <section aria-label="Job summary" data-job-head="" className="space-y-2 lg:col-span-2">
+        <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-span-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               {/* The category, then the day, time and town on one line (mockup 4: "Yard work · Sun, Nov 1 · 9 AM · …"). */}
@@ -312,7 +316,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {hasVideo && <ScopeVideo url={job.scope_video_url} />}
             {posterDetails && (
               <section aria-labelledby="job-page-details" className={`${CARD} p-4 lg:p-5`}>
-                <h2 id="job-page-details" className="text-ds-16 font-semibold">Details</h2>
+                <h2 id="job-page-details" className="text-ds-16 font-semibold">{t("jobPage.details")}</h2>
                 <p data-details-text="" data-clamped={detailsLong && !detailsOpen ? "" : undefined}
                   className={`mt-1.5 whitespace-pre-line text-ds-15 leading-relaxed [overflow-wrap:anywhere] ${detailsLong && !detailsOpen ? "line-clamp-2 lg:line-clamp-none" : ""}`}>
                   {posterDetails}
@@ -320,7 +324,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 {detailsLong && (
                   <Button type="button" variant="link" data-details-more="" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((v) => !v)}
                     size="sm" className="mt-1 px-0 text-ds-15 font-semibold lg:hidden">
-                    {detailsOpen ? "Show less" : "Show more"}
+                    {detailsOpen ? t("jobPage.showLess") : t("jobPage.showMore")}
                   </Button>
                 )}
               </section>
@@ -328,7 +332,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
         )}
 
-        <section aria-label="Where the job is" data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-span-2 lg:p-5`}>
+        <section aria-label={t("jobPage.where")} data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-span-2 lg:p-5`}>
           {/* Owner 2026-11-01: "Yusef is on the way · since 8:51 AM" and where he is, ABOVE the tracker. */}
           {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
           <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
@@ -343,7 +347,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {party && (isPoster || isHired) && (job.status === "disputed" || !!job.has_active_dispute) && (
             <Button type="button" variant="link" size="sm" data-see-the-case="" onClick={() => setCaseOpen(true)}
               className="h-auto px-0 text-ds-15 font-semibold">
-              See the case
+              {t("jobPage.seeCase")}
             </Button>
           )}
           {(isPoster || isHired) && job.status === "accepted" && <CountdownRows variant="bare" clocks={collapsedClocks({ ...job, status: job.status }, isPoster)} />}
@@ -354,13 +358,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. Big, in
               the main column (mockup 4). */}
           {party && (isPoster || isHired) && ((job.proof_before_urls ?? []).some(Boolean) || (job.proof_after_urls ?? []).some(Boolean)) && (
-            <section aria-label="Photos from the job" className={`${CARD} p-4 lg:p-5`}>
+            <section aria-label={t("jobPage.photos")} className={`${CARD} p-4 lg:p-5`}>
               <JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} />
             </section>
           )}
           {/* JA-32 (audit 11-01): a crew's roster on the page itself. */}
           {isPoster && job.is_group_job && posterFlows.ready && CREW_ROSTER_STATUSES.has(job.status ?? "") && (
-            <section aria-label="Your crew" data-job-crew="" className={`${CARD} p-4`}>
+            <section aria-label={t("jobPage.crew")} data-job-crew="" className={`${CARD} p-4`}>
               <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner jobStatus={job.status}
                 initialHelpers={posterFlows.crewRoster ?? []} dateNeeded={job.date_needed} startTime={job.start_time}
                 onMessage={(helprId) => navigate(helprId ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${helprId}` : "/messages")} />
@@ -386,7 +390,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         {/* Lead 11-01 (B107): a stage with nothing in the main column (no photos, crew or fix: Done, Cancelled) left an
             EMPTY left column beside the card at 1440. The card (and the Guarantee under it) then sits right under the
             tracker at full content width, from 1024 up. */}
-        <aside aria-label="Price and actions" data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
+        <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
           <section data-job-card="" className={`${CARD} space-y-4 p-4 empty:hidden lg:p-5`}>
             {wide && price}
             {wide && moneyNotes}

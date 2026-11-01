@@ -1,4 +1,6 @@
 import { Zap } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 
 /**
  * Q2438: a browse card for a job dated Louisiana's today wears "Today" in the
@@ -6,6 +8,8 @@ import { Zap } from "lucide-react";
  * corner chip class.
  */
 export function JobTodayChip({ className }: { className: string }) {
+  // Jobs in Spanish (A3-3): the chip follows the member's language.
+  const { t } = useLanguage();
   return (
     <span
       className={className}
@@ -18,7 +22,7 @@ export function JobTodayChip({ className }: { className: string }) {
       }}
     >
       <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />
-      Today
+      {t("jobCard.today")}
     </span>
   );
 }

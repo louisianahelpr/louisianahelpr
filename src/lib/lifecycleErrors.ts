@@ -1108,6 +1108,11 @@ export const RPC_ERROR_COPY = {
   declutter_free_requests_for_item: {
     item_not_found: DC.item_not_found,
   },
+  // B112 (20261101200349): the seller's porch days for the caller's own checkout.
+  declutter_checkout_porch_days: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_pick_free_request: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

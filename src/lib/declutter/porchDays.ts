@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { rpcData } from "@/lib/declutter/api";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { unwrap } from "@/lib/supabaseResult";
 
 /** Not on the server yet (PGRST202): the chips stay hidden and the old rule applies, as before. */
 export const PORCH_DAYS_NOT_DEPLOYED = "not_deployed" as const;
@@ -35,7 +34,7 @@ export async function saveMyPorchDays(weekdays: number[]): Promise<number[]> {
 export async function fetchCheckoutPorchDays(sellerId: string): Promise<number[] | null> {
   const r = await supabase.rpc("declutter_checkout_porch_days", { p_seller_id: sellerId });
   if (r.error && isMissingRpcNamed(r.error, "declutter_checkout_porch_days")) return null;
-  return ((unwrap(r) ?? []) as number[]).map(Number);
+  return ((rpcData(r, (e) => rpcErrorMessage("declutter_checkout_porch_days", e)) ?? []) as number[]).map(Number);
 }
 
 /** The pickup windows kept to the porch days; null days (not known): unchanged. Pure. */

@@ -312,3 +312,13 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.rpc_set_my_handle(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.rpc_set_my_handle(text) TO authenticated, service_role;
+
+-- Q807: every public table carries the unconfirmed-email statement gate (db-smoke's
+-- scripts/ci/unconfirmed-email-gate.sql; added by L20 on train 12's replay red, 2026-11-01).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

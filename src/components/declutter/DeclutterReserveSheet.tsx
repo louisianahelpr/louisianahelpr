@@ -22,7 +22,7 @@ import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
  * ?checkout=<seller>: this seller's checkout (the section around the hold line) scrolls into view once it is shown.
  */
 /** The cart's next step: choose a way to get it, then pay (or confirm a free item), before the hold runs out. */
-export function cartNextStep(allFree: boolean, timeLeft: string): NextStepValue {
+function cartNextStep(allFree: boolean, timeLeft: string): NextStepValue {
   return { who: "you", text: allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: timeLeft || null };
 }
 

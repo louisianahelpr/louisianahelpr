@@ -13,10 +13,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 
 /** The server's window to book a pickup after paying (declutter_handover_sweep's interval '7 days'). */
-export const PICKUP_BOOK_DAYS = 7;
+const PICKUP_BOOK_DAYS = 7;
 
 /** paid_at + 7 days, as ISO; null when the order was never paid. Pure. */
-export function bookByIso(paidAt: string | null | undefined): string | null {
+function bookByIso(paidAt: string | null | undefined): string | null {
   if (!paidAt) return null;
   const t = Date.parse(paidAt);
   return Number.isNaN(t) ? null : new Date(t + PICKUP_BOOK_DAYS * 86_400_000).toISOString();

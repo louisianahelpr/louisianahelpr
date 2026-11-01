@@ -12,7 +12,7 @@
  * @mutate src/components/ProtectedRoute.tsx |   if (!user && allowGuest) return <>{children}</>;\n | \n
  * @mutate src/components/ProtectedRoute.tsx |   if (!user && allowGuest) return <>{children}</>; |   if (allowGuest) return <>{children}</>;
  * @mutate src/pages/jobs/JobDetail.tsx | category, budget, location, status, | category, budget, location, customer_id, status,
- * @mutate src/pages/jobs/JobDetail.tsx | "id, title, category, budget, location, status, expires_at" | "id, title, description, category, budget, location, status, expires_at"
+ * @mutate src/pages/jobs/JobDetail.tsx | "id, title, category, budget, location, urgent_fee, | "id, title, description, category, budget, location, urgent_fee,
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(signupUrlFor(id ? `/jobs/${id}` : null)) | navigate("/signup")
  * @mutate src/pages/jobs/JobDetail.tsx | onClose={() => navigate("/browse")} | onClose={() => navigate("/home")}
  * @mutate src/pages/auth/Login.tsx | const signupHref = signupUrlFor(pendingRedirect); | const signupHref = pendingRedirect?.match(/^\/jobs\/([^/?#]+)$/) ? signupUrlFor(pendingRedirect) : "/signup";
@@ -25,6 +25,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 import { postAuthDestination, rememberSignupRedirect, signupUrlFor } from "@/lib/jobIntent";
+import { guestTakeHome } from "@/components/dashboard/GuestJobPreview";
 
 const JOB_ID = "3f0c9a4e-0000-4000-8000-000000000000";
 const state = vi.hoisted(() => ({
@@ -98,7 +99,13 @@ describe("a guest opening a shared link", () => {
     expect(await screen.findByText("Sign Up to Apply")).toBeTruthy();
     expect(screen.getAllByText("Move a sofa").length).toBeGreaterThan(0);
     expect(screen.getByText("Lafayette Parish")).toBeTruthy();
-    expect(screen.getByText("$120")).toBeTruthy();
+    // The take-home the guest Browse card shows for the same row (lead 10-31), never the $120 budget.
+    const net = guestTakeHome({ id: JOB_ID, title: "Move a sofa", category: "moving", budget: 120, location: "Lafayette, LA" });
+    expect(net).toBeGreaterThan(0);
+    expect(net).toBeLessThan(120);
+    expect(screen.getByText(`$${Math.floor(net!)}`)).toBeTruthy();
+    expect(screen.getByText("You'd take home")).toBeTruthy();
+    expect(screen.queryByText("$120")).toBeNull();
     expect(screen.queryByText(/Oak St/)).toBeNull();
     expect(screen.queryByTestId("where")).toBeNull();
   });
@@ -106,8 +113,13 @@ describe("a guest opening a shared link", () => {
   it("asks the public view for nothing private", async () => {
     openLink();
     await screen.findByText("Sign Up to Apply");
-    // JOBS-29 (lead 2026-10-31): exactly the four facts plus id, status and expiry.
-    expect(state.columns).toEqual(["id", "title", "category", "budget", "location", "status", "expires_at"]);
+    // JOBS-29 (lead 2026-10-31): exactly the preview's facts (the take-home's inputs among them) plus id, status
+    // and expiry.
+    expect(state.columns).toEqual([
+      "id", "title", "category", "budget", "location",
+      "urgent_fee", "is_group_job", "helpers_needed", "helper_fee_flat_cents", "helper_fee_percent",
+      "status", "expires_at",
+    ]);
     for (const column of ["customer_id", "latitude", "longitude", "description", "photos", "offered_to_helper_id", "direct_offer_status", "applicant_count", "special_requirements"]) {
       expect(state.columns, column).not.toContain(column);
     }
@@ -124,7 +136,8 @@ describe("a guest opening a shared link", () => {
 
   it("closing goes to the public Browse list, never a page that bounces them to log in", async () => {
     openLink();
-    fireEvent.click(await screen.findByText("Not Now"));
+    await screen.findByText("Sign Up to Apply");
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 

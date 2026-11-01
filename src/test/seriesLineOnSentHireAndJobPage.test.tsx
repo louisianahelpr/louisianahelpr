@@ -9,7 +9,7 @@
  * @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |   const canLeave = job.recurring_helper_id === userId && job.helper_id === userId && | const canLeave = job.helper_id === userId &&
  * @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |   const line = isSeries ? seriesSummary(job) : null; |   const line = isSeries ? "Repeats" : null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isHired && <HiredSeriesSection job={job} userId={userId} />}\n |
- * @mutate src/pages/jobs/jobPage/useJobPage.ts | payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status"; | payout_scheduled_at, direct_offer_status";
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts | payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude"; | payout_scheduled_at, direct_offer_status, latitude, longitude";
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";

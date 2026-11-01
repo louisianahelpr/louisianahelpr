@@ -16,6 +16,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { ChangeJobSheet } from "@/components/schedule/ChangeJobSheet";
 import { scheduleChangeAllowed, type SeriesCardJob } from "@/components/series/JobSeriesCardControls";
@@ -69,6 +70,7 @@ export function usePosterPageActions({
   // Each tap remounts the confirm, so "Not now" then a second tap opens it again.
   const [confirmAsk, setConfirmAsk] = useState(0);
   const [changeOpen, setChangeOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   // Q1586(c): "Post this job again" opens /post-job, so under 18 it explains instead (as Posted's own Repost).
   const { gate: ageGate } = useAgeGate();
   if (!enabled || !job) return { primary: null, secondary: null, dialogs: null, edit: () => {} };
@@ -90,7 +92,7 @@ export function usePosterPageActions({
   // An open job's details (a crew's change only through a request once a member is hired: the card's own rule).
   const canEdit = !draft && status === "open" && !job.is_group_job;
 
-  const primary: PagePrimary | null =
+  const primaryOrMessage: PagePrimary | null =
     posterWait === "confirm_still_on"
       ? { label: "Confirm it's still on", go: () => setConfirmAsk((n) => n + 1) }
       : posterWait === "approve"
@@ -105,9 +107,14 @@ export function usePosterPageActions({
       ? { label: "Post this job again", go: ageGate("post", () => navigate(`/post-job?rebook=${id}`)) }
       : null;
 
+  // ONE TAP TO THE OPTIONS (owner 2026-11-01): the card's actions sit beside Message. None: Message alone. One: that
+  // action IS the second button ("if no show is the only option then just remove the more button"). Two or more:
+  // "More options" opens them as one list. When Message was the step-less primary, it moves into that row.
+  const messageInRow = cardSteps && !!message && primaryOrMessage === message;
+  const primary = messageInRow ? null : primaryOrMessage;
   const buttons = [
     message && primary !== message && (
-      <Button key="message" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={message.go}>
+      <Button key="message" variant={messageInRow ? "primary" : "outline"} size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={message.go}>
         {message.label}
       </Button>
     ),
@@ -126,9 +133,10 @@ export function usePosterPageActions({
         Cancel job
       </Button>
     ),
-    cardSteps && (
-      <Button key="more" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" disabled={!flows.ready} aria-expanded={flows.moreOpen} onClick={flows.toggleMore}>
-        {flows.moreOpen ? "Fewer options" : "More options"}
+    cardSteps && flows.moreCount === 1 && <div key="one" ref={flows.setSecondHost} data-poster-one-action="" className="flex min-w-0 flex-1" />,
+    cardSteps && flows.moreCount > 1 && (
+      <Button key="more" variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" disabled={!flows.ready} aria-haspopup="dialog" onClick={() => setOptionsOpen(true)}>
+        More options
       </Button>
     ),
   ].filter(Boolean);
@@ -177,6 +185,15 @@ export function usePosterPageActions({
           startTime={job.start_time ?? null}
           onCancelJob={flows.cancel}
         />
+      )}
+      {cardSteps && (
+        <Sheet open={optionsOpen && flows.moreCount > 1} onOpenChange={setOptionsOpen}>
+          <SheetContent side="bottom" data-poster-options="">
+            <SheetHero title="More options" />
+            {/* The card's own actions, drawn here by its JobStepCard (jobStepMenu.tsx); a tap runs one and closes this. */}
+            <div ref={flows.setListHost} className="flex flex-col gap-2 pb-2" onClick={() => setOptionsOpen(false)} />
+          </SheetContent>
+        </Sheet>
       )}
       {flows.dialogs}
     </>

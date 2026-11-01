@@ -32,7 +32,8 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobEyebrow } from "./jobEyebrow";
 import { useJobPage, useMyInstantBooking, useOfferedToMe, type JobPageRow } from "./useJobPage";
 import { seriesSummary } from "@/lib/format";
-import { JobTracker, PosterMoney, HelprMoney, PostedBy, HiredHelpr } from "./JobPageParts";
+import { JobTracker, PosterPrice, PosterMoneyNotes, HelprMoney, PostedBy, HiredHelpr } from "./JobPageParts";
+import { OnTheWayNow, showsOnTheWay } from "./OnTheWayNow";
 import { HiredSeriesSection } from "./HiredSeriesSection";
 import { NoApplicantsYet } from "./NoApplicantsYet";
 import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
@@ -220,14 +221,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             </div>
           )}
           {!isPoster && job.customer_id && <div className="order-6 lg:order-none"><PostedBy posterId={job.customer_id} /></div>}
-          {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>}
           {/* CMP-4: the poster's top 3 with Book now, or who is booked and until when. Nothing when nobody qualifies. */}
           {isPoster && !job.is_group_job && job.status === "open" && <div className="order-5 lg:order-none"><InstantBookPanel jobId={job.id} /></div>}
         </div>
 
         <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-4 lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5">
           <section aria-label="Job summary" data-job-head="" className="order-2 space-y-4 lg:order-none">
-            <div className="space-y-1">
+            {/* Owner 2026-11-01: the poster's amount sits on the RIGHT of this block, no budget card of its own. */}
+            <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
               {/* The title is the top bar's, beside the back arrow; the category sits small under it. */}
               <p className="text-ds-13 font-semibold text-primary">{eyebrow}</p>
               {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
@@ -241,15 +243,20 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 </p>
               )}
             </div>
+            {isPoster && <PosterPrice job={job} />}
+            </div>
             {isPoster ? (
-              <PosterMoney job={job} total={total} loading={applicants.isLoading} />
+              <PosterMoneyNotes job={job} total={total} loading={applicants.isLoading} />
             ) : (
               <HelprMoney job={job} />
             )}
           </section>
 
           <section aria-label="Where the job is" data-job-steps="" className="order-4 space-y-4 lg:order-none">
+            {/* Owner 2026-11-01: "Yusef is on the way · since 8:51 AM" and where he is, ABOVE the tracker. */}
+            {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} />}
             <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
+              hideNext={isPoster && showsOnTheWay(job)}
               otherFirst={isPoster ? helperFirst : posterFirst}
               pendingApplicants={isPoster && applicants.data ? pending : undefined} />
             {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. */}
@@ -259,6 +266,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} />}
             {viewer.status && !(!isPoster && instantUntil) && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
             {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
+            {isPoster && posterFlows.crew}
+            {/* Owner 2026-11-01: the Helpr's card sits ABOVE the buttons. */}
+            {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <HiredHelpr helprId={job.helper_id} />}
             {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
             {primary && (
               <Button

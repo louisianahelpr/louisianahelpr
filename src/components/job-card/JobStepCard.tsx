@@ -1,4 +1,4 @@
-import { isValidElement, useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { isValidElement, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
   JobStepRowContext,
@@ -9,6 +9,7 @@ import {
 } from "./jobStepRow";
 import { useClaimedPersonTile } from "./jobCardPerson";
 import { JobStepOverflowChip } from "./JobActionRow";
+import { JobStepMenuContext, MenuAction } from "./jobStepMenu";
 
 /** React keys of chips that ALWAYS live inside `More`, at every width, even
  *  when the row has room (owner, 2026-09-27: "report a problem should be under
@@ -356,6 +357,12 @@ export function JobStepCard({
   );
 
   const moreChips = [...moreOnly, ...rowChips.overflow];
+  // On the job page (jobStepMenu.tsx) the page draws these, minus Message (the page has its own Message button).
+  const menu = useContext(JobStepMenuContext);
+  const menuChips = menu ? moreChips.filter((c) => !(isValidElement(c) && c.key === "message")) : [];
+  const menuCount = menuChips.length;
+  const setMenuCount = menu?.setCount;
+  useEffect(() => { setMenuCount?.(menuCount); }, [setMenuCount, menuCount]);
 
   return (
     <div
@@ -458,6 +465,10 @@ export function JobStepCard({
         {primaryHost && ownPrimary ? createPortal(ownPrimary, primaryHost) : null}
         {escape}
         {dialogs}
+        {menu?.secondHost && menuCount === 1 ? createPortal(<MenuAction chip={menuChips[0]} className="w-full" />, menu.secondHost) : null}
+        {menu?.listHost && menuCount > 1
+          ? createPortal(<>{menuChips.map((c, i) => <MenuAction key={isValidElement(c) && c.key != null ? String(c.key) : i} chip={c} className="w-full" />)}</>, menu.listHost)
+          : null}
       </JobStepRowContext.Provider>
     </div>
   );

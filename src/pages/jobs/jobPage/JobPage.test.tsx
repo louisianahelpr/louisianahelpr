@@ -1096,7 +1096,7 @@ describe("a crew member's own job page (A2-B8)", () => {
 // are `contents`, so each part's `order-N` places it in the one stack (jsdom draws no layout: the classes are read).
 // Layout V2 (owner 11-01): the order is the DOM's own now (no `order-N`), read by "job page layout V2" below.
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-details="" className="space-y-4 lg:col-span-2"> | <div data-job-details="" className="space-y-4">
-// @mutate src/pages/jobs/jobPage/JobPage.tsx | <section aria-label="Job summary" data-job-head="" | <section aria-label="Job summary" data-job-head-gone=""
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | <section aria-label={t("jobPage.summary")} data-job-head="" | <section aria-label={t("jobPage.summary")} data-job-head-gone=""
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-guarantee="" className="empty:hidden"> | <div data-job-guarantee-gone="" className="empty:hidden">
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     posterWait === "confirm_still_on" |     false
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |       backTo={isPoster ? "/posts" : "/jobs"}\n      titleActions | backTo={isPoster ? "/posts" : "/jobs"}\n      phoneHidesTitle\n      titleActions

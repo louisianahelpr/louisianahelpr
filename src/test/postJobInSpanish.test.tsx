@@ -5,7 +5,7 @@
  * GROUP_EXAMPLES), which Edit profile's skill headings also read.
  *
  * @mutate src/components/postjob/JobCategoryGroups.tsx | {t(`postJob.group.${g.id}` as MsgKey)}</span> | {g.label}</span>
- * @mutate src/lib/jobCategoryGroups.ts | export const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" }; | export const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = {};
+ * @mutate src/lib/jobCategoryGroups.ts | const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" }; | const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = {};
  * @mutate src/components/postjob/JobCategoryGroups.tsx | placeholder={t("postJob.searchPlaceholder")} | placeholder="e.g. wash my driveway"
  * @mutate src/components/postjob/PostJobStepHeader.tsx |           {t("postJob.stepOf", { step, count: POST_JOB_STEP_COUNT })}\n |           {step} of {POST_JOB_STEP_COUNT}\n
  * @mutate src/components/postjob/PostJobStepRail.tsx |           const label = t(`postJob.rail.${key}` as MsgKey); |           const label = POST_JOB_SCREENS[i].rail;

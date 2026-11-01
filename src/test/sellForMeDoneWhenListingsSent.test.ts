@@ -4,6 +4,9 @@
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | REVOKE ALL ON TABLE public.declutter_listed_for_seller FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.declutter_listed_for_seller TO authenticated;
 // @mutate supabase/functions/create-payment/index.ts |           if (sent !== true) throw new PublicError | if (false) throw new PublicError
 // @mutate supabase/functions/create-payment/index.ts |           if (sentErr) { | if (false) {
+// @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx |           <ListForSellerPanel jobId={app.job_id} job={job} posterName={app.posterName} /> | {null}
+// @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx |           <ListForSellerPanel jobId={app.job_id} job={job} posterName={app.posterName} /> | {null}
+// @mutate src/components/declutter/DeclutterHomeView.tsx |       <ListedForYouCard /> | {null}
 //
 // LEAD-LIST-FOR-SELLER (owner 10-31 ~10:30 PM, POST-H3; lead decision): a "Have a Helpr list it" job is done for the
 // Helpr once they have SENT its listings to the seller for approval (never stranded waiting for the seller). Mark done
@@ -12,7 +15,8 @@
 // must fail CLOSED on an error. The link table that says who wrote a listing is private.
 // Behaviour under real roles: src/test/pglite/declutterListForSeller.pglite.mjs (NEW_MIGRATION=skip red).
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -64,5 +68,14 @@ describe("a Have a Helpr list it job is done once its listings are sent", () => 
     expect(g.length).toBeGreaterThan(1);
     expect(g.some((s) => /^REVOKE ALL ON TABLE public\.declutter_listed_for_seller FROM PUBLIC, anon, authenticated;$/i.test(s))).toBe(true);
     expect(g.filter((s) => /^GRANT/i.test(s) && /\bTO\b[^;]*\b(authenticated|anon|PUBLIC)\b/.test(s))).toEqual([]);
+  });
+
+  it("both halves are mounted: the Helpr's panel on the on-site and working steps, the seller's card on Selling", () => {
+    const src = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
+    const steps = ["src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx", "src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx"];
+    for (const f of steps) expect(src(f), f).toMatch(/<ListForSellerPanel jobId=\{app\.job_id\} job=\{job\} posterName=\{app\.posterName\} \/>/);
+    expect(steps.length).toBeGreaterThan(1);
+    const home = src("src/components/declutter/DeclutterHomeView.tsx");
+    expect(home.slice(home.indexOf("function SellingView"))).toMatch(/<ListedForYouCard \/>/);
   });
 });

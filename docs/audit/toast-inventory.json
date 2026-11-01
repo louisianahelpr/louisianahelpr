@@ -11859,7 +11859,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanel.tsx",
-      "line": 112,
+      "line": 118,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11879,7 +11879,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanel.tsx",
-      "line": 113,
+      "line": 119,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11889,7 +11889,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanel.tsx",
-      "line": 118,
+      "line": 124,
       "kind": "toast",
       "title": {
         "form": "dynamic",

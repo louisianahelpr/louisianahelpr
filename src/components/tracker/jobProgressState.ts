@@ -12,7 +12,7 @@ import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs }
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
-import { EXPIRED_LISTING_DETAIL, helperStatusLine, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
+import { EXPIRED_LISTING_DETAIL, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
@@ -56,6 +56,9 @@ export type ProgressJob = {
   /** isExpiredListing reads these: an auto-expired listing is never shown as cancelled (JA-23). */
   cancellation_reason?: string | null;
   cancelled_by?: string | null;
+  /** Who posted it and when it was cancelled: the cancelled line says who and when (JA-26). */
+  customer_id?: string | null;
+  cancelled_at?: string | null;
   /** A crew job: its helper_id is null (the members are on group_job_helpers), so "hired" is read from the status. */
   is_group_job?: boolean | null;
   /** What the Helpr's card line reads past arrival (photo asks): the open card's tracker passes them too. */
@@ -259,6 +262,25 @@ function cardFaceFor(job: ProgressJob, o: ProgressOpts, now: Date): CardFace | n
   return { line, face: step ? { tone: "primary", step: step.key } : null };
 }
 
+/**
+ * JA-26 (audit 11-01): a cancelled job says who cancelled, when, why, and (to the poster) that the money came back:
+ * "You cancelled Sat 9:00 AM · Plans changed · Your payment was refunded". Who is read from cancelled_by against the
+ * job's two parties; anyone else (an admin, the system) is not named. The reason is the card's own sanitized one.
+ */
+function cancelledLine(job: ProgressJob, poster: boolean, other: string): string {
+  const by = job.cancelled_by ?? null;
+  const posterDid = !!by && by === job.customer_id;
+  const helprDid = !!by && !!job.helper_id && by === job.helper_id;
+  const atMs = Date.parse(job.cancelled_at ?? "");
+  const stamp = Number.isNaN(atMs) ? "" : ` ${when(atMs)}`;
+  const who = posterDid ? (poster ? `You cancelled${stamp}` : `${other} cancelled${stamp}`)
+    : helprDid ? (poster ? `${other} cancelled${stamp}` : `You cancelled${stamp}`)
+    : "This job was cancelled";
+  const reason = sanitizeCancellationReason(job.cancellation_reason);
+  const refund = poster && job.payment_status === "refunded" ? "Your payment was refunded" : null;
+  return [who, reason, refund].filter(Boolean).join(" · ");
+}
+
 function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   const poster = o.viewer === "poster";
   const other = (o.otherFirst ?? "").trim() || (poster ? "Your Helpr" : "The person who posted it");
@@ -270,7 +292,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // JA-23: expired is not cancelled (owner 10-31, src/lib/expiredListing.ts). The poster reads "Expired · No Helpr was
   // hired in time" (the card's own line); anyone else "Closed · No longer open". Never "Cancelled".
   if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD : "Closed", poster ? EXPIRED_LISTING_DETAIL : "No longer open", held);
-  if (status === "cancelled" || status === "expired") return at(null, false, "Cancelled", "This job was cancelled", held);
+  if (status === "cancelled" || status === "expired") return at(null, false, "Cancelled", cancelledLine(job, poster, other), held);
   if (job.has_active_dispute || status === "disputed") {
     return at(null, false, "Under review", "A real person at Helpr is looking at the problem. The money stays held", held);
   }

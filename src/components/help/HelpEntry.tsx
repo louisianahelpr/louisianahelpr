@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type HelpEntryPanel from "./HelpEntryPanel";
-import { loadModule } from "@/lib/loadModule";
+import { loadModule, ModuleUnavailableError, untilReload } from "@/lib/loadModule";
+import { toast } from "sonner";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -40,14 +41,19 @@ export function HelpEntry({ triggerClassName = "h-11 w-11" }: { triggerClassName
       setOpen(true);
       return;
     }
-    helpEntryPanel().then(
-      (mod) => {
-        if (!mod) return; // a recovery reload is under way
-        setPanel(() => mod.default);
-        setOpen(true);
-      },
-      () => navigate(SUPPORT_PATH),
-    );
+    helpEntryPanel()
+      .then((mod) => mod ?? untilReload())
+      .then(
+        (mod) => {
+          setPanel(() => mod.default);
+          setOpen(true);
+        },
+        (err: unknown) => {
+          // The panel came back empty and no reload followed: say so, and the next tap tries again.
+          if (err instanceof ModuleUnavailableError) toast.error("Help didn't open. Tap Help to try again.");
+          else navigate(SUPPORT_PATH);
+        },
+      );
   };
 
   return (

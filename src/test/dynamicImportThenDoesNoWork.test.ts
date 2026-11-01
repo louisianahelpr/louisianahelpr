@@ -29,6 +29,11 @@
  * @mutate src/pages/messages/messagesData/loadConversations.ts |   const blockedPromise = userBlocks().then( |   const blockedPromise = import("@/lib/userBlocks").then(
  * @mutate src/lib/sonnerFacade.ts |   loading = sonnerReal().then( |   loading = import("sonner-real").then(
  * @mutate src/lib/i18n/language.ts | const esModule = () => loadModule(() => import("./es")); | const esModule = () => import("./es");
+ * 4. An empty module is dropped silently (`if (!m) return`, `m?.`) only where nothing is lost (review of 5d490e886e):
+ *    the error-logger sends, the Replay start, the advisory city/ZIP hint, and language.ts / the toast facade,
+ *    which reset `loading` so the next call retries. Every other site waits on untilReload() and fails into its
+ *    own catch when no reload follows. Pinned exact both ways.
+ * @mutate src/integrations/supabase/client.ts |     .then((m) => m ?? untilReload())\n    .then((m) =>\n      m.queryClient | .then((m) =>\n      m?.queryClient
  * @mutate src/lib/enRouteLocation.ts |         .catch((err: unknown) => { |         .then((err: unknown) => {
  */
 import { describe, it, expect } from "vitest";
@@ -36,6 +41,7 @@ import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import ts from "typescript";
+import { blankComments } from "@/test/helpers/blankNonCode";
 
 const ROOT = join(__dirname, "..", "..");
 
@@ -129,6 +135,27 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
     expect(bare).toEqual([]);
     // The en-route watch clear had no catch at all.
     const enRoute = readFileSync(join(ROOT, "src/lib/enRouteLocation.ts"), "utf8");
-    expect(enRoute).toMatch(/void geolocationModule\(\)\s*\.then\(\(m\) => m\?\.Geolocation\.clearWatch\([^\n]*\)\)\s*\.catch\(/);
+    expect(enRoute).toMatch(/void geolocationModule\(\)[\s\S]{0,300}?\.then\(\(m\) => m \?\? untilReload\(\)\)\s*\.then\(\(m\) => m\.Geolocation\.clearWatch\([^\n]*\)\)\s*\.catch\(/);
+  });
+
+  it("an empty module is dropped silently only at the pinned sites where nothing is lost", () => {
+    const SILENT: Record<string, number> = {
+      "src/hooks/useSignOutAction.ts": 1, // error-logger send
+      "src/integrations/supabase/client.ts": 1, // error-logger send
+      "src/integrations/supabase/keychainStorageAdapter.ts": 1, // error-logger send
+      "src/lib/authSignOut.ts": 2, // error-logger sends
+      "src/lib/i18n/language.ts": 1, // resets `loading`: the next call loads Spanish
+      "src/lib/sentry.ts": 1, // Replay start
+      "src/lib/sonnerFacade.ts": 1, // resets `loading`: the next toast loads Sonner
+      "src/pages/auth/signup/useCityZipMismatch.ts": 1, // an advisory hint
+    };
+    const counts: Record<string, number> = {};
+    for (const f of files) {
+      const src = readFileSync(join(ROOT, f), "utf8");
+      if (!src.includes("loadModule(() => import(")) continue;
+      const n = (blankComments(src).match(/if \(!(m|mod|d|loaded)\) (return;|\{)|if \(live && m\)|\b(m|mod)\?\./g) ?? []).length;
+      if (n) counts[f] = n;
+    }
+    expect(counts).toEqual(SILENT);
   });
 });

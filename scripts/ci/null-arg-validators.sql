@@ -225,7 +225,12 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shops_admin_set_hidden',        'action',   'Shops slice 1: admin hides or shows a shop (writes; returns the new state)'),
   ('shops_set_follow',              'action',   'Shops slice 1: the caller follows or unfollows a shop (writes; returns the new state)'),
   ('shops_set_paused',              'action',   'Shops slice 1: the caller pauses or reopens their own shop (writes; returns the new state)'),
-  ('sms_record_result',             'action',   'SMS alerts (20261021193738): service-only, records Twilio''s answer for a queued text (writes; TRUE = a queued row was updated)');
+  ('sms_record_result',             'action',   'SMS alerts (20261021193738): service-only, records Twilio''s answer for a queued text (writes; TRUE = a queued row was updated)'),
+  ('instant_book_helper_free_on',   'allow',    'instant book (20261101063725): TRUE = this Helpr''s calendar marks them free on this day, so the job can be booked straight away'),
+  ('instant_book_payment_failed',   'action',   'instant book (20261101065105): service-only, ends a live booking whose payment failed and tells both sides (writes; TRUE = it ended one)'),
+  ('instant_book_end_if_unhireable','action',   'instant book (20261101071621): service-only, ends a booking whose Helpr can no longer be hired before any capture (writes; TRUE = it ended one)'),
+  ('instant_book_captured_not_hired','action',  'instant book (20261101074901): service-only, ends a booking captured with nobody hired and takes the refund claim (writes; TRUE = it marked one)'),
+  ('instant_book_refund_finished',  'action',   'instant book (20261101074901): service-only, releases the instant-book refund claim once the refund is done (writes; TRUE = it released one)');
 
 -- Fixture ids (all 00000000-0000-4000-8140-*): A poster, B hired helper on a
 -- pro plan, D admin; J an open funded job (A posts, B hired, B applied);
@@ -319,6 +324,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('declutter_delivery_tip_open',   NULL, ARRAY['''00000000-0000-4000-8140-000000000503''::uuid'], ARRAY[1]),
   ('declutter_problem_window_open', NULL, ARRAY['''00000000-0000-4000-8140-000000000502''::uuid'], ARRAY[1]),
   ('declutter_sale_final',          NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid'], ARRAY[1]),
+  -- Instant book: B marked a week from today as a free day (the 'availability' step).
+  ('instant_book_helper_free_on',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid', '(CURRENT_DATE + 7)'], ARRAY[1,2]),
   -- Shipping S2 (the 'ship' step): shipment 801 is claimed for B's shipped order 504 ($7.33 paid), so a $7.33 rate is TRUE.
   ('shipping_rate_buyable',         NULL, ARRAY['''00000000-0000-4000-8140-000000000801''::uuid', '733'], ARRAY[1,2]),
   -- Q2425: spot S (the 'meetup' step) is active and beside item I, whose line is in B's cart (the 'declutter' step).
@@ -373,7 +380,7 @@ BEGIN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'meetup', 'delivery', 'handed_over', 'tip', 'ship', 'rentals', 'bucket', 'objects', 'shop', 'list_for_seller']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'meetup', 'delivery', 'handed_over', 'tip', 'ship', 'rentals', 'bucket', 'objects', 'shop', 'list_for_seller', 'availability']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -570,6 +577,11 @@ BEGIN
           INSERT INTO public.feature_switches (key, audience, description) VALUES ('shops', 'testers', 'q140 fixture')
           ON CONFLICT (key) DO UPDATE SET audience = 'testers';
         END IF;
+      WHEN 'availability' THEN
+        -- Instant book (20261101063725): B is free a week from today, 09:00-17:00, so
+        -- instant_book_helper_free_on(B, that day) is TRUE.
+        INSERT INTO public.helper_availability (helper_id, specific_date, start_time, end_time, is_available)
+        VALUES ('00000000-0000-4000-8140-00000000000b', CURRENT_DATE + 7, '09:00', '17:00', true);
       END CASE;
     EXCEPTION WHEN OTHERS THEN
       INSERT INTO q140_out VALUES ('(fixture)', 'FIXTURE_FAILED', step || ': ' || SQLERRM);

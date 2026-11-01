@@ -334,9 +334,9 @@ describe("Declutter screens", () => {
   it("a buyer sees area + miles wording, the watch heart, and (no saved card) Buy now and Make an offer, which ask for a card first", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
-    // Owner mockup 11-01: ONE pickup block, the way and the town once, the address note on the hours line.
-    await waitFor(() => expect(document.querySelector("[data-pickup-ways]")?.textContent).toBe("Porch pickup · Mid-City, Baton Rouge"));
-    expect(document.querySelector("[data-item-pickup-hours]")?.textContent).toMatch(/exact address after you pay$/i);
+    // Owner mockup 11-01 / A3-47: ONE pickup block, the way and the town once, the address note once at the end.
+    await waitFor(() => expect(document.querySelector("[data-pickup-way='porch'] p")?.textContent).toBe("Porch pickup · Mid-City, Baton Rouge"));
+    expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Exact address after you pay");
     expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
     // Owner 2026-10-19: the two actions show with no saved card (Marketplace / OfferUp / Mercari).
     const buyNow = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
@@ -362,30 +362,30 @@ describe("Declutter screens", () => {
   });
 
   // Deep audit #58: the seller's pickup times on the item page, before anyone buys.
-  // @mutate src/components/declutter/ItemPickupBlock.tsx |   const usualLine = usual.data ? windowsSummary(usual.data) : ""; |   const usualLine = "";
+  // @mutate src/components/declutter/ItemPickupBlock.tsx |   const usualLine = usual.data ? weekHoursLine(usual.data) : ""; |   const usualLine = "";
   it("the item page says when the seller is around: Pickup times: Mon–Fri 5–8 PM (#58)", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
-    await waitFor(() => expect(document.querySelector("[data-item-pickup-hours]")?.textContent).toMatch(/^Mon–Fri 5–8 PM · /));
+    await waitFor(() => expect(document.querySelector("[data-item-pickup-hours='porch']")?.textContent).toBe("Mon–Fri 5–8 PM"));
   });
 
   // Audit 1028 D1-2 (1a-b-offer-item-p1-1440): the seller ticked porch and a safe meeting spot, the page said porch only.
   // @mutate src/components/declutter/ItemPickupBlock.tsx | const ORDER: SellerHandover[] = ["porch", "meetup", "seller_delivery", "delivery"]; | const ORDER: SellerHandover[] = ["porch"];
-  // @mutate src/components/declutter/ItemPickupBlock.tsx | {how.join(" or ")} · {orList(cities)} | {porchOk ? "Porch pickup" : "Meet at the seller's home"} · {orList(cities)}
+  // @mutate src/components/declutter/ItemPickupBlock.tsx |   if (ticked?.includes("meetup")) { |   if (false) {
   it("the item page's Pickup lists every way the seller ticked, the safe meeting spot included (D1-2)", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
-    // Owner mockup 11-01: one line, every way said once, then the town.
-    const cases: [string[] | null, string][] = [
-      [["porch", "meetup"], "Porch pickup or Meet at a safe spot · Mid-City, Baton Rouge"],
-      [["meetup", "seller_delivery", "delivery"], "Meet at a safe spot or Seller delivers or Helpr delivery · Mid-City, Baton Rouge"],
+    // Owner mockup 11-01 / A3-47: one line per way, the town on the porch line only.
+    const cases: [string[] | null, string[]][] = [
+      [["porch", "meetup"], ["Porch pickup · Mid-City, Baton Rouge", "Meet at a safe spot"]],
+      [["meetup", "seller_delivery", "delivery"], ["Meet at a safe spot", "Seller delivers", "Helpr delivery"]],
       // An older item with no ticks keeps its porch line.
-      [null, "Porch pickup · Mid-City, Baton Rouge"],
+      [null, ["Porch pickup · Mid-City, Baton Rouge"]],
     ];
     for (const [ways, want] of cases) {
       state.itemHandovers = ways;
       const { unmount } = at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
-      await waitFor(() => expect(document.querySelector("[data-pickup-ways]")?.textContent).toBe(want));
+      await waitFor(() => expect([...document.querySelectorAll("[data-pickup-way] > p:first-child")].map((p) => p.textContent)).toEqual(want));
       unmount();
     }
     state.itemHandovers = null;
@@ -395,30 +395,34 @@ describe("Declutter screens", () => {
   // and checkout then had no pickup. The block follows the ways the seller ticked; an older item keeps "Pickup".
   // Owner mockup 11-01: the block's first line names the ways (a delivery-only item never says pickup), the second the times.
   // @mutate src/components/declutter/ItemPickupBlock.tsx |   const heading = way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup"; |   const heading = "Pickup";
-  // @mutate src/components/declutter/ItemPickupBlock.tsx |   const how = ticked === null ? [porchOk ? "Porch pickup" : "Meet at the seller's home"] : ticked.map((w) => HANDOVER_TITLE[w]); |   const how = [porchOk ? "Porch pickup" : "Meet at the seller's home"];
+  // @mutate src/components/declutter/ItemPickupBlock.tsx |   const porch = ticked === null ? porchOk : ticked.includes("porch"); |   const porch = porchOk;
+  // @mutate src/components/declutter/ItemPickupBlock.tsx |   const note = showAddressNote && rows.some((r) => r.way === "porch" \|\| r.way === "pickup_home") ? addressNote(free, isSeller) : ""; |   const note = showAddressNote ? addressNote(free, isSeller) : "";
   // @mutate src/components/declutter/ItemHandoverTimes.tsx |   if (!meetup) return { places, usual: !hasPlaces && ways === null ? "Pickup times" : null }; |   if (!meetup) return { places, usual: !hasPlaces ? "Pickup times" : null };
   it("DB-4: the item page says pickup only when the seller offers one", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
-    const cases: [string[] | null, string, string, boolean][] = [
-      [["seller_delivery", "delivery"], "Delivery", "Seller delivers or Helpr delivery · Mid-City, Baton Rouge", false],
+    // [ways, heading, the way lines, where the Mon–Fri hours show (or null)]
+    const cases: [string[] | null, string, string[], string | null][] = [
+      [["seller_delivery", "delivery"], "Delivery", ["Seller delivers", "Helpr delivery"], null],
       // Lead's call 2026-10-31: the usual times are the Meetup times (no pickup place saved in this world).
-      [["meetup", "delivery"], "Meetup", "Meet at a safe spot or Helpr delivery · Mid-City, Baton Rouge", true],
-      // BUY-18: porch only is a whole DAY, so no hours; porch with a meeting spot keeps them.
-      [["porch"], "Pickup", "Porch pickup · Mid-City, Baton Rouge", false],
-      [["porch", "meetup"], "Pickup", "Porch pickup or Meet at a safe spot · Mid-City, Baton Rouge", true],
-      [null, "Pickup", "Porch pickup · Mid-City, Baton Rouge", true],
+      [["meetup", "delivery"], "Meetup", ["Meet at a safe spot", "Helpr delivery"], "meetup"],
+      // BUY-18: porch only is a whole DAY, so no hours; porch with a meeting spot keeps them, under the meetup line.
+      [["porch"], "Pickup", ["Porch pickup · Mid-City, Baton Rouge"], null],
+      [["porch", "meetup"], "Pickup", ["Porch pickup · Mid-City, Baton Rouge", "Meet at a safe spot"], "meetup"],
+      [null, "Pickup", ["Porch pickup · Mid-City, Baton Rouge"], "porch"],
     ];
-    for (const [ways, heading, line, times] of cases) {
+    for (const [ways, heading, lines, times] of cases) {
       state.itemHandovers = ways;
       const { unmount } = at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
-      await waitFor(() => expect(document.querySelector("[data-pickup-ways]")?.textContent).toBe(line));
+      await waitFor(() => expect([...document.querySelectorAll("[data-pickup-way] > p:first-child")].map((p) => p.textContent)).toEqual(lines));
       expect(document.getElementById("declutter-pickup")?.textContent).toBe(heading);
-      if (times) await waitFor(() => expect(document.querySelector("[data-item-pickup-hours]")?.textContent).toMatch(/^Mon–Fri 5–8 PM/));
+      if (times) await waitFor(() => expect(document.querySelector(`[data-item-pickup-hours='${times}']`)?.textContent).toMatch(/^Mon–Fri 5–8 PM/));
       else {
         await new Promise((r) => setTimeout(r, 50));
         expect(document.body.textContent).not.toMatch(/Mon–Fri 5–8 PM/);
       }
+      // A3-55: the address note only with a way to the seller's place, never under delivery alone.
+      expect(!!document.querySelector("[data-item-address-note]"), String(ways)).toBe(lines.some((l) => l.startsWith("Porch pickup")));
       unmount();
     }
     state.itemHandovers = null;

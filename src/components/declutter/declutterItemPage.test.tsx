@@ -287,13 +287,13 @@ describe("the photo-first Declutter item page", () => {
     const buyer = open();
     await screen.findByRole("region", { name: "Price and condition" });
     expect(document.querySelector("[data-item-where]")?.textContent).toMatch(/mi away/);
-    expect(document.querySelector("[data-item-pickup-hours]")?.textContent).toMatch(/exact address after you pay$/i);
+    expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Exact address after you pay");
     buyer.unmount();
     state.item = { ...ITEM, seller_id: "u1" };
     open();
     await screen.findByRole("region", { name: "Price and condition" });
     expect(document.querySelector("[data-item-where]")?.textContent).not.toMatch(/mi away|miles?/);
-    expect(document.querySelector("[data-item-pickup-hours]")?.textContent).toMatch(/buyers see your exact address only after they pay$/i);
+    expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Buyers see your exact address only after they pay");
     expect(document.body.textContent).not.toMatch(/after you pay/);
     state.geo = { status: "idle" };
   });
@@ -647,7 +647,7 @@ describe("the photo-first Declutter item page", () => {
     const first = open("?preview=buyer");
     await screen.findByText("This is what buyers see");
     // The buyer's words and the buyer's actions.
-    expect(document.querySelector("[data-item-pickup-hours]")?.textContent).toMatch(/exact address after you pay$/i);
+    expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Exact address after you pay");
     expect(await screen.findByText(/until it reaches a price the seller chose/)).toBeInTheDocument();
     const buy = (await screen.findAllByRole("button", { name: /Buy now/ }))[0];
     // No seller panel, and the seller's private lowest price is never read or shown.

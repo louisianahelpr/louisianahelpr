@@ -6,7 +6,7 @@
  * "Pickup in <town>" (ItemPickupBlock says the cities once).
  *
  * @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} extra={bundle && canAct ? <BundleLine summary={bundle} /> : null} />} |           {!isSeller && user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={false} preview={preview} free={free} />}
- * @mutate src/components/declutter/ItemPickupBlock.tsx | {how.join(" or ")} · {orList(cities)} | {how.join(" or ")} · Pickup in {orList(cities)}
+ * @mutate src/components/declutter/ItemPickupBlock.tsx | title: `${HANDOVER_TITLE.porch} · ${orList(cities)}` | title: `${HANDOVER_TITLE.porch} · Pickup in ${orList(cities)}`
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -45,7 +45,7 @@ describe("the Declutter item page's order (owner 2026-10-31)", () => {
 
   it("the pickup block names the cities once, never \"Pickup in <town>\"", () => {
     const block = blankComments(readFileSync("src/components/declutter/ItemPickupBlock.tsx", "utf8"));
-    expect(block).toContain("{how.join(\" or \")} · {orList(cities)}");
+    expect(block).toContain("title: `${HANDOVER_TITLE.porch} · ${orList(cities)}`");
     expect(block).not.toMatch(/Pickup in /);
     expect(src).not.toMatch(/Pickup in /);
   });

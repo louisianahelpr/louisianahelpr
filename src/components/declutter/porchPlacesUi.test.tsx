@@ -439,6 +439,19 @@ describe("the buyer's pick", () => {
     expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/places=\{porchPlaces\.places\} free refused/);
   });
 
+  // A3-55 (audit 11-01): under Helpr delivery the buyer never goes to the seller, so the picker says where the Helpr
+  // picks it up, with no address line and no days.
+  // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |       {!forDelivery && <p className="text-xs text-muted-foreground">{free ? |       {true && <p className="text-xs text-muted-foreground">{free ?
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |                   forDelivery={h === "delivery"} onRetry |                   onRetry
+  it("under Helpr delivery: 'Where the Helpr picks it up', no address line, no days (A3-55)", () => {
+    answers({});
+    const { container, unmount } = wrap(<PorchPlacePicker sellerId="s1" cartKey={1000} places={OPTIONS} loadError={null} onRetry={() => undefined} forDelivery />);
+    expect(container.querySelector("legend")?.textContent).toBe("Where the Helpr picks it up");
+    expect(container.textContent).not.toMatch(/exact address|Mon|Tue|Wed|Thu|Fri|Sat|Sun/);
+    unmount();
+    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/forDelivery=\{h === "delivery"\}/);
+  });
+
   it("paid checkout and the free claim both wait on the pick", () => {
     expect(SRC("DeclutterTradeViews.tsx")).toMatch(/!meetupReady \|\| !placeReady \|\| !pickupTimeReady\}/);
     expect(SRC("DeclutterTradeViews.tsx")).toMatch(/address\.trim\(\)\.length < 5 \|\| !placeReady/);

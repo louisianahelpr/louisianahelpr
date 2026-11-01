@@ -10,7 +10,7 @@
  * @mutate src/lib/declutter/pickupSlots.ts |     runs.push(j - i >= 2 ? |     runs.push(false ?
  */
 import { describe, expect, it } from "vitest";
-import { pickupDays, windowsSummary, type SellerWindow } from "@/lib/declutter/pickupSlots";
+import { pickupDays, weekHoursLine, windowsSummary, type SellerWindow } from "@/lib/declutter/pickupSlots";
 
 const weekdays = (days: number[], starts: string, ends: string): SellerWindow[] => days.map((weekday) => ({ weekday, starts, ends }));
 
@@ -58,5 +58,26 @@ describe("pickupDays: only slots the server books", () => {
     expect(pickupDays([], now, deadline)).toEqual([]);
     const fri = pickupDays(weekdays([5], "09:00", "09:30"), now, deadline);
     expect(fri.map((d) => [d.ymd, d.slots.length])).toEqual([["2026-10-30", 1]]);
+  });
+});
+
+// A3-47 (audit 11-01): the item page's hours are in ONE time format ("1–5 PM", never "1:00 PM–5:00 PM"), and a day
+// list runs in week order starting today (Saturday before Sunday on a Friday; Sunday first on a Sunday).
+// @mutate src/lib/declutter/pickupSlots.ts |   const fromToday = (d: number) => (d - today + 7) % 7; |   const fromToday = (d: number) => d;
+describe("A3-47: weekHoursLine", () => {
+  const sat = { weekday: 6, starts: "09:00:00", ends: "12:00:00" };
+  const sun = { weekday: 0, starts: "13:00:00", ends: "17:00:00" };
+  const wed = { weekday: 3, starts: "16:00:00", ends: "19:00:00" };
+  it("different hours per day: week order from today, one format", () => {
+    expect(weekHoursLine([sun, sat, wed], null, 5)).toBe("Sat 9 AM–12 PM, Sun 1–5 PM, Wed 4–7 PM");
+    expect(weekHoursLine([sun, sat, wed], null, 0)).toBe("Sun 1–5 PM, Wed 4–7 PM, Sat 9 AM–12 PM");
+  });
+  it("one range for every day it is set: a run, or Every day", () => {
+    expect(weekHoursLine([1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00", ends: "20:00" })), null, 3)).toBe("Mon–Fri 5–8 PM");
+    expect(weekHoursLine([0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "07:00", ends: "21:00" })), null, 3)).toBe("Every day 7 AM–9 PM");
+  });
+  it("days with no hours, and nothing set", () => {
+    expect(weekHoursLine([], [0, 6], 5)).toBe("Sat, Sun");
+    expect(weekHoursLine(null, null, 5)).toBe("");
   });
 });

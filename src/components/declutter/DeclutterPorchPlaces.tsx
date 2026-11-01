@@ -92,7 +92,7 @@ export function useSellerPorchPlaces(sellerId: string, cartKey: number, needed =
   return { query: q, places, refused, reread, whenPicked, ready: (!q.isLoading || waitedOut) && (places.length > 0 ? places.some((p) => p.chosen) : !refused) };
 }
 
-export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry, onChosen, free = false, refused = false }: {
+export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry, onChosen, free = false, refused = false, forDelivery = false }: {
   sellerId: string;
   cartKey: number;
   places: SellerPorchPlace[];
@@ -104,6 +104,8 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
   free?: boolean;
   /** The server just refused for want of a pick: say why, in place, for as long as it takes to answer it. */
   refused?: boolean;
+  /** A3-55: under Helpr delivery the buyer never goes there: "Where the Helpr picks it up", no address line, no days. */
+  forDelivery?: boolean;
 }) {
   const qc = useQueryClient();
   const choose = useMutation({
@@ -123,17 +125,17 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
     const p = places[0];
     return (
       <div className="space-y-1 rounded-xl border border-border p-3" data-porch-place-one="">
-        <p className="text-xs font-medium">Pickup place</p>
+        <p className="text-xs font-medium">{forDelivery ? "Where the Helpr picks it up" : "Pickup place"}</p>
         <p className="text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.area}</p>
-        <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{shortDays(p.weekdays)}</p>
-        <p className="text-xs text-muted-foreground">You get the exact address after you pay.</p>
+        {!forDelivery && <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{shortDays(p.weekdays)}</p>}
+        {!forDelivery && <p className="text-xs text-muted-foreground">You get the exact address after you pay.</p>}
       </div>
     );
   }
   return (
     <fieldset className="space-y-2 rounded-xl border border-border p-3" data-porch-place-picker="">
-      <legend className="px-1 text-xs font-medium">Pick a pickup place</legend>
-      <p className="text-xs text-muted-foreground">{free ? "You get the exact address once you confirm." : "You get the exact address after you pay."}</p>
+      <legend className="px-1 text-xs font-medium">{forDelivery ? "Where the Helpr picks it up" : "Pick a pickup place"}</legend>
+      {!forDelivery && <p className="text-xs text-muted-foreground">{free ? "You get the exact address once you confirm." : "You get the exact address after you pay."}</p>}
       {refused && !places.some((p) => p.chosen) && <p role="alert" className="text-sm font-semibold">{refusal}</p>}
       {places.map((p) => (
         <label key={p.id} className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 ${p.chosen ? "border-2 border-primary" : "border-border"}`}>
@@ -148,7 +150,7 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
           />
           <span className="min-w-0 flex-1">
             <span className="block text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.area}</span>
-            <span className="block text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{shortDays(p.weekdays)}</span>
+            {!forDelivery && <span className="block text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{shortDays(p.weekdays)}</span>}
           </span>
         </label>
       ))}

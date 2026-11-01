@@ -259,7 +259,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             <div className="space-y-3 pl-4" data-places-under={needsPlace ? h : undefined} data-details-under={h}>
               {needsPlace && (
                 <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} refused={porchPlaces.refused} loadError={porchPlaces.query.error}
-                  onRetry={() => void porchPlaces.reread()} onChosen={() => { setQuote(null); setPickupPick(null); }} />
+                  forDelivery={h === "delivery"} onRetry={() => void porchPlaces.reread()} onChosen={() => { setQuote(null); setPickupPick(null); }} />
               )}
               {h === "meetup" && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
               {timedPickup && placeReady && (!meetingUp || meetupReady) && (

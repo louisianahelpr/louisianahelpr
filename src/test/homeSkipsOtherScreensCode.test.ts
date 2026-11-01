@@ -22,6 +22,14 @@
  * @mutate vite.config.ts |               priority: 15.2, |               priority: 14.9,
  * @mutate scripts/perf/bootReach.mjs |   const homeLate = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !homeOff.has(f) && !page.has(f))); |   const homeLate = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !homeOff.has(f)));
  *
+ * @mutate vite.config.ts |               priority: 91, |               priority: 89,
+ * @mutate scripts/perf/bootReach.mjs |   return new Set([...iconsOf(staticReach(root, page))].filter((i) => !boot.has(i))); |   return new Set();
+ * @mutate vite.config.ts |               // lucide's runtime stays in its own chunk: taken in here, every icon chunk imported this one onto boot.\n              includeDependenciesRecursively: false, |
+ *
+ * B79 (11-01): Home's icons (bootReach.mjs homeIconFiles, ~34) sat in one 166-icon chunk (~16 KB gz) that Home's first
+ * round downloaded whole; they get their own icons-home chunk. Same build: /home 308 -> 295 KB gz; boot unchanged;
+ * /, /browse, /login, /signup +0.5 KB gz each (they draw a few of Home's icons, now from this chunk).
+ *
  * B79 (11-01): the same for the code only the every-page roots run (MobileNav, Legal, ...), which App mounts
  * lazily beside Home and which load after Home's first paint: signedInSplit's `homeLate` gets its own
  * `signed-in-late` chunk. Production build, bundle-size.yml env: /home 317 -> 308 KB gz.
@@ -29,7 +37,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { EVERY_PAGE_ROOTS, homeFirstScreenRoots, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { EVERY_PAGE_ROOTS, homeFirstScreenRoots, homeIconFiles, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -71,5 +79,19 @@ describe("Home's first screen carries only Home's code (AUD31-60/66)", () => {
     expect(group).toMatch(/test:\s*\(id: string\)\s*=>\s*homeLate\.has\(/);
     // Above signed-in-shared (15), below signed-in-pages (15.5).
     expect(group).toMatch(/priority:\s*15\.2,/);
+  });
+
+  it("gives the icons Home's page draws their own chunk, above the merged icon groups (B79)", () => {
+    const icons = homeIconFiles(ROOT);
+    // Floor: the title bar's bell and help, the dock's house and compass, the first-job card's checks (34 when written).
+    expect(icons.size).toBeGreaterThan(20);
+    for (const i of ["bell", "life-buoy", "circle-check"]) expect([...icons], i).toContain(i);
+    const config = blankComments(readFileSync(resolve(ROOT, "vite.config.ts"), "utf8"));
+    const group = config.match(/name:\s*"icons-home",[\s\S]*?\n\s*\},/)?.[0] ?? "";
+    expect(group).toMatch(/homeIcons\.has\(/);
+    // Without this the group also takes lucide's runtime, every icon chunk then imports it, and it joins the boot path.
+    expect(group).toMatch(/includeDependenciesRecursively:\s*false/);
+    const icon = config.match(/name:\s*"icons",[\s\S]*?priority:\s*(\d+)/)?.[1];
+    expect(Number(group.match(/priority:\s*(\d+)/)?.[1])).toBeGreaterThan(Number(icon));
   });
 });

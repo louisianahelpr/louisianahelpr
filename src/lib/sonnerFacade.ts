@@ -9,6 +9,9 @@
  * id), so a later toast.dismiss(id) still finds it. Dev and tests use the real package unchanged.
  */
 type RealToast = typeof import("sonner-real").toast;
+// Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
+// failure reads as a broken chunk (dynamicImportThenDoesNoWork).
+const sonnerReal = () => import("sonner-real");
 type Data = Record<string, unknown> | undefined;
 const METHODS = ["success", "error", "warning", "info", "message", "loading", "custom"] as const;
 
@@ -19,7 +22,7 @@ let seq = 0;
 
 function load(): void {
   if (loading) return;
-  loading = import("sonner-real").then(
+  loading = sonnerReal().then(
     (m) => {
       real = m.toast;
       for (const run of queue.splice(0)) run(real);

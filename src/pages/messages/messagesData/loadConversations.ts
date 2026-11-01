@@ -23,6 +23,10 @@ import {
 } from "@/lib/teamThread";
 import { groupThreads, inboxShowsRow, threadUnread, unreadRowsQuery } from "@/lib/unreadConversations";
 
+// Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
+// failure reads as a broken chunk (dynamicImportThenDoesNoWork).
+const userBlocks = () => import("@/lib/userBlocks");
+
 /**
  * The inbox row for a "Louisiana Helpr Team" thread. On the user's side it is
  * the team (name, app icon, no presence); on the staff side it is the person.
@@ -199,7 +203,7 @@ export async function fetchConversations(
   // chunk fetch AND a full network round in front of the inbox's own query,
   // for no reason. Both now fly together: one round instead of two
   // (~215ms measured RTT), a third off the inbox's time-to-first-paint.
-  const blockedPromise = import("@/lib/userBlocks").then(({ getBlockedUserIds }) =>
+  const blockedPromise = userBlocks().then(({ getBlockedUserIds }) =>
     getBlockedUserIds(uid),
   );
 

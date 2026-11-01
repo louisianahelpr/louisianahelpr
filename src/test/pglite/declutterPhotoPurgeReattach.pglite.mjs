@@ -63,6 +63,14 @@ const WORLD = `
     seller_id uuid not null references auth.users(id) on delete cascade,
     created_at timestamptz not null default now(), sent_at timestamptz, decided_at timestamptz);
   grant all on all tables in schema public to service_role;
+  -- storage.objects with the real columns (Supabase storage schema); the trigger reads it after its lock.
+  create schema storage;
+  create table storage.objects (
+    id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid,
+    created_at timestamptz default now(), updated_at timestamptz default now(), last_accessed_at timestamptz default now(),
+    metadata jsonb, path_tokens text[] generated always as (string_to_array(name, '/')) stored, version text,
+    owner_id text, user_metadata jsonb, level integer,
+    constraint objects_bucket_name_key unique (bucket_id, name));
 `;
 
 const db = new PGlite();
@@ -72,7 +80,10 @@ check("applies 3x (replay-safe)", true);
 
 const I = (await db.query(`insert into public.declutter_items (seller_id) values ('${P}') returning id`)).rows[0].id;
 const path = (n) => `${A}/declutter/${I}/${n}.jpg`;
-const attach = (p, pos) => db.query(`insert into public.declutter_item_photos (item_id, seller_id, storage_path, position) values ('${I}', '${P}', '${p}', ${pos})`);
+const upload = (p) => db.query(`insert into storage.objects (bucket_id, name, owner_id, metadata) values ('job-photos', '${p}', '${A}', '{"mimetype":"image/jpeg","size":10}') on conflict (bucket_id, name) do nothing`);
+const removeObject = (p) => db.query(`delete from storage.objects where bucket_id = 'job-photos' and name = '${p}'`);
+const attach = async (p, pos) => { await upload(p); return insertRow(p, pos); };
+const insertRow = (p, pos) => db.query(`insert into public.declutter_item_photos (item_id, seller_id, storage_path, position) values ('${I}', '${P}', '${p}', ${pos})`);
 const detach = (p) => db.query(`delete from public.declutter_item_photos where storage_path = '${p}'`);
 const queued = async () => (await db.query(`select storage_path from public.declutter_photo_purge_queue order by 1`)).rows.map((r) => r.storage_path);
 const due = () => as(db, "service_role", null, `select storage_path from public.declutter_photo_purge_due(500, null) order by 1`);
@@ -143,6 +154,21 @@ if (!SKIP) {
     lock !== "" && !/WHERE[^;]*claimed_at/s.test(lock), lock);
   check("…and decides on claimed_at only after the lock", code.indexOf("IF v_found AND v_claimed_at IS NOT NULL") > code.indexOf(lock), "");
 } else check("lock ordering (skipped run)", false);
+
+// 4d. The object was removed after the add RPC's own (earlier, unlocked) existence check: the attach is refused.
+await attach(path("e"), 4);
+await detach(path("e"));
+r = await due();
+r = await as(db, "service_role", null, `select public.declutter_photo_purge_done(array['${path("e")}']) n`);
+await removeObject(path("e"));
+err = "";
+try { await insertRow(path("e"), 4); } catch (e) { err = String(e.message); }
+check("attaching a path whose object is gone fails with photo_not_uploaded", /photo_not_uploaded/.test(err), err);
+const ghost = (await db.query(`select count(*)::int n from public.declutter_item_photos where storage_path = '${path("e")}'`)).rows[0].n;
+check("…and leaves no photo row pointing at a missing file", ghost === 0, String(ghost));
+err = "";
+try { await attach(path("e"), 4); } catch (e) { err = String(e.message); }
+check("uploading it again lets it attach", err === "", err);
 
 // 5. Service role only.
 r = await recheck([path("b")], "authenticated");

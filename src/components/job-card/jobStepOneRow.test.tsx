@@ -399,7 +399,7 @@ const CASES: Array<{
         />,
       ),
     minControls: 4,
-    primary: ["Confirm you'll be at the job"],
+    primary: ["Confirm"], // owner 11-01: every confirm reads just "Confirm" (named in full)
   },
   {
     // Owner, 2026-10-21: the date moved after accept, so the Helpr confirms the NEW slot.
@@ -599,13 +599,13 @@ const CASES: Array<{
     name: "Posts · Scheduled, Helpr says they arrived (Confirm they've arrived + Message · Cancel)",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", poster_confirmed_arrival_at: null }))} />),
     minControls: 3,
-    primary: ["Confirm they've arrived"],
+    primary: ["Confirm"], // owner 11-01: just "Confirm"
   },
   {
     name: "Posts · In Progress, arrived (Confirm they've arrived + SOS · Message)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: null, poster_confirmed_working_at: null }))} />),
     minControls: 3,
-    primary: ["Confirm they've arrived"],
+    primary: ["Confirm"], // owner 11-01: just "Confirm"
   },
   {
     // Owner rule 2026-10-21 (lead ruling): no greyed "Confirm they're working" before the Helpr taps Start

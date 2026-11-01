@@ -341,7 +341,9 @@ function HomeDashboardScreen() {
                   >
                     <Icon className="w-6 h-6 lg:w-5 lg:h-5 text-primary" strokeWidth={1.75} aria-hidden />
                     <span className="text-ds-16 lg:text-ds-15 font-bold mt-2 lg:mt-1.5 truncate text-foreground">{s.label}</span>
-                    <span data-tile-line className="text-ds-14 lg:text-ds-13 text-muted-foreground leading-snug">{line}</span>
+                    {/* Two lines' room always (leading-snug x 2): the live "near you" count replaces the line after
+                        first paint, and a shorter line must not shrink the card under the reader (owner 2026-11-01). */}
+                    <span data-tile-line className="text-ds-14 lg:text-ds-13 text-muted-foreground leading-snug min-h-[2.75em]">{line}</span>
                   </button>
                 );
               })}

@@ -760,7 +760,7 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
 
   // Audit 1b D2-2 (1b-s-order-afterprob-p1-1440): the row said "Sold · Paid 24 hours after the handover" while a
   // problem held the money. The row reads the order's open problem by the sale's order id.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id)) | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id))
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id)) | listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id))
   it("an open problem: the sold row says the money is held; another sale's row is unchanged (D2-2)", async () => {
     state.mine = [{ ...ITEM, id: "a3", status: "sold", title: "Floor lamp" }, { ...ITEM, id: "a6", status: "sold", title: "Side table" }];
     state.sales = new Map([["a3", { cents: 2000, orderId: "o3" }], ["a6", { cents: 2500, orderId: "o6" }]]);

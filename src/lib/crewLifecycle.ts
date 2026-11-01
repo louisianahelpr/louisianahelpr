@@ -273,12 +273,19 @@ export async function posterConfirmMemberArrival(jobId: string, helperId: string
  * them, and completes the crew at once if everyone else is already done. Their
  * share goes back to the poster with the unfilled spots' refund at payout.
  */
+export const CREW_NO_SHOW_NOT_READY = "Reporting a crew no-show isn't available yet. Please try again in a few minutes.";
+
 export async function posterReportMemberNoShow(jobId: string, memberId: string): Promise<{ jobComplete: boolean }> {
   const { data, error } = await supabase.rpc("rpc_poster_report_member_no_show", {
     _job_id: jobId,
     _member_id: memberId,
   });
   if (error) {
+    // PGRST202: the app is newer than the database (the migration has not deployed yet). Expected for a few
+    // minutes after a release, so it is said plainly and not reported as a fault.
+    if ((error as { code?: string }).code === "PGRST202") {
+      throw new CrewActionError(CREW_NO_SHOW_NOT_READY, error, error.message);
+    }
     throw new CrewActionError(rpcErrorMessage("rpc_poster_report_member_no_show", error), error, error.message);
   }
   const d = (data ?? null) as Record<string, unknown> | null;

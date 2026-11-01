@@ -9,7 +9,7 @@ import { Check, Loader2 } from "lucide-react";
 
 export type ProgressStep = "waiting" | "photos" | "checking" | "live";
 
-export const STEP_WORDS: Record<ProgressStep, string> = {
+const STEP_WORDS: Record<ProgressStep, string> = {
   waiting: "Waiting",
   photos: "Uploading photos",
   checking: "Checking",

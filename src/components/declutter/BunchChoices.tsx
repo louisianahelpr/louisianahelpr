@@ -64,7 +64,7 @@ export function useBunchChoices(userId: string | undefined, setWays: (u: (w: Sel
 }
 
 /** The price-drops switch for the whole bunch, on the setup form (no saved settings yet). */
-export function BunchDropsSwitch({ c }: { c: ReturnType<typeof useBunchChoices> }) {
+function BunchDropsSwitch({ c }: { c: ReturnType<typeof useBunchChoices> }) {
   const { drops, dropPct, floorPct } = c.choices;
   return (
     <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" data-bunch-drops={drops ? "on" : "off"}>

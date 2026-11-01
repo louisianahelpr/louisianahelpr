@@ -51,7 +51,7 @@ export interface PosterFaceHandlers {
  * thing, "More options". The page dropped "Manage job" on the owner's word (10-31: "never a generic Manage job"), and
  * the card still said it, so card and page disagreed. Guard: src/test/posterCardNamesLikeThePage.test.ts.
  */
-export const POSTER_CONTROLS_LABEL = "More options";
+const POSTER_CONTROLS_LABEL = "More options";
 
 /** "Hallie H." -> "Hallie": a button label names the person, short. */
 const first = (name: string) => name.trim().split(/\s+/)[0] || name;

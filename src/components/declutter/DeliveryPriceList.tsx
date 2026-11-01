@@ -11,7 +11,7 @@ import { DELIVERY_BASE_CENTS, DELIVERY_PER_MILE_CENTS, DELIVERY_SIZE_CENTS, type
 /** "$6", "$1.50": whole dollars without cents. */
 const money = (cents: number) => formatPrice(cents);
 
-export const DELIVERY_RATE_WORDS = `${money(DELIVERY_BASE_CENTS)} + ${money(DELIVERY_PER_MILE_CENTS)} a mile`;
+const DELIVERY_RATE_WORDS = `${money(DELIVERY_BASE_CENTS)} + ${money(DELIVERY_PER_MILE_CENTS)} a mile`;
 
 export function DeliveryPriceList({ quote }: { quote: DeliveryQuote | null }) {
   const rows: { size: DeliverySize; label: string; words: string }[] = [

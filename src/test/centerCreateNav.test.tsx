@@ -52,6 +52,8 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
 const switches = vi.hoisted(() => ({ on: new Set<string>() }));
+// Backstop: any read no module mock above covers answers "nothing" and never reaches prod (B84's /home cut; see the helper).
+vi.mock("@/integrations/supabase/client", async () => (await import("./helpers/emptySupabaseClient")).emptySupabaseModule());
 const toasts = vi.hoisted(() => [] as string[]);
 const age = vi.hoisted(() => ({ under: false, explained: [] as string[] }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).

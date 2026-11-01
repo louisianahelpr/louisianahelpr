@@ -140,7 +140,8 @@ export function usePosterPageActions({
       </Button>
     ),
   ].filter(Boolean);
-  const row = buttons.length > 0 ? <div data-poster-actions="" className="flex flex-wrap gap-2">{buttons}</div> : null;
+  // Two buttons are equal halves (owner 2026-11-01); a flex row gave the padded Button 64px more than a lone action's slot.
+  const row = buttons.length > 0 ? <div data-poster-actions="" className={buttons.length === 2 ? "grid grid-cols-2 gap-2" : "flex flex-wrap gap-2"}>{buttons}</div> : null;
   // The card's own step controls, in place under the buttons; mounted (hidden) whenever the row is read, so
   // "Approve and release" opens the card's CompletionChoiceSheet even with More options closed.
   const panel = cardSteps || posterWait === "approve" ? flows.panel : null;

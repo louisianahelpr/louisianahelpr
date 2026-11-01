@@ -68,8 +68,9 @@ describe("A2-B6: a job's scope video travels with its photos", () => {
         if (/\bphotos\b/.test(m[2]) && /\bhelper_fee_percent\b/.test(m[2])) lists.push({ file, text: m[2] });
       }
     }
-    // useDashboardData, fetchJobForPin, QuickApplyHandler, JobDetail, guestJobsQuery, guestJobsPrefetch, useJobPage x2.
-    expect(lists.length, "photo-carrying job lists").toBeGreaterThan(7);
+    // useDashboardData, fetchJobForPin, QuickApplyHandler, guestJobsQuery, guestJobsPrefetch, useJobPage x2.
+    // (JobDetail left 10-31, JOBS-29: a guest's shared-link read is title, category, budget and town only.)
+    expect(lists.length, "photo-carrying job lists").toBeGreaterThan(6);
     expect(lists.filter((l) => !/\bscope_video_url\b/.test(l.text)).map((l) => `${l.file}: ${l.text.slice(0, 50)}`)).toEqual([]);
   });
 

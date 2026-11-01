@@ -237,7 +237,6 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
       "src/hooks/useDashboardData.ts",
       "src/lib/guestJobsQuery.ts",
       "src/pages/home/QuickApplyHandler.tsx",
-      "src/pages/jobs/JobDetail.tsx",
       "src/pages/jobs/jobPage/useJobPage.ts",
       "src/pages/jobs/jobPage/useJobPage.ts",
       "src/pages/profile/HelprWrapped.tsx",

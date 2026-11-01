@@ -12,7 +12,7 @@ import ts from "typescript";
 
 // @mutate src/pages/home/homeDashboard/needsYouTodos.ts | import type { ShopOrder } from "@/lib/shops/orders"; | import { type ShopOrder, fetchShopOrders } from "@/lib/shops/orders";
 // @mutate src/lib/userBlocks.ts | const lifecycleErrors = () => import("@/lib/lifecycleErrors"); | import * as lifecycleErrorsNow from "@/lib/lifecycleErrors";\nconst lifecycleErrors = async () => lifecycleErrorsNow;
-// @mutate src/components/create/CreateSheet.tsx | queryFn: () => import("@/lib/shops/api").then((m) => m.fetchMyShopId()), | queryFn: () => fetchMyShopId(),
+// @mutate src/components/create/CreateSheet.tsx | const shopsApi = () => import("@/lib/shops/api"); | import { fetchMyShopId } from "@/lib/shops/api";\nconst shopsApi = async () => ({ fetchMyShopId });
 // @mutate src/hooks/useActivityData.ts | const scheduleChangeApi = () => import("@/lib/scheduleChange"); | import * as scheduleChangeNow from "@/lib/scheduleChange";\nconst scheduleChangeApi = async () => scheduleChangeNow;
 // @mutate src/pages/home/HomeDashboard.tsx | const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet }))); | import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 // @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterApi = () => import("@/lib/declutter/api"); | import * as declutterApiNow from "@/lib/declutter/api";\nconst declutterApi = async () => declutterApiNow;

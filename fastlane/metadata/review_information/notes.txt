@@ -4,7 +4,9 @@ Sign in with the demo email and password in Sign-In Information. Sign in with Ap
 
 To see the core flow: browse open jobs on the home screen, open one and apply, or post a job from the bottom navigation, then message the other party.
 
-Payments for jobs (a real-world service performed in person by another member) are processed by Stripe and are live. You do not need to complete a payment to review the app; please do not enter a real card. This version sells no digital goods and contains no in-app purchases or memberships.
+Payments are only for real-world services and goods exchanged in person: a job is work another member does in person (for example yard work or moving help), paid through Stripe, which is live. You do not need to complete a payment to review the app; please do not enter a real card. This version sells no digital goods and contains no in-app purchases or memberships.
+
+Instant book: some Helprs let a member book them directly. The member's card is held, not charged, and the Helpr has 2 hours to decline; if they do not decline, the card is charged and they are hired.
 
 Declutter, in the section switcher, lets members sell their own used household items to neighbors. The buyer pays through Stripe for a physical item that is handed over in person or brought by another member. Gift cards are bought through Stripe and are spent when paying for a job, an in-person service; they buy nothing digital.
 
@@ -12,4 +14,4 @@ Location is optional. While the app is open it is used to show nearby jobs. Back
 
 Push notifications are optional and are requested with an explanation first.
 
-The app is universal and runs full-screen on iPad; it was checked on an iPad Air 11-inch (M3) simulator from a fresh install, signed in with the demo account, before this submission.
+The app is universal and runs full-screen on iPad.

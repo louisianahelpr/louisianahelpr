@@ -574,6 +574,8 @@ jobs:
           FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
           FASTLANE_PASSWORD: ${{ secrets.FASTLANE_PASSWORD }}
           ASC_TEAM_ID: ${{ secrets.ASC_TEAM_ID }}
+          # Q1790: the release lane stages the App Review demo password from this secret (never from the repo).
+          ASC_REVIEW_DEMO_PASSWORD: ${{ secrets.ASC_REVIEW_DEMO_PASSWORD }}
           # Required by Fastfile for cert import (avoids hitting Apple's
           # max-distribution-certificates limit by reusing an existing one).
           IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}

@@ -237,6 +237,8 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
       "src/hooks/useDashboardData.ts",
       "src/lib/guestJobsQuery.ts",
       "src/pages/home/QuickApplyHandler.tsx",
+      // The guest job preview's take-home (lead 10-31): the guest card's own figure, so it names the stamp too.
+      "src/pages/jobs/JobDetail.tsx",
       "src/pages/jobs/jobPage/useJobPage.ts",
       "src/pages/jobs/jobPage/useJobPage.ts",
       "src/pages/profile/HelprWrapped.tsx",

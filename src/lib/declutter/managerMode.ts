@@ -115,7 +115,7 @@ export type ManageAction =
   | "edit_listing" | "set_handovers" | "pause_listing" | "withdraw_item"
   | "set_listing_price" | "set_listing_drops" | "relist_listing" | "reopen_listing"
   | "respond_offer" | "set_offer_rules"
-  | "answer_question" | "send_order_message"
+  | "answer_question" | "send_order_message" | "order_talk_view"
   | "set_pickup_windows" | "confirm_handover" | "complete_handover";
 
 /** One action for the seller. Returns the seller RPC's own result. */
@@ -131,4 +131,20 @@ export async function fetchManagerLabels(kind: "answer" | "order_talk", ids: str
   const { data, error } = await supabase.rpc("declutter_manager_message_labels", { p_kind: kind, p_ids: ids });
   if (error) throw error;
   return new Map(((data ?? []) as { message_id: string; label: string }[]).map((r) => [r.message_id, r.label]));
+}
+
+/** What the manager sees of the seller (only the parts she turned on are filled). */
+export interface ManagedOverview {
+  grant_id: string;
+  seller_first_name: string;
+  parts: ManagerParts;
+  items: { id: string; title: string; status: string; price_cents: number; updated_at: string; photo_path: string | null }[];
+  offers: { id: string; item_id: string; amount_cents: number; awaiting: "seller" | "buyer"; respond_by: string; buyer_first_name: string }[];
+  questions: { id: string; item_id: string; question: string; answer: string | null; answered_at: string | null; created_at: string }[];
+  orders: { id: string; status: string; handover: string; items_cents: number; paid_at: string | null; closed_at: string | null; buyer_first_name: string }[];
+}
+
+export async function fetchManagedOverview(sellerId: string): Promise<ManagedOverview> {
+  return rpcData(await supabase.rpc("declutter_managed_overview", { p_seller: sellerId }),
+    (e) => rpcErrorMessage("declutter_managed_overview", e)) as ManagedOverview;
 }

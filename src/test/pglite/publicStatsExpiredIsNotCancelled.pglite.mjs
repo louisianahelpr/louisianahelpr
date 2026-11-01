@@ -5,13 +5,17 @@
  * the job was cancelled").
  *
  *   node src/test/pglite/publicStatsExpiredIsNotCancelled.pglite.mjs
- *   LH_SKIP=1 node src/test/pglite/publicStatsExpiredIsNotCancelled.pglite.mjs   # must FAIL (old definition)
+ *   NEW_MIGRATION=skip node src/test/pglite/publicStatsExpiredIsNotCancelled.pglite.mjs   # must FAIL (old definition)
+ *   (LH_SKIP=1 is the older spelling of the same switch and still works.)
  *
  * World: the cut-down tables of testDataNeverCounts.pglite.mjs. 20261030015205 (the newest
  * definition before this one) is applied once, then the new migration verbatim 3x (replay).
  * A poster has: one listing auto-expire-jobs closed (cancelled, no Helpr, its fixed reason), one
  * real cancellation (no reason), one cancelled job that HAD a Helpr (still a cancellation even
- * with that reason) and two completed jobs. cancelled_jobs must be 2, posted_jobs_total 5, the rate 40.0.
+ * with that reason), one the POSTER cancelled and typed the sweep's words into (cancelled_by set by
+ * poster_cancel_job: still a cancellation) and two completed jobs. cancelled_jobs must be 3, and
+ * the expired listing is not a posted job either (owner 10-31: nobody else sees it existed):
+ * posted_jobs_total 5, jobs_total 5, the rate 3 of 5 = 60.0.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -78,30 +82,45 @@ await db.exec(`
   INSERT INTO public.test_accounts VALUES ('${TEST_H}'), ('${TEST_C}');
 `);
 
-await db.exec(`ALTER TABLE public.jobs ADD COLUMN cancellation_reason text;`);
+await db.exec(`ALTER TABLE public.jobs ADD COLUMN cancellation_reason text, ADD COLUMN cancelled_by uuid;`);
 await db.exec(BASE);
-if (process.env.LH_SKIP !== "1") for (let i = 0; i < 3; i++) await db.exec(SQL);
+const SKIP_NEW = process.env.NEW_MIGRATION === "skip" || process.env.LH_SKIP === "1";
+if (SKIP_NEW) console.log("NEW_MIGRATION=skip: the old definition only (this run must FAIL)");
+if (!SKIP_NEW) for (let i = 0; i < 3; i++) await db.exec(SQL);
 
 const EXPIRED = "Job listing expired — scheduled time passed with no Helpr assigned";
-await db.exec(`INSERT INTO public.jobs (id, customer_id, helper_id, status, cancellation_reason) VALUES
-  ('${U(40)}', '${POSTER}', NULL, 'cancelled', '${EXPIRED}'),
-  ('${U(41)}', '${POSTER}', NULL, 'cancelled', NULL),
-  ('${U(42)}', '${POSTER}', '${REAL_H}', 'cancelled', '${EXPIRED}'),
-  ('${U(43)}', '${POSTER}', '${REAL_H}', 'completed', NULL),
-  ('${U(44)}', '${POSTER}', '${REAL_H}', 'completed', NULL);`);
+await db.exec(`INSERT INTO public.jobs (id, customer_id, helper_id, status, cancellation_reason, cancelled_by) VALUES
+  ('${U(40)}', '${POSTER}', NULL, 'cancelled', '${EXPIRED}', NULL),
+  ('${U(41)}', '${POSTER}', NULL, 'cancelled', NULL, '${POSTER}'),
+  ('${U(42)}', '${POSTER}', '${REAL_H}', 'cancelled', '${EXPIRED}', '${POSTER}'),
+  ('${U(45)}', '${POSTER}', NULL, 'cancelled', '${EXPIRED}', '${POSTER}'),
+  ('${U(43)}', '${POSTER}', '${REAL_H}', 'completed', NULL, NULL),
+  ('${U(44)}', '${POSTER}', '${REAL_H}', 'completed', NULL, NULL);`);
 
 const results = [];
 const check = (name, ok, got) => { results.push(ok); console.log(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : `  (got ${JSON.stringify(got)})`}`); };
 
 const r = (await db.query(`SELECT posted_jobs_total, jobs_total, cancelled_jobs, cancellation_rate::text AS rate
   FROM public.get_public_profile_stats(ARRAY['${POSTER}']::uuid[])`)).rows[0];
-check("the expired, unfilled listing is not counted as cancelled (2 real cancellations)", r.cancelled_jobs === 2, r);
-check("posted total still counts every posted job (5)", r.posted_jobs_total === 5, r);
-check("the cancellation rate is 2 of 5 (40.0), not 3 of 5", r.rate === "40.0", r);
+check("the expired, unfilled listing is not counted as cancelled (3 real cancellations)", r.cancelled_jobs === 3, r);
+check("posted total leaves out the expired listing (5 of the 6 rows)", r.posted_jobs_total === 5, r);
+check("jobs total leaves it out too (5)", r.jobs_total === 5, r);
+check("the cancellation rate is 3 of 5 (60.0), not 4 of 6", r.rate === "60.0", r);
+
+// The free-text hole (lead review 10-31): the poster cancels U45 and types the sweep's words. It is
+// still a cancellation, because poster_cancel_job set cancelled_by. Drop that one row and the count
+// must fall by exactly one.
+await db.exec(`DELETE FROM public.jobs WHERE id = '${U(45)}'`);
+const r2 = (await db.query(`SELECT cancelled_jobs FROM public.get_public_profile_stats(ARRAY['${POSTER}']::uuid[])`)).rows[0];
+check("a poster's own cancel with 'Job listing expired' typed in still counted (3 -> 2 without it)", r.cancelled_jobs - r2.cancelled_jobs === 1 && r2.cancelled_jobs === 2, { before: r.cancelled_jobs, after: r2.cancelled_jobs });
 
 // The Helpr side: REAL_H's cancelled job (U42, they were hired) still counts for them.
 const h = (await db.query(`SELECT cancelled_jobs FROM public.get_public_profile_stats(ARRAY['${REAL_H}']::uuid[])`)).rows[0];
 check("a cancelled job with a Helpr still counts for that Helpr", h.cancelled_jobs === 1, h);
+
+// A member with no jobs at all still reads 0 posted (the LEFT JOIN's empty row is not a job).
+const z = (await db.query(`SELECT posted_jobs_total, cancelled_jobs FROM public.get_public_profile_stats(ARRAY['${REAL_C3}']::uuid[])`)).rows[0];
+check("a member with no jobs reads 0 posted, 0 cancelled", z.posted_jobs_total === 0 && z.cancelled_jobs === 0, z);
 
 const failed = results.filter((x) => !x).length;
 console.log(failed ? `${failed} FAILED` : "ALL PASS");

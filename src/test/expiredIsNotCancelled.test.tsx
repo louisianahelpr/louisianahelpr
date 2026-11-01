@@ -17,7 +17,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
 import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
-import { EXPIRED_LISTING_REASON_PREFIX, NOT_AN_EXPIRED_LISTING_FILTER, isExpiredListing } from "@/lib/expiredListing";
+import { EXPIRED_LISTING_REASON_PREFIX, NOT_AN_EXPIRED_LISTING_ANY_STATUS, NOT_AN_EXPIRED_LISTING_FILTER, isExpiredListing } from "@/lib/expiredListing";
 import { JobsList } from "@/pages/user/JobsList";
 import { helperStatusLine, posterStatusLine, EXPIRED_LISTING_DETAIL } from "@/components/job-card/jobStatusLine";
 import { describeCancellation } from "@/pages/jobs/appliedJobCard/appliedJobCardHelpers";
@@ -49,6 +49,11 @@ describe("the sweep's reason is the one the rule reads", () => {
     expect(isExpiredListing({ status: "cancelled", helper_id: null, cancellation_reason: "Plans changed" })).toBe(false);
     expect(isExpiredListing({ status: "open", helper_id: null, cancellation_reason: SWEEP_REASON })).toBe(false);
   });
+
+  it("a poster who cancels and TYPES the sweep's reason is still a cancellation (cancelled_by is set)", () => {
+    expect(isExpiredListing({ status: "cancelled", helper_id: null, cancelled_by: POSTER, cancellation_reason: SWEEP_REASON })).toBe(false);
+    expect(isExpiredListing({ status: "cancelled", helper_id: null, cancelled_by: null, cancellation_reason: SWEEP_REASON })).toBe(true);
+  });
 });
 
 describe("profile job list (JobsList)", () => {
@@ -65,6 +70,12 @@ describe("profile job list (JobsList)", () => {
 
   it("a real cancellation still says Cancelled (can fail)", () => {
     render(<JobsList jobs={[row({ cancellation_reason: "Plans changed" })]} variant="posted" knownCount={1} viewerId={POSTER} isOwnProfile />);
+    expect(screen.getByText("Cancelled")).toBeTruthy();
+    expect(screen.queryByText("Expired")).toBeNull();
+  });
+
+  it("a typed 'Job listing expired' reason on a poster's own cancel still says Cancelled", () => {
+    render(<JobsList jobs={[row({ cancellation_reason: SWEEP_REASON, cancelled_by: POSTER })]} variant="posted" knownCount={1} viewerId={POSTER} isOwnProfile />);
     expect(screen.getByText("Cancelled")).toBeTruthy();
     expect(screen.queryByText("Expired")).toBeNull();
   });
@@ -86,15 +97,25 @@ describe("profile counts (useUserProfileData)", () => {
     expect(q![1]).toContain(".or(NOT_AN_EXPIRED_LISTING_FILTER)");
   });
 
+  it("the Jobs posted count leaves out unfilled expired listings too (nobody else hears it existed)", () => {
+    const q = /supabase\.from\("jobs"\)\.select\("id", \{ count: "exact", head: true \}\)\.eq\("customer_id", userId!\)(\.[^\n]*)/.exec(src);
+    expect(q).not.toBeNull();
+    expect(q![1]).toMatch(/^\.or\(NOT_AN_EXPIRED_LISTING_ANY_STATUS\),/);
+    expect(NOT_AN_EXPIRED_LISTING_ANY_STATUS).toBe(`status.neq.cancelled,${NOT_AN_EXPIRED_LISTING_FILTER}`);
+  });
+
   it("the job rows carry cancellation_reason so the list can tell them apart", () => {
     const selects = src.match(/select\("id, title, status, category, budget, created_at, customer_id, helper_id[^"]*"\)/g) ?? [];
     expect(selects.length).toBeGreaterThan(1);
-    for (const s of selects) expect(s).toContain("cancellation_reason");
+    for (const s of selects) {
+      expect(s).toContain("cancellation_reason");
+      expect(s).toContain("cancelled_by");
+    }
   });
 
   it("the filter keeps a hired job, a null reason and any other reason", () => {
     expect(NOT_AN_EXPIRED_LISTING_FILTER).toBe(
-      `helper_id.not.is.null,cancellation_reason.is.null,cancellation_reason.not.like."${EXPIRED_LISTING_REASON_PREFIX}*"`,
+      `helper_id.not.is.null,cancelled_by.not.is.null,cancellation_reason.is.null,cancellation_reason.not.like."${EXPIRED_LISTING_REASON_PREFIX}*"`,
     );
   });
 });
@@ -108,8 +129,17 @@ describe("public stats RPC (get_public_profile_stats, newest definition)", () =>
     const line = /COUNT\(\*\) FILTER \(WHERE j\.status = 'cancelled'([\s\S]*?)\)::integer AS cancelled_jobs/.exec(body);
     expect(line).not.toBeNull();
     expect(line![1].replace(/\s+/g, " ")).toContain(
-      `AND NOT (j.helper_id IS NULL AND COALESCE(j.cancellation_reason, '') LIKE '${EXPIRED_LISTING_REASON_PREFIX}%')`,
+      `AND NOT (j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE '${EXPIRED_LISTING_REASON_PREFIX}%')`,
     );
+  });
+
+  it("posted_jobs_total and jobs_total leave out an unfilled expired listing", () => {
+    const defs = effectiveDefs(join(ROOT, "supabase", "migrations"));
+    const key = [...defs.keys()].find((k) => k === "get_public_profile_stats" || k.startsWith("get_public_profile_stats("));
+    const body = blankSqlComments(defs.get(key!)!.stmt).replace(/\s+/g, " ");
+    const expired = `NOT (j.status = 'cancelled' AND j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE '${EXPIRED_LISTING_REASON_PREFIX}%')`;
+    expect(body).toContain(`COUNT(*) FILTER (WHERE j.customer_id = t.user_id AND ${expired})::integer AS posted_total`);
+    expect(body).toContain(`COUNT(*) FILTER (WHERE ${expired})::integer AS jobs_total`);
   });
 });
 
@@ -124,6 +154,11 @@ describe("the poster's own Posted card line", () => {
     const all = [line.eyebrow, line.detail, line.suffix].join(" ");
     expect(all).not.toMatch(/cancel/i);
     expect(line.suffix).toBe("Your payment was refunded");
+  });
+
+  it("a poster's own cancel with the sweep's words typed in still reads Cancelled", () => {
+    const line = posterStatusLine(job({ cancelled_by: POSTER } as Partial<Job>), 0);
+    expect(line.detail).toBe("Cancelled");
   });
 
   it("a real cancellation still reads Cancelled with its reason (can fail)", () => {
@@ -165,10 +200,16 @@ describe("an applicant to the expired listing", () => {
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | ? "Expired before anyone was hired" | ? "Cancelled automatically"
 // @mutate supabase/functions/auto-expire-jobs/index.ts | expired: the scheduled time passed with no Helpr hired. | was automatically cancelled because the scheduled time passed.
 // @mutate src/lib/expiredListing.ts |     !job.helper_id && |     true &&
+// @mutate src/lib/expiredListing.ts |     !job.cancelled_by && |     true &&
+// @mutate src/lib/expiredListing.ts | `helper_id.not.is.null,cancelled_by.not.is.null, | `helper_id.not.is.null,
+// @mutate src/pages/user/useUserProfileData.ts | customer_id, helper_id, cancellation_reason, cancelled_by").eq("customer_id" | customer_id, helper_id, cancellation_reason").eq("customer_id"
 // @mutate src/lib/expiredListing.ts |   return (\n    job.status === "cancelled" && |   return false && (\n    job.status === "cancelled" &&
 // @mutate src/pages/user/JobsList.tsx |             {isExpiredListing(job) ? ( |             {false ? (
+// @mutate src/pages/user/useUserProfileData.ts | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS), | .eq("customer_id", userId!),
+// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |       COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND NOT |      COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND true OR NOT
+// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |       COUNT(*) FILTER (WHERE NOT (j.status = 'cancelled' |      COUNT(*) FILTER (WHERE true OR NOT (j.status = 'cancelled'
 // @mutate src/pages/user/JobsList.tsx |                 {job.customer_id === viewerId && ( |                 {false && (
 // @mutate src/pages/user/useUserProfileData.ts | .eq("status", "cancelled").or(NOT_AN_EXPIRED_LISTING_FILTER), | .eq("status", "cancelled"),
 // @mutate src/components/job-card/jobStatusLine.ts |   const expired = id === "cancelled" && isExpiredListing(job); |   const expired = false;
 // @mutate src/components/job-card/jobStatusLine.ts |   const reason = isExpiredListing(job) ? null : sanitizeCancellationReason(job.cancellation_reason); |   const reason = sanitizeCancellationReason(job.cancellation_reason);
-// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |         AND NOT (j.helper_id IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS cancelled_jobs | )::integer AS cancelled_jobs
+// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |         AND NOT (j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS cancelled_jobs | )::integer AS cancelled_jobs

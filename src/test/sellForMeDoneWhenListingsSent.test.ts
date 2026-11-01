@@ -7,6 +7,10 @@
 // @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx |           <ListForSellerPanel jobId={app.job_id} job={job} posterName={app.posterName} /> | {null}
 // @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx |           <ListForSellerPanel jobId={app.job_id} job={job} posterName={app.posterName} /> | {null}
 // @mutate src/components/declutter/DeclutterHomeView.tsx |       <ListedForYouCard /> | {null}
+// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | STABLE\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $function$ | STABLE\nSECURITY DEFINER\nSET search_path TO 'public'\nAS $function$
+// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  SELECT item_id INTO v_item | SELECT item_id INTO v_item
+// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  PERFORM public.declutter_list_for_seller_draft(p_item_id);\n  DELETE FROM | PERFORM public.declutter_list_for_seller_draft(p_item_id);\n  DELETE FROM
+// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | title text, price_cents integer, floor_price_cents integer, | title text, price_cents integer,
 //
 // LEAD-LIST-FOR-SELLER (owner 10-31 ~10:30 PM, POST-H3; lead decision): a "Have a Helpr list it" job is done for the
 // Helpr once they have SENT its listings to the seller for approval (never stranded waiting for the seller). Mark done
@@ -36,6 +40,37 @@ function linkTableGrants(): string[] {
   }
   return out;
 }
+
+const LFS = "supabase/migrations/20261101034159_declutter_list_for_seller.sql";
+
+/** Each function this migration creates: its name, its header (up to AS) and its body. Comment-blanked. */
+function lfsFunctions(): { name: string; head: string; body: string }[] {
+  const sql = blankSqlComments(readFileSync(resolve(ROOT, LFS), "utf8"));
+  const out: { name: string; head: string; body: string }[] = [];
+  for (const m of sql.matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.(\w+)\(([\s\S]*?)\bAS\s+(\$\w*\$)([\s\S]*?)\3/gi)) {
+    out.push({ name: m[1], head: flat(m[2]), body: m[4] });
+  }
+  return out;
+}
+
+describe("the list-for-seller functions (lh-authz-rls review, 11-01)", () => {
+  const fns = lfsFunctions();
+  it("every SECURITY DEFINER sets a search_path that ends in pg_temp", () => {
+    const definers = fns.filter((f) => /\bSECURITY DEFINER\b/i.test(f.head));
+    expect(definers.length).toBeGreaterThan(12);
+    expect(definers.filter((f) => !/SET search_path TO 'public', 'pg_temp'/.test(f.head)).map((f) => f.name)).toEqual([]);
+  });
+  it("every Helpr write refuses a banned caller", () => {
+    const writes = fns.filter((f) => /^declutter_helpr_(create|update|add|remove|delete|send)_/.test(f.name));
+    expect(writes.length).toBeGreaterThan(5);
+    expect(writes.filter((f) => !/IF public\.is_caller_banned\(\) THEN\s+RAISE EXCEPTION 'account_restricted'/.test(f.body)).map((f) => f.name)).toEqual([]);
+  });
+  it("the seller's approval card returns the lowest price the Helpr set", () => {
+    const f = fns.find((x) => x.name === "declutter_listed_for_me");
+    expect(f?.head).toMatch(/floor_price_cents integer/);
+    expect(flat(f?.body ?? "")).toMatch(/pv\.floor_price_cents, .*LEFT JOIN public\.declutter_item_private pv ON pv\.item_id = l\.item_id/);
+  });
+});
 
 describe("a Have a Helpr list it job is done once its listings are sent", () => {
   it("the jobs trigger and rpc_helper_mark_done both ask sell_for_me_listings_sent for declutter_help", () => {

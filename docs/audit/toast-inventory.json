@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1075,
+    "calls": 1077,
     "files": 299,
-    "rendering": 994,
+    "rendering": 996,
     "suppressedByPolicy": 81,
     "byKind": {
-      "confirmConsequential": 31,
+      "confirmConsequential": 32,
       "errorToast": 6,
       "successToast": 2,
       "toast": 181,
-      "toast.error": 740,
+      "toast.error": 741,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -18,8 +18,8 @@
     },
     "copyPiecesByForm": {
       "literal": 460,
-      "template": 96,
-      "dynamic": 570,
+      "template": 97,
+      "dynamic": 571,
       "jsx": 0
     }
   },
@@ -485,7 +485,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 123,
+      "line": 128,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -495,7 +495,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 196,
+      "line": 201,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -505,7 +505,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 206,
+      "line": 211,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -515,7 +515,27 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 244,
+      "line": 250,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "${h.helperName || \"Your Helpr\"}'s work is confirmed. They're paid on ${payoutDayLabel(payoutDueAt) ?? \"their pay day\"}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 260,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy ?? \"Couldn't confirm that Helpr's work. Please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 289,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -545,7 +565,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 260,
+      "line": 305,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -555,7 +575,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 307,
+      "line": 352,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6316,7 +6336,7 @@
     },
     {
       "file": "src/components/declutter/ListedForYouCard.tsx",
-      "line": 36,
+      "line": 35,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6336,7 +6356,7 @@
     },
     {
       "file": "src/components/declutter/ListedForYouCard.tsx",
-      "line": 37,
+      "line": 36,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6352,7 +6372,7 @@
     },
     {
       "file": "src/components/declutter/ListedForYouCard.tsx",
-      "line": 40,
+      "line": 39,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6362,7 +6382,7 @@
     },
     {
       "file": "src/components/declutter/ListedForYouCard.tsx",
-      "line": 44,
+      "line": 43,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6372,7 +6392,7 @@
     },
     {
       "file": "src/components/declutter/ListedForYouCard.tsx",
-      "line": 45,
+      "line": 44,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -10877,7 +10897,7 @@
     },
     {
       "file": "src/lib/nativePush.ts",
-      "line": 326,
+      "line": 332,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -12089,7 +12109,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 143,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12099,7 +12119,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 247,
+      "line": 248,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12109,7 +12129,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 285,
+      "line": 286,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12119,7 +12139,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 313,
+      "line": 314,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12129,7 +12149,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 351,
+      "line": 352,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12156,7 +12176,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 368,
+      "line": 369,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12166,7 +12186,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 454,
+      "line": 457,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12176,7 +12196,7 @@
     },
     {
       "file": "src/pages/messages/messagesData/sendHandlers.ts",
-      "line": 513,
+      "line": 516,
       "kind": "toast.error",
       "title": {
         "form": "literal",

@@ -1,9 +1,9 @@
 // Q713: the status-message insert stops skipping blocked participants (newest definition: 20261004001242).
-// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   WHERE p.participant IS NOT NULL\n    AND public.are_users_blocked(NEW.customer_id, p.participant) IS NOT TRUE |   WHERE p.participant IS NOT NULL
+// @mutate supabase/migrations/20261101011526_expired_listing_thread_notice_not_cancelled.sql |   WHERE p.participant IS NOT NULL\n    AND public.are_users_blocked(NEW.customer_id, p.participant) IS NOT TRUE |   WHERE p.participant IS NOT NULL
 // Q1169 review: the status notice's per-recipient cap loses its window (the dispute loop is unbounded again).
-// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql | AND d.created_at > now() - interval '10 minutes' | AND true
+// @mutate supabase/migrations/20261101011526_expired_listing_thread_notice_not_cancelled.sql | AND d.created_at > now() - interval '10 minutes' | AND true
 // Q1169 re-review: the latest-notice check stops comparing the text (a repeat of the same notice is sent again).
-// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql | WHERE last.content = v_content | WHERE false
+// @mutate supabase/migrations/20261101011526_expired_listing_thread_notice_not_cancelled.sql | WHERE last.content = v_content | WHERE false
 // Q1169: the send limit stops stepping aside for the platform's notices.
 // @mutate supabase/migrations/20261004001242_messages_status_notices_and_sender_writes.sql | IF NEW.is_system AND pg_trigger_depth() > 1 THEN | IF false THEN
 // Q1169: the trigger's count charges the platform's notices to the poster again.
@@ -464,7 +464,7 @@ describe("no INSERT trigger on messages that can raise can abort a server notice
 // Round-3 lh-authz-rls review of Q1169: the 6-per-10-minutes cap never holds
 // back a FINAL state (cancelled, completed), or a capped one leaves the thread
 // showing a live job. Behaviour: src/test/pglite/messageRateSparesStatusNotices.pglite.mjs L12.
-// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |       NEW.status::text IN ('cancelled', 'completed')\n      OR ( |       false\n      OR (
+// @mutate supabase/migrations/20261101011526_expired_listing_thread_notice_not_cancelled.sql |       NEW.status::text IN ('cancelled', 'completed')\n      OR ( |       false\n      OR (
 describe("the status-notice cap spares a final state (Q1169 round 3)", () => {
   it("insert_job_status_system_message's cap is OR'd with cancelled/completed", () => {
     const d = effectiveDefs(MIG).get("insert_job_status_system_message");

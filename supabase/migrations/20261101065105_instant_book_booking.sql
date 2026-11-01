@@ -451,3 +451,13 @@ BEGIN
   END IF;
 END
 $sync$;
+
+-- The unconfirmed-email write gate every public table carries (20260927234313); db-smoke's
+-- scripts/ci/unconfirmed-email-gate.sql was red on #3941 without it. Skips a table that already has it.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

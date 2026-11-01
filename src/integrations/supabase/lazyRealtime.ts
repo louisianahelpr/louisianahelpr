@@ -44,6 +44,10 @@ export class RealtimeChannel {
   private ensure(): Promise<RealChannel> {
     if (this.real) return Promise.resolve(this.real);
     this.making ??= this.client.real().then((c) => {
+      // Removed while realtime was still loading: make nothing. realtime-js hands back the open channel of the same
+      // topic, so a channel made here would be the one a NEWER stand-in of this name reuses (the presence channel is
+      // removed and reopened by name), and this removal would then close it under that one (lead review, 11-01).
+      if (this.removed) throw new Error("realtime channel removed before realtime-js loaded");
       const ch = c.channel(this.topic.replace(/^realtime:/, ""), this.params);
       for (const [type, filter, cb] of this.bindings) (ch.on as (...a: unknown[]) => unknown)(type, filter, cb);
       this.real = ch;
@@ -106,10 +110,11 @@ export class RealtimeChannel {
   async remove(): Promise<RemoveResult> {
     this.removed = true;
     if (this.real) return this.client.removeReal(this.real);
-    // Still loading: subscribe() sees `removed` and never opens it; drop the real one if it was being made.
+    // Still loading: ensure() sees `removed` and makes no real channel, so there is nothing of ours to drop. Only a
+    // real channel THIS stand-in made is ever removed, never one found by name.
     if (this.making) {
       const ch = await this.making.catch(() => null);
-      if (ch) return this.client.removeReal(ch);
+      if (ch && ch === this.real) return this.client.removeReal(ch);
     }
     return "ok";
   }

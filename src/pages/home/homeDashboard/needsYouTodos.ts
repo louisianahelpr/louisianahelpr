@@ -5,7 +5,8 @@ import { fetchPostedActivity, fetchAppliedActivity, CORE_STALE } from "@/hooks/u
 import { postedActivityBucket, appliedActivityBucket, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import { backoutNoticeApplies, backoutNoticesKey, useBackoutNotices, type BackoutNotice } from "@/lib/backoutNotices";
-import { fetchShopOrders, formatCents, type ShopOrder } from "@/lib/shops/orders";
+import type { ShopOrder } from "@/lib/shops/orders";
+import { formatCents } from "@/lib/shops/formatCents";
 import { queryKeys } from "@/lib/queryKeys";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { useFeature } from "@/hooks/useFeature";
@@ -196,7 +197,7 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
     staleTime: CORE_STALE,
   });
   // My shop's incoming orders: the same query (key and fetch) the Shop dashboard reads.
-  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => fetchShopOrders(uid), enabled: !!uid && shopsOn });
+  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => import("@/lib/shops/orders").then((m) => m.fetchShopOrders(uid)), enabled: !!uid && shopsOn });
   const backout = useBackoutNotices(uid || null);
 
   const queryClient = useQueryClient();

@@ -24,6 +24,7 @@
     "@electric-sql/pglite",
     "@microsoft/eslint-formatter-sarif",
     "@radix-ui/react-focus-scope",
+    "@supabase/auth-js",
     "@supabase/realtime-js",
     "@supabase/storage-js"
   ],

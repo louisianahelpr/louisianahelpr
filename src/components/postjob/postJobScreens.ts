@@ -5,7 +5,8 @@
  * renumbers. Guarded by src/test/postJobScreenNumbers.test.ts.
  */
 export const POST_JOB_SCREENS = [
-  { key: "start", rail: "How to start" },
+  // JA-41 (owner pick 2026-11-01): "How do you want to start?" is gone; the first screen is the group grid,
+  // with template / saved Helpr / AI as links on it (EntryChoice). Six screens.
   { key: "groups", rail: "What" },
   { key: "kind", rail: "Kind of job" },
   { key: "details", rail: "Details" },

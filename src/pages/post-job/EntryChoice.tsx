@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { FileText, ChevronRight, RotateCcw } from "lucide-react";
+import { FileText, ChevronRight } from "lucide-react";
 import { START_EMOJI } from "@/lib/categoryEmoji";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { sampleJobs } from "@/data/sampleJobs";
@@ -9,6 +9,7 @@ import { usePostedBefore, useRecentPostedJobs } from "@/hooks/useRecentPostedJob
 import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { ChoiceCard } from "@/components/ui/ChoiceCard";
+import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { OfferToSavedHelpr, useSavedHelpersLite } from "./OfferToSavedHelpr";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
@@ -49,19 +50,26 @@ import { useDraftCheckout } from "./useDraftCheckoutState";
  * 2026-10-17): a blank region during load is the defect class we avoid, and
  * only that rare case then sees the Repost card arrive.
  */
-export const ENTRY_BASE_CARD_COUNT = 4;
+/*
+ * JA-41 (owner pick, 2026-11-01): the first screen IS the group grid ("What do you need done?"), and the other
+ * ways to start (template, saved Helpr, AI, repost) are small links under it, so a tap is saved before the first
+ * field. The grid is static, so the skeleton draws the real grid (inert) and bones only for the data-dependent
+ * rows: the three links always, plus "Pick up your draft" and "Repost a recent job" once known. The counting rule
+ * above (job history decides Repost) is unchanged; the base is now the three links.
+ */
+export const ENTRY_BASE_CARD_COUNT = 3;
 
-/** Cards the column will hold, from what is known so far. */
+/** Data-dependent rows (links, plus the draft card) the column will hold, from what is known so far. */
 export function entryCardCount(known: { draftCard: boolean; repostCard: boolean }): number {
   return ENTRY_BASE_CARD_COUNT + (known.draftCard ? 1 : 0) + (known.repostCard ? 1 : 0);
 }
 
-function EntryChoiceSkeleton({ count }: { count: number }) {
+function EntryChoiceSkeleton({ draftCard, links, grid }: { draftCard: boolean; links: number; grid: ReactNode }) {
   return (
     <div className="flex flex-col gap-3" role="status" aria-busy="true" data-testid="entry-choice-skeleton">
       <span className="sr-only">Loading…</span>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="rounded-2xl border border-border bg-card p-card flex items-center" style={{ minHeight: "104px" }} aria-hidden>
+      {draftCard && (
+        <div data-entry-bone="" className="rounded-2xl border border-border bg-card p-card flex items-center" style={{ minHeight: "104px" }} aria-hidden>
           <div className="flex items-center gap-4 w-full">
             <Skeleton className="w-11 h-11 rounded-full shrink-0" />
             <div className="min-w-0 flex-1">
@@ -70,7 +78,16 @@ function EntryChoiceSkeleton({ count }: { count: number }) {
             </div>
           </div>
         </div>
-      ))}
+      )}
+      {/* The real grid, inert until the column lands: same tiles, same place, no jump. */}
+      <div inert aria-hidden>{grid}</div>
+      <div className="flex flex-col">
+        {Array.from({ length: links }).map((_, i) => (
+          <div key={i} data-entry-bone="" className="flex min-h-[44px] items-center" aria-hidden>
+            <Skeleton className="h-4 w-44 rounded" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -199,18 +216,39 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // The question paints with the screen; only the cards wait for their data.
   const startHeader = (
     <div className="mb-3">
-      <PostJobStepHeader screen="start" question="How do you want to start?" helper="Pick one. You can go back and change it." />
+      <PostJobStepHeader screen="groups" question="What do you need done?" helper="Search, or pick a category." />
     </div>
   );
+  // JA-41: a group tap starts the form at that group's kinds (screen 2); a one-category group or a search
+  // match is the category and goes on to Details. The 5-open-job cap stops it here (its notice sits above).
+  const groupGrid = (
+    <JobCategoryGroups
+      category={form.category}
+      setCategory={form.setCategory}
+      group={null}
+      setGroup={(g) => {
+        if (atOpenJobLimit || !g) return;
+        form.startFresh();
+        form.setFormPage(1);
+        form.setCategoryGroup(g);
+      }}
+      onPicked={() => {
+        if (atOpenJobLimit) return;
+        form.startFresh();
+        form.setFormPage(2);
+      }}
+    />
+  );
   if (!entryReady) {
+    const draftCard = form.draftLoaded && draftCheckoutSettled && form.hasDraft && draftCheckout !== "paid";
     const count = entryCardCount({
-      draftCard: form.draftLoaded && draftCheckoutSettled && form.hasDraft && draftCheckout !== "paid",
+      draftCard,
       repostCard: postedBefore === true,
     });
     return (
       <div className="flex flex-col gap-3">
         {startHeader}
-        <EntryChoiceSkeleton count={count} />
+        <EntryChoiceSkeleton draftCard={draftCard} links={count - (draftCard ? 1 : 0)} grid={groupGrid} />
       </div>
     );
   }
@@ -218,6 +256,20 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // The shared first-step card (owner 2026-10-30: Declutter's "What do you want to sell?" uses the same one).
   const startCard = (key: string, icon: ReactNode, title: string, line: string, onClick: () => void, extra?: ReactNode) => (
     <ChoiceCard key={key} icon={icon} title={title} line={line} onClick={onClick} extra={extra} />
+  );
+
+  // A small link under the grid (JA-41): 44px tall, one line, the way-to-start emoji before it.
+  const entryLink = (key: string, emoji: string, label: string, onClick: () => void) => (
+    <button
+      key={key}
+      type="button"
+      data-entry-link={key}
+      onClick={onClick}
+      className="flex min-h-[44px] w-fit items-center gap-2 font-sans text-ds-14 font-semibold text-[hsl(var(--bark))] underline-offset-2 hover:underline"
+    >
+      <span aria-hidden className="text-ds-15 leading-none">{emoji}</span>
+      {label}
+    </button>
   );
 
   // A way to start, opened in place of the cards (owner 2026-10-21: "tapping goes straight on"). The
@@ -231,7 +283,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     }[panel];
     return (
       <div className="space-y-section">
-        <PostJobStepHeader screen="start" question={head.q} helper={head.h} />
+        <PostJobStepHeader screen="groups" question={head.q} helper={head.h} />
         {panel === "templates" && (
           <>
             <div className="grid grid-cols-2 gap-2.5">
@@ -330,20 +382,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       {atOpenJobLimit && <OpenJobLimitNotice count={form.openJobCount ?? 5} />}
 
 
-      {/* 1 — START FRESH */}
-      {startCard("fresh", <span className="text-ds-20 leading-none">{START_EMOJI.fresh}</span>, "Start from scratch", "Pick a category and fill it in.", form.startFresh)}
-      {/* 2 — USE A TEMPLATE */}
-      {startCard("templates", <span className="text-ds-20 leading-none">{START_EMOJI.templates}</span>, "Use a template", "Start from a common job, then edit anything.", () => {
-        track("post_job_entry_choice", { choice: "use_template_open" });
-        form.setEntryPanel("templates");
-      })}
-      {/* 3 — OFFER TO A SAVED HELPR */}
-      {startCard("offer", <span className="text-ds-20 leading-none">{START_EMOJI.offer}</span>, "Offer to a saved Helpr", "Send it to someone you've saved before it opens to everyone.", () => form.setEntryPanel("offer"))}
-      {/* 4 — AI JOB BUILDER */}
-      {startCard("ai", <span className="text-ds-20 leading-none">{START_EMOJI.ai}</span>, "Get help from AI", "Describe it in your own words, and AI fills in the form.", () => form.setEntryPanel("ai"))}
-
       {/* 5 — LOAD DRAFT: only when a saved draft exists, and never for a draft whose job is already paid;
-          Q769 warns while its checkout is live. */}
+          Q769 warns while its checkout is live. Above the grid: picking up where you left off saves the most. */}
       {form.hasDraft && draftCheckout !== "paid" && (
         startCard(
           "draft",
@@ -353,20 +393,34 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
             : "Continue the request you saved earlier. A draft keeps your words, so add your photos and video again.",
           () => {
-            // F25: a draft with its category picked opens at Details (4 of 7), as a template does.
+            // F25: a draft with its category picked opens at Details, as a template does.
             if (form.loadDraftAndContinue()) form.setFormPage(2);
           },
         )
       )}
 
-      {/* 6 — REPOST A RECENT TASK: the same card and the same tap as the four
-          above (#54, audit 2026-10-21: it was the one accordion in a column of
-          rows that go straight on). The list opens in place of the cards, and
-          the page's back arrow returns here. */}
-      {hasRecent && startCard("repost", <RotateCcw className="h-5 w-5" />, "Repost a recent job", "The quickest way to ask for the same help again.", () => {
-        track("post_job_entry_choice", { choice: "repost_open" });
-        form.setEntryPanel("repost");
-      })}
+      {/* 1 — START FRESH (the group grid; a tap starts the form) */}
+      {/* JA-41 (owner pick 2026-11-01): the group grid is the first screen. */}
+      {groupGrid}
+
+      {/* The other ways to start, as small links (owner pick: "small links on that screen"). Each opens in place of
+          the grid; the page's back arrow returns here (handlePostJobBack). */}
+      <nav aria-label="Other ways to start" className="flex flex-col" data-testid="entry-start-links">
+        {/* 2 — USE A TEMPLATE */}
+        {entryLink("templates", START_EMOJI.templates, "Use a template", () => {
+          track("post_job_entry_choice", { choice: "use_template_open" });
+          form.setEntryPanel("templates");
+        })}
+        {/* 3 — OFFER TO A SAVED HELPR */}
+        {entryLink("offer", START_EMOJI.offer, "Hire a saved Helpr", () => form.setEntryPanel("offer"))}
+        {/* 4 — AI JOB BUILDER */}
+        {entryLink("ai", START_EMOJI.ai, "Describe it with AI", () => form.setEntryPanel("ai"))}
+        {/* 6 — REPOST A RECENT TASK */}
+        {hasRecent && entryLink("repost", "🔁", "Repost a recent job", () => {
+          track("post_job_entry_choice", { choice: "repost_open" });
+          form.setEntryPanel("repost");
+        })}
+      </nav>
     </div>
   );
 }

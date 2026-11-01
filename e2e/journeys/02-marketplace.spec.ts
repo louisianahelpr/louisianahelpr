@@ -298,7 +298,6 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("poster opens Post a job and starts fresh", async () => {
       await page.goto("/post-job");
-      await page.getByRole("button", { name: /Start from scratch/ }).click();
       await expect(page.getByRole("heading", { name: "What do you need done?" })).toBeVisible({ timeout: 30_000 });
       await assertHealthy(page, "post-job form");
       expect(await page.getByText(/pricing mode|accept bids|open to offers/i).count(), "a pricing-mode picker reappeared; add each mode to this journey").toBe(0);

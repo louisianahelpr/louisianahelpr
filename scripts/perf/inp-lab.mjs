@@ -150,7 +150,6 @@ export const SCENARIOS = {
     from: "/home",
     arrive: "button[aria-label='Post a new job']:visible, button:has-text('Post a job'):visible",
     steps: [
-      { tap: "button:has-text('Start from scratch')" },
       // Five screens (boards 23/44/3/45): category, details, price, when and where.
       { tap: "button:has-text('Home')" },
       { tap: "button[aria-pressed]:has-text('Cleaning')" },

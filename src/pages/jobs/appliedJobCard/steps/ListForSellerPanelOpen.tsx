@@ -5,7 +5,7 @@
  * can change one until it is sent, and never puts one on sale: the seller approves each (or all) on Selling. The job
  * counts as done for the Helpr once they are sent (the server's completion_requires_listings_sent until then).
  */
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { CATEGORIES } from "@/lib/declutter/categoryIcons";
 import { CONDITION_LABEL, SIZE_LABEL } from "@/components/declutter/declutterUi";
 import { formatPrice } from "@/lib/declutter/distance";
 import { posterFirstName } from "@/lib/deletedPerson";
+import { requestAiDraftFromPhotos, type DeliverySize } from "@/lib/declutter/api";
+import { AiPriceLine, SellAiDraftPanel, useSellAiDraft, withCoverFile, type AiFields } from "@/components/declutter/SellAiDraft";
 import {
   fetchHelprJobListings,
   helprCreateListing,
@@ -51,6 +53,21 @@ function ListingForm({ jobId, helprId, seller, editing, onDone }: {
   const [lowest, setLowest] = useState(editing && editing.floor_price_cents !== editing.price_cents ? cents(editing.floor_price_cents) : "");
   const [area, setArea] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
+  // The same photo draft and price suggestion as Sell one (lead 11-01): the photos on the device are read (never
+  // stored by the read), the empty fields are written, and "Write it again" asks once more. Only a NEW listing starts
+  // it by itself; an unsent draft being edited asks only when the Helpr taps.
+  const aiForm: AiFields = { title, description, category, deliverySize: size as DeliverySize, conditionStars: condition, price };
+  const setAiForm = useCallback((update: (f: AiFields) => AiFields) => {
+    const next = update({ title, description, category, deliverySize: size as DeliverySize, conditionStars: condition, price });
+    setTitle(next.title);
+    setDescription(next.description);
+    if (CATEGORIES.some((c) => c.key === next.category)) setCategory(next.category);
+    if (next.deliverySize in SIZE_LABEL) setSize(next.deliverySize as keyof typeof SIZE_LABEL);
+    setCondition(next.conditionStars);
+    setPrice(next.price);
+  }, [title, description, category, size, condition, price]);
+  const aiAsk = useMemo(() => (photos.length > 0 ? withCoverFile(photos, (f) => requestAiDraftFromPhotos(f)) : null), [photos]);
+  const ai = useSellAiDraft({ ask: aiAsk, form: aiForm, setForm: setAiForm, autoStart: !editing && photos.length > 0, photosAdded: photos.length });
   const save = useMutation({
     mutationFn: async () => {
       const priceCents = dollars(price);
@@ -82,6 +99,7 @@ function ListingForm({ jobId, helprId, seller, editing, onDone }: {
       <label className="block text-ds-13 font-medium">{editing ? `Add photos (has ${editing.photo_count})` : "Photos"}
         <Input type="file" accept="image/*" multiple className="mt-1" onChange={(e) => setPhotos(Array.from(e.target.files ?? []).slice(0, 12))} />
       </label>
+      {photos.length > 0 && <SellAiDraftPanel state={ai.state} onRun={ai.run} oneScreen />}
       <label className="block text-ds-13 font-medium">Title
         <Input className="mt-1" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
       </label>
@@ -105,6 +123,7 @@ function ListingForm({ jobId, helprId, seller, editing, onDone }: {
       </label>
       {/* One per line on a phone: side by side, "Same as price" was cut off at 375. */}
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+        {ai.state.status === "done" && <AiPriceLine draft={ai.state.draft} />}
         <label className="block text-ds-13 font-medium">Price ($)
           <Input className="mt-1" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
         </label>

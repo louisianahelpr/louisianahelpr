@@ -12,6 +12,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
  *
  * @mutate src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx |         await helprUpdateListing(id, fields); |         await helprCreateListing(jobId, fields, "x");
  * @mutate src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx |                     onClick={() => setEditingId(r.item_id)}>Edit</Button> |                     onClick={() => setAdding(true)}>Edit</Button>
+ * Lead 11-01: the add form gets Sell one's photo draft and garage-sale price suggestion (useSellAiDraft, AiPriceLine).
+ * @mutate src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx | autoStart: !editing && photos.length > 0, | autoStart: false,
+ * @mutate src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx |         {ai.state.status === "done" && <AiPriceLine draft={ai.state.draft} />} | 
  * @mutate src/lib/declutter/sellForMe.ts | once you've sent the listings to the seller for approval. | once the seller's listings are live on Declutter.
  */
 const lib = vi.hoisted(() => ({
@@ -23,6 +26,8 @@ const lib = vi.hoisted(() => ({
   helprUploadListingPhoto: vi.fn(),
 }));
 vi.mock("@/lib/declutter/listForSeller", () => lib);
+const aiLib = vi.hoisted(() => ({ requestAiDraftFromPhotos: vi.fn() }));
+vi.mock("@/lib/declutter/api", async (orig) => ({ ...(await orig<object>()), requestAiDraftFromPhotos: aiLib.requestAiDraftFromPhotos }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "helpr-1" } }) }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 
@@ -88,5 +93,23 @@ describe("the done note", () => {
     cleanup();
     const done = render(<SellForMeDoneNote job={{ category: "declutter_help", helper_completed_at: "2026-11-01T00:00:00Z" }} />);
     expect(done.container.textContent).toBe("");
+  });
+});
+
+describe("the photo draft and price suggestion (lead 11-01: the same as Sell one)", () => {
+  it("adding photos writes the listing and suggests a garage-sale price", async () => {
+    lib.fetchHelprJobListings.mockResolvedValue([]);
+    aiLib.requestAiDraftFromPhotos.mockResolvedValue({
+      title: "Oak rocking chair", description: "Solid oak, small scuff.", category: "furniture", deliverySize: "large",
+      conditionStars: 4, priceDollars: 25, priceReason: "Garage-sale price for a used oak chair", flagged: false,
+    });
+    const { container } = mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Add listing for Ann" }));
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["x"], "chair.jpg", { type: "image/jpeg" })] } });
+    await waitFor(() => expect(aiLib.requestAiDraftFromPhotos).toHaveBeenCalledTimes(1));
+    expect(await screen.findByDisplayValue("Oak rocking chair")).toBeTruthy();
+    expect(screen.getByDisplayValue("25")).toBeTruthy();
+    expect(screen.getByText("Suggested price: $25")).toBeTruthy();
   });
 });

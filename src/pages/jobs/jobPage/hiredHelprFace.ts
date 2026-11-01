@@ -17,7 +17,11 @@ import type { JobPageRow } from "./useJobPage";
  */
 export function hiredHelprFace(
   job: JobPageRow,
-  o: { userId: string; posterFirst: string | null; trackingStatus: string | null; doneFloorMinutes?: number; open: () => void; message: () => void },
+  o: {
+    userId: string; posterFirst: string | null; trackingStatus: string | null; doneFloorMinutes?: number; open: () => void; message: () => void;
+    /** JA-22: a finished, paid job this Helpr has not reviewed (the Working card's own owesReview), and how to review. */
+    owesReview?: boolean; review?: () => void;
+  },
 ): MineFaceAction | null {
   const row = job as unknown as Job;
   const workUnderway = helperProgress(row, o.trackingStatus).workUnderway;
@@ -32,8 +36,8 @@ export function hiredHelprFace(
   const face = helperFaceAction({
     isMinimalCard: false,
     isOffered: false,
-    owesReview: false,
-    review: o.open,
+    owesReview: !!o.owesReview && !job.is_group_job,
+    review: o.review ?? o.open,
     manage: o.open,
     open: o.open,
     step,
@@ -41,6 +45,7 @@ export function hiredHelprFace(
     wait: line.id,
     jobId: job.id,
     message: job.customer_id && !job.is_group_job ? { name: o.posterFirst || "them", onClick: o.message } : undefined,
+    posterId: job.customer_id ?? null,
   });
   // JOBS-27 (Jobs audit 10-30, h6-crew): a crew member's page fell through to the generic "Manage job". Their own
   // steps (on the way, arrived, photos, done) are on the crew roster in the Working card, so the button says that.

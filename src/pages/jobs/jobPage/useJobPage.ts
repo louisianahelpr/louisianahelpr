@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { queryKeys } from "@/lib/queryKeys";
+import { reviewWindowOpen } from "@/lib/reviewWindow";
 
 export interface JobPageRow {
   id: string;
@@ -185,6 +186,21 @@ function myPendingOfferQuery(jobId: string | undefined, enabled: boolean) {
     enabled: enabled && !!jobId,
     staleTime: 30 * 1000,
   };
+}
+
+/**
+ * JA-22 (Jobs audit 11-01): the hired Helpr owes a review of the poster on a finished, paid job (the Working card's own
+ * owesReview: paid or paying out, a poster to review, the review window open, no review of theirs on this job yet).
+ */
+export function useOwesReview(job: JobPageRow | undefined, userId: string, enabled: boolean): { owes: boolean; refetch: () => void } {
+  const may = enabled && !!job && job.helper_id === userId && !job.is_group_job && !!job.customer_id && job.status === "completed"
+    && (job.payment_status === "released" || job.payment_status === "payout_pending") && reviewWindowOpen(job);
+  const q = useQuery({
+    queryKey: ["job-page", "my-review", job?.id, userId],
+    queryFn: async () => unwrap(await supabase.from("reviews").select("job_id").eq("job_id", job!.id).eq("reviewer_id", userId).limit(1)),
+    enabled: may,
+  });
+  return { owes: may && q.isSuccess && (q.data ?? []).length === 0, refetch: () => void q.refetch() };
 }
 
 export function useOfferedToMe(jobId: string | undefined, enabled: boolean): boolean {

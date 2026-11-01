@@ -452,7 +452,10 @@ export function JobStepCard({
               pinned end into the popover — the `More` control lands where the
               chips it holds came from. */}
           {rowChips.lead}
-          {moreChips.length > 0 ? (
+          {/* ONE extra action is not a menu (owner 2026-11-01: "if no show is the only option then just remove the
+              more button bc there isn't really more"): it sits on the row itself, beside the primary. */}
+          {moreChips.length === 1 ? moreChips[0] : null}
+          {moreChips.length > 1 ? (
             <JobStepOverflowChip
               count={moreChips.length}
               /* THE PANEL IS THE ROW'S BOX, not the viewport's. Anchored to

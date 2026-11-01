@@ -335,8 +335,8 @@ export default function AdminShopsOrders() {
           <fieldset className="space-y-2">
             <legend className="text-sm font-semibold">Whose fault?</legend>
             {REFUND_REASONS.map((r) => (
-              <label key={r.value} className="flex items-start gap-2 text-sm">
-                <input type="radio" name="shop-refund-reason" value={r.value} checked={reason === r.value} onChange={() => setReason(r.value)} />
+              <label key={r.value} className="flex min-h-11 items-start gap-2 text-sm">
+                <input type="radio" className="mt-0.5 h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name="shop-refund-reason" value={r.value} checked={reason === r.value} onChange={() => setReason(r.value)} />
                 <span><span className="font-semibold">{r.label}.</span> {r.detail}</span>
               </label>
             ))}

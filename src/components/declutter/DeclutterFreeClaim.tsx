@@ -142,9 +142,9 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
         {oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} You pick a pickup time when you ask.{" "}
         {/* A text link inside the sentence (B106: as a <Button> it kept the global 44px button box, so the note's two
             lines sat 30px apart). link-standard gives it the 44px tap area as an overlay on a touch screen instead. */}
-        <button type="button" className="link-standard min-h-0 min-w-0 p-0 align-baseline text-xs font-semibold text-foreground underline underline-offset-2" onClick={() => setRules(true)} data-free-how="">
+        <Button type="button" variant="link" size="sm" className="h-auto min-w-0 p-0 align-baseline text-xs font-semibold text-foreground underline underline-offset-2" onClick={() => setRules(true)} data-free-how="">
           How it works
-        </button>
+        </Button>
       </p>
       {asking && (
         <Suspense fallback={null}>

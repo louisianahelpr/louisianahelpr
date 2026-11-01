@@ -129,13 +129,14 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
     const src = read("pages/post-job/EntryChoice.tsx");
     expect(src).toMatch(/recentPosted !== null && form\.openJobCount !== null/);
     // The question paints with the screen (owner 2026-10-21 step 0); only the cards wait.
-    expect(src).toMatch(/if \(!entryReady\) \{[\s\S]{0,500}\{startHeader\}\s*<EntryChoiceSkeleton count=\{count\} \/>/);
+    expect(src).toMatch(/if \(!entryReady\) \{[\s\S]{0,500}\{startHeader\}\s*<EntryChoiceSkeleton draftCard=\{draftCard\} links=\{count - \(draftCard \? 1 : 0\)\} grid=\{groupGrid\} \/>/);
     // Owner, 2026-10-01: the saved-helprs card renders for everyone, so it is
     // one of the four always-drawn cards and never hides itself. Owner,
     // 2026-10-03 (Q722, data-aware): the draft and repost cards are drawn only
     // once their read says they will show.
-    expect(src).toMatch(/export const ENTRY_BASE_CARD_COUNT = 4;/);
-    expect(src).toMatch(/draftCard: form\.draftLoaded && draftCheckoutSettled && form\.hasDraft && draftCheckout !== "paid",/);
+    // JA-41 (owner pick, 2026-11-01): the static group grid draws for real; the always-drawn rows are three links.
+    expect(src).toMatch(/export const ENTRY_BASE_CARD_COUNT = 3;/);
+    expect(src).toMatch(/const draftCard = form\.draftLoaded && draftCheckoutSettled && form\.hasDraft && draftCheckout !== "paid";/);
     expect(src).toMatch(/repostCard: postedBefore === true,/);
     expect(read("pages/post-job/OfferToSavedHelpr.tsx")).not.toMatch(/length === 0\) return null/);
   });

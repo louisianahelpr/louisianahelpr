@@ -25,6 +25,7 @@ import { describe, it, expect } from "vitest";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { jobLocalDateISO } from "./helpers/jobLocalDate";
 import { NOTIFICATION_TEMPLATES, noticeWhen, type TemplateFacts } from "../../supabase/functions/_shared/notification-templates";
 
 const JOB = "11111111-2222-3333-4444-555555555555";
@@ -42,7 +43,7 @@ function facts(name: string): TemplateFacts {
       id: JOB, status: "in_progress", title: "Move a couch", customer_id: poster ? SENDER : "c", helper_id: poster ? "h" : SENDER,
       response_deadline: "2026-11-07T15:00:00Z", dispute_status: "open",
       dispute_helper_response: "I did it", poster_confirmed_at: poster ? NOW.toISOString() : null,
-      helper_dayof_confirmed_at: poster ? null : NOW.toISOString(), date_needed: "2026-11-07",
+      helper_dayof_confirmed_at: poster ? null : NOW.toISOString(), date_needed: jobLocalDateISO(6, NOW), // "2026-11-07", from the fixed NOW
       poster_confirmed_arrival_at: NOW.toISOString(), poster_confirmed_working_at: NOW.toISOString(), payment_status: "released",
     },
     senderRole: poster ? "poster" : "helper",

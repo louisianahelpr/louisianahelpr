@@ -129,10 +129,11 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
       queryClient.setQueryData([...QUERY_KEY, user.id], next);
       setAgreed(false);
       setAskStop(false);
-      if (optIn) toast.success("Check your phone: reply YES and the 4-digit code in the text we just sent.");
-      else if (cancellingRequest) {
-        toast.success("Request cancelled. Text alerts stay off.");
-      } else toast.success("Text alerts are off.");
+      // One call (the suppressed-toast count only goes down: src/test/declutterHandoverConfirmationsShow.test.ts).
+      toast.success(
+        optIn ? "Check your phone: reply YES and the 4-digit code in the text we just sent."
+          : cancellingRequest ? "Request cancelled. Text alerts stay off." : "Text alerts are off.",
+      );
     } finally {
       setSaving(false);
     }
@@ -230,15 +231,17 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
                 </div>
               </div>
             ) : (
-              <button
+              <Button
                 type="button"
-                className="min-h-[44px] font-sans text-ds-13 font-semibold underline underline-offset-2"
+                variant="link"
+                size="sm"
+                className="px-0 font-sans text-ds-13 font-semibold underline underline-offset-2"
                 style={{ color: "hsl(var(--ink-deep) / 0.7)" }}
                 disabled={saving}
                 onClick={() => setAskStop(true)}
               >
                 Turn off text alerts
-              </button>
+              </Button>
             )}
           </>
         ) : (

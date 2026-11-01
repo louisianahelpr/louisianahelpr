@@ -99,11 +99,12 @@ describe("cold visits draw the zero state, warm visits the list", () => {
     expect(src).toMatch(/\) : !feedReady \? \(\s*\/\*[^*]*\*\/\s*<div/);
   });
 
-  it("post-job: four cards always, plus each conditional card only once its read says so", () => {
-    expect(ENTRY_BASE_CARD_COUNT).toBe(4);
-    expect(entryCardCount({ draftCard: false, repostCard: false })).toBe(4);
-    expect(entryCardCount({ draftCard: true, repostCard: false })).toBe(5);
-    expect(entryCardCount({ draftCard: true, repostCard: true })).toBe(6);
+  // JA-41 (owner pick, 2026-11-01): the group grid is static; the always-drawn rows are the three links under it.
+  it("post-job: three links always, plus each conditional card only once its read says so", () => {
+    expect(ENTRY_BASE_CARD_COUNT).toBe(3);
+    expect(entryCardCount({ draftCard: false, repostCard: false })).toBe(3);
+    expect(entryCardCount({ draftCard: true, repostCard: false })).toBe(4);
+    expect(entryCardCount({ draftCard: true, repostCard: true })).toBe(5);
   });
 
   it("profile tabs reviews and wrapped reserve their ZERO state, one block each", () => {

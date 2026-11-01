@@ -13,7 +13,8 @@ import { fetchLivePosition } from "@/lib/helprTasks/api";
 
 const TrackingMap = lazy(() => import("@/components/TrackingMap").then((m) => ({ default: m.TrackingMap })));
 
-const POLL_MS = 10_000;
+// At the app-wide poll floor (src/test/hotQueryLoad.test.ts, 15 s); the live row stays readable for 2 minutes.
+const POLL_MS = 15_000;
 
 /** "about 12 min away" (the server's rough ETA: road miles at 30 mph, straight to this stop). */
 export function etaWords(minutes: number): string {

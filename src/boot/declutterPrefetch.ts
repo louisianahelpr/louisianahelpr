@@ -17,6 +17,7 @@ import { startDeclutterMinePrefetch } from "./declutterMinePrefetch";
 
 /** Copy of FEATURE_SWITCH_KEYS in src/config/featureSwitches.ts (see above). */
 export const FIRST_SCREEN_SWITCH_KEYS = [
+  "instant_book",
   "switch_canary",
   "declutter",
   "declutter_moving_out",

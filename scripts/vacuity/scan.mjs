@@ -16,8 +16,8 @@
  *
  *   (b) MOUNT-WIRING.  A component test that renders the component itself
  *       proves the component works, never that anything mounts it. Detector:
- *       import graph over src/** — for each component under test, are any of
- *       its PARENTS rendered by any test anywhere?
+ *       import graph over src/** — for each component under test, is any
+ *       ancestor up to MOUNT_DEPTH (3) levels up rendered by any test anywhere?
  *
  *   (d) SELF-REFERENTIAL INVENTORY.  A hand-written list in the test file
  *       that is both the input and the oracle. Detector: iteration over a
@@ -252,16 +252,45 @@ export function scanMountWiring() {
     }
   }
 
+  return findMountGaps(mountedBy, renderedByTests);
+}
+
+/**
+ * How many production levels above a component a test may render and still
+ * count as proving the mount: parent, grandparent, great-grandparent. A test
+ * that renders an ancestor renders the whole chain below it (unless a level
+ * is mocked, which the import graph cannot see), so a page test that reaches
+ * a card three components down proves the card is mounted. Two levels missed
+ * real chains (SellItForMe: DeclutterSellPage -> DeclutterSellView ->
+ * SellOneScreen -> SellItForMe, lead 10-31).
+ */
+export const MOUNT_DEPTH = 3;
+
+/**
+ * Pure part of (b): `mountedBy` is module -> Set(production parents),
+ * `renderedByTests` is module -> Set(test files that render it). A module a
+ * test renders is a gap when nothing within MOUNT_DEPTH levels above it is
+ * rendered by any test.
+ */
+export function findMountGaps(mountedBy, renderedByTests, depth = MOUNT_DEPTH) {
   const findings = [];
   for (const [mod, testSet] of renderedByTests) {
     const parents = mountedBy.get(mod);
     if (!parents || parents.size === 0) continue; // a root/route: nothing mounts it
-    const anyParentCovered = [...parents].some((p) => {
-      if (renderedByTests.has(p)) return true;
-      const gp = mountedBy.get(p);
-      return gp && [...gp].some((g) => renderedByTests.has(g));
-    });
-    if (!anyParentCovered)
+    let level = new Set(parents);
+    const seen = new Set([mod]);
+    let covered = false;
+    for (let d = 1; d <= depth && level.size && !covered; d++) {
+      const next = new Set();
+      for (const p of level) {
+        if (seen.has(p)) continue;
+        seen.add(p);
+        if (renderedByTests.has(p)) { covered = true; break; }
+        for (const g of mountedBy.get(p) ?? []) next.add(g);
+      }
+      level = next;
+    }
+    if (!covered)
       findings.push({ module: mod, tests: [...testSet], parents: [...parents] });
   }
   return findings.sort((a, b) => a.module.localeCompare(b.module));

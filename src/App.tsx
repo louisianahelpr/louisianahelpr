@@ -584,9 +584,7 @@ const App = () => (
             <Suspense fallback={null}><TermsReconsentMount /></Suspense>
             <Suspense fallback={null}><IdentityCheckMount /></Suspense>
           </SignedInChrome>
-          <Suspense fallback={null}>
-            <PermissionRationaleMount />
-          </Suspense>
+          <Suspense fallback={null}><PermissionRationaleMount /></Suspense>
           </SidePanelProvider>
           <SpeedInsightsRouted />
         </OfflineBannerLayoutProvider>

@@ -15,7 +15,7 @@
  * @mutate src/components/dashboard/GuestJobPreview.tsx | onClick={() => onSignUp(job.id)} | onClick={() => onSignUp("")}
  * @mutate src/pages/home/DashboardGuest.tsx |     setDetailJob(job);\n | \n
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1; |   const helpers = 1;
- * @mutate src/components/dashboard/GuestJobPreview.tsx | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, fee, job) | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, fee, null)
+ * @mutate src/components/dashboard/GuestJobPreview.tsx | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, job) | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, null)
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : "You'd take home", value: `$${formatPriceFloor(net)}` }); |   if (job.budget) facts.push({ label: "Budget", value: `$${job.budget}` });
  * @mutate src/components/dashboard/GuestJobPreview.tsx |         <DialogFooter>\n | <DialogFooter><button onClick={onClose}>Not Now</button>\n
  * @mutate src/pages/home/DashboardGuest.tsx | <GuestJobPreview job={detailJob} | <GuestJobPreview job={{ ...detailJob, title: detailJob.description ?? "" }}

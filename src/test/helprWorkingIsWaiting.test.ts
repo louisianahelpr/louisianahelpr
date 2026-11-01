@@ -19,7 +19,7 @@
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |     if (j.id === liveJobId \|\| postedActivityBucket(j, n) !== "waiting") continue; |     if (postedActivityBucket(j, n) !== "waiting") continue;
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null) | deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa)
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { renderHook } from "@testing-library/react";
@@ -29,6 +29,8 @@ import { derivePosterWait, posterStatusLine, type PosterWait } from "@/component
 import { deriveNeedsYouTodos } from "@/pages/home/homeDashboard/needsYouTodos";
 import { deriveLiveNow, deriveWaiting } from "@/pages/home/homeDashboard/nextUpStates";
 import { blankComments } from "./helpers/blankNonCode";
+import { jobLocalDateISO } from "./helpers/jobLocalDate";
+import { pinJobClock } from "./helpers/pinJobClock";
 import type { Job } from "@/components/job-card/activityConstants";
 
 const FAR = "2099-01-02";
@@ -72,11 +74,14 @@ describe("an in-progress job is the poster's to-do only while a poster move is d
   }
 
   it("a start time that has passed with nobody checked in is the poster's move (Report no-show)", () => {
+    // Noon in Louisiana and the job's day in Central: the runner's own (UTC) calendar day turned this red on
+    // CI after 7 PM Central (train 9, 10-31), when "today" was already tomorrow in UTC.
+    pinJobClock();
     const now = new Date();
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    const j = job({ date_needed: today, start_time: "00:00" });
+    const j = job({ date_needed: jobLocalDateISO(0), start_time: "00:00" });
     expect(derivePosterWait(j, 0, now)).toBe("started_no_checkin");
     expect(postedActivityBucket(j, 0, now)).toBe("needs_you");
+    vi.useRealTimers();
   });
 
   it("a near-miss arrival in the last 12 hours is an arrival to confirm, like the ladder's", () => {

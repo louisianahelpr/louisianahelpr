@@ -320,7 +320,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     fireEvent.click(within(onMine).getByRole("button", { name: "Accept" }));
     let sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Sell it for $25?");
-    expect(sheet).toHaveTextContent("every other offer on it closes, and the buyer gets 48 hours to pay.");
+    expect(sheet).toHaveTextContent("every other offer on it closes, and the buyer gets 24 hours to pay.");
     expect(state.calls).toEqual([]);
     fireEvent.click(within(sheet).getByRole("button", { name: "Accept" }));
     await vi.waitFor(() => expect(state.calls).toEqual([["respond", "o1", "accept", null]]));
@@ -627,7 +627,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(checked).toBeGreaterThan(4);
     // Cancelled shows the refunded order and the checkout that ran out, and says nothing was charged for it.
     expect(screen.getByText("paid order o-refunded as buyer")).toBeInTheDocument();
-    expect(screen.getByText(/The 48 hours to check out ran out\. Nothing was charged\./)).toBeInTheDocument();
+    expect(screen.getByText(/The time to check out ran out\. Nothing was charged\./)).toBeInTheDocument();
   });
 
   it("Selling: your listings, the offers on your items, sales waiting to be paid and paid sales, every old action still there", async () => {

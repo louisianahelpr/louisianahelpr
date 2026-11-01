@@ -51,7 +51,8 @@ describe("the Declutter Free section", () => {
     // and #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql, the seller's link); the free branch's no-payout rule is asserted below.
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).
     // Then LEAD-B49-REBUILD (20261031214749: the seller's setup-fee notice line, restated from 20261028232338).
-    expect(newestFunction("declutter_complete_handover").file).toContain("20261031214749_seller_setup_fee_from_payout_restated.sql");
+    // Then BUY-36 (20261031231150: B49's body plus the buyer-collects case, reconciled in train 6).
+    expect(newestFunction("declutter_complete_handover").file).toContain("20261031231150_helpr_delivery_cant_finish.sql");
     // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     const names = ["declutter_free_rules",

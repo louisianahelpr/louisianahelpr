@@ -264,3 +264,27 @@ export async function posterConfirmMemberArrival(jobId: string, helperId: string
   }
   return stampOrThrow(data, "poster_confirmed_arrival_at", "rpc_poster_confirm_member_arrival");
 }
+
+/**
+ * THE POSTER'S PER-MEMBER NO-SHOW (JOBS-3, owner 2026-10-31: "a no-show member
+ * gets nothing + a strike; others are never held up"). After the start, on a
+ * member who confirmed but never checked in: rpc_poster_report_member_no_show
+ * (20261101031804) closes their spot, records the one no-show strike, tells
+ * them, and completes the crew at once if everyone else is already done. Their
+ * share goes back to the poster with the unfilled spots' refund at payout.
+ */
+export async function posterReportMemberNoShow(jobId: string, memberId: string): Promise<{ jobComplete: boolean }> {
+  const { data, error } = await supabase.rpc("rpc_poster_report_member_no_show", {
+    _job_id: jobId,
+    _member_id: memberId,
+  });
+  if (error) {
+    throw new CrewActionError(rpcErrorMessage("rpc_poster_report_member_no_show", error), error, error.message);
+  }
+  const d = (data ?? null) as Record<string, unknown> | null;
+  // The body names the member it struck; anything else is not proof the report landed.
+  if (!d || d.helper_id !== memberId) {
+    throw new CrewActionError(null, data, "rpc_poster_report_member_no_show returned no report");
+  }
+  return { jobComplete: d.job_complete === true };
+}

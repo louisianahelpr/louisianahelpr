@@ -37,6 +37,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |          AND a.helper_id = ANY (COALESCE(v_gone, '{}'::uuid[])) |          AND a.helper_id IS NOT NULL
 // @mutate src/pages/posts/postedJobCard/crewRefill.ts |   return job.status === "open" \|\| crewSpotRefillable(job, roster, now, closedSpots); |   return job.status === "open";
 // @mutate src/pages/posts/postedJobCard/PostedJobApplicants.tsx |   if (!takesApplicants(job, crewRoster, undefined, closedSpots)) return null; |   if (job.status !== "open") return null;
+// @mutate supabase/migrations/20261101031804_crew_member_no_show.sql | RAISE EXCEPTION 'job_not_started' | RAISE EXCEPTION 'job_not_begun'
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
@@ -66,6 +67,9 @@ const ROSTER_DELETERS: Record<string, string> = {
 };
 /** Deleters that never reopen anything: the completion roll-up closing spots still unconfirmed. */
 const CLOSES_UNCONFIRMED_AT_COMPLETION = ["rpc_group_member_mark_done"];
+/** JOBS-3 (20261101031804): the poster's per-member no-show, after the start. The spot is never re-offered
+ *  (a refill is a before-the-start rule) and the job is never reopened; its share is refunded at payout. */
+const CLOSES_NO_SHOW_AFTER_START = ["rpc_poster_report_member_no_show"];
 
 describe("Q1378: a booked crew a member leaves stays booked for the rest", () => {
   it("knows every function that deletes a roster row (exact, two-way)", () => {
@@ -74,8 +78,14 @@ describe("Q1378: a booked crew a member leaves stays booked for the rest", () =>
       .sort();
     expect(deleters.length, "the inventory read nothing: the parser is broken").toBeGreaterThan(2);
     expect(deleters, "a function takes members off a crew and is not checked for the rest-carry-on rule").toEqual(
-      [...Object.keys(ROSTER_DELETERS), ...CLOSES_UNCONFIRMED_AT_COMPLETION].sort(),
+      [...Object.keys(ROSTER_DELETERS), ...CLOSES_UNCONFIRMED_AT_COMPLETION, ...CLOSES_NO_SHOW_AFTER_START].sort(),
     );
+  });
+
+  it.each(CLOSES_NO_SHOW_AFTER_START)("%s closes a no-show's spot after the start and never reopens the job", (fn) => {
+    const b = body(fn);
+    expect(b).toMatch(/RAISE EXCEPTION 'job_not_started'/);
+    expect(b).not.toMatch(/SET status = 'open'/);
   });
 
   it.each(Object.entries(ROSTER_DELETERS))("%s reopens a crew only when nobody is left", (fn, del) => {

@@ -31,6 +31,7 @@ import {
   uploadGuaranteePhotos,
   type GuaranteeClaim,
   type GuaranteeJob,
+  guaranteeExplainerApplies,
 } from "@/lib/guarantee";
 
 // The summary panel's own card style (JobPageParts CARD): a card on a phone, a ruled section inside the panel from lg.
@@ -258,6 +259,8 @@ export function HelprGuaranteePanel({ job, userId, side }: { job: GuaranteeJob; 
   const enabled = !!side && job.status !== "open" && !job.is_group_job;
   const claim = useQuery({ queryKey: ["guarantee", job.id], queryFn: () => fetchGuaranteeClaim(job.id), enabled });
   if (side === "poster" && !job.is_group_job && !enabled) {
+    // JA-28: an open job (posted, not yet worked) cannot use the guarantee: no explainer yet.
+    if (!guaranteeExplainerApplies(job)) return null;
     return (
       <section aria-label="Helpr Guarantee" data-guarantee-panel="poster" className={CARD}>
         <p className="flex items-center gap-2 text-ds-15 font-semibold"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />Helpr Guarantee</p>
@@ -277,6 +280,8 @@ export function HelprGuaranteePanel({ job, userId, side }: { job: GuaranteeJob; 
     );
   }
   const ask = !claim.isError && canAskForFix(job, userId, c);
+  // JA-28: with no claim, the explainer only where the guarantee applies (Working to 48 h after Done, no open dispute).
+  if (!c && !ask && !guaranteeExplainerApplies(job)) return null;
   return (
     <section aria-label="Helpr Guarantee" data-guarantee-panel="poster" className={CARD}>
       <p className="flex items-center gap-2 text-ds-15 font-semibold"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />Helpr Guarantee</p>

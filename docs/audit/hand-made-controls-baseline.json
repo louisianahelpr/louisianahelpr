@@ -934,15 +934,12 @@
       "input": 1
     },
     "src/pages/auth/Login.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/pages/auth/ResetPassword.tsx": {
       "button": 1
     },
     "src/pages/auth/SignupPending.tsx": {
-      "button": 1
-    },
-    "src/pages/auth/signup/SignupStep1.tsx": {
       "button": 1
     },
     "src/pages/auth/signup/SignupStep2.tsx": {

@@ -275,7 +275,7 @@ describe("Home", () => {
       expect(live.textContent).toContain("Started 2:04 PM");
       // The one tracker (owner, 2026-10-21; 8 steps 2026-10-22): the same bar and next line as every job surface.
       expect(live.querySelector("[data-job-steps]")?.getAttribute("aria-label")).toMatch(/^Job progress, step 7 of 8: Working, waiting on the other person\./);
-      expect(live.querySelector("[data-job-progress-next]")?.textContent).toBe("Your Helpr is at the job");
+      expect(live.querySelector("[data-job-progress-next]")?.textContent).toBe("Your Helpr is working"); // Working has begun: the line matches the bar (workHasBegun, lead 2026-10-31)
       expect(live.compareDocumentPosition(screen.getByTestId("next-up")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       fireEvent.click(screen.getByTestId("live-now-action"));
       expect(screen.getByTestId("where").textContent).toBe("/jobs/l");

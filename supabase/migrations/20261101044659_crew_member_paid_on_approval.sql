@@ -35,7 +35,9 @@
 --      (escrow, or payout_pending whose job-wide payout is not due yet), the
 --      member approved at least crew_member_payout_delay() ago, frozen share,
 --      and NO live payout_transfers row for that member (pending, paid or
---      reversed). The cron's early pass pays these and NEVER refunds, closes
+--      reversed), except an orphaned claim (pending, no transfer id, older
+--      than the 2-minute in-flight window), which stays listed so the cron
+--      resumes it on the same idempotency key. The cron's early pass pays these and NEVER refunds, closes
 --      or releases the job; the normal pass later pays the rest once and
 --      settles once (Step 4's ledger guard skips the already-paid member).
 --   4. rpc_decide_crew_dispute, restated from its NEWEST definition
@@ -70,7 +72,7 @@ CREATE OR REPLACE FUNCTION public.rpc_poster_approve_member(_job_id uuid, _membe
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
   v_uid uuid := auth.uid();
@@ -165,7 +167,7 @@ RETURNS TABLE(job_id uuid, helper_id uuid)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
   SELECT g.job_id, g.helper_id
     FROM public.group_job_helpers g
@@ -194,7 +196,16 @@ AS $function$
      AND NOT EXISTS (
        SELECT 1 FROM public.payout_transfers t
         WHERE t.job_id = g.job_id AND t.helper_id = g.helper_id
-          AND t.status IN ('pending', 'paid', 'reversed'))
+          AND t.status IN ('pending', 'paid', 'reversed')
+          -- An ORPHANED claim (pending, no transfer id, past the 2-minute
+          -- in-flight window: OPEN_CLAIM_INFLIGHT_MS in
+          -- supabase/functions/_shared/payoutClaim.ts) does not hide the
+          -- member: a crashed or failed run leaves one, and the cron's claim
+          -- code resumes it with the SAME idempotency key (never a second
+          -- transfer). Without this the approved member waited for the whole
+          -- crew (lh-money-escrow review, 11-01).
+          AND NOT (t.status = 'pending' AND t.stripe_transfer_id IS NULL
+                   AND t.created_at < now() - interval '2 minutes'))
 $function$;
 
 REVOKE ALL ON FUNCTION public.crew_members_due_early_payout() FROM PUBLIC, anon, authenticated;
@@ -208,7 +219,7 @@ CREATE OR REPLACE FUNCTION public.rpc_decide_crew_dispute(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
   _uid uuid := (SELECT auth.uid());

@@ -25,6 +25,9 @@
  *      exactly M1                                                       RED before
  *   D2 ...and drops M1 once a pending, paid or reversed transfer exists;
  *      a dispute or a refund row on the job drops it too                RED before
+ *   D5 an orphaned claim (pending, no transfer id, past 2 minutes) keeps the
+ *      member listed for a resume on the same key; an in-flight one does not
+ *                                                                     RED before
  *   D3 a completed job: M1 stays due while the job-wide payout is not due,
  *      and leaves the list once it is (the normal pass pays everyone)   RED before
  *   D4 service_role only: a signed-in member cannot read the due list   RED before
@@ -129,7 +132,8 @@ CREATE TABLE public.crew_dispute_member_outcomes (
   slot_no integer NOT NULL, share_cents integer NOT NULL, member_outcome text NOT NULL CHECK (member_outcome IN ('pay', 'refund')),
   decided_by uuid, decided_at timestamptz NOT NULL DEFAULT now(), UNIQUE (dispute_id, helper_id));
 CREATE TABLE public.dispute_settlement_claims (job_id uuid PRIMARY KEY, action text, claimed_at timestamptz DEFAULT now(), money_step_at timestamptz);
-CREATE TABLE public.payout_transfers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid, status text, amount_cents integer);
+CREATE TABLE public.payout_transfers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid, status text, amount_cents integer,
+  stripe_transfer_id text, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.payment_refunds (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, source text);
 CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text, target_id uuid, target_type text, details jsonb);
 CREATE TABLE public.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, title text, message text, type text, link text, job_id uuid);
@@ -270,6 +274,18 @@ check("D2 a live transfer (pending/paid/reversed), a refund row or an open dispu
     && d2.refund?.length === 0 && d2.openDispute?.length === 0 && d2.clear?.length === 1,
   JSON.stringify(d2));
 
+// D5 (lh-money-escrow review 11-01): an ORPHANED claim (pending, no transfer id, past the 2-minute in-flight
+// window) keeps M1 listed so the cron resumes it on the same key; a fresh claim, or one with a transfer id, does not.
+const d5 = {};
+for (const [k, id, ageMin] of [["orphan", "NULL", 10], ["inFlight", "NULL", 0.5], ["settledPending", "'tr_1'", 10]]) {
+  await db.exec(`DELETE FROM public.payout_transfers; INSERT INTO public.payout_transfers (job_id, helper_id, status, amount_cents, stripe_transfer_id, created_at)
+    VALUES ('${CREW}', '${M1}', 'pending', 2700, ${id}, now() - interval '${ageMin * 60} seconds')`);
+  d5[k] = await due();
+}
+await db.exec(`DELETE FROM public.payout_transfers`);
+check("D5 an orphaned claim (pending, no transfer id, > 2 min) keeps M1 due; an in-flight claim or a sent transfer hides M1",
+  d5.orphan?.length === 1 && d5.inFlight?.length === 0 && d5.settledPending?.length === 0, JSON.stringify(d5));
+
 // D3
 await db.exec(`UPDATE public.jobs SET status = 'completed', payment_status = 'payout_pending', payout_scheduled_at = now() + interval '1 day' WHERE id = '${CREW}'`);
 const d3Early = await due();
@@ -323,7 +339,7 @@ check("P1 crew_member_payout_delay() is 3 days", p1.ok && p1.rows[0].d === "3 da
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 if (BEFORE) {
   // Only X3 (the control) holds without the migration.
-  const expected = 11;
+  const expected = 12;
   console.log(failures === expected ? `RED as expected (${failures}/${expected})` : `NOT RED: ${failures}/${expected} failed`);
   process.exit(failures === expected ? 0 : 1);
 }

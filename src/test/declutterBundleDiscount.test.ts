@@ -36,8 +36,8 @@ describe("Q2427 bundle discounts: the server", () => {
       "declutter_start_checkout", "declutter_my_cart", "declutter_seller_delivery_check"];
     // declutter_start_checkout and declutter_my_cart: restated by 20261028235247 (the ways the seller ticked), the bundle rule kept;
     // declutter_my_cart again by DB-5 (20261030064929, each line's source) and DC-18 (20261030131715, the kept title and
-    // closed_at), the bundle rule kept (asserted below).
-    const RESTATED: Record<string, string> = { declutter_start_checkout: "20261101032626", declutter_my_cart: "20261030131715" };
+    // closed_at), and 20261101175510 (test items left out of the cart), the bundle rule kept (asserted below).
+    const RESTATED: Record<string, string> = { declutter_start_checkout: "20261101032626", declutter_my_cart: "20261101175510" };
     // declutter_start_checkout: restated again by 20261101032626 (BUY-1 follow-up: no new page after the hold + 10 min, two predicates only), 20261030164712 (D-NEW14 porch places, insertion only) and 20261031164337
     // (LEAD-PLACE-TIMES: door pickup at the place, one condition), the bundle rule kept.
     for (const n of names) expect(newestFunction(n).file, n).toContain(RESTATED[n] ?? FILE);
@@ -93,7 +93,9 @@ describe("Q2427 bundle discounts: the screens", () => {
   });
 
   it("the item page's bundle row says the offer; Declutter settings shows the setting; no fee numbers in the new copy", () => {
-    expect(read("src/components/declutter/DeclutterBundleRow.tsx")).toContain("{bundleLabel(rule.data)}.");
+    // The row's summary hook names the rule (bundleLabel) and the row prints it as its own sentence.
+    expect(read("src/components/declutter/DeclutterBundleRow.tsx")).toContain("bundleLabel(rule.data)");
+    expect(read("src/components/declutter/DeclutterBundleRow.tsx")).toContain("{b.offer}.</span>");
     // LEAD-BUNDLE-DROPDOWN (2026-10-31): a row in Listing defaults (on Declutter settings), under the free-after row.
     expect(read("src/components/declutter/DeclutterListingDefaults.tsx")).toContain("<BundleDiscountCard />");
     expect(read("src/pages/declutter/DeclutterSettingsPage.tsx")).toContain("<ListingDefaultsCard userId={user.id} />");

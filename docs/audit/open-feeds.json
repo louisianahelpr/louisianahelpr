@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-01T11:36Z",
+  "measured_at": "2026-11-01T11:50Z",
   "issues": {
     "readable": true,
     "open": [
@@ -126,13 +126,6 @@
         "title": "nightly-red: code-scanning-alerts",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41203680439",
-        "runTruncated": false
-      },
-      {
-        "number": 3933,
-        "title": "nightly-red: main: Supabase DB Deploy",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41297086460",
         "runTruncated": false
       }
     ]
@@ -1019,7 +1012,6 @@
     "issue #3833": "Q1816",
     "issue #3846": "Q1816",
     "issue #3875": "Q1816",
-    "issue #3933": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 043a7a13b735": "Q2545",

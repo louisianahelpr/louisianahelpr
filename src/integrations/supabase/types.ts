@@ -16470,6 +16470,10 @@ export type Database = {
         Args: { p_anchor: string; p_job_id: string; p_reason: string }
         Returns: boolean
       }
+      get_my_activity_cores: {
+        Args: { p_application_columns: string[]; p_job_columns: string[] }
+        Returns: Json
+      }
       get_my_job_card_hold: {
         Args: { p_job_id: string }
         Returns: {

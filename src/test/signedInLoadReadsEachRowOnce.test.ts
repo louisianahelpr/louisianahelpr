@@ -69,7 +69,7 @@ describe("a signed-in page load reads each row once (Q104)", () => {
     const notif = calls.reads.filter((r) => r.table === "notifications");
     expect(notif).toHaveLength(2);
     expect(notif.filter((r) => (r.opts as { head?: boolean } | undefined)?.head)).toHaveLength(0);
-    // Every unread row is counted, not the 50 the page returns.
+    // Every unread row is counted, not only the rows the page returns.
     expect(getNotificationSnapshot().unreadTotal).toBe(73);
   });
 

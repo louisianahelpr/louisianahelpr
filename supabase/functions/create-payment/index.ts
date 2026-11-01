@@ -2948,7 +2948,7 @@ serve(async (req) => {
             jobId, path: "cancel_escrow", why: "its claim holder could not be recorded", restoreTo: restoreTo ?? null, dbError: backErr?.message ?? null,
           });
         } else {
-          await deleteRefundClaim(supabaseAdmin, jobId);
+          await deleteRefundClaim(supabaseAdmin, jobId, "cancel_escrow");
         }
         return new Response(JSON.stringify({
           error: "Couldn't start the cancellation. No money was moved — try again.",
@@ -2994,7 +2994,7 @@ serve(async (req) => {
             });
           } else if (job.payment_status === "escrow") {
             // A re-entered claim keeps its row (lh-authz-rls re-review of Q1323).
-            await deleteRefundClaim(supabaseAdmin, jobId);
+            await deleteRefundClaim(supabaseAdmin, jobId, "cancel_escrow");
           }
           if (crewNowErr) {
             console.error(`[create-payment] cancel_escrow post-claim roster check failed for job ${jobId}: ${crewNowErr.message}`);
@@ -3040,7 +3040,7 @@ serve(async (req) => {
           });
           return false;
         }
-        await deleteRefundClaim(supabaseAdmin, jobId);
+        await deleteRefundClaim(supabaseAdmin, jobId, "cancel_escrow");
         return true;
       };
       // A sandbox payment or session seen through the live key: nothing real to
@@ -4659,7 +4659,7 @@ serve(async (req) => {
           });
         } else {
           generalClaimHeld = false;
-          await deleteRefundClaim(supabaseAdmin, jobId);
+          await deleteRefundClaim(supabaseAdmin, jobId, "admin_refund_general");
         }
       };
       if (wantsFullRefund) {
@@ -5987,9 +5987,14 @@ async function recordRefundClaim(supabaseAdmin: any, jobId: string, by: RefundCl
   return Array.isArray(data) && data.length > 0;
 }
 
-/** The claim was put back: its holder row goes with it, so a stale row can never vouch for a later claim. */
-async function deleteRefundClaim(supabaseAdmin: any, jobId: string): Promise<void> {
-  const { error } = await supabaseAdmin.from("job_refund_claims").delete().eq("job_id", jobId).select("job_id");
+/**
+ * The claim was put back: its holder row goes with it, so a stale row can never vouch for a later claim.
+ * Only the caller's OWN holder row (money review of CMP-4, 2026-11-01): a delete by job_id alone could remove
+ * another path's live claim, such as the 'instant_book_refund' claim instant_book_captured_not_hired writes, and
+ * leave that automatic refund with nothing to retry it.
+ */
+async function deleteRefundClaim(supabaseAdmin: any, jobId: string, by: RefundClaimHolder): Promise<void> {
+  const { error } = await supabaseAdmin.from("job_refund_claims").delete().eq("job_id", jobId).eq("claimed_by", by).select("job_id");
   if (error && !MISSING_TABLE.has(String((error as { code?: string }).code ?? ""))) {
     console.error(`[create-payment] job_refund_claims delete failed for job ${jobId} after its claim was put back:`, error.message);
   }

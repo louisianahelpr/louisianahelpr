@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/DeclutterPaySettling.tsx | the order moves to Buying once | the order moves to Purchases once
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "meetup" ? "Meeting" : "Pickup"}: <span | Pickup: <span
  * BUY-18: a free item has no payment, and a porch claim picks a day.
- * @mutate src/components/declutter/DeclutterBundleRow.tsx | {item.current_price_cents === 0 ? "Get them together: one pickup." : pickup ? | {pickup ?
+ * @mutate src/components/declutter/DeclutterBundleRow.tsx | {b.free ? "Get them together: one pickup." : b.pickup ? | {b.pickup ?
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {confirm.isPending ? "Confirming…" : "Confirm and pick a time"} | {confirm.isPending ? "Confirming…" : chosen === "porch" ? "Confirm and pick a day" : "Confirm and pick a time"}
  * BUY-19: Make an offer opens the box ready to type.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   useEffect(() => { if (open) offerBox.current?.focus(); }, [open]);\n |

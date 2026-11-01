@@ -233,12 +233,14 @@ export function DeclutterQuestions({
   return (
     <section className="space-y-3" aria-labelledby="declutter-questions">
       <h2 id="declutter-questions" className="text-base font-semibold">
-        Questions{list.length > 0 ? ` · ${list.length}` : ""}
+        {/* Owner mockup 11-01: "Questions (N)", the count always. */}
+        Questions ({questions.isLoading ? 0 : list.length})
       </h2>
       {questions.isError ? (
         <ErrorState variant="inline" title="We couldn't load the questions." body={declutterErrorMessage(questions.error)} onRetry={() => void questions.refetch()} />
       ) : questions.isLoading ? null : list.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No questions yet.</p>
+        // Owner mockup 11-01: the one-line box says it already; "No questions yet" only where nobody can ask here.
+        canAsk ? null : <p className="text-sm text-muted-foreground">No questions yet.</p>
       ) : (
         <ul className="space-y-2">
           {list.map((q) => (
@@ -254,7 +256,7 @@ export function DeclutterQuestions({
             if (text.length >= 2) ask.mutate(text);
           }}
         >
-          <label htmlFor="declutter-question" className="block text-ds-15 font-semibold">Ask a question</label>
+          <label htmlFor="declutter-question" className="sr-only">Ask a question</label>
           <div className="flex gap-2">
             <input
               id="declutter-question"

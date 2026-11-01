@@ -113,7 +113,7 @@ async function openAnswerSheet() {
 describe("board 162: public questions", () => {
   it("buyer: the count, who answered, who it waits for, and a note that never offers messaging", async () => {
     renderIt({ isSeller: false, canAsk: true });
-    expect(await screen.findByRole("heading", { name: "Questions · 2" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Questions (2)" })).toBeInTheDocument();
     const cards = await screen.findAllByRole("listitem");
     expect(cards.length).toBeGreaterThan(1);
     expect(within(cards[0]).getByText("Asked by a neighbor · today")).toBeInTheDocument();

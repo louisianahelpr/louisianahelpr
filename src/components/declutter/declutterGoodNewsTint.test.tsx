@@ -16,6 +16,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = vi.hoisted(() => ({ offers: [] as unknown[] }));
 
+// A3-49: the seller's waiting line reads the buyer's first name; the tint is what this file checks.
+vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: null, name: null, avatarUrl: null, first: null, who: "the buyer" }) }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/lib/declutter/api", () => ({

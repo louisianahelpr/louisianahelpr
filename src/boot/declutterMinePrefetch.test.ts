@@ -14,16 +14,16 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
-import { DECLUTTER_MINE_PREFETCH_KEY, declutterMineUrls, MY_ITEMS_SELECT } from "./declutterMinePrefetch";
+import { ASKABLE_STATUSES, DECLUTTER_MINE_PREFETCH_KEY, declutterMineUrls, MY_ITEMS_SELECT, unansweredQuestionsUrl } from "./declutterMinePrefetch";
 import { DECLUTTER_PREFETCH_KEY, startDeclutterPrefetch } from "./declutterPrefetch";
-import { DECLUTTER_MINE_PREFETCH_MAX_AGE_MS, takeMinePrefetch } from "@/lib/declutter/minePrefetchTake";
+import { DECLUTTER_MINE_PREFETCH_MAX_AGE_MS, takeMinePrefetch, takeMineQuestions } from "@/lib/declutter/minePrefetchTake";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { walkSource } from "@/test/helpers/walkSource";
 
 const db = vi.hoisted(() => ({ calls: [] as string[], uid: "11111111-2222-4333-8444-555555555555" as string | null }));
 vi.mock("@/integrations/supabase/client", () => {
   const settle = (v: unknown) => Promise.resolve({ data: v, error: null, status: 200 });
-  const chain = { select: () => chain, eq: () => chain, order: () => settle([{ id: "server" }]) };
+  const chain = { select: () => chain, eq: () => chain, in: () => chain, is: () => chain, order: () => settle([{ id: "server" }]) };
   return {
     supabase: {
       auth: { getSession: async () => ({ data: { session: db.uid ? { user: { id: db.uid } } : null } }) },
@@ -167,5 +167,59 @@ describe("/declutter's tab-row reads start from the entry (B81)", () => {
     await api.fetchMyCart();
     await api.fetchMyItems("someone-else");
     expect(db.calls).toEqual(["declutter_my_cart", "declutter_items"]);
+  });
+});
+
+/**
+ * B82 (2026-11-01): with listings on sale the tab row also waits on the unanswered-questions read; it now starts from
+ * the entry as soon as the listings answer (lab: Selling and Buying waited ~0.6 s on it after the app drew).
+ *
+ * @mutate src/lib/declutter/api.ts |   const prefetched = await takeMineQuestions(itemIds, signedInUserIdForQuestions);\n  if (prefetched) return prefetched as Pick<DeclutterQuestion, "id" \| "item_id" \| "question" \| "created_at">[]; |
+ * @mutate src/boot/declutterMinePrefetch.ts | export const ASKABLE_STATUSES = ["live", "paused"]; | export const ASKABLE_STATUSES = ["live"];
+ */
+describe("the questions on the listings on sale start from the entry too (B82)", () => {
+  const listed = (url: string) =>
+    url.includes("declutter_questions") ? [{ id: "q1", item_id: "b" }]
+    : url.includes("declutter_items") ? [{ id: "b", status: "live" }, { id: "a", status: "paused" }, { id: "c", status: "sold" }]
+    : [];
+
+  it("its URL is the one supabase-js builds for fetchUnansweredQuestions, over the same statuses", () => {
+    const sb = createClient(BASE, "k");
+    const ids = ["a", "b"];
+    const want = (sb.from("declutter_questions").select("id, item_id, question, created_at").in("item_id", ids).is("answer", null).is("removed_at", null)
+      .order("created_at", { ascending: true }) as unknown as { url: URL }).url.toString();
+    expect(unansweredQuestionsUrl(BASE, ids)).toBe(want);
+    const src = code("src/lib/declutter/api.ts");
+    expect(src).toContain('.select("id, item_id, question, created_at")\n      .in("item_id", itemIds)\n      .is("answer", null)\n      .is("removed_at", null)\n      .order("created_at", { ascending: true })');
+    const askable = /const ASKABLE = new Set\((\[[^\]]*\])\)/.exec(code("src/components/declutter/SellerQuestionsToAnswer.tsx"))?.[1];
+    expect(JSON.parse(askable ?? "null")).toEqual(ASKABLE_STATUSES);
+  });
+
+  it("asks about the listings on sale, and fetchUnansweredQuestions takes it once with no server read", async () => {
+    signIn();
+    const f = answering(listed);
+    vi.stubGlobal("fetch", f);
+    startDeclutterPrefetch("/declutter");
+    expect(await api.fetchUnansweredQuestions(["a", "b"])).toEqual([{ id: "q1", item_id: "b" }]);
+    expect(db.calls, "no second read").toEqual([]);
+    const asked = f.mock.calls.map((c) => String(c[0])).find((u) => u.includes("declutter_questions"));
+    expect(asked).toBe(unansweredQuestionsUrl(BASE, ["a", "b"]));
+    await api.fetchUnansweredQuestions(["a", "b"]);
+    expect(db.calls, "a refetch reaches the server").toEqual(["declutter_questions"]);
+  });
+
+  it("other listings, another member, or nothing on sale: the page asks for itself", async () => {
+    signIn();
+    vi.stubGlobal("fetch", answering(listed));
+    startDeclutterPrefetch("/declutter");
+    expect(await takeMineQuestions(["a"], UID), "a different set of listings").toBeNull();
+    startDeclutterPrefetch("/declutter");
+    expect(await takeMineQuestions(["a", "b"], "someone-else")).toBeNull();
+    await new Promise((r) => setTimeout(r, 0)); // the earlier starts' chained reads are done
+    const f = answering((u) => (u.includes("declutter_items") ? [{ id: "c", status: "sold" }] : []));
+    vi.stubGlobal("fetch", f);
+    startDeclutterPrefetch("/declutter");
+    expect(await takeMineQuestions(["c"], UID)).toBeNull();
+    expect(f.mock.calls.some((c) => String(c[0]).includes("declutter_questions")), "nothing on sale, nothing asked").toBe(false);
   });
 });

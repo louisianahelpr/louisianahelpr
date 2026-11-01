@@ -19,7 +19,7 @@ import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { freeClaimFeeRefusal, openFreeClaimFirstTime, promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
-import { takeMinePrefetch } from "@/lib/declutter/minePrefetchTake";
+import { takeMinePrefetch, takeMineQuestions } from "@/lib/declutter/minePrefetchTake";
 import { takeFirstScreenDropStates, takeFirstScreenItems, takeFirstScreenPhotos, takeFirstScreenWatching } from "@/lib/declutter/bootPrefetch";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
@@ -416,8 +416,13 @@ export async function fetchMyQuestionIds(itemId: string): Promise<Set<string>> {
  * myItemsQuery), oldest first, for Selling's "To answer". The table read keeps asker_id out (members have no grant
  * on it); its row policy hides removed questions.
  */
+const signedInUserIdForQuestions = async () => (await supabase.auth.getSession()).data.session?.user.id;
+
 export async function fetchUnansweredQuestions(itemIds: string[]): Promise<Pick<DeclutterQuestion, "id" | "item_id" | "question" | "created_at">[]> {
   if (!itemIds.length) return [];
+  // B82: started at boot on a cold /declutter (src/boot/declutterMinePrefetch.ts) for these same listings; taken once.
+  const prefetched = await takeMineQuestions(itemIds, signedInUserIdForQuestions);
+  if (prefetched) return prefetched as Pick<DeclutterQuestion, "id" | "item_id" | "question" | "created_at">[];
   const rows = unwrap(
     await supabase
       .from("declutter_questions")

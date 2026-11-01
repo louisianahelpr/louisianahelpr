@@ -74,7 +74,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-v1I7UTW/WshucfZxdbq6Jd3h4asS3NxvHGFyzLrVaSA=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-v1I7UTW/WshucfZxdbq6Jd3h4asS3NxvHGFyzLrVaSA=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-AXm2TLBv4U1d/F/T3/dcAbe1QntzVJRWEySfKMS4y9o=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -110,6 +110,8 @@
       type="font/woff2"
       href="/fonts/bodoni-moda-normal-latin.woff2"
       crossorigin
+      data-lh-hero-font
+      media="not all"
     />
     <link
       rel="preload"
@@ -131,7 +133,25 @@
       type="font/woff2"
       href="/fonts/bodoni-moda-italic-latin.woff2"
       crossorigin
+      data-lh-hero-font
+      media="not all"
     />
+    <!-- B53 (10-31, Speed: Home on Slow 4G 3.4 s against the 2 s rule). The two Bodoni preloads above (42 KB) are
+         the landing hero's: measured on a production build at 375 (own Chromium, mocked session), at first useful
+         content /home, /declutter, /messages, /browse, /posts, /activity, /profile, /dashboard, /search and guest
+         /login, /signup, /browse draw no Bodoni; "/" draws both faces in its H1. Preloaded everywhere they took
+         bandwidth from Home's first screen: with this, /home Slow 4G read 3.38-3.50 s at 517 KB against
+         3.43-3.82 s at 558 KB (same build, interleaved runs, 2026-10-31). So they are
+         off (media="not all" fetches nothing) except on "/" (Q371 unchanged there), and src/App.tsx turns them on
+         once the page has settled (whenPageSettled), so a later Bodoni heading still finds them cached.
+         Guard: src/test/heroFontsPreloadOnlyOnTheLanding.test.ts. -->
+    <script>
+      (function () {
+        if ((location.pathname.replace(/\/+$/, "") || "/") !== "/") return;
+        var fonts = document.querySelectorAll("link[data-lh-hero-font]");
+        for (var i = 0; i < fonts.length; i++) fonts[i].media = "all";
+      })();
+    </script>
     <!-- Preconnect to Supabase to shorten the longest network dependency chain (LCP/data fetches) -->
     <link rel="preconnect" href="https://fncmgoasalhdgfwzhsqa.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://fncmgoasalhdgfwzhsqa.supabase.co" />

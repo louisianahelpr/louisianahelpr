@@ -55,6 +55,11 @@ const loadAnimatedPageTransition = () =>
     AnimatedPageTransition = m.default;
   });
 whenPageSettled(() => {
+  // B53: index.html holds the landing hero's Bodoni preloads back off "/" (no other first screen draws Bodoni, and
+  // they took Home's bandwidth); warm them now, so a later Bodoni heading finds them cached.
+  document.querySelectorAll<HTMLLinkElement>("link[data-lh-hero-font]").forEach((link) => {
+    link.media = "all";
+  });
   void loadAnimatedPageTransition().catch(() => {
     /* the swipe-back is a convenience: without it pages still render, and the back button still works */
   });

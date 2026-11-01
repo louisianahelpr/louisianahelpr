@@ -166,6 +166,30 @@ async function startCheckout(asBuyer: Db, sellerId: string, handover: string, sl
  * default #1). The RPC stays the protection; this is only the order of steps.
  * null = could not tell (the caller answers "try again").
  */
+/**
+ * B112 (B110 leftover 3): a changed pickup time is checked BEFORE the buyer's open page is closed, by the rule
+ * declutter_start_checkout applies (20261101191500): ahead, inside the 7-day pickup deadline, and inside the order's
+ * hours (declutter_checkout_pickup_end, read on the open order and its frozen place). Before this, the page was closed
+ * first and the RPC then refused the new time, so an invalid pick cost the buyer that page. The RPC stays the
+ * protection; this only keeps the page open when it would refuse. Null: the time passes.
+ */
+async function pickupTimeRefused(admin: Db, orderId: string, sellerId: string, handover: string, slotStart: string): Promise<Response | null> {
+  const t = Date.parse(slotStart);
+  const now = Date.now();
+  if (!(t > now) || t + 30 * 60_000 > now + 7 * 86_400_000) {
+    return json({ error: "invalid_slot", hint: "Pick a pickup time in the future, within the next 7 days." }, 400);
+  }
+  const { data: end, error } = await admin.rpc("declutter_checkout_pickup_end", {
+    p_order_id: orderId, p_seller: sellerId, p_handover: handover, p_start: slotStart,
+  });
+  if (error) {
+    console.error(`[declutter-checkout] pickup time pre-check failed: ${error.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  if (!end) return json({ error: "invalid_slot", hint: "Pick a time inside the seller's pickup times." }, 400);
+  return null;
+}
+
 async function porchRefused(admin: Db, buyerId: string, sellerId: string): Promise<boolean | null> {
   const { data: lines, error: linesErr } = await admin.from("declutter_cart_items").select("item_id")
     .eq("buyer_id", buyerId).eq("seller_id", sellerId).eq("status", "in_cart");
@@ -331,6 +355,10 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       const notOffered = await handoverNotOffered(admin, user.id, sellerId, handover);
       if (notOffered === null) return json({ error: TRY_AGAIN }, 503);
       if (notOffered) return json({ error: "handover_not_offered" }, 400);
+      if (pickupChanged && slotStart) {
+        const refused = await pickupTimeRefused(admin, open.id, sellerId, handover, slotStart);
+        if (refused) return refused;
+      }
       if (handover === "porch") {
         const refused = await porchRefused(admin, user.id, sellerId);
         if (refused === null) return json({ error: TRY_AGAIN }, 503);

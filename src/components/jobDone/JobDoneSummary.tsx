@@ -188,7 +188,6 @@ export function JobDoneSummary({
           <SaveHelperButton helperId={job.helper_id} customerId={viewerId} />
           {/* Book <Helpr> again (Q2471 #3, owner 2026-10-29): THIS job copied, never its date, as a direct
               offer to the same Helpr; Post a job opens at When and where, so only the date is asked. */}
-          {/* The two ways to book this Helpr share one line under the name (it wraps at 375). */}
           <div className="w-full pl-14 flex flex-wrap gap-2">
           <Link
             to={bookAgainLink(jobId, job.helper_id)}
@@ -200,25 +199,15 @@ export function JobDoneSummary({
               e.preventDefault();
               explain("post");
             }}
+            // Secondary: "Send review" is this screen's one primary (spec §3).
             className="shrink-0 min-h-11 px-5 rounded-full inline-flex items-center font-sans font-bold text-ds-14"
             style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))", border: "1px solid hsl(var(--olivewood) / 0.22)" }}
           >
             {bookAgainLabel(otherName)}
           </Link>
-          <Link
-            to={`/post-job?offerTo=${job.helper_id}`}
-            {...gatedProps("post")}
-            onClick={(e) => {
-              if (!underAge) return;
-              e.preventDefault();
-              explain("post");
-            }}
-            // Secondary: "Send review" is this screen's one primary (spec §3).
-            className="shrink-0 min-h-11 px-5 rounded-full inline-flex items-center font-sans font-bold text-ds-14"
-            style={{ background: "hsl(var(--card))", color: "hsl(var(--ink-deep))", border: "1px solid hsl(var(--olivewood) / 0.22)" }}
-          >
-            Hire again
-          </Link>
+          {/* ONE "again" button (audit 11-01 JA-53): "Hire again" (a blank post offered to the same Helpr) sat beside
+              "Book <Helpr> again" and read the same. The blank route stays one tap away on Post a job's "Offer to a
+              saved Helpr" (the heart above saves them). */}
           </div>
         </div>
       )}

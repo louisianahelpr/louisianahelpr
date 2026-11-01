@@ -187,6 +187,9 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   // The tracker's own sentence is kept only where it describes the step the card is on; otherwise the line under
   // the bar is the card's own sentence, so the job page's bar and line can never disagree either.
   const sameStep = bar.tone === "progress" && base.stage === bar.stage && base.waitingOnYou === bar.waitingOnYou;
+  // JA-2 (audit 11-01): with nobody applied, the page's own "No applicants yet" block says so; the tracker line is
+  // "Waiting for Helprs to apply", never the card's "No applicants yet" a second time right above it.
+  const noApplicantsYet = o.viewer === "poster" && o.pendingApplicants === 0 && base.stage === 0 && bar.stage === 0 && bar.tone === "progress";
   const posterLate = o.viewer === "poster" && bar.tone === "progress" && bar.stage === 4 && base.stage === 4 && !!minutesLate(job, now.getTime());
   const offPath = bar.tone === "cancelled" || (bar.label === "Dispute" && base.word === "Under review");
   return withBegun({
@@ -198,7 +201,7 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     word: sameStep || offPath ? base.word : bar.label ?? ((JOB_PROGRESS_STEPS as readonly string[])[bar.stage] ?? "Done"),
     // JOBS3-48: arrived and not started, the Helpr's bar is on Working, but the line is the card's ("Tap Start working"), never "Mark it done".
     // JA-12 / JA-13: the poster's late line wins over the card's calm one while the bar is on On the way.
-    next: posterLate || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail,
+    next: posterLate || noApplicantsYet || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail,
   }, job, card.line.id, o.workUnderway);
 }
 

@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { guestBrowseSplit, signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
+import { declutterItemSplit, guestBrowseSplit, signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -165,6 +165,7 @@ function restartOnDependencyChange(): Plugin {
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff } = signedInSplit(process.cwd());
+const { itemDeep: declutterItemDeep, itemPages: declutterItemPages } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
 const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
 
 export default defineConfig(({ mode, command }) => ({
@@ -888,6 +889,17 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false
             },
+            // The signed-in-deep modules the public Declutter item page reaches (bootReach.mjs declutterItemSplit,
+            // B67): in signed-in-deep they put that whole chunk (~33 KB gz) on every cold item page. Above its
+            // priority so it wins them.
+            {
+              name: "declutter-item-deep",
+              test: (id: string) => declutterItemDeep.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 16.5,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "signed-in-deep",
               test: (id: string) => signedInDeep.has(id.split("?")[0].replace(/\\/g, "/")),
@@ -904,6 +916,15 @@ export default defineConfig(({ mode, command }) => ({
             // Home downloaded it (AUD31-60/66). Those screens fetch this chunk
             // beside signed-in-shared, in the same round; Home does not fetch it.
             // src/test/homeSkipsOtherScreensCode.test.ts reads the built graph.
+            // The signed-in-pages modules the Declutter item page reaches (declutterItemSplit itemPages, B67).
+            {
+              name: "declutter-item-pages",
+              test: (id: string) => declutterItemPages.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 15.7,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "signed-in-pages",
               test: (id: string) => homeOff.has(id.split("?")[0].replace(/\\/g, "/")),

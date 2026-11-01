@@ -49,7 +49,7 @@ import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterFir
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
-import { toastWatching } from "./DeclutterWatching";
+import { toastWatching } from "./declutterLightActions";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
 const DeclutterMap = lazy(() => import("./DeclutterMap"));

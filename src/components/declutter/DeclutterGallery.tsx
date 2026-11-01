@@ -21,7 +21,9 @@ const FRAME_BASE = "relative w-full overflow-hidden rounded-2xl";
 const ASPECT = { item: "aspect-square max-h-[52dvh] sm:max-h-none sm:aspect-[4/3] bg-photo-empty", banner: "aspect-[16/9] bg-photo-empty" } as const;
 
 /** `icon`: the placeholder glyph when there is no photo (the job page passes the job category's; default: the Declutter category's). */
-export function DeclutterGallery({ urls, category, title, icon, shape = "item" }: { urls: string[]; category: string; title: string; icon?: LucideIcon; shape?: keyof typeof ASPECT }) {
+/** `display`: what the frame shows for each of `urls` (a resized photo and its srcSet, B67); `urls` stay the originals,
+ * for the full-screen viewer and as the fallback when a resized photo fails. */
+export function DeclutterGallery({ urls, display, category, title, icon, shape = "item" }: { urls: string[]; display?: ({ src: string; srcSet: string } | null)[]; category: string; title: string; icon?: LucideIcon; shape?: keyof typeof ASPECT }) {
   // A banner (the job page) always wears the one warm tint; items keep a tint per category.
   const FRAME = `${FRAME_BASE} ${ASPECT[shape]}`;
   const track = useRef<HTMLDivElement>(null);
@@ -64,7 +66,11 @@ export function DeclutterGallery({ urls, category, title, icon, shape = "item" }
               onClick={() => setOpen(i)}
             >
               <FallbackImg
-                src={url}
+                src={display?.[i]?.src ?? url}
+                srcSet={display?.[i]?.srcSet}
+                // The frame is the page column: 20px gutters on a phone (measured 335 px at 375), at most the 680px app-shell frame.
+                sizes={display?.[i] ? "(min-width: 640px) 680px, calc(100vw - 40px)" : undefined}
+                retrySrc={display?.[i] ? url : undefined}
                 alt={`Photo ${i + 1} of ${urls.length}`}
                 loading={i === 0 ? "eager" : "lazy"}
                 className="h-full w-full object-cover"

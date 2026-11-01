@@ -56,7 +56,8 @@ vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.lookup }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "seller-1" } }) }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: h.toastError, success: vi.fn() }) }));
 
-import { ItemPickupPlaces, SellPorchPlaces } from "./SellPorchPlaces";
+import { SellPorchPlaces } from "./SellPorchPlaces";
+import { ItemPickupPlaces } from "./ItemPickupDisplay";
 import { SellWaysFields } from "./SellFormParts";
 import type { SellFlow } from "./useSellFlowState";
 import { SellPorchDays } from "./SellPorchDays";
@@ -187,7 +188,7 @@ describe("the seller's pickup places", () => {
   });
 
   // Review 2026-10-31: the item page's places read failing says so with a retry.
-  // @mutate src/components/declutter/SellPorchPlaces.tsx |   if (read.isError) { |   if (false) {
+  // @mutate src/components/declutter/ItemPickupDisplay.tsx |   if (read.isError) { |   if (false) {
   it("the item page's places: a failed read says so with a retry", async () => {
     answers({});
     wrap(<ItemPickupPlaces itemId="i1" />);

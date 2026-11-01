@@ -93,12 +93,15 @@ export type HoldJob = {
   category: string | null;
   is_seed: boolean | null;
   stripe_payment_intent_id?: string | null;
+  /** CMP-4: a capture for one Helpr's offer re-reads these after its claim (captureCardHold offerTo). */
+  offered_to_helper_id?: string | null;
+  direct_offer_status?: string | null;
 };
 
 export async function readJob(db: Db, jobId: string): Promise<HoldJob | null> {
   const { data, error } = await db
     .from("jobs")
-    .select("id, customer_id, title, status, payment_status, helper_id, category, is_seed, stripe_payment_intent_id")
+    .select("id, customer_id, title, status, payment_status, helper_id, category, is_seed, stripe_payment_intent_id, offered_to_helper_id, direct_offer_status")
     .eq("id", jobId)
     .maybeSingle();
   if (error) throw new Error(`job read failed for card hold ${jobId}: ${error.message}`);
@@ -299,7 +302,16 @@ const CHARGE_KEY_SAFE_MS = 20 * HOUR_MS;
  * resume asks Stripe for the same charge and Stripe answers the first one
  * again. An outcome Stripe did not answer leaves the claim for the sweep.
  */
-export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { resume?: boolean } = {}): Promise<CaptureResult> {
+/**
+ * opts.offerTo (CMP-4 money review, lead 2026-11-01): the capture is FOR this
+ * Helpr's pending direct offer (an instant booking's 2-hour capture, a Helpr's
+ * own accept of a direct offer). After the claim the job is re-read, and an
+ * offer no longer pending to them (the Helpr declined in the moment between)
+ * gets the claim back with nothing charged. A decline that reads the hold
+ * after this claim is refused (rpc_instant_book_decline locks the hold row and
+ * requires 'authorized' or 'scheduled'), so the two never both win.
+ */
+export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { resume?: boolean; offerTo?: string } = {}): Promise<CaptureResult> {
   const { db, stripe, mode } = deps;
   const job = await readJob(db, jobId);
   if (!job) return { ok: false, reason: "not_held" };
@@ -385,6 +397,14 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
     // A resumed claim may already have reached Stripe: read it there first.
     if (hold.state === "capturing" && fresh) return settleClaimOnClosedJob(deps, fresh, await readHold(db, jobId) ?? hold);
     // A fresh claim sent nothing to Stripe yet: it simply goes back.
+    await unclaimSetupFee(db, jobId, job.customer_id, feeAt);
+    await updateHold(db, jobId, { state: from, capturing_from: null, capture_amount_cents: null, onboarding_fee_claimed_at: null }, ["capturing"]);
+    return { ok: false, reason: "not_held" };
+  }
+  // The offer this capture is for moved on after the claim (a decline): a fresh
+  // claim sent nothing to Stripe yet, so it goes back and nothing is charged.
+  if (opts.offerTo && hold.state !== "capturing" &&
+      (fresh.offered_to_helper_id !== opts.offerTo || fresh.direct_offer_status !== "pending")) {
     await unclaimSetupFee(db, jobId, job.customer_id, feeAt);
     await updateHold(db, jobId, { state: from, capturing_from: null, capture_amount_cents: null, onboarding_fee_claimed_at: null }, ["capturing"]);
     return { ok: false, reason: "not_held" };

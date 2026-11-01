@@ -98,8 +98,15 @@
 
          Three preloads only, all on the LCP path: the Bodoni Moda latin
          faces, normal and italic (the hero H1 and its <em>, Q371), and the
-         Montserrat latin face (everything else above the fold). The
-         remaining faces — latin-ext, Beth Ellen — are left to the @font-face fetch; preloading
+         Montserrat latin CORE face (everything else above the fold).
+         B84 (11-01): Montserrat's latin file is split in two by codepoint,
+         glyphs unchanged (every outline and advance at 400-700 compared
+         equal): core = ASCII plus the punctuation the copy uses (nbsp, § © ®
+         ° · × ñ (the Español link), dashes, curly quotes, bullet, ellipsis, ‹ ›, €, ™, minus),
+         22 KB; rest = accented letters and the other latin symbols, 15 KB,
+         fetched only by a page that draws one. The old single file was 35 KB
+         on every first paint. The
+         remaining faces — latin-rest, latin-ext, Beth Ellen — are left to the @font-face fetch; preloading
          them competes with the LCP for bandwidth and none of them is on the
          first paint. `crossorigin` is REQUIRED on a font preload even
          same-origin: fonts are fetched in CORS mode, and a preload without it
@@ -117,7 +124,7 @@
       rel="preload"
       as="font"
       type="font/woff2"
-      href="/fonts/montserrat-normal-latin.woff2"
+      href="/fonts/montserrat-normal-latin-core.woff2"
       crossorigin
     />
     <!-- Q371: the hero H1's italic <em> ("Partner.") is set in the

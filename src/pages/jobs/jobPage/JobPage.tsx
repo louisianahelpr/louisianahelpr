@@ -33,8 +33,12 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobEyebrow } from "./jobEyebrow";
 import { useJobPage, useMyInstantBooking, useOfferedToMe, type JobPageRow } from "./useJobPage";
 import { seriesSummary } from "@/lib/format";
-import { JobTracker, PosterPrice, PosterMoneyNotes, HelprMoney, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
-import { OnTheWayNow, showsOnTheWay } from "./OnTheWayNow";
+import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes, PostedBy, HiredHelpr, RevisionAsk } from "./JobPageParts";
+import { OnTheWayNow, showsNow } from "./OnTheWayNow";
+import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
+import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { mapsSearchUrl } from "@/lib/mapsLink";
 import { HiredSeriesSection } from "./HiredSeriesSection";
@@ -92,6 +96,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const helperId = isPoster ? q.data?.job.helper_id ?? null : null;
   const helperCard = useQuery({ queryKey: ["declutter", "seller-card", helperId], queryFn: () => fetchSellerCard(helperId!), enabled: !!helperId });
   const helperFirst = (helperCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  // The poster's Instant Release (the card's own read, PostedJobActions): the work is approved for them, so no clock.
+  const { profile: ownProfile } = useCurrentUser();
+  const instantRelease = !!(ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
   // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
@@ -158,25 +165,41 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterWait = isPoster ? posterStatusLine(job as unknown as Job, pending).id : null;
   // The hired Helpr (F26): the Working card's own next-step button, plus Message and the street address.
   const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${job.customer_id}` : "/messages");
+  const openWorking = () => navigate(highlight);
   const hiredFace = isHired && viewer.action.kind === "open_working"
-    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: () => navigate(highlight), message: messagePoster })
+    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster })
     : null;
-  const primary = isPoster && posterWait === "confirm_arrival"
+  // The poster's own step on this page, over posterPageActions' (undefined: theirs).
+  const posterStep = posterWait === "confirm_arrival"
     ? { label: arrival.confirming ? "Confirming…" : "Confirm they've arrived", go: () => void arrival.confirm(), disabled: arrival.confirming }
-    : isPoster && jobIsUnfundedDraft(job)
+    : jobIsUnfundedDraft(job)
     // JOBS-9: an unpaid job is on no list (owner 2026-09-27), so Manage job opened a list without it. The copy is the way on.
     ? { label: "Post this job again", go: () => navigate(`/post-job?rebook=${encodeURIComponent(job.id)}`) }
     // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): the step due now, or the next useful thing; never "Manage job"
     // (posterPageActions.tsx: confirm, approve, cancel and the card's steps all on this page).
-    : isPoster
-    ? posterActions.primary
-    : hiredFace
-      ? { label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled, secondary: hiredFace.tone === "secondary" }
+    : undefined;
+  // The hired Helpr's row (owner 2026-11-01, the same rules as the poster's, JobPageActionRow.tsx): the Working card's
+  // step leads on the right, with Message and "Open in working" beside it (one, or More options); when the face's
+  // button IS Message or Open in working, it leads and the other sits beside it.
+  const hiredRow = (() => {
+    if (!hiredFace) return null;
+    const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;
+    const work: RowAction = { key: "working", label: "Open in working", go: openWorking };
+    const faceIs = hiredFace.onClick === messagePoster ? "message" : hiredFace.onClick === openWorking && hiredFace.label === "Open in working" ? "working" : "step";
+    const lead: RowAction = faceIs === "message" && msg ? msg
+      : faceIs === "working" ? work
+      : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
+    const extras = [msg, work].filter((a): a is RowAction => !!a && a.key !== lead.key);
+    return <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={extras} />;
+  })();
+  // Everyone else's one button: Apply, See the offer, View application, Open in working.
+  const primary = isPoster || hiredFace
+    ? null
       // CMP-4: an instant booking is answered on its card below, never "See the offer" (or Apply after a decline).
     : instantUntil
       ? null
     : viewer.action.kind === "open_working"
-      ? { label: "Open in working", go: () => navigate(highlight) }
+      ? { label: "Open in working", go: openWorking }
       : viewer.action.kind === "see_offer"
         ? { label: "See the offer", go: () => navigate(highlight) }
         : viewer.action.kind === "view_application"
@@ -229,7 +252,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               )}
             </div>
           )}
-          {!isPoster && job.customer_id && <div className="order-6 lg:order-none"><PostedBy posterId={job.customer_id} /></div>}
+          {!isPoster && !isHired && job.customer_id && <div className="order-6 lg:order-none"><PostedBy posterId={job.customer_id} /></div>}
           {/* CMP-4: the poster's top 3 with Book now, or who is booked and until when. Nothing when nobody qualifies. */}
           {instantBookOn && isPoster && !job.is_group_job && job.status === "open" && <div className="order-5 lg:order-none"><InstantBookPanel jobId={job.id} /></div>}
         </div>
@@ -256,20 +279,20 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 </p>
               )}
             </div>
-            {isPoster && <PosterPrice job={job} />}
+            {isPoster ? <PosterPrice job={job} /> : <HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} />}
             </div>
             {isPoster ? (
               <PosterMoneyNotes job={job} total={total} loading={applicants.isLoading} />
             ) : (
-              <HelprMoney job={job} noShow={myApplication.data?.closed_reason === "no_show"} />
+              <HelprMoneyNotes job={job} hired={isHired} noShow={myApplication.data?.closed_reason === "no_show"} />
             )}
           </section>
 
           <section aria-label="Where the job is" data-job-steps="" className="order-4 space-y-4 lg:order-none">
             {/* Owner 2026-11-01: "Yusef is on the way · since 8:51 AM" and where he is, ABOVE the tracker. */}
-            {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} />}
+            {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
             <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
-              hideNext={isPoster && showsOnTheWay(job)}
+              hideNext={isPoster && showsNow(job, trackingStatus)}
               otherFirst={isPoster ? helperFirst : posterFirst}
               pendingApplicants={isPoster && applicants.data ? pending : undefined}
               crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} />
@@ -289,40 +312,43 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {/* CMP-4: the booked Helpr's card, the same one the Working offer card shows (InstantBookingCard). */}
             {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} />}
             {viewer.status && !(!isPoster && instantUntil) && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
-            {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
             {/* Owner 2026-11-01: the Helpr's card sits ABOVE the buttons. */}
             {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <HiredHelpr helprId={job.helper_id} />}
+            {/* The hired Helpr's poster card sits ABOVE the buttons, as the poster's Helpr card does (owner 2026-11-01). */}
+            {isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
+            {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
             {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
+            {/* JA-9 (Jobs audit 11-01): how long the poster has to check the work, beside Approve, not only on the card.
+                The card's own clock and words (InProgressStep); nothing releases on a timer (owner 2026-10-23). */}
+            {isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease && (
+              <div data-approve-by="">
+                <DeadlineCountdown
+                  deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(APPROVAL_WINDOW_HOURS)).toISOString()}
+                  expiredText={`${APPROVAL_WINDOW_HOURS} hours passed — Helpr support will reach out. Your payment stays held.`}
+                  consequenceText="to review — then Helpr support steps in"
+                  inline
+                  variant="warning"
+                />
+              </div>
+            )}
+            {isPoster && posterActions.row(posterStep)}
+            {isPoster && posterActions.panel}
+            {hiredRow}
             {primary && (
               <Button
-                variant={"secondary" in primary && primary.secondary ? "outline" : "primary"}
+                variant="primary"
                 size="lg"
                 className="w-full rounded-full text-ds-16"
                 onClick={primary.go}
-                disabled={"disabled" in primary ? primary.disabled : false}
                 {...("gated" in primary ? primary.gated : {})}
               >
                 {primary.label}
               </Button>
             )}
-            {isPoster && posterActions.secondary}
             {!isPoster && <MineFaceNote note={hiredFace?.note} />}
             {/* LEAD-LIST-FOR-SELLER: the Working card's done rule, said here too (its panel lives on that card). */}
-            {isHired && isSellForMeJob(job.category) && !job.helper_completed_at && primary && (
+            {isHired && isSellForMeJob(job.category) && !job.helper_completed_at && hiredFace && (
               <p data-sell-for-me-done-note="" className="text-center text-ds-13 text-muted-foreground">{SELL_FOR_ME_DONE_NOTE}</p>
-            )}
-            {hiredFace && (
-              <div data-hired-actions="" className="flex flex-wrap gap-2">
-                {/* Message the poster, unless the main button already is that (a waiting card's one button). */}
-                {hiredFace.onClick !== messagePoster && (
-                  <Button variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={messagePoster}>
-                    Message {posterFirst ?? "them"}
-                  </Button>
-                )}
-                <Button variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={() => navigate(highlight)}>
-                  Open in working
-                </Button>
-              </div>
             )}
             {/* Not beside an instant booking's "You're booked" (B80 375 look, 11-01): the two read as a contradiction. */}
             {!isPoster && !isHired && !instantUntil && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}

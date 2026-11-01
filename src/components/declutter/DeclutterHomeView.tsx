@@ -69,6 +69,7 @@ import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQu
 import { useOpenProblems } from "./useOpenProblems";
 import { TAKE_DOWN_WORDS } from "./takeDownWords";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { nextStepWords, type NextStepValue } from "@/components/ui/NextStep";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
@@ -93,15 +94,29 @@ const FreeView = lazy(() => import("./DeclutterFreeView").then((m) => ({ default
  * read as two statuses). Where the old help line said what to do, its few words ride on the same line.
  */
 const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
-  draft: "Not listed yet. Finish it to sell it.",
   // NIGHT-SELL-Sellinglist-5: only a failed automatic check holds a listing (owner); "Waiting for a review" read as a person.
   pending_review: "Being checked. We'll send you a notice when it's done.",
   paused: "Paused. Hidden from buyers.",
-  rejected: "Not approved. Open it to see why.",
-  pending_seller_approval: "Waiting for your approval. Approve it above to sell it.",
 };
 
 const WAY_ORDER = ["porch", "meetup", "seller_delivery", "delivery"] as const;
+
+/**
+ * The next-step line on a listing row (owner 2026-11-01: "people aren't told what to do next"): a listing that waits on
+ * the seller reads "Next: <step>" (finish it, approve it, see why it was not approved), in the shared NextStep words
+ * (nextStepWords) and the row's own size; every other row says where it stands, as before.
+ */
+const SELLER_MOVE: Partial<Record<DeclutterItem["status"], string>> = {
+  draft: "Finish it to sell it",
+  rejected: "Open it to see why it wasn't approved",
+  pending_seller_approval: "Approve it above to sell it",
+};
+
+function listingNextStep(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false): NextStepValue {
+  const move = SELLER_MOVE[item.status];
+  if (move) return { who: "you", text: move };
+  return { who: item.status === "pending_review" ? "them" : "info", text: listingStatusLine(item, saleCents, payout, problemOpen) };
+}
 
 function listingStatusLine(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false): string {
   // B48 live check 2026-10-29: porch + meetup read only "Porch pickup". Every ticked way, in checkout's order and words.
@@ -273,7 +288,8 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
         {list.map((item) => {
           const drop = dropsTonight.has(item.id);
           const thumb = myCover.get(item.id);
-          const statusLine = drop ? "May drop tonight" : listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id));
+          const next = listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id));
+          const statusLine = drop ? "May drop tonight" : nextStepWords(next);
           return (
           <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -287,7 +303,8 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-2 break-words text-ds-15 font-semibold" title={item.title}>{item.title}</p>
                   <p data-listing-status={item.status} title={statusLine}
-                    className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : "text-muted-foreground"}`}
+                    data-next-step={drop ? undefined : next.who}
+                    className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : next.who === "you" ? "font-medium text-foreground" : "text-muted-foreground"}`}
                   >
                     {statusLine}
                   </p>

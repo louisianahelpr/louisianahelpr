@@ -557,7 +557,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               >
                 the IRS&rsquo;s own 1099-K guidance
               </a>{" "}
-              for the current numbers, and talk to a tax professional about your situation.
+              for the current numbers. What you earn here is income you report whether or not a 1099-K is issued (IRS).
             </span>
           </p>
         </section>

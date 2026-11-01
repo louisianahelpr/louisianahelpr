@@ -13,7 +13,6 @@ import { useJobRef } from "@/hooks/useJobRef";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { queryKeys } from "@/lib/queryKeys";
 import { signupUrlFor } from "@/lib/jobIntent";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
@@ -21,11 +20,8 @@ import { useFeedPhase, useProfileWaitPhase } from "@/hooks/useFeedPhase";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
-import type { EnrichedJob } from "@/components/dashboard/types";
+import { GuestJobPreview, guestJobFacts, type GuestJob } from "@/components/dashboard/GuestJobPreview";
 
-// Read-only job detail for logged-out visitors who open a shared link.
-// Lazy so the heavy dialog chunk only loads once the job resolves.
-const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
 // Signed in: the job page itself (boards 15, 42, 168, 169).
 const JobPage = lazy(() => import("./jobPage/JobPage"));
 
@@ -58,18 +54,18 @@ const JobDetail = () => {
 
   // Guests fetch the single job from the RLS-public masked view. We skip
   // the fetch entirely for authed users: they get the job page below.
-  // This column list is the guest's whole view of a job, so it names nothing
-  // private: no customer_id (the poster's id; the guest sheet has no use for
-  // it), no coordinates, no applicant or direct-offer fields. The view masks
-  // `location` to the town. Guard: src/test/guestOpensSharedJobLink.test.tsx.
+  // This column list is the guest's whole view of a job (JOBS-29, lead
+  // 2026-10-31, under the owner's 9-2 rule): title, category, parish (from the
+  // view's town) and budget, plus status and expiry to know it is still open.
+  // No poster, no address, no coordinates, no description (free text can carry
+  // an address or a phone number). Guards: src/test/guestOpensSharedJobLink.test.tsx,
+  // src/test/guestSeesFourFacts.test.tsx.
   const { data: job, isLoading, isError, refetch, status, fetchStatus } = useQuery({
     queryKey: queryKeys.jobs.publicDetail(id ?? ""),
-    queryFn: async (): Promise<EnrichedJob | null> => {
-      // Q1461: `materials_note` (public) is newer than the deploy that may
-      // serve this build; readJobsAheadOfDb asks again without it on 42703.
+    queryFn: async (): Promise<GuestJob | null> => {
       const data = unwrap<unknown>(
         await readJobsAheadOfDb(
-          "id, title, description, scope_video_url, category, budget, date_needed, location, status, created_at, updated_at, is_urgent, urgent_fee, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boost_expires_at, expires_at, start_time, recurrence_interval, pricing_mode, helper_fee_flat_cents, helper_fee_percent",
+          "id, title, category, budget, location, status, expires_at",
           (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id!).maybeSingle(),
           { browseView: true },
         ),
@@ -77,19 +73,9 @@ const JobDetail = () => {
       if (!data) return null;
       // A runtime column list types the row as GenericStringError; it is a browse row.
       const row = data as Database["public"]["Views"]["open_jobs_browse"]["Row"];
-      const now = new Date();
       // A job that expired between share and open is no longer browsable.
-      if (row.expires_at && new Date(row.expires_at) <= now) return null;
-      return {
-        ...(row as Record<string, unknown>),
-        // Guest preview disables poster-profile lookups (JobDetailDialog
-        // gates the poster card behind !guest), so neutral poster fields
-        // are enough — mirrors Jobs.tsx's toEnrichedJob mapping.
-        posterName: "a neighbor",
-        posterReviewCount: 0,
-        posterAvgRating: 0,
-        isBoosted: !!row.boost_expires_at && new Date(row.boost_expires_at) > now,
-      } as EnrichedJob;
+      if (row.expires_at && new Date(row.expires_at) <= new Date()) return null;
+      return { id: row.id ?? id!, title: row.title, category: row.category, budget: row.budget, location: row.location };
     },
     enabled: !!id && !authLoading && !user,
     staleTime: 60 * 1000,
@@ -110,8 +96,10 @@ const JobDetail = () => {
   // one only set the tab title — every social/search preview of a shared job
   // link fell back to the generic homepage description and canonical instead
   // of the job's own. usePageMeta covers both.
-  const jobDescription = job?.description?.trim()
-    ? job.description.trim().slice(0, 155) + (job.description.trim().length > 155 ? "…" : "")
+  // The preview's own facts, never the description (JOBS-29: a guest sees title, category, parish and budget only).
+  const jobFacts = job ? guestJobFacts(job).map((f) => f.value).join(" · ") : "";
+  const jobDescription = jobFacts
+    ? `${jobFacts}. Payment is held safely until the work is confirmed done. Sign Up to Apply.`
     : "Every job on Louisiana Helpr holds payment safely until the work is confirmed done — see the details and apply.";
   usePageMeta({
     title: `${headingText} — Helpr`,
@@ -198,27 +186,7 @@ const JobDetail = () => {
               }
             />
           ) : (
-            /* The dialog chunk is lazy, so hold the same skeleton that was
-               already on screen until it lands. `fallback={null}` painted a
-               blank page for the length of the chunk fetch on a cold cache.
-               DialogContent portals to <body>, so living inside this column
-               costs the dialog nothing. */
-            <Suspense
-              fallback={
-                <div role="status" aria-busy="true" aria-label="Loading job">
-                  <JobCardSkeleton />
-                </div>
-              }
-            >
-              <JobDetailDialog
-                guest
-                job={job}
-                effectiveFee={TIER_PERKS.free.platformFeePercent}
-                onClose={() => navigate("/browse")}
-                onApply={requireSignup}
-                onReport={requireSignup}
-              />
-            </Suspense>
+            <GuestJobPreview job={job} onClose={() => navigate("/browse")} onSignUp={requireSignup} />
           )}
         </div>
       </div>

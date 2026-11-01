@@ -668,6 +668,9 @@ export function posterStatusLine(
 
 /** The poster's line for a listing that expired with no Helpr (never "Cancelled"). */
 export const EXPIRED_LISTING_DETAIL = "No Helpr was hired in time";
+/** What an APPLICANT reads for a listing that expired (owner 10-31: "Expired" is the poster's word only). */
+export const APPLICANT_CLOSED_EYEBROW = "Closed";
+export const APPLICANT_CLOSED_DETAIL = "No longer open";
 
 /** The cancelled line's tail for the POSTER: the reason, and that their money
  *  came back when it did (owner, 2026-10-06). Only on payment_status
@@ -1003,12 +1006,13 @@ export function helperStatusLine(
   const bucket = appliedActivityBucket(app);
   const named = app.posterName ? HELPER_NAMED[id]?.(firstName(app.posterName)) : undefined;
   // Expired is not cancelled (owner 10-31): an applicant to a listing that
-  // expired with no Helpr reads "Expired", never "Cancelled".
+  // expired with no Helpr reads "Closed · No longer open", never "Cancelled"
+  // and never "Expired" (only the poster sees "Expired", on their own jobs).
   const expired = id === "cancelled" && !!app.job && isExpiredListing(app.job);
   return {
     id,
-    eyebrow: expired ? "Expired" : copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: expired ? EXPIRED_LISTING_DETAIL : named ?? copy.detail,
+    eyebrow: expired ? APPLICANT_CLOSED_EYEBROW : copy.eyebrow ?? BUCKET_LABEL[bucket],
+    detail: expired ? APPLICANT_CLOSED_DETAIL : named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking" || id === "confirm_spot",
     suffix:

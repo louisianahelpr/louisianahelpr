@@ -81,8 +81,10 @@ export default function InstantBookTab({ onBack }: { onBack: () => void }) {
             If you&apos;re booked, you have 2 hours to decline with no strike. After that, you&apos;re booked.
           </p>
 
-          {rows.length > 0 && (
-            <ul className="rounded-2xl overflow-hidden" style={card} aria-label="Your instant book work">
+          {/* ALWAYS THE 3 SPOTS (B80, 11-01): the floors, then an open spot for each one left. The card is one size at
+              0, 1 and 2 floors, so its loading bone (TAB_SHAPES.instant_book) is the right size whatever the account
+              holds and nothing below it moves when the floors land (a 2-floor account jumped 33px). */}
+          <ul className="rounded-2xl overflow-hidden" style={card} aria-label="Your instant book work">
               {rows.map((r) => (
                 <li key={r.category} data-instant-floor={r.category} className="flex items-center gap-3 pl-4 pr-2 py-2 min-h-[60px] border-b border-border last:border-b-0">
                   <span className="flex-1 min-w-0">
@@ -105,8 +107,12 @@ export default function InstantBookTab({ onBack }: { onBack: () => void }) {
                   </button>
                 </li>
               ))}
+              {Array.from({ length: Math.max(0, INSTANT_BOOK_MAX_CATEGORIES - rows.length) }, (_, i) => (
+                <li key={`open-${i}`} data-instant-floor-open="" className="flex items-center pl-4 pr-2 py-2 min-h-[60px] border-b border-border last:border-b-0">
+                  <span className="font-sans text-ds-14 text-muted-foreground">Open spot. Add a kind of work below.</span>
+                </li>
+              ))}
             </ul>
-          )}
 
           {full ? (
             <p className="font-sans text-ds-13 text-muted-foreground px-1">You&apos;ve picked {INSTANT_BOOK_MAX_CATEGORIES}. Remove one to add another.</p>

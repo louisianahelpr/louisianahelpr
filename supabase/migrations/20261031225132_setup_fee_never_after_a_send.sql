@@ -93,7 +93,7 @@ BEGIN
   UPDATE public.declutter_payouts
      SET setup_fee_cents = v_fee, debt_cents = debt_cents + v_fee, amount_cents = v_amount
    WHERE id = p.id;
-  PERFORM public.declutter_notify(p.seller_id, 'payment', 'One-time setup fee taken',
+  PERFORM public.declutter_notify(p.seller_id, 'declutter_sales', 'One-time setup fee taken',
     format('We took the one-time $%s account setup fee from your payout for %s, so $%s is on its way. It is never charged again.',
            to_char(v_fee / 100.0, 'FM999990.00'), public.declutter_order_items_named(p.order_id), to_char(v_amount / 100.0, 'FM999990.00')),
     '/declutter?tab=selling', NULL);

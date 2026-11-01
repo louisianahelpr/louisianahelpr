@@ -143,7 +143,7 @@ BEGIN
   IF v_fee > 0 AND p.seller_id IS NOT NULL THEN
     UPDATE public.profiles SET onboarding_fee_paid = false, onboarding_fee_charged_at = NULL
      WHERE user_id = p.seller_id;
-    PERFORM public.declutter_notify(p.seller_id, 'payment', 'One-time setup fee put back',
+    PERFORM public.declutter_notify(p.seller_id, 'declutter_sales', 'One-time setup fee put back',
       format('A refund changed your payout for %s, so we put back the one-time $%s account setup fee. It comes out of this payout or a later one instead, and it is only ever charged once.',
              public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0, 'FM999990.00')),
       '/declutter?tab=selling', NULL);

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-01T05:47Z",
+  "measured_at": "2026-11-01T06:04Z",
   "issues": {
     "readable": true,
     "open": [
@@ -574,19 +574,19 @@
         "issue": null
       },
       {
-        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ProtectedRoute",
-        "status": "open",
-        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
-        "issue": null
-      },
-      {
         "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
         "source_kind": "sentry",
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load your account.",
+        "issue": null
+      },
+      {
+        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ProtectedRoute",
+        "status": "open",
+        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
         "issue": null
       },
       {
@@ -670,17 +670,17 @@
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
@@ -830,19 +830,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -902,11 +902,11 @@
         "issue": null
       },
       {
-        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
+        "fingerprint": "fba95b3590a627d7f7d9e284e9b56c20",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/declutter · error screen shown: we couldn't load your sales.",
+        "title": "/declutter · error screen shown: we couldn't load offers.",
         "issue": null
       },
       {
@@ -918,11 +918,11 @@
         "issue": null
       },
       {
-        "fingerprint": "fba95b3590a627d7f7d9e284e9b56c20",
+        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/declutter · error screen shown: we couldn't load offers.",
+        "title": "/declutter · error screen shown: we couldn't load your sales.",
         "issue": null
       },
       {
@@ -971,6 +971,14 @@
         "source": "sweep_old_notifications",
         "status": "open",
         "title": "sweep_old_notifications: deleted # rows (# read, # unread)",
+        "issue": null
+      },
+      {
+        "fingerprint": "b785447b81e879352e644ca078458cd0",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-check-sweep returned 401",
         "issue": null
       }
     ]
@@ -1098,6 +1106,7 @@
     "ledger afd194b74d95": "Q1596",
     "ledger afffce6dd514": "Q1596",
     "ledger b75d265e6201": "Q2501",
+    "ledger b785447b81e8": "Q2546",
     "ledger b7cb40a7f712": "Q1596",
     "ledger b8b42cf124da": "Q2506",
     "ledger b97c1eafe3cd": "Q2508",

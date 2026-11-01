@@ -9,7 +9,7 @@
  * This reads the same source walk vite.config.ts splits by (scripts/perf/bootReach.mjs): every signed-in-deep
  * module those roots reach must match the signed-in-chrome group's test.
  *
- * @mutate vite.config.ts |               priority: 16.5, |               priority: 15.9,
+ * @mutate vite.config.ts |               priority: 16.5, // above signed-in-deep (16) |               priority: 15.9, // above signed-in-deep (16)
  * @mutate vite.config.ts | (capturedPayment\|consent\|helprTasks[\\/]online) | (capturedPayment\|helprTasks[\\/]online)
  * @mutate vite.config.ts | (capturedPayment\|consent\|helprTasks[\\/]online) | (capturedPayment\|consent)
  */

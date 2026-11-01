@@ -2096,7 +2096,9 @@ export type Database = {
           auto_free_day12: boolean
           auto_free_days: number | null
           ai_check_attempts: number
+          ai_check_cleared_at: string | null
           ai_check_last_try_at: string | null
+          ai_check_overdue_alerted_at: string | null
           ai_checked_at: string | null
           ai_flag_reason: string | null
           auto_offers: boolean
@@ -2119,7 +2121,9 @@ export type Database = {
           auto_free_day12?: boolean
           auto_free_days?: number | null
           ai_check_attempts?: number
+          ai_check_cleared_at?: string | null
           ai_check_last_try_at?: string | null
+          ai_check_overdue_alerted_at?: string | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           auto_offers?: boolean
@@ -2142,7 +2146,9 @@ export type Database = {
           auto_free_day12?: boolean
           auto_free_days?: number | null
           ai_check_attempts?: number
+          ai_check_cleared_at?: string | null
           ai_check_last_try_at?: string | null
+          ai_check_overdue_alerted_at?: string | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           auto_offers?: boolean
@@ -14833,6 +14839,7 @@ export type Database = {
         Args: { p_item_id: string; p_note: string; p_report_id?: string }
         Returns: string
       }
+      declutter_alert_overdue_checks: { Args: never; Returns: number }
       declutter_answer_refund: {
         Args: { p_answer: string; p_offer_cents: number; p_request_id: string }
         Returns: Json

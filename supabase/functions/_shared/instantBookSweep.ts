@@ -47,10 +47,10 @@ export type InstantSweepDeps = {
   capture: (jobId: string) => Promise<InstantCaptureResult>;
   now: number;
   record: (defect: string) => void;
-  page: (title: string, message: string, fields: Record<string, unknown>) => Promise<void>;
+  page: (title: string, message: string, fields: Record<string, string | number | null | undefined>) => Promise<unknown>;
 };
 
-export const INSTANT_BOOKING_COLUMNS =
+const INSTANT_BOOKING_COLUMNS =
   "status, payment_status, helper_id, offered_to_helper_id, direct_offer_status, instant_decline_until";
 
 async function readBooking(db: InstantSweepDeps["db"], jobId: string): Promise<InstantBookingRow | null> {
@@ -60,7 +60,7 @@ async function readBooking(db: InstantSweepDeps["db"], jobId: string): Promise<I
 }
 
 /** A booking is live while its offer is pending on an open, unhired job inside or past its window. */
-export function isLiveBooking(row: InstantBookingRow | null): row is InstantBookingRow & { offered_to_helper_id: string; instant_decline_until: string } {
+function isLiveBooking(row: InstantBookingRow | null): row is InstantBookingRow & { offered_to_helper_id: string; instant_decline_until: string } {
   return !!row && row.status === "open" && row.helper_id == null && row.offered_to_helper_id != null &&
     row.direct_offer_status === "pending" && row.instant_decline_until != null;
 }

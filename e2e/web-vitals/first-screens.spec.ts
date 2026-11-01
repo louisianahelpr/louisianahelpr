@@ -22,7 +22,8 @@
  *     RUNS cold loads), CLS inside 0.1, or inside the screen's KNOWN ceiling
  *     while it is not there yet. KNOWN is exact and two-way: a screen over its
  *     ceiling has regressed; a screen inside GOOD, or well under its ceiling,
- *     must have its entry deleted or lowered in the same commit. (Content
+ *     must have its entry lowered in the same commit (never deleted: a ceiling
+ *     inside GOOD holds a screen at the speed it reached). (Content
  *     behind an opacity-0 fade is invisible to FCP/LCP however fast it paints:
  *     Q1158, /home at 375 drew its title bar at 4.4 s and reported FCP at 5.3
  *     s. That class has its own static guard, pageEntranceNotFromZero.test.ts;
@@ -78,7 +79,7 @@ type Metric = "fcp" | "lcp";
  * `${profile} ${route} ${metric}` -> the lab ceiling (ms) while that screen is
  * not inside the GOOD band yet, with what it measured. Exact, two-way: over
  * the ceiling is a regression; inside GOOD, or under CEILING_STALE of the
- * ceiling, means delete or lower the entry in the same commit.
+ * ceiling, means lower the entry in the same commit (never delete it).
  *
  * Every desktop first screen is inside GOOD (FCP 0.48-0.75 s, LCP 0.48-1.06 s),
  * so desktop has no entry. No mobile screen is: under Slow 4G + 4x CPU each
@@ -91,12 +92,15 @@ type Metric = "fcp" | "lcp";
 // @two-way e2e/web-vitals/first-screens.spec.ts:KNOWN entries now inside GOOD or far under their ceiling: delete or lower them
 // 2026-10-05: 12 entries deleted (every mobile FCP, and /login and /messages LCP),
 // measured inside GOOD by prod-audit 37270491218 (FCP 1412-1452 ms, LCP 1956 and 2184 ms).
-// 2026-11-01: "mobile /browse lcp" deleted: /browse's raw HTML now draws its first cards AND the site footer
-// (src/lib/browseShellCards.mjs), so the LCP element (the footer's H emblem while few jobs are open) paints from the
-// HTML. cwv-lab, Slow 4G + 4x CPU, 5 cold runs each, same build: before 4024-4132 (median 4052), after 1800-1824
-// (median 1820), CLS 0 (~/.lh-shots/b71-1031/perf before.log / after2.log).
+// 2026-11-01: "mobile /browse lcp" LOWERED 4810 -> 1966 (1820 x1.08), never deleted (owner rule: a budget is never
+// removed or raised; a screen that gets faster keeps a ceiling at its new speed so it cannot creep back up to GOOD).
+// /browse's raw HTML now draws its first cards AND the site footer (src/lib/browseShellCards.mjs), so the LCP element
+// (the footer's H emblem while few jobs are open) paints from the HTML. cwv-lab, Slow 4G + 4x CPU, 5 cold runs each,
+// same build: before 4024-4132 (median 4052), after 1800-1824 (median 1820), CLS 0
+// (~/.lh-shots/b71-1031/perf before.log / after2.log).
 const KNOWN: Record<string, { ceiling: number; measured: number }> = {
   "mobile / lcp": { ceiling: 4110, measured: 3804 },
+  "mobile /browse lcp": { ceiling: 1966, measured: 1820 },
   "mobile /signup lcp": { ceiling: 4400, measured: 4072 },
   "mobile /home lcp": { ceiling: 6630, measured: 6136 },
   "mobile /jobs lcp": { ceiling: 5410, measured: 5008 },
@@ -215,8 +219,9 @@ test("every first screen: FCP/LCP in the GOOD band (or its KNOWN ceiling), CLS <
         if (v > bars[metric]) fails.push(`${key} ${metric}: ${v} ms > ${bars[metric]} (GOOD band)`);
       } else if (v > known.ceiling) {
         fails.push(`${key} ${metric}: ${v} ms > its KNOWN ceiling ${known.ceiling} (measured ${known.measured} when set): REGRESSION`);
-      } else if (v <= bars[metric]) {
-        stale.push(`${key} ${metric}: ${v} ms is inside GOOD (${bars[metric]}): delete its KNOWN entry`);
+      } else if (v <= bars[metric] && known.ceiling > bars[metric]) {
+        // Never deleted (owner rule): the entry is lowered to the new speed and stays as that screen's own ceiling.
+        stale.push(`${key} ${metric}: ${v} ms is inside GOOD (${bars[metric]}): lower its KNOWN ceiling to ~${Math.round(v * 1.08)}`);
       } else if (v < known.ceiling * CEILING_STALE) {
         stale.push(`${key} ${metric}: ${v} ms is far under its KNOWN ceiling ${known.ceiling}: lower it to ~${Math.round(v * 1.08)}`);
       }

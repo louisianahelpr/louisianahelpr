@@ -102,9 +102,10 @@ describe("/declutter's first screen loads the order views on demand", () => {
   it("Buying and Selling still open their real bodies, and their code warms before a tap", () => {
     const lazyMod = blankComments(readFileSync(resolve(SRC, "components/declutter/DeclutterMineLazy.tsx"), "utf8"));
     const home = blankComments(readFileSync(resolve(SRC, "components/declutter/DeclutterHomeView.tsx"), "utf8"));
-    expect(lazyMod).toContain('const loadMineViews = () => import("./DeclutterMineViews");');
-    expect(lazyMod).toMatch(/export const BuyingDash = lazy\(\(\) => loadMineViews\(\)\.then\(\(m\) => \(\{ default: m\.BuyingDash \}\)\)\);/);
-    expect(lazyMod).toMatch(/export const SellingDash = lazy\(\(\) => loadMineViews\(\)\.then\(\(m\) => \(\{ default: m\.SellingDash \}\)\)\);/);
+    // The lazy pair stays; once warmed the loaded module is drawn directly (declutterMineLazy.test.tsx proves no bones).
+    expect(lazyMod).toContain('const loadMineViews = () => import("./DeclutterMineViews").then((m) => (loaded = m));');
+    expect(lazyMod).toMatch(/const LazyBuying = lazy\(\(\) => loadMineViews\(\)\.then\(\(m\) => \(\{ default: m\.BuyingDash \}\)\)\);/);
+    expect(lazyMod).toMatch(/const LazySelling = lazy\(\(\) => loadMineViews\(\)\.then\(\(m\) => \(\{ default: m\.SellingDash \}\)\)\);/);
     expect(home).toContain("<Suspense fallback={<DeclutterTabBones />}><SellingDash");
     // Asked for: at once. Any other tab: once the page has settled (never on Browse's critical path).
     expect(lazyMod).toContain("if (mineAsked) return warm();");

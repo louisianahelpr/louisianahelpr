@@ -542,6 +542,9 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  // CMP-4 instant book (20261101063725, 20261101065105); lead 11-01.
+  "instant_book_floors.helper_id": { reason: "instant book's own rows; export added before instant book is used in production (OPEN: export_my_data gains instant_book_floors and instant_book_declines for the member's own helper_id, Builder 87, train 15)" },
+  "instant_book_declines.helper_id": { reason: "instant book's own rows; export added before instant book is used in production (OPEN: export_my_data gains instant_book_floors and instant_book_declines for the member's own helper_id, Builder 87, train 15)" },
   // LEAD-LIST-FOR-SELLER (20261101034159): a private link (item, job, Helpr, seller, sent/decided times), service role only.
   "declutter_listed_for_seller.seller_id": { reason: "link row; the listing itself is a declutter_items row exported under the seller (seller_id), and the job under its poster" },
   "declutter_listed_for_seller.helpr_id": { reason: "link row; the listing the Helpr wrote is the seller's declutter_items row (exported under the seller), and the Helpr's side is the job, exported under helper_id" },

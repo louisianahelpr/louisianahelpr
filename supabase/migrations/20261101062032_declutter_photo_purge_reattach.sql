@@ -11,6 +11,8 @@
 --      photo_not_uploaded, which the app shows as "try again". Only claimed entries are ever removed from Storage, so
 --      no attached path can be removed: the window between a run's checks and its Storage remove is closed here,
 --      not by a lock (each edge-function RPC is its own transaction, so no lock spans the remove).
+--      After the lock it re-reads storage.objects: an object a purge removed after the add RPC's own (unlocked, earlier)
+--      existence check refuses the attach too (photo_not_uploaded), so no live photo row points at a missing file.
 --   2. declutter_photo_purge_recheck (service role only): the edge function asks right before each Storage remove
 --      which of its claimed paths are still queued and named by no photo row, and removes only those (a cheap
 --      second check, not the protection; 1 is). Entries for paths a photo row names are dropped.
@@ -38,6 +40,13 @@ BEGIN
   IF v_found AND v_claimed_at IS NOT NULL THEN
     RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023',
       HINT = 'This photo is being removed. Try adding it again in a minute.';
+  END IF;
+  -- The add RPCs checked the object exists, but unlocked and earlier: a purge run may have removed it since (and its
+  -- done() dropped the queue row, so the lock above found nothing). Re-read it now, in a fresh statement after the
+  -- lock, so an attach never commits a live photo with no file.
+  IF NOT EXISTS (SELECT 1 FROM storage.objects o WHERE o.bucket_id = 'job-photos' AND o.name = NEW.storage_path) THEN
+    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023',
+      HINT = 'The photo file is gone. Add the photo again.';
   END IF;
   -- An unclaimed entry (locked above) goes with the attach, in the same transaction. No exception handler: if this
   -- fails the attach fails, which is the safe side.

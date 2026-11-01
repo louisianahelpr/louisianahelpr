@@ -89,6 +89,8 @@ describe("one email, one email_send_log row", () => {
     const direct = WORKER.match(/\.from\(\s*['"]email_send_log['"]\s*\)\s*\.(?:insert|update|upsert)\(/g) ?? [];
     expect(direct).toEqual([]);
     const outcomes = [...WORKER.matchAll(/finalizeSendLog\(supabase, payload, queue, '(\w+)'/g)].map((m) => m[1]).sort();
+    // Floor: the worker's real calls were read (an unreadable or moved worker finds none, and "no direct write" passes).
+    expect(outcomes.length).toBeGreaterThan(5);
     expect(outcomes).toEqual(["dlq", "dlq", "failed", "sent", "suppressed", "suppressed"]);
   });
 });

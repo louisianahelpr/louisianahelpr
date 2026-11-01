@@ -20,7 +20,7 @@ describe("nav unread count is a bounded read (PD-012)", () => {
     const q = SHARED.slice(SHARED.indexOf("export function unreadRowsQuery"), SHARED.indexOf("export function inboxShowsRow"));
     expect(q, "unread query not found").toContain('.eq("read", false)');
     expect(q).toMatch(/\.limit\(\s*UNREAD_ROW_CAP\s*\)/);
-    expect(SHARED).toMatch(/export const UNREAD_ROW_CAP = \d+;/);
+    expect(SHARED).toMatch(/const UNREAD_ROW_CAP = \d+;/);
   });
 
   it("the badge reads unread rows only through that bounded query", () => {

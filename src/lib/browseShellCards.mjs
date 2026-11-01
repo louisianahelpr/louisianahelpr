@@ -235,11 +235,13 @@ export function browseShellHtml(rows, now = Date.now()) {
 }
 
 /**
- * The shell document with the overlay placed first inside #root (createRoot replaces #root's children, so main.tsx
- * moves it out first). Unchanged when there is nothing to draw or no #root anchor.
+ * The shell document with the overlay placed first INSIDE #boot-loader. Inside it, not beside it: the inline boot
+ * watchdog (index.html showFailure) replaces #boot-loader's innerHTML with its "Helpr couldn't load." screen, which
+ * must never sit under a card overlay, and React's first commit removes #boot-loader, so main.tsx moves the overlay
+ * to <body> first (src/boot/browseShellHandoff.ts). Unchanged when there is nothing to draw or no anchor.
  */
 export function withBrowseShell(html, rows, now = Date.now()) {
   const shell = browseShellHtml(rows, now);
   if (!shell) return html;
-  return html.replace(/<div id="root"[^>]*>/, (open) => `${open}${shell}`);
+  return html.replace(/<div\s+id="boot-loader"[^>]*>/, (open) => `${open}${shell}`);
 }

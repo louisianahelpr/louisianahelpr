@@ -1,6 +1,6 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
 import { useLanguage } from "@/lib/i18n/language";
-import "@/lib/i18n/enJobs";
+import "@/lib/i18n/enJobCard";
 import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";

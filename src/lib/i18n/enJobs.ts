@@ -1,8 +1,7 @@
 /**
- * The words of the job cards and the job page (UX-8 phase 1; Auditor 3 A3-3 part 3, 11-01): the Browse card's
- * chips (Just in, Recommended, Boosted, Urgent, Today) and the job page's own headings, states and links. Not on
- * the boot path: the modules that read them import this file (side effect), which registers the English with t()
- * (enRegistry.ts), so the words travel in the card's and the page's chunks, never the entry.
+ * The words of the job page (UX-8 phase 1; Auditor 3 A3-3 part 3, 11-01): its own headings, states and links (the
+ * Browse card's chips are enJobCard.ts, so the guest /browse screen carries none of these). Not on the boot path:
+ * the page's modules import this file (side effect), which registers the English with t() (enRegistry.ts).
  *
  * Money wording (Job price, Your pay, You take home, the money notes) and the job's next-step sentences stay English
  * until a person translates them, as the chat screens do.
@@ -10,14 +9,6 @@
 import { addEnglish } from "./enRegistry";
 
 export const enJobs = {
-  // Browse card chips
-  "jobCard.justIn": "Just in",
-  "jobCard.justPosted": "Just posted",
-  "jobCard.recommended": "Recommended",
-  "jobCard.boosted": "Boosted",
-  "jobCard.urgent": "Urgent",
-  "jobCard.today": "Today",
-
   // The job page
   "jobPage.title": "Job",
   "jobPage.loading": "Loading job",

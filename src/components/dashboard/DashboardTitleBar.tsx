@@ -1,7 +1,12 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import HelprMark from "@/components/HelprMark";
-import NotificationPanel from "@/components/NotificationPanel";
+
+// The DEFAULT bell loads on demand. This bar's one caller, the signed-out /browse feed, always passes `trailing`
+// (Log In / Get Started), so the bell never renders there; a static import still put NotificationPanel, the Radix
+// popover and floating-ui on /browse's first-paint path (B47 10-31, critical-path /browse 365.7 KB gz before).
+// The fallback holds the bell's 44px box so nothing moves when it arrives. Guard: src/test/browseFirstPaintLoadsOverlaysLazily.test.ts.
+const NotificationPanel = lazy(() => import("@/components/NotificationPanel"));
 
 interface DashboardTitleBarProps {
   /** Where the emblem links. Home points at itself; the signed-out guest
@@ -195,7 +200,9 @@ export function DashboardTitleBar({
             {/* 44px like Search and Filters beside it (owner, 2026-10-08:
                 Home's top box was taller than Posts/Jobs/Messages' because
                 this bell alone was the 56px `icon` size). */}
-            <NotificationPanel triggerClassName="h-11 w-11" />
+            <Suspense fallback={<span aria-hidden="true" className="inline-block h-11 w-11" />}>
+              <NotificationPanel triggerClassName="h-11 w-11" />
+            </Suspense>
           </span>
         )}
       </div>

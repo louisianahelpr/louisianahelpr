@@ -189,13 +189,15 @@ describe("board 24: the Jobs toolbar mounts the sheet with its title and the pag
     urgentOnly: false, setUrgentOnly: noop, userLoc: { status: "idle" }, nearbyApproximate: false, nearbyUnavailable: false, nearbyApplied: false,
   } as unknown as BrowseTasksToolbarProps["filters"];
 
-  it("renders 'Filter jobs' with Price and When, and 'Show 4 jobs' from resultCount", () => {
+  // The toolbar loads its FilterSheet on demand (B47 10-31: off guest /browse's first paint), so the open sheet
+  // arrives after one Suspense tick: find, not get.
+  it("renders 'Filter jobs' with Price and When, and 'Show 4 jobs' from resultCount", async () => {
     render(
       <MemoryRouter>
         <BrowseTasksToolbar filters={filters} user={null} helperAvailability={[]} view="list" setView={noop} resultCount={4} />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("heading", { name: "Filter jobs" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Filter jobs" })).toBeTruthy();
     expect(screen.getByRole("slider", { name: "Lowest price" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Next 7 days" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Show 4 jobs" }));

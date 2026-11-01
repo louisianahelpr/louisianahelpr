@@ -69,7 +69,8 @@ import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
 // JA-17: the Working card's Accept / Decline on this page; loaded only for a Helpr with an offer.
-const PageOfferPanel = lazy(() => import("./PageOfferPanel").then((m) => ({ default: m.PageOfferPanel })));
+// From the Jobs section's chunk (it holds useActivityActions already), never a chunk of its own: see JobsSection.tsx.
+const PageOfferPanel = lazy(() => import("../JobsSection").then((m) => ({ default: m.PageOfferPanel })));
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow): string {

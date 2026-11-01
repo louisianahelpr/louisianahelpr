@@ -35,7 +35,7 @@ interface RawShipment {
 
 const asShipment = (v: unknown): RawShipment => (v && typeof v === "object" ? (v as RawShipment) : {});
 
-export interface BoughtLabel {
+interface BoughtLabel {
   shipmentId: string;
   trackingCode: string;
   labelUrl: string;

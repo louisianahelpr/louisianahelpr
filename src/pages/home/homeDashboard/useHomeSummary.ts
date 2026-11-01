@@ -77,6 +77,14 @@ function usePageSettled(): boolean {
  * uses), the member's Declutter listings, Shops orders and Homes properties.
  * A section whose switch is off for the viewer is never queried.
  */
+const BOOKED_STATUSES: ReadonlySet<string> = new Set(["accepted", "in_progress", "revision_requested"]);
+
+/** A job of mine, either side, with a Helpr booked on it and not finished (JA-36). */
+export function hasBookedJob(postedJobs: readonly { status: string; helper_id?: string | null; is_group_job?: boolean | null }[], appliedApps: readonly { helper_id?: string | null; job?: { status: string; helper_id?: string | null } | null }[]): boolean {
+  return postedJobs.some((j) => BOOKED_STATUSES.has(j.status) && (!!j.helper_id || j.is_group_job === true))
+    || appliedApps.some((a) => !!a.job && BOOKED_STATUSES.has(a.job.status) && !!a.helper_id && a.job.helper_id === a.helper_id);
+}
+
 export function useHomeSummary(user: SupaUser | null) {
   const posted = useActivityData(user, "posted");
   const applied = useActivityData(user, "applied");
@@ -148,6 +156,9 @@ export function useHomeSummary(user: SupaUser | null) {
       thisWeek,
       upcoming: upcoming.slice(0, COMING_UP_MAX),
       upcomingFailed,
+      // JA-36 (audit 11-01): a booked job is live (on the way, under way) but not in Coming up: the empty line says
+      // "Nothing else booked", never "Nothing booked yet" under that very job.
+      hasBookedJob: hasBookedJob(pj, aa),
       // You tab's activity tiles (board 18): real counts, 0 = no number shown.
       counts: {
         posted: postedLive.length,

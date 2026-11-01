@@ -27,6 +27,7 @@ vi.mock("./OfferToSavedHelpr", () => ({
 }));
 vi.mock("@/components/postjob/AiJobBuilder", () => ({ AiJobBuilder: () => null }));
 vi.mock("@/lib/analytics", () => ({ track: vi.fn() }));
+vi.mock("@/components/SuggestCategory", () => ({ SuggestCategory: () => null }));
 
 import { EntryChoice } from "./EntryChoice";
 import { giftBannerDismissKey } from "./GiftCardTeaser";
@@ -66,9 +67,9 @@ describe("gift card banner", () => {
     renderEntry();
     expect(banner()).toHaveTextContent("2 Helpr gift cards waiting for you");
     expect(screen.getByRole("link", { name: "See them" })).toHaveAttribute("href", "/profile?tab=gift_card&show=received");
-    // Top of the column, right under step 0's question (owner 2026-10-21), above the four cards.
-    const q = screen.getByRole("heading", { name: "How do you want to start?" });
-    const first = screen.getByRole("button", { name: /^Start from scratch/ });
+    // Top of the column, right under the first screen's question (owner 2026-10-21), above the group grid (JA-41).
+    const q = screen.getByRole("heading", { name: "What do you need done?" });
+    const first = screen.getByRole("region", { name: "Category groups" });
     expect(q.compareDocumentPosition(banner()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(banner()!.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

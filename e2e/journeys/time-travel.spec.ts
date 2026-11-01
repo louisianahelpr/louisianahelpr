@@ -325,7 +325,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         await page.goto("/post-job");
         // Wait for the entry column to paint (it holds a skeleton until its
         // data rows settle), so the absence below is not a loading screen.
-        await expect(page.getByText("Start from scratch", { exact: true }), "Post a Job never painted its entry choices").toBeVisible({ timeout: 45_000 });
+        await expect(page.getByText("Use a template", { exact: true }), "Post a Job never painted its entry choices").toBeVisible({ timeout: 45_000 });
         await expect(
           page.getByText(job.title),
           "an unpaid job is offered in Post a job — the owner removed Finish Paying (2026-09-27)",

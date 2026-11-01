@@ -191,7 +191,14 @@ export function FormStep({ form }: FormStepProps) {
   // Reopen a passed step: the desktop rail and the phone's step bar share one rule (owner 2026-10-25).
   const canPickStep = (s: PostJobScreen) => FORM_PAGE_OF[s] !== undefined && !(s === "kind");
   const pickStep = (s: PostJobScreen) => {
-    if (s === "groups") form.setCategoryGroup(null);
+    if (s === "groups") {
+      form.setCategoryGroup(null);
+      // JA-41: the groups are the first screen (EntryChoice); the form's own copy is only for deep links.
+      if (!form.skipEntry) {
+        form.setStep("entry");
+        return;
+      }
+    }
     const p = FORM_PAGE_OF[s];
     if (p) setPage?.(p);
   };

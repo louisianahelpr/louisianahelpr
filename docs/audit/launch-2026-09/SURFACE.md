@@ -14,23 +14,23 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 55 |
+| Routes (non-redirect) | route | 56 |
 | Redirect-only routes | route | 1 |
 | `?tab=` variants | variant | 34 |
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 213 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
 | Toast messages | **call site** | 1077 (across 299 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 38 |
+| Multi-step flows — confirmed | flow | 39 |
 | Multi-step flows — probable | flow | 31 |
 | Back/next navigation only | flow | 58 |
-| Forms (submittable) | form | 92 |
+| Forms (submittable) | form | 93 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 176 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **725** |
+| **Navigable surfaces** (places a person can stand) | mixed | **728** |
 | **Copy surfaces** (strings a person may read) | mixed | **1126** |
-| **Total auditable surface** | mixed | **1851** |
+| **Total auditable surface** | mixed | **1854** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,12 +67,12 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 55 | 34 | agree |
+| Real routes | 56 | 34 | agree |
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 27 | 24 | agree |
 | Overlay surfaces | 213 | 130 | agree within method (script counts every menu instance) |
-| Forms | 92 | ~38 | agree |
-| Confirmed multi-step flows | 38 | 9 | agree; the agent excluded section routers this script still counts |
+| Forms | 93 | ~38 | agree |
+| Confirmed multi-step flows | 39 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -114,6 +114,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/shops/dashboard`
 - [ ] `/shops/:id`
 - [ ] `/book/:userId`
+- [ ] `/u/:handle`
 - [ ] `/rentals`
 - [ ] `/rentals/invite/:token`
 - [ ] `/rentals/requests/:id`
@@ -413,6 +414,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/declutter/DeclutterManageListing.tsx` | nav-handler, union-state |
 | `src/components/declutter/DeclutterSellView.tsx` | compare, nav-handler |
 | `src/components/declutter/DeliveryCantFinish.tsx` | compare, union-state |
+| `src/components/declutter/FallbackImg.tsx` | compare, union-state |
 | `src/components/declutter/sellForm.ts` | compare |
 | `src/components/firstRun/FirstRun.tsx` | compare, nav-handler, union-state |
 | `src/components/job-card/jobStatusLine.ts` | compare |
@@ -597,6 +599,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/profile/AvailabilityTab.tsx` (dialog/mutation)
 - [ ] `src/components/profile/CredentialsTab.tsx` (dialog/mutation)
 - [ ] `src/components/profile/ProfileEditForm.tsx` (form tag)
+- [ ] `src/components/profile/ProfileLinkRow.tsx` (form tag)
 - [ ] `src/components/profile/SettingsTab.tsx` (dialog/mutation)
 - [ ] `src/components/profile/SupportInline.tsx` (form tag)
 - [ ] `src/components/quotes/QuoteAnswerControls.tsx` (form tag)

@@ -15,6 +15,11 @@
  * @mutate src/components/profile/EarningsTab.tsx | import { hasPayoutToCelebrate } from "@/components/wallet/payoutCelebrationGate"; | import { hasPayoutToCelebrate } from "@/components/wallet/payoutCelebrationGate";\nimport { PayoutCelebration as _P } from "@/components/wallet/PayoutCelebration";
  * @mutate src/components/profile/EarningsTab.tsx |           {celebrate && ( |           {true && (
  * @mutate src/components/admin/KpiSparkline.tsx |     t[i] = (sign(s0) + sign(s1)) * Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs(p)) \|\| 0; |     t[i] = p;
+ * @mutate src/pages/profile/ProfileTabPanels.tsx |     if (moneyFor) prefetchEarningsReads(qc, moneyFor); |     void moneyFor;
+ * @mutate src/components/profile/earningsTab/useEarningsData.ts |   void qc.prefetchQuery(stripePayoutsQuery(helperId)); |   void helperId;
+ * @mutate src/components/profile/earningsTab/useEarningsData.ts | useQuery<StripePayoutData>(stripePayoutsQuery(helperId)) | useQuery<StripePayoutData>({ ...stripePayoutsQuery(helperId), queryKey: ["stripe-payouts-other", helperId] })
+ *   - Money's two payout reads (stripe-payouts, payout_transfers) start from
+ *     ProfileTabPanels beside EarningsTab's chunk: 6.70 -> 5.87 s.
  * @mutate src/components/wallet/payoutCelebrationGate.ts |   return fresh.reduce((sum, p) => sum + (p.amount_cents ?? 0), 0) > 0; |   return true;
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -67,6 +72,17 @@ describe("Admin and Money skip chart and animation code they do not show at once
     for (let i = 1; i < nums.length; i += 2) {
       expect(nums[i]).toBeGreaterThanOrEqual(1);
       expect(nums[i]).toBeLessThanOrEqual(28);
+    }
+  });
+
+  it("Money's payout reads start from the tab panels, with the hook's own keys", () => {
+    const panels = code("src/pages/profile/ProfileTabPanels.tsx");
+    expect(panels).toMatch(/const moneyFor = \(tab === "earnings" \|\| tab === "payment"\) && user \? user\.id : null;/);
+    expect(panels).toMatch(/if \(moneyFor\) prefetchEarningsReads\(qc, moneyFor\);/);
+    const hook = code("src/components/profile/earningsTab/useEarningsData.ts");
+    for (const q of ["stripePayoutsQuery", "payoutLedgerQuery"]) {
+      expect(hook).toContain(`void qc.prefetchQuery(${q}(helperId));`);
+      expect(hook).toMatch(new RegExp(`useQuery<[A-Za-z\\[\\]]+>\\(${q}\\(helperId\\)\\)`));
     }
   });
 

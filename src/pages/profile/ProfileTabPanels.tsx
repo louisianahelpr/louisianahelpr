@@ -1,6 +1,6 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
-import type { UseQueryResult } from "@tanstack/react-query";
+import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import { ProfileTabFallback } from "@/components/profile/ProfileTabFallback";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileSectionError } from "@/components/profile/ProfileSectionError";
@@ -19,6 +19,7 @@ type ProfileTip = { amount: number; job_id: string; created_at: string };
 // Every other tab panel and the rarely-opened dialogs are code-split so the
 // Profile route chunk stays small — each is fetched the first time it shows.
 import { EarningsPageSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
+import { prefetchEarningsReads } from "@/components/profile/earningsTab/useEarningsData";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { MembershipPlansGate } from "@/components/profile/subscriptionTab/MembershipPlansGate";
 const SecurityTab = lazy(() => import("@/components/profile/SecurityTab").then(m => ({ default: m.SecurityTab })));
@@ -183,6 +184,12 @@ export const ProfileTabPanels = ({
   onRequestLogout,
   onRequestDelete,
 }: ProfileTabPanelsProps) => {
+  // Money's payout reads start beside EarningsTab's chunk, not after it runs.
+  const qc = useQueryClient();
+  const moneyFor = (tab === "earnings" || tab === "payment") && user ? user.id : null;
+  useEffect(() => {
+    if (moneyFor) prefetchEarningsReads(qc, moneyFor);
+  }, [qc, moneyFor]);
   return (
     <>
       {/* PROFILE TAB */}

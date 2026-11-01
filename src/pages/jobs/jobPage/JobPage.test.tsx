@@ -28,7 +28,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. Louisiana Helpr holds it until the job is done.", |   escrow: "Nothing is charged until you hire.",
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     : job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : HELD_LINE[job.payment_status ?? ""]; |     : HELD_LINE[job.payment_status ?? ""];
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const line = released ? releasedLine(job) : status === "escrow" ? null : HELD_LINE[status] ?? null; | const line = released ? releasedLine(job) : HELD_LINE[status] ?? null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
@@ -71,6 +71,10 @@ const state = {
   /** The job's latest job_tracking.status (useJobPage's tracking read). */
   tracking: null as string | null,
   onCrew: false,
+  /** usePosterPageFlows' moreCount: the card actions the page offers beside Message (jobStepMenu.tsx). */
+  moreCount: 2,
+  /** OnTheWayNow's position read (job_tracking status, latitude, longitude). */
+  position: null as { status: string | null; latitude: number | null; longitude: number | null } | null,
   /** usePosterPageFlows' crewNobodyLeft (JOBS-3: every crew member reported a no-show). */
   crewNobodyLeft: false,
   /** CMP-4: the viewer's instant booking's decline-by (useMyInstantBooking), or null. */
@@ -153,11 +157,14 @@ vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }))
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "card_hold_at_post" && state.cardHold }));
 // The Posted card's own flows on the page (usePosterPageFlows; its wiring is posterPageFlows.test.tsx): record each call.
 const flowCalls = vi.hoisted(() => [] as string[]);
+// OnTheWayNow's position read (onTheWayPosition.ts): no position unless a test sets one.
+vi.mock("./onTheWayPosition", () => ({ fetchOnTheWayPosition: async () => state.position }));
 vi.mock("./usePosterPageFlows", () => ({
   usePosterPageFlows: () => ({
-    ready: true, completing: false, moreOpen: false,
+    ready: true, completing: false, moreCount: state.moreCount,
     approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
-    toggleMore: () => flowCalls.push("more"), crewNobodyLeft: state.crewNobodyLeft, panel: <div data-testid="card-panel" />, dialogs: null,
+    setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
+    crewNobodyLeft: state.crewNobodyLeft, panel: <div data-testid="card-panel" />, crew: null, dialogs: null,
   }),
 }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
@@ -237,6 +244,8 @@ beforeEach(() => {
   state.crewNobodyLeft = false;
   state.instantUntil = null;
   state.offeredToMe = false;
+  state.moreCount = 2;
+  state.position = null;
 });
 
 describe("job page, Helpr side (boards 42, 169)", () => {
@@ -393,8 +402,11 @@ describe("job page, poster side (boards 15, 168)", () => {
     state.party = true;
     state.applicants = { total: 3, pending: 2 };
     renderPage();
-    expect(screen.getByText("Your budget")).toBeTruthy();
-    expect(screen.getByText("Paid when you posted. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
+    // Owner 2026-11-01: no budget card; the amount and its word sit at the right of the header.
+    expect(screen.queryByText("Your budget")).toBeNull();
+    const money = document.querySelector("[data-poster-money]") as HTMLElement;
+    expect(document.querySelector("[data-job-head]")?.contains(money)).toBe(true);
+    expect(money.textContent).toContain("Paid · held");
     expect(document.body.textContent).not.toMatch(/Nothing is charged|take home|takes home/i);
     expect(screen.getByText("3 applicants")).toBeTruthy();
     expect(screen.getByLabelText(/^Job progress, step 1 of 8: Posted,/)).toBeTruthy();
@@ -420,7 +432,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     state.job = row({ customer_id: ME, helper_id: "44444444-4444-4444-4444-444444444444", status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z" });
     state.party = true;
     const { unmount } = renderPage();
-    expect(screen.getByText("Paid. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
+    expect(screen.getByText("Paid · held")).toBeTruthy();
     expect(document.body.textContent).not.toContain("when you posted");
     unmount();
     state.job = row({ customer_id: ME, payment_status: "held" });
@@ -524,8 +536,80 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
   });
 });
 
+// Owner 2026-11-01: the on-the-way line and where the Helpr is sit ABOVE the tracker; Message and the card's options
+// share one row (none: Message alone; one: that action; two or more: More options); the Helpr's card sits above them.
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} />} |
+// @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx |   const mapped = p?.status === "on_the_way" && | const mapped = true &&
+// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     cardSteps && flows.moreCount === 1 && <div | cardSteps && flows.moreCount > 1 && <div
+// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const messageInRow = cardSteps && !!message && primaryOrMessage === message; |   const messageInRow = false;
+describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => {
+  const onTheWay = () => row({
+    customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_on_the_way_at: "2026-10-28T13:51:00Z", helper_arrived_at: null, latitude: 30.0, longitude: -91.8,
+  });
+
+  it("says who is on the way and since when (Louisiana time), above the tracker, which no longer repeats it", async () => {
+    state.job = onTheWay();
+    state.party = true;
+    renderPage();
+    const block = document.querySelector("[data-on-the-way]") as HTMLElement;
+    await waitFor(() => expect(block.textContent).toContain("Rhonda is on the way · since 8:51 AM"));
+    expect(block.textContent).toContain("You'll confirm once they say they've arrived.");
+    const tracker = document.querySelector("[data-job-tracker]") as HTMLElement;
+    expect(block.compareDocumentPosition(tracker) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(tracker.querySelector("[data-job-progress-next]")).toBeNull();
+    // No position on the tracking row: no map and no empty box.
+    expect(document.querySelector("[data-on-the-way-map]")).toBeNull();
+  });
+
+  it("with his position, a small map; once he has arrived, no block at all", async () => {
+    state.position = { status: "on_the_way", latitude: 30.01, longitude: -91.81 };
+    state.job = onTheWay();
+    state.party = true;
+    const { unmount } = renderPage();
+    expect(await screen.findByLabelText("On the way")).toBeTruthy();
+    await waitFor(() => expect(document.querySelector("[data-on-the-way-map]")).toBeTruthy());
+    unmount();
+    state.job = { ...onTheWay(), helper_arrived_at: "2026-10-28T14:20:00Z" };
+    renderPage();
+    expect(document.querySelector("[data-on-the-way]")).toBeNull();
+  });
+
+  it("one card action (No-Show): [Message Rhonda | that action], no More options; the Helpr's card sits above them", async () => {
+    state.moreCount = 1;
+    state.job = onTheWay();
+    state.party = true;
+    renderPage();
+    const actions = document.querySelector("[data-poster-actions]") as HTMLElement;
+    expect(await within(actions).findByRole("button", { name: "Message Rhonda" })).toBeTruthy();
+    expect(actions.querySelector("[data-poster-one-action]")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "More options" })).toBeNull();
+    // Message is in the row, not also the big button above it.
+    expect(screen.getAllByRole("button", { name: "Message Rhonda" })).toHaveLength(1);
+    const card = await screen.findByRole("region", { name: "Your Helpr" });
+    expect(card.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("no card action: Message alone; two or more: [Message | More options]", async () => {
+    state.moreCount = 0;
+    state.job = onTheWay();
+    state.party = true;
+    const { unmount } = renderPage();
+    const actions = document.querySelector("[data-poster-actions]") as HTMLElement;
+    await within(actions).findByRole("button", { name: "Message Rhonda" });
+    expect(within(actions).getAllByRole("button").map((b) => b.textContent)).toEqual(["Message Rhonda"]);
+    unmount();
+    state.moreCount = 3;
+    renderPage();
+    const row2 = document.querySelector("[data-poster-actions]") as HTMLElement;
+    await within(row2).findByRole("button", { name: "Message Rhonda" });
+    expect(within(row2).getAllByRole("button").map((b) => b.textContent)).toEqual(["Message Rhonda", "More options"]);
+  });
+});
+
 describe("job page, the poster sees who they hired (AUD31-80)", () => {
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <div className="order-6 lg:order-none"><HiredHelpr helprId={job.helper_id} /></div>} |
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <HiredHelpr helprId={job.helper_id} />} |
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && | {isPoster && job.helper_id && !job.is_group_job &&
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <DeclutterSellerCard sellerId={helprId} noun="Helpr" /> |       <DeclutterSellerCard sellerId={helprId} noun="poster" />
   const hired = () => row({ customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z" });
@@ -836,7 +920,7 @@ describe("board 57: the poster's open job with no applicants", () => {
   it("an unpaid post, a post with a photo, or one with applicants does not claim it", async () => {
     state.job = row({ customer_id: ME, payment_status: "unpaid" });
     const { unmount } = renderPage();
-    expect(await screen.findByText(/Not paid yet/)).toBeTruthy();
+    expect(await screen.findByText(/Not paid yet\. Helprs/)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "No applicants yet" })).toBeNull();
     unmount();
     state.job = row({ customer_id: ME, photos: ["a.jpg"] });
@@ -1077,13 +1161,15 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | const MORE_ON_CARD = new Set(["in_progress", "revision_requested", "completed", "disputed"]); | const MORE_ON_CARD = new Set<string>([]);
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | aria-expanded={flows.moreOpen} onClick={flows.toggleMore}> | aria-expanded={flows.moreOpen} onClick={() => navigate(`/posts?highlight=${id}&manage=1`)}>
-  it("a job under way or done: More options opens the card's other steps (no-show, dispute, tip, review) ON the page", () => {
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx | aria-haspopup="dialog" onClick={() => setOptionsOpen(true)}> | aria-haspopup="dialog" onClick={() => navigate(`/posts?highlight=${id}&manage=1`)}>
+  it("a job under way or done: More options opens the card's other steps (no-show, dispute, tip, review) ON the page, in one tap", async () => {
     state.job = { ...booked(), status: "completed", poster_completed_at: "2026-10-28T15:00:00Z", helper_completed_at: "2026-10-28T14:00:00Z" };
     state.party = true;
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: "More options" }));
-    expect(flowCalls).toEqual(["more"]);
+    // One tap: the options sheet is open with the card's list host in it (jobStepMenu.tsx draws the actions there).
+    expect(await screen.findByRole("dialog", { name: "More options" })).toBeTruthy();
+    expect(flowCalls).toEqual(["options-list"]);
     expect(screen.getByTestId("card-panel")).toBeTruthy();
     expect(screen.queryByTestId("where")).toBeNull();
     expect(faceRequests).toEqual([]);

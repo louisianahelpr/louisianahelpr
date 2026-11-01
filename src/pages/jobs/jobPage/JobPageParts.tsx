@@ -17,7 +17,6 @@ import type { JobPageRow } from "./useJobPage";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress } from "@/components/tracker/jobProgressState";
-import { useFeature } from "@/hooks/useFeature";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
@@ -29,8 +28,10 @@ const MONEY = "text-[hsl(var(--burnt-sienna))]";
  * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
  * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
  */
-export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null }: {
+export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, hideNext = false }: {
   job: JobPageRow; side: "poster" | "helpr" | null; trackingStatus?: string | null; pendingApplicants?: number;
+  /** The page says the step above the tracker (OnTheWayNow): the tracker draws its bar without repeating the line. */
+  hideNext?: boolean;
   /** The other person's first name, as the page's own buttons name them ("Message Eli"); null reads "Your Helpr". */
   otherFirst?: string | null;
 }) {
@@ -48,7 +49,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   if (progress.stage === null && !progress.next) return null;
   return (
     <div data-job-tracker="" className="rounded-2xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0 lg:pt-1 lg:!shadow-none">
-      <JobProgress progress={progress} />
+      <JobProgress progress={hideNext ? { ...progress, next: "" } : progress} />
     </div>
   );
 }
@@ -64,13 +65,6 @@ const HELD_LINE: Partial<Record<string, string>> = {
   released: "Paid out to your Helpr.",
 };
 
-/**
- * Under card_hold_at_post (Q2399, the flag the checkout step's copy follows) a card is charged at the
- * hire, not at posting, so a paid job's line no longer says when (audit 2026-10-28 F4: "Paid when you
- * posted" on a job whose card was captured at the hire). A bank payment or a gift is still paid at
- * posting; "Paid" is true for every way the job was funded.
- */
-const PAID_UNDER_CARD_HOLD = "Paid. Louisiana Helpr holds it until the job is done.";
 
 /** "Sat, Oct 31 at 11:13 PM" in Louisiana time (the payout schedule is Louisiana's). */
 function payoutWhen(iso: string): string {
@@ -92,30 +86,49 @@ function releasedLine(job: JobPageRow): string {
   return at ? `Paid and released to your Helpr. Their pay goes out ${payoutWhen(at)}.` : "Paid and released to your Helpr. Their pay goes out with the next payout.";
 }
 
-export function PosterMoney({ job, total, loading }: { job: JobPageRow; total: number; loading: boolean }) {
-  const cardHoldOn = useFeature("card_hold_at_post");
-  const released = RELEASED.has(job.payment_status ?? "");
-  const line = released
-    ? releasedLine(job)
-    : job.payment_status === "escrow" && cardHoldOn ? PAID_UNDER_CARD_HOLD : HELD_LINE[job.payment_status ?? ""];
+/** The small word under the poster's amount in the header (owner 2026-11-01: the budget has no box of its own). */
+const SHORT_STATUS: Partial<Record<string, string>> = {
+  escrow: "Paid · held",
+  held: "Card held",
+  unpaid: "Not paid yet",
+  abandoned: "Not paid yet",
+  refunded: "Refunded",
+  released: "Released",
+  payout_pending: "Released",
+};
+
+/** The poster's amount, on the RIGHT of the page header (owner 2026-11-01), with its paid or held word under it. */
+export function PosterPrice({ job }: { job: JobPageRow }) {
+  const word = SHORT_STATUS[job.payment_status ?? ""];
   return (
-    <div data-poster-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-ds-15 font-semibold">{released ? "Job price" : "Your budget"}</p>
-        <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>
-      </div>
-      {line && <p className="mt-1.5 text-ds-13 text-muted-foreground">{line}</p>}
+    <div data-poster-money="" className="shrink-0 text-right">
+      <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>
+      {word && <p data-poster-money-status="" className="mt-1 text-ds-12 font-semibold text-muted-foreground">{word}</p>}
+    </div>
+  );
+}
+
+/**
+ * What the old budget card said that a word cannot (no box, under the header): the release and when the pay goes out,
+ * why an unpaid job is not live, the receipt, and the applicant count. The "held" line is the header's word now.
+ */
+export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; total: number; loading: boolean }) {
+  const released = RELEASED.has(job.payment_status ?? "");
+  const status = job.payment_status ?? "";
+  // "Paid … holds it" is the header's "Paid · held"; every other state keeps its sentence.
+  const line = released ? releasedLine(job) : status === "escrow" ? null : HELD_LINE[status] ?? null;
+  const count = job.status === "open" && !loading && total > 0;
+  if (!line && !released && !count) return null;
+  return (
+    <div data-poster-money-notes="" className="space-y-1.5">
+      {line && <p className="text-ds-13 text-muted-foreground">{line}</p>}
       {released && (
-        <Link data-receipt-link="" to="/profile?tab=receipts" className="mt-2 inline-block text-ds-14 font-semibold text-primary underline underline-offset-2">
+        <Link data-receipt-link="" to="/profile?tab=receipts" className="inline-block text-ds-14 font-semibold text-primary underline underline-offset-2">
           See your receipt
         </Link>
       )}
       {/* Zero applicants is the page's own "No applicants yet" block (board 57), not a line here. */}
-      {job.status === "open" && !loading && total > 0 && (
-        <p data-applicant-count="" className="mt-3 border-t border-border pt-3 text-ds-14 font-semibold">
-          {`${total} applicant${total === 1 ? "" : "s"}`}
-        </p>
-      )}
+      {count && <p data-applicant-count="" className="text-ds-14 font-semibold">{`${total} applicant${total === 1 ? "" : "s"}`}</p>}
     </div>
   );
 }

@@ -207,6 +207,9 @@ export async function fetchConversations(
   const blockedPromise = userBlocks().then((m) =>
     m ? m.getBlockedUserIds(uid) : untilReload(),
   );
+  // It can reject while the inbox read below is still in flight: mark it handled now; the await below still
+  // throws it into the query (B68, review note on 8013c7a053).
+  blockedPromise.catch(() => { /* handled by the await below */ });
 
   // unwrap: a failed inbox fetch must surface as the query's error state
   // (→ recoverable ErrorState), never fall through to "No messages yet".

@@ -156,7 +156,9 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // metadata.kind declutter_refund); the buyer is told by declutter_setup_fee_refunded ("Setup fee coming back").
     // 21 since Q2399 card hold (2026-10-25): _shared/cardHold.ts refundCaptureForNobody refunds in full a hold that a
     // Helpr's accept captured while the job closed with nobody hired; charge.refunded announces it (REFUND_OWN_NOTICE).
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(21);
+    // 22 since CMP-4 instant book (2026-11-01): _shared/instantBookRefund.ts refunds in full an instant booking charged
+    // with nobody hired (holder instant_book_refund); charge.refunded announces it (REFUND_OWN_NOTICE).
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(22);
     {
       const v = blankComments(readFileSync(join(FN, "void-cancelled-payments/index.ts"), "utf8"));
       const fn = v.slice(v.indexOf("const returnShareToPoster"), v.indexOf("for (const share of owed)"));

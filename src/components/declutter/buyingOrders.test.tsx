@@ -227,8 +227,8 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   });
 
   // AUD31-7: the headline comes from the task once it ended without a delivery; a live one keeps its step line.
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return "No Helpr took this delivery. What you paid for delivery was refunded."; |
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return "This delivery was closed."; |
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return info("No Helpr took this delivery. What you paid for delivery was refunded."); |
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return info("This delivery was closed."); |
   // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null), |         null),
   it("AUD31-2: a seller delivery past its time says it is late, not booked", async () => {
     load([CASES.find((c) => c.id === "sd1late")!]);
@@ -312,6 +312,36 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(within(el).queryByText(/Delivery card/)).toBeNull();
   });
 
+  // Next-step line (owner 11-01 12:02 PM: "there isn't clear instructions for them on what next"). Every buyer card
+  // whose order waits on the buyer says "Next: <step>" in the shared NextStep line, above its one button; every
+  // other card says who it waits on or where it stands, never "Next:". The late seller delivery is the one Needs-you
+  // card whose line says why (its button, "It wasn't delivered", is the step).
+  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time") |       return at === 0 ? info("Pick a pickup time")
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time"); |       if (at === 0) return info("Book a pickup time.");
+  // @mutate src/components/declutter/BuyingOrders.tsx |       return you("Tap I got it once you have it");\n  } |       return info("Delivered.");\n  }
+  // @mutate src/components/declutter/BuyingOrders.tsx | value={standing ? { who: "info", text: standing } : view.next} | value={{ who: "info", text: view.next.text }}
+  it("Next-step line: every card that waits on the buyer says 'Next: …'; the rest never do", async () => {
+    load(CASES);
+    show();
+    await waitFor(() => expect(card("hd3").querySelector("[data-next-step]")).not.toBeNull());
+    await waitFor(() => expect(card("hd2held").querySelector("[data-next-step]")?.getAttribute("data-next-step")).toBe("you"));
+    let yours = 0;
+    for (const c of CASES) {
+      const line = card(c.id).querySelector("[data-next-step]");
+      expect(line, c.id).not.toBeNull();
+      const mine = c.bucket === "needs_you" && c.id !== "sd1late";
+      if (mine) expect(line!.getAttribute("data-next-step"), c.id).toBe("you");
+      else expect(line!.getAttribute("data-next-step"), c.id).not.toBe("you");
+      if (mine) { yours++; expect(line!.textContent, c.id).toMatch(/^Next: [a-z]/); }
+      else expect(line!.textContent, c.id).not.toMatch(/^Next:/);
+    }
+    expect(yours).toBeGreaterThan(10);
+    expect(card("home0").querySelector("[data-next-step]")!.textContent).toBe("Next: book a pickup time");
+    expect(card("porch0").querySelector("[data-next-step]")!.textContent).toBe("Next: pick a pickup time");
+    expect(card("hd3").querySelector("[data-next-step]")!.textContent).toBe("Next: tap I got it once you have it");
+    expect(card("hd0").querySelector("[data-next-step]")!.textContent).toBe("Finding a Helpr to bring it.");
+  });
+
   // A1-C2: a porch pickup is a DAY; its booking's slot_start is only that day's start, so the card never shows a time.
   // @mutate src/components/declutter/BuyingOrders.tsx |     const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day) |     const when = false ? "" 
   it("a porch pickup day reads as the day ('for tomorrow'), never a clock time", async () => {
@@ -339,7 +369,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // Audit 1b D2-2 (1b-problem-after-375): after "Report a problem" the collapsed porch card still said "Pick the day
   // you'll come for it" with "Pick a pickup time" as its next action. Now it says the problem is open and asks nothing.
   // @mutate src/components/declutter/BuyingOrders.tsx |       problem: problems.has(o.orderId), |       problem: false,
-  // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem) return PROBLEM_ON_HOLD; |
+  // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem) return f.problemAwaitsYou ? you("Add your side to the problem") : info(PROBLEM_ON_HOLD); |
   it("an open problem: the collapsed card says so, with no next action and no booking (D2-2)", async () => {
     load(CASES.filter((c) => c.id === "porch0" || c.id === "home0"));
     state.problems = [{ id: "p1", order_id: "porch0", reporter_side: "buyer", reason: "not_as_described" }];
@@ -386,7 +416,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
 
   // Audit 1c D3-3 (1c-b3-buying-p1-375): two days before the booked pickup the buyer's card said "A Helpr is on the way
   // to pick it up". It now names the Helpr and the booked pickup time, as the seller's card already did.
-  // @mutate src/components/declutter/BuyingOrders.tsx |         : at === 1 ? `${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.` |         : at === 1 ? "A Helpr is on the way to pick it up."
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1) return them(`${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.`); |       if (at === 1) return them("A Helpr is on the way to pick it up.");
   // @mutate src/components/declutter/BuyingOrders.tsx |       : o.handover === "delivery" ? task?.pickup_slot_start ?? null : slot; |       : slot;
   it("D3-3: a taken Helpr delivery names the Helpr and the booked pickup time, never 'on the way'", async () => {
     const pickup = iso(48);

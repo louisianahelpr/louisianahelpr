@@ -26,6 +26,7 @@ import { useMyPaidCents } from "./useMyPaidCents";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { useOpenProblems } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { ORDER_BUCKETS, OrderSteps, gotItOpen, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
 /** One paid order on the buyer's side, as the tracker files it. */
@@ -35,8 +36,8 @@ export type BuyerOrderView = {
   bucket: OrderBucket;
   /** The one next move, when it is the buyer's ("Pick a pickup day", "I got it"); null when nothing is asked. */
   action: string | null;
-  /** Where it stands, one plain sentence. */
-  standing: string;
+  /** Where it stands, as the shared next-step line (buyerNextStep). */
+  next: NextStepValue;
   /** "You paid $34.30." / "Free." */
   money: string | null;
 };
@@ -107,37 +108,58 @@ export function buyerNextAction(f: OrderFacts): string | null {
   return "I got it";
 }
 
-/** Where it stands, for the buyer, in one sentence. `when` is the booked time in words, when there is one. */
-function buyerStanding(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
-  taskStatus: string | null = null): string {
-  if (f.cancelled) return "Cancelled and refunded to your card.";
-  if (f.problem) return PROBLEM_ON_HOLD;
-  if (f.done) return "Handed over. It's yours.";
+/**
+ * Where it stands, for the buyer, as the shared next-step line (owner 11-01 12:02 PM: "how are they supposed to know"
+ * what to do next): the buyer's own move reads "Next: <step>" (the card's one button does it), someone else's reads
+ * "Waiting on <who> to <step>", and a state that asks nothing of anyone is said plainly. `when` is the booked time in
+ * words, when there is one. A "you" step has no full stop (NextStep adds "Next: "); the others are whole sentences.
+ */
+export function buyerNextStep(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
+  taskStatus: string | null = null): NextStepValue {
+  const you = (text: string, by?: string | null): NextStepValue => ({ who: "you", text, by: by ?? null });
+  const them = (text: string): NextStepValue => ({ who: "them", text });
+  const info = (text: string): NextStepValue => ({ who: "info", text });
+  if (f.cancelled) return info("Cancelled and refunded to your card.");
+  if (f.problem) return f.problemAwaitsYou ? you("Add your side to the problem") : info(PROBLEM_ON_HOLD);
+  if (f.done) return info("Handed over. It's yours.");
   const at = orderStepAt(f);
   switch (f.handover) {
     case "porch":
-      return at === 0 ? "Pick the day you'll come for it."
-        : at === 1 ? `The seller puts it out ${when ? `for ${when}` : "on your day"} and posts a photo.`
-          : at === 2 ? "It's out on the porch. Pick it up, then tap I got it."
-            : "Picked up.";
+      return at === 0 ? you("Pick a pickup time")
+        : at === 1 ? them(`The seller puts it out ${when ? `for ${when}` : "on your day"} and posts a photo.`)
+          : at === 2 ? you("Pick it up from the porch, then tap I got it")
+            : info("Picked up.");
     case "pickup_home":
-      return at === 0 ? "Book a time to pick it up." : at === 1 ? `Pickup booked${when ? ` for ${when}` : ""}.` : "Picked up.";
+      if (at === 0) return you("Book a pickup time");
+      if (at === 1) return f.gotItOpen ? you("Pick it up, then tap I got it", when ? `booked for ${when}` : null) : info(`Pickup booked${when ? ` for ${when}` : ""}.`);
+      return info("Picked up.");
     case "meetup":
-      return at === 0 ? "Book a time to meet at the safe spot." : at === 1 ? `Meeting booked${when ? ` for ${when}` : ""}.` : "Met.";
+      if (at === 0) return you("Book a time to meet at the safe spot");
+      if (at === 1) return f.gotItOpen ? you("Meet the seller, then tap I got it", when ? `booked for ${when}` : null) : info(`Meeting booked${when ? ` for ${when}` : ""}.`);
+      return info("Met.");
     case "seller_delivery":
+      if (at === 0) return f.needsTime ? you("Pick a delivery time") : them("Waiting on the seller to set the delivery time.");
       // AUD31-2: past its time and not marked delivered, it says it is late, never "booked".
-      if (at === 1 && f.late) return `Late: it was due ${when ?? "earlier"} and the seller hasn't marked it delivered.`;
-      return at === 0 ? "The delivery time isn't set yet." : at === 1 ? `Delivery booked${when ? ` for ${when}` : ""}.` : "Delivered. Tap I got it once you have it.";
+      // The card's button ("It wasn't delivered") is the step; the line says why.
+      if (at === 1 && f.late) return info(`Late: it was due ${when ?? "earlier"} and the seller hasn't marked it delivered.`);
+      if (at === 1 && f.moveAsked) return you("Accept the new delivery time, or keep yours");
+      return at === 1 ? info(`Delivery booked${when ? ` for ${when}` : ""}.`) : you("Tap I got it once you have it");
     case "delivery":
       // AUD31-7: a delivery nobody took, or one that was closed, is never still "Finding a Helpr" (the task says so
       // under Details: DeclutterDeliveryViews' own lines).
-      if (taskStatus === "unfilled") return "No Helpr took this delivery. What you paid for delivery was refunded.";
-      if (taskStatus && !LIVE_TASK.has(taskStatus)) return "This delivery was closed.";
+      if (taskStatus === "unfilled") return info("No Helpr took this delivery. What you paid for delivery was refunded.");
+      if (taskStatus && !LIVE_TASK.has(taskStatus)) return info("This delivery was closed.");
+      if (at === 0) return them("Finding a Helpr to bring it.");
       // Audit 1c D3-3: "<First> picks it up from the seller <day, time>" from the booked pickup (pickup_slot_start),
       // never "on the way" days before it.
-      return at === 0 ? "Finding a Helpr to bring it."
-        : at === 1 ? `${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.`
-          : at === 2 ? stillInHandLine(helprName ?? "Your Helpr", taskPickedUpAt) ?? "Picked up. On its way to you." : "Delivered. Tap I got it once you have it.";
+      if (at === 1) return them(`${helprName ?? "Your Helpr"} picks it up from the seller${when ? ` ${when}` : ""}.`);
+      if (at === 2) {
+        // LEAD-GOTIT30H: held 24 hours undelivered, the buyer may say they have it.
+        const held = stillInHandLine(helprName ?? "Your Helpr", taskPickedUpAt);
+        if (f.inHandLong) return you(`Tap I got it if you have it${held ? `. ${held}` : ""}`);
+        return held ? info(held) : them("Picked up. On its way to you.");
+      }
+      return you("Tap I got it once you have it");
   }
 }
 
@@ -270,7 +292,7 @@ export function useBuyingTracker(): BuyingTracker {
       facts,
       bucket,
       action: buyerNextAction(facts),
-      standing: buyerStanding(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
+      next: buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
         o.handover === "delivery" ? task?.status ?? null : null),
       // #6: a free item never reads like a paid order ("You paid $0").
       money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
@@ -317,7 +339,7 @@ export function BuyerOrderHead({ view, standing, open, onOpen, onClose, onAction
   return (
     <div className="space-y-2" data-buyer-order={view.bucket}>
       <OrderSteps facts={view.facts} />
-      <p className="text-ds-14">{standing ?? view.standing}</p>
+      <NextStep value={standing ? { who: "info", text: standing } : view.next} className="!text-ds-14" />
       {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
       <div className="flex flex-wrap items-center gap-3">
         {view.action && !open && (

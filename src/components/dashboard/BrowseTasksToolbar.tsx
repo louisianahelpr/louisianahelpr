@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ChevronRight, SearchCheck } from "lucide-react";
 import { whenPageSettled } from "@/lib/routePrefetch";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { buildJobFilterSections } from "@/components/dashboard/filterSheet/jobFilterSections";
 import { SavedSearches } from "@/components/SavedSearches";
 import { signupUrlFor } from "@/lib/jobIntent";
@@ -14,8 +15,8 @@ import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
 // FilterDropdown, the Radix popover and floating-ui on guest /browse's critical path (B47 10-31). It mounts the first
 // time it opens and stays mounted (so it can animate closed), and its chunk is fetched once the page has settled, so
 // the first tap on Filters does not wait on the network. Guard: src/test/browseFirstPaintLoadsOverlaysLazily.test.ts.
-const loadFilterSheet = () => import("@/components/dashboard/FilterSheet");
-const FilterSheet = lazy(() => loadFilterSheet().then((m) => ({ default: m.FilterSheet })));
+const loadFilterSheet = () => loadModule(() => import("@/components/dashboard/FilterSheet"));
+const FilterSheet = lazy(() => loadFilterSheet().then((m) => (m ? { default: m.FilterSheet } : untilReload())));
 
 const SaveSearchButton = lazy(() => import("@/components/savedSearches/SaveSearchButton").then((m) => ({ default: m.SaveSearchButton })));
 

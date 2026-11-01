@@ -85,9 +85,7 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 const haulLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
 type HaulLib = typeof import("@/lib/declutter/haulAway");
 
-// The delivery screens load on their own (Q178, 2026-10-17): imported statically
-// from two Declutter screens, the shared Helpr task module rode in
-// signed-in-shared and put /posts over its critical-path budget.
+// The delivery screens load on their own (Q178, 2026-10-17): imported statically from two Declutter screens, the shared Helpr task module rode in signed-in-shared and put /posts over its budget.
 const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
 
 /** Grey shimmer rows shaped like the listing cards (owner 2026-10-18, tweak 5). */
@@ -403,8 +401,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
     <div className="space-y-6">
       <ListedWhatNext />
       <ListedForYouCard />
-      {/* Audit posting 1030 #11 gave a tablet the photo screen directly and one line to the other ways; the header has its
-          own add action on desktop. LEAD-SELLING-NO-SELL-BTN-PHONE (owner 10-31): not on a phone, where the + covers it. */}
+      {/* Audit posting 1030 #11 gave a tablet the photo screen directly and one line to the other ways; the header has its own add action on desktop. LEAD-SELLING-NO-SELL-BTN-PHONE (owner 10-31): not on a phone, where the + covers it. */}
       <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell="">
         <Button asChild className="shrink-0 rounded-full"><Link to={SELL_ONE_PATH}>Sell an item</Link></Button>
         <Link to={SELL_CHOOSER_PATH} className="min-h-11 content-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Free, a bunch, or moving out?</Link>

@@ -6,7 +6,8 @@
  * @mutate src/components/declutter/ItemHandoverTimes.tsx |   return { places, usual: !hasPlaces && pickup ? "Pickup and meetup times" : "Meetup times" }; |   return { places, usual: pickup ? "Pickup and meetup times" : "Meetup times" };
  * @mutate src/components/declutter/ItemHandoverTimes.tsx |   const places = hasPlaces && placeWay; |   const places = hasPlaces;
  * @mutate src/components/declutter/ItemHandoverTimes.tsx |   const placeWay = pickup \|\| !!ways?.includes("delivery"); |   const placeWay = pickup;
- * @mutate src/components/declutter/DeclutterItemView.tsx |             {forSale && user && <ItemHandoverTimes itemId={itemId} handovers={ways.data} />} |
+ * @mutate src/components/declutter/ItemHandoverTimes.tsx |   const pickup = ways === null \|\| ways.includes("porch"); |   const pickup = true;
+ * @mutate src/components/declutter/ItemPickupBlock.tsx |   const plan = itemTimesPlan(ways.data, hasPlaces); |   const plan = { places: true, usual: null };
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -41,9 +42,11 @@ describe("the item page shows one list per way of getting it", () => {
     expect(itemTimesPlan(["porch", "meetup"], null)).toEqual({ places: false, usual: null });
   });
 
-  it("the item page uses it (source)", () => {
+  it("the item page uses it (source): its ONE pickup block plans with itemTimesPlan (owner mockup 11-01)", () => {
     const src = blankComments(readFileSync("src/components/declutter/DeclutterItemView.tsx", "utf8"));
-    expect(src).toContain("<ItemHandoverTimes itemId={itemId} handovers={ways.data} />");
+    const block = blankComments(readFileSync("src/components/declutter/ItemPickupBlock.tsx", "utf8"));
+    expect(src).toContain("<ItemPickupBlock");
+    expect(block).toContain("const plan = itemTimesPlan(ways.data, hasPlaces);");
     expect(src).not.toContain("<ItemPickupTimes ");
     expect(src).not.toContain("<ItemPickupPlaces ");
   });

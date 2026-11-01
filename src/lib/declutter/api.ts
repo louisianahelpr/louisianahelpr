@@ -1231,6 +1231,21 @@ export async function requestFree(itemId: string): Promise<string> {
   ) as string;
 }
 
+/**
+ * Owner 11-01 (Mockup 3): ask for a free item WITH the pickup time picked from the giver's saved times
+ * (declutter_request_free_at, 20261101174857). The server refuses a time outside the giver's hours or in the past.
+ */
+export async function requestFreeAt(itemId: string, pickupAt: string): Promise<string> {
+  return rpcData(
+    await supabase.rpc("declutter_request_free_at", { p_item_id: itemId, p_pickup_at: pickupAt }),
+    (e) => {
+      const r = e as { message?: unknown; hint?: unknown } | null;
+      return (r?.message === "free_paused" || r?.message === "pickup_time_unavailable") && typeof r.hint === "string" && r.hint
+        ? r.hint : rpcErrorMessage("declutter_request_free_at", e);
+    },
+  ) as string;
+}
+
 /** Take back the member's own ask. */
 export async function withdrawFreeRequest(requestId: string): Promise<void> {
   rpcData(
@@ -1263,6 +1278,8 @@ export async function fetchOpenFreeRequestCounts(userId: string): Promise<Map<st
 
 export type FreeRequester = {
   request_id: string; requester_id: string; display_name: string; avg_rating: number | null; review_count: number | null; created_at: string;
+  /** The pickup time the asker picked (20261101174857); null for an ask made before, or from an older app build. */
+  pickup_at?: string | null;
 };
 
 /** The giver's list of who asked for one of their free items, oldest first. */

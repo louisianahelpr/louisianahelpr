@@ -24,6 +24,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   free_claim_limit: "You have 3 free items asked for or waiting. Pick those up or take back an ask first.",
   // The Free change (Q2487, 20261030064021): asks, the giver's pick, the 30-day pause.
   free_paused: "You missed a free pickup, so you can't ask for free items for 30 days.",
+  pickup_time_unavailable: "That pickup time isn't open any more. Pick one of the giver's pickup times in the next week.",
   request_not_found: "That ask isn't open any more.",
   request_not_open: "That person took back their ask. Pick someone else.",
   requester_unavailable: "That person can't take items right now. Pick someone else.",

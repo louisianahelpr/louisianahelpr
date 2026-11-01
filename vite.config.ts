@@ -947,6 +947,19 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false
             },
+            // The few signed-in-deep modules the chrome App mounts beside EVERY signed-in page reaches
+            // (Builder 77's measured proposal, B79 11-01): TermsReconsentDialog (consent.ts), DesktopTopNav's
+            // DeliveryOnlinePill (helprTasks/online.ts) and their small helpers. In signed-in-deep they made
+            // every page fetch that whole chunk, and through it rentals, declutter and signed-in-pages, ~4 s
+            // into a Slow 4G load (B75's late 26.5 KB). Above signed-in-deep so it wins them. Not in
+            // signed-in-shared: that put them on /home's first screen (378 -> 387 KB gz, B77).
+            {
+              name: "signed-in-chrome",
+              test: /[\\/]src[\\/](lib[\\/](capturedPayment|consent|helprTasks[\\/]online)\.ts|hooks[\\/](useInstantQuery\.ts|use-mobile\.tsx))$/,
+              priority: 16.5,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-deep */,
+            },
             {
               name: "signed-in-deep",
               test: (id: string) => signedInDeep.has(id.split("?")[0].replace(/\\/g, "/")),

@@ -6,7 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { rpcErrorMessage } from "./errorCopy";
+import { loadModule } from "@/lib/loadModule";
 
 export interface OnlineStatus {
   online_until: string | null;
@@ -39,7 +39,11 @@ export async function setOnline(on: boolean, opts: { hours?: number; radiusMiles
   });
   if (error) {
     const e = new Error(error.message) as Error & { userMessage?: string };
-    const words = rpcErrorMessage("helpr_go_online", error);
+    // The refusal words load only on a refusal (B79): DesktopTopNav's online pill runs this file beside every
+    // signed-in page, and a static import of ./errorCopy pulled Declutter's first-screen chunk in with it.
+    // A failed load still throws the server's error, just without the plain words.
+    const copy = await loadModule(() => import("./errorCopy")).catch(() => null);
+    const words = copy?.rpcErrorMessage("helpr_go_online", error) ?? null;
     if (words) e.userMessage = words;
     throw e;
   }

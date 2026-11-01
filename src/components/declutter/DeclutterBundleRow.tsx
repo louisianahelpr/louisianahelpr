@@ -15,15 +15,22 @@ import { noDeliveryWay } from "@/lib/declutter/pickupWords";
 import { formatName } from "@/lib/utils";
 import { bundleLabel, fetchBundleApplies, fetchBundleRule } from "@/lib/declutter/bundle";
 
-export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; viewerId: string | null }) {
+export type BundleSummary = { count: number; capped: boolean; firstName: string; free: boolean; pickup: boolean; offer: string | null };
+
+/** The reads behind "N more from <seller>": null while loading, or when the seller has nothing else to buy. */
+export function useBundleSummary(itemOrNull: DeclutterItem | null, viewerId: string | null, wanted = true): BundleSummary | null {
+  // The item page calls this before its item has loaded (hooks run in one order): an empty item reads nothing.
+  const enabled = wanted && !!itemOrNull;
+  const item = itemOrNull ?? ({ id: "", seller_id: "", current_price_cents: 0 } as DeclutterItem);
   // Same keys as DeclutterItemRows / DeclutterSellerCard: one read each, shared.
   const more = useQuery({
     queryKey: ["declutter", "more-from-seller", item.seller_id, item.id],
     queryFn: () => fetchSellerItems(item.seller_id, item.id),
+    enabled,
   });
-  const card = useQuery({ queryKey: ["declutter", "seller-card", item.seller_id], queryFn: () => fetchSellerCard(item.seller_id) });
+  const card = useQuery({ queryKey: ["declutter", "seller-card", item.seller_id], queryFn: () => fetchSellerCard(item.seller_id), enabled });
   // Q2427 (20261027211754): the seller's "Buy 2+, get N% off", when they set one. A failed read says nothing extra.
-  const rule = useQuery({ queryKey: ["declutter", "bundle-rule", item.seller_id], queryFn: () => fetchBundleRule(item.seller_id) });
+  const rule = useQuery({ queryKey: ["declutter", "bundle-rule", item.seller_id], queryFn: () => fetchBundleRule(item.seller_id), enabled });
   const buyable = (more.data ?? []).filter((r) => r.status === "live" && r.seller_id !== viewerId);
   // Deep audit #36: say "Buy 2+, get N% off" only when the discount can apply to one of these items (above its
   // lowest price, checkout's own bound); asked only once a rule exists. Null = not deployed yet: shown as before.
@@ -31,16 +38,36 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
   const applies = useQuery({
     queryKey: ["declutter", "bundle-applies", ids.join(",")],
     queryFn: () => fetchBundleApplies(ids),
-    enabled: !!rule.data && buyable.length > 0,
+    enabled: enabled && !!rule.data && buyable.length > 0,
   });
   // Audit BUY-3: an item the seller offers only delivered has no pickup to share (the same key as the item page's ways).
-  const ways = useQuery({ queryKey: ["declutter", "item-handovers", item.id], queryFn: () => fetchItemHandovers(item.id) });
+  const ways = useQuery({ queryKey: ["declutter", "item-handovers", item.id], queryFn: () => fetchItemHandovers(item.id), enabled });
   const pickup = noDeliveryWay(ways.data) !== "none";
   const offer = !!rule.data && (applies.data === null || !!applies.data && ids.some((id) => applies.data!.has(id)));
   // fetchSellerItems reads at most 12 (live + reserved): a full page may hide more, so say "12+".
   const capped = (more.data?.length ?? 0) >= 12;
-  if (buyable.length === 0 || card.isLoading) return null;
-  const name = card.data?.name?.trim() ? formatName(card.data.name).split(" ")[0] : "this seller";
+  if (!enabled || buyable.length === 0 || card.isLoading) return null;
+  const firstName = card.data?.name?.trim() ? formatName(card.data.name).split(" ")[0] : "this seller";
+  return { count: buyable.length, capped, firstName, free: item.current_price_cents === 0, pickup, offer: offer && rule.data ? bundleLabel(rule.data) : null };
+}
+
+/**
+ * Owner mockup 11-01: the "more items" note folded into the seller card, one line: "12+ more items · check out
+ * together, one pickup". The card opens the seller's profile, where every item is.
+ */
+export function BundleLine({ summary }: { summary: BundleSummary }) {
+  const how = summary.free ? "get them together, one pickup" : summary.pickup ? "check out together, one pickup" : "check out together, one payment";
+  return (
+    <span data-bundle-line="" className="block text-xs font-semibold text-primary">
+      {summary.count}{summary.capped ? "+" : ""} more {summary.count === 1 ? "item" : "items"} · {how}
+      {summary.offer ? <span data-bundle-offer="">. {summary.offer}</span> : null}
+    </span>
+  );
+}
+
+export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; viewerId: string | null }) {
+  const b = useBundleSummary(item, viewerId);
+  if (!b) return null;
   return (
     <button
       type="button"
@@ -51,10 +78,10 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
       <Layers className="h-5 w-5 shrink-0 text-primary" aria-hidden />
       <span className="min-w-0">
         <span className="font-semibold">
-          {buyable.length}{capped ? "+" : ""} more from {name}.
+          {b.count}{b.capped ? "+" : ""} more from {b.firstName}.
         </span>{" "}
-        {item.current_price_cents === 0 ? "Get them together: one pickup." : pickup ? "Check out together: one pickup, one payment." : "Check out together: one payment."}
-        {offer && rule.data ? <span className="font-semibold text-primary" data-bundle-offer=""> {bundleLabel(rule.data)}.</span> : null}
+        {b.free ? "Get them together: one pickup." : b.pickup ? "Check out together: one pickup, one payment." : "Check out together: one payment."}
+        {b.offer ? <span className="font-semibold text-primary" data-bundle-offer=""> {b.offer}.</span> : null}
       </span>
     </button>
   );

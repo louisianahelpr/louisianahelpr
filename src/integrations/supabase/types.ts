@@ -15230,6 +15230,10 @@ export type Database = {
       }
       declutter_claim_free: { Args: { p_item_id: string }; Returns: string }
       declutter_request_free: { Args: { p_item_id: string }; Returns: string }
+      declutter_request_free_at: {
+        Args: { p_item_id: string; p_pickup_at: string }
+        Returns: string
+      }
       declutter_stop_my_seller_delivery: { Args: never; Returns: number }
       declutter_withdraw_free_request: { Args: { p_request_id: string }; Returns: undefined }
       declutter_free_claim_gate: { Args: { p_member: string }; Returns: undefined }
@@ -15239,6 +15243,7 @@ export type Database = {
           avg_rating: number
           created_at: string
           display_name: string
+          pickup_at: string | null
           request_id: string
           requester_id: string
           review_count: number

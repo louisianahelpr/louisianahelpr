@@ -1082,6 +1082,22 @@ export const RPC_ERROR_COPY = {
     sale_mode_unavailable: DC.sale_mode_unavailable,
     under_18: DC.under_18,
   },
+  // Owner 11-01 (20261101174857): the ask carries the pickup time the asker picked.
+  declutter_request_free_at: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    free_claim_limit: DC.free_claim_limit,
+    free_paused: DC.free_paused,
+    item_not_available: DC.item_not_available,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    not_free: DC.not_free,
+    own_item: DC.own_item,
+    pickup_time_unavailable: DC.pickup_time_unavailable,
+    sale_mode_unavailable: DC.sale_mode_unavailable,
+    under_18: DC.under_18,
+  },
   declutter_withdraw_free_request: {
     not_authenticated: DC.not_authenticated,
     request_not_found: DC.request_not_found,

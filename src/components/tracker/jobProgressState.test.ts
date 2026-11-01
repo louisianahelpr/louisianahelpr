@@ -1,4 +1,4 @@
-// @mutate src/components/tracker/jobProgressState.ts |     next: posterLate \|\| noApplicantsYet \|\| ((sameStep |     next: posterLate \|\| ((sameStep
+// @mutate src/components/tracker/jobProgressState.ts | \|\| posterLate \|\| noApplicantsYet \|\| ((sameStep | \|\| posterLate \|\| ((sameStep
 // @mutate src/components/tracker/jobProgressState.ts | const picking = poster && (o.pendingApplicants ?? 0) > 0; | const picking = false;
 // Board 2 (deal-room chat) and the chat halves of 59, 61, 62, 63, now the ONE tracker (owner, 2026-10-21):
 // the stage is named from the job's own stamps and never runs ahead of them, and the deal card never writes.
@@ -198,7 +198,7 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     expect(jobProgress(j, { viewer: "helpr", otherFirst: "Dana", threadHelprId: ME, now: NOW }).next).toMatch(/^You marked it done\. Dana has until \w{3} \d{1,2}:\d{2} [AP]M to check it$/);
   });
   // @mutate src/components/tracker/jobProgressState.ts |   if (mins <= LATE_GRACE_MIN) return null; |   return null;
-  // @mutate src/components/tracker/jobProgressState.ts |     next: posterLate \|\| noApplicantsYet | next: false \|\| noApplicantsYet
+  // @mutate src/components/tracker/jobProgressState.ts | \|\| posterLate \|\| noApplicantsYet | \|\| false \|\| noApplicantsYet
   it("JA-12 / JA-13: past the start the poster reads that the Helpr is late, set out or not", () => {
     const j: ProgressJob = { ...base, status: "accepted", helper_id: "h", helper_confirmed_at: "t", helper_dayof_confirmed_at: "t", poster_confirmed_at: "t",
       payment_status: "escrow", date_needed: "2037-10-21", start_time: "08:45" };

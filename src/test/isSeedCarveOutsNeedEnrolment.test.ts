@@ -62,6 +62,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shops_admin_pending_items: "hides", // b62 (20261030015205): test data never counts in this total
   is_test_member: "hides", // b62 (20261030015205): test data never counts in this total
   admin_booking_sources: "hides", // B66 Book me (20261030013347): a test Helpr or test poster never counts in the admin tally
+  instant_book_block_reason: "hides", // CMP-4 (20261101065105): a test job is instant-booked only to enrolled test accounts, a real one never to them
+  instant_book_real_jobs_done: "hides", // CMP-4 (20261101063725): seed jobs and test posters never count toward the 3 real jobs
   admin_queue_still_pending: "hides",
   admin_rule_helpr_fault: "tags",
   admin_section_funnel: "hides",

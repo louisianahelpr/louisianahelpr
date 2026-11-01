@@ -53,6 +53,7 @@ const ALLOWED: Record<string, string> = {
   apply_job_denial_consequence: LADDER,
   apply_low_rating_flag: LADDER,
   apply_to_job: LIMIT,
+  rpc_set_instant_book_floor: LIMIT, // CMP-4: at most 3 floors per Helpr
   block_user_and_settle: SPOTS,
   can_send_message_to_in_job: LIMIT,
   check_db_saturation: OPS,

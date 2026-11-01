@@ -80,6 +80,8 @@ export const JOB_READABLE_COLUMN_LIST = [
   "helper_on_the_way_at",
   "helpers_needed",
   "id",
+  "instant_booked_at",
+  "instant_decline_until",
   "is_auto_created",
   "is_flexible_schedule",
   "is_group_job",

@@ -47,6 +47,8 @@ const LISTED = [
   "notify_helper_on_direct_offer", "restart_direct_offer_clock_on_funding", "expire_pending_direct_offers",
   "get_my_pending_direct_offers", "jobs_offer_target_gone_retires_offer", "record_backout_notice", "direct_accept_block_reason",
   "enforce_group_roster_award_gate", "link_str_turnover_job", "rentals_request_job_state",
+  // CMP-4 (20261101065105): a held card can be instantly booked (the capture comes at the 2-hour mark)
+  "instant_book_block_reason", "instant_book_tell_helpr_on_close",
   // both: an offer is answered on a listed job, the hire completes on captured money
   "accept_job_offer", "respond_to_direct_offer", "enforce_job_funded_before_award",
   // the predicates themselves
@@ -80,6 +82,7 @@ const LISTED_TRIGGERS = [
 const TS_CLASSIFIED: Record<string, "listed" | "captured" | "exhaustive"> = {
   "supabase/functions/_shared/listedPaymentStatus.ts": "listed",
   "supabase/functions/_shared/cardHold.ts": "captured", // captureCardHold: already funded = nothing to capture
+  "supabase/functions/card-hold-sweep/index.ts": "captured", // instant pass: a job with no hold already funded = nothing to capture
   "supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts": "captured", // un-funds failed escrow
   "src/lib/capturedPayment.ts": "captured",
   "src/lib/posterSpend.ts": "captured", // charged money: a held card was not charged

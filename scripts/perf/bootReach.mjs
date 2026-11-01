@@ -69,6 +69,9 @@ function resolveSpecifier(root, from, spec) {
   return null;
 }
 
+/** supabase-js imports these in the build (vite.config.ts aliases "@supabase/realtime-js" and "@supabase/storage-js"). */
+const SUPABASE_BUILD_SHIMS = ["src/integrations/supabase/lazyRealtime.ts", "src/integrations/supabase/lazyStorage.ts"];
+
 /** Every src module statically reachable from `roots` (absolute or repo-relative paths). */
 export function staticReach(root, roots) {
   const seen = new Set();
@@ -80,7 +83,13 @@ export function staticReach(root, roots) {
     seen.add(file);
     if (!cache.has(file)) {
       const text = fs.readFileSync(file, "utf8");
-      cache.set(file, [...text.matchAll(STATIC)].map((m) => resolveSpecifier(root, file, m[1])).filter(Boolean));
+      const deps = [...text.matchAll(STATIC)].map((m) => resolveSpecifier(root, file, m[1])).filter(Boolean);
+      // The production build aliases supabase-js's own realtime-js and storage-js imports to these two stand-ins
+      // (vite.config.ts, B75), so whatever reaches the client module reaches them.
+      if (file.endsWith("/src/integrations/supabase/client.ts")) {
+        for (const shim of SUPABASE_BUILD_SHIMS) deps.push(toPosix(path.join(root, shim)));
+      }
+      cache.set(file, deps);
     }
     for (const dep of cache.get(file)) stack.push(dep);
   }

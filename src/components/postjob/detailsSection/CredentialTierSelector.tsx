@@ -77,9 +77,6 @@ export function CredentialTierSelector({
     }
   };
 
-  const selected =
-    CREDENTIAL_TIERS.find((t) => t.value === credentialTier) ?? CREDENTIAL_TIERS[0];
-
   return (
     <div className="space-y-2.5">
       <div className="space-y-0.5">
@@ -175,16 +172,8 @@ export function CredentialTierSelector({
         })}
       </div>
 
-      {/* The subtitles that used to sit in every row, reduced to the one that
-          is currently true. aria-live keeps a screen-reader user informed when
-          the selection changes without moving focus. */}
-      <p
-        aria-live="polite"
-        className="text-ds-11 font-sans leading-snug"
-        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-      >
-        {selected.sub}
-      </p>
+      {/* No line under the tiles (audit 11-01 JA-42): it only repeated the picked tile ("Open" then "Anyone can
+          apply"). Each tile's meaning stays in its accessible name (the sr-only sub above). */}
     </div>
   );
 }

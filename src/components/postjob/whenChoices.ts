@@ -46,8 +46,29 @@ export const TIME_CHIPS: readonly { value: string; label: string }[] = [
   { value: "13:00", label: "1:00 PM" },
 ];
 
+type TimeChip = { value: string; label: string };
+
+/** "12:30" -> "12:30 PM". */
+function chipLabel(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+}
+
+/**
+ * The start-time chips for the picked day (audit 11-01 JA-44: with today picked at 9:47 AM the chips still offered
+ * 8, 9 and 10 AM, and picking one only showed "Pick a later start"). Today offers only the starts it allows: the
+ * earliest one (`earliest`, sameDayStartTime) first, then the board's later chips; `earliest` null (today is closed)
+ * offers none. Any other day: the board's chips.
+ */
+export function timeChipsFor(dateIso: string, todayIso: string, earliest: string | null): readonly TimeChip[] {
+  if (dateIso !== todayIso) return TIME_CHIPS;
+  if (!earliest) return [];
+  const later = TIME_CHIPS.filter((t) => t.value > earliest);
+  return [{ value: earliest, label: chipLabel(earliest) }, ...later];
+}
+
 /** The chip a stored start_time ("09:00" or "09:00:00") matches, if any. */
-export function timeChipOf(startTime: string): string | null {
+export function timeChipOf(startTime: string, chips: readonly TimeChip[] = TIME_CHIPS): string | null {
   const hhmm = startTime.trim().slice(0, 5);
-  return TIME_CHIPS.find((t) => t.value === hhmm)?.value ?? null;
+  return chips.find((t) => t.value === hhmm)?.value ?? null;
 }

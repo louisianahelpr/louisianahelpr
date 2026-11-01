@@ -20,6 +20,7 @@ import { blankComments } from "./helpers/blankNonCode";
 
 // @mutate src/components/ui/button.tsx |         iconCompact: "h-11 w-11 border-2 border-transparent bg-clip-padding [&_svg]:size-5", |         iconCompact: "h-10 w-10 [&_svg]:size-5",
 // @mutate src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx |       size="iconCompact" |       size="icon"
+// @mutate src/components/declutter/DeclutterPickupTimes.tsx |           <Button type="button" variant="ghost" size="iconCompact" onClick={onRemove} | <Button type="button" variant="ghost" size="icon" onClick={onRemove}
 // @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |       className={`relative shrink-0 btn-press | className={`relative h-10 w-10 shrink-0 btn-press
 
 const REPO = resolve(__dirname, "../..");
@@ -71,5 +72,17 @@ describe("the compact icon Button", () => {
     expect(offenders).toEqual([]);
     const compact = files.flatMap((f) => buttonTags(f).filter((t) => t.size === "iconCompact")).length;
     expect(compact).toBeGreaterThan(3);
+  });
+
+  // B47 10-31: the pickup-time window's remove X (Declutter sell / settings) was a hand-made rounded-full <button>.
+  // Measured at 375 and 1440 on /declutter/sell (mocked session): 44x44 box at the same x/y, same radius, colour and
+  // 16px glyph before and after; the hover wash now paints at 40 (clientWidth 44 -> 40).
+  it("a pickup time's remove X is the shared Button at iconCompact", () => {
+    const f = "src/components/declutter/DeclutterPickupTimes.tsx";
+    const src = code(f);
+    expect(src).not.toMatch(/<button\b[^>]*aria-label=\{removeLabel\}/);
+    const tags = buttonTags(f).filter((t) => t.size === "iconCompact");
+    expect(tags.length).toBeGreaterThan(0);
+    for (const t of tags) expect(/(^|[\s`"'])(?:[a-z-]+:)*!?(?:min-)?[hw]-(?:\d|\[)/.test(t.className)).toBe(false);
   });
 });

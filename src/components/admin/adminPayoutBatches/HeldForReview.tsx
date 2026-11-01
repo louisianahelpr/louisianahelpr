@@ -182,8 +182,8 @@ export function HeldForReview() {
                   </>
                 )}
                 <Textarea aria-label="Note" placeholder="Why" value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
-                <label className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" checked={draft.confirmed} onChange={(e) => setDraft({ ...draft, confirmed: e.target.checked })} />
+                <label className="flex min-h-11 items-center gap-2 text-xs">
+                  <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={draft.confirmed} onChange={(e) => setDraft({ ...draft, confirmed: e.target.checked })} />
                   {draft.action === "release"
                     ? "I confirmed in Stripe that no transfer or refund for this row was made outside the app"
                     : "I checked this Stripe id (or payment) is for this row: the right payee and amount"}

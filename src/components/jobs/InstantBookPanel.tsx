@@ -34,13 +34,13 @@ const stateKey = (jobId: string) => [...queryKeys.jobs.all, "instant-book-state"
 const candidatesKey = (jobId: string) => [...queryKeys.jobs.all, "instant-book-candidates", jobId] as const;
 
 /** Can a Helpr be booked on this job now? Open, nobody hired or offered, the card held (or paid). */
-export function canInstantBook(s: InstantBookingState | null | undefined): boolean {
+function canInstantBook(s: InstantBookingState | null | undefined): boolean {
   return !!s && s.status === "open" && !s.helper_id && !s.offered_to_helper_id
     && (s.payment_status === "held" || s.payment_status === "escrow");
 }
 
 /** A live booking: offered and waiting out the decline window. */
-export function liveBooking(s: InstantBookingState | null | undefined): boolean {
+function liveBooking(s: InstantBookingState | null | undefined): boolean {
   return !!s && s.status === "open" && !!s.offered_to_helper_id && s.direct_offer_status === "pending" && !!s.instant_decline_until;
 }
 

@@ -1,6 +1,6 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { ChevronRight, SearchCheck } from "lucide-react";
-import { FilterSheet } from "@/components/dashboard/FilterSheet";
+import { whenPageSettled } from "@/lib/routePrefetch";
 import { buildJobFilterSections } from "@/components/dashboard/filterSheet/jobFilterSections";
 import { SavedSearches } from "@/components/SavedSearches";
 import { signupUrlFor } from "@/lib/jobIntent";
@@ -10,6 +10,13 @@ import { BrowseViewToggle } from "./browseTasksToolbar/BrowseViewToggle";
 
 // SS-4's pill loads on demand: a static import here split SaveSearchButton and its sheet into chunks of their own
 // and put both names in the entry chunk's preload list (entry 5.8 KB gz, over the 5.5 KB budget; Q178).
+// The filter sheet loads on demand too. It is closed on every first paint, yet its static import put FilterSheet,
+// FilterDropdown, the Radix popover and floating-ui on guest /browse's critical path (B47 10-31). It mounts the first
+// time it opens and stays mounted (so it can animate closed), and its chunk is fetched once the page has settled, so
+// the first tap on Filters does not wait on the network. Guard: src/test/browseFirstPaintLoadsOverlaysLazily.test.ts.
+const loadFilterSheet = () => import("@/components/dashboard/FilterSheet");
+const FilterSheet = lazy(() => loadFilterSheet().then((m) => ({ default: m.FilterSheet })));
+
 const SaveSearchButton = lazy(() => import("@/components/savedSearches/SaveSearchButton").then((m) => ({ default: m.SaveSearchButton })));
 
 /**
@@ -78,6 +85,13 @@ export function BrowseTasksToolbar({
   // row, which closes the sheet on the way — so the dialog is mounted HERE,
   // outside the sheet, or it would unmount with the row that opened it.
   const [savedSearchesOpen, setSavedSearchesOpen] = useState(false);
+  const [filterSheetMounted, setFilterSheetMounted] = useState(false);
+  useEffect(() => {
+    if (filters.filtersOpen) setFilterSheetMounted(true);
+  }, [filters.filtersOpen]);
+  useEffect(() => whenPageSettled(() => void loadFilterSheet().catch(() => {
+    /* a warm-up only: the lazy() factory imports again when the sheet first opens */
+  })), []);
 
   // One source for the row's heading text, used by both the normal and the
   // search state (search keeps it sr-only rather than dropping the h1).
@@ -193,109 +207,113 @@ export function BrowseTasksToolbar({
           decides HOW you look at the results, before anything about which
           results — and "Saved searches" at the bottom, next to "Clear all",
           because like Clear all it is an action rather than a control. */}
-      <FilterSheet
-        open={filters.filtersOpen}
-        onOpenChange={filters.setFiltersOpen}
-        anchorRef={filtersAnchorRef}
-        title="Filter jobs"
-        resultCount={resultCount}
-        resultNoun={JOB_NOUN}
-        activeFilterCount={filters.activeFilterCount}
-        onClearAll={() => {
-          filters.clearFilters();
-          onClearAllFilters?.();
-        }}
-        sections={[
-          // PHONE ONLY. These two have icons in the header row on desktop; on
-          // phone the row is emblem + filter + bell and there is no width for
-          // them, so they live here instead. They sit ABOVE "View" because
-          // they are the two that decide WHICH results exist at all — text and
-          // saved-state — before you choose how to look at them.
-          // NO SEARCH SECTION. Search is an icon in the brand row on every
-          // width now (owner, 2026-09-07), so a second field in here would be
-          // the same control in two places — and the sheet copy is one of the
-          // sites an external review read as evidence that Browse had no
-          // search at all. One home each: text goes in the row's field,
-          // everything below narrows what that returns.
-          // View keeps its own row (owner, 2026-08-24: tried riding the
-          // Sort by line, rejected) — it decides HOW you look at results,
-          // before anything about which results.
-          ...(hideViewToggle
-            ? []
-            : [{
-                key: "view",
-                title: "View",
-                content: (
-                  <BrowseViewToggle
-                    view={view}
-                    setView={setView}
-                    // Picking a view is a terminal choice — get the sheet out
-                    // of the way so you land on the thing you asked for. Only
-                    // fires on an actual change, so re-tapping the current
-                    // view does not dismiss the sheet under you.
-                    onSelect={() => filters.setFiltersOpen(false)}
-                  />
-                ),
-              }]),
-          ...buildJobFilterSections({
-            // "Only saved" is a filter, so it lives with the other Show-only
-            // switches (owner: merge & tighten, 2026-08-24).
-            savedOnly,
-            onToggleSavedOnly,
-            savedCount,
-            wantsQuotes,
-            onToggleWantsQuotes,
-            selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
-            locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
-            sortBy: filters.sortBy, setSortBy: filters.setSortBy,
-            expiresWithin: filters.expiresWithin, setExpiresWithin: filters.setExpiresWithin,
-            jobWhen: filters.jobWhen, setJobWhen: filters.setJobWhen,
-            minBudget: filters.minBudget, setMinBudget: filters.setMinBudget,
-            maxBudget: filters.maxBudget, setMaxBudget: filters.setMaxBudget,
-            matchAvailability: filters.matchAvailability, setMatchAvailability: filters.setMatchAvailability,
-            hasAvailability: helperAvailability.length > 0,
-            boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
-            urgentOnly: filters.urgentOnly, setUrgentOnly: filters.setUrgentOnly,
-            // Signed-out: the three account-only controls become labelled
-            // signup rows rather than vanishing. `signupUrlFor` keeps the
-            // return path, so a visitor who taps "Only Saved Jobs" lands back
-            // on the feed once they have an account.
-            signupHref: user ? undefined : signupUrlFor("/browse"),
-            userLocStatus: filters.userLoc?.status,
-            userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
-            // Saved Searches OPENS a dialog — it is an action, not a filter,
-            // but it used to sit alone in the sheet footer, disconnected
-            // from every section above it. Folded into "Show only" (the
-            // last section) instead, right after the other narrowing
-            // switches, so it reads as part of the sheet. Signed-in only,
-            // exactly as the bookmark icon was: saved searches are rows in
-            // a per-user table.
-            savedSearchesButton: user ? (
-              <button
-                type="button"
-                onClick={() => {
-                  hapticLight();
-                  // Close the sheet FIRST — this row lives inside it, and
-                  // the dialog it opens is mounted outside it (below).
-                  filters.setFiltersOpen(false);
-                  setSavedSearchesOpen(true);
-                }}
-                className="w-full flex items-center gap-2 h-11 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
-              >
-                {/* SearchCheck, not Bookmark — the "Only Saved Jobs" toggle row
-                    right above this one already uses Bookmark for a saved
-                    JOB, so this row (a saved SEARCH query) needs its own glyph
-                    or the two read as the same feature. */}
-                <SearchCheck className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
-                <span className="min-w-0 flex-1 text-ds-12 font-semibold text-foreground">
-                  Saved searches
-                </span>
-                <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
-              </button>
-            ) : undefined,
-          }),
-        ]}
-      />
+      {(filters.filtersOpen || filterSheetMounted) && (
+        <Suspense fallback={null}>
+          <FilterSheet
+            open={filters.filtersOpen}
+            onOpenChange={filters.setFiltersOpen}
+            anchorRef={filtersAnchorRef}
+            title="Filter jobs"
+            resultCount={resultCount}
+            resultNoun={JOB_NOUN}
+            activeFilterCount={filters.activeFilterCount}
+            onClearAll={() => {
+              filters.clearFilters();
+              onClearAllFilters?.();
+            }}
+            sections={[
+              // PHONE ONLY. These two have icons in the header row on desktop; on
+              // phone the row is emblem + filter + bell and there is no width for
+              // them, so they live here instead. They sit ABOVE "View" because
+              // they are the two that decide WHICH results exist at all — text and
+              // saved-state — before you choose how to look at them.
+              // NO SEARCH SECTION. Search is an icon in the brand row on every
+              // width now (owner, 2026-09-07), so a second field in here would be
+              // the same control in two places — and the sheet copy is one of the
+              // sites an external review read as evidence that Browse had no
+              // search at all. One home each: text goes in the row's field,
+              // everything below narrows what that returns.
+              // View keeps its own row (owner, 2026-08-24: tried riding the
+              // Sort by line, rejected) — it decides HOW you look at results,
+              // before anything about which results.
+              ...(hideViewToggle
+                ? []
+                : [{
+                    key: "view",
+                    title: "View",
+                    content: (
+                      <BrowseViewToggle
+                        view={view}
+                        setView={setView}
+                        // Picking a view is a terminal choice — get the sheet out
+                        // of the way so you land on the thing you asked for. Only
+                        // fires on an actual change, so re-tapping the current
+                        // view does not dismiss the sheet under you.
+                        onSelect={() => filters.setFiltersOpen(false)}
+                      />
+                    ),
+                  }]),
+              ...buildJobFilterSections({
+                // "Only saved" is a filter, so it lives with the other Show-only
+                // switches (owner: merge & tighten, 2026-08-24).
+                savedOnly,
+                onToggleSavedOnly,
+                savedCount,
+                wantsQuotes,
+                onToggleWantsQuotes,
+                selectedCategory: filters.selectedCategory, setSelectedCategory: filters.setSelectedCategory,
+                locationFilter: filters.locationFilter, setLocationFilter: filters.setLocationFilter,
+                sortBy: filters.sortBy, setSortBy: filters.setSortBy,
+                expiresWithin: filters.expiresWithin, setExpiresWithin: filters.setExpiresWithin,
+                jobWhen: filters.jobWhen, setJobWhen: filters.setJobWhen,
+                minBudget: filters.minBudget, setMinBudget: filters.setMinBudget,
+                maxBudget: filters.maxBudget, setMaxBudget: filters.setMaxBudget,
+                matchAvailability: filters.matchAvailability, setMatchAvailability: filters.setMatchAvailability,
+                hasAvailability: helperAvailability.length > 0,
+                boostedOnly: filters.boostedOnly, setBoostedOnly: filters.setBoostedOnly,
+                urgentOnly: filters.urgentOnly, setUrgentOnly: filters.setUrgentOnly,
+                // Signed-out: the three account-only controls become labelled
+                // signup rows rather than vanishing. `signupUrlFor` keeps the
+                // return path, so a visitor who taps "Only Saved Jobs" lands back
+                // on the feed once they have an account.
+                signupHref: user ? undefined : signupUrlFor("/browse"),
+                userLocStatus: filters.userLoc?.status,
+                userLocMessage: filters.userLoc?.status === "error" ? filters.userLoc.message : undefined,
+                // Saved Searches OPENS a dialog — it is an action, not a filter,
+                // but it used to sit alone in the sheet footer, disconnected
+                // from every section above it. Folded into "Show only" (the
+                // last section) instead, right after the other narrowing
+                // switches, so it reads as part of the sheet. Signed-in only,
+                // exactly as the bookmark icon was: saved searches are rows in
+                // a per-user table.
+                savedSearchesButton: user ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hapticLight();
+                      // Close the sheet FIRST — this row lives inside it, and
+                      // the dialog it opens is mounted outside it (below).
+                      filters.setFiltersOpen(false);
+                      setSavedSearchesOpen(true);
+                    }}
+                    className="w-full flex items-center gap-2 h-11 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
+                  >
+                    {/* SearchCheck, not Bookmark — the "Only Saved Jobs" toggle row
+                        right above this one already uses Bookmark for a saved
+                        JOB, so this row (a saved SEARCH query) needs its own glyph
+                        or the two read as the same feature. */}
+                    <SearchCheck className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
+                    <span className="min-w-0 flex-1 text-ds-12 font-semibold text-foreground">
+                      Saved searches
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
+                  </button>
+                ) : undefined,
+              }),
+            ]}
+          />
+        </Suspense>
+      )}
 
       {/* The saved-searches dialog itself — mounted here rather than inside
           the sheet section that opens it, because that row closes the sheet on

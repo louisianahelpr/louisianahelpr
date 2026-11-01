@@ -72,7 +72,9 @@ function TimeSelect({ id, label, value, onChange }: { id: string; label: string;
     <>
       <label className="sr-only" htmlFor={id}>{label}</label>
       <select id={id} value={value} onChange={(e) => onChange(e.target.value)}
-        className="h-11 w-full min-w-0 rounded-[12px] border border-border bg-card px-3 text-ds-14 text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        // 375 (B47/B50 measured 2026-10-31; guard pickupTimeSelectsFitAPhone): with px-3 a 97 px select cut "12:00 PM" to "12:00 P" and "9:00 AM" to "9:00 AN" (the
+        // arrow takes the right side). Less side padding and a narrower row gap give the text the room; type unchanged.
+        className="h-11 w-full min-w-0 rounded-[12px] border border-border bg-card pl-2.5 pr-1 text-ds-14 text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         {steps.map((t) => <option key={t} value={t}>{timeLabel(t)}</option>)}
       </select>
     </>
@@ -86,7 +88,7 @@ function RangeRow({ idBase, w, onChange, onRemove, removeLabel }: {
   const bad = w.ends <= w.starts;
   return (
     <div className="space-y-1">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-2">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-1.5">
         <TimeSelect id={`${idBase}-from`} label="From" value={w.starts} onChange={(v) => onChange({ ...w, starts: v })} />
         <span className="text-ds-13 text-muted-foreground" aria-hidden>to</span>
         <TimeSelect id={`${idBase}-to`} label="Until" value={w.ends} onChange={(v) => onChange({ ...w, ends: v })} />

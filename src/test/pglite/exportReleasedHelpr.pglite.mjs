@@ -2,7 +2,8 @@
 /**
  * PGlite proof for 20261101025001_export_my_data_released_helpr.sql: "Download My Data" carries the deliveries a
  * Helpr was released from (helpr_tasks.released_helpr_id, 20261101020052; lead 10-31 "Released Helpr's task rows ARE
- * included in their data export"), each row once, without the other Helpr's id, and nothing else changes.
+ * included in their data export"), each row once, without the other Helpr's id; a row they were only released from
+ * carries only their part, never the next Helpr's progress (lead 10-31); nothing else changes.
  *
  *   node src/test/pglite/exportReleasedHelpr.pglite.mjs                     # GREEN
  *   NEW_MIGRATION=skip node src/test/pglite/exportReleasedHelpr.pglite.mjs  # RED: 20261101022048's body only
@@ -139,7 +140,10 @@ await db.exec(`
 DROP TABLE IF EXISTS public.helpr_tasks;
 CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY, title text, status text, helpr_id uuid, released_helpr_id uuid,
   customer_id uuid, pickup_contact_id uuid, dropoff_code text, pickup_address text, pickup_lat numeric, pickup_lng numeric,
-  dropoff_address text, dropoff_lat numeric, dropoff_lng numeric, close_note text, pay_cents integer);
+  dropoff_address text, dropoff_lat numeric, dropoff_lng numeric, close_note text, pay_cents integer,
+  source_kind text DEFAULT 'declutter_order', source_id uuid DEFAULT gen_random_uuid(), created_at timestamptz DEFAULT now() - interval '1 day',
+  accepted_at timestamptz DEFAULT now(), picked_up_at timestamptz DEFAULT now(), delivered_at timestamptz,
+  pickup_photo_path text DEFAULT 'next-helpr/pickup.jpg', updated_at timestamptz DEFAULT now(), releases integer DEFAULT 1);
 CREATE OR REPLACE FUNCTION public.are_users_blocked(a uuid, b uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE OR REPLACE FUNCTION public.user_may_see_job_address(j uuid, u uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE OR REPLACE FUNCTION public.shop_local_today() RETURNS date LANGUAGE sql STABLE AS $$ SELECT current_date $$;`);
@@ -173,9 +177,19 @@ const h1Titles = (h1?.helpr_tasks ?? []).map((r) => r.title).sort();
 ok(JSON.stringify(h1Titles) === JSON.stringify(["A", "B", "C", "D"]), "a released Helpr gets the tasks they were released from (A, D) and their own (B, C), each once", JSON.stringify(h1Titles));
 const t1 = byTitle(h1);
 ok(t1.A && !("helpr_id" in t1.A) && t1.A.released_helpr_id === H1, "  task A: their own released id, never the Helpr now on it", JSON.stringify(t1.A));
-ok(t1.D && !("helpr_id" in t1.D) && t1.D.released_helpr_id === H1 && t1.D.status === "open", "  task D (open again): their released id", JSON.stringify(t1.D));
+ok(t1.D && !("helpr_id" in t1.D) && t1.D.released_helpr_id === H1 && t1.D.released_from_you === true, "  task D (open again): their released id, marked released", JSON.stringify(t1.D));
+// Lead 10-31: a row the member was only released from carries only their part, none of the next Helpr's progress.
+const RELEASED_KEYS = ["created_at", "id", "released_from_you", "released_helpr_id", "source_id", "source_kind", "title"];
+for (const k of ["A", "D"]) {
+  const keys = Object.keys(t1[k] ?? {}).sort();
+  ok(JSON.stringify(keys) === JSON.stringify(RELEASED_KEYS), `  task ${k}: only the delivery, item and their own release`, JSON.stringify(keys));
+}
+const PROGRESS = ["status", "accepted_at", "picked_up_at", "delivered_at", "pickup_photo_path", "updated_at", "pay_cents", "releases"];
+const shown = PROGRESS.filter((c) => t1.A && c in t1.A);
+ok(t1.A && shown.length === 0, "  task A carries none of the next Helpr's progress (status, times, photo, pay)", JSON.stringify(shown));
+ok(t1.A && t1.A.source_id && t1.A.source_kind === "declutter_order" && t1.A.title === "A", "  task A names the delivery's item", JSON.stringify(t1.A));
 ok(t1.C && t1.C.helpr_id === H1 && t1.C.released_helpr_id === H1, "  task C (taken again after a release): one row, both ids are theirs", JSON.stringify(t1.C));
-ok(t1.B && t1.B.helpr_id === H1 && !("released_helpr_id" in t1.B), "  task B: their own Helpr id", JSON.stringify(t1.B));
+ok(t1.B && t1.B.helpr_id === H1 && !("released_helpr_id" in t1.B) && t1.B.status === "delivered" && "picked_up_at" in t1.B, "  task B (theirs): their own Helpr id and the whole row as before", JSON.stringify(t1.B));
 const h2Titles = (h2?.helpr_tasks ?? []).map((r) => r.title).sort();
 ok(JSON.stringify(h2Titles) === JSON.stringify(["A"]), "the Helpr now on A gets A only", JSON.stringify(h2Titles));
 ok(h2?.helpr_tasks?.[0] && h2.helpr_tasks[0].helpr_id === H2 && !("released_helpr_id" in h2.helpr_tasks[0]), "  without the released Helpr's id", JSON.stringify(h2?.helpr_tasks?.[0]));

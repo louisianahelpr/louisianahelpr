@@ -34,6 +34,8 @@ export function useContinueDayActions({
   posterExtras: RowAction[];
   helprLead: RowAction | null;
   helprExtras: RowAction[];
+  /** "Not finished? Set a day" / "Need another day": a visible text button under the row (null: none). */
+  setDay: RowAction | null;
   sheet: React.ReactNode;
 } {
   // Once the Helpr is there (arrived, by any of the three stamps): before that, a new day is "Change date or time".
@@ -47,7 +49,7 @@ export function useContinueDayActions({
   });
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const none = { row: null, step: null, posterLead: undefined, posterExtras: [], helprLead: null, helprExtras: [], sheet: null };
+  const none = { row: null, step: null, posterLead: undefined, posterExtras: [], helprLead: null, helprExtras: [], setDay: null, sheet: null };
   if (!live || !job || !side) return none;
 
   const row = q.data ?? null;
@@ -71,17 +73,19 @@ export function useContinueDayActions({
   const posterExtras: RowAction[] = [];
   let helprLead: RowAction | null = null;
   const helprExtras: RowAction[] = [];
+  let setDay: RowAction | null;
   if (side === "poster") {
     if (row?.status === "proposed") {
       posterLead = { label: "Confirm new day", go: () => void run(() => answerContinueDay(row.id, true), `Set: continuing ${when}.`)(), disabled: busy };
       posterExtras.push({ key: "continue-decline", label: "Decline new day", go: () => void run(() => answerContinueDay(row.id, false), "Declined. Message them to agree on what's next.")(), disabled: busy });
     }
-    posterExtras.push({ key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open });
+    // A VISIBLE text button under the row, never in More options (lead 11-01: on the Approve stage this is Yusef's case).
+    setDay = { key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open };
   } else {
     if (row?.status === "set" && !row.helper_confirmed_at) {
       helprLead = { key: "continue-confirm", label: "Confirm I'll be there", go: () => void run(() => confirmContinueDay(row.id), `Confirmed for ${when}.`)(), disabled: busy };
     }
-    helprExtras.push({ key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open });
+    setDay = { key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open };
   }
 
   return {
@@ -91,6 +95,7 @@ export function useContinueDayActions({
     posterExtras,
     helprLead,
     helprExtras,
+    setDay,
     sheet: (
       <ContinueDaySheet open={sheetOpen} onOpenChange={setSheetOpen} jobId={job.id} side={side} otherFirst={otherFirst} onSaved={refresh} />
     ),

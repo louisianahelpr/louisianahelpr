@@ -14,6 +14,9 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (handover === "ship" && mode !== "test") return json({ error: "shipping_test_only" }, 409); |
  * @mutate supabase/functions/declutter-checkout/index.ts | ...(handover === "ship" ? { capture_method: "manual" as const } : {}) }, | },
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     shipHeld = pi.status === "requires_capture"; |     shipHeld = false;
+ * @mutate supabase/functions/_shared/shipLabelWorker.ts |     const closed = await p.closeReleased(s.declutter_order_id); |     const closed = "skipped";
+ * @mutate supabase/functions/_shared/shipLabelWorker.ts |     const captured = await p.capture(pi, s.declutter_order_id, amount); |     const captured = await p.capture(pi, s.declutter_order_id, 99999);
+ * @mutate supabase/functions/_shared/shipLabelRun.ts | testStripe.paymentIntents.capture(pi, { amount_to_capture: amountCents }, | testStripe.paymentIntents.capture(pi, {},
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -41,9 +44,11 @@ function ports(over: Partial<ShipLabelPorts> = {}) {
     recordBought: async () => { calls.push("record"); return true; },
     recordFailed: async (_s, r) => { calls.push(`failed:${r}`); },
     recordRetry: async () => { calls.push("retry"); },
-    capture: async () => { calls.push("capture"); return "captured"; },
+    captureAmount: async () => { calls.push("amount"); return 2485; },
+    capture: async (_pi, _o, cents) => { calls.push(`capture:${cents}`); return "captured"; },
     release: async () => { calls.push("release"); },
     setCapture: async (_o, st) => { calls.push(`set:${st}`); },
+    closeReleased: async () => { calls.push("close"); return "closed"; },
     page: async () => { calls.push("page"); },
     ...over,
   };
@@ -54,7 +59,7 @@ describe("ship label worker", () => {
   it("buys the stored rate, records it, then captures", async () => {
     const { p, calls } = ports();
     expect(await runShipLabel(claim(), held, p)).toBe("bought_captured");
-    expect(calls).toEqual(["get", "buyable", "buy", "record", "capture", "set:captured"]);
+    expect(calls).toEqual(["get", "buyable", "buy", "record", "amount", "capture:2485", "set:captured"]);
   });
   it("a label already on the shipment is reused, never bought again", async () => {
     const { p, calls } = ports({ getShipment: async () => ({ ok: true, status: 200, body: bought() }) });
@@ -64,9 +69,22 @@ describe("ship label worker", () => {
   it("a dearer rate releases the hold and buys nothing", async () => {
     const { p, calls } = ports({ getShipment: async () => ({ ok: true, status: 200, body: unbought("9.99") }) });
     expect(await runShipLabel(claim(), held, p)).toBe("released");
-    expect(calls).toEqual(expect.arrayContaining(["failed:dearer_than_paid", "release", "set:released"]));
+    // B114: the released order is closed (never left 'paid'), after the hold is gone.
+    expect(calls).toEqual(expect.arrayContaining(["failed:dearer_than_paid", "release", "set:released", "close"]));
+    expect(calls.indexOf("close")).toBeGreaterThan(calls.indexOf("release"));
     expect(calls).not.toContain("buy");
-    expect(calls).not.toContain("capture");
+    expect(calls.some((c) => c.startsWith("capture"))).toBe(false);
+  });
+  it("captures exactly the amount the database names (a setup fee paid elsewhere stays uncaptured)", async () => {
+    const { p, calls } = ports({ captureAmount: async () => { calls.push("amount"); return 2275; } });
+    expect(await runShipLabel(claim(), held, p)).toBe("bought_captured");
+    expect(calls).toContain("capture:2275");
+  });
+  it("the run sends amount_to_capture and closes a released order through the database", () => {
+    const run = blankComments(readFileSync("supabase/functions/_shared/shipLabelRun.ts", "utf8"));
+    expect(run).toContain(`testStripe.paymentIntents.capture(pi, { amount_to_capture: amountCents },`);
+    expect(run).toContain(`admin.rpc("declutter_ship_hold_released", { p_order_id: orderId })`);
+    expect(run).toContain(`admin.rpc("declutter_ship_setup_fee_at_capture", { p_order_id: orderId })`);
   });
   it("the database's own budget check can refuse the buy", async () => {
     const { p, calls } = ports({ rateBuyable: async () => false });
@@ -79,7 +97,7 @@ describe("ship label worker", () => {
     expect(calls).not.toContain("release");
     const b = ports({ buyShipment: async () => ({ ok: false, status: 500, body: null }) });
     expect(await runShipLabel(claim(), held, b.p)).toBe("retry");
-    expect(b.calls).not.toContain("capture");
+    expect(b.calls.some((c) => c.startsWith("capture"))).toBe(false);
   });
   it("live mode and an order not on hold are never touched", async () => {
     const { p, calls } = ports();
@@ -90,7 +108,7 @@ describe("ship label worker", () => {
   it("a lost compare-and-set never captures", async () => {
     const { p, calls } = ports({ recordBought: async () => false });
     expect(await runShipLabel(claim(), held, p)).toBe("skipped_not_held");
-    expect(calls).not.toContain("capture");
+    expect(calls.some((c) => c.startsWith("capture"))).toBe(false);
   });
 });
 

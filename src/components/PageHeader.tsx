@@ -210,6 +210,10 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
   },
 };
 
+/** A wrapping title longer than this is set smaller on a phone (JA-14): the job page's "Haul off an old couch and two
+ *  chairs" is 36. Short titles ("Declutter settings") keep the full size. */
+export const LONG_TITLE_CHARS = 24;
+
 // `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
 // recorded in the retirement note below (title only; ~15 call sites still pass it).
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -353,9 +357,10 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
                   Prop kept for the same reason as `eyebrow`: ~15 call sites
                   pass it, and neither churning them nor breaking their types
                   buys anything. One line restores it. */}
-              {/* JA-14 (Jobs audit 11-01): a wrapping title stops at two lines (a 7-word job title took 3-4 lines of
-                  heading at 375 and pushed the page down); the whole title stays in the tooltip and the accessible name. */}
-              <h1 title={wrapTitle ? title : undefined} className={`text-page-title leading-tight ${wrapTitle ? "break-words line-clamp-2" : "truncate"}${phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
+              {/* JA-14 (Jobs audit 11-01; lead 11-01, B107): a long wrapping title (a 7-word job title took 3-4 lines of
+                  heading at 375) is set SMALLER on a phone (index.css `.page-title-long`), never cut with "...": the
+                  whole title is always on the page. */}
+              <h1 className={`text-page-title leading-tight ${wrapTitle ? `break-words${title.length > LONG_TITLE_CHARS ? " page-title-long" : ""}` : "truncate"}${phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
                 {title}
               </h1>
             </div>

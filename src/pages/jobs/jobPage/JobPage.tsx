@@ -64,6 +64,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
 
+const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
@@ -110,6 +111,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const owesReview = owed.owes;
   const [reviewOpen, setReviewOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [caseOpen, setCaseOpen] = useState(false);
   // Computer (the `lg` grid): the price sits in the side card; a phone shows it beside the title (mockups 4 and 5).
   const wide = useIsWebDesktop();
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
@@ -327,6 +329,14 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             offerOut={offerOut} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
+          {/* JA-30 (Jobs audit 11-01): the dispute line says when they hear back; "See the case" opens the case itself
+              (the Working and Posted cards' own DisputeTimelineDialog: the reason, both sides' evidence, the decision). */}
+          {party && (isPoster || isHired) && (job.status === "disputed" || !!job.has_active_dispute) && (
+            <Button type="button" variant="link" size="sm" data-see-the-case="" onClick={() => setCaseOpen(true)}
+              className="h-auto px-0 text-ds-15 font-semibold">
+              See the case
+            </Button>
+          )}
           {(isPoster || isHired) && job.status === "accepted" && <CountdownRows variant="bare" clocks={collapsedClocks({ ...job, status: job.status }, isPoster)} />}
         </section>
 
@@ -364,7 +374,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {!isPoster && !isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
         </div>
 
-        <aside aria-label="Price and actions" data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start">
+        {/* Lead 11-01 (B107): a stage with nothing in the main column (no photos, crew or fix: Done, Cancelled) left an
+            EMPTY left column beside the card at 1440. The card then takes the main column, under the tracker. */}
+        <aside aria-label="Price and actions" data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1">
           <section data-job-card="" className={`${CARD} space-y-4 p-4 empty:hidden lg:p-5`}>
             {wide && price}
             {wide && moneyNotes}
@@ -410,6 +422,12 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {/* The Working card's own review of the poster (ActivityDialogs' helper mount). */}
           <ReviewForm revieweeRole="poster" open onClose={() => { setReviewOpen(false); owed.refetch(); }}
             jobId={job.id} revieweeId={job.customer_id} revieweeName={posterCard.data?.name ?? "the person who posted this job"} />
+        </Suspense>
+      )}
+      {caseOpen && (
+        <Suspense fallback={null}>
+          <DisputeTimelineDialog jobId={job.id} jobTitle={job.title} userId={userId} open
+            onClose={() => setCaseOpen(false)} onUpdated={() => void q.refetch()} />
         </Suspense>
       )}
       {posterActions.dialogs}

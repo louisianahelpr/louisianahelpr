@@ -4756,6 +4756,12 @@ html.web-desktop .explore-switcher-bone { display: none; }
 }
 .page-title-card h1 { font-size: 2.125rem !important; line-height: 1.1 !important; }
 [data-app-page-scroll] h1.text-page-title { font-size: 1.75rem !important; line-height: 1.1 !important; }
+/* JA-14 (lead 11-01, B107): a long wrapping title is smaller on a phone so the WHOLE title shows (no "..." clamp).
+   PageHeader adds .page-title-long past LONG_TITLE_CHARS. Guard: src/test/pageTitleShowsInFull.test.tsx. */
+@media (max-width: 639px) {
+  [data-app-page-scroll] h1.text-page-title.page-title-long,
+  h1.text-page-title.page-title-long { font-size: 1.25rem !important; line-height: 1.2 !important; }
+}
 html.page-scrolled .page-title-card {
   padding-top: 0.15rem !important;
   padding-bottom: 0.15rem !important;

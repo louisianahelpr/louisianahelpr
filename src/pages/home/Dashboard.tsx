@@ -46,6 +46,7 @@ import { useApplyFlow } from "./useApplyFlow";
 import { useDetailJob } from "./useDetailJob";
 import { useLoadMoreSentinel } from "./useLoadMoreSentinel";
 import { useSavedOnlyPaging } from "./useSavedOnlyPaging";
+import { useClearQuickApplyParam } from "./useClearQuickApplyParam";
 
 /** Jobs > Browse (owner, 2026-10-19): `embeddedHeader` is the section's top bar + tabs; the feed adds ONE compact
  *  search row under it on phone. The old standalone phone title card (DashboardTitleBar + BrowseSearchBar) is gone:
@@ -93,7 +94,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
 
   const {
     user, profile, isAdmin, loading, helprTier, allJobs, platformFee,
-    helperAvailability, recommendedJobs, refresh, loadError,
+    helperAvailability, recommendedJobs, refresh, loadError, feedPhase,
     fetchNextPage, hasNextPage, isFetchingNextPage,
     appliedJobIds, blockedUserIds, jobsUpdatedAt,
   } = useDashboardData();
@@ -188,19 +189,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
   const { detailJob, openDetailJob, closeDetailJob } = useDetailJob({
     containerRef, searchParams, setSearchParams, allJobs,
   });
-  // Drop `?quickApply` once the deep link has resolved. Functional + replace:
-  // it reads `prev` rather than the captured `searchParams`, and adds no history
-  // entry. It is NOT a stable reference: react-router 7's `setSearchParams` is a
-  // useCallback over `[navigate, searchParams]`, so this changes identity on
-  // every query-string change. It never re-fires QuickApplyHandler's effect only
-  // because that component reads `onHandled` through a ref, not a dep.
-  const clearQuickApplyParam = useCallback(() => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.delete("quickApply");
-      return next;
-    }, { replace: true });
-  }, [setSearchParams]);
+  const clearQuickApplyParam = useClearQuickApplyParam(setSearchParams); // drops ?quickApply (see the hook)
   const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
   // List vs Map view. The map shows the same open jobs as the list,
   // pinned to neighborhood-rounded coords (privacy via the
@@ -264,7 +253,9 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
   // "Try again" is the map's retry too. The moment the feed has rows again the
   // column comes back — `mapVisible` is untouched, so the user's choice
   // survives the outage.
-  const feedShowingLoadError = Boolean(loadError) && allJobs.length === 0;
+  // Offline (or paused) with no page in hand is the same: one card, never "0" or the empty state (owner 10-31).
+  const feedOfflineEmpty = feedPhase === "offline-empty";
+  const feedShowingLoadError = (Boolean(loadError) || feedOfflineEmpty) && allJobs.length === 0;
   // The storage write is OUTSIDE the updater on purpose. React's StrictMode
   // invokes a state updater twice in development to surface exactly this: with
   // the setItem inside, the first call stored "0" and the second — re-run
@@ -362,7 +353,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
 
   const embeddedTitle = (
     <div className="flex flex-col gap-4">
-      {embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })}
+      {embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })}
     </div>
   );
 
@@ -522,6 +513,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
                     user={user}
                     allJobs={allJobs}
                     loadError={loadError}
+                    offline={feedOfflineEmpty}
                     refresh={refresh}
                     recommendedJobs={recommendedJobs}
                     // Reserve the "Picked for you" slot with skeletons only while a

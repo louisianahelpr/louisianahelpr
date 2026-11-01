@@ -15,7 +15,7 @@ import { formatDelay } from "./adminHealth/adminHealthHelpers";
 import { useHealthData } from "./adminHealth/useHealthData";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { useFillRate } from "./adminHealth/useFillRate";
-import { useConfigChecks, type CheckTone, type ConfigCheck } from "./adminHealth/useConfigChecks";
+import { useConfigChecks, CHECK_TONE_DOT, type ConfigCheck } from "./adminHealth/useConfigChecks";
 import { useCronHealth } from "./adminHealth/useCronHealth";
 import { useOpenAlerts } from "./adminHealth/useOpenAlerts";
 import { SentrySmokeTestCard } from "./adminHealth/SentrySmokeTestCard";
@@ -41,19 +41,18 @@ import { userFacingError } from "@/lib/userFacingError";
  * is a report about another screen, not this one failing (Q101). Guard:
  * src/test/quotedLogRenderersMarked.test.ts.
  */
-const CheckRow = ({ check, quoted = false }: { check: ConfigCheck; quoted?: boolean }) => {
-  const dot: Record<CheckTone, string> = {
-    ok: "bg-[hsl(var(--bark))]",
-    warn: "bg-[hsl(var(--burnt-sienna))]",
-    danger: "bg-destructive",
-    unknown: "bg-muted-foreground",
-  };
+const CheckRow = ({ check, quoted = false }: { check: ConfigCheck & { group?: string; groupStart?: boolean }; quoted?: boolean }) => {
   return (
+    <>
+    {/* NOID-24 M7: the Open Alerts groups (openAlertChecks): a heading before the first row of each. */}
+    {check.groupStart && check.group && (
+      <li data-alert-group={check.group} className="pt-1 text-ds-12 font-semibold text-foreground">{check.group}</li>
+    )}
     <li
       className="flex items-start gap-3 rounded-ds-sm border border-border bg-card p-3"
       data-quoted-log={quoted ? "" : undefined}
     >
-      <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", dot[check.tone])} aria-hidden="true" />
+      <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", CHECK_TONE_DOT[check.tone])} aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-ds-13 font-semibold text-foreground">
           {check.label}
@@ -70,6 +69,7 @@ const CheckRow = ({ check, quoted = false }: { check: ConfigCheck; quoted?: bool
         <p className="text-ds-11 text-muted-foreground leading-tight">{check.detail}</p>
       </div>
     </li>
+    </>
   );
 };
 

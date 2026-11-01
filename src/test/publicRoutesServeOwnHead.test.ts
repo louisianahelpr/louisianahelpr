@@ -73,6 +73,7 @@ import {
 } from "../lib/publicPageMeta.mjs";
 // Typed by scripts/generate-sitemap.d.mts.
 import { NOINDEX as SITEMAP_NOINDEX } from "../../scripts/generate-sitemap.mjs";
+import { allTownPagePaths } from "../lib/townPages.mjs";
 
 const ROOT = resolve(__dirname, "..", "..");
 const SHELL_SOURCE = existsSync(resolve(ROOT, "dist/index.html"))
@@ -196,7 +197,8 @@ describe("every sitemap URL serves its own head before JavaScript (SW-001/SW-002
     const tablePaths = [...Object.keys(PUBLIC_PAGE_META), "/legal", ...Object.keys(LEGAL_PATH_TAB)];
     const pageRewrites = vercel.rewrites
       .filter((r) => r.destination.includes("_og=page"))
-      .map((r) => r.source);
+      // OPS-4: the one parameterised page rewrite stands for its real town pages (allTownPagePaths).
+      .flatMap((r) => (r.source === "/hire/:service/:town" ? allTownPagePaths() : [r.source]));
     expect(pageRewrites.length).toBeGreaterThan(5);
     const failures: string[] = [];
     for (const path of new Set([...tablePaths, ...pageRewrites])) {
@@ -208,6 +210,7 @@ describe("every sitemap URL serves its own head before JavaScript (SW-001/SW-002
     const tableCanonicals = [
       ...Object.values(PUBLIC_PAGE_META).map((m) => m.canonical),
       ...Object.values(LEGAL_PAGE_META).map((m) => m.canonical),
+      ...allTownPagePaths().map((p) => SITE_ORIGIN + p),
     ];
     for (const c of tableCanonicals) if (!sitemapUrls.has(norm(c))) failures.push(`table canonical ${c} missing from sitemap`);
     expect(failures).toEqual([]);

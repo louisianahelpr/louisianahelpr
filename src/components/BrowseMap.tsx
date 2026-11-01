@@ -54,6 +54,8 @@ import {
   type MapJobFilterInput,
 } from "./browseMap/mapFilter";
 import { BusyAreasMapKey, laRegion, MyLocationCorner } from "./browseMap/MapLayers";
+import { PREVIEW_CARD_MAX_W, PREVIEW_CARET, PREVIEW_EDGE, type PreviewPlacement } from "./browseMap/previewPlacement";
+import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import {
   colorSchemeFor,
   getMapKit,
@@ -155,26 +157,13 @@ interface BrowseMapProps {
   refreshKey?: number;
 }
 
-/** Placement of the pin-anchored preview popover, in `mapBoxRef` pixels.
- *  `caretDir` "down": card sits above the pin, caret on its bottom edge points
- *  down at the pin. "up": card flipped below the pin, caret on its top edge. */
-type PreviewPlacement = {
-  left: number;
-  top: number;
-  caretLeft: number;
-  caretDir: "up" | "down";
-};
-
-/** Popover geometry constants (px). */
-const PREVIEW_CARD_MAX_W = 416; // 26rem — matches the old sheet's max width.
-const PREVIEW_EDGE = 8; // keep the card this far from every map edge.
-const PREVIEW_CARET = 9; // caret height / gap between card and pin.
-
 export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, exclusions, refreshKey }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
   const mapKitStatus = useMapKitJs();
   // The pin set and its load state; see browseMap/useMapJobs.ts.
   const { jobs, loading, loadError, retry } = useMapJobs(currentUserId, refreshKey);
+  // Offline with no pins in hand is never "Empty map for now" (owner 10-31).
+  const { online } = useOnlineStatus();
   const [mapReady, setMapReady] = useState(false);
 
   // Filtered pin set. Every downstream consumer (count badge, fitToPins, the
@@ -800,15 +789,15 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // A failed fetch is NOT an empty marketplace — say which one it is. Same
   // frosted ErrorState + "Try again" the list view shows for the same
   // failure, so flipping list↔map during an outage reads as one screen.
-  if (loadError && visibleJobs.length === 0) {
+  if ((loadError || !online) && visibleJobs.length === 0) {
     return (
       <div
         className={`flex h-full w-full bg-card/40 px-3 pt-4${shellClass}`}
         style={{ paddingBottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 1rem)" }}
       >
         <ErrorState
-          title="We couldn't load the map."
-          body="The job pins didn't come back. Tap Try again — if it sticks, our end is having a hiccup, not yours."
+          title="Can't load jobs right now."
+          body={online ? "The job pins didn't come back. Tap Try again." : "You're offline. The map will load when you're back online."}
           onRetry={retry}
         />
       </div>

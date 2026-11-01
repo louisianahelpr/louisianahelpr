@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
@@ -12,9 +13,11 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import type { Json } from "@/integrations/supabase/types";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
-import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
+import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { saveOrShareFile } from "@/lib/fileExport";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
+import { pillLabel } from "@/components/admin/useFilterCounts";
 
 interface AuditEntry {
   id: string;
@@ -26,9 +29,26 @@ interface AuditEntry {
   details: Json | null;
   created_at: string;
   admin_name?: string;
+  is_seed?: boolean;
 }
 
+/**
+ * NOID-23 (admin audit: "no filters"): who made each row. A person is an admin's own action; automatic is a write with
+ * no admin (pg_cron, service-role edge functions, migrations; admin_id NULL since 20260825140000), which is most of the
+ * log (prod 10-31: 1,505 of the last 30 days' no-actor rows were table-write audits). The filter lets an admin read
+ * only what people did.
+ */
+type AuditWho = "all" | "people" | "automatic";
+const AUDIT_WHO: { value: AuditWho; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "people", label: "By an admin" },
+  { value: "automatic", label: "Automatic" },
+];
+const auditWhoMatches = (who: AuditWho, e: { admin_id: string | null }) =>
+  who === "all" || (who === "people" ? !!e.admin_id : !e.admin_id);
+
 const AdminAuditLog = () => {
+  const [who, setWho] = useState<AuditWho>("all");
   const { data: entries, isInitialLoading, isError, refetch } = useInstantQuery<AuditEntry[]>({
     key: ["admin-audit-log"],
     fallback: [],
@@ -56,10 +76,16 @@ const AdminAuditLog = () => {
           .in("user_id", adminIds));
         for (const p of profiles ?? []) nameMap.set(p.user_id, p.full_name);
       }
-      return data.map((e) => ({
+      // NOID-23 test churn (owner 2026-10-27: "i should never see test stuff in my admin panel"): a row made by a test
+      // (is_seed) account, or about one, is left out like every other admin list (withoutTestRows).
+      const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const aboutUser = (e: AuditEntry) => (e.target_type === "user" || e.target_type === "profile") && !!e.target_id && UUID.test(e.target_id);
+      const seedIds = await fetchSeedUserIds([...adminIds, ...data.filter(aboutUser).map((e) => e.target_id)]);
+      return withoutTestRows(data.map((e) => ({
         ...e,
         admin_name: formatName(e.admin_id ? nameMap.get(e.admin_id) : undefined, "System"),
-      }));
+        is_seed: (!!e.admin_id && seedIds.has(e.admin_id)) || (aboutUser(e) && seedIds.has(e.target_id!)),
+      })));
     },
   });
 
@@ -231,7 +257,21 @@ const AdminAuditLog = () => {
         />
       ) : (
         <div className="space-y-1.5">
-          {entries.map(entry => {
+          <AdminFilterStrip label="Filter the log by who acted">
+            {AUDIT_WHO.map(({ value, label }) => (
+              <Button
+                key={value}
+                variant={who === value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setWho(value)}
+                aria-pressed={who === value}
+                className="shrink-0"
+              >
+                {pillLabel(label, entries.filter((e) => auditWhoMatches(value, e)).length)}
+              </Button>
+            ))}
+          </AdminFilterStrip>
+          {entries.filter((e) => auditWhoMatches(who, e)).map(entry => {
             const summary = summarizeDetails(entry.action, entry.details);
             return (
               <div key={entry.id} className="rounded-ds-sm border border-border/60 bg-background/40 p-3 flex items-start gap-3">

@@ -39,6 +39,33 @@ export interface SavedSearch {
   notify_email: boolean;
   last_seen_at: string | null;
   created_at: string;
+  /** BUY-13 (20261031222115): Declutter Browse's other filters. Absent on a row read before they were deployed. */
+  free_only?: boolean;
+  porch_only?: boolean;
+  drops_only?: boolean;
+  conditions?: number[];
+}
+
+/** BUY-13: the Declutter filters beyond words, category, price and distance. All off = none. */
+export interface DeclutterExtras {
+  freeOnly: boolean;
+  porchOnly: boolean;
+  dropsOnly: boolean;
+  /** Condition stars, 1 to 5; empty = any. */
+  conditions: number[];
+}
+
+const NO_EXTRAS: DeclutterExtras = { freeOnly: false, porchOnly: false, dropsOnly: false, conditions: [] };
+
+const sortedStars = (c: readonly number[] | null | undefined) => [...new Set(c ?? [])].filter((n) => Number.isInteger(n) && n >= 1 && n <= 5).sort((a, b) => a - b);
+
+/** A row's extras (a row from before 20261031222115 has none). */
+function rowExtras(s: Pick<SavedSearch, "free_only" | "porch_only" | "drops_only" | "conditions">): DeclutterExtras {
+  return { freeOnly: !!s.free_only, porchOnly: !!s.porch_only, dropsOnly: !!s.drops_only, conditions: sortedStars(s.conditions) };
+}
+
+export function hasExtras(e: DeclutterExtras | null | undefined): boolean {
+  return !!e && (e.freeOnly || e.porchOnly || e.dropsOnly || e.conditions.length > 0);
 }
 
 /** What a "Save this search" sheet is asked to save. */
@@ -51,10 +78,14 @@ export interface SearchDraft {
   radiusMiles: number | null;
   /** Where the radius measures from (BUY-49): Browse's own device or ZIP position. */
   origin?: { lat: number; lng: number } | null;
+  /** BUY-13: Declutter only. Absent = none. */
+  extras?: DeclutterExtras | null;
 }
 
 const COLUMNS =
   "id,name,section,query,category,min_budget,max_budget,radius_miles,parish,location_keyword,notify_enabled,notify_email,last_seen_at,created_at";
+/** BUY-13's columns (20261031222115). */
+const EXTRA_COLUMNS = ",free_only,porch_only,drops_only,conditions";
 
 function categoryWord(section: string, category: string): string {
   if (section === "declutter") return CATEGORY_LABEL[category] ?? category;
@@ -82,26 +113,47 @@ export function defaultName(d: Pick<SearchDraft, "section" | "query" | "category
   return `“${words}…”${where}`;
 }
 
-/** The filters in plain words: `Within 25 mi · under $100 · Furniture`. */
-export function filterWords(s: { section: string; category: string | null; min_budget: number | null; max_budget: number | null; radius_miles: number | null }, withCategory = true): string[] {
+/** `5 stars` / `4 or 5 stars` / `3, 4 or 5 stars`. */
+function starWords(c: number[]): string {
+  if (c.length === 1) return c[0] === 1 ? "1 star" : `${c[0]} stars`;
+  return `${c.slice(0, -1).join(", ")} or ${c[c.length - 1]} stars`;
+}
+
+/** The filters in plain words: `Within 25 mi · under $100 · Furniture · free · porch pickup`. */
+export function filterWords(s: { section: string; category: string | null; min_budget: number | null; max_budget: number | null; radius_miles: number | null } & Partial<Pick<SavedSearch, "free_only" | "porch_only" | "drops_only" | "conditions">>, withCategory = true): string[] {
   const out: string[] = [];
   if (s.radius_miles) out.push(`within ${s.radius_miles} mi`);
   if (s.min_budget && s.max_budget) out.push(`$${s.min_budget} to $${s.max_budget}`);
   else if (s.max_budget) out.push(`under $${s.max_budget}`);
   else if (s.min_budget) out.push(`$${s.min_budget} and up`);
   if (withCategory && s.category) out.push(categoryWord(s.section, s.category));
+  // BUY-13: the Declutter filters the search keeps, so the row says what it alerts on.
+  const e = rowExtras(s);
+  if (e.freeOnly) out.push("free");
+  if (e.porchOnly) out.push("porch pickup");
+  if (e.dropsOnly) out.push("price drops");
+  if (e.conditions.length > 0) out.push(starWords(e.conditions));
   return out;
+}
+
+/** A draft's extras as a row's columns (BUY-13), for filterWords and sameSearch. */
+export function extrasAsColumns(e: DeclutterExtras | null | undefined): Pick<SavedSearch, "free_only" | "porch_only" | "drops_only" | "conditions"> {
+  const x = e ?? NO_EXTRAS;
+  return { free_only: x.freeOnly, porch_only: x.porchOnly, drops_only: x.dropsOnly, conditions: sortedStars(x.conditions) };
 }
 
 /**
  * BUY-54: the same search saved twice sent every alert twice and used up the 10-search cap. Same section, words (any
  * case), category, price and distance = the same search (the origin is a rounded position; it does not make it new).
  */
-export function sameSearch(s: Pick<SavedSearch, "section" | "query" | "category" | "min_budget" | "max_budget" | "radius_miles">, d: SearchDraft): boolean {
+export function sameSearch(s: Pick<SavedSearch, "section" | "query" | "category" | "min_budget" | "max_budget" | "radius_miles"> & Partial<Pick<SavedSearch, "free_only" | "porch_only" | "drops_only" | "conditions">>, d: SearchDraft): boolean {
   const words = (q: string | null | undefined) => (q ?? "").trim().toLowerCase();
+  // BUY-13: Free, porch, drops and condition make it another search.
+  const a = rowExtras(s), b = rowExtras(extrasAsColumns(d.extras));
   return s.section === d.section && words(s.query) === words(d.query) && (s.category ?? null) === (d.category ?? null)
     && (s.min_budget ?? null) === (d.minDollars ?? null) && (s.max_budget ?? null) === (d.maxDollars ?? null)
-    && (s.radius_miles ?? null) === (d.radiusMiles ?? null);
+    && (s.radius_miles ?? null) === (d.radiusMiles ?? null)
+    && a.freeOnly === b.freeOnly && a.porchOnly === b.porchOnly && a.dropsOnly === b.dropsOnly && a.conditions.join(",") === b.conditions.join(",");
 }
 
 /** A saved row's line under its name: `Email · within 25 mi · under $100`. */
@@ -122,6 +174,12 @@ export function resultsPath(s: SavedSearch): string {
     if (s.max_budget) p.set("max", String(s.max_budget));
     if (s.min_budget) p.set("min", String(s.min_budget));
     if (s.radius_miles) p.set("mi", String(s.radius_miles));
+    // BUY-13: Browse's own params for the filters the search keeps (browseStateFromParams).
+    const e = rowExtras(s);
+    if (e.freeOnly) p.set("free", "1");
+    if (e.porchOnly) p.set("porch", "1");
+    if (e.dropsOnly) p.set("drops", "1");
+    if (e.conditions.length > 0) p.set("cond", e.conditions.join(","));
     // BUY-53: what "N new" counted (live_at after the last look, saved_search_new_counts), so Browse can mark them.
     const since = s.last_seen_at ?? s.created_at;
     if (since) p.set("new", since);
@@ -147,7 +205,9 @@ export async function fetchSavedSearches(userId: string): Promise<SavedSearch[]>
       .order("created_at", { ascending: false })
       // enforce_saved_search_limit caps a member at 10; the bound is stated here too.
       .limit(50);
-  const res = await read(COLUMNS);
+  // BUY-13: before its columns are deployed (42703), the rows read without them: no row has any yet.
+  let res = await read(COLUMNS + EXTRA_COLUMNS);
+  if (res.error?.code === "42703") res = await read(COLUMNS);
   if (res.error?.code === "42703") {
     // The new columns are not deployed yet: every row is still a Jobs search
     // that emails, which is what the migration will make it.
@@ -192,6 +252,9 @@ export async function createSavedSearch(userId: string, d: SearchDraft, email: b
     radius_miles: d.radiusMiles,
     notify_enabled: true,
     notify_email: email,
+    // BUY-13: only a Declutter search with one of them on sends the columns, so every other save works before they are
+    // deployed. A search with one on is never saved without it (it would alert on more than was asked).
+    ...(d.section === "declutter" && hasExtras(d.extras) ? extrasAsColumns(d.extras) : {}),
   };
   // Two decimals, about half a mile: enough to measure a radius, and no home address kept on the row.
   const origin = d.origin && d.radiusMiles ? { origin_lat: Math.round(d.origin.lat * 100) / 100, origin_lng: Math.round(d.origin.lng * 100) / 100 } : null;

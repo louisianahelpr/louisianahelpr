@@ -2,6 +2,7 @@
   "cleanup_observability_tables": 1,
   "ops_alert_condition": 2,
   "ops_alert_record_user_error_screen": 3,
+  "owner_daily_summary_stats": 2,
   "prevent_self_escalation": 1,
   "send_ops_daily_digest": 2,
   "sweep_old_error_logs": 2

@@ -110,6 +110,7 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   withdraw_job_schedule_change: "withdraws a date/time request; request_job_schedule_change refuses group jobs (is_group_job), so no crew request exists to withdraw (board 66/172 slice 3)",
   save_weekly_availability: "matches helper_availability.helper_id (the caller's own weekly hours), not jobs: nothing crew-specific (re-read for Q728)",
   user_has_pending_application: "a pending application, not a hire",
+  audit_admin_job_status_change: "NOID-23 (20261031213213): an audit-log trigger that grants nothing; it reads customer_id/helper_id only to SKIP logging an admin's own member move as an override. An admin in a crew is not jobs.helper_id, so their move is still logged (over-logged, never hidden)",
 };
 
 describe("a crew has no lead (Q407)", () => {

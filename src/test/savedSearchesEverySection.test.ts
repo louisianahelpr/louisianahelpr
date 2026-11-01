@@ -8,11 +8,11 @@
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       AND s.section = 'jobs'\n      AND p.email_verified | AND p.email_verified
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND s.notify_email\n     AND (s.last_emailed_at | AND (s.last_emailed_at
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF v_email_ids IS NOT NULL THEN\n  UPDATE |   IF true THEN\n  UPDATE
- * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql |       AND public.feature_enabled_for_user('declutter', s.user_id)\n |
- * @mutate supabase/migrations/20261031023451_saved_search_keeps_its_origin.sql |            AND NOT public.declutter_seller_hidden(i.seller_id)\n |
- * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql |       AND (NOT v_seller_seed OR COALESCE(p.is_seed, false))\n | 
- * @mutate supabase/migrations/20261030071817_declutter_search_words.sql | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC;
- * @mutate supabase/migrations/20261031023451_saved_search_keeps_its_origin.sql |   WHERE s.user_id = (SELECT auth.uid());\n$function$; |   WHERE true;\n$function$;
+ * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |       AND public.feature_enabled_for_user('declutter', s.user_id)\n |
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |            AND NOT public.declutter_seller_hidden(i.seller_id)\n           AND (NOT i.is_seed OR | AND (NOT i.is_seed OR
+ * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |       AND (NOT v_seller_seed OR COALESCE(p.is_seed, false))\n | 
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC;
+ * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |   WHERE s.user_id = (SELECT auth.uid());\n$function$; |   WHERE true;\n$function$;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

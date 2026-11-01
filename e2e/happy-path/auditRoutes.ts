@@ -175,6 +175,8 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "help", url: "/help" },
   { name: "support", url: "/support" },
   { name: "sms-opt-in", url: "/sms-opt-in" },
+  // OPS-4 town + service pages (src/lib/townPages.mjs): one of the 40 stands in for the shared page.
+  { name: "hire-town", url: "/hire/handyman/lafayette" },
   { name: "terms-full", url: "/terms/full" },
   { name: "privacy-full", url: "/privacy/full" },
   // REMOVED 2026-08-24: /accessibility. The standalone page was orphaned —

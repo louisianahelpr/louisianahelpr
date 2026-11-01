@@ -4,7 +4,7 @@
   "files": {
     "src/components/admin/AdminDisputes.tsx": 683,
     "src/components/admin/AdminReports.tsx": 673,
-    "src/components/BrowseMap.tsx": 1145,
+    "src/components/BrowseMap.tsx": 1134,
     "src/components/dashboard/JobCard.tsx": 795,
     "src/components/dashboard/JobDetailDialog.tsx": 945,
     "src/components/job-card/JobListPage.tsx": 639,
@@ -19,7 +19,7 @@
     "src/components/profile/SubscriptionTab.tsx": 871,
     "src/components/ui/dialog.tsx": 754,
     "src/pages/auth/CompleteProfile.tsx": 897,
-    "src/pages/home/Dashboard.tsx": 782,
+    "src/pages/home/Dashboard.tsx": 774,
     "src/pages/home/DashboardGuest.tsx": 803,
     "src/pages/info/Legal.tsx": 725,
     "src/pages/jobs/AppliedJobCard.tsx": 842,

@@ -132,6 +132,8 @@ export const authPages = ["/home", "/explore", "/posts", "/jobs", "/post-job", "
   // it got the shell but none of the app's own navigation, stranding the user
   // on a page with no way back into the app except the browser's Back button.
   "/legal",
+  // The town + service pages (OPS-4, /hire/<service>/<town>): PublicHeaderPage, so signed in they need the dock.
+  "/hire/",
   // /terms, /privacy and /rules are the same Legal page on its other three
   // routes (Q179): signed in they had no dock at all. Guard:
   // src/test/dualSurfaceRoutesGetAppChrome.test.ts.

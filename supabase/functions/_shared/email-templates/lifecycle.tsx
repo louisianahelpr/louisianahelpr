@@ -110,3 +110,84 @@ export const AdminDigestEmail = ({
     <BrandButton href={adminUrl} label="Open Admin Dashboard" widthPx={250} />
   </BaseLayout>
 )
+
+export interface OwnerDailyStats {
+  newUsers: number
+  jobsPosted: number
+  itemsPosted: number
+  jobsCompleted: number
+  itemsSold: number
+  salesCents: number
+  openReports: number
+  failedPayouts: number
+  memberErrors: number
+  membersWithErrors: number
+  /** OPS-5: top sign-up sources in the window, real members only; null when unknown (left out). */
+  topSources?: Array<{ source: string; signups: number }> | null
+}
+
+/**
+ * OPS-1 (owner): the owner's daily summary, same family as the weekly digest
+ * above and sent the same way (internal ops mail, plain transactional footer,
+ * no List-Unsubscribe). Every figure is real members and real items only: test
+ * accounts, seed rows and test-mode money never show (owner rule, 10-29).
+ * Goes only to admins who are not test accounts.
+ */
+export const OwnerDailySummaryEmail = ({
+  stats,
+  adminUrl,
+  dayOf,
+}: {
+  stats: OwnerDailyStats
+  adminUrl: string
+  dayOf: string
+}) => (
+  <BaseLayout
+    preheader={`Last 24 hours: ${stats.newUsers} sign-ups, ${stats.jobsPosted} jobs and ${stats.itemsPosted} items posted, ${stats.itemsSold} items sold.`}
+    footer={
+      <TransactionalFooter>
+        You're receiving this because you're an administrator on Louisiana Helpr. It's an
+        internal operations report, not a mailing list.
+      </TransactionalFooter>
+    }
+  >
+    <Heading className="e-h1" style={{ ...h1, fontSize: '22px' }}>
+      Daily summary
+    </Heading>
+    <Text className="e-text" style={textStyle}>
+      The last 24 hours, up to {dayOf}. Real members only; test accounts are left out.
+    </Text>
+    <Section style={{ margin: '0 0 20px' }}>
+      <Stat label="New sign-ups" value={stats.newUsers} />
+      <Stat label="Jobs posted" value={stats.jobsPosted} />
+      <Stat label="Declutter items posted" value={stats.itemsPosted} />
+      <Stat label="Jobs completed" value={stats.jobsCompleted} />
+      <Stat label="Declutter items sold" value={stats.itemsSold} />
+      <Stat label="Declutter sales" value={`$${(stats.salesCents / 100).toFixed(2)}`} />
+    </Section>
+    {stats.topSources && stats.topSources.length > 0 && (
+      <>
+        <Text className="e-text" style={{ ...textStyle, fontWeight: 'bold' as const }}>
+          Where sign-ups came from
+        </Text>
+        <Section style={{ margin: '0 0 20px' }}>
+          {stats.topSources.map((s) => (
+            <Stat key={s.source} label={s.source === 'direct' ? 'Direct (no link)' : s.source === 'other' ? 'Other' : s.source} value={s.signups} />
+          ))}
+        </Section>
+      </>
+    )}
+    <Text className="e-text" style={{ ...textStyle, fontWeight: 'bold' as const }}>
+      Needs a look
+    </Text>
+    <Section style={{ margin: '0 0 20px' }}>
+      <Stat label="Open reports" value={stats.openReports} />
+      <Stat label="Declutter payouts that failed" value={stats.failedPayouts} />
+      <Stat
+        label="App errors members hit"
+        value={stats.memberErrors === 0 ? 0 : `${stats.memberErrors} (${stats.membersWithErrors} ${stats.membersWithErrors === 1 ? 'member' : 'members'})`}
+      />
+    </Section>
+    <BrandButton href={adminUrl} label="Open Admin Dashboard" widthPx={250} />
+  </BaseLayout>
+)

@@ -2062,6 +2062,35 @@ export type Database = {
           },
         ]
       }
+      declutter_item_price_drops: {
+        Row: {
+          at: string
+          from_cents: number
+          item_id: string
+          to_cents: number
+        }
+        Insert: {
+          at?: string
+          from_cents: number
+          item_id: string
+          to_cents: number
+        }
+        Update: {
+          at?: string
+          from_cents?: number
+          item_id?: string
+          to_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_item_price_drops_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_item_private: {
         Row: {
           auto_free_day12: boolean
@@ -7597,6 +7626,27 @@ export type Database = {
           },
         ]
       }
+      member_signup_sources: {
+        Row: {
+          campaign: string | null
+          recorded_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          campaign?: string | null
+          recorded_at?: string
+          source: string
+          user_id: string
+        }
+        Update: {
+          campaign?: string | null
+          recorded_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       message_reactions: {
         Row: {
           created_at: string
@@ -11086,6 +11136,10 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          conditions: number[]
+          drops_only: boolean
+          free_only: boolean
+          porch_only: boolean
           id: string
           last_emailed_at: string | null
           last_notified_at: string | null
@@ -11107,6 +11161,10 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string
+          conditions?: number[]
+          drops_only?: boolean
+          free_only?: boolean
+          porch_only?: boolean
           id?: string
           last_emailed_at?: string | null
           last_notified_at?: string | null
@@ -11128,6 +11186,10 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string
+          conditions?: number[]
+          drops_only?: boolean
+          free_only?: boolean
+          porch_only?: boolean
           id?: string
           last_emailed_at?: string | null
           last_notified_at?: string | null
@@ -14199,6 +14261,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_signup_source_report: {
+        Args: { p_days?: number }
+        Returns: {
+          campaign: string
+          first_posts: number
+          signups: number
+          source: string
+        }[]
+      }
       admin_sms_status: { Args: never; Returns: Json }
       admin_stalled_job_queue: {
         Args: { p_include_resolved?: boolean }
@@ -14779,6 +14850,10 @@ export type Database = {
         Returns: Json
       }
       declutter_close_wanted: { Args: { p_wanted_id: string }; Returns: string }
+      declutter_dropped_into_budget: {
+        Args: { p_max_budget: number; p_since: string }
+        Returns: string[]
+      }
       declutter_donation_own_items: {
         Args: { p_item_ids: string[]; p_uid: string }
         Returns: string[]
@@ -17070,6 +17145,7 @@ export type Database = {
         Args: never
         Returns: {
           dropoff_area: string
+          ended_at: string | null
           payout_status: string | null
           pickup_area: string
           pickup_slot_start: string | null
@@ -17562,6 +17638,7 @@ export type Database = {
       ops_alert_sentry_source: { Args: { p_source: string }; Returns: string }
       ops_alert_verify: { Args: never; Returns: Json }
       ops_route_key: { Args: { p_route: string }; Returns: string }
+      owner_daily_summary_stats: { Args: { p_since: string }; Returns: Json }
       payout_day_label: { Args: { p_at: string }; Returns: string }
       payout_defer: {
         Args: { p_kind: string; p_minutes: number; p_payout_id: string }
@@ -17705,6 +17782,10 @@ export type Database = {
         Returns: undefined
       }
       record_job_view: { Args: { p_job_id: string }; Returns: string }
+      record_my_signup_source: {
+        Args: { p_campaign?: string; p_source: string }
+        Returns: boolean
+      }
       record_profile_view: {
         Args: { p_viewed_user_id: string }
         Returns: boolean

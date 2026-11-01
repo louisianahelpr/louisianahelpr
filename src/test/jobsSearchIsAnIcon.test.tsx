@@ -183,7 +183,7 @@ describe("Jobs > Browse on a phone: search and filters end the tabs row, before 
     const filtersAt = phoneEnd.indexOf("<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />");
     expect(search, "the search icon").toBeGreaterThan(-1);
     expect(filtersAt, "the Filters button").toBeGreaterThan(search);
-    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })");
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })");
     // JobsSection puts whatever Browse hands it BEFORE the gear (profileIsAccountMoneyHelp renders the order).
     expect(read("pages/jobs/JobsSection.tsx")).toContain("end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>}");
   });

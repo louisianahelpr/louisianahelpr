@@ -34,7 +34,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { useFeature } from "@/hooks/useFeature";
-import { usePayoutSetupBlock } from "@/hooks/usePayoutSetupPaused";
+import { FailedPayoutLink } from "./FailedPayoutLink";
 import type { CartLine } from "@/lib/declutter/api";
 import { invalidate, liveSalesFirst, localInputToIso, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
 import {
@@ -71,7 +71,6 @@ import { DoorPickupTips, PickupAddresses, SellerAfterActions } from "./Declutter
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
-import { Link } from "react-router-dom";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
@@ -153,17 +152,6 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   );
 }
 
-/**
- * NIGHT-SELL-soldstates-4: a failed seller payout links to the payout settings. While payout setup is paused for
- * everyone (Stripe, owner 2026-10-23) that screen offers nothing to fix, so the link waits (the payout prompt above
- * the sales shows the paused notice), as SellerPayoutPrompt does.
- */
-function FailedPayoutLink() {
-  const paused = usePayoutSetupBlock() === "paused";
-  if (paused) return null;
-  return <>{" "}<Link to="/profile?tab=payment" className="underline font-semibold">Check your payouts</Link></>;
-}
-
 function OrderCard({ order, userId, booking, payout, view, problem, linked }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView; problem: OpenProblem | null; linked: boolean }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
@@ -221,14 +209,12 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           (delivery has its own, in OrderDeliveryPanel). */}
       {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
-      {problem && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
+      {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
-      <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} delivery={order.handover === "seller_delivery"} /></Suspense>
-      {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). */}
-      {!sellerNextFirst && <OrderTalkButton orderId={order.orderId} side={order.side} />}
       {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}
+      {!sellerNextFirst && !problem && <OrderTalkButton orderId={order.orderId} side={order.side} />}
       {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus orderId={order.orderId} side={order.side} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
       {!view && (order.handover === "porch" || order.handover === "pickup_home" || order.handover === "meetup") && (
         <PickupStatus
@@ -243,6 +229,12 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           part={sellerNextFirst ? "status" : "all"}
         />
       )}
+      {/* NIGHT-BUYINGopenpr-8: the same order as the buyer's card: the tracker, then the problem note, then each side. */}
+      {problem && !view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
+      <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
+      {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). On a held order it comes after
+          the tracker, the note and each side (openpr-8); otherwise above the tracker (soldstates-3). */}
+      {!sellerNextFirst && problem && <OrderTalkButton orderId={order.orderId} side={order.side} />}
       {done ? (
         <>
           {/* BUY-31: said once. The buyer's head line says it, and SellerDeliveryStatus says it to the seller. */}

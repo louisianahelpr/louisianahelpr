@@ -5,7 +5,7 @@
  * tracker and its line, the pickup and Move, When will it be out, Take the porch photo, THEN the money note and Message
  * the buyer (photo now 335px down). A finished sale keeps its order.
  *
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!sellerNextFirst && <OrderTalkButton orderId={order.orderId} side={order.side} />} |       <OrderTalkButton orderId={order.orderId} side={order.side} />
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {!sellerNextFirst && !problem && <OrderTalkButton orderId={order.orderId} side={order.side} />} |       {!problem && <OrderTalkButton orderId={order.orderId} side={order.side} />}
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           part={sellerNextFirst ? "status" : "all"} |           part="all"
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |       {part === "all" && money} |       {money}
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const sellerNextFirst = !view && order.side === "seller" && !done | const sellerNextFirst = false && !done

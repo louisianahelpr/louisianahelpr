@@ -38,6 +38,7 @@ vi.mock("./giftCardPaidJobIds", () => ({
 }));
 // Board 191's funnel card has its own read and its own "Try again"; this file is about the jobs load.
 vi.mock("./adminAnalytics/SectionFunnel", () => ({ SectionFunnel: () => null }));
+vi.mock("./adminAnalytics/SignupSources", () => ({ SignupSources: () => null }));
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

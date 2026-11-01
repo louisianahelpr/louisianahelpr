@@ -49,6 +49,7 @@ const KNOWN_UNFILTERED: Record<string, number> = {
   ops_alert_record_user_error_screen: 3,
   prevent_self_escalation: 1,
   send_ops_daily_digest: 2,
+  owner_daily_summary_stats: 2, // OPS-1 (20261031224638): counts member errors for the owner's daily summary; mutes nothing
   sweep_old_error_logs: 2,
 };
 

@@ -341,6 +341,17 @@ export async function fetchDropStates(itemIds: string[]): Promise<Map<string, Dr
   return out;
 }
 
+/**
+ * BUY-52: the live listings whose price dropped from over `maxDollars` since `since` (a saved search's "N new" counts
+ * them; saved_search_new_counts and this read share declutter_dropped_into_budget). Before that function is on the
+ * server (PGRST202 / 42883) the answer is none, so Browse marks by live_at alone, as it did.
+ */
+export async function fetchDroppedIntoBudget(since: string, maxDollars: number): Promise<Set<string>> {
+  const res = await supabase.rpc("declutter_dropped_into_budget", { p_since: since, p_max_budget: maxDollars });
+  if (res.error && (isMissingRpcNamed(res.error, "declutter_dropped_into_budget") || res.error.code === "42883")) return new Set();
+  return new Set((unwrap(res) ?? []) as string[]);
+}
+
 export async function fetchPhotos(itemIds: string[]): Promise<DeclutterPhoto[]> {
   if (itemIds.length === 0) return [];
   const prefetched = await takeFirstScreenPhotos(itemIds);

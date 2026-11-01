@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from 
 import { Switch } from "@/components/ui/switch";
 import { report } from "@/lib/errorLogger";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { createSavedSearch, fetchSavedSearches, sameSearch, savedSearchSaveError, defaultName, filterWords, SECTION_LABEL, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
+import { createSavedSearch, extrasAsColumns, fetchSavedSearches, sameSearch, savedSearchSaveError, defaultName, filterWords, SECTION_LABEL, type SavedSearchSection, type SearchDraft } from "@/lib/savedSearches";
 
 export const SAVED_SEARCHES_KEY = ["saved-searches"] as const;
 
@@ -48,7 +48,7 @@ export function SaveSearchSheet({
   }, [open, draft.section]);
 
   const d = { ...draft, section };
-  const line = filterWords({ section, category: d.category, min_budget: d.minDollars, max_budget: d.maxDollars, radius_miles: d.radiusMiles }, !!d.query.trim());
+  const line = filterWords({ section, category: d.category, min_budget: d.minDollars, max_budget: d.maxDollars, radius_miles: d.radiusMiles, ...extrasAsColumns(section === "declutter" ? d.extras : null) }, !!d.query.trim());
   const choices = sections && sections.length > 1 ? sections : null;
 
   const save = async () => {

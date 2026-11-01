@@ -6,7 +6,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
 import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
-import { PAYOUT_TRANSFER_ANALYTICS_COLUMNS, realPayoutTransfers, type PayoutTransferRow } from "./adminAnalytics/realPayoutTransfers";
+import { PAYOUT_TRANSFER_ANALYTICS_COLUMNS, realPayoutTransfers } from "./adminAnalytics/realPayoutTransfers";
 import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, BarChart3, Briefcase, CheckCircle, Clock, CreditCard, Crown, DollarSign, PieChart, Sparkles, Star, TrendingUp, Users, XCircle } from "lucide-react";
 import { TIER_PERKS, TIER_ORDER } from "@/lib/subscriptionTiers";
@@ -14,7 +14,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { MetricCard, StatusRow, MRRRow, CohortRetentionCard, FunnelCard } from "./AdminAnalyticsCards";
 import { DrillDownView } from "./AdminAnalyticsDrilldowns";
 import { PIE_COLORS, TIER_CHIP_CLASSES } from "./adminAnalyticsConstants";
-import { SUB_PRICE, ANALYTICS_PROFILE_COLUMNS, DRILL_PROFILE_COLUMNS, type Profile, type DrillProfile, type Job, type Tip, type DrillDown } from "./adminAnalytics/types";
+import { SUB_PRICE, ANALYTICS_PROFILE_COLUMNS, DRILL_PROFILE_COLUMNS, type Profile, type DrillProfile, type Job, type DrillDown, type AnalyticsLoad } from "./adminAnalytics/types";
 import { computeMetrics, mostPrivilegedRoleByUser } from "./adminAnalytics/adminAnalyticsHelpers";
 import { toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,7 @@ import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { SignupLeadsCard } from "./adminAnalytics/SignupLeadsCard";
 import { SectionFunnel } from "./adminAnalytics/SectionFunnel";
+import { SignupSources } from "@/components/admin/adminAnalytics/SignupSources";
 import { SectionLabel, SubscriberPieChart, RevenueLineChart, MonthlyJobsBarChart, ChartFallback } from "./adminAnalytics/analyticsLazy";
 
 /** Reads every non-seed profile, `PAGE_SIZE` rows at a time. An unbounded
@@ -49,14 +50,6 @@ async function readAllProfiles<T>(
     if (!data || data.length < PAGE_SIZE) return { rows, error: null };
   }
 }
-
-type AnalyticsLoad = {
-  profiles: Profile[];
-  allJobs: Job[];
-  transfers: PayoutTransferRow[] | null;
-  tips: Tip[];
-  roleByUser: Map<string, string>;
-};
 
 /** The page's one load. A failed jobs page THROWS (`unwrap`): every money tile
  *  is computed from the jobs, and a partial set sums to a wrong number or $0.00.
@@ -595,6 +588,6 @@ const AdminAnalyticsBody = () => {
 };
 
 /** Board 191's funnel first, on its own read, so it shows whatever the rest of the page's loads do. */
-const AdminAnalytics = () => <AdminViewShell><SectionFunnel /><AdminAnalyticsBody /></AdminViewShell>;
+const AdminAnalytics = () => <AdminViewShell><SectionFunnel /><SignupSources /><AdminAnalyticsBody /></AdminViewShell>;
 
 export default AdminAnalytics;

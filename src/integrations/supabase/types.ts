@@ -2750,6 +2750,8 @@ export type Database = {
           items_cents: number
           paid_at: string | null
           paid_with: string
+          pickup_slot_end: string | null
+          pickup_slot_start: string | null
           premium_cents: number
           setup_fee_cents: number
           setup_fee_refund_id: string | null

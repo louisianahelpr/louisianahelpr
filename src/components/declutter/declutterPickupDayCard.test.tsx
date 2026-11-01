@@ -45,12 +45,13 @@ vi.mock("@/lib/declutter/meetup", () => ({
 
 import { PickupDayCard } from "./DeclutterPickupDayCard";
 import { pickupsToday } from "@/lib/declutter/pickupDay";
+import { deviceLocalDateISO, deviceLocalShiftISO } from "@/test/helpers/deviceLocalDay";
 
 const order = (id: string, handover: string, status = "paid"): PickupOrderLike => ({
   orderId: id, handover, status, lines: [{ item_id: `item-${id}`, item_title: `Thing ${id}` }],
 });
 const at = (h: number) => { const d = new Date(); d.setHours(h, 0, 0, 0); return d.toISOString(); };
-const ymdToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const ymdToday = () => deviceLocalDateISO(0);
 const booked = (id: string, over: Partial<MyBooking> = {}): MyBooking => ({
   order_id: id, slot_start: at(14), slot_end: at(15), porch_mode: null, porch_until: null, ...over,
 });
@@ -72,7 +73,7 @@ describe("which orders are today's pickups", () => {
   it("only paid pickups booked today, in time order, a whole-day pickup last", () => {
     const orders = [order("late", "pickup_home"), order("porch", "porch"), order("early", "meetup"), order("tomorrow", "pickup_home"),
       order("helpr", "delivery"), order("done", "pickup_home", "handed_over"), order("unbooked", "pickup_home")];
-    const tomorrow = new Date(Date.now() + 86_400_000).toISOString();
+    const tomorrow = deviceLocalShiftISO(1);
     const got = pickupsToday(orders, [
       booked("late", { slot_start: at(16) }), booked("porch", { pickup_day: ymdToday(), slot_start: at(9) }), booked("early", { slot_start: at(9) }),
       booked("tomorrow", { slot_start: tomorrow }), booked("helpr"), booked("done"),
@@ -92,7 +93,7 @@ describe("which orders are today's pickups", () => {
   });
 
   it("said yesterday is not said today", () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString();
+    const yesterday = deviceLocalShiftISO(-1);
     const [p] = pickupsToday([order("a", "pickup_home")], [booked("a", { buyer_on_way_at: yesterday })]);
     expect(p.onWay).toBe(false);
     const [q] = pickupsToday([order("a", "pickup_home")], [booked("a", { buyer_on_way_at: new Date().toISOString() })]);

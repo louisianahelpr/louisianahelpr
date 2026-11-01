@@ -155,8 +155,10 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     const p = jobProgress(paid, { viewer: "poster", now: NOW, pendingApplicants: 2 });
     expect(p.next).not.toMatch(/no applicants/i);
     expect(p).toMatchObject({ next: "Pick your Helpr", waitingOnYou: true });
-    // Control: nobody applied still says so.
-    expect(jobProgress(paid, { viewer: "poster", now: NOW, pendingApplicants: 0 }).next).not.toMatch(/applied/);
+    // Control (JA-2 not reproduced here): nobody applied reads "Waiting for Helprs to apply", whatever the listing's clock.
+    for (const j of [paid, { ...paid, date_needed: "2037-10-21", start_time: "16:00" }, { ...paid, payment_status: "held" }]) {
+      expect(jobProgress(j, { viewer: "poster", now: NOW, pendingApplicants: 0 }).next).toBe("Waiting for Helprs to apply");
+    }
   });
   it("JA-23: an expired listing is Expired for its poster, Closed for anyone else, never Cancelled", () => {
     const expired: ProgressJob = { ...base, status: "cancelled", cancelled_by: null, cancellation_reason: "Job listing expired: no Helpr was hired" };

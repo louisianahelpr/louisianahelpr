@@ -28,6 +28,8 @@ import { WantedNearSection } from "./DeclutterWantedReplies";
 import { DECLUTTER_OFFLINE_COPY, declutterErrorMessage } from "@/lib/declutter/errors";
 import { CONNECTION_TROUBLE_COPY } from "@/lib/networkFailure";
 import { formatPrice } from "@/lib/declutter/distance";
+import { timeLeft } from "@/lib/declutter/timeLeft";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { checkoutAmounts } from "@/lib/declutter/money";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { photoPublicUrl } from "@/lib/declutter/api";
@@ -297,6 +299,27 @@ function WantedReplies({ replies }: { replies: WantedReply[] }) {
   );
 }
 
+/** "28 days left" while more than two days remain; then the hours ("19 hours left"). A Wanted post lasts 30 days. */
+function postTimeLeft(expiresAt: string, now = Date.now()): string | null {
+  const ms = Date.parse(expiresAt) - now;
+  if (Number.isNaN(ms) || ms <= 0) return null;
+  return ms > 2 * 86_400_000 ? `${Math.floor(ms / 86_400_000)} days left` : timeLeft(expiresAt, now);
+}
+
+/**
+ * The next-step line on your Wanted post (owner 2026-11-01: "people aren't told what to do next"): your move when a
+ * seller's reply waits on you (answered in Buying), when you accepted one (close the post) or when it ran out (post it
+ * again); otherwise who it waits on (sellers near you) and how long it stays up.
+ */
+function wantedNextStep(post: WantedPost, gotIt: boolean, now = Date.now()): NextStepValue {
+  if (post.status === "closed") return { who: "info", text: "Closed. No more alerts or answers." };
+  if (post.status === "expired") return { who: "you", text: "Post it again to keep looking" };
+  const yours = post.replies.filter((r) => r.status === "open" && r.awaiting === "buyer").length;
+  if (yours > 0) return { who: "you", text: yours === 1 ? "Answer the seller's reply in Buying" : `Answer the ${yours} sellers' replies in Buying` };
+  if (gotIt) return { who: "you", text: "Close this post if you got what you needed" };
+  return { who: "them", text: "Waiting on sellers near you to answer", by: postTimeLeft(post.expires_at, now) };
+}
+
 /** Your post's photos: each with Remove, and Add a photo while it is open and has fewer than 3. */
 /** Audit 10-30 #8: runs behind the screen, because the post is already up. The poster hears only about a held photo. */
 function checkPhotosInBackground(wantedId: string) {
@@ -401,6 +424,7 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
           {STATUS_WORDS[post.status]}
         </span>
       </div>
+      <NextStep value={wantedNextStep(post, gotIt)} />
       {userId && <WantedPostPhotos post={post} userId={userId} />}
       <WantedReplies replies={post.replies} />
       {post.status === "open" && (
@@ -421,7 +445,6 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
           </div>
         )
       )}
-      {gotIt && <p className="text-sm font-medium" data-wanted-got-it="">You accepted an answer. Got what you needed? Close this post.</p>}
       {post.status === "open" ? (
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onEdit(post)}>Edit</Button>

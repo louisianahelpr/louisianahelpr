@@ -77,7 +77,23 @@ export interface TaskView {
   handed_over_at?: string | null;
   /** A problem holds the sale (the Helpr's "The seller wasn't there" among them); null for a candidate. */
   problem_open?: boolean | null;
+  /** BUY-36 (20261031231150): a delivery the Helpr can't finish; absent before the migration. */
+  stuck_stage?: "waiting_fix" | "retrying" | "returning" | "returned" | "awaiting_choice" | "collecting" | null;
+  stuck_reason?: string | null;
+  stuck_note?: string | null;
+  stuck_fault?: "none" | "helpr" | null;
+  stuck_fix_by?: string | null;
+  stuck_fix_note?: string | null;
+  stuck_return_by?: string | null;
+  stuck_choice?: "refund" | "repost" | "collect" | null;
+  stuck_choice_by?: string | null;
+  stuck_collect_note?: string | null;
+  returned_at?: string | null;
+  return_photo_path?: string | null;
+  return_answer_by?: string | null;
 }
+
+export type CantFinishReason = "wrong_address" | "cant_get_in" | "nobody_there" | "wont_fit" | "cant_finish" | "damaged" | "other";
 
 export interface MyTask {
   task_id: string;
@@ -317,6 +333,38 @@ export async function markDelivered(
 export async function reportPickupNoShow(taskId: string, photoPath: string, where: { lat: number; lng: number }): Promise<void> {
   data(await supabase.rpc("helpr_task_pickup_no_show", { p_task_id: taskId, p_photo_path: photoPath, p_lat: where.lat, p_lng: where.lng }),
     (e) => rpcErrorMessage("helpr_task_pickup_no_show", e));
+}
+
+/** BUY-36: "I can't deliver this". The Helpr picks a reason; the server decides what comes next. */
+export async function reportCantFinish(taskId: string, reason: CantFinishReason, note: string): Promise<void> {
+  data(await supabase.rpc("helpr_task_cant_finish", { p_task_id: taskId, p_reason: reason, p_note: note }), (e) => rpcErrorMessage("helpr_task_cant_finish", e));
+}
+
+/** BUY-36: the buyer's one fix: a corrected drop-off (within 25 miles; the server checks) and/or a note. */
+export async function buyerFixDelivery(taskId: string, note: string, address: string | null, where: { lat: number; lng: number } | null): Promise<void> {
+  // nullable-arg: p_address, p_lat and p_lng are NULL when only a note changes.
+  data(await supabase.rpc("helpr_task_buyer_fix", {
+    p_task_id: taskId,
+    p_note: note,
+    p_address: address as string,
+    p_lat: (where?.lat ?? null) as number,
+    p_lng: (where?.lng ?? null) as number,
+  }), (e) => rpcErrorMessage("helpr_task_buyer_fix", e));
+}
+
+/** BUY-36: the Helpr's fault: a full refund, another Helpr, or collecting it from them. */
+export async function buyerChooseAfterCantFinish(taskId: string, choice: "refund" | "repost" | "collect", note: string): Promise<void> {
+  data(await supabase.rpc("helpr_task_buyer_choose", { p_task_id: taskId, p_choice: choice, p_note: note }), (e) => rpcErrorMessage("helpr_task_buyer_choose", e));
+}
+
+/** BUY-36: back at the seller: a photo at the pickup address (the server checks within 200 m). */
+export async function markReturned(taskId: string, photoPath: string, where: { lat: number; lng: number }): Promise<void> {
+  data(await supabase.rpc("helpr_task_returned", { p_task_id: taskId, p_photo_path: photoPath, p_lat: where.lat, p_lng: where.lng }), (e) => rpcErrorMessage("helpr_task_returned", e));
+}
+
+/** BUY-36: the seller's answer to "it's back". */
+export async function sellerReturnAnswer(taskId: string, back: boolean, note: string): Promise<void> {
+  data(await supabase.rpc("helpr_task_seller_return_answer", { p_task_id: taskId, p_back: back, p_note: note }), (e) => rpcErrorMessage("helpr_task_seller_return_answer", e));
 }
 
 /** The customer's "I got it" after the Helpr has the item. */

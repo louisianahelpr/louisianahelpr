@@ -48,6 +48,8 @@ function bareImgs(): Record<string, number> {
 describe("Declutter photos fall back to their placeholder", () => {
   it("every <img> handles a failed load, or is an exact, reasoned exception", () => {
     const bare = bareImgs();
+    // Floor: the reasoned exceptions are real <img> tags the scan found (an empty read would only list them stale).
+    expect(Object.keys(bare).length).toBeGreaterThan(3);
     const problems: string[] = [];
     for (const [file, n] of Object.entries(bare)) {
       if ((ALLOWED[file] ?? 0) < n) problems.push(`${file}: ${n - (ALLOWED[file] ?? 0)} <img> with no onError: use FallbackImg`);

@@ -43,8 +43,13 @@
 --   4. rpc_decide_crew_dispute, restated from its NEWEST definition
 --      (20260927012240, the only one), with two changes:
 --        a. a member the poster approved, or with a live transfer, can NEVER
---           be named in the refund set (crew_dispute_member_already_paid):
---           their pay is final and may already be out.
+--           be named in THIS function's per-member refund set
+--           (crew_dispute_member_already_paid): their pay may already be out.
+--           This is not a promise that nothing refunds them: an admin's
+--           dispute "Full refund" (a separate action, not this function) can
+--           still refund the whole job, including a confirmed member whose pay
+--           has NOT gone out yet. That is the admin's call and is kept (lead,
+--           11-01).
 --        b. "money moved" no longer refuses a crew whose ONLY moved money is
 --           early transfers to approved members (otherwise one early payout
 --           would leave the rest of the crew's dispute undecidable). Any
@@ -211,7 +216,7 @@ $function$;
 REVOKE ALL ON FUNCTION public.crew_members_due_early_payout() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.crew_members_due_early_payout() TO service_role;
 
--- ── 4. rpc_decide_crew_dispute: never refunds a member already paid ─────────
+-- ── 4. rpc_decide_crew_dispute: never refunds a confirmed or paid member ───
 -- Restated from 20260927012240 (its only definition). Changes are marked
 -- "JOBS-3".
 CREATE OR REPLACE FUNCTION public.rpc_decide_crew_dispute(
@@ -299,8 +304,10 @@ BEGIN
   END IF;
 
   -- JOBS-3 (a): a member the poster approved, or one whose pay has left
-  -- (a live transfer), is never refunded. Checked before anything else about
-  -- the refund set, so the admin hears why.
+  -- (a live transfer), cannot be named in this per-member refund set. (An
+  -- admin's separate Full refund can still refund a confirmed member who is
+  -- not paid yet; that is the admin's call.) Checked before anything else
+  -- about the refund set, so the admin hears why.
   IF EXISTS (
     SELECT 1 FROM unnest(_refund) AS r(id)
       JOIN public.group_job_helpers g ON g.job_id = _job_id AND g.helper_id = r.id

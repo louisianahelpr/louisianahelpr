@@ -347,12 +347,9 @@ export async function fetchDropStates(itemIds: string[]): Promise<Map<string, Dr
  * server (PGRST202 / 42883) the answer is none, so Browse marks by live_at alone, as it did.
  */
 export async function fetchDroppedIntoBudget(since: string, maxDollars: number): Promise<Set<string>> {
-  const { data, error } = await supabase.rpc("declutter_dropped_into_budget", { p_since: since, p_max_budget: maxDollars });
-  if (error) {
-    if (error.code === "PGRST202" || error.code === "42883") return new Set();
-    throw error;
-  }
-  return new Set((data ?? []) as string[]);
+  const res = await supabase.rpc("declutter_dropped_into_budget", { p_since: since, p_max_budget: maxDollars });
+  if (res.error && (isMissingRpcNamed(res.error, "declutter_dropped_into_budget") || res.error.code === "42883")) return new Set();
+  return new Set((unwrap(res) ?? []) as string[]);
 }
 
 export async function fetchPhotos(itemIds: string[]): Promise<DeclutterPhoto[]> {

@@ -18,7 +18,7 @@
  * @mutate src/lib/declutter/browseFilters.ts |   if (item.id !== undefined && dropped?.has(item.id)) return true; |   if (item.id !== undefined && dropped?.has(item.id)) return false;
  * @mutate src/lib/declutter/browseFilters.ts |   return Number.isFinite(Date.parse(since)) && maxDollars !== null ? { since, maxDollars } : null; |   return null;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | isNewSince(item, newSince, droppedIn.data) | isNewSince(item, newSince, undefined)
- * @mutate src/lib/declutter/api.ts |     if (error.code === "PGRST202" \|\| error.code === "42883") return new Set(); |     if (error.code === "42883") return new Set();
+ * @mutate src/lib/declutter/api.ts |   if (res.error && (isMissingRpcNamed(res.error, "declutter_dropped_into_budget") \|\| res.error.code === "42883")) return new Set(); |   if (res.error && (res.error.code === "42883")) return new Set();
  */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

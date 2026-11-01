@@ -6,12 +6,12 @@
 // @mutate supabase/functions/stripe-webhook/index.ts | "payment_intent.payment_failed": handlePaymentIntentPaymentFailed, | "payment_intent.payment_failedX": handlePaymentIntentPaymentFailed,
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   PERFORM set_config('app.sanctioned_cancel', 'on', true);\n  PERFORM set_config('app.payment_failed_cancel', 'on', true); |   PERFORM set_config('app.payment_failed_cancel', 'on', true);
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   PERFORM set_config('app.declutter_seller_fault_cancel', 'on', true);\n |
-// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN RETURN NEW; END IF; |
+// @mutate supabase/migrations/20261101011526_expired_listing_thread_notice_not_cancelled.sql |   IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN RETURN NEW; END IF; |
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |          cancellation_fee = 0, |          cancellation_fee = 1,
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   WHERE id = v_job.id\n     AND stripe_payment_intent_id = p_payment_intent_id\n     AND payment_status IN ('escrow', 'payout_pending'); |   WHERE id = v_job.id;
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |       EXECUTE 'SELECT public.return_bounced_gift_card($1, $2)' INTO v_gift USING v_job.id, p_gift_card_id; |       v_gift := NULL;
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql | GRANT EXECUTE ON FUNCTION public.cancel_job_after_failed_bank_payment(uuid, text, uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.cancel_job_after_failed_bank_payment(uuid, text, uuid) TO service_role, authenticated;
-// @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN RETURN NEW; END IF; |   IF COALESCE(current_setting('app.declutter_seller_fault_cancel', true), '') = 'on' THEN RETURN NEW; END IF;
+// @mutate supabase/migrations/20261101011526_expired_listing_thread_notice_not_cancelled.sql |   IF COALESCE(current_setting('app.payment_failed_cancel', true), '') = 'on' THEN RETURN NEW; END IF; |   IF COALESCE(current_setting('app.declutter_seller_fault_cancel', true), '') = 'on' THEN RETURN NEW; END IF;
 /**
  * CLASS GUARD: a job is 'escrow' only once the poster's money has ARRIVED, and
  * leaves it when that money fails (ach-fix, 2026-10-17).

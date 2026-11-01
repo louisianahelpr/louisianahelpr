@@ -174,11 +174,25 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     expect(jobProgress(done, { viewer: "poster", otherFirst: "Yusef", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
     expect(jobProgress(done, { viewer: "helpr", otherFirst: "Dana", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
   });
+  // @mutate src/components/tracker/jobProgressState.ts |   return [who, reason, refund].filter(Boolean).join(" · "); |   return "This job was cancelled";
+  // @mutate src/components/tracker/jobProgressState.ts |   const posterDid = !!by && by === job.customer_id; |   const posterDid = false;
+  it("JA-26: a cancelled job says who, when, why and the refund", () => {
+    const c: ProgressJob = { ...base, status: "cancelled", customer_id: "p", helper_id: "h", helper_confirmed_at: "t", cancelled_by: "p",
+      cancelled_at: "2037-10-21T14:00:00Z", cancellation_reason: "[SWEEP] Plans changed", payment_status: "refunded" };
+    expect(jobProgress(c, { viewer: "poster", otherFirst: "Yusef", now: NOW }))
+      .toMatchObject({ label: "Cancelled", next: "You cancelled Wed 9:00 AM · Plans changed · Your payment was refunded" });
+    // The Helpr: the poster's name, no refund line.
+    expect(jobProgress(c, { viewer: "helpr", otherFirst: "Dana", now: NOW }).next).toBe("Dana cancelled Wed 9:00 AM · Plans changed");
+    // The Helpr cancelled.
+    expect(jobProgress({ ...c, cancelled_by: "h" }, { viewer: "poster", otherFirst: "Yusef", now: NOW }).next).toMatch(/^Yusef cancelled Wed 9:00 AM/);
+    // Someone else (an admin): not named.
+    expect(jobProgress({ ...c, cancelled_by: "admin", cancellation_reason: null, payment_status: "escrow" }, { viewer: "poster", now: NOW }).next).toBe("This job was cancelled");
+  });
   it("the job page reads the columns the expired rule needs", () => {
     const src = readFileSync(resolve(__dirname, "../../pages/jobs/jobPage/useJobPage.ts"), "utf8");
     const party = src.match(/const PARTY_COLUMNS =\s*"([^"]+)"/)?.[1] ?? "";
     expect(party.length).toBeGreaterThan(100);
-    for (const c of ["cancellation_reason", "cancelled_by", "cancellation_fee"]) expect(party.split(/,\s*/)).toContain(c);
+    for (const c of ["cancellation_reason", "cancelled_by", "cancelled_at", "cancellation_fee"]) expect(party.split(/,\s*/)).toContain(c);
   });
 });
 

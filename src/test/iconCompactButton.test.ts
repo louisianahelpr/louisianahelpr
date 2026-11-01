@@ -21,6 +21,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/ui/button.tsx |         iconCompact: "h-11 w-11 border-2 border-transparent bg-clip-padding [&_svg]:size-5", |         iconCompact: "h-10 w-10 [&_svg]:size-5",
 // @mutate src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx |       size="iconCompact" |       size="icon"
 // @mutate src/components/declutter/DeclutterPickupTimes.tsx |           <Button type="button" variant="ghost" size="iconCompact" onClick={onRemove} | <Button type="button" variant="ghost" size="icon" onClick={onRemove}
+// @mutate src/components/BirthdayPopup.tsx |                   size="iconCompact" |                   size="icon"
 // @mutate src/pages/profile/SavedSearchesTab.tsx |                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} |                   <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(s)}
 // @mutate src/pages/user/ReviewsSection.tsx |                   size="iconCompact"\n                  aria-label="Report this review" |                   size="icon"\n                  aria-label="Report this review"
 // @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |       className={`relative shrink-0 btn-press | className={`relative h-10 w-10 shrink-0 btn-press
@@ -86,6 +87,9 @@ describe("the compact icon Button", () => {
     ["src/pages/profile/SavedSearchesTab.tsx", /<button\b[^>]*aria-label=\{`Settings for/],
     // B47 10-31, /user/:id (mocked public review): 44x44 at 302,384 (375) / 1359,397 (1440), margins -8 unchanged.
     ["src/pages/user/ReviewsSection.tsx", /<button\b[^>]*aria-label="Report this review"/],
+    // B75 11-01, the birthday card's close X on /jobs (mocked session, birthday today, 375): 44x44 at (191,5) in the
+    // card, 16px glyph at 14,14, colour, radius and hover wash unchanged before and after; it still closes the card.
+    ["src/components/BirthdayPopup.tsx", /<button\b[^>]*onClick=\{dismiss\}/],
   ])("%s: the ghost icon is the shared Button at iconCompact", (f, handMade) => {
     const src = code(f);
     expect(src).not.toMatch(handMade);

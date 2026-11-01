@@ -10,9 +10,6 @@
     "src/components/BackButton.tsx": {
       "button": 1
     },
-    "src/components/BirthdayPopup.tsx": {
-      "button": 1
-    },
     "src/components/ChatPresence.tsx": {
       "button": 2
     },

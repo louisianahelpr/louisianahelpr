@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { functionErrorMessage, unwrap } from "@/lib/supabaseResult";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Flag, CheckCircle2, Briefcase, Ghost, Users } from "lucide-react";
+import { Flag, CheckCircle2, Briefcase, Eye, Ghost, Users } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
 import { warnIfGiftNotReturned } from "./giftRestoreWarning";
@@ -463,6 +463,13 @@ const AdminJobs = () => {
 
   return (
     <AdminViewShell>
+      {/* The member's job page at every stage, made-up data (owner 2026-11-01): /admin/preview/job. */}
+      <Button asChild variant="outline" size="sm" className="gap-1.5 self-start rounded-full">
+        <Link to="/admin/preview/job">
+          <Eye className="h-3.5 w-3.5" aria-hidden />
+          Preview the job page at every stage
+        </Link>
+      </Button>
       <AdminFilterStrip label="Job filter">
         {FILTERS.map((f) => (
           <Button

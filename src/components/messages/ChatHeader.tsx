@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { OnlineIndicator } from "@/components/ChatPresence";
 import UserAvatar from "@/components/UserAvatar";
-import { jobStatusLabel } from "@/lib/statusLabels";
+import { threadJobChipLabel } from "@/lib/expiredListingInThread";
 import { useDealCardShown, useDealSafetyJob, usePersonFacts } from "./chatView/DealCard";
 import { SafetyShieldButton } from "@/components/SosShareButton";
 import { MESSAGE_STATUS_CHIP } from "./messageStatusChip";
@@ -229,7 +229,8 @@ export function ChatHeader({
               // "Accepted" — the exact three-labels-one-state bug that module was
               // written to close. Owner dislikes "Awarded"; the canonical label is
               // what they get.
-              const label = jobStatusLabel(status);
+              // An expired listing is never "Cancelled": the poster reads Expired, anyone else Closed (owner 10-31).
+              const label = threadJobChipLabel(status, activeConvo);
               return (
                 <span
                   className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ml-auto"

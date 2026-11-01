@@ -326,14 +326,6 @@ const AdminCredentialQueue = () => {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="flex-1"
-                        disabled={busy === `${r.user_id}:license` || !hasExpiry(`${r.user_id}:license`)}
-                        onClick={() => decide(r.user_id, "license", "verified")}
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
-                      </Button>
-                      <Button
-                        size="sm"
                         variant="outline"
                         className="flex-1 border-destructive/40 text-destructive-ink hover:bg-destructive/10"
                         disabled={busy === `${r.user_id}:license`}
@@ -343,6 +335,14 @@ const AdminCredentialQueue = () => {
                         }}
                       >
                         <XCircle className="w-4 h-4 mr-1" /> Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        disabled={busy === `${r.user_id}:license` || !hasExpiry(`${r.user_id}:license`)}
+                        onClick={() => decide(r.user_id, "license", "verified")}
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
                       </Button>
                     </div>
                   </div>
@@ -376,14 +376,6 @@ const AdminCredentialQueue = () => {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        className="flex-1"
-                        disabled={busy === `${r.user_id}:insurance` || !hasExpiry(`${r.user_id}:insurance`)}
-                        onClick={() => decide(r.user_id, "insurance", "verified")}
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
-                      </Button>
-                      <Button
-                        size="sm"
                         variant="outline"
                         className="flex-1 border-destructive/40 text-destructive-ink hover:bg-destructive/10"
                         disabled={busy === `${r.user_id}:insurance`}
@@ -393,6 +385,14 @@ const AdminCredentialQueue = () => {
                         }}
                       >
                         <XCircle className="w-4 h-4 mr-1" /> Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        disabled={busy === `${r.user_id}:insurance` || !hasExpiry(`${r.user_id}:insurance`)}
+                        onClick={() => decide(r.user_id, "insurance", "verified")}
+                      >
+                        <CheckCircle2 className="w-4 h-4 mr-1" /> Approve
                       </Button>
                     </div>
                   </div>

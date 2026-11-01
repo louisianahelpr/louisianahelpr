@@ -185,20 +185,20 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
                         <Button
                           type="button"
                           size="sm"
-                          className="btn-grad-primary"
-                          disabled={accept.isPending || decline.isPending || !timeLeftText(o.accept_by, now)}
-                          onClick={() => setAccepting(o)}
-                        >
-                          Accept
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
                           variant="outline"
                           disabled={accept.isPending || decline.isPending}
                           onClick={() => { setReason(""); setDeclining(o); }}
                         >
                           Decline
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="btn-grad-primary"
+                          disabled={accept.isPending || decline.isPending || !timeLeftText(o.accept_by, now)}
+                          onClick={() => setAccepting(o)}
+                        >
+                          Accept
                         </Button>
                       </div>
                     </ShopOrderCard>

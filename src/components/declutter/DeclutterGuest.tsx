@@ -118,11 +118,11 @@ export function DeclutterGuestBrowseJoin() {
       </p>
       {!barShown && (
         <div className="flex shrink-0 gap-2">
-          <Button asChild size="sm" className="rounded-full">
-            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
-          </Button>
           <Button asChild size="sm" variant="outline" className="rounded-full">
             <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+          </Button>
+          <Button asChild size="sm" className="rounded-full">
+            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
           </Button>
         </div>
       )}

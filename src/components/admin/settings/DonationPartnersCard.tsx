@@ -56,8 +56,8 @@ function PartnerForm({ draft, onDone }: { draft: Draft; onDone: () => void }) {
         <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0" style={{ accentColor: "hsl(var(--primary))" }} checked={d.active} onChange={(e) => setD({ ...d, active: e.target.checked })} /> Active (offered to sellers)
       </label>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" disabled={!ready || save.isPending} onClick={() => save.mutate()}>{save.isPending ? "Saving…" : d.id ? "Save" : "Add partner"}</Button>
         <Button type="button" size="sm" variant="ghost" onClick={onDone}>Cancel</Button>
+        <Button type="button" size="sm" disabled={!ready || save.isPending} onClick={() => save.mutate()}>{save.isPending ? "Saving…" : d.id ? "Save" : "Add partner"}</Button>
       </div>
     </div>
   );

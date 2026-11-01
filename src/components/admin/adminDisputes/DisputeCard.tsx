@@ -545,14 +545,6 @@ export const DisputeCard = ({
           <div className="flex gap-2 pt-1">
             <Button
               size="sm"
-              className="flex-1 sm:flex-none"
-              onClick={() => decide(job)}
-              disabled={submittingDecision || !decisionText.trim()}
-            >
-              {submittingDecision ? "Settling…" : "Record & Settle"}
-            </Button>
-            <Button
-              size="sm"
               variant="ghost"
               className="shrink-0"
               onClick={() => {
@@ -563,6 +555,14 @@ export const DisputeCard = ({
               disabled={submittingDecision}
             >
               Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 sm:flex-none"
+              onClick={() => decide(job)}
+              disabled={submittingDecision || !decisionText.trim()}
+            >
+              {submittingDecision ? "Settling…" : "Record & Settle"}
             </Button>
           </div>
         </div>

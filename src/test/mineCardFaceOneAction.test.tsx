@@ -179,7 +179,7 @@ describe("the Posted card face (board 14)", () => {
     expect(btn.textContent).toMatch(/^Message /);
     expect(btn.getAttribute("data-mine-face-action")).toBe("secondary");
     const manage = document.querySelector("[data-mine-face-also]") as HTMLButtonElement;
-    expect(manage.textContent).toBe("Manage job");
+    expect(manage.textContent).toBe("More options");
     fireEvent.click(manage);
     expect(h.toggle).toHaveBeenCalledWith("job-1");
   });

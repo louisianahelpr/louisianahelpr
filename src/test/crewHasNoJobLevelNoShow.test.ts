@@ -38,7 +38,7 @@ describe("a crew never gets the job-level no-show", () => {
     const drawn = typeof step === "function" ? step(crew({ date_needed }) as never, NOW.getTime()) : step;
     expect(drawn.label ?? "").not.toMatch(/No-show/);
     const face = posterFaceAction(line.id as never, crew({ date_needed }), h as never);
-    expect(face?.label).toBe("Manage job");
+    expect(face?.label).toBe("More options");
   });
 
   it("a one-Helpr job past its day keeps the no-show", () => {

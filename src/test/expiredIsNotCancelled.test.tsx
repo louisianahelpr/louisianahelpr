@@ -181,23 +181,25 @@ describe("the poster's expiry notice", () => {
 describe("an applicant to the expired listing", () => {
   const job = { id: "j1", status: "cancelled", helper_id: null, customer_id: POSTER, cancelled_by: null, payment_status: "refunded", cancellation_reason: SWEEP_REASON } as unknown as Job;
 
-  it("the Applied card line reads Expired, never Cancelled", () => {
+  it("the Applied card line reads Closed · No longer open, never Cancelled or Expired", () => {
     const line = helperStatusLine({ id: "a1", status: "pending", job } as unknown as AppliedApp);
-    if (line.id === "cancelled") {
-      expect(line.eyebrow).toBe("Expired");
-      expect([line.eyebrow, line.detail, line.suffix].join(" ")).not.toMatch(/cancel/i);
-    }
-    expect([line.eyebrow, line.detail, line.suffix].join(" ")).not.toMatch(/Job listing expired/);
+    expect(line.id).toBe("cancelled");
+    expect(line.eyebrow).toBe("Closed");
+    expect(line.detail).toBe("No longer open");
+    const all = [line.eyebrow, line.detail, line.suffix].join(" ");
+    expect(all).not.toMatch(/cancel/i);
+    expect(all).not.toMatch(/expire/i);
   });
 
-  it("the closed card's who-closed-it line says Expired, not Cancelled", () => {
-    expect(describeCancellation(job, HELPR)).toBe("Expired before anyone was hired");
+  it("the closed card's who-closed-it line says No longer open, never Expired or Cancelled", () => {
+    expect(describeCancellation(job, HELPR)).toBe("No longer open");
     expect(describeCancellation({ ...job, cancellation_reason: null }, HELPR)).toBe("Cancelled automatically");
   });
 });
 
 // @mutate src/components/job-card/jobStatusLine.ts |   const expired = id === "cancelled" && !!app.job && isExpiredListing(app.job); |   const expired = false;
-// @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | ? "Expired before anyone was hired" | ? "Cancelled automatically"
+// @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | ? "No longer open" | ? "Expired before anyone was hired"
+// @mutate src/components/job-card/jobStatusLine.ts |     eyebrow: expired ? APPLICANT_CLOSED_EYEBROW : | eyebrow: expired ? "Expired" :
 // @mutate supabase/functions/auto-expire-jobs/index.ts | expired: the scheduled time passed with no Helpr hired. | was automatically cancelled because the scheduled time passed.
 // @mutate src/lib/expiredListing.ts |     !job.helper_id && |     true &&
 // @mutate src/lib/expiredListing.ts |     !job.cancelled_by && |     true &&

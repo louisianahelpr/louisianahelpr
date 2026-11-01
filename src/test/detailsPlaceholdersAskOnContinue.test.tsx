@@ -78,9 +78,10 @@ function renderDetails(fields: { category: string; title: string; description: s
 describe("POST-H15: placeholders are a hint until Continue is pressed", () => {
   const prefill = buildSellForMePrefill();
 
-  it("the inventory read something: the Helpr-list-it job starts with three blanks, each a [placeholder]", () => {
-    expect(SELL_FOR_ME_BLANKS.length).toBeGreaterThan(2);
-    expect(prefill.description.match(/\[[^\]]+\]/g)?.length).toBeGreaterThan(2);
+  it("the inventory read something: the Helpr-list-it job starts with its blanks, each a [placeholder]", () => {
+    // Two since POST-H3 (owner 10-31) took out the pickups line.
+    expect(SELL_FOR_ME_BLANKS.length).toBeGreaterThan(1);
+    expect(prefill.description.match(/\[[^\]]+\]/g)?.length).toBeGreaterThan(1);
   });
 
   it("before Continue: a neutral hint, no red, and Continue can be pressed", () => {
@@ -101,7 +102,7 @@ describe("POST-H15: placeholders are a hint until Continue is pressed", () => {
     await waitFor(() => expect(document.activeElement).toBe(document.getElementById("sell-for-me-count")));
     expect(setFormPage).not.toHaveBeenCalled();
     // Each unanswered blank says so by its own field (the description's red line is below them, off a phone screen).
-    expect(screen.getAllByText("Answer this to continue.")).toHaveLength(3);
+    expect(screen.getAllByText("Answer this to continue.")).toHaveLength(2); // two blanks since POST-H3
     expect(document.getElementById("sell-for-me-count")).toHaveAttribute("aria-invalid", "true");
   });
 

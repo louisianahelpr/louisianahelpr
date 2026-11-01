@@ -30,6 +30,7 @@ import { createLifecycleHandlers } from "@/components/job-card/activityActions/u
 import { useOptimisticJobCache } from "@/components/job-card/activityActions/useOptimisticJobCache";
 import { ActivityDialogs, type TipDialogState, type TipTarget } from "@/components/job-card/ActivityDialogs";
 import { PostedJobActions } from "@/pages/posts/postedJobCard/PostedJobActions";
+import { crewNobodyLeft } from "@/lib/crewLifecycle";
 
 export interface PosterPageFlows {
   /** The Posted list's row for this job is read: the flows below can run. */
@@ -40,6 +41,8 @@ export interface PosterPageFlows {
   edit: () => void;
   moreOpen: boolean;
   toggleMore: () => void;
+  /** JOBS-3: an under-way crew whose every member was reported a no-show (crewNobodyLeft, read from the loaded detail). */
+  crewNobodyLeft: boolean;
   /** The card's own controls (shown under "More options"; always mounted so Approve opens its sheet). */
   panel: React.ReactNode;
   dialogs: React.ReactNode;
@@ -141,7 +144,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   });
 
   if (!enabled || !job) {
-    return { ready: false, completing: false, approve: () => {}, cancel: () => {}, edit: () => {}, moreOpen: false, toggleMore: () => {}, panel: null, dialogs: null };
+    return { ready: false, completing: false, approve: () => {}, cancel: () => {}, edit: () => {}, moreOpen: false, toggleMore: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
   }
 
   // Its own Suspense: the card's steps lazy-load dialogs (the refund ask), and a suspend with no boundary of its own
@@ -223,6 +226,8 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     edit: () => setEditJob(job),
     moreOpen,
     toggleMore: () => setMoreOpen((o) => !o),
+    // The detail read is done (q.data), so a crew with no roster entry has nobody left on it.
+    crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true),
     panel,
     dialogs,
   };

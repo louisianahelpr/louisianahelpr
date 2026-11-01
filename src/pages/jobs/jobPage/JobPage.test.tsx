@@ -65,6 +65,8 @@ const state = {
   /** The job's latest job_tracking.status (useJobPage's tracking read). */
   tracking: null as string | null,
   onCrew: false,
+  /** usePosterPageFlows' crewNobodyLeft (JOBS-3: every crew member reported a no-show). */
+  crewNobodyLeft: false,
 };
 
 vi.mock("./useJobPage", () => ({
@@ -141,7 +143,7 @@ vi.mock("./usePosterPageFlows", () => ({
   usePosterPageFlows: () => ({
     ready: true, completing: false, moreOpen: false,
     approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
-    toggleMore: () => flowCalls.push("more"), panel: <div data-testid="card-panel" />, dialogs: null,
+    toggleMore: () => flowCalls.push("more"), crewNobodyLeft: state.crewNobodyLeft, panel: <div data-testid="card-panel" />, dialogs: null,
   }),
 }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
@@ -218,6 +220,7 @@ beforeEach(() => {
   applyRequests.length = 0;
   state.owed = 0;
   state.cardHold = false;
+  state.crewNobodyLeft = false;
 });
 
 describe("job page, Helpr side (boards 42, 169)", () => {
@@ -926,6 +929,18 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     renderPage();
     expect(screen.getByRole("button", { name: "Cancel job" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Manage job" })).toBeNull();
+  });
+
+  // JOBS-3 (lead verdict 10-31): every member of an under-way crew was reported a no-show, so the poster cancels
+  // for a full refund here too (guard: src/test/crewAllNoShowCanCancel.test.tsx).
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |  !job.helper_arrived_at) \|\| flows.crewNobodyLeft); |  !job.helper_arrived_at));
+  it("an under-way crew with nobody left on it offers Cancel job, which runs the card's cancel", () => {
+    state.job = { ...booked(), status: "in_progress", is_group_job: true, helper_id: null, helpers_needed: 2 } as JobPageRow;
+    state.party = true;
+    state.crewNobodyLeft = true;
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel job" }));
+    expect(flowCalls).toEqual(["cancel"]);
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       : status === "cancelled" |       : false

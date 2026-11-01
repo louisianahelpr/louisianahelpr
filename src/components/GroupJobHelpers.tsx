@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
-import { XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { applicationStatusLabel } from "@/lib/statusLabels";
 import { report } from "@/lib/errorLogger";
@@ -13,7 +13,8 @@ import { MapPin } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
-import { CrewActionError, crewMemberStatusLabel, crewNobodyLeft, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
+import { CrewActionError, crewMemberStatusLabel, crewNobodyLeft, posterApproveMember, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
+import { payoutDayLabel, STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../supabase/functions/_shared/escrowTiming";
 import { Button } from "@/components/ui/button";
 import { hasJobStarted } from "@/lib/dateUtils";
 
@@ -41,6 +42,8 @@ type GroupHelper = {
   helper_arrived_at?: string | null;
   poster_confirmed_arrival_at?: string | null;
   helper_completed_at?: string | null;
+  /** JOBS-3: the poster confirmed this member's work (rpc_poster_approve_member); they are paid on their own. */
+  poster_confirmed_completion_at?: string | null;
 };
 
 export function GroupJobHelpers({
@@ -89,6 +92,8 @@ export function GroupJobHelpers({
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [pendingNoShow, setPendingNoShow] = useState<GroupHelper | null>(null);
   const [reportingId, setReportingId] = useState<string | null>(null);
+  const [pendingApproval, setPendingApproval] = useState<GroupHelper | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -219,6 +224,45 @@ export function GroupJobHelpers({
    * tells them, and completes the crew if everyone else is already done; their
    * share comes back to the poster with the unfilled spots at payout.
    */
+  /**
+   * JOBS-3 "Confirm work" (owner 2026-10-31: crew members are paid individually once the poster confirms they
+   * worked). rpc_poster_approve_member's rules (20261101044659): the poster, a crew under way, a member who marked
+   * their part done and was not confirmed yet. `poster_confirmed_completion_at === undefined` (a caller that did not
+   * select it) offers nothing: the row cannot say whether it was already confirmed.
+   */
+  const workConfirmable = (h: GroupHelper) =>
+    isOwner &&
+    !!h.helper_id &&
+    h.status === "accepted" &&
+    !!h.helper_completed_at &&
+    h.poster_confirmed_completion_at === null &&
+    (jobStatus === "in_progress" || jobStatus === "revision_requested");
+
+  const approveWork = async (h: GroupHelper) => {
+    if (!h.helper_id || approvingId) return;
+    setApprovingId(h.id);
+    try {
+      const { approvedAt, payoutDueAt } = await posterApproveMember(jobId, h.helper_id);
+      setHelpers((prev) => prev.map((x) => (x.id === h.id ? { ...x, poster_confirmed_completion_at: approvedAt } : x)));
+      hapticSuccess();
+      toast.success(`${h.helperName || "Your Helpr"}'s work is confirmed. They're paid on ${payoutDayLabel(payoutDueAt) ?? "their pay day"}.`);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+    } catch (err) {
+      hapticError();
+      const copy = err instanceof CrewActionError ? err.copy : null;
+      if (!copy) {
+        report(err instanceof CrewActionError ? err.original ?? err : err, {
+          tags: { source: "GroupJobHelpers.approveWork" },
+        });
+      }
+      toast.error(copy ?? "Couldn't confirm that Helpr's work. Please try again.");
+      if (initialHelpers === undefined) void loadHelpers();
+      else void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
   const noShowReportable = (h: GroupHelper) =>
     isOwner &&
     !!h.helper_id &&
@@ -369,7 +413,9 @@ export function GroupJobHelpers({
                 <span className={`text-ds-11 px-1.5 py-0.5 rounded-full ${
                   h.status === "accepted" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"
                 }`}>
-                  {h.status === "accepted" && h.helper_confirmed_at !== undefined
+                  {h.status === "accepted" && h.poster_confirmed_completion_at
+                    ? "Work confirmed"
+                    : h.status === "accepted" && h.helper_confirmed_at !== undefined
                     ? crewMemberStatusLabel({
                         helper_confirmed_at: h.helper_confirmed_at ?? null,
                         helper_on_the_way_at: h.helper_on_the_way_at ?? null,
@@ -389,6 +435,18 @@ export function GroupJobHelpers({
                     tone="primary"
                     disabled={confirmingId !== null}
                     onClick={() => void confirmArrival(h)}
+                  />
+                </div>
+              )}
+              {workConfirmable(h) && (
+                <div className="shrink-0">
+                  <JobActionChip
+                    icon={CheckCircle2}
+                    label={approvingId === h.id ? "Confirming…" : "Confirm work"}
+                    ariaLabel={`Confirm ${h.helperName || "this Helpr"}'s work`}
+                    tone="primary"
+                    disabled={approvingId !== null}
+                    onClick={() => setPendingApproval(h)}
                   />
                 </div>
               )}
@@ -441,7 +499,7 @@ export function GroupJobHelpers({
           and a dropped spot can be refilled from the applicants (the sentence below says how). */}
       <div className="rounded-xl bg-muted/60 px-3 py-2.5 text-ds-13 text-foreground" data-crew-how="">
         <p className="font-semibold">How crew jobs work</p>
-        <p className="text-muted-foreground">When you approve, every Helpr on the crew is paid their share. If someone drops out, the spot opens again for your applicants. If someone never shows, tap Didn&apos;t show: they aren&apos;t paid and most of their share comes back to you.</p>
+        <p className="text-muted-foreground">When you approve, every Helpr on the crew is paid their share. When one Helpr&apos;s part is done, tap Confirm work and they&apos;re paid on their own {STANDARD_PAYOUT_DAYS_AFTER_APPROVAL} days later. If someone drops out, the spot opens again for your applicants. If someone never shows, tap Didn&apos;t show: they aren&apos;t paid and most of their share comes back to you.</p>
       </div>
       {/* Not beside the nobody-left Cancel: with no one on the crew the whole budget comes back on the cancel. */}
       {remaining > 0 && !nobodyLeft && (
@@ -487,6 +545,25 @@ export function GroupJobHelpers({
           const target = pendingRemoval;
           setPendingRemoval(null);
           if (target) void removeHelper(target.id);
+        }}
+        secondaryLabel="Cancel"
+      />
+
+      <BrandConfirmDialog
+        open={pendingApproval !== null}
+        onOpenChange={(next) => { if (!next) setPendingApproval(null); }}
+        title="Confirm their work?"
+        description={
+          <>
+            {pendingApproval?.helperName || "This Helpr"} marked their part done. Confirm only if it is: they&apos;re paid
+            their share on their own {STANDARD_PAYOUT_DAYS_AFTER_APPROVAL} days from now, and it can&apos;t be taken back.
+          </>
+        }
+        primaryLabel="Confirm work"
+        onPrimary={() => {
+          const target = pendingApproval;
+          setPendingApproval(null);
+          if (target) void approveWork(target);
         }}
         secondaryLabel="Cancel"
       />

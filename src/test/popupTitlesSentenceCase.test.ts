@@ -154,7 +154,8 @@ describe("every pop-up title is sentence case", () => {
     // 198: +1 "A one-time ID check" (IdentityCheckSheet's DialogHero, B49 train 5, behind identity_check).
     // 199: +1 "Message about this delivery" (the delivery chat, BUY-36, DeliveryTalk).
     // 200: +1 "Report a no-show?" (GroupJobHelpers, the poster's per-member crew no-show, JOBS-3, wip/b54-1031 28f851eeab).
-    expect(all.length).toBe(200);
+    // 201: +1 "Confirm their work?" (GroupJobHelpers, the poster confirms one crew member's work, JOBS-3).
+    expect(all.length).toBe(201);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

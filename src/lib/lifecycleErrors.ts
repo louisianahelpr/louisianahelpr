@@ -261,6 +261,20 @@ export const RPC_ERROR_COPY = {
     not_on_this_crew: "That Helpr isn't on this crew any more. Refresh the page.",
     arrival_confirm_before_arrival: "That Helpr hasn't checked in yet. You can confirm once they tap I've arrived.",
   },
+  // GroupJobHelpers — the poster's per-member "Confirm work" (JOBS-3, 20261101044659).
+  rpc_poster_approve_member: {
+    not_authenticated: "Sign in again to confirm a Helpr's work.",
+    job_not_found: "This job isn't available any more. Refresh the page.",
+    not_authorized: "Only the person who posted this job can confirm a Helpr's work.",
+    not_a_crew_job: "This job has one Helpr. Approve the job itself instead.",
+    job_not_active: "This job isn't under way any more, so a Helpr's work can't be confirmed on its own.",
+    job_not_funded: "The payment for this job isn't being held, so nobody can be paid from it.",
+    job_disputed: "This job has a dispute, so an admin decides who is paid.",
+    not_on_this_crew: "That Helpr isn't on this crew any more. Refresh the page.",
+    helper_not_done: "This Helpr hasn't marked their part done yet.",
+    already_approved: "You already confirmed this Helpr's work.",
+    crew_share_not_frozen: "This Helpr is paid when you approve the whole job.",
+  },
   // GroupJobHelpers — the poster's per-member "Didn't show" (JOBS-3, 20261101031804).
   rpc_poster_report_member_no_show: {
     not_authenticated: "Sign in again to report a no-show.",

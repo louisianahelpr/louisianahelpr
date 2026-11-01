@@ -24,19 +24,26 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
+DECLARE
+  v_claimed_at timestamptz;
+  v_found boolean;
 BEGIN
+  -- Lock the path's entry FIRST, with no filter on claimed_at: a claim UPDATE still in flight is waited for, and the
+  -- committed row is read after it (a filter in the locking statement would read the old NULL and skip the lock).
   -- A claimed entry may be mid-removal in Storage: refuse the attach (the caller tries again once the run is done).
-  -- Row-locked, so a claim and an attach of the same path cannot both proceed.
-  PERFORM 1 FROM public.declutter_photo_purge_queue q
-   WHERE q.storage_path = NEW.storage_path AND q.claimed_at IS NOT NULL
+  SELECT q.claimed_at, true INTO v_claimed_at, v_found
+    FROM public.declutter_photo_purge_queue q
+   WHERE q.storage_path = NEW.storage_path
      FOR UPDATE;
-  IF FOUND THEN
+  IF v_found AND v_claimed_at IS NOT NULL THEN
     RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023',
       HINT = 'This photo is being removed. Try adding it again in a minute.';
   END IF;
-  -- An unclaimed entry goes with the attach, in the same transaction. No exception handler: if this fails the attach
-  -- fails, which is the safe side.
-  DELETE FROM public.declutter_photo_purge_queue q WHERE q.storage_path = NEW.storage_path AND q.claimed_at IS NULL;
+  -- An unclaimed entry (locked above) goes with the attach, in the same transaction. No exception handler: if this
+  -- fails the attach fails, which is the safe side.
+  IF v_found THEN
+    DELETE FROM public.declutter_photo_purge_queue q WHERE q.storage_path = NEW.storage_path;
+  END IF;
   RETURN NEW;
 END;
 $fn$;
@@ -56,7 +63,8 @@ $do$;
 
 -- Right before the Storage remove: of these claimed paths, which may still go (still queued, named by no photo row).
 -- Its lock ends with this call, so it is a second check only; the attach trigger above is what keeps a claimed path
--- from being attached. Entries for paths a photo row names are dropped here too.
+-- from being attached. A claim older than the in-flight window (15 minutes, as declutter_photo_purge_due) is refused:
+-- the run that holds it stalled, and the path may already be handed to another run. Entries for paths a photo row names are dropped here too.
 CREATE OR REPLACE FUNCTION public.declutter_photo_purge_recheck(p_paths text[])
 RETURNS TABLE (storage_path text)
 LANGUAGE plpgsql
@@ -72,6 +80,8 @@ BEGIN
     FROM public.declutter_photo_purge_queue q
    WHERE q.storage_path = ANY (COALESCE(p_paths, '{}'::text[]))
      AND q.claimed_at IS NOT NULL
+     -- A claim past the 15-minute window has expired (a stalled run; it may be handed out again): never removed on it.
+     AND q.claimed_at > now() - interval '15 minutes'
      AND NOT EXISTS (SELECT 1 FROM public.declutter_item_photos ph WHERE ph.storage_path = q.storage_path)
    ORDER BY q.storage_path
      FOR UPDATE OF q;

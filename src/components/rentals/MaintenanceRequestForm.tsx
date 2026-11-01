@@ -162,11 +162,11 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
             <span className="block text-xs text-muted-foreground mt-1">Only your landlord and the booked Helpr see this.</span>
           </label>
           <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={m.isPending}>
-              {m.isPending ? "Sending…" : "Send to my landlord"}
-            </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
               Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={m.isPending}>
+              {m.isPending ? "Sending…" : "Send to my landlord"}
             </Button>
           </div>
         </>

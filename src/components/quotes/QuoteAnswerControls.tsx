@@ -122,11 +122,11 @@ export function QuoteAnswerControls({
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="submit" size="sm" disabled={counterDollars == null || answer.isPending}>
-            Send counter-offer
-          </Button>
           <Button type="button" size="sm" variant="outline" onClick={() => setCountering(false)} disabled={answer.isPending}>
             Back
+          </Button>
+          <Button type="submit" size="sm" disabled={counterDollars == null || answer.isPending}>
+            Send counter-offer
           </Button>
         </div>
       </form>

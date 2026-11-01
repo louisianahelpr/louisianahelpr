@@ -129,10 +129,10 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
       </div>
       {problem && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-place-problem="">{problem}</p>}
       <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" className="rounded-full" disabled={save.isPending} onClick={onDone}>Cancel</Button>
         <Button type="button" className="rounded-full" disabled={!ready || save.isPending} onClick={() => save.mutate()}>
           {save.isPending ? "Saving…" : "Save place"}
         </Button>
-        <Button type="button" variant="outline" className="rounded-full" disabled={save.isPending} onClick={onDone}>Cancel</Button>
       </div>
     </div>
   );

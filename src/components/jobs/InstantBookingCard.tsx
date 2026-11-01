@@ -99,11 +99,11 @@ export function InstantBookingCard({ jobId, title, declineUntil, now: fixedNow }
       {error && <p role="alert" className="text-ds-14" style={{ color: "hsl(var(--destructive-ink))" }}>{error}</p>}
       {left && (
         <div className="flex gap-2">
-          <Button className="flex-1 rounded-full" disabled={busy !== null} onClick={() => void onConfirm()}>
-            {busy === "confirm" ? "Confirming…" : "Confirm"}
-          </Button>
           <Button variant="outline" className="flex-1 rounded-full" disabled={busy !== null} onClick={() => setConfirmDecline(true)}>
             {busy === "decline" ? "Declining…" : "Decline"}
+          </Button>
+          <Button className="flex-1 rounded-full" disabled={busy !== null} onClick={() => void onConfirm()}>
+            {busy === "confirm" ? "Confirming…" : "Confirm"}
           </Button>
         </div>
       )}

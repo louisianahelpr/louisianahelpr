@@ -533,18 +533,18 @@ const AdminSupport = () => {
                   <div className="flex gap-2 pt-1">
                     <Button
                       size="sm"
-                      onClick={() => updateStatus(ticket.id, "resolved")}
-                      disabled={updating === ticket.id}
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Resolve
-                    </Button>
-                    <Button
-                      size="sm"
                       variant="outline"
                       onClick={() => updateStatus(ticket.id, "dismissed")}
                       disabled={updating === ticket.id}
                     >
                       Dismiss
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => updateStatus(ticket.id, "resolved")}
+                      disabled={updating === ticket.id}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Resolve
                     </Button>
                   </div>
                 )}

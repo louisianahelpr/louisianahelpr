@@ -189,10 +189,10 @@ export function HeldForReview() {
                     : "I checked this Stripe id (or payment) is for this row: the right payee and amount"}
                 </label>
                 <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setDraft(null)}>Cancel</Button>
                   <Button size="sm" disabled={!canSubmit(draft)} onClick={submit}>
                     {draft.action === "release" ? "Release" : "Mark settled"}
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setDraft(null)}>Cancel</Button>
                 </div>
               </div>
             )}

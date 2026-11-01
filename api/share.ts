@@ -65,7 +65,7 @@
 import { SHELL_HTML } from "../scripts/generated/og-shell.js";
 import { STATIC_PAGE_BODIES } from "../scripts/generated/static-pages.js";
 import { noindexPageMetaFor, publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
-import { browseShellRowsUrl, withBrowseShell } from "../src/lib/browseShellCards.mjs";
+import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -1187,14 +1187,18 @@ const BROWSE_SHELL_CDN_CACHE = "public, s-maxage=120, stale-while-revalidate=600
 
 async function fetchBrowseShellRows(): Promise<unknown[] | null> {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, Accept: "application/json" };
   try {
-    const res = await fetch(browseShellRowsUrl(SUPABASE_URL), {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, Accept: "application/json" },
-      signal: AbortSignal.timeout(BROWSE_SHELL_TIMEOUT_MS),
-    });
-    if (!res.ok) return null;
-    const rows = (await res.json()) as unknown;
-    return Array.isArray(rows) ? rows : null;
+    // The view hides seed and test jobs only while seed_hidden_in_discovery() says so, and it does not expose
+    // is_seed: ask that switch beside the rows, and draw cards only on an exact `true` (shellRowsWhenSeedsHidden).
+    const [res, seeds] = await Promise.all([
+      fetch(browseShellRowsUrl(SUPABASE_URL), { headers, signal: AbortSignal.timeout(BROWSE_SHELL_TIMEOUT_MS) }),
+      // GET: PostgREST serves a STABLE function on GET, so this stays a plain read like the rows.
+      fetch(browseShellSeedsHiddenUrl(SUPABASE_URL), { headers, signal: AbortSignal.timeout(BROWSE_SHELL_TIMEOUT_MS) }),
+    ]);
+    if (!res.ok || !seeds.ok) return null;
+    const [rows, seedsHidden] = (await Promise.all([res.json(), seeds.json()])) as [unknown, unknown];
+    return shellRowsWhenSeedsHidden(Array.isArray(rows) ? rows : null, seedsHidden);
   } catch {
     // Timeout or network: the page is served without cards, exactly as before this existed.
     return null;

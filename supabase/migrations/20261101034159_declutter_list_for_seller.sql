@@ -340,7 +340,13 @@ BEGIN
   END IF;
   RETURN QUERY
     SELECT i.id, i.title, i.description, i.category, i.condition_stars, i.delivery_size, i.price_cents,
-           pv.floor_price_cents, i.area_label,
+           -- The hidden lowest price only while the Helpr is still writing it (an unsent or unapproved listing of an
+           -- OPEN job); never once the seller approved or the job closed (lh-authz-rls re-review, 11-01: else the Helpr
+           -- could read a live listing's floor, and its later changes, and lowball as a buyer).
+           CASE WHEN i.status IN ('draft', 'pending_seller_approval')
+                 AND j.status::text IN ('accepted', 'in_progress', 'revision_requested')
+                THEN pv.floor_price_cents END,
+           i.area_label,
            -- After the seller decides, the Helpr sees only that it was decided, never the listing's later life.
            CASE WHEN i.status IN ('draft', 'pending_seller_approval') THEN i.status
                 WHEN i.status = 'withdrawn' AND l.decided_at IS NOT NULL THEN 'declined'
@@ -349,6 +355,7 @@ BEGIN
            l.sent_at
       FROM public.declutter_listed_for_seller l
       JOIN public.declutter_items i ON i.id = l.item_id
+      JOIN public.jobs j ON j.id = l.job_id
       LEFT JOIN public.declutter_item_private pv ON pv.item_id = i.id
      WHERE l.job_id = p_job_id AND l.helpr_id = (SELECT auth.uid())
      ORDER BY l.created_at;
@@ -485,7 +492,7 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_approve_listed_for_me(uuid[], boolean, boolean, boolean, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_approve_listed_for_me(uuid[], boolean, boolean, boolean, boolean) TO authenticated, service_role;
 
--- 13. The seller turns one down: it never goes on sale.
+-- 13. The seller turns one down: it never goes on sale, and the Helpr who wrote it is told (in-app, on their job).
 CREATE OR REPLACE FUNCTION public.declutter_decline_listed_for_me(p_item_id uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -494,8 +501,12 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
 DECLARE
   v_uid uuid := (SELECT auth.uid());
+  v_link record;
 BEGIN
   PERFORM public.require_feature('declutter');
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   UPDATE public.declutter_items i SET status = 'withdrawn', updated_at = now()
     FROM public.declutter_listed_for_seller l
    WHERE i.id = p_item_id AND l.item_id = i.id AND i.seller_id = v_uid AND l.seller_id = v_uid
@@ -503,7 +514,27 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
   END IF;
-  UPDATE public.declutter_listed_for_seller SET decided_at = now() WHERE item_id = p_item_id;
+  UPDATE public.declutter_listed_for_seller l SET decided_at = now() WHERE l.item_id = p_item_id
+  RETURNING l.job_id, l.helpr_id, (SELECT i.title FROM public.declutter_items i WHERE i.id = l.item_id) AS title,
+            (SELECT public.member_display_name(p.full_name, 'The seller') FROM public.profiles p WHERE p.user_id = l.seller_id) AS seller_name
+    INTO v_link;
+  -- Tell the Helpr who wrote it (B55 open item e). In-app only, on their job. Test data never reaches a real member:
+  -- a seed seller's decline is not sent to a Helpr who is not seed.
+  IF v_link.helpr_id IS NOT NULL
+     AND NOT (EXISTS (SELECT 1 FROM public.profiles s WHERE s.user_id = v_uid AND s.is_seed)
+              AND NOT EXISTS (SELECT 1 FROM public.profiles h WHERE h.user_id = v_link.helpr_id AND h.is_seed)) THEN
+    BEGIN
+      INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+      VALUES (v_link.helpr_id, 'A listing wasn''t used',
+              format('%s chose not to put "%s" on sale. Nothing else changes for your job.',
+                     COALESCE(v_link.seller_name, 'The seller'), v_link.title),
+              'job_update', '/jobs?job=' || v_link.job_id::text, v_link.job_id);
+    EXCEPTION WHEN OTHERS THEN
+      -- The decline already happened; a lost notice must not undo it. Logged where ops reads.
+      PERFORM public.log_cron_defect('declutter_decline_listed_for_me', p_item_id::text, SQLERRM,
+        jsonb_build_object('helpr_id', v_link.helpr_id, 'job_id', v_link.job_id));
+    END;
+  END IF;
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_decline_listed_for_me(uuid) FROM PUBLIC, anon;

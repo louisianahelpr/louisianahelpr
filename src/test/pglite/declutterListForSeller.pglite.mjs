@@ -50,7 +50,10 @@ const WORLD = `
   grant usage on schema auth, public, storage to authenticated, anon, service_role;
   create table storage.objects (bucket_id text, name text, owner uuid, owner_id text, metadata jsonb);
   grant select on storage.objects to authenticated;
-  create table public.profiles (id uuid primary key default gen_random_uuid(), user_id uuid unique, full_name text);
+  create table public.profiles (id uuid primary key default gen_random_uuid(), user_id uuid unique, full_name text, is_seed boolean not null default false);
+  create table public.notifications (user_id uuid, title text, message text, type text, link text, job_id uuid);
+  create function public.log_cron_defect(text, text, text, jsonb) returns void language sql as $f$ select $f$;
+  create function public.member_display_name(text, text default 'Someone') returns text language sql immutable as $f$ select coalesce(nullif(split_part($1, ' ', 1), '') || ' ' || left(split_part($1, ' ', 2), 1) || '.', $2) $f$;
   insert into public.profiles (user_id, full_name) values ('${A}', 'Dana Helpr'), ('${P}', 'Sam Seller');
   create type public.job_status as enum ('open','accepted','in_progress','completed','cancelled','revision_requested','disputed','pending_approval');
   create type public.job_category as enum ('cleaning','moving','declutter_help','errands');
@@ -243,6 +246,8 @@ if (!SKIP) {
 // ── The seller's approval: the normal publish path ───────────────────────────────
 r = await as(db, "authenticated", P, `select item_id, helpr_first_name from public.declutter_listed_for_me()`);
 check("the seller's approval card lists both, with the Helpr's first name", r.ok && r.rows.length === 2 && r.rows.every((x) => x.helpr_first_name === "Dana"), r.err ?? JSON.stringify(r.rows));
+r = await as(db, "authenticated", A, `select item_id, floor_price_cents from public.declutter_helpr_job_listings('${j1}')`);
+check("while it waits for approval on an open job, the Helpr still reads the lowest price they set", r.ok && r.rows.find((x) => x.item_id === item1)?.floor_price_cents === 9000, r.err ?? JSON.stringify(r.rows));
 r = await as(db, "authenticated", P, `select floor_price_cents from public.declutter_listed_for_me() where item_id = '${item1}'`);
 check("the approval card carries the lowest price the Helpr set", r.ok && r.rows[0]?.floor_price_cents === 9000, r.err ?? JSON.stringify(r.rows));
 r = await as(db, "authenticated", A, `select * from public.declutter_listed_for_me()`);
@@ -260,6 +265,8 @@ check("approve all: both go live through the normal publish path", r.ok && out[0
 check("approve all never publishes a listing the Helpr didn't send (the seller's own draft)", out[2]?.error === "item_not_found" && (await statusOf(sellersOwn)) === "draft", JSON.stringify(out[2]));
 const att = (await db.query(`select seller_id from public.declutter_tax_attestations where item_id = '${item1}'`)).rows[0];
 check("the attestation is the seller's own", att?.seller_id === P, JSON.stringify(att));
+r = await as(db, "authenticated", A, `select floor_price_cents from public.declutter_helpr_job_listings('${j1}')`);
+check("once approved, the Helpr never reads the listing's lowest price (NULL)", r.ok && r.rows.length === 2 && r.rows.every((x) => x.floor_price_cents === null), r.err ?? JSON.stringify(r.rows));
 r = await as(db, "authenticated", A, `select status from public.declutter_helpr_job_listings('${j1}')`);
 check("the Helpr sees only 'approved', not the listing's later life", r.ok && r.rows.every((x) => x.status === "approved"), r.err ?? JSON.stringify(r.rows));
 
@@ -275,8 +282,20 @@ r = await as(db, "authenticated", A, `select item_id from public.declutter_helpr
 check("the job's list never shows another job's listings", r.ok && r.rows.length === 2 && !r.rows.some((x) => x.item_id === item3 || x.item_id === unsent), r.err ?? JSON.stringify(r.rows));
 r = await as(db, "authenticated", A, `select public.declutter_decline_listed_for_me('${item3}')`);
 check("the Helpr can't decline it", refused(r, /item_not_found/), r.err ?? "allowed");
+await db.exec("set t.banned = 'on'");
+r = await as(db, "authenticated", P, `select public.declutter_decline_listed_for_me('${item3}')`);
+await db.exec("set t.banned = ''");
+check("a banned seller can't decline (account_restricted)", refused(r, /account_restricted/) && (await statusOf(item3)) === "pending_seller_approval", r.err ?? "allowed");
 r = await as(db, "authenticated", P, `select public.declutter_decline_listed_for_me('${item3}')`);
 check("the seller declines one: it never goes on sale", r.ok && (await statusOf(item3)) === "withdrawn", r.err);
+const helprTold = (await db.query(`select title, message, type, link, job_id from public.notifications where user_id = '${A}'`)).rows;
+check("the Helpr is told the seller didn't use it, on their job", helprTold.length === 1 && helprTold[0].type === "job_update"
+  && helprTold[0].job_id === j3 && helprTold[0].link === `/jobs?job=${j3}` && /Sam S\. chose not to put "Wicker chair" on sale/.test(helprTold[0].message), JSON.stringify(helprTold));
+r = await as(db, "authenticated", A, `select item_id, floor_price_cents from public.declutter_helpr_job_listings('${j3}')`);
+check("on the open job the unsent draft's lowest price is readable", r.ok && r.rows.find((x) => x.item_id === unsent)?.floor_price_cents === 8000, r.err ?? JSON.stringify(r.rows));
+await db.query(`update public.jobs set status = 'completed' where id = '${j3}'`);
+r = await as(db, "authenticated", A, `select item_id, floor_price_cents from public.declutter_helpr_job_listings('${j3}')`);
+check("once the job is closed, no lowest price is returned (NULL), even for a draft", r.ok && r.rows.length === 2 && r.rows.every((x) => x.floor_price_cents === null), r.err ?? JSON.stringify(r.rows));
 
 // ── Grants ───────────────────────────────────────────────────────────────────────
 if (!SKIP) {

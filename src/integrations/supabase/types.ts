@@ -9268,6 +9268,8 @@ export type Database = {
           experience_level: string | null
           extra_comments: string | null
           full_name: string | null
+          handle: string | null
+          handle_changed_at: string | null
           has_applied_before: boolean
           hear_about_us: string | null
           hourly_rate: number | null
@@ -9376,6 +9378,8 @@ export type Database = {
           experience_level?: string | null
           extra_comments?: string | null
           full_name?: string | null
+          handle?: string | null
+          handle_changed_at?: string | null
           has_applied_before?: boolean
           hear_about_us?: string | null
           hourly_rate?: number | null
@@ -9484,6 +9488,8 @@ export type Database = {
           experience_level?: string | null
           extra_comments?: string | null
           full_name?: string | null
+          handle?: string | null
+          handle_changed_at?: string | null
           has_applied_before?: boolean
           hear_about_us?: string | null
           hourly_rate?: number | null

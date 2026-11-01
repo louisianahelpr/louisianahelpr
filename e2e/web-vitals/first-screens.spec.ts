@@ -91,9 +91,12 @@ type Metric = "fcp" | "lcp";
 // @two-way e2e/web-vitals/first-screens.spec.ts:KNOWN entries now inside GOOD or far under their ceiling: delete or lower them
 // 2026-10-05: 12 entries deleted (every mobile FCP, and /login and /messages LCP),
 // measured inside GOOD by prod-audit 37270491218 (FCP 1412-1452 ms, LCP 1956 and 2184 ms).
+// 2026-11-01: "mobile /browse lcp" deleted: /browse's raw HTML now draws its first cards AND the site footer
+// (src/lib/browseShellCards.mjs), so the LCP element (the footer's H emblem while few jobs are open) paints from the
+// HTML. cwv-lab, Slow 4G + 4x CPU, 5 cold runs each, same build: before 4024-4132 (median 4052), after 1800-1824
+// (median 1820), CLS 0 (~/.lh-shots/b71-1031/perf before.log / after2.log).
 const KNOWN: Record<string, { ceiling: number; measured: number }> = {
   "mobile / lcp": { ceiling: 4110, measured: 3804 },
-  "mobile /browse lcp": { ceiling: 4810, measured: 4448 },
   "mobile /signup lcp": { ceiling: 4400, measured: 4072 },
   "mobile /home lcp": { ceiling: 6630, measured: 6136 },
   "mobile /jobs lcp": { ceiling: 5410, measured: 5008 },

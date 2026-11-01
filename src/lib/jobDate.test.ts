@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { jobDateMs, todayMs, isPastDue } from "./jobDate";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 /**
  * `jobs.date_needed` has ONE reading.
@@ -34,13 +35,10 @@ describe("job dates resolve in the platform's zone", () => {
   });
 
   it("yesterday is past due and tomorrow is not", () => {
-    const day = 24 * 60 * 60 * 1000;
-    const fmt = (d: Date) => new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Chicago",
-      year: "numeric", month: "2-digit", day: "2-digit",
-    }).format(d);
-    expect(isPastDue(fmt(new Date(Date.now() - day)))).toBe(true);
-    expect(isPastDue(fmt(new Date(Date.now() + day)))).toBe(false);
+    // Whole CALENDAR days from Central today, never now -/+ 24 h: on the fall-back Sunday (2026-11-01, 25 hours)
+    // 23:30 CST - 24 h is 00:30 CDT the SAME day, so "yesterday" was today and this went red (Builder 62's sweep).
+    expect(isPastDue(jobLocalDateISO(-1))).toBe(true);
+    expect(isPastDue(jobLocalDateISO(1))).toBe(false);
   });
 
   it("resolves TODAY in CENTRAL, whatever zone the runner is in", () => {

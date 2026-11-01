@@ -82,6 +82,7 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
+type HaulLib = typeof import("@/lib/declutter/haulAway");
 
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
@@ -203,8 +204,8 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   // poster, so it is never tried: reported, and the seller is told it can't be
   // removed from here; a delete the policy refuses anyway is reported inside
   // deleteNeverPaidHaulJob (unwrapMutation) and told the same way.
-  const releaseJob = async (row: HaulAwayRow) => {
-    const lib = (await haulLib()) ?? (await untilReload());
+  // `lib` is loaded by the caller BEFORE anything is deleted: work that has written must never wait on a reload.
+  const releaseJob = async (row: HaulAwayRow, lib: HaulLib) => {
     // Its words ride on userMessage (declutterErrorMessage shows them): the
     // haul-away copy loads with the haul-away code, never on /posts (Q178).
     const stuck = () => Object.assign(new Error("haul_away_job_stuck"), { userMessage: lib.HAUL_AWAY_CLIENT_ERROR_COPY.haul_away_job_stuck });
@@ -221,8 +222,9 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   };
   const putBack = useMutation({
     mutationFn: async (row: HaulAwayRow) => {
-      await releaseJob(row);
-      return ((await haulLib()) ?? (await untilReload())).cancelHaulAway(row.item_id);
+      const lib = (await haulLib()) ?? (await untilReload());
+      await releaseJob(row, lib);
+      return lib.cancelHaulAway(row.item_id);
     },
     onSuccess: (status) => {
       toast(status === "live" ? "Back on sale." : "Haul-away cancelled. The item is off sale.");
@@ -231,7 +233,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const finishBooking = useMutation({
-    mutationFn: releaseJob,
+    mutationFn: async (row: HaulAwayRow) => releaseJob(row, (await haulLib()) ?? (await untilReload())),
     onSuccess: (_v, row) => navigate(haulAwayPostJobPath([row.item_id])),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });

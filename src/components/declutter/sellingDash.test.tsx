@@ -118,14 +118,26 @@ vi.mock("@/components/sections/SectionScreen", () => ({
     </main>
   ),
 }));
+// B68 (11-01): the put-back path's rows and spies; empty by default, so the other tests see no haul-away.
+const haul = vi.hoisted(() => ({ rows: [] as unknown[], deleted: [] as string[], cancelled: [] as string[], emptyLoads: 0, plan: [] as boolean[] }));
 vi.mock("@/lib/declutter/haulAway", () => ({
-  fetchHaulAwayState: async () => [],
+  fetchHaulAwayState: async () => haul.rows,
   oneTripGroup: () => [],
-  haulJobToDelete: () => null,
-  deleteNeverPaidHaulJob: async () => true,
-  cancelHaulAway: async () => "live",
+  haulJobToDelete: (row: { job_id: string | null }) => row.job_id,
+  deleteNeverPaidHaulJob: async (id: string) => { haul.deleted.push(id); return true; },
+  cancelHaulAway: async (id: string) => { haul.cancelled.push(id); return "live"; },
   HAUL_AWAY_CLIENT_ERROR_COPY: { haul_away_job_stuck: "stuck" },
 }));
+// A prevented preload (Vite resolves the import with undefined) for the next `haul.emptyLoads` loads.
+vi.mock("@/lib/loadModule", async (orig) => {
+  const real = await orig<typeof import("@/lib/loadModule")>();
+  return { ...real, loadModule: async <T,>(load: () => Promise<T>) => (haul.plan.length ? haul.plan.shift() : haul.emptyLoads > 0 && haul.emptyLoads--) ? null : real.loadModule(load) };
+});
+const toastErr = vi.hoisted(() => vi.fn());
+vi.mock("sonner", async (orig) => {
+  const real = await orig<typeof import("sonner")>();
+  return { ...real, toast: Object.assign((...a: unknown[]) => (real.toast as unknown as (...x: unknown[]) => unknown)(...a), real.toast, { error: toastErr }) };
+});
 // The sale cards are their own tests; here each paid order the list would show is one marked row.
 vi.mock("./DeclutterHandoverViews", () => ({
   PaidOrdersSection: ({ cart, show }: { cart: { order_id: string | null; status: string }[]; show?: (id: string) => boolean }) => (
@@ -784,5 +796,47 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
     expect(soldPayoutWords("completed", 3200, { status: "succeeded", executed_at: "2026-10-29T15:00:00Z" }, day, true)).toBe("Paid out Oct 29");
     expect(soldPayoutWords("sold", 0, null, day, true)).toBeNull();
     expect(soldPayoutWords("sold", 3200, null, day)).toBe("Paid 24 hours after the handover");
+  });
+});
+
+/**
+ * B68 (review of b04c978c8f, 11-01): "Put back on sale" deletes the unpaid haul-away job, then puts the item back.
+ * The haul-away code is loaded BEFORE the delete, so a load that comes back empty never leaves a deleted job with
+ * the item still off sale: nothing is deleted, the wait fails (no reload follows here), and the seller is told.
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |       const lib = (await haulLib()) ?? (await untilReload());\n      await releaseJob(row, lib);\n      return lib.cancelHaulAway(row.item_id); |       await releaseJob(row, (await haulLib()) ?? (await untilReload()));\n      return ((await haulLib()) ?? (await untilReload())).cancelHaulAway(row.item_id);
+ */
+describe("haul-away put back during a prevented preload (B68)", () => {
+  const ROW = { item_id: "i1", title: "Oak rocking chair", description: "", delivery_size: "large", item_status: "paused", state: "unpaid", eligible_at: null, job_id: "j1", job_hold: null };
+  beforeEach(() => {
+    state.mine = [{ ...ITEM, status: "paused" }];
+    haul.rows = [ROW]; haul.deleted = []; haul.cancelled = []; haul.emptyLoads = 0; haul.plan = [];
+    toastErr.mockClear();
+  });
+
+  it("normally deletes the job, then puts the item back", async () => {
+    at("/declutter?tab=selling");
+    fireEvent.click(await screen.findByRole("button", { name: "Put back on sale" }));
+    await waitFor(() => expect(haul.cancelled).toEqual(["i1"]));
+    expect(haul.deleted).toEqual(["j1"]);
+  });
+
+  it("the code comes back empty: nothing is deleted, and the seller is told (never a deleted job with the item off sale)", async () => {
+    at("/declutter?tab=selling");
+    const btn = await screen.findByRole("button", { name: "Put back on sale" });
+    haul.emptyLoads = 1;
+    fireEvent.click(btn);
+    await waitFor(() => expect(toastErr).toHaveBeenCalled());
+    expect(haul.deleted).toEqual([]);
+    expect(haul.cancelled).toEqual([]);
+  });
+
+  it("a load coming back empty after the first one cannot strand a deleted job: every delete is followed by the put-back", async () => {
+    at("/declutter?tab=selling");
+    const btn = await screen.findByRole("button", { name: "Put back on sale" });
+    haul.plan = [false, true];
+    fireEvent.click(btn);
+    await waitFor(() => expect(haul.deleted.length + toastErr.mock.calls.length).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(haul.cancelled).toEqual(haul.deleted.length ? ["i1"] : []);
   });
 });

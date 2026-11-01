@@ -48,6 +48,8 @@ const GAP = (door: string) =>
   `GAP — reachable with the two shared accounts via ${door}, but no journey leg asserts the notification row it writes`;
 const FANOUT =
   "fans a funded job out to real Helprs (by parish, or by location for an urgent job); seed jobs were visible publicly when this was written (seed_jobs_hidden_publicly() = false on prod, measured 2026-09-26; true since 2026-10-06, measured 2026-10-14, which also stops the fan-out for is_seed jobs), so a journey job that carried a parish or location could notify real users whenever the switch is off. The journeys keep parish null on purpose";
+const INSTANT_BOOK =
+  "GAP — instant book (20261101063725 to 20261101074901): the poster books a Helpr straight from the top 3 against that Helpr's private floor and calendar, on a card hold or a paid job; no journey leg books one between the two shared accounts yet, so the notification rows it writes are not asserted";
 const SERIES =
   "GAP — a recurring series; no journey posts one between the two shared accounts, and every visit of a funded series is its own Stripe test charge, so the series doors and the notification rows they write are not driven";
 const BAN_SETTLE =
@@ -241,6 +243,12 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:declutter_wanted_notify": { uncovered: "GAP — the one notification writer of Declutter wanted posts (20261016053541): the seller's 'Someone near you wants one' and the poster's 'A match for what you want'. Behind the hidden 'declutter' + 'declutter_wanted' switches and no journey leg posts a wanted item yet; called only from declutter_create_wanted and the 'declutter-wanted' cron (EXECUTE service_role only). Proven in src/test/pglite/declutterWantedPriceHint.pglite.mjs (wording, caps, blocks, mutes, seed isolation, stamps only on a written row)." },
   "sql:declutter_record_ai_check": { uncovered: "GAP — the photo check's verdict on a live listing (LEAD-POST-SLOW, 20261031152545): a flag takes the listing down and tells the seller 'Your listing is waiting for a check' and each offer or cart buyer 'Listing changed'; a flag on a reserved or sold listing holds the payout and sends every admin an admin_alert (test accounts skipped). service_role only, called by the declutter-ai-check edge function; Declutter is behind the hidden 'declutter' switch and no journey leg posts a listing the check flags. Proven in src/test/pglite/declutterCheckAfterPost.pglite.mjs." },
   "sql:declutter_hold_unchecked_listings": { uncovered: "GAP — the 15-minute sweep for listings whose photo check never came back (LEAD-POST-SLOW, 20261031152545): it holds the listing and tells the seller 'Your listing is waiting for a check' (or 'Your sale is waiting for a check' with an admin_alert to every admin, test accounts skipped, when it was reserved or sold) and each offer or cart buyer 'Listing changed'. service_role only, run by cron; a journey cannot wait 15 minutes on an unchecked live listing. Proven in src/test/pglite/declutterCheckAfterPost.pglite.mjs." },
+  "sql:instant_book_captured_not_hired": { uncovered: INSTANT_BOOK },
+  "sql:instant_book_end_if_unhireable": { uncovered: INSTANT_BOOK },
+  "sql:instant_book_payment_failed": { uncovered: INSTANT_BOOK },
+  "sql:instant_book_tell_helpr_on_close": { uncovered: INSTANT_BOOK },
+  "sql:rpc_instant_book": { uncovered: INSTANT_BOOK },
+  "sql:rpc_instant_book_decline": { uncovered: INSTANT_BOOK },
   "sql:declutter_price_drop_alert": { uncovered: "GAP — the AFTER UPDATE OF current_price_cents trigger on declutter_items (20261027204745, Q2429) that tells an item's watchers its price dropped or it is now free; it replaced the evening sweep's inline notice. Declutter is behind the hidden 'declutter' switch and no journey leg watches an item and lowers its price yet. Proven in src/test/pglite/declutterPriceDropAlerts.pglite.mjs (never the seller, blocked pairs skipped, 3-day per-item rate limit, a hidden seller tells nobody) and, on a uuid notifications.id like prod's (its old bigint v_notified rolled every alert back), src/test/pglite/declutterNoticeKinds.pglite.mjs." },
   "sql:track_revision_scope_creep": {
     uncovered: "notifies only on a job's THIRD revision request, and files a fraud_flags scope_creep row against the poster (a shared account) when it does",

@@ -315,7 +315,7 @@ export const RPC_ERROR_COPY = {
     account_restricted: "Your account is restricted right now, so you can't accept jobs.",
     // CMP-4: a decline of an instant booking is the instant decline (20261101071621).
     not_authenticated: "Sign in again to continue.",
-    booking_not_pending: "This booking already ended. Pull to refresh to see where it stands.",
+    booking_not_pending: "This booking already ended. Refresh the page to see where it stands.",
     decline_window_closed: "The 2 hours to decline have ended, so you're booked.",
   },
   // CMP-4 instant book (20261101063725, 20261101065105, 20261101071621). Guard: src/test/instantBookScreens.test.tsx.
@@ -342,7 +342,7 @@ export const RPC_ERROR_COPY = {
   rpc_instant_book_decline: {
     not_authenticated: "Sign in again to continue.",
     not_your_offer: "This booking isn't yours anymore.",
-    booking_not_pending: "This booking already ended. Pull to refresh to see where it stands.",
+    booking_not_pending: "This booking already ended. Refresh the page to see where it stands.",
     decline_window_closed: "The 2 hours to decline have ended, so you're booked.",
   },
   // useOfferHandlers — the Helpr's Accept (Q1180).

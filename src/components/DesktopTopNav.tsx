@@ -8,6 +8,7 @@ import { registerDesktopTitleSlot } from "@/components/header/PageTitleBar";
 import { DeliveryOnlinePill } from "@/components/declutter/DeliveryOnlinePill";
 import { DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
 import { HelpEntry } from "@/components/help/HelpEntry";
+import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE: the notification bell and the
@@ -43,6 +44,10 @@ const DesktopTopNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
+  // The fixed OfflineBanner (top 0, 32px) sat OVER this bar at 1440 and clipped the page title: measured offline at
+  // 1440, banner bottom 31.9 vs the "Jobs" h1 top 28.4 (B44 10-31). AppShell already starts its frame at banner + bar,
+  // so the bar moves down by the same banner offset. 0 while the banner is hidden. Guard: src/test/offlineBannerOverDesktopBar.test.ts.
+  const bannerOffset = useOfflineBannerOffset();
 
   if (!isWebDesktop) return null;
   if (!isDesktopRailRoute(location.pathname)) return null;
@@ -63,6 +68,7 @@ const DesktopTopNav = () => {
         WebkitBackdropFilter: "blur(20px)",
         // The row (h-14) sits 14px down, so its middle is the rail logo's middle (src/lib/desktopBar.ts).
         paddingTop: DESKTOP_BAR_PAD_TOP,
+        top: bannerOffset,
       }}
     >
       <div className="w-full flex h-14 items-center justify-end gap-2 px-5 lg:px-6 xl:px-6">

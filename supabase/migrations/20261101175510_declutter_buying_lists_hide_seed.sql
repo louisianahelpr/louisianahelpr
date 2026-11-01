@@ -10,7 +10,8 @@
 -- now requires the item (an inner join), so it follows the rule without SQL.
 --
 -- Restated from the NEWEST definitions: declutter_my_offers from 20261031095146_declutter_my_offers_open_wanted_id,
--- declutter_my_cart from 20261030064929_declutter_buy_now_no_strike. Only the WHERE clause changes. Replay-safe:
+-- declutter_my_cart from 20261030131715_declutter_cart_keeps_item_title (DC-18 item_title and closed_at kept). Only the
+-- WHERE clause changes. Replay-safe:
 -- CREATE OR REPLACE, same signatures. Guard: src/test/declutterBuyingListsHideSeed.test.ts.
 
 CREATE OR REPLACE FUNCTION public.declutter_my_offers()
@@ -55,7 +56,7 @@ REVOKE ALL ON FUNCTION public.declutter_my_offers() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_my_offers() TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.declutter_my_cart()
- RETURNS TABLE(line_id uuid, item_id uuid, item_title text, my_side text, seller_id uuid, price_cents integer, status text, checkout_by timestamp with time zone, order_id uuid, order_status text, handover text, premium_cents integer, total_cents integer, porch_ok boolean, delivery_cents integer, delivery_task_id uuid, handovers text[], source text)
+ RETURNS TABLE(line_id uuid, item_id uuid, item_title text, my_side text, seller_id uuid, price_cents integer, status text, checkout_by timestamp with time zone, order_id uuid, order_status text, handover text, premium_cents integer, total_cents integer, porch_ok boolean, delivery_cents integer, delivery_task_id uuid, handovers text[], closed_at timestamp with time zone, source text)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
@@ -67,13 +68,17 @@ BEGIN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
   RETURN QUERY
-  SELECT c.id, c.item_id, COALESCE(i.title, 'An item from a former member'),
+  SELECT c.id, c.item_id,
+         -- DC-18: the title kept on the line once the listing is gone; "former member" only when the seller's account is.
+         COALESCE(i.title, c.item_title,
+                  CASE WHEN c.seller_id IS NULL THEN 'An item from a former member' ELSE 'A listing that was taken down' END),
          CASE WHEN c.seller_id = v_uid THEN 'seller' ELSE 'buyer' END,
          -- Q2427: a line still in the cart shows its original price (a bundle discount is applied at checkout).
          c.seller_id, CASE WHEN c.status = 'in_cart' THEN COALESCE(c.list_price_cents, c.price_cents) ELSE c.price_cents END,
          c.status, c.checkout_by, c.order_id,
          o.status, o.handover, o.premium_cents, o.total_cents,
          COALESCE(i.porch_ok, false), o.delivery_cents, od.task_id, i.handovers,
+         c.closed_at,  -- DC-18: when an ended line ended
          c.source  -- DB-5
     FROM public.declutter_cart_items c
     LEFT JOIN public.declutter_items i ON i.id = c.item_id

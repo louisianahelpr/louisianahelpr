@@ -275,7 +275,12 @@ describe("Declutter screens", () => {
     at("/declutter?view=mine", <DeclutterPage />);
     // One status line per row (owner 2026-10-28): the status first, then what happens next.
     expect(await screen.findByText("Being checked. We'll send you a notice when it's done.")).toBeInTheDocument();
-    expect(screen.getByText(/^Not listed yet\./)).toBeInTheDocument();
+    // Next-step line (owner 2026-11-01): a row that waits on the seller says "Next: …".
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (move) return { who: "you", text: move }; |   if (move) return { who: "info", text: move };
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |   draft: "Finish it to sell it", |   draft: "Not listed yet",
+    const draftLine = screen.getByText("Next: finish it to sell it");
+    expect(draftLine.getAttribute("data-next-step")).toBe("you");
+    expect(screen.getByText("Being checked. We'll send you a notice when it's done.").getAttribute("data-next-step")).toBe("them");
     // D4-12: every Selling row's actions name their item, so a list of rows is not "Preview, Manage, Preview, Manage".
     // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Finish listing ${item.title}`} | aria-label="Finish listing"
     // @mutate src/components/declutter/DeclutterHomeView.tsx | aria-label={`Preview ${item.title}`} | aria-label="Preview"

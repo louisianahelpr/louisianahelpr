@@ -600,6 +600,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // (the launch switch keeps test jobs visible to them). No member is ever in it.
   "test_accounts.user_id": { reason: "platform test-account enrolment, service role only; holds no member's data" },
   "feature_switch_members.user_id": { reason: "platform enrolment on a testers switch (owner 2026-10-28), service role only; holds no member's data" },
+  "store_review_accounts.user_id": { reason: "App Store review account marker (lead 2026-11-01), service role only; holds no member's data" },
   "apple_sign_in_tokens.user_id": { reason: "Q1791 (lead 2026-10-30): the Apple refresh token kept only so account deletion can call Apple /auth/revoke (App Store Review 5.1.1(v)), service role only; an Apple-issued credential, not member-entered data, and the row goes with the account (ON DELETE CASCADE)" },
   "stripe_customers.user_id": { reason: "one wallet (20261018090700): the member's Stripe Customer id per Stripe mode, service role only; a Stripe internal handle, not member-entered data, stripped from the export like declutter_buyer_cards.stripe_customer_id (the member's saved cards are exported via declutter_buyer_cards)" },
   // Q1575: a seen/unseen flag over a back-out the person was ALSO told by an

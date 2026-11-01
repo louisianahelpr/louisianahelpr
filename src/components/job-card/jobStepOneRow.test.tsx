@@ -1092,3 +1092,29 @@ describe("VN-21 — a nested CTA replaces the step's own primary", () => {
 // primary button into the more tab, for poster and Helpr"): put Message, Cancel,
 // Edit... back on the row beside the primary and every state above goes red.
 // @mutate src/components/job-card/JobStepCard.tsx | const isMoreOnly = (_c: ReactNode) => true; | const isMoreOnly = (c: ReactNode) => isValidElement(c) && MORE_ONLY_CHIP_KEYS.includes(String(c.key));
+
+// Owner 2026-11-01 (job page): the card's actions reach the page's row MINUS Message, which the page draws itself.
+// A card holding Message and No-Show hands the page exactly one action, No-Show, for its second button.
+// @mutate src/components/job-card/JobStepCard.tsx | ...moreChips.filter((c) => !(isValidElement(c) && c.key === "message"))] | ...moreChips]
+describe("on the job page, the card hands over its actions minus Message", () => {
+  it("Message and No-Show: one action reaches the page's second slot, and it is No-Show", async () => {
+    const { JobStepMenuContext } = await import("./jobStepMenu");
+    const second = document.createElement("div");
+    document.body.appendChild(second);
+    const counts: number[] = [];
+    try {
+      render(
+        <JobStepMenuContext.Provider value={{ secondHost: second, listHost: null, leadHost: null, setCount: (n) => counts.push(n), setLeadCount: () => {} }}>
+          <JobStepCard side="poster" step="t"
+            actions={[<button key="message" type="button">Message</button>, <button key="noshow" type="button">No-Show</button>]} />
+        </JobStepMenuContext.Provider>,
+      );
+      await act(async () => { await Promise.resolve(); });
+      expect(counts.length).toBeGreaterThan(0);
+      expect(counts.at(-1)).toBe(1);
+      expect(second.textContent).toBe("No-Show");
+    } finally {
+      second.remove();
+    }
+  });
+});

@@ -11,6 +11,7 @@
  * @mutate src/hooks/useWebPush.ts |   if (!agreed) track("web_push_ask", { kind, step: "not_now" }); |
  * @mutate src/pages/messages/messagesData/sendHandlers.ts |     if (!alreadyLanded) offerPushAfterAction(); |
  * @mutate src/hooks/useNotificationPermissionPrompt.ts |   window.dispatchEvent(ask); |
+ * @mutate src/hooks/useWebPush.ts |   if (askInFlight) return; |
  * @mutate src/hooks/useWebPush.ts |   if (Number.isFinite(last) && last > 0 && now - last < WEB_PUSH_ASK_COOLDOWN_MS) return null; |
  * @mutate src/components/SessionManager.tsx |   useWebPushBootSync(user?.id); |
  */
@@ -140,6 +141,11 @@ describe("PUSH-REACH: the ask is measured and offered after a sent message", () 
       { kind: "ask", step: "browser_answer", answer: "granted" },
       { kind: "ask", step: "saved", result: "saved" },
     ]);
+  });
+  it("one ask at a time: a run of actions (Sell a bunch) opens one sheet", async () => {
+    setPermission("default", "granted");
+    await Promise.all([offerWebPushAfterJobAction(), offerWebPushAfterJobAction(), offerWebPushAfterJobAction()]);
+    expect(explain).toHaveBeenCalledOnce();
   });
   it("records a Not now on the in-app sheet", async () => {
     setPermission("default");

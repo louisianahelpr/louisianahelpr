@@ -31,7 +31,7 @@
  * @mutate src/lib/declutter/api.ts |   const list = files.slice(0, AI_DRAFT_PHOTOS); |   const list = files;
  * @mutate src/lib/declutter/api.ts | (error as { context?: { name?: unknown } }).context?.name === "AbortError"; | false;
  * @mutate src/lib/declutter/api.ts | const aborted = (error as { name?: unknown }).name === "AbortError" \|\| | const aborted =
- * @mutate src/lib/declutter/api.ts |   return rpcData(await supabase.rpc("declutter_publish_item", { p_item_id: itemId }), |   return rpcData(await supabase.rpc("declutter_publish_items", { p_item_id: itemId }),
+ * @mutate src/lib/declutter/api.ts |   const status = rpcData(await supabase.rpc("declutter_publish_item", { p_item_id: itemId }), |   const status = rpcData(await supabase.rpc("declutter_publish_items", { p_item_id: itemId }),
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

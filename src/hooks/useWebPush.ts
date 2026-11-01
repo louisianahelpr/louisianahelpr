@@ -38,9 +38,22 @@ export function webPushAskKind(now: number = Date.now()): "ask" | "home_screen" 
   return isIosOutsideHomeScreen() ? "home_screen" : null;
 }
 
+/** One ask at a time: a Sell a bunch publishes several items in a row, each offering the ask (PUSH-REACH). */
+let askInFlight = false;
+
 export async function offerWebPushAfterJobAction(): Promise<void> {
+  if (askInFlight) return;
   const kind = webPushAskKind();
   if (!kind) return;
+  askInFlight = true;
+  try {
+    await askOnce(kind);
+  } finally {
+    askInFlight = false;
+  }
+}
+
+async function askOnce(kind: "ask" | "home_screen"): Promise<void> {
   // Never over the job's own confirmation dialog; skip (and ask next time) if one stays open.
   if (!(await waitForNoModal(60_000))) return;
   safeStorage.setItem(WEB_PUSH_ASKED_KEY, String(Date.now()));

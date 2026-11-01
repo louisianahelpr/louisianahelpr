@@ -484,12 +484,17 @@ serve(async (req) => {
     if (!blockErr) {
       const blocked = (blocks ?? []).map((b: { blocker_id: string; blocked_id: string }) =>
         b.blocker_id === payload.user_id ? b.blocked_id : b.blocker_id)
+      // NOID-20 (lead 2026-10-31): the in-app Messages badge counts unread CONVERSATIONS (src/lib/unreadConversations.ts),
+      // so the icon does too: the newest 1000 unread rows, grouped by the inbox's thread key (job + sender; one Team
+      // thread per user), rows the server hid from the recipient left out as the inbox does.
       let unread = supabase
         .from('messages')
-        .select('id', { count: 'exact', head: true })
+        .select('job_id, sender_id, team_thread_user_id, flagged_hidden')
         .eq('receiver_id', payload.user_id)
         .eq('read', false)
         .not('is_system', 'is', true)
+        .order('created_at', { ascending: false })
+        .limit(1000)
       // Q1591(b): Team-thread rows get through a block (and count in the
       // in-app badge), so they count here too; job rows from a blocked
       // sender stay out.
@@ -506,7 +511,12 @@ serve(async (req) => {
           .eq('user_id', payload.user_id)
           .eq('read', false),
       ])
-      const count = msgs.count
+      const threads = new Set(
+        ((msgs.data ?? []) as Array<{ job_id: string | null; sender_id: string | null; team_thread_user_id: string | null; flagged_hidden: boolean | null }>)
+          .filter((m) => !m.flagged_hidden)
+          .map((m) => (m.job_id === null ? `team:${m.team_thread_user_id ?? ''}` : `${m.job_id}_${m.sender_id ?? 'deleted-account'}`)),
+      )
+      const count = msgs.error ? null : threads.size
       const notifCount = notifs.count
       if (!msgs.error && !notifs.error && typeof count === 'number' && typeof notifCount === 'number') {
         payload.badge = count + notifCount // NB-002 server badge

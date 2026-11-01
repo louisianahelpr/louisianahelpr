@@ -22,6 +22,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx |       size="iconCompact" |       size="icon"
 // @mutate src/components/declutter/DeclutterPickupTimes.tsx |           <Button type="button" variant="ghost" size="iconCompact" onClick={onRemove} | <Button type="button" variant="ghost" size="icon" onClick={onRemove}
 // @mutate src/pages/profile/SavedSearchesTab.tsx |                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} |                   <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(s)}
+// @mutate src/pages/user/ReviewsSection.tsx |                   size="iconCompact"\n                  aria-label="Report this review" |                   size="icon"\n                  aria-label="Report this review"
 // @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |       className={`relative shrink-0 btn-press | className={`relative h-10 w-10 shrink-0 btn-press
 
 const REPO = resolve(__dirname, "../..");
@@ -83,6 +84,8 @@ describe("the compact icon Button", () => {
   it.each([
     ["src/components/declutter/DeclutterPickupTimes.tsx", /<button\b[^>]*aria-label=\{removeLabel\}/],
     ["src/pages/profile/SavedSearchesTab.tsx", /<button\b[^>]*aria-label=\{`Settings for/],
+    // B47 10-31, /user/:id (mocked public review): 44x44 at 302,384 (375) / 1359,397 (1440), margins -8 unchanged.
+    ["src/pages/user/ReviewsSection.tsx", /<button\b[^>]*aria-label="Report this review"/],
   ])("%s: the ghost icon is the shared Button at iconCompact", (f, handMade) => {
     const src = code(f);
     expect(src).not.toMatch(handMade);

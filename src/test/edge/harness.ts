@@ -157,6 +157,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/supportGuest.ts";`,
   );
 
+  // CMP-4 instant book: `_shared/instantBookSweep.ts` has ZERO imports (its
+  // database, capture and pager are injected), so point at the REAL module.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/instantBookSweep\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/instantBookSweep.ts";`,
+  );
+
   // "First L." (Q2292): `_shared/memberDisplayName.ts` has ZERO imports, so
   // point at the REAL module and the name rule stays under test.
   out = out.replace(

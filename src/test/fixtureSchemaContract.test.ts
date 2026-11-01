@@ -114,6 +114,10 @@ const ACKNOWLEDGED: Record<string, string> = {
     "Reshaping the numbers changes the arithmetic under test in an escrow-refund " +
     "path, so it belongs to the money lane, not to a fixture sweep. Filed rather " +
     "than papered over.",
+  "src/test/easypostLabels.test.ts: shipments.service":
+    "The literal is a recorded EasyPost Shipment/Rate response (docs.easypost.com/docs/shipments), whose `service` is " +
+    "EasyPost's own name (\"GroundAdvantage\"); it shares tracking_code with a shipments row but is never inserted. " +
+    "The worker maps it to shipments.service values (_shared/easypostRates.ts) before any write.",
 };
 
 const constraints = extractConstraints();

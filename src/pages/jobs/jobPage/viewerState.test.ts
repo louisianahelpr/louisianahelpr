@@ -40,6 +40,7 @@ describe("job page: what each viewer is offered", () => {
   });
   it("A2-B8: the page's data hook reads the viewer's OWN roster row on a crew job and hands it to the page", () => {
     const hook = blankComments(readFileSync(resolve(__dirname, "useJobPage.ts"), "utf8"));
+    expect(hook.length).toBeGreaterThan(1000);
     expect(hook).toContain('.from("group_job_helpers").select("id").eq("job_id", jobId).eq("helper_id", userId)');
     expect(hook).toMatch(/enabled: !!job\.data && !isPoster && !!userId && job\.data\.job\.is_group_job === true/);
     expect(hook).toContain("onCrew: onCrew.data === true }");

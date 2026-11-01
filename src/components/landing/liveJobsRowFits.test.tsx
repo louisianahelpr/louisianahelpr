@@ -54,6 +54,7 @@ describe("the landing's Open jobs row fits its cards and the page's edge", () =>
     expect(screen.getByTestId("landing-live-jobs-measure").className).toMatch(MEASURE);
     const showcase = readFileSync(resolve(__dirname, "SectionsShowcase.tsx"), "utf8");
     const how = readFileSync(resolve(__dirname, "HowItWorksSection.tsx"), "utf8");
+    expect(showcase.length + how.length).toBeGreaterThan(1000);
     expect(showcase).toMatch(/mx-auto w-full max-w-6xl/);
     expect(how).toMatch(/mx-auto w-full max-w-6xl/);
   });

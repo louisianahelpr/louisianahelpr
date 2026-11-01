@@ -1,3 +1,4 @@
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { describe, it, expect } from "vitest";
 import { renderHook } from "@testing-library/react";
 import {
@@ -226,11 +227,9 @@ describe("Activity — whose move is it", () => {
     //
     // Dates are built in the PLATFORM's zone, the same way jobDate.test.ts
     // does it, so the assertion does not flip with the runner's timezone.
-    const fmt = (offsetDays: number) =>
-      new Intl.DateTimeFormat("en-CA", {
-        timeZone: "America/Chicago",
-        year: "numeric", month: "2-digit", day: "2-digit",
-      }).format(new Date(Date.now() + offsetDays * 86_400_000));
+    // Calendar days in Central (jobLocalDateISO), never now + n x 24 h: that is the same day for the first hour of
+    // the fall-back Sunday (2026-11-01, red on CI at 00:15 CDT).
+    const fmt = (offsetDays: number) => jobLocalDateISO(offsetDays);
 
     // Underway, day gone, nobody finished it — the poster's move.
     expect(postedActivityBucket({ status: "in_progress", date_needed: fmt(-4) })).toBe("needs_you");

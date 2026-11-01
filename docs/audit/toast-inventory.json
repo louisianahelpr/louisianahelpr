@@ -5284,19 +5284,19 @@
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "res === \"accepted\" ? (o.my_side === \"buyer\" ? \"Accepted. Check out within 48 hours.\" : \"Accepted. The buyer has 48 hours to pay.\") : res === \"countered\" ? \"Sent. They have 48 hours to answer.\" : res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
+        "text": "res === \"accepted\" ? (o.my_side === \"buyer\" ? \"Accepted. Check out within 24 hours.\" : \"Accepted. The buyer has 24 hours to pay.\") : res === \"countered\" ? \"Sent. They have 48 hours to answer.\" : res === \"withdrawn\" ? \"Offer taken back.\" : \"Declined.\"",
         "branches": [
           {
             "form": "dynamic",
-            "text": "o.my_side === \"buyer\" ? \"Accepted. Check out within 48 hours.\" : \"Accepted. The buyer has 48 hours to pay.\"",
+            "text": "o.my_side === \"buyer\" ? \"Accepted. Check out within 24 hours.\" : \"Accepted. The buyer has 24 hours to pay.\"",
             "branches": [
               {
                 "form": "literal",
-                "text": "Accepted. Check out within 48 hours."
+                "text": "Accepted. Check out within 24 hours."
               },
               {
                 "form": "literal",
-                "text": "Accepted. The buyer has 48 hours to pay."
+                "text": "Accepted. The buyer has 24 hours to pay."
               }
             ]
           },

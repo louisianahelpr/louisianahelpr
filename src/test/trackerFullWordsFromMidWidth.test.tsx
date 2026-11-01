@@ -73,6 +73,7 @@ describe("the tracker says its full names from a 368px tracker (A2-L15)", () => 
     const col = (368 - 7 * 4) / 8.5;
     const curCol = col * 1.5 - 14;
     let n = 0;
+    expect(JOB_PROGRESS_DRAWN.length).toBeGreaterThan(5);
     for (const drawn of JOB_PROGRESS_DRAWN) {
       for (const p of pieces(drawn)) {
         const m = MEASURED[p];

@@ -16197,6 +16197,10 @@ export type Database = {
         Args: { p_seller_id: string }
         Returns: number[]
       }
+      declutter_mark_talk_read: {
+        Args: { p_kind: string; p_ref: string }
+        Returns: undefined
+      }
       declutter_meetup_spot_suggestions: {
         Args: never
         Returns: { id: string; name: string; address: string; area: string; lat: number; lng: number }[]

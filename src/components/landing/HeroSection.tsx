@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { goSignedInOr } from "./goSignedInOr";
 import { heroSearchTargets } from "./heroSearch";
 import { LandingProof } from "./LandingProof";
+import { useHeroWords } from "./useHeroWords";
 
 /**
  * Hero (owner-approved landing redesign 2026-10-20; option B 2026-10-23): Bodoni
@@ -23,6 +24,8 @@ const HeroSection = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const inputId = useId();
+  // Spanish only when the visitor's language is Spanish; English (null) is the locked copy below, unchanged.
+  const es = useHeroWords();
 
   // Search: a signed-out visitor gets the public Jobs board with the words;
   // a signed-in one gets Jobs > Browse with them (heroSearch.ts).
@@ -44,9 +47,9 @@ const HeroSection = () => {
               className="landing-h1 relative z-10 font-display font-bold leading-[1] text-balance break-words text-[3.25rem] min-[400px]:text-[3.5rem] sm:text-[4.75rem] lg:text-[6.5rem] xl:text-[7.75rem]"
               style={{ color: "var(--lp-ink)", letterSpacing: "-0.03em" }}
             >
-              Louisiana&rsquo;s local{" "}
+              {es ? es.titleLead : <>Louisiana&rsquo;s local</>}{" "}
               <em className="relative inline-block" style={{ fontStyle: "italic", color: "var(--lp-money)" }}>
-                partner.
+                {es ? es.titleAccent : "partner."}
               </em>
             </h1>
 
@@ -54,7 +57,7 @@ const HeroSection = () => {
               className="mt-6 lg:mt-7 text-ds-16 sm:text-ds-17 lg:text-ds-20 leading-relaxed lg:whitespace-nowrap"
               style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 400, color: "var(--lp-body)" }}
             >
-              Hire help or find work. One account, real neighbors.
+              {es ? es.subhead : "Hire help or find work. One account, real neighbors."}
             </p>
 
             <form
@@ -64,7 +67,7 @@ const HeroSection = () => {
               className="landing-search mt-8 lg:mt-10 w-full max-w-xl lg:max-w-[640px] text-left flex items-center gap-1.5 p-1.5"
               data-testid="landing-search"
             >
-              <label htmlFor={inputId} className="sr-only">Search local jobs</label>
+              <label htmlFor={inputId} className="sr-only">{es ? es.searchLabel : "Search local jobs"}</label>
               <div className="landing-search-field flex-1 min-w-0 flex items-center gap-2.5 pl-4 lg:pl-5 pr-1 h-12 lg:h-[52px]">
                 <Search className="hidden sm:block w-[18px] h-[18px] lg:w-5 lg:h-5 shrink-0" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-muted)" }} />
                 <input
@@ -75,7 +78,7 @@ const HeroSection = () => {
                   maxLength={80}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search local jobs"
+                  placeholder={es ? es.searchLabel : "Search local jobs"}
                   className="w-full min-w-0 bg-transparent outline-none text-ds-16 lg:text-ds-17 placeholder:text-[color:var(--lp-muted)] placeholder:opacity-70"
                   style={{ color: "var(--lp-ink)" }}
                 />
@@ -84,10 +87,10 @@ const HeroSection = () => {
                 type="submit"
                 className="btn-grad-primary h-12 w-12 sm:w-auto lg:h-[52px] rounded-full p-0 sm:px-7 lg:px-8 text-ds-15 lg:text-ds-16 font-semibold shrink-0"
                 data-testid="landing-search-submit"
-                aria-label="Search"
+                aria-label={es ? es.searchButton : "Search"}
               >
                 <Search className="sm:hidden w-5 h-5" strokeWidth={2} aria-hidden />
-                <span className="hidden sm:inline">Search</span>
+                <span className="hidden sm:inline">{es ? es.searchButton : "Search"}</span>
               </Button>
             </form>
           </div>

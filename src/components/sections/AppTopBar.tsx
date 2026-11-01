@@ -1,7 +1,7 @@
 import { Plus, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
-import NotificationPanel from "@/components/NotificationPanel";
+import NotificationPanel from "@/components/notificationPanel/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";

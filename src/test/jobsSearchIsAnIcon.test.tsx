@@ -58,6 +58,8 @@ vi.mock("@/components/job-card/JobListPage", async () => {
   };
 });
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+// The title bars draw NotificationBell, which swaps the panel in: the same stand-in.
+vi.mock("@/components/notificationPanel/NotificationBell", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "u-1" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
 }));

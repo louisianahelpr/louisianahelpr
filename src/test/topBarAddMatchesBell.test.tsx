@@ -26,6 +26,8 @@ import { blankComments } from "./helpers/blankNonCode";
 const env = vi.hoisted(() => ({ desktop: true, under18: false }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => env.desktop }));
 vi.mock("@/components/NotificationPanel", () => ({ default: ({ triggerClassName }: { triggerClassName?: string }) => <button type="button" aria-label="Notifications" className={triggerClassName} /> }));
+// The title bars draw NotificationBell, which swaps the panel in: the same stand-in.
+vi.mock("@/components/notificationPanel/NotificationBell", () => ({ default: ({ triggerClassName }: { triggerClassName?: string }) => <button type="button" aria-label="Notifications" className={triggerClassName} /> }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u-1" }, profile: { avatar_url: null, full_name: "Test Person" } }) }));
 vi.mock("@/hooks/useAgeGate", () => ({
   useAgeGate: () => ({

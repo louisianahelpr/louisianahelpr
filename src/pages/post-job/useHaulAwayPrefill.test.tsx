@@ -15,7 +15,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 
-const h = vi.hoisted(() => ({ on: true, rows: [] as unknown[], toasts: [] as string[] }));
+const h = vi.hoisted(() => ({ on: true, rows: [] as unknown[], toasts: [] as string[], empty: 0 }));
+// B68: a prevented preload (Vite resolves the import with undefined) for the next `h.empty` loads.
+vi.mock("@/lib/loadModule", async (orig) => {
+  const real = await orig<typeof import("@/lib/loadModule")>();
+  return { ...real, loadModule: async <T,>(load: () => Promise<T>) => (h.empty > 0 ? (h.empty--, null) : real.loadModule(load)) };
+});
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => h.on }));
 vi.mock("sonner", () => ({
   toast: Object.assign((m: string) => h.toasts.push(m), { error: (m: string) => h.toasts.push(`error:${m}`) }),
@@ -50,6 +55,7 @@ function setters() {
 beforeEach(() => {
   h.on = true;
   h.toasts.length = 0;
+  h.empty = 0;
   vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, blob: async () => new Blob(["x"], { type: "image/jpeg" }) })));
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -108,5 +114,19 @@ describe("useHaulAwayPrefill", () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(s.setTitle).not.toHaveBeenCalled();
     expect(s2.setTitle).not.toHaveBeenCalled();
+  });
+
+  /**
+   * B68 (review of 5d490e886e): the link is marked applied before the code loads, so an empty module must not
+   * return silently (the prefill would be lost for good with no word). It fails into failed(): told and reported.
+   * @mutate src/pages/post-job/useHaulAwayPrefill.ts |       const d = loaded ?? (await untilReload()); |       if (!loaded) return;\n      const d = loaded;
+   */
+  it("the haul-away code comes back empty and no reload follows: the seller is told, never a silent drop", async () => {
+    h.rows = [row(A, "eligible")];
+    h.empty = 1;
+    const s = setters();
+    renderHook(() => useHaulAwayPrefill(new URLSearchParams(`haulAway=${A}`), s));
+    await waitFor(() => expect(h.toasts.some((t) => t.startsWith("error:Couldn't load your items"))).toBe(true));
+    expect(s.setTitle).not.toHaveBeenCalled();
   });
 });

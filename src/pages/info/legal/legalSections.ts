@@ -35,7 +35,7 @@ export const PAGE_CANONICALS: Record<TabKey, string> = {
 // rather than implying all three changed together — bump only the tab you
 // actually edited.
 export const LAST_UPDATED: Record<TabKey, string> = {
-  terms: "Oct 2026", // 2026-10-30: the Declutter handover money rule (owner); no version bump: already "Oct 2026", and a version is the month it is published and only moves later (consent.ts). 2026-10-30: when a card is charged, in the words the app already uses (JOBS-15; no version bump: nothing about the money changed). 2026-10-23: no release without the poster's approval, payout 3 days after approval (owner; no version bump: it only adds protection). 2026-10-21: the Declutter section (Q2308; no version bump, owner #14)
+  terms: "Oct 2026", // 2026-10-31: Declutter checkout time, Buy now holds 30 minutes and an accepted offer gives 24 hours to pay (BUY-1, owner via the lead; no version bump: already "Oct 2026", the month it is published). 2026-10-30: the Declutter handover money rule (owner); no version bump: already "Oct 2026", and a version is the month it is published and only moves later (consent.ts). 2026-10-30: when a card is charged, in the words the app already uses (JOBS-15; no version bump: nothing about the money changed). 2026-10-23: no release without the poster's approval, payout 3 days after approval (owner; no version bump: it only adds protection). 2026-10-21: the Declutter section (Q2308; no version bump, owner #14)
   community: "Oct 2026", // 2026-10-30: a poster's cancel is a strike only inside 24 hours (owner; no version bump: it only makes the rule gentler). 2026-10-23: approval rules (no auto-release). 2026-10-21: the 1099 line made true (Stripe issues the 1099-K)
   privacy: "Oct 2026",
 };

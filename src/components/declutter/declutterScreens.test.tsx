@@ -18,7 +18,7 @@
  * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state: afterCardReturnState(cardReturn === "saved", next) }); |     void afterCardReturnState;
  * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />)} | : null)}
  */
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -216,6 +216,14 @@ async function toStep5() {
   fireEvent.click(await screen.findByRole("button", { name: "Save and continue" }));
   await screen.findByRole("heading", { name: "Ready to list?" });
 }
+
+// The tabs and the agreed-sales view are lazy since train 13 (B74/B77): load their code once up front, so a cold CI
+// shard's first findBy never times out on a chunk import instead of the screen (#3938, Vitest shards 2 and 6).
+beforeAll(async () => {
+  await import("./DeclutterTradeViews");
+  await import("./DeclutterMineViews");
+  await import("./DeclutterBrowseView");
+}, 30_000);
 
 describe("Declutter screens", () => {
   beforeEach(() => {

@@ -5,9 +5,12 @@ import { useIdentityCheckStatus } from "@/hooks/useIdentityCheckOn";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { setPayoutAfterHireOn } from "@/lib/payoutAfterHireSwitch";
 import { useIdentityCheckSheet } from "@/lib/identityCheck";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
-const loadSheet = () => import("@/components/identity/IdentityCheckSheet");
-const IdentityCheckHost = lazy(() => loadSheet().then((m) => ({ default: m.IdentityCheckHost })));
+// Through loadModule (src/test/dynamicImportThenDoesNoWork.test.ts): a prevented preload resolves null, and the lazy
+// host then waits on the recovery reload instead of reading `undefined.IdentityCheckHost` (B85, 11-01).
+const loadSheet = () => loadModule(() => import("@/components/identity/IdentityCheckSheet"));
+const IdentityCheckHost = lazy(() => loadSheet().then((m) => (m ? { default: m.IdentityCheckHost } : untilReload())));
 
 /** The two links that open the sheet on arrival (the notice, and Stripe's return). */
 export function hasIdentityEntryParam(params: URLSearchParams): boolean {

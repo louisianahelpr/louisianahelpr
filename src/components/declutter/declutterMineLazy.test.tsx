@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/DeclutterMineLazy.tsx |   const [Impl] = useState(() => loaded?.BuyingDash ?? LazyBuying); |   const [Impl] = useState(() => LazyBuying);
  * @mutate src/components/declutter/DeclutterMineLazy.tsx |   const [Impl] = useState(() => loaded?.SellingDash ?? LazySelling); |   const [Impl] = useState(() => LazySelling);
- * @mutate src/components/declutter/DeclutterMineLazy.tsx | const loadMineViews = () => import("./DeclutterMineViews").then((m) => (loaded = m)); | const loadMineViews = () => import("./DeclutterMineViews");
+ * @mutate src/components/declutter/DeclutterMineLazy.tsx | const loadMineViews = () => loadModule(() => import("./DeclutterMineViews")).then((m) => (m ? (loaded = m) : null)); | const loadMineViews = () => loadModule(() => import("./DeclutterMineViews"));
  */
 import { describe, expect, it, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";

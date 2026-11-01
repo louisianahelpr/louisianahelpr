@@ -17,7 +17,12 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 const css = blankComments(readFileSync(resolve(ROOT, "src/index.css"), "utf8"));
-const html = readFileSync(resolve(ROOT, "index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+// Repeated until nothing changes, so a comment that only closes after another is removed is gone too (CodeQL #522).
+function stripHtmlComments(s: string): string {
+  for (let prev = ""; prev !== s; ) { prev = s; s = s.replace(/<!--[\s\S]*?-->/g, ""); }
+  return s;
+}
+const html = stripHtmlComments(readFileSync(resolve(ROOT, "index.html"), "utf8"));
 
 const LATIN =
   "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD";

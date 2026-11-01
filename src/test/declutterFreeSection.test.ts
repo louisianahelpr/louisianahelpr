@@ -12,7 +12,7 @@
  * planted out, "the giver may NOT open a payout account" FAILs). This guard pins the newest definitions
  * and the screens that carry it.
  *
- * @mutate supabase/migrations/20261101032626_declutter_checkout_page_inside_hold.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
@@ -40,8 +40,8 @@ describe("the Declutter Free section", () => {
     // declutter_take_item: restated by the notice copy (20261028171944) with the free claim kept (asserted below).
     // DA-12 (20261030063015): then the free claim notice without the strike threat (free claim kept); DB-5
     // (20261030064929): then the Buy now notice without it (free claim kept); BUY-1 (20261101030040): the hold lengths
-    // (a free claim keeps its 48 hours, asserted below).
-    expect(newestFunction("declutter_take_item").file).toContain("20261101030040_declutter_buy_now_30_minutes.sql");
+    // (a free claim keeps its 48 hours, asserted below). B110 (20261101191500): the accepted-offer notice copy only.
+    expect(newestFunction("declutter_take_item").file).toContain("20261101191500_declutter_checkout_pickup_time.sql");
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
     // Then D-NEW14 porch places (20261030164712: porch_place_needed and the frozen place, insertion only).

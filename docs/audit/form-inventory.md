@@ -335,6 +335,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/profile/ProfileEditForm.tsx` | input×4, textarea×1 | tel, text | 5 | phone · location · zipCode · bio · bio-contact-leak · skillsOther · Anything else you offer… |
 | `src/components/profile/profileEditForm/PhotoNameSection.tsx` | input×2 | file, text |  |  |
 | `src/components/profile/profileEditForm/RecentWorkSection.tsx` | input×1 | file |  | Remove this photo |
+| `src/components/profile/ProfileLinkRow.tsx` | input×1 | text | 30 | profile-link-panel · profile-handle · profile-handle-hint |
 | `src/components/profile/SavedHelpersTab.tsx` | input×1 | search |  | Search saved Helprs · Search saved Helprs… · Close search · Filter saved Helprs by skill · Sort saved Helprs |
 | `src/components/profile/savedHelpersTab/SavedHelperCard.tsx` | textarea×1 |  | 500 | Private note about this Helpr · Remove from saved |
 | `src/components/profile/ScheduleTab.tsx` | date/calendar×1 |  |  | schedule-card-body · schedule-card-meta-row · Add to calendar · schedule-layout · schedule-calendar · Previous month · Next month · schedule-list |

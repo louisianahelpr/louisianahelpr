@@ -386,6 +386,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PERF-SHELL (Q652): /browse's server-drawn job cards (src/lib/browseShellCards.mjs) arrive hidden inline and show
+   only once THIS stylesheet has applied (it loads async, see data-async-css in the built index.html), so they never
+   paint unstyled and then jump. !important beats the inline visibility:hidden. Guard: browseShellCards.test.tsx. */
+#lh-browse-shell { visibility: visible !important; }
+
 /* Garden District Stone Color System */
 /* "Trust lives in restraint" — Professional, neutral, high-end palette */
 

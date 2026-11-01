@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent, act, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SignupPending from "./SignupPending";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 
 const resendMock = vi.fn();
 const getSessionMock = vi.fn();
@@ -277,6 +278,33 @@ describe("SignupPending", () => {
       renderWithRouterState(EMAIL);
       await waitFor(() => expect(getSessionMock).toHaveBeenCalled());
       expect(navigateMock).not.toHaveBeenCalled();
+    });
+  });
+
+  // ID check copy (owner decisions 10-30, "Job poster: ID when posting"): once per account, at posting a
+  // job, being hired, listing, buying or claiming on Declutter, or the first payout (lead 10-31, B49's Help wording).
+  // Never shown while the switch is off.
+  // @mutate src/pages/auth/SignupPending.tsx | {idCheckOn ? " Once per account | {true ? " Once per account
+  describe("the ID check line", () => {
+    afterEach(() => setIdentityCheckOn(false));
+
+    it("says nothing about an ID check while identity_check is off", async () => {
+      setIdentityCheckOn(false);
+      renderWithRouterState(EMAIL);
+      await screen.findByText(EMAIL);
+      expect(screen.queryByText(/\bID\b|identity/i)).toBeNull();
+    });
+
+    it("names every moment the owner set, once per account, while the switch is on", async () => {
+      setIdentityCheckOn(true);
+      renderWithRouterState(EMAIL);
+      const line = await screen.findByText(/ID check/);
+      const text = line.textContent ?? "";
+      expect(text).toMatch(/once per account/i);
+      expect(text).toMatch(/post a job/);
+      expect(text).toMatch(/get hired/);
+      expect(text).toContain("Once per account there's a quick ID check: when you post a job, get hired, or list, buy or claim on Declutter, or at your first payout.");
+      expect(text).toMatch(/first payout/);
     });
   });
 });

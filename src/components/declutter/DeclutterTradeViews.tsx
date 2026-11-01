@@ -48,7 +48,7 @@ import { DeliveryPriceList } from "./DeliveryPriceList";
 import { DropoffAddressField } from "./DropoffAddressField";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
 import { HANDOVER_TITLE, HANDOVER_WORDS } from "./handoverCopy";
-import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
+import { fetchChosenMeetupHours, fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
 import { CartHold } from "./DeclutterReserveSheet";
@@ -181,7 +181,11 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const timedPickup = chosen === "porch" || chosen === "pickup_home" || meetingUp;
   const sellerTimes = useQuery({ queryKey: ["declutter", "item-pickup-windows", itemId], queryFn: () => fetchItemPickupWindows(itemId ?? ""),
     enabled: !!itemId && timedPickup, staleTime: 60_000 });
-  const placeHours = chosen !== "meetup" ? porchPlaces.places.find((p) => p.chosen)?.windows : null;
+  // B110: a seller's own meet spot has its own days and times (the server keeps the meetup to them).
+  const chosenSpotId = meetingUp ? spotsNear.find((s) => s.chosen)?.id ?? null : null;
+  const spotHours = useQuery({ queryKey: ["declutter", "chosen-meetup-hours", sellerId, chosenSpotId], queryFn: () => fetchChosenMeetupHours(sellerId),
+    enabled: !!chosenSpotId && spotsNear.some((s) => s.id === chosenSpotId && s.kind === "seller") });
+  const placeHours = chosen !== "meetup" ? porchPlaces.places.find((p) => p.chosen)?.windows : spotHours.data;
   const hours = useMemo(() => (placeHours && placeHours.length > 0 ? placeHours : (sellerTimes.data ?? [])), [placeHours, sellerTimes.data]);
   const pickupChoices = useMemo(
     () => (!timedPickup ? [] : chosen === "porch" ? porchWindowDays(hours, Date.now(), null) : pickupDays(hours, Date.now(), null)),
@@ -253,7 +257,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
                   onRetry={() => void porchPlaces.reread()} onChosen={() => { setQuote(null); setPickupPick(null); }} />
               )}
               {h === "meetup" && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
-              {timedPickup && placeReady && (
+              {timedPickup && placeReady && (!meetingUp || meetupReady) && (
                 <CheckoutPickupTime days={pickupChoices} porch={h === "porch"} meetup={h === "meetup"} value={pickupStart}
                   loading={sellerTimes.isLoading && !(placeHours && placeHours.length > 0)}
                   onPick={(iso) => setPickupPick(iso ? { way: h, iso } : null)} />

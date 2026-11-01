@@ -34,6 +34,7 @@
   "include": [
     "src",
     "e2e/liveSession.ts",
+    "e2e/visual-audit/offCanvas.ts",
     "e2e/a11y-prod/sectionTabScreens.ts",
     "e2e/a11y-prod/abortProdWrites.ts",
     "e2e/a11y-prod/readOnlyRpcs.ts",

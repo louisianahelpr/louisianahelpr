@@ -15,7 +15,7 @@ export const PAIR_LABEL_MAX = 12;
 const SHORT: ReadonlyArray<[RegExp, string]> = [
   [/^Message\b.*/, "Message"],
   [/^Approve and release$/, "Approve"],
-  [/^Confirm (they've arrived|it's still on|you'll be at the job)$/, "Confirm"],
+  [/^Confirm (they've arrived|it's still on|you'll be at the job|I'll be there|new day)$/, "Confirm"],
   [/^Review \d+ applicants?$/, "Applicants"],
   [/^Post this job again$/, "Post again"],
   [/^Change date or time$/, "Change time"],
@@ -39,6 +39,19 @@ const SHORT: ReadonlyArray<[RegExp, string]> = [
 export function pairLabel(label: string): string {
   for (const [re, short] of SHORT) if (re.test(label)) return short;
   return label;
+}
+
+/**
+ * EVERY CONFIRM BUTTON READS JUST "Confirm" (owner 11-01: "make the confirm button just confirm"), alone or in a pair:
+ * the day-of confirm, "Confirm it's still on", "Confirm they've arrived", and the continue day's "Confirm I'll be there"
+ * and "Confirm new day". The full words stay the button's accessible name (aria-label) and the next-step line says
+ * what is being confirmed. Dialog titles and the crew's "Confirm work" keep their words. Guard: src/test/confirmButtonsSayConfirm.test.tsx.
+ */
+const CONFIRM_FULL = /^Confirm (they've arrived|it's still on|you'll be at the job|I'll be there|new day)$/;
+
+/** The words a button shows when it stands alone: "Confirm" for every confirm, else the label itself. */
+export function buttonLabel(label: string): string {
+  return CONFIRM_FULL.test(label) ? "Confirm" : label;
 }
 
 /** One line, never wrapped: the pair's text class (the label is short enough by pairLabel). */

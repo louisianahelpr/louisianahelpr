@@ -3,10 +3,14 @@
  * job the figure stands alone at $50, with no setup-fee line; "You take home"
  * stays on every other job (owner rule 2026-10-25). Mounts the real components.
  *
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |         : !fixedPay && <p className="mt-1 text-ds-12 font-semibold text-muted-foreground">You take home</p>} |         : <p className="mt-1 text-ds-12 font-semibold text-muted-foreground">You take home</p>}
+ * Owner 2026-11-01: "Remove you take home." The job page's amount and the card's figure drop the visible words on
+ * every job; an ordinary job keeps a screen-reader "Your pay", the giveaway none. The apply sheet's row keeps its label.
+ *
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | {!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p> | <span className="sr-only">Your pay </span>${formatPriceFloor(net)}</p>
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       {disputed && <p data-helpr-money-held="" | {!disputed && <p data-helpr-money-held="" className="sr-only">You take home</p>}{disputed && <p data-helpr-money-held=""
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     firstPayoutFee > 0 && !disputed && !fixedPay ? setupFeeWords(firstPayoutFee) : null, |     firstPayoutFee > 0 && !disputed ? setupFeeWords(firstPayoutFee) : null,
- * @mutate src/components/dashboard/helprTakeHome.tsx |       {!fixedPay && "You take home "}<span className="font-semibold |       {"You take home "}<span className="font-semibold
- * @mutate src/components/dashboard/helprTakeHome.tsx |         {!fixedPay && <span className="sr-only">You take home </span>}${formatPriceFloor(net)} |         <span className="sr-only">You take home </span>${formatPriceFloor(net)}
+ * @mutate src/components/dashboard/helprTakeHome.tsx |       {!fixedPay && <span className="sr-only">Your pay </span>}<span className="font-semibold |       {"You take home "}<span className="font-semibold
+ * @mutate src/components/dashboard/helprTakeHome.tsx |         {!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)} |         <span className="sr-only">Your pay </span>${formatPriceFloor(net)}
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |       {!isGiveawayFixedPayJob(confirmApplyJob) && ( |       {true && (
  * @mutate src/components/messages/chatView/DealCard.tsx |       {!isGiveawayFixedPayJob(job) && <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>} |       <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>
  * @mutate src/pages/tips/TipMoment.tsx | isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home" | "Job, you take home"
@@ -48,28 +52,32 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
   beforeEach(() => { owed.cents = 200; });
   afterEach(cleanup);
 
-  const surfaces: Array<[string, (j: typeof giveaway) => React.ReactElement]> = [
-    ["the job page's amount and notes", (j) => <><HelprPrice job={j as never} /><HelprMoneyNotes job={j as never} hired={false} /></>],
-    ["the sentence (quick view, Application sent)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} after=", paid once it's confirmed done" />],
-    ["the bare figure (job sheet)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} bare />],
-    ["the apply sheet", (j) => <ApplyEarningsBreakdown confirmApplyJob={j as unknown as EnrichedJob} platformFee={12} />],
+  // What an ordinary job still says: the apply sheet's labelled row ("take home"); elsewhere only a screen-reader "Your pay".
+  const SR = /Your pay/;
+  const surfaces: Array<[string, (j: typeof giveaway) => React.ReactElement, RegExp]> = [
+    ["the job page's amount and notes", (j) => <><HelprPrice job={j as never} /><HelprMoneyNotes job={j as never} hired={false} /></>, SR],
+    ["the sentence (quick view, Application sent)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} after=", paid once it's confirmed done" />, SR],
+    ["the bare figure (job sheet)", (j) => <JobPriceTakeHome job={j as TakeHomeJob} bare />, SR],
+    ["the apply sheet", (j) => <ApplyEarningsBreakdown confirmApplyJob={j as unknown as EnrichedJob} platformFee={12} />, WORDS],
   ];
 
-  for (const [name, ui] of surfaces) {
+  for (const [name, ui, kept] of surfaces) {
     it(`${name}: $50 and no words on the giveaway, even with the setup fee owed`, () => {
       const text = textOf(ui(giveaway));
       // Floor: the surface rendered (an empty render has none of the words either).
       expect(text.length).toBeGreaterThan(2);
       expect(text).toContain("$50");
       expect(text).not.toMatch(WORDS);
+      expect(text).not.toMatch(SR);
       expect(text).not.toMatch(/setup fee/i);
       expect(text).not.toContain("$48");
     });
 
-    it(`${name}: an ordinary job keeps its words and its $54`, () => {
+    it(`${name}: an ordinary job keeps its $54 and only the words it should`, () => {
       const text = textOf(ui(ordinary));
       expect(text).toContain("$54");
-      expect(text).toMatch(WORDS);
+      expect(text).toMatch(kept);
+      if (kept === SR) expect(text).not.toMatch(WORDS);
     });
   }
 

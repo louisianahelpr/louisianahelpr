@@ -12,10 +12,9 @@ import { landingAuthHint, noteAuthEventForDiagnostics, authDiagnostics } from ".
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { initNative, hideSplash } from "./lib/nativeInit";
+import { initNative, hideSplash, isNativePlatform } from "./lib/nativeInit";
 import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
 import { USER_ERROR_SCREEN } from "./lib/currentScreen";
-import { initShakeToReport } from "./lib/shakeToReport";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
 import { backgroundImport, handleVitePreloadError, trackFailedAssetLoads } from "./lib/chunkReload";
 import { blockReplayIfTestProfile } from "./lib/replayTestProfile";
@@ -529,9 +528,20 @@ void hydrateStorage();
   // opens with "Report Issue" already selected. (`?from=shake` alone never
   // did: the route used to redirect to the /help FAQ, which ignored it, so
   // the "pre-tagged" in this comment was aspirational until now.)
-  initShakeToReport(() => {
-    if (typeof window !== "undefined") {
-      window.location.href = "/support?topic=report&from=shake";
-    }
-  });
+  //
+  // Loaded only in the app (B47 10-31): the website never supports it (isShakeToReportSupported is native-only), so
+  // a static import put the module and its sell-chooser import on every web route's boot path for nothing.
+  // Guard: src/test/shakeToReportLoadsOnlyInTheApp.test.ts.
+  if (isNativePlatform) {
+    void backgroundImport(() => import("./lib/shakeToReport"), "boot-shake-to-report")
+      .then(({ initShakeToReport }) => initShakeToReport(() => {
+        if (typeof window !== "undefined") {
+          window.location.href = "/support?topic=report&from=shake";
+        }
+      }))
+      .catch((err) => {
+        // A chunk that failed to load leaves shake-to-report off for this launch; nothing else depends on it.
+        console.warn("[shake] could not load shake-to-report", err);
+      });
+  }
 })();

@@ -47,7 +47,7 @@
  * @mutate src/lib/declutter/soldPayout.ts |       return payout.executed_at ? `Paid out ${formatDay(payout.executed_at)}` : "Paid out"; |       return "Paid out";
  * @mutate src/components/declutter/DeclutterReopenListing.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
  */
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeAll, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "@/test/helpers/trackedFiles";
@@ -209,6 +209,12 @@ const EVERY_STATUS = [
   { ...ITEM, id: "i4", status: "paused", title: "Rug" },
   { ...ITEM, id: "i5", status: "rejected", title: "Mirror" },
 ];
+
+// The tabs and the agreed-sales view are lazy since train 13 (B74/B77): load their code once up front, so a cold CI
+// shard's first findBy never times out on a chunk import instead of the screen (#3938, Vitest shards 2 and 6).
+beforeAll(async () => {
+  await import("./DeclutterMineViews");
+}, 30_000);
 
 describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   beforeEach(() => {

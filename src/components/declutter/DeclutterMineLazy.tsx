@@ -7,6 +7,7 @@
  */
 import { lazy, useEffect, useState, type ComponentProps } from "react";
 import { whenPageSettled } from "@/lib/routePrefetch";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 type MineViews = typeof import("./DeclutterMineViews");
 /**
@@ -16,9 +17,11 @@ type MineViews = typeof import("./DeclutterMineViews");
  * here, a tab draws it directly; each mount picks its component ONCE, so a lazy-drawn tab never remounts.
  */
 let loaded: MineViews | null = null;
-const loadMineViews = () => import("./DeclutterMineViews").then((m) => (loaded = m));
-const LazyBuying = lazy(() => loadMineViews().then((m) => ({ default: m.BuyingDash })));
-const LazySelling = lazy(() => loadMineViews().then((m) => ({ default: m.SellingDash })));
+// Through loadModule (src/test/dynamicImportThenDoesNoWork.test.ts): a prevented preload resolves null, and the lazy
+// tab then waits on the recovery reload instead of reading `undefined.BuyingDash` (train 13, 11-01).
+const loadMineViews = () => loadModule(() => import("./DeclutterMineViews")).then((m) => (m ? (loaded = m) : null));
+const LazyBuying = lazy(() => loadMineViews().then((m) => (m ? { default: m.BuyingDash } : untilReload())));
+const LazySelling = lazy(() => loadMineViews().then((m) => (m ? { default: m.SellingDash } : untilReload())));
 
 export function BuyingDash(props: ComponentProps<MineViews["BuyingDash"]>) {
   const [Impl] = useState(() => loaded?.BuyingDash ?? LazyBuying);

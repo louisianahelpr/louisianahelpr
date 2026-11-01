@@ -11,6 +11,7 @@ import { CountdownRows, jobStartTarget, type CountdownClock } from "@/components
 import type { Application, AppliedApp, Job } from "../../../components/job-card/activityConstants";
 import { DEFAULT_RESPONSE_WINDOW_HOURS, isDirectOffer, offerClock } from "../../../components/job-card/offerClock";
 import { seriesSummary } from "@/lib/format";
+import { InstantBookingCard } from "@/components/jobs/InstantBookingCard";
 
 interface OfferedActionsProps {
   app: AppliedApp;
@@ -35,7 +36,20 @@ interface OfferedActionsProps {
  * reaching out directly. Gold-warm accent surfaces the "you were picked"
  * moment without shouting.
  */
-export function OfferedActions({ app, job, onHelperResponse, respondingHelperAppId }: OfferedActionsProps) {
+export function OfferedActions(props: OfferedActionsProps) {
+  // CMP-4: an instant booking is answered with its own card (Confirm / Decline,
+  // the 2-hour countdown), never the generic offer's Accept and 24-hour clock.
+  if (props.job.instant_decline_until) {
+    return (
+      <div className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+        <InstantBookingCard jobId={props.job.id} title={props.job.title} declineUntil={props.job.instant_decline_until} />
+      </div>
+    );
+  }
+  return <GenericOfferedActions {...props} />;
+}
+
+function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperAppId }: OfferedActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const busy = respondingHelperAppId === app.id;
   // Which button was pressed: only that one says "Accepting…" / "Declining…" (audit 2026-10-28 F6:

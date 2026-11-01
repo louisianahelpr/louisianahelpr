@@ -49,6 +49,7 @@ const StrSettingsTab = lazy(() => import("@/pages/profile/StrSettings"));
 const AutoTipTab = lazy(() => import("@/pages/profile/AutoTip"));
 const SavedSearchesTab = lazy(() => import("@/pages/profile/SavedSearchesTab"));
 const BlockedPeopleTab = lazy(() => import("@/pages/profile/BlockedPeopleTab"));
+const InstantBookTab = lazy(() => import("@/pages/profile/InstantBookTab"));
 const WrappedTab = lazy(() => import("@/pages/profile/HelprWrapped"));
 const AnalyticsTab = lazy(() => import("@/pages/profile/HelperAnalytics"));
 const PayoutHistoryTab = lazy(() => import("@/pages/profile/PayoutHistory"));
@@ -332,6 +333,12 @@ export const ProfileTabPanels = ({
       {tab === "blocked" && (
         <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <BlockedPeopleTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "instant_book" && (
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
+          <InstantBookTab onBack={onBackFromTab} />
         </Suspense>
       )}
 

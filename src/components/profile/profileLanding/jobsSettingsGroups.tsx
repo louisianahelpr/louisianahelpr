@@ -1,4 +1,4 @@
-import { BadgeCheck, CalendarDays, ClipboardList, Clock, Coins, FileText, Heart, Home, PawPrint } from "lucide-react";
+import { BadgeCheck, CalendarDays, ClipboardList, Clock, Coins, FileText, Heart, Home, PawPrint, Zap } from "lucide-react";
 import type { MenuItem } from "./types";
 import { SECTION_TINT } from "./workMenuGroup";
 import { TAB_TITLES } from "@/pages/profile/types";
@@ -29,6 +29,8 @@ export const JOBS_SETTINGS_GROUPS: { title: string; items: MenuItem[] }[] = [
     items: [
       { key: "schedule", label: "Schedule", icon: <CalendarDays className="w-5 h-5" />, desc: "Your calendar & upcoming jobs", tint: SECTION_TINT.work, href: "/profile?tab=schedule" },
       { key: "availability", label: "Availability", icon: <Clock className="w-5 h-5" />, desc: "Weekly hours & the available-now signal", tint: SECTION_TINT.work, href: "/profile?tab=availability" },
+      // CMP-4: the private least-you'd-take per kind of work, so posters can book you now.
+      { key: "instant-book", label: TAB_TITLES.instant_book, icon: <Zap className="w-5 h-5" />, desc: "Let people book you now, at your lowest price (private)", tint: SECTION_TINT.work, href: "/profile?tab=instant_book" },
       // Q2200: the owner asked for Licensed & Insured in the Helpr's Jobs settings (it also stays in Shops > Shop settings).
       { key: "credentials", label: TAB_TITLES.credentials, icon: <BadgeCheck className="w-5 h-5" />, desc: "Licenses & insurance for licensed work", tint: SECTION_TINT.work, href: "/profile?tab=credentials" },
       { key: "work-record", label: "Work record", icon: <FileText className="w-5 h-5" />, desc: "Shareable verified earnings document", tint: SECTION_TINT.work, href: "/profile?tab=work_record" },

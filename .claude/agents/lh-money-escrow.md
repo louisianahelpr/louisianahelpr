@@ -181,3 +181,9 @@ Also: never drop the Supabase `error`. In a React Query `queryFn` use `unwrap()`
 The Stripe object (PaymentIntent / Transfer / Charge id and amount), the DB row before and
 after, and the number displayed in the UI. All three must agree, and you show all three.
 A money claim with only a code citation is not verified.
+
+### Instant book floors (`?tab=instant_book`, CMP-4, 2026-11-01)
+
+You › Jobs settings › When you work › Instant book: a Helpr's private least-they'd-take per kind of work (at most 3).
+Verify: the amount is read only through rpc_my_instant_book_floors (never by any other member, never on a client-readable
+table); Save sends cents ($10 to $1,000) and Remove sends NULL; every refusal is worded (src/lib/instantBook.ts).

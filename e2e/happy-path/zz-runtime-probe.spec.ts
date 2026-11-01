@@ -754,6 +754,10 @@ test("2d · offline: OfflineBanner appears and the app degrades honestly", async
   await page.waitForTimeout(1500);
   await expect(page.getByText("You're offline", { exact: false })).toHaveCount(0);
 
+  // The app confirms "offline" with a probe to the auth health endpoint (src/lib/connectivity.ts); the mocked
+  // backend's catch-all route would answer it even offline, so the probe fails here the way a real one does.
+  const HEALTH = "**/auth/v1/health*";
+  await page.route(HEALTH, (r) => r.abort("internetdisconnected"));
   await context.setOffline(true);
   await page.evaluate(() => window.dispatchEvent(new Event("offline")));
 
@@ -771,6 +775,7 @@ test("2d · offline: OfflineBanner appears and the app degrades honestly", async
   expect(body).not.toMatch(/will retry automatically|reconnecting…?/i);
 
   // …and it goes away again.
+  await page.unroute(HEALTH);
   await context.setOffline(false);
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
   await expect(page.getByText("You're offline. Reconnect to load anything new.")).toHaveCount(0, {

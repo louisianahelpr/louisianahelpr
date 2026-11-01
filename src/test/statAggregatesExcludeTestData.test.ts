@@ -112,6 +112,7 @@ const ALLOWED: Record<string, string> = {
   helpr_route_suggestions: LIMIT,
   helpr_task_accept: LIMIT,
   helpr_task_give_job_strike: LADDER,
+  helpr_task_send_message: LIMIT, // BUY-36 delivery chat (20261031231948): 30 of the sender's own messages an hour
   // B-delivery (20261030044539): open-task counts by area for a Helpr; helpr_task_same_stripe_mode keeps a seeded test
   // account's tasks and a real member's apart, so a real Helpr never counts test data.
   helpr_tasks_open_count: "excludes test data: helpr_task_same_stripe_mode (seeded test accounts and real members never see one another's tasks)",

@@ -110,6 +110,8 @@ describe("Leave a review while a refund is open (D2-15)", () => {
 
   it("the order card tells the review button whether it shows the refund panel", () => {
     const src = readFileSync(resolve(__dirname, "DeclutterHandoverViews.tsx"), "utf8");
+    // Floor (vacuity scan): the file read is the real card, not an empty or wrong file (41 KB on 10-31).
+    expect(src.length).toBeGreaterThan(10_000);
     expect(src).toContain("{refundRequests && items > 0 && (");
     expect(src).toMatch(/<DeclutterReviewForm [^>]*refundPanel=\{!!refundRequests && items > 0\}/);
   });

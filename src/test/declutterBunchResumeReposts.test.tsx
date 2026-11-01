@@ -128,6 +128,7 @@ describe("listing never posts an item that is already live", () => {
       setHandovers: vi.fn(async (_id, w) => w),
       setDropPct: vi.fn(async (_id, p) => p),
       setKeepUp: vi.fn(async (_id, on) => on),
+      setAutoFreeDays: vi.fn(async (_id: string, d: number | null) => d),
       setOfferRules: vi.fn(async () => {}),
       publishMany: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, status: "live" as const }))),
       ...over,

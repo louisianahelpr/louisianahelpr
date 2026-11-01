@@ -9,19 +9,20 @@
  * @mutate src/components/guarantee/HelprGuaranteePanel.tsx | An admin is deciding this, including whether you get a refund of the job price. | An admin is deciding this. A refund, if any, is of the job price.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { GuaranteeClaim, GuaranteeJob } from "@/lib/guarantee";
 
 const s = vi.hoisted(() => ({
   claim: null as unknown,
   calls: [] as unknown[][],
+  fetched: 0,
 }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 vi.mock("@/hooks/useProofPhotoUrls", () => ({ useProofPhotoUrls: (v: string[]) => v.map(() => null) }));
 vi.mock("@/lib/guarantee", async (orig) => ({
   ...(await orig<typeof import("@/lib/guarantee")>()),
-  fetchGuaranteeClaim: async () => s.claim,
+  fetchGuaranteeClaim: async () => { s.fetched += 1; return s.claim; },
   uploadGuaranteePhotos: async (...a: unknown[]) => (s.calls.push(["upload", ...a]), []),
   openGuaranteeClaim: async (...a: unknown[]) => (s.calls.push(["open", ...a]), "c1"),
   helprAnswerGuarantee: async (...a: unknown[]) => (s.calls.push(["answer", ...a]), "fix_scheduled"),
@@ -57,14 +58,43 @@ beforeEach(() => {
 });
 
 describe("the poster", () => {
-  it("an open job: the explainer only", () => {
-    renderPanel(job({ status: "open" }), "me", "poster");
-    expect(screen.getByText(/Not done right\? Tell us within 48 hours/)).toBeTruthy();
+  // JA-28 (audit 11-01): the explainer only where the guarantee applies (Working to 48 h after Done, no open dispute).
+  // @mutate src/lib/guarantee/index.ts |   if (job.status !== "completed") return false; |   if (job.status !== "completed") return true;
+  // @mutate src/lib/guarantee/index.ts |   if (job.has_active_dispute \|\| job.status === "disputed") return false; |   if (false) return false;
+  // @mutate src/components/guarantee/HelprGuaranteePanel.tsx |     if (!guaranteeExplainerApplies(job)) return null; |     if (false) return null;
+  // @mutate src/components/guarantee/HelprGuaranteePanel.tsx |   if (!c && !ask && !guaranteeExplainerApplies(job)) return null; |   if (false) return null;
+  it("an open job (not worked yet): no explainer", () => {
+    const { container } = renderPanel(job({ status: "open" }), "me", "poster");
+    expect(container.querySelector("[data-guarantee-panel]")).toBeNull();
+  });
+
+  it("a job under way: the explainer only", async () => {
+    renderPanel(job({ status: "in_progress", helper_completed_at: null, poster_completed_at: null }), "me", "poster");
+    expect(await screen.findByText(/Not done right\? Tell us within 48 hours/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Not done right" })).toBeNull();
   });
 
-  it("F5: the explainer's refund line is a whole sentence", () => {
-    const { container } = renderPanel(job({ status: "open" }), "me", "poster");
+  it("cancelled, booked, disputed, or past 48 h with no claim: no explainer", async () => {
+    for (const j of [
+      job({ status: "cancelled", payment_status: "refunded" }),
+      job({ status: "accepted", helper_completed_at: null, poster_completed_at: null }),
+      job({ status: "disputed" }),
+      job({ status: "in_progress", has_active_dispute: true }),
+      job({ helper_completed_at: doneAgo(50), poster_completed_at: doneAgo(49) }),
+    ]) {
+      const before = s.fetched;
+      const { container, unmount } = renderPanel(j, "me", "poster");
+      // The claim read has answered (an un-answered read also draws nothing, which would prove nothing).
+      await waitFor(() => expect(s.fetched).toBeGreaterThan(before));
+      await new Promise((r) => setTimeout(r, 10));
+      expect(container.querySelector("[data-guarantee-explainer]"), j.status ?? "").toBeNull();
+      unmount();
+    }
+  });
+
+  it("F5: the explainer's refund line is a whole sentence", async () => {
+    const { container } = renderPanel(job({ status: "in_progress", helper_completed_at: null, poster_completed_at: null }), "me", "poster");
+    await screen.findByText(/Tell us within 48 hours/);
     const text = (container.querySelector("[data-guarantee-explainer]")?.textContent ?? "").replace(/\s+/g, " ").trim();
     // Inventory floor: the explainer rendered with all its sentences.
     expect(text.split(/(?<=[.?])\s/).length).toBeGreaterThan(2);
@@ -92,9 +122,16 @@ describe("the poster", () => {
   });
 
   it("past 48 h, or already paid: no button", async () => {
-    renderPanel(job({ helper_completed_at: doneAgo(50), poster_completed_at: doneAgo(49) }), "me", "poster");
+    renderPanel(job({ payment_status: "released" }), "me", "poster");
     await screen.findByText(/Tell us within 48 hours/);
     expect(screen.queryByRole("button", { name: "Not done right" })).toBeNull();
+    cleanup();
+    const before = s.fetched;
+    const { container } = renderPanel(job({ helper_completed_at: doneAgo(50), poster_completed_at: doneAgo(49) }), "me", "poster");
+    await waitFor(() => expect(s.fetched).toBeGreaterThan(before));
+    await new Promise((r) => setTimeout(r, 10));
+    expect(screen.queryByRole("button", { name: "Not done right" })).toBeNull();
+    expect(container.querySelector("[data-guarantee-explainer]")).toBeNull();
   });
 
   it("after the fix: It's fixed closes it; Still not right needs a sentence", async () => {

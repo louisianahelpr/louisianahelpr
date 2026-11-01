@@ -1,7 +1,7 @@
 /**
  * A HELPR IS NEVER TOLD "YOU TAKE HOME $120" ON A JOB THAT PAYS THEM NOTHING (audit 11-01 JA-24, JA-29).
  *
- * The Helpr's money box on the job page (HelprMoney) read "You take home $120" on a cancelled job and on one where
+ * The Helpr's money on the job page (HelprPrice in the header, HelprMoneyNotes under it) read "You take home $120" on a cancelled job and on one where
  * they were reported a no-show (shots job-cancelled-helpr-375, job-noshow-reported-helpr-375), and as a certainty
  * during a dispute. Now: a cancelled job says "Not paid" (or, on the poster's late cancel, that they share the fee),
  * a no-show says so, and a disputed job says the amount is "On hold while we review", with no setup-fee line.
@@ -9,7 +9,8 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (job.status !== "cancelled") return null; |   return null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (noShow) return { title: "Not paid" | if (false) return { title: "Not paid"
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const disputed = job.status === "disputed" \|\| !!job.has_active_dispute; |   const disputed = false;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | <HelprMoney job={job} noShow={myApplication.data?.closed_reason === "no_show"} /> | <HelprMoney job={job} />
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | <HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} /> | <HelprPrice job={job} />
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | <HelprMoneyNotes job={job} hired={isHired} noShow={myApplication.data?.closed_reason === "no_show"} /> | <HelprMoneyNotes job={job} hired={isHired} />
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, render } from "@testing-library/react";
@@ -24,7 +25,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 
-import { HelprMoney } from "@/pages/jobs/jobPage/JobPageParts";
+import { HelprPrice, HelprMoneyNotes } from "@/pages/jobs/jobPage/JobPageParts";
 
 const row = (over: Partial<JobPageRow>): JobPageRow => ({
   id: "j", title: "Haul off a couch", description: null, category: "moving", budget: 120, date_needed: null, start_time: null,
@@ -34,8 +35,11 @@ const row = (over: Partial<JobPageRow>): JobPageRow => ({
 });
 
 const box = (job: JobPageRow, noShow = false) => {
-  render(<MemoryRouter><HelprMoney job={job} noShow={noShow} /></MemoryRouter>);
-  return document.querySelector("[data-helpr-money]")!.textContent ?? "";
+  const { container } = render(
+    <MemoryRouter><HelprPrice job={job} noShow={noShow} /><HelprMoneyNotes job={job} hired noShow={noShow} /></MemoryRouter>,
+  );
+  expect(container.querySelector("[data-helpr-money]")).toBeTruthy();
+  return container.textContent ?? "";
 };
 
 afterEach(cleanup);
@@ -76,10 +80,10 @@ describe("the Helpr's money box (JA-24, JA-29)", () => {
     }
   });
 
-  it("the job page passes the Helpr's no-show to the box", () => {
+  it("the job page passes the Helpr's no-show to the amount and to the notes", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../pages/jobs/jobPage/JobPage.tsx"), "utf8"));
-    const uses = src.match(/<HelprMoney\b[^>]*>/g) ?? [];
-    expect(uses.length).toBeGreaterThan(0);
+    const uses = src.match(/<HelprPrice\b[^>]*>|<HelprMoneyNotes\b[^>]*>/g) ?? [];
+    expect(uses.length).toBeGreaterThan(1);
     for (const u of uses) expect(u).toContain('noShow={myApplication.data?.closed_reason === "no_show"}');
   });
 });

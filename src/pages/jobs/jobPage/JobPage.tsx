@@ -50,6 +50,7 @@ import { jobPageViewerState } from "./viewerState";
 import { useQuery } from "@tanstack/react-query";
 import { lazy, Suspense, useState } from "react";
 import { fetchSellerCard } from "@/lib/declutter/api";
+import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
@@ -99,7 +100,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
   // The hired Helpr's first name, off the same card read the poster's Message button uses (posterPageActions), so
   // the tracker line names who the page names: "Eli is working", not "Your Helpr is working" (B49 375 look, 10-31).
-  const helperId = isPoster ? q.data?.job.helper_id ?? null : null;
+  // JA-49 (lead 11-01, B107): a direct offer out names the OFFERED Helpr (no helper_id yet; offered_to_helper_id is not
+  // selectable, so the poster reads it through get_job_offer_targets, as Messages does).
+  const offerPending = isPoster && q.data?.job.status === "open" && q.data?.job.direct_offer_status === "pending";
+  const offerTarget = useQuery({
+    queryKey: ["job-offer-target", id],
+    queryFn: async () => (await fetchJobOfferTargets([id])).get(id) ?? null,
+    enabled: !!offerPending,
+  });
+  const helperId = isPoster ? q.data?.job.helper_id ?? (offerPending ? offerTarget.data ?? null : null) : null;
   const helperCard = useQuery({ queryKey: ["declutter", "seller-card", helperId], queryFn: () => fetchSellerCard(helperId!), enabled: !!helperId });
   const helperFirst = (helperCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
   // The poster's Instant Release (the card's own read, PostedJobActions): the work is approved for them, so no clock.
@@ -326,7 +335,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             hideNext={isPoster && showsNow(job, trackingStatus)}
             otherFirst={isPoster ? helperFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
-            offerOut={offerOut} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
+            offerOut={offerOut} offerUntil={job.direct_offer_expires_at ?? null} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
           {/* JA-30 (Jobs audit 11-01): the dispute line says when they hear back; "See the case" opens the case itself
@@ -375,8 +384,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         </div>
 
         {/* Lead 11-01 (B107): a stage with nothing in the main column (no photos, crew or fix: Done, Cancelled) left an
-            EMPTY left column beside the card at 1440. The card then takes the main column, under the tracker. */}
-        <aside aria-label="Price and actions" data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1">
+            EMPTY left column beside the card at 1440. The card (and the Guarantee under it) then sits right under the
+            tracker at full content width, from 1024 up. */}
+        <aside aria-label="Price and actions" data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
           <section data-job-card="" className={`${CARD} space-y-4 p-4 empty:hidden lg:p-5`}>
             {wide && price}
             {wide && moneyNotes}

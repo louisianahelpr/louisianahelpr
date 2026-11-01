@@ -11,9 +11,14 @@ import type { JobProgressState } from "./jobProgressState";
 /** "Confirm you'll be at the job by Wed 9:00 AM" -> the step and "by Wed 9:00 AM". */
 const BY_DAY = /^(.*\S) (by (?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b.*)$/;
 
+/** "Mon 6:00 AM" in Louisiana time (the tracker's own format, jobProgressState `when`). */
+function laTime(ms: number): string {
+  return new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+}
+
 export function jobNextStep(
   progress: JobProgressState,
-  o: { side: "poster" | "helpr"; otherFirst?: string | null; pendingApplicants?: number; offerOut?: boolean; noShowRepostedOn?: string | null; approveLeft?: string | null },
+  o: { side: "poster" | "helpr"; otherFirst?: string | null; pendingApplicants?: number; offerOut?: boolean; offerUntil?: string | null; noShowRepostedOn?: string | null; approveLeft?: string | null },
 ): NextStepValue | null {
   const other = (o.otherFirst ?? "").trim();
   // Off the path (cancelled, expired, under review): where it stands, with its word.
@@ -22,7 +27,12 @@ export function jobNextStep(
     return { who: "info", text: progress.next ? `${progress.word} · ${progress.next}` : progress.word };
   }
   // JA-48 / JA-49: an offer or a booking out is not "waiting for Helprs to apply", nor a nameless "with them".
-  if (o.side === "poster" && o.offerOut) return { who: "them", text: `Waiting on ${other || "the Helpr"} to accept your offer` };
+  // JA-49 (lead 11-01, B107): the offered Helpr by name and until when the offer stands (jobs.direct_offer_expires_at).
+  if (o.side === "poster" && o.offerOut) {
+    const untilMs = Date.parse(o.offerUntil ?? "");
+    const by = Number.isNaN(untilMs) || untilMs <= Date.now() ? null : `until ${laTime(untilMs)}`;
+    return { who: "them", text: `Waiting on ${other || "the Helpr"} to accept your offer`, by };
+  }
   if (o.side === "poster" && progress.stage === 0) {
     const n = o.pendingApplicants ?? 0;
     if (n > 0) return { who: "you", text: "Choose a Helpr", by: `${n} applied` };

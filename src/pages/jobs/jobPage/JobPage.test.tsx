@@ -149,7 +149,8 @@ vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }))
 // The Helpr Guarantee panel's read (no claim on these jobs); its own behaviour is helprGuarantee.test.ts and the PGlite proof.
 vi.mock("@/lib/guarantee", async (orig) => ({ ...(await orig<typeof import("@/lib/guarantee")>()), fetchGuaranteeClaim: async () => null }));
 vi.mock("@/lib/declutter/api", () => ({
-  fetchSellerCard: async () => ({ name: "Rhonda Dupre", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" }),
+  // JA-49: the Helpr a direct offer went to (get_job_offer_targets below) is "Yusef"; everyone else "Rhonda".
+  fetchSellerCard: async (id: string) => ({ name: id === "33333333-3333-3333-3333-333333333333" ? "Yusef Brown" : "Rhonda Dupre", avatarUrl: null, joinedAt: "2025-03-10T12:00:00Z" }),
   fetchSellerRating: async () => null,
 }));
 
@@ -186,6 +187,11 @@ vi.mock("./usePosterPageFlows", () => ({
 // JA-30: the case dialog the page opens (the cards' own DisputeTimelineDialog), recorded rather than reading Supabase.
 vi.mock("@/components/DisputeTimelineDialog", () => ({
   DisputeTimelineDialog: (p: { jobId: string; open: boolean }) => (p.open ? <div data-testid="dispute-case" data-job={p.jobId} /> : null),
+}));
+// JA-49: the poster's read of who a direct offer went to (offered_to_helper_id is not selectable).
+const offerTargetCalls = vi.hoisted(() => [] as string[][]);
+vi.mock("@/lib/jobOfferTargets", () => ({
+  fetchJobOfferTargets: async (ids: string[]) => { offerTargetCalls.push(ids); return new Map(ids.map((i) => [i, "33333333-3333-3333-3333-333333333333"])); },
 }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
 
@@ -1572,7 +1578,7 @@ describe("job page, a disputed job (JA-30)", () => {
 /**
  * Lead 11-01 (B107): at 1440 a stage with nothing in the main column (Done, Cancelled: no photos, crew or fix) left the
  * left column EMPTY beside the side card. The main column hides when empty, and the card then takes its place.
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |  lg:[[data-job-main]:empty+&]:col-start-1"> | ">
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |  lg:[[data-job-main]:empty+&]:col-span-2"> | ">
  */
 describe("job page, no dead column at 1440", () => {
   it("a Done job with no photos: the main column is empty (hidden) and the card moves into it", () => {
@@ -1585,6 +1591,56 @@ describe("job page, no dead column at 1440", () => {
     expect(main.className.split(/\s+/)).toContain("empty:hidden");
     // The card is the main column's next sibling, and moves to column 1 when it is empty (CSS: :empty + aside).
     expect(main.nextElementSibling).toBe(side);
+    // Full content width, right under the tracker (owner via lead 11-01): column 1 AND both columns.
     expect(side.className.split(/\s+/)).toContain("lg:[[data-job-main]:empty+&]:col-start-1");
+    expect(side.className.split(/\s+/)).toContain("lg:[[data-job-main]:empty+&]:col-span-2");
+  });
+});
+
+/**
+ * JA-49 (lead 11-01, B107): the poster's direct offer out names the offered Helpr and says until when it stands.
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |  ?? (offerPending ? offerTarget.data ?? null : null) : null; |  : null;
+ * @mutate src/components/tracker/jobNextStep.ts |     return { who: "them", text: `Waiting on ${other \|\| "the Helpr"} to accept your offer`, by }; |     return { who: "them", text: `Waiting on ${other \|\| "the Helpr"} to accept your offer` };
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts |  completed_at, direct_offer_expires_at, has_active_dispute, |  completed_at, has_active_dispute,
+ */
+describe("job page, the poster's direct offer out (JA-49)", () => {
+  it("names the offered Helpr and the offer's expiry, read through get_job_offer_targets", async () => {
+    offerTargetCalls.length = 0;
+    const until = new Date(Date.now() + 20 * 3600_000);
+    state.job = row({ customer_id: ME, helper_id: null, status: "open", payment_status: "held", direct_offer_status: "pending", direct_offer_expires_at: until.toISOString() });
+    state.party = true;
+    state.applicants = { total: 0, pending: 0 };
+    renderPage();
+    await waitFor(() => expect(document.querySelector("[data-job-tracker]")?.textContent).toContain("Waiting on Yusef to accept your offer"));
+    const day = until.toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+    expect(document.querySelector("[data-job-tracker]")?.textContent).toContain(`Waiting on Yusef to accept your offer · until ${day}`);
+    expect(offerTargetCalls.length).toBeGreaterThan(0);
+    // One job per read: the page's own (its route id).
+    expect(offerTargetCalls.every((c) => c.length === 1)).toBe(true);
+    expect(readFileSync(path.resolve("src/pages/jobs/jobPage/useJobPage.ts"), "utf8")).toMatch(/PARTY_COLUMNS =\n\s*"[^"]*\bdirect_offer_expires_at\b/);
+  });
+
+  it("no offer out: no offer-target read", () => {
+    offerTargetCalls.length = 0;
+    state.job = row({ customer_id: ME, status: "open", payment_status: "held", direct_offer_status: null });
+    state.party = true;
+    renderPage();
+    expect(offerTargetCalls).toEqual([]);
+  });
+});
+
+/**
+ * JA-50 (Jobs audit 11-01): a Helpr with a direct offer pending is never told "the street address is shared once
+ * you're offered the job" (the viewer state's See the offer hides it; offeredToMe makes it See the offer).
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | !instantUntil && viewer.action.kind !== "see_offer" && <p | !instantUntil && <p
+ */
+describe("job page, an offered Helpr is not told the address comes with an offer (JA-50)", () => {
+  it("a pending direct offer to me: See the offer, and no 'shared once you're offered' line", () => {
+    state.job = row({ status: "open", payment_status: "held", direct_offer_status: "pending" });
+    state.party = true;
+    state.offeredToMe = true;
+    renderPage();
+    expect(screen.getByRole("button", { name: "See the offer" })).toBeTruthy();
+    expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
   });
 });

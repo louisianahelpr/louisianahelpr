@@ -32,10 +32,12 @@ const MONEY = "text-[hsl(var(--burnt-sienna))]";
  * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
  * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
  */
-export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, hideNext = false, crewMember, offerOut = false, noShowRepostedOn = null, approveLeft = null }: {
+export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, hideNext = false, crewMember, offerOut = false, offerUntil = null, noShowRepostedOn = null, approveLeft = null }: {
   job: JobPageRow; side: "poster" | "helpr" | null; trackingStatus?: string | null; pendingApplicants?: number;
   /** The poster's offer or booking is out (JA-48 / JA-49): the line waits on that Helpr, never "Helprs to apply". */
   offerOut?: boolean;
+  /** JA-49: when the pending direct offer runs out. */
+  offerUntil?: string | null;
   /** JA-27: the day a no-show put this job back up ("Sat, Nov 1"), for the poster's line. */
   noShowRepostedOn?: string | null;
   /** The poster's review window in words ("23h 52m left, then Helpr support steps in"), in the line itself. */
@@ -62,7 +64,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   if (progress.stage === null && !progress.next) return null;
   // THE STATUS LINE IS THE NEXT STEP (owner 11-01 12:05 PM): what to do or who we wait on, with its deadline, ABOVE the
   // bar (mockups 4 and 5); the bar draws no line of its own under it. Off the path the tracker keeps its own words.
-  const step = hideNext ? null : jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, noShowRepostedOn, approveLeft });
+  const step = hideNext ? null : jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, offerUntil, noShowRepostedOn, approveLeft });
   return (
     <div data-job-tracker="" className="space-y-3">
       {step && <NextStep value={step} />}

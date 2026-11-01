@@ -6,8 +6,10 @@
  * check (never test data, never one an admin approved since it went live), counts each try before it runs, and
  * resets the count when a check is recorded or an edit clears it.
  *
- *   node src/test/pglite/declutterCheckSweep.pglite.mjs                    # AFTER: migration applied 3x
+ *   node src/test/pglite/declutterCheckSweep.pglite.mjs                    # AFTER: both migrations applied 3x
  *   NEW_MIGRATION=skip node src/test/pglite/declutterCheckSweep.pglite.mjs # RED: the definitions before it
+ *   FOLLOWUP=skip node src/test/pglite/declutterCheckSweep.pglite.mjs      # RED for S20-S29: the sweep without
+ *                                                                          # 20261101042045 (B56-SWEEP-FOLLOWUPS)
  *
  * Baseline = the newest repo (= effective prod) definitions before it, 20261031152545 (publish, record_ai_check,
  * hold_unchecked_listings), on the prod-shaped stubs of declutterCheckAfterPost.pglite.mjs. The new migration then
@@ -21,6 +23,10 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const NEW = readFileSync(MIG + "20261101031241_declutter_check_sweep.sql", "utf8");
 const SKIP = process.env.NEW_MIGRATION === "skip";
+// B56-SWEEP-FOLLOWUPS: an edit to a never-checked listing resets its tries; admins are told of a listing on sale 45+
+// minutes with no check. Applied 3x on top of the sweep unless FOLLOWUP=skip.
+const FOLLOWUP = readFileSync(MIG + "20261101042045_declutter_check_sweep_followups.sql", "utf8");
+const SKIP_FOLLOWUP = SKIP || process.env.FOLLOWUP === "skip";
 if (SKIP) console.log("NEW_MIGRATION=skip: the definitions before the migration (expect FAILs)");
 
 /** One CREATE FUNCTION statement out of a migration file, whatever its dollar-quote tag. */
@@ -115,6 +121,8 @@ await db.exec(`
   CREATE TABLE public.payout_holds (helper_id uuid PRIMARY KEY, reason text NOT NULL CHECK (length(btrim(reason)) BETWEEN 1 AND 1000),
     held_by uuid, held_at timestamptz NOT NULL DEFAULT now());
   CREATE TABLE public.notifications (user_id uuid, title text, message text, type text, link text);
+  -- Stand-in for the ledger's normaliser (lower case, as admin_alert_manual_close's prefixes are).
+  CREATE FUNCTION public.ops_alert_normalise(t text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT lower(t) $$;
   CREATE TABLE public.test_subjects (user_id uuid);
   CREATE FUNCTION public.is_test_subject(u uuid) RETURNS boolean LANGUAGE sql STABLE AS $$
     SELECT EXISTS (SELECT 1 FROM public.test_subjects t WHERE t.user_id = u) $$;
@@ -131,13 +139,21 @@ await db.exec(`
   REVOKE ALL ON FUNCTION public.declutter_hold_unchecked_listings() FROM PUBLIC, anon, authenticated;
   GRANT EXECUTE ON FUNCTION public.declutter_hold_unchecked_listings() TO service_role;
 `);
+// The manual-close list as prod has it (newest definition, 20261031184552).
+await db.exec(fnFrom("20261031184552_declutter_check_alerts_close_by_hand.sql", "admin_alert_manual_close"));
+// The photo trigger as prod has it (newest definition, 20261014200728).
+await db.exec(fnFrom("20261014200728_declutter_slice2_followups.sql", "declutter_photos_void_ai_check") + `
+  CREATE TRIGGER trg_declutter_photos_void_ai_check AFTER INSERT OR DELETE ON public.declutter_item_photos
+    FOR EACH ROW EXECUTE FUNCTION public.declutter_photos_void_ai_check();`);
 if (SKIP) {
   // The columns alone, so the "before" run shows the old rules (not a missing column).
   await db.exec(`ALTER TABLE public.declutter_item_private ADD COLUMN ai_check_attempts integer NOT NULL DEFAULT 0,
     ADD COLUMN ai_check_last_try_at timestamptz;`);
 } else {
   for (let i = 0; i < 3; i++) await db.exec(NEW);
+  if (!SKIP_FOLLOWUP) for (let i = 0; i < 3; i++) await db.exec(FOLLOWUP);
 }
+if (SKIP_FOLLOWUP) console.log("FOLLOWUP skipped: S20-S29 show the sweep before 20261101042045 (expect FAILs there)");
 
 let failures = 0;
 const check = (name, ok, detail = "") => {
@@ -264,6 +280,74 @@ check("S14 members cannot claim (anon, authenticated); the service role can", g?
 const job = (await db.query("SELECT schedule, command FROM cron.job WHERE jobname = 'declutter-check-sweep'")).rows;
 check("S15 scheduled once, every 5 minutes, posting mode check_sweep with the service key", job.length === 1 && job[0].schedule === "1-59/5 * * * *"
   && job[0].command.includes('{"mode":"check_sweep"}') && job[0].command.includes("name = 'service_role_key'") && job[0].command.includes("/functions/v1/declutter-ai-draft"), JSON.stringify(job));
+
+// ---- 7. B56-SWEEP-FOLLOWUPS (1): an edit to a listing that was NEVER checked gives it 3 fresh tries.
+// The edit's own statement, verbatim from declutter_edit_listing (20261031083708) and declutter_update_draft.
+const EDIT_CLEARS = "UPDATE public.declutter_item_private SET ai_checked_at = NULL, ai_flag_reason = NULL, updated_at = now() WHERE item_id = $1";
+await liveUnchecked(20, SELLER, 30);
+await db.query("UPDATE public.declutter_item_private SET ai_check_attempts = 3, ai_check_last_try_at = now() - interval '10 minutes' WHERE item_id = $1", [I(20)]);
+await hold();
+check("S20 3 failed tries on a never-checked listing: held", (await status(20)) === "pending_review", await status(20));
+await db.query(EDIT_CLEARS, [I(20)]);
+check("S21 the seller edits it (the check stays NULL -> NULL): the count resets to 0", (await tries(20)) === 0, String(await tries(20)));
+c = await claim();
+check("S22 ... the app's own check gets 5 minutes first", !!c.ids && !c.ids.includes(I(20)), JSON.stringify(c));
+await lastTryBack(20);
+c = await claim();
+check("S23 ... then the sweep tries the edited listing again", !!c.ids && c.ids.includes(I(20)), JSON.stringify(c));
+await liveUnchecked(21, SELLER, 30);
+await db.query("UPDATE public.declutter_item_private SET ai_check_attempts = 2 WHERE item_id = $1", [I(21)]);
+await db.query("INSERT INTO public.declutter_item_photos VALUES ($1, $2, 'p2.jpg', 1)", ["00000000-0000-4000-8000-000000000299", I(21)]);
+check("S24 a photo added to a never-checked listing resets its count too", (await tries(21)) === 0, String(await tries(21)));
+// The sweep's own writes never reset it (they never name ai_checked_at).
+await lastTryBack(21);
+await claim();
+check("  the sweep's own try still counts", (await tries(21)) === 1, String(await tries(21)));
+
+// ---- 8. B56-SWEEP-FOLLOWUPS (2): admins are told when a listing is on sale 45+ minutes with no check.
+const alertsNow = async () => (await one("SELECT count(*)::int AS n FROM public.notifications WHERE type = 'admin_alert' AND title = 'Declutter photo checks are not running'")).n;
+await db.query("DELETE FROM public.declutter_item_private");
+await db.query("DELETE FROM public.declutter_items");
+await liveUnchecked(30, SELLER, 50);                            // overdue
+await liveUnchecked(31, SELLER, 50, { seed: true });            // test data
+await liveUnchecked(32, TEST_SELLER, 50);                       // a test account's
+await liveUnchecked(33, SELLER, 30);                            // only 30 minutes
+await liveUnchecked(34, SELLER, 50, { checked: true });         // checked
+await liveUnchecked(35, SELLER, 50, { approved: new Date().toISOString() }); // an admin approved it
+await liveUnchecked(36, SELLER, 50, { status: "reserved" });    // reserved, no check: overdue too
+// The listings were inserted with their check already NULL; on prod the clear happened when they went live. (With
+// FOLLOWUP=skip the column does not exist; the run then shows S25-S29 red, which is the point.)
+const clearedAgo = (mins, ids) => (SKIP_FOLLOWUP ? null : db.query(
+  "UPDATE public.declutter_item_private SET ai_check_cleared_at = now() - make_interval(mins => $1) WHERE item_id = ANY ($2::uuid[])", [mins, ids]));
+await clearedAgo(50, [I(30), I(31), I(32), I(34), I(35), I(36)]);
+await clearedAgo(30, [I(33)]);
+r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
+const note = (await db.query("SELECT user_id, message, link FROM public.notifications WHERE type = 'admin_alert' AND title = 'Declutter photo checks are not running'")).rows;
+check("S25 one alert to the admin naming the 2 overdue listings (never test data, too-new, checked or approved ones)",
+  r.ok?.[0]?.n === 2 && note.length === 1 && note[0].user_id === ADMIN && note[0].message.startsWith("2 listings have been on sale 45+ minutes")
+  && note[0].message.includes('"Item 30"') && note[0].message.includes('"Item 36"') && !/Item 3[1-5]/.test(note[0].message), `${JSON.stringify(r)} ${JSON.stringify(note)}`);
+r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
+check("S26 each listing is alerted once", r.ok?.[0]?.n === 0 && (await alertsNow()) === 1, `${JSON.stringify(r)} ${await alertsNow()}`);
+// An edit clears its check again: alerted again only after another 45 minutes with no check. (The first alert is
+// moved 55 minutes back, so the clock moved back below still falls after it, as it would in real time.)
+if (!SKIP_FOLLOWUP) await db.query("UPDATE public.declutter_item_private SET ai_check_overdue_alerted_at = now() - interval '55 minutes' WHERE item_id = $1", [I(30)]);
+await db.query(EDIT_CLEARS, [I(30)]);
+r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
+const quiet = r.ok?.[0]?.n === 0;
+await clearedAgo(50, [I(30)]);
+r = await call(null, "SELECT public.declutter_alert_overdue_checks() AS n");
+check("S28 an edit re-arms it: no alert right after, one once it is 45 minutes unchecked again", quiet && r.ok?.[0]?.n === 1 && (await alertsNow()) === 2,
+  `${quiet} ${JSON.stringify(r)} ${await alertsNow()}`);
+const mc = await one(`SELECT public.admin_alert_manual_close('Declutter photo checks are not running') AS n,
+  public.admin_alert_manual_close('A sold Declutter listing was never checked') AS s,
+  public.admin_alert_manual_close('A sold Declutter listing failed its check') AS f,
+  public.admin_alert_manual_close('Cancellation fee transfer failed') AS c`).catch((e) => ({ err: e.message }));
+check("S29 the alert closes by hand, and its siblings still do", mc?.n === true && mc?.s === true && mc?.f === true && mc?.c === true, JSON.stringify(mc));
+const ga = await one(`SELECT has_function_privilege('anon', 'public.declutter_alert_overdue_checks()', 'EXECUTE') AS a,
+  has_function_privilege('authenticated', 'public.declutter_alert_overdue_checks()', 'EXECUTE') AS u`).catch((e) => ({ err: e.message }));
+const jo = (await db.query("SELECT schedule, command FROM cron.job WHERE jobname = 'declutter-check-overdue'")).rows;
+check("S27 members cannot run it; scheduled once every 15 minutes straight from SQL", ga?.a === false && ga?.u === false && jo.length === 1
+  && jo[0].schedule === "7-59/15 * * * *" && jo[0].command.includes("public.declutter_alert_overdue_checks()"), `${JSON.stringify(ga)} ${JSON.stringify(jo)}`);
 
 console.log(failures === 0 ? "ALL PASS" : `${failures} FAIL`);
 process.exit(failures === 0 ? 0 : 1);

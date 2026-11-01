@@ -236,6 +236,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'declutter-check-sweep') THEN
       PERFORM cron.unschedule('declutter-check-sweep');
     END IF;
+    -- 1-59/5, not */5: minute :00 already starts 10 jobs (and :02, :17 fill up) (cronStartsSpreadAcrossMinutes.test.ts, CRON_RESERVE_FLOOR).
     PERFORM cron.schedule('declutter-check-sweep', '1-59/5 * * * *', $c$SELECT public.cron_http_tag(q.request_id, 'declutter-check-sweep')
   FROM (
       SELECT net.http_post(timeout_milliseconds := 120000,

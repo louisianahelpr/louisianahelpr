@@ -25,7 +25,7 @@
  * @mutate src/lib/declutter/api.ts |     if (ctx?.status === 429) throw new Error("ai_rate_limited"); |     if (false) throw new Error("ai_rate_limited");
  * @mutate src/lib/declutter/myReads.ts |     const missing = res.error?.code === "42703" |     const missing = res.error?.code === "42501"
  * @mutate src/lib/declutter/myReads.ts | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true }; | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: false };
- * @mutate src/lib/declutter/api.ts | live_at, porch_ok, accepts_offers"; | live_at, porch_ok";
+ * @mutate src/lib/declutter/myReads.ts | live_at, porch_ok, accepts_offers"; | live_at, porch_ok";
  * @mutate src/lib/declutter/api.ts | { body, timeout: timeoutMs } | { body }
  * @mutate src/lib/declutter/api.ts |   for (const f of list) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75))); |   for (const f of list) photos.push(await blobToBase64(f));
  * @mutate src/lib/declutter/api.ts |   const list = files.slice(0, AI_DRAFT_PHOTOS); |   const list = files;

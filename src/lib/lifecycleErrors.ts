@@ -1485,7 +1485,7 @@ export const RPC_ERROR_COPY = {
     photo_not_uploaded: DC.photo_not_uploaded,
     too_many_photos: DC.too_many_photos,
   },
-  // Declutter manager mode (20261101155712): the seller's private offer.
+  // Declutter manager mode (20261101181005): the seller's private offer.
   declutter_manager_offer: {
     account_restricted: DC.account_restricted,
     already_has_manager: "You already have someone managing your Declutter (or an offer waiting). End it first.",
@@ -1496,7 +1496,7 @@ export const RPC_ERROR_COPY = {
     no_parts_chosen: "Choose at least one thing for them to handle.",
     not_authenticated: DC.not_authenticated,
   },
-  // Declutter manager mode (20261101155712): the person answers the offer.
+  // Declutter manager mode (20261101181005): the person answers the offer.
   declutter_manager_respond: {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,
@@ -1504,27 +1504,27 @@ export const RPC_ERROR_COPY = {
     not_your_offer: "This offer isn't yours to answer.",
     offer_not_pending: "This offer was already answered or taken back.",
   },
-  // Declutter manager mode (20261101155712): either side ends it.
+  // Declutter manager mode (20261101181005): either side ends it.
   declutter_manager_end: {
     not_your_grant: "Only the seller or their manager can end this.",
   },
-  // Declutter manager mode (20261101155712): the seller changes the parts.
+  // Declutter manager mode (20261101181005): the seller changes the parts.
   declutter_manager_set_permissions: {
     feature_disabled: DC.feature_disabled,
     grant_ended: "This has already ended.",
     no_parts_chosen: "Choose at least one thing for them to handle, or end their access.",
     not_your_grant: "Only the seller can change what their manager handles.",
   },
-  // Declutter manager mode (20261101155712): what the manager sees of the seller.
+  // Declutter manager mode (20261101181005): what the manager sees of the seller.
   declutter_managed_overview: {
     feature_disabled: DC.feature_disabled,
     not_your_seller: "You're not managing this seller's Declutter any more.",
   },
-  // Declutter manager mode (20261101155712): the manager's switcher.
+  // Declutter manager mode (20261101181005): the manager's switcher.
   declutter_my_manager_grants: {
     feature_disabled: DC.feature_disabled,
   },
-  // Declutter manager mode (20261101155712): every action the manager takes for the seller. The seller RPC it runs
+  // Declutter manager mode (20261101181005): every action the manager takes for the seller. The seller RPC it runs
   // can refuse with its own codes; managerMode.ts falls back to that RPC's words.
   declutter_manage: {
     account_restricted: DC.account_restricted,

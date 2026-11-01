@@ -1,11 +1,11 @@
-// @mutate supabase/migrations/20261101155712_declutter_manager_mode.sql | IF NOT COALESCE(v_on, false) THEN | IF false THEN
-// @mutate supabase/migrations/20261101155712_declutter_manager_mode.sql | WHERE seller_id = p_seller AND manager_id = (SELECT auth.uid()) AND status = 'active' | WHERE seller_id = p_seller AND manager_id = (SELECT auth.uid())
-// @mutate supabase/migrations/20261101155712_declutter_manager_mode.sql | v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target AND seller_id = p_seller); | v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target);
-// @mutate supabase/migrations/20261101155712_declutter_manager_mode.sql | v_ok := EXISTS (SELECT 1 FROM public.declutter_offers WHERE id = v_target AND seller_id = p_seller); | v_ok := EXISTS (SELECT 1 FROM public.declutter_offers WHERE id = v_target);
-// @mutate supabase/migrations/20261101155712_declutter_manager_mode.sql |     WHEN 'answer_question' THEN 'messages' |     WHEN 'answer_question' THEN 'list'
-// @mutate supabase/migrations/20261101155712_declutter_manager_mode.sql |     WHEN 'respond_offer' THEN 'offers' |     WHEN 'respond_offer' THEN 'list'
-// @mutate supabase/migrations/20261101155712_declutter_manager_mode.sql | REVOKE ALL ON TABLE public.declutter_manager_actions FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.declutter_manager_actions TO authenticated;
-// @mutate supabase/migrations/20261101155712_declutter_manager_mode.sql |   IF (SELECT auth.uid()) IS DISTINCT FROM v_mgr THEN\n    RAISE EXCEPTION 'act_as_seller_not_restored' |   IF false THEN\n    RAISE EXCEPTION 'act_as_seller_not_restored'
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | IF NOT COALESCE(v_on, false) THEN | IF false THEN
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | WHERE seller_id = p_seller AND manager_id = (SELECT auth.uid()) AND status = 'active' | WHERE seller_id = p_seller AND manager_id = (SELECT auth.uid())
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target AND seller_id = p_seller); | v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target);
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | v_ok := EXISTS (SELECT 1 FROM public.declutter_offers WHERE id = v_target AND seller_id = p_seller); | v_ok := EXISTS (SELECT 1 FROM public.declutter_offers WHERE id = v_target);
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |     WHEN 'answer_question' THEN 'messages' |     WHEN 'answer_question' THEN 'list'
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |     WHEN 'respond_offer' THEN 'offers' |     WHEN 'respond_offer' THEN 'list'
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | REVOKE ALL ON TABLE public.declutter_manager_actions FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.declutter_manager_actions TO authenticated;
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql |   IF (SELECT auth.uid()) IS DISTINCT FROM v_mgr THEN\n    RAISE EXCEPTION 'act_as_seller_not_restored' |   IF false THEN\n    RAISE EXCEPTION 'act_as_seller_not_restored'
 //
 // Declutter manager mode (owner 11-01, "Manage my Declutter for me"; per-part permissions owner 9:56 AM): a manager
 // acts for a seller ONLY through declutter_manage, ONLY while their grant is active, ONLY in a part the seller turned

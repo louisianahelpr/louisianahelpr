@@ -87,7 +87,7 @@ const JobDetail = () => {
   // early return. See the h1 note further down for why every branch needs a
   // heading; the document title is simply that heading.
   const headingText =
-    !authLoading && !isLoading && !isError && job ? job.title : "Job details";
+    !authLoading && !isLoading && !isError && job?.title ? job.title : "Job details";
 
   // This is the share-link landing page — the thing pasted into a text or a
   // Facebook group. A tab reading "Job Details — Helpr" for every shared link
@@ -99,7 +99,7 @@ const JobDetail = () => {
   // The preview's own facts, never the description (JOBS-29: a guest sees title, category, parish and budget only).
   const jobFacts = job ? guestJobFacts(job).map((f) => f.value).join(" · ") : "";
   const jobDescription = jobFacts
-    ? `${jobFacts}. Payment is held safely until the work is confirmed done. Sign Up to Apply.`
+    ? `${jobFacts}. Payment is held safely until the work is confirmed done. Sign up to apply.`
     : "Every job on Louisiana Helpr holds payment safely until the work is confirmed done — see the details and apply.";
   usePageMeta({
     title: `${headingText} — Helpr`,

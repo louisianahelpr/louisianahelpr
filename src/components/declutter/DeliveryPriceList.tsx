@@ -13,7 +13,11 @@ const money = (cents: number) => formatPrice(cents);
 
 const DELIVERY_RATE_WORDS = `${money(DELIVERY_BASE_CENTS)} + ${money(DELIVERY_PER_MILE_CENTS)} a mile`;
 
-export function DeliveryPriceList({ quote }: { quote: DeliveryQuote | null }) {
+/**
+ * `size` marks a size before any quote (A3-48, the item page: the item's own size, owner 11-01 11:49 AM); a quote's
+ * size wins once the server has priced it.
+ */
+export function DeliveryPriceList({ quote, size = null }: { quote: DeliveryQuote | null; size?: DeliverySize | null }) {
   const rows: { size: DeliverySize; label: string; words: string }[] = [
     { size: "small", label: "Small or medium", words: DELIVERY_RATE_WORDS },
     { size: "large", label: "Large", words: `+${money(DELIVERY_SIZE_CENTS.large)}` },
@@ -23,7 +27,7 @@ export function DeliveryPriceList({ quote }: { quote: DeliveryQuote | null }) {
     <div className="space-y-1" data-delivery-price-list="">
       <ul className="space-y-0.5 text-ds-13">
         {rows.map((r) => {
-          const mine = quote?.size === r.size;
+          const mine = (quote?.size ?? size) === r.size;
           return (
             <li key={r.size} className={`flex justify-between gap-3 rounded-md px-2 py-0.5 ${mine ? "bg-muted font-semibold text-foreground" : "text-muted-foreground"}`}
               data-delivery-size={r.size} aria-current={mine ? "true" : undefined}>

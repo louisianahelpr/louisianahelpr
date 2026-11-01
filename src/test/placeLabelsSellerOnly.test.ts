@@ -20,8 +20,8 @@
  * @mutate supabase/migrations/20261101054401_declutter_places_city_only_for_buyers.sql | SELECT pl.id, CASE WHEN pl.seller_id = v_uid THEN pl.label END, pl.area, | SELECT pl.id, pl.label, pl.area,
  * @mutate supabase/migrations/20261101054401_declutter_places_city_only_for_buyers.sql | SELECT CASE WHEN v_side = 'seller' THEN pp.label END, pp.area, | SELECT pp.label, pp.area,
  * @mutate supabase/migrations/20261101054401_declutter_places_city_only_for_buyers.sql | SELECT CASE WHEN v_side = 'seller' THEN pp.label END, pp.area, | SELECT CASE WHEN true THEN pp.label END, pp.area,
- * @mutate supabase/migrations/20261101061156_export_my_data_place_city_only.sql | - 'seller_id' - 'label' END), '[]'::jsonb) FROM public.declutter_order_porch_places t | - 'seller_id' END), '[]'::jsonb) FROM public.declutter_order_porch_places t
- * @mutate supabase/migrations/20261101061156_export_my_data_place_city_only.sql | FROM public.declutter_porch_places t\n      WHERE t.seller_id = v_uid)); | FROM public.declutter_porch_places t\n      WHERE true));
+ * @mutate supabase/migrations/20261101140006_export_my_data_instant_book.sql | - 'seller_id' - 'label' END), '[]'::jsonb) FROM public.declutter_order_porch_places t | - 'seller_id' END), '[]'::jsonb) FROM public.declutter_order_porch_places t
+ * @mutate supabase/migrations/20261101140006_export_my_data_instant_book.sql | FROM public.declutter_porch_places t\n      WHERE t.seller_id = v_uid)); | FROM public.declutter_porch_places t\n      WHERE true));
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";

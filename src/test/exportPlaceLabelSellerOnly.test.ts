@@ -4,7 +4,7 @@
  * export_my_data hands the buyer their order's frozen place without the label (and, as before, without the
  * address, point or seller id); the seller's own copy is whole. Behaviour: src/test/pglite/exportPlaceCityOnly.pglite.mjs.
  *
- * @mutate supabase/migrations/20261101061156_export_my_data_place_city_only.sql | - 'seller_id' - 'label' END), '[]'::jsonb) FROM public.declutter_order_porch_places t | - 'seller_id' END), '[]'::jsonb) FROM public.declutter_order_porch_places t
+ * @mutate supabase/migrations/20261101140006_export_my_data_instant_book.sql | - 'seller_id' - 'label' END), '[]'::jsonb) FROM public.declutter_order_porch_places t | - 'seller_id' END), '[]'::jsonb) FROM public.declutter_order_porch_places t
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";

@@ -117,6 +117,8 @@ export const EXPORT_SECTIONS = [
   "job_post_drafts",
   "member_signup_sources",
   "profile_handles_retired",
+  "instant_book_floors",
+  "instant_book_declines",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   "declutter_porch_places",

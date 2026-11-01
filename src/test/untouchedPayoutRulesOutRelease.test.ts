@@ -9,8 +9,8 @@
  * (the admin_payout_release row in admin_audit_log). A bare `attempts = 0` in an UPDATE's SET is a write, not this read.
  * Backend proof: src/test/pglite/declutterReleasedPayoutNotUnsent.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
- * @mutate supabase/migrations/20261031204932_declutter_released_payout_not_unsent.sql |            AND NOT EXISTS (SELECT 1 FROM public.admin_audit_log a\n                            WHERE a.action = 'admin_payout_release' AND a.target_type = 'declutter' AND a.target_id = p.id::text)\n |
- * @mutate supabase/migrations/20261031204932_declutter_released_payout_not_unsent.sql | WHERE a.action = 'admin_payout_release' AND a.target_type = 'declutter' | WHERE a.action = 'admin_payout_release' AND a.target_type = 'shop'
+ * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |            AND NOT EXISTS (SELECT 1 FROM public.admin_audit_log a\n                            WHERE a.action = 'admin_payout_release' AND a.target_type = 'declutter' AND a.target_id = p.id::text)\n |
+ * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql | WHERE a.action = 'admin_payout_release' AND a.target_type = 'declutter' | WHERE a.action = 'admin_payout_release' AND a.target_type = 'shop'
  */
 import { describe, expect, it } from "vitest";
 import { join, resolve } from "node:path";

@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261101032626_declutter_checkout_page_inside_hold.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
+ * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261031214749_seller_setup_fee_from_payout_restated.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
  * @mutate src/components/declutter/DeclutterItemView.tsx | (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />) | <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />
@@ -53,7 +53,8 @@ describe("the Declutter Free section", () => {
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).
     // Then LEAD-B49-REBUILD (20261031214749: the seller's setup-fee notice line, restated from 20261028232338).
     // Then BUY-36 (20261031231150: B49's body plus the buyer-collects case, reconciled in train 6).
-    expect(newestFunction("declutter_complete_handover").file).toContain("20261031231150_helpr_delivery_cant_finish.sql");
+    // Then manager mode phase 2 (20261101230509: the manager's share comes off the seller's row; the free branch is untouched).
+    expect(newestFunction("declutter_complete_handover").file).toContain("20261101230509_declutter_manager_share_split.sql");
     // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     // declutter_close_paid_order: LEAD-ADMIN-HELPR-FAULT (20261101000817) restated its effective body plus the

@@ -24,6 +24,8 @@ export default {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
+    // /browse's server-drawn cards (PERF-SHELL, Q652): plain ESM, so the glob above does not see it.
+    "./src/lib/browseShellCards.mjs",
     "!./src/test/edge/**",
     "!./src/test/fixtures/vacuitySelfTest-*/**",
   ],

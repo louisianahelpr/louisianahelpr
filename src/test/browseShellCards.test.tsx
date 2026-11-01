@@ -15,12 +15,14 @@
  * @mutate src/lib/browseShellCards.mjs |   const net = perHelper - commission + urgent / helpers; |   const net = perHelper - commission + urgent;
  * @mutate src/lib/browseShellCards.mjs |     j.status === "open" && |     j.status !== "closed" &&
  * @mutate src/lib/browseShellCards.mjs |   if (/[0-9]{3,}/.test(t.replace(/[^0-9a-zA-Z]/g, ""))) return "digits"; |   if (/[0-9]{11,}/.test(t)) return "digits";
+ * @mutate src/index.css | #lh-browse-shell { visibility: visible !important; } | #lh-browse-shell { visibility: visible; }
  * @mutate src/lib/browseShellCards.mjs |   catLabel: "job-cat-label inline-flex | catLabel: "job-cat-labelx inline-flex
  */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import fs from "node:fs";
+import { blankCssComments } from "./helpers/blankNonCode";
 
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeCents: () => 0 }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "idle" }));
@@ -155,6 +157,15 @@ describe("which rows are drawn, and what reaches the markup", () => {
     expect(withBrowseShell(doc, [row()], NOW)).toMatch(/^<body><div id="root" style="x"><div id="boot-loader"><div id="lh-browse-shell"[\s\S]*<\/div><\/div><\/body>$/);
     expect(withBrowseShell(`<div id="root">\n<div\n  id="boot-loader"\n  role="status"\n>`, [row()], NOW)).toMatch(/role="status"\n><div id="lh-browse-shell"/);
     expect(withBrowseShell(doc, [], NOW)).toBe(doc);
+  });
+});
+
+describe("the overlay never paints unstyled", () => {
+  it("hidden inline, shown by the app stylesheet, which Tailwind scans for the card classes", () => {
+    expect(browseShellHtml([row()], NOW)).toMatch(/^<div id="lh-browse-shell" [^>]*style="[^"]*visibility:hidden"/);
+    const css = blankCssComments(fs.readFileSync("src/index.css", "utf8"));
+    expect(css).toContain("#lh-browse-shell { visibility: visible !important; }");
+    expect(fs.readFileSync("tailwind.config.ts", "utf8")).toContain('"./src/lib/browseShellCards.mjs"');
   });
 });
 

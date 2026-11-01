@@ -116,6 +116,7 @@ export const EXPORT_SECTIONS = [
   // A half-finished job post kept on the account (20261030223154, OPS-3).
   "job_post_drafts",
   "member_signup_sources",
+  "profile_handles_retired",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   "declutter_porch_places",

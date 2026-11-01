@@ -6,8 +6,11 @@
 -- counted those in cancelled_jobs / cancellation_rate. This redefines it from
 -- its newest definition (20261030015205_test_data_never_counts.sql, md5 on
 -- prod 025dd2806ed8989397ca5e3d0e09911e at 2026-10-31 18:50 CT) with ONE
--- change: cancelled_jobs leaves out an unfilled expired listing. Real
--- cancellations still count. CREATE OR REPLACE keeps the existing grants
+-- change (in three counts): cancelled_jobs leaves out an unfilled expired listing (no Helpr,
+-- cancelled_by NULL, the sweep's reason). Real cancellations still count, even
+-- one whose poster typed that reason (poster_cancel_job sets cancelled_by).
+-- posted_jobs_total and jobs_total (the rate's denominator) leave it out too:
+-- nobody else sees that the listing existed (owner 10-31). CREATE OR REPLACE keeps the existing grants
 -- (anon, authenticated, service_role: public profile cards read it).
 -- FOR VERDICT (lead): read-only stats function, no money.
 
@@ -98,12 +101,19 @@ AS $function$
       -- below through the roster and is never the job's poster.
       COUNT(*) FILTER (WHERE j.customer_id IS DISTINCT FROM t.user_id AND j.status = 'completed')::integer AS completed_as_helper,
       COUNT(DISTINCT j.id) FILTER (WHERE j.status = 'completed')::integer AS completed_total,
-      COUNT(*) FILTER (WHERE j.customer_id = t.user_id)::integer AS posted_total,
-      COUNT(*)::integer AS jobs_total,
+      -- Owner 10-31 ("expired jobs I post must never be visible to other users"):
+      -- an unfilled expired listing is not counted as posted or as a job either.
+      -- A LEFT JOIN row with no job still counts in jobs_total as before (the
+      -- expression is false for it, so NOT(...) keeps it).
+      COUNT(*) FILTER (WHERE j.customer_id = t.user_id
+        AND NOT (j.status = 'cancelled' AND j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS posted_total,
+      COUNT(*) FILTER (WHERE NOT (j.status = 'cancelled' AND j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS jobs_total,
       -- Owner 10-31: a listing that expired with no Helpr (auto-expire-jobs'
-      -- fixed reason) is NOT a cancellation, so it never counts here.
+      -- fixed reason) is NOT a cancellation, so it never counts here. cancelled_by
+      -- IS NULL is the sweep's real marker: auto-expire-jobs never sets it and
+      -- poster_cancel_job always does, so a poster who types that reason still counts.
       COUNT(*) FILTER (WHERE j.status = 'cancelled'
-        AND NOT (j.helper_id IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS cancelled_jobs
+        AND NOT (j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS cancelled_jobs
     FROM target t
     LEFT JOIN public.jobs j
       ON (j.customer_id = t.user_id OR j.helper_id = t.user_id

@@ -31,6 +31,7 @@ import { useOptimisticJobCache } from "@/components/job-card/activityActions/use
 import { ActivityDialogs, type TipDialogState, type TipTarget } from "@/components/job-card/ActivityDialogs";
 import { PostedJobActions } from "@/pages/posts/postedJobCard/PostedJobActions";
 import { crewNobodyLeft } from "@/lib/crewLifecycle";
+import { hasJobStarted } from "@/lib/dateUtils";
 import type { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { JobStepMenuContext } from "@/components/job-card/jobStepMenu";
 
@@ -253,7 +254,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     setSecondHost,
     setListHost,
     // The detail read is done (q.data), so a crew with no roster entry has nobody left on it.
-    crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true),
+    crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true, hasJobStarted(job.date_needed, job.start_time)),
     crewRoster: job.is_group_job && detail ? detail.groupHelpersByJob?.[job.id] ?? [] : undefined,
     panel,
     dialogs,

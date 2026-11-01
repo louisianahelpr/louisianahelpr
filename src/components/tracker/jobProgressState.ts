@@ -171,6 +171,8 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   // A dispute flag the status column does not carry: the warning step, never a progress colour.
   // An expired listing is greyed like a cancel but named for what it is (JA-23).
   if (isExpiredListing(job)) return { ...base, stage: 0, waitingOnYou: false, tone: "cancelled", label: base.word };
+  // JA-32: the crew's own line (the card's single-Helpr rule would read "accept the offer").
+  if (o.viewer === "poster" && crewBookedOnRow(job) && base.word === "Hired") return base;
   if (base.word === "Under review") return { ...base, stage: 7, waitingOnYou: false, tone: "problem", label: "Dispute" };
   const now = o.now ?? new Date();
   const card = o.card ?? cardFaceFor(job, o, now);
@@ -217,6 +219,11 @@ function withBegun(p: JobProgressState, job: ProgressJob, lineId: string | null,
  */
 function someoneHired(job: ProgressJob): boolean {
   return !!job.helper_id || (job.is_group_job === true && !!job.status && job.status !== "open");
+}
+
+/** A crew job whose roster is hired (status 'accepted') and whose job row has no single Helpr's accept (JA-32). */
+function crewBookedOnRow(job: ProgressJob): boolean {
+  return job.is_group_job === true && job.status === "accepted" && !job.helper_id && !job.helper_confirmed_at;
 }
 
 /** The card's line and face for a surface that is not a card, from the same functions the cards call. */
@@ -284,6 +291,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   if (status === "completed" || job.poster_completed_at) return at(8, false, "Done", "", held);
   if (!LIVE.has(status) || !someoneHired(job)) return at(null, false, "", "", held);
 
+  // JA-32: a booked crew's job row carries no one Helpr's stamps (each member's are on their roster row), so it is
+  // never "Waiting on your Helpr to accept the offer": the poster follows each member on the page's crew roster.
+  if (poster && crewBookedOnRow(job)) return at(2, false, "Hired", "Your crew is booked. Each Helpr's step is under Your crew", held);
   // An offer is not a booking: until the Helpr accepts, nobody is hired.
   if (!job.helper_confirmed_at) {
     return at(1, !poster, "Offered", poster ? `Waiting on ${otherLow} to accept the offer` : `${other} offered you this job`, held);

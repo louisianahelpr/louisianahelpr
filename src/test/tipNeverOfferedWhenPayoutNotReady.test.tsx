@@ -101,7 +101,7 @@ beforeEach(() => {
 });
 
 describe("Owner 2026-10-30: tips wait until the Helpr has verified their ID", () => {
-  const ID_LINE = "Hallie can receive tips once verified. Nothing was charged.";
+  const ID_LINE = "Hallie can receive tips once verified. You can tip them then.";
   beforeEach(() => { db.ready = true; db.idVerified = false; });
   afterEach(() => { cleanup(); setIdentityCheckOn(false); db.idVerified = false; });
 

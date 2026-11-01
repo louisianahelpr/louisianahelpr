@@ -41,7 +41,7 @@ describe("the poster's money after the release (F32)", () => {
   it("approved, pay scheduled: $40 Released, paid and released, the payout time in Louisiana, the receipt link", () => {
     const at = new Date(Date.now() + 3 * 86_400_000);
     show(row({ payout_scheduled_at: at.toISOString() }));
-    expect(price()).toBe("$40Released");
+    expect(price()).toBe("$40");
     const day = at.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
     expect(notes()).toContain(`Paid and released to your Helpr. Their pay goes out ${day} at `);
     expect(screen.getByRole("link", { name: "See your receipt" }).getAttribute("href")).toBe("/profile?tab=receipts");
@@ -53,16 +53,17 @@ describe("the poster's money after the release (F32)", () => {
     expect(screen.getByRole("link", { name: "See your receipt" })).toBeTruthy();
   });
 
-  it("still held: $40 Paid · held, no sentence and no receipt link", () => {
+  // JA-47: one sentence about the money, from payment_status alone (no "Paid · held" word beside it).
+  it("still held: $40 and the one 'Paid … holds it' sentence, no receipt link", () => {
     show(row({ status: "in_progress", payment_status: "escrow" }));
-    expect(price()).toBe("$40Paid · held");
-    expect(document.querySelector("[data-poster-money-notes]")).toBeNull();
+    expect(price()).toBe("$40");
+    expect(notes()).toBe("Paid. Louisiana Helpr holds it until the job is done.");
     expect(screen.queryByRole("link", { name: "See your receipt" })).toBeNull();
   });
 
   it("a held card says it is not charged yet; an unpaid post says Helprs can't see it", () => {
     show(row({ status: "open", payment_status: "held" }));
-    expect(price()).toContain("Card held");
+    expect(price()).toBe("$40");
     expect(notes()).toContain("Your card isn't charged until a Helpr accepts your offer.");
     document.body.innerHTML = "";
     show(row({ status: "open", payment_status: "unpaid" }));

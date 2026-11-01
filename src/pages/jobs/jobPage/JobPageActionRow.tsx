@@ -4,7 +4,9 @@
  *  - A step due now (Confirm they've arrived, Approve and release, I'm on my way, Review) is the LEAD, on the right
  *    (the owner's primary-right rule, 2026-10-08), with the one other action on its left, or "More options" when there
  *    are two or more.
- *  - No step due: Message leads, on the left, with the one action beside it or "More options".
+ *  - No step due: Message leads, STILL on the right (owner 2026-11-01 12:00 PM, app-wide: in a side-by-side pair the
+ *    green primary is on the RIGHT, the outlined one on the left), with the one action beside it or "More options".
+ *    Only an outlined lead (nothing green in the row) keeps the left.
  *  - "More options" opens every other action as one list in one tap (a sheet); a lone extra is never in a menu.
  * The card's own actions (jobStepMenu.tsx) are drawn into `cardSecondHost` (a lone one) or `cardListHost` (the
  * sheet's list) by the hidden step card; `cardLeadHost` takes the card's own primary when the page has no step.
@@ -82,7 +84,10 @@ export function JobPageActionRow({
     return <JobPageActionRow {...{ lead: extras[0], leadIsStep: false, extras: extras.slice(1), cardCount, setCardSecondHost, setCardListHost, tag }} plainLead />;
   }
   const others = extras.length + cardCount;
-  const stepRight = cardLead || leadIsStep;
+  // The green one is always on the right (owner 2026-11-01 12:00 PM); an outlined (plain) lead reads left to right.
+  // `leadIsStep` still says which kind of lead it is (the callers' own reading); it no longer moves it.
+  void leadIsStep;
+  const stepRight = cardLead || (!!lead && !plainLead);
   const leadNode = cardLead
     ? <div key="lead" ref={setCardLeadHost} data-card-lead="" className="flex min-w-0" />
     : lead ? <ActionButton key="lead" a={lead} lead={!plainLead} /> : null;

@@ -1747,7 +1747,9 @@ export function JobTracking({
         const ctaDisabled = updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly;
         // Boards 62/64: the Working card's face asked for THIS step (helperStepRequest.ts); press it once, gates intact.
         // AUD31-79: only once the tracking row has settled; a first draw from the job row alone dropped the request.
-        if (trackingSettled && takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext);
+        // Owner 11-01 (job 7b1da54b): the after photo's upload asks for Done; a draw while that step is still greyed
+        // (the job row not yet re-read with the photo) leaves the request for the next draw, within its 10 seconds.
+        if (trackingSettled && !ctaDisabled && takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext);
         const ctaEl = (
           <JobStepPrimaryButton
             icon={nextStatus.icon}

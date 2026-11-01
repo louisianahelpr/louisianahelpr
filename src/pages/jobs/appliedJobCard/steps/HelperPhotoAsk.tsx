@@ -6,6 +6,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import type { Job } from "../../../../components/job-card/activityConstants";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 import { photoProofRequired, primaryPhotoAsk } from "@/components/job-card/primaryPhotoAsk";
+import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 
 /**
  * ONE photo ask, belonging to the step the card is on — AS A CONTROL ON THE
@@ -175,13 +176,21 @@ export function HelperPhotoAsk({
   }
   // PHOTO FIRST on a one-Helpr job (owner, 2026-10-08): on site the owed before
   // photo, and at work the owed after photo, IS the row's primary until taken.
+  // AFTER PHOTOS, THEN DONE IN ONE STEP (owner 11-01 11:55 AM, job 7b1da54b: the after photos were in and the job
+  // still said "working"): on a one-Helpr job, finishing the after-photo upload at the Working step asks the tracker
+  // for Mark done (helperStepRequest), whose own confirmation still opens first; every gate still decides.
+  // Guard: src/test/afterPhotosLeadToDone.test.tsx.
+  const afterThenDone = () => {
+    readBack();
+    if (!crew && step === "working") requestHelperStep(jobId, "done");
+  };
   const primary = (ask: "before" | "after") => (
     <JobStepRowSlot slot="primary">
       <PhotoProofCaptureChip
         jobId={jobId}
         type={ask}
         existingUrls={ask === "before" ? beforeUrls : afterUrls}
-        onUploaded={readBack}
+        onUploaded={ask === "after" ? afterThenDone : readBack}
         label={ask === "before" ? "Before photo" : "After photo"}
         crew={crew}
         asPrimary

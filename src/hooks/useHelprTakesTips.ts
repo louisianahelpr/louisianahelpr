@@ -91,9 +91,13 @@ export function useTipWaitsOnId(helperId: string | null | undefined, enabled = t
   return idCheckOn && a !== null && !a.idVerified;
 }
 
-/** The one honest line a tip surface shows instead of the tip, when the Helpr can't receive one yet. */
+/**
+ * The one honest line a tip surface shows instead of the tip, when the Helpr can't receive one yet. It is shown BEFORE
+ * any tip is tried, under a paid job, so it never says "Nothing was charged" (L27 JA-F1, 11-01: a completed poster read
+ * that as the job itself not being charged). The server's refusal of a tip actually tried keeps its own words.
+ */
 export function tipsNotReadyLine(name: string | null | undefined, waitsOnId = false): string {
   const first = (name ?? "").trim().split(/\s+/)[0];
-  if (waitsOnId) return `${first || "This Helpr"} can receive tips once verified. Nothing was charged.`;
+  if (waitsOnId) return `${first || "This Helpr"} can receive tips once verified. You can tip them then.`;
   return `${first || "This Helpr"} hasn't finished payout setup yet, so a tip can't reach them. You can tip once they do.`;
 }

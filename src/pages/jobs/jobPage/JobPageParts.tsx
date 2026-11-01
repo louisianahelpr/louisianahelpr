@@ -20,6 +20,8 @@ import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { NextStep } from "@/components/ui/NextStep";
+import { jobNextStep } from "@/components/tracker/jobNextStep";
 
 /** The "What to fix" card (RevisionAsk): a card on a phone, flat inside the desktop side column. */
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
@@ -29,8 +31,14 @@ const MONEY = "text-[hsl(var(--burnt-sienna))]";
  * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
  * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
  */
-export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, hideNext = false, crewMember }: {
+export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, hideNext = false, crewMember, offerOut = false, noShowRepostedOn = null, approveLeft = null }: {
   job: JobPageRow; side: "poster" | "helpr" | null; trackingStatus?: string | null; pendingApplicants?: number;
+  /** The poster's offer or booking is out (JA-48 / JA-49): the line waits on that Helpr, never "Helprs to apply". */
+  offerOut?: boolean;
+  /** JA-27: the day a no-show put this job back up ("Sat, Nov 1"), for the poster's line. */
+  noShowRepostedOn?: string | null;
+  /** The poster's review window in words ("23h 52m left, then Helpr support steps in"), in the line itself. */
+  approveLeft?: string | null;
   /** The page says the step above the tracker (OnTheWayNow): the tracker draws its bar without repeating the line. */
   hideNext?: boolean;
   /** The viewer is on this crew's roster (JA-33): whether they confirmed their spot. Undefined = not a crew member. */
@@ -51,16 +59,21 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
     crewMember,
   });
   if (progress.stage === null && !progress.next) return null;
+  // THE STATUS LINE IS THE NEXT STEP (owner 11-01 12:05 PM): what to do or who we wait on, with its deadline, ABOVE the
+  // bar (mockups 4 and 5); the bar draws no line of its own under it. Off the path the tracker keeps its own words.
+  const step = hideNext ? null : jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, noShowRepostedOn, approveLeft });
   return (
-    <div data-job-tracker="" className="rounded-2xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0 lg:pt-1 lg:!shadow-none">
-      <JobProgress progress={hideNext ? { ...progress, next: "" } : progress} />
+    <div data-job-tracker="" className="space-y-3">
+      {step && <NextStep value={step} />}
+      <JobProgress progress={step || hideNext ? { ...progress, next: "" } : progress} />
     </div>
   );
 }
 
 /** How the poster's money stands, from payment_status. Unlisted states print nothing rather than a guess. */
 const HELD_LINE: Partial<Record<string, string>> = {
-  escrow: "Paid when you posted. Louisiana Helpr holds it until the job is done.",
+  // True with and without the card hold at posting (charged at post, or at the hire): never "when you posted" (F4).
+  escrow: "Paid. Louisiana Helpr holds it until the job is done.",
   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire.
   held: "Your card isn't charged until a Helpr accepts your offer.",
   unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
@@ -90,26 +103,22 @@ function releasedLine(job: JobPageRow): string {
   return at ? `Paid and released to your Helpr. Their pay goes out ${payoutWhen(at)}.` : "Paid and released to your Helpr. Their pay goes out with the next payout.";
 }
 
-/** The small word under the poster's amount in the header (owner 2026-11-01: the budget has no box of its own). */
-const SHORT_STATUS: Partial<Record<string, string>> = {
-  escrow: "Paid · held",
-  held: "Card held",
-  unpaid: "Not paid yet",
-  abandoned: "Not paid yet",
-  refunded: "Refunded",
-  released: "Released",
-  payout_pending: "Released",
-};
-
-/** The poster's amount, on the RIGHT of the page header (owner 2026-11-01), with its paid or held word under it. */
-export function PosterPrice({ job }: { job: JobPageRow }) {
-  const word = SHORT_STATUS[job.payment_status ?? ""];
-  return (
-    <div data-poster-money="" className="shrink-0 text-right">
-      <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>
-      {word && <p data-poster-money-status="" className="mt-1 text-ds-12 font-semibold text-muted-foreground">{word}</p>}
-    </div>
-  );
+/**
+ * The poster's amount. Phone: on the RIGHT of the title block (mockup 5). Computer: "Job price" on the left of the
+ * side card, the amount on its right (mockup 4). The paid or held words are ONE sentence under it (PosterMoneyNotes),
+ * from payment_status alone (JA-47: "Paid · held" beside "card held, not charged" said two things about one payment).
+ */
+export function PosterPrice({ job, labelled = false }: { job: JobPageRow; labelled?: boolean }) {
+  const amount = <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>;
+  if (labelled) {
+    return (
+      <div data-poster-money="" className="flex items-baseline justify-between gap-3">
+        <p className="text-ds-16 font-semibold">Job price</p>
+        {amount}
+      </div>
+    );
+  }
+  return <div data-poster-money="" className="shrink-0 text-right">{amount}</div>;
 }
 
 /**
@@ -119,8 +128,8 @@ export function PosterPrice({ job }: { job: JobPageRow }) {
 export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; total: number; loading: boolean }) {
   const released = RELEASED.has(job.payment_status ?? "");
   const status = job.payment_status ?? "";
-  // "Paid … holds it" is the header's "Paid · held"; every other state keeps its sentence.
-  const line = released ? releasedLine(job) : status === "escrow" ? null : HELD_LINE[status] ?? null;
+  // ONE sentence about the money, from payment_status alone (JA-47), "Paid. Louisiana Helpr holds it…" included.
+  const line = released ? releasedLine(job) : HELD_LINE[status] ?? null;
   const count = job.status === "open" && !loading && total > 0;
   if (!line && !released && !count) return null;
   return (

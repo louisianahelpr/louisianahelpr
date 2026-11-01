@@ -27,17 +27,17 @@
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     RAISE EXCEPTION 'job_not_funded'; |     RAISE NOTICE 'job_not_funded';
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   PERFORM 1 FROM public.profiles WHERE user_id = v_uid FOR SHARE; |   PERFORM 1;
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | supabase.rpc("accept_job_offer", { p_job_id: app.job_id }) | supabase.rpc("accept_job_offer_retired", { p_job_id: app.job_id })
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     v_done := public.complete_direct_offer_accept(p_job_id, auth.uid()); |     v_done := jsonb_build_object('action', 'accepted');
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       INSERT INTO public.job_accept_pending (job_id, helper_id)\n      VALUES (p_job_id, auth.uid()) |       PERFORM 1; -- (job_id, helper_id)\n      -- VALUES (p_job_id, auth.uid())
+// @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |     v_done := public.complete_direct_offer_accept(p_job_id, auth.uid()); |     v_done := jsonb_build_object('action', 'accepted');
+// @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |       INSERT INTO public.job_accept_pending (job_id, helper_id)\n      VALUES (p_job_id, auth.uid()) |       PERFORM 1; -- (job_id, helper_id)\n      -- VALUES (p_job_id, auth.uid())
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     v_block := public.direct_accept_block_reason(p_job_id, auth.uid()); |     v_block := NULL;
+// @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |     v_block := public.direct_accept_block_reason(p_job_id, auth.uid()); |     v_block := NULL;
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() THEN\n    RETURN 'job_date_has_passed'; | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() - interval '1 day' THEN\n    RETURN 'job_date_has_passed';
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql | DROP POLICY IF EXISTS "Targeted helper can respond to direct offer" ON public.jobs; | SELECT 1;
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       JOIN public.job_accept_pending p ON p.job_id = e.id |       JOIN public.job_accept_pending p ON false
 // @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN |   IF TG_OP = 'INSERT' THEN
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   PERFORM 1 FROM public.profiles WHERE user_id = auth.uid() FOR SHARE; |   PERFORM 1;
+// @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |   PERFORM 1 FROM public.profiles WHERE user_id = auth.uid() FOR SHARE; |   PERFORM 1;
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     NEW.direct_offer_status := 'expired'; |     NULL;
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |             AND NEW.offered_to_helper_id = p.helper_id AND NEW.direct_offer_status = 'pending')); |             AND false));
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     if (accept && answer.action === "pending_setup") { |     if (false) {
@@ -50,7 +50,7 @@
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | CASE WHEN NEW.direct_offer_expires_at IS NULL OR NEW.direct_offer_expires_at > now() | CASE WHEN true
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |                   title, description, category, special_requirements, photos,\n |                   title, description, category, special_requirements,\n
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |           CASE WHEN public.helper_accept_block_reason(p.helper_id) IS NOT NULL |           CASE WHEN true
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     IF v_done IS NULL THEN\n      RAISE EXCEPTION 'offer_not_active';\n    END IF;\n    RETURN v_done; |     RETURN v_done;
+// @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |     IF v_done IS NULL THEN\n      RAISE EXCEPTION 'offer_not_active';\n    END IF;\n    RETURN v_done; |     RETURN v_done;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { readFileSync } from "node:fs";

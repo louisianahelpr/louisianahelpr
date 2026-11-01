@@ -11,6 +11,7 @@ import { photoPublicUrl } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { AdminCard } from "../AdminViewShell";
+import { fetchProblemCase } from "@/lib/declutter/adminProblemCase";
 import { HelprPhoto, ProblemCaseView } from "./DeclutterProblemCase";
 import { ProblemTalk } from "./DeclutterProblemTalk";
 
@@ -126,6 +127,15 @@ function ProblemItem({ row }: { row: ProblemRow }) {
   // LEAD-ADMIN-HELPR-FAULT (owner rule 10-30 "Helpr's fault, Helpr bears it"): on a Helpr delivery the Helpr can be at
   // fault, which is a full refund only (the server refuses the rest: helpr_fault_not_possible).
   const helprFault = fault === "helpr" && !falseOn;
+  // B42 (BUY-36 screen check): the two Helpr decisions fit different moments, and the server refuses each outside its
+  // own: "The Helpr's" fault while the Helpr has the job but never picked it up (helpr_fault_not_possible), the
+  // can't-finish decision only once the Helpr has it (not_a_delivery_in_transit). The order's steps (the same read
+  // ProblemCaseView makes, so no second request) say which; until they are known both are offered, as before.
+  const kase = useQuery({ queryKey: ["declutter", "admin-problem-case", row.id], queryFn: () => fetchProblemCase(row.id) });
+  const steps = kase.data ?? null;
+  const helprDelivery = !!row.detail?.helpr_delivery;
+  const helprNeverPickedUp = helprDelivery && (steps ? !!steps.helpr_accepted_at && !steps.helpr_picked_up_at : true);
+  const helprHasIt = helprDelivery && (steps ? !!steps.helpr_picked_up_at && !steps.helpr_delivered_at : true);
   const decide = useMutation({
     mutationFn: (decision: "refund_buyer" | "pay_seller" | "refund_part") => {
       const args = [row.id, decision, falseOn ? (reporter as "buyer" | "seller") : fault, falseOn ? false : strike, note.trim() || null, falseOn] as const;
@@ -183,12 +193,12 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       {reporter ? (
         <fieldset className="space-y-1">
           <legend className="text-xs font-medium">Was the report true?</legend>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name={id("truth")} checked={!falseReport} onChange={() => setFalseReport(false)} />
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name={id("truth")} checked={!falseReport} onChange={() => setFalseReport(false)} />
             Yes, or I can't tell
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name={id("truth")} checked={falseReport} onChange={() => { setFalseReport(true); setStrike(false); }} />
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name={id("truth")} checked={falseReport} onChange={() => { setFalseReport(true); setStrike(false); }} />
             No, it was false: the {reporter} gets a strike for a false report
           </label>
           {falseReport ? (
@@ -206,15 +216,15 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         <option value="none">Nobody's</option>
         <option value="seller">The seller's</option>
         <option value="buyer">The buyer's</option>
-        {row.detail?.helpr_delivery ? <option value="helpr">The Helpr's</option> : null}
+        {helprNeverPickedUp ? <option value="helpr">The Helpr's</option> : null}
       </select>
       <p className="text-xs text-muted-foreground">
         If you refund: the seller's fault = the whole payment back (the seller owes the card fee); the buyer's fault = the
         item price back (the buyer's fee is kept); nobody's = the payment back minus the card fee.
-        {row.detail?.helpr_delivery ? " The Helpr's fault (they took it and never picked it up) = the whole payment back, delivery included; the Helpr isn't paid and owes the card fee." : ""}
+        {helprNeverPickedUp ? " The Helpr's fault (they took it and never picked it up) = the whole payment back, delivery included; the Helpr isn't paid and owes the card fee." : ""}
       </p>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
+      <label className="flex min-h-11 items-center gap-2 text-sm">
+        <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
         Give the at-fault side a strike
       </label>
       <label htmlFor={id("note")} className="block text-xs font-medium">Note (both sides see it)</label>
@@ -239,7 +249,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         </div>
       )}
       {/* BUY-36: a delivery the Helpr still has and can't finish is decided by fault. */}
-      {row.detail?.helpr_delivery && !falseOn && (
+      {helprHasIt && !falseOn && (
         <div className="space-y-1" data-admin-stuck-delivery="">
           <p className="text-xs text-muted-foreground">
             If the Helpr has it and can't finish. Nobody's fault: the sale is cancelled, the buyer gets back all but the delivery fee and the card fee, the

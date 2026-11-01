@@ -744,7 +744,7 @@ BEGIN
   IF t.stuck_fault = 'none' THEN
     -- The Helpr is paid for the trip (declutter_close_paid_order confirms a picked-up task, and keeps the delivery fee back).
     v_out := public.declutter_close_paid_order(o.id, 'admin_no_fault', NULL, NULL, NULL);
-    PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your delivery couldn''t be finished',
+    PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'Your delivery couldn''t be finished',
       format('%s went back to the seller, so this sale is cancelled. You get back what you paid, less what the delivery cost, which paid the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back.',
              public.declutter_order_items_named(o.id)),
       '/declutter?tab=buying', t.helpr_id);
@@ -774,7 +774,7 @@ BEGIN
   END IF;
   -- Nothing chosen yet: the money stays held and the buyer has 48 hours, then Louisiana Helpr decides.
   UPDATE public.helpr_tasks SET stuck_stage = 'awaiting_choice', stuck_choice_by = now() + interval '48 hours', updated_at = now() WHERE id = t.id;
-  PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your item is back with the seller',
+  PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'Your item is back with the seller',
     format('Choose what happens with %s in Buying: a full refund, or re-post it for another Helpr.', public.declutter_order_items_named(o.id)),
     '/declutter?tab=buying', t.helpr_id);
   RETURN jsonb_build_object('result', 'awaiting_choice');
@@ -843,7 +843,7 @@ BEGIN
     PERFORM public.declutter_notify(o.buyer_id, 'warning', 'Your delivery is on hold',
       format('The Helpr reported a problem with %s. Louisiana Helpr looks at it and tells you what it decides. The money stays held until then.', v_item),
       '/declutter?tab=buying', v_uid);
-    PERFORM public.declutter_notify(o.seller_id, 'warning', 'This delivery is on hold',
+    PERFORM public.declutter_notify(o.seller_id, 'declutter_sales', 'This delivery is on hold',
       format('The Helpr reported a problem with %s. Louisiana Helpr looks at it and tells you what it decides. The money stays held until then.', v_item),
       '/declutter?tab=selling', v_uid);
     -- Test stuff never reaches an admin (owner 2026-10-30; 20261030150104).
@@ -861,10 +861,10 @@ BEGIN
            stuck_return_by = now() + interval '48 hours', updated_at = now()
      WHERE id = t.id;
     PERFORM public.helpr_task_give_job_strike(v_uid, 'delivery_backed_out', t.id, 'Could not finish a Helpr delivery after picking it up');
-    PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your Helpr can''t finish this delivery',
+    PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'Your Helpr can''t finish this delivery',
       format('They have to take %s back to the seller within 48 hours. In Buying, choose a full refund, re-posting it for another Helpr, or collecting it from them.', v_item),
       '/declutter?tab=buying', v_uid);
-    PERFORM public.declutter_notify(o.seller_id, 'info', 'Your item is coming back',
+    PERFORM public.declutter_notify(o.seller_id, 'declutter_sales', 'Your item is coming back',
       format('The Helpr can''t finish the delivery of %s and has to bring it back within 48 hours. Confirm in Selling when you have it.', v_item),
       '/declutter?tab=selling', v_uid);
     RETURN jsonb_build_object('result', 'returning', 'strike', true);
@@ -875,10 +875,10 @@ BEGIN
        SET stuck_reason = p_reason, stuck_note = v_note, stuck_fault = 'none', stuck_stage = 'returning',
            stuck_return_by = now() + interval '48 hours', updated_at = now()
      WHERE id = t.id;
-    PERFORM public.declutter_notify(o.buyer_id, 'payment', 'The delivery couldn''t be finished',
+    PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'The delivery couldn''t be finished',
       format('The Helpr tried again and couldn''t leave %s, so it goes back to the seller and the sale is cancelled. You get back what you paid, less what the delivery cost, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back. If you disagree, report a problem in Buying.', v_item),
       '/declutter?tab=buying', v_uid);
-    PERFORM public.declutter_notify(o.seller_id, 'info', 'Your item is coming back',
+    PERFORM public.declutter_notify(o.seller_id, 'declutter_sales', 'Your item is coming back',
       format('The Helpr couldn''t leave %s and brings it back within 48 hours. Confirm in Selling when you have it.', v_item),
       '/declutter?tab=selling', v_uid);
     RETURN jsonb_build_object('result', 'returning', 'strike', false);
@@ -887,7 +887,7 @@ BEGIN
      SET stuck_at = now(), stuck_reason = p_reason, stuck_note = v_note, stuck_fault = 'none', stuck_stage = 'waiting_fix',
          stuck_fix_by = now() + interval '24 hours', updated_at = now()
    WHERE id = t.id;
-  PERFORM public.declutter_notify(o.buyer_id, 'warning', 'Your Helpr can''t get to you',
+  PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'Your Helpr can''t get to you',
     format('About %s. Fix it in Buying within 24 hours, and they try once more. If it isn''t fixed, it goes back to the seller and the sale is cancelled.', v_item),
     '/declutter?tab=buying', v_uid);
   RETURN jsonb_build_object('result', 'waiting_fix', 'strike', false);
@@ -1069,7 +1069,7 @@ BEGIN
          return_answer_by = now() + interval '24 hours', updated_at = now()
    WHERE id = t.id;
   PERFORM public.helpr_task_log(t.id, 'returned', v_uid, v_m::text || ' m');
-  PERFORM public.declutter_notify(t.pickup_contact_id, 'warning', 'The Helpr says it''s back with you',
+  PERFORM public.declutter_notify(t.pickup_contact_id, 'declutter_sales', 'The Helpr says it''s back with you',
     format('About "%s". Confirm in Selling, or say it didn''t come back. If we don''t hear from you in 24 hours, we count it as back.', t.title),
     '/declutter?tab=selling', v_uid);
   RETURN jsonb_build_object('result', 'returned', 'distance_m', v_m);
@@ -1353,10 +1353,10 @@ BEGIN
         PERFORM public.declutter_notify(t.helpr_id, 'info', 'Take it back to the seller',
           format('The buyer didn''t fix the delivery of "%s". Take it back to the seller within 48 hours, and you''re paid for the trip.', t.title),
           '/declutter?tab=deliver', t.customer_id);
-        PERFORM public.declutter_notify(t.customer_id, 'payment', 'The delivery couldn''t be finished',
+        PERFORM public.declutter_notify(t.customer_id, 'declutter_pickups', 'The delivery couldn''t be finished',
           format('"%s" goes back to the seller and the sale is cancelled. You get back what you paid, less what the delivery cost, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn''t give back.', t.title),
           '/declutter?tab=buying', t.helpr_id);
-        PERFORM public.declutter_notify(t.pickup_contact_id, 'info', 'Your item is coming back',
+        PERFORM public.declutter_notify(t.pickup_contact_id, 'declutter_sales', 'Your item is coming back',
           format('The Helpr couldn''t leave "%s" and brings it back within 48 hours. Confirm in Selling when you have it.', t.title),
           '/declutter?tab=selling', t.helpr_id);
         v_stuck := v_stuck + 1;
@@ -1373,9 +1373,9 @@ BEGIN
                      WHEN t.stuck_stage = 'collecting' THEN 'The buyer was going to collect the item from the Helpr, and 48 hours have passed without it being confirmed.'
                      ELSE 'The Helpr reported they couldn''t finish, and hasn''t brought the item back to the seller in 48 hours.' END,
                 '{}');
-        PERFORM public.declutter_notify(t.customer_id, 'warning', 'Louisiana Helpr is looking at this delivery',
+        PERFORM public.declutter_notify(t.customer_id, 'declutter_pickups', 'Louisiana Helpr is looking at this delivery',
           format('About "%s". The money stays held until it decides.', t.title), '/declutter?tab=buying', t.helpr_id);
-        PERFORM public.declutter_notify(t.pickup_contact_id, 'warning', 'Louisiana Helpr is looking at this delivery',
+        PERFORM public.declutter_notify(t.pickup_contact_id, 'declutter_sales', 'Louisiana Helpr is looking at this delivery',
           format('About "%s". The money stays held until it decides.', t.title), '/declutter?tab=selling', t.helpr_id);
         PERFORM public.declutter_notify(t.helpr_id, 'warning', 'Louisiana Helpr is looking at this delivery',
           format('About "%s". It decides what happens next.', t.title), '/declutter?tab=deliver', NULL);

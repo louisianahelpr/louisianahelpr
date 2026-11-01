@@ -32,14 +32,17 @@ const ROOT = join(__dirname, "../..");
 const squash = (s: string) => s.replace(/\s+/g, " ");
 
 describe("a crew charge gets one refund, under one source (Q1827)", () => {
-  it("rpc_decide_crew_dispute refuses once any refund or payout exists on the job (newest definition)", () => {
+  // JOBS-3 (20261101044659): a transfer refuses unless it went to a member the
+  // poster approved (an early member payout), and that member is never refunded.
+  it("rpc_decide_crew_dispute refuses once any refund, or any payout but an approved member's, exists on the job (newest definition)", () => {
     const defs = effectiveDefs(join(ROOT, "supabase", "migrations"));
     const d = defs.get("rpc_decide_crew_dispute");
     expect(d, "rpc_decide_crew_dispute has a definition in supabase/migrations").toBeTruthy();
     const body = squash(blankSqlComments(d!.stmt));
     expect(body.length).toBeGreaterThan(1000);
     expect(body).toMatch(/OR EXISTS \(SELECT 1 FROM public\.payment_refunds r WHERE r\.job_id = _job_id\) THEN RAISE EXCEPTION 'crew_dispute_money_moved'/);
-    expect(body).toMatch(/EXISTS \(SELECT 1 FROM public\.payout_transfers t WHERE t\.job_id = _job_id AND t\.status IN \('pending', 'paid', 'reversed'\)\)/);
+    expect(body).toMatch(/EXISTS \(SELECT 1 FROM public\.payout_transfers t WHERE t\.job_id = _job_id AND t\.status IN \('pending', 'paid', 'reversed'\) AND NOT EXISTS \( SELECT 1 FROM public\.group_job_helpers g WHERE g\.job_id = _job_id AND g\.helper_id = t\.helper_id AND g\.poster_confirmed_completion_at IS NOT NULL\)\)/);
+    expect(body).toMatch(/RAISE EXCEPTION 'crew_dispute_member_already_paid'/);
   });
 
   it("process-scheduled-payouts picks ONE source per job: the decision's when there is one", () => {

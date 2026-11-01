@@ -280,6 +280,7 @@
     "rpc_guarantee_poster_answer(uuid, boolean, text)": "client",
     "rpc_answer_refund_request(uuid, text, date, time without time zone)": "client",
     "rpc_poster_confirm_member_arrival(uuid, uuid)": "client",
+    "rpc_poster_approve_member(uuid, uuid)": "client",
     "rpc_poster_report_member_no_show(uuid, uuid)": "client",
     "rpc_record_application_attempt(uuid)": "client",
     "rpc_settle_dispute_without_payment(uuid, text)": "client",

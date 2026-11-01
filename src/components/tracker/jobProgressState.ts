@@ -9,15 +9,16 @@
  * Guard: src/test/oneJobTracker.test.ts.
  */
 import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
-import { jobStartDateTime } from "@/lib/dateUtils";
+import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
-import { helperStatusLine, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
+import { EXPIRED_LISTING_DETAIL, helperStatusLine, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
 import { helperFaceNextStep } from "@/pages/jobs/appliedJobCard/helperFaceAction";
 import { HELPR_NOT_STARTED, workHasBegun } from "@/components/tracker/workHasBegun";
+import { isExpiredListing } from "@/lib/expiredListing";
 
 export type { Stage, StepTone } from "@/components/tracker/jobStepFromWait";
 
@@ -50,6 +51,9 @@ export type ProgressJob = {
   helper_completed_at?: string | null;
   poster_completed_at?: string | null;
   has_active_dispute?: boolean | null;
+  /** isExpiredListing reads these: an auto-expired listing is never shown as cancelled (JA-23). */
+  cancellation_reason?: string | null;
+  cancelled_by?: string | null;
   /** A crew job: its helper_id is null (the members are on group_job_helpers), so "hired" is read from the status. */
   is_group_job?: boolean | null;
   /** What the Helpr's card line reads past arrival (photo asks): the open card's tracker passes them too. */
@@ -165,6 +169,8 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
   // Chat-only thread states the card never shows: another Helpr was hired, or this one was not picked.
   if (base.word === "Filled" || base.word === "Not picked") return base;
   // A dispute flag the status column does not carry: the warning step, never a progress colour.
+  // An expired listing is greyed like a cancel but named for what it is (JA-23).
+  if (isExpiredListing(job)) return { ...base, stage: 0, waitingOnYou: false, tone: "cancelled", label: base.word };
   if (base.word === "Under review") return { ...base, stage: 7, waitingOnYou: false, tone: "problem", label: "Dispute" };
   const now = o.now ?? new Date();
   const card = o.card ?? cardFaceFor(job, o, now);
@@ -219,10 +225,13 @@ function cardFaceFor(job: ProgressJob, o: ProgressOpts, now: Date): CardFace | n
   // Only the statuses the card's rule knows (anything else would hit its assertNever): the rest keep the line.
   if (!CARD_STATUSES.has(job.status ?? "")) return null;
   if (o.viewer === "poster") {
-    const line = posterStatusLine(row, o.application === "pending" ? 1 : 0, now, undefined, false, o.otherFirst ?? null, o.workUnderway === undefined ? undefined : { workUnderway: o.workUnderway });
+    // JA-1 (audit 11-01): the job page knows how many applicants wait (pendingApplicants); chat knows only its thread's
+    // one application. Reading only the thread's made the page say "No applicants yet" above "Review 2 applicants".
+    const pending = o.pendingApplicants ?? (o.application === "pending" ? 1 : 0);
+    const line = posterStatusLine(row, pending, now, undefined, false, o.otherFirst ?? null, o.workUnderway === undefined ? undefined : { workUnderway: o.workUnderway });
     const noop = () => {};
     const face = posterFaceAction(line.id as PosterWait, row, {
-      pendingApplicants: o.application === "pending" ? 1 : 0, helperName: o.otherFirst ?? "", confirmingArrival: false, completing: false,
+      pendingApplicants: pending, helperName: o.otherFirst ?? "", confirmingArrival: false, completing: false,
       openApplicants: noop, confirmArrival: noop, approve: noop, review: noop, tip: noop, postAgain: noop, message: noop, manage: noop,
       confirm: noop, noShow: noop, cancel: noop, viewDispute: noop,
     });
@@ -249,6 +258,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   const status = job.status ?? "";
   const now = (o.now ?? new Date()).getTime();
 
+  // JA-23: expired is not cancelled (owner 10-31, src/lib/expiredListing.ts). The poster reads "Expired · No Helpr was
+  // hired in time" (the card's own line); anyone else "Closed · No longer open". Never "Cancelled".
+  if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD : "Closed", poster ? EXPIRED_LISTING_DETAIL : "No longer open", held);
   if (status === "cancelled" || status === "expired") return at(null, false, "Cancelled", "This job was cancelled", held);
   if (job.has_active_dispute || status === "disputed") {
     return at(null, false, "Under review", "A real person at Helpr is looking at the problem. The money stays held", held);
@@ -260,7 +272,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     if (o.application === "rejected") return at(null, false, "Not picked", poster ? "You passed on this one" : "Not picked this time", false);
     // JOBS-9: nobody can see a job that never got paid for, so it is not waiting for anyone.
     if (poster && jobIsUnfundedDraft(job)) return at(0, false, "Posted", "Waiting on your payment", false);
-    return at(0, false, "Posted", poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") : "Open for Helprs", held);
+    // JA-1: applicants waiting are the poster's move (the card's bar says so too, from the same count).
+    const picking = poster && (o.pendingApplicants ?? 0) > 0;
+    return at(0, picking, "Posted", poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") : "Open for Helprs", held);
   }
 
   if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) {

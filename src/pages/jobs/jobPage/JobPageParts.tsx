@@ -133,7 +133,25 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
   );
 }
 
-export function HelprMoney({ job }: { job: JobPageRow }) {
+/**
+ * What a Helpr reads instead of a take-home when there is nothing to take home (audit 11-01 JA-24): a cancelled job,
+ * or one where they were reported a no-show, pays them nothing (JOBS-3: a no-show member gets nothing), except a
+ * poster's late cancel, whose fee is shared with them (poster_cancel_job: cancellation_fee > 0). Null = the normal box.
+ * Guard: src/test/helprMoneyNotOnACancelledJob.test.tsx.
+ */
+export function helprNoPayWords(job: Pick<JobPageRow, "status" | "cancellation_fee" | "cancelled_by" | "customer_id">, noShow = false): { title: string; line: string } | null {
+  if (noShow) return { title: "Not paid", line: "You were reported as a no-show, so you aren't paid for this job." };
+  if (job.status !== "cancelled") return null;
+  if (Number(job.cancellation_fee ?? 0) > 0 && !!job.cancelled_by && job.cancelled_by === job.customer_id) {
+    return { title: "Cancelled late", line: "It was cancelled close to the start, so you get a share of the late-cancel fee." };
+  }
+  return { title: "Not paid", line: "This job was cancelled, so there's nothing to pay out." };
+}
+
+export function HelprMoney({ job, noShow = false }: { job: JobPageRow; noShow?: boolean }) {
+  const noPay = helprNoPayWords(job, noShow);
+  // JA-29: during a dispute the money is held, not theirs yet.
+  const disputed = job.status === "disputed" || !!job.has_active_dispute;
   const firstPayoutFee = useFirstPayoutFeeDollars();
   const { profile } = useCurrentUser();
   // Split only on a group job (helperShareCount; helpersNeededSplitIsGroupGated).
@@ -142,15 +160,34 @@ export function HelprMoney({ job }: { job: JobPageRow }) {
   // charged the viewer's own tier rate at payout, the same rate the feed's
   // "You earn" figure uses (useDashboardData: tierFeePercent of the profile).
   const tierPct = tierFeePercent(profile?.subscription_tier, profile?.subscription_expires_at);
-  const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : firstPayoutFee, job).netEarnings;
+  const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, disputed ? 0 : firstPayoutFee, job).netEarnings;
   // Owner 2026-10-30: the giveaway shows its $50 with no words and no setup-fee line.
   const fixedPay = isGiveawayFixedPayJob(job);
   // Owner 2026-10-25: members never see the Helpr fee, its rate or its maths,
   // only the take-home (and the one-time setup fee on the payout it comes out of).
   const lines = [
     helpers > 1 ? `Your share of a job for ${helpers} Helprs.` : null,
-    firstPayoutFee > 0 && job.status !== "disputed" && !fixedPay ? setupFeeWords(firstPayoutFee) : null,
+    firstPayoutFee > 0 && !disputed && !fixedPay ? setupFeeWords(firstPayoutFee) : null,
   ].filter(Boolean);
+  if (noPay) {
+    return (
+      <div data-helpr-money="" data-helpr-no-pay="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
+        <p className="text-ds-15 font-semibold">{noPay.title}</p>
+        <p className="mt-1.5 text-ds-13 text-muted-foreground">{noPay.line}</p>
+      </div>
+    );
+  }
+  if (disputed) {
+    return (
+      <div data-helpr-money="" data-helpr-money-held="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="text-ds-15 font-semibold">On hold while we review</p>
+          <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
+        </div>
+        {helpers > 1 && <p className="mt-1.5 text-ds-13 text-muted-foreground">Your share of a job for {helpers} Helprs.</p>}
+      </div>
+    );
+  }
   return (
     <div data-helpr-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
       <div className="flex items-baseline justify-between gap-3">

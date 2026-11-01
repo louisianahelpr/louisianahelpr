@@ -94,6 +94,9 @@ const declineAtClaim = (tables: Record<string, Row[]>) => {
 describe("instant book: a decline that lands after the capture's claim (CMP-4 race fix)", () => {
   it("decline first: with offerTo the claim goes back to 'authorized' and Stripe is never called", async () => {
     const { db, tables } = store(declineAtClaim);
+    // The store really holds the job and its hold (a store read empty would pass every filter).
+    expect(tables.jobs.length).toBeGreaterThan(0);
+    expect(tables.job_card_holds.length).toBeGreaterThan(0);
     const { stripe, calls } = stripeSpy();
     const r = await captureCardHold({ db: db as never, stripe: stripe as never, mode: "test" }, JOB, { offerTo: HELPR });
     expect(r).toEqual({ ok: false, reason: "not_held" });

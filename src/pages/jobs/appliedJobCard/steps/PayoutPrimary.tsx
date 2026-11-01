@@ -2,6 +2,7 @@ import { CheckCircle2 } from "lucide-react";
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 import { doneFloorNote } from "@/lib/doneFloor";
+import { SELL_FOR_ME_DONE_NOTE, isSellForMeJob } from "@/lib/declutter/sellForMe";
 
 /**
  * The ONE primary action of a live job: "Mark job complete" (owner,
@@ -76,6 +77,22 @@ export function PayoutUnlockNote({
     <JobStepRowSlot slot="note">
       <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {doneFloorNote(minutesLeft)}
+      </p>
+    </JobStepRowSlot>
+  );
+}
+
+/**
+ * LEAD-LIST-FOR-SELLER: a "Have a Helpr list it" job is done once its listings are SENT for the seller's approval (the
+ * server refuses completion_requires_listings_sent before then: 20261101034159). Said on the line above the row while
+ * the work is on, so the Helpr knows before the tap, not from the refusal.
+ */
+export function SellForMeDoneNote({ job }: { job: { category?: string | null; helper_completed_at?: string | null } | null | undefined }) {
+  if (!job || !isSellForMeJob(job.category) || job.helper_completed_at) return null;
+  return (
+    <JobStepRowSlot slot="note">
+      <p className="font-sans text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-sell-for-me-done-note="">
+        {SELL_FOR_ME_DONE_NOTE}
       </p>
     </JobStepRowSlot>
   );

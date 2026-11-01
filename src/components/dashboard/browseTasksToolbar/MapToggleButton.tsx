@@ -1,4 +1,5 @@
 import { Map, MapPinned } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /**
  * Show / hide the map column on the desktop website's Browse (Jobs and Declutter, owner 2026-10-28: "declutter
@@ -10,20 +11,22 @@ import { Map, MapPinned } from "lucide-react";
  */
 export function MapToggleButton({ visible, onToggle, disabled = false }: { visible: boolean; onToggle: () => void; disabled?: boolean }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="iconCompact"
       onClick={onToggle}
       aria-pressed={visible}
       disabled={disabled}
       aria-label={visible ? "Hide the map" : "Show the map"}
       title={visible ? "Hide the map" : "Show the map"}
-      className={`h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors disabled:opacity-40 disabled:pointer-events-none ${
+      className={`btn-press disabled:opacity-40 ${
         visible
           ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.10)]"
           : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--bark)/0.06)]"
       }`}
     >
       {visible ? <Map className="w-5 h-5" /> : <MapPinned className="w-5 h-5" />}
-    </button>
+    </Button>
   );
 }

@@ -15,7 +15,6 @@
   "src/components/auth/SocialAuthButtons.tsx",
   "src/components/dashboard/IconActionButton.tsx",
   "src/components/dashboard/applyConfirmDialog/ApplyBody.tsx",
-  "src/components/dashboard/browseTasksToolbar/BrowseTasksActions.tsx",
   "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx",
   "src/components/jobs/ShareJobButton.tsx",
   "src/components/landing/HeroSection.tsx",

@@ -12,6 +12,7 @@
  * NOTHING outside the entry may import this file (see guestJobsPrefetch.ts). So the switch keys are a COPY of
  * FEATURE_SWITCH_KEYS, and src/boot/declutterPrefetch.test.ts holds the two equal.
  */
+import { storedSession } from "./storedSession";
 
 /** Copy of FEATURE_SWITCH_KEYS in src/config/featureSwitches.ts (see above). */
 export const FIRST_SCREEN_SWITCH_KEYS = [
@@ -46,29 +47,7 @@ export const FIRST_SCREEN_SWITCH_KEYS = [
   "card_hold_at_post",
   "declutter_shipping",
 ];
-/** A session this close to expiry is left to supabase-js, which refreshes it. */
-const MIN_TOKEN_LIFE_S = 60;
-
 export const DECLUTTER_PREFETCH_KEY = "__lhDeclutterPrefetch";
-
-/** The stored session's token and whose it is, while it has life left; null otherwise (never throws). */
-function storedSession(nowS: number): { token: string; userId: string } | null {
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key || !key.startsWith("sb-") || !key.endsWith("-auth-token")) continue;
-      const session = JSON.parse(localStorage.getItem(key) ?? "null") as
-        | { access_token?: unknown; expires_at?: unknown; user?: { id?: unknown } }
-        | null;
-      const userId = session?.user?.id;
-      if (typeof session?.access_token !== "string" || typeof session.expires_at !== "number" || typeof userId !== "string") return null;
-      return session.expires_at - nowS > MIN_TOKEN_LIFE_S ? { token: session.access_token, userId } : null;
-    }
-  } catch {
-    /* storage blocked or a malformed session: the page reads for itself */
-  }
-  return null;
-}
 
 /** Called by the entry. No-op unless this is a cold load of /declutter with a live session. */
 export function startDeclutterPrefetch(pathname: string): void {

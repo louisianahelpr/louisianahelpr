@@ -120,7 +120,8 @@ async function notifyKept(supabase: Db, helperId: string, jobId: string | null, 
     ...(jobId ? { job_id: jobId } : {}),
     title: "You received a tip!",
     message: `${tipperName} tipped you for a completed job. Thanks for the great work!`,
-    type: "payment",
+    // NOID-15: same row as the paid-tip notice (checkoutSessionCompleted).
+    type: "financial_alerts",
     link: "/profile?tab=earnings",
   });
 }

@@ -364,7 +364,8 @@ async function settleCheckoutSession(
             job_id: tipJobId,
             title: "You received a tip!",
             message: `${tipperName} tipped you for a completed job. Thanks for the great work!`,
-            type: "payment",
+            // NOID-15: tips are "Payments and tips" (financial_alerts), not "Job payments".
+            type: "financial_alerts",
             link: "/profile?tab=earnings",
           });
         }

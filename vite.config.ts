@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { declutterItemSplit, guestBrowseSplit, homeIconFiles, signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
+import { SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, homeFirstScreenRoots, homeIconFiles, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -167,6 +167,11 @@ const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd());
 const { itemDeep: declutterItemDeep, itemPages: declutterItemPages } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
 const homeIcons = homeIconFiles(process.cwd());
+const bootSet = bootModules(process.cwd());
+const homeSet = staticReach(process.cwd(), homeFirstScreenRoots(process.cwd()));
+const bootOrHome = (f: string) => bootSet.has(f) || homeSet.has(f);
+const norm = (id: string) => id.split("?")[0].replace(/\\/g, "/");
+const lateShared = (id: string) => (SHARED_DIR_RE.test(id) || /[\\/]supabase[\\/]functions[\\/]/.test(id)) && !bootOrHome(norm(id));
 const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
 
 export default defineConfig(({ mode, command }) => ({
@@ -1051,9 +1056,26 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
+            // Shared code (the app-shared directories, and supabase/functions modules the client imports) that
+            // neither boot nor Home's first screen runs (B83, 11-01), for example messageScanner,
+            // userFacingError, turnstile and the edge copy modules. One chunk,
+            // not rolldown's per-share split: that emitted ~40 tiny files and pushed the entry's preload list
+            // past its budget (a two-way split by public reach also did, by 8 bytes, whatever the names).
+            {
+              name: "shared-late",
+              test: lateShared,
+              minShareCount: 2,
+              priority: 10,
+              minSize: 0,
+              includeDependenciesRecursively: false /* their deps stay put, as in signed-in-shared */,
+            },
+            // Only the shared code boot runs (bootReach.mjs bootModules: the static closure of src/main.tsx)
+            // plus what Home's first screen runs (every signed-in visitor lands there; splitting that out cost
+            // /home 0.13 s LCP in the lab). With the directory test alone every shared module two chunks import
+            // rode here on every page's boot. Build: boot 215 -> 209 KB gz, /home 295 -> 290, /posts 215 -> 209.
             {
               name: "app-shared",
-              test: /[\\/]src[\\/](lib|hooks|utils|contexts|integrations|config|constants)[\\/]/,
+              test: (id: string) => SHARED_DIR_RE.test(id) && bootOrHome(norm(id)),
               minShareCount: 2,
               priority: 10,
             },

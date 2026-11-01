@@ -2,7 +2,11 @@ import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { User } from "@supabase/supabase-js";
 import { queryKeys } from "@/lib/queryKeys";
-import { fetchConversations } from "@/pages/messages/messagesData/loadConversations";
+import { loadModule, untilReload } from "@/lib/loadModule";
+
+// On first long press only (B85, 11-01): statically imported, the inbox loader (~2.8 KB gz) rode in the dock's chunks,
+// which load beside every signed-in page.
+const inboxLoader = () => loadModule(() => import("@/pages/messages/messagesData/loadConversations"));
 
 /**
  * The last 3 people messaged, for the Messages tab's long-press preview.
@@ -20,7 +24,7 @@ export function useRecentConversationsPreview(user: User | null | undefined, ena
   const uid = user?.id;
   const query = useQuery({
     queryKey: queryKeys.messages.conversations(uid),
-    queryFn: () => fetchConversations(uid as string, thumbWarningShown),
+    queryFn: () => inboxLoader().then((m) => (m ? m.fetchConversations(uid as string, thumbWarningShown) : untilReload())),
     enabled: enabled && !!uid,
     staleTime: 30_000,
   });

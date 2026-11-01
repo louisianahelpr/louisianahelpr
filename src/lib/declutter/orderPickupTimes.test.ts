@@ -68,6 +68,9 @@ describe("A3-18: the sale card, both sides", () => {
     expect(nextStepWords(standing("meetup", "seller", 0, null, false, unbooked))).toBe("Paid. Waiting on the buyer to book a time to meet · by Sun 11/8, 5:07 PM");
     expect(nextStepWords(standing("pickup_home", "buyer", 0, null, false, unbooked))).toBe("Next: book a pickup time · by Sun 11/8, 5:07 PM");
   });
+  it("A3-49: the seller's wait names the buyer, in the one line with by <book_by>", () => {
+    expect(nextStepWords(standing("porch", "seller", 0, null, false, { ...unbooked, buyer: "Ann" }))).toBe("Paid. Waiting on Ann to pick a pickup time · by Sun 11/8, 5:07 PM");
+  });
   it("the checkout time booked: the seller's step names the window; no by", () => {
     expect(nextStepWords(standing("porch", "seller", 1, null, false, chosen))).toBe("Next: put it out and post the porch photo · Pickup Sat 11/7, 3–5 PM");
     expect(nextStepWords(standing("porch", "buyer", 1, null, false, chosen))).toBe("Not out yet. We'll tell you when it's on the porch · Pickup Sat 11/7, 3–5 PM");

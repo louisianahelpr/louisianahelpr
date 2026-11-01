@@ -78,6 +78,8 @@ function wrap(node: ReactNode) {
   return render(<QueryClientProvider client={qc}><MemoryRouter>{node}</MemoryRouter></QueryClientProvider>);
 }
 const NOW = Date.parse("2026-11-03T15:00:00Z");
+/** The last match (the dialog's button, after the card's). */
+const lastOf = <T,>(xs: T[]): T => xs[xs.length - 1];
 const rpcCalls = (fn: string) => db.calls.filter((c) => c.fn === fn);
 
 beforeEach(() => {
@@ -131,7 +133,7 @@ describe("the poster's top 3 and Book now", () => {
     expect(screen.getByText(/Your card is held, not charged, for 2 hours/)).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: /^Book .* now$/ })[0]);
     expect(await screen.findByText(/They have 2 hours to decline. If they don't, your card is charged and they're hired./)).toBeTruthy();
-    fireEvent.click(screen.getAllByRole("button", { name: "Book now" }).at(-1)!);
+    fireEvent.click(lastOf(screen.getAllByRole("button", { name: "Book now" })));
     await waitFor(() => expect(rpcCalls("rpc_instant_book")).toHaveLength(1));
     expect(rpcCalls("rpc_instant_book")[0].args).toEqual({ p_job_id: JOB, p_helper_id: cand(1).helper_id });
   });
@@ -142,7 +144,7 @@ describe("the poster's top 3 and Book now", () => {
     db.rpcError.rpc_instant_book = { message: "instant_book_unavailable" };
     wrap(<InstantBookPanel jobId={JOB} now={NOW} />);
     fireEvent.click(await screen.findByRole("button", { name: /^Book .* now$/ }));
-    fireEvent.click((await screen.findAllByRole("button", { name: "Book now" })).at(-1)!);
+    fireEvent.click(lastOf((await screen.findAllByRole("button", { name: "Book now" }))));
     expect(await screen.findByText("That Helpr can't be booked now. Pick another, or wait for applications.")).toBeTruthy();
   });
 
@@ -177,7 +179,7 @@ describe("the booked Helpr: Confirm, Decline, 2-hour countdown, every outcome", 
     wrap(<InstantBookingCard jobId={JOB} title="Mow the yard" declineUntil={until} now={NOW} />);
     fireEvent.click(screen.getByRole("button", { name: "Decline" }));
     expect(await screen.findByText(/No strike, and nothing is charged. The job opens again/)).toBeTruthy();
-    fireEvent.click(screen.getAllByRole("button", { name: "Decline" }).at(-1)!);
+    fireEvent.click(lastOf(screen.getAllByRole("button", { name: "Decline" })));
     await waitFor(() => expect(rpcCalls("rpc_instant_book_decline")).toHaveLength(1));
     expect(await screen.findByText(INSTANT_OUTCOME_COPY.declined.body)).toBeTruthy();
     expect(rpcCalls("respond_to_direct_offer")).toHaveLength(0);
@@ -187,7 +189,7 @@ describe("the booked Helpr: Confirm, Decline, 2-hour countdown, every outcome", 
     db.rpcError.rpc_instant_book_decline = { message: "decline_window_closed" };
     wrap(<InstantBookingCard jobId={JOB} title="Mow the yard" declineUntil={until} now={NOW} />);
     fireEvent.click(screen.getByRole("button", { name: "Decline" }));
-    fireEvent.click((await screen.findAllByRole("button", { name: "Decline" })).at(-1)!);
+    fireEvent.click(lastOf((await screen.findAllByRole("button", { name: "Decline" }))));
     expect(await screen.findByText("The 2 hours to decline have ended, so you're booked.")).toBeTruthy();
   });
 

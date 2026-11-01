@@ -142,9 +142,9 @@ function HomeDashboardScreen() {
                   <p data-testid="live-now-title" className="text-ds-18 font-bold leading-snug text-foreground line-clamp-2 [overflow-wrap:anywhere]">{l.title}</p>
                   <p className="text-ds-14 text-muted-foreground">{l.side}</p>
                   <div className="mt-1.5"><JobProgress progress={l.progress} compact /></div>
-                  <button type="button" data-testid="live-now-action" onClick={() => navigate(`/jobs/${l.jobId}`)} className="btn-grad-primary btn-press self-start rounded-full min-h-11 px-5 mt-2 text-ds-15 font-semibold">
+                  <Button type="button" size="sm" data-testid="live-now-action" onClick={() => navigate(`/jobs/${l.jobId}`)} className="self-start mt-2 px-5 text-ds-15 font-semibold tracking-normal shadow-none">
                     Open job
-                  </button>
+                  </Button>
                 </section>
               );
             })()}

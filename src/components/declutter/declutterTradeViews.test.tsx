@@ -1450,7 +1450,7 @@ describe("B-1: the return from the payment page never offers Pay again for what 
 // @mutate src/components/declutter/DeclutterTradeViews.tsx | lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] | lg:block
 // @mutate src/components/declutter/DeclutterTradeViews.tsx |     </div>\n    <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary=""> |     <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
 // @mutate src/components/declutter/DeclutterTradeViews.tsx |                     <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />\n |
-// @mutate src/components/declutter/DeclutterTradeViews.tsx |       {path && !failed && <img | {false && <img
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |       {path && stage !== "failed" && <img | {false && <img
 // @mutate src/components/declutter/DeclutterTradeViews.tsx | className="flex min-h-11 min-w-0 items-center truncate" | className="truncate"
 describe("BUY-15: checkout is two columns from lg, and each cart line shows its photo", () => {
   const line = { line_id: "l1", item_id: "i1", item_title: "Oak rocking chair", my_side: "buyer", seller_id: "s2", price_cents: 4000, status: "in_cart",

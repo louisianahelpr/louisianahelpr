@@ -151,6 +151,19 @@ type PayoutDue = {
   /** Refunds the order recorded (not failed): the most the charge may have given back. */
   refunds_recorded_cents?: number | null;
 };
+/** declutter_manager_payouts_due (20261101233256): the manager's share of one sale, paid to the MANAGER's account. */
+type ManagerPayoutDue = {
+  payout_id: string;
+  order_id: string;
+  buyer_id: string | null;
+  seller_id: string | null;
+  manager_id: string | null;
+  amount_cents: number;
+  stripe_account_id: string | null;
+  payment_intent_id: string | null;
+  attempts: number;
+  refunds_recorded_cents?: number | null;
+};
 type HelprPayoutDue = {
   payout_id: string;
   task_id: string;
@@ -304,6 +317,7 @@ serve(async (req) => {
   const out = {
     refunds_sent: 0, refunds_reconciled: 0, refunds_failed: 0, refunds_gave_up: 0,
     payouts_sent: 0, payouts_reconciled: 0, payouts_failed: 0,
+    manager_payouts_sent: 0, manager_payouts_reconciled: 0, manager_payouts_failed: 0,
     helpr_payouts_sent: 0, helpr_payouts_reconciled: 0, helpr_payouts_failed: 0, held_tips_stranded: 0,
     delivery_refunds_sent: 0, delivery_refunds_reconciled: 0, delivery_refunds_failed: 0,
     raise_refunds_sent: 0, raise_refunds_reconciled: 0, raise_refunds_failed: 0,
@@ -333,7 +347,7 @@ serve(async (req) => {
   /** Modes whose platform-key probe already ran this run. */
   const probedModes = new Set<string>();
   const gateSynced = new Set<string>();
-  type PayoutKind = "declutter" | "helpr_task" | "shop";
+  type PayoutKind = "declutter" | "helpr_task" | "shop" | "declutter_manager";
   type SkipKind = PayoutKind | "declutter_refund" | "delivery_refund";
   let waitRpcMissing = false;
   /** A 20261019070737 RPC; PGRST202 (edge deployed before the migration) is one defect a run, not one per row. */
@@ -911,7 +925,17 @@ serve(async (req) => {
       });
     }
   }
-  if (refunds.length === 0 && payouts.length === 0 && helprPayouts.length === 0 && deliveryRefunds.length === 0 && raiseRefunds.length === 0) {
+  // Manager mode phase 2b: the manager's share rows (20261101233256), paid in step 2b below.
+  const managerRes = await admin.rpc("declutter_manager_payouts_due", { p_limit: BATCH });
+  let managerPayouts: ManagerPayoutDue[] = [];
+  if (managerRes.error) {
+    // Not deployed yet (this edge shipped before its migration): one defect, never a stop for the rest.
+    if ((managerRes.error as { code?: string }).code !== "PGRST202") defects.record(`declutter_manager_payouts_due failed: ${managerRes.error.message}`.slice(0, 200));
+  } else {
+    managerPayouts = (managerRes.data ?? []) as ManagerPayoutDue[];
+  }
+  if (refunds.length === 0 && payouts.length === 0 && helprPayouts.length === 0 && deliveryRefunds.length === 0 && raiseRefunds.length === 0
+      && managerPayouts.length === 0) {
     return cronResult(FN, out, defects.defects);
   }
 
@@ -919,6 +943,7 @@ serve(async (req) => {
   const people = [...new Set([
     ...[...refunds, ...payouts, ...deliveryRefunds, ...raiseRefunds].flatMap((r) => [r.buyer_id, r.seller_id]),
     ...helprPayouts.flatMap((h) => [h.helpr_id, h.customer_id, h.pickup_contact_id]),
+    ...managerPayouts.flatMap((m) => [m.buyer_id, m.seller_id, m.manager_id]),
   ].filter((x): x is string => !!x))];
   const review = await loadBanReviewUsers(admin, people);
   if (!review.ok) return cronError(FN, `ban review read failed: ${review.message}`);
@@ -1126,6 +1151,114 @@ serve(async (req) => {
       // A failed transfer backs off in SQL and is retried; after the last try it pages.
       await pageIfLastTry(p, msg);
       if (p.attempts + 1 >= 12) await clearWait("declutter", p.payout_id);
+    }
+  }
+
+  // 2b. Manager mode (phase 2b): the manager's share of a sale, a SEPARATE transfer from the platform to the MANAGER's
+  // own Connect account, from the same charge and transfer group as the seller's. The seller's reconcile above matches
+  // kind 'declutter_payout' only, so this transfer is never adopted as the seller's; this one reconciles by
+  // metadata.payout_id ONLY (the seller's transfer is in the same group). The SQL queue already refuses a banned,
+  // suspended or held manager (lead condition a); the same per-run checks run here too.
+  const managerMarked = await sendMarks("declutter_manager", managerPayouts.map((x) => x.payout_id));
+  const maybeSent_manager = (x: ManagerPayoutDue) => Number(x.attempts ?? 0) > 0 || managerMarked.has(x.payout_id);
+  for (const p of managerPayouts) {
+    groupOf.set(p.payout_id, `declutter_order_${p.order_id}`);
+    if (maybeSent_manager(p)) maybeSentRows.add(p.payout_id);
+    if ([p.manager_id, p.seller_id, p.buyer_id].some((u) => u && review.users.has(u))) {
+      out.ban_review++;
+      await skipRow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents, 60, "ban_review", "a party is under ban review");
+      continue;
+    }
+    const hold = await checkPayoutHold(admin, p.manager_id);
+    if (hold.kind === "error") {
+      defects.record(`manager payout ${p.payout_id}: hold read failed: ${hold.message}`);
+      await skipRow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents, 15, "transient", "payout hold read failed");
+      continue;
+    }
+    if (hold.kind === "held") {
+      out.held++;
+      await skipRow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents, 60, "held", "the manager is on an admin payout hold");
+      continue;
+    }
+    const managerGroup = `declutter_order_${p.order_id}`;
+    if (!p.stripe_account_id && !maybeSent_manager(p)) {
+      await unpayableNow("declutter_manager", p.payout_id, p.manager_id, null, p.amount_cents, null);
+      continue;
+    }
+    let beforeSend = true;
+    try {
+      // Only the payee (the manager) must be a properly enrolled account.
+      const { stripe, mode } = await modes.clientForParties([p.buyer_id, p.seller_id, p.manager_id], "payout", [p.manager_id]);
+      if (!maybeSent_manager(p) && (await unpayableNow("declutter_manager", p.payout_id, p.manager_id, p.stripe_account_id, p.amount_cents, mode))) continue;
+      const listed = await stripe.transfers.list({ transfer_group: managerGroup, limit: 100 });
+      // By payout_id ONLY: the seller's transfer shares this group (and could share nothing else with it).
+      const existing = listed.data.find((t) => {
+        const meta = (t.metadata ?? {}) as Record<string, string>;
+        return meta.kind === "declutter_manager_payout" && meta.payout_id === p.payout_id && !t.reversed;
+      });
+      let managerTransfer = existing;
+      if (!managerTransfer) {
+        if (await unpayableNow("declutter_manager", p.payout_id, p.manager_id, p.stripe_account_id, p.amount_cents, mode)) continue;
+        const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
+        if (!(await payeeReadyNow(stripe, mode, "declutter_manager", p.payout_id, p.manager_id, p.stripe_account_id as string, p.amount_cents))) continue;
+        if (!(await stillPayableNow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents))) continue;
+        if (!(await markSending("declutter_manager", p.payout_id, p.manager_id, p.amount_cents))) continue;
+        beforeSend = false;
+        managerTransfer = await stripe.transfers.create(
+          {
+            amount: p.amount_cents,
+            currency: "usd",
+            destination: p.stripe_account_id as string,
+            transfer_group: managerGroup,
+            source_transaction: charge,
+            metadata: { kind: "declutter_manager_payout", payout_id: p.payout_id, order_id: p.order_id },
+          },
+          { idempotencyKey: `declutter-manager-payout-${p.payout_id}` },
+        );
+      }
+      const { error } = await admin.rpc("declutter_manager_payout_executed", {
+        p_payout_id: p.payout_id, p_transfer_id: managerTransfer.id, p_succeeded: true, p_error: null,
+      });
+      if (error) {
+        await onceADay(`payout-unrecorded-declutter_manager-${p.payout_id}`, "A sent payout could not be recorded",
+          `manager payout ${p.payout_id}: transfer ${managerTransfer.id} not recorded: ${error.message}`.slice(0, 300));
+        await skipRow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents, 15, "record_failed", `transfer ${managerTransfer.id} not recorded`);
+        continue;
+      }
+      if (existing) out.manager_payouts_reconciled++;
+      else out.manager_payouts_sent++;
+      await clearWait("declutter_manager", p.payout_id);
+    } catch (e) {
+      if (isPartyRefusal(e)) {
+        out.mixed_parties++;
+        defects.record(`manager payout ${p.payout_id}: ${partyWhy(e, "the order")}; settle it by hand`);
+        await skipRow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
+        continue;
+      }
+      if (beforeSend && transientBeforeSend(e)) {
+        out.payout_retry_later++;
+        console.log(JSON.stringify({ event: "payout_deferred_transient", kind: "declutter_manager", payout: p.payout_id, detail: caughtMessage(e, "failed") }));
+        await skipRow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents, 15, "transient", caughtMessage(e, "failed"));
+        continue;
+      }
+      const msg = caughtMessage(e, "transfer failed");
+      defects.record(`manager payout ${p.payout_id}: ${msg}`.slice(0, 200));
+      const { error } = await admin.rpc("declutter_manager_payout_executed", {
+        p_payout_id: p.payout_id, p_transfer_id: null, p_succeeded: false, p_error: msg.slice(0, 500),
+      });
+      if (error) defects.record(`manager payout ${p.payout_id}: failure not recorded: ${error.message}`);
+      out.manager_payouts_failed++;
+      if (p.attempts >= 11) {
+        await postSlackOpsAlert({
+          kind: "payout_failed", severity: "critical",
+          title: "Declutter manager payout gave up",
+          message: /charge is not whole/.test(msg)
+            ? `Manager payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) gave up: the order's charge was refunded or disputed. Do NOT pay it by hand; decide the order first.`
+            : `Manager payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) failed 12 times. Last reason: ${msg.slice(0, 200)}. Pay it by hand.`,
+          fields: { Group: managerGroup },
+        });
+        await clearWait("declutter_manager", p.payout_id);
+      }
     }
   }
 

@@ -24,7 +24,7 @@
  *
  * @mutate vite.config.ts |               priority: 91, |               priority: 89,
  * @mutate scripts/perf/bootReach.mjs |   return new Set([...iconsOf(staticReach(root, page))].filter((i) => !boot.has(i))); |   return new Set();
- * @mutate vite.config.ts |               // lucide's runtime stays in its own chunk: taken in here, every icon chunk imported this one onto boot.\n              includeDependenciesRecursively: false, |
+ * @mutate vite.config.ts | includeDependenciesRecursively: false // lucide's runtime stays put | // lucide's runtime stays put
  *
  * B79 (11-01): Home's icons (bootReach.mjs homeIconFiles, ~34) sat in one 166-icon chunk (~16 KB gz) that Home's first
  * round downloaded whole; they get their own icons-home chunk. Same build: /home 308 -> 295 KB gz; boot unchanged;

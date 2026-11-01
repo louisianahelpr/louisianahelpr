@@ -746,8 +746,7 @@ export default defineConfig(({ mode, command }) => ({
               test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && homeIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
               priority: 91,
               minSize: 0,
-              // lucide's runtime stays in its own chunk: taken in here, every icon chunk imported this one onto boot.
-              includeDependenciesRecursively: false,
+              includeDependenciesRecursively: false // lucide's runtime stays put: taken in here, every icon chunk imported this one onto boot
             },
             {
               name: "icons",

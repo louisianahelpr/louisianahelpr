@@ -72,6 +72,7 @@ const BOOKING_WRITES: RegExp[] = [
 const ALLOWED: Record<string, string> = {
   complete_job_accept:
     "the one completion's UPDATE; jobs_award_gate (enforce_helper_award_gate, checked below) calls helper_accept_block_reason on it in every user session, and every server caller (complete_pending_accepts_on_setup, complete_direct_offer_accept) calls the helper first",
+  // Lead-approved 10-31 (b4): an admin fault decision re-stamps the faulted Helpr on a failed delivery; no booking.
   declutter_admin_decide_problem:
     "not a booking: an admin deciding a problem as the Helpr's fault closes the delivery as 'failed' and stamps back the Helpr the fault falls on (the task's Helpr or the one released, 20261101020052), so the strike and refund find them; admin only, and no delivery is taken",
   series_holds_on_hire:

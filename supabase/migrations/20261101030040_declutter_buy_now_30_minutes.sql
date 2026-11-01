@@ -65,7 +65,7 @@ BEGIN
   LOOP
     v_n := v_n + 1;
     INSERT INTO public.declutter_offer_events (offer_id, actor_side, action) VALUES (r.id, 'system', 'reopen');
-    PERFORM public.declutter_notify(r.buyer_id, 'new_offers', 'Your offer is open again',
+    PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Your offer is open again',
       format('"%s" is back on sale, so your offer is open again. The seller has 48 hours to answer it. Nothing was charged.', r.title),
       '/declutter/item/' || r.item_id::text, r.seller_id);
   END LOOP;
@@ -125,7 +125,7 @@ BEGIN
   LOOP
     INSERT INTO public.declutter_offer_events (offer_id, actor_side, action) VALUES (r.id, 'system', 'void');
     -- BUY-1: if this hold runs out unpaid the offer opens again (declutter_reopen_voided_offers).
-    PERFORM public.declutter_notify(r.buyer_id, 'new_offers', 'Item on hold for another buyer',
+    PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Item on hold for another buyer',
       format('"%s" is on hold for another buyer, so your offer is closed for now. If they don''t pay in time, it opens again. Nothing was charged.', v_title),
       '/declutter/item/' || p_item_id::text, v_seller);
   END LOOP;
@@ -142,7 +142,7 @@ BEGIN
       '/declutter?view=selling', p_buyer);
   ELSIF p_source = 'buy' THEN
     -- DB-5 (owner 2026-10-30): Buy now goes straight to checkout; not paying is no strike, the item just goes back up.
-    PERFORM public.declutter_notify(p_buyer, 'payment', 'Reserved for you: check out within 30 minutes',
+    PERFORM public.declutter_notify(p_buyer, 'declutter_sales', 'Reserved for you: check out within 30 minutes',
       format('"%s" is held for you at checkout for %s. Pay within 30 minutes or it goes back up for sale. Your card is not charged until you pay.',
              v_title, v_price),
       '/declutter?view=cart', v_seller);
@@ -151,7 +151,7 @@ BEGIN
       '/declutter?view=selling', p_buyer);
   ELSE
   -- Owner's wording (2026-10-28, via the lead): reserved, not paid yet.
-  PERFORM public.declutter_notify(p_buyer, 'payment', 'Reserved for you: check out within 24 hours',
+  PERFORM public.declutter_notify(p_buyer, 'declutter_sales', 'Reserved for you: check out within 24 hours',
     format('"%s" is in your cart for %s. Check out within 24 hours or you get a strike and it goes back up for sale. Your card is not charged until you check out.',
            v_title, v_price),
     '/declutter?view=cart', v_seller);

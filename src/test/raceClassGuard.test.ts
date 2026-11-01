@@ -291,8 +291,10 @@ describe("race-class guard — job completion (helper Done vs poster confirm / c
     // 20260915101102 strengthened this clause from `auth.uid() IS NOT NULL`
     // (which trusted any NULL uid, anon included) to `NOT is_server_context()`,
     // so only a true server session may clear the payout stamp.
+    // 20261101231015 (continue another day, owner 2026-11-01) adds ONE door: the poster setting a day to come back,
+    // under the continue-day RPC's own transaction-local flag (the column lock still refuses any client write).
     expect(latestDefinition("enforce_completion_on_live_job")).toMatch(
-      /NEW\.helper_completed_at\s+IS\s+NULL\s+AND\s+NOT\s+public\.is_server_context\(\)\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_completed_at_not_clearable'/i,
+      /NEW\.helper_completed_at\s+IS\s+NULL\s+AND\s+NOT\s+public\.is_server_context\(\)\s+AND\s+COALESCE\(current_setting\('app\.continue_day_rpc',\s*true\),\s*''\)\s*<>\s*'1'\s+THEN\s+RAISE\s+EXCEPTION\s+'helper_completed_at_not_clearable'/i,
     );
     const block = latestDefinition("block_user_and_settle");
     // The locked SELECT and the UPDATE predicate, plus (20261005172453, Q729)

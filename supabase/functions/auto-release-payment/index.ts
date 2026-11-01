@@ -15,6 +15,7 @@ import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/p
 import { CONNECT_HELD_CODES } from "../_shared/livePayoutGate.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { loadComeBackJobs, loadRefundHeldJobs } from "../_shared/refundRequestHold.ts";
+import { heldByContinueDay, loadContinuingJobs } from "../_shared/continueDay.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -387,6 +388,15 @@ serve(async (req) => {
       defects.record(`refund request read: ${refundHeld.message}`);
     }
 
+    // ── Continue another day (owner 2026-11-01): the work is not done yet ──
+    // A job with an active continue day (proposed or set) waits: no escalation and no instant release while the
+    // Helpr is coming back. A poster's own approval still releases (it closes the continue day). Fails closed.
+    const continuing = await loadContinuingJobs(supabaseAdmin, [...approvedJobs, ...escalate.map((e) => e.job)].map((j) => j.id));
+    if (!continuing.ok) {
+      console.error("[auto-release-payment] continue-day read failed; no escalation or instant release this run:", continuing.message);
+      defects.record(`continue day read: ${continuing.message}`);
+    }
+
     // ── Helpr support steps in (no money moves) ──
     let escalated = 0;
     if (escalate.length > 0) {
@@ -400,6 +410,10 @@ serve(async (req) => {
         const heldByRequest = !refundHeld.ok || refundHeld.jobs.has(job.id);
         if (heldByRequest) {
           results.push({ job_id: job.id, status: "refund_requested", skipped: true });
+          continue;
+        }
+        if (heldByContinueDay(continuing, job.id)) {
+          results.push({ job_id: job.id, status: "continuing", skipped: true });
           continue;
         }
         // Filed once per stall, atomically (file_approval_escalation, 20261023143240): a second run finds it
@@ -478,6 +492,11 @@ serve(async (req) => {
       }
       if (!refundHeld.ok || refundHeld.jobs.has(job.id)) {
         results.push({ job_id: job.id, status: "refund_requested", skipped: true });
+        continue;
+      }
+      // An instant release (not the poster's own approval) waits while a continue day is active.
+      if (instantIds.has(job.id) && !job.poster_completed_at && heldByContinueDay(continuing, job.id)) {
+        results.push({ job_id: job.id, status: "continuing", skipped: true });
         continue;
       }
       // ── Step 0: Gift card detection ──

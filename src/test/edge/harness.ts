@@ -803,6 +803,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/refundRequestHold.ts";`,
   );
 
+  // Continue another day (owner 2026-11-01): `_shared/continueDay.ts` has ZERO
+  // imports, so the REAL hold read runs inside auto-release-payment.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/continueDay\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/continueDay.ts";`,
+  );
+
   // Agreed part refund's rush share (owner 2026-10-21): `_shared/refundRush.ts`
   // has ZERO imports, so the REAL rule runs inside execute-dispute-split.
   out = out.replace(

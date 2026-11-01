@@ -13,7 +13,7 @@
  * @mutate supabase/migrations/20261012045427_change_request_daily_cap.sql | IF v_count >= 5 THEN | IF false THEN
  * @mutate supabase/migrations/20261012045427_change_request_daily_cap.sql | CREATE TRIGGER change_request_daily_cap_tg\n  BEFORE INSERT ON public.job_schedule_change_requests | CREATE TRIGGER change_request_daily_cap_tg\n  BEFORE UPDATE ON public.job_schedule_change_requests
  * @mutate src/lib/lifecycleErrors.ts |   change_request_rate_limited: "You've asked | //   change_request_rate_limited: "You've asked
- * @mutate src/lib/scheduleChange.ts | rpcErrorMessage("request_job_schedule_change", error) ?? lifecycleErrorMessage(error) | rpcErrorMessage("request_job_schedule_change", error)
+ * @mutate src/lib/scheduleChange.ts | rpcErrorMessage("request_job_schedule_change", error) ?? copy.lifecycleErrorMessage(error) | rpcErrorMessage("request_job_schedule_change", error)
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -61,6 +61,7 @@ describe("change requests are capped per requester per job per day (Q1501)", () 
     // A trigger raises it, so its words are in the shared lifecycle table.
     expect(lifecycleErrorMessage({ message: "change_request_rate_limited" })).toMatch(/a lot today/);
     const site = readFileSync(join(process.cwd(), "src/lib/scheduleChange.ts"), "utf8");
-    expect(site).toMatch(/rpcErrorMessage\("request_job_schedule_change", error\) \?\? lifecycleErrorMessage\(error\)/);
+    // The copy module loads on the refusal (the /home cut), so the calls may read `copy.` (B44 10-31).
+    expect(site).toMatch(/rpcErrorMessage\("request_job_schedule_change", error\) \?\? (?:\w+\.)?lifecycleErrorMessage\(error\)/);
   });
 });

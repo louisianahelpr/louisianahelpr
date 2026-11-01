@@ -4933,7 +4933,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 206,
+      "line": 221,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4953,17 +4953,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 209,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 214,
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4974,6 +4964,16 @@
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
       "line": 229,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHomeView.tsx",
+      "line": 244,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4983,7 +4983,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 232,
+      "line": 247,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6016,7 +6016,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 228,
+      "line": 230,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6026,7 +6026,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 229,
+      "line": 231,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -6036,7 +6036,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 231,
+      "line": 233,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6046,7 +6046,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 238,
+      "line": 240,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6066,7 +6066,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 304,
+      "line": 327,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6076,7 +6076,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 312,
+      "line": 335,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6086,7 +6086,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 313,
+      "line": 336,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6096,7 +6096,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 366,
+      "line": 389,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6106,7 +6106,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 367,
+      "line": 390,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6116,7 +6116,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 371,
+      "line": 394,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6126,7 +6126,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 372,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6136,7 +6136,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 381,
+      "line": 404,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6156,7 +6156,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
-      "line": 386,
+      "line": 409,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

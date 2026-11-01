@@ -8,7 +8,7 @@ import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
 import { signOutAwareFetch } from '@/lib/signOutAbort';
 import { noteReachableFetch } from '@/lib/connectivity';
 import { defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
-import { loadModule } from '@/lib/loadModule';
+import { loadModule, untilReload } from '@/lib/loadModule';
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -138,8 +138,10 @@ supabase.auth.onAuthStateChange((event) => {
   if (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN') return;
   if (!takeHeldSinceRefresh()) return;
   void queryClientModule()
+    // The hold is already taken: an empty module waits for the reload or fails into the catch (never silent).
+    .then((m) => m ?? untilReload())
     .then((m) =>
-      m?.queryClient.refetchQueries({ type: 'active', predicate: (q) => q.state.status === 'error' }),
+      m.queryClient.refetchQueries({ type: 'active', predicate: (q) => q.state.status === 'error' }),
     )
     .catch((err: unknown) => {
       // Not silent: the screens keep their own Try again; this logs why the

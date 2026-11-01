@@ -38,7 +38,8 @@ import {
 // React may discard it, and takeOAuthRedirectError() (read once, in Login's
 // state initializer) then hands the re-render null, so the dialog never opened.
 type AccountChoiceDialogType = typeof AccountChoiceDialogComponent;
-function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): AccountChoiceDialogType | null {
+/** Exported for its test (src/components/auth/accountChoiceEmptyModule.test.tsx). */
+export function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): AccountChoiceDialogType | null {
   const [Dialog, setDialog] = useState<AccountChoiceDialogType | null>(null);
   // A ref, so a new callback each render does not re-run the import.
   const failed = useRef(onLoadFailed);
@@ -52,13 +53,16 @@ function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): Acco
     // person is back. Cleared as soon as the dialog's code arrives.
     markAccountChoiceRetry();
     accountChoiceDialog()
+      // Empty (a prevented preload): wait for the reload, or fail into the catch below, which reports it and
+      // clears the choice. Never a silent return: the person would be left with no question and no message.
+      .then((m) => m ?? untilReload())
       .then((m) => {
-        if (!m) return; // a recovery reload is under way: it asks again on the next page
         clearAccountChoiceRetry();
         if (live) setDialog(() => m.AccountChoiceDialog);
       })
       .catch((err: unknown) => {
         report(err, { severity: "error", tags: { area: "auth", op: "loadAccountChoiceDialog" } });
+        if (err instanceof ModuleUnavailableError) clearAccountChoiceRetry(); // no reload follows: no note
         // Never a silent drop (lh-silent-failure review, 2026-10-05): the
         // person was asked nothing and has no account yet, so say so and
         // clear the choice; their next tap asks again (and re-imports).
@@ -70,7 +74,7 @@ function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void): Acco
 }
 import { userFacingError } from "@/lib/userFacingError";
 import { useLanguage } from "@/lib/i18n/language";
-import { loadModule } from "@/lib/loadModule";
+import { loadModule, ModuleUnavailableError, untilReload } from "@/lib/loadModule";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a

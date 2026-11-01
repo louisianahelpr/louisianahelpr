@@ -1,7 +1,7 @@
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { report } from "@/lib/errorLogger";
-import { loadModule } from "@/lib/loadModule";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -346,7 +346,9 @@ export function startEnRouteWatch({ onPosition, onMode }: EnRouteWatchOptions): 
     cleanup = () => {
       disposed = true;
       if (watchId) void geolocationModule()
-        .then((m) => m?.Geolocation.clearWatch({ id: watchId as string }))
+        // Empty: the watch would stay on. Wait for the reload, or fail into the catch below (reported).
+        .then((m) => m ?? untilReload())
+        .then((m) => m.Geolocation.clearWatch({ id: watchId as string }))
         .catch((err: unknown) => {
           // The watch dies with the page anyway; a failed clear is only worth a console line.
           console.warn("[en-route] could not clear the location watch", err);

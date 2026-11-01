@@ -570,28 +570,31 @@ the Parity Principle (§2).
 **Color & effects**
 - Colors ONLY via inline `style={{ color: "hsl(var(--token))" }}` — never
   Tailwind color utilities. Token is the correct one; contrast meets AA.
-- Primary/selected controls are glossy (`btn-grad-primary`/`variant="bark"`),
-  never flat. Gradients, shadows, glass/blur, hover/active/focus transitions,
-  and `observe-fade-up` reveals all present and smooth.
-- **Gloss is SCOPED — it marks what you press, it never decorates.** This rule
-  and `AGENTS.md`'s "no gloss/glow" are the same rule seen from two sides, and
-  they must be read together:
-  - **Glossy (required):** green/bark **primary** buttons and **selected**
+- Primary/selected controls wear `btn-grad-primary`/`variant="bark"` — solid
+  olive (`--bark`), nearly flat: no gradient, one small soft shadow (owner
+  2026-10-18; `background-image: none` in CSS). Shadows, glass/blur,
+  hover/active/focus transitions, and `observe-fade-up` reveals all present
+  and smooth.
+- **Primary surface is SCOPED — it marks what you press, it never decorates.**
+  This rule and `AGENTS.md`'s "decoration stays matte" are the same rule seen
+  from two sides, and they must be read together:
+  - **Solid olive (required):** green/bark **primary** buttons and **selected**
     controls — `btn-grad-primary`, `<Button variant="bark">`, the active state
-    of segmented/toggle/filter controls. Flat here is a defect.
+    of segmented/toggle/filter controls. An unstyled/bare primary is a defect;
+    a solid-olive one is correct (not glossy, but intentionally nearly flat).
   - **Matte (required):** every decorative surface — cards, panels, page and
     section backgrounds, empty-state art, badges/chips that aren't a selected
     state, dividers, glyph tiles. Gloss/glow here is a defect. Editorial
     restraint is the brand: one restrained effect at a time, warm charcoal not
     black.
-  A flat primary button and a glowing decorative card are *both* violations;
-  neither rule licenses the other.
+  An unstyled primary button and a glowing decorative card are *both*
+  violations; neither rule licenses the other.
 
 **Global interaction consistency**
 - The SAME interaction language everywhere — hover/focus/active/pressed effects
   are consistent GLOBALLY, not per-page. Every element of a given kind behaves
   identically app-wide: all text links share one hover treatment, all primary
-  buttons share one (lift + gradient + shadow), all secondary/ghost another;
+  buttons share one (lift + shadow; no gradient since 2026-10-18), all secondary/ghost another;
   same easing, duration, and cursor across the app. Flag any element whose
   hover/focus/active differs from its peers (e.g. footer Terms/Rules/Privacy
   links not matching the app's standard link-hover, or a CTA that lifts on
@@ -855,8 +858,8 @@ on the way to their first success.
   State the current step-count and the leaner one when you flag it.
 - **Visual hierarchy & one primary action.** Every screen must have exactly ONE
   unambiguous primary action, and the eye must land on it first — correct size,
-  weight, glossy `btn-grad-primary` treatment, and position relative to secondary
-  actions. Two competing glossy CTAs, a primary action that looks like a link, or
+  weight, solid-olive `btn-grad-primary` treatment, and position relative to secondary
+  actions. Two competing olive CTAs, a primary action that looks like a link, or
   a destructive action with equal visual weight to the safe one is a hierarchy
   defect. The user should never have to hunt for "what do I do here."
 - **Information density & clutter.** Judge whether the screen is doing too much:
@@ -893,7 +896,7 @@ on the way to their first success.
   **counter** branches) → helper **"on my way"** → **"arrived"** → **in
   progress** → helper **marks complete** → poster **confirms completion** →
   escrow **release** → **review** (both directions) → **tip**. For each step
-  confirm: the action button is present, glossy where primary, and correctly
+  confirm: the action button is present, solid-olive (`btn-grad-primary`) where primary, and correctly
   gated by role/state; the confirm/action-sheet copy is human; the status label
   updates consistently across dashboard ↔ activity ↔ detail ↔ messages; badge
   counts (`useActivityBadgeCounts`) and any realtime/notification reflect it; and

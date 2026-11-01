@@ -9,15 +9,15 @@ section gets stale, fix it. Don't append "addendums" indefinitely.
   restrained effect at a time. The visual identity (Garden District
   Stone) is a *light* theme; dark mode is supported but is a
   minimum-viable-parity pass.
-- **Gloss is scoped — it marks what you press, it never decorates.**
+- **Decoration stays matte; primary buttons are solid olive.**
   *No gloss/glow on decorative surfaces*: cards, panels, page/section
   backgrounds, empty-state art, dividers, glyph tiles, and any
-  badge/chip that isn't a selected state all stay matte. The one place
-  gloss is **required** is the primary action affordance: green/bark
-  **primary** buttons and **selected** controls use `btn-grad-primary`
-  / `<Button variant="bark">` and must never render flat. A flat
-  primary button and a glowing decorative card are both defects —
-  neither rule licenses the other. Same rule, stated identically in
+  badge/chip that isn't a selected state all stay matte. Primary and
+  **selected** controls use `btn-grad-primary` / `<Button variant="bark">`
+  — solid olive (`--bark`), nearly flat: no gradient, no shine, one small
+  soft shadow (owner 2026-10-18, option 3B; `background-image: none` in
+  CSS). A glowing decorative card and an unstyled primary button are both
+  defects; a solid-olive primary is correct, not a defect. Same rule in
   `.claude/skills/lh-audit/SKILL.md` §3 ("Color & effects"); if you
   change one, change both.
 - **Cowork handles** Supabase migrations, iOS native builds, edge

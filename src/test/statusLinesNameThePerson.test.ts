@@ -6,7 +6,7 @@
  * The class: when the other person's name is known, every collapsed sentence
  * about them names them; without it the unnamed sentence stays.
  *
- * @mutate src/components/job-card/jobStatusLine.ts |   const named = helperName ? POSTER_NAMED[id]?.(helperName, job) : undefined; |   const named = undefined;
+ * @mutate src/components/job-card/jobStatusLine.ts |   const named = helperName ? (atTheJob ? `${firstName(helperName)} is at the job` : POSTER_NAMED[id]?.(helperName, job)) : undefined; |   const named = undefined;
  * @mutate src/components/job-card/jobStatusLine.ts |   const named = posterFirst ? HELPER_NAMED[id]?.(posterFirst) : undefined; |   const named = undefined;
  */
 import { describe, expect, it } from "vitest";

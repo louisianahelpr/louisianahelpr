@@ -14,7 +14,7 @@
  *
  * @mutate src/pages/jobs/appliedJobCard/helperCancelCopy.ts |   if (action === "none") return "Job cancelled. No strike: the start was more than 24 hours away."; |
  * @mutate src/pages/jobs/appliedJobCard/helperCancelCopy.ts |   if (start && start.getTime() - nowMs >= DAY_MS) { |   if (false) {
- * @mutate src/components/tracker/jobProgressState.ts | const HELPR_NOT_STARTED = new Set<string>(["start_working", "before_photo"]); | const HELPR_NOT_STARTED = new Set<string>([]);
+ * @mutate src/components/tracker/workHasBegun.ts | export const HELPR_NOT_STARTED: ReadonlySet<string> = new Set<string>(["start_working", "before_photo"]); | export const HELPR_NOT_STARTED: ReadonlySet<string> = new Set<string>([]);
  * @mutate src/pages/posts/PostedJobCard.tsx | , pendingApplicants: pendingApplicantCounts ? pendingApplicantCounts[job.id] ?? 0 : undefined }) | })
  * @mutate src/components/profile/EarningsTab.tsx |     totalEarningsDollars: paidOutDollars(payoutLedger), |     totalEarningsDollars: 5000,
  * @mutate src/pages/post-job/EntryChoice.tsx | A draft keeps your words, so add your photos and video again. |

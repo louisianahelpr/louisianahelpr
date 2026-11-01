@@ -3,7 +3,7 @@ import { LogisticsSection } from "@/components/postjob/LogisticsSection";
 import { BudgetSection } from "@/components/postjob/BudgetSection";
 import { PriceGuidanceCard } from "@/components/postjob/PriceGuidance";
 import { DetailsSection } from "@/components/postjob/DetailsSection";
-import { SellForMeBlanks } from "@/components/postjob/SellForMeBlanks";
+import { SellForMeBlanks, SellForMePriceSuggestion } from "@/components/postjob/SellForMeBlanks";
 import { isSellForMeJob } from "@/lib/declutter/sellForMe";
 import { DirectOfferBanner } from "./DirectOfferBanner";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
@@ -344,6 +344,12 @@ export function FormStep({ form }: FormStepProps) {
             budgetComplete={form.budgetComplete}
             giftAmount={form.giftCreditAmount}
           />
+          {/* POST-H2 (owner 10-31): a Have-a-Helpr-list-it job suggests a range from its item count; still editable. */}
+          {isSellForMeJob(form.category) && (
+            <div className="mt-4">
+              <SellForMePriceSuggestion description={form.description} budget={form.budgetNum} onUse={(d) => form.setBudget(String(d))} />
+            </div>
+          )}
           {/* Board 190: what most real jobs in this category paid; nothing without 30+ real jobs. */}
           {form.category && (
             <div className="mt-4">

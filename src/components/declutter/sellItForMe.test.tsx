@@ -174,7 +174,9 @@ describe("Sell it for me: A, hire a Helpr", () => {
     expect(Array.from(p.title).length).toBeLessThanOrEqual(32);
     expect(p.title).toBe("Help me list my things to sell");
     expect(Array.from(p.description).length).toBeLessThanOrEqual(1000);
-    for (const ask of ["How many items", "Rough size", "pickups"]) expect(p.description).toContain(ask);
+    for (const ask of ["How many items", "Rough size"]) expect(p.description).toContain(ask);
+    // POST-H3 (owner 10-31): no "handle pickups" line.
+    expect(p.description).not.toMatch(/pickups/i);
     expect(p.description).toContain(SELL_FOR_ME_NO_ACCOUNT_LINE);
     expect(SELL_FOR_ME_NO_ACCOUNT_LINE).toBe("You help take the photos and write the listings; I post them from my account.");
   });

@@ -145,7 +145,15 @@ async function as(uid, sql) {
     return { ok: false, err: String(e.message).split("\n")[0] };
   }
 }
-const q1 = async (sql) => (await db.query(sql)).rows[0];
+const q1 = async (sql) => {
+  try {
+    return (await db.query(sql)).rows[0];
+  } catch (e) {
+    // NEW_MIGRATION=skip: a table the migration creates is missing; the check reading it then FAILs on undefined.
+    if (SKIP) return undefined;
+    throw e;
+  }
+};
 const offer = (by, to, type = "percent", value = 20, parts = "true, false, false, false, false") =>
   as(by, `select public.declutter_manager_offer('${to}', '${type}', ${value}, ${parts}) as id`);
 const respond = (by, g, yes) => as(by, `select public.declutter_manager_respond('${g}', ${yes}) as s`);
@@ -176,7 +184,7 @@ await db.exec(`delete from public.t_off`);
 const item = (await q1(`insert into public.declutter_items (seller_id, status, title, category, condition_stars, delivery_size,
     price_cents, current_price_cents, area_label, area_lat, area_lng) values ('${K}', 'live', 'Oak dresser', 'furniture', 4, 'large',
     12000, 12000, 'Mid City', 30.45, -91.18) returning id`)).id;
-check("before accepting, the manager can do nothing", refused(await manage(M, K, "publish_item", { item_id: item }), /not_your_seller/));
+check("before accepting, the manager can do nothing", refused(await manage(M, K, "pause_listing", { item_id: item }), /not_your_seller/));
 check("only the person offered can answer", refused(await respond(N, g1, true), /not_your_offer/));
 r = await respond(M, g1, true);
 check("the manager accepts", r.ok && r.rows[0].s === "active", r.err ?? r.rows?.[0]?.s);
@@ -184,10 +192,14 @@ check("the seller is told", !!(await q1(`select 1 as x from public.notices where
 check("an accepted offer can't be answered again", refused(await respond(M, g1, false), /offer_not_pending/));
 
 // ── Listing permission: allowed, and runs AS THE SELLER ─────────────────────
-r = await manage(M, K, "publish_item", { item_id: item });
+r = await manage(M, K, "pause_listing", { item_id: item });
 let call = await lastCall();
-check("Listing on: the manager posts the seller's listing", r.ok, r.err);
-check("...and the seller's own RPC ran as the SELLER", call?.fn === "declutter_publish_item" && call?.uid === K, JSON.stringify(call));
+check("Listing on: the manager pauses the seller's live listing", r.ok, r.err);
+check("...and the seller's own RPC ran as the SELLER", call?.fn === "declutter_pause_listing" && call?.uid === K, JSON.stringify(call));
+// Owner 11-01: "the manager should draft up everything, then send to the seller for approval before posting."
+for (const a of ["publish_item", "attest_item", "relist_listing", "reopen_listing"]) {
+  check(`the manager can never ${a} (only the seller posts)`, refused(await manage(M, K, a, { item_id: item }), /unknown_action/));
+}
 const newId = "77777777-7777-7777-7777-777777777777";
 r = await manage(M, K, "create_item", { item_id: newId, title: "Lamp", price_cents: 2000, floor_price_cents: 1000 });
 call = await lastCall();
@@ -207,7 +219,7 @@ check("Listing only: can't answer an offer", refused(await manage(M, K, "respond
 check("Listing only: can't change a price", refused(await manage(M, K, "set_listing_price", { item_id: item, price_cents: 1 }), /permission_off/));
 check("Listing only: can't touch pickups", refused(await manage(M, K, "set_pickup_windows", { windows: [] }), /permission_off/));
 check("an unknown action is refused", refused(await manage(M, K, "set_payout_account", {}), /unknown_action/));
-check("a stranger can't act for the seller", refused(await manage(N, K, "publish_item", { item_id: item }), /not_your_seller/));
+check("a stranger can't act for the seller", refused(await manage(N, K, "pause_listing", { item_id: item }), /not_your_seller/));
 
 // ── The seller turns on Messages and Offers ──────────────────────────────────
 check("only the seller changes the parts",
@@ -238,8 +250,8 @@ const kBuys = (await q1(`insert into public.declutter_orders (buyer_id, seller_i
 const kOffer = (await q1(`insert into public.declutter_offers (item_id, buyer_id, seller_id, amount_cents, awaiting) values ('${nItem}', '${K}', '${N}', 2000, 'buyer') returning id`)).id;
 check("can't write in an order where the seller is the BUYER", refused(await manage(M, K, "send_order_message", { order_id: kBuys, body: "x" }), /not_found/));
 check("can't answer an offer the seller MADE as a buyer", refused(await manage(M, K, "respond_offer", { offer_id: kOffer, action: "accept" }), /not_found/));
-check("can't publish another member's item", refused(await manage(M, K, "publish_item", { item_id: nItem }), /not_found/));
-check("can't name another seller", refused(await manage(M, N, "publish_item", { item_id: nItem }), /not_your_seller/));
+check("can't pause another member's item", refused(await manage(M, K, "pause_listing", { item_id: nItem }), /not_found/));
+check("can't name another seller", refused(await manage(M, N, "pause_listing", { item_id: nItem }), /not_your_seller/));
 
 // ── Photos: the manager's own upload, on the seller's draft ─────────────────
 const draft = (await q1(`insert into public.declutter_items (seller_id, status, title, category, condition_stars, delivery_size,
@@ -259,6 +271,47 @@ check("a file in the manager's folder that someone else uploaded is refused",
   refused(await manage(M, K, "add_item_photo", { item_id: draft, storage_path: `${M}/declutter/${draft}/c.jpg` }), /photo_not_uploaded/));
 check("the manager's own upload outside their folder is refused",
   refused(await manage(M, K, "add_item_photo", { item_id: draft, storage_path: `${N}/declutter/${draft}/d.jpg` }), /photo_not_uploaded/));
+
+// ── Owner 11-01: the manager drafts, the seller approves before posting ─────
+check("a live listing can't be sent for approval", refused(await manage(M, K, "submit_for_approval", { item_id: item }), /item_not_editable/));
+check("another member's draft can't be sent", refused(await manage(M, K, "submit_for_approval", { item_id: nItem }), /not_found/));
+r = await manage(M, K, "submit_for_approval", { item_id: draft });
+const sub1 = await q1(`select status from public.declutter_manager_submissions where item_id = '${draft}'`);
+const okNotice = await q1(`select title, body from public.notices where user_id = '${K}' order by ctid desc limit 1`);
+check("the manager sends the draft: it waits for the seller", r.ok && sub1?.status === "waiting", r.err ?? JSON.stringify(sub1));
+check("the seller is told with the next step: \"Lexi listed 1 item for you. Review and post it.\"",
+  okNotice?.title === "Waiting for your OK" && okNotice?.body === "Lexi listed 1 item for you. Review and post it.", JSON.stringify(okNotice));
+check("while it waits, the manager can't change it", refused(await manage(M, K, "update_draft", { item_id: draft, title: "x" }), /waiting_for_seller/));
+check("...or its photos", refused(await manage(M, K, "add_item_photo", { item_id: draft, storage_path: `${M}/declutter/${draft}/a.jpg` }), /waiting_for_seller/));
+check("...or send it twice", refused(await manage(M, K, "submit_for_approval", { item_id: draft }), /waiting_for_seller/));
+const ATT = "true, true, true, true";
+check("the manager can't approve it", refused(await as(M, `select public.declutter_manager_approve('${draft}', ${ATT})`), /not_found/));
+check("a stranger can't approve it", refused(await as(N, `select public.declutter_manager_approve('${draft}', ${ATT})`), /not_found/));
+check("the manager can't send it back", refused(await as(M, `select public.declutter_manager_send_back('${draft}', 'x')`), /not_found/));
+r = await as(K, `select public.declutter_manager_send_back('${draft}', '  Add a photo of the back  ') as s`);
+const sub2 = await q1(`select status, note from public.declutter_manager_submissions where item_id = '${draft}'`);
+const backNotice = await q1(`select title, body from public.notices where user_id = '${M}' order by ctid desc limit 1`);
+check("the seller sends it back with a note", r.ok && sub2?.status === "sent_back" && sub2?.note === "Add a photo of the back", r.err ?? JSON.stringify(sub2));
+check("the manager is told, with the note and the next step",
+  backNotice?.title === "Sent back to you" && backNotice?.body === 'Kaci sent Rug back: "Add a photo of the back". Change it, then send it for approval again.', JSON.stringify(backNotice));
+r = await manage(M, K, "update_draft", { item_id: draft, title: "Rug" });
+check("sent back: the manager can change it again", r.ok, r.err);
+r = await manage(M, K, "submit_for_approval", { item_id: draft });
+check("...and send it again", r.ok && (await q1(`select status from public.declutter_manager_submissions where item_id = '${draft}'`))?.status === "waiting", r.err);
+await db.exec(`delete from public.rpc_calls`);
+r = await as(K, `select public.declutter_manager_approve('${draft}', ${ATT}) as a`);
+const ran = (await db.query(`select fn, uid from public.rpc_calls order by ctid`)).rows;
+check("the seller approves: SHE attests and it posts, both as her",
+  r.ok && ran.length === 2 && ran[0].fn === "declutter_attest_item" && ran[1].fn === "declutter_publish_item" && ran.every((x) => x.uid === K),
+  r.err ?? JSON.stringify(ran));
+check("approved, logged as the seller's decision",
+  (await q1(`select status from public.declutter_manager_submissions where item_id = '${draft}'`))?.status === "approved"
+    && !!(await q1(`select 1 as x from public.declutter_manager_actions where action = 'seller_approved' and target_id = '${draft}' and seller_id = '${K}'`)));
+check("the manager is told it is live", !!(await q1(`select 1 as x from public.notices where user_id = '${M}' and title = 'Posted' and body = 'Kaci posted Rug. It is live now.'`)));
+check("an approved draft can't be approved again", refused(await as(K, `select public.declutter_manager_approve('${draft}', ${ATT})`), /not_waiting/));
+const subSeen = await as(N, `select count(*)::int as n from public.declutter_manager_submissions`);
+check("a stranger reads no submission", subSeen.ok && subSeen.rows[0].n === 0, JSON.stringify(subSeen.rows ?? subSeen.err));
+check("nobody writes a submission directly", refused(await as(M, `insert into public.declutter_manager_submissions (item_id, grant_id, seller_id, manager_id) values ('${draft}', '${g1}', '${K}', '${M}')`), /permission denied/));
 
 // ── A failed seller RPC leaves the caller the manager ──────────────────────
 r = await as(M, `do $d$ begin
@@ -289,7 +342,7 @@ await as(K, `select public.declutter_manager_set_permissions('${g1}', true, fals
 
 // ── Restricted manager, private tables, ending ──────────────────────────────
 await db.exec(`insert into public.t_banned values ('${M}')`);
-check("a restricted manager can't act", refused(await manage(M, K, "publish_item", { item_id: item }), /account_restricted/));
+check("a restricted manager can't act", refused(await manage(M, K, "pause_listing", { item_id: item }), /account_restricted/));
 await db.exec(`delete from public.t_banned`);
 check("the action log is private", refused(await as(M, `select count(*) from public.declutter_manager_actions`), /permission denied/));
 check("the message labels table is private", refused(await as(X, `select count(*) from public.declutter_manager_messages`), /permission denied/));
@@ -302,7 +355,7 @@ await db.exec(`insert into public.t_off values ('declutter_manager')`);
 r = await as(K, `select public.declutter_manager_end('${g1}') as s`);
 check("the seller ends access, even with the switch off", r.ok && r.rows[0].s === "ended", r.err ?? r.rows?.[0]?.s);
 await db.exec(`delete from public.t_off`);
-check("after ending, the manager can do nothing", refused(await manage(M, K, "publish_item", { item_id: item }), /not_your_seller/));
+check("after ending, the manager can do nothing", refused(await manage(M, K, "pause_listing", { item_id: item }), /not_your_seller/));
 check("the manager is told", !!(await q1(`select 1 as x from public.notices where user_id = '${M}' and title = 'Declutter managing ended'`)));
 r = await offer(K, N, "flat", 500, "false, false, false, false, true");
 check("after ending, the seller may ask someone new (flat $5 per item, Pickups only)", r.ok, r.err);

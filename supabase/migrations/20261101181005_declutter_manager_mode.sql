@@ -9,8 +9,9 @@
 -- sends ONE private direct offer, a declutter_manager_grants row with status 'offered', naming the person, the
 -- manager's share (a % of each sale's item price, or a flat amount per sold item, capped at the item price at
 -- checkout), and which parts the manager handles, each its own on/off:
---   can_list      create, edit, add photos to, and post listings
---   can_prices    price changes, automatic price drops, relist / reopen
+--   can_list      create, edit and add photos to drafts and send them to the seller for her OK (owner 11-01: the
+--                 manager never posts; the seller approves and attests, or sends it back), and edit live listings
+--   can_prices    price changes and automatic price drops
 --   can_offers    answer offers (accept, counter, decline) and set offer rules
 --   can_messages  answer buyers' questions and write in the seller's order conversations
 --   can_pickups   pickup times and the handover steps of the seller's orders
@@ -106,6 +107,29 @@ CREATE TABLE IF NOT EXISTS public.declutter_manager_messages (
 ALTER TABLE public.declutter_manager_messages ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.declutter_manager_messages FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.declutter_manager_messages TO service_role;
+
+-- 3b. Owner 11-01: "the manager should draft up everything, then send to the seller for approval before posting."
+--     A manager never posts. They send a draft here; the seller approves it (she attests and it posts, as herself) or
+--     sends it back with a note. One row per item; a sent-back draft can be sent again.
+CREATE TABLE IF NOT EXISTS public.declutter_manager_submissions (
+  item_id uuid PRIMARY KEY REFERENCES public.declutter_items(id) ON DELETE CASCADE,
+  grant_id uuid NOT NULL REFERENCES public.declutter_manager_grants(id) ON DELETE CASCADE,
+  seller_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  manager_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status text NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'approved', 'sent_back')),
+  note text CHECK (note IS NULL OR length(note) <= 500),
+  submitted_at timestamptz NOT NULL DEFAULT now(),
+  decided_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS declutter_manager_submissions_seller_idx
+  ON public.declutter_manager_submissions (seller_id, status, submitted_at);
+ALTER TABLE public.declutter_manager_submissions ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.declutter_manager_submissions FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON TABLE public.declutter_manager_submissions TO authenticated;
+GRANT ALL ON TABLE public.declutter_manager_submissions TO service_role;
+DROP POLICY IF EXISTS declutter_manager_submissions_read ON public.declutter_manager_submissions;
+CREATE POLICY declutter_manager_submissions_read ON public.declutter_manager_submissions FOR SELECT TO authenticated
+  USING (seller_id = (SELECT auth.uid()) OR manager_id = (SELECT auth.uid()));
 
 DO $do$
 BEGIN
@@ -441,16 +465,13 @@ BEGIN
     WHEN 'update_draft' THEN 'list'
     WHEN 'add_item_photo' THEN 'list'
     WHEN 'remove_item_photo' THEN 'list'
-    WHEN 'attest_item' THEN 'list'
-    WHEN 'publish_item' THEN 'list'
+    WHEN 'submit_for_approval' THEN 'list'
     WHEN 'edit_listing' THEN 'list'
     WHEN 'set_handovers' THEN 'list'
     WHEN 'pause_listing' THEN 'list'
     WHEN 'withdraw_item' THEN 'list'
     WHEN 'set_listing_price' THEN 'prices'
     WHEN 'set_listing_drops' THEN 'prices'
-    WHEN 'relist_listing' THEN 'prices'
-    WHEN 'reopen_listing' THEN 'prices'
     WHEN 'respond_offer' THEN 'offers'
     WHEN 'set_offer_rules' THEN 'offers'
     WHEN 'answer_question' THEN 'messages'
@@ -465,9 +486,8 @@ BEGIN
   v_g := public.declutter_manager_grant_for(p_seller, v_perm);
 
   -- The target is the seller's SELLING side: her item, an offer on her item, her sale, a question on her item.
-  IF p_action IN ('update_draft', 'add_item_photo', 'attest_item', 'publish_item', 'edit_listing', 'set_handovers',
-                  'pause_listing', 'withdraw_item', 'set_listing_price', 'set_listing_drops', 'relist_listing',
-                  'reopen_listing', 'set_offer_rules') THEN
+  IF p_action IN ('update_draft', 'add_item_photo', 'submit_for_approval', 'edit_listing', 'set_handovers',
+                  'pause_listing', 'withdraw_item', 'set_listing_price', 'set_listing_drops', 'set_offer_rules') THEN
     v_target := (v_a ->> 'item_id')::uuid;
     v_ok := EXISTS (SELECT 1 FROM public.declutter_items WHERE id = v_target AND seller_id = p_seller);
   ELSIF p_action = 'remove_item_photo' THEN
@@ -492,6 +512,39 @@ BEGIN
   END IF;
   IF NOT COALESCE(v_ok, false) THEN
     RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002';
+  END IF;
+
+  -- A draft waiting for the seller's OK is hers to decide: the manager changes it only after she sends it back.
+  IF p_action IN ('update_draft', 'add_item_photo', 'remove_item_photo', 'set_handovers', 'submit_for_approval')
+     AND EXISTS (SELECT 1 FROM public.declutter_manager_submissions sub
+                  WHERE sub.status = 'waiting'
+                    AND sub.item_id = CASE WHEN p_action = 'remove_item_photo'
+                                           THEN (SELECT ph.item_id FROM public.declutter_item_photos ph WHERE ph.id = v_target)
+                                           ELSE v_target END) THEN
+    RAISE EXCEPTION 'waiting_for_seller' USING ERRCODE = '22023',
+      HINT = 'The seller is reviewing this draft. You can change it if they send it back.';
+  END IF;
+
+  -- Owner 11-01: the manager sends a finished draft to the seller; it is never posted by the manager.
+  IF p_action = 'submit_for_approval' THEN
+    SELECT * INTO v_item FROM public.declutter_items WHERE id = v_target FOR UPDATE;
+    IF v_item.status IS DISTINCT FROM 'draft' THEN
+      RAISE EXCEPTION 'item_not_editable' USING ERRCODE = '22023', HINT = 'Only a draft can be sent for approval.';
+    END IF;
+    INSERT INTO public.declutter_manager_submissions (item_id, grant_id, seller_id, manager_id, status, note, submitted_at, decided_at)
+    VALUES (v_target, v_g.id, p_seller, v_mgr, 'waiting', NULL, now(), NULL)
+    ON CONFLICT (item_id) DO UPDATE SET grant_id = EXCLUDED.grant_id, manager_id = EXCLUDED.manager_id, status = 'waiting',
+      note = NULL, submitted_at = now(), decided_at = NULL;
+    INSERT INTO public.declutter_manager_actions (grant_id, seller_id, manager_id, action, target_id)
+    VALUES (v_g.id, p_seller, v_mgr, p_action, v_target);
+    SELECT count(*) INTO v_pos FROM public.declutter_manager_submissions sub
+     WHERE sub.seller_id = p_seller AND sub.manager_id = v_mgr AND sub.status = 'waiting';
+    PERFORM public.declutter_notify(p_seller, 'declutter_listings', 'Waiting for your OK',
+      format('%s listed %s for you. Review and post %s.', public.declutter_manager_first_name(v_mgr),
+             CASE WHEN v_pos = 1 THEN '1 item' ELSE v_pos::text || ' items' END,
+             CASE WHEN v_pos = 1 THEN 'it' ELSE 'them' END),
+      '/declutter?tab=selling', v_mgr);
+    RETURN jsonb_build_object('result', 'waiting');
   END IF;
 
   -- Photos: the manager's OWN upload in their own folder for this item, on the seller's draft.
@@ -549,10 +602,6 @@ BEGIN
         v_a ->> 'delivery_size', (v_a ->> 'price_cents')::integer, (v_a ->> 'floor_price_cents')::integer,
         v_a ->> 'area_label', v_a ->> 'pickup_address', (v_a ->> 'pickup_lat')::numeric, (v_a ->> 'pickup_lng')::numeric))
       WHEN 'remove_item_photo' THEN to_jsonb(public.declutter_remove_item_photo(v_target))
-      WHEN 'attest_item' THEN to_jsonb(public.declutter_attest_item(v_target,
-        (v_a ->> 'bought_for_personal_use')::boolean, (v_a ->> 'not_in_the_business')::boolean,
-        (v_a ->> 'not_a_frequent_seller')::boolean, (v_a ->> 'keeps_item_until_handover')::boolean))
-      WHEN 'publish_item' THEN to_jsonb(public.declutter_publish_item(v_target))
       WHEN 'edit_listing' THEN to_jsonb(public.declutter_edit_listing(v_target, v_a ->> 'title', v_a ->> 'description',
         v_a ->> 'category', (v_a ->> 'condition_stars')::integer, v_a ->> 'delivery_size',
         ARRAY(SELECT jsonb_array_elements_text(COALESCE(v_a -> 'handovers', '[]'::jsonb))),
@@ -565,8 +614,6 @@ BEGIN
       WHEN 'set_listing_price' THEN to_jsonb(public.declutter_set_listing_price(v_target,
         (v_a ->> 'price_cents')::integer, (v_a ->> 'floor_price_cents')::integer))
       WHEN 'set_listing_drops' THEN to_jsonb(public.declutter_set_listing_drops(v_target, (v_a ->> 'on')::boolean))
-      WHEN 'relist_listing' THEN to_jsonb(public.declutter_relist_listing(v_target))
-      WHEN 'reopen_listing' THEN to_jsonb(public.declutter_reopen_listing(v_target))
       WHEN 'respond_offer' THEN to_jsonb(public.declutter_respond_offer(v_target, v_a ->> 'action',
         (v_a ->> 'amount_cents')::integer))
       WHEN 'set_offer_rules' THEN to_jsonb(public.declutter_set_offer_rules(v_target,
@@ -604,6 +651,86 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_manage(uuid, text, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_manage(uuid, text, jsonb) TO authenticated, service_role;
+
+-- 11b. The seller decides on a draft her manager sent (owner 11-01). She attests and it posts AS HER: auth.uid() is the
+--      seller here, so declutter_attest_item and declutter_publish_item run with her own rights and checks.
+CREATE OR REPLACE FUNCTION public.declutter_manager_approve(p_item_id uuid, p_bought_for_personal_use boolean,
+  p_not_in_the_business boolean, p_not_a_frequent_seller boolean, p_keeps_item_until_handover boolean)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_sub public.declutter_manager_submissions%ROWTYPE;
+  v_result jsonb;
+BEGIN
+  PERFORM public.require_feature('declutter');
+  PERFORM public.require_feature('declutter_manager');
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_sub FROM public.declutter_manager_submissions WHERE item_id = p_item_id FOR UPDATE;
+  IF v_sub.item_id IS NULL OR v_sub.seller_id IS DISTINCT FROM v_uid THEN
+    RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF v_sub.status <> 'waiting' THEN
+    RAISE EXCEPTION 'not_waiting' USING ERRCODE = '22023';
+  END IF;
+  PERFORM public.declutter_attest_item(p_item_id, p_bought_for_personal_use, p_not_in_the_business,
+    p_not_a_frequent_seller, p_keeps_item_until_handover);
+  v_result := to_jsonb(public.declutter_publish_item(p_item_id));
+  UPDATE public.declutter_manager_submissions SET status = 'approved', decided_at = now() WHERE item_id = p_item_id;
+  INSERT INTO public.declutter_manager_actions (grant_id, seller_id, manager_id, action, target_id)
+  VALUES (v_sub.grant_id, v_uid, v_sub.manager_id, 'seller_approved', p_item_id);
+  PERFORM public.declutter_notify(v_sub.manager_id, 'declutter_listings', 'Posted',
+    format('%s posted %s. It is live now.', public.declutter_manager_first_name(v_uid),
+           COALESCE((SELECT i.title FROM public.declutter_items i WHERE i.id = p_item_id), 'the item')),
+    '/declutter?tab=selling', v_uid);
+  RETURN jsonb_build_object('result', v_result);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_manager_approve(uuid, boolean, boolean, boolean, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_manager_approve(uuid, boolean, boolean, boolean, boolean) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.declutter_manager_send_back(p_item_id uuid, p_note text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_sub public.declutter_manager_submissions%ROWTYPE;
+  v_note text := left(NULLIF(btrim(COALESCE(p_note, '')), ''), 500);
+BEGIN
+  PERFORM public.require_feature('declutter');
+  PERFORM public.require_feature('declutter_manager');
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_sub FROM public.declutter_manager_submissions WHERE item_id = p_item_id FOR UPDATE;
+  IF v_sub.item_id IS NULL OR v_sub.seller_id IS DISTINCT FROM v_uid THEN
+    RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF v_sub.status <> 'waiting' THEN
+    RAISE EXCEPTION 'not_waiting' USING ERRCODE = '22023';
+  END IF;
+  UPDATE public.declutter_manager_submissions SET status = 'sent_back', note = v_note, decided_at = now()
+   WHERE item_id = p_item_id;
+  INSERT INTO public.declutter_manager_actions (grant_id, seller_id, manager_id, action, target_id)
+  VALUES (v_sub.grant_id, v_uid, v_sub.manager_id, 'seller_sent_back', p_item_id);
+  PERFORM public.declutter_notify(v_sub.manager_id, 'declutter_listings', 'Sent back to you',
+    format('%s sent %s back%s. Change it, then send it for approval again.', public.declutter_manager_first_name(v_uid),
+           COALESCE((SELECT i.title FROM public.declutter_items i WHERE i.id = p_item_id), 'the draft'),
+           CASE WHEN v_note IS NULL THEN '' ELSE ': "' || v_note || '"' END),
+    '/declutter?tab=selling', v_uid);
+  RETURN 'sent_back';
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_manager_send_back(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_manager_send_back(uuid, text) TO authenticated, service_role;
 
 -- 12. Labels for messages a manager wrote: "<Manager> (helping <Seller>)". Returned only for messages the caller can
 --     already see: answers on any item (answers are public on the listing), order-talk messages of the caller's own

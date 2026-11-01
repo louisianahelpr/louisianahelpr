@@ -19,7 +19,7 @@
 // @mutate src/components/tracker/jobProgressState.ts | const wait = poster ? `${other} confirms on ${day}, the day before` | const wait = poster ? `${other} confirms the day before. Opens ${when(opens)}`
 // JA-4 (audit 11-01): the line named a button ("I'm still on") the job page calls "Confirm it's still on"; it now says the step.
 // @mutate src/components/tracker/jobProgressState.ts | !posterIn ? "Confirm the job is still on" : | !posterIn ? "Tap I'm still on to confirm" :
-// @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, cancellation_reason, cancelled_by, | has_active_dispute,
+// @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, | has_active_dispute, dispute_deadline,
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

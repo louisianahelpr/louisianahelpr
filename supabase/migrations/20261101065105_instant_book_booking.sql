@@ -439,3 +439,15 @@ BEGIN
   RETURN NEW;
 END;
 $function$;
+
+-- The two new jobs columns are readable (as direct_offer_status and
+-- direct_offer_expires_at are): re-sync the column grants (offer privacy (d)).
+DO $sync$
+BEGIN
+  IF to_regprocedure('public.sync_jobs_select_grants()') IS NOT NULL THEN
+    PERFORM public.sync_jobs_select_grants();
+  ELSE
+    RAISE NOTICE 'sync_jobs_select_grants() absent; jobs column grants not re-synced';
+  END IF;
+END
+$sync$;

@@ -13,7 +13,8 @@ import { MapPin } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
-import { CrewActionError, crewMemberStatusLabel, posterConfirmMemberArrival } from "@/lib/crewLifecycle";
+import { CrewActionError, crewMemberStatusLabel, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
+import { hasJobStarted } from "@/lib/dateUtils";
 
 /** Label for a roster slot whose helper has deleted their account.
  *
@@ -47,6 +48,8 @@ export function GroupJobHelpers({
   isOwner,
   jobStatus,
   initialHelpers,
+  dateNeeded,
+  startTime,
 }: {
   jobId: string;
   helpersNeeded: number;
@@ -67,6 +70,9 @@ export function GroupJobHelpers({
    * per-mount fetch for callers outside the Activity surface.
    */
   initialHelpers?: GroupHelper[];
+  /** `jobs.date_needed` / `jobs.start_time`: "Didn't show" is offered only once the start has passed (JOBS-3). */
+  dateNeeded?: string | null;
+  startTime?: string | null;
 }) {
   // Seed from the parent-batched rows when present so we don't fire two
   // queries per group-job card on every Activity render.
@@ -74,6 +80,8 @@ export function GroupJobHelpers({
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [pendingRemoval, setPendingRemoval] = useState<GroupHelper | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [pendingNoShow, setPendingNoShow] = useState<GroupHelper | null>(null);
+  const [reportingId, setReportingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -188,6 +196,55 @@ export function GroupJobHelpers({
       else void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
     } finally {
       setConfirmingId(null);
+    }
+  };
+
+  /**
+   * THE POSTER'S PER-MEMBER "Didn't show" (JOBS-3, owner 2026-10-31: "a no-show
+   * member gets nothing + a strike; others are never held up"). The rules are
+   * rpc_poster_report_member_no_show's (20261101031804): after the start, on a
+   * member who confirmed their spot and has not checked in, been confirmed on
+   * site or finished. The server closes the spot, records the strike once,
+   * tells them, and completes the crew if everyone else is already done; their
+   * share comes back to the poster with the unfilled spots at payout.
+   */
+  const noShowReportable = (h: GroupHelper) =>
+    isOwner &&
+    !!h.helper_id &&
+    h.status === "accepted" &&
+    !!h.helper_confirmed_at &&
+    !h.helper_arrived_at &&
+    !h.poster_confirmed_arrival_at &&
+    !h.helper_completed_at &&
+    (jobStatus === "accepted" || jobStatus === "in_progress" || jobStatus === "revision_requested") &&
+    hasJobStarted(dateNeeded, startTime);
+
+  const reportNoShow = async (h: GroupHelper) => {
+    if (!h.helper_id || reportingId) return;
+    setReportingId(h.id);
+    try {
+      const { jobComplete } = await posterReportMemberNoShow(jobId, h.helper_id);
+      setHelpers((prev) => prev.filter((x) => x.id !== h.id));
+      hapticSuccess();
+      toast.success(
+        jobComplete
+          ? `${h.helperName || "That Helpr"} is reported. The rest of your crew is done, so you can approve the job.`
+          : `${h.helperName || "That Helpr"} is reported. Most of their share comes back to you after the job.`,
+      );
+      void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+    } catch (err) {
+      hapticError();
+      const copy = err instanceof CrewActionError ? err.copy : null;
+      if (!copy) {
+        report(err instanceof CrewActionError ? err.original ?? err : err, {
+          tags: { source: "GroupJobHelpers.reportNoShow" },
+        });
+      }
+      toast.error(copy ?? "Couldn't report that no-show. Please try again.");
+      if (initialHelpers === undefined) void loadHelpers();
+      else void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+    } finally {
+      setReportingId(null);
     }
   };
 
@@ -320,6 +377,18 @@ export function GroupJobHelpers({
                   />
                 </div>
               )}
+              {noShowReportable(h) && (
+                <div className="shrink-0">
+                  <JobActionChip
+                    icon={XCircle}
+                    label={reportingId === h.id ? "Reporting…" : "Didn't show"}
+                    ariaLabel={`Report that ${h.helperName || "this Helpr"} didn't show up`}
+                    tone="danger"
+                    disabled={reportingId !== null}
+                    onClick={() => setPendingNoShow(h)}
+                  />
+                </div>
+              )}
               {canRemove && (
                 // 44px target (Apple HIG) with a negative inset so the row's
                 // visual rhythm is unchanged — the bare 16px icon was a
@@ -391,6 +460,27 @@ export function GroupJobHelpers({
           const target = pendingRemoval;
           setPendingRemoval(null);
           if (target) void removeHelper(target.id);
+        }}
+        secondaryLabel="Cancel"
+      />
+
+      <BrandConfirmDialog
+        open={pendingNoShow !== null}
+        onOpenChange={(next) => { if (!next) setPendingNoShow(null); }}
+        title="Report a no-show?"
+        description={
+          <>
+            {pendingNoShow?.helperName || "This Helpr"} will be taken off the crew, won't be paid, and gets a
+            no-show on their record. Most of their share comes back to you after the job. The rest of your crew is paid as usual.
+          </>
+        }
+        primaryLabel="Report no-show"
+        primaryTone="sienna"
+        primaryHaptic="warning"
+        onPrimary={() => {
+          const target = pendingNoShow;
+          setPendingNoShow(null);
+          if (target) void reportNoShow(target);
         }}
         secondaryLabel="Cancel"
       />

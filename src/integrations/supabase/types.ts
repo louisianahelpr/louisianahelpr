@@ -18777,6 +18777,10 @@ export type Database = {
         Args: { _helper_id: string; _job_id: string }
         Returns: Json
       }
+      rpc_poster_report_member_no_show: {
+        Args: { _job_id: string; _member_id: string }
+        Returns: Json
+      }
       rpc_record_application_attempt: {
         Args: { _applicant_id: string }
         Returns: undefined

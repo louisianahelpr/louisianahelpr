@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1060,
+    "calls": 1062,
     "files": 296,
-    "rendering": 979,
-    "suppressedByPolicy": 81,
+    "rendering": 980,
+    "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 170,
-      "toast.error": 737,
+      "toast.error": 738,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 88,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 458,
       "template": 96,
-      "dynamic": 557,
+      "dynamic": 559,
       "jsx": 0
     }
   },
@@ -485,7 +485,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 104,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -495,7 +495,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 176,
+      "line": 184,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -505,7 +505,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 186,
+      "line": 194,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -515,7 +515,37 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 233,
+      "line": 229,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "jobComplete ? `${h.helperName || \"That Helpr\"} is reported. The rest of your crew is done, so you can approve the job.` : `${h.helperName || \"That Helpr\"} is reported. Most of their share comes back to you after the job.`",
+        "branches": [
+          {
+            "form": "template",
+            "text": "${h.helperName || \"That Helpr\"} is reported. The rest of your crew is done, so you can approve the job."
+          },
+          {
+            "form": "template",
+            "text": "${h.helperName || \"That Helpr\"} is reported. Most of their share comes back to you after the job."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 243,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy ?? \"Couldn't report that no-show. Please try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/GroupJobHelpers.tsx",
+      "line": 290,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

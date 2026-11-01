@@ -9258,17 +9258,17 @@ export type Database = {
         Row: {
           handle: string
           retired_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           handle: string
           retired_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           handle?: string
           retired_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }

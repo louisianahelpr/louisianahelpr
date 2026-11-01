@@ -82,7 +82,9 @@ export function usePosterPageActions({
   // Not once the Helpr set off or arrived: the card's cancel refuses it then (tryCancelJob's tracking check).
   // A never-paid draft is on no Posted list (JOBS-9), so a trip to its card would land on nothing: no Edit or Cancel.
   const draft = jobIsUnfundedDraft(job);
-  const canCancel = !draft && CANCELLABLE.has(status) && !job.helper_on_the_way_at && !job.helper_arrived_at;
+  // JOBS-3: an under-way crew whose every member was reported a no-show is cancelled for a full refund
+  // (poster_cancel_job prices no share for an empty roster), so it gets Cancel too.
+  const canCancel = !draft && ((CANCELLABLE.has(status) && !job.helper_on_the_way_at && !job.helper_arrived_at) || flows.crewNobodyLeft);
   // The card's other steps (report a no-show, the dispute, a fix asked for, tip and review): "More options" opens it.
   const cardSteps = MORE_ON_CARD.has(status) || (posterWait?.startsWith("overdue_") ?? false);
   // An open job's details (a crew's change only through a request once a member is hired: the card's own rule).

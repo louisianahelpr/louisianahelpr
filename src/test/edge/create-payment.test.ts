@@ -2635,7 +2635,7 @@ describe("create-payment edge function", () => {
         }
       });
 
-      // @mutate supabase/functions/create-payment/index.ts |           return false;\n        }\n        await deleteRefundClaim(supabaseAdmin, jobId);\n        return true; |           return true;\n        }\n        await deleteRefundClaim(supabaseAdmin, jobId);\n        return true;
+      // @mutate supabase/functions/create-payment/index.ts |           return false;\n        }\n        await deleteRefundClaim(supabaseAdmin, jobId, "cancel_escrow");\n        return true; |           return true;\n        }\n        await deleteRefundClaim(supabaseAdmin, jobId, "cancel_escrow");\n        return true;
       it("a put-back that misses never tells the poster the job is still paid for", async () => {
         seedFunded("escrow");
         stripeMock.refunds.create.mockRejectedValue(refused());
@@ -5954,7 +5954,7 @@ describe("create-payment edge function", () => {
       // lh-authz-rls review of Q1323: an unrecorded admin claim is given back
       // (503), and a put-back deletes the marker so an old row never vouches.
       // @mutate supabase/functions/create-payment/index.ts |         if (!(await recordRefundClaim(supabaseAdmin, jobId, "admin_refund_general", user.id))) { |         if (!(await recordRefundClaim(supabaseAdmin, jobId, "admin_refund_general", user.id)) && false) {
-      // @mutate supabase/functions/create-payment/index.ts |           generalClaimHeld = false;\n          await deleteRefundClaim(supabaseAdmin, jobId); |           generalClaimHeld = false;
+      // @mutate supabase/functions/create-payment/index.ts |           generalClaimHeld = false;\n          await deleteRefundClaim(supabaseAdmin, jobId, "admin_refund_general"); |           generalClaimHeld = false;
       it("Q1323: an admin claim whose holder cannot be recorded is put back (503); a put-back deletes the marker", async () => {
         seedFull();
         scenario.writeOverrides = [{ table: "job_refund_claims", op: "insert", when: () => true, error: { message: "boom" } }];
@@ -5969,6 +5969,21 @@ describe("create-payment edge function", () => {
         res = await call();
         expect(res.status).toBe(409);
         expect(scenario.writes.some((w) => w.table === "job_refund_claims" && w.op === "delete")).toBe(true);
+      });
+
+      // CMP-4 money review (2026-11-01): a put-back deletes only its own holder's row, never another path's live
+      // claim (instant_book_captured_not_hired's 'instant_book_refund', which card-hold-sweep pass 8b retries).
+      // @mutate supabase/functions/create-payment/index.ts | .delete().eq("job_id", jobId).eq("claimed_by", by).select("job_id"); | .delete().eq("job_id", jobId).select("job_id");
+      // @mutate supabase/functions/create-payment/index.ts |           await deleteRefundClaim(supabaseAdmin, jobId, "admin_refund_general"); |           await deleteRefundClaim(supabaseAdmin, jobId, "cancel_escrow");
+      it("CMP-4: an admin put-back deletes only the admin_refund_general row, never an instant_book_refund claim", async () => {
+        seedFull();
+        scenario.reads.payout_transfers = { rows: [{ id: "pt-1" }] };
+        const res = await call();
+        expect(res.status).toBe(409);
+        const deletes = scenario.writes.filter((w) => w.table === "job_refund_claims" && w.op === "delete");
+        expect(deletes).toHaveLength(1);
+        expect(deletes[0].filters).toContainEqual(expect.objectContaining({ op: "eq", column: "job_id", value: "job-1" }));
+        expect(deletes[0].filters).toContainEqual(expect.objectContaining({ op: "eq", column: "claimed_by", value: "admin_refund_general" }));
       });
 
       it("refuses while the poster's cancel_escrow refund is in flight (payment_status cancelling)", async () => {

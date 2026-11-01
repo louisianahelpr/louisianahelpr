@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20261030154745_declutter_drop_stop_whole_dollar.sql |        SET current_price_cents = greatest(p.floor_price_cents, (ceil(COALESCE(p.drop_stop_cents, p.floor_price_cents) / 100.0) * 100)::integer, |        SET current_price_cents = greatest(
  * @mutate supabase/migrations/20261030154745_declutter_drop_stop_whole_dollar.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
- * @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |         AND NOT seller_hidden\n |         AND true\n
+ * @mutate supabase/migrations/20261030080020_declutter_buyer_reads_own_item.sql |         AND NOT seller_hidden\n |         AND true\n
  * @mutate supabase/migrations/20261031164337_declutter_door_pickup_uses_places.sql |                     ELSE public.declutter_buyer_fee_cents(v_items) END; |                     ELSE greatest(round(v_items * 0.15)::integer, 100) END;
  */
 import { describe, expect, it } from "vitest";

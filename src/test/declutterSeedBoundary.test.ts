@@ -1,4 +1,4 @@
-// @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |         AND (NOT is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))) |         AND true)
+// @mutate supabase/migrations/20261030080020_declutter_buyer_reads_own_item.sql |         AND (NOT is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))) |         AND true)
 // @mutate supabase/migrations/20261031060656_declutter_guest_read.sql |     AND NOT is_seed\n  ); |     AND true\n  );
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |      OR (v_seed AND public.seed_hidden_for(p_buyer)) THEN |      THEN
 // @mutate supabase/migrations/20261030064929_declutter_buy_now_no_strike.sql |      AND public.seed_hidden_for(p_buyer) THEN\n    RAISE EXCEPTION 'item_not_found' |      AND false THEN\n    RAISE EXCEPTION 'item_not_found'

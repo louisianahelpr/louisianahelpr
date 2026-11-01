@@ -500,14 +500,8 @@ const Login = () => {
                 aria-describedby={passwordError ? "login-password-error" : undefined}
                 className={`pr-10 rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${passwordError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
               />
-              <Button
-                type="button"
-                variant="ghost"
-                size="iconCompact"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
-                className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground [&_svg]:size-4"
-              >
+              <Button type="button" variant="ghost" size="iconCompact" onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")} className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground [&_svg]:size-4">
                 {showPassword ? <EyeOff /> : <Eye />}
               </Button>
             </div>

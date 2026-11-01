@@ -437,15 +437,8 @@ const Legal = () => {
               control per action). The focus ring is the app's standard
               :focus-visible outline; a colourless `focus:ring-2` here added a
               second, Tailwind-default BLUE ring inside it. */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="iconCompact"
-            onClick={closeSearch}
-            aria-label="Close search"
-            className="absolute right-0 top-1/2 -translate-y-1/2 ctl-exit btn-press [&_svg]:size-4"
-            style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          >
+          <Button type="button" variant="ghost" size="iconCompact" onClick={closeSearch} aria-label="Close search"
+            className="absolute right-0 top-1/2 -translate-y-1/2 ctl-exit btn-press [&_svg]:size-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             <X />
           </Button>
         </>

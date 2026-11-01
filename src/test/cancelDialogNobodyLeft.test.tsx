@@ -10,7 +10,7 @@
  * @mutate src/components/CancellationDialog.tsx |           {nobodyLeft && ( |           {false && (
  * @mutate src/components/CancellationDialog.tsx |           {!nobodyLeft && (<> |           {true && (<>
  * @mutate src/components/job-card/ActivityDialogs.tsx |           nobodyLeft={(props.cancelDialogJob as { crewNobodyLeft?: boolean }).crewNobodyLeft === true} |           nobodyLeft={false}
- * @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |         setCancelDialogJob({ ...job, crewNobodyLeft: job.status === "in_progress" } as Job); |         setCancelDialogJob(job);
+ * @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |         setCancelDialogJob({ ...job, crewNobodyLeft: crewNobodyLeft(job.status, [], true, hasJobStarted(job.date_needed, job.start_time)) } as Job); |         setCancelDialogJob(job);
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -66,7 +66,7 @@ describe("cancel dialog for a crew where nobody came", () => {
 
   it("tryCancelJob marks the job from its own roster read; ActivityDialogs passes it on", () => {
     const h = blankComments(readFileSync("src/components/job-card/activityActions/useLifecycleHandlers.ts", "utf8"));
-    expect(h).toContain('setCancelDialogJob({ ...job, crewNobodyLeft: job.status === "in_progress" } as Job);');
+    expect(h).toContain('setCancelDialogJob({ ...job, crewNobodyLeft: crewNobodyLeft(job.status, [], true, hasJobStarted(job.date_needed, job.start_time)) } as Job);');
     const f = blankComments(readFileSync("src/components/job-card/ActivityDialogs.tsx", "utf8"));
     expect(f).toContain("nobodyLeft={(props.cancelDialogJob as { crewNobodyLeft?: boolean }).crewNobodyLeft === true}");
   });

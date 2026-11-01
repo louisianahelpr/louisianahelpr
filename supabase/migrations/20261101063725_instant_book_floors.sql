@@ -25,12 +25,8 @@
 --     (helper_accept_block_reason); no block either way; not banned, not
 --     shadowbanned; not the poster; test and real accounts never mixed.
 --
--- Behind the hidden switch 'instant_book' (testers). Every RPC starts with
--- require_feature. PGlite proof: src/test/pglite/instantBookFloors.pglite.mjs.
-
-INSERT INTO public.feature_switches (key, audience, description) VALUES
-  ('instant_book', 'testers', 'Instant book: Helprs set a private auto-accept floor per category. Posters book a matching Helpr at their own price. CMP-4.')
-ON CONFLICT (key) DO NOTHING;
+-- On for everyone, with no feature switch (owner rule "ship on for everyone";
+-- lead 2026-11-01). PGlite proof: src/test/pglite/instantBookFloors.pglite.mjs.
 
 CREATE TABLE IF NOT EXISTS public.instant_book_floors (
   helper_id   uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -57,7 +53,6 @@ CREATE OR REPLACE FUNCTION public.rpc_my_instant_book_floors()
  SET search_path TO 'public', 'pg_temp'
 AS $fn$
 BEGIN
-  PERFORM public.require_feature('instant_book');
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
@@ -82,7 +77,6 @@ DECLARE
   v_uid uuid := auth.uid();
   v_cat public.job_category;
 BEGIN
-  PERFORM public.require_feature('instant_book');
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
@@ -268,7 +262,6 @@ DECLARE
   v_category public.job_category;
   v_reason text;
 BEGIN
-  PERFORM public.require_feature('instant_book');
   SELECT j.customer_id, j.category INTO v_customer, v_category FROM public.jobs j WHERE j.id = p_job_id;
   IF NOT FOUND OR v_uid IS NULL OR v_customer IS DISTINCT FROM v_uid THEN
     RAISE EXCEPTION 'not_authorized' USING ERRCODE = '42501';

@@ -1,3 +1,4 @@
+// @mutate src/components/tracker/jobProgressState.ts |     next: posterLate \|\| noApplicantsYet \|\| ((sameStep |     next: posterLate \|\| ((sameStep
 // @mutate src/components/tracker/jobProgressState.ts | const picking = poster && (o.pendingApplicants ?? 0) > 0; | const picking = false;
 // Board 2 (deal-room chat) and the chat halves of 59, 61, 62, 63, now the ONE tracker (owner, 2026-10-21):
 // the stage is named from the job's own stamps and never runs ahead of them, and the deal card never writes.
@@ -155,7 +156,8 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     const p = jobProgress(paid, { viewer: "poster", now: NOW, pendingApplicants: 2 });
     expect(p.next).not.toMatch(/no applicants/i);
     expect(p).toMatchObject({ next: "Pick your Helpr", waitingOnYou: true });
-    // Control (JA-2 not reproduced here): nobody applied reads "Waiting for Helprs to apply", whatever the listing's clock.
+    // JA-2: nobody applied: "Waiting for Helprs to apply", never the card's "No applicants yet" (the page's own block
+    // under the buttons says that), whatever the listing's clock or payment state.
     for (const j of [paid, { ...paid, date_needed: "2037-10-21", start_time: "16:00" }, { ...paid, payment_status: "held" }]) {
       expect(jobProgress(j, { viewer: "poster", now: NOW, pendingApplicants: 0 }).next).toBe("Waiting for Helprs to apply");
     }
@@ -196,7 +198,7 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     expect(jobProgress(j, { viewer: "helpr", otherFirst: "Dana", threadHelprId: ME, now: NOW }).next).toMatch(/^You marked it done\. Dana has until \w{3} \d{1,2}:\d{2} [AP]M to check it$/);
   });
   // @mutate src/components/tracker/jobProgressState.ts |   if (mins <= LATE_GRACE_MIN) return null; |   return null;
-  // @mutate src/components/tracker/jobProgressState.ts |     next: posterLate \|\| ((sameStep | next: false \|\| ((sameStep
+  // @mutate src/components/tracker/jobProgressState.ts |     next: posterLate \|\| noApplicantsYet | next: false \|\| noApplicantsYet
   it("JA-12 / JA-13: past the start the poster reads that the Helpr is late, set out or not", () => {
     const j: ProgressJob = { ...base, status: "accepted", helper_id: "h", helper_confirmed_at: "t", helper_dayof_confirmed_at: "t", poster_confirmed_at: "t",
       payment_status: "escrow", date_needed: "2037-10-21", start_time: "08:45" };

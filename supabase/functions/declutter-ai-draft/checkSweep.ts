@@ -15,12 +15,12 @@
  * src/test/declutterCheckSweep.test.ts (and src/test/pglite/declutterCheckSweep.pglite.mjs for the SQL).
  */
 
-export const CHECK_SWEEP_MODE = "check_sweep";
+const CHECK_SWEEP_MODE = "check_sweep";
 /**
  * Listings per run (the claim caps it at 20): ~4 s a check, two at a time, well inside the 120 s pg_net timeout, and
  * few enough that reading up to 12 photos each stays inside the function's own time and memory (review should-fix 4).
  */
-export const CHECK_SWEEP_BATCH = 5;
+const CHECK_SWEEP_BATCH = 5;
 const PARALLEL = 2;
 
 /**
@@ -90,7 +90,7 @@ export function withCheckSweep(
   };
 }
 
-export async function runCheckSweep(deps: CheckSweepDeps): Promise<Response> {
+async function runCheckSweep(deps: CheckSweepDeps): Promise<Response> {
   const claimed = await deps.claim(CHECK_SWEEP_BATCH);
   if (!claimed.ok) {
     // Loud: cron_http_tag records the 500, and no listing is held for it (no try was counted).

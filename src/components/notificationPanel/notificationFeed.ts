@@ -104,9 +104,11 @@ const loadOnce = async (userId: string) => {
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(50),
+    // count: "exact" rides on this read (Content-Range), so the badge's
+    // total needs no third request (Q104 budget, release gate 2026-11-01).
     supabase
       .from("notifications")
-      .select("*")
+      .select("*", { count: "exact" })
       .eq("user_id", userId)
       .eq("read", false)
       .order("created_at", { ascending: false })
@@ -127,20 +129,11 @@ const loadOnce = async (userId: string) => {
   setNotifications(data as Notification[]);
   markNotificationsLoaded();
 
-  // Counted separately and deliberately: the list is a page, the badge is a
-  // fact. A failure here leaves unreadTotal null and the UI falls back to
-  // the page-derived count.
-  const { count, error: countErr } = await withLoadTimeout(supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("read", false));
-  if (countErr) {
-    report(countErr, { tags: { source: "NotificationPanel.unreadCount" } });
-    return;
-  }
-  if (!stillBound(userId)) return;
-  setUnreadTotal(count ?? 0);
+  // Counted, not paged: the list is a page, the badge is a fact. The count
+  // comes back with the unread read above (every unread row, not the 50 it
+  // returns). No count leaves unreadTotal null and the UI falls back to the
+  // page-derived count.
+  if (typeof unread.count === "number") setUnreadTotal(unread.count);
 };
 
 /** Side effects a mounted bell adds to a live arrival (chime, local push). */

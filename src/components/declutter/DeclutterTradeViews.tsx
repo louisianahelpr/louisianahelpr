@@ -44,6 +44,7 @@ import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
 import { Button } from "@/components/ui/button";
+import { DeliveryPriceList } from "./DeliveryPriceList";
 import { DropoffAddressField } from "./DropoffAddressField";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
 import { HANDOVER_TITLE, HANDOVER_WORDS } from "./handoverCopy";
@@ -80,7 +81,7 @@ function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: s
  * seller turned porch off, only pickup at the seller's home is offered (the server
  * refuses porch for such an order anyway, porch_unavailable). Helpr delivery
  * (rows 29-30) is offered while Declutter is open for the member: the buyer types
- * the drop-off address, the SERVER geocodes it and prices the trip ($10 + $2 per
+ * the drop-off address, the SERVER geocodes it and prices the trip ($6 + $1.50 per
  * road mile + size), and the Pay button carries that price.
  */
 function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null }: {
@@ -249,14 +250,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             disabled={priceIt.isPending || address.trim().length < 5 || !placeReady} onClick={() => priceIt.mutate(undefined)}>
             {priceIt.isPending ? "Pricing…" : "Get price"}
           </Button>
-          {liveQuote ? (
-            <dl className="text-sm space-y-1">
-              <div className="flex justify-between"><dt>Helpr delivery, about {liveQuote.road_miles} {liveQuote.road_miles === 1 ? "mile" : "miles"}</dt><dd>{formatPrice(liveQuote.delivery_cents)}</dd></div>
-              <div className="flex justify-between text-xs text-muted-foreground"><dt>$10 + $2 a mile{liveQuote.size_cents > 0 ? " + size" : ""}</dt><dd>{formatPrice(liveQuote.base_cents)} + {formatPrice(liveQuote.per_mile_cents)}{liveQuote.size_cents > 0 ? ` + ${formatPrice(liveQuote.size_cents)}` : ""}</dd></div>
-            </dl>
-          ) : (
-            <p className="text-xs text-muted-foreground">$10 + $2 a mile, plus $20 for a large item or $40 for an extra large one. If no Helpr takes it within 48 hours, what you paid for delivery comes back. Then you pick it up instead, or cancel for a refund.</p>
-          )}
+          {/* Owner 2026-11-01: the price by size up front, this checkout's size marked, then the total once priced. */}
+          <DeliveryPriceList quote={liveQuote} />
+          <p className="text-xs text-muted-foreground">If no Helpr takes it within 48 hours, what you paid for delivery comes back. Then you pick it up instead, or cancel for a refund.</p>
         </div>
       )}
     </div>

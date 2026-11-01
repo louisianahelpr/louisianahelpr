@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, homeFirstScreenRoots, homeIconFiles, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -189,7 +189,10 @@ const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(p
 const { itemDeep: declutterItemDeep, itemPages: declutterItemPages } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
 const homeIcons = homeIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
-const homeSet = staticReach(process.cwd(), homeFirstScreenRoots(process.cwd()));
+// B88: Home's PAGE reach. The every-page roots load after Home's first paint; with them here, their shared code
+// (Legal's public page table, ...) rode app-shared onto every page's boot. Build: boot 204 -> 202 KB gz,
+// /home 285 -> 282, /posts 205 -> 202, no route worse, rounds unchanged.
+const homeSet = staticReach(process.cwd(), homePageRoots(process.cwd()));
 // B86: the part of homeLate the dock itself runs (MobileNav's static reach). In one signed-in-late chunk with the
 // other every-page roots' code (Legal's data export, the ID sheet's switch reads, award copy), the dock waited for all of it.
 const dockSet = staticReach(process.cwd(), [path.join(process.cwd(), "src/components/MobileNav.tsx")]);

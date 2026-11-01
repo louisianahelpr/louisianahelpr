@@ -19,6 +19,7 @@ export function signedInSplit(root: string): {
   homeLate: Set<string>;
 };
 export function homeFirstScreenRoots(root: string): string[];
+export function homePageRoots(root: string): string[];
 export function guestBrowseOnlyModules(root: string): Set<string>;
 export function guestBrowseSplit(root: string): { browseOnly: Set<string>; homeShared: Set<string> };
 export const DECLUTTER_ITEM_ROOT: string;

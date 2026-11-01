@@ -310,6 +310,28 @@ describe("card hold at posting (Q2399)", () => {
       expect((slackAlerts as Array<{ title: string }>).some((a) => /captured but the hire did not complete/.test(a.title))).toBe(true);
     });
 
+    it("CMP-4: an instant booking's early Confirm captured, then the hire refused: the sweep's path (closed for review, the refund, ONE keyed alert), never the old page", async () => {
+      // @mutate supabase/functions/create-payment/index.ts |         if (directOpen && job.instant_decline_until != null) { |         if (false) {
+      seedHire({ job: { status: "open", helper_id: null, offered_to_helper_id: HELPR.id, direct_offer_status: "pending", instant_decline_until: new Date(Date.now() + 3_600_000).toISOString() } });
+      stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
+      let n = 0;
+      scenario.rpcErrors = { get respond_to_direct_offer() { return n++ === 0 ? { message: "payment_not_captured" } : { message: "offer_not_active" }; } } as never;
+      scenario.rpc.instant_book_captured_not_hired = true;
+      scenario.reads.job_refund_claims = { rows: [] };
+      const { res, payload } = await capture();
+      expect(res.status).toBe(409);
+      expect(payload.code).toBe("booking_ended");
+      expect(String(payload.error)).toMatch(/aren't booked/);
+      const ended = scenario.rpcCalls?.find((c) => c.name === "instant_book_captured_not_hired");
+      expect(ended?.args).toEqual({ p_job_id: JOB, p_helper: HELPR.id });
+      const alerts = slackAlerts as Array<{ title: string; message: string; oncePerDayKey?: string }>;
+      const page = alerts.filter((a) => /instant booking was charged but the hire did not complete/.test(a.title));
+      expect(page).toHaveLength(1);
+      expect(page[0].oncePerDayKey).toBe(`instant-book-captured-not-hired:${JOB}`);
+      expect(page[0].message).toMatch(/closed for review/);
+      expect(alerts.some((a) => /A card hold was captured but the hire did not complete/.test(a.title))).toBe(false);
+    });
+
     it("only the Helpr the live offer names may capture", async () => {
       seedHire();
       const { res } = await capture({ id: "stranger-1", email: "s@test.com" });

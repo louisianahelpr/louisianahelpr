@@ -38,9 +38,11 @@ import {
   holdCheckoutPaymentMethodOptions,
   notifyHelprWaiting,
   readHold,
+  refundInstantBookingWith,
   releaseCardHold,
 } from "../_shared/cardHold.ts";
 import { holdPlanFor, offSessionAllowed } from "../_shared/cardHoldPlan.ts";
+import { endCapturedNotHired } from "../_shared/instantBookSweep.ts";
 
 /**
  * Q1415 (b): what a release answers while an open ban settlement review holds
@@ -1505,7 +1507,7 @@ serve(async (req) => {
         new Response(JSON.stringify(payload), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status });
       const { data: job, error: jobErr } = await supabaseAdmin
         .from("jobs")
-        .select("id, title, status, payment_status, helper_id, helper_confirmed_at, offered_to_helper_id, direct_offer_status, is_group_job, response_deadline, customer_id, is_seed")
+        .select("id, title, status, payment_status, helper_id, helper_confirmed_at, offered_to_helper_id, direct_offer_status, instant_decline_until, is_group_job, response_deadline, customer_id, is_seed")
         .eq("id", jobId)
         .maybeSingle();
       if (jobErr) {
@@ -1571,6 +1573,23 @@ serve(async (req) => {
         if (result.already && await hiredNow()) return json({ state: "accepted", result: null });
         // Captured, and the hire refused in the moment between: money held for nobody.
         console.error(`[create-payment] capture_hold: job ${jobId} captured but the hire did not complete: ${done.error.message}`);
+        if (directOpen && job.instant_decline_until != null) {
+          // An instant booking (CMP-4, lead 2026-11-01): the SAME path as card-hold-sweep's
+          // residual case. The booking ends, the job is closed for review (nobody can be hired
+          // on this money), the poster is told the truth, the full refund runs now (and is
+          // retried by card-hold-sweep), and ops hears once per job (the shared key).
+          const how = "The booked Helpr's own Confirm captured the job's held card, and the hire was then refused.";
+          const ended = await endCapturedNotHired({
+            db: supabaseAdmin,
+            record: (d) => console.error(`[create-payment] capture_hold: ${d}`),
+            page: (title, message, fields) => postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title, message, fields, seed: job.is_seed === true, oncePerDayKey: `instant-book-captured-not-hired:${jobId}` }),
+            refund: (id) => refundInstantBookingWith({ db: supabaseAdmin, stripe, mode: stripeMode }, id, (d) => console.error(`[create-payment] capture_hold: ${d}`), job.is_seed === true),
+          }, jobId, user.id, how);
+          if (ended === "retry") {
+            return json({ error: "Your confirm didn't go through. Pull to refresh to see where this booking stands." }, 503);
+          }
+          return json({ code: "booking_ended", error: "Your booking didn't go through, so you aren't booked. Nothing is owed and no strike." }, 409);
+        }
         await postSlackOpsAlert({
           kind: "money_at_risk",
           severity: "critical",

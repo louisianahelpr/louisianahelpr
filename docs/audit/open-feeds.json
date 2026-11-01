@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-01T15:53Z",
+  "measured_at": "2026-11-01T17:33Z",
   "issues": {
     "readable": true,
     "open": [
@@ -85,7 +85,7 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218192294",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41329953949",
         "runTruncated": false
       },
       {
@@ -97,21 +97,21 @@
       },
       {
         "number": 3823,
-        "title": "🔴 3 scheduled workflow(s) have stopped running",
+        "title": "🔴 1 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
       },
       {
         "number": 3824,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218255151",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41330011838",
         "runTruncated": false
       },
       {
         "number": 3833,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41128418672",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41326452336",
         "runTruncated": false
       },
       {
@@ -187,14 +187,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -315,7 +307,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": 3833
+        "issue": null
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -638,19 +630,19 @@
         "issue": null
       },
       {
-        "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: payout_setup_incomplete",
-        "issue": null
-      },
-      {
         "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
         "source_kind": "sentry",
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load deliveries.",
+        "issue": null
+      },
+      {
+        "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: payout_setup_incomplete",
         "issue": null
       },
       {
@@ -670,17 +662,17 @@
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
@@ -742,19 +734,19 @@
         "issue": null
       },
       {
-        "fingerprint": "e32aa223d475dd1349363e900374a77e",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "error: script error.",
-        "issue": null
-      },
-      {
         "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
         "source_kind": "sentry",
         "source": "sentry:unknown",
         "status": "open",
         "title": "cr",
+        "issue": null
+      },
+      {
+        "fingerprint": "e32aa223d475dd1349363e900374a77e",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "error: script error.",
         "issue": null
       },
       {
@@ -830,19 +822,19 @@
         "issue": null
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -902,6 +894,14 @@
         "issue": null
       },
       {
+        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
+        "issue": null
+      },
+      {
         "fingerprint": "fba95b3590a627d7f7d9e284e9b56c20",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
@@ -915,14 +915,6 @@
         "source": "user-error-screen",
         "status": "open",
         "title": "/declutter · error screen shown: we couldn't load your sales.",
-        "issue": null
-      },
-      {
-        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
         "issue": null
       },
       {
@@ -995,6 +987,14 @@
         "source": "user-error-screen",
         "status": "open",
         "title": "/declutter · lazystorage: getpublicurl with transform is not supported; add it here first",
+        "issue": null
+      },
+      {
+        "fingerprint": "4a85667a6e228c8cc0e6d22fddc76858",
+        "source_kind": "sentry",
+        "source": "sentry:assets/supabase",
+        "status": "open",
+        "title": "error: lazystorage: getpublicurl with transform is not supported; add it here first",
         "issue": null
       },
       {
@@ -1075,6 +1075,7 @@
     "ledger 41fbf0358661": "Q1596",
     "ledger 43738529abd4": "Q1596",
     "ledger 43d77e26f272": "Q1816",
+    "ledger 4a85667a6e22": "Q2551",
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 4ac3e9488b48": "Q2525",
     "ledger 4b5ace7af165": "Q1596",

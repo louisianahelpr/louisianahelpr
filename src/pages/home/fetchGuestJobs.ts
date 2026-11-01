@@ -5,6 +5,9 @@ import { GUEST_JOBS_LIMIT, GUEST_JOBS_SELECT, takeGuestJobsPrefetch } from "@/li
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
+/** The hand-over of api/share's HTML job cards (PERF-SHELL, Q652), beside the hand-over of the entry's prefetch. */
+export { useBrowseShellHandoff } from "./useBrowseShellHandoff";
+
 /**
  * The signed-out feed's job list (DashboardGuest's queryFn, moved here whole).
  *

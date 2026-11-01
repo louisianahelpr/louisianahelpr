@@ -23,6 +23,7 @@ import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { useLanguage } from "@/lib/i18n/language";
+import { ProfileLinkRow } from "@/components/profile/ProfileLinkRow";
 
 /** Both sides of each section, the spec v2 §11 wording. */
 export const SECTION_BLURB: Record<SectionKey, string> = {
@@ -220,6 +221,8 @@ export function SettingsTab({
       <Group title="Your account">
         {/* Only what Edit profile can change (app audit A3-C4: the name is shown there, not editable). Guard: src/test/settingsProfileHintMatchesForm.test.ts. */}
         <Row testId="profile" label={TAB_TITLES.profile} sub="Photo, about you, what you help with" onClick={() => onSelectTab("profile")} />
+        {/* LEAD-PROFILE-LINK (owner 2026-10-31): the one shareable link; fetched only when opened. */}
+        {profile && <ProfileLinkRow name={profile.full_name?.trim().split(/\s+/)[0] ?? null} changedOnce={!!profile.handle_changed_at} />}
         {/* Board 120: the row shows what is true now (your email and how you
             sign in) instead of a list of what is inside; each part only when known. */}
         <Row testId="security" label={TAB_TITLES.security} sub={accountLine(user?.email, user?.identities) ?? "Email, password, sign-in"} onClick={() => onSelectTab("security")} />

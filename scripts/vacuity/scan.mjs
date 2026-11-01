@@ -267,16 +267,28 @@ export function scanMountWiring() {
 export const MOUNT_DEPTH = 3;
 
 /**
+ * The app's root component (lead 10-31). Only the main.tsx entry mounts it, and
+ * no test can render it whole (it is every provider, router and gate at once),
+ * so a component it mounts DIRECTLY is mounted on every app start: the root
+ * itself is the proof. Only a direct child counts; a grandchild sits behind a
+ * parent that may mount it conditionally, so it still needs a rendered
+ * ancestor. (SignedInChrome, AppLockGate, ErrorBoundary, ForceUpdateGate,
+ * RouteErrorBoundary.)
+ */
+export const APP_ROOTS = new Set(["src/App.tsx"]);
+
+/**
  * Pure part of (b): `mountedBy` is module -> Set(production parents),
  * `renderedByTests` is module -> Set(test files that render it). A module a
  * test renders is a gap when nothing within MOUNT_DEPTH levels above it is
- * rendered by any test.
+ * rendered by any test, unless an app root (APP_ROOTS) mounts it directly.
  */
-export function findMountGaps(mountedBy, renderedByTests, depth = MOUNT_DEPTH) {
+export function findMountGaps(mountedBy, renderedByTests, depth = MOUNT_DEPTH, roots = APP_ROOTS) {
   const findings = [];
   for (const [mod, testSet] of renderedByTests) {
     const parents = mountedBy.get(mod);
     if (!parents || parents.size === 0) continue; // a root/route: nothing mounts it
+    if ([...parents].some((p) => roots.has(p))) continue; // the app root mounts it directly
     let level = new Set(parents);
     const seen = new Set([mod]);
     let covered = false;

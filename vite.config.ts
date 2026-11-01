@@ -847,6 +847,26 @@ export default defineConfig(({ mode }) => ({
             // The signed-in code only Declutter's first screen reaches (bootReach.mjs
             // signedInSplit). It would otherwise ride in signed-in-shared, which every
             // signed-in first screen downloads (~16 KB gz, 2026-10-30).
+            // AUD31-61 (B63, 2026-11-01): leaves the /admin first screen imports whose own deps are already on the boot
+            // path: capturedPayment's status helpers, the sidebar's useIsMobile and the alert badge's useInstantQuery (they
+            // sat in signed-in-deep, which dragged in declutter-first-screen, rentals and parish-names), and AdminRoute's
+            // useProfileWaitPhase (useFeedPhase sat in signed-in-pages, 49 KB gz). Measured on built dist/ chunk closures.
+            {
+              name: "small-leaves",
+              test: /[\\/]src[\\/](lib[\\/]capturedPayment\.ts|hooks[\\/](use-mobile\.tsx|useInstantQuery\.ts))$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // Its own chunk, not small-leaves: Profile's first screen also imports it, and must not reach the
+            // signed-in-deep modules above (check-deferred-vendors).
+            {
+              name: "feed-phase",
+              test: /[\\/]src[\\/]hooks[\\/]useFeedPhase\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             {
               name: "declutter-first-screen",
               test: (id: string) => declutterOnly.has(id.split("?")[0].replace(/\\/g, "/")),

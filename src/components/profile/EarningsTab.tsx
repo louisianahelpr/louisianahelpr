@@ -14,7 +14,6 @@ import { EarningsExport } from "@/components/EarningsExport";
 import InstantPayoutDialog from "@/components/InstantPayoutDialog";
 import ProUpgradeSheet from "@/components/ProUpgradeSheet";
 import { safeStorage } from "@/lib/safeStorage";
-import { EarningsBreakdownCharts } from "@/components/profile/EarningsBreakdownCharts";
 import { PayoutCelebration } from "@/components/wallet/PayoutCelebration";
 import { EarningsForecastCard } from "@/components/profile/EarningsForecastCard";
 import { EarningsPageSkeleton, EarningsPayoutSetupSkeleton, EarningsWalletBones } from "@/components/profile/earningsTab/EarningsPageSkeleton";
@@ -27,6 +26,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
+import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
 import {
   completedWithin,
@@ -72,6 +72,9 @@ import { FeesOwedLine } from "@/components/money/FeesOwedLine";
 // the earned summary, ONE payouts list with each transfer inside its job and
 // the bank payouts, the insights, the bank account) and SPENT (SpentSection).
 const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
+// AUD31-61 (B63, 2026-11-01): the breakdown charts (recharts, about 100 KB gz) render only inside the closed
+// "breakdown" disclosure, so Money's first screen no longer downloads them; they load when it is opened.
+const EarningsBreakdownCharts = lazy(() => import("@/components/profile/EarningsBreakdownCharts").then(m => ({ default: m.EarningsBreakdownCharts })));
 
 /**
  * Quiet in-page section rule. Deliberately NOT a second header: the merged
@@ -479,7 +482,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               </button>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-3 pt-3">
-              <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} firstPayoutFee={firstPayoutFee} ledger={payoutLedger} />
+              <Suspense fallback={<HelprSpinner />}>
+                <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} firstPayoutFee={firstPayoutFee} ledger={payoutLedger} />
+              </Suspense>
               {/* The ONE entry point to /analytics (Advanced Analytics). A
                   link, not a locked teaser: the page it opens decides
                   server-side whether this helper gets the dashboard or the

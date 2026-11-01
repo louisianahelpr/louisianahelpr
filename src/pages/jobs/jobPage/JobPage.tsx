@@ -243,9 +243,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterDetails = job.description?.trim() ?? "";
   // On a phone the details read two lines with "Show more" (mockup 5); a short one has nothing more to show.
   const detailsLong = posterDetails.length > 90 || posterDetails.includes("\n");
+  const helprPrice = isPoster ? null : <HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} />;
   const price = isPoster ? <PosterPrice job={job} labelled={wide} /> : wide
-    ? <div className="flex items-start justify-between gap-3"><p className="text-ds-16 font-semibold">Your pay</p><HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} /></div>
-    : <HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} />;
+    ? <div className="flex items-start justify-between gap-3"><p className="text-ds-16 font-semibold">Your pay</p>{helprPrice}</div>
+    : helprPrice;
   const moneyNotes = isPoster
     ? <PosterMoneyNotes job={job} total={total} loading={applicants.isLoading} />
     : <HelprMoneyNotes job={job} hired={isHired} noShow={myApplication.data?.closed_reason === "no_show"} />;
@@ -304,10 +305,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                   {posterDetails}
                 </p>
                 {detailsLong && (
-                  <button type="button" data-details-more="" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((v) => !v)}
-                    className="mt-1 min-h-[44px] text-ds-15 font-semibold text-primary lg:hidden">
+                  <Button type="button" variant="link" data-details-more="" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((v) => !v)}
+                    size="sm" className="mt-1 px-0 text-ds-15 font-semibold lg:hidden">
                     {detailsOpen ? "Show less" : "Show more"}
-                  </button>
+                  </Button>
                 )}
               </section>
             )}

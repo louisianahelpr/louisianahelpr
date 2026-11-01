@@ -38,6 +38,9 @@ const MUTANTS = {
   porchday: ["\n                     AND (v_has_places OR COALESCE(public.declutter_is_porch_day(v_uid, extract(dow FROM v_local)::smallint), false))", ""],
   // The order's own check is skipped.
   ordercheck: ["IF NOT public.declutter_order_slot_in_windows(v_order, v_uid, v_req.pickup_at) THEN", "IF false THEN"],
+  // L29: the picked person's admin role read through has_role, which answers only about the caller (false for a giver).
+  adminrole: ["EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id = v_req.requester_id AND ur.role = 'admin')",
+    "public.has_role(v_req.requester_id, 'admin')"],
   // A time already past is booked.
   past: ["     AND v_req.pickup_at > now()\n", ""],
 };
@@ -90,6 +93,7 @@ const WORLD = `
     address text, area text, lat numeric, lng numeric, weekdays smallint[], windows jsonb);
   create table public.declutter_seller_porch_days (seller_id uuid primary key, weekdays smallint[]);
   create table public.verified (user_id uuid primary key);
+  create table public.user_roles (user_id uuid, role text);
   create table public.notices (user_id uuid, title text, body text);
   create function public.require_feature(text) returns void language sql as $f$ select $f$;
   create function public.is_caller_banned() returns boolean language sql stable as $f$ select false $f$;
@@ -97,6 +101,7 @@ const WORLD = `
   create function public.are_users_blocked(uuid, uuid) returns boolean language sql stable as $f$ select false $f$;
   create function public.declutter_member_out(uuid) returns boolean language sql stable as $f$ select false $f$;
   create function public.seed_hidden_for(uuid) returns boolean language sql stable as $f$ select false $f$;
+  -- has_role answers only about the caller (or for an admin caller): the giver asking about the picked person gets false.
   create function public.has_role(uuid, text) returns boolean language sql stable as $f$ select false $f$;
   create function public.identity_check_exempt(uuid) returns boolean language sql stable as $f$ select false $f$;
   create function public.is_identity_verified(p uuid) returns boolean language sql stable security definer as
@@ -195,6 +200,14 @@ r = await pick(GIVER, r6);
 o = await orderFor(hat);
 check("a picked person who still needs the ID check: the 48-hour path (they meet the check at their own checkout)",
   r.ok && o[0]?.status === null, r.err ?? JSON.stringify(o));
+const ADMIN_ASKER = "00000000-0000-4000-8000-0000000000ad";
+await db.exec(`insert into public.user_roles values ('${ADMIN_ASKER}', 'admin');`);
+const pin = await newItem(GIVER, "Pin");
+const r6b = await ask(pin, GIVER, ADMIN_ASKER, at(1, "15:00"));
+r = await pick(GIVER, r6b);
+o = await orderFor(pin);
+check("an admin asker (no ID check needed) gets the asked time, read from user_roles, not the caller-scoped has_role",
+  r.ok && o[0]?.status === "paid", r.err ?? JSON.stringify(o));
 const cup = await newItem(GIVER, "Cup", "handovers=array['meetup']");
 const r7 = await ask(cup, GIVER, ASKER2, at(1, "15:00"));
 r = await pick(GIVER, r7);

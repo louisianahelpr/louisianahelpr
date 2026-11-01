@@ -572,7 +572,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_mark_order_paid: "20261101030040_declutter_buy_now_30_minutes.sql 58316ae073a71a78",
       // Owner 11-01 (B103, 20261101181129; lh-money-escrow via the lead): the giver's pick turns the asked time into a
       // paid FREE order ($0, card_fee_cents = 0, no payment) with its booking; it records no refund and moves no money.
-      declutter_pick_free_request: "20261101181129_free_pick_confirms_the_asked_time.sql 0c4baeeafc4148b0",
+      declutter_pick_free_request: "20261101181129_free_pick_confirms_the_asked_time.sql 0af9427699ae0747",
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.

@@ -210,7 +210,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       <label htmlFor={id("note")} className="block text-xs font-medium">Note (both sides see it)</label>
       <input id={id("note")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" maxLength={1000}
         value={note} onChange={(e) => setNote(e.target.value)} />
-      <div className="flex gap-2">
+      <div data-admin-decide="" className="flex flex-wrap gap-2">
         <Button onClick={() => decide.mutate("refund_buyer")} disabled={decide.isPending || (falseOn && againstReporter !== "refund_buyer")}>Refund the buyer</Button>
         <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending || (falseOn && againstReporter !== "pay_seller")}>Pay the seller</Button>
       </div>
@@ -218,7 +218,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         <div className="space-y-1" data-admin-part-refund="">
           <label htmlFor={id("part")} className="block text-xs font-medium">Or refund part of the price (the buyer keeps the item)</label>
           {offer ? <p className="text-xs text-muted-foreground">The seller offered {formatPrice(offer)}.</p> : null}
-          <div className="flex gap-2">
+          <div data-admin-part-row="" className="flex flex-wrap gap-2">
             <input id={id("part")} inputMode="decimal" className="w-32 rounded-lg border border-input bg-background px-3 py-2 text-sm"
               value={part} onChange={(e) => setPart(e.target.value)} placeholder="$" />
             <Button variant="outline" onClick={() => decide.mutate("refund_part")} disabled={decide.isPending || !partOk}>Refund part</Button>

@@ -128,7 +128,7 @@ export function pickupDays(windows: readonly SellerWindow[], nowMs: number, dead
 
 
 /** The porch window a checkout books (lead 11-01: a porch pickup is a 2-hour window the seller leaves it out for). */
-export const PORCH_WINDOW_MIN = 120;
+const PORCH_WINDOW_MIN = 120;
 
 /**
  * B110: the porch pickup WINDOWS from now to the deadline, by Chicago day: from each window's start in 2-hour steps,

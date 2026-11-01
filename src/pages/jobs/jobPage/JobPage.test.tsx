@@ -49,7 +49,6 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && instantUntil && <InstantBookingCard | {instantUntil && <InstantBookingCard
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     : instantUntil\n      ? null\n |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {viewer.status && !(!isPoster && instantUntil) && | {viewer.status &&
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {(isPoster \|\| isHired) && job.status === "accepted" && <CountdownRows | {false && <CountdownRows
  */
 import { describe, expect, it, vi, beforeEach, onTestFinished } from "vitest";
@@ -194,6 +193,26 @@ vi.mock("@/lib/jobOfferTargets", () => ({
   fetchJobOfferTargets: async (ids: string[]) => { offerTargetCalls.push(ids); return new Map(ids.map((i) => [i, "33333333-3333-3333-3333-333333333333"])); },
 }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
+// JA-17: the Working list's own read (fetchAppliedActivity) and handlers (useActivityActions), recorded here; the
+// handlers' own behaviour is useActivityActions.*.test.tsx and the offer card's tests.
+const workingApps = vi.hoisted(() => ({ rows: [] as Array<Record<string, unknown>> }));
+const offerAnswers = vi.hoisted(() => [] as Array<[string, boolean]>);
+vi.mock("@/hooks/useActivityData", async (orig) => ({
+  ...(await orig<typeof import("@/hooks/useActivityData")>()),
+  fetchAppliedActivity: async () => ({ appliedApps: workingApps.rows, declinedJobIds: new Set(), helperReviewedJobIds: new Set() }),
+}));
+vi.mock("@/components/job-card/useActivityActions", () => ({
+  useActivityActions: () => ({
+    handleHelperResponse: (app: { id: string }, accept: boolean) => { offerAnswers.push([app.id, accept]); },
+    respondingHelperAppId: null, awardBlockReason: null, paymentHeldSide: null, hiredPayout: null,
+  }),
+}));
+vi.mock("@/components/job-card/ActivityOfferDialogs", () => ({ ActivityOfferDialogs: () => <div data-testid="offer-dialogs" /> }));
+vi.mock("@/hooks/useAcceptPendingJobs", () => ({ useAcceptPendingJobs: () => new Set<string>() }));
+vi.mock("@/hooks/useAwardBlockReason", async (orig) => ({
+  ...(await orig<typeof import("@/hooks/useAwardBlockReason")>()),
+  useAcceptGate: () => ({ loading: false, reason: null, missing: [] }),
+}));
 
 import JobPage from "./JobPage";
 import { blankComments } from "@/test/helpers/blankNonCode";
@@ -260,6 +279,8 @@ function renderPage(userId = ME) {
 }
 
 beforeEach(() => {
+  workingApps.rows = [];
+  offerAnswers.length = 0;
   state.onCrew = false;
   state.crewConfirmed = false;
   state.job = null;
@@ -875,6 +896,20 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
     expect(screen.queryByRole("button", { name: "See the offer" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
     expect(document.querySelector("[data-viewer-status]")).toBeNull();
+    expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
+  });
+
+  // B80 / B111: after the Helpr answers, the pending-offer row is gone (offeredToMe false, so the viewer is no longer
+  // "see_offer") while the page keeps the booking card on screen (useMyInstantBooking's latch). Only !instantUntil
+  // keeps the "shared once you're offered" line from sitting beside "You're booked": the case that line guards.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
+  it("after the answer (the offer row gone, the card kept): no 'street address is shared' line beside it", () => {
+    state.job = row({ status: "open", payment_status: "held", direct_offer_status: null });
+    state.party = true;
+    state.offeredToMe = false;
+    state.instantUntil = new Date(Date.now() + 60 * 60_000).toISOString();
+    renderPage();
+    expect(document.querySelector(`[data-instant-booking="${row().id}"]`)).not.toBeNull();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
   });
 
@@ -1645,5 +1680,61 @@ describe("job page, an offered Helpr is not told the address comes with an offer
     renderPage();
     expect(screen.getByRole("button", { name: "See the offer" })).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
+  });
+});
+
+// JA-17 (lead 11-01): an offered Helpr answers on the page, through the Working card's own Accept / Decline and
+// handlers (PageOfferPanel), never by being sent off to the Working card with "See the offer".
+// @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx | onHelperResponse={actions.handleHelperResponse} | onHelperResponse={() => {}}
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && !hiredFace && !instantUntil && viewer.action.kind === "see_offer" && ( |             {false && (
+// @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx |   const app = q.data?.appliedApps.find((a) => a.job_id === jobId && !!a.job) ?? null; |   const app = q.data?.appliedApps.find((a) => !!a.job) ?? null;
+describe("JA-17: Accept and Decline on the job page", () => {
+  const offered = () => row({ helper_id: ME, status: "accepted", helper_confirmed_at: null, response_deadline: new Date(Date.now() + 20 * 3_600_000).toISOString() } as Partial<JobPageRow>);
+  const workingRow = (jobId: string, id: string) => ({
+    id, job_id: jobId, helper_id: ME, status: "pending", message: "I can do it", offer_message: null,
+    offer_message_flagged_hidden: false, created_at: "2026-10-30T12:00:00Z", updated_at: "2026-10-30T12:00:00Z",
+    job: { ...offered(), id: jobId },
+  });
+
+  it("accepts through the Working card's handler, with this job's own row", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow("44444444-4444-4444-4444-444444444444", "app-other"), workingRow(state.job.id, "app-this")];
+    renderPage();
+    const accept = await screen.findByRole("button", { name: /Accept job/ });
+    expect(screen.queryByRole("button", { name: "See the offer" })).toBeNull();
+    expect(screen.getByTestId("offer-dialogs")).toBeTruthy();
+    fireEvent.click(accept);
+    expect(offerAnswers).toEqual([["app-this", true]]);
+  });
+
+  it("declines after the card's own confirm", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow(state.job.id, "app-this")];
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: /^Decline$/ }));
+    expect(offerAnswers).toEqual([]);
+    fireEvent.click(await screen.findByRole("button", { name: "Decline job" }));
+    expect(offerAnswers).toEqual([["app-this", false]]);
+  });
+
+  it("a direct offer (the Working list's synthetic row) declines in one tap", async () => {
+    state.job = row({ status: "open", direct_offer_status: "pending" });
+    state.offeredToMe = true;
+    workingApps.rows = [workingRow(state.job.id, `direct-${state.job.id}`)];
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: /^Decline$/ }));
+    expect(offerAnswers).toEqual([[`direct-${state.job.id}`, false]]);
+  });
+
+  it("with no Working row for the job, the way to the offer stays (never a blank card)", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow("44444444-4444-4444-4444-444444444444", "app-other")];
+    renderPage();
+    await waitFor(() => expect(screen.getByRole("button", { name: "See the offer" })).toBeTruthy());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole("button", { name: /Accept job/ })).toBeNull();
   });
 });

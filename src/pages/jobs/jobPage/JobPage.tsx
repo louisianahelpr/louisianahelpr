@@ -47,7 +47,8 @@ import { HiredSeriesSection } from "./HiredSeriesSection";
 import { NoApplicantsYet } from "./NoApplicantsYet";
 import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
 import { jobPageViewerState } from "./viewerState";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
 import { lazy, Suspense, useState } from "react";
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
@@ -67,6 +68,8 @@ import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe
 
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
+// JA-17: the Working card's Accept / Decline on this page; loaded only for a Helpr with an offer.
+const PageOfferPanel = lazy(() => import("./PageOfferPanel").then((m) => ({ default: m.PageOfferPanel })));
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow): string {
@@ -83,6 +86,7 @@ const CREW_ROSTER_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "
 
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew, crewConfirmed } = useJobPage(id, userId);
   const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
   // CMP-4: the booked Helpr's instant booking (Confirm / Decline, the 2-hour countdown), the Working offer card's own.
@@ -218,7 +222,17 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     const extras = [msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
     return <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={extras} />;
   })();
-  // Everyone else's one button: Apply, See the offer, View application, Open in working.
+  // JA-17: after an answer on the page, re-read the job, my application and the pending-offer row (useOfferedToMe).
+  const refetchPage = () => {
+    void q.refetch();
+    void myApplication.refetch();
+    void queryClient.invalidateQueries({ queryKey: [...queryKeys.jobs.all, "page-offered-to-me", job.id] });
+  };
+  // Shown only while the Working row is read, or if it has none for this job: the old way to the offer.
+  const seeOffer = (
+    <Button variant="primary" size="lg" className="w-full rounded-full text-ds-16" onClick={() => navigate(highlight)}>See the offer</Button>
+  );
+  // Everyone else's one button: Apply, View application, Open in working.
   const primary = isPoster || hiredFace
     ? null
       // CMP-4: an instant booking is answered on its card below, never "See the offer" (or Apply after a decline).
@@ -226,8 +240,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       ? null
     : viewer.action.kind === "open_working"
       ? { label: "Open in working", go: openWorking }
+      // JA-17: an offer is answered on this page (PageOfferPanel below), never by leaving it for the Working card.
       : viewer.action.kind === "see_offer"
-        ? { label: "See the offer", go: () => navigate(highlight) }
+        ? null
         : viewer.action.kind === "view_application"
           ? { label: "View application", go: () => navigate(highlight) }
           : viewer.action.kind === "apply" && canApply
@@ -411,6 +426,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               >
                 {primary.label}
               </Button>
+            )}
+            {!isPoster && !hiredFace && !instantUntil && viewer.action.kind === "see_offer" && (
+              <Suspense fallback={seeOffer}>
+                <PageOfferPanel jobId={job.id} onChanged={refetchPage} fallback={seeOffer} />
+              </Suspense>
             )}
             {!isPoster && <MineFaceNote note={hiredFace?.note} />}
             {/* LEAD-LIST-FOR-SELLER: the Working card's done rule, said here too (its panel lives on that card). */}

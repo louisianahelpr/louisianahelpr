@@ -71,12 +71,10 @@ import { FeesOwedLine } from "@/components/money/FeesOwedLine";
 // and payouts are the same. So do earning and spent instead"): EARNED (wallet,
 // the earned summary, ONE payouts list with each transfer inside its job and
 // the bank payouts, the insights, the bank account) and SPENT (SpentSection).
-// Lazy, so Money's payout reads do not wait on recharts (src/test/adminAndMoneySkipChartLibrary.test.ts).
-// The "you got paid" card (framer-motion) loads only when there is a payout to
-// celebrate (payoutCelebrationGate.ts says why).
+// Lazy (AUD31-61 B63, B72): the breakdown charts (recharts, ~100 KB gz) load when the closed "breakdown" disclosure
+// opens, so Money's payout reads do not wait on them (src/test/adminAndMoneySkipChartLibrary.test.ts); the "you got
+// paid" card (framer-motion) loads only when there is a payout to celebrate (payoutCelebrationGate.ts says why).
 const PayoutCelebration = lazy(() => import("@/components/wallet/PayoutCelebration").then(m => ({ default: m.PayoutCelebration })));
-// AUD31-61 (B63, 2026-11-01): the breakdown charts (recharts, about 100 KB gz) render only inside the closed
-// "breakdown" disclosure, so Money's first screen no longer downloads them; they load when it is opened.
 const EarningsBreakdownCharts = lazy(() => import("@/components/profile/EarningsBreakdownCharts").then(m => ({ default: m.EarningsBreakdownCharts })));
 const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
 

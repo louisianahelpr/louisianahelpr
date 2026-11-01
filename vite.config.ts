@@ -972,7 +972,7 @@ export default defineConfig(({ mode, command }) => ({
             {
               name: "signed-in-chrome",
               test: /[\\/]src[\\/](lib[\\/](capturedPayment|consent|helprTasks[\\/]online)\.ts|hooks[\\/](useInstantQuery\.ts|use-mobile\.tsx))$/,
-              priority: 16.5,
+              priority: 16.5, // above signed-in-deep (16)
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-deep */,
             },

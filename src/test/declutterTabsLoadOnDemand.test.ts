@@ -82,12 +82,13 @@ const chain = (g: Map<string, string | null>, f: string) => {
 describe("/declutter's first screen loads the order views on demand", () => {
   it("no order, offer or handover view is in DeclutterPage's static import graph", () => {
     const g = graph(resolve(SRC, "pages/declutter/DeclutterPage.tsx"));
-    // Inventory floor: the walk really reads the page's graph (the tabs, the browse view, the shared UI).
+    // Inventory floor: the walk really reads the page's graph (the home view, the tab heads, the shared skeletons).
+    // Browse is lazy since B77 (src/boot/declutterTabsLoadAlone.test.ts), so it is no longer a static edge.
     expect(g.size).toBeGreaterThan(60);
     expect([...g.keys()].map(rel)).toEqual(expect.arrayContaining([
       "components/declutter/DeclutterHomeView.tsx",
       "components/declutter/DeclutterTabHeads.tsx",
-      "components/declutter/DeclutterBrowseView.tsx",
+      "components/declutter/DeclutterSkeletons.tsx",
     ]));
     for (const f of ORDER_SET) expect(existsSync(resolve(SRC, f)), f).toBe(true);
     const reached = ORDER_SET.filter((f) => g.has(resolve(SRC, f))).map((f) => chain(g, resolve(SRC, f)));

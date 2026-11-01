@@ -29963,7 +29963,6 @@
       "requests": 0
     },
     {
-<<<<<<< HEAD
       "url": "/u/test",
       "persona": "anon",
       "base": "http://127.0.0.1:4731",
@@ -29975,7 +29974,8 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (1 wave(s) of data released)",
       "requests": 1
-=======
+    },
+    {
       "url": "/profile?tab=instant_book",
       "persona": "helper",
       "base": "http://127.0.0.1:4180",
@@ -30313,7 +30313,6 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
->>>>>>> 34a8d8ce6a (chore(loading-states): measure /profile?tab=instant_book (CMP-4), so loadingStateShape is green before deploy)
     }
   ],
   "merged": [
@@ -30584,18 +30583,19 @@
       "replaced": []
     },
     {
-<<<<<<< HEAD
       "at": "2026-11-01T08:12:14.285Z",
       "base": "http://127.0.0.1:4731",
       "surfaces": [
         "anon /u/test"
-=======
+      ],
+      "replaced": []
+    },
+    {
       "at": "2026-11-01T09:09:37.217Z",
       "base": "http://127.0.0.1:4180",
       "surfaces": [
         "helper /profile?tab=instant_book",
         "anon /profile?tab=instant_book"
->>>>>>> 34a8d8ce6a (chore(loading-states): measure /profile?tab=instant_book (CMP-4), so loadingStateShape is green before deploy)
       ],
       "replaced": []
     },

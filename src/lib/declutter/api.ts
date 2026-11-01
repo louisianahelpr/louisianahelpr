@@ -15,6 +15,7 @@ import { blobToBase64, cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD
 import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { freeClaimFeeRefusal, openFreeClaimFirstTime, promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
@@ -917,7 +918,10 @@ export async function setPickupWindows(windows: PickupWindow[]): Promise<number>
 }
 
 export async function publishItem(itemId: string): Promise<"pending_review" | "live"> {
-  return rpcData(await supabase.rpc("declutter_publish_item", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_publish_item", e)) as "pending_review" | "live";
+  const status = rpcData(await supabase.rpc("declutter_publish_item", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_publish_item", e)) as "pending_review" | "live";
+  // PUSH-REACH: a listing that went up is when a seller wants to hear from buyers; the website's push ask.
+  offerPushAfterAction();
+  return status;
 }
 
 export async function fetchMyItemPrivate(itemId: string) {
@@ -1203,7 +1207,10 @@ export interface CartLine {
 }
 
 export async function makeOffer(itemId: string, amountCents: number): Promise<string> {
-  return rpcData(await supabase.rpc("declutter_make_offer", { p_item_id: itemId, p_amount_cents: amountCents }), (e) => rpcErrorMessage("declutter_make_offer", e)) as string;
+  const offerId = rpcData(await supabase.rpc("declutter_make_offer", { p_item_id: itemId, p_amount_cents: amountCents }), (e) => rpcErrorMessage("declutter_make_offer", e)) as string;
+  // PUSH-REACH: the seller's answer is what the buyer waits for; the website's push ask.
+  offerPushAfterAction();
+  return offerId;
 }
 
 /**
@@ -1311,10 +1318,13 @@ export async function checkoutFree(sellerId: string, handover: "pickup_home" | "
 }
 
 export async function buyNow(itemId: string, seenPriceCents: number): Promise<string> {
-  return rpcData(
+  const held = rpcData(
     await supabase.rpc("declutter_buy_now", { p_item_id: itemId, p_expected_price_cents: seenPriceCents }),
     (e) => rpcErrorMessage("declutter_buy_now", e),
   ) as string;
+  // PUSH-REACH: pickup and the seller's messages follow a buy; the website's push ask.
+  offerPushAfterAction();
+  return held;
 }
 
 /**

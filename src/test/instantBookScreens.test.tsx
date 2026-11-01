@@ -17,6 +17,8 @@
  * @mutate src/components/jobs/InstantBookingCard.tsx |     const { error: e } = await supabase.rpc("rpc_instant_book_decline", { p_job_id: jobId }); |     const { error: e } = await supabase.rpc("respond_to_direct_offer", { p_job_id: jobId, p_accept: false });
  * @mutate src/components/jobs/InstantBookingCard.tsx |     if (rpcErrorCode("rpc_instant_book_decline", e) === "decline_window_closed") return done("booked_now"); |     if (false) return done("booked_now");
  * @mutate src/components/jobs/InstantBookingCard.tsx |       {left && ( |       {true && (
+ * @mutate src/components/jobs/InstantBookPanel.tsx |       return { ...row, offered_to_helper_id: targets.get(jobId) ?? null }; |       return { ...row, offered_to_helper_id: null };
+ * @mutate src/components/jobs/InstantBookPanel.tsx |         .select("status, helper_id, direct_offer_status, instant_decline_until, payment_status") |         .select("status, helper_id, offered_to_helper_id, direct_offer_status, instant_decline_until, payment_status")
  * @mutate src/components/jobs/InstantBookingCard.tsx |           {left\n            ? <>Can |           {true\n            ? <>Can
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -37,6 +39,7 @@ const db = vi.hoisted(() => ({
   rpcError: {} as Record<string, { message: string } | undefined>,
   job: null as Record<string, unknown> | null,
   candidates: [] as Record<string, unknown>[],
+  selects: [] as string[],
 }));
 const capture = vi.hoisted(() => ({ result: { data: null, error: null } as { data: unknown; error: unknown; holdMessage?: string }, calls: 0 }));
 
@@ -58,10 +61,29 @@ vi.mock("@/integrations/supabase/client", () => ({
       if (fn === "rpc_my_instant_book_floors") return Promise.resolve({ data: db.floors, error: null });
       if (fn === "instant_book_candidates") return Promise.resolve({ data: db.candidates, error: null });
       if (fn === "get_safe_profiles") return Promise.resolve({ data: [{ user_id: ANA, full_name: "Ana Able" }], error: null });
+      // Like prod: the offeree comes only from get_job_offer_targets, never from a jobs select.
+      if (fn === "get_job_offer_targets") {
+        const to = (db.job as { offered_to_helper_id?: string | null } | null)?.offered_to_helper_id;
+        return Promise.resolve({ data: to ? [{ job_id: JOB, offered_to_helper_id: to }] : [], error: null });
+      }
       return Promise.resolve({ data: null, error: null });
     },
-    from: () => {
-      const chain = { select: () => chain, eq: () => chain, maybeSingle: () => Promise.resolve({ data: db.job, error: null }) };
+    from: (table: string) => {
+      let cols = "";
+      const chain = {
+        select: (c: string) => { cols = c; db.selects.push(`${table}:${c}`); return chain; },
+        eq: () => chain,
+        maybeSingle: () => {
+          // PostgREST 42501s a jobs read naming offered_to_helper_id (column privilege, 20260915045110).
+          if (table === "jobs" && cols.split(",").some((c) => c.trim() === "offered_to_helper_id")) {
+            return Promise.resolve({ data: null, error: { message: "permission denied for table jobs", code: "42501" } });
+          }
+          if (!db.job) return Promise.resolve({ data: null, error: null });
+          const visible = { ...(db.job as Record<string, unknown>) };
+          delete visible.offered_to_helper_id;
+          return Promise.resolve({ data: visible, error: null });
+        },
+      };
       return chain;
     },
   },
@@ -87,6 +109,7 @@ beforeEach(() => {
   db.calls = [];
   db.rpcError = {};
   db.job = null;
+  db.selects = [];
   db.candidates = [];
   capture.result = { data: null, error: null };
   capture.calls = 0;
@@ -154,6 +177,9 @@ describe("the poster's top 3 and Book now", () => {
     expect(await screen.findByText(/Booked: Ana/)).toBeTruthy();
     expect(screen.getByText(/Your card is held, not charged/)).toBeTruthy();
     expect(screen.getByText("1 h 42 min left")).toBeTruthy();
+    // The offeree came from get_job_offer_targets; the jobs read never named it (42501 on prod if it did).
+    expect(db.calls.some((c) => c.fn === "get_job_offer_targets")).toBe(true);
+    expect(db.selects.filter((x) => x.startsWith("jobs:")).every((x) => !/offered_to_helper_id/.test(x))).toBe(true);
   });
 
   it("nobody qualifies, or the job is not bookable: nothing at all", async () => {

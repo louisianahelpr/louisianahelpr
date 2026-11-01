@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import BrandConfirmDialog from "@/components/ui/BrandConfirmDialog";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatName } from "@/lib/utils";
 import { queryKeys } from "@/lib/queryKeys";
@@ -20,7 +21,7 @@ export type InstantCandidate = {
   review_count: number;
 };
 
-/** The booking columns of the poster's own job (RLS: the poster reads their own row). */
+/** The booking columns of the poster's own job (RLS: the poster reads their own row), plus the offeree from get_job_offer_targets. */
 export type InstantBookingState = {
   status: string | null;
   helper_id: string | null;
@@ -56,9 +57,16 @@ export function InstantBookPanel({ jobId, now }: { jobId: string; now?: number }
   const qc = useQueryClient();
   const state = useQuery({
     queryKey: stateKey(jobId),
-    queryFn: async () => unwrap<InstantBookingState | null>(await supabase.from("jobs")
-      .select("status, helper_id, offered_to_helper_id, direct_offer_status, instant_decline_until, payment_status")
-      .eq("id", jobId).maybeSingle()),
+    // offered_to_helper_id is not readable from jobs by any client (column privilege since 20260915045110: naming it
+    // 42501s the whole read). The poster gets the offeree from get_job_offer_targets, as every other screen does.
+    queryFn: async (): Promise<InstantBookingState | null> => {
+      const row = unwrap<Omit<InstantBookingState, "offered_to_helper_id"> | null>(await supabase.from("jobs")
+        .select("status, helper_id, direct_offer_status, instant_decline_until, payment_status")
+        .eq("id", jobId).maybeSingle());
+      if (!row) return null;
+      const targets = await fetchJobOfferTargets([jobId], { throwOnNetwork: true });
+      return { ...row, offered_to_helper_id: targets.get(jobId) ?? null };
+    },
     staleTime: 30_000,
   });
   const bookable = canInstantBook(state.data);

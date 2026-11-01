@@ -25,6 +25,8 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
 vi.mock("./BuyerTotal", () => ({ BuyerTotal: () => null }));
+// A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => [] }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyHandover: async () => ({ set_out_at: null, picked_up_at: null, confirmed_at: null, status: "paid" }),
   handoverPhotoUrl: async () => null,

@@ -34,7 +34,7 @@
  */
 import { isDefinitiveStripeRefusal } from "./stripeRefusal.ts";
 
-export const INSTANT_REFUND_HOLDER = "instant_book_refund";
+const INSTANT_REFUND_HOLDER = "instant_book_refund";
 
 export type InstantRefundOutcome =
   | "refunded" // the refund went out (now or before) and the claim closed

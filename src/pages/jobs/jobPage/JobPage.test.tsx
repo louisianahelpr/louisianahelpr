@@ -659,6 +659,21 @@ describe("job page, the hired Helpr", () => {
   const TOMORROW = jobLocalDateISO(1);
   const booked = () => row({ helper_id: ME, status: "accepted", helper_confirmed_at: "2026-10-27T12:00:00Z", date_needed: TOMORROW, start_time: "09:00" });
 
+  // JA-20 / JA-25 (audit 11-01): the address opens Maps; a cancelled job's Helpr no longer sees it.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               {isHired && job.location && job.status !== "cancelled" && ( |               {isHired && job.location && (
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | <a href={mapsSearchUrl(job.location)} target="_blank" | <a target="_blank"
+  it("the hired Helpr's address opens Maps, and is gone once the job is cancelled", () => {
+    state.job = booked();
+    state.party = true;
+    const { unmount } = renderPage();
+    const link = document.querySelector("[data-job-address] a") as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toBe("https://maps.apple.com/?q=123%20Main%20St%2C%20Delcambre%2C%20LA%2070528");
+    unmount();
+    state.job = { ...booked(), status: "cancelled" };
+    renderPage();
+    expect(document.querySelector("[data-job-address]")).toBeNull();
+  });
+
   it("shows the street address, the day-before confirm as the button, and Message", () => {
     state.job = booked();
     state.party = true;

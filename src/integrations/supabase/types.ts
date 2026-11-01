@@ -7062,6 +7062,133 @@ export type Database = {
           },
         ]
       }
+      job_continue_days: {
+        Row: {
+          cleared_done_at: string | null
+          closed_at: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          helper_confirmed_at: string | null
+          id: string
+          job_id: string
+          new_date: string
+          new_start_time: string
+          note: string | null
+          proposed_by: string | null
+          status: string
+        }
+        Insert: {
+          cleared_done_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          helper_confirmed_at?: string | null
+          id?: string
+          job_id: string
+          new_date: string
+          new_start_time: string
+          note?: string | null
+          proposed_by?: string | null
+          status?: string
+        }
+        Update: {
+          cleared_done_at?: string | null
+          closed_at?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          helper_confirmed_at?: string | null
+          id?: string
+          job_id?: string
+          new_date?: string
+          new_start_time?: string
+          note?: string | null
+          proposed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_continue_days_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_continue_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          continue_id: string | null
+          created_at: string
+          detail: Json
+          id: string
+          job_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          continue_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          job_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          continue_id?: string | null
+          created_at?: string
+          detail?: Json
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_continue_events_continue_id_fkey"
+            columns: ["continue_id"]
+            isOneToOne: false
+            referencedRelation: "job_continue_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_continue_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_continue_reminder_sends: {
+        Row: {
+          continue_id: string
+          kind: string
+          sent_at: string
+        }
+        Insert: {
+          continue_id: string
+          kind: string
+          sent_at?: string
+        }
+        Update: {
+          continue_id?: string
+          kind?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_continue_reminder_sends_continue_id_fkey"
+            columns: ["continue_id"]
+            isOneToOne: false
+            referencedRelation: "job_continue_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           accepted_at: string | null
@@ -19053,6 +19180,30 @@ export type Database = {
       respond_job_detail_change: {
         Args: { p_accept: boolean; p_request_id: string }
         Returns: Json
+      }
+      answer_job_continue_day: {
+        Args: { p_accept: boolean; p_continue_id: string }
+        Returns: Json
+      }
+      confirm_job_continue_day: {
+        Args: { p_continue_id: string }
+        Returns: Json
+      }
+      continue_day_clear_done: {
+        Args: { p_job_id: string }
+        Returns: string
+      }
+      continue_day_label: {
+        Args: { p_date: string; p_time: string }
+        Returns: string
+      }
+      propose_job_continue_day: {
+        Args: { p_date: string; p_job_id: string; p_note?: string; p_start_time: string }
+        Returns: Json
+      }
+      sweep_job_continue_day_reminders: {
+        Args: { p_now?: string }
+        Returns: number
       }
       respond_job_schedule_change: {
         Args: { p_accept: boolean; p_request_id: string }

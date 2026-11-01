@@ -15714,7 +15714,10 @@ export type Database = {
       instant_book_block_reason: { Args: { p_helper: string; p_job_id: string }; Returns: string }
       rpc_instant_book: { Args: { p_helper_id: string; p_job_id: string }; Returns: Json }
       rpc_instant_book_decline: { Args: { p_job_id: string }; Returns: Json }
+      instant_book_captured_not_hired: { Args: { p_helper: string; p_job_id: string }; Returns: boolean }
+      instant_book_end_if_unhireable: { Args: { p_job_id: string }; Returns: boolean }
       instant_book_payment_failed: { Args: { p_job_id: string }; Returns: boolean }
+      instant_book_refund_finished: { Args: { p_job_id: string }; Returns: boolean }
       rpc_my_instant_bookings: {
         Args: never
         Returns: { budget: number; date_needed: string; decline_until: string; job_id: string; title: string }[]

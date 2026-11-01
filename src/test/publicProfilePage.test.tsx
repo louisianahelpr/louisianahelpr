@@ -11,7 +11,7 @@
  * @mutate src/pages/u/PublicProfilePage.tsx | return signedIn ? path : signupUrlFor(path); | return path;
  * @mutate src/pages/u/PublicProfilePage.tsx | enabled: !!handle, | enabled: true,
  * @mutate src/pages/u/PublicProfilePage.tsx | isMe={!!me?.handle && me.handle === q.data.handle} | isMe={false}
- * @mutate api/share.ts | out = out.replace(/[ \t]*<meta property="og:image" content="[^"]*"\s*\/?>\n?/g, (tag) => (seen++ === 0 ? tag : "")); | seen++;
+ * @mutate api/share.ts | (tag) => (seen++ === 0 ? tag : "")); | (tag) => tag);
  * @mutate api/share.ts | ?width=1200&height=630&resize=cover&quality=80&format=origin | ?width=630&height=630&resize=cover&quality=80&format=origin
  * @mutate vercel.json | "destination": "/api/share?_og=profile&_id=:handle" | "destination": "/index.html"
  */
@@ -43,7 +43,7 @@ const PAGE = {
   member_since: "2025-03-01T12:00:00Z",
   stats: { review_count: 2, avg_rating: 4.5, is_id_verified: true },
   listings: [{ id: "i1", title: "Oak dresser", price_cents: 12000, area_label: "Mid City", photo_id: null, live_at: "2026-10-30T00:00:00Z" }],
-  jobs: [{ id: "j1", title: "Mow my yard", category: "lawn_care", town: "Baton Rouge, LA", budget: 80, date_needed: "2026-11-03" }],
+  jobs: [{ id: "j1", title: "Mow my yard", category: "lawn_care", town: "Baton Rouge, LA", budget: 80, date_needed: "2032-11-03" }],
   helpr: { jobs_done: 2, categories: ["moving"], reviews: [{ rating: 5, feedback: "Great work", created_at: "2026-10-01T00:00:00Z", reviewer_name: "Rita T.", job_category: "moving", response_text: null, response_at: null }] },
   wanted: [{ id: "w1", what: "crib", category: "baby", max_price_cents: 8000, created_at: "2026-10-30T00:00:00Z" }],
 };

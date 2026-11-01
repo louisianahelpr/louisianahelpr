@@ -35,13 +35,13 @@ import {
 const ROBOTS = "noindex, follow";
 
 /** "March 2025". */
-export function memberSinceLabel(iso: string): string {
+function memberSinceLabel(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "America/Chicago" });
 }
 
 /** "4.8 (12 reviews) · 8 jobs done", or "" when there is nothing to say yet. */
-export function profileTrustLine(p: Pick<PublicProfile, "stats" | "helpr">): string {
+function profileTrustLine(p: Pick<PublicProfile, "stats" | "helpr">): string {
   const parts: string[] = [];
   const n = p.stats.review_count ?? 0;
   if (n > 0 && p.stats.avg_rating != null) parts.push(`${Number(p.stats.avg_rating).toFixed(1)} (${n} review${n === 1 ? "" : "s"})`);
@@ -51,7 +51,7 @@ export function profileTrustLine(p: Pick<PublicProfile, "stats" | "helpr">): str
 }
 
 /** Where a CTA goes: the page itself for a member, signup and back for a guest. */
-export function guestAware(path: string, signedIn: boolean): string {
+function guestAware(path: string, signedIn: boolean): string {
   return signedIn ? path : signupUrlFor(path);
 }
 

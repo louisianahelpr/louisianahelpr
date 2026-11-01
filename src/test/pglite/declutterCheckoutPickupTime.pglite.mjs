@@ -146,5 +146,24 @@ const offerNote = await svc(`SELECT message FROM public.notifications WHERE user
 ok(Array.isArray(offerNote) && offerNote.some((x) => /^Dana .*accepted your \$30(\.00)? offer for "Offer lamp"\. Check out within 24 hours: choose pickup or delivery, pick a day and time, and pay/.test(x.message)),
   `the buyer is told who accepted and what to do next (${short(offerNote)})`);
 
+// 6. B112 (B110 leftover 1): the order's two sides read the chosen window (20261101200035), so the order card shows
+// the porch window, not the 30-minute booking. GRANT=skip: without it (expect FAILs).
+const GRANT_FILE = "20261101200035_declutter_order_pickup_window_read.sql";
+if (process.env.GRANT !== "skip") {
+  for (let i = 0; i < 3; i++) {
+    const r = await run(readFileSync(`${MIG_DIR}${GRANT_FILE}`, "utf8"));
+    ok(!r?.error, `${GRANT_FILE} applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
+  }
+}
+const win = await me(BUYER2, `SELECT pickup_slot_start, pickup_slot_end FROM public.declutter_orders WHERE id = '${o2c.id}'`);
+ok(Array.isArray(win) && sameInstant(win[0]?.pickup_slot_start, t15) && sameInstant(win[0]?.pickup_slot_end, await iso(at(1, "17:00"))),
+  `the buyer reads the porch window 3-5 PM off the order (${short(win)})`);
+const sellerWin = await me(SELLER2, `SELECT pickup_slot_end FROM public.declutter_orders WHERE id = '${o2c.id}'`);
+ok(Array.isArray(sellerWin) && sellerWin.length === 1, `the seller reads it too (${short(sellerWin)})`);
+const stranger = await me(BUYER3, `SELECT pickup_slot_end FROM public.declutter_orders WHERE id = '${o2c.id}'`);
+ok(Array.isArray(stranger) && stranger.length === 0, `anyone else reads no row (${short(stranger)})`);
+ok(refused(await me(BUYER2, `SELECT stripe_payment_intent_id FROM public.declutter_orders WHERE id = '${o2c.id}'`), /permission denied/),
+  "the Stripe ids stay unreadable");
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

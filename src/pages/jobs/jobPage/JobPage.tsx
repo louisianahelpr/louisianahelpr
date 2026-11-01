@@ -299,11 +299,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         <section aria-label="Job summary" data-job-head="" className="space-y-2 lg:col-span-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
-              {/* The category, then the day, time and town on one line (mockup 4: "Yard work · Sun, Nov 1 · 9 AM · …"). */}
-              <p className="text-ds-14 text-muted-foreground">
-                <span className="font-semibold text-primary">{eyebrow}</span>
-                {meta && <>{" · "}<span data-job-meta="">{meta}</span></>}
-              </p>
+              {/* Owner 11-01: "Move the category to the second line and the location, day and time to the first."
+                  Line 1 the day, time and town (muted); line 2 the category (semibold primary). Every stage, both sides. */}
+              {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
+              <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}</p>
               {/* JOBS-18: every visit, before they apply or answer; a hired Helpr reads it in HiredSeriesSection. */}
               {!isHired && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
               {/* JA-20: the hired Helpr's street opens Maps; JA-25: not once the job is cancelled. */}

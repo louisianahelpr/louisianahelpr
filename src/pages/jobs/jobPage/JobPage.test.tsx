@@ -967,6 +967,25 @@ describe("job page, the street address follows the Working card", () => {
     renderPage();
     expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
   });
+
+  // Owner 11-01: "Move the category to the second line and the location, day and time to the first."
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>} |               {false && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}</p> |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}{meta ? ` · ${meta}` : ""}</p>
+  it("the head: day, time and town on line 1, the category alone on line 2 (poster and Helpr)", () => {
+    for (const job of [row({ customer_id: ME }), row({ helper_id: ME, status: "accepted" })]) {
+      state.job = job;
+      state.party = true;
+      const { unmount } = renderPage();
+      const head = document.querySelector("[data-job-head]") as HTMLElement;
+      const lines = [...head.querySelectorAll("p")].map((p) => p.textContent);
+      const meta = `${formatJobDate(DAY)} · 9:00 AM · Delcambre`;
+      expect(lines.indexOf(meta)).toBeGreaterThanOrEqual(0);
+      const cat = head.querySelector("[data-job-category]")!;
+      expect(cat.textContent).not.toContain("9:00 AM");
+      expect(lines.indexOf(cat.textContent)).toBe(lines.indexOf(meta) + 1);
+      unmount();
+    }
+  });
 });
 
 describe("/jobs/:id for a signed-in member", () => {

@@ -5,11 +5,15 @@
 -- storage object, so a re-attach of the same object is possible) kept its queue entry, and an entry claimed just
 -- before the re-attach was still removed from Storage by the edge function. Not reachable from the app today (every
 -- upload gets a fresh random name), closed anyway:
---   1. An AFTER INSERT trigger on declutter_item_photos deletes any queue entry for the path just attached. A trigger,
---      not two restated add RPCs: it covers both add RPCs and any later insert path, and leaves their bodies alone.
+--   1. An AFTER INSERT trigger on declutter_item_photos guards every attach (both add RPCs and any later insert
+--      path; a trigger leaves their bodies alone). An UNCLAIMED queue entry for the path is deleted with the attach.
+--      A CLAIMED one (a purge run may be removing that object right now) makes the attach FAIL with
+--      photo_not_uploaded, which the app shows as "try again". Only claimed entries are ever removed from Storage, so
+--      no attached path can be removed: the window between a run's checks and its Storage remove is closed here,
+--      not by a lock (each edge-function RPC is its own transaction, so no lock spans the remove).
 --   2. declutter_photo_purge_recheck (service role only): the edge function asks right before each Storage remove
---      which of its claimed paths are STILL queued, claimed and named by no photo row, and removes only those. Any
---      other path in the batch has its entry dropped when a photo row names it.
+--      which of its claimed paths are still queued and named by no photo row, and removes only those (a cheap
+--      second check, not the protection; 1 is). Entries for paths a photo row names are dropped.
 --
 -- REPLAY-SAFETY: CREATE OR REPLACE; DROP TRIGGER IF EXISTS before CREATE TRIGGER; the queue table must exist
 -- (20261101054258), so each object is guarded by to_regclass.
@@ -21,9 +25,18 @@ SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
 BEGIN
-  -- An attached path is never removed from Storage: its queue entry (if any) goes with the attach, in the same
-  -- transaction. No exception handler: if this fails the attach fails, which is the safe side.
-  DELETE FROM public.declutter_photo_purge_queue q WHERE q.storage_path = NEW.storage_path;
+  -- A claimed entry may be mid-removal in Storage: refuse the attach (the caller tries again once the run is done).
+  -- Row-locked, so a claim and an attach of the same path cannot both proceed.
+  PERFORM 1 FROM public.declutter_photo_purge_queue q
+   WHERE q.storage_path = NEW.storage_path AND q.claimed_at IS NOT NULL
+     FOR UPDATE;
+  IF FOUND THEN
+    RAISE EXCEPTION 'photo_not_uploaded' USING ERRCODE = '22023',
+      HINT = 'This photo is being removed. Try adding it again in a minute.';
+  END IF;
+  -- An unclaimed entry goes with the attach, in the same transaction. No exception handler: if this fails the attach
+  -- fails, which is the safe side.
+  DELETE FROM public.declutter_photo_purge_queue q WHERE q.storage_path = NEW.storage_path AND q.claimed_at IS NULL;
   RETURN NEW;
 END;
 $fn$;
@@ -41,9 +54,9 @@ BEGIN
 END
 $do$;
 
--- Right before the Storage remove: of these claimed paths, which may still go. Row-locked so a concurrent attach of
--- the same path waits for this statement (its trigger's DELETE needs the row) and a path named by a photo row is
--- never returned. Entries for paths a photo row names are dropped here too.
+-- Right before the Storage remove: of these claimed paths, which may still go (still queued, named by no photo row).
+-- Its lock ends with this call, so it is a second check only; the attach trigger above is what keeps a claimed path
+-- from being attached. Entries for paths a photo row names are dropped here too.
 CREATE OR REPLACE FUNCTION public.declutter_photo_purge_recheck(p_paths text[])
 RETURNS TABLE (storage_path text)
 LANGUAGE plpgsql

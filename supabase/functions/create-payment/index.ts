@@ -1560,7 +1560,9 @@ serve(async (req) => {
         // Any other refusal: nothing is charged, and the app re-runs the RPC to show its own copy.
         if (!notCaptured(first.error)) return json({ state: "not_held" });
       }
-      const result = await captureCardHold({ db: supabaseAdmin, stripe, mode: stripeMode }, jobId);
+      // A direct offer (an instant booking among them): the capture gives its claim
+      // back if the offer stops being this Helpr's after the claim (CMP-4 race fix).
+      const result = await captureCardHold({ db: supabaseAdmin, stripe, mode: stripeMode }, jobId, directOpen ? { offerTo: user.id } : {});
       if (result.ok) {
         const done = await hire();
         if (!done.error) return json({ state: "accepted", result: done.data ?? null });

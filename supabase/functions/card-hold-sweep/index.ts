@@ -92,7 +92,7 @@ serve(async (req) => {
     );
     const stripes = createStripeModeResolver(db, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
     const defects = defectTracker();
-    const counts = { holds: 0, resumed: 0, released: 0, reconciled: 0, renotified: 0, completed: 0, crew_confirmed: 0, placed: 0, renewed: 0, failed_over: 0, instant_hired: 0, instant_failed: 0 };
+    const counts = { holds: 0, resumed: 0, released: 0, reconciled: 0, renotified: 0, completed: 0, crew_confirmed: 0, placed: 0, renewed: 0, failed_over: 0, instant_hired: 0, instant_failed: 0, instant_ended: 0, instant_captured_not_hired: 0 };
     const now = Date.now();
     const depsFor = (hold: HoldRow): Deps => {
       const mode = hold.stripe_mode as StripeMode;
@@ -141,17 +141,21 @@ serve(async (req) => {
           db,
           now,
           record: (d) => defects.record(d),
-          page: (title, message, fields) => postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title, message, fields, seed: j.is_seed === true }),
+          // One alert per job: instant_book_captured_not_hired answers true once, and the key dedupes a retried run.
+          page: (title, message, fields) => postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title, message, fields, seed: j.is_seed === true, oncePerDayKey: `instant-book-captured-not-hired:${j.id}` }),
           // The Helpr's accept's own capture: one claim, one key per attempt. A job with no
           // hold row (paid at post) is captured already, or not capturable here.
-          capture: (id) => hold
-            ? captureCardHold(depsFor(hold), id)
+          // offerTo: the claim goes back, nothing charged, if the Helpr declined after it (CMP-4 race fix).
+          capture: (id, helper) => hold
+            ? captureCardHold(depsFor(hold), id, { offerTo: helper })
             : Promise.resolve(["escrow", "payout_pending", "released"].includes(String(j.payment_status))
-              ? { ok: true as const, already: true }
+              ? { ok: true as const, already: true, paidAtPost: true }
               : { ok: false as const, reason: "not_held" as const }),
         }, j.id);
         if (outcome === "hired") counts.instant_hired++;
         else if (outcome === "payment_failed") counts.instant_failed++;
+        else if (outcome === "ended_unhireable") counts.instant_ended++;
+        else if (outcome === "captured_not_hired") counts.instant_captured_not_hired++;
       } catch (e) {
         defects.record(`job ${j.id} (instant booking): ${caughtMessage(e).slice(0, 300)}`);
       }

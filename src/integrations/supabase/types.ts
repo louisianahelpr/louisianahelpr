@@ -16828,6 +16828,8 @@ export type Database = {
           id: string
           is_auto_created: boolean
           is_flexible_schedule: boolean
+          instant_booked_at: string | null
+          instant_decline_until: string | null
           is_group_job: boolean | null
           is_recurring: boolean | null
           is_seed: boolean
@@ -16984,6 +16986,8 @@ export type Database = {
           id: string
           is_auto_created: boolean
           is_flexible_schedule: boolean
+          instant_booked_at: string | null
+          instant_decline_until: string | null
           is_group_job: boolean | null
           is_recurring: boolean | null
           is_seed: boolean

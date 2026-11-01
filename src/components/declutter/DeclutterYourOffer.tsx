@@ -8,6 +8,7 @@
  *     "Reserved for you, not paid yet" with the time left and a link to checkout, never "Someone is buying this item."
  * Members see no fee numbers here, only amounts they offered or were offered.
  */
+import { NextStep } from "@/components/ui/NextStep";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -86,9 +87,13 @@ export function YourOfferBox({ offer, onChange }: { offer: MyOffer; onChange: ()
         <p className="text-ds-14 font-semibold text-foreground">{sellerAnswered ? "The seller answered" : "Your offer"}</p>
         <p className="text-ds-20 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(offer.amount_cents)}</p>
       </div>
-      <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">
-        {sellerAnswered ? "Your turn to answer" : "Waiting for the seller"}, {timeLeft(offer.respond_by)}.
-      </p>
+      {/* The shared next-step line (owner 11-01 12:02 PM): the buyer's move, or who it waits on, with the time left. */}
+      <NextStep
+        className="!text-ds-13"
+        value={sellerAnswered
+          ? { who: "you", text: "Answer the seller's offer", by: timeLeft(offer.respond_by) }
+          : { who: "them", text: "Waiting on the seller to answer", by: timeLeft(offer.respond_by) }}
+      />
       {sellerAnswered ? (
         <Button asChild variant="outline" size="wrap" className="w-full rounded-full">
           <Link to={CHECKOUT_LINK}>Answer it</Link>

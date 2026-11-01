@@ -7,7 +7,7 @@
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <JobProgress progress={step \|\| hideNext ? { ...progress, next: "" } : progress} /> |       <ol aria-label="Job progress">{["Posted", "Hired", "Working", "Done"].map((s) => <li key={s}>{s}</li>)}</ol>
  * EIGHT steps on the job cards too (owner, 2026-10-22): MineJobFace draws the bar under a collapsed card's face,
  * fed by jobProgress on both the poster's Posted card and the Helpr's Working card.
- * @mutate src/pages/posts/PostedJobCard.tsx |               progress={isExpanded ? null : jobProgress(job, | progress={null && jobProgress(job,
+ * @mutate src/pages/posts/PostedJobCard.tsx |               progress={isExpanded ? null : faceProgress} | progress={null && faceProgress}
  * @mutate src/pages/jobs/AppliedJobCard.tsx |             progress={!isExpanded && job.helper_id === userId ? jobProgress(job, | progress={false && job.helper_id === userId ? jobProgress(job,
  * @mutate src/components/job-card/MineJobFace.tsx |             <JobProgress progress={progress} barOnly /> |             <span />
  * @mutate src/components/JobTracking.tsx |       <JobProgress\n        progress={jobProgress( |       <div role="group" aria-label="Job progress">{displaySteps.map((s) => s.label)}</div>\n      <JobProgress\n        progress={jobProgress(
@@ -74,7 +74,9 @@ describe("one job tracker (owner 2026-10-21)", () => {
   });
 
   it("both job cards hand the face the one tracker, collapsed", () => {
-    expect(read("src/pages/posts/PostedJobCard.tsx")).toMatch(/progress=\{isExpanded \? null : jobProgress\(job, \{ viewer: "poster"/);
+    // A3-15: the Posted card computes the one state once (faceProgress) for its bar and its next-step line.
+    expect(read("src/pages/posts/PostedJobCard.tsx")).toMatch(/const faceProgress = jobProgress\(job, \{ viewer: "poster"/);
+    expect(read("src/pages/posts/PostedJobCard.tsx")).toMatch(/progress=\{isExpanded \? null : faceProgress\}/);
     expect(read("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/progress=\{!isExpanded && job\.helper_id === userId \? jobProgress\(job, \{ viewer: "helpr"/);
     expect(read("src/components/job-card/MineJobFace.tsx")).toMatch(/<JobProgress progress=\{progress\} barOnly \/>/);
   });

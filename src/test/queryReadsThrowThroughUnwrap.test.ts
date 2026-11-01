@@ -19,7 +19,7 @@
  * statements in all, reached from 42 query functions. The inventory and the
  * rules are in src/test/helpers/queryFnReach.ts.
  *
- * @mutate src/hooks/useDashboardJobsCount.ts |       unwrap(result);\n      return result.count ?? 0; |       if (result.error) throw result.error;\n      return result.count ?? 0;
+ * @mutate src/hooks/useDashboardJobsCount.ts |   unwrap(result);\n  return result.count ?? 0; |   if (result.error) throw result.error;\n  return result.count ?? 0;
  * @mutate src/lib/seriesDates.ts |     unwrap(r); |     if (r.error) throw r.error;
  * @mutate src/hooks/useCurrentUser.ts |     (result) => unwrap(result) ?? null, |     ({ data, error }) => { if (error) throw error; return data ?? null; },
  * @mutate src/components/admin/adminHealth/useHealthData.ts |       unwrap(fraudRes); |       const { error: fcErr } = fraudRes; if (fcErr) throw fcErr;

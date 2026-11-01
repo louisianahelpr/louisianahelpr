@@ -261,6 +261,23 @@ export const RPC_ERROR_COPY = {
     not_on_this_crew: "That Helpr isn't on this crew any more. Refresh the page.",
     arrival_confirm_before_arrival: "That Helpr hasn't checked in yet. You can confirm once they tap I've arrived.",
   },
+  // GroupJobHelpers — the poster's per-member "Didn't show" (JOBS-3, 20261101031804).
+  rpc_poster_report_member_no_show: {
+    not_authenticated: "Sign in again to report a no-show.",
+    job_not_found: "This job isn't available any more. Refresh the page.",
+    crew_changed_under_completion: "The crew changed while you were reporting. Refresh the page and try again.",
+    not_authorized: "Only the person who posted this job can report a crew member as a no-show.",
+    not_a_crew_job: "This job has one Helpr. Use Report No-Show on the job instead.",
+    job_not_active: "This job isn't active any more, so a no-show can't be reported.",
+    job_not_funded: "A no-show can only be reported on a paid job.",
+    job_not_started: "Wait until the start time before reporting a no-show.",
+    already_reported: "You already reported this crew member as a no-show.",
+    not_on_this_crew: "That Helpr isn't on this crew any more. Refresh the page.",
+    helper_never_accepted: "This Helpr never confirmed their spot, so it closes on its own with no strike.",
+    helper_already_done: "This Helpr marked their part done, so they can't be a no-show.",
+    helper_already_arrived: "This Helpr checked in on this job, so they can't be reported as a no-show.",
+    helper_near_miss_pending: "This Helpr checked in near the job, a little way from its map pin. If they're there, confirm their arrival; if not, contact support.",
+  },
   // useOfferHandlers — responding to a direct offer.
   respond_to_direct_offer: {
     offer_expired: "This offer expired — the job is open to everyone again.",

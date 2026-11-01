@@ -672,7 +672,7 @@ function PostedJobCardInner({
                   now (ScheduledStep, owner 2026-10-08), not a panel here. */}
               {(job.status === "in_progress" || job.status === "accepted") && job.is_group_job && (
                 <div className="px-4 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>
-                  {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} jobStatus={job.status} initialHelpers={initialGroupHelpers} />}
+                  {job.is_group_job && <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner={true} jobStatus={job.status} initialHelpers={initialGroupHelpers} dateNeeded={job.date_needed} startTime={job.start_time} />}
 
                 </div>
               )}

@@ -102,7 +102,7 @@ export default function InstantBookTab({ onBack }: { onBack: () => void }) {
                     onClick={() => save.mutate({ category: r.category, cents: null })}
                     disabled={save.isPending}
                     aria-label={`Remove ${JOB_CATEGORY_LABELS[r.category as JobCategory] ?? r.category}`}
-                    className="shrink-0 min-h-11 px-4 rounded-full"
+                    className="shrink-0 px-4 rounded-full"
                   >
                     Remove
                   </Button>

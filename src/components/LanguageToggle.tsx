@@ -1,4 +1,5 @@
 import { Languages } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { LANGS, useLanguage, type Lang } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 
@@ -18,16 +19,18 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
       {LANGS.map((l, i) => (
         <span key={l} className="inline-flex items-center">
           {i > 0 && <span aria-hidden className="px-1">·</span>}
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="sm"
             lang={l}
             aria-pressed={lang === l}
             onClick={() => setLang(l)}
-            className="link-standard min-h-[44px] px-1.5 inline-flex items-center"
+            className="px-1.5 text-ds-13 tracking-normal"
             style={{ color: lang === l ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.8)", fontWeight: lang === l ? 700 : 500 }}
           >
             {t(NAME[l])}
-          </button>
+          </Button>
         </span>
       ))}
     </div>

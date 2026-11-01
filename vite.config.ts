@@ -195,6 +195,11 @@ const norm = (id: string) => id.split("?")[0].replace(/\\/g, "/");
 const lateShared = (id: string) => (SHARED_DIR_RE.test(id) || /[\\/]supabase[\\/]functions[\\/]/.test(id)) && !bootOrHome(norm(id));
 const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
 /** The bone guest /browse shares with the /home route skeleton; kept out of browse-first-screen (B86). */
+// B87: Home's lazy section reads (see the home-declutter-reads and home-schedule-reads groups). Two groups, not one:
+// api.ts imports myReads statically, so in one chunk the schedule reads rode onto /messages', /jobs' and /post-job's
+// first screens (check-deferred-vendors).
+const HOME_DECLUTTER_READS = /[\\/]src[\\/]lib[\\/]declutter[\\/]myReads\.ts$/;
+const HOME_SCHEDULE_READS = /[\\/]src[\\/]lib[\\/](scheduleChange|scheduleClashes|notDeployedYet)\.ts$/;
 const BROWSE_GROUP_SKIPS = /[\\/]src[\\/]components[\\/]ui[\\/]skeleton\.tsx$/;
 
 export default defineConfig(({ mode, command }) => ({
@@ -957,6 +962,26 @@ export default defineConfig(({ mode, command }) => ({
             {
               name: "earnings-reads",
               test: /[\\/]src[\\/]components[\\/]profile[\\/]earningsTab[\\/]useEarningsData\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // The small reads Home's first screen fires lazily (B87, 11-01): its Declutter tile and Coming up
+            // (src/lib/declutter/myReads.ts) and the schedule-change and clash reads useActivityData makes
+            // (scheduleChange, scheduleClashes, notDeployedYet). bootReach puts them in signed-in-pages /
+            // signed-in-deep, so each import fetched that whole chunk and its ~150 KB gz closure (Radix, dates,
+            // browse-first-screen, ...) while the dock was loading. Same shape as parish-names: they ride alone.
+            // src/test/homeLazyReadsStayLight.test.ts.
+            {
+              name: "home-declutter-reads",
+              test: HOME_DECLUTTER_READS,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            {
+              name: "home-schedule-reads",
+              test: HOME_SCHEDULE_READS,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

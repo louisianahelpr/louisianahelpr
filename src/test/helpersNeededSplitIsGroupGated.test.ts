@@ -148,7 +148,8 @@ describe("a budget is split by helpers_needed only on a group job", () => {
     // 15 since 2026-10-21: TipMoment.tsx crew (board 181) and useAdminUserSummaries crew share fallback (admin money chips), both gated.
     // 16 since 2026-10-25: LiveJobsSection.tsx helpers (lead-prices-1: home Live now take-home, gated).
     // 17 since 2026-10-31: GuestJobPreview.tsx helpers (guest job preview take-home, gated on is_group_job).
-    expect(all.length).toBe(17);
+    // 18 since 2026-11-01: usePosterPageFlows.tsx crew roster under More options (b54 JOBS-3, gated on is_group_job).
+    expect(all.length).toBe(18);
   });
 
   // Every shape the reviewer of 37ba1c1d0 showed the first extractor missed

@@ -181,7 +181,7 @@ BEGIN
     p_permanent_requires_review => true,
     p_suspension_days           => 7,
     p_clamp_to_worse_status     => true,
-    p_admin_message_format      => '%s has %s no-show reports on file from different posters and is restricted for 7 days pending your decision.',
+    p_admin_message_format      => '%s has %s no-show reports on file from different people who posted jobs and is restricted for 7 days pending your decision.',
     p_ban_reason                => 'Repeated no-show violations'
   );
   -- Attribution: GUARD 3b of the ladder counts DISTINCT reporters.
@@ -211,7 +211,7 @@ BEGIN
           CASE WHEN v_result->>'action' = 'pending_ban_review'
                THEN 'Account restricted for 7 days'
                ELSE 'No-show warning' END,
-          'The poster of "' || COALESCE(v_job.title, 'the job')
+          'The person who posted "' || COALESCE(v_job.title, 'the job')
             || '" reported that you did not show up. Your spot on the crew is closed and you are not paid for it.'
             || CASE WHEN v_result->>'action' = 'pending_ban_review'
                     THEN ' This is your second no-show report, so your account is restricted for 7 days while an admin reviews it. If you think this is wrong, email admin@louisianahelpr.com.'

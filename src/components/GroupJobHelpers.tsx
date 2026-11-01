@@ -16,6 +16,7 @@ import { JobActionChip } from "@/components/job-card/JobActionRow";
 import { CrewActionError, crewMemberStatusLabel, crewNobodyLeft, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
 import { Button } from "@/components/ui/button";
 import { hasJobStarted } from "@/lib/dateUtils";
+import { confirmConsequential } from "@/lib/toastPolicy";
 
 /** Label for a roster slot whose helper has deleted their account.
  *
@@ -238,7 +239,9 @@ export function GroupJobHelpers({
       const nobodyLeft = !helpers.some((x) => x.id !== h.id && x.helper_id != null);
       setHelpers((prev) => prev.filter((x) => x.id !== h.id));
       hapticSuccess();
-      toast.success(
+      // Consequential (toastPolicy rule 1 and 2): a strike for the member and money back to the poster, and nothing on
+      // screen says either, so it must show (a plain toast.success is a no-op under applyToastPolicy).
+      confirmConsequential(
         jobComplete
           ? `${h.helperName || "That Helpr"} is reported. The rest of your crew is done, so you can approve the job.`
           : nobodyLeft

@@ -44,9 +44,10 @@ void import("./main");
 preloadEntryRoute(window.location.pathname);
 // Q206: the guest /browse job list, beside the app download (see the module).
 startGuestJobsPrefetch(window.location.pathname);
-// A member's /declutter items and photos, and Home's first-card reads (B78), the same way (see the modules). Their own
-// small chunk, so the entry every other page downloads stays within its budget.
-if (hasToken() && /^\/(declutter|home)\/?$/.test(window.location.pathname)) {
+// A member's /declutter items and photos, and Home's first-card reads (B78; also on `/`, which sends a member to /home,
+// B79), the same way (see the modules). Their own small chunk, so the entry every other page downloads stays within its
+// budget.
+if (hasToken() && /^\/(declutter|home)?\/?$/.test(window.location.pathname)) {
   void signedInPrefetch()
     .then((m) => m?.startSignedInPrefetch(window.location.pathname))
     .catch(() => {

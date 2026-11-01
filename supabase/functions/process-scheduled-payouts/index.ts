@@ -106,9 +106,10 @@ serve(async (req) => {
     // channel everyone had learned to ignore. `?include_seed=1` restores the
     // old behaviour for a manual run against fixtures.
     const includeSeed = new URL(req.url).searchParams.get("include_seed") === "1";
+    const JOB_COLUMNS = "id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, payment_status, is_group_job, helpers_needed, sales_tax_rate, sales_tax_amount, customer_fee_amount, poster_fee_flat_cents, is_seed, payout_scheduled_at";
     let jobQuery = supabaseAdmin
       .from("jobs")
-      .select("id, title, helper_id, customer_id, budget, platform_fee_amount, helper_fee_percent, helper_fee_flat_cents, urgent_fee, stripe_session_id, stripe_payment_intent_id, status, is_group_job, helpers_needed, sales_tax_rate, sales_tax_amount, customer_fee_amount, poster_fee_flat_cents, is_seed, payout_scheduled_at")
+      .select(JOB_COLUMNS)
       .eq("status", "completed")
       .eq("payment_status", "payout_pending")
       // Never pay out a job under dispute. A CREW whose dispute CLOSED
@@ -133,6 +134,59 @@ serve(async (req) => {
 
     if (error) throw error;
 
+    // ── Early crew-member payouts (JOBS-3, owner 2026-10-31 ~9:35 PM) ────────
+    // "Crew members are paid individually once the poster confirms they
+    // worked; the others are never held up." The poster confirms ONE member
+    // (rpc_poster_approve_member, 20261101044659) and that member is due
+    // crew_member_payout_delay() (3 days, as escrowTiming's standard pay)
+    // later, before the rest of the crew is done or the job is approved.
+    // crew_members_due_early_payout() lists those (job, member) pairs: not
+    // disputed, no refund on the job, money held, no live transfer for the
+    // member. They run through the SAME per-member checks, hard cap, ledger
+    // claim and transfer as every payout, flagged `early`, and an early
+    // target NEVER refunds unfilled shares, closes a crew decision or flips
+    // the job to released: the job is not finished. When the crew later
+    // completes and is approved, the normal pass finds the early member's
+    // live ledger row (Step 4), pays only the rest, and settles once.
+    // A job already in this run's normal pass is left to it (it pays every
+    // member). An unreadable list is a defect and this run pays nobody
+    // early; a list not deployed yet (PGRST202) is no early pass at all.
+    const mainJobIds = new Set<string>((jobs ?? []).map((j) => j.id as string));
+    const earlyMembersByJob = new Map<string, Set<string>>();
+    const { data: dueRows, error: dueErr } = await supabaseAdmin.rpc("crew_members_due_early_payout");
+    if (dueErr) {
+      if (dueErr.code !== "PGRST202" && dueErr.code !== "42883") {
+        console.error("[process-scheduled-payouts] early crew-member due list unreadable; no early payouts this run:", dueErr);
+        defects.record(`early crew payout list: ${dueErr.message}`);
+      }
+    } else {
+      for (const r of (dueRows ?? []) as Array<{ job_id: string | null; helper_id: string | null }>) {
+        if (!r.job_id || !r.helper_id || mainJobIds.has(r.job_id)) continue;
+        const set = earlyMembersByJob.get(r.job_id) ?? new Set<string>();
+        set.add(r.helper_id);
+        earlyMembersByJob.set(r.job_id, set);
+      }
+    }
+    let earlyJobs: typeof jobs = [];
+    if (earlyMembersByJob.size > 0) {
+      let earlyQuery = supabaseAdmin
+        .from("jobs")
+        .select(JOB_COLUMNS)
+        .in("id", [...earlyMembersByJob.keys()])
+        .eq("is_group_job", true)
+        .in("payment_status", ["escrow", "payout_pending"])
+        .is("disputed_at", null);
+      if (!includeSeed) earlyQuery = earlyQuery.eq("is_seed", false);
+      const { data: earlyRows, error: earlyErr } = await earlyQuery;
+      if (earlyErr) {
+        console.error("[process-scheduled-payouts] early crew-member jobs unreadable; no early payouts this run:", earlyErr);
+        defects.record(`early crew payout jobs: ${earlyErr.message}`);
+      } else {
+        earlyJobs = (earlyRows ?? []) as typeof jobs;
+      }
+    }
+    const payoutJobs = [...(jobs ?? []), ...(earlyJobs ?? [])];
+
     // ── Seed subjects never page (docs/OPEN.md Q91) ──────────────────────────
     // On an `?include_seed=1` run `jobs` holds fixtures, and every per-job page
     // and defect below used to reach #ops-alerts exactly like a real failure
@@ -144,7 +198,7 @@ serve(async (req) => {
     // not counted. ROUTING ONLY: nothing here changes what is paid or skipped.
     // On the default run no seed job is selected, so this set stays empty.
     const seedJobIds = new Set<string>(
-      (jobs ?? []).filter((j) => j.is_seed === true).map((j) => j.id as string),
+      payoutJobs.filter((j) => j.is_seed === true).map((j) => j.id as string),
     );
     const seedDefects: string[] = [];
     /** One live Connect read per payee account per run (_shared/livePayoutGate.ts). */
@@ -187,7 +241,7 @@ serve(async (req) => {
     // reads as "skip this payout and move on", which gives partial-failure
     // isolation for free: one helper's missing Connect account can't block the
     // rest of the roster from being paid.
-    const payoutTargets: { job: typeof jobs[number]; helperId: string }[] = [];
+    const payoutTargets: { job: typeof jobs[number]; helperId: string; early?: boolean }[] = [];
     // How many helpers this job will ACTUALLY be paid out to, keyed by job id.
     //
     // This is not the same number as `helpers_needed`, and conflating the two
@@ -232,7 +286,10 @@ serve(async (req) => {
     /** A PostgREST / Postgres "no such column" error (the columns are not deployed yet). */
     const isMissingColumn = (e: { code?: string; message?: string } | null) =>
       !!e && (e.code === "42703" || e.code === "PGRST204" || /column .* does not exist/i.test(e.message ?? ""));
-    for (const job of (jobs || [])) {
+    for (const job of payoutJobs) {
+      // JOBS-3: the members of this job due an EARLY payout, or undefined on
+      // the normal pass (the whole roster).
+      const earlyMembers = earlyMembersByJob.get(job.id);
       // ── Holds the job row may not show (defense in depth) ────────────────
       //
       // `.is("disputed_at", null)` above is this cron's only dispute guard on
@@ -441,6 +498,11 @@ serve(async (req) => {
               .map((r) => [r.helper_id as string, { shareCents: r.share_cents ?? null, slotNo: r.slot_no ?? null }]),
           ),
         );
+        if (earlyMembers && rosterIds.length === 0) {
+          // The approved member left the roster after the due list was read.
+          results.push({ job_id: job.id, status: "early_member_not_on_roster", skipped: true });
+          continue;
+        }
         if (rosterIds.length === 0) {
           // Roster empty but the job completed — fall back to the lead helper
           // so a legacy group job (created before the roster existed) still
@@ -465,7 +527,9 @@ serve(async (req) => {
         }
         const distinctRoster = new Set(rosterIds);
         rosterSizeByJob.set(job.id, distinctRoster.size);
-        if (distinctRoster.size < (job.helpers_needed ?? 1)) {
+        // An early pass pays one approved member of a crew still under way:
+        // under-filling is the normal pass's question, asked once at the end.
+        if (!earlyMembers && distinctRoster.size < (job.helpers_needed ?? 1)) {
           // Under crew_completes_when_hired_done (Q407, money review MEDIUM-4)
           // the unfilled slots' shares go back to the poster automatically
           // (refundUnfilledCrewShares below; it pages itself on failure), so
@@ -514,10 +578,14 @@ serve(async (req) => {
           // A member the crew decision refunded is not paid: their frozen share
           // goes back to the poster in refundUnfilledCrewShares.
           if (refundedByDecision.has(helperId)) continue;
-          payoutTargets.push({ job, helperId });
+          // Early pass: only the members the poster approved and who are due.
+          if (earlyMembers && !earlyMembers.has(helperId)) continue;
+          payoutTargets.push({ job, helperId, early: !!earlyMembers });
           crewTargets++;
         }
-        if (crewTargets === 0) {
+        if (earlyMembers && crewTargets === 0) {
+          results.push({ job_id: job.id, status: "early_member_not_on_roster", skipped: true });
+        } else if (crewTargets === 0) {
           // rpc_decide_crew_dispute refuses refunding every member (that is a
           // full refund, which moves no transfer), so this is a broken invariant.
           results.push({ job_id: job.id, status: "crew_decision_pays_nobody", skipped: true });
@@ -1027,7 +1095,7 @@ serve(async (req) => {
       return true;
     };
 
-    for (const { job, helperId } of payoutTargets) {
+    for (const { job, helperId, early } of payoutTargets) {
       // ── Payout hold (Q764) ──────────────────────────────────────────────
       // Checked per member, first, so a hold placed while this run is in
       // flight still stops the next transfer. A hold is an OUTCOME, not a
@@ -1457,7 +1525,8 @@ serve(async (req) => {
         // whose refund of the rest, or whose flip, failed on the last member's
         // run: before it, nothing ever asked again and the job sat
         // payout_pending with its poster's refund unsent.
-        if (job.is_group_job && !crewSettled.has(job.id)) {
+        // Never on an early target: its crew is not finished (JOBS-3).
+        if (job.is_group_job && !early && !crewSettled.has(job.id)) {
           const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, stripeFeeActual, cardLegTestMode, stripe });
           if (settle.ready && await closeCrewDecision(job, settle)) {
             const healed = await flipJobToReleased(supabaseAdmin, job.id);
@@ -1772,7 +1841,10 @@ serve(async (req) => {
         // same query under the claim it is about to take.
         // Q1211: this batch read its due jobs once, at the top; a refund or
         // cancel that landed since stops the transfer here.
-        expectPaymentStatus: "payout_pending",
+        // An early crew-member payout (JOBS-3) runs on a job still under way,
+        // whose money is held as 'escrow' (or 'payout_pending' not yet due):
+        // the claim re-reads the job expecting the state the due list saw.
+        expectPaymentStatus: early ? String(job.payment_status) : "payout_pending",
       });
       if (claim.kind === "error" && isPayoutHeldRefusal(claim.message)) {
         // Q764: a hold landed after the check at the top of this loop and the
@@ -1951,7 +2023,11 @@ serve(async (req) => {
         // holds the job open until every slot is settled.
         let allRosterPaid = true;
         let crewSettle: Awaited<ReturnType<typeof crewReadyToRelease>> | null = null;
-        if (job.is_group_job && crewSettled.has(job.id)) {
+        if (job.is_group_job && early) {
+          // JOBS-3: an early member payout never refunds, closes a decision
+          // or releases the job; the normal pass settles the crew once.
+          allRosterPaid = false;
+        } else if (job.is_group_job && crewSettled.has(job.id)) {
           // Settled (refund, flip, dispute close) earlier in THIS run: once.
           allRosterPaid = false;
         } else if (job.is_group_job) {

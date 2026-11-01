@@ -55,6 +55,7 @@
  */
 import { chromium, webkit } from "@playwright/test";
 import { allowedRead } from "./readAllowance.mjs";
+import { browseShellRowsUrl, withBrowseShell } from "../../src/lib/browseShellCards.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -384,7 +385,35 @@ export function localCert() {
  * round trips that prod never pays), brotli for a client that accepts it,
  * hashed assets immutable, HTML revalidated.
  */
-export function startDistServer(distDir, port, tls = localCert()) {
+/**
+ * What prod's api/share.ts does to /browse before it reaches a visitor (PERF-SHELL, Q652): the first job cards in
+ * the HTML, read once per server start through the same anon read of the public masked view (GET only; the key and
+ * URL are the build's own public meta tags). A failed read serves the plain shell, exactly as prod degrades.
+ * Without this the lab measured a /browse no visitor gets.
+ */
+async function browseShellPage(distDir) {
+  // LH_LAB_NO_BROWSE_SHELL=1: the "before" run (the same build served as it was before PERF-SHELL).
+  if (process.env.LH_LAB_NO_BROWSE_SHELL === "1") return null;
+  const html = readFileSync(join(distDir, "index.html"), "utf8");
+  const meta = (name) => html.match(new RegExp(`<meta name="${name}" content="([^"%]+)"`))?.[1];
+  const base = meta("lh-supabase-url");
+  const key = meta("lh-supabase-key");
+  if (!base || !key) return null;
+  try {
+    const res = await fetch(browseShellRowsUrl(base), {
+      headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+    const rows = res.ok ? await res.json() : null;
+    const page = withBrowseShell(html, rows);
+    return page === html ? null : Buffer.from(page);
+  } catch (e) {
+    console.warn(`cwv-lab: /browse served without its HTML cards (${e?.message ?? e})`);
+    return null;
+  }
+}
+
+export async function startDistServer(distDir, port, tls = localCert()) {
   const cache = new Map();
   const load = (file) => {
     let body = cache.get(file);
@@ -406,12 +435,18 @@ export function startDistServer(distDir, port, tls = localCert()) {
   // LCP 2828 ms instead of the ~1.3 s the same build paints in).
   for (const f of readdirSync(join(distDir, "assets"))) if (/\.(js|css)$/.test(f)) load(join(distDir, "assets", f));
   load(join(distDir, "index.html"));
+  const browseRaw = await browseShellPage(distDir);
+  const browse = browseRaw && {
+    raw: browseRaw,
+    gz: gzipSync(browseRaw, { level: 9 }),
+    br: brotliCompressSync(browseRaw, { params: { [zc.BROTLI_PARAM_QUALITY]: 11 } }),
+  };
   const server = createSecureServer({ key: tls.key, cert: tls.cert, allowHTTP1: true }, (req, res) => {
     const p = decodeURIComponent(new URL(req.url, "https://x").pathname);
     let file = join(distDir, p);
     if (!file.startsWith(distDir) || !existsSync(file) || statSync(file).isDirectory()) file = join(distDir, "index.html");
     const type = TYPES[extname(file)] || "application/octet-stream";
-    const body = load(file);
+    const body = browse && p.replace(/\/+$/, "") === "/browse" ? browse : load(file);
     const accept = String(req.headers["accept-encoding"] || "");
     const enc = body.br && /\bbr\b/.test(accept) ? "br" : body.gz && /\bgzip\b/.test(accept) ? "gzip" : null;
     const data = enc ? body[enc === "br" ? "br" : "gz"] : body.raw;

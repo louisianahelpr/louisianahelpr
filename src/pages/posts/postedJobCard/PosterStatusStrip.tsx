@@ -80,8 +80,10 @@ export function PosterStatusStrip({
   // it names the applicants and what happened to closed applications. An offer out keeps its line too: it carries the
   // offer's live clock ("Nm left to accept"), which the next-step line has no way to draw; so does a hire the Helpr
   // has not accepted yet ("Offer sent — Yusef hasn't accepted yet · 42m left to accept").
+  // Any other line with its own LIVE deadline clock (a confirm window, owner 2026-10-23 card critique item 7) keeps it
+  // too, except the approval: there the job page and the chat card already say the window as words ("23h 49m left").
   const completedAt = (job as { helper_completed_at?: string | null }).helper_completed_at ?? null;
-  const step = variant === "line" && progress && progress.stage !== null && progress.stage > 0 && line.tone !== "alarm" && !LIVE_ACCEPT_CLOCK.has(line.id)
+  const step = variant === "line" && progress && progress.stage !== null && progress.stage > 0 && line.tone !== "alarm" && !LIVE_ACCEPT_CLOCK.has(line.id) && (!line.deadline || progress.stage === 7)
     ? jobNextStep(progress, {
         side: "poster",
         otherFirst,

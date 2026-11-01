@@ -311,9 +311,7 @@ export function buyerFeeCents(itemsCents: number): number {
   return Math.round(itemsCents * 0.05) + 70;
 }
 
-export function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
+export { formatCents } from "./formatCents";
 
 /** M3's endings of a charged order, in each side's words. */
 const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {

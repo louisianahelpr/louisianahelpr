@@ -18,7 +18,7 @@
  *    delivered scan's own time.
  */
 
-export type TrackingStatus =
+type TrackingStatus =
   | "pre_transit" | "in_transit" | "out_for_delivery" | "delivered"
   | "available_for_pickup" | "return_to_sender" | "failure" | "unknown";
 

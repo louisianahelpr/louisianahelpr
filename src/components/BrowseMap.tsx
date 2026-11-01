@@ -53,7 +53,7 @@ import {
   unsupportedMapFilters,
   type MapJobFilterInput,
 } from "./browseMap/mapFilter";
-import { laRegion, MyLocationControl } from "./browseMap/MapLayers";
+import { BusyAreasMapKey, laRegion, MyLocationCorner } from "./browseMap/MapLayers";
 import { PREVIEW_CARD_MAX_W, PREVIEW_CARET, PREVIEW_EDGE, type PreviewPlacement } from "./browseMap/previewPlacement";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import {
@@ -302,7 +302,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   }, []);
 
   useMapFollowsTheme(mapRef, mapReady);
-  useBusyAreaShading(mapRef, mapReady, visibleJobs); // Q2435
+  const busyShown = useBusyAreaShading(mapRef, mapReady, visibleJobs); // Q2435; BusyAreasMapKey says what they are
 
   /** Remove every job annotation currently on the map. */
   const clearAnnotations = useCallback(() => {
@@ -989,15 +989,8 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           The column itself is `pointer-events-none` so the map stays pannable
           through the empty space either side of the sheet; only the sheet and
           the button take pointer events back. */}
-      {/* The my-location control keeps its own bottom-right home above the dock. */}
-      {!mapKitUnusable && mapReady && (
-        <div
-          className="absolute right-0 z-[420] flex justify-end px-3 pointer-events-none"
-          style={{ bottom: MAP_DOCK_CLEARANCE }}
-        >
-          <MyLocationControl onLocate={showMyLocation} busy={locating} />
-        </div>
-      )}
+      {!mapKitUnusable && mapReady && busyShown && <BusyAreasMapKey />}
+      {!mapKitUnusable && mapReady && <MyLocationCorner onLocate={showMyLocation} busy={locating} />}
       {/* ── Pin preview — a POPOVER anchored to the tapped pin ────────────────
           Owner, 2026-09-15: the card sits AT the pin (near/under it), not in a
           bottom sheet. The two problems that once drove it to the bottom are

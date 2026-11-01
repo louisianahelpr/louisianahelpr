@@ -8,7 +8,7 @@
 // tokens are unchanged.
 
 import { Crosshair } from "lucide-react";
-import { LA_STATE_BOUNDS, type MapJob } from "./config";
+import { LA_STATE_BOUNDS, MAP_DOCK_CLEARANCE, type MapJob } from "./config";
 import type { BusyCircle } from "@/lib/busyAreas";
 
 const METERS_PER_DEGREE_LAT = 111_320;
@@ -136,7 +136,7 @@ export function fitToPins(
 // plain button laid out by BrowseMap's bottom control stack, which owns the
 // single dock-clearance constant and lifts the whole stack above the preview
 // sheet when one is open. 44x44 (w-11 h-11) meets the project tap-target floor.
-export function MyLocationControl({ onLocate, busy = false }: { onLocate: () => void; busy?: boolean }) {
+function MyLocationControl({ onLocate, busy = false }: { onLocate: () => void; busy?: boolean }) {
   return (
     <button
       type="button"
@@ -168,5 +168,31 @@ export function MyLocationControl({ onLocate, busy = false }: { onLocate: () => 
     >
       <Crosshair className="w-4 h-4" strokeWidth={2.25} />
     </button>
+  );
+}
+
+/** The my-location control keeps its own bottom-right home above the dock (moved out of BrowseMap.tsx, unchanged). */
+export function MyLocationCorner({ onLocate, busy }: { onLocate: () => void; busy: boolean }) {
+  return (
+    <div className="absolute right-0 z-[420] flex justify-end px-3 pointer-events-none" style={{ bottom: MAP_DOCK_CLEARANCE }}>
+      <MyLocationControl onLocate={onLocate} busy={busy} />
+    </div>
+  );
+}
+
+/**
+ * NIGHT-JOBSMA5-4 (audit 10-30 night): the shaded "Busy right now" circles (Q2435) had no label on the map, and a pin
+ * can sit outside its own circle because a circle is drawn at the parish centre on purpose. This key says what they
+ * are. Shown only while a circle is drawn; it takes no taps, so the map stays pannable under it.
+ */
+export function BusyAreasMapKey() {
+  return (
+    <p
+      data-testid="browse-map-busy-key"
+      className="pointer-events-none absolute left-3 top-3 z-[420] rounded-full px-3 py-1 text-ds-12 font-medium"
+      style={{ background: "hsl(var(--card) / 0.88)", border: "1px solid hsl(var(--olivewood) / 0.22)", color: "hsl(var(--olivewood))" }}
+    >
+      Shaded circles: parishes busy right now
+    </p>
   );
 }

@@ -703,7 +703,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41045303398. feed: issue #3491 · feed: ledger 2e4f3e726722
   - db-drift-detect: issue #3743, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41225818194. feed: issue #3743 · feed: ledger 8018e82cb167
   - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218192294. feed: issue #3784 · feed: ledger db0fb15c4ec3
-  - main: Sensitive review record: issue #3802, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41253196295. feed: issue #3802 · feed: ledger e41c806b9175
+  - main: Sensitive review record: issue #3802, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41260013314. feed: issue #3802 · feed: ledger e41c806b9175
   - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218039744. feed: issue #3813 · feed: ledger 3a3460b71be7
   - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218255151. feed: issue #3824 · feed: ledger 4aa239aefeb6
   - core-loop-canary: issue #3833, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41128418672. feed: issue #3833 · feed: ledger 18539240a894

@@ -8,6 +8,7 @@
  */
 import { useMutation, useQueries, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { CalendarCheck, Navigation } from "lucide-react";
 import { fetchItemAddress, fetchMyHandover, onMyWay, type MyBooking } from "@/lib/declutter/handover";
 import { fetchOrderMeetup, meetupMapUrl } from "@/lib/declutter/meetup";
@@ -33,9 +34,9 @@ function OnMyWayButton({ orderId, sent }: { orderId: string; sent: boolean }) {
   });
   if (sent || go.isSuccess) return <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]" role="status">The seller knows you're on the way.</p>;
   return (
-    <button type="button" className="btn-grad-primary min-h-11 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-50" disabled={go.isPending} onClick={() => go.mutate()}>
+    <Button type="button" size="sm" className="py-2 text-sm font-semibold tracking-normal shadow-none" disabled={go.isPending} onClick={() => go.mutate()}>
       I'm on my way
-    </button>
+    </Button>
   );
 }
 

@@ -458,7 +458,6 @@ BEGIN
     WHEN 'order_talk_view' THEN 'messages'
     WHEN 'set_pickup_windows' THEN 'pickups'
     WHEN 'confirm_handover' THEN 'pickups'
-    WHEN 'complete_handover' THEN 'pickups'
     ELSE NULL END;
   IF v_perm IS NULL THEN
     RAISE EXCEPTION 'unknown_action' USING ERRCODE = '22023';
@@ -482,7 +481,7 @@ BEGIN
     v_target := (v_a ->> 'question_id')::uuid;
     v_ok := EXISTS (SELECT 1 FROM public.declutter_questions q JOIN public.declutter_items i ON i.id = q.item_id
                      WHERE q.id = v_target AND i.seller_id = p_seller);
-  ELSIF p_action IN ('send_order_message', 'order_talk_view', 'confirm_handover', 'complete_handover') THEN
+  ELSIF p_action IN ('send_order_message', 'order_talk_view', 'confirm_handover') THEN
     v_target := (v_a ->> 'order_id')::uuid;
     v_ok := EXISTS (SELECT 1 FROM public.declutter_orders WHERE id = v_target AND seller_id = p_seller);
   ELSE
@@ -577,7 +576,6 @@ BEGIN
       WHEN 'order_talk_view' THEN public.declutter_order_talk_view(v_target)
       WHEN 'set_pickup_windows' THEN to_jsonb(public.declutter_set_pickup_windows(COALESCE(v_a -> 'windows', '[]'::jsonb)))
       WHEN 'confirm_handover' THEN public.declutter_confirm_handover(v_target, v_a ->> 'method', v_a ->> 'code')
-      WHEN 'complete_handover' THEN public.declutter_complete_handover(v_target, v_a ->> 'by')
     END;
   EXCEPTION WHEN OTHERS THEN
     PERFORM set_config('request.jwt.claim.sub', COALESCE(v_prev_sub, ''), true);

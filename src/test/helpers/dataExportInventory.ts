@@ -154,7 +154,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_reviews: { by: ["reviewer_id", "reviewee_id"] },
   // Declutter slice 5, Helpr delivery (20261017055505 + 20261017055506).
   helpr_vehicles: { by: ["user_id"] },
-  helpr_tasks: { by: ["helpr_id"] },
+  helpr_tasks: { by: ["helpr_id", "released_helpr_id"] },
   helpr_task_events: { by: ["actor_id"] },
   helpr_task_payouts: { by: ["helpr_id"] },
   // Q2453 (20261028014848): tips on deliveries, the tipper's and the Helpr's.

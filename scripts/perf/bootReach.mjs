@@ -204,7 +204,7 @@ export function signedInSplit(root) {
   // `homeLate` (B79, 11-01): the rest that Home's PAGE never runs (main.tsx, HomeDashboard, ProtectedRoute), only the
   // every-page roots App mounts lazily beside it (MobileNav's unread counts and message previews, Legal's data export,
   // ...). Those load after Home's first paint, so Home's first round should not carry their code.
-  const page = staticReach(root, homeFirstScreenRoots(root).filter((r) => !EVERY_PAGE_ROOTS.some((e) => toPosix(r).endsWith(e))));
+  const page = staticReach(root, homePageRoots(root));
   const homeLate = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !homeOff.has(f) && !page.has(f)));
   return { signedInOnly, firstScreen, deep, declutterOnly, homeOff, homeLate };
 }
@@ -227,6 +227,16 @@ export function declutterItemSplit(root, split = signedInSplit(root)) {
     // them fetch this chunk beside signed-in-pages, in the same round.
     itemPages: new Set([...split.homeOff].filter((f) => reach.has(f))),
   };
+}
+
+/**
+ * Home's PAGE roots (B88, 11-01): homeFirstScreenRoots without EVERY_PAGE_ROOTS. App mounts those (the dock, Legal,
+ * the ID sheet, ...) lazily beside every page, after Home's first paint, so their shared code is not Home's first
+ * round: vite.config.ts's app-shared admits Home's shared code by this reach, and signedInSplit's homeLate and
+ * homeIconFiles read the same one.
+ */
+export function homePageRoots(root) {
+  return homeFirstScreenRoots(root).filter((r) => !EVERY_PAGE_ROOTS.some((e) => toPosix(r).endsWith(e)));
 }
 
 /**
@@ -335,7 +345,7 @@ export function homeIconFiles(root) {
     }
     return out;
   };
-  const page = homeFirstScreenRoots(root).filter((r) => !EVERY_PAGE_ROOTS.some((e) => toPosix(r).endsWith(e)));
+  const page = homePageRoots(root);
   const boot = iconsOf(staticReach(root, [path.join(root, "src/main.tsx")]));
   return new Set([...iconsOf(staticReach(root, page))].filter((i) => !boot.has(i)));
 }

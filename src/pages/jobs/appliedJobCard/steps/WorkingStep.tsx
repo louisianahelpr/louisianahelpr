@@ -1,6 +1,7 @@
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { HelperPhotoAsk } from "./HelperPhotoAsk";
 import { PayoutPrimary, PayoutUnlockNote } from "./PayoutPrimary";
+import { ListForSellerPanel } from "./ListForSellerPanel";
 import type { HelperStepProps } from "./stepContract";
 
 /**
@@ -47,6 +48,8 @@ export function WorkingStep({
           <PayoutUnlockNote hasPhotos={payout.hasPhotos} tooEarly={payout.tooEarly} minutesLeft={payout.minutesLeft} />
           {/* The owed photo is the primary (owner, 2026-10-08: photo first). */}
           <HelperPhotoAsk jobId={app.job_id} job={job} step="working" mode="primary" />
+          {/* LEAD-LIST-FOR-SELLER: a Have a Helpr list it job's listings, written on the seller's account. */}
+          <ListForSellerPanel jobId={app.job_id} job={job} posterName={app.posterName} />
         </>
       }
       primary={<PayoutPrimary {...payout} />}

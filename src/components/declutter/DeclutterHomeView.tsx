@@ -21,6 +21,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { ListedWhatNext } from "./ListedWhatNext";
+import { ListedForYouCard } from "./ListedForYouCard";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import {
   fetchMySales,
@@ -121,6 +122,8 @@ const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
   pending_review: "Being checked. We'll send you a notice when it's done.",
   paused: "Paused. Hidden from buyers.",
   rejected: "Not approved. Open it to see why.",
+  // LEAD-LIST-FOR-SELLER: written by the seller's Helpr; approve it above to put it on sale.
+  pending_seller_approval: "Waiting for your approval. Approve it above to sell it.",
 };
 
 const WAY_ORDER = ["porch", "meetup", "seller_delivery", "delivery"] as const;
@@ -397,6 +400,8 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
   return (
     <div className="space-y-6">
       <ListedWhatNext />
+      {/* LEAD-LIST-FOR-SELLER: listings a hired Helpr wrote for this seller wait here for their OK. */}
+      <ListedForYouCard />
       {/* Audit posting 1030 #11 gave a tablet the photo screen directly and one line to the other ways; the header has its
           own add action on desktop. LEAD-SELLING-NO-SELL-BTN-PHONE (owner 10-31): not on a phone, where the + covers it. */}
       <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell="">

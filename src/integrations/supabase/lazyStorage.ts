@@ -73,14 +73,27 @@ export class StorageClient {
     const url = this.url;
     const load = () => this.client();
     const publicUrl = (path: string, options?: PublicUrlOptions) => {
-      if (options?.transform) throw new Error("lazyStorage: getPublicUrl with transform is not supported; add it here first");
+      // Mirrors storage-js 2.117.3 StorageFileApi.getPublicUrl exactly, including image transforms (render/image),
+      // which Declutter's resized photos use (hotfix 11-01: the old throw broke /declutter in production).
       const finalPath = `${bucketId}/${path.replace(/^\/+/, "")}`;
       const query = new URLSearchParams();
       if (options?.download) query.set("download", options.download === true ? "" : options.download);
+      const t = options?.transform as
+        | { width?: number; height?: number; resize?: string; format?: string; quality?: number }
+        | null
+        | undefined;
+      if (t) {
+        if (t.width) query.set("width", t.width.toString());
+        if (t.height) query.set("height", t.height.toString());
+        if (t.resize) query.set("resize", t.resize);
+        if (t.format) query.set("format", t.format);
+        if (t.quality) query.set("quality", t.quality.toString());
+      }
       if (options?.cacheNonce != null) query.set("cacheNonce", String(options.cacheNonce));
       if (options?.versionId != null) query.set("versionId", String(options.versionId));
       const qs = query.toString();
-      return { data: { publicUrl: encodeURI(`${url}/object/public/${finalPath}`) + (qs ? `?${qs}` : "") } };
+      const renderPath = typeof t === "object" && t !== null && Object.keys(t).length > 0 ? "render/image" : "object";
+      return { data: { publicUrl: encodeURI(`${url}/${renderPath}/public/${finalPath}`) + (qs ? `?${qs}` : "") } };
     };
     return new Proxy({ bucketId } as Record<string, unknown>, {
       get(target, prop) {

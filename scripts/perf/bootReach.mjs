@@ -171,6 +171,26 @@ export function signedInSplit(root) {
   return { signedInOnly, firstScreen, deep, declutterOnly, homeOff };
 }
 
+/** The public Declutter item page (/declutter/item/:id): guests and members open it cold from shared links. */
+export const DECLUTTER_ITEM_ROOT = "src/pages/declutter/DeclutterItemPage.tsx";
+
+/**
+ * `itemDeep`: the signed-in-deep modules the Declutter item page statically reaches (B67, DECL-ITEM-SPEED; on
+ * 11-01 moveDates, priceHint, movingSale). In signed-in-deep they put that whole chunk (~33 KB gz, 65 modules of
+ * crew, admin and support helpers) on every cold item page. They get their own small chunk, which the item page and
+ * the lazy pages that use them fetch; signed-in-deep keeps the rest.
+ */
+export function declutterItemSplit(root, split = signedInSplit(root)) {
+  const reach = staticReach(root, [path.join(root, DECLUTTER_ITEM_ROOT)]);
+  return {
+    itemDeep: new Set([...split.deep].filter((f) => reach.has(f))),
+    // The same for signed-in-pages (homeOff): the error copy and upload helpers the item page shares with the job
+    // lists. In signed-in-pages they put ~50 KB gz of other screens' code on the item page; the screens that use
+    // them fetch this chunk beside signed-in-pages, in the same round.
+    itemPages: new Set([...split.homeOff].filter((f) => reach.has(f))),
+  };
+}
+
 /**
  * What a signed-in cold load of /home runs before its first screen: main.tsx,
  * the /home row of ENTRY_ROUTE_CHUNKS (its page and the ProtectedRoute gate),

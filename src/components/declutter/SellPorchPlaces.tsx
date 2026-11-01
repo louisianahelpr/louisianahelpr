@@ -14,8 +14,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  deleteMyPorchPlace, fetchItemPickupPlaces, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PLACE_HOURS_NOT_SAVED, PORCH_PLACES_NOT_DEPLOYED,
-  saveMyPorchPlace, type MyPorchPlace, type PickupPlaceHours,
+  deleteMyPorchPlace, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PLACE_HOURS_NOT_SAVED, PORCH_PLACES_NOT_DEPLOYED,
+  saveMyPorchPlace, type MyPorchPlace,
 } from "@/lib/declutter/porchPlaces";
 import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
@@ -25,6 +25,7 @@ import { PickupTimesEditor, pickupWindowsProblem, placeHoursLine } from "./Declu
 import { SellerAddressField } from "./SellerAddressField";
 import { NO_CITY_IN_ADDRESS } from "./sellForm";
 import { useExactAddressPoint } from "./useExactAddressPoint";
+import { PickupPlacesHoursList } from "./ItemPickupDisplay";
 
 /**
  * `saved`: a saved place's own point. Kept while its address is unchanged, so editing its hours moves nothing buyers rely on.
@@ -243,44 +244,9 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
   );
 }
 
-/** Each place on its own line with its own days and hours (LEAD-POST-PLACES, owner 2026-10-31: "both must show"). No address. */
-/** `cityOnly`: the item page (LEAD-ITEM-PAGE-LAYOUT, owner 2026-10-31): buyers see the city, never the place's own label. */
-export function PickupPlacesHoursList({ places, cityOnly = false }: { places: PickupPlaceHours[]; cityOnly?: boolean }) {
-  if (places.length === 0) return null;
-  return (
-    <ul className="space-y-1" data-pickup-places-hours="">
-      {places.map((p, i) => (
-        <li key={`${p.label}-${i}`} className="text-ds-13 [overflow-wrap:anywhere]" data-pickup-place-hours="">
-          <span className="font-semibold text-foreground">{cityOnly || !p.label ? p.area : [p.label, p.area].filter(Boolean).join(" · ")}</span>
-          <span className="block text-muted-foreground">{placeHoursLine(p.windows, p.weekdays)}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /** The posting summary's places: every saved place, not just the listing's own area (null while none are saved). */
 export function MyPickupPlacesSummary() {
   const mine = useQuery({ queryKey: MY_PORCH_PLACES_KEY, queryFn: fetchMyPorchPlaces });
   if (!Array.isArray(mine.data) || mine.data.length === 0) return null;
   return <PickupPlacesHoursList places={mine.data} />;
-}
-
-/** The item page's places (declutter_item_pickup_places): city, days and hours (the label only to the seller); nothing before it is on the server. */
-export function ItemPickupPlaces({ itemId }: { itemId: string }) {
-  // retryOnMount false: ItemHandoverTimes mounts this BECAUSE the shared read failed. Refetching on mount put the query
-  // back to pending (no data yet), which unmounted this, and the next failure mounted it again: an endless request loop
-  // (#3889, 44,033 requests in one test). Retry is the button's.
-  const read = useQuery({ queryKey: ["declutter", "item-pickup-places", itemId], queryFn: () => fetchItemPickupPlaces(itemId), retryOnMount: false });
-  // Review 2026-10-31: a failed read says so, with a retry, instead of dropping the places silently.
-  if (read.isError) {
-    return <ErrorState variant="inline" title="We couldn't load the pickup places." body={declutterErrorMessage(read.error)} onRetry={() => void read.refetch()} />;
-  }
-  if (!Array.isArray(read.data) || read.data.length === 0) return null;
-  return (
-    <div className="space-y-1 pt-1" data-item-pickup-places="">
-      <p className="text-sm font-semibold">{read.data.length === 1 ? "Pickup place" : "Pickup places"}</p>
-      <PickupPlacesHoursList places={read.data} cityOnly />
-    </div>
-  );
 }

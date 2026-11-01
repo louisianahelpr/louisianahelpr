@@ -109,6 +109,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterHandoverTalk.tsx` | textarea×1 |  | 1000 | Buyers who want to agree a handover · Messages |
 | `src/components/declutter/DeclutterNoHelpr.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterOrderTalk.tsx` | textarea×1 |  | 1000 | Messages |
+| `src/components/declutter/DeclutterPickupWindows.tsx` | input×1, date/calendar×1 | datetime-local |  | declutter-no-pickup-slots · declutter-slot-picker · Pickup day · helpr-same-pickup-slot |
 | `src/components/declutter/DeclutterProblemForm.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterProblemPhotos.tsx` | input×1 | file |  | Photos |
 | `src/components/declutter/DeclutterWantedReplies.tsx` | input×1 | text |  | Photos · wanted-reply-pick · wanted-reply-price · wanted-near-title |
@@ -125,7 +126,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterEditListing.tsx` | input×1, textarea×1 | text | 80, 2000 | edit-title · edit-description · edit-tax |
 | `src/components/declutter/DeclutterManageListing.tsx` | input×2, checkbox/switch/radio×1 | text |  | manage-drops · manage-price · manage-floor · Your listing |
 | `src/components/declutter/DeclutterOfferRules.tsx` | checkbox/switch/radio×2 |  |  |  |
-| `src/components/declutter/DeclutterPickupWindows.tsx` | input×1, date/calendar×1 | datetime-local |  | declutter-pickup-times · declutter-no-pickup-slots · declutter-slot-picker · Pickup day · helpr-same-pickup-slot |
 
 ## /declutter, /declutter/sell, /declutter/settings, /declutter/item/:id
 

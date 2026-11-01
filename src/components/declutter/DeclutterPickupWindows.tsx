@@ -10,20 +10,12 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { fetchItemPickupWindows, fetchOrderPickupWindows } from "@/lib/declutter/handover";
+import { fetchOrderPickupWindows } from "@/lib/declutter/handover";
 import { fetchSamePickupSlot, fetchTaskPickupWindows } from "@/lib/helprTasks/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { pickupDays, windowsSummary } from "@/lib/declutter/pickupSlots";
 import { Chip } from "./DeclutterFilterPanel";
 import { DateTimeField } from "@/components/DateTimeField";
-
-export function ItemPickupTimes({ itemId, label = "Pickup times" }: { itemId: string; label?: string }) {
-  const q = useQuery({ queryKey: ["declutter", "item-pickup-windows", itemId], queryFn: () => fetchItemPickupWindows(itemId) });
-  if (q.isError) return <ErrorState variant="inline" title="We couldn't load the pickup times." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;
-  const line = q.data ? windowsSummary(q.data) : "";
-  if (!line) return null;
-  return <p className="text-sm" data-testid="declutter-pickup-times">{label}: <span className="font-medium">{line}</span></p>;
-}
 
 /**
  * Day chips, then that day's time chips. `onPick` gets the slot's ISO start (null while none is chosen).

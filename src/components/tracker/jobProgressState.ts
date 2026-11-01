@@ -12,7 +12,7 @@ import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs }
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
-import { EXPIRED_LISTING_DETAIL, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
+import { EXPIRED_LISTING_DETAIL, autoCompleteAt, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
@@ -329,7 +329,10 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
 
   // Marked done: the last step waits on the poster to check the work.
   if (job.helper_completed_at) {
-    return at(7, poster, "Done", poster ? `${other} marked it done. Check the work and approve` : `You marked it done. Waiting on ${otherLow}`, held);
+    // JA-21 (audit 11-01): the Helpr is told until when the poster has to check (the card's own auto_complete clock).
+    const checkBy = autoCompleteAt({ helper_completed_at: job.helper_completed_at });
+    const helprLine = checkBy ? `You marked it done. ${other} has until ${when(Date.parse(checkBy))} to check it` : `You marked it done. Waiting on ${otherLow}`;
+    return at(7, poster, "Done", poster ? `${other} marked it done. Check the work and approve` : helprLine, held);
   }
   const working =
     status === "in_progress" &&

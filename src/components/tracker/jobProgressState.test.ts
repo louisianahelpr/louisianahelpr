@@ -188,6 +188,11 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     // Someone else (an admin): not named.
     expect(jobProgress({ ...c, cancelled_by: "admin", cancellation_reason: null, payment_status: "escrow" }, { viewer: "poster", now: NOW }).next).toBe("This job was cancelled");
   });
+  // @mutate src/components/tracker/jobProgressState.ts |     const checkBy = autoCompleteAt({ helper_completed_at: job.helper_completed_at }); |     const checkBy = null;
+  it("JA-21: the Helpr who marked it done is told until when the poster has to check", () => {
+    const j: ProgressJob = { ...base, status: "in_progress", helper_id: ME, helper_confirmed_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "2037-10-21T14:30:00Z" };
+    expect(jobProgress(j, { viewer: "helpr", otherFirst: "Dana", threadHelprId: ME, now: NOW }).next).toMatch(/^You marked it done\. Dana has until \w{3} \d{1,2}:\d{2} [AP]M to check it$/);
+  });
   it("the job page reads the columns the expired rule needs", () => {
     const src = readFileSync(resolve(__dirname, "../../pages/jobs/jobPage/useJobPage.ts"), "utf8");
     const party = src.match(/const PARTY_COLUMNS =\s*"([^"]+)"/)?.[1] ?? "";

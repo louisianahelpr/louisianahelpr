@@ -215,18 +215,19 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
   });
 
-  // B106 (item page shots 11-01): the note under Ask for it had a tall gap between its two lines, because the inline
-  // "How it works" link kept the Button's inline-flex box. It now flows as text.
-  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | className="inline h-auto p-0 align-baseline | className="h-auto p-0 align-baseline
+  // B106 (item page shots 11-01): the note under Ask for it had a tall gap between its two lines (noteH 60 for two
+  // 16px lines at 375, measured ~/.lh-shots/b109): the inline "How it works" <Button> kept the global 44px button
+  // min-height (index.css :where(button)). It is now a text-sized link button with the shared 44px tap overlay on touch.
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | min-h-0 min-w-0 p-0 align-baseline text-xs font-semibold | p-0 align-baseline text-xs font-semibold
   it("the note under Ask for it reads as one paragraph: How it works flows inline, no 44px box", async () => {
     show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
     const how = await screen.findByRole("button", { name: "How it works" });
     expect(how.closest("[data-free-ask-note]")).not.toBeNull();
     const cls = how.className.split(/\s+/);
-    expect(cls).toContain("inline");
-    expect(cls).not.toContain("inline-flex");
-    expect(cls).not.toContain("h-11");
-    expect(cls).toContain("h-auto");
+    expect(cls).toEqual(expect.arrayContaining(["min-h-0", "min-w-0"]));
+    expect(how.className).toMatch(/\blink-[a-z]+\b/); // the shared text link (its 44px overlay on a touch screen)
+    expect(cls).not.toEqual(expect.arrayContaining(["inline-flex"]));
+    expect(cls.filter((c) => /^h-/.test(c))).toEqual([]);
   });
 
   // DA-5 (Declutter audit 2026-10-30): the ask line said "at their home or from their porch" whatever the giver ticked.

@@ -32,7 +32,7 @@ const input = "w-full rounded-2xl border border-input glass-field px-3 py-2 text
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** What the buyer gets back when nobody is at fault (owner 10-30: the buyer bears the card fee, and the screen says so). */
-export const NOBODYS_FAULT_REFUND =
+const NOBODYS_FAULT_REFUND =
   "You'd get back what you paid, less what the delivery cost, which pays the Helpr for the trip, and less the small part the card network kept for the payment, which it doesn't give back.";
 
 const REASONS: { value: CantFinishReason; label: string; then: string }[] = [

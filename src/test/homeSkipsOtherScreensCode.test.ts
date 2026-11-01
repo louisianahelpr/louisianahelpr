@@ -18,11 +18,18 @@
  * @mutate vite.config.ts |               priority: 15.5, |               priority: 14,
  * @mutate scripts/perf/bootReach.mjs |   const homeOff = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !home.has(f))); |   const homeOff = new Set();
  * @mutate scripts/perf/bootReach.mjs |   const homeOff = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !home.has(f))); |   const homeOff = new Set([...firstScreen].filter((f) => !declutterOnly.has(f)));
+ * @mutate vite.config.ts |               test: (id: string) => homeLate.has(id.split("?")[0].replace(/\\/g, "/")), |               test: (id: string) => homeOff.has(id.split("?")[0].replace(/\\/g, "/")),
+ * @mutate vite.config.ts |               priority: 15.2, |               priority: 14.9,
+ * @mutate scripts/perf/bootReach.mjs |   const homeLate = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !homeOff.has(f) && !page.has(f))); |   const homeLate = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !homeOff.has(f)));
+ *
+ * B79 (11-01): the same for the code only the every-page roots run (MobileNav, Legal, ...), which App mounts
+ * lazily beside Home and which load after Home's first paint: signedInSplit's `homeLate` gets its own
+ * `signed-in-late` chunk. Production build, bundle-size.yml env: /home 317 -> 308 KB gz.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { homeFirstScreenRoots, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { EVERY_PAGE_ROOTS, homeFirstScreenRoots, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -48,5 +55,21 @@ describe("Home's first screen carries only Home's code (AUD31-60/66)", () => {
     expect(group).toMatch(/test:\s*\(id: string\)\s*=>\s*homeOff\.has\(/);
     // Above signed-in-shared (15), below signed-in-deep (16) and declutter-first-screen (17).
     expect(group).toMatch(/priority:\s*15\.5,/);
+  });
+
+  it("splits the code only the every-page roots run, not Home's page, into signed-in-late (B79)", () => {
+    const { homeLate, homeOff, firstScreen } = signedInSplit(ROOT);
+    const late = [...homeLate].map(rel);
+    // Floor: MobileNav's unread counts and message previews, Legal's data export, ... (26 at the time of writing).
+    expect(late.length).toBeGreaterThan(15);
+    for (const f of ["src/lib/archivedConversations.ts", "src/hooks/useDataExport.ts"]) expect(late, f).toContain(f);
+    const pageReach = new Set([...staticReach(ROOT, homeFirstScreenRoots(ROOT).filter((r) => !EVERY_PAGE_ROOTS.some((e) => r.endsWith(e))))].map(rel));
+    expect(late.filter((f) => pageReach.has(f))).toEqual([]);
+    expect([...homeLate].every((f) => firstScreen.has(f) && !homeOff.has(f))).toBe(true);
+    const config = blankComments(readFileSync(resolve(ROOT, "vite.config.ts"), "utf8"));
+    const group = config.match(/name:\s*"signed-in-late",[\s\S]*?\}/)?.[0] ?? "";
+    expect(group).toMatch(/test:\s*\(id: string\)\s*=>\s*homeLate\.has\(/);
+    // Above signed-in-shared (15), below signed-in-pages (15.5).
+    expect(group).toMatch(/priority:\s*15\.2,/);
   });
 });

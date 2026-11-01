@@ -12059,7 +12059,7 @@
     },
     {
       "file": "src/pages/jobs/jobPage/useContinueDayActions.tsx",
-      "line": 61,
+      "line": 69,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -12069,7 +12069,7 @@
     },
     {
       "file": "src/pages/jobs/jobPage/useContinueDayActions.tsx",
-      "line": 64,
+      "line": 72,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

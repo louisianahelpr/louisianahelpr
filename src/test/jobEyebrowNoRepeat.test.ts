@@ -10,7 +10,7 @@
  * group; otherwise "Home · Cleaning". This test walks EVERY category of every group, so a new one is checked too.
  *
  * @mutate src/pages/jobs/jobPage/jobEyebrow.ts | return [...stems(group)].some((w) => own.has(w)) ? label : `${group} · ${label}`; | return `${group} · ${label}`;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {eyebrow}</p> | {`Yard · ${eyebrow}`}</p>
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {eyebrow}</span> | {`Yard · ${eyebrow}`}</span>
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -46,6 +46,6 @@ describe("the job page's eyebrow never says a word twice (A2-L16)", () => {
   it("the job page prints the eyebrow from jobEyebrow and nothing else", () => {
     const page = blankComments(readFileSync(resolve(__dirname, "../pages/jobs/jobPage/JobPage.tsx"), "utf8"));
     expect(page).toMatch(/const eyebrow = jobEyebrow\(job\.category\);/);
-    expect(page).toMatch(/text-primary">\{eyebrow\}<\/p>/);
+    expect(page).toMatch(/text-primary">\{eyebrow\}<\/span>/);
   });
 });

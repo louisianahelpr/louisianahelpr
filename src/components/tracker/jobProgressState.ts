@@ -209,7 +209,9 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     word: sameStep || offPath ? base.word : bar.label ?? ((JOB_PROGRESS_STEPS as readonly string[])[bar.stage] ?? "Done"),
     // JOBS3-48: arrived and not started, the Helpr's bar is on Working, but the line is the card's ("Tap Start working"), never "Mark it done".
     // JA-12 / JA-13: the poster's late line wins over the card's calm one while the bar is on On the way.
-    next: posterLate || noApplicantsYet || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail,
+    // Owner 11-01 (job 7b1da54b): after photos in, not marked done: the base's line says so, unless the card owes the
+    // poster a step first (confirm the arrival) or the Helpr is waiting on one.
+    next: (/after photos/.test(base.next) && bar.stage === 6 && bar.waitingOnYou === (o.viewer !== "poster")) || posterLate || noApplicantsYet || ((sameStep || offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail,
   }, job, card.line.id, o.workUnderway);
 }
 
@@ -358,6 +360,12 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     const checkBy = autoCompleteAt({ helper_completed_at: job.helper_completed_at });
     const helprLine = checkBy ? `You marked it done. ${other} has until ${when(Date.parse(checkBy))} to check it` : `You marked it done. Waiting on ${otherLow}`;
     return at(7, poster, "Done", poster ? `${other} marked it done. Check the work and approve` : helprLine, held);
+  }
+  // Owner 11-01 11:55 AM (job 7b1da54b): after photos are in but the Helpr has not marked it done. The page said
+  // "Yusef is working"; it now says what it waits on, and the Helpr is told the one step left.
+  // Guard: src/components/ui/NextStep.test.tsx ("after photos").
+  if (status === "in_progress" && !job.is_group_job && (job.proof_after_urls ?? []).some(Boolean)) {
+    return at(6, !poster, "Working", poster ? `${other} added after photos · waiting for them to mark it done` : "Your after photos are in. Mark it done", held);
   }
   const working =
     status === "in_progress" &&

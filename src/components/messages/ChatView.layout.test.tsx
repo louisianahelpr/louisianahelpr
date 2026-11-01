@@ -135,10 +135,12 @@ describe.each([
     expect(chain.filter(capped)).toEqual([]);
   });
 
-  it("the message timeline keeps the centred 780px column", () => {
+  it("the message timeline keeps the centred 780px column on a phone, and spans the pane from lg (owner 11-01)", () => {
     renderChat(embedded);
     const chain = ancestorsWithinPane(screen.getByTestId("chat-timeline"));
-    expect(chain.some(capped)).toBe(true);
+    const cap = chain.find(capped);
+    expect(cap).toBeTruthy();
+    expect(cap!.className.split(/\s+/)).toContain("lg:max-w-none");
   });
 
   it("the safety banner spans the column, uncapped (owner, 2026-09-25: \"fill the space\")", () => {
@@ -158,7 +160,8 @@ describe.each([
  * moved back onto the composer's ancestors by a later edit. */
 
 // THE SPLIT ITSELF: the cap lives on the scroller, not the column.
-// @mutate src/components/messages/ChatView.tsx | const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto"; | const CHAT_READING_COLUMN = "w-full";
+// @mutate src/components/messages/ChatView.tsx | const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto lg:max-w-none"; | const CHAT_READING_COLUMN = "w-full";
+// @mutate src/components/messages/ChatView.tsx | const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto lg:max-w-none"; | const CHAT_READING_COLUMN = "w-full max-w-[780px] mx-auto";
 // …and the other direction — re-capping the column the composer dock sits in,
 // which is the regression the owner reported.
 // @mutate src/components/messages/ChatView.tsx | className="flex flex-col flex-1 min-h-0 w-full transition-[padding] duration-150" | className="flex flex-col flex-1 min-h-0 w-full max-w-[780px] mx-auto transition-[padding] duration-150"

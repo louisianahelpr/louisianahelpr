@@ -13,6 +13,9 @@ import type { Conversation } from "../types";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
 import { JobProgress } from "@/components/tracker/JobProgress";
+import { jobNextStep } from "@/components/tracker/jobNextStep";
+import { NextStep } from "@/components/ui/NextStep";
+import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { subscribeJobRealtime } from "@/lib/jobRealtimeBus";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
@@ -74,6 +77,13 @@ function HelprDealPrice({ job }: { job: TakeHomeJob }) {
       {!isGiveawayFixedPayJob(job) && <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>}
     </div>
   );
+}
+
+/** "23h left" / "40m left" to the approval deadline; "time's up" once it passed (nothing releases on a timer). */
+function hoursLeft(deadlineMs: number, now = Date.now()): string {
+  const mins = Math.floor((deadlineMs - now) / 60_000);
+  if (mins <= 0) return "time's up, Helpr support steps in";
+  return mins >= 60 ? `${Math.floor(mins / 60)}h left` : `${mins}m left`;
 }
 
 function clock(t: string | null): string | null {
@@ -226,6 +236,15 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
     workUnderway: helperProgress(job as unknown as Job, data.trackingStatus).workUnderway,
     tracking: data.trackingStatus ? { status: data.trackingStatus } : null,
   });
+  // Owner 11-01 (B107): the card's line is the shared next step ("Next: approve Yusef's work · 23h left"), with the
+  // green action on its right, as on the job page (jobNextStep / NextStep). Guard: src/test/dealCardNextStep.test.tsx.
+  const otherFirst = first === "them" ? null : first;
+  const approveDue = viewerIsPoster && stage.stage === 7 && stage.waitingOnYou && !!job.helper_completed_at;
+  const step = jobNextStep(stage, {
+    side: viewerIsPoster ? "poster" : "helpr",
+    otherFirst,
+    approveLeft: approveDue ? hoursLeft(Date.parse(job.helper_completed_at!) + hoursToMs(APPROVAL_WINDOW_HOURS)) : null,
+  });
   const Icon = getCategoryIcon(job.category);
   const when = [job.date_needed ? formatJobDate(job.date_needed) : null, clock(job.start_time)].filter(Boolean).join(" · ");
   const meta = [when || null, job.parish ? `${job.parish} Parish` : null].filter(Boolean).join(" · ");
@@ -264,15 +283,17 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
         )}
       </div>
 
-      <JobProgress progress={stage} compact />
+      <JobProgress progress={step ? { ...stage, next: "" } : stage} compact />
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 text-ds-14">{step && <NextStep value={step} />}</div>
         <button
           type="button"
           onClick={open}
-          className="btn-grad-primary shrink-0 rounded-full min-h-11 px-4 font-sans font-semibold text-ds-13"
+          data-deal-action=""
+          className="btn-grad-primary shrink-0 whitespace-nowrap rounded-full min-h-11 px-4 font-sans font-semibold text-ds-13"
         >
-          Open job
+          {approveDue ? "Approve" : "Open job"}
         </button>
       </div>
     </section>

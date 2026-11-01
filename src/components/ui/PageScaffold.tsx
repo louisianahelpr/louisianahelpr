@@ -72,6 +72,9 @@ interface PageScaffoldProps {
    *  stop running their own (see `.page-panel--one-blur` in index.css). On for
    *  My Posts / My Jobs and their loading skeleton. */
   oneBlur?: boolean;
+  /** Desktop (lg): no page gutter on the right, so the panel (and a chat composer in it) reaches the window's right
+   *  edge. Messages' two panes (owner 11-01, B107: "the composer bar doesn't reach the right edge"). */
+  flushRight?: boolean;
 }
 
 // `page-panel` is a styling HOOK, not a look: `panelSurfaceStyle` zeroes the
@@ -94,6 +97,7 @@ export function PageScaffold({
   className,
   titleCardClassName,
   oneBlur = false,
+  flushRight = false,
 }: PageScaffoldProps) {
   const titleCardClass = titleCardClassName
     ? `${TITLE_CARD_CLASS} ${titleCardClassName}`
@@ -184,7 +188,7 @@ export function PageScaffold({
       {/* Under the desktop bar the gap is the bar's 8px plus the 4px a SectionScreen header puts over its tabs, 12px
           (src/lib/desktopBar.ts: Jobs' tabs row level with the rail's Create, like the other sections'); with no
           bar (a signed-out desktop page) it keeps its 20px. */}
-      <div className={`container mx-auto px-5 lg:px-6 xl:px-6 pt-[var(--shell-gap)] ${headerInBar ? "lg:pt-3" : "lg:pt-5"} pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
+      <div data-scaffold-container="" className={`container mx-auto px-5 lg:px-6 xl:px-6${flushRight ? " lg:pr-0 xl:pr-0" : ""} pt-[var(--shell-gap)] ${headerInBar ? "lg:pt-3" : "lg:pt-5"} pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
         <div
           className={`w-full ${columnWidth} mx-auto flex-1 min-h-0 flex flex-col gap-[var(--shell-gap)] lg:gap-4 overflow-hidden`}
         >

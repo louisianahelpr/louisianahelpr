@@ -11,6 +11,7 @@
  * @mutate src/App.tsx | <Suspense fallback={null}><MobileNav /></Suspense> | <Suspense fallback={null}><MobileNav /><IdentityCheckMount /></Suspense>
  * @mutate src/components/TermsReconsentMount.tsx |   if (!behind) return null; |   if (false) return null;
  * @mutate src/components/TermsReconsentMount.tsx | if (!termsAcceptanceIsCurrent(accepted, LATEST_TERMS_VERSION)) setBehind(true); | void accepted;
+ * @mutate src/components/TermsReconsentMount.tsx |   }, [eligible, userId, behind]); |   }, [behind]);
  * @mutate src/components/identity/IdentityCheckMount.tsx |   if (!wanted && !mounted) return null; |   if (false) return null;
  * @mutate src/components/identity/IdentityCheckMount.tsx |   const wanted = open \|\| hasIdentityEntryParam(params); |   const wanted = open;
  */
@@ -21,7 +22,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 
-const st = vi.hoisted(() => ({ terms: 0, sheet: 0, accepted: "Oct 2026" as string, idOn: true }));
+const st = vi.hoisted(() => ({ terms: 0, sheet: 0, accepted: "Oct 2026" as string, idOn: true, userId: "u1" as string | null }));
 
 vi.mock("@/components/TermsReconsentDialog", () => {
   st.terms += 1;
@@ -33,8 +34,8 @@ vi.mock("@/components/identity/IdentityCheckSheet", () => {
 });
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({
-    user: { id: "u1", email_confirmed_at: "2026-01-01T00:00:00Z" },
-    profile: { ban_status: "active" },
+    user: st.userId ? { id: st.userId, email_confirmed_at: "2026-01-01T00:00:00Z" } : null,
+    profile: st.userId ? { ban_status: "active" } : null,
     refresh: async () => {},
   }),
 }));
@@ -63,6 +64,7 @@ beforeEach(() => {
   st.sheet = 0;
   st.accepted = LATEST_TERMS_VERSION;
   st.idOn = true;
+  st.userId = "u1";
 });
 afterEach(() => {
   cleanup();
@@ -95,6 +97,28 @@ describe("TermsReconsentMount fetches the dialog only for an account that is beh
     st.accepted = "";
     render(<MemoryRouter><TermsReconsentMount /></MemoryRouter>);
     expect(await screen.findByText("terms dialog")).toBeTruthy();
+  });
+
+  it("signing out and back in (or as someone else) checks again", async () => {
+    const tree = () => <MemoryRouter><TermsReconsentMount /></MemoryRouter>;
+    const { rerender } = render(tree());
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(screen.queryByText("terms dialog")).toBeNull();
+    st.userId = null;
+    rerender(tree());
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    // Back in, now behind (a Terms bump while signed out): the check runs again.
+    st.userId = "u1";
+    st.accepted = "";
+    rerender(tree());
+    expect(await screen.findByText("terms dialog")).toBeTruthy();
+    cleanup();
+    // Another account on the same device, current: nothing shows.
+    st.userId = "u2";
+    st.accepted = LATEST_TERMS_VERSION;
+    render(tree());
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(screen.queryByText("terms dialog")).toBeNull();
   });
 });
 

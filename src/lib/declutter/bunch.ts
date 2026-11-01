@@ -26,7 +26,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { report } from "@/lib/errorLogger";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { pageAwayCount, whenPageIsBack, withRetries } from "@/lib/declutter/steadyRetry";
-import { addPhotoSteadily, AlreadyPosted, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setDropPct, setHandovers, setKeepUp, setOfferRules, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
+import { addPhotoSteadily, AlreadyPosted, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setAutoFreeDays, setDropPct, setHandovers, setKeepUp, setOfferRules, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
 import { AI_CHECK_GAP_MS, createMoveDraft, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
@@ -689,11 +689,12 @@ export interface ListDeps {
   setHandovers: typeof setHandovers;
   setDropPct: typeof setDropPct;
   setKeepUp: typeof setKeepUp;
+  setAutoFreeDays: typeof setAutoFreeDays;
   setOfferRules: typeof setOfferRules;
   publishMany: (ids: string[], onProgress: (done: number, total: number, index: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, setOfferRules, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, setAutoFreeDays, setOfferRules, publishMany: (ids, p) => publishMany(ids, p) };
 
 /** The single form's listing choices, once for the batch (they start from the seller's remembered ones). */
 export interface BunchChoices {
@@ -706,6 +707,12 @@ export interface BunchChoices {
   moveOutOn?: string | null;
   /** The seller's saved "Accept offers" (Settings): an item with no choice of its own follows it. Absent: on. */
   acceptsOffers?: boolean;
+  /**
+   * The seller's saved "If it doesn't sell, make it free after __ days" (Settings / one-time setup): null or absent
+   * is Never. Sell a bunch never applied it (lead 11-01: "it never applies the seller's make it free after N days");
+   * each priced item now gets it, as the single form does (useSellFlowState: not for an item that is already free).
+   */
+  freeAfterDays?: number | null;
 }
 
 /** Whether this item goes up taking offers: its own switch, else the saved default. A free item is claimed, never offered on. */
@@ -988,6 +995,16 @@ export async function listBunch(
         await deps.setHandovers(draftId, it.free ? ["porch"] : ways);
         if (!it.free) await deps.setDropPct(draftId, choice.dropPct);
       };
+      // "Make it free after N days": not a blocker either, as on the single form; a refused one is logged and the item
+      // still lists (the seller can set it from Manage listing).
+      const autoFree = async () => {
+        if (it.free || choices.freeAfterDays == null) return;
+        try {
+          await deps.setAutoFreeDays(draftId, choices.freeAfterDays);
+        } catch (err) {
+          console.warn("[declutter] could not set make it free after", err);
+        }
+      };
       const keepUp = async () => {
         if (!choices.keepUp) return false;
         try {
@@ -1014,7 +1031,7 @@ export async function listBunch(
       // allSettled, never all: a setting refused first must not end this item while its photos are still being
       // attached, or a quick Try again finds a photo not yet marked as sent and attaches it a second time. All of them
       // finish, then the first failure is the item's.
-      const [sent, settled, kept, offers] = await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff()]);
+      const [sent, settled, kept, offers] = await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff(), autoFree()]);
       const failed = [sent, settled, kept, offers].find((r): r is PromiseRejectedResult => r.status === "rejected");
       if (failed) throw failed.reason;
       const keepUpFailed = kept.status === "fulfilled" && kept.value;

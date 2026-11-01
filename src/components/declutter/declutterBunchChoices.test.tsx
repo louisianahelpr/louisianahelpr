@@ -4,7 +4,7 @@
  * are remembered; pickup times already saved are not written over.
  *
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const ready = bunchListable(items, feeDue != null); |   const ready = bunchListable(items, false);
- * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers }); |     void row;
+ * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers, freeAfterDays: row.freeAfterDays }); |     void row;
  * @mutate src/components/declutter/BunchChoices.tsx |     if (ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? ways : w)); |     void ways;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows); |       await setPickupWindows(windows);
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (result.out.some((o) => "status" in o)) void choices.remember(savedWays); |       void result.out;
@@ -160,7 +160,7 @@ describe("Sell a bunch: listing choices", () => {
     fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
     await listIt();
     // LEAD-OFFERS-CHOICE: the saved Accept offers reaches the run, as each item's starting choice.
-    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, acceptsOffers: true, moveOutOn: null });
+    expect(state.listed[0].choices).toEqual({ keepUp: false, drops: false, dropPct: 15, floorPct: 70, acceptsOffers: true, moveOutOn: null, freeAfterDays: 14 }); // the saved "make it free after" reaches the listing (lead 11-01)
     expect(state.listed[0].ways).toEqual(["meetup"]);
     await waitFor(() => expect(state.remembered[0]?.freeAfterDays).toBe(14));
   });

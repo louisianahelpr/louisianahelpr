@@ -4,6 +4,11 @@
  * Before this every bunch item was saved with its lowest price = its price (it never dropped) and without Keep it up,
  * and a price under $1 was refused, so nothing could be given away.
  *
+ * Lead 11-01 ("The Sell a bunch bug: it never applies the seller's make it free after N days"): each priced item gets
+ * the seller's saved day count, a free one does not, Never sets nothing, and a refusal never stops the listing.
+ * @mutate src/lib/declutter/bunch.ts |           await deps.setAutoFreeDays(draftId, choices.freeAfterDays); |           void choices.freeAfterDays;
+ * @mutate src/lib/declutter/bunch.ts |         if (it.free \|\| choices.freeAfterDays == null) return; |         if (choices.freeAfterDays == null) return;
+ * @mutate src/components/declutter/BunchChoices.tsx | acceptsOffers: row.acceptsOffers, freeAfterDays: row.freeAfterDays }); | acceptsOffers: row.acceptsOffers });
  * @mutate src/lib/declutter/bunch.ts |         if (!it.free) await deps.setDropPct(draftId, choice.dropPct); |         void choice.dropPct;
  * @mutate src/lib/declutter/bunch.ts |         if (!choices.keepUp) return false; |         if (true) return false;
  * @mutate src/lib/declutter/bunch.ts |         await deps.setHandovers(draftId, it.free ? ["porch"] : ways); |         await deps.setHandovers(draftId, ways);
@@ -34,6 +39,7 @@ function deps(over: Partial<ListDeps> = {}): ListDeps {
     setHandovers: vi.fn(async (_id, w) => w),
     setDropPct: vi.fn(async (_id, p) => p),
     setKeepUp: vi.fn(async (_id, on) => on),
+    setAutoFreeDays: vi.fn(async (_id: string, d: number | null) => d),
     setOfferRules: vi.fn(async () => {}),
     publishMany: vi.fn(async (ids: string[]) => ids.map((id) => ({ id, status: "live" as const }))),
     ...over,
@@ -117,5 +123,23 @@ describe("Sell a bunch: what makes an item ready", () => {
   });
   it("a free item still needs a name", () => {
     expect(bunchItemProblem(item({ free: true, price: "", title: "" }))).toMatch(/name/);
+  });
+});
+
+describe("Sell a bunch: make it free after N days (lead 11-01)", () => {
+  it("a priced item gets the saved day count; a free one does not; Never sets nothing", async () => {
+    const d = deps();
+    await run([item({ key: "a" }), item({ key: "b", free: true, price: "" })], d, { ...ON, freeAfterDays: 14 });
+    expect(d.setAutoFreeDays).toHaveBeenCalledTimes(1);
+    expect(d.setAutoFreeDays).toHaveBeenCalledWith("id1", 14);
+    const never = deps();
+    await run([item({})], never, { ...ON, freeAfterDays: null });
+    expect(never.setAutoFreeDays).not.toHaveBeenCalled();
+  });
+
+  it("a refused day count never stops the item listing", async () => {
+    const d = deps({ setAutoFreeDays: vi.fn(async () => { throw new Error("nope"); }) });
+    const out = await run([item({})], d, { ...ON, freeAfterDays: 7 });
+    expect([...out.values()].map((o) => ("status" in o ? o.status : "error"))).toEqual(["live"]);
   });
 });

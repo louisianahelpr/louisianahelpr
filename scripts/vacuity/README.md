@@ -32,7 +32,7 @@ Four parts, cheapest first.
    decide: **(a)** an inventory read from the world, iterated, with no
    assertion that it is non-empty; **(d)** a list declared in the test file
    that is both input and oracle. Also reports **(b)** mount-wiring: components
-   under test whose *parents* no test ever renders.
+   under test none of whose ancestors up to 3 levels (MOUNT_DEPTH) any test renders.
 3. **Harness preflight** (~150ms). Browsers on disk vs what `playwright.config.ts`
    asks for; the tracer still wired into `src/test/setup.ts`; mock builder
    methods that are chainable no-ops while real edge functions call them.

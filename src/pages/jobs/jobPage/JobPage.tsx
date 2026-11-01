@@ -71,7 +71,7 @@ const CREW_ROSTER_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "
 
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
-  const { job: q, applicants, isPoster, myApplication, tracking, onCrew } = useJobPage(id, userId);
+  const { job: q, applicants, isPoster, myApplication, tracking, onCrew, crewConfirmed } = useJobPage(id, userId);
   const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
   // CMP-4: the booked Helpr's instant booking (Confirm / Decline, the 2-hour countdown), the Working offer card's own.
   const instantUntil = useMyInstantBooking(id, !isPoster && q.data?.job.direct_offer_status === "pending");
@@ -266,7 +266,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
               hideNext={isPoster && showsOnTheWay(job)}
               otherFirst={isPoster ? helperFirst : posterFirst}
-              pendingApplicants={isPoster && applicants.data ? pending : undefined} />
+              pendingApplicants={isPoster && applicants.data ? pending : undefined}
+              crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} />
             {(isPoster || isHired) && <RevisionAsk job={job} side={isPoster ? "poster" : "helpr"} posterFirst={posterFirst} />}
             {/* JA-32 (audit 11-01): a crew's roster on the page itself: each member, their step, Message, and the
                 per-member Confirm Arrived / Confirm work / Didn't show (JOBS-3), never only under More options. */}

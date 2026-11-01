@@ -206,7 +206,7 @@ describe("the entry's /declutter first screen", () => {
   it("the entry starts it, and every read on the page takes its part", () => {
     const code = (p: string) => blankComments(readFileSync(p, "utf8"));
     // B78: through the entry's one signed-in prefetch door (src/boot/signedInPrefetch.ts).
-    expect(code("src/entry.ts")).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\|home\)\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)\s*\.then\(\(m\) => m\?\.startSignedInPrefetch\(window\.location\.pathname\)\)/);
+    expect(code("src/entry.ts")).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\|home\)\?\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)\s*\.then\(\(m\) => m\?\.startSignedInPrefetch\(window\.location\.pathname\)\)/);
     expect(code("src/boot/signedInPrefetch.ts")).toContain("startDeclutterPrefetch(pathname);");
     const api = code("src/lib/declutter/api.ts");
     for (const call of ["takeFirstScreenItems()", "takeFirstScreenPhotos(itemIds)", "takeFirstScreenDropStates(itemIds)", "takeFirstScreenWatching(userId)"]) {

@@ -227,6 +227,13 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
         Give the at-fault side a strike
       </label>
+      {/* B48 (lead 10-31): the seller's no-show report already struck this Helpr for this delivery (one per delivery),
+          so a Helpr strike here adds nothing. Shown whenever the Helpr's fault is the choice. */}
+      {helprFault && kase.data?.helpr_has_delivery_strike ? (
+        <p role="note" data-helpr-already-struck="" className="text-xs font-medium text-amber-700 dark:text-amber-300">
+          This Helpr already has a strike for this delivery. Ticking the box won't give them a second one.
+        </p>
+      ) : null}
       <label htmlFor={id("note")} className="block text-xs font-medium">Note (both sides see it)</label>
       <input id={id("note")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" maxLength={1000}
         value={note} onChange={(e) => setNote(e.target.value)} />

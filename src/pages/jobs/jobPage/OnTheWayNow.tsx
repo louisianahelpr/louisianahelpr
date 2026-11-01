@@ -59,7 +59,7 @@ export function OnTheWayNow({ job, helperFirst, trackingStatus = null }: { job: 
   if (!on) return null;
   const p = pos.data;
   const name = helperFirst ?? "Your Helpr";
-  const mapped = (arrived ? p?.status === "arrived" : p?.status === "on_the_way") && p.latitude != null && p.longitude != null && job.latitude != null && job.longitude != null;
+  const mapped = p != null && (arrived ? p.status === "arrived" : p.status === "on_the_way") && p.latitude != null && p.longitude != null && job.latitude != null && job.longitude != null;
   return (
     <section aria-label={arrived ? "Arrived" : "On the way"} data-on-the-way={arrived ? undefined : ""} data-arrived-now={arrived ? "" : undefined} className="space-y-2">
       {arrived && job.helper_arrived_at ? (

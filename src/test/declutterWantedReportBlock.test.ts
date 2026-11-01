@@ -12,7 +12,7 @@
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |       PERFORM public.declutter_wanted_hold_photos(h.id, NULL, 'The automatic photo check did not finish.'); |       NULL;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       if (files.length > failed) checkPhotosInBackground(id); |       void id;
  * @mutate src/components/admin/AdminReports.tsx |         \|\| (r.reported_type === WANTED_REPORT && wantedPosts.get(r.reported_id)?.is_seed === true)\n |
- * @mutate src/components/admin/AdminReports.tsx |  && r.reported_type !== WANTED_REPORT; | ;
+ * @mutate src/components/admin/AdminReports.tsx |  && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type); |  && !isQuestionReport(r.reported_type);
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     if (!shopItem && body?.mode === "wanted_check") return await wantedCheck(req, admin, authData.user, body);\n |
  */
 import { readFileSync } from "node:fs";
@@ -50,7 +50,7 @@ describe("the admin half of a Wanted report", () => {
   const queue = code("src/components/admin/AdminReports.tsx");
 
   it("reads the post, never its id as a person", () => {
-    expect(queue).toContain("r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT;");
+    expect(queue).toContain("r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type);");
     expect(queue).toContain("wantedSubject(wantedPosts.get(r.reported_id), wantedFailed)");
     expect(queue).toContain("<WantedReportPanel ");
     const panel = code("src/components/admin/adminReports/WantedReportPanel.tsx");

@@ -13,6 +13,7 @@ import { MEETUP_RPC_ERROR_COPY } from "@/lib/declutter/meetupErrors";
 import { DONATE_RPC_ERROR_COPY } from "@/lib/declutter/donateErrors";
 import { BUNDLE_RPC_ERROR_COPY } from "@/lib/declutter/bundleErrors";
 import { PROFILE_RPC_ERROR_COPY } from "@/lib/declutter/profileErrors";
+import { PROFILE_LINK_RPC_ERROR_COPY } from "@/lib/profileLink/errorCopy";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -344,7 +345,9 @@ const DONATE = DONATE_RPC_ERROR_COPY as CopyTable;
 const BUNDLE = BUNDLE_RPC_ERROR_COPY as CopyTable;
 // The profile's Declutter "N sold" read, likewise (src/lib/declutter/profileErrors.ts, 20261028202132).
 const PROFILE = PROFILE_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE };
+// LEAD-PROFILE-LINK's handle RPCs, likewise (src/lib/profileLink/errorCopy.ts, 20261101034834).
+const PROFILE_LINK = PROFILE_LINK_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK };
 /** An RPC that refuses anyone without the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 /** Reads a party OR an admin may call: has_role(.., 'admin') is one branch of an OR, so members get the copy too. */
@@ -420,7 +423,7 @@ describe("every code a client-called RPC raises has copy at its call site", () =
 
   it("no copy or allowlist entry names a code the RPC does not raise, or an RPC no client calls", () => {
     const stale: string[] = [];
-    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["DONATE_RPC_ERROR_COPY", DONATE], ["BUNDLE_RPC_ERROR_COPY", BUNDLE], ["PROFILE_RPC_ERROR_COPY", PROFILE], ["UNREACHABLE", UNREACHABLE]] as const) {
+    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["DONATE_RPC_ERROR_COPY", DONATE], ["BUNDLE_RPC_ERROR_COPY", BUNDLE], ["PROFILE_RPC_ERROR_COPY", PROFILE], ["PROFILE_LINK_RPC_ERROR_COPY", PROFILE_LINK], ["UNREACHABLE", UNREACHABLE]] as const) {
       for (const [rpc, codes] of Object.entries(entries)) {
         if (!calls.has(rpc)) stale.push(`${table}.${rpc}: no client calls this RPC`);
         for (const code of Object.keys(codes)) {

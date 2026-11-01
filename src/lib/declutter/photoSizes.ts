@@ -14,7 +14,7 @@
 const PUBLIC_OBJECT = "/storage/v1/object/public/";
 
 export const THUMB_PHOTO_PX = 160;
-export const CARD_PHOTO_SMALL_PX = 320;
+const CARD_PHOTO_SMALL_PX = 320;
 /** The card's drawn width: half the phone screen less its gutters (20 px each side, 12 px gap); about 250 px from sm up. */
 export const CARD_PHOTO_SIZES = "(min-width: 640px) 250px, calc(50vw - 26px)";
 

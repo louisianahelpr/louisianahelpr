@@ -168,3 +168,32 @@ export function DeclutterSettingsSkeleton() {
     </AppPage>
   );
 }
+
+/** While a tab's own code arrives (B77): the listing rows' shimmer, under the tabs row that is already drawn. */
+export function TabSkeleton() {
+  return <div className="space-y-6"><Skeleton className="h-24 w-full rounded-[20px]" /><ListingsSkeleton /></div>;
+}
+
+/** Grey shimmer rows shaped like the listing cards (owner 2026-10-18, tweak 5). */
+export function ListingsSkeleton() {
+  return (
+    <ul className="space-y-3" role="status" aria-label="Loading your listings">
+      {[0, 1, 2].map((i) => (
+        <li key={i} className="rounded-2xl bg-card p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/5" />
+              <Skeleton className="h-3.5 w-1/4" />
+            </div>
+            <Skeleton className="h-6 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-4/5" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-24 rounded-full" />
+            <Skeleton className="h-8 w-20 rounded-full" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}

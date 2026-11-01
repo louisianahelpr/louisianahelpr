@@ -251,7 +251,7 @@ describe("the photo-first Declutter item page", () => {
     // @mutate src/lib/declutter/delivery.ts |   return buyNowTotalCents(priceCents) + deliveryPriceCents(1, [size]); |   return buyNowTotalCents(priceCents);
     // @mutate src/components/declutter/DeclutterItemView.tsx | askSignal={offerAsk} footer={deliveredLine} /> | askSignal={offerAsk} />
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {footer}\n |
-    // $40 large: Buy now's $42.70 (price + 5% + 70c) + delivery's floor $10 + $2 x 1 mile + $20 large = $74.70.
+    // $40 large: Buy now's $42.70 (price + 5% + 70c) + delivery's floor $6 + $1.50 x 1 mile + $20 large = $70.20 (owner price 11-01).
     const first = open();
     const line = await waitFor(() => {
       const el = document.querySelector("[data-item-delivered]");
@@ -259,7 +259,7 @@ describe("the photo-first Declutter item page", () => {
       return el as HTMLElement;
     });
     // Owner mockup 11-01: the line sits under the two buttons, inside their card.
-    expect(line.textContent).toBe("Or have it delivered by a local Helpr from $74.70");
+    expect(line.textContent).toBe("Or have it delivered by a local Helpr from $70.20");
     expect(line.closest("[aria-label='Buy or make an offer']")).not.toBeNull();
     expect(line.textContent).not.toMatch(/fee|%|¢/i);
     first.unmount();

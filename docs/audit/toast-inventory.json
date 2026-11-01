@@ -3,17 +3,17 @@
   "summary": {
     "calls": 1065,
     "files": 297,
-    "rendering": 983,
-    "suppressedByPolicy": 82,
+    "rendering": 984,
+    "suppressedByPolicy": 81,
     "byKind": {
-      "confirmConsequential": 30,
+      "confirmConsequential": 31,
       "errorToast": 6,
       "successToast": 2,
       "toast": 171,
       "toast.error": 740,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 88,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -485,7 +485,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 122,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -495,7 +495,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -505,7 +505,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 205,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -515,8 +515,8 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 241,
-      "kind": "toast.success",
+      "line": 244,
+      "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
         "text": "jobComplete ? `${h.helperName || \"That Helpr\"} is reported. The rest of your crew is done, so you can approve the job.` : nobodyLeft ? `${h.helperName || \"That Helpr\"} is reported. Nobody is left on your crew, so you can cancel and get all your money back.` : `${h.helperName || \"That Helpr\"} is reported. Most of their share comes back to you after the job.`",
@@ -541,11 +541,11 @@
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 257,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -555,7 +555,7 @@
     },
     {
       "file": "src/components/GroupJobHelpers.tsx",
-      "line": 304,
+      "line": 307,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

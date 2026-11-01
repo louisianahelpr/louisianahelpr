@@ -212,6 +212,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:rpc_group_member_mark_done": {
     uncovered: "group jobs are withdrawn (GROUP_JOBS_ENABLED = false in src/lib/groupJobs.ts), so no journey can post one; the 'Your offer closed' notice is asserted in src/test/pglite/crewUnconfirmedSpot.pglite.mjs (U2)",
   },
+  "sql:rpc_poster_report_member_no_show": {
+    uncovered: "needs a funded crew job past its start time with a member who confirmed and never arrived; the journeys have no paid crew job and cannot move the clock past the start, so the member's no-show notice on both rungs is asserted in src/test/pglite/crewMemberNoShow.pglite.mjs (N9, N10)",
+  },
   "sql:rpc_supersede_dispute_decision": { uncovered: DISPUTE },
   "sql:series_holds_on_hire": { uncovered: SERIES },
   "sql:series_release_dates": { uncovered: SERIES },

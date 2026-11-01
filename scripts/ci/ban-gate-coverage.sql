@@ -163,6 +163,7 @@ rpc_exempt(fn, why) AS (
   ('rpc_group_member_on_the_way', 'writes group_job_helpers + job_tracking + jobs, all ban-gated'),
   ('rpc_group_member_set_proof', 'writes group_job_helpers UPDATE, ban-gated'),
   ('rpc_poster_confirm_member_arrival', 'writes group_job_helpers UPDATE, ban-gated'),
+  ('rpc_poster_report_member_no_show', 'JOBS-3 (20261101031804): deletes the no-show member group_job_helpers row (DELETE, ban-gated) in the same transaction as its applications + jobs + user_violations writes, so a call by a banned poster rolls back whole'),
   ('record_job_view', 'writes job_views INSERT, ban-gated'),
   ('record_my_signup_source', 'OPS-5 (20261031220447): writes only the own member_signup_sources row of the caller (a sign-up source tag, accounts under 2 days old); nothing another member sees, so a banned member changes nothing'),
   ('record_profile_view', 'writes profile_views INSERT, ban-gated (its handler turns the refusal into false, no row)'),

@@ -31,13 +31,14 @@ export type MyPorchPlace = {
   windows?: PickupWindow[] | null;
 };
 
-/** What a buyer sees before paying: never an address or a point. */
-export type SellerPorchPlace = { id: string; label: string; area: string; weekdays: number[]; chosen: boolean; windows?: PickupWindow[] | null };
+/** What a buyer sees before paying: never an address or a point, and the city only (label null, 20261101054401). */
+export type SellerPorchPlace = { id: string; label: string | null; area: string; weekdays: number[]; chosen: boolean; windows?: PickupWindow[] | null };
 
-/** A place as the item page and the posting summary show it (LEAD-POST-PLACES): no address. */
-export type PickupPlaceHours = { label: string; area: string; weekdays: number[]; windows?: PickupWindow[] | null };
+/** A place as the item page and the posting summary show it (LEAD-POST-PLACES): no address. The label is null
+ * for anyone but the seller (20261101054401, owner 2026-10-31: buyers see the city only). */
+export type PickupPlaceHours = { label: string | null; area: string; weekdays: number[]; windows?: PickupWindow[] | null };
 
-/** The place frozen on an order; address and point are null for a buyer who has not paid. */
+/** The place frozen on an order; address and point are null for a buyer who has not paid; label is the seller's only. */
 export type OrderPorchPlace = {
   label: string | null;
   area: string | null;

@@ -117,14 +117,15 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
   if (loadError) return <ErrorState variant="inline" title="We couldn't load the pickup places." body={declutterErrorMessage(loadError)} onRetry={onRetry} />;
   const refusal = declutterErrorMessage({ message: PLACE_NEEDED });
   if (places.length === 0) return refused ? <p role="status" className="text-sm font-semibold" data-porch-place-rereading="">{refusal} Loading them…</p> : null;
-  // One place: nothing to choose (useSellerPorchPlaces has picked it). Still only its name, area and days.
+  // One place: nothing to choose (useSellerPorchPlaces has picked it). Only its city and days: buyers never see the
+  // place's own label (owner 2026-10-31; the server sends none, 20261101054401).
   if (places.length === 1) {
     const p = places[0];
     return (
       <div className="space-y-1 rounded-xl border border-border p-3" data-porch-place-one="">
         <p className="text-xs font-medium">Pickup place</p>
-        <p className="text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.label}</p>
-        <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{p.area} · {shortDays(p.weekdays)}</p>
+        <p className="text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.area}</p>
+        <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{shortDays(p.weekdays)}</p>
         <p className="text-xs text-muted-foreground">You get the exact address after you pay.</p>
       </div>
     );
@@ -146,8 +147,8 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
             style={{ accentColor: "hsl(var(--primary))" }}
           />
           <span className="min-w-0 flex-1">
-            <span className="block text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.label}</span>
-            <span className="block text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{p.area} · {shortDays(p.weekdays)}</span>
+            <span className="block text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.area}</span>
+            <span className="block text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{shortDays(p.weekdays)}</span>
           </span>
         </label>
       ))}
@@ -164,10 +165,13 @@ export function OrderPorchPlace({ orderId, side }: { orderId: string; side: "buy
   const q = useQuery({ queryKey: ["declutter", "order-porch-place", orderId], queryFn: () => fetchOrderPorchPlace(orderId) });
   if (q.isError) return <ErrorState variant="inline" title="We couldn't load the pickup place." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;
   const place = q.data;
-  if (!place || place === PORCH_PLACES_NOT_DEPLOYED || !place.label) return null;
+  // The buyer gets the city only (label null from the server, 20261101054401); the seller their own label.
+  if (!place || place === PORCH_PLACES_NOT_DEPLOYED) return null;
+  const name = side === "seller" ? place.label ?? place.area : place.area;
+  if (!name) return null;
   return (
     <p className="text-sm [overflow-wrap:anywhere]" data-order-porch-place="">
-      Pickup place: <span className="font-medium">{place.label}</span>
+      Pickup place: <span className="font-medium">{name}</span>
       {side === "seller" && place.address ? <> ({place.address})</> : null}
     </p>
   );

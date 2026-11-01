@@ -17,6 +17,7 @@ import { report } from "@/lib/errorLogger";
 import { JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
 import { APPLICATION_READABLE_COLUMN_LIST } from "@/lib/applicationColumns";
 import { isNetworkFailure } from "@/lib/networkFailure";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /** The posted core's job columns: the readable list plus the three fetchPostedActivity has always added. */
 const POSTED_JOB_COLUMNS: readonly string[] = [...JOB_READABLE_COLUMN_LIST, "materials_note", "onboarding_fee_amount", "poster_marked_done_at"];
@@ -37,8 +38,8 @@ const KEYS: (keyof ActivityCoresPayload)[] = [
   "application_jobs", "direct_offers", "violations", "reviews",
 ];
 
-/** Codes that mean "use the old reads": the function or a column is not deployed yet. Expected, not reported. */
-const QUIET = new Set(["PGRST202", "42703", "PGRST204"]);
+/** Column codes that mean "use the old reads": a column is not deployed yet. Expected, not reported. */
+const QUIET_COLUMN_CODES = new Set(["42703", "PGRST204"]);
 
 let inFlight: { userId: string; p: Promise<ActivityCoresPayload | null> } | null = null;
 
@@ -57,7 +58,8 @@ export function fetchActivityCores(userId: string): Promise<ActivityCoresPayload
       });
       if (res?.error) {
         const code = String((res.error as { code?: string }).code ?? "");
-        if (!QUIET.has(code) && !isNetworkFailure(res.error)) {
+        const quiet = isMissingRpcNamed(res.error, "get_my_activity_cores") || QUIET_COLUMN_CODES.has(code);
+        if (!quiet && !isNetworkFailure(res.error)) {
           report(res.error, { severity: "warning", tags: { source: "activityCores.fetch" } });
         }
         return null;

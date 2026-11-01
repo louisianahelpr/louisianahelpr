@@ -17,10 +17,10 @@ import { isArchived } from "@/lib/archivedConversations";
 import { isTeamThreadKey, normalizeMessageRow, teamUserIdFromKey } from "@/lib/teamThread";
 
 /** PD-012: bounded. The nav shows "9+" and the icon badge a number, so the newest this many unread rows suffice. */
-export const UNREAD_ROW_CAP = 1000;
+const UNREAD_ROW_CAP = 1000;
 
 /** The columns the rules below read; the badge selects only these, the inbox selects "*". */
-export const UNREAD_ROW_COLUMNS = "id, job_id, sender_id, receiver_id, created_at, read, is_system, flagged_hidden, team_thread_user_id";
+const UNREAD_ROW_COLUMNS = "id, job_id, sender_id, receiver_id, created_at, read, is_system, flagged_hidden, team_thread_user_id";
 
 export type ThreadRow = {
   job_id: string;

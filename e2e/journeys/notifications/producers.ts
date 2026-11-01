@@ -212,6 +212,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:rpc_group_member_mark_done": {
     uncovered: "group jobs are withdrawn (GROUP_JOBS_ENABLED = false in src/lib/groupJobs.ts), so no journey can post one; the 'Your offer closed' notice is asserted in src/test/pglite/crewUnconfirmedSpot.pglite.mjs (U2)",
   },
+  "sql:declutter_alert_overdue_checks": {
+    uncovered: "admin-only alert from the declutter-check-sweep follow-up (20261101042045): it fires for a live listing unchecked 45+ minutes, which a journey cannot age; the alert and its one-open-notice dedupe are asserted in src/test/pglite/declutterCheckSweep.pglite.mjs",
+  },
   "sql:rpc_poster_report_member_no_show": {
     uncovered: "needs a funded crew job past its start time with a member who confirmed and never arrived; the journeys have no paid crew job and cannot move the clock past the start, so the member's no-show notice on both rungs is asserted in src/test/pglite/crewMemberNoShow.pglite.mjs (N9, N10)",
   },

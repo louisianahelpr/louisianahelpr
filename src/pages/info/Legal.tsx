@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
+import { Button } from "@/components/ui/button";
 import { useSearchParams, useLocation } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
@@ -436,15 +437,17 @@ const Legal = () => {
               control per action). The focus ring is the app's standard
               :focus-visible outline; a colourless `focus:ring-2` here added a
               second, Tailwind-default BLUE ring inside it. */}
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="iconCompact"
             onClick={closeSearch}
             aria-label="Close search"
-            className="absolute right-0 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center ctl-exit ctl-tint btn-press"
+            className="absolute right-0 top-1/2 -translate-y-1/2 ctl-exit btn-press [&_svg]:size-4"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            <X className="w-4 h-4" />
-          </button>
+            <X />
+          </Button>
         </>
       ) : (
         <button

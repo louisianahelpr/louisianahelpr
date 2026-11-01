@@ -25,10 +25,7 @@ import { JumpToBottomButton } from "./chatView/JumpToBottomButton";
 import { useChatScroll } from "./chatView/useChatScroll";
 import { useTimestampReveal } from "./chatView/useTimestampReveal";
 import { ApplicationNoteCard } from "./chatView/ApplicationNoteCard";
-import {
-  buildTimeline,
-  resolveLastOwnMessageId,
-} from "./chatView/chatViewHelpers";
+import { buildTimeline, resolveLastOwnMessageId } from "./chatView/chatViewHelpers";
 import { CHAT_RULES_DISMISSED_KEY, readBannerDismissed } from "./chatView/chatRulesBanner";
 import { DealCard } from "./chatView/DealCard";
 

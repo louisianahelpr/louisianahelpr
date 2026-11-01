@@ -109,4 +109,9 @@ const JobsSection = () => {
   return <Dashboard embeddedHeader={makeHeader} />;
 };
 
+// JA-17 (B111): the job page's Accept / Decline panel is loaded FROM this chunk, which already holds the Working card's
+// handlers and offer card. Its own lazy chunk split useActivityActions into a new shared chunk that every route's
+// preload list in the entry named (entry 5366 -> 5396 B gz, over the 5 KB +5% budget; measured 2026-11-01).
+export { PageOfferPanel } from "./jobPage/PageOfferPanel";
+
 export default JobsSection;

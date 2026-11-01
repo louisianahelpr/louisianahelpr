@@ -10,7 +10,8 @@
  *  - the buttons are the card's OfferedActions (Decline left with its confirm, Accept right, the answer-by clock,
  *    "Finish accepting" while payout setup is owed, nothing once the offer has run out);
  *  - the pop-ups are the Working list's ActivityOfferDialogs (award gate, payment held, payout after hire).
- * Lazy: only a Helpr with an offer loads it (the job page chunk does not grow for everyone else).
+ * Lazy, from the Jobs section chunk (JobsSection.tsx re-exports it): only a Helpr with an offer loads it, and no new
+ * shared chunk is split off (the entry's preload lists stay as they were).
  *
  * Guard: src/pages/jobs/jobPage/JobPage.test.tsx "JA-17".
  */

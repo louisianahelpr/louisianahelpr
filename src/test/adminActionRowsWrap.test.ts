@@ -10,6 +10,11 @@
  * line inside the name column, and the placeholder is short enough for a phone.
  * @mutate src/components/admin/AdminCredentialQueue.tsx | className="text-ds-11 font-semibold [overflow-wrap:anywhere]" | className="text-ds-11 font-semibold shrink-0 max-w-[10rem] truncate"
  * @mutate src/components/admin/AdminUsers.tsx | placeholder="Name, email, phone, job ID" | placeholder="Search name, email, phone or job ID…"
+ * B42 (10-31, Declutter problems card, measured headless with mocked rows): at 320 "Refund the buyer" was 117 px wide
+ * holding 144 px of words (scrollWidth 131), at 375 the words ran through the 24 px padding; "Refund part" too. Both
+ * decide rows now wrap, so each button keeps its own width.
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | <div data-admin-decide="" className="flex flex-wrap gap-2"> | <div data-admin-decide="" className="flex gap-2">
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | <div data-admin-part-row="" className="flex flex-wrap gap-2"> | <div data-admin-part-row="" className="flex gap-2">
  * @mutate src/components/admin/AdminReports.tsx | {" · "}<span className="whitespace-nowrap">{formatShortDate(report.created_at)}</span> | {" · "}{formatShortDate(report.created_at)}
  */
 import { describe, it, expect } from "vitest";
@@ -56,5 +61,12 @@ describe("AUD31-48: admin rows and boxes are not cut at 375", () => {
     const placeholders = [...src.matchAll(/placeholder="([^"]*)"/g)].map((m) => m[1]);
     expect(placeholders.length).toBeGreaterThan(0);
     expect(placeholders.filter((p) => p.length > 30)).toEqual([]);
+  });
+});
+
+describe("B42: the Declutter problems card's decide buttons keep their own width", () => {
+  const card = () => blankComments(readFileSync("src/components/admin/settings/DeclutterProblemsCard.tsx", "utf8"));
+  it.each(["data-admin-decide", "data-admin-part-row"])("%s wraps", (marker) => {
+    expect(classOf(card(), marker).split(/\s+/)).toContain("flex-wrap");
   });
 });

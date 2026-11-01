@@ -54,7 +54,16 @@ serve(async (req) => {
 
     let removed = 0;
     for (let i = 0; i < paths.length; i += BATCH) {
-      const batch = paths.slice(i, i + BATCH);
+      const claimed = paths.slice(i, i + BATCH);
+      // B67 (20261101062032): re-checked right before the remove, so a path attached again since the claim is never
+      // removed. A failed re-check removes nothing (the claims are re-handed out after 15 minutes).
+      const { data: still, error: recheckError } = await admin.rpc("declutter_photo_purge_recheck", { p_paths: claimed });
+      if (recheckError) {
+        defects.record(`purge_recheck failed: ${recheckError.message}`);
+        continue;
+      }
+      const batch = ((still ?? []) as { storage_path: string }[]).map((r) => r.storage_path);
+      if (batch.length === 0) continue;
       // A path already gone is not an error in Storage: an object the app or an account purge took first is done too.
       const { error: rmError } = await admin.storage.from(BUCKET).remove(batch);
       if (rmError) {

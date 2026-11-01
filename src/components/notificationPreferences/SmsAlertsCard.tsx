@@ -40,7 +40,7 @@ const QUERY_KEY = ["sms-consent"] as const;
  * no "Turn off" (that is Settings' job); `onAllSet` fires once texts are on,
  * with `alreadyOn` true when they were on from the first read.
  */
-export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt?: boolean; onAllSet?: (alreadyOn: boolean) => void } = {}) {
+export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = false }: { inPrompt?: boolean; onAllSet?: (alreadyOn: boolean) => void; atTop?: boolean } = {}) {
   const enabled = useFeature("sms_alerts");
   const { user } = useAuthReady();
   const queryClient = useQueryClient();
@@ -141,7 +141,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet }: { inPrompt
   return (
     <section
       aria-labelledby={`${consentId}-title`}
-      className="mt-4 rounded-2xl liquid-glass overflow-hidden shadow-sm"
+      className={`${atTop ? "mb-4" : "mt-4"} rounded-2xl liquid-glass overflow-hidden shadow-sm`}
       data-testid="sms-alerts-card"
     >
       <div

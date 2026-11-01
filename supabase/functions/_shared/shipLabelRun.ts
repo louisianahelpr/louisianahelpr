@@ -123,6 +123,8 @@ export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, recor
         },
         page: (title, message, fields) => postSlackOpsAlert({
           kind: "money_at_risk", severity: "warning", title, message, fields, oncePerDayKey: `ship-label-${s.id}-${title}`,
+          // A test-mode label (the worker never touches a live one yet) is test data: digest only, never a page.
+          seed: s.label_mode === "test",
         }).then(() => undefined),
       });
       counts[outcome] = (counts[outcome] ?? 0) + 1;

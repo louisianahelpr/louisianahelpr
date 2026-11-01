@@ -18,6 +18,8 @@
  * @mutate supabase/functions/_shared/shipLabelWorker.ts |     const captured = await p.capture(pi, s.declutter_order_id, amount); |     const captured = await p.capture(pi, s.declutter_order_id, 99999);
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     const closed = await closeReleasedHoldRefund(supabase, paymentIntentId); |     const closed = "left";
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |       await closeReleasedHoldRefund(supabase, paymentIntentId);\n      logStep("Declutter ship hold already released" |       logStep("Declutter ship hold already released"
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |       seed: event.livemode !== true, |
+ * @mutate supabase/functions/_shared/shipLabelRun.ts |           seed: s.label_mode === "test", |
  * @mutate supabase/functions/_shared/shipLabelRun.ts | testStripe.paymentIntents.capture(pi, { amount_to_capture: amountCents }, | testStripe.paymentIntents.capture(pi, {},
  */
 import { readFileSync } from "node:fs";
@@ -133,5 +135,10 @@ describe("the shipped order's page is a test-mode card hold", () => {
     expect(hook).toContain(`supabase.rpc("declutter_ship_hold_refund_released", { p_payment_intent_id: paymentIntentId })`);
     // Both branches: after the cancel, and the redelivery that finds the hold already cancelled.
     expect((hook.match(/await closeReleasedHoldRefund\(supabase, paymentIntentId\)/g) ?? []).length).toBe(2);
+  });
+  it("test-mode shipping alerts are digest-only (test data never pages the owner)", () => {
+    expect(hook).toContain("seed: event.livemode !== true,");
+    const run = blankComments(readFileSync("supabase/functions/_shared/shipLabelRun.ts", "utf8"));
+    expect(run).toContain(`seed: s.label_mode === "test",`);
   });
 });

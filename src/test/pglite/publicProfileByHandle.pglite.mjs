@@ -45,6 +45,9 @@ const realFn = (name) => {
 const maskSql = realFn("mask_job_location");
 // Review 2026-11-01: the real ban / strike / under-18 / hidden-seller rules, not stand-ins.
 const realRules = ["declutter_member_out", "member_under_18", "declutter_seller_out", "declutter_seller_hidden"].map(realFn).join("\n");
+// The real public reviews read and its caller-dependent seed rule: what this page read before the re-review
+// (2026-11-01). Loaded so the OLD file can be shown leaking a test account's review (P13 red on it).
+const realReviews = ["seed_hidden_from_caller", "seed_review_hidden", "display_name_for_viewer", "get_public_profile_reviews"].map(realFn).join("\n");
 
 let failures = 0;
 let checks = 0;
@@ -87,8 +90,9 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), custome
   payment_status text, credential_tier int DEFAULT 0, expires_at timestamptz, offered_to_helper_id uuid, direct_offer_status text,
   latitude numeric, longitude numeric);
 CREATE TABLE public.ban_settlement_queue (user_id uuid, review_state text);
-CREATE TABLE public.reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), reviewee_id uuid, reviewer_id uuid, rating int, feedback text,
-  created_at timestamptz DEFAULT now(), job_category text);
+CREATE TABLE public.reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, reviewee_id uuid NOT NULL, reviewer_id uuid,
+  rating int NOT NULL, feedback text, created_at timestamptz NOT NULL DEFAULT now(), feedback_visible_at timestamptz, status text NOT NULL DEFAULT 'published',
+  response_text text, response_at timestamptz, photo_urls text[]);
 CREATE TABLE public.declutter_wanted (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, what text, category text,
   max_price_cents int, area_lat numeric, area_lng numeric, status text, public boolean, removed_at timestamptz,
   expires_at timestamptz, is_seed boolean NOT NULL DEFAULT false, created_at timestamptz DEFAULT now());
@@ -113,13 +117,14 @@ CREATE FUNCTION public.get_public_profile_stats(p_user_ids uuid[])
  LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
   SELECT p.user_id, 2, 4.50, 0, NULL::numeric, 2, 2, 3, 5, 0, 0, 2, 100, 0, NULL::numeric, 0, NULL::numeric, true, true, false, false
     FROM public.profiles p WHERE p.user_id = ANY(p_user_ids) $$;
-CREATE FUNCTION public.get_public_profile_reviews(p_user_id uuid, p_limit integer DEFAULT 20, p_offset integer DEFAULT 0)
- RETURNS TABLE(id uuid, rating integer, feedback text, created_at timestamp with time zone, reviewer_name text, job_category text, response_text text, response_at timestamp with time zone, total_count bigint)
- LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
-  SELECT r.id, r.rating, r.feedback, r.created_at, (SELECT rp.full_name FROM public.profiles rp WHERE rp.user_id = r.reviewer_id),
-         r.job_category, NULL::text, NULL::timestamptz, count(*) OVER ()
-    FROM public.reviews r WHERE r.reviewee_id = p_user_id ORDER BY r.created_at DESC LIMIT p_limit OFFSET p_offset $$;
 ${maskSql}
+CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
+CREATE TABLE public.user_roles (user_id uuid NOT NULL, role public.app_role NOT NULL);
+CREATE FUNCTION public.has_role(_user_id uuid, _role public.app_role) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
+  SELECT EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id = _user_id AND r.role = _role) $$;
+CREATE FUNCTION public.seed_jobs_hidden_publicly() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT true $$;
+CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+${realReviews}
 
 INSERT INTO public.feature_switches VALUES ('declutter', 'everyone'), ('declutter_wanted', 'everyone');
 INSERT INTO public.profiles (user_id, full_name, avatar_url, handle, email, phone, location, bio) VALUES
@@ -159,8 +164,19 @@ INSERT INTO public.jobs (customer_id, helper_id, status, title, category, locati
   ('${BUYER}', '${ELI}', 'completed', 'Seed completed', 'seed_category', 'Baton Rouge, LA', 90, current_date - 10, 'released', true),
   ('${TESTREV}', '${ELI}', 'completed', 'Test poster job', 'test_category', 'Baton Rouge, LA', 90, current_date - 10, 'released', false),
   ('${BUYER}', '${ELI}', 'cancelled', 'Cancelled as Helpr', 'cancel_category', 'Baton Rouge, LA', 90, current_date - 10, 'released', false);
-INSERT INTO public.reviews (reviewee_id, reviewer_id, rating, feedback, job_category) VALUES
-  ('${ELI}', '${REVIEWER}', 5, 'Great work', 'moving');
+INSERT INTO public.jobs (id, customer_id, helper_id, status, title, category, location, budget, date_needed, payment_status, is_seed) VALUES
+  ('${U(351)}', '${REVIEWER}', '${ELI}', 'completed', 'Reviewed move', 'moving', 'Baton Rouge, LA', 60, current_date - 30, 'released', false),
+  ('${U(352)}', '${REVIEWER}', '${ELI}', 'completed', 'Seed reviewed job', 'moving', 'Baton Rouge, LA', 60, current_date - 30, 'released', true),
+  ('${U(353)}', '${REVIEWER}', '${ELI}', 'cancelled', 'Cancelled reviewed job', 'moving', 'Baton Rouge, LA', 60, current_date - 30, 'released', false);
+-- Real reviews columns (types.ts). One public review; the rest must never show: from a test account, on a seed job,
+-- on a cancelled job, not yet visible (blind window), not published.
+INSERT INTO public.reviews (job_id, reviewee_id, reviewer_id, rating, feedback, feedback_visible_at, status) VALUES
+  ('${U(351)}', '${ELI}', '${REVIEWER}', 5, 'Great work', now() - interval '1 day', 'published'),
+  ('${U(351)}', '${ELI}', '${TESTREV}', 1, 'TEST REVIEW from a test account', now() - interval '1 day', 'published'),
+  ('${U(352)}', '${ELI}', '${REVIEWER}', 2, 'SEED JOB REVIEW', now() - interval '1 day', 'published'),
+  ('${U(353)}', '${ELI}', '${REVIEWER}', 2, 'CANCELLED JOB REVIEW', now() - interval '1 day', 'published'),
+  ('${U(351)}', '${ELI}', '${REVIEWER}', 3, 'BLIND REVIEW', now() + interval '3 day', 'published'),
+  ('${U(351)}', '${ELI}', '${REVIEWER}', 3, 'HIDDEN REVIEW', now() - interval '1 day', 'hidden');
 
 INSERT INTO public.declutter_wanted (id, user_id, what, category, max_price_cents, area_lat, area_lng, status, public, removed_at, expires_at, is_seed) VALUES
   ('${U(401)}', '${ELI}', 'crib', 'baby', 8000, 30.45, -91.15, 'open', true, NULL, now() + interval '10 day', false),
@@ -225,7 +241,7 @@ check("P4 jobs: own open job with the town only; no cancelled, expired, unfunded
 
 const h = p?.helpr ?? {};
 check("P5 Helpr work: jobs done without test jobs, their categories, reviews with the reviewer as First L.",
-  h.jobs_done === 2 && JSON.stringify([...(h.categories ?? [])].sort()) === JSON.stringify(["moving", "yard_work"])
+  h.jobs_done === 3 && JSON.stringify([...(h.categories ?? [])].sort()) === JSON.stringify(["moving", "yard_work"])
     && h.reviews?.length === 1 && h.reviews[0].reviewer_name === "Rita T." && h.reviews[0].rating === 5 && !json.includes("Thibodeaux"),
   JSON.stringify(h));
 
@@ -289,6 +305,20 @@ await db.exec(`INSERT INTO public.profile_handles_retired (handle, user_id) VALU
 const old = await page("eli-old");
 check("P12 an old handle opens its owner's current page, with the current handle", old.v?.handle === "eli-b" && old.v?.name === "Eli B.",
   old.error ?? JSON.stringify(old.v)?.slice(0, 80));
+
+// P13 (re-review 2026-11-01): a test account's review (or one on a seed or cancelled job, still blind, or not
+// published) never shows, to a guest or to a signed-in admin: the list no longer depends on the caller.
+const ADMIN = U(10);
+await db.exec(`INSERT INTO public.profiles (user_id, full_name, handle) VALUES ('${ADMIN}', 'Ada Admin', NULL) ON CONFLICT DO NOTHING;
+  INSERT INTO public.user_roles VALUES ('${ADMIN}', 'admin')`);
+const asAdmin = await page("eli-b", { uid: ADMIN, role: "authenticated" });
+const asTester = await page("eli-b", { uid: TESTREV, role: "authenticated" });
+const asGuest = await page("eli-b");
+const bad = /TEST REVIEW|SEED JOB REVIEW|CANCELLED JOB REVIEW|BLIND REVIEW|HIDDEN REVIEW/;
+const lists = [asGuest, asAdmin, asTester].map((r) => r.v?.helpr?.reviews);
+check("P13 test, seed, cancelled, blind and unpublished reviews never show, for a guest, an admin or a test account",
+  lists.every((l) => Array.isArray(l) && l.length === 1 && l[0].feedback === "Great work" && !bad.test(JSON.stringify(l))),
+  JSON.stringify(lists.map((l) => l?.map((x) => x.feedback))));
 
 if (BEFORE) {
   console.log(`--before: ${failures}/${checks} FAIL (expected ${checks})`);

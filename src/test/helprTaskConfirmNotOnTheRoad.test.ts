@@ -8,8 +8,8 @@
  * that it matches the app's STILL_IN_HAND_MS, and that the refusal has words at the call site.
  * Backend proof: src/test/pglite/helprTaskConfirmNotOnTheRoad.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
- * @mutate supabase/migrations/20261031082308_helpr_task_confirm_not_on_the_road.sql | t.picked_up_at > now() - interval '24 hours' | t.picked_up_at > now() - interval '1 minute'
- * @mutate supabase/migrations/20261031082308_helpr_task_confirm_not_on_the_road.sql |   IF t.status = 'picked_up' AND (t.picked_up_at IS NULL OR |   IF t.status = 'no_such' AND (t.picked_up_at IS NULL OR
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | t.picked_up_at > now() - interval '24 hours' | t.picked_up_at > now() - interval '1 minute'
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF t.status = 'picked_up' AND t.stuck_stage IS DISTINCT FROM 'collecting' |   IF t.status = 'no_such' AND t.stuck_stage IS DISTINCT FROM 'collecting'
  * @mutate src/lib/declutter/errors.ts |   delivery_on_the_way: "The Helpr is still bringing it. Tap I got it once it's dropped off.", |   delivery_on_the_way: "Something went wrong.",
  */
 import { describe, expect, it } from "vitest";
@@ -32,7 +32,8 @@ describe("The buyer's I got it on a Helpr delivery is refused while it is on the
     const fn = body("helpr_task_customer_confirm");
     expect(fn).toMatch(/IF t\.status NOT IN \('picked_up', 'delivered'\) THEN/);
     expect(fn).toMatch(
-      /IF t\.status = 'picked_up' AND \(t\.picked_up_at IS NULL OR t\.picked_up_at > now\(\) - interval '24 hours'\) THEN RAISE EXCEPTION 'delivery_on_the_way'/,
+      // BUY-36 (20261031231150): the one exception is a buyer collecting it from a Helpr at fault (stuck_stage 'collecting').
+      /IF t\.status = 'picked_up' AND t\.stuck_stage IS DISTINCT FROM 'collecting' AND \(t\.picked_up_at IS NULL OR t\.picked_up_at > now\(\) - interval '24 hours'\) THEN RAISE EXCEPTION 'delivery_on_the_way'/,
     );
     const onRoad = fn.indexOf("'delivery_on_the_way'");
     const pays = fn.indexOf("helpr_task_source_event(t.id, 'confirmed', 'customer')");

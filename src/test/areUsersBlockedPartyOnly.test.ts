@@ -142,6 +142,7 @@ const EXPECTED_CALLERS = [
   "helpr_task_offer_online",
   "helpr_task_pickup_windows", // 20261028232930: the Helpr's Accept picker; passes the caller (v_uid) as one side
   "helpr_task_same_pickup_slot", // 20261030152601: the same filter on the Accept card; passes the caller (v_uid) as one side
+  "helpr_task_send_message", // 20261031231948 (BUY-36, the delivery chat): v_uid := auth.uid() is one argument, a party of the task the other
   // Delivery tips (Q2453, 20261028014848): v_uid := auth.uid() (the delivery's buyer) is one argument,
   // the delivery's Helpr (t.helpr_id) the other.
   "helpr_task_tip_start",

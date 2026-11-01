@@ -5,7 +5,7 @@
  *
  * @mutate supabase/functions/_shared/payDelayNotice.ts | return kind === "not_payable" \|\| kind === "rejected" \|\| kind === "unusable" ? "account" : "sending"; | return "account";
  * @mutate supabase/functions/_shared/payDelayNotice.ts | now - at >= PAY_DELAY_GRACE_HOURS * 60 * 60 * 1000 | now - at >= 0
- * @mutate supabase/functions/process-scheduled-payouts/index.ts | poster_fee_flat_cents, is_seed, payout_scheduled_at")\n      .eq("status", "completed") | poster_fee_flat_cents, is_seed")\n      .eq("status", "completed")
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts | poster_fee_flat_cents, is_seed, payout_scheduled_at"; | poster_fee_flat_cents, is_seed";
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -19,7 +19,9 @@ describe("the cron can tell a job is late", () => {
   // Without this column every job reads "not known to be late" and nobody is ever told.
   it("selects payout_scheduled_at on the jobs it pays", () => {
     const cron = readFileSync(resolve(process.cwd(), "supabase/functions/process-scheduled-payouts/index.ts"), "utf8");
-    expect(cron).toMatch(/is_seed, payout_scheduled_at"\)\s*\.eq\("status", "completed"\)/);
+    // JOB_COLUMNS is the one column list both the normal and the early crew-member pass select (JOBS-3).
+    expect(cron).toMatch(/const JOB_COLUMNS = "[^"]*is_seed, payout_scheduled_at";/);
+    expect(cron).toMatch(/\.select\(JOB_COLUMNS\)\s*\.eq\("status", "completed"\)/);
   });
 });
 

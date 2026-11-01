@@ -48,7 +48,7 @@ import { readdirSync } from "./helpers/trackedFiles";
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | await closeDecidedDisputeOnLostChargeback( | void (
  * @mutate supabase/migrations/20260926034237_chargeback_lost_closes_decided_dispute.sql | OR _disputed_cents < _charge_cents THEN | THEN
  * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | _customer_id,\n      'info',\n      'Dispute decided', | _customer_id,\n      'info',\n      'Dispute resolved',
- * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | _job.customer_id, 'info', 'Dispute decided', | _job.customer_id, 'info', 'Dispute resolved',
+ * @mutate supabase/migrations/20261101044659_crew_member_paid_on_approval.sql | _job.customer_id, 'info', 'Dispute decided', | _job.customer_id, 'info', 'Dispute resolved',
  * @mutate src/components/job-card/jobStatusLine.ts | case "completed":\n      if (disputeSettling(job)) return "dispute_settling";\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid"; | case "completed":\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid";
  * @mutate supabase/migrations/20260927012240_group_crew_disputes.sql | IF _payment_status = 'chargeback' THEN | IF false THEN
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts | const restored = preDecisionPaymentStatus(closedJob); | const restored = preChargebackPaymentStatus(closedJob);

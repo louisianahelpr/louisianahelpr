@@ -14,9 +14,9 @@
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at` | JOB_READABLE_COLUMNS}`
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | .eq("id", jobId).eq("customer_id", userId).limit(1)); | .eq("id", jobId).limit(1));
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     <div data-poster-more="" hidden> |     <div data-poster-more="">
- * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |   const crew = job.is_group_job && job.status === "in_progress" ? ( |   const crew = false ? (
  * @mutate src/components/job-card/JobStepCard.tsx |   const menuChips = menu ? moreChips.filter((c) => !(isValidElement(c) && c.key === "message")) : []; |   const menuChips = menu ? moreChips : [];
  * @mutate src/components/job-card/JobStepCard.tsx | menu?.secondHost && menuCount === 1 ? | menu?.secondHost && menuCount === 2 ?
+ * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     crewRoster: job.is_group_job && detail ? detail.groupHelpersByJob?.[job.id] ?? [] : undefined, |     crewRoster: undefined,
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor } from "@testing-library/react";
@@ -85,12 +85,12 @@ function Harness() {
     <>
       <p data-testid="ready">{String(f.ready)}</p>
       <p data-testid="nobody">{String(f.crewNobodyLeft)}</p>
+      <p data-testid="roster">{f.crewRoster === undefined ? "none" : `rows=${f.crewRoster.length}`}</p>
       <button onClick={f.approve}>approve</button>
       <button onClick={f.cancel}>cancel</button>
       <p data-testid="count">{f.moreCount}</p>
       <div data-testid="second" ref={f.setSecondHost} />
       {listOpen.value && <div data-testid="list" ref={f.setListHost} />}
-      {f.crew}
       {f.panel}
       {f.dialogs}
     </>
@@ -139,18 +139,16 @@ describe("the job page runs the Posted card's own flows (usePosterPageFlows)", (
     expect(calls.from.some((c) => c.table === "job_tracking" && c.eq.some(([k, v]) => k === "job_id" && v === "job-1"))).toBe(true);
   });
 
-  // JOBS-3: an under-way crew. Its roster is on the page (per-member "Didn't show"; it was inside the old More panel),
-  // and with no roster row left (every member reported) the page knows nobody is left, so its Cancel job row shows.
-  it("an under-way crew: the page shows the crew roster, and an empty roster means nobody is left", async () => {
+  // JOBS-3 / JA-32 (audit 11-01): an under-way crew. Its roster is the PAGE's (JobPage "Your crew", from crewRoster),
+  // never hidden in More options; with no roster row left (every member reported) nobody is left, so Cancel job shows.
+  it("an under-way crew: the roster is handed to the page, not hidden in More options; an empty roster means nobody is left", async () => {
     const saved = { is_group_job: JOB.is_group_job, helper_id: JOB.helper_id, helper_completed_at: JOB.helper_completed_at };
     Object.assign(JOB, { is_group_job: true, helper_id: null, helper_completed_at: null, helpers_needed: 2 });
     try {
       const { container } = mount();
       await waitFor(() => expect(screen.getByTestId("ready").textContent).toBe("true"));
-      const crew = container.querySelector("[data-poster-crew]") as HTMLElement;
-      expect(crew).toBeTruthy();
-      expect(crew.closest("[data-poster-more]")).toBeNull();
-      await waitFor(() => expect(crew.textContent).toContain("Your crew · 0 of 2 hired"));
+      await waitFor(() => expect(screen.getByTestId("roster").textContent).toBe("rows=0"));
+      expect(container.querySelector("[data-poster-more]")!.textContent).not.toContain("Your crew");
       expect(screen.getByTestId("nobody").textContent).toBe("true");
     } finally {
       Object.assign(JOB, saved);
@@ -161,7 +159,8 @@ describe("the job page runs the Posted card's own flows (usePosterPageFlows)", (
   it("a one-Helpr job has no crew roster and is never 'nobody left'", async () => {
     const { container } = mount();
     await waitFor(() => expect(screen.getByTestId("ready").textContent).toBe("true"));
-    expect(container.querySelector("[data-poster-crew]")).toBeNull();
+    expect(screen.getByTestId("roster").textContent).toBe("none");
+    expect(container.textContent).not.toContain("Your crew");
     expect(screen.getByTestId("nobody").textContent).toBe("false");
   });
 

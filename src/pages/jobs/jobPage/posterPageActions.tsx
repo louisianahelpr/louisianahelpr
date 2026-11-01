@@ -62,7 +62,7 @@ export function usePosterPageActions({
   /** The step due now, or Message when none is (the page's lead without an override). */
   primary: PagePrimary | null;
   /** The one row of buttons; `override` is the page's own step (Confirm they've arrived), null for none. */
-  row: (override?: PagePrimary | null) => React.ReactNode;
+  row: (override?: PagePrimary | null, moreExtras?: RowAction[]) => React.ReactNode;
   /** The hidden card (its flows and dialogs). */
   panel: React.ReactNode;
   dialogs: React.ReactNode;
@@ -125,13 +125,13 @@ export function usePosterPageActions({
     canCancel && { key: "cancel", label: "Cancel job", go: flows.cancel, disabled: !flows.ready, danger: true },
   ].filter(Boolean) as RowAction[];
   const cardCount = cardSteps ? flows.moreCount : 0;
-  const row = (override: PagePrimary | null | undefined) => {
+  const row = (override: PagePrimary | null | undefined, moreExtras: RowAction[] = []) => {
     const step = override !== undefined ? override : primaryOrMessage === message ? null : primaryOrMessage;
     const msg: RowAction | null = message ? { key: "message", label: message.label, go: message.go } : null;
     // No step of the page's own, and the card has one (Review, Tip on a finished job): the card's leads.
     const cardLead = !step && cardSteps && flows.leadCount > 0;
     const lead: RowAction | null = step ? { key: "step", label: step.label, go: step.go, disabled: step.disabled } : cardLead ? null : msg;
-    const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras()];
+    const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras(), ...moreExtras];
     return (
       <>
       {/* The card's own words above its buttons (a crew's Tip rows; why a Tip can't be sent yet). */}

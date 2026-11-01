@@ -161,6 +161,16 @@ vi.mock("@/hooks/usePendingSaveConsumer", () => ({ usePendingSaveConsumer: () =>
 vi.mock("@/hooks/useJobRef", () => ({ useJobRef: () => undefined }));
 // Board 184: the reach read is a hidden-switch RPC; the tests set it through state.reach.
 vi.mock("./useJobReach", () => ({ useJobReach: () => state.reach }));
+// Continue another day (owner 2026-11-01): the job's active continue day, and the calls the page makes.
+const continueCalls = vi.hoisted(() => [] as string[]);
+const continueState = vi.hoisted(() => ({ row: null as null | Record<string, unknown> }));
+vi.mock("@/lib/continueDay", async (orig) => ({
+  ...(await orig<typeof import("@/lib/continueDay")>()),
+  fetchContinueDay: async () => continueState.row,
+  answerContinueDay: async (id: string, accept: boolean) => { continueCalls.push(`answer:${id}:${accept}`); },
+  confirmContinueDay: async (id: string) => { continueCalls.push(`confirm:${id}`); },
+  proposeContinueDay: async () => { continueCalls.push("propose"); return { status: "set" }; },
+}));
 // CMP-4: the poster's Book now panel reads its own data; it is proven in src/test/instantBookScreens.test.tsx.
 vi.mock("@/components/jobs/InstantBookPanel", () => ({ InstantBookPanel: () => null }));
 // An accepted (offered) job asks whether it was rescheduled; these jobs never were.
@@ -577,10 +587,10 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
 
 // Owner 2026-11-01: the on-the-way line and where the Helpr is sit ABOVE the tracker; Message and the card's options
 // share one row (none: Message alone; one: that action; two or more: More options); the Helpr's card sits above them.
-// @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />} |
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />} |
 // @mutate src/pages/jobs/jobPage/OnTheWayNow.tsx |   const mapped = p != null && (arrived ? p.status === "arrived" : p.status === "on_the_way") && |   const mapped = p != null &&
 // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |     : others === 1 | : others === -1
-// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras()]; |     const extras = [msg as RowAction, ...pageExtras()];
+// @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras(), ...moreExtras]; |     const extras = [msg as RowAction, ...pageExtras(), ...moreExtras];
 describe("job page, the poster's Helpr is on the way (owner 2026-11-01)", () => {
   const onTheWay = () => row({
     customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
@@ -717,7 +727,9 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByLabelText(/^Job progress, step 7 of 8: Working, waiting on you\./)).toBeTruthy();
     expect(screen.getByText("Next: mark it done when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
+    // Continue another day (owner 2026-11-01): "Need another day" joins the options, so they open in one tap.
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    fireEvent.click(within(screen.getByRole("dialog", { name: "More options" })).getByRole("button", { name: "Open in working" }));
     // F10: Working's own card for THIS job, in its bucket and opened (`?job=`; `?highlight=` there is an application id).
     expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
   });
@@ -1388,9 +1400,11 @@ describe("one row of buttons at every stage (B93)", () => {
     state.job = row({ ...live, helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:25:00Z", helper_completed_at: new Date().toISOString() });
     state.party = true;
     renderPage();
-    await waitFor(() => expect(rowLabels()).toEqual(["Message Rhonda", "Approve and release"]));
+    // Continue another day (owner 2026-11-01, Yusef's job): "Not finished? Set a day" sits with Message under More options.
+    await waitFor(() => expect(rowLabels()).toEqual(["More options", "Approve and release"]));
     // The review window is IN the next-step line (owner 11-01, live Done-stage screenshot), never a second panel.
     const line = document.querySelector("[data-next-step]") as HTMLElement;
+    await waitFor(() => expect(line.textContent).toMatch(/Rhonda/));
     expect(line.textContent).toMatch(/^Next: approve Rhonda's work · 23h 5\dm left, then Helpr support steps in$/);
     expect(document.querySelector("[data-approve-by]")).toBeNull();
     expect(document.body.textContent).not.toMatch(/to review — then Helpr support steps in/);
@@ -1645,5 +1659,76 @@ describe("job page, an offered Helpr is not told the address comes with an offer
     renderPage();
     expect(screen.getByRole("button", { name: "See the offer" })).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
+  });
+});
+
+describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yusef's job)", () => {
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     posterExtras.push({ key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open }); |
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | continueStep ?? jobNextStep( | jobNextStep(
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras)} |             {isPoster && posterActions.row(posterStep)}
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     helprExtras.push({ key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open }); |
+  const underWay = (over: Partial<JobPageRow> = {}) => row({
+    customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
+    poster_confirmed_arrival_at: "2026-10-28T12:40:00Z", ...over,
+  });
+  const setRow = (over: Record<string, unknown> = {}) => ({
+    id: "c1", job_id: "33333333-3333-3333-3333-333333333333", proposed_by: ME, new_date: "2026-11-05",
+    new_start_time: "09:00:00", note: null, status: "set", helper_confirmed_at: null, ...over,
+  });
+  beforeEach(() => { continueState.row = null; continueCalls.length = 0; Element.prototype.scrollTo ??= () => {}; });
+
+  it("the Helpr marked it done (Yusef's case): the poster can say it isn't finished and set a day", async () => {
+    state.job = underWay({ helper_completed_at: "2026-10-28T15:00:00Z" });
+    state.party = true;
+    state.moreCount = 0;
+    renderPage();
+    const rowEl = document.querySelector('[data-job-row="poster"]') as HTMLElement;
+    await waitFor(() => expect(within(rowEl).queryByRole("button", { name: "More options" })).toBeTruthy());
+    fireEvent.click(within(rowEl).getByRole("button", { name: "More options" }));
+    const sheet = await screen.findByRole("dialog", { name: "More options" });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Not finished? Set a day" }));
+    expect(await screen.findByRole("dialog", { name: "Set a day to finish" })).toBeTruthy();
+  });
+
+  it("a set day: both sides read 'Continuing Thu 11/5 at 9 AM', the poster waiting on the Helpr by name", async () => {
+    continueState.row = setRow();
+    state.job = underWay();
+    state.party = true;
+    renderPage();
+    expect(await screen.findByText("Continuing Thu 11/5 at 9 AM")).toBeTruthy();
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Continuing Thu 11/5 at 9 AM · waiting on Rhonda");
+  });
+
+  it("a Helpr's ask: 'Confirm new day' leads on the right (one tap) over Approve", async () => {
+    continueState.row = setRow({ status: "proposed", proposed_by: POSTER });
+    state.job = underWay({ helper_completed_at: "2026-10-28T15:00:00Z" });
+    state.party = true;
+    renderPage();
+    const btn = await screen.findByRole("button", { name: "Confirm new day" });
+    const rowEl = document.querySelector('[data-job-row="poster"]') as HTMLElement;
+    const names = within(rowEl).getAllByRole("button").map(fullName);
+    expect(names[names.length - 1]).toBe("Confirm new day");
+    expect(screen.queryByRole("button", { name: "Approve and release" })).toBeNull();
+    fireEvent.click(btn);
+    await waitFor(() => expect(continueCalls).toEqual(["answer:c1:true"]));
+  });
+
+  it("the hired Helpr on a job under way: 'Need another day'; on a set day, 'Confirm I'll be there' leads", async () => {
+    state.job = underWay({ customer_id: POSTER, helper_id: ME });
+    state.party = true;
+    const { unmount } = renderPage();
+    const helprRow = await waitFor(() => document.querySelector('[data-job-row="helpr"]') as HTMLElement);
+    const all = () => [...within(helprRow).queryAllByRole("button").map(fullName)];
+    if (!all().includes("Need another day")) {
+      fireEvent.click(within(helprRow).getByRole("button", { name: "More options" }));
+      expect(within(await screen.findByRole("dialog", { name: "More options" })).getByRole("button", { name: "Need another day" })).toBeTruthy();
+    }
+    unmount();
+    continueState.row = setRow({ proposed_by: POSTER });
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Confirm I'll be there" }));
+    await waitFor(() => expect(continueCalls).toEqual(["confirm:c1"]));
   });
 });

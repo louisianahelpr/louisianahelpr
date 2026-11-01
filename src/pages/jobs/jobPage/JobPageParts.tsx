@@ -20,7 +20,7 @@ import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
-import { NextStep } from "@/components/ui/NextStep";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { isExpiredListing } from "@/lib/expiredListing";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
 
@@ -32,7 +32,7 @@ const MONEY = "text-[hsl(var(--burnt-sienna))]";
  * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
  * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
  */
-export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, hideNext = false, crewMember, offerOut = false, offerUntil = null, noShowRepostedOn = null, approveLeft = null }: {
+export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, hideNext = false, crewMember, offerOut = false, offerUntil = null, noShowRepostedOn = null, approveLeft = null, continueStep = null }: {
   job: JobPageRow; side: "poster" | "helpr" | null; trackingStatus?: string | null; pendingApplicants?: number;
   /** The poster's offer or booking is out (JA-48 / JA-49): the line waits on that Helpr, never "Helprs to apply". */
   offerOut?: boolean;
@@ -42,6 +42,8 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   noShowRepostedOn?: string | null;
   /** The poster's review window in words ("23h 52m left, then Helpr support steps in"), in the line itself. */
   approveLeft?: string | null;
+  /** Continue another day (owner 2026-11-01): "Continuing Thu 11/5 at 9 AM · waiting on Yusef" over the tracker's own line. */
+  continueStep?: NextStepValue | null;
   /** The page says the step above the tracker (OnTheWayNow): the tracker draws its bar without repeating the line. */
   hideNext?: boolean;
   /** The viewer is on this crew's roster (JA-33): whether they confirmed their spot. Undefined = not a crew member. */
@@ -64,7 +66,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   if (progress.stage === null && !progress.next) return null;
   // THE STATUS LINE IS THE NEXT STEP (owner 11-01 12:05 PM): what to do or who we wait on, with its deadline, ABOVE the
   // bar (mockups 4 and 5); the bar draws no line of its own under it. Off the path the tracker keeps its own words.
-  const step = hideNext ? null : jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, offerUntil, noShowRepostedOn, approveLeft });
+  const step = hideNext ? null : continueStep ?? jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, offerUntil, noShowRepostedOn, approveLeft });
   return (
     <div data-job-tracker="" className="space-y-3">
       {step && <NextStep value={step} />}

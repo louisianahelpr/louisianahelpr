@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1078,
-    "files": 301,
-    "rendering": 997,
+    "calls": 1082,
+    "files": 303,
+    "rendering": 1001,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 32,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 181,
-      "toast.error": 742,
+      "toast": 183,
+      "toast.error": 744,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 460,
       "template": 98,
-      "dynamic": 571,
+      "dynamic": 575,
       "jsx": 0
     }
   },
@@ -7591,6 +7591,36 @@
       "renders": true
     },
     {
+      "file": "src/components/jobs/ContinueDaySheet.tsx",
+      "line": 55,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "out.status === \"set\" ? `Set: continuing ${when}.` : `Sent. ${other || \"They\"} will confirm ${when}.`",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Set: continuing ${when}."
+          },
+          {
+            "form": "template",
+            "text": "Sent. ${other || \"They\"} will confirm ${when}."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/jobs/ContinueDaySheet.tsx",
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't save that. Check your connection and try again.\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/landing/LandingAppleButton.tsx",
       "line": 29,
       "kind": "toast.error",
@@ -12024,6 +12054,26 @@
       "title": {
         "form": "dynamic",
         "text": "e.userMessage ?? \"We couldn't delete that. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/jobPage/useContinueDayActions.tsx",
+      "line": 59,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "done"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/jobPage/useContinueDayActions.tsx",
+      "line": 62,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't save that. Check your connection and try again.\")"
       },
       "renders": true
     },

@@ -5,6 +5,9 @@
  * @mutate src/components/dashboard/BrowseTasksFeed.tsx | <BrowseEmptyState | <EmptyState variant="bare"
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | <BrowseEmptyState | <EmptyState variant="bare"
  * @mutate src/components/declutter/DeclutterFreeView.tsx | <BrowseEmptyState | <EmptyState variant="bare"
+ * @mutate src/components/shops/ShopsHomeView.tsx |         <BrowseEmptyState | <EmptyState variant="bare"
+ * @mutate src/components/rentals/listings/RentBrowse.tsx |         <BrowseEmptyState | <EmptyState variant="bare"
+ * @mutate src/components/rentals/listings/RentBrowse.tsx | className="flex min-h-0 flex-1 flex-col gap-4"> | className="space-y-4">
  * @mutate src/components/ui/BrowseEmptyState.tsx |   return (nav && nav.height > 0 ? nav.top : innerHeight) / 2; |   return innerHeight / 2;
  * @mutate src/components/ui/BrowseEmptyState.tsx |   return Math.max(highest, Math.round(screenMid - natural)); |   return 0;
  * @mutate src/components/ui/BrowseEmptyState.tsx |   return Math.max(highest, Math.round(screenMid - natural)); |   return Math.round(screenMid - natural);
@@ -18,7 +21,8 @@ import { blankComments } from "./helpers/blankNonCode";
 import { browseEmptyScreenMid, browseEmptyShift, SHIFTED_LAYER } from "@/components/ui/BrowseEmptyState";
 
 const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "../..", p), "utf8"));
-const SCREENS = ["src/components/dashboard/BrowseTasksFeed.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterFreeView.tsx"];
+// Owner 11-01 (B107): Shops and Homes too ("Opens soon" sat mid-screen on /shops and near the top on /rentals).
+const SCREENS = ["src/components/dashboard/BrowseTasksFeed.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterFreeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/listings/RentBrowse.tsx"];
 
 describe("Browse empty states share one spot", () => {
   // Audit SS-9: moved up, the layer's empty top lay over "Save this search" and took its press. The press itself is
@@ -31,6 +35,9 @@ describe("Browse empty states share one spot", () => {
     expect(src.length).toBeGreaterThan(1000);
     expect(src).toContain("<BrowseEmptyState");
     expect(src).not.toMatch(/<EmptyState\s+variant="bare"/);
+  });
+  it("Homes' list fills its column, so the shared layer has room to centre in (it sat near the top)", () => {
+    expect(read("src/components/rentals/listings/RentBrowse.tsx")).toMatch(/aria-label=\{kind\.key === "rent" \? "Homes for rent" : "Homes for sale"\} className="flex min-h-0 flex-1 flex-col gap-4"/);
   });
   it("centres above the bottom nav, measured from the nav, and on the whole screen when it is hidden", () => {
     expect(browseEmptyScreenMid(800, { top: 700, height: 100 })).toBe(350);

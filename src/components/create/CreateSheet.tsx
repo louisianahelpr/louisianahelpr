@@ -30,12 +30,17 @@ interface CreateAction {
  * - Homes: List for rent (Owning's add property, the first step of a rent listing). "List for
  *   sale" needs a property id (/rentals/listings/new?sell=<id>), so not here yet.
  */
+// Only the import goes through Vite's preload wrapper: a read made INSIDE `import(...).then(...)` runs inside it, so
+// its failure is dispatched as vite:preloadError (a chunk-reload) and, prevented, resolves undefined (Sentry
+// JAVASCRIPT-54, '["shops","mine"] data is undefined'). Guard: src/test/dynamicImportThenDoesNoWork.test.ts.
+const shopsApi = () => import("@/lib/shops/api");
+
 function useCreateRows() {
   const isOn = useSectionIsOn();
   const isPreview = useSectionIsPreview();
   const shopsOn = useFeature("shops");
   // The Shops data code loads with this query (only when Shops is on), not with the dock on every screen (/home cut).
-  const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: () => import("@/lib/shops/api").then((m) => m.fetchMyShopId()), enabled: shopsOn });
+  const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: () => shopsApi().then((m) => m.fetchMyShopId()), enabled: shopsOn });
   const hasShop = !!myShop.data;
   const actions: Record<SectionKey, CreateAction[]> = {
     jobs: [{ label: "Post a job", path: "/post-job", gated: true }],

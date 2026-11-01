@@ -7,6 +7,11 @@ import { postedActivityBucket, appliedActivityBucket } from "@/components/job-ca
 // a section that is off, or a member with nothing there, never downloads that section's data code.
 const declutterApi = () => import("@/lib/declutter/api");
 const shopOrdersApi = () => import("@/lib/shops/orders");
+// Only the import goes through Vite's preload wrapper: a read made INSIDE `import(...).then(...)` runs inside it, so
+// its failure is dispatched as vite:preloadError (a chunk-reload) and, prevented, resolves undefined (Sentry
+// JAVASCRIPT-54, '["shops","mine"] data is undefined'). Guard: src/test/dynamicImportThenDoesNoWork.test.ts.
+const rentalsApi = () => import("@/lib/rentals/api");
+const handoverApi = () => import("@/lib/declutter/handover");
 import { useFeature } from "@/hooks/useFeature";
 import { useNeedsYouTodos } from "./needsYouTodos";
 import { deriveLiveNow, deriveWaiting } from "./nextUpStates";
@@ -54,12 +59,12 @@ export function useHomeSummary(user: SupaUser | null) {
   const orders = useQuery({ queryKey: ["shops", "my-orders", uid], queryFn: () => shopOrdersApi().then((m) => m.fetchMyOrders(uid)), enabled: !!uid && shopsOn });
   // The to-do list is the ONE the nav badges count (badge = To-do, owner 2026-10-20).
   const { todos } = useNeedsYouTodos(user);
-  const homes = useQuery({ queryKey: ["rentals", "my-properties", uid], queryFn: () => import("@/lib/rentals/api").then((m) => m.fetchMyProperties(uid)), enabled: !!uid && homesOn });
+  const homes = useQuery({ queryKey: ["rentals", "my-properties", uid], queryFn: () => rentalsApi().then((m) => m.fetchMyProperties(uid)), enabled: !!uid && homesOn });
   // Coming up's Declutter pickups and shop orders: the SAME reads (keys and fetches) the Buying/Selling
   // tabs and the Shop dashboard make, so Home adds no query shape.
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: () => declutterApi().then((m) => m.fetchMyCart()), enabled: !!uid && declutterOn });
   const paidIds = [...new Set((cart.data ?? []).filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id!))];
-  const bookings = useQuery({ queryKey: ["declutter", "bookings", paidIds.join(",")], queryFn: () => import("@/lib/declutter/handover").then((m) => m.fetchMyBookings(paidIds)), enabled: paidIds.length > 0 });
+  const bookings = useQuery({ queryKey: ["declutter", "bookings", paidIds.join(",")], queryFn: () => handoverApi().then((m) => m.fetchMyBookings(paidIds)), enabled: paidIds.length > 0 });
   const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => m.fetchShopOrders(uid)), enabled: !!uid && shopsOn });
 
   return useMemo(() => {

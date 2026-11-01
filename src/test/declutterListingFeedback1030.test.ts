@@ -20,11 +20,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 import { blankComments } from "./helpers/blankNonCode";
-import { dropsOutcomeLine, DROPS_SWITCH_LABEL, priceChoiceToSave } from "@/components/declutter/sellForm";
+import { DROPS_SWITCH_LABEL, priceChoiceToSave } from "@/components/declutter/sellForm";
+import { dropsValue, makeFreeValue } from "@/components/declutter/SellingSettingsRows";
 import { pickupFromPlaces } from "@/components/declutter/useSavedPickup";
 import { TAX_STATEMENTS, TAX_TICK_LABEL } from "@/components/declutter/declutterUi";
 import { sellerStateStopsDrops } from "@/lib/declutter/priceDrop";
-import { AUTO_FREE_OPTIONS, autoFreeExplainer, autoFreeOutcomeLine } from "@/lib/declutter/autoFree";
+import { AUTO_FREE_OPTIONS, autoFreeExplainer } from "@/lib/declutter/autoFree";
 import { groundPrice, sanitizeDraft } from "../../supabase/functions/declutter-ai-draft/sanitize";
 
 const form = (over: Partial<Parameters<typeof priceChoiceToSave>[0]>) => ({ free: false, price: "45", floor: "35", drops: true, dropPct: 5, ...over });
@@ -47,11 +48,12 @@ describe("a listing that can't drop says nothing about drops", () => {
 describe("the form can't be misread as never-drop", () => {
   it("names the switch plainly and says what will be saved", () => {
     expect(DROPS_SWITCH_LABEL).toBe("Lower the price over time");
-    expect(dropsOutcomeLine(form({}))).toBe("Price drops: on, 5% each evening, never below $35.");
-    expect(dropsOutcomeLine(form({ drops: false }))).toBe("Price drops: off. It stays at $45 until you change it.");
-    expect(dropsOutcomeLine(form({ floor: "45" }))).toBe("Price drops: off. It stays at $45 until you change it.");
-    expect(dropsOutcomeLine(form({ price: "1", floor: "" }))).toMatch(/^Price drops: off/);
-    expect(dropsOutcomeLine(form({ free: true }))).toBeNull();
+    // The Price drops row before Post (owner 2026-11-01: "5% each evening, lowest $8", or "Off").
+    expect(dropsValue(form({}))).toBe("5% each evening, lowest $35");
+    expect(dropsValue(form({ drops: false }))).toBe("Off");
+    expect(dropsValue(form({ floor: "45" }))).toBe("Off");
+    expect(dropsValue(form({ price: "1", floor: "" }))).toBe("Off");
+    expect(dropsValue(form({ free: true }))).toBeNull();
   });
 
   it("Never under make-it-free is about free, never about the price", () => {
@@ -59,8 +61,8 @@ describe("the form can't be misread as never-drop", () => {
     // The owner's listing: this line said "It stays at your price" while its drops were on.
     expect(autoFreeExplainer(null)).not.toMatch(/stays at your price/i);
     expect(autoFreeExplainer(null)).toMatch(/price drops/);
-    expect(autoFreeOutcomeLine(null)).toMatch(/^Make it free: never/);
-    expect(autoFreeOutcomeLine(14)).toMatch(/^Make it free: after 14 days/);
+    expect(makeFreeValue(null)).toBe("Never");
+    expect(makeFreeValue(14)).toBe("After 14 days");
   });
 });
 

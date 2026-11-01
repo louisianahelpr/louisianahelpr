@@ -88,4 +88,28 @@ describe("the checkout sends the pick", () => {
     expect(s).toContain("slotChanged || spotChanged || bundleChanged || pickupChanged)) {");
     expect(s).toContain("? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart }");
   });
+
+  // B112 (B110 leftover 3): a changed pickup time is checked BEFORE the open page is closed, so a time the RPC would
+  // refuse never costs the buyer that page (the other changes, porch/delivery/meetup, already pre-check).
+  // @mutate supabase/functions/declutter-checkout/index.ts |       if (pickupChanged && slotStart) {\n        const refused = await pickupTimeRefused( |       if (false) {\n        const refused = await pickupTimeRefused(
+  // @mutate supabase/functions/declutter-checkout/index.ts |   if (!end) return json({ error: "invalid_slot", hint: "Pick a time inside the seller's pickup times." }, 400); |   void end;
+  // @mutate supabase/functions/declutter-checkout/index.ts |   if (!(t > now) \|\| t + 30 * 60_000 > now + 7 * 86_400_000) { |   if (false) {
+  // @mutate supabase/functions/declutter-checkout/index.ts | p_order_id: orderId, p_seller: sellerId, p_handover: handover, p_start: slotStart, | p_order_id: orderId, p_seller: sellerId, p_handover: "pickup_home", p_start: slotStart,
+  it("declutter-checkout checks a changed pickup time before it closes the open page", () => {
+    const s = read("supabase/functions/declutter-checkout/index.ts");
+    const fn = s.slice(s.indexOf("async function pickupTimeRefused("), s.indexOf("async function porchRefused("));
+    expect(fn.length).toBeGreaterThan(200);
+    // The rule is declutter_start_checkout's: ahead, inside 7 days, inside the order's hours (same handover).
+    expect(fn).toContain("if (!(t > now) || t + 30 * 60_000 > now + 7 * 86_400_000) {");
+    expect(fn).toContain('admin.rpc("declutter_checkout_pickup_end", {');
+    expect(fn).toContain("p_order_id: orderId, p_seller: sellerId, p_handover: handover, p_start: slotStart,");
+    expect(fn).toMatch(/if \(!end\) return json\(\{ error: "invalid_slot"/);
+    // Called on a changed time, after the page is known open and BEFORE it is expired.
+    const gate = s.indexOf("slotChanged || spotChanged || bundleChanged || pickupChanged)) {");
+    const call = s.indexOf("if (pickupChanged && slotStart) {\n        const refused = await pickupTimeRefused(admin, open.id");
+    const close = s.indexOf("await stripeOf(open.stripe_checkout_session_id).checkout.sessions.expire(open.stripe_checkout_session_id);");
+    expect(gate).toBeGreaterThan(0);
+    expect(call).toBeGreaterThan(gate);
+    expect(close).toBeGreaterThan(call);
+  });
 });

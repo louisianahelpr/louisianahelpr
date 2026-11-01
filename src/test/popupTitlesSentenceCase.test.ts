@@ -156,7 +156,9 @@ describe("every pop-up title is sentence case", () => {
     // 200: +1 the guest job preview's DialogHero, its title the job's own title or "Job" (b46 GuestJobPreview, train 8).
     // 201: +1 "Report a no-show?" (GroupJobHelpers' crew no-show confirm, b54 JOBS-3, train 10).
     // 202: +1 "Confirm their work?" (GroupJobHelpers, the poster confirms one crew member's work, b60 JOBS-3, train 11).
-    expect(all.length).toBe(202);
+    // 205: +3 CMP-4 instant book (b80, train 14, 2026-11-01): "Book ${name} now?" / "Book now?" (InstantBookPanel's
+    // confirm) and "Decline this booking?" (InstantBookingCard).
+    expect(all.length).toBe(205);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

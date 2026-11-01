@@ -16,7 +16,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
-import { pairLabel, PAIR_TEXT } from "@/components/ui/pairLabel";
+import { buttonLabel, pairLabel, PAIR_TEXT } from "@/components/ui/pairLabel";
 
 export type RowAction = {
   key: string;
@@ -35,6 +35,8 @@ const BTN = "min-w-0 w-full rounded-full px-4 text-ds-15 leading-tight";
 const PAIR_BTN = `min-w-0 w-full rounded-full leading-tight ${PAIR_TEXT}`;
 
 function ActionButton({ a, lead, pair = false }: { a: RowAction; lead?: boolean; pair?: boolean }) {
+  // A confirm reads just "Confirm" alone too (owner 11-01, pairLabel.ts buttonLabel); the full words stay its name.
+  const shown = pair ? pairLabel(a.label) : buttonLabel(a.label);
   return (
     <Button
       type="button"
@@ -44,10 +46,10 @@ function ActionButton({ a, lead, pair = false }: { a: RowAction; lead?: boolean;
       className={`${pair ? PAIR_BTN : BTN} ${a.danger ? "text-destructive-ink" : ""}`}
       disabled={a.disabled}
       onClick={a.go}
-      aria-label={pair && pairLabel(a.label) !== a.label ? a.label : undefined}
+      aria-label={shown !== a.label ? a.label : undefined}
       {...(a.gated ?? {})}
     >
-      {pair ? pairLabel(a.label) : a.label}
+      {shown}
     </Button>
   );
 }

@@ -66,3 +66,40 @@ export function shareMyProfile(handle: string, name?: string | null): Promise<Sh
     dialogTitle: "Share my profile",
   });
 }
+
+/** The public /u/<handle> page's data (public_profile_by_handle, 20261101041833): public fields only. */
+export interface PublicProfile {
+  handle: string;
+  name: string;
+  photo_url: string | null;
+  member_since: string;
+  stats: {
+    review_count?: number | null;
+    avg_rating?: number | null;
+    completed_jobs_as_helper?: number | null;
+    completed_jobs_total?: number | null;
+    posted_jobs_total?: number | null;
+    on_time_rate?: number | null;
+    repeat_hire_percent?: number | null;
+    is_id_verified?: boolean | null;
+    is_background_checked?: boolean | null;
+  };
+  listings: { id: string; title: string; price_cents: number; area_label: string | null; photo_id: string | null; live_at: string }[];
+  jobs: { id: string; title: string; category: string; town: string | null; budget: number; date_needed: string }[];
+  helpr: {
+    jobs_done: number;
+    categories: string[];
+    reviews: { rating: number; feedback: string | null; created_at: string; reviewer_name: string; job_category: string | null; response_text: string | null; response_at: string | null }[];
+  };
+  wanted: { id: string; what: string; category: string; max_price_cents: number; created_at: string }[];
+}
+
+/** The page for a handle, or null when there is none to show (unknown, hidden or a test member). Throws on a network fault. */
+export async function fetchPublicProfile(handle: string): Promise<PublicProfile | null> {
+  const { data, error } = await supabase.rpc("public_profile_by_handle", { p_handle: handle });
+  if (error) {
+    if (isMissingRpcNamed(error, "public_profile_by_handle")) return null;
+    throw new Error(GENERIC);
+  }
+  return (data as unknown as PublicProfile | null) ?? null;
+}

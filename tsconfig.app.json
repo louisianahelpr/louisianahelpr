@@ -86,6 +86,8 @@
     "supabase/functions/_shared/addressMatch.ts",
     "supabase/functions/_shared/geocodeAddressPoint.ts",
     "supabase/functions/_shared/declutterCheckoutName.ts",
+    // LEAD-CHECK-SWEEP: the check sweep's pure pieces (imageMediaType), imported by src/test/edge/declutterCheckSweep.test.ts.
+    "supabase/functions/declutter-ai-draft/checkSweep.ts",
     "supabase/functions/_shared/confirmLink.ts",
     "supabase/functions/_shared/supportGuest.ts",
     "supabase/functions/_shared/recentSignIn.ts",

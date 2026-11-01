@@ -2095,6 +2095,8 @@ export type Database = {
         Row: {
           auto_free_day12: boolean
           auto_free_days: number | null
+          ai_check_attempts: number
+          ai_check_last_try_at: string | null
           ai_checked_at: string | null
           ai_flag_reason: string | null
           auto_offers: boolean
@@ -2116,6 +2118,8 @@ export type Database = {
         Insert: {
           auto_free_day12?: boolean
           auto_free_days?: number | null
+          ai_check_attempts?: number
+          ai_check_last_try_at?: string | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           auto_offers?: boolean
@@ -2137,6 +2141,8 @@ export type Database = {
         Update: {
           auto_free_day12?: boolean
           auto_free_days?: number | null
+          ai_check_attempts?: number
+          ai_check_last_try_at?: string | null
           ai_checked_at?: string | null
           ai_flag_reason?: string | null
           auto_offers?: boolean
@@ -14924,6 +14930,11 @@ export type Database = {
         Args: { p_items_cents: number; p_shipping_cents: number }
         Returns: number
       }
+      declutter_check_sweep_claim: {
+        Args: { p_limit?: number }
+        Returns: { sweep_attempt: number; sweep_item_id: string; sweep_seller_id: string }[]
+      }
+      declutter_check_sweep_give_back: { Args: { p_item_id: string }; Returns: number }
       declutter_checkout_free: { Args: { p_handover: string; p_seller_id: string }; Returns: string }
       declutter_choose_donation: {
         Args: { p_item_ids: string[]; p_partner_id: string }

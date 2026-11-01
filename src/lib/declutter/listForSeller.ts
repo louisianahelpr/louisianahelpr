@@ -105,9 +105,26 @@ export async function helprUploadListingPhoto(helprId: string, itemId: string, f
   }
 }
 
-export async function helprDeleteListing(itemId: string): Promise<void> {
+/**
+ * Deletes the Helpr's unsent draft, then its photo objects: they sit in the Helpr's OWN folder
+ * (`<helpr>/declutter/<item>/`), so only the Helpr can remove them, and once the rows are gone nothing else names
+ * them. Best effort after the delete went through: a failed object delete is logged, never shown as a failed delete.
+ */
+export async function helprDeleteListing(helprId: string, itemId: string): Promise<void> {
   rpcData(await supabase.rpc("declutter_helpr_delete_listing", { p_item_id: itemId }),
     (e) => rpcErrorMessage("declutter_helpr_delete_listing", e));
+  if (!helprId) return;
+  const bucket = supabase.storage.from(DECLUTTER_PHOTO_BUCKET);
+  const folder = `${helprId}/declutter/${itemId}`;
+  const { data, error } = await bucket.list(folder, { limit: 100 });
+  if (error) {
+    console.warn("[declutter] could not list a deleted draft's photos", error.message);
+    return;
+  }
+  const paths = (data ?? []).map((o) => `${folder}/${o.name}`);
+  if (paths.length === 0) return;
+  const { error: rmErr } = await bucket.remove(paths);
+  if (rmErr) console.warn("[declutter] could not remove a deleted draft's photos", rmErr.message);
 }
 
 /** Sends every draft of the job to the seller; returns how many went. */

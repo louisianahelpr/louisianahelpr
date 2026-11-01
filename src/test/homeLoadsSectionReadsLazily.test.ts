@@ -1,9 +1,9 @@
 /**
  * Home's Declutter / Shops / Rentals reads load with their query, never with Home, and the refusal copy
  * (lifecycleErrors, ~100 KB raw) loads only on a refusal (AUD31-60/66, B84's /home cut; B44 10-31). Measured, local
- * vite build with land.sh's env: /home 433.93 -> 421.13 (reads) -> 407.91 KB gz (refusal copy); the budget
- * (scripts/perf/critical-path-budget.json) is now 408. Its +5% band would let a revert back in (433.9 is
- * +6.4% over 408, but 421 would pass), so this reads the source: Home's summary and to-do modules take only TYPES from the section data modules.
+ * vite build with land.sh's env: /home 433.93 -> 421.13 (reads) -> 407.91 (refusal copy) -> 394.28 KB gz
+ * (Create sheet's shop read); the budget (scripts/perf/critical-path-budget.json) is now 394. Its +5% band would let a revert back in (a revert
+ * of one chain stays inside it), so this reads the source: Home's summary and to-do modules take only TYPES from the section data modules.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -12,6 +12,7 @@ import ts from "typescript";
 
 // @mutate src/pages/home/homeDashboard/needsYouTodos.ts | import type { ShopOrder } from "@/lib/shops/orders"; | import { type ShopOrder, fetchShopOrders } from "@/lib/shops/orders";
 // @mutate src/lib/userBlocks.ts | const lifecycleErrors = () => import("@/lib/lifecycleErrors"); | import * as lifecycleErrorsNow from "@/lib/lifecycleErrors";\nconst lifecycleErrors = async () => lifecycleErrorsNow;
+// @mutate src/components/create/CreateSheet.tsx | queryFn: () => import("@/lib/shops/api").then((m) => m.fetchMyShopId()), | queryFn: () => fetchMyShopId(),
 // @mutate src/pages/home/homeDashboard/useHomeSummary.ts | const declutterApi = () => import("@/lib/declutter/api"); | import * as declutterApiNow from "@/lib/declutter/api";\nconst declutterApi = async () => declutterApiNow;
 
 const HOME_FILES = ["src/pages/home/homeDashboard/useHomeSummary.ts", "src/pages/home/homeDashboard/needsYouTodos.ts"];
@@ -45,6 +46,11 @@ describe("Home loads section data code lazily", () => {
   it("the refusal-copy sites on Home's path load lifecycleErrors only on a refusal", () => {
     expect(REFUSAL_COPY_SITES.flatMap((f) => staticValueImports(f, ["@/lib/lifecycleErrors"]))).toEqual([]);
     for (const f of REFUSAL_COPY_SITES) expect(readFileSync(resolve(__dirname, "../..", f), "utf8"), f).toContain('import("@/lib/lifecycleErrors")');
+  });
+
+  it("the dock's Create sheet reads the member's shop through a dynamic import", () => {
+    expect(staticValueImports("src/components/create/CreateSheet.tsx", ["@/lib/shops/api"])).toEqual([]);
+    expect(readFileSync(resolve(__dirname, "../..", "src/components/create/CreateSheet.tsx"), "utf8")).toContain('import("@/lib/shops/api")');
   });
 
   it("the reads are still made (dynamic imports present)", () => {

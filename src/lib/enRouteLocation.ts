@@ -2,6 +2,10 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { report } from "@/lib/errorLogger";
 
+// Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
+// failure reads as a broken chunk (dynamicImportThenDoesNoWork).
+const geolocationModule = () => import("@capacitor/geolocation");
+
 /**
  * EN-ROUTE LOCATION WATCH — the one place that knows how to follow a helper
  * from "I'm on my way" to "I've arrived", on every platform, honestly.
@@ -340,7 +344,7 @@ export function startEnRouteWatch({ onPosition, onMode }: EnRouteWatchOptions): 
     })();
     cleanup = () => {
       disposed = true;
-      if (watchId) void import("@capacitor/geolocation").then(({ Geolocation }) =>
+      if (watchId) void geolocationModule().then(({ Geolocation }) =>
         Geolocation.clearWatch({ id: watchId as string }),
       );
     };

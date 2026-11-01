@@ -128,10 +128,10 @@ export function ProfileLinkRow({ name, changedOnce }: { name?: string | null; ch
               3 to 30 letters, numbers or single hyphens. You can change it once.
             </p>
             <div className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={() => { setEditing(false); setError(null); }}>Cancel</Button>
               <Button type="submit" disabled={!draftOk || saving} aria-busy={saving || undefined}>
                 {saving ? "Saving…" : "Save link"}
               </Button>
-              <Button type="button" variant="ghost" onClick={() => { setEditing(false); setError(null); }}>Cancel</Button>
             </div>
           </form>
         )}

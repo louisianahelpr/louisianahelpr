@@ -15661,6 +15661,16 @@ export type Database = {
         Args: { p_seller: string }
         Returns: Json
       }
+      declutter_manager_approve: {
+        Args: {
+          p_item_id: string
+          p_bought_for_personal_use: boolean
+          p_not_in_the_business: boolean
+          p_not_a_frequent_seller: boolean
+          p_keeps_item_until_handover: boolean
+        }
+        Returns: Json
+      }
       declutter_manager_end: {
         Args: { p_grant_id: string }
         Returns: string
@@ -15684,6 +15694,10 @@ export type Database = {
       }
       declutter_manager_respond: {
         Args: { p_grant_id: string; p_accept: boolean }
+        Returns: string
+      }
+      declutter_manager_send_back: {
+        Args: { p_item_id: string; p_note: string }
         Returns: string
       }
       declutter_manager_set_permissions: {

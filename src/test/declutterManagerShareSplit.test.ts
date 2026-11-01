@@ -1,8 +1,8 @@
 // @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate - v_share); |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate);
 // @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |                         o.items_cents)::integer |                         1000000000)::integer
 // @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   IF NEW.status = 'paid' AND OLD.status IS DISTINCT FROM 'paid' AND NEW.paid_with IS DISTINCT FROM 'free' THEN |   IF NEW.status = 'paid' THEN
-// @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |        SET amount_cents = v_share, status = CASE WHEN v_share = 0 THEN 'nothing_due' ELSE 'pending' END, |        SET amount_cents = amount_cents, status = status,
-// @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |      AND sp.status IN ('pending', 'failed', 'succeeded', 'nothing_due') AND sp.review_held_at IS NULL |      AND sp.status IN ('pending', 'failed', 'succeeded', 'nothing_due')
+// @mutate supabase/migrations/20261101233256_declutter_manager_payout_kind.sql |        SET amount_cents = v_share, status = CASE WHEN v_share = 0 THEN 'nothing_due' ELSE 'pending' END, |        SET amount_cents = amount_cents, status = status,
+// @mutate supabase/migrations/20261101233256_declutter_manager_payout_kind.sql |      AND sp.status IN ('pending', 'failed', 'succeeded', 'nothing_due') AND sp.review_held_at IS NULL |      AND sp.status IN ('pending', 'failed', 'succeeded', 'nothing_due')
 // @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |                        AND (m.status NOT IN ('pending', 'nothing_due') OR m.stripe_transfer_id IS NOT NULL OR m.attempts > 0 |                        AND (false
 //
 // Declutter manager mode phase 2, the money split (owner 11-01; lead plan + additions 11-01). Reads the NEWEST

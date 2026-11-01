@@ -4,7 +4,7 @@ import { isUnder18Refusal, UNDER_18_APPLY_COPY } from "@/lib/ageGate";
 import { unwrap } from "@/lib/supabaseResult";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { todayYmd } from "@/lib/jobDate";
-import { loadModule, untilReload } from "@/lib/loadModule";
+import { loadModule } from "@/lib/loadModule";
 // The refusal copy (about 100 KB raw) loads only when the server refuses, not with every screen that can ask
 // (AUD31-60/66, the /home cut). Guard: src/test/homeLoadsSectionReadsLazily.test.ts.
 const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors"));
@@ -147,7 +147,7 @@ export async function claimSeriesDates(jobId: string, dates: string[]): Promise<
   // The accept gate judges each visit the dates confirm, from a trigger, so
   // its refusal is not one of the RPC's own codes (Q1180 re-review #10).
   // Q1586(c): a saved birthday under 18 is refused by the applications trigger too.
-  if (error) throw seriesRpcError(error, ((await lifecycleErrors()) ?? (await untilReload())).rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null));
+  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null));
   const r = (data ?? {}) as {
     claimed?: string[]; taken?: string[]; refused?: string[]; already_yours?: string[];
     needs_setup?: string[]; missing?: AcceptMissing[];
@@ -183,7 +183,7 @@ export function claimSetupStep(r: Pick<ClaimResult, "missing" | "needsSetup">, s
 /** Hand dates back to the series. `strike` = one started within 24 hours. */
 export async function giveUpSeriesDates(jobId: string, dates: string[]): Promise<{ released: string[]; strike: boolean }> {
   const { data, error } = await supabase.rpc("give_up_series_dates", { p_job_id: jobId, p_dates: dates });
-  if (error) throw seriesRpcError(error, ((await lifecycleErrors()) ?? (await untilReload())).rpcErrorMessage("give_up_series_dates", error));
+  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("give_up_series_dates", error) ?? null);
   const r = (data ?? {}) as { released?: string[]; strike?: boolean };
   return { released: r.released ?? [], strike: r.strike === true };
 }
@@ -191,6 +191,6 @@ export async function giveUpSeriesDates(jobId: string, dates: string[]): Promise
 /** The poster offers the open dates to someone who applied. */
 export async function offerSeriesDates(jobId: string, helperId: string): Promise<{ openDates: number }> {
   const { data, error } = await supabase.rpc("offer_series_dates", { p_job_id: jobId, p_helper_id: helperId });
-  if (error) throw seriesRpcError(error, ((await lifecycleErrors()) ?? (await untilReload())).rpcErrorMessage("offer_series_dates", error));
+  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("offer_series_dates", error) ?? null);
   return { openDates: Number((data as { open_dates?: number } | null)?.open_dates ?? 0) };
 }

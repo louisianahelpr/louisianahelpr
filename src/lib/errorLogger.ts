@@ -14,6 +14,7 @@ import { postRows } from "./restInsert";
 import { Capacitor } from "@capacitor/core";
 import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
+import { onModuleUnavailable } from "@/lib/loadModule";
 import { isAutomatedBrowser } from "@/lib/automatedBrowser";
 import { announcePermissionDenied } from "@/lib/permissionDenied";
 import { redactInviteToken } from "@/lib/redactInviteToken";
@@ -271,6 +272,8 @@ function noteBackgroundImportFailure(name: string, err: unknown) {
 }
 
 onBackgroundImportFailure(noteBackgroundImportFailure);
+// A lazy module that came back empty with no reload to follow (loadModule.ts untilReload): a real failure.
+onModuleUnavailable((err) => report(err, { severity: "warning", tags: { source: "loadModule.untilReload" } }));
 
 /** Test-only: forget which failures were already reported this session. */
 export function _resetBackgroundFailureReportsForTests() {

@@ -154,6 +154,9 @@ const buttonVariants = cva(
         // Senior mode wraps to a second line (senior-mode-no-silent-cut).
         wrap: "h-auto min-h-14 px-6 py-2 text-ds-16 whitespace-normal text-center",
         sm: "h-11 px-4 text-ds-14",
+        // 48px: between `sm` (44) and `default` (56), for a full-width secondary pill such as You's "Log out"
+        // (lead decision 11-01, B91). A named size so no call site hand-sets h-12 (no-button-height-override).
+        md: "h-12 px-5 text-ds-16",
         lg: "h-[60px] px-8 text-ds-17",
         xl: "h-16 px-10 text-ds-18",
         icon: "h-14 w-14",

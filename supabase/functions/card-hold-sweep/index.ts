@@ -21,6 +21,9 @@
 //      arrives: off-session, under $300 and on an untaxed category.
 //   7. RENEW an authorization within 12 h of its capture_before while the job
 //      is still unhired, after reading what Stripe says it is now.
+//   8. INSTANT BOOK (CMP-4): a booking whose 2-hour decline window ended is
+//      captured with the same captureCardHold and hired; a refused card ends
+//      the booking and tells both sides (_shared/instantBookSweep.ts).
 // Plus: a pending accept on a hold already CAPTURED that never completed, and
 // a job 'held' with no open hold row, are defects.
 // A failed hold takes the job off the listing (payment_status 'failed': nobody
@@ -57,6 +60,7 @@ import {
   type HoldRow,
 } from "../_shared/cardHold.ts";
 import { offSessionAllowed } from "../_shared/cardHoldPlan.ts";
+import { settleInstantBooking } from "../_shared/instantBookSweep.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -88,7 +92,7 @@ serve(async (req) => {
     );
     const stripes = createStripeModeResolver(db, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
     const defects = defectTracker();
-    const counts = { holds: 0, resumed: 0, released: 0, reconciled: 0, renotified: 0, completed: 0, crew_confirmed: 0, placed: 0, renewed: 0, failed_over: 0 };
+    const counts = { holds: 0, resumed: 0, released: 0, reconciled: 0, renotified: 0, completed: 0, crew_confirmed: 0, placed: 0, renewed: 0, failed_over: 0, instant_hired: 0, instant_failed: 0 };
     const now = Date.now();
     const depsFor = (hold: HoldRow): Deps => {
       const mode = hold.stripe_mode as StripeMode;
@@ -118,6 +122,38 @@ serve(async (req) => {
       if (pages >= MAX_PAGES) {
         defects.record(`more than ${PAGE * MAX_PAGES} open card holds: the rest wait for the next run`);
         break;
+      }
+    }
+
+    // 8. Instant bookings due: the 2-hour window ended, or the job's payment
+    // failed (an early confirm's capture was refused). Read from the jobs side,
+    // so a booking whose hold was already captured is finished too.
+    const nowIso = new Date(now).toISOString();
+    const { data: due, error: dueErr } = await db.from("jobs").select("id, payment_status, is_seed")
+      .eq("direct_offer_status", "pending").eq("status", "open").not("instant_decline_until", "is", null)
+      .or(`instant_decline_until.lte.${nowIso},payment_status.eq.failed`).limit(500);
+    if (dueErr) defects.record(`instant bookings not read: ${dueErr.message}`);
+    else if ((due ?? []).length === 500) defects.record("500 instant bookings due (the cap): the rest wait for the next run");
+    for (const j of (due ?? []) as Array<{ id: string; payment_status: string | null; is_seed: boolean | null }>) {
+      try {
+        const hold = await readHold(db, j.id);
+        const outcome = await settleInstantBooking({
+          db,
+          now,
+          record: (d) => defects.record(d),
+          page: (title, message, fields) => postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title, message, fields, seed: j.is_seed === true }),
+          // The Helpr's accept's own capture: one claim, one key per attempt. A job with no
+          // hold row (paid at post) is captured already, or not capturable here.
+          capture: (id) => hold
+            ? captureCardHold(depsFor(hold), id)
+            : Promise.resolve(["escrow", "payout_pending", "released"].includes(String(j.payment_status))
+              ? { ok: true as const, already: true }
+              : { ok: false as const, reason: "not_held" as const }),
+        }, j.id);
+        if (outcome === "hired") counts.instant_hired++;
+        else if (outcome === "payment_failed") counts.instant_failed++;
+      } catch (e) {
+        defects.record(`job ${j.id} (instant booking): ${caughtMessage(e).slice(0, 300)}`);
       }
     }
 

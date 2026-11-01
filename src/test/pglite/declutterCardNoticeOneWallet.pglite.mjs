@@ -38,7 +38,7 @@ await db.exec(`
     payment_method_id text NOT NULL CHECK (payment_method_id ~ '^pm_'),
     brand text, last4 text, card_mode text, saved_at timestamptz NOT NULL DEFAULT now()
   );
-  CREATE TABLE public.notifications (user_id uuid, title text, body text);
+  CREATE TABLE public.notifications (user_id uuid, title text, message text);
   CREATE FUNCTION public.declutter_notify(p_user uuid, p_kind text, p_title text, p_body text, p_link text)
     RETURNS void LANGUAGE sql AS $$ INSERT INTO public.notifications VALUES (p_user, p_title, p_body) $$;
 `);
@@ -59,7 +59,7 @@ async function as(role, s) {
 
 const saved = await as("service_role", `SELECT public.declutter_save_card('${A}', 'cus_TESTa1', 'pm_1', 'visa', '4242', 'test')`);
 ok(Array.isArray(saved), "service role saves a card");
-const body = (await q(`SELECT body FROM public.notifications WHERE user_id='${A}'`))[0]?.body ?? "";
+const body = (await q(`SELECT message AS body FROM public.notifications WHERE user_id='${A}'`))[0]?.body ?? "";
 ok(!/never charged/i.test(body), `the notice no longer says "never charged" (got: ${body})`);
 ok(/charged only when you buy, or automatically where you turned on automatic charges/.test(body),
   "the notice says: charged only when you buy, or automatically where you turned on automatic charges");

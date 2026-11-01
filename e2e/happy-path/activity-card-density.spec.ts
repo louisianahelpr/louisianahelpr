@@ -224,14 +224,6 @@ async function dismissNudge(page: Page) {
   await page.waitForTimeout(400);
 }
 
-/** The row is More + one primary (owner, 2026-10-08): everything else is in More's panel. */
-async function openMore(page: Page) {
-  await page.locator("[data-job-step-overflow]").first().click();
-  const panel = page.locator("[data-job-step-overflow-panel]");
-  await expect(panel).toBeVisible();
-  return panel;
-}
-
 /**
  * Open ONE posted job's page, where its live controls are now.
  *
@@ -246,13 +238,21 @@ async function openJobPage(page: Page, jobId: string) {
   await page.waitForSelector("h1");
   await settle(page);
   await dismissNudge(page);
-  await expect(page.locator("[data-poster-actions]"), `job page ${jobId} drew no poster actions`).toHaveCount(1);
+  // Job page v2 (owner 11-01, JobPageActionRow.tsx): ONE row of buttons, the green one on the right.
+  await expect(page.locator(POSTER_ROW), `job page ${jobId} drew no poster actions`).toHaveCount(1);
 }
+
+/** The poster's one row of page buttons (job page v2). */
+const POSTER_ROW = '[data-job-row="poster"]';
 
 /** The job page's "More options": the Posted card's own step controls, drawn in place under the buttons. */
 async function openMoreOptions(page: Page) {
-  await page.getByRole("button", { name: "More options" }).click();
-  const panel = page.locator("[data-poster-more]");
+  // Job page v2: "More options" opens every other action in one sheet ([data-row-options]); with only ONE other
+  // action there is no More options, and that action sits on the row itself.
+  const more = page.locator(POSTER_ROW).getByRole("button", { name: "More options" });
+  if (!(await more.count())) return page.locator(POSTER_ROW);
+  await more.click();
+  const panel = page.locator('[data-row-options="poster"]');
   await expect(panel).toBeVisible();
   return panel;
 }
@@ -406,24 +406,24 @@ test.describe("My Posts — card density + header", () => {
     const description = page.getByText("Full clean — kitchen, two bathrooms", { exact: false });
     await expect(description).toHaveCount(0);
 
-    // The face (boards 14/21): one button, here the fallback "Manage job"
+    // The face (boards 14/21): one button, here the fallback "More options" (JA-35, posterFaceAction.ts; it was "Manage job")
     // because nobody has applied yet. It opens the card's controls IN PLACE;
     // the face's own link is the way to the job page.
     const card = page.locator("[data-activity-card]").filter({ hasText: "Deep clean a two-bedroom before move-out" });
     await expect(card).toHaveCount(1);
     await page.screenshot({ path: `${SHOTS}/card-collapsed-375.png`, fullPage: true });
 
-    await card.getByRole("button", { name: "Manage job" }).click();
+    await card.getByRole("button", { name: "More options" }).click();
     await expect(description.first()).toBeVisible();
     // Same card — it opened in place rather than navigating to /jobs/:id.
     await expect(page).toHaveURL(/\/jobs\?tab=posted/); // /posts lives at Jobs > Posted since 2026-10-19
     // Open, the face's button stands down (its step row carries the action).
-    await expect(card.getByRole("button", { name: "Manage job" })).toHaveCount(0);
+    await expect(card.getByRole("button", { name: "More options" })).toHaveCount(0);
     await page.screenshot({ path: `${SHOTS}/card-expanded-375.png`, fullPage: true });
 
     await closeCard(page);
     await expect(description).toHaveCount(0);
-    await expect(card.getByRole("button", { name: "Manage job" })).toHaveCount(1);
+    await expect(card.getByRole("button", { name: "More options" })).toHaveCount(1);
   });
 
   // The two halves of the No-Show proof are separate tests ON PURPOSE. Re-routing
@@ -443,7 +443,7 @@ test.describe("My Posts — card density + header", () => {
     // The job page's tracker is THE one JobProgress (owner, 2026-10-21: "we need 1 tracker").
     await expect(page.locator("[data-job-progress]").first()).toBeVisible();
     // Nothing to confirm yet, so Message is the page's MAIN button (never a greyed future step).
-    await expect(page.locator("[data-poster-actions]").getByRole("button", { name: /^Message\b/ })).toHaveCount(0);
+    await expect(page.locator(POSTER_ROW).getByRole("button", { name: /^Message\b/ })).toHaveCount(1);
     await expect(page.getByRole("button", { name: /^Message\b/ })).toHaveCount(1);
     // Every move the card offers, opened (More options, then the step row's own More): no No-Show before the start.
     const moves = await openEveryMove(page);
@@ -517,17 +517,23 @@ test.describe("My Posts — card density + header", () => {
     // LEAVES THE ROW, into `More`, where it is labelled two-up. So every chip
     // that IS in the row must show its label in full, at 320, and this gate
     // holds them all to it.
-    const clipped = await page.evaluate(() =>
-      Array.from(document.querySelectorAll<HTMLElement>("[data-job-action-chip] span"))
+    // Job page v2 (owner 11-01): the card is mounted HIDDEN ([data-poster-more]) and its actions are drawn as the
+    // page's own buttons ([data-row-action] on the row, [data-menu-action] for a handed-over chip); a control inside
+    // a hidden subtree is not on screen and is not measured.
+    const ACTIONS = "[data-job-action-chip], [data-row-action], [data-menu-action]";
+    const clipped = await page.evaluate((sel) =>
+      Array.from(document.querySelectorAll<HTMLElement>(sel))
+        .filter((el) => !el.closest("[hidden]"))
         .filter((el) => el.scrollWidth > el.clientWidth + 1)
         .map((el) => el.textContent ?? ""),
-    );
+    ACTIONS);
     expect(clipped, `truncated action labels at 320px: ${clipped.join(", ")}`).toEqual([]);
     // …AND THE LABEL IS ACTUALLY PAINTED. A clipped-to-1×1 label is not a
     // truncation — `scrollWidth <= clientWidth` on a 1px box — so the check
     // above passed on the shipped bug. This is the one that would not have.
-    const invisible = await page.evaluate(() =>
-      Array.from(document.querySelectorAll<HTMLElement>("[data-job-step-row] [data-job-action-chip] span"))
+    const invisible = await page.evaluate((sel) =>
+      Array.from(document.querySelectorAll<HTMLElement>(sel))
+        .filter((el) => !el.closest("[hidden]"))
         .filter((el) => (el.textContent ?? "").trim().length > 0)
         .filter((el) => {
           const r = el.getBoundingClientRect();
@@ -535,7 +541,7 @@ test.describe("My Posts — card density + header", () => {
           return r.width < 8 || r.height < 6 || cs.clip === "rect(0px, 0px, 0px, 0px)" || cs.visibility === "hidden";
         })
         .map((el) => `${el.textContent} (${el.getBoundingClientRect().width}x${el.getBoundingClientRect().height})`),
-    );
+    ACTIONS);
     expect(
       invisible,
       `chip labels rendered screen-reader-only at 320px: ${invisible.join(", ")}`,
@@ -546,7 +552,7 @@ test.describe("My Posts — card density + header", () => {
     // src/test/jobRowControlSameness.test.tsx fails on a row chip without it;
     // two is the floor the tap-target loop above names.
     expect(
-      await page.locator("[data-job-action-chip]").count(),
+      await page.locator(`:is(${ACTIONS}):not([hidden] *)`).count(),
       "no action chips found at 320px — the gate above would pass on an empty row",
     ).toBeGreaterThanOrEqual(2);
     await page.screenshot({ path: `${SHOTS}/actions-3up-320.png`, fullPage: true });
@@ -586,15 +592,17 @@ test.describe("My Posts — card density + header", () => {
     const { scrollWidth, clientWidth } = await row.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
     expect(scrollWidth, "the tracker overflows its card").toBeLessThanOrEqual(clientWidth);
 
-    // The sub-step lives in the ONE next line under the bar, not in a free caption.
-    await expect(tracker.locator("[data-job-progress-next]")).toHaveText(/is on the way/);
+    // Job page v2 (owner 11-01): who is on the way and since when sits ABOVE the tracker ([data-on-the-way],
+    // OnTheWayNow.tsx), and the tracker no longer repeats it in its own next line.
+    await expect(page.locator("[data-on-the-way]")).toContainText(/is on the way/);
+    await expect(tracker.locator("[data-job-progress-next]")).toHaveCount(0);
     // Status wording appears only in a step's note host or the tracker's next line;
     // a free-floating caption anywhere else on the card is the regression.
     const orphanStatusLines = await page.evaluate(() => {
       const re = /is on the way|finished the job|Offered to/i;
       return Array.from(document.querySelectorAll<HTMLElement>("*"))
         .filter((el) => el.children.length === 0 && re.test(el.textContent ?? ""))
-        .filter((el) => !el.closest("[data-job-step-note]") && !el.closest("[data-job-progress-next]"))
+        .filter((el) => !el.closest("[data-job-step-note]") && !el.closest("[data-job-progress-next]") && !el.closest("[data-on-the-way]"))
         .map((el) => (el.textContent ?? "").trim());
     });
     expect(
@@ -605,7 +613,7 @@ test.describe("My Posts — card density + header", () => {
     await page.screenshot({ path: `${SHOTS}/tracker-one-line-375.png` });
   });
 
-  test("the action row holds More and Message, SOS is inside More, and Message is one colour everywhere", async ({ page, context, baseURL }) => {
+  test("the page row draws Message once, SOS as an outlined option, and no job share", async ({ page, context, baseURL }) => {
     await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
     // `helper_arrived_at`, not just `helper_on_the_way_at`. SOS is gated on the
     // helper having ARRIVED — it is the control for something going wrong on
@@ -632,59 +640,30 @@ test.describe("My Posts — card density + header", () => {
         { ...base, id: "job-msg-done", title: "Tracker colour B", helper_completed_at: new Date().toISOString() },
       ])],
     });
-    // One job page at a time (owner 2026-10-31: Manage job is the job page now). The contract is unchanged: the
-    // card's own Message control, under More options, is the same colour on a job whose helpr has finished and on
-    // one whose has not.
-    const readMessageColour = async (jobId: string) => {
+    // Job page v2 (owner 11-01: one row, the green one on the right, short pair labels; JobPageActionRow.tsx). The
+    // card is mounted hidden and hands its options to the page minus Message (jobStepMenu.tsx), so on each page:
+    // Message is ONE button (never the card's too), SOS is an ordinary outlined option (never the lead, never a big
+    // red button), and no job-share control is offered on a job that already has its Helpr.
+    // (Message's colour now follows its place by the owner's 11-01 rule: green when it leads, outlined beside a step.)
+    for (const jobId of ["job-msg-plain", "job-msg-done"]) {
       await openJobPage(page, jobId);
-      await openMoreOptions(page);
-      const panel = await openMore(page);
-      const btn = panel.getByRole("button", { name: "Message Helpr" });
-      await expect(btn).toHaveCount(1);
-      const colour = await btn.evaluate((el) => getComputedStyle(el).backgroundColor);
+      const options = await openMoreOptions(page);
+      await expect(page.getByRole("button", { name: /^Message\b/ }), `${jobId}: Message is drawn once`).toHaveCount(1);
+      // SOS while the Helpr is on site and the work is not marked done (the finished job's card no longer offers it).
+      const sos = options.getByRole("button", { name: /^SOS\b/ });
+      if (jobId === "job-msg-plain") {
+        await expect(sos, `${jobId}: SOS is one of the options`).toHaveCount(1);
+        await expect(sos).toHaveAttribute("data-sos-secondary", "");
+      }
+      const labels = await options.getByRole("button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim() ?? ""));
+      expect(labels.some((l) => /^(share this job|copy a link to this job)$/i.test(l)), `${jobId}: a job-share control: ${labels.join(" | ")}`).toBe(false);
+      if (jobId === "job-msg-done") {
+        await page.keyboard.press("Escape");
+        await expect(page.locator(POSTER_ROW).getByRole("button", { name: /Approve/ }), "the finished job's lead is Approve").toHaveCount(1);
+      }
+      await page.screenshot({ path: `${SHOTS}/actions-sos-message-${jobId}-375.png`, fullPage: true });
       await page.keyboard.press("Escape");
-      return colour;
-    };
-    const colourA = await readMessageColour("job-msg-plain");
-    const colourB = await readMessageColour("job-msg-done");
-    expect(colourA, `Message renders ${colourA} vs ${colourB}`).toBe(colourB);
-
-    // The first job's page again for the order assertions below.
-    await openJobPage(page, "job-msg-plain");
-    await openMoreOptions(page);
-
-    // The first card's row: Message and More. SOS sat first until
-    // 2026-10-01, when the owner moved it (with Report a Problem / Dispute)
-    // under the row's one `More` menu (MORE_ONLY_CHIP_KEYS in JobStepCard).
-    //
-    // Share used to sit between them and no longer does — a job that already
-    // has a helpr has nothing left to advertise, so the link it copied led
-    // somewhere nobody else could take. It is still one of the four main
-    // actions on an OPEN job, which is where it does work.
-    // The CHIPS of the card's one row. Since VN-21 (owner, 2026-09-14) the row
-    // opens with its primary slot (empty and hidden on this state), so it is
-    // skipped rather than read as an unnamed first chip.
-    // The ROW is More + the one primary (owner, 2026-10-08); Message and SOS
-    // are inside More, Message first and SOS last (MORE_ORDER).
-    const order = await page.evaluate(() => {
-      const more = document.querySelector("[data-job-step-overflow]");
-      const row = more?.closest("[data-job-step-row]");
-      return Array.from(row?.querySelectorAll("button") ?? []).map((c) => c.getAttribute("aria-label") ?? c.textContent?.trim() ?? "");
-    });
-    expect(order.some((l) => /^More\b/.test(l)), `no More on the row: ${order.join(" | ")}`).toBe(true);
-    expect(order.some((l) => /message/i.test(l)), `Message is on the row: ${order.join(" | ")}`).toBe(false);
-    expect(order.some((l) => /SOS/i.test(l)), `SOS is on the row: ${order.join(" | ")}`).toBe(false);
-    const panel = await openMore(page);
-    const inMore = await panel.getByRole("button").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? e.textContent?.trim() ?? ""));
-    expect(/message/i.test(inMore[0] ?? ""), `Message is not first in More: ${inMore.join(" | ")}`).toBe(true);
-    expect(/^SOS/.test(inMore[inMore.length - 1] ?? ""), `SOS is not last in More: ${inMore.join(" | ")}`).toBe(true);
-    await page.keyboard.press("Escape");
-    // No JOB-share control anywhere in the row. Matched on its exact accessible
-    // name rather than a loose /share/ — the SOS chip's own label is about
-    // sharing your LOCATION, and a loose match reads that as a hit.
-    expect(order.some((l) => /^(share this job|copy a link to this job)$/i.test(l))).toBe(false);
-
-    await page.screenshot({ path: `${SHOTS}/actions-sos-message-375.png`, fullPage: true });
+    }
   });
 
   test("Message opens the thread with THIS helpr on THIS job", async ({ page, context, baseURL }) => {
@@ -728,7 +707,9 @@ test.describe("My Posts — card density + header", () => {
 
     // Edit — the one that opens something we can assert on. On the job page (owner 2026-10-31: Manage job is the
     // job page) it is the page's own "Edit job", which runs the Posted card's own edit flow (usePosterPageFlows).
-    const edit = page.locator("[data-poster-actions]").getByRole("button", { name: "Edit job" });
+    // Job page v2: Edit is on the row, or under the row's "More options" when there are several.
+    const editHost = await openMoreOptions(page);
+    const edit = editHost.getByRole("button", { name: "Edit job" });
     await expect(edit).toBeEnabled();
     await edit.click();
 
@@ -769,7 +750,7 @@ test.describe("My Posts — card density + header", () => {
     await expect(modal).toHaveCount(0);
     // The page underneath did not move or fold: same job page, its actions still there.
     await expect(page).toHaveURL(new RegExp(`/jobs/${openId}$`));
-    await expect(page.locator("[data-poster-actions]")).toHaveCount(1);
+    await expect(page.locator(POSTER_ROW)).toHaveCount(1);
   });
 
   test("the card face is a link to its job page, and no card carries the retired sr-only toggle", async ({ page, context, baseURL }) => {

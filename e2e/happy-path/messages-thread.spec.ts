@@ -238,6 +238,8 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
     await setup(page, context, baseURL);
     await gotoMessages(page);
     await openFirstThread(page);
+    // The card's tracker draws once the job read lands: wait for a step tip, so the sweep below measures them too.
+    await expect(page.locator("[data-step-tip]").first()).toBeVisible();
 
     const small = await page.evaluate(() => {
       const out: string[] = [];

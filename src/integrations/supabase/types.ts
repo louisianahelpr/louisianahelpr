@@ -2609,6 +2609,33 @@ export type Database = {
         }
         Relationships: []
       }
+      helpr_task_talk_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_side: string
+          task_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side: string
+          task_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side?: string
+          task_id?: string
+        }
+        Relationships: []
+      }
       declutter_order_talk_messages: {
         Row: {
           body: string
@@ -5019,6 +5046,7 @@ export type Database = {
           amount_cents: number
           attempts: number
           created_at: string
+          debt_cents: number
           executed_at: string | null
           fee_cents: number
           held_notified_at: string | null
@@ -5043,6 +5071,7 @@ export type Database = {
           amount_cents: number
           attempts?: number
           created_at?: string
+          debt_cents?: number
           executed_at?: string | null
           fee_cents: number
           held_notified_at?: string | null
@@ -5067,6 +5096,7 @@ export type Database = {
           amount_cents?: number
           attempts?: number
           created_at?: string
+          debt_cents?: number
           executed_at?: string | null
           fee_cents?: number
           held_notified_at?: string | null
@@ -5171,6 +5201,21 @@ export type Database = {
           helpr_id: string | null
           id: string
           in_hand_nudged_at: string | null
+          stuck_at: string | null
+          stuck_reason: string | null
+          stuck_note: string | null
+          stuck_fault: string | null
+          stuck_stage: string | null
+          stuck_fix_by: string | null
+          stuck_fix_note: string | null
+          stuck_return_by: string | null
+          stuck_choice: string | null
+          stuck_choice_by: string | null
+          stuck_collect_note: string | null
+          returned_at: string | null
+          return_photo_path: string | null
+          return_answer_by: string | null
+          return_distance_m: number | null
           is_seed: boolean
           latest_pickup_at: string
           open_until: string
@@ -5220,6 +5265,21 @@ export type Database = {
           helpr_id?: string | null
           id?: string
           in_hand_nudged_at?: string | null
+          stuck_at?: string | null
+          stuck_reason?: string | null
+          stuck_note?: string | null
+          stuck_fault?: string | null
+          stuck_stage?: string | null
+          stuck_fix_by?: string | null
+          stuck_fix_note?: string | null
+          stuck_return_by?: string | null
+          stuck_choice?: string | null
+          stuck_choice_by?: string | null
+          stuck_collect_note?: string | null
+          returned_at?: string | null
+          return_photo_path?: string | null
+          return_answer_by?: string | null
+          return_distance_m?: number | null
           is_seed?: boolean
           latest_pickup_at: string
           open_until: string
@@ -5269,6 +5329,21 @@ export type Database = {
           helpr_id?: string | null
           id?: string
           in_hand_nudged_at?: string | null
+          stuck_at?: string | null
+          stuck_reason?: string | null
+          stuck_note?: string | null
+          stuck_fault?: string | null
+          stuck_stage?: string | null
+          stuck_fix_by?: string | null
+          stuck_fix_note?: string | null
+          stuck_return_by?: string | null
+          stuck_choice?: string | null
+          stuck_choice_by?: string | null
+          stuck_collect_note?: string | null
+          returned_at?: string | null
+          return_photo_path?: string | null
+          return_answer_by?: string | null
+          return_distance_m?: number | null
           is_seed?: boolean
           latest_pickup_at?: string
           open_until?: string
@@ -14573,6 +14648,11 @@ export type Database = {
       }
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
+      helpr_task_talk_view: { Args: { p_task_id: string }; Returns: Json }
+      helpr_task_send_message: {
+        Args: { p_task_id: string; p_body: string }
+        Returns: string
+      }
       declutter_public_item_card: { Args: { p_item_id: string }; Returns: Json }
       declutter_order_slot_in_windows: {
         Args: { p_order_id: string; p_seller: string; p_start: string }
@@ -17225,6 +17305,13 @@ export type Database = {
       helpr_task_dropoff_shows_at: { Args: { p_helpr: string; p_slot: string; p_status: string }; Returns: string }
       helpr_task_fee_cents: { Args: { p_pay_cents: number }; Returns: number }
       helpr_task_handed_over: { Args: { p_task_id: string }; Returns: Json }
+      helpr_task_cant_finish: { Args: { p_note: string; p_reason: string; p_task_id: string }; Returns: Json }
+      helpr_task_buyer_fix: { Args: { p_address: string; p_lat: number; p_lng: number; p_note: string; p_task_id: string }; Returns: Json }
+      helpr_task_buyer_choose: { Args: { p_choice: string; p_note: string; p_task_id: string }; Returns: Json }
+      helpr_task_returned: { Args: { p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }; Returns: Json }
+      helpr_task_seller_return_answer: { Args: { p_back: boolean; p_note: string; p_task_id: string }; Returns: Json }
+      declutter_admin_decide_stuck_delivery: { Args: { p_fault: string; p_note: string; p_problem_id: string }; Returns: Json }
+      declutter_delivery_return_finish: { Args: { p_task: string }; Returns: Json }
       helpr_task_items: { Args: { p_kind: string; p_source: string }; Returns: Json }
       helpr_task_give_job_strike: { Args: { p_description: string; p_task: string; p_type: string; p_user: string }; Returns: Json }
       helpr_task_lock: { Args: { p_task: string }; Returns: unknown }

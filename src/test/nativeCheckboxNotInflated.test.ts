@@ -1,3 +1,6 @@
+// @mutate src/components/rentals/RentPanel.tsx | <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked | <input type="checkbox" checked
+// @mutate src/components/admin/helprFault/HelprFaultFields.tsx | <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name="helpr-fault-kind" value="no_show" | <input type="radio" name="helpr-fault-kind" value="no_show"
+// @mutate src/components/admin/AdminExceptionQueue.tsx | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--primary))]" | className="h-4 w-4 accent-[hsl(var(--primary))]"
 // @mutate src/components/admin/AdminIDVReview.tsx | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--bark))]" | className="h-4 w-4 shrink-0 accent-[hsl(var(--bark))]"
 /**
  * A NATIVE checkbox or radio sized with h-/w- utilities must also say min-h-*
@@ -23,13 +26,11 @@ import { blankComments } from "./helpers/blankNonCode";
 const ROOT = path.resolve(__dirname, "../..");
 
 // @two-way src/test/nativeCheckboxNotInflated.test.ts:fixed: delete from KNOWN
-const KNOWN = new Set([
-  // Q?native-checkbox-floor (docs/OPEN.md): each needs a 44px label around it first.
-  "src/components/admin/AdminCredentialQueue.tsx#1",
-  "src/components/admin/AdminCredentialQueue.tsx#2",
-  "src/components/admin/AdminExceptionQueue.tsx#1",
-  "src/components/series/SeriesDatesPanel.tsx#1",
-]);
+// Q2047 (B42, 10-31): the last four sized ones (credential license/insurance, exception bulk select, series dates) now
+// sit in a 44px label with min-h-0 min-w-0 on the box.
+// B42 (10-31, BUY-36 screen check): a BARE box (no class at all) is inflated the same way: at 375 the admin's "Was the
+// report true?" radios were 44px browser-blue circles. The admin and rentals ones are fixed the same way.
+const KNOWN = new Set<string>([]);
 
 function scan() {
   const inflated: string[] = [];
@@ -45,10 +46,10 @@ function scan() {
       if (!/\btype="(checkbox|radio)"/.test(attrs)) continue;
       inputs++;
       n++;
-      const cls = /className="([^"]*)"/.exec(attrs)?.[1] ?? "";
-      const sized = /(^|\s)(h|w|size)-/.test(cls);
+      const cls = /className=(?:"([^"]*)"|\{`([^`]*)`\})/.exec(attrs)?.slice(1).find((x) => x !== undefined) ?? "";
+      // Sized or bare, a box without its own min-h/min-w is drawn at index.css's 44px floor.
       const hasMin = /(^|\s)min-h-/.test(cls) && /(^|\s)min-w-/.test(cls);
-      if (sized && !hasMin) inflated.push(`${path.relative(ROOT, file)}#${n}`);
+      if (!hasMin) inflated.push(`${path.relative(ROOT, file)}#${n}`);
     }
   }
   return { inflated, inputs };

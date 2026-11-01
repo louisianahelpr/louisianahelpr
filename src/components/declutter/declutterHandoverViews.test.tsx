@@ -819,7 +819,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(read).toBeGreaterThan(1);
   });
 
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {done ? "." : `. The seller is paid after you ${after}.`} | {done ? "." : ` · the seller is paid after you ${after}.`}
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {done \|\| problemOpen ? "." : `. The seller is paid after you ${after}.`} | {done \|\| problemOpen ? "." : ` · the seller is paid after you ${after}.`}
   it("lead 10-28: every pickup step reads as plain sentences, and the buyer's card does not say \"You're buying\"", async () => {
     const STEPS: Record<"porch" | "pickup_home", Record<number, () => void>> = {
       porch: {
@@ -1365,6 +1365,7 @@ describe("D2-2: an open problem shows on both cards", () => {
     state.features = ["declutter_refund_requests"];
   });
 
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {done \|\| problemOpen ? "." : | {done ? "." :
   it("the buyer: told a problem is open with its reason, and offered no booking and no second report", async () => {
     // Before: the same card books and reports.
     const before = show([line({ handover: "pickup_home" })]);
@@ -1372,10 +1373,15 @@ describe("D2-2: an open problem shows on both cards", () => {
     expect(screen.queryByText("Problem reported: Louisiana Helpr is looking.")).toBeNull();
     before.unmount();
     state.problems = [damaged];
+    state.paid = { o1: 4470 };
     show([line({ handover: "pickup_home" })]);
     expect(await screen.findByText("Problem reported: Louisiana Helpr is looking.")).toBeInTheDocument();
     expect(screen.getByText(/Damaged, reported by you\. Nobody is paid until they decide\./)).toBeInTheDocument();
     expect(screen.getByText("On hold until the problem is decided.")).toBeInTheDocument();
+    // NIGHT-BUYINGopenpr-8: the money line says only what was paid; "the seller is paid after you pick it up" sat right
+    // above "Nobody is paid until they decide."
+    expect((await screen.findByText(/You paid/)).textContent).toBe("You paid $44.70.");
+    expect(screen.queryByText(/The seller is paid after you/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Book" })).toBeNull();
     expect(screen.queryByLabelText("Pick a pickup time")).toBeNull();
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();

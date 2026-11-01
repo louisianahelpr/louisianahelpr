@@ -461,7 +461,8 @@ export async function fetchItemAddress(itemId: string): Promise<{ pickup_address
 export async function adminDecideProblem(
   problemId: string,
   decision: "refund_buyer" | "pay_seller" | "refund_part",
-  fault: "seller" | "buyer" | "none",
+  /** "helpr" (LEAD-ADMIN-HELPR-FAULT, 20261101000817): a Helpr delivery the Helpr took and never brought; refund only. */
+  fault: "seller" | "buyer" | "none" | "helpr",
   strike: boolean,
   note: string | null,
   falseReport = false,
@@ -489,6 +490,13 @@ export async function adminDecideDeliveryDamage(problemId: string, note: string 
   // Admin-only copy is fetched only on a refusal, as for adminDecideProblem.
   const admin = res.error ? await loadAdminRpcErrorCopy() : null;
   return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_decide_delivery_damage", e) ?? null) as unknown as Record<string, unknown>;
+}
+
+/** BUY-36 (20261031231150): a delivery the Helpr has and can't finish: nobody's fault, or the Helpr's. */
+export async function adminDecideStuckDelivery(problemId: string, fault: "none" | "helpr", note: string | null): Promise<Record<string, unknown>> {
+  const res = await supabase.rpc("declutter_admin_decide_stuck_delivery", { p_problem_id: problemId, p_fault: fault, p_note: note as string });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_decide_stuck_delivery", e) ?? null) as unknown as Record<string, unknown>;
 }
 
 /**

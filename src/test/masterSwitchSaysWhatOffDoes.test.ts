@@ -18,6 +18,8 @@ const code = (f: string) => blankComments(readFileSync(f, "utf8"));
 
 describe("AUD31-47: a master switch that is ON while sending says what Off does", () => {
   it("no master line says 'Mutes every ...' on its own", () => {
+    // Floor (vacuity scan): both real files were read (16 KB + 44 KB on 10-31), so an empty read can't pass.
+    for (const f of FILES) expect(code(f).length, f).toBeGreaterThan(5_000);
     const lines = FILES.flatMap((f) => [...code(f).matchAll(/[^\n]*Mutes every[^\n]*/g)].map((m) => `${f}: ${m[0].trim()}`));
     expect(lines).toEqual([]);
     const said = FILES.flatMap((f) => [...code(f).matchAll(/Off mutes every (push|email) below\./g)].map((m) => m[1]));

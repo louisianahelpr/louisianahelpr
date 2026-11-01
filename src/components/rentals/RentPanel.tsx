@@ -153,8 +153,8 @@ function PlanForm({ tenancyId, plan, leaseEndsOn, onDone }: { tenancyId: string;
         <legend className="text-xs text-muted-foreground">How your tenant can pay you (directly, outside the app)</legend>
         <div className="flex flex-wrap gap-2">
           {PAY_METHODS.map((p) => (
-            <label key={p} className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs">
-              <input type="checkbox" checked={methods.includes(p)} onChange={() => toggle(p)} />
+            <label key={p} className="flex min-h-11 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs">
+              <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={methods.includes(p)} onChange={() => toggle(p)} />
               {PAY_METHOD_LABEL[p]}
             </label>
           ))}

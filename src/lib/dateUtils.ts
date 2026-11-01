@@ -53,13 +53,17 @@ export function formatJobDate(dateStr: string): string {
  * deadline is reached, so callers render its result directly rather than
  * printing their own "Expired" (guarded by expiryFormatterClass.test.ts).
  */
+/** The one spelling of "Expired": formatTimeLeft's answer at the deadline, and the poster's own expired-listing
+ *  status (jobStatusLine), so the two can never disagree. */
+export const EXPIRED_WORD = "Expired";
+
 export function formatTimeLeft(expiry: Date, now: Date = new Date()): string {
   const msLeft = expiry.getTime() - now.getTime();
   // "Expired" only once the instant has actually been reached — the same
   // `expires_at <= now` rule the feed and the Activity bucketer use. The last
   // 59 seconds floor to 0 minutes; they used to read "Expired" while the
   // listing was still live. The floor rule forbids "1 minute left" there.
-  if (msLeft <= 0) return "Expired";
+  if (msLeft <= 0) return EXPIRED_WORD;
   const totalMinutes = Math.floor(msLeft / 60_000);
   if (totalMinutes < 1) return "Under a minute left";
 

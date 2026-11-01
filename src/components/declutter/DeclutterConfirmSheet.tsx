@@ -17,6 +17,7 @@ export function ConfirmSheet({
   confirmLabel,
   cancelLabel = "Not now",
   pending = false,
+  confirmDisabled = false,
   onConfirm,
   onClose,
   testId,
@@ -28,6 +29,8 @@ export function ConfirmSheet({
   confirmLabel: string;
   cancelLabel?: string;
   pending?: boolean;
+  /** Not ready to send yet (a required choice or words are missing). */
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onClose: () => void;
   testId?: string;
@@ -48,7 +51,7 @@ export function ConfirmSheet({
         </p>
         <SheetFooter className="mt-4">
           <SheetSecondaryAction onClick={onClose} disabled={pending}>{cancelLabel}</SheetSecondaryAction>
-          <SheetPrimaryAction onClick={onConfirm} disabled={pending}>{confirmLabel}</SheetPrimaryAction>
+          <SheetPrimaryAction onClick={onConfirm} disabled={pending || confirmDisabled}>{confirmLabel}</SheetPrimaryAction>
         </SheetFooter>
       </SheetContent>
     </Sheet>

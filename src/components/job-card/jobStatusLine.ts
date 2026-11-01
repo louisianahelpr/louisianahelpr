@@ -11,6 +11,7 @@ import {
   type ActivityBucket,
 } from "@/components/job-card/activityFilters";
 import { assertNever } from "@/lib/assertNever";
+import { isExpiredListing } from "@/lib/expiredListing";
 import { posterFirstName } from "@/lib/deletedPerson";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { afterPhotoIsThePrimary, beforePhotoIsThePrimary } from "./primaryPhotoAsk";
@@ -20,7 +21,7 @@ import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/post
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 import { confirmDeadlineMs, confirmOpensMs, posterConfirmClosesMs } from "@/lib/jobDate";
-import { jobStartDateTime } from "@/lib/dateUtils";
+import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 import { workHasBegun } from "@/components/tracker/workHasBegun";
 
 /**
@@ -658,10 +659,13 @@ export function posterStatusLine(
   // card line, the tracker's line and the step colour; lead 2026-10-31), else "is at the job".
   const atTheJob = id === "working" && !workHasBegun(job, { workUnderway: progress?.workUnderway });
   const named = helperName ? (atTheJob ? `${firstName(helperName)} is at the job` : POSTER_NAMED[id]?.(helperName, job)) : undefined;
+  // Expired is not cancelled (owner 10-31, src/lib/expiredListing.ts): the poster's
+  // own card says "Expired", never "Cancelled", and keeps its Post again.
+  const expired = id === "cancelled" && isExpiredListing(job);
   return {
     id,
-    eyebrow: copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: named ?? (atTheJob ? "Your Helpr is at the job" : copy.detail),
+    eyebrow: expired ? EXPIRED_WORD : copy.eyebrow ?? BUCKET_LABEL[bucket],
+    detail: expired ? EXPIRED_LISTING_DETAIL : named ?? (atTheJob ? "Your Helpr is at the job" : copy.detail),
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_arrival",
     suffix: id === "cancelled" ? cancelledSuffix(job) : null,
@@ -669,11 +673,18 @@ export function posterStatusLine(
   };
 }
 
+/** The poster's line for a listing that expired with no Helpr (never "Cancelled"). */
+export const EXPIRED_LISTING_DETAIL = "No Helpr was hired in time";
+/** What an APPLICANT reads for a listing that expired (owner 10-31: "Expired" is the poster's word only). */
+const APPLICANT_CLOSED_EYEBROW = "Closed";
+const APPLICANT_CLOSED_DETAIL = "No longer open";
+
 /** The cancelled line's tail for the POSTER: the reason, and that their money
  *  came back when it did (owner, 2026-10-06). Only on payment_status
  *  'refunded', the state void-cancelled-payments writes after a full refund. */
 export function cancelledSuffix(job: Job): string | null {
-  const reason = sanitizeCancellationReason(job.cancellation_reason);
+  // An expired listing's fixed sweep reason is the detail's own sentence; only the refund follows.
+  const reason = isExpiredListing(job) ? null : sanitizeCancellationReason(job.cancellation_reason);
   if (job.payment_status !== "refunded") return reason;
   return reason ? `${reason} · Your payment was refunded` : "Your payment was refunded";
 }
@@ -1002,14 +1013,20 @@ export function helperStatusLine(
   const bucket = appliedActivityBucket(app);
   const posterFirst = posterFirstName(app.posterName);
   const named = posterFirst ? HELPER_NAMED[id]?.(posterFirst) : undefined;
+  // Expired is not cancelled (owner 10-31): an applicant to a listing that
+  // expired with no Helpr reads "Closed · No longer open", never "Cancelled"
+  // and never "Expired" (only the poster sees "Expired", on their own jobs).
+  const expired = id === "cancelled" && !!app.job && isExpiredListing(app.job);
   return {
     id,
-    eyebrow: copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: named ?? copy.detail,
+    eyebrow: expired ? APPLICANT_CLOSED_EYEBROW : copy.eyebrow ?? BUCKET_LABEL[bucket],
+    detail: expired ? APPLICANT_CLOSED_DETAIL : named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking" || id === "confirm_spot",
     suffix:
-      id === "cancelled"
+      expired
+        ? null
+        : id === "cancelled"
         ? sanitizeCancellationReason(app.job?.cancellation_reason)
         : id === "revision"
           ? noteOrNull(app.job?.revision_note)

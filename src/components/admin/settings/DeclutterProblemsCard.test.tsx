@@ -58,6 +58,7 @@ vi.mock("@/lib/declutter/handover", () => ({
   handoverPhotoUrl: async (p: string) => `https://signed.test/${p}`,
   adminDecideProblem: async (...a: unknown[]) => { state.calls.push(["decide", ...a]); return {}; },
   adminDecideDeliveryDamage: async (...a: unknown[]) => { state.calls.push(["damage", ...a]); return {}; },
+  adminDecideStuckDelivery: async (...a: unknown[]) => { state.calls.push(["stuck", ...a]); return {}; },
 }));
 
 vi.mock("@/lib/declutter/adminProblemCase", () => ({
@@ -349,5 +350,87 @@ describe("DeclutterProblemsCard: one dispute screen (AL-4)", () => {
     expect(await screen.findByAltText("The buyer's photo")).toHaveAttribute("src", "https://signed.test/b1/declutter/problem/o1/a.jpg");
     expect(screen.getByText(/The seller's side:/).closest("p")?.textContent).toBe("The seller's side: It left here in one piece.");
     expect(await screen.findByAltText("The other side's photo")).toHaveAttribute("src", "https://signed.test/s1/declutter/problem/o1/b.jpg");
+  });
+});
+
+// LEAD-ADMIN-HELPR-FAULT (owner rule 10-30 "Helpr's fault, Helpr bears it"; 20261101000817): a disputed "the Helpr
+// didn't come" can be decided as the Helpr's fault, on a Helpr delivery only, and only as a full refund.
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |         {helprNeverPickedUp ? <option value="helpr">The Helpr's</option> : null} |
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | disabled={decide.isPending \|\| helprFault \|\| (falseOn | disabled={decide.isPending \|\| (falseOn
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |         {helprNeverPickedUp ? <option value="helpr">The Helpr's</option> : null} |         <option value="helpr">The Helpr's</option>
+describe("DeclutterProblemsCard: the Helpr's fault (LEAD-ADMIN-HELPR-FAULT)", () => {
+  it("on a Helpr delivery: the Helpr's fault refunds the buyer in full, with a strike; Pay the seller is off", async () => {
+    state.rows = [row("other", "buyer", [], detail({ helpr_delivery: true }))];
+    show();
+    const fault = await screen.findByLabelText("Whose fault?");
+    expect([...(fault as HTMLSelectElement).options].map((o) => o.textContent)).toEqual(["Nobody's", "The seller's", "The buyer's", "The Helpr's"]);
+    fireEvent.change(fault, { target: { value: "helpr" } });
+    expect(screen.getByRole("button", { name: "Pay the seller" })).toBeDisabled();
+    expect(screen.getByText(/The Helpr's fault \(they took it and never picked it up\) = the whole payment back, delivery included/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Give the at-fault side a strike" }));
+    fireEvent.click(screen.getByRole("button", { name: "Refund the buyer" }));
+    await waitFor(() => expect(state.calls).toEqual([["decide", "p1", "refund_buyer", "helpr", true, null, false]]));
+  });
+
+  it("not on a sale no Helpr carries", async () => {
+    state.rows = [row("other", "buyer", [], detail({ helpr_delivery: false }))];
+    show();
+    const fault = await screen.findByLabelText("Whose fault?");
+    expect([...(fault as HTMLSelectElement).options].map((o) => o.value)).toEqual(["none", "seller", "buyer"]);
+  });
+});
+
+// B42 (BUY-36 screen check, 375 and 1440, mocked data): every Helpr delivery offered both "The Helpr's" fault (a Helpr
+// who never picked it up) and the can't-finish buttons (a Helpr who has it), and the server refuses each outside its
+// own moment. The order's steps (declutter_admin_problem_case, the read the card already makes) now pick the one that fits.
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const helprNeverPickedUp = helprDelivery && (steps ? !!steps.helpr_accepted_at && !steps.helpr_picked_up_at : true); |   const helprNeverPickedUp = helprDelivery;
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const helprHasIt = helprDelivery && (steps ? !!steps.helpr_picked_up_at && !steps.helpr_delivered_at : true); |   const helprHasIt = helprDelivery;
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" | <input type="checkbox"
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const steps = kase.data ?? null; |   const steps = null as typeof kase.data \| null;
+describe("DeclutterProblemsCard: which Helpr decision fits (B42)", () => {
+  const kase = (over: Record<string, unknown>) => ({
+    handover: "delivery", order_status: "paid", slot_start: null, pickup_day: null, seller_delivery_status: null, seller_delivery_slot_start: null,
+    seller_delivered_at: null, helpr_accepted_at: "2026-10-16T08:00:00Z", helpr_picked_up_at: null, helpr_pickup_photo_path: null,
+    helpr_delivered_at: null, helpr_dropoff_photo_path: null, helpr_dropoff_distance_m: null, ...over,
+  });
+
+  it("the Helpr took it and never picked it up: \"The Helpr's\" fault, no can't-finish buttons", async () => {
+    state.kase = kase({});
+    state.rows = [row("no_show", "seller", [], detail({ helpr_delivery: true }))];
+    show();
+    const fault = await screen.findByLabelText("Whose fault?");
+    await waitFor(() => expect([...(fault as HTMLSelectElement).options].map((o) => o.value)).toEqual(["none", "seller", "buyer", "helpr"]));
+    expect(document.querySelector("[data-admin-stuck-delivery]")).toBeNull();
+  });
+
+  it("the Helpr has it: the can't-finish buttons, not \"The Helpr's\" fault, and the Helpr's fault is sent", async () => {
+    state.kase = kase({ helpr_picked_up_at: "2026-10-16T10:00:00Z" });
+    state.rows = [row("damaged", "helpr", [], detail({ helpr_delivery: true }))];
+    show();
+    const fault = await screen.findByLabelText("Whose fault?");
+    await waitFor(() => expect([...(fault as HTMLSelectElement).options].map((o) => o.value)).toEqual(["none", "seller", "buyer"]));
+    const stuck = document.querySelector("[data-admin-stuck-delivery]") as HTMLElement;
+    expect(stuck).not.toBeNull();
+    fireEvent.click(within(stuck).getByRole("button", { name: "The Helpr's fault" }));
+    await waitFor(() => expect(state.calls).toEqual([["stuck", "p1", "helpr", null]]));
+  });
+
+  it("delivered: neither", async () => {
+    state.kase = kase({ helpr_picked_up_at: "2026-10-16T10:00:00Z", helpr_delivered_at: "2026-10-16T11:00:00Z" });
+    state.rows = [row("damaged", "buyer", [], detail({ helpr_delivery: true }))];
+    show();
+    const fault = await screen.findByLabelText("Whose fault?");
+    await waitFor(() => expect([...(fault as HTMLSelectElement).options].map((o) => o.value)).toEqual(["none", "seller", "buyer"]));
+    expect(document.querySelector("[data-admin-stuck-delivery]")).toBeNull();
+  });
+
+  it("the report radios and the strike box are drawn at their own size inside a 44px row", async () => {
+    state.rows = [row("other", "buyer", [], detail({ helpr_delivery: true }))];
+    show();
+    const box = await screen.findByRole("checkbox", { name: "Give the at-fault side a strike" });
+    for (const el of [box, ...screen.getAllByRole("radio")]) {
+      expect(el.className).toMatch(/(^|\s)min-h-0(\s|$)/);
+      expect(el.closest("label")?.className).toMatch(/(^|\s)min-h-11(\s|$)/);
+    }
   });
 });

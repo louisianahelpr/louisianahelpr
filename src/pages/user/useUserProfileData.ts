@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { NOT_AN_EXPIRED_LISTING_ANY_STATUS, NOT_AN_EXPIRED_LISTING_FILTER } from "@/lib/expiredListing";
 import { useQuery } from "@tanstack/react-query";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { formatName } from "@/lib/utils";
@@ -251,8 +252,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         supabase.from("reviews").select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
         // customer_id + helper_id: JobsList shows only rows the viewer was a
         // party to (A3-C8), never another poster's job on a public profile.
-        supabase.from("jobs").select("id, title, status, category, budget, created_at, customer_id, helper_id").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at, customer_id, helper_id").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at, customer_id, helper_id, cancellation_reason, cancelled_by").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at, customer_id, helper_id, cancellation_reason, cancelled_by").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         // Verification-ladder inputs (#112): grab the trust signals while
         // we're already touching this row. `get_safe_profiles` doesn't
         // expose these, but the profiles RLS policy already permits SELECT
@@ -266,8 +267,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // Count-only queries — `head: true` skips row payload, so these
         // are cheap. They power the lifetime cancellation-rate display
         // (#30) without inflating the limited job lists rendered above.
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).eq("status", "cancelled"),
+        // Nor is it a posted job anyone else hears about (owner 10-31).
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS),
+        // An unfilled expired listing is not a cancellation (owner 10-31, src/lib/expiredListing.ts).
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).eq("status", "cancelled").or(NOT_AN_EXPIRED_LISTING_FILTER),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!),
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!).eq("status", "cancelled"),
         // Last-active timestamp (#28) — separate RPC because login_history

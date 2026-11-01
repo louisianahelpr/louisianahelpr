@@ -151,7 +151,9 @@ function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents
   const parts = deliveryCents > 0 ? ` (${formatPrice(itemsCents)} for the sale and ${formatPrice(deliveryCents)} for delivering it)` : "";
   const money = free ? null
     : side === "buyer"
-      ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : `. The seller is paid after you ${after}.`}</> : null
+      // NIGHT-BUYINGopenpr-8 (buyer's held card): while a problem is open the note says "Nobody is paid until they
+      // decide.", so the money line no longer says the seller is paid after the pickup right above it.
+      ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done || problemOpen ? "." : `. The seller is paid after you ${after}.`}</> : null
       : done
         ? null
         : problemOpen

@@ -25,6 +25,10 @@ export type ProfileJob = {
       part of (A3-C8). Optional: rows from older call sites carry neither. */
   customer_id?: string | null;
   helper_id?: string | null;
+  /** Read only to tell an expired listing from a cancellation (src/lib/jobExpiry.ts). */
+  cancellation_reason?: string | null;
+  // Who cancelled it; NULL for the expiry sweep (src/lib/expiredListing.ts).
+  cancelled_by?: string | null;
   // No latitude/longitude. These were selected for ANOTHER user's jobs and
   // read by nothing — dead PII on the wire. Removed alongside
   // `20260831232513_address_only_when_offered`, which stops a helper who has

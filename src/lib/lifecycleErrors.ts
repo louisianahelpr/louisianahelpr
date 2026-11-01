@@ -702,6 +702,8 @@ export const RPC_ERROR_COPY = {
     wrong_side: DC.wrong_side,
   },
   declutter_cancel_after_no_helpr: {
+    // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
+    invalid_payout: DC.invalid_payout,
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,
     // From the close (declutter_close_paid_order): the task of an order no Helpr took is already closed, so these
@@ -741,6 +743,8 @@ export const RPC_ERROR_COPY = {
     task_not_found: DC.task_not_found,
   },
   declutter_report_no_show: {
+    // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
+    invalid_payout: DC.invalid_payout,
     account_restricted: DC.account_restricted,
     problem_taken_back: DC.problem_taken_back,
     already_confirmed: DC.already_confirmed,
@@ -1100,6 +1104,22 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
     order_not_paid: DC.order_not_paid,
+  },
+  // The delivery chat (BUY-36, 20261031231948).
+  helpr_task_talk_view: {
+    not_authenticated: DC.not_authenticated,
+    task_not_found: "We couldn't find that delivery.",
+  },
+  helpr_task_send_message: {
+    // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
+    item_not_found: DC.item_not_found,
+    account_restricted: DC.account_restricted,
+    invalid_message: DC.invalid_message,
+    message_rate_limited: DC.message_rate_limited,
+    not_authenticated: DC.not_authenticated,
+    talk_blocked: DC.talk_blocked,
+    talk_closed: DC.talk_closed,
+    task_not_found: "We couldn't find that delivery.",
   },
   declutter_send_order_message: {
     account_restricted: DC.account_restricted,

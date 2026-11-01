@@ -5,12 +5,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
-import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
+import { adminDecideDeliveryDamage, adminDecideStuckDelivery, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
 import { offerCentsFromInput } from "@/lib/declutter/refundRequests";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { AdminCard } from "../AdminViewShell";
+import { fetchProblemCase } from "@/lib/declutter/adminProblemCase";
 import { HelprPhoto, ProblemCaseView } from "./DeclutterProblemCase";
 import { ProblemTalk } from "./DeclutterProblemTalk";
 
@@ -107,7 +108,7 @@ function SidePhoto({ path, alt }: { path: string; alt: string }) {
 
 function ProblemItem({ row }: { row: ProblemRow }) {
   const qc = useQueryClient();
-  const [fault, setFault] = useState<"seller" | "buyer" | "none">("none");
+  const [fault, setFault] = useState<"seller" | "buyer" | "none" | "helpr">("none");
   const [strike, setStrike] = useState(false);
   const [note, setNote] = useState("");
   const [falseReport, setFalseReport] = useState(false);
@@ -123,6 +124,18 @@ function ProblemItem({ row }: { row: ProblemRow }) {
   // A false report goes against the reporter: the one decision left.
   const againstReporter = reporter === "buyer" ? "pay_seller" : "refund_buyer";
   const falseOn = falseReport && reporter !== null;
+  // LEAD-ADMIN-HELPR-FAULT (owner rule 10-30 "Helpr's fault, Helpr bears it"): on a Helpr delivery the Helpr can be at
+  // fault, which is a full refund only (the server refuses the rest: helpr_fault_not_possible).
+  const helprFault = fault === "helpr" && !falseOn;
+  // B42 (BUY-36 screen check): the two Helpr decisions fit different moments, and the server refuses each outside its
+  // own: "The Helpr's" fault while the Helpr has the job but never picked it up (helpr_fault_not_possible), the
+  // can't-finish decision only once the Helpr has it (not_a_delivery_in_transit). The order's steps (the same read
+  // ProblemCaseView makes, so no second request) say which; until they are known both are offered, as before.
+  const kase = useQuery({ queryKey: ["declutter", "admin-problem-case", row.id], queryFn: () => fetchProblemCase(row.id) });
+  const steps = kase.data ?? null;
+  const helprDelivery = !!row.detail?.helpr_delivery;
+  const helprNeverPickedUp = helprDelivery && (steps ? !!steps.helpr_accepted_at && !steps.helpr_picked_up_at : true);
+  const helprHasIt = helprDelivery && (steps ? !!steps.helpr_picked_up_at && !steps.helpr_delivered_at : true);
   const decide = useMutation({
     mutationFn: (decision: "refund_buyer" | "pay_seller" | "refund_part") => {
       const args = [row.id, decision, falseOn ? (reporter as "buyer" | "seller") : fault, falseOn ? false : strike, note.trim() || null, falseOn] as const;
@@ -135,6 +148,11 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       toast.success(falseOn ? `${done} The ${reporter} gets a strike for a false report.` : done);
       void qc.invalidateQueries({ queryKey: ["declutter", "admin-problems"] });
     },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  const stuck = useMutation({
+    mutationFn: (who: "none" | "helpr") => adminDecideStuckDelivery(row.id, who, note.trim() || null),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "admin-problems"] }),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const damage = useMutation({
@@ -175,12 +193,12 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       {reporter ? (
         <fieldset className="space-y-1">
           <legend className="text-xs font-medium">Was the report true?</legend>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name={id("truth")} checked={!falseReport} onChange={() => setFalseReport(false)} />
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name={id("truth")} checked={!falseReport} onChange={() => setFalseReport(false)} />
             Yes, or I can't tell
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name={id("truth")} checked={falseReport} onChange={() => { setFalseReport(true); setStrike(false); }} />
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name={id("truth")} checked={falseReport} onChange={() => { setFalseReport(true); setStrike(false); }} />
             No, it was false: the {reporter} gets a strike for a false report
           </label>
           {falseReport ? (
@@ -194,31 +212,33 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       <label htmlFor={id("fault")} className="block text-xs font-medium">Whose fault?</label>
       <select id={id("fault")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
         value={falseOn ? (reporter as string) : fault} disabled={falseOn}
-        onChange={(e) => { const f = e.target.value as "seller" | "buyer" | "none"; setFault(f); if (f === "none") setStrike(false); }}>
+        onChange={(e) => { const f = e.target.value as "seller" | "buyer" | "none" | "helpr"; setFault(f); if (f === "none") setStrike(false); }}>
         <option value="none">Nobody's</option>
         <option value="seller">The seller's</option>
         <option value="buyer">The buyer's</option>
+        {helprNeverPickedUp ? <option value="helpr">The Helpr's</option> : null}
       </select>
       <p className="text-xs text-muted-foreground">
         If you refund: the seller's fault = the whole payment back (the seller owes the card fee); the buyer's fault = the
         item price back (the buyer's fee is kept); nobody's = the payment back minus the card fee.
+        {helprNeverPickedUp ? " The Helpr's fault (they took it and never picked it up) = the whole payment back, delivery included; the Helpr isn't paid and owes the card fee." : ""}
       </p>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
+      <label className="flex min-h-11 items-center gap-2 text-sm">
+        <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
         Give the at-fault side a strike
       </label>
       <label htmlFor={id("note")} className="block text-xs font-medium">Note (both sides see it)</label>
       <input id={id("note")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" maxLength={1000}
         value={note} onChange={(e) => setNote(e.target.value)} />
-      <div className="flex gap-2">
+      <div data-admin-decide="" className="flex flex-wrap gap-2">
         <Button onClick={() => decide.mutate("refund_buyer")} disabled={decide.isPending || (falseOn && againstReporter !== "refund_buyer")}>Refund the buyer</Button>
-        <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending || (falseOn && againstReporter !== "pay_seller")}>Pay the seller</Button>
+        <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending || helprFault || (falseOn && againstReporter !== "pay_seller")}>Pay the seller</Button>
       </div>
-      {canPart && !falseOn && (
+      {canPart && !falseOn && !helprFault && (
         <div className="space-y-1" data-admin-part-refund="">
           <label htmlFor={id("part")} className="block text-xs font-medium">Or refund part of the price (the buyer keeps the item)</label>
           {offer ? <p className="text-xs text-muted-foreground">The seller offered {formatPrice(offer)}.</p> : null}
-          <div className="flex gap-2">
+          <div data-admin-part-row="" className="flex flex-wrap gap-2">
             <input id={id("part")} inputMode="decimal" className="w-32 rounded-lg border border-input bg-background px-3 py-2 text-sm"
               value={part} onChange={(e) => setPart(e.target.value)} placeholder="$" />
             <Button variant="outline" onClick={() => decide.mutate("refund_part")} disabled={decide.isPending || !partOk}>Refund part</Button>
@@ -226,6 +246,19 @@ function ProblemItem({ row }: { row: ProblemRow }) {
           {part.trim() && !partOk ? (
             <p className="text-xs text-destructive-ink" role="alert">Enter an amount above $0 and below the item price{itemsCents ? ` (${formatPrice(itemsCents)})` : ""}.</p>
           ) : null}
+        </div>
+      )}
+      {/* BUY-36: a delivery the Helpr still has and can't finish is decided by fault. */}
+      {helprHasIt && !falseOn && (
+        <div className="space-y-1" data-admin-stuck-delivery="">
+          <p className="text-xs text-muted-foreground">
+            If the Helpr has it and can't finish. Nobody's fault: the sale is cancelled, the buyer gets back all but the delivery fee and the card fee, the
+            Helpr is paid for the trip. The Helpr's fault: the sale is cancelled, the buyer gets everything back, the Helpr isn't paid, owes the card fee and gets a strike. The seller isn't paid either way.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => stuck.mutate("none")} disabled={stuck.isPending || decide.isPending}>Nobody's fault</Button>
+            <Button variant="outline" onClick={() => stuck.mutate("helpr")} disabled={stuck.isPending || decide.isPending}>The Helpr's fault</Button>
+          </div>
         </div>
       )}
       {deliveryReason && !falseOn && (

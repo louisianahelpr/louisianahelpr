@@ -9,7 +9,8 @@ import { describe, expect, it } from "vitest";
 import { cancelledSuffix, posterStatusLine } from "./jobStatusLine";
 import type { Job } from "./activityConstants";
 
-const base = { status: "cancelled", cancellation_reason: "Job listing expired — scheduled time passed with no Helpr assigned" } as unknown as Job;
+// A real cancellation: an expired listing reads "Expired" with no reason (src/test/expiredIsNotCancelled.test.tsx).
+const base = { status: "cancelled", cancellation_reason: "Plans changed" } as unknown as Job;
 
 describe("cancelled line and refunds", () => {
   it("adds 'Your payment was refunded' only for a refunded job", () => {

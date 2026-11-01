@@ -64,7 +64,8 @@ const FIRST_NAME_READERS = ["helpr_task_view", "nudge_confirm", "record_backout_
 const RESTATED_LATER: Record<string, string> = {
   // Whole-dollar delivery take-home (owner 2026-10-21); only take_home_cents changed.
   // Audit 1c #1/#4 (2026-10-29): handed_over_at and problem_open added; the name read is verbatim.
-  helpr_task_view: "20261030012018_helpr_delivery_seller_handover.sql",
+  // BUY-36 (20261031231150): the stuck/return fields added; the name read is verbatim (member_display_name).
+  helpr_task_view: "20261031231150_helpr_delivery_cant_finish.sql",
   // Q2399 card hold at post: the offer branch's money gate reads job_payment_is_listed; the name read is verbatim.
   // A2-B15 (2026-10-29): the poster's own reopen files no backout notice; the name read is verbatim.
   record_backout_notice: "20261029162907_poster_own_reopen_files_no_backout_notice.sql",

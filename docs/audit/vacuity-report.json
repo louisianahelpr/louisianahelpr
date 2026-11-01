@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-31T23:02:45.902Z",
-  "guards": 2997,
-  "registered": 2994,
+  "generated": "2026-11-01T02:01:28.378Z",
+  "guards": 3017,
+  "registered": 3014,
   "unregistered": [
     "e2e/a11y-prod/sectionTabsStayPut.spec.ts",
     "e2e/prod-audit/admin-chrome.spec.ts",
@@ -12,8 +12,6 @@
     "src/components/dashboard/giveawayShowsNoWords.test.tsx",
     "src/components/declutter/DeclutterBrowse.guest.test.tsx",
     "src/components/declutter/declutterBunchTickCorner.test.tsx",
-    "src/components/declutter/declutterReviewWhileRefundOpen.test.tsx",
-    "src/components/declutter/declutterStillAvailable.test.tsx",
     "src/components/landing/liveJobsRowFits.test.tsx",
     "src/components/messages/MessageText.test.tsx",
     "src/components/reviewPanel/starRowKeys.test.tsx",
@@ -24,8 +22,6 @@
     "src/test/declutterOnePreview.test.ts",
     "src/test/declutterPhotosFallBack.test.tsx",
     "src/test/emailSendLogOneRow.test.ts",
-    "src/test/instantReleaseSaysThreeDays.test.ts",
-    "src/test/masterSwitchSaysWhatOffDoes.test.ts",
     "src/test/photoViewerArrowsAbovePhoto.test.ts",
     "src/test/radiusCopyNeedsLocation.test.ts",
     "src/test/trackerFullWordsFromMidWidth.test.tsx",
@@ -38,12 +34,6 @@
       "why": [
         "blocked (literal declared in this file) is both input and oracle",
         "all (literal declared in this file) is both input and oracle"
-      ]
-    },
-    {
-      "file": "src/test/helprGuarantee.test.ts",
-      "why": [
-        "words (literal declared in this file) is both input and oracle"
       ]
     },
     {
@@ -61,15 +51,6 @@
       ],
       "parents": [
         "src/components/admin/AdminFraudDashboard.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/adminReports/WantedReportPanel.tsx",
-      "tests": [
-        "src/components/admin/adminReports/wantedReportPanel.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminReports.tsx"
       ]
     },
     {
@@ -171,7 +152,8 @@
       "module": "src/components/ErrorBoundary.tsx",
       "tests": [
         "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
-        "src/test/errorSurfacesReport.test.tsx"
+        "src/test/errorSurfacesReport.test.tsx",
+        "src/lib/connectivity.test.tsx"
       ],
       "parents": [
         "src/App.tsx"
@@ -245,6 +227,15 @@
       ]
     },
     {
+      "module": "src/components/OfflineBanner.tsx",
+      "tests": [
+        "src/lib/connectivity.test.tsx"
+      ],
+      "parents": [
+        "src/App.tsx"
+      ]
+    },
+    {
       "module": "src/components/profile/savedHelpersTab/SavedHelperCard.tsx",
       "tests": [
         "src/components/profile/savedHelpersTab/SavedHelperCard.test.tsx"
@@ -274,6 +265,7 @@
       "tests": [
         "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
         "src/test/errorSurfacesReport.test.tsx",
+        "src/lib/connectivity.test.tsx",
         "src/components/RouteErrorBoundary.recoveryInFlight.test.tsx"
       ],
       "parents": [

@@ -12,6 +12,7 @@
  * line here no migration raises.
  */
 import { CONNECTION_TROUBLE_COPY, isNetworkFailure } from "@/lib/networkFailure";
+import { isConfirmedOffline } from "@/lib/connectivity";
 
 export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // The Free section (20261027170717).
@@ -203,6 +204,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   too_many_problem_photos: "Add up to 3 photos.",
   // D2-14 (20261029231235): Louisiana Helpr's part refund is for an item the buyer keeps.
   part_refund_after_handover_only: "A part refund is for an item the buyer keeps. Before the handover, refund in full or pay the seller.",
+  // LEAD-ADMIN-HELPR-FAULT (20261101000817): the Helpr's fault is one outcome only.
+  helpr_fault_not_possible: "The Helpr's fault is a full refund, before the handover, on a delivery a Helpr took and never picked up.",
   not_handed_over: "Reviews open after the handover.",
   invalid_stars: "Pick 1 to 5 stars.",
   comment_too_long: "Keep your review under 1,000 characters.",
@@ -375,9 +378,9 @@ const GENERIC = "Something went wrong. Please try again.";
 /** Audit 1d D4-14: the device is offline (the browser says so). Any typed text stays where it was. */
 export const DECLUTTER_OFFLINE_COPY = "You're offline. Try again when you're back online.";
 
-/** True when the device says it has no connection (never throws where there is no navigator). */
+/** True once offline is CONFIRMED (src/lib/connectivity.ts): navigator.onLine=false alone is only a hint (owner, 10-31). */
 function deviceOffline(): boolean {
-  return typeof navigator !== "undefined" && navigator.onLine === false;
+  return isConfirmedOffline();
 }
 
 /** The plain-words message for any error a Declutter call threw or returned. */

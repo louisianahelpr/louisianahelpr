@@ -28,7 +28,7 @@ describe("BUY-25 and BUY-23", () => {
   it("never got it: Refund in full refunds at once, with the seller paying the card fee (lead 10-30)", () => {
     const a = flat("declutter_answer_refund");
     expect(a).toMatch(/IF r\.reason = 'not_received' THEN v_out := public\.declutter_refund_after_handover\(o\.id, 'seller_no_show', NULL\)/);
-    expect(flat("declutter_record_refund")).toContain("WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN 'full_seller_pays_fee'");
+    expect(flat("declutter_record_refund")).toContain("WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN 'full_seller_pays_fee'");
     expect(flat("declutter_refund_item_returned")).toContain("public.declutter_refund_after_handover(o.id, 'refund_request_full', NULL)");
     expect(flat("declutter_accept_refund_with_return")).toContain("IF r.reason = 'not_received' THEN RAISE EXCEPTION 'no_return_needed'");
   });

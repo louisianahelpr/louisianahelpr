@@ -37,6 +37,8 @@ describe("Instant Release says when the Helpr is really paid", () => {
 
   it.each(SURFACES)("%s says approve, then the real wait", (file) => {
     const copy = flat(read(file));
+    // Floor (vacuity scan): the real surface was read, not an empty or moved file (each about 24 KB on 10-31).
+    expect(copy.length).toBeGreaterThan(2_000);
     expect(copy).toContain("photo proof");
     expect(copy).toContain(`They're paid ${STANDARD_PAYOUT_DAYS_AFTER_APPROVAL} days later.`);
   });

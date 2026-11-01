@@ -186,6 +186,9 @@ const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(p
 const homeIcons = homeIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
 const homeSet = staticReach(process.cwd(), homeFirstScreenRoots(process.cwd()));
+// B86: the part of homeLate the dock itself runs (MobileNav's static reach). In one signed-in-late chunk with the
+// other every-page roots' code (Legal's data export, the ID sheet's switch reads, award copy), the dock waited for all of it.
+const dockSet = staticReach(process.cwd(), [path.join(process.cwd(), "src/components/MobileNav.tsx")]);
 const bootOrHome = (f: string) => bootSet.has(f) || homeSet.has(f);
 const norm = (id: string) => id.split("?")[0].replace(/\\/g, "/");
 const lateShared = (id: string) => (SHARED_DIR_RE.test(id) || /[\\/]supabase[\\/]functions[\\/]/.test(id)) && !bootOrHome(norm(id));
@@ -1006,6 +1009,14 @@ export default defineConfig(({ mode, command }) => ({
             // (bootReach.mjs signedInSplit homeLate: MobileNav's unread counts and message previews, Legal's data
             // export, ...). Those load after Home's first paint, so it left Home's first round (B79, 11-01); the
             // every-page roots fetch it beside signed-in-shared. src/test/homeSkipsOtherScreensCode.test.ts.
+            {
+              name: "signed-in-dock",
+              test: (id: string) => homeLate.has(norm(id)) && dockSet.has(norm(id)),
+              minShareCount: 2,
+              priority: 15.3,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "signed-in-late",
               test: (id: string) => homeLate.has(id.split("?")[0].replace(/\\/g, "/")),

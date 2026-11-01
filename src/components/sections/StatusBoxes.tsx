@@ -47,6 +47,8 @@ export function useStatusFilter<K extends string>(valid: readonly K[]) {
  */
 /** The fade at the row's end when a control is pinned there (one icon wide): `pr-11` and the mask below. */
 const END_FADE_PX = 44;
+/** The plain right-edge fade (`fade`, no control at the end): Declutter's chip row's (AUD31-4), `pr-10` and the mask below. */
+const EDGE_FADE_PX = 40;
 
 /**
  * How far to scroll the chip track so the lit chip sits fully in view, clear of the end fade; 0 when it already
@@ -70,6 +72,7 @@ export function StatusBoxes<K extends string>({
   allCount,
   end,
   emptyLine = true,
+  fade = false,
 }: {
   boxes: readonly StatusBoxDef<K>[];
   value: K | null;
@@ -83,10 +86,16 @@ export function StatusBoxes<K extends string>({
    * beside the gear (owner 2026-10-31, LEAD-SEARCH-BY-GEAR), and with it went the open-field "only the lit chip" mode.
    */
   end?: ReactNode;
+  /**
+   * Fade the row's right edge with nothing pinned there, so a chip cut at a phone's edge reads as "more to scroll"
+   * (HELP-WORKIN, lead 10-31: Jobs > Working gets Declutter's AUD31-4 fade). The end padding (>= the fade) lets the
+   * last chip scroll clear of it.
+   */
+  fade?: boolean;
 }) {
   const active = boxes.find((b) => b.key === value);
   const trackRef = useRef<HTMLDivElement>(null);
-  const endFade = end ? END_FADE_PX : 0;
+  const endFade = end ? END_FADE_PX : fade ? EDGE_FADE_PX : 0;
   // The lit chip is brought into view whenever the filter changes, and again when the chips change width (their
   // counts land after the first paint), so it is never left cut under the end fade (A2-L18).
   useLayoutEffect(() => {
@@ -125,7 +134,7 @@ export function StatusBoxes<K extends string>({
         // With a control at the end, the row softly fades over its last 44px (one icon wide), so the chip that runs
         // under it reads as "more", never as clipped; the same 44px of end padding lets the last chip scroll fully
         // clear of the fade (lead, 390, 2026-10-25).
-        className={`-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${end ? "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" : "px-1"}`}
+        className={`-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${end ? "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" : fade ? "pl-1 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]" : "px-1"}`}
         role="group"
         aria-label="Filter by status"
       >

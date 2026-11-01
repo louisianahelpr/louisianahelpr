@@ -534,8 +534,9 @@ jobs:
             echo ""
             git log -n 20 --pretty=format:"• %s" --no-merges
           } > fastlane/changelog.txt
-          # TestFlight "What to Test" notes
-          cp fastlane/changelog.txt fastlane/metadata/review_information/notes.txt 2>/dev/null || true
+          # TestFlight "What to Test" reads CHANGELOG_PATH (Fastfile changelog_text). Never copy it over
+          # fastlane/metadata/review_information/notes.txt: the release lane uploads that folder, so App Review
+          # got this commit list instead of the reviewer notes (B48 App Store sweep 10-31).
           echo "path=fastlane/changelog.txt" >> "$GITHUB_OUTPUT"
           echo "▶ Changelog:"
           cat fastlane/changelog.txt

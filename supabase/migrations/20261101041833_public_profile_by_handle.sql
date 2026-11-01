@@ -70,7 +70,8 @@ BEGIN
     FROM public.profiles p
    WHERE p.handle = v_handle
       OR (p.handle IS NOT NULL
-          AND p.user_id = (SELECT r.user_id FROM public.profile_handles_retired r WHERE r.handle = v_handle))
+          AND p.user_id = (SELECT r.user_id FROM public.profile_handles_retired r
+                            WHERE r.handle = v_handle AND r.user_id IS NOT NULL))
    ORDER BY (p.handle = v_handle) DESC
    LIMIT 1;
   IF v_p.user_id IS NULL THEN

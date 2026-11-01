@@ -77,7 +77,7 @@ CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), use
   avatar_url text, created_at timestamptz NOT NULL DEFAULT '2025-03-01T12:00:00Z', handle text, email_verified boolean NOT NULL DEFAULT true,
   ban_status text, auto_suspended_until timestamptz, date_of_birth date, is_seed boolean NOT NULL DEFAULT false, anonymized_at timestamptz,
   email text, phone text, location text, bio text);
-CREATE TABLE public.profile_handles_retired (handle text PRIMARY KEY, user_id uuid NOT NULL, retired_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE public.profile_handles_retired (handle text PRIMARY KEY, user_id uuid, retired_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.declutter_seller_flags (user_id uuid PRIMARY KEY, business_like boolean NOT NULL DEFAULT false);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL);
@@ -339,6 +339,11 @@ for (const [sql, label] of [
 const named = (await page("eli-b")).v?.helpr?.reviews?.[0]?.reviewer_name;
 check("P14 a banned, out, deleted or under-18 reviewer shows as 'A neighbor'; otherwise First L.", masked.length === 0 && named === "Rita T.",
   masked.join("; ") || String(named));
+
+// P15 (lead 2026-11-01): a deleted member's old handle (user_id NULL) opens nothing: no page, no error.
+await db.exec(`INSERT INTO public.profile_handles_retired (handle, user_id) VALUES ('lou-gone', NULL)`);
+const gone = await page("lou-gone");
+check("P15 a deleted member's unlinked handle opens no page", !BEFORE && gone.v === null && !gone.error, JSON.stringify(gone));
 
 if (BEFORE) {
   console.log(`--before: ${failures}/${checks} FAIL (expected ${checks})`);

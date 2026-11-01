@@ -169,12 +169,12 @@ ok(seller?.declutter_order_porch_places?.[0]?.label === "Camp", "  the seller's 
 ok(bf && !("address" in bf) && !("lat" in bf) && !("lng" in bf) && !("seller_id" in bf), "  and has no address, point or seller id", JSON.stringify(bf));
 ok(Array.isArray(stranger?.declutter_order_porch_places) && stranger.declutter_order_porch_places.length === 0 && stranger.declutter_porch_places.length === 0, "a stranger gets none of it");
 ok(Array.isArray(seller?.declutter_seller_porch_days), "the porch days section is still there");
-await db.exec(`CREATE TABLE IF NOT EXISTS public.profile_handles_retired (handle text PRIMARY KEY, user_id uuid NOT NULL, retired_at timestamptz NOT NULL DEFAULT now());
-  INSERT INTO public.profile_handles_retired (handle, user_id, retired_at) VALUES ('old-seller', '${SELLER}', now())`);
+await db.exec(`CREATE TABLE IF NOT EXISTS public.profile_handles_retired (handle text PRIMARY KEY, user_id uuid, retired_at timestamptz NOT NULL DEFAULT now());
+  INSERT INTO public.profile_handles_retired (handle, user_id, retired_at) VALUES ('old-seller', '${SELLER}', now()), ('gone-member', NULL, now())`);
 const s2 = await exportOf(SELLER);
 const b2 = await exportOf(BUYER);
-ok(s2?.profile_handles_retired?.[0]?.handle === "old-seller" && Object.keys(s2.profile_handles_retired[0]).sort().join() === "handle,retired_at"
-   && b2?.profile_handles_retired?.length === 0, "a member's own old profile links are in their export, nobody else's", JSON.stringify([s2?.profile_handles_retired, b2?.profile_handles_retired]));
+ok(s2?.profile_handles_retired?.length === 1 && s2.profile_handles_retired[0].handle === "old-seller" && Object.keys(s2.profile_handles_retired[0]).sort().join() === "handle,retired_at"
+   && b2?.profile_handles_retired?.length === 0, "a member's own old profile links are in their export, nobody else's, and never a deleted member's unlinked one", JSON.stringify([s2?.profile_handles_retired, b2?.profile_handles_retired]));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

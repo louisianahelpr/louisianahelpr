@@ -71,9 +71,12 @@ GRANT EXECUTE ON FUNCTION public.profile_handle_problem(text) TO authenticated, 
 
 -- Every handle ever used, kept for good (review 2026-11-01): a released handle is
 -- never claimed by anyone else, and an old shared link still finds its owner.
+-- A DELETED member's handles stay reserved, but unlinked (lead 2026-11-01): user_id
+-- goes NULL (FK ON DELETE SET NULL, and a deleted profile retires its handle with
+-- NULL), so an old link resolves to nothing and nothing ties the handle to them.
 CREATE TABLE IF NOT EXISTS public.profile_handles_retired (
   handle text PRIMARY KEY,
-  user_id uuid NOT NULL,
+  user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   retired_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS profile_handles_retired_user_idx ON public.profile_handles_retired (user_id);
@@ -167,15 +170,16 @@ BEGIN
   IF TG_OP IN ('UPDATE', 'DELETE') AND OLD.handle IS NOT NULL
      AND (TG_OP = 'DELETE' OR NEW.handle IS DISTINCT FROM OLD.handle) THEN
     PERFORM pg_advisory_xact_lock(hashtext('profile_handle:' || OLD.handle));
+    -- A deleted profile (the account is leaving) retires its handle unlinked: NULL, never its user id.
     INSERT INTO public.profile_handles_retired (handle, user_id)
-    VALUES (OLD.handle, OLD.user_id)
+    VALUES (OLD.handle, CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE OLD.user_id END)
     ON CONFLICT (handle) DO NOTHING;
   END IF;
   IF TG_OP IN ('INSERT', 'UPDATE') AND NEW.handle IS NOT NULL
      AND (TG_OP = 'INSERT' OR NEW.handle IS DISTINCT FROM OLD.handle) THEN
     PERFORM pg_advisory_xact_lock(hashtext('profile_handle:' || NEW.handle));
     IF EXISTS (SELECT 1 FROM public.profile_handles_retired r
-                WHERE r.handle = NEW.handle AND r.user_id <> NEW.user_id) THEN
+                WHERE r.handle = NEW.handle AND r.user_id IS DISTINCT FROM NEW.user_id) THEN
       RAISE EXCEPTION 'handle_retired' USING ERRCODE = '23505';
     END IF;
   END IF;

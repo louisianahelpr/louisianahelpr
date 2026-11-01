@@ -22,6 +22,9 @@
  *   H9 a released handle is never anyone else's: after Ann changes hers, nobody can pick it or be given it by
  *      default; deleting a profile retires its handle too (review 2026-11-01)
  *   H10 every SECURITY DEFINER function here pins search_path to public, pg_temp (review 2026-11-01)
+ *   H11 a deleted member's handles (current and old) stay reserved but unlinked (lead 2026-11-01): after the auth
+ *       user is deleted, every retired row of theirs has user_id NULL, nobody can pick either handle, and a default
+ *       for the same name skips it
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -40,7 +43,8 @@ const check = (name, ok, detail = "") => {
   if (!ok) failures++;
 };
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const ELI = U(1), ELI2 = U(2), DOTS = U(3), ANN = U(4), ADMINP = U(5), SUPP = U(6), PHONE = U(7), DIGI = U(8), DIGI2 = U(9), ANNY = U(10), BOB = U(11), GONE = U(12), NEWBIE = U(13);
+const ELI = U(1), ELI2 = U(2), DOTS = U(3), ANN = U(4), ADMINP = U(5), SUPP = U(6), PHONE = U(7), DIGI = U(8), DIGI2 = U(9), ANNY = U(10), BOB = U(11), GONE = U(12), NEWBIE = U(13), LEFT = U(14), LEFT2 = U(15);
+const ALL = [ELI, ELI2, DOTS, ANN, ADMINP, SUPP, PHONE, DIGI, DIGI2, ANNY, BOB, GONE, NEWBIE, LEFT, LEFT2];
 
 const db = new PGlite();
 await db.exec(`
@@ -55,14 +59,17 @@ CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif
 CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql STABLE SET search_path TO '' AS $$
   SELECT auth.uid() IS NULL AND coalesce(auth.role(), '') NOT IN ('anon', 'authenticated')
      AND coalesce(current_setting('role', true), 'none') NOT IN ('anon', 'authenticated') $$;
-CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE NOT NULL, full_name text, bio text);
+CREATE TABLE auth.users (id uuid PRIMARY KEY);
+INSERT INTO auth.users (id) SELECT unnest(ARRAY['${ALL.join("','")}']::uuid[]);
+CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE, full_name text, bio text);
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role; -- as on Supabase: auth.uid() is callable by every API role
 GRANT SELECT, UPDATE ON public.profiles TO authenticated;
 INSERT INTO public.profiles (user_id, full_name) VALUES
   ('${ELI}', 'Eli Broussard'), ('${ELI2}', 'Eli  Bourgeois'), ('${DOTS}', '.. !'), ('${ANN}', 'Ann Guidry'),
   ('${ADMINP}', 'Admin Smith'), ('${SUPP}', 'Support'), ('${PHONE}', '2255550199'), ('${DIGI}', '123456 x'), ('${DIGI2}', '123456 x'),
-  ('${ANNY}', 'Ann-Cleans-BR'), ('${BOB}', 'Bob Picker'), ('${GONE}', 'Gone Person'), ('${NEWBIE}', 'Gone Person');
+  ('${ANNY}', 'Ann-Cleans-BR'), ('${BOB}', 'Bob Picker'), ('${GONE}', 'Gone Person'), ('${NEWBIE}', 'Gone Person'),
+  ('${LEFT}', 'Lou Fontenot'), ('${LEFT2}', 'Lou Fontenot');
 `);
 if (!BEFORE) {
   for (let i = 1; i <= (REPLAY ? 3 : 1); i++) {
@@ -166,9 +173,25 @@ const definers = (await db.query(`SELECT p.proname, coalesce(array_to_string(p.p
 const unpinned = definers.filter((d) => !/search_path=public, pg_temp/.test(d.cfg)).map((d) => `${d.proname}[${d.cfg}]`);
 check("H10 every SECURITY DEFINER pins search_path to public, pg_temp", definers.length >= 3 && unpinned.length === 0, `${definers.length} definers; ${unpinned.join(" ")}`);
 
+// H11: Lou gets "lou-f", picks "lou-cajun" (retiring "lou-f" under Lou's id), then the account is deleted.
+const lou0 = (await ensure(LEFT)).v;
+const lou1 = (await set(LEFT, "lou-cajun")).v;
+const linkedBefore = await db.query(`SELECT count(*)::int AS n FROM public.profile_handles_retired WHERE user_id = '${LEFT}'`).then((x) => x.rows[0].n, (e) => e.message);
+let delErr = "";
+await db.exec(`DELETE FROM auth.users WHERE id = '${LEFT}'`).catch((e) => { delErr = e.message; });
+const rows = await db.query(`SELECT handle, user_id FROM public.profile_handles_retired WHERE handle IN ('lou-f', 'lou-cajun') ORDER BY handle`).then((x) => x.rows, (e) => e.message);
+const pickOld = await set(BOB, "lou-f");
+const pickCur = await set(BOB, "lou-cajun");
+const lou2 = await ensure(LEFT2);
+check("H11 a deleted member's handles stay reserved but unlinked (user_id NULL); nobody can pick them; a default skips them",
+  lou0 === "lou-f" && lou1 === "lou-cajun" && linkedBefore === 1 && delErr === ""
+    && Array.isArray(rows) && rows.length === 2 && rows.every((x) => x.user_id === null)
+    && /handle_taken/.test(pickOld.error ?? "") && /handle_taken/.test(pickCur.error ?? "") && lou2.v === "lou-f-2",
+  JSON.stringify([lou0, lou1, linkedBefore, delErr, rows, pickOld, pickCur, lou2]));
+
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 if (BEFORE) {
-  const expected = 10;
+  const expected = 11;
   console.log(failures === expected ? `RED as expected (${failures}/${expected})` : `NOT RED: ${failures}/${expected} failed`);
   process.exit(failures === expected ? 0 : 1);
 }

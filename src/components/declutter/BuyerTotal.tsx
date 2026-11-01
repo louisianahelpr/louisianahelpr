@@ -10,6 +10,7 @@
  * than show a figure $2 low. The ONE place a buyer-total figure is built in src/components
  * (src/test/declutterBuyNowShowsTotal.test.ts allows no bare buyNowTotalCents( elsewhere).
  */
+import type { ReactNode } from "react";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { formatPrice } from "@/lib/declutter/distance";
 import { buyNowTotalCents } from "@/lib/declutter/money";
@@ -25,8 +26,8 @@ export function BuyerTotal({
 }: {
   /** The item price (or offer) in cents, before the buyer fee. */
   priceCents: number;
-  /** Words after the figure inside the same span, e.g. " total". */
-  suffix?: string;
+  /** Words after the figure inside the same span, e.g. " total" (or a screen-reader-only span of them). */
+  suffix?: ReactNode;
   className?: string;
   pendingClassName?: string;
   /**
@@ -45,4 +46,16 @@ export function BuyerTotal({
       {!setupFeeKnown && <span data-buy-setup-fee-pending="" className={pendingClassName}>{SETUP_FEE_PENDING_WORDS}</span>}
     </>
   );
+}
+
+/**
+ * "+ any one-time setup fee" as its own small line under a pair of one-line buttons (owner 11-01: side-by-side
+ * buttons are one line with short labels, "Buy · $37.45"). The button keeps the words for screen readers
+ * (BuyerTotal with pendingClassName "sr-only"), so this line is aria-hidden. Nothing once the answer is in: the
+ * figure then already holds the fee.
+ */
+export function SetupFeeNote({ className = "text-ds-12 text-muted-foreground" }: { className?: string }) {
+  const setupFeeKnown = useFirstPayoutFeeKnown();
+  if (setupFeeKnown) return null;
+  return <p aria-hidden data-setup-fee-note="" className={className}>{SETUP_FEE_PENDING_WORDS}</p>;
 }

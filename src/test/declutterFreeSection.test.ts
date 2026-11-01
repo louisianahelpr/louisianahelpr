@@ -12,7 +12,7 @@
  * planted out, "the giver may NOT open a payout account" FAILs). This guard pins the newest definitions
  * and the screens that carry it.
  *
- * @mutate supabase/migrations/20261031164337_declutter_door_pickup_uses_places.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
+ * @mutate supabase/migrations/20261101032626_declutter_checkout_page_inside_hold.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id

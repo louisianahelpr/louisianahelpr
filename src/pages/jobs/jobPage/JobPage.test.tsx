@@ -16,6 +16,7 @@
  *
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx | go: () => navigate(`/posts?highlight=${id}&applicants=1`) | go: () => navigate(`/posts?highlight=${id}`)
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {hasPhoto && ( |         {true && (
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isHired && isSellForMeJob(job.category) && !job.helper_completed_at && primary && ( |             {false && (
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {hasVideo && <ScopeVideo url={job.scope_video_url} />} |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const primary = isPoster && posterWait === "confirm_arrival" |   const primary = isPoster && false
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | arrival.confirming ? "Confirming…" : "Confirm they've arrived" | arrival.confirming ? "Confirming…" : "Confirm arrival"
@@ -586,6 +587,25 @@ describe("job page, the hired Helpr", () => {
     renderPage();
     expect(document.body.textContent).not.toMatch(/before photo/i);
     expect(screen.getByRole("button", { name: "Mark job complete" })).toBeTruthy();
+  });
+
+  it("a Have a Helpr list it job says when it is done (sent for approval) beside Mark job complete; other jobs don't", () => {
+    const working = {
+      helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
+      poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
+      helper_arrival_verified_at: "2026-10-28T12:30:00Z", poster_confirmed_arrival_at: "2026-10-28T12:35:00Z",
+      require_photo_proof: true, proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"],
+    };
+    state.job = row({ ...working, category: "declutter_help" });
+    state.party = true;
+    state.tracking = "working";
+    const { unmount } = renderPage();
+    expect(screen.getByRole("button", { name: "Mark job complete" })).toBeTruthy();
+    expect(screen.getByText("Mark it done once you've sent the listings to the seller for approval.")).toBeTruthy();
+    unmount();
+    state.job = row({ ...working, category: "yard_work" });
+    renderPage();
+    expect(document.querySelector("[data-sell-for-me-done-note]")).toBeNull();
   });
 
   it("10 minutes after arriving, Mark job complete is greyed with the Working card's sentence; at 30 it is live", () => {

@@ -49,6 +49,7 @@ import { PageApplySheet, usePageApply } from "./PageApplySheet";
 import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
+import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow): string {
@@ -262,6 +263,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             )}
             {isPoster && posterActions.secondary}
             {!isPoster && <MineFaceNote note={hiredFace?.note} />}
+            {/* LEAD-LIST-FOR-SELLER: the Working card's done rule, said here too (its panel lives on that card). */}
+            {isHired && isSellForMeJob(job.category) && !job.helper_completed_at && primary && (
+              <p data-sell-for-me-done-note="" className="text-center text-ds-13 text-muted-foreground">{SELL_FOR_ME_DONE_NOTE}</p>
+            )}
             {hiredFace && (
               <div data-hired-actions="" className="flex flex-wrap gap-2">
                 {/* Message the poster, unless the main button already is that (a waiting card's one button). */}

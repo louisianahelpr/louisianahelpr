@@ -1,5 +1,5 @@
 /*
- * Sentry JAVASCRIPT-4M (2 users, iPhone, /jobs): "notifications load timed out after 15000ms". The event's
+ * Sentry JAVASCRIPT-4M (2 users as of 2026-11-01, iPhone, /jobs): "notifications load timed out after 15000ms". The event's
  * breadcrumbs show both list selects answered (200) and the unread HEAD count never came back; its 15 s timer
  * then failed the WHOLE load. Since Q104 (2026-11-01) there is no separate count: the total rides on the unread
  * read (count: "exact"), so no third request can stall the load. A HEAD count that never settles must never be

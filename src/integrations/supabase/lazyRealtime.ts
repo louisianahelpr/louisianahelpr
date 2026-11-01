@@ -5,6 +5,8 @@ import { loadModule } from "@/lib/loadModule";
  * createClient() builds a RealtimeClient in its constructor, so the client module (on every page's boot) carried
  * realtime-js + phoenix (~14 KB gz) although only chat, presence and live lists open a channel. In the production
  * build vite.config.ts aliases "@supabase/realtime-js" to this file and "supabase-realtime-real" to the package.
+ * knip.json lists @supabase/realtime-js in ignoreDependencies: it is supabase-js's own dependency, imported only by this lazy
+ * stand-in (through the alias), and its version is the one supabase-js pins, so package.json does not list it.
  * The real client is made on the first channel that subscribes, sends or tracks; a channel's `.on()` bindings made
  * before that are replayed onto the real channel, in order. Dev and tests use the real package unchanged.
  *

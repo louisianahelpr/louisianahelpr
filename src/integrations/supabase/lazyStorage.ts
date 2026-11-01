@@ -5,6 +5,8 @@ import { loadModule } from "@/lib/loadModule";
  * createClient() builds a StorageClient in its constructor, so the client module (on every page's boot) carried
  * storage-js (~6 KB gz) although only upload, photo and delete screens touch files. In the production build
  * vite.config.ts aliases "@supabase/storage-js" to this file and "supabase-storage-real" to the package.
+ * knip.json lists @supabase/storage-js in ignoreDependencies: it is supabase-js's own dependency, imported only by this lazy
+ * stand-in (through the alias), and its version is the one supabase-js pins, so package.json does not list it.
  * `supabase.storage.from(bucket)` hands back a stand-in whose async methods (upload, remove, createSignedUrl,
  * list, download, ...) load storage-js and call the real one; getPublicUrl, the one synchronous method, is
  * computed here exactly as storage-js does (src/integrations/supabase/lazyStorage.test.ts compares the two).

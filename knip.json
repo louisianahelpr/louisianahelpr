@@ -22,7 +22,9 @@
     "pg",
     "@electric-sql/pglite",
     "@microsoft/eslint-formatter-sarif",
-    "@radix-ui/react-focus-scope"
+    "@radix-ui/react-focus-scope",
+    "@supabase/realtime-js",
+    "@supabase/storage-js"
   ],
   "rules": {
     "files": "error",

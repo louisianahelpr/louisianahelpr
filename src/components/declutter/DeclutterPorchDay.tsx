@@ -110,9 +110,7 @@ export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
           Pickup day: <span className="font-medium">{porchDayWords(booked)}</span>.{" "}
           {side === "seller" ? "The buyer can come any time that day once you post the porch photo." : "It's out all that day once the seller posts the porch photo."}
         </p>
-      ) : side === "seller" ? (
-        <p className="text-sm text-muted-foreground">Waiting for the buyer to pick a pickup day (within 7 days of paying).</p>
-      ) : null}
+      ) : null /* A3-49: the seller's waiting line is the card's next-step line, said once. */}
       {booked && !moving && !movedAlready && !putOut && (
         <button type="button" className="min-h-11 text-sm font-semibold underline underline-offset-2" onClick={() => setMoving(true)}>
           Pick another day (once)

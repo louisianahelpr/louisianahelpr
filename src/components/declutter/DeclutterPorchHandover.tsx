@@ -30,6 +30,8 @@ import { GOOD_NEWS_NOTE } from "./goodNews";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { sellerPayoutRule, type SellerPayoutKind } from "@/lib/declutter/sellerPayoutRule";
 import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
+import { useOrderOtherPerson } from "./useOrderOtherPerson";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Pickup = "porch" | "pickup_home" | "meetup";
 
@@ -53,7 +55,7 @@ export function onDay(day: string): string {
 }
 
 /** A3-18 (lead 11-01 5:01 PM): the checkout time once booked ("Sat 11/2, 3–5 PM"), or "by <book_by>" while nothing is. */
-type TimeWords = { chosen: string | null; by: string | null };
+type TimeWords = { chosen: string | null; by: string | null; buyer?: string | null };
 
 export function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: string | null, free = false,
   times: TimeWords = { chosen: null, by: null }): NextStepValue {
@@ -64,8 +66,10 @@ export function standing(handover: Pickup, side: "buyer" | "seller", at: number,
   const them = (text: string, by: string | null = null): NextStepValue => ({ who: "them", text, by });
   const info = (text: string): NextStepValue => ({ who: "info", text });
   const { chosen, by } = times;
+  // A3-49: the seller's one waiting line names the buyer ("Waiting on Ann to …"); "the buyer" until the name is in.
+  const buyer = times.buyer || "the buyer";
   // Nothing booked yet: the other side's line drops its full stop so " · by <date>" follows it.
-  const waiting = (what: string) => them(`${paid} Waiting on the buyer to ${what}${by ? "" : "."}`, by);
+  const waiting = (what: string) => them(`${paid} Waiting on ${buyer} to ${what}${by ? "" : "."}`, by);
   // The booked day or time is the booking panel's line, right below; it is not repeated here.
   if (handover === "porch") {
     // LEAD-PLACE-TIMES: a porch pickup is booked for a time inside the place's hours (a day booked before stays a day).
@@ -133,6 +137,9 @@ export function PickupStatus({
 }) {
   const h = useMyHandover(orderId);
   const times = useQuery({ queryKey: orderPickupTimesKey([orderId]), queryFn: () => fetchOrderPickupTimes([orderId]) });
+  // A3-49: the seller's waiting line names the buyer (the order row's buyer id, then the public first name).
+  const { user } = useCurrentUser();
+  const other = useOrderOtherPerson(orderId, user?.id ?? "", side);
   // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
   const free = itemsCents === 0;
   // A1-B2: the buyer's "You paid" is the card charge (the sale plus a first purchase's setup fee), read for the buyer
@@ -153,7 +160,7 @@ export function PickupStatus({
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
-      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing(handover, side, at, day, free, orderTimeWords(times.data?.[0], handover, slot))} />
+      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null })} />
       {part === "all" && money}
     </div>
   );

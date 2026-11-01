@@ -334,9 +334,8 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
   });
   const booked = booking?.slot_start;
   const movedAlready = !!booked && ((order.side === "buyer" ? booking?.buyer_reschedules : booking?.seller_reschedules) ?? 0) >= 1;
-  if (!booked && order.side === "seller") {
-    return <p className="text-sm text-muted-foreground">Waiting for the buyer to book {order.handover === "meetup" ? "a time to meet" : "a pickup time"} (within 7 days of paying).</p>;
-  }
+  // A3-49: the seller's wait is said once, by the card's next-step line ("Waiting on Ann to pick a pickup time · by …").
+  if (!booked && order.side === "seller") return null;
   const id = `dcl-slot-${order.orderId}`;
   if (frozen) return booked ? <p className="text-sm">Pickup: <span className="font-medium">{when(booked)}</span> (30 minutes)</p> : null;
   return (

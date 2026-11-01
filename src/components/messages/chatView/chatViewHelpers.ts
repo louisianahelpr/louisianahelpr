@@ -88,7 +88,8 @@ export function buildTimeline(
   // JobSystemEventKind union, so a renamed kind fails the build rather than
   // silently un-deduping.
   const DUPLICATE_PATTERNS: { kind: JobSystemEventKind; matches: RegExp }[] = [
-    { kind: "cancelled", matches: /\bcancell?ed\b/i },
+    // "✕ No longer open" is an expired listing's row (20261101011526); the derived pill says it for the reader.
+    { kind: "cancelled", matches: /\bcancell?ed\b|\bno longer open\b/i },
     { kind: "disputed", matches: /\bdisput/i },
     { kind: "poster_confirmed_completed", matches: /\bcomplete/i },
     { kind: "helper_completed", matches: /\bcomplete/i },

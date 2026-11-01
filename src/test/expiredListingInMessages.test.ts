@@ -17,6 +17,7 @@ import { resolve } from "node:path";
 import { deriveJobSystemEvents, type JobTimestamps } from "@/lib/jobSystemEvents";
 import { threadJobChipLabel, expiredCopyFor, EXPIRED_IN_THREAD } from "@/lib/expiredListingInThread";
 import { buildTimeline } from "@/components/messages/chatView/chatViewHelpers";
+import { patchThreadForAnnouncement } from "@/components/messages/jobStatusAnnouncement";
 import type { Message } from "@/components/messages/types";
 import { trackedFiles } from "./helpers/trackedFiles";
 import { blankComments } from "./helpers/blankNonCode";
@@ -25,6 +26,8 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/lib/expiredListingInThread.ts |   if (status === "cancelled") { |   if (status === "x-cancelled") {
 // @mutate src/components/messages/ConversationRow.tsx |     const label = threadJobChipLabel(s, c); |     const label = jobStatusLabel(s);
 // @mutate src/pages/messages/messagesData/loadConversations.ts | select("id, title, status, customer_id, helper_id, cancelled_by, cancellation_reason").in("id", jobIds) | select("id, title, status, customer_id, helper_id").in("id", jobIds)
+// @mutate src/components/messages/jobStatusAnnouncement.ts |   { matches: /\bno longer open\b/i, jobStatus: "cancelled", closesAt: (at) => at, expired: true }, |
+// @mutate src/components/messages/chatView/chatViewHelpers.ts |     { kind: "cancelled", matches: /\bcancell?ed\b|\bno longer open\b/i }, |     { kind: "cancelled", matches: /\bcancell?ed\b/i },
 // @mutate src/components/messages/chatView/ChatComposer.tsx | {(expiredCopyFor(activeConvo) ?? threadClosedCopy(activeConvo.jobStatus)).notice} | {threadClosedCopy(activeConvo.jobStatus).notice}
 
 const REPO = resolve(__dirname, "../..");
@@ -93,6 +96,28 @@ describe("an expired listing in a message thread", () => {
       return [it.message?.content, it.event?.label].filter((x): x is string => typeof x === "string");
     });
     expect(shown).toEqual(["Is this still open?", "This job is no longer open."]);
+  });
+});
+
+describe("the server's expired-listing row (20261101011526: '✕ No longer open')", () => {
+  const row = { id: "m2", content: "✕ No longer open", is_system: true, created_at: "2026-10-30T12:00:01Z", sender_id: POSTER, receiver_id: APPLICANT } as unknown as Message;
+
+  it("closes the thread live and marks it expired, so the chip reads Closed/Expired, not Cancelled", () => {
+    const convo = { jobId: "j1", jobStatus: "open", messagingClosesAt: null, viewerIsPoster: false } as never;
+    const out = patchThreadForAnnouncement(convo, { job_id: "j1", content: "✕ No longer open", created_at: "2026-10-30T12:00:01Z", is_system: true });
+    expect(out.jobStatus).toBe("cancelled");
+    expect(out.jobExpired).toBe(true);
+    expect(out.messagingClosesAt).toBe("2026-10-30T12:00:01.000Z");
+    expect(threadJobChipLabel(out.jobStatus!, out)).toBe("Closed");
+  });
+
+  it("is dropped under the pill, so the poster reads only that it expired", () => {
+    const items = buildTimeline([row], deriveJobSystemEvents(base, "j1", POSTER), false);
+    const shown = items.flatMap((i) => {
+      const it = i as { message?: { content?: string }; event?: { label?: string } };
+      return [it.message?.content, it.event?.label].filter((x): x is string => typeof x === "string");
+    });
+    expect(shown).toEqual([EXPIRED_IN_THREAD.poster.event]);
   });
 });
 

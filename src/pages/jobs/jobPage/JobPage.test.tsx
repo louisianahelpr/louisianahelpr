@@ -51,7 +51,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {viewer.status && !(!isPoster && instantUntil) && | {viewer.status &&
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && <p | {!isPoster && !isHired && <p
  */
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, onTestFinished } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -188,6 +188,7 @@ import JobPage from "./JobPage";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
 
 /** A day ahead, never a literal that ages into the past (jobDayFixtureTimezone). */
 const DAY = jobLocalDateISO(11);
@@ -1221,6 +1222,9 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   // JA-6 (Jobs audit 11-01): nor Change date or time, by the same rule.
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const canChange = !!job.date_needed && !job.helper_on_the_way_at && !job.helper_arrived_at | const canChange = !!job.date_needed
   it("no Cancel or Change date or time once the Helpr set off, and an open job with no applicants offers Cancel", () => {
+    // Today at 23:30 is "later today" except in the last half hour before Central midnight: pin the clock (jobDayFixtureTimezone).
+    pinJobClock();
+    onTestFinished(() => { vi.useRealTimers(); });
     state.moreCount = 0;
     for (const over of [{ helper_on_the_way_at: "2026-10-28T12:00:00Z" }, { status: "in_progress", helper_arrived_at: "2026-10-28T12:30:00Z" }]) {
       state.job = { ...booked(), date_needed: jobLocalDateISO(0), start_time: "23:30", ...over };

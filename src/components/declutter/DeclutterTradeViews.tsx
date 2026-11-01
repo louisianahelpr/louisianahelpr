@@ -28,7 +28,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
-import { fetchMyActiveStrikes, fetchMyCart, fetchPhotos, photoPublicUrl, startCheckoutPayment, type CartLine, type Handover } from "@/lib/declutter/api";
+import { fetchMyCart, fetchPhotos, photoPublicUrl, startCheckoutPayment, type CartLine, type Handover } from "@/lib/declutter/api";
 import { wayAllowed, waysEveryLineAllows } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -61,19 +61,8 @@ export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
 export { OffersSection } from "./DeclutterOffersSection";
 
-/** "You have N of 3 strikes" (rows 7, 16, 17). Nothing when there are none. */
-export function StrikeCount({ userId }: { userId: string }) {
-  const strikes = useQuery({ queryKey: ["declutter", "strikes", userId], queryFn: () => fetchMyActiveStrikes(userId) });
-  const n = strikes.data ?? 0;
-  if (n === 0) return null;
-  return (
-    <DeclutterNotice tone="warn" title={`You have ${Math.min(n, 3)} of 3 strikes.`}>
-      {n >= 3
-        ? "Declutter is paused for you until one of them goes away. Each strike goes away 1 year after you got it."
-        : "Each strike goes away 1 year after you got it. At 3 strikes you can't buy or sell on Declutter until one goes away."}
-    </DeclutterNotice>
-  );
-}
+// StrikeCount lives in the leaf DeclutterTabHeads (the /declutter first screen draws it without this module).
+export { StrikeCount } from "./DeclutterTabHeads";
 
 /** Q2427: the seller's bundle discount on these lines (useBundleDiscount), then the ordinary checkout panel. */
 function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void; held: boolean }) {

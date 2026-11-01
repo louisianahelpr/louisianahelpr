@@ -22,7 +22,7 @@
  * @mutate src/pages/jobs/JobsSection.tsx | end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} | end={<><SectionSettingsButton settings={JOBS_SETTINGS} />{browse?.end}</>}
  * @mutate src/components/sections/AppTopBar.tsx |       onClick={() => navigate(settings.path, { replace: false })} |       onClick={() => navigate("/profile")}
  * @mutate src/App.tsx |       <Route path="/jobs/settings" element= |       <Route path="/jobs/settings-old" element=
- * @mutate src/components/profile/profileLanding/YouMenu.tsx |           className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground | className="w-full rounded-ds-lg py-3.5 border inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx |           className="w-full px-0 text-ds-13 font-semibold tracking-normal text-muted-foreground" |           className="w-full px-0 rounded-ds-lg py-3.5 border text-ds-13 font-semibold tracking-normal text-muted-foreground"
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

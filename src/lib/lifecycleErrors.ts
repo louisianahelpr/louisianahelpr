@@ -494,6 +494,8 @@ export const RPC_ERROR_COPY = {
     completion_requires_confirmed_arrival: LIFECYCLE_REASONS.completion_requires_confirmed_arrival,
     completion_requires_proof_photos: "Add before and after photos before marking the job done.",
     completion_min_work_time: "You can mark it done 30 minutes after you arrived.",
+    // LEAD-LIST-FOR-SELLER (20261101034159): a Have a Helpr list it job is done once its listings are sent.
+    completion_requires_listings_sent: "Send the listings to the seller for approval first, then mark the job done.",
   },
   // userBlocks — block and settle shared jobs.
   block_user_and_settle: {
@@ -1383,6 +1385,87 @@ export const RPC_ERROR_COPY = {
     pickup_windows_required: DC.pickup_windows_required,
     sale_mode_unavailable: DC.sale_mode_unavailable,
     under_18: DC.under_18,
+  },
+  // LEAD-LIST-FOR-SELLER (20261101034159).
+  declutter_approve_listed_for_me: {
+    // Each listing's own refusal comes back in its row (the per-listing block catches it), in these words.
+    attestation_incomplete: DC.attestation_incomplete,
+    attestation_required: DC.attestation_required,
+    invalid_floor_price: DC.invalid_floor_price,
+    item_not_a_draft: DC.item_not_a_draft,
+    item_not_found: DC.item_not_found,
+    photos_required: DC.photos_required,
+    pickup_windows_required: DC.pickup_windows_required,
+    sale_mode_unavailable: DC.sale_mode_unavailable,
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_items: DC.invalid_items,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  // LEAD-LIST-FOR-SELLER (20261101034159).
+  declutter_decline_listed_for_me: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+  },
+  // LEAD-LIST-FOR-SELLER (20261101034159).
+  declutter_helpr_add_listing_photo: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    item_not_a_draft: DC.item_not_a_draft,
+    item_not_found: DC.item_not_found,
+    job_not_open: "This job is closed, so its listings can't be changed.",
+    not_your_job: "Only the Helpr hired for this job can write its listings.",
+    photo_not_uploaded: DC.photo_not_uploaded,
+    too_many_photos: DC.too_many_photos,
+  },
+  // LEAD-LIST-FOR-SELLER (20261101034159).
+  declutter_helpr_create_listing: {
+    account_restricted: DC.account_restricted,
+    area_looks_like_address: DC.area_looks_like_address,
+    feature_disabled: DC.feature_disabled,
+    invalid_floor_price: DC.invalid_floor_price,
+    invalid_location: DC.invalid_location,
+    job_not_open: "This job is closed, so its listings can't be changed.",
+    not_authenticated: DC.not_authenticated,
+    not_your_job: "Only the Helpr hired for this job can write its listings.",
+  },
+  // LEAD-LIST-FOR-SELLER (20261101034159).
+  declutter_helpr_delete_listing: {
+    feature_disabled: DC.feature_disabled,
+    item_not_a_draft: DC.item_not_a_draft,
+    item_not_found: DC.item_not_found,
+    job_not_open: "This job is closed, so its listings can't be changed.",
+    not_your_job: "Only the Helpr hired for this job can write its listings.",
+  },
+  // LEAD-LIST-FOR-SELLER (20261101034159).
+  declutter_helpr_job_listings: {
+    feature_disabled: DC.feature_disabled,
+    not_your_job: "Only the Helpr hired for this job can write its listings.",
+  },
+  // LEAD-LIST-FOR-SELLER (20261101034159).
+  declutter_helpr_send_listings: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    job_not_open: "This job is closed, so its listings can't be changed.",
+    not_your_job: "Only the Helpr hired for this job can write its listings.",
+    nothing_to_send: "Add a listing first, then send it to the seller.",
+    photos_required: DC.photos_required,
+  },
+  // LEAD-LIST-FOR-SELLER (20261101034159).
+  declutter_helpr_update_listing: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    invalid_floor_price: DC.invalid_floor_price,
+    item_not_a_draft: DC.item_not_a_draft,
+    item_not_found: DC.item_not_found,
+    job_not_open: "This job is closed, so its listings can't be changed.",
+    not_your_job: "Only the Helpr hired for this job can write its listings.",
+  },
+  // LEAD-LIST-FOR-SELLER (20261101034159).
+  declutter_listed_for_me: {
+    feature_disabled: DC.feature_disabled,
   },
   declutter_remove_item_photo: {
     account_restricted: DC.account_restricted,

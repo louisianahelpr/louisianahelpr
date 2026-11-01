@@ -178,7 +178,7 @@ describe("Sell it for me: A, hire a Helpr", () => {
     // POST-H3 (owner 10-31): no "handle pickups" line.
     expect(p.description).not.toMatch(/pickups/i);
     expect(p.description).toContain(SELL_FOR_ME_NO_ACCOUNT_LINE);
-    expect(SELL_FOR_ME_NO_ACCOUNT_LINE).toBe("You help take the photos and write the listings; I post them from my account.");
+    expect(SELL_FOR_ME_NO_ACCOUNT_LINE).toBe("You take the photos and write the listings in the app, on my account; I approve each one before it goes on sale.");
   });
 
   it("Declutter Help is untaxed, like errands and cleaning", () => {

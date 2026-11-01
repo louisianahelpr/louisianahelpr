@@ -9,7 +9,7 @@
  * @mutate supabase/functions/auto-release-payment/index.ts |         if (heldByContinueDay(continuing, job.id)) { |         if (false) {
  * @mutate supabase/functions/auto-release-payment/index.ts |       if (instantIds.has(job.id) && !job.poster_completed_at && heldByContinueDay(continuing, job.id)) { |       if (false) {
  * @mutate supabase/functions/_shared/continueDay.ts |   return !read.ok \|\| read.jobs.has(jobId); |   return read.ok && read.jobs.has(jobId);
- * @mutate supabase/functions/_shared/continueDay.ts | export const CONTINUE_DAY_ACTIVE_STATUSES = ["proposed", "set"] as const; | export const CONTINUE_DAY_ACTIVE_STATUSES = ["set"] as const;
+ * @mutate supabase/functions/_shared/continueDay.ts | const CONTINUE_DAY_ACTIVE_STATUSES = ["proposed", "set"] as const; | const CONTINUE_DAY_ACTIVE_STATUSES = ["set"] as const;
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";

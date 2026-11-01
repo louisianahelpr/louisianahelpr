@@ -6,6 +6,8 @@
     "auth_db_connections_absolute": 1
   },
   "unused_index": [
+    "public.job_continue_days.job_continue_days_set_day",
+    "public.job_continue_events.job_continue_events_job",
     "public.account_deletion_log.account_deletion_log_unsummarized_idx",
     "public.admin_audit_log.admin_audit_log_payout_release_idx",
     "public.admin_audit_log.admin_audit_log_shop_item_rejected_owner_idx",

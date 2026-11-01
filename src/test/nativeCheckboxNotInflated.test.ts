@@ -1,3 +1,4 @@
+// @mutate src/components/admin/AdminExceptionQueue.tsx | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--primary))]" | className="h-4 w-4 accent-[hsl(var(--primary))]"
 // @mutate src/components/admin/AdminIDVReview.tsx | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--bark))]" | className="h-4 w-4 shrink-0 accent-[hsl(var(--bark))]"
 /**
  * A NATIVE checkbox or radio sized with h-/w- utilities must also say min-h-*
@@ -23,13 +24,9 @@ import { blankComments } from "./helpers/blankNonCode";
 const ROOT = path.resolve(__dirname, "../..");
 
 // @two-way src/test/nativeCheckboxNotInflated.test.ts:fixed: delete from KNOWN
-const KNOWN = new Set([
-  // Q?native-checkbox-floor (docs/OPEN.md): each needs a 44px label around it first.
-  "src/components/admin/AdminCredentialQueue.tsx#1",
-  "src/components/admin/AdminCredentialQueue.tsx#2",
-  "src/components/admin/AdminExceptionQueue.tsx#1",
-  "src/components/series/SeriesDatesPanel.tsx#1",
-]);
+// Q2047 (B42, 10-31): the last four (credential license/insurance, exception bulk select, series dates) now sit in a
+// 44px label with min-h-0 min-w-0 on the box.
+const KNOWN = new Set<string>([]);
 
 function scan() {
   const inflated: string[] = [];

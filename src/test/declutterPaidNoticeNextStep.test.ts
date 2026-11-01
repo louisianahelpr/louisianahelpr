@@ -10,7 +10,7 @@
  * Backend proof: src/test/pglite/declutterPaidNoticeNextStep.pglite.mjs (prod's bodies RED, 3x replay, 6 planted
  * defects RED).
  */
-// @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | format('You paid %s for %s. %s', public.declutter_price_text(p_amount_cents), public.declutter_order_items_named(p_order_id),\n           public.declutter_paid_next_step(p_order_id)), | format('You paid %s for %s. Next: pick up your items at the time you chose.', public.declutter_price_text(p_amount_cents), public.declutter_order_items_named(p_order_id)),
+// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | format('You paid %s for %s. %s', public.declutter_price_text(p_amount_cents), public.declutter_order_items_named(p_order_id),\n           public.declutter_paid_next_step(p_order_id)), | format('You paid %s for %s. Next: pick up your items at the time you chose.', public.declutter_price_text(p_amount_cents), public.declutter_order_items_named(p_order_id)),
 // @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql | 'Your free item is set. Next: choose when to pick it up. Nothing was charged.', | 'Your free item is set. Next: pick it up at the time you chose. Nothing was charged.',
 // @mutate supabase/migrations/20261031163021_declutter_porch_next_step_is_a_time.sql |     WHEN EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start IS NOT NULL) THEN |     WHEN EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id) THEN
 // @mutate supabase/migrations/20261031163021_declutter_porch_next_step_is_a_time.sql | WHERE d.order_id = o.id AND d.status = 'booked' AND d.slot_start IS NOT NULL) | WHERE d.order_id = o.id)
@@ -41,9 +41,11 @@ describe("no Declutter notice says \"at the time you chose\" before a time is ch
     expect(step).toContain("WHEN o.handover = 'delivery' THEN 'Next: we''re finding a Helpr to bring it to your door. We''ll tell you when one takes it.'");
   });
 
-  it("both \"Payment received\" notices take their next step from it; the free claim says to choose", () => {
+  // BUY-1 (20261101030040): a payment on a released hold is refunded in full, so the "paid in time, the sale stands"
+  // notice is gone and one "Payment received" notice is left.
+  it("the \"Payment received\" notice takes its next step from it; the free claim says to choose", () => {
     const paid = flat("declutter_mark_order_paid");
-    expect(paid.match(/public\.declutter_paid_next_step\(p_order_id\)/g)?.length).toBe(2);
+    expect(paid.match(/public\.declutter_paid_next_step\(p_order_id\)/g)?.length).toBe(1);
     expect(paid).not.toMatch(/Next: /);
     expect(flat("declutter_checkout_free")).toContain("'Your free item is set. Next: choose when to pick it up. Nothing was charged.'");
   });

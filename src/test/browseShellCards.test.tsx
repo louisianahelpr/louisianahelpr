@@ -152,7 +152,8 @@ describe("which rows are drawn, and what reaches the markup", () => {
     expect(html).toContain(">74<"); // $85 at the free tier, floored
     expect(html).toContain(">Yard work<");
     const doc = `<body><div id="root" style="x"><div id="boot-loader"></div></div></body>`;
-    expect(withBrowseShell(doc, [row()], NOW)).toMatch(/^<body><div id="root" style="x"><div id="lh-browse-shell"[\s\S]*<div id="boot-loader">/);
+    expect(withBrowseShell(doc, [row()], NOW)).toMatch(/^<body><div id="root" style="x"><div id="boot-loader"><div id="lh-browse-shell"[\s\S]*<\/div><\/div><\/body>$/);
+    expect(withBrowseShell(`<div id="root">\n<div\n  id="boot-loader"\n  role="status"\n>`, [row()], NOW)).toMatch(/role="status"\n><div id="lh-browse-shell"/);
     expect(withBrowseShell(doc, [], NOW)).toBe(doc);
   });
 });

@@ -79,6 +79,24 @@ const REQUIRED_BUILD_ENV = [
 // `apply: "build"` + buildStart means this fires ONLY for a real `vite build`
 // — never on config load, dev server, or vitest, all of which also evaluate
 // this file.
+/**
+ * B86 speed (11-01): in the build, @supabase/auth-js's passkey (lib/webauthn) and Sign-In with Ethereum
+ * (lib/web3/ethereum) helpers resolve to src/vendorStubs/authJsPasskeyStub.ts. GoTrueClient imports
+ * them statically, so they rode in the supabase chunk on every page (4.2 KB gz) though Helpr never uses either.
+ * Guard: src/test/authJsPasskeyStubMatchesImports.test.ts.
+ */
+const AUTH_JS_STUBBED = ["./lib/webauthn", "./lib/web3/ethereum"];
+const authJsNoPasskeys = (): Plugin => ({
+  name: "auth-js-no-passkeys",
+  apply: "build",
+  enforce: "pre",
+  resolveId(source, importer) {
+    if (!importer || !/[\\/]@supabase[\\/]auth-js[\\/]dist[\\/]module[\\/]GoTrueClient\.js$/.test(importer)) return null;
+    if (!AUTH_JS_STUBBED.includes(source)) return null;
+    return path.resolve(__dirname, "src/vendorStubs/authJsPasskeyStub.ts");
+  },
+});
+
 const requireBuildEnv = (mode: string): Plugin => ({
   name: "require-build-env",
   apply: "build",
@@ -173,6 +191,8 @@ const bootOrHome = (f: string) => bootSet.has(f) || homeSet.has(f);
 const norm = (id: string) => id.split("?")[0].replace(/\\/g, "/");
 const lateShared = (id: string) => (SHARED_DIR_RE.test(id) || /[\\/]supabase[\\/]functions[\\/]/.test(id)) && !bootOrHome(norm(id));
 const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
+/** The bone guest /browse shares with the /home route skeleton; kept out of browse-first-screen (B86). */
+const BROWSE_GROUP_SKIPS = /[\\/]src[\\/]components[\\/]ui[\\/]skeleton\.tsx$/;
 
 export default defineConfig(({ mode, command }) => ({
   define: {
@@ -200,6 +220,7 @@ export default defineConfig(({ mode, command }) => ({
   plugins: [
     restartOnDependencyChange(),
     requireBuildEnv(mode),
+    authJsNoPasskeys(),
     react(),
     // Stamp the built index.html with the commit it was built from.
     //
@@ -537,6 +558,15 @@ export default defineConfig(({ mode, command }) => ({
       // B56 speed: in the build, "sonner" is src/lib/sonnerFacade.ts (a queueing `toast`), so Sonner's Toaster UI
       // leaves the boot path; "sonner-real" is the package, loaded on the first toast or once the page settles.
       ...(command === "build" ? [{ find: /^sonner$/, replacement: path.resolve(import.meta.dirname, "./src/lib/sonnerFacade.ts") }] : []),
+      // B86 speed: react-router 7 ships its production build (no dev warnings, no invariant messages) in
+      // dist/production but its package exports only point at dist/development, so the build used the dev copy
+      // (13.7 KB gz of app-shared on every boot). Build only; dev and tests keep the dev copy's warnings.
+      ...(command === "build"
+        ? [
+            { find: /^react-router$/, replacement: path.resolve(import.meta.dirname, "./node_modules/react-router/dist/production/index.mjs") },
+            { find: /^react-router\/dom$/, replacement: path.resolve(import.meta.dirname, "./node_modules/react-router/dist/production/dom-export.mjs") },
+          ]
+        : []),
       { find: /^sonner-real$/, replacement: path.resolve(import.meta.dirname, "./node_modules/sonner/dist/index.mjs") },
       // B75 speed: in the build, supabase-js's realtime and storage clients are stand-ins that load the packages on
       // first use (src/integrations/supabase/lazyRealtime.ts, lazyStorage.ts), so realtime-js, phoenix and
@@ -1072,7 +1102,11 @@ export default defineConfig(({ mode, command }) => ({
             // (LEAD-POSTS-BOOT-SHRINK, 10-31). Above app-shared's priority so it wins those modules.
             {
               name: "browse-first-screen",
-              test: (id: string) => browseOnly.has(id.split("?")[0].replace(/\\/g, "/")),
+              // Not the skeleton bone (BROWSE_GROUP_SKIPS): with it here, the /home route skeleton (App.tsx, drawn
+              // while Home's chunk resolves) preloaded all of guest /browse's code and its closure on signed-in
+              // /home: lab 406 vs 445 KB on the wire through the dock (B86, 11-01). Taking the dialog primitives
+              // out too cost /browse 2 KB gz, so they stay.
+              test: (id: string) => !BROWSE_GROUP_SKIPS.test(id) && browseOnly.has(id.split("?")[0].replace(/\\/g, "/")),
               minShareCount: 2,
               priority: 12,
               minSize: 0,

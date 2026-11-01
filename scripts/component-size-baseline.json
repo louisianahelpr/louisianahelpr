@@ -20,7 +20,7 @@
     "src/components/ui/dialog.tsx": 754,
     "src/pages/auth/CompleteProfile.tsx": 897,
     "src/pages/home/Dashboard.tsx": 774,
-    "src/pages/home/DashboardGuest.tsx": 803,
+    "src/pages/home/DashboardGuest.tsx": 790,
     "src/pages/info/Legal.tsx": 725,
     "src/pages/jobs/AppliedJobCard.tsx": 842,
     "src/pages/posts/PostedJobCard.tsx": 766,

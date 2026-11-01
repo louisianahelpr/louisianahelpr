@@ -163,6 +163,8 @@ const buttonVariants = cva(
         // variant's own border and a filled variant's outer shadow would sit on the 44 edge, so they do not use it.
         // Guard: src/test/iconCompactButton.test.ts.
         iconCompact: "h-11 w-11 border-2 border-transparent bg-clip-padding [&_svg]:size-5",
+        // The dock's raised create disc (HELPR-DESIGN-SPEC §3: 60px, a 28px glyph). Its one call site is MobileNav (B85 11-01).
+        iconLarge: "h-[60px] w-[60px] [&_svg]:size-7",
         // NOTE: an "icon-sm" size (h-9 w-9 = 36px) used to live here. It was a
         // 36×36 tap target — under Apple's 44pt and Android's 48dp minimums —
         // sitting in the shared primitive where it was the variant most likely

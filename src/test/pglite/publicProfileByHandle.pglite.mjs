@@ -32,16 +32,19 @@ const MIGRATION = readFileSync(DIR + THIS, "utf8");
 const REPLAY = process.argv.includes("--replay");
 const BEFORE = process.argv.includes("--before");
 
-// The newest real mask_job_location (any dollar-quote tag).
-const maskFile = readdirSync(DIR).filter((f) => f.endsWith(".sql") && f < THIS)
-  .filter((f) => /FUNCTION public\.mask_job_location\(/.test(readFileSync(DIR + f, "utf8"))).sort().at(-1);
-const maskSql = (() => {
-  const t = readFileSync(DIR + maskFile, "utf8");
-  const start = t.indexOf("CREATE OR REPLACE FUNCTION public.mask_job_location(");
+// The newest real definition of a helper (any dollar-quote tag), from the migrations before this one.
+const realFn = (name) => {
+  const file = readdirSync(DIR).filter((f) => f.endsWith(".sql") && f < THIS)
+    .filter((f) => new RegExp(`CREATE OR REPLACE FUNCTION public\\.${name}\\(`).test(readFileSync(DIR + f, "utf8"))).sort().at(-1);
+  const t = readFileSync(DIR + file, "utf8");
+  const start = t.lastIndexOf(`CREATE OR REPLACE FUNCTION public.${name}(`);
   const tag = t.slice(start).match(/AS\s+(\$[A-Za-z_]*\$)/)[1];
   const bodyStart = t.indexOf(tag, start) + tag.length;
   return t.slice(start, t.indexOf(tag, bodyStart) + tag.length) + ";";
-})();
+};
+const maskSql = realFn("mask_job_location");
+// Review 2026-11-01: the real ban / strike / under-18 / hidden-seller rules, not stand-ins.
+const realRules = ["declutter_member_out", "member_under_18", "declutter_seller_out", "declutter_seller_hidden"].map(realFn).join("\n");
 
 let failures = 0;
 let checks = 0;
@@ -69,7 +72,10 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLI
 
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE NOT NULL, full_name text,
   avatar_url text, created_at timestamptz NOT NULL DEFAULT '2025-03-01T12:00:00Z', handle text, email_verified boolean NOT NULL DEFAULT true,
-  ban_status text, is_seed boolean NOT NULL DEFAULT false, anonymized_at timestamptz, email text, phone text, location text, bio text);
+  ban_status text, auto_suspended_until timestamptz, date_of_birth date, is_seed boolean NOT NULL DEFAULT false, anonymized_at timestamptz,
+  email text, phone text, location text, bio text);
+CREATE TABLE public.profile_handles_retired (handle text PRIMARY KEY, user_id uuid NOT NULL, retired_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE public.declutter_seller_flags (user_id uuid PRIMARY KEY, business_like boolean NOT NULL DEFAULT false);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL);
 CREATE TABLE public.declutter_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid, status text, title text,
@@ -86,7 +92,7 @@ CREATE TABLE public.reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), revi
 CREATE TABLE public.declutter_wanted (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, what text, category text,
   max_price_cents int, area_lat numeric, area_lng numeric, status text, public boolean, removed_at timestamptz,
   expires_at timestamptz, is_seed boolean NOT NULL DEFAULT false, created_at timestamptz DEFAULT now());
-CREATE TABLE public.member_flags (user_id uuid, flag text);
+CREATE TABLE public.member_flags (user_id uuid, flag text); -- strike-count stand-in only
 
 CREATE FUNCTION public.is_test_member(p_user_id uuid) RETURNS boolean LANGUAGE sql STABLE SET search_path TO 'public' AS $$
   SELECT p_user_id IS NOT NULL AND (EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = p_user_id AND p.is_seed IS TRUE)
@@ -99,9 +105,9 @@ CREATE FUNCTION public.member_display_name(p_full_name text, p_fallback text DEF
 CREATE FUNCTION public.declutter_open_to_guests() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
   SELECT EXISTS (SELECT 1 FROM public.feature_switches s WHERE s.key = 'declutter' AND s.audience = 'everyone') $$;
 CREATE FUNCTION public.job_offer_cutoff(d date, t time) RETURNS timestamptz LANGUAGE sql STABLE AS $$ SELECT (d + coalesce(t, '08:00'::time))::timestamptz $$;
-CREATE FUNCTION public.declutter_member_out(u uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT EXISTS (SELECT 1 FROM public.member_flags f WHERE f.user_id = u AND f.flag = 'out') $$;
-CREATE FUNCTION public.member_under_18(u uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT EXISTS (SELECT 1 FROM public.member_flags f WHERE f.user_id = u AND f.flag = 'minor') $$;
-CREATE FUNCTION public.declutter_seller_hidden(u uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT EXISTS (SELECT 1 FROM public.member_flags f WHERE f.user_id = u AND f.flag = 'hidden') $$;
+CREATE FUNCTION public.declutter_active_strike_count(u uuid) RETURNS integer LANGUAGE sql STABLE AS $$
+  SELECT count(*)::integer FROM public.member_flags f WHERE f.user_id = u AND f.flag = 'strike' $$;
+${realRules}
 CREATE FUNCTION public.get_public_profile_stats(p_user_ids uuid[])
  RETURNS TABLE(user_id uuid, review_count integer, avg_rating numeric, poster_review_count integer, poster_avg_rating numeric, completed_jobs_as_helper integer, completed_jobs_total integer, posted_jobs_total integer, jobs_total integer, cancelled_jobs integer, cancellation_rate numeric, on_time_sample integer, on_time_rate numeric, revision_sample integer, revision_rate numeric, repeat_client_sample integer, repeat_hire_percent numeric, is_id_verified boolean, has_stripe_account boolean, is_background_checked boolean, has_pending_credentials boolean)
  LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS $$
@@ -244,13 +250,45 @@ const t1 = await page("eli-b");
 await db.exec(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'declutter'`);
 const t2 = await page("eli-b");
 await db.exec(`UPDATE public.feature_switches SET audience = 'everyone'`);
-await db.exec(`INSERT INTO public.member_flags VALUES ('${ELI}', 'minor')`);
+await db.exec(`UPDATE public.profiles SET date_of_birth = current_date - interval '30 years' WHERE user_id = '${ELI}'`);
+await db.exec(`INSERT INTO public.declutter_seller_flags VALUES ('${ELI}', true)`);
 const t3 = await page("eli-b");
-await db.exec(`DELETE FROM public.member_flags`);
+await db.exec(`DELETE FROM public.declutter_seller_flags; UPDATE public.profiles SET date_of_birth = NULL`);
 check("P9 Declutter / Wanted not open to everyone (or a poster rule) hides them; jobs stay",
   t1.v?.wanted?.length === 0 && t1.v?.listings?.length === 1 && t2.v?.listings?.length === 0 && t2.v?.wanted?.length === 0
-    && t2.v?.jobs?.length === 1 && t3.v?.wanted?.length === 0,
+    && t2.v?.jobs?.length === 1 && t3.v?.wanted?.length === 0 && t3.v?.listings?.length === 0 && t3.v?.jobs?.length === 1,
   JSON.stringify([t1.error, t2.error, t3.error]));
+
+// P10 (review 2026-11-01): every form of banned or restricted has no page: plain 'banned', a live temp ban,
+// 3 active Declutter strikes (declutter_member_out). A lapsed temp ban the sweeper has not lifted is hidden too.
+const banned = [];
+for (const [sql, label] of [
+  [`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${ELI}'`, "banned"],
+  [`UPDATE public.profiles SET ban_status = 'temp_banned', auto_suspended_until = now() + interval '3 day' WHERE user_id = '${ELI}'`, "temp"],
+  [`UPDATE public.profiles SET ban_status = 'temp_banned', auto_suspended_until = now() - interval '1 day' WHERE user_id = '${ELI}'`, "temp lapsed"],
+  [`INSERT INTO public.member_flags VALUES ('${ELI}', 'strike'), ('${ELI}', 'strike'), ('${ELI}', 'strike')`, "3 strikes"]]) {
+  await db.exec(sql);
+  const r = await page("eli-b");
+  if (r.error || r.v !== null) banned.push(`${label}: ${r.error ?? "page shown"}`);
+  await db.exec(`UPDATE public.profiles SET ban_status = NULL, auto_suspended_until = NULL WHERE user_id = '${ELI}'; DELETE FROM public.member_flags`);
+}
+const back = await page("eli-b");
+check("P10 banned in any form or out of Declutter (3 strikes): no page", banned.length === 0 && !!back.v, banned.join("; ") || (back.error ?? ""));
+
+// P11 (lead 2026-11-01, conservative): a member under 18 (member_under_18: date of birth) has no page at all.
+await db.exec(`UPDATE public.profiles SET date_of_birth = current_date - interval '16 years' WHERE user_id = '${ELI}'`);
+const minor = await page("eli-b");
+await db.exec(`UPDATE public.profiles SET date_of_birth = current_date - interval '19 years' WHERE user_id = '${ELI}'`);
+const adult = await page("eli-b");
+await db.exec(`UPDATE public.profiles SET date_of_birth = NULL WHERE user_id = '${ELI}'`);
+check("P11 under 18: no page; 19: the page", minor.v === null && !minor.error && !!adult.v, JSON.stringify([minor.error, !!minor.v, adult.error]));
+
+// P12 (review 2026-11-01): an old handle opens its OWNER's current page (never anyone else's); the answer names
+// the current handle so the page moves to it.
+await db.exec(`INSERT INTO public.profile_handles_retired (handle, user_id) VALUES ('eli-old', '${ELI}')`);
+const old = await page("eli-old");
+check("P12 an old handle opens its owner's current page, with the current handle", old.v?.handle === "eli-b" && old.v?.name === "Eli B.",
+  old.error ?? JSON.stringify(old.v)?.slice(0, 80));
 
 if (BEFORE) {
   console.log(`--before: ${failures}/${checks} FAIL (expected ${checks})`);

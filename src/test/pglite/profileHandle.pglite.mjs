@@ -12,11 +12,16 @@
  *
  *   H1 a member's handle is made from the name shown publicly: "Eli Broussard" -> "eli-b"
  *   H2 a second "Eli B." gets "eli-b-2"; asking again returns the same handle
- *   H3 a name with no usable letters gets "member..."
+ *   H3 a name with no usable letters gets "neighbor" (not the reserved "member")
  *   H4 a member picks their own handle once; the second change is refused (handle_already_changed)
  *   H5 refused: bad format, a reserved word, 7+ digits (a phone number), one already taken
  *   H6 a member cannot write handle / handle_changed_at on their own row directly (handle_server_owned)
  *   H7 anon cannot call either RPC
+ *   H8 a DEFAULT handle runs the same checks as a picked one: a reserved name ("Admin", "Support") or a
+ *      phone-number name never becomes a handle, and a numbered try never reaches 7 digits (review 2026-11-01)
+ *   H9 a released handle is never anyone else's: after Ann changes hers, nobody can pick it or be given it by
+ *      default; deleting a profile retires its handle too (review 2026-11-01)
+ *   H10 every SECURITY DEFINER function here pins search_path to public, pg_temp (review 2026-11-01)
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -35,7 +40,7 @@ const check = (name, ok, detail = "") => {
   if (!ok) failures++;
 };
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const ELI = U(1), ELI2 = U(2), DOTS = U(3), ANN = U(4);
+const ELI = U(1), ELI2 = U(2), DOTS = U(3), ANN = U(4), ADMINP = U(5), SUPP = U(6), PHONE = U(7), DIGI = U(8), DIGI2 = U(9), ANNY = U(10), BOB = U(11), GONE = U(12), NEWBIE = U(13);
 
 const db = new PGlite();
 await db.exec(`
@@ -55,7 +60,9 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role; -- as on Supabase: auth.uid() is callable by every API role
 GRANT SELECT, UPDATE ON public.profiles TO authenticated;
 INSERT INTO public.profiles (user_id, full_name) VALUES
-  ('${ELI}', 'Eli Broussard'), ('${ELI2}', 'Eli  Bourgeois'), ('${DOTS}', '.. !'), ('${ANN}', 'Ann Guidry');
+  ('${ELI}', 'Eli Broussard'), ('${ELI2}', 'Eli  Bourgeois'), ('${DOTS}', '.. !'), ('${ANN}', 'Ann Guidry'),
+  ('${ADMINP}', 'Admin Smith'), ('${SUPP}', 'Support'), ('${PHONE}', '2255550199'), ('${DIGI}', '123456 x'), ('${DIGI2}', '123456 x'),
+  ('${ANNY}', 'Ann-Cleans-BR'), ('${BOB}', 'Bob Picker'), ('${GONE}', 'Gone Person'), ('${NEWBIE}', 'Gone Person');
 `);
 if (!BEFORE) {
   for (let i = 1; i <= (REPLAY ? 3 : 1); i++) {
@@ -90,12 +97,13 @@ const e2 = await ensure(ELI2);
 const e2b = await ensure(ELI2);
 check("H2 a second Eli B. gets eli-b-2, and asking again returns the same", e2.v === "eli-b-2" && e2b.v === "eli-b-2", `${JSON.stringify(e2)} ${JSON.stringify(e2b)}`);
 const e3 = await ensure(DOTS);
-check("H3 a name with no usable letters gets 'member'", e3.v === "member", JSON.stringify(e3));
+check("H3 a name with no usable letters gets 'neighbor' (not the reserved 'member')", e3.v === "neighbor", JSON.stringify(e3));
 
+const s0 = await ensure(ANN); // "ann-g", released below when Ann picks her own (H9)
 const s1 = await set(ANN, "  Ann-Cleans-BR ");
 const s2 = await set(ANN, "ann-two");
 check("H4 a member picks their handle once (normalised); a second change is refused",
-  s1.v === "ann-cleans-br" && /handle_already_changed/.test(s2.error ?? ""), `${JSON.stringify(s1)} ${JSON.stringify(s2)}`);
+  s0.v === "ann-g" && s1.v === "ann-cleans-br" && /handle_already_changed/.test(s2.error ?? ""), `${JSON.stringify(s1)} ${JSON.stringify(s2)}`);
 
 const r = [];
 for (const [h, code] of [["a", "handle_invalid"], ["eli--b", "handle_invalid"], ["-eli", "handle_invalid"], ["eli b", "handle_invalid"],
@@ -129,9 +137,38 @@ const anonE = await (async () => { await as(U(9), "anon"); try { await db.query(
 const anonS = await (async () => { await as(U(9), "anon"); try { await db.query(`SELECT public.rpc_set_my_handle('zzz')`); return "ran"; } catch (e) { return e.message; } finally { await server(); } })();
 check("H7 anon cannot call either RPC", /permission denied/.test(anonE) && /permission denied/.test(anonS), `${anonE} | ${anonS}`);
 
+const dflt = [];
+for (const [uid, want] of [[ADMINP, /^neighbor(-\d+)?$/], [SUPP, /^neighbor(-\d+)?$/], [PHONE, /^neighbor(-\d+)?$/], [DIGI, /^123456-x$/]]) {
+  const x = await ensure(uid);
+  dflt.push([uid.slice(-2), x.v ?? x.error, want.test(String(x.v))]);
+}
+// DIGI2 "123456 x" again: "123456-x" is taken and "123456-x-2" would hold 7 digits, so it gets a letters-only tail.
+const d2 = await ensure(DIGI2);
+const d2ok = typeof d2.v === "string" && d2.v.startsWith("123456-x-") && d2.v.replace(/[^0-9]/g, "").length < 7;
+check("H8 a default handle is never reserved or phone-like; a numbered try never reaches 7 digits",
+  !BEFORE && dflt.every((d) => d[2]) && d2ok, JSON.stringify([dflt, d2]));
+
+// Ann picked "ann-cleans-br" above, from the default "ann-g". "ann-g" is retired: nobody else gets it.
+const annOld = "ann-g";
+const bobPick = await set(BOB, annOld);
+await db.exec(`UPDATE public.profiles SET full_name = 'Ann Gautreaux' WHERE user_id = '${ANNY}'`);
+const annyDefault = await ensure(ANNY);
+// A deleted profile's handle is retired too.
+const goneH = (await ensure(GONE)).v;
+await db.exec(`DELETE FROM public.profiles WHERE user_id = '${GONE}'`);
+const newbie = await ensure(NEWBIE);
+check("H9 a released handle is never anyone else's (picked, defaulted, or after the owner's profile is deleted)",
+  /handle_taken/.test(bobPick.error ?? "") && annyDefault.v === "ann-g-2" && goneH === "gone-p" && newbie.v === "gone-p-2",
+  JSON.stringify([bobPick, annyDefault, goneH, newbie]));
+
+const definers = (await db.query(`SELECT p.proname, coalesce(array_to_string(p.proconfig, ','), '') AS cfg FROM pg_proc p
+  JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.prosecdef`)).rows;
+const unpinned = definers.filter((d) => !/search_path=public, pg_temp/.test(d.cfg)).map((d) => `${d.proname}[${d.cfg}]`);
+check("H10 every SECURITY DEFINER pins search_path to public, pg_temp", definers.length >= 3 && unpinned.length === 0, `${definers.length} definers; ${unpinned.join(" ")}`);
+
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 if (BEFORE) {
-  const expected = 7;
+  const expected = 10;
   console.log(failures === expected ? `RED as expected (${failures}/${expected})` : `NOT RED: ${failures}/${expected} failed`);
   process.exit(failures === expected ? 0 : 1);
 }

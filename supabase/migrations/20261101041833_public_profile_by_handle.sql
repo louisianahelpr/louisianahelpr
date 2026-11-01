@@ -183,11 +183,17 @@ BEGIN
     INTO v_reviews
     FROM (
       SELECT rv.rating, rv.feedback, rv.created_at, rv.response_text, rv.response_at, j.category::text AS job_category,
-             -- The reviewer's public name only while they are approved and not banned, else "A neighbor".
+             -- The reviewer's public name only under the same rules as a page of their own (review 2026-11-01):
+             -- verified, never banned in any form, not out of Declutter, not deleted, not under 18; else "A neighbor".
              (SELECT rp.full_name FROM public.profiles rp
                WHERE rp.user_id = rv.reviewer_id
                  AND rp.email_verified
-                 AND (rp.ban_status IS NULL OR rp.ban_status NOT IN ('temp_banned', 'permanently_banned'))
+                 AND rp.ban_status IS DISTINCT FROM 'banned'
+                 AND rp.ban_status IS DISTINCT FROM 'temp_banned'
+                 AND rp.ban_status IS DISTINCT FROM 'permanently_banned'
+                 AND rp.anonymized_at IS NULL
+                 AND NOT public.declutter_member_out(rp.user_id)
+                 AND NOT COALESCE(public.member_under_18(rp.user_id), true)
                LIMIT 1) AS reviewer_full_name
         FROM public.reviews rv
         JOIN public.jobs j ON j.id = rv.job_id

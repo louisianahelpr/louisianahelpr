@@ -1,4 +1,5 @@
 import { FieldError } from "@/components/ui/FieldError";
+import { Button } from "@/components/ui/button";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
 import { displayUsPhone } from "@/lib/smsConsent";
 import { useEffect, useRef, useState } from "react";
@@ -175,14 +176,16 @@ export function ProfileEditForm({
         onBack={onBack}
         // Board 41: "Preview" opens the profile as neighbors see it.
         rightSlot={profile?.user_id ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => navigate(`/user/${profile.user_id}`)}
-            className="min-h-11 px-2 text-ds-13 font-semibold"
+            className="px-2 text-ds-13 font-semibold tracking-normal"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
             Preview
-          </button>
+          </Button>
         ) : undefined}
       />
 

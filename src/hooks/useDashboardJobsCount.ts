@@ -98,6 +98,112 @@ function escapeIlike(raw: string): string {
   return raw.replace(/[%,()]/g, (ch) => `\\${ch}`);
 }
 
+/**
+ * The count itself (B90, 11-01: exported so Home's Jobs card counts "open near you" with Browse's own rules, the same
+ * read, no second copy of the filters). Same contract as the hook's queryFn.
+ */
+export async function fetchDashboardJobsCount(filters: DashboardJobsCountFilters): Promise<number> {
+  const {
+    userId, selectedCategory, searchQuery, minBudget, maxBudget,
+    urgentOnly, boostedOnly, expiresWithin, jobWhen = "", earlyAccessTier, membershipsOn = true,
+    appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds,
+  } = filters;
+  const now = new Date();
+  const todayLocalDate = (() => {
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${now.getFullYear()}-${m}-${d}`;
+  })();
+
+  let query = supabase
+    .from("open_jobs_browse")
+    .select("id", { count: "exact", head: true })
+    .neq("payment_status", "abandoned")
+    // Same past-due date_needed cull useDashboardFilters applies
+    // unconditionally (no flexible/recurring exemption at this layer —
+    // that exemption is applied earlier, in useDashboardData, before
+    // useDashboardFilters even sees the row).
+    .or(`date_needed.is.null,date_needed.gte.${todayLocalDate}`)
+    // …and the EXPIRY cull the list applies too
+    // (useDashboardData: `!j.expires_at || new Date(j.expires_at) > now`).
+    // This filter was missing here, so the header counted expired
+    // listings the feed below it had already dropped — "15 jobs" over 13
+    // cards. A count that disagrees with the thing it counts is worse
+    // than no count.
+    .or(`expires_at.is.null,expires_at.gt.${now.toISOString()}`);
+
+  // Early access applies to EVERY viewer, guests included — there is no
+  // exemption any more (owner, 2026-09-01: the guest exemption was the
+  // log-out bypass). Redundant with the server gate in
+  // `public.early_access_cutoff()`; kept so the count matches the list it
+  // counts during the db-deploy window.
+  query = query.lte("created_at", new Date(Date.now() - earlyAccessDelayMs(earlyAccessTier, membershipsOn)).toISOString());
+  if (userId) query = query.neq("customer_id", userId);
+  // Exclude the jobs the feed itself hides (see the header comment): jobs
+  // the viewer applied to, and jobs from posters they blocked. Only when
+  // the set is non-empty (PostgREST rejects an empty `in.()`) and small
+  // enough to inline safely. Ids are uuids, so no quoting/escaping needed.
+  if (appliedJobIds.length > 0 && appliedJobIds.length <= MAX_EXCLUDE) {
+    query = query.not("id", "in", `(${appliedJobIds.join(",")})`);
+  }
+  if (blockedUserIds.length > 0 && blockedUserIds.length <= MAX_EXCLUDE) {
+    query = query.not("customer_id", "in", `(${blockedUserIds.join(",")})`);
+  }
+  // "Not interested" — same cull, same guard rails as applied/blocked.
+  if (dismissedJobIds.length > 0 && dismissedJobIds.length <= MAX_EXCLUDE) {
+    query = query.not("id", "in", `(${dismissedJobIds.join(",")})`);
+  }
+  // "Only saved jobs". A non-null empty set is a real answer — zero — and
+  // must short-circuit: PostgREST rejects an empty `in.()`, and treating
+  // it as "no filter" would print the whole board's count over an empty
+  // list, which is the exact lie this hook exists to stop.
+  if (savedOnlyJobIds !== null) {
+    if (savedOnlyJobIds.length === 0) return 0;
+    // Past MAX_EXCLUDE we fall back to the documented over-count rather
+    // than blow the request URL — same trade as the exclusions above.
+    if (savedOnlyJobIds.length <= MAX_EXCLUDE) {
+      query = query.in("id", savedOnlyJobIds);
+    }
+  }
+  // A group id (the filter sheet's 8 groups) counts every category in the
+  // group, the same rule the list applies (categoryFilterMatches); an old
+  // single-category value counts that one. Cast: `category` is a narrow
+  // generated enum; the filter value is free-text state from the URL/UI.
+  if (selectedCategory) query = query.in("category", categoriesForFilter(selectedCategory) as never);
+  if (minBudget) query = query.gte("budget", parseFloat(minBudget));
+  if (maxBudget) query = query.lte("budget", parseFloat(maxBudget));
+  if (urgentOnly) query = query.eq("is_urgent", true);
+  if (boostedOnly) query = query.gt("boost_expires_at", now.toISOString());
+  if (searchQuery.trim()) {
+    const q = escapeIlike(searchQuery.trim());
+    // The category a job sits under matches too ("yard" counts "Yard work", A2-C22), as the list does.
+    const cats = categoriesMatchingSearch(searchQuery);
+    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%${cats.length ? `,category.in.(${cats.join(",")})` : ""}`);
+  }
+  if (expiresWithin) {
+    const hoursMap: Record<string, number> = { "24h": 24, "3d": 72, "7d": 168 };
+    const hours = hoursMap[expiresWithin];
+    query = query.not("expires_at", "is", null);
+    if (hours) {
+      const threshold = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+      query = query.lte("expires_at", threshold);
+    }
+  }
+
+  const whenRange = jobWhenRange(jobWhen);
+  if (whenRange) query = query.gte("date_needed", whenRange.from).lte("date_needed", whenRange.to);
+
+  // `head: true` requests return no `data` body — only `count` — so the
+  // count is read off the result, after unwrap() has checked its error.
+  // unwrap() is what carries the HTTP status to the retry policy: a
+  // refused HEAD has no body, so postgrest-js's error is `{ message: "" }`
+  // with no code, and a bare `throw error` had the refused count sent
+  // twice (Q1182, src/lib/queryRetry.ts).
+  const result = await query;
+  unwrap(result);
+  return result.count ?? 0;
+}
+
 export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
   const {
     userId, selectedCategory, searchQuery, minBudget, maxBudget,
@@ -111,102 +217,7 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
       urgentOnly, boostedOnly, expiresWithin, jobWhen, earlyAccessTier, membershipsOn,
       appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds,
     ],
-    queryFn: async () => {
-      const now = new Date();
-      const todayLocalDate = (() => {
-        const m = String(now.getMonth() + 1).padStart(2, "0");
-        const d = String(now.getDate()).padStart(2, "0");
-        return `${now.getFullYear()}-${m}-${d}`;
-      })();
-
-      let query = supabase
-        .from("open_jobs_browse")
-        .select("id", { count: "exact", head: true })
-        .neq("payment_status", "abandoned")
-        // Same past-due date_needed cull useDashboardFilters applies
-        // unconditionally (no flexible/recurring exemption at this layer —
-        // that exemption is applied earlier, in useDashboardData, before
-        // useDashboardFilters even sees the row).
-        .or(`date_needed.is.null,date_needed.gte.${todayLocalDate}`)
-        // …and the EXPIRY cull the list applies too
-        // (useDashboardData: `!j.expires_at || new Date(j.expires_at) > now`).
-        // This filter was missing here, so the header counted expired
-        // listings the feed below it had already dropped — "15 jobs" over 13
-        // cards. A count that disagrees with the thing it counts is worse
-        // than no count.
-        .or(`expires_at.is.null,expires_at.gt.${now.toISOString()}`);
-
-      // Early access applies to EVERY viewer, guests included — there is no
-      // exemption any more (owner, 2026-09-01: the guest exemption was the
-      // log-out bypass). Redundant with the server gate in
-      // `public.early_access_cutoff()`; kept so the count matches the list it
-      // counts during the db-deploy window.
-      query = query.lte("created_at", new Date(Date.now() - earlyAccessDelayMs(earlyAccessTier, membershipsOn)).toISOString());
-      if (userId) query = query.neq("customer_id", userId);
-      // Exclude the jobs the feed itself hides (see the header comment): jobs
-      // the viewer applied to, and jobs from posters they blocked. Only when
-      // the set is non-empty (PostgREST rejects an empty `in.()`) and small
-      // enough to inline safely. Ids are uuids, so no quoting/escaping needed.
-      if (appliedJobIds.length > 0 && appliedJobIds.length <= MAX_EXCLUDE) {
-        query = query.not("id", "in", `(${appliedJobIds.join(",")})`);
-      }
-      if (blockedUserIds.length > 0 && blockedUserIds.length <= MAX_EXCLUDE) {
-        query = query.not("customer_id", "in", `(${blockedUserIds.join(",")})`);
-      }
-      // "Not interested" — same cull, same guard rails as applied/blocked.
-      if (dismissedJobIds.length > 0 && dismissedJobIds.length <= MAX_EXCLUDE) {
-        query = query.not("id", "in", `(${dismissedJobIds.join(",")})`);
-      }
-      // "Only saved jobs". A non-null empty set is a real answer — zero — and
-      // must short-circuit: PostgREST rejects an empty `in.()`, and treating
-      // it as "no filter" would print the whole board's count over an empty
-      // list, which is the exact lie this hook exists to stop.
-      if (savedOnlyJobIds !== null) {
-        if (savedOnlyJobIds.length === 0) return 0;
-        // Past MAX_EXCLUDE we fall back to the documented over-count rather
-        // than blow the request URL — same trade as the exclusions above.
-        if (savedOnlyJobIds.length <= MAX_EXCLUDE) {
-          query = query.in("id", savedOnlyJobIds);
-        }
-      }
-      // A group id (the filter sheet's 8 groups) counts every category in the
-      // group, the same rule the list applies (categoryFilterMatches); an old
-      // single-category value counts that one. Cast: `category` is a narrow
-      // generated enum; the filter value is free-text state from the URL/UI.
-      if (selectedCategory) query = query.in("category", categoriesForFilter(selectedCategory) as never);
-      if (minBudget) query = query.gte("budget", parseFloat(minBudget));
-      if (maxBudget) query = query.lte("budget", parseFloat(maxBudget));
-      if (urgentOnly) query = query.eq("is_urgent", true);
-      if (boostedOnly) query = query.gt("boost_expires_at", now.toISOString());
-      if (searchQuery.trim()) {
-        const q = escapeIlike(searchQuery.trim());
-        // The category a job sits under matches too ("yard" counts "Yard work", A2-C22), as the list does.
-        const cats = categoriesMatchingSearch(searchQuery);
-        query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%${cats.length ? `,category.in.(${cats.join(",")})` : ""}`);
-      }
-      if (expiresWithin) {
-        const hoursMap: Record<string, number> = { "24h": 24, "3d": 72, "7d": 168 };
-        const hours = hoursMap[expiresWithin];
-        query = query.not("expires_at", "is", null);
-        if (hours) {
-          const threshold = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
-          query = query.lte("expires_at", threshold);
-        }
-      }
-
-      const whenRange = jobWhenRange(jobWhen);
-      if (whenRange) query = query.gte("date_needed", whenRange.from).lte("date_needed", whenRange.to);
-
-      // `head: true` requests return no `data` body — only `count` — so the
-      // count is read off the result, after unwrap() has checked its error.
-      // unwrap() is what carries the HTTP status to the retry policy: a
-      // refused HEAD has no body, so postgrest-js's error is `{ message: "" }`
-      // with no code, and a bare `throw error` had the refused count sent
-      // twice (Q1182, src/lib/queryRetry.ts).
-      const result = await query;
-      unwrap(result);
-      return result.count ?? 0;
-    },
+    queryFn: () => fetchDashboardJobsCount(filters),
     // A guest (no userId) never reaches the header this feeds (Dashboard.tsx
     // is an authed-only route), but the RLS-safe view still answers fine
     // without one — no `enabled` gate needed.

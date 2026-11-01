@@ -89,9 +89,10 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [protectedRoute],
     signedIn: [() => import("@/pages/post-job/PostJob"), protectedRoute],
   },
+  // profileRoute keeps Profile's preload list out of the entry (see that file).
   "/profile": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/profile/Profile"), protectedRoute],
+    signedIn: [() => import("@/boot/profileRoute"), protectedRoute],
   },
   // A signed-out visitor is sent to /login by ProtectedRoute, so Login is the page they will see.
   // declutterRoute keeps Declutter's long preload list out of the entry (see that file).

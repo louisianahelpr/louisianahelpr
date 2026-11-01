@@ -24,7 +24,7 @@
  * @mutate src/components/tracker/jobProgressState.ts |   const card = o.card ?? cardFaceFor(job, o, now); |   const card = cardFaceFor(job, o, now);
  * @mutate src/components/tracker/jobProgressState.ts | \|\| posterLate \|\| noApplicantsYet \|\| ((sameStep \|\| offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail, | \|\| true ? base.next : card.line.detail,
  * @mutate src/pages/posts/PostedJobCard.tsx | rescheduled, card: { line: cardLine, face: faceAction }, pendingApplicants: | rescheduled, pendingApplicants:
- * @mutate src/pages/jobs/AppliedJobCard.tsx | \|\| null, card: { line: cardLine, face: faceAction } }) : null} | \|\| null }) : null}
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | otherFirst: posterFirst, card: { line: cardLine, face: faceAction } }) : null; | otherFirst: posterFirst }) : null;
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   const started = wait ? WORK_UNDERWAY.has(wait) : tracking?.status === "working"; |   const started = tracking?.status === "working";
  * @mutate src/pages/jobs/appliedJobCard/HelperCollapsedStrip.tsx | line={withReviewed(helperCardLine(app, job, unsettledDisputeJobIds, tracking), reviewed)} | line={withReviewed(helperStatusLine(app), reviewed)}
  */

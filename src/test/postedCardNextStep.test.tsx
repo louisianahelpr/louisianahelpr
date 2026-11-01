@@ -1,5 +1,5 @@
 /**
- * A3-15 (Auditor 3, 11-01; owner "next step everywhere"): the collapsed Posted card's line is the job page's next step
+ * A3-15 and A3-16 (Auditor 3, 11-01; owner "next step everywhere"): the collapsed Posted card's line is the job page's next step
  * (jobNextStep, drawn by NextStep), so the card and the page say the same thing: "Waiting on Yusef to mark it done",
  * "Next: approve Yusef's work · 23h 49m left". A dispute, a job off the path, an open job and a line with the offer's
  * live accept clock keep their own strip.
@@ -8,6 +8,8 @@
  * @mutate src/pages/posts/postedJobCard/PosterStatusStrip.tsx |         approveLeft: progress.stage === 7 && progress.waitingOnYou && completedAt && !instantRelease | approveLeft: false
  * @mutate src/pages/posts/postedJobCard/PosterStatusStrip.tsx | progress.stage !== null && progress.stage > 0 && line.tone !== "alarm" | progress.stage !== null && line.tone !== "alarm"
  * @mutate src/pages/posts/PostedJobCard.tsx |                   progress={faceProgress}\n |                   progress={null}\n
+ * @mutate src/pages/jobs/appliedJobCard/HelperCollapsedStrip.tsx | progress.stage > 0 && line.tone !== "alarm" && !line.deadline\n    ? jobNextStep(progress, { side: "helpr", otherFirst }) | false\n    ? jobNextStep(progress, { side: "helpr", otherFirst })
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | progress={faceProgress} otherFirst={posterFirst} | otherFirst={posterFirst}
  */
 import { readFileSync } from "node:fs";
 import { describe, it, expect, vi } from "vitest";
@@ -18,6 +20,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: { a
 import { PosterStatusStrip } from "@/pages/posts/postedJobCard/PosterStatusStrip";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import type { Job } from "@/components/job-card/activityConstants";
+import { jobNextStep } from "@/components/tracker/jobNextStep";
+import { nextStepWords } from "@/components/ui/NextStep";
 
 const ago = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
 const job = (over: Record<string, unknown>): Job =>
@@ -59,5 +63,25 @@ describe("the collapsed Posted card says the job page's next step (A3-15)", () =
   it("the card hands the strip the face's own tracker state", () => {
     const card = readFileSync("src/pages/posts/PostedJobCard.tsx", "utf8");
     expect(card).toContain("progress={faceProgress}");
+  });
+});
+
+describe("the collapsed Working card says the job page's next step (A3-16)", () => {
+  it("arrived: the Helpr's own step, in the page's words", async () => {
+    const { HelperCollapsedStrip } = await import("@/pages/jobs/appliedJobCard/HelperCollapsedStrip");
+    const j = job({ helper_id: "helper-1" });
+    const app = { id: "app-1", job_id: "job-1", helper_id: "helper-1", status: "accepted", job: j } as never;
+    const progress = jobProgress(j as never, { viewer: "helpr", otherFirst: "Dana" });
+    const { container } = render(
+      <HelperCollapsedStrip variant="line" app={app} job={j} userId="helper-1" isCrewLive={false} unsettledDisputeJobIds={new Set()} tracking={{ status: "working" } as never} progress={progress} otherFirst="Dana" />,
+    );
+    const el = container.querySelector("[data-job-status-strip]") as HTMLElement;
+    expect(progress.stage).toBeGreaterThan(0);
+    expect(el.hasAttribute("data-card-next-step")).toBe(true);
+    expect(el.querySelector("[data-next-step]")?.textContent).toBe(nextStepWords(jobNextStep(progress, { side: "helpr", otherFirst: "Dana" })!));
+  });
+
+  it("the Working card hands the strip the face's own tracker state", () => {
+    expect(readFileSync("src/pages/jobs/AppliedJobCard.tsx", "utf8")).toContain("progress={faceProgress} otherFirst={posterFirst}");
   });
 });

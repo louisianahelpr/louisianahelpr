@@ -89,12 +89,13 @@ export function useHomeSummary(user: SupaUser | null) {
     const myOrders = (orders.data ?? []).filter((o) => o.status === "held" || o.status === "accepted");
     const props = homes.data ?? [];
 
+    // Board 165: a job happening now sits above Next up. Board 83: with nothing to do, who is up (never the live job again).
+    const liveNow = deriveLiveNow(pj, aa);
     return {
       loading: posted.loading && applied.loading,
       todos,
-      // Board 165: a job happening now sits above Next up. Board 83: with nothing to do, who is up.
-      liveNow: deriveLiveNow(pj, aa),
-      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa),
+      liveNow,
+      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null),
       thisWeek,
       upcoming: upcoming.slice(0, COMING_UP_MAX),
       upcomingFailed,

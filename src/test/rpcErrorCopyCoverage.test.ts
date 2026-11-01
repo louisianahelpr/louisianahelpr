@@ -72,6 +72,11 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Owner 11-01 (20261101181129): declutter_pick_free_request raises free_pick_time_unusable inside its own
+  // BEGIN ... EXCEPTION WHEN SQLSTATE 'LHFP1' block, which undoes the confirmed-time order and runs the old path.
+  declutter_pick_free_request: {
+    free_pick_time_unusable: { reason: "caught in the same function (EXCEPTION WHEN SQLSTATE 'LHFP1'): the asked time is dropped and the old pick path runs; it never reaches a client" },
+  },
   // Q104 (20261101181403): fetchActivityCores (src/lib/activityCores.ts) runs only for a signed-in member's activity
   // cores and sends the client's own fixed column lists; any error returns null and the old reads run. No message exists.
   get_my_activity_cores: {
@@ -359,6 +364,9 @@ const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 /** Reads a party OR an admin may call: has_role(.., 'admin') is one branch of an OR, so members get the copy too. */
 const PARTY_OR_ADMIN = new Set([
   "declutter_order_problem", // the order's buyer or seller, or an admin (B81, 20261030044444); members see its refusals
+  // The seller picks who gets a free item; has_role(v_req.requester_id, 'admin') only asks whether the PICKED person
+  // needs an ID check first (20261101181129), it gates no caller.
+  "declutter_pick_free_request",
 ]);
 const adminGated = new Set([...calls.keys()].filter((rpc) => !PARTY_OR_ADMIN.has(rpc) && ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));
 const source = (file: string) => readFileSync(resolve(ROOT, file), "utf8");

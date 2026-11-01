@@ -1,4 +1,4 @@
-import { feedPhase as feedPhaseOf } from "@/lib/feedPhase";
+import { dashboardLoading, feedPhase as feedPhaseOf } from "@/lib/feedPhase";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { useCallback, useMemo } from "react";
 import { dedupeById, formatName } from "@/lib/utils";
@@ -670,7 +670,12 @@ export function useDashboardData() {
     ]);
   }, [user, queryClient, refreshCurrentUser]);
 
-  const loading = userLoading || !profile || ctxLoading || (jobsLoading && allJobs.length === 0);
+  // Offline with nothing in hand is not "loading" (owner 10-31): the feed shows its offline card, not a skeleton
+  // held by a paused profile read.
+  const phase = feedPhaseOf({ status: jobsStatus, fetchStatus: jobsFetchStatus }, online);
+  const loading = dashboardLoading({
+    hasUser: !!user, userLoading, hasProfile: !!profile, ctxLoading, jobsLoading, jobCount: allJobs.length, phase,
+  });
   // True when a background refetch is in flight on top of already-rendered
   // cache (the "revalidate" half of stale-while-revalidate). The Dashboard
   // header uses this to render a small pulsing dot — proof the feed is
@@ -716,7 +721,7 @@ export function useDashboardData() {
     loadError: jobsError,
     // The feed's own phase (Q332's feedPhase): "offline-empty" while offline (or paused) with no page in hand, so
     // Browse never paints "0" or the empty state for jobs it never read (owner 10-31).
-    feedPhase: feedPhaseOf({ status: jobsStatus, fetchStatus: jobsFetchStatus }, online),
+    feedPhase: phase,
     // Background-refetch indicator — stale-while-revalidate signal.
     isRefreshing,
     // When the board was last read. The map has its own RPC; it re-reads on

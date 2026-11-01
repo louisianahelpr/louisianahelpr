@@ -18,6 +18,7 @@
  * Native (Capacitor) keeps its own path: useOnlineStatus layers
  * @capacitor/network on top and calls setConnectivity with the OS answer.
  */
+import { raceVisibleDeadlineAbortable } from "@/lib/visibleDeadline";
 
 export interface OnlineStatus {
   online: boolean;
@@ -46,16 +47,18 @@ async function probeBackend(): Promise<boolean> {
   const url = base
     ? `${base.replace(/\/$/, "")}/auth/v1/health?probe=${Date.now()}`
     : `${typeof location === "undefined" ? "" : location.origin}/robots.txt?probe=${Date.now()}`;
-  const ctl = typeof AbortController === "undefined" ? null : new AbortController();
-  const timer = ctl ? setTimeout(() => ctl.abort(), PROBE_TIMEOUT_MS) : null;
   try {
-    await fetch(url, { method: "HEAD", mode: "no-cors", cache: "no-store", signal: ctl?.signal });
+    // The deadline counts only visible time (src/lib/visibleDeadline.ts): a phone put away mid-probe
+    // comes back to the probe's real answer, never a wall-clock timeout that reads as "offline".
+    await raceVisibleDeadlineAbortable(
+      (signal) => fetch(url, { method: "HEAD", mode: "no-cors", cache: "no-store", signal }),
+      PROBE_TIMEOUT_MS,
+      "connectivity probe timed out",
+    );
     return true;
   } catch {
-    // A rejected fetch (network failure or our timeout abort) IS the answer: offline.
+    // A rejected fetch (network failure or the deadline's abort) IS the answer: offline.
     return false;
-  } finally {
-    if (timer) clearTimeout(timer);
   }
 }
 

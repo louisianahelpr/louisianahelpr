@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type
 // Type-only: erased at build, so framer stays off the critical path.
 import type { MotionProps } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { ensureFreshNotificationFeed, loadNotificationFeed, onFeedRecoveryLoad, onNotificationArrival } from "@/components/notificationPanel/notificationFeed";
 import { useReducedMotion } from "@/lib/accessibility";
@@ -567,15 +568,10 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
           onClose={() => setOpen(false)}
           actions={
             unreadCount > 0 ? (
-              <button
-                type="button"
-                onClick={markAllRead}
-                data-testid="mark-all-read"
-                className="shrink-0 min-h-11 px-2 inline-flex items-center justify-center rounded-full text-ds-14 font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] focus-visible:ring-offset-2"
-                style={{ color: "hsl(var(--bark))" }}
-              >
+              <Button type="button" variant="ghost" size="sm" onClick={markAllRead} data-testid="mark-all-read"
+                className="shrink-0 px-2 tracking-normal focus-visible:ring-[hsl(var(--bark))]" style={{ color: "hsl(var(--bark))" }}>
                 Mark all read
-              </button>
+              </Button>
             ) : undefined
           }
         >

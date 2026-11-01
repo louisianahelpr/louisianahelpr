@@ -3,14 +3,15 @@
  *
  * (a) Selling's listing thumbnail (64 CSS px) and Buying's cart thumbnail (48) ask for the 160 px square transform,
  *     never the full original (356-560 KB each); a failed transform falls back to the original.
- * (b) A Browse card offers the 320 square beside the 480 card photo (srcSet + sizes), so a phone's ~162 px card
- *     takes the smaller one.
+ * (b) A Browse card offers the 340 square beside the 480 card photo (srcSet + sizes), so a phone's ~162 px card
+ *     takes the smaller one (B81: the 320 fell short of a 375 phone's 323 device px, so it took the 480).
  * (c) A URL that is not a public Storage object gets no transform (the place shows it as it is).
  *
  * @mutate src/components/declutter/ListingThumb.tsx | src={squarePhotoUrl(photoPublicUrl(path), THUMB_PHOTO_PX) ?? photoPublicUrl(path)} | src={photoPublicUrl(path)}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | src={stage === "thumb" ? squarePhotoUrl(photoPublicUrl(path), THUMB_PHOTO_PX) ?? photoPublicUrl(path) : photoPublicUrl(path)} | src={photoPublicUrl(path)}
  * @mutate src/components/declutter/DeclutterItemCard.tsx |             sizes={photoStage === "card" ? CARD_PHOTO_SIZES : undefined}\n |
  * @mutate src/lib/declutter/photoSizes.ts |   return small ? `${small} ${CARD_PHOTO_SMALL_PX}w, ${cardUrl} ${cardPx}w` : undefined; |   return undefined;
+ * @mutate src/lib/declutter/photoSizes.ts | export const CARD_PHOTO_SMALL_PX = 340; | export const CARD_PHOTO_SMALL_PX = 320;
  * @mutate src/lib/declutter/photoSizes.ts |   if (at < 0 \|\| publicUrl.includes("?")) return null; |
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
@@ -19,7 +20,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { ListingThumb } from "@/components/declutter/ListingThumb";
-import { cardPhotoSrcSet, squarePhotoUrl, THUMB_PHOTO_PX, CARD_PHOTO_SIZES } from "./photoSizes";
+import { cardPhotoSrcSet, squarePhotoUrl, THUMB_PHOTO_PX, CARD_PHOTO_SIZES, CARD_PHOTO_SMALL_PX } from "./photoSizes";
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { storage: { from: (bucket: string) => ({ getPublicUrl: (path: string) => ({ data: { publicUrl: `https://ref.supabase.co/storage/v1/object/public/${bucket}/${path}` } }) }) } },
@@ -45,13 +46,21 @@ describe("Declutter photos are asked for at the size they draw", () => {
     expect((container.querySelector("img") as HTMLImageElement).getAttribute("src")).toBe(ORIGINAL);
   });
 
-  it("(b) a Browse card offers the 320 square beside the 480, sized to the card", () => {
+  it("(b) a Browse card offers the small square beside the 480, sized to the card", () => {
     const set = cardPhotoSrcSet(ORIGINAL, "C480", 480) as string;
-    expect(set).toBe(`${squarePhotoUrl(ORIGINAL, 320)} 320w, C480 480w`);
+    expect(set).toBe(`${squarePhotoUrl(ORIGINAL, CARD_PHOTO_SMALL_PX)} ${CARD_PHOTO_SMALL_PX}w, C480 480w`);
     expect(CARD_PHOTO_SIZES).toBe("(min-width: 640px) 250px, calc(50vw - 26px)");
     const card = blankComments(readFileSync(resolve(__dirname, "../../components/declutter/DeclutterItemCard.tsx"), "utf8"));
     expect(card).toMatch(/srcSet=\{photoStage === "card" \? cardPhotoSrcSet\(photoPublicUrl\(photoPath\), photoCardUrl\(photoPath\), CARD_PHOTO_PX\)/);
     expect(card).toMatch(/sizes=\{photoStage === "card" \? CARD_PHOTO_SIZES : undefined\}/);
+  });
+
+  it("(b) the small square is big enough for a 2x phone's card, so the browser really picks it (B81)", () => {
+    // CARD_PHOTO_SIZES on a phone: calc(50vw - 26px). A w-descriptor candidate is used only when it covers the drawn
+    // width times the device pixel ratio; short by even 3 px (B77's 320 at 375: 323 needed) the browser took the 480.
+    const drawnDevicePx = (vw: number, dpr: number) => (vw / 2 - 26) * dpr;
+    for (const vw of [360, 375, 390]) expect(CARD_PHOTO_SMALL_PX, `${vw} wide at 2x`).toBeGreaterThanOrEqual(drawnDevicePx(vw, 2));
+    expect(CARD_PHOTO_SMALL_PX).toBeLessThan(480);
   });
 
   it("(a) Buying's cart thumbnail asks for the 160 square first", () => {

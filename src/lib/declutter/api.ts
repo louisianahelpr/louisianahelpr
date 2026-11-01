@@ -19,6 +19,7 @@ import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { freeClaimFeeRefusal, openFreeClaimFirstTime, promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
+import { takeMinePrefetch } from "@/lib/declutter/minePrefetchTake";
 import { takeFirstScreenDropStates, takeFirstScreenItems, takeFirstScreenPhotos, takeFirstScreenWatching } from "@/lib/declutter/bootPrefetch";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
@@ -239,6 +240,9 @@ export async function fetchSimilarItems(category: string, exceptItemId: string, 
 
 /** The member's own listings, every status. */
 export async function fetchMyItems(userId: string): Promise<DeclutterItem[]> {
+  // B81: started at boot on a cold /declutter (src/boot/declutterMinePrefetch.ts); taken once, for this member.
+  const prefetched = await takeMinePrefetch("items", userId);
+  if (prefetched) return prefetched as DeclutterItem[];
   const rows = await readItems((cols) =>
     // B48 live check 2026-10-29: the Selling row names every way the seller ticked (handovers), not only the porch.
     supabase.from("declutter_items").select(`${cols}, handovers`).eq("seller_id", userId).order("created_at", { ascending: false }),
@@ -1389,11 +1393,18 @@ export async function fetchHasAgreedSales(): Promise<boolean> {
   return rpcData(await supabase.rpc("declutter_has_agreed_sales"), () => null) === true;
 }
 
+/** The signed-in member's id (the session supabase-js holds), for the boot hand-over's same-member check. */
+const signedInUserId = async () => (await supabase.auth.getSession()).data.session?.user.id;
+
 export async function fetchMyOffers(): Promise<MyOffer[]> {
+  const prefetched = await takeMinePrefetch("offers", signedInUserId);
+  if (prefetched) return prefetched as MyOffer[];
   return (rpcData(await supabase.rpc("declutter_my_offers"), (e) => rpcErrorMessage("declutter_my_offers", e)) ?? []) as MyOffer[];
 }
 
 export async function fetchMyCart(): Promise<CartLine[]> {
+  const prefetched = await takeMinePrefetch("cart", signedInUserId);
+  if (prefetched) return prefetched as CartLine[];
   return (rpcData(await supabase.rpc("declutter_my_cart"), (e) => rpcErrorMessage("declutter_my_cart", e)) ?? []) as CartLine[];
 }
 

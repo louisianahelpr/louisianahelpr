@@ -149,8 +149,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent, firs
       ? Math.round((yoyDelta / priorAtSameMonth) * 100)
       : null;
 
-  // Self-hide on no data: pre-onboarded helpers shouldn't see two
-  // empty charts. The trend is meaningful even with one year of data,
+  // No empty charts: with no data it says so in one line (below). The trend is meaningful even with one year of data,
   // but the pie needs at least one completed job — gate on that.
   const hasPieData = pieData.length > 0;
   const hasPriorYear = trendData.some((d) => d.prior > 0);
@@ -158,7 +157,15 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent, firs
   const olive = token("--bark", "hsl(70, 20%, 33%)");
   const muted = token("--muted-foreground", "hsl(40, 6%, 40%)");
   const maxCategory = pieData[0]?.value ?? 0;
-  if (!hasPieData && !hasTrendData) return null;
+  // B81 (2026-11-01): Money's "More insights" opened onto nothing for a member with no earnings yet (the panel's only
+  // content hid itself), so the tap looked dead. It now says why it is empty. Guard: moreInsightsNeverOpensEmpty.test.tsx.
+  if (!hasPieData && !hasTrendData) {
+    return (
+      <p className="rounded-[20px] liquid-glass p-card text-ds-13 text-muted-foreground" data-insights-empty="">
+        Nothing to chart yet. Once a job or a sale pays you, this shows where your money comes from, by category and month.
+      </p>
+    );
+  }
 
   return (
     <section className="space-y-3">

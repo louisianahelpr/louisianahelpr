@@ -9,8 +9,8 @@
  *
  * @mutate src/components/tracker/jobProgressState.ts |     p.stage === 4 ? !!job.helper_on_the_way_at |     p.stage === 4 ? true
  * @mutate src/components/tracker/jobProgressState.ts |     : p.stage === 5 ? !!(job.helper_arrived_at \|\| job.helper_arrival_verified_at \|\| job.poster_confirmed_arrival_at) |     : p.stage === 5 ? false
- * @mutate src/components/tracker/jobProgressState.ts |     : (job.status === "in_progress" \|\| job.status === "revision_requested") && !(lineId && HELPR_NOT_STARTED.has(lineId)) && workUnderway !== false; |     : true;
- * @mutate src/components/tracker/jobProgressState.ts |  && !(lineId && HELPR_NOT_STARTED.has(lineId)) && workUnderway !== false; |  && !(lineId && HELPR_NOT_STARTED.has(lineId));
+ * @mutate src/components/tracker/jobProgressState.ts |     : workHasBegun(job, { workUnderway, lineId }); |     : true;
+ * @mutate src/components/tracker/workHasBegun.ts |   return o.workUnderway !== false; |   return true;
  * @mutate src/components/tracker/JobProgress.tsx |   waiting: BAR.todo, |   waiting: BAR.them,
  * @mutate src/components/tracker/JobProgress.tsx |   happening: "bg-[hsl(var(--live-pill-tint))]", |   happening: "bg-[hsl(var(--amber-solid))]",
  * @mutate src/components/tracker/JobProgress.tsx |           begun={progress.begun} |           begun={undefined}

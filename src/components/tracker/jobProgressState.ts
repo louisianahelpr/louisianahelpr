@@ -17,6 +17,7 @@ import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
 import { helperFaceNextStep } from "@/pages/jobs/appliedJobCard/helperFaceAction";
+import { HELPR_NOT_STARTED, workHasBegun } from "@/components/tracker/workHasBegun";
 
 export type { Stage, StepTone } from "@/components/tracker/jobStepFromWait";
 
@@ -101,8 +102,6 @@ const CARD_STATUSES = new Set<string>(Object.keys(JOB_STATUS_LABELS));
 
 const LIVE = new Set(["accepted", "in_progress", "revision_requested"]);
 
-/** The Helpr's card lines for a job they are at but have not started. */
-const HELPR_NOT_STARTED = new Set<string>(["start_working", "before_photo"]);
 
 /** "Wed 9:00 AM" in Louisiana time. */
 function when(ms: number): string {
@@ -201,7 +200,7 @@ function withBegun(p: JobProgressState, job: ProgressJob, lineId: string | null,
   const begun =
     p.stage === 4 ? !!job.helper_on_the_way_at
     : p.stage === 5 ? !!(job.helper_arrived_at || job.helper_arrival_verified_at || job.poster_confirmed_arrival_at)
-    : (job.status === "in_progress" || job.status === "revision_requested") && !(lineId && HELPR_NOT_STARTED.has(lineId)) && workUnderway !== false;
+    : workHasBegun(job, { workUnderway, lineId });
   return { ...p, begun };
 }
 
@@ -220,7 +219,7 @@ function cardFaceFor(job: ProgressJob, o: ProgressOpts, now: Date): CardFace | n
   // Only the statuses the card's rule knows (anything else would hit its assertNever): the rest keep the line.
   if (!CARD_STATUSES.has(job.status ?? "")) return null;
   if (o.viewer === "poster") {
-    const line = posterStatusLine(row, o.application === "pending" ? 1 : 0, now, undefined, false, o.otherFirst ?? null);
+    const line = posterStatusLine(row, o.application === "pending" ? 1 : 0, now, undefined, false, o.otherFirst ?? null, o.workUnderway === undefined ? undefined : { workUnderway: o.workUnderway });
     const noop = () => {};
     const face = posterFaceAction(line.id as PosterWait, row, {
       pendingApplicants: o.application === "pending" ? 1 : 0, helperName: o.otherFirst ?? "", confirmingArrival: false, completing: false,
@@ -285,7 +284,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     !!(job.poster_confirmed_working_at || job.poster_confirmed_arrival_at || job.helper_arrival_verified_at);
   // "is working" only once the poster has vouched for it; arrival evidence alone says where they are, not what
   // they are doing (the Helpr's Start working is not on the job row; the card's line says when it comes).
-  if (working) return at(6, !poster, "Working", poster ? (job.poster_confirmed_working_at ? `${other} is working` : `${other} is at the job`) : "Mark it done when you finish", held);
+  // "is working" exactly when the bar's Working step has begun (workHasBegun, the same rule as JobProgressState.begun
+  // and the poster's card line), so the line and the step colour can never disagree.
+  if (working) return at(6, !poster, "Working", poster ? (workHasBegun(job, { workUnderway: o.workUnderway }) ? `${other} is working` : `${other} is at the job`) : "Mark it done when you finish", held);
   if (job.helper_arrived_at) {
     return at(5, poster, "Arrived", poster ? `${other} arrived. Confirm they've arrived` : `You've arrived. Waiting on ${otherLow} to confirm`, held);
   }

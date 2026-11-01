@@ -17,7 +17,7 @@ import { resolve } from "node:path";
 import ts from "typescript";
 
 // @mutate src/components/dashboard/DashboardTitleBar.tsx | const NotificationPanel = lazy(() => import("@/components/NotificationPanel")); | import NotificationPanelNow from "@/components/NotificationPanel";\nconst NotificationPanel = NotificationPanelNow;
-// @mutate src/components/dashboard/BrowseTasksToolbar.tsx | const loadFilterSheet = () => import("@/components/dashboard/FilterSheet"); | import * as filterSheetNow from "@/components/dashboard/FilterSheet";\nconst loadFilterSheet = async () => filterSheetNow;
+// @mutate src/components/dashboard/BrowseTasksToolbar.tsx | const loadFilterSheet = () => loadModule(() => import("@/components/dashboard/FilterSheet")); | import * as filterSheetNow from "@/components/dashboard/FilterSheet";\nconst loadFilterSheet = async () => filterSheetNow;
 // @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       {(filters.filtersOpen \|\| filterSheetMounted) && ( |       {(true) && (
 
 const read = (f: string) => readFileSync(resolve(__dirname, "../..", f), "utf8");

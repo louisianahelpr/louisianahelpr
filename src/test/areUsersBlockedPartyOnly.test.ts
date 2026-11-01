@@ -154,6 +154,10 @@ const EXPECTED_CALLERS = [
   // Helpr may be the one moving the status), and it gets the real answer the
   // same way enforce_block_on_message_insert does: pg_trigger_depth() > 0.
   "insert_job_status_system_message",
+  // CMP-4 (20261101065105): (the Helpr, the job's poster). Its callers are the
+  // poster's own instant_book_candidates and rpc_instant_book (customer_id =
+  // auth.uid(), checked first), so one side is always the caller.
+  "instant_book_block_reason",
   // Board 66/172 s4 (20261021111723): the BEFORE INSERT OR UPDATE trigger on
   // jobs passes two parties, (a.helper_id, OLD.customer_id): the pending
   // applicant and the job's poster, so it never asks about a third person. It

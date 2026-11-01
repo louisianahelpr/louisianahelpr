@@ -16376,6 +16376,14 @@ export type Database = {
       crew_closed_spot_count: { Args: { p_job_id: string }; Returns: number }
       crew_completes_when_hired_done: { Args: never; Returns: boolean }
       crew_fee_pays_unconfirmed: { Args: never; Returns: boolean }
+      crew_member_payout_delay: { Args: never; Returns: unknown }
+      crew_members_due_early_payout: {
+        Args: never
+        Returns: {
+          helper_id: string
+          job_id: string
+        }[]
+      }
       crew_spots_open: { Args: { p_job_id: string }; Returns: number }
       crew_slot_share_cents: {
         Args: { p_needed: number; p_slot: number; p_total_cents: number }
@@ -18772,6 +18780,10 @@ export type Database = {
           p_scope: string
         }
         Returns: string
+      }
+      rpc_poster_approve_member: {
+        Args: { _job_id: string; _member_id: string }
+        Returns: Json
       }
       rpc_poster_confirm_member_arrival: {
         Args: { _helper_id: string; _job_id: string }

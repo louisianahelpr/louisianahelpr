@@ -16,7 +16,7 @@
  *
  * Guard: src/pages/jobs/jobPage/posterPageFlows.test.tsx.
  */
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -32,6 +32,7 @@ import { ActivityDialogs, type TipDialogState, type TipTarget } from "@/componen
 import { PostedJobActions } from "@/pages/posts/postedJobCard/PostedJobActions";
 import { crewNobodyLeft } from "@/lib/crewLifecycle";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
+import { JobStepMenuContext } from "@/components/job-card/jobStepMenu";
 
 export interface PosterPageFlows {
   /** The Posted list's row for this job is read: the flows below can run. */
@@ -40,12 +41,19 @@ export interface PosterPageFlows {
   approve: () => void;
   cancel: () => void;
   edit: () => void;
-  moreOpen: boolean;
-  toggleMore: () => void;
+  /** How many card actions the page offers beside Message (jobStepMenu.tsx): 0, 1 (drawn in `setSecondHost`), or a list. */
+  moreCount: number;
+  /** The page's second-button slot, where a lone card action is drawn. */
+  setSecondHost: (el: HTMLElement | null) => void;
+  /** The open options sheet's list, where two or more card actions are drawn (null while it is closed). */
+  setListHost: (el: HTMLElement | null) => void;
   /** JOBS-3: an under-way crew whose every member was reported a no-show (crewNobodyLeft, read from the loaded detail). */
   crewNobodyLeft: boolean;
-  /** The card's own controls (shown under "More options"; always mounted so Approve opens its sheet). */
+  /** The card's own controls: always mounted and never shown (its actions reach the page through jobStepMenu.tsx), so
+   *  Approve opens its sheet and each action keeps its own confirm step. */
   panel: React.ReactNode;
+  /** An under-way crew's roster (JOBS-3), drawn on the page. */
+  crew: React.ReactNode;
   dialogs: React.ReactNode;
 }
 
@@ -114,12 +122,11 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   const completeInFlight = useRef(new Set<string>());
   // Bumped by "Approve and release": the card's PostedJobActions opens its CompletionChoiceSheet (the confirm).
   const [completionRequest, setCompletionRequest] = useState(0);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
-  // At 375 the panel opens below the fold, behind the bottom nav (headless check 10-31): bring it into view.
-  useEffect(() => {
-    if (moreOpen) moreRef.current?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
-  }, [moreOpen]);
+  // One tap to the options (owner 2026-11-01): the card's actions are drawn by the page, not in a panel under it.
+  const [moreCount, setMoreCount] = useState(0);
+  const [secondHost, setSecondHost] = useState<HTMLElement | null>(null);
+  const [listHost, setListHost] = useState<HTMLElement | null>(null);
+  const menu = useMemo(() => ({ secondHost, listHost, setCount: setMoreCount }), [secondHost, listHost]);
 
   const handlers = createLifecycleHandlers({
     user,
@@ -145,22 +152,25 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   });
 
   if (!enabled || !job) {
-    return { ready: false, completing: false, approve: () => {}, cancel: () => {}, edit: () => {}, moreOpen: false, toggleMore: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
+    return { ready: false, completing: false, approve: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, crew: null, dialogs: null };
   }
+
+  // JOBS-3: an under-way crew's roster, as the Posted card draws it (per-member "Didn't show" and arrival), shown on the
+  // page itself (it was inside the old More panel). No onCancelJob here: the page's own Cancel job row covers a crew
+  // with nobody left (crewNobodyLeft below).
+  const crew = job.is_group_job && job.status === "in_progress" ? (
+    <div data-poster-crew="">
+      <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner jobStatus={job.status}
+        initialHelpers={detail?.groupHelpersByJob?.[job.id]} dateNeeded={job.date_needed} startTime={job.start_time} />
+    </div>
+  ) : null;
 
   // Its own Suspense: the card's steps lazy-load dialogs (the refund ask), and a suspend with no boundary of its own
   // would swap the whole job page for its loading fallback (the Posted list has one around its tab).
   const panel = (
     <Suspense fallback={null}>
-    <div data-poster-more="" hidden={!moreOpen} ref={moreRef} className="scroll-mb-28">
-      {/* JOBS-3: an under-way crew's roster, as the Posted card draws it (per-member "Didn't show" and arrival). No
-          onCancelJob here: the page's own Cancel job row covers a crew with nobody left (crewNobodyLeft below). */}
-      {job.is_group_job && job.status === "in_progress" && (
-        <div data-poster-crew="" className="pb-3">
-          <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner jobStatus={job.status}
-            initialHelpers={detail?.groupHelpersByJob?.[job.id]} dateNeeded={job.date_needed} startTime={job.start_time} />
-        </div>
-      )}
+    <JobStepMenuContext.Provider value={menu}>
+    <div data-poster-more="" hidden>
       <PostedJobActions
         job={job}
         userId={userId}
@@ -187,6 +197,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
         completionRequest={completionRequest}
       />
     </div>
+    </JobStepMenuContext.Provider>
     </Suspense>
   );
 
@@ -233,11 +244,13 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     approve: () => setCompletionRequest((n) => n + 1),
     cancel: () => void handlers.tryCancelJob(job),
     edit: () => setEditJob(job),
-    moreOpen,
-    toggleMore: () => setMoreOpen((o) => !o),
+    moreCount,
+    setSecondHost,
+    setListHost,
     // The detail read is done (q.data), so a crew with no roster entry has nobody left on it.
     crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true),
     panel,
+    crew,
     dialogs,
   };
 }

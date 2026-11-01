@@ -848,6 +848,19 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* the facade alone */,
             },
+            // The arrival rule's client words and the card-hold capture wrapper (B75, 11-01). Signed-in
+            // screens only (job cards, the tracker, crew lifecycle); no signed-out cold load imports them.
+            // bootReach puts them in signed-in-shared / signed-in-pages, but once the import loaders
+            // (src/lib/loadModule.ts) landed rolldown placed both in app-shared, on every page's boot, with
+            // no static import from boot (check-deferred-vendors went red). Same shape as parish-names:
+            // they ride alone with their importers. Boot 236 -> 235 KB gz, every route -1.
+            {
+              name: "job-lifecycle",
+              test: /[\\/]src[\\/]lib[\\/](arrivalGate|cardHoldCapture)\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             {
               name: "parish-names",
               test: /[\\/]src[\\/]lib[\\/]parishes\.ts$/,

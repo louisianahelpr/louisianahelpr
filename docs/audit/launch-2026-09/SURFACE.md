@@ -315,7 +315,7 @@ dismissible, and correct in every state.
 | `src/components/mobileNav/GateSheet.tsx` | 1 | Sheet |
 | `src/components/mobileNav/NavQuickMenu.tsx` | 1 | hand-rolled **⚠ hand-rolled** |
 | `src/components/NotificationPanel.tsx` | 2 | Popover, anchoredPanel |
-| `src/components/notificationPreferences/SmsPhonePrompt.tsx` | 1 | Dialog |
+| `src/components/notificationPreferences/SmsPhonePromptDialog.tsx` | 1 | Dialog |
 | `src/components/payouts/HiredPayoutSetupDialog.tsx` | 1 | Dialog |
 | `src/components/PayoutSetupForm.tsx` | 1 | BrandConfirmDialog |
 | `src/components/PermissionRationaleDialog.tsx` | 1 | Dialog |

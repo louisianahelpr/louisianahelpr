@@ -416,6 +416,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {continueDay.sheet}
             {isPoster && posterActions.panel}
             {hiredRow}
+            {/* Continue another day (owner 2026-11-01): a visible text button under the pair, both sides. */}
+            {continueDay.setDay && (
+              <Button type="button" variant="link" size="sm" data-continue-day-open="" onClick={continueDay.setDay.go}
+                className="h-auto self-center px-0 text-ds-15 font-semibold">
+                {continueDay.setDay.label}
+              </Button>
+            )}
             {primary && (
               <Button
                 variant="primary"

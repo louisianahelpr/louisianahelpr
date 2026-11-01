@@ -727,9 +727,7 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByLabelText(/^Job progress, step 7 of 8: Working, waiting on you\./)).toBeTruthy();
     expect(screen.getByText("Next: mark it done when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
-    // Continue another day (owner 2026-11-01): "Need another day" joins the options, so they open in one tap.
-    fireEvent.click(screen.getByRole("button", { name: "More options" }));
-    fireEvent.click(within(screen.getByRole("dialog", { name: "More options" })).getByRole("button", { name: "Open in working" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
     // F10: Working's own card for THIS job, in its bucket and opened (`?job=`; `?highlight=` there is an application id).
     expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
   });
@@ -1400,8 +1398,9 @@ describe("one row of buttons at every stage (B93)", () => {
     state.job = row({ ...live, helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:25:00Z", helper_completed_at: new Date().toISOString() });
     state.party = true;
     renderPage();
-    // Continue another day (owner 2026-11-01, Yusef's job): "Not finished? Set a day" sits with Message under More options.
-    await waitFor(() => expect(rowLabels()).toEqual(["More options", "Approve and release"]));
+    await waitFor(() => expect(rowLabels()).toEqual(["Message Rhonda", "Approve and release"]));
+    // Continue another day (owner 2026-11-01, Yusef's job): a VISIBLE "Not finished? Set a day" under the pair.
+    expect(screen.getByRole("button", { name: "Not finished? Set a day" })).toBeTruthy();
     // The review window is IN the next-step line (owner 11-01, live Done-stage screenshot), never a second panel.
     const line = document.querySelector("[data-next-step]") as HTMLElement;
     await waitFor(() => expect(line.textContent).toMatch(/Rhonda/));
@@ -1663,10 +1662,10 @@ describe("job page, an offered Helpr is not told the address comes with an offer
 });
 
 describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yusef's job)", () => {
-  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     posterExtras.push({ key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open }); |
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open }; |
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | continueStep ?? jobNextStep( | jobNextStep(
   // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras)} |             {isPoster && posterActions.row(posterStep)}
-  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     helprExtras.push({ key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open }); |
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open }; |
   const underWay = (over: Partial<JobPageRow> = {}) => row({
     customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
     helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
@@ -1684,11 +1683,8 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     state.party = true;
     state.moreCount = 0;
     renderPage();
-    const rowEl = document.querySelector('[data-job-row="poster"]') as HTMLElement;
-    await waitFor(() => expect(within(rowEl).queryByRole("button", { name: "More options" })).toBeTruthy());
-    fireEvent.click(within(rowEl).getByRole("button", { name: "More options" }));
-    const sheet = await screen.findByRole("dialog", { name: "More options" });
-    fireEvent.click(within(sheet).getByRole("button", { name: "Not finished? Set a day" }));
+    // Visible under the pair, never in More options (lead 11-01).
+    fireEvent.click(await screen.findByRole("button", { name: "Not finished? Set a day" }));
     expect(await screen.findByRole("dialog", { name: "Set a day to finish" })).toBeTruthy();
   });
 
@@ -1719,12 +1715,8 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     state.job = underWay({ customer_id: POSTER, helper_id: ME });
     state.party = true;
     const { unmount } = renderPage();
-    const helprRow = await waitFor(() => document.querySelector('[data-job-row="helpr"]') as HTMLElement);
-    const all = () => [...within(helprRow).queryAllByRole("button").map(fullName)];
-    if (!all().includes("Need another day")) {
-      fireEvent.click(within(helprRow).getByRole("button", { name: "More options" }));
-      expect(within(await screen.findByRole("dialog", { name: "More options" })).getByRole("button", { name: "Need another day" })).toBeTruthy();
-    }
+    fireEvent.click(await screen.findByRole("button", { name: "Need another day" }));
+    expect(await screen.findByRole("dialog", { name: "Need another day" })).toBeTruthy();
     unmount();
     continueState.row = setRow({ proposed_by: POSTER });
     renderPage();

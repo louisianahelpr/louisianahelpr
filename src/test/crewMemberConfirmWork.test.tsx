@@ -6,7 +6,7 @@
  *
  * @mutate src/components/GroupJobHelpers.tsx |     !!h.helper_completed_at &&\n    h.poster_confirmed_completion_at === null && |     h.poster_confirmed_completion_at === null &&
  * @mutate src/components/GroupJobHelpers.tsx |               {workConfirmable(h) && ( |               {false && (
- * @mutate src/components/GroupJobHelpers.tsx |                   {h.status === "accepted" && h.poster_confirmed_completion_at\n                    ? "Work confirmed" |                   {false\n                    ? "Work confirmed"
+ * @mutate src/lib/crewLifecycle.ts |   if (h.status === "accepted" && h.poster_confirmed_completion_at) return "Work confirmed"; |   if (false) return "Work confirmed";
  * @mutate src/lib/crewLifecycle.ts |     if (isMissingRpcNamed(error, "rpc_poster_approve_member")) { |     if (false) {
  * @mutate src/lib/crewLifecycle.ts |   if (!d \|\| d.helper_id !== memberId \|\| typeof d.payout_due_at !== "string" \|\| typeof d.approved_at !== "string") { |   if (!d) {
  */

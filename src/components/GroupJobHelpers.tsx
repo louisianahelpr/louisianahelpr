@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { CheckCircle2, MessageCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { applicationStatusLabel } from "@/lib/statusLabels";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, mutationErrorMessage, isWriteRejected } from "@/lib/mutationResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
@@ -13,7 +12,7 @@ import { MapPin } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
-import { CrewActionError, crewMemberStatusLabel, crewNobodyLeft, posterApproveMember, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
+import { CrewActionError, crewRosterPill, crewNobodyLeft, posterApproveMember, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
 import { payoutDayLabel, STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../supabase/functions/_shared/escrowTiming";
 import { Button } from "@/components/ui/button";
 import { hasJobStarted } from "@/lib/dateUtils";
@@ -83,8 +82,7 @@ export function GroupJobHelpers({
   /** The card's own Cancel (tryCancelJob -> CancellationDialog -> poster_cancel_job), offered when every
    *  member was reported a no-show and nobody is left (crewNobodyLeft, JOBS-3). */
   onCancelJob?: () => void;
-  /** The job page's roster (audit 11-01 JA-32): a Message button per hired member. Omitted = none (the Posted
-   *  card's own row already has Message). */
+  /** The job page's roster (JA-32): a Message button per hired member. Omitted (the Posted card) = none. */
   onMessage?: (helperId: string) => void;
 }) {
   // Seed from the parent-batched rows when present so we don't fire two
@@ -421,17 +419,7 @@ export function GroupJobHelpers({
                 <span className={`text-ds-11 px-1.5 py-0.5 rounded-full ${
                   h.status === "accepted" ? "bg-primary/10 text-primary" : "bg-secondary text-secondary-foreground"
                 }`}>
-                  {h.status === "accepted" && h.poster_confirmed_completion_at
-                    ? "Work confirmed"
-                    : h.status === "accepted" && h.helper_confirmed_at !== undefined
-                    ? crewMemberStatusLabel({
-                        helper_confirmed_at: h.helper_confirmed_at ?? null,
-                        helper_on_the_way_at: h.helper_on_the_way_at ?? null,
-                        helper_arrived_at: h.helper_arrived_at ?? null,
-                        poster_confirmed_arrival_at: h.poster_confirmed_arrival_at ?? null,
-                        helper_completed_at: h.helper_completed_at ?? null,
-                      })
-                    : applicationStatusLabel(h.status)}
+                  {crewRosterPill(h)}
                 </span>
               </div>
               {onMessage && h.helper_id && h.status === "accepted" && (

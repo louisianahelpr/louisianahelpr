@@ -129,7 +129,7 @@ export function PosterMoney({ job, total, loading }: { job: JobPageRow; total: n
  * poster's late cancel, whose fee is shared with them (poster_cancel_job: cancellation_fee > 0). Null = the normal box.
  * Guard: src/test/helprMoneyNotOnACancelledJob.test.tsx.
  */
-export function helprNoPayWords(job: Pick<JobPageRow, "status" | "cancellation_fee" | "cancelled_by" | "customer_id">, noShow = false): { title: string; line: string } | null {
+function helprNoPayWords(job: Pick<JobPageRow, "status" | "cancellation_fee" | "cancelled_by" | "customer_id">, noShow = false): { title: string; line: string } | null {
   if (noShow) return { title: "Not paid", line: "You were reported as a no-show, so you aren't paid for this job." };
   if (job.status !== "cancelled") return null;
   if (Number(job.cancellation_fee ?? 0) > 0 && !!job.cancelled_by && job.cancelled_by === job.customer_id) {

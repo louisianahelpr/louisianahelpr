@@ -72,5 +72,3 @@ export function GuestJobPreview({ job, onClose, onSignUp }: {
     </Dialog>
   );
 }
-
-export default GuestJobPreview;

@@ -139,14 +139,16 @@ export function YouMenu({
       />
 
       <div className="pt-1 space-y-1">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="md"
           onClick={onRequestLogout}
-          className="glass-press w-full rounded-full bg-card min-h-[48px] inline-flex items-center justify-center gap-2 active:scale-[0.99] transition-all font-semibold"
+          className="glass-press w-full bg-card px-0 active:scale-[0.99] transition-all font-semibold tracking-normal [&_svg]:size-4"
           style={{ color: "hsl(var(--foreground))", border: "1px solid hsl(var(--border))" }}
         >
           <LogOut className="w-4 h-4" aria-hidden /> Log out
-        </button>
+        </Button>
         {/* Quiet: a small muted text button, never a second pill. Its confirm dialog does the warning. */}
         <Button
           type="button"

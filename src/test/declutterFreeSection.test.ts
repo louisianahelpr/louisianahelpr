@@ -55,11 +55,14 @@ describe("the Declutter Free section", () => {
     expect(newestFunction("declutter_complete_handover").file).toContain("20261031231150_helpr_delivery_cant_finish.sql");
     // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
+    // declutter_close_paid_order: LEAD-ADMIN-HELPR-FAULT (20261101000817) restated its effective body plus the
+    // helpr_fault refund (train 6); the free branch below still reads that newest definition.
+    expect(newestFunction("declutter_close_paid_order").file).toContain("20261101000817_declutter_admin_helpr_fault.sql");
     const names = ["declutter_free_rules",
-      "declutter_buy_now", "declutter_close_paid_order",
+      "declutter_buy_now",
       "declutter_update_draft", "payout_setup_hire_allowed"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
-    expect(names.length).toBeGreaterThan(4);
+    expect(names.length).toBeGreaterThan(3);
     // declutter_setup_fee_before_list: LEAD-B49-REBUILD (20261031214749) restated it from 20261027170717 with one early
     // return while the ID check is on (the fee then comes out of the payout); the free rule is asserted below.
     expect(newestFunction("declutter_setup_fee_before_list").file).toContain("20261031214749_seller_setup_fee_from_payout_restated.sql");

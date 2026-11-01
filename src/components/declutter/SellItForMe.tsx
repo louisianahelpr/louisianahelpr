@@ -12,6 +12,7 @@
  * The entry shows only where Declutter shows (the 'declutter' switch).
  */
 import { useState } from "react";
+import { hideUnopenedInApp } from "@/lib/hideUnopenedInApp";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, HandHelping, Store, UserRound } from "lucide-react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
@@ -157,6 +158,8 @@ function LocalBusinesses() {
           {list.map((s) => (
             <li key={s.id} className="min-w-0 space-y-2" data-testid="sell-for-me-shop">
               <ShopBrowseCard shop={s} category={categoryLabel(categories.data, s.category)} group={group} extras={extras.data?.get(s.id)} />
+              {/* The iPhone app shows no disabled "Request a quote" (owner 10-31, src/lib/hideUnopenedInApp.ts). */}
+              {!hideUnopenedInApp() && (
               <div className="flex items-center gap-2 px-0.5">
                 <SectionActionPill
                   variant="outline"
@@ -170,6 +173,7 @@ function LocalBusinesses() {
                 </SectionActionPill>
                 <span className="text-ds-13 text-muted-foreground">Coming soon</span>
               </div>
+              )}
               {asked === s.id && (
                 <p role="status" className="px-0.5 text-ds-13 text-muted-foreground">
                   {QUOTE_SOON_LINE}

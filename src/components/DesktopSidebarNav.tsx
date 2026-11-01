@@ -118,7 +118,10 @@ const DesktopSidebarRail = () => {
   // the dock's section tabs, read from the same hook so the two cannot drift.
   const sectionTabs = useSectionTabs();
   // Customize (owner, 2026-10-19): a section the member hid leaves the rail too.
-  const { visible: visibleSections } = useSectionPrefs();
+  const { visible: shownSections } = useSectionPrefs();
+  // The rail is web-only today (isNativePlatform never shows it), but if it ever renders in the iPhone app a
+  // section not open to everyone is left out there (owner 10-31, src/lib/hideUnopenedInApp.ts).
+  const visibleSections = shownSections.filter((sec) => sectionTabs.find((x) => x.path === sec.path)?.listed !== false);
   // ONE PLACE FOR EACH THING (Q2220, dashboards build run 4): the rail is the
   // dock's own list (Home, the member's shown sections in their order, with
   // Posts living inside Jobs, then Messages) plus Profile. No separate Posts row

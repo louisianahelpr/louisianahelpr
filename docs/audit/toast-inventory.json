@@ -7587,7 +7587,7 @@
     },
     {
       "file": "src/components/mobileNav/useSectionTabs.ts",
-      "line": 85,
+      "line": 93,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -8004,7 +8004,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 202,
+      "line": 203,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -8365,7 +8365,7 @@
     },
     {
       "file": "src/components/quotes/PostJobQuoteChoice.tsx",
-      "line": 187,
+      "line": 191,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -8379,7 +8379,7 @@
     },
     {
       "file": "src/components/quotes/PostJobQuoteChoice.tsx",
-      "line": 190,
+      "line": 194,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9798,7 +9798,7 @@
     },
     {
       "file": "src/components/sections/CustomizeSheet.tsx",
-      "line": 65,
+      "line": 66,
       "kind": "toast",
       "title": {
         "form": "dynamic",

@@ -8,8 +8,12 @@
 -- WHAT
 --   export_my_data is restated from the NEWEST CREATE (20261101022048_export_my_data_signup_source.sql) VERBATIM, with
 --   one change in the helpr_tasks section: rows WHERE helpr_id = v_uid OR released_helpr_id = v_uid (one scan, so a
---   row is never listed twice), and the OTHER Helpr's id on a row (helpr_id when the member was released;
---   released_helpr_id when it names someone else) is dropped from that row. Same (uuid) overload, EXECUTE for
+--   row is never listed twice). A row the member is on is exported as before, without released_helpr_id when it names
+--   someone else. A row the member was only released from carries only their part (lead 10-31): id, source_kind,
+--   source_id, title, created_at, released_helpr_id, released_from_you; never its status, progress times or anything
+--   set after the release (the next Helpr's progress), nor the next Helpr's id. There is no released_at column
+--   (20261101020052 added none, and updated_at moves with the next Helpr), so no release time is given here; the
+--   member's own steps are in helpr_task_events by actor_id. Same (uuid) overload, EXECUTE for
 --   service_role only. Replay-safe: DROP IF EXISTS / CREATE OR REPLACE, applied 3x in PGlite.
 --
 -- PROOF: src/test/pglite/exportReleasedHelpr.pglite.mjs.
@@ -317,12 +321,18 @@ BEGIN
   v_out := v_out || jsonb_build_object('helpr_vehicles', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helpr_vehicles t
       WHERE t.user_id = v_uid));
   -- B52 (20261101025001): also the deliveries the member was released from (helpr_tasks.released_helpr_id, 20261101020052),
-  -- each row once. The other Helpr's id on a row (the one now on it, or the one released before the member) is never
-  -- the member's data, so it is left out.
-  v_out := v_out || jsonb_build_object('helpr_tasks', (SELECT coalesce(jsonb_agg(to_jsonb(t) - 'dropoff_code' - 'pickup_address' - 'pickup_lat' - 'pickup_lng'
-      - 'dropoff_address' - 'dropoff_lat' - 'dropoff_lng' - 'customer_id' - 'pickup_contact_id' - 'close_note'
-      - CASE WHEN t.helpr_id IS DISTINCT FROM v_uid THEN 'helpr_id' ELSE '' END
-      - CASE WHEN t.released_helpr_id IS DISTINCT FROM v_uid THEN 'released_helpr_id' ELSE '' END), '[]'::jsonb) FROM public.helpr_tasks t
+  -- each row once. A row the member is on: as before, without the released Helpr's id when it names someone else. A row
+  -- the member was only RELEASED from (lead 10-31): only what is about their part (which delivery and item), never its
+  -- status, times or anything set after they left, which is the next Helpr's progress. Their own steps, pay and
+  -- strikes on it are in helpr_task_events (actor_id), helpr_task_payouts and their strikes.
+  v_out := v_out || jsonb_build_object('helpr_tasks', (SELECT coalesce(jsonb_agg(
+        CASE WHEN t.helpr_id = v_uid
+          THEN to_jsonb(t) - 'dropoff_code' - 'pickup_address' - 'pickup_lat' - 'pickup_lng'
+             - 'dropoff_address' - 'dropoff_lat' - 'dropoff_lng' - 'customer_id' - 'pickup_contact_id' - 'close_note'
+             - CASE WHEN t.released_helpr_id IS DISTINCT FROM v_uid THEN 'released_helpr_id' ELSE '' END
+          ELSE jsonb_build_object('id', t.id, 'source_kind', t.source_kind, 'source_id', t.source_id, 'title', t.title,
+                 'created_at', t.created_at, 'released_helpr_id', t.released_helpr_id, 'released_from_you', true)
+        END), '[]'::jsonb) FROM public.helpr_tasks t
       WHERE t.helpr_id = v_uid OR t.released_helpr_id = v_uid));
   v_out := v_out || jsonb_build_object('helpr_task_events', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.helpr_task_events t
       WHERE t.actor_id = v_uid));

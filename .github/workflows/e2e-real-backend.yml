@@ -82,6 +82,10 @@ on:
     # prod (09:17 Mon/Wed/Fri) now runs one locked leg per engine, and its
     # worst case (167 min) holds the group past 11:17. Sat 11:17 stays.
     - cron: "17 3 * * 2,5"
+    # 2026-11-01 (OPS-2, B65): Thu 05:17, one of the week's two free prod-load
+    # slots (prodWorkflowSpacing Q322), so the authenticated leg runs 4 days a
+    # week. Nightly does not fit: the other 82 slots are held (rule 5).
+    - cron: "17 5 * * 4"
     - cron: "17 11 * * 6"
   workflow_dispatch:
     inputs:

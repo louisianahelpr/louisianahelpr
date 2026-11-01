@@ -23,7 +23,7 @@
     "src/pages/home/DashboardGuest.tsx": 803,
     "src/pages/info/Legal.tsx": 725,
     "src/pages/jobs/AppliedJobCard.tsx": 842,
-    "src/pages/posts/PostedJobCard.tsx": 768,
+    "src/pages/posts/PostedJobCard.tsx": 766,
     "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 641,
     "src/pages/profile/GiftCard.tsx": 828,
     "src/pages/profile/petProfiles/PetForm.tsx": 648,

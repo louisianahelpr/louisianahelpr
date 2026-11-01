@@ -553,6 +553,7 @@ DECLARE
   v_seller uuid;
   v_helper uuid;
 BEGIN
+  IF _job_id IS NULL THEN RETURN false; END IF;
   SELECT customer_id, helper_id INTO v_seller, v_helper FROM public.jobs WHERE id = _job_id;
   IF v_seller IS NULL OR (auth.uid() IS NOT NULL AND auth.uid() IS DISTINCT FROM v_helper AND auth.uid() IS DISTINCT FROM v_seller) THEN
     RETURN false;

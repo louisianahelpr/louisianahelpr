@@ -11,7 +11,7 @@
  * @mutate src/App.tsx | <ProtectedRoute allowGuest><PageTransition><JobDetail /> | <ProtectedRoute><PageTransition><JobDetail />
  * @mutate src/components/ProtectedRoute.tsx |   if (!user && allowGuest) return <>{children}</>;\n | \n
  * @mutate src/components/ProtectedRoute.tsx |   if (!user && allowGuest) return <>{children}</>; |   if (allowGuest) return <>{children}</>;
- * @mutate src/pages/jobs/JobDetail.tsx | category, budget, location, status, | category, budget, location, customer_id, status,
+ * @mutate src/pages/jobs/JobDetail.tsx | category, budget, location, urgent_fee, | category, budget, location, customer_id, urgent_fee,
  * @mutate src/pages/jobs/JobDetail.tsx | "id, title, category, budget, location, urgent_fee, | "id, title, description, category, budget, location, urgent_fee,
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(signupUrlFor(id ? `/jobs/${id}` : null)) | navigate("/signup")
  * @mutate src/pages/jobs/JobDetail.tsx | onClose={() => navigate("/browse")} | onClose={() => navigate("/home")}

@@ -14,6 +14,7 @@
  * @mutate src/lib/declutter/meetup.ts | .map((r) => ({ ...r, lat: Number(r.lat), lng: Number(r.lng) })) | .map((r) => r)
  * @mutate src/lib/declutter/meetup.ts |     p_note: spot.note ?? "", |     p_note: spot.note as string,
  * @mutate src/lib/declutter/meetup.ts | admin?.rpcErrorMessage("admin_declutter_save_meetup_spot", e) ?? null | null
+ * @mutate src/lib/declutter/meetup.ts |     .neq("kind", "seller") |     .neq("kind", "")
  * @mutate src/lib/declutter/meetupErrors.ts | new RegExp(`(^\|[^a-z0-9_])${code}($\|[^a-z0-9_])`).test(raw) | raw.includes(code)
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,7 +29,7 @@ vi.mock("@/integrations/supabase/client", () => {
     const q: Record<string, unknown> = {
       then: (resolve: (r: unknown) => void) => resolve(h.result),
     };
-    for (const m of ["select", "eq", "order", "maybeSingle"]) {
+    for (const m of ["select", "eq", "neq", "order", "maybeSingle"]) {
       q[m] = (...args: unknown[]) => { h.calls.push([m, ...args]); return q; };
     }
     return q;
@@ -162,6 +163,8 @@ describe("fetchAllMeetupSpots", () => {
     const rows = await fetchAllMeetupSpots();
     expect(rows[0]).toMatchObject({ lat: 30.5, lng: -91.25 });
     expect(h.calls.filter((c) => c[0] === "order")).toEqual([["order", "parish"], ["order", "name"]]);
+    // B110 (20261101194608): the admin's list is the checked spots only, never a seller's own.
+    expect(h.calls).toContainEqual(["neq", "kind", "seller"]);
   });
 
   it("not deployed yet is an empty list; any other failure throws", async () => {

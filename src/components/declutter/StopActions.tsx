@@ -1,14 +1,15 @@
 /** "Picked up" / "Left at the door" for one stop of My route (the list and the map's current stop). */
 import { useId, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { RouteStop } from "@/lib/helprTasks/api";
-import { reportPickupNoShow, uploadTaskPhoto } from "@/lib/helprTasks/api";
+import { fetchTaskView, reportPickupNoShow, uploadTaskPhoto } from "@/lib/helprTasks/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { currentPosition } from "@/lib/declutter/position";
 import { useTaskSteps } from "./useTaskSteps";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
+import { HelprCantFinish } from "./DeliveryCantFinish";
 
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -84,6 +85,9 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
   const [pickPhoto, setPickPhoto] = useState<File | null>(null);
   const { pickedUp, delivered, done } = useTaskSteps(stop.task_id, userId, () => setDropPhoto(null));
   const id = useId();
+  // BUY-36: reported as can't finish: the drop-off waits (the server refuses it: delivery_on_hold), except the one retry.
+  const view = useQuery({ queryKey: ["helpr-tasks", "view", stop.task_id], queryFn: () => fetchTaskView(stop.task_id), enabled: stop.kind !== "pickup" && stop.status === "picked_up", meta: { persist: false } });
+  const onHold = !!view.data?.stuck_stage && view.data.stuck_stage !== "retrying";
   if (stop.kind === "pickup") {
     // Audit 1c #1: Picked up opens 30 minutes before the pickup, or at once after the seller's "Handed over". Only a server
     // that says "not handed over" (null) can close the button; before that migration the server's own refusal answers.
@@ -103,6 +107,7 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
     );
   }
   if (stop.status !== "picked_up") return <p className="text-ds-13 text-muted-foreground">Pick this item up first.</p>;
+  if (onHold) return <HelprCantFinish taskId={stop.task_id} userId={userId} />;
   return (
     <div className="space-y-2">
       {/* Deep audit #41: on a route every stop had the same label; the hidden words tell a screen reader which stop. */}
@@ -111,6 +116,7 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
       <button type="button" className={`${primary} disabled:opacity-50`} disabled={delivered.isPending || !dropPhoto} onClick={() => delivered.mutate(dropPhoto)}>
         Left at the door
       </button>
+      <HelprCantFinish taskId={stop.task_id} userId={userId} />
     </div>
   );
 }

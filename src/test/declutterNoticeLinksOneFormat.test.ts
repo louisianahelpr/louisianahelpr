@@ -49,7 +49,6 @@ const VIEW_LINKS_LEFT: Record<string, string> = {
   declutter_listing_rounds_sweep: "selling",
   declutter_mark_order_paid: "cart,selling",
   declutter_meetup_here: "bought,selling",
-  declutter_delivery_still_in_hand: "deliver",
   declutter_notice_type: "deliver",
   declutter_pickup_reminder_sweep: "cart,selling",
   declutter_porch_photo: "sales",

@@ -15,6 +15,8 @@
 import { stillInHandLine } from "@/lib/declutter/stillInHand";
 import { DELIVERY_ADDRESSES_SHOW } from "@/lib/declutter/deliveryAddressWords";
 import { useEffect, useState } from "react";
+import { DeliveryTalkButton } from "./DeliveryTalk";
+import { BuyerCantFinishPanel, buyerMayConfirm, cantFinishLine, HelprCantFinish, SellerReturnPanel } from "./DeliveryCantFinish";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
 import { SellerHandedOver } from "./SellerHandedOver";
@@ -191,9 +193,15 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
   } else {
     line = "This delivery was closed.";
   }
+  // BUY-36: where a delivery the Helpr can't finish stands replaces the line above.
+  const cantFinish = v.status === "picked_up" ? cantFinishLine(v, side, who) : null;
+  if (cantFinish) line = cantFinish;
+  const collecting = v.stuck_stage === "collecting";
   // BUY-39: never while it is on the road (it finished the sale with the item in the Helpr's car); from the drop-off,
   // or once the Helpr has held it 24 hours without marking it delivered (BUY-37's "If you have it, tap I got it").
-  const canConfirm = side === "buyer" && (v.status === "delivered" || (v.status === "picked_up" && stillInHandLine(who, v.picked_up_at) !== null));
+  // BUY-36: a buyer collecting it from a Helpr at fault confirms when they have it (the server skips BUY-39 then).
+  const canConfirm = side === "buyer" && buyerMayConfirm(v)
+    && (v.status === "delivered" || (v.status === "picked_up" && (collecting || stillInHandLine(who, v.picked_up_at) !== null)));
   // Board 76: the one tracker, Booked -> Picked up -> Delivered, once a Helpr has it.
   const at = DELIVERY_STEP[v.status];
   // Each real step, with its own time, as a centred progress note (spec §3 status bubbles).
@@ -230,6 +238,9 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
           I got it
         </button>
       )}
+      {["accepted", "picked_up", "delivered"].includes(v.status) && <DeliveryTalkButton taskId={taskId} />}
+      {side === "buyer" && v.status === "picked_up" && <BuyerCantFinishPanel taskId={taskId} view={v} who={who} />}
+      {side === "seller" && v.status === "picked_up" && <SellerReturnPanel taskId={taskId} view={v} who={who} />}
       {/* Audit 1c #1: the seller confirms the handover; it changes no status and moves no money. */}
       {/* soldstates-5 (owner 10-31): the seller's "The Helpr didn't come"; the Helpr has 24 hours to answer. */}
       {side === "seller" && v.status === "accepted" && v.pickup_slot_start && !v.problem_open && !v.handed_over_at && <HelprNoShowReportButton orderId={orderId} taskId={taskId} slotStart={v.pickup_slot_start} who={who} />}
@@ -237,7 +248,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
       {problemForm && <ProblemForm orderId={orderId} side={side} stage="delivery" trigger={deliveryProblemTimeCame(v)} />}
       <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
         onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
-        Tapping I got it finishes the sale: the Helpr and the seller are paid. You can still ask the seller for a refund within 24 hours.
+        {collecting ? "Tapping I got it pays the seller. The Helpr isn't paid, and you get back what you paid for the delivery." : "Tapping I got it finishes the sale: the Helpr and the seller are paid. You can still ask the seller for a refund within 24 hours."}
       </ConfirmSheet>
     </div>
   );
@@ -428,7 +439,9 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
             </>
           )}
           {(v.status === "accepted" || v.status === "picked_up") && <HelprNoShowAnswer taskId={t.task_id} />}
-          {v.status === "picked_up" && toRoute}
+          {v.status === "picked_up" && !v.stuck_stage && toRoute}
+          {["accepted", "picked_up", "delivered"].includes(v.status) && <DeliveryTalkButton taskId={t.task_id} />}
+          {v.status === "picked_up" && <HelprCantFinish taskId={t.task_id} userId={userId} />}
           <TaskPhotos view={v} />
         </>
       )}

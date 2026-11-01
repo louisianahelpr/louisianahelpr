@@ -8,9 +8,9 @@
  * without a notice turns this red. (Shops refunds and delivery raises key their debts by other columns.)
  * Backend proof: src/test/pglite/declutterRefundDebtNotice.pglite.mjs (3x; RED without the migration).
  *
- * @mutate supabase/migrations/20261031105148_declutter_refund_debt_notice_names_the_item.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF false THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
- * @mutate supabase/migrations/20261031105148_declutter_refund_debt_notice_names_the_item.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF true THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
- * @mutate supabase/migrations/20261031105148_declutter_refund_debt_notice_names_the_item.sql | public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0 | NULL::text, to_char(v_fee / 100.0
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF false THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF true THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
+ * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | sale''s payout.',\n                           public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0 | sale''s payout.',\n                           NULL::text, to_char(v_fee / 100.0
  * BUY-30 (20261031105148): the notice names the item; proof src/test/pglite/declutterRefundDebtNoticeNamesItem.pglite.mjs (3x; skip red).
  */
 import { describe, expect, it } from "vitest";

@@ -115,6 +115,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_helpr_answer_no_show: "alerts", // 20261031134217 (soldstates-5): a test sale's or test Helpr's answer reaches no admin; the answer itself still works
   declutter_handover_sweep: "alerts", // 20261031004529: a test sale gets no nudge and no 60-day problem; every other step of the sweep still runs on it
   helpr_task_sweep: "alerts", // 20261031014011: a test task or member never gets the still-not-delivered nudge
+  helpr_task_cant_finish: "alerts", // 20261031231150 (BUY-36): a test task's or member's report reaches no admin; the report itself still works
+  helpr_task_seller_return_answer: "alerts", // 20261031231150 (BUY-36): a test seller's "it didn't come back" reaches no admin; the problem still opens
   declutter_price_nudge_sweep: "alerts", // 20261030141656: a test listing or seller never gets the nudge
   identity_notify_posters_before_start: "alerts", // 20261031221530 (B49 051341 rebuilt): a seed job or a test poster or Helpr never gets the ID notice
   declutter_refund_cancels_setup_jobs: "alerts",

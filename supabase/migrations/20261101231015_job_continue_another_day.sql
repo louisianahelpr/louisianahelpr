@@ -508,7 +508,7 @@ BEGIN
     SELECT a.*, k.kind
       FROM active a
       CROSS JOIN LATERAL (VALUES
-        -- 2 hours before, up to 15 minutes late (cron every 5), to each side.
+        -- 2 hours before, up to 15 minutes late (cron every 10), to each side.
         (CASE WHEN v_now >= a.starts_at - interval '2 hours' AND v_now < a.starts_at - interval '105 minutes' THEN 'two_hours_helpr' END),
         (CASE WHEN v_now >= a.starts_at - interval '2 hours' AND v_now < a.starts_at - interval '105 minutes' THEN 'two_hours_poster' END),
         -- The day-of confirm ask: from 7 AM Central on the new day (or 3 hours before an earlier start), until the start.
@@ -571,7 +571,7 @@ BEGIN
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('sweep-job-continue-day-reminders', '1-59/5',
+    PERFORM cron.schedule('sweep-job-continue-day-reminders', '2-59/10 * * * *',
       $c$SELECT public.cron_record_work('sweep-job-continue-day-reminders', to_jsonb(public.sweep_job_continue_day_reminders()));$c$);
   END IF;
 END

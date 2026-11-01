@@ -94,6 +94,7 @@ export function useTipWaitsOnId(helperId: string | null | undefined, enabled = t
 /** The one honest line a tip surface shows instead of the tip, when the Helpr can't receive one yet. */
 export function tipsNotReadyLine(name: string | null | undefined, waitsOnId = false): string {
   const first = (name ?? "").trim().split(/\s+/)[0];
-  if (waitsOnId) return `${first || "This Helpr"} can receive tips once verified. Nothing was charged.`;
+  // Audit 11-01 JA-61: this shows before any tip is tried, so it says when tips open, not "Nothing was charged".
+  if (waitsOnId) return `Tips open once ${first || "this Helpr"} finishes verifying.`;
   return `${first || "This Helpr"} hasn't finished payout setup yet, so a tip can't reach them. You can tip once they do.`;
 }

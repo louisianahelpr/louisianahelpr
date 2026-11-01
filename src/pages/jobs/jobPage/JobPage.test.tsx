@@ -27,7 +27,7 @@
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. Louisiana Helpr holds it until the job is done.", |   escrow: "Nothing is charged until you hire.",
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid · held", |   escrow: "Paid when you posted",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const line = released ? releasedLine(job) : status === "escrow" ? null : HELD_LINE[status] ?? null; | const line = released ? releasedLine(job) : HELD_LINE[status] ?? null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
@@ -1223,6 +1223,11 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
       expect(offered, JSON.stringify(over)).not.toContain("Change date or time");
       unmount();
     }
+    // An under-way job is never cancelled from the page, even with no set-off or arrival stamp (CANCELLABLE).
+    state.job = { ...booked(), status: "in_progress", helper_on_the_way_at: null, helper_arrived_at: null };
+    const under = renderPage();
+    expect(pageActions()).not.toContain("Cancel job");
+    under.unmount();
     state.job = row({ customer_id: ME });
     state.applicants = { total: 0, pending: 0 };
     renderPage();
@@ -1286,8 +1291,11 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     state.job = row({ customer_id: ME, payment_status: "unpaid" });
     renderPage();
     expect(screen.getByRole("button", { name: "Post this job again" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Edit job" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Cancel job" })).toBeNull();
+    // Read through More options too: since the one-row rule, Edit and Cancel would sit in its sheet.
+    const offered = pageActions();
+    expect(offered).toContain("Post this job again");
+    expect(offered).not.toContain("Edit job");
+    expect(offered).not.toContain("Cancel job");
   });
 
   it("a cancelled job: Post this job again", () => {

@@ -151,7 +151,8 @@ describe("every pop-up title is sentence case", () => {
     // "Decline ${dollars(priceCents)}?" (QuoteAnswerControls, Decline asks before it ends a quote).
     // 196: +1 the order chat after the order closes: "Your chat with the ${other}" (DeclutterOrderTalk, b3 train #3892).
     // 197: +1 "Continue where you left off" (DeclutterSellChooser's one Continue row opens a sheet of the kept choices, 2ef8b89f23).
-    expect(all.length).toBe(197);
+    // 198: +1 "A one-time ID check" (IdentityCheckSheet's DialogHero, B49 train 5, behind identity_check).
+    expect(all.length).toBe(198);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

@@ -324,7 +324,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     // Moved by an accepted change (owner, 2026-10-21): the line names the NEW slot.
     const slot = o.rescheduled ? slotLabel(job.date_needed, job.start_time) : "";
     if (!Number.isNaN(opens) && now < opens) {
-      const wait = poster ? `${other} confirms the day before. Opens ${when(opens)}` : `Confirm the day before. Opens ${when(opens)}`;
+      // JA-5 (audit 11-01): the day, never "Opens Mon 12:00 AM" (a midnight time reads like a system stamp).
+      const day = new Date(opens).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short" });
+      const wait = poster ? `${other} confirms on ${day}, the day before` : `Confirm on ${day}, the day before`;
       return at(2, false, "Hired", slot ? `New time ${slot}. ${wait}` : wait, held);
     }
     const helprIn = !!job.helper_dayof_confirmed_at;
@@ -343,7 +345,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
         return at(3, false, "Confirmed", helprIn ? `It's start time. ${other} confirmed they'll be there` : `It's start time. ${other} hasn't confirmed`, held);
       }
       if (poster) {
-        return at(3, mine, "Confirmed", !posterIn ? "Tap I'm still on to confirm" : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);
+        return at(3, mine, "Confirmed", !posterIn ? "Confirm the job is still on" : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);
       }
       return at(3, mine, "Confirmed", !helprIn ? `Confirm you'll be at the job by ${when(due)}` : `Waiting on ${otherLow} to confirm`, held);
     }

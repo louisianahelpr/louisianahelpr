@@ -147,7 +147,7 @@ export function HelprMoney({ job, noShow = false }: { job: JobPageRow; noShow?: 
   // charged the viewer's own tier rate at payout, the same rate the feed's
   // "You earn" figure uses (useDashboardData: tierFeePercent of the profile).
   const tierPct = tierFeePercent(profile?.subscription_tier, profile?.subscription_expires_at);
-  const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, disputed ? 0 : firstPayoutFee, job).netEarnings;
+  const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : firstPayoutFee, job).netEarnings;
   // Owner 2026-10-30: the giveaway shows its $50 with no words and no setup-fee line.
   const fixedPay = isGiveawayFixedPayJob(job);
   // Owner 2026-10-25: members never see the Helpr fee, its rate or its maths,

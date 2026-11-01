@@ -60,6 +60,7 @@ vi.mock("@/lib/needsYouStore", () => ({ useNeedsYouCounts: () => ({ total: 0, jo
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: 0 }) }));
 vi.mock("@/components/admin/adminBadgeStore", () => ({ useAdminBadges: () => ({}) }));
 vi.mock("@/lib/routePrefetch", () => ({ prefetchRoute: () => {} }));
+vi.mock("@/components/mobileNav/useDockSheets", async () => { const m = await import("@/components/mobileNav/dockSheets"); return { useDockSheetsLoader: () => m }; }); // sheets at once: their lazy load is dockSheetsLoadOnTap.test.tsx
 vi.mock("@/components/create/CreateSheet", () => ({ CreateSheet: () => null }));
 
 import { useCurrentUser } from "@/hooks/useCurrentUser";

@@ -636,6 +636,10 @@ export default defineConfig(({ mode, command }) => ({
       // post-job price stats) with "Failed to resolve module specifier".
       external: ["@capacitor-community/in-app-review"],
       output: {
+        // B85 11-01: the entriesAware icon groups are named after every chunk that shares them
+        // ("icons~Login~Signup~DashboardGuest~...~rk4z2qol", ~100 characters), and each name is written into the entry's
+        // preload list and into every importer. A short name changes no chunk, only those strings: entry 5377 -> 5264 B gz.
+        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
         // ── Chunk graph shape ────────────────────────────────────────────
         // Expressed as rolldown's `codeSplitting` rather than `manualChunks`
         // because the two are MUTUALLY EXCLUSIVE — rolldown logs

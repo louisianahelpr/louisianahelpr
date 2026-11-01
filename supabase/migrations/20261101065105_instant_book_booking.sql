@@ -416,12 +416,12 @@ BEGIN
        -- A funded job's offer moved to a different Helpr.
        OR OLD.offered_to_helper_id IS DISTINCT FROM NEW.offered_to_helper_id
      )
-     -- A job booked from an agreed quote, offered to its quoter: paying hires
-     -- them (quote_job_funded_hires_quoter), which sends the one notice.
-     AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)
      -- CMP-4: an instant booking is not an offer to answer. rpc_instant_book
      -- tells the Helpr "You're booked" in its own words.
      AND NEW.instant_decline_until IS NULL
+     -- A job booked from an agreed quote, offered to its quoter: paying hires
+     -- them (quote_job_funded_hires_quoter), which sends the one notice.
+     AND NOT public.quote_job_offered_to_quoter(NEW.id, NEW.offered_to_helper_id)
   THEN
     SELECT public.member_display_name(full_name, 'Someone') INTO v_poster_name
       FROM public.profiles WHERE user_id = NEW.customer_id;

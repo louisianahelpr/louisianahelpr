@@ -40,7 +40,7 @@
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |   PERFORM public.require_feature('declutter_refund_requests');\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id | IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id
  * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |     IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN |     IF v_side <> 'buyer' THEN
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |      WHERE (x.status = 'open' AND x.answer_by <= now()) OR (x.status = 'offered' AND x.offer_answer_by <= now()) |      WHERE (x.status = 'offered' AND x.offer_answer_by <= now())
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
  * @mutate supabase/functions/declutter-money/index.ts |     admin.rpc("declutter_payouts_due", { p_limit: BATCH }), |     admin.from("declutter_payouts").select("*"),
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {true && items > 0 && (
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | then gets ${refundDollars(v.full_refund_cents)} back | then gets ${refundDollars(v.items_cents + 130)} back

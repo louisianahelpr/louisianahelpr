@@ -1351,7 +1351,9 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
     ...(handover === "seller_delivery"
       ? { slot_start: slotStart ?? null, handoff: handoff ?? null,
           ...(typeof expectedDeliveryCents === "number" ? { expected_delivery_cents: expectedDeliveryCents } : {}) }
-      : {}),
+      // B110: a porch / door / meetup pickup carries the day and time the buyer chose before paying (none: they book after).
+      : (handover === "porch" || handover === "pickup_home" || handover === "meetup") && slotStart ? { slot_start: slotStart }
+        : {}),
   });
   return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true };
 }

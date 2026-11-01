@@ -10,11 +10,11 @@
  * src/test/pglite/declutterSellerOutPaysFee.pglite.mjs. The reason -> policy
  * map itself is pinned in src/test/refundsKeepTheCardFee.test.ts.
  *
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |     ELSIF o.close_reason = 'seller_out' THEN | ELSIF false THEN
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | v_reason := CASE WHEN v_items_ok AND v_cant | v_reason := CASE WHEN v_cant
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |     ELSIF o.close_reason = 'seller_out' THEN | ELSIF false THEN
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | v_reason := CASE WHEN v_items_ok AND v_cant | v_reason := CASE WHEN v_cant
  * lh-money-escrow review of 905501cb2 #1: (b) judges seller_out on the items alone, so a buyer's block does not hand the fee to us.
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |       v_reason := CASE WHEN v_items_ok AND v_cant | v_items_ok := v_items_ok AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocked_id = o.seller_id OR b.blocker_id = o.seller_id);\n      v_reason := CASE WHEN v_items_ok AND v_cant
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | WHEN v_cant AND v_items_ok THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |       v_reason := CASE WHEN v_items_ok AND v_cant | v_items_ok := v_items_ok AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocked_id = o.seller_id OR b.blocker_id = o.seller_id);\n      v_reason := CASE WHEN v_items_ok AND v_cant
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | WHEN v_cant AND v_items_ok THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |   IF o.seller_id IS NULL OR v_debt IS NULL OR v_debt <= 0 THEN |   IF true THEN
  */
 import { describe, expect, it } from "vitest";

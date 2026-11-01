@@ -96,10 +96,13 @@ describe("RentPanel (D2 pay direct)", () => {
   });
 
   it("tenant: a waiting payment is named; a declined one shows why; no waive control", async () => {
+    // Relative, never a fixed date: canDispute allows 30 days from the decision, so a fixed 2026-10-04 decision
+    // stopped offering Dispute on 2026-11-03 (found by the 11-01 clock sweep, Builder 62).
+    const declinedRecently = new Date(Date.now() - 3 * 24 * 3600 * 1000).toISOString();
     state.ledger = L({
       payments: [
         { id: "p1", amount_cents: 50000, paid_on: "2026-10-02", method: "zelle", reported_by: "tenant", status: "reported", decline_reason: null, decided_at: null, ...PAY },
-        { id: "p2", amount_cents: 70000, paid_on: "2026-10-03", method: "check", reported_by: "tenant", status: "declined", decline_reason: "The check bounced.", decided_at: "2026-10-04T15:00:00Z", ...PAY },
+        { id: "p2", amount_cents: 70000, paid_on: "2026-10-03", method: "check", reported_by: "tenant", status: "declined", decline_reason: "The check bounced.", decided_at: declinedRecently, ...PAY },
       ],
     });
     renderPanel();

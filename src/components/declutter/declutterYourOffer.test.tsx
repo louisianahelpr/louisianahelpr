@@ -221,7 +221,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
   // B106 (item page shots 11-01): the note under Ask for it had a tall gap between its two lines (noteH 60 for two
   // 16px lines at 375, measured ~/.lh-shots/b109): the inline "How it works" <Button> kept the global 44px button
   // min-height (index.css :where(button)). It is now a text-sized link button with the shared 44px tap overlay on touch.
-  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | min-h-0 min-w-0 p-0 align-baseline text-xs font-semibold | p-0 align-baseline text-xs font-semibold
+  // @mutate src/components/ui/InlineTextButton.tsx | link-standard min-h-0 min-w-0 p-0 align-baseline | link-standard p-0 align-baseline
   it("the note under Ask for it reads as one paragraph: How it works flows inline, no 44px box", async () => {
     show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
     const how = await screen.findByRole("button", { name: "How it works" });

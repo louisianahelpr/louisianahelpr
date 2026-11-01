@@ -222,7 +222,7 @@ function cardHtml(job) {
     `<h2 class="${c.title}" style="color:hsl(var(--ink-deep));letter-spacing:-0.02em">${title}</h2>` +
     `<div class="${c.chip}" style="background:hsl(var(--bark) / 0.1);border:0.5px solid hsl(var(--bark) / 0.28)">` +
     `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span></div>` +
-    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><span aria-hidden="true" class="w-2.5 h-2.5 shrink-0"></span><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span></div></div>` +
+    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span></div></div>` +
     `</div></div></div>`
   );
 }
@@ -234,15 +234,22 @@ export const BROWSE_SHELL_ID = "lh-browse-shell";
  * The whole overlay: GuestBrowseSkeleton's web frame (nav box, its spacer, the "Browse jobs" header, the card grid)
  * with real cards in the grid. Hidden inline until the app's stylesheet (async) applies: src/index.css shows it. "" when no row may be drawn: the page is then exactly what it was.
  */
-export function browseShellHtml(rows, now = Date.now()) {
+export function browseShellHtml(rows, now = Date.now(), emblem = null) {
   const jobs = selectShellJobs(rows, now);
   if (jobs.length === 0) return "";
+  // The nav's H emblem (HelprMark size md, emblemOnly), the very file the page's own <img> and index.html's
+  // #emblem-preload fetch, so the bar reads as the page's own from the first paint.
+  const mark = emblem
+    ? `<span class="flex items-center gap-2.5 group min-h-11"><img src="${escapeShellText(emblem.src)}" srcset="${escapeShellText(emblem.srcset)}" sizes="40px" alt="Helpr" class="helpr-emblem h-10 w-auto select-none transition-transform duration-200 group-hover:scale-105" draggable="false"></span>`
+    : "";
+  // z-index above every layer the booting app draws (its nav is z-50, card tabs z-20): in the 11-01 lab filmstrip,
+  // at z-index 2 the app's skeleton tabs showed through the overlay.
   return (
-    `<div id="${BROWSE_SHELL_ID}" class="min-h-screen bg-premium-page" style="position:fixed;inset:0;z-index:2;overflow:hidden;visibility:hidden">` +
+    `<div id="${BROWSE_SHELL_ID}" class="min-h-screen bg-premium-page" style="position:fixed;inset:0;z-index:2147483000;overflow:hidden;visibility:hidden">` +
     `<div class="min-h-screen page-warmth relative flex flex-col overflow-x-clip">` +
-    `<div aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 glass-nav" style="padding-top:max(var(--safe-area-top, 0px), 0.25rem)"><div class="w-full h-[var(--public-nav-h)]"></div></div>` +
+    `<div aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 glass-nav" style="padding-top:max(var(--safe-area-top, 0px), 0.25rem)"><div class="w-full flex items-center justify-between h-[var(--public-nav-h)] px-5 sm:px-8 lg:px-12">${mark}</div></div>` +
     `<div aria-hidden="true" style="height:calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))"></div>` +
-    `<div class="mx-auto page-measure px-5 sm:px-8 lg:px-12 pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6"><div class="flex items-center gap-3"><div class="shrink-0"><span aria-hidden="true" class="w-11 h-11 -ml-2 flex"></span></div><div class="flex flex-col leading-none min-w-0"><h1 class="text-page-title leading-tight truncate">Browse jobs</h1></div></div></div>` +
+    `<div class="mx-auto page-measure px-5 sm:px-8 lg:px-12 pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6"><div class="flex items-center gap-3"><div class="shrink-0"><span aria-hidden="true" class="w-11 h-11 -ml-2 flex items-center justify-center shrink-0" style="color:hsl(var(--olivewood))"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></span></div><div class="flex flex-col leading-none min-w-0"><h1 class="text-page-title leading-tight truncate">Browse jobs</h1></div></div></div>` +
     `<div class="px-5 sm:px-8 lg:px-12 pb-16"><div class="mx-auto page-measure"><div class="grid grid-cols-1 gap-list md:grid-cols-2 md:gap-4">` +
     jobs.map(cardHtml).join("") +
     `</div></div></div></div></div>`
@@ -256,7 +263,10 @@ export function browseShellHtml(rows, now = Date.now()) {
  * to <body> first (src/boot/browseShellHandoff.ts). Unchanged when there is nothing to draw or no anchor.
  */
 export function withBrowseShell(html, rows, now = Date.now()) {
-  const shell = browseShellHtml(rows, now);
+  const preload = html.match(/<link\s+id="emblem-preload"[^>]*>/)?.[0] ?? "";
+  const src = preload.match(/\shref="(\/assets\/[^"]+)"/)?.[1];
+  const srcset = preload.match(/\simagesrcset="([^"]+)"/)?.[1];
+  const shell = browseShellHtml(rows, now, src && srcset ? { src, srcset } : null);
   if (!shell) return html;
   return html.replace(/<div\s+id="boot-loader"[^>]*>/, (open) => `${open}${shell}`);
 }

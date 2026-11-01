@@ -15,6 +15,7 @@
  * @mutate src/lib/browseShellCards.mjs |   const net = perHelper - commission + urgent / helpers; |   const net = perHelper - commission + urgent;
  * @mutate src/lib/browseShellCards.mjs |     j.status === "open" && |     j.status !== "closed" &&
  * @mutate src/lib/browseShellCards.mjs |   if (/[0-9]{3,}/.test(t.replace(/[^0-9a-zA-Z]/g, ""))) return "digits"; |   if (/[0-9]{11,}/.test(t)) return "digits";
+ * @mutate src/lib/browseShellCards.mjs |   const shell = browseShellHtml(rows, now, src && srcset ? { src, srcset } : null); |   const shell = browseShellHtml(rows, now, null);
  * @mutate src/index.css | #lh-browse-shell { visibility: visible !important; } | #lh-browse-shell { visibility: visible; }
  * @mutate src/lib/browseShellCards.mjs |   catLabel: "job-cat-label inline-flex | catLabel: "job-cat-labelx inline-flex
  */
@@ -157,12 +158,19 @@ describe("which rows are drawn, and what reaches the markup", () => {
     expect(withBrowseShell(doc, [row()], NOW)).toMatch(/^<body><div id="root" style="x"><div id="boot-loader"><div id="lh-browse-shell"[\s\S]*<\/div><\/div><\/body>$/);
     expect(withBrowseShell(`<div id="root">\n<div\n  id="boot-loader"\n  role="status"\n>`, [row()], NOW)).toMatch(/role="status"\n><div id="lh-browse-shell"/);
     expect(withBrowseShell(doc, [], NOW)).toBe(doc);
+    // The nav's H emblem is the page's own file, taken from index.html's #emblem-preload; none without it.
+    expect(withBrowseShell(doc, [row()], NOW)).not.toContain("<img");
+    const withPreload = `<link id="emblem-preload" rel="preload" as="image" media="not all"\n href="/assets/helpr-logo-256-X.webp"\n imagesrcset="/assets/helpr-logo-96-Y.webp 96w, /assets/helpr-logo-256-X.webp 256w"\n imagesizes="40px" />${doc}`;
+    const img = withBrowseShell(withPreload, [row()], NOW).match(/<img [^>]*>/)?.[0] ?? "";
+    expect(img).toContain('src="/assets/helpr-logo-256-X.webp" srcset="/assets/helpr-logo-96-Y.webp 96w, /assets/helpr-logo-256-X.webp 256w" sizes="40px" alt="Helpr" class="helpr-emblem h-10 w-auto');
   });
 });
 
 describe("the overlay never paints unstyled", () => {
   it("hidden inline, shown by the app stylesheet, which Tailwind scans for the card classes", () => {
     expect(browseShellHtml([row()], NOW)).toMatch(/^<div id="lh-browse-shell" [^>]*style="[^"]*visibility:hidden"/);
+    // Above the booting app's own layers (nav z-50, card tabs z-20), so nothing shows through it.
+    expect(Number(browseShellHtml([row()], NOW).match(/z-index:(\d+)/)?.[1])).toBeGreaterThan(1_000_000);
     const css = blankCssComments(fs.readFileSync("src/index.css", "utf8"));
     expect(css).toContain("#lh-browse-shell { visibility: visible !important; }");
     expect(fs.readFileSync("tailwind.config.ts", "utf8")).toContain('"./src/lib/browseShellCards.mjs"');

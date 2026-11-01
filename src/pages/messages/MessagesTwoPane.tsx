@@ -16,7 +16,8 @@ import { MESSAGES_LIST_PANE_PX } from "./useTwoPane";
  */
 export function MessagesTwoPane({ list, chat, hasConversations }: { list: ReactNode; chat: ReactNode; hasConversations: boolean }) {
   return (
-    <PageScaffold>
+    // flushRight: the thread's composer reaches the window's right edge (owner 11-01, B107).
+    <PageScaffold flushRight>
       <div data-testid="messages-two-pane" className="flex-1 min-h-0 flex">
         <div
           data-testid="messages-list-pane"

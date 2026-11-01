@@ -166,10 +166,11 @@ export function MessageBubble({
     >
       {/* Bubble + its tapbacks in one column as wide as the bubble, so the
           chips can hang off the bubble's own bottom corner. */}
-      <div className={`max-w-[75%] flex flex-col ${mine ? "items-end" : "items-start"}`}>
+      {/* Owner 11-01 (B107): on a computer a bubble is up to 65% of the pane and the text is body size (15px). */}
+      <div data-bubble-col="" className={`max-w-[75%] lg:max-w-[65%] flex flex-col ${mine ? "items-end" : "items-start"}`}>
       <div
         {...pressHandlers}
-        className={`max-w-full rounded-2xl px-4 py-2.5 text-ds-13 group relative space-y-2 transition-opacity ${
+        data-bubble="" className={`max-w-full rounded-2xl px-4 py-2.5 text-ds-13 lg:text-ds-15 group relative space-y-2 transition-opacity ${
           mine ? "rounded-br-md" : "rounded-bl-md"
         } ${isSending ? "opacity-60" : ""}`}
         style={mine ? {

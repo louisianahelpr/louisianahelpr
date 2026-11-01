@@ -3,7 +3,7 @@
  * its own useQuery refetched on mount. That put the query back to pending (no data yet), which unmounted it; the next
  * failure mounted it again. An endless request loop: 44,033 refused requests in one test run, until the worker died.
  * A failed read now asks once (no retry here) and shows the error with its Retry button; Retry asks once more.
- * @mutate src/components/declutter/SellPorchPlaces.tsx | queryFn: () => fetchItemPickupPlaces(itemId), retryOnMount: false }); | queryFn: () => fetchItemPickupPlaces(itemId) });
+ * @mutate src/components/declutter/ItemPickupDisplay.tsx | queryFn: () => fetchItemPickupPlaces(itemId), retryOnMount: false }); | queryFn: () => fetchItemPickupPlaces(itemId) });
  */
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -18,7 +18,7 @@ vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({
     throw new Error("network down");
   },
 }));
-vi.mock("./DeclutterPickupWindows", () => ({ ItemPickupTimes: () => null }));
+vi.mock("./ItemPickupDisplay", async (orig) => ({ ...(await orig<object>()), ItemPickupTimes: () => null }));
 
 import { ItemHandoverTimes } from "./ItemHandoverTimes";
 

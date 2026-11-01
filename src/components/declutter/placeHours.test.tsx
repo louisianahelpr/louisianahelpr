@@ -5,7 +5,7 @@
  * src/test/pglite/declutterPlaceHours.pglite.mjs.
  *
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |     return `${days.length === 7 ? "Every day" : shortDays(days)} ${range(ws[0])}`; |     return shortDays(days);
- * @mutate src/components/declutter/SellPorchPlaces.tsx |       {places.map((p, i) => ( |       {places.slice(0, 1).map((p, i) => (
+ * @mutate src/components/declutter/ItemPickupDisplay.tsx |       {places.map((p, i) => ( |       {places.slice(0, 1).map((p, i) => (
  * @mutate src/components/declutter/SellOneScreen.tsx |           {hasPlaces && <MyPickupPlacesSummary />}\n |
  * @mutate src/components/declutter/ItemHandoverTimes.tsx |     {(plan.places \|\| read.isError) && <ItemPickupPlaces itemId={itemId} />}\n |
  */
@@ -13,7 +13,7 @@ import { render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { placeHoursLine } from "./DeclutterPickupTimes";
-import { PickupPlacesHoursList } from "./SellPorchPlaces";
+import { PickupPlacesHoursList } from "./ItemPickupDisplay";
 
 const EVERY_DAY = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "07:00", ends: "21:00" }));
 
@@ -43,14 +43,14 @@ describe("every place shows, each with its own days and times", () => {
     expect(rows.map((r) => r.textContent)).toEqual(["Home · New IberiaEvery day 7:00 AM–9:00 PM", "Camp · JeaneretteSat 9:00 AM–12:00 PM"]);
   });
   it("the item page shows the city only, never the place's own label (LEAD-ITEM-PAGE-LAYOUT, owner 2026-10-31)", () => {
-    // @mutate src/components/declutter/SellPorchPlaces.tsx | {cityOnly ? p.area : [p.label, p.area].filter(Boolean).join(" · ")} | {[p.label, p.area].filter(Boolean).join(" · ")}
-    // @mutate src/components/declutter/SellPorchPlaces.tsx |       <PickupPlacesHoursList places={read.data} cityOnly /> |       <PickupPlacesHoursList places={read.data} />
+    // @mutate src/components/declutter/ItemPickupDisplay.tsx | {cityOnly ? p.area : [p.label, p.area].filter(Boolean).join(" · ")} | {[p.label, p.area].filter(Boolean).join(" · ")}
+    // @mutate src/components/declutter/ItemPickupDisplay.tsx |       <PickupPlacesHoursList places={read.data} cityOnly /> |       <PickupPlacesHoursList places={read.data} />
     render(<PickupPlacesHoursList cityOnly places={[
       { label: "Home", area: "New Iberia", weekdays: [0, 1, 2, 3, 4, 5, 6], windows: EVERY_DAY },
       { label: "Camp", area: "Jeanerette", weekdays: [6], windows: [{ weekday: 6, starts: "09:00", ends: "12:00" }] },
     ]} />);
     expect(screen.getAllByRole("listitem").map((r) => r.textContent)).toEqual(["New IberiaEvery day 7:00 AM–9:00 PM", "JeaneretteSat 9:00 AM–12:00 PM"]);
-    expect(readFileSync("src/components/declutter/SellPorchPlaces.tsx", "utf8")).toContain("<PickupPlacesHoursList places={read.data} cityOnly />");
+    expect(readFileSync("src/components/declutter/ItemPickupDisplay.tsx", "utf8")).toContain("<PickupPlacesHoursList places={read.data} cityOnly />");
   });
   it("the posting summary and the item page both render the list (source)", () => {
     const sell = readFileSync("src/components/declutter/SellOneScreen.tsx", "utf8");

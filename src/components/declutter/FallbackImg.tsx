@@ -6,10 +6,24 @@
 import { useState, type ImgHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt" | "onError"> & { src: string; alt: string; fallback?: ReactNode };
+/** `retrySrc`: tried once (without srcSet) when `src` fails, before the fallback (B67: the item page's resized photo, then
+ * the original). */
+type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt" | "onError"> & { src: string; alt: string; fallback?: ReactNode; retrySrc?: string };
 
-export function FallbackImg({ src, alt, fallback = null, className, ...img }: Props) {
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  if (failedSrc === src) return <>{fallback}</>;
-  return <img {...img} className={cn("bg-photo-empty", className)} src={src} alt={alt} data-fallback-img="" onError={() => setFailedSrc(src)} />;
+export function FallbackImg({ src, alt, fallback = null, className, retrySrc, srcSet, ...img }: Props) {
+  const [failed, setFailed] = useState<{ src: string; stage: "retry" | "gone" } | null>(null);
+  const stage = failed?.src === src ? failed.stage : null;
+  if (stage === "gone" || (stage === "retry" && !retrySrc)) return <>{fallback}</>;
+  const retrying = stage === "retry";
+  return (
+    <img
+      {...img}
+      className={cn("bg-photo-empty", className)}
+      src={retrying ? retrySrc : src}
+      srcSet={retrying ? undefined : srcSet}
+      alt={alt}
+      data-fallback-img=""
+      onError={() => setFailed({ src, stage: retrying || !retrySrc ? "gone" : "retry" })}
+    />
+  );
 }

@@ -1002,14 +1002,19 @@ export function helperStatusLine(
   const copy = HELPER_WAIT[id];
   const bucket = appliedActivityBucket(app);
   const named = app.posterName ? HELPER_NAMED[id]?.(firstName(app.posterName)) : undefined;
+  // Expired is not cancelled (owner 10-31): an applicant to a listing that
+  // expired with no Helpr reads "Expired", never "Cancelled".
+  const expired = id === "cancelled" && !!app.job && isExpiredListing(app.job);
   return {
     id,
-    eyebrow: copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: named ?? copy.detail,
+    eyebrow: expired ? "Expired" : copy.eyebrow ?? BUCKET_LABEL[bucket],
+    detail: expired ? EXPIRED_LISTING_DETAIL : named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking" || id === "confirm_spot",
     suffix:
-      id === "cancelled"
+      expired
+        ? null
+        : id === "cancelled"
         ? sanitizeCancellationReason(app.job?.cancellation_reason)
         : id === "revision"
           ? noteOrNull(app.job?.revision_note)

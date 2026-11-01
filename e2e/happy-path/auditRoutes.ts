@@ -271,6 +271,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "user-profile", url: `/user/${FAKE_HELPER.id}` },
   // "Book me on Helpr" (B59): a Helpr's public booking page; an unknown id renders "This Helpr isn't available".
   { name: "book-helpr-missing", url: "/book/10000000-0000-4000-8000-00000000dead" },
+  // Shareable profile link (LEAD-PROFILE-LINK): an unknown handle renders "This profile isn't available".
+  { name: "public-profile-missing", url: "/u/no-such-member-x" },
   // Declutter (hidden switch 'declutter', created OFF): while it is off for the
   // sweep account each renders the NotFound page; once testers include it, the
   // real screens. Either way the route is visited.

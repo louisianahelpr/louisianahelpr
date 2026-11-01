@@ -83,7 +83,7 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
   const since = memberSinceLabel(p.member_since);
   const nothing = p.listings.length + p.jobs.length + p.wanted.length + p.helpr.reviews.length + (p.helpr.jobs_done ?? 0) === 0;
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-4 pb-8" data-public-profile={p.handle}>
+    <div className="w-full space-y-4 pb-8" data-public-profile={p.handle}>
       <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-labelledby="pp-name">
         <UserAvatar userId={p.handle} src={p.photo_url} name={p.name} pixelSize={96} className="mx-auto h-24 w-24" />
         <h2 id="pp-name" className="mt-3 text-xl font-semibold text-foreground">{p.name}</h2>
@@ -114,7 +114,7 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
 
       {p.listings.length > 0 && (
         <Section id="pp-listings" title="For sale" icon={ShoppingBag}>
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {p.listings.map((l) => (
               <li key={l.id}>
                 {/* Guests may open an item (BUY-16); buying there asks them to sign up. */}
@@ -127,7 +127,7 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
                     )}
                   </div>
                   <div className="p-2">
-                    <p className="truncate text-ds-14 font-semibold text-foreground">{l.title}</p>
+                    <p className="truncate text-ds-14 font-semibold text-foreground" title={l.title}>{l.title}</p>
                     <p className="text-ds-13 text-muted-foreground">
                       {itemPriceLabel(l.price_cents)}{l.area_label ? ` · ${l.area_label}` : ""}
                     </p>
@@ -177,7 +177,7 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
               {p.helpr.reviews.map((r, i) => (
                 <li key={`${r.created_at}-${i}`} className="rounded-xl border border-border bg-background p-3">
                   <p className="text-ds-13 font-semibold text-foreground">
-                    <span aria-label={`${r.rating} out of 5 stars`}>{"★".repeat(r.rating)}{"☆".repeat(Math.max(0, 5 - r.rating))}</span>
+                    <span role="img" aria-label={`${r.rating} out of 5 stars`}>{"★".repeat(r.rating)}{"☆".repeat(Math.max(0, 5 - r.rating))}</span>
                     {" · "}{r.reviewer_name}
                   </p>
                   {r.feedback && <p className="mt-1 text-ds-14 text-foreground">{r.feedback}</p>}

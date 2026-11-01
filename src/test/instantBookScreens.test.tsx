@@ -223,7 +223,7 @@ describe("class guard: every refusal the member instant-book RPCs raise has word
     }
     expect(n).toBeGreaterThan(8);
     expect(unworded).toEqual([]);
-    // decline_window_closed through the generic decline too (20261101071621 item 1).
+    // decline_window_closed through the generic decline too (the race fix, lead 2026-11-01).
     expect(RPC_ERROR_COPY.respond_to_direct_offer.decline_window_closed).toBe("The 2 hours to decline have ended, so you're booked.");
   });
 });

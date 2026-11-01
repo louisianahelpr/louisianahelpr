@@ -9,7 +9,7 @@
  * Paths are proven in PGlite: src/test/pglite/declutterProblemDecisionNotices.pglite.mjs (prod's bodies md5-checked,
  * every path told once, 3x replay; RED before it and on 5 planted defects).
  */
-// @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s' |     PERFORM public.declutter_notify(v_task.helpr_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s'
+// @mutate supabase/migrations/20261101000817_declutter_admin_helpr_fault.sql |     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s' |     PERFORM public.declutter_notify(v_task.helpr_id, 'payment', 'Louisiana Helpr decided',\n      format('We looked at both sides of the problem with %s. %s'
 // @mutate supabase/migrations/20261031184929_declutter_damage_notices_name_the_item.sql |   PERFORM public.declutter_notify(o.seller_id, 'payment', 'Louisiana Helpr decided',\n    format( |   PERFORM public.declutter_notify(v_task.helpr_id, 'payment', 'Louisiana Helpr decided',\n    format(
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

@@ -183,6 +183,8 @@ export const ADMIN_RPC_ERROR_COPY = {
     // D2-14 (20261029231235).
     part_refund_after_handover_only: DC.part_refund_after_handover_only,
     part_refund_unavailable: DC.part_refund_unavailable,
+    // LEAD-ADMIN-HELPR-FAULT (20261101000817).
+    helpr_fault_not_possible: DC.helpr_fault_not_possible,
     payout_already_sent: DC.payout_already_sent,
     payout_missing: DC.payout_missing,
     problem_already_decided: DC.problem_already_decided,

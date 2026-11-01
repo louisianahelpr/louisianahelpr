@@ -434,3 +434,31 @@ describe("DeclutterProblemsCard: which Helpr decision fits (B42)", () => {
     }
   });
 });
+
+// B48 (lead 10-31): the seller's no-show report already gave this Helpr their one strike for this delivery
+// (declutter_admin_problem_case.helpr_has_delivery_strike, proven in declutterAdminHelprFault.pglite.mjs), so the card
+// says a second one is not given, once "The Helpr's" fault is the choice.
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | {helprFault && kase.data?.helpr_has_delivery_strike ? ( | {false ? (
+describe("DeclutterProblemsCard: a Helpr already struck for this delivery (B48)", () => {
+  const kase = (over: Record<string, unknown>) => ({
+    handover: "delivery", order_status: "paid", slot_start: null, pickup_day: null, seller_delivery_status: null, seller_delivery_slot_start: null,
+    seller_delivered_at: null, helpr_accepted_at: "2026-10-16T08:00:00Z", helpr_picked_up_at: null, helpr_pickup_photo_path: null,
+    helpr_delivered_at: null, helpr_dropoff_photo_path: null, helpr_dropoff_distance_m: null, ...over,
+  });
+  const WARNING = "This Helpr already has a strike for this delivery. Ticking the box won't give them a second one.";
+
+  it.each([
+    ["struck, the Helpr's fault chosen: warned", true, "helpr", true],
+    ["struck, another fault chosen: not warned", true, "seller", false],
+    ["not struck: not warned", false, "helpr", false],
+  ])("%s", async (_name, struck, choice, warned) => {
+    state.kase = kase({ helpr_has_delivery_strike: struck });
+    state.rows = [row("no_show", "seller", [], detail({ helpr_delivery: true }))];
+    show();
+    const fault = await screen.findByLabelText("Whose fault?");
+    await waitFor(() => expect([...(fault as HTMLSelectElement).options].map((o) => o.value)).toContain("helpr"));
+    fireEvent.change(fault, { target: { value: choice } });
+    if (warned) expect(await screen.findByText(WARNING)).toBeInTheDocument();
+    else expect(screen.queryByText(WARNING)).toBeNull();
+  });
+});

@@ -29,3 +29,28 @@ export function feedPhase(
   if (q.status === "error") return "error";
   return "loading";
 }
+
+/**
+ * Whether the signed-in Browse (/jobs) holds its whole-page skeleton.
+ *
+ * Owner 10-31 (B41, mocked-session headless check at 375 and 1440): signed in,
+ * offline, nothing cached, the profile read is PAUSED, so `!profile` held the
+ * skeleton forever and the feed's "You're offline" card never showed. Offline
+ * with nothing in hand is a phase of its own, never "loading": once the user is
+ * known, the page renders and the feed says it is offline. useCurrentUser's own
+ * isLoading stays true while that read is paused, so it cannot decide this.
+ */
+export function dashboardLoading(s: {
+  /** The signed-in user is known (auth restored the session; no network needed). */
+  hasUser: boolean;
+  /** useCurrentUser's isLoading: stays TRUE while its profile read is paused offline. */
+  userLoading: boolean;
+  hasProfile: boolean;
+  ctxLoading: boolean;
+  jobsLoading: boolean;
+  jobCount: number;
+  phase: FeedPhase;
+}): boolean {
+  if (s.phase === "offline-empty" && s.hasUser) return false;
+  return s.userLoading || !s.hasProfile || s.ctxLoading || (s.jobsLoading && s.jobCount === 0);
+}

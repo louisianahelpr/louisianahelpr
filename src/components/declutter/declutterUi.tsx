@@ -26,6 +26,8 @@ const STATUS_LABEL: Record<DeclutterStatus, string> = {
   rejected: "Not approved",
   removed: "Removed by Louisiana Helpr",
   sold_elsewhere: "Sold elsewhere",
+  // LEAD-LIST-FOR-SELLER: written by the seller's Helpr, waiting for the seller's OK.
+  pending_seller_approval: "Waiting for your approval",
 };
 
 /**

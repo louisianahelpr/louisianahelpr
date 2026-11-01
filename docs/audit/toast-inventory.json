@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1060,
-    "files": 296,
-    "rendering": 979,
+    "calls": 1070,
+    "files": 298,
+    "rendering": 989,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 170,
+      "toast": 180,
       "toast.error": 737,
       "toast.loading": 1,
       "toast.message": 1,
@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 458,
+      "literal": 460,
       "template": 96,
-      "dynamic": 557,
+      "dynamic": 565,
       "jsx": 0
     }
   },
@@ -4843,7 +4843,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 227,
+      "line": 229,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4863,7 +4863,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 230,
+      "line": 232,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4873,7 +4873,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 235,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4883,7 +4883,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 250,
+      "line": 252,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4893,7 +4893,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 253,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6241,6 +6241,72 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ListedForYouCard.tsx",
+      "line": 36,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "up.length === 1 ? \"Approved. It's on sale now.\" : `Approved. ${up.length} listings are on sale now.`",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Approved. It's on sale now."
+          },
+          {
+            "form": "template",
+            "text": "Approved. ${up.length} listings are on sale now."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ListedForYouCard.tsx",
+      "line": 37,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "waitingWhy(stuck[0])",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "rpcErrorMessage(\"declutter_publish_item\", { message: r.error ?? \"\" }) ?? \"It couldn't go up yet. Open it to finish it.\""
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ListedForYouCard.tsx",
+      "line": 40,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "e.userMessage ?? \"We couldn't approve that. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ListedForYouCard.tsx",
+      "line": 44,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Removed. It won't go on sale."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ListedForYouCard.tsx",
+      "line": 45,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "e.userMessage ?? \"We couldn't remove that. Try again.\""
       },
       "renders": true
     },
@@ -11768,6 +11834,66 @@
       "title": {
         "form": "literal",
         "text": "We couldn't submit your response — please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanel.tsx",
+      "line": 55,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Listing saved. Send it when you're ready."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanel.tsx",
+      "line": 56,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "e.userMessage ?? \"We couldn't save that listing. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanel.tsx",
+      "line": 112,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "n === 1 ? \"Sent. They'll approve it on Declutter.\" : `Sent ${n} listings. They'll approve them on Declutter.`",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Sent. They'll approve it on Declutter."
+          },
+          {
+            "form": "template",
+            "text": "Sent ${n} listings. They'll approve them on Declutter."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanel.tsx",
+      "line": 113,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "e.userMessage ?? \"We couldn't send those. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/steps/ListForSellerPanel.tsx",
+      "line": 118,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "e.userMessage ?? \"We couldn't delete that. Try again.\""
       },
       "renders": true
     },

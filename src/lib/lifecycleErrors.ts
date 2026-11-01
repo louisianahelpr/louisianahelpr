@@ -1437,16 +1437,6 @@ export const RPC_ERROR_COPY = {
     photos_required: DC.photos_required,
   },
   // LEAD-LIST-FOR-SELLER (20261101034159).
-  declutter_helpr_update_listing: {
-    account_restricted: DC.account_restricted,
-    feature_disabled: DC.feature_disabled,
-    invalid_floor_price: DC.invalid_floor_price,
-    item_not_a_draft: DC.item_not_a_draft,
-    item_not_found: DC.item_not_found,
-    job_not_open: "This job is closed, so its listings can't be changed.",
-    not_your_job: "Only the Helpr hired for this job can write its listings.",
-  },
-  // LEAD-LIST-FOR-SELLER (20261101034159).
   declutter_listed_for_me: {
     feature_disabled: DC.feature_disabled,
   },

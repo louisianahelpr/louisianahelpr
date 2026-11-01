@@ -389,7 +389,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
     items: [
       {
         q: "How do I buy something on Declutter?",
-        a: "Tap Buy now to pay the price, or send the seller a private offer of at least half of today's price. It isn't an auction: the item goes to the first buyer whose purchase or offer is accepted and who then pays. After you buy, or your offer is accepted, you have 48 hours to check out, and you see one total before you pay, delivery included. Missing the checkout on an accepted offer is a Declutter strike; a Buy now you don't pay for just goes back on sale.",
+        a: "Tap Buy now to pay the price, or send the seller a private offer of at least half of today's price. It isn't an auction: the item goes to the first buyer whose purchase or offer is accepted and who then pays. After you tap Buy now the item is held for you for 30 minutes while you check out; when your offer is accepted you have 24 hours. You see one total before you pay, delivery included. Missing the checkout on an accepted offer is a Declutter strike; a Buy now you don't pay for just goes back on sale.",
       },
       {
         q: "How do I sell?",

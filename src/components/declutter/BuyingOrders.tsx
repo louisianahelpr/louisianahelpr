@@ -184,7 +184,7 @@ function buyerPaidOrders(cart: CartLine[]) {
   return [...by.values()];
 }
 
-/** A checkout still waiting in the cart (one per seller, CartView's own rule: inside its 48 hours). */
+/** A checkout still waiting in the cart (one per seller, CartView's own rule: inside its hold). */
 function openCheckouts(cart: CartLine[], now: number): number {
   return new Set(cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart" && new Date(l.checkout_by).getTime() > now).map((l) => l.seller_id)).size;
 }
@@ -337,12 +337,12 @@ export function BuyerOrderHead({ view, standing, open, onOpen, onClose, onAction
 /**
  * What an ended line says. Audit 2 A2-4 (B2-1, 2026-10-28, a2-42-buyer-noshow-done-p1-390): after a no-show closed a
  * free order its card left Buying with no record; the record now kept here must not read like an unpaid checkout
- * ("The 48 hours to check out ran out. Nothing was charged." on a paid sale that is being refunded would be false).
+ * ("The time to check out ran out. Nothing was charged." on a paid sale that is being refunded would be false).
  */
 function endedWords(line: Pick<CartLine, "status" | "order_id" | "order_status" | "total_cents">): string {
   const closedAfterPaying = !!line.order_id && line.order_status === "refunded";
   if (!closedAfterPaying) {
-    return line.status === "missed" ? "The 48 hours to check out ran out. Nothing was charged." : "The seller called off the sale. Nothing was charged.";
+    return line.status === "missed" ? "The time to check out ran out. Nothing was charged." : "The seller called off the sale. Nothing was charged.";
   }
   const sellerFault = line.status === "cancelled_by_seller";
   if ((line.total_cents ?? 0) === 0) {

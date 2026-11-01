@@ -56,7 +56,7 @@ describe("board 79: after an offer", () => {
     expect(steps[0].textContent).toContain("You offered $50");
     expect(steps[1].getAttribute("data-state")).toBe("now");
     // 5000 + round(5000 * 0.05) + 70 = 5320
-    expect(steps[2].textContent).toContain("48 hours to check out: $53.20 for pickup");
+    expect(steps[2].textContent).toContain("24 hours to check out: $53.20 for pickup");
     expect(sheet.textContent).not.toMatch(/\b(he|she|his|her)\b/i);
     expect(code("src/components/declutter/DeclutterOfferPanel.tsx")).toMatch(/setSentCents\(cents\);/);
   });

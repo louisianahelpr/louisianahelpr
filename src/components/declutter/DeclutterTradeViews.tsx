@@ -404,7 +404,7 @@ export function CartView() {
   }
   if (cart.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading your cart…</p>;
   const mine = (cart.data ?? []).filter((l) => l.my_side === "buyer");
-  // Only lines still inside their 48 h: checkout drops expired ones (money review #10).
+  // Only lines still inside their hold: checkout drops expired ones (money review #10).
   const now = Date.now();
   const waiting = mine.filter((l) => l.status === "in_cart" && new Date(l.checkout_by).getTime() > now);
   const bySeller = new Map<string, CartLine[]>();
@@ -415,7 +415,7 @@ export function CartView() {
       <SectionHeading title={cartSectionWords(waiting).title} todo={waiting.length} todoWords={cartSectionWords(waiting).todoWords} />
       <PaySettlingNotice s={settling} />
       {waiting.length === 0 ? (
-        <DeclutterNotice title="Your cart is empty.">When a seller accepts your offer, or you tap Buy, the item comes here. You then have 48 hours to check out.</DeclutterNotice>
+        <DeclutterNotice title="Your cart is empty.">When a seller accepts your offer, or you tap Buy, the item comes here. Buy now holds it 30 minutes; an accepted offer gives you 24 hours to check out.</DeclutterNotice>
       ) : (
         [...bySeller.entries()].map(([sellerId, lines], i) => {
           const soonest = lines.map((l) => l.checkout_by).sort()[0];

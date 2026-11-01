@@ -1024,17 +1024,31 @@ export async function requestAiCheck(itemId: string): Promise<{ checked: boolean
 }
 
 /**
- * The check, asked twice before giving up (lead 2026-10-30, item B): a listing whose check never comes back is held
- * for an admin (the server's fail-safe), so one retry keeps a passing blip from holding it. Resolves null when both
- * tries failed; the caller then publishes or saves as usual and the server holds it.
+ * How a posted listing's check is retried (owner 10-31, 9:15 PM: 27 of a Sell a bunch post were held by the 15-minute
+ * fail-safe with no check recorded). The edge logs showed the checks answered 429 (busy) and the old helper asked again
+ * AT ONCE, twice, so every try landed in the same full minute. Now: up to 4 tries, waiting 5 s, 20 s, then 60 s
+ * between them, so a busy minute has passed before the next try. The edge function also gives checks their own limit
+ * (supabase/functions/declutter-ai-draft/checkLimits.ts). Guard: src/test/declutterCheckHasItsOwnLimit.test.ts.
  */
-export async function requestAiCheckWithRetry(itemId: string): Promise<{ checked: boolean; flagged: boolean } | null> {
-  for (let attempt = 1; attempt <= 2; attempt++) {
+export const CHECK_RETRY_WAITS_MS: readonly number[] = [5_000, 20_000, 60_000];
+
+/**
+ * The check, retried before giving up (lead 2026-10-30, item B): a listing whose check never comes back is held for an
+ * admin (the server's fail-safe), so retries keep a passing blip or a busy minute from holding it. Resolves null when
+ * every try failed; the caller then publishes or saves as usual and the server holds it. `tries` lets a screen the
+ * seller is waiting on (Edit) ask twice only.
+ */
+export async function requestAiCheckWithRetry(
+  itemId: string,
+  { tries = CHECK_RETRY_WAITS_MS.length + 1, wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms)) }: { tries?: number; wait?: (ms: number) => Promise<void> } = {},
+): Promise<{ checked: boolean; flagged: boolean } | null> {
+  for (let attempt = 1; attempt <= tries; attempt++) {
     try {
       return await requestAiCheck(itemId);
     } catch (err) {
       // Not silent: said in the console, and the server holds the listing for an admin (the screen says so).
-      console.warn(`[declutter] photo check try ${attempt} of 2 failed`, err);
+      console.warn(`[declutter] photo check try ${attempt} of ${tries} failed`, err);
+      if (attempt < tries) await wait(CHECK_RETRY_WAITS_MS[Math.min(attempt - 1, CHECK_RETRY_WAITS_MS.length - 1)]);
     }
   }
   return null;

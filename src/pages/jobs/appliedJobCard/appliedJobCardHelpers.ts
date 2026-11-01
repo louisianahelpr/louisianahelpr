@@ -163,7 +163,7 @@ export function describeCancellation(
     // Sweeps write a fixed reason; "expired" is the only automatic path that
     // reaches an applicant's card. Keep the generic line for anything else.
     return /expired/i.test(job.cancellation_reason ?? "")
-      ? "Cancelled automatically — the scheduled time passed before anyone was hired"
+      ? "Expired before anyone was hired" // never "Cancelled" (owner 10-31, src/lib/expiredListing.ts)
       : "Cancelled automatically";
   }
   if (viewerId && by === viewerId) return "You cancelled this job";

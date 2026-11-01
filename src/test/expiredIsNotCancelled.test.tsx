@@ -19,8 +19,9 @@ import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
 import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { EXPIRED_LISTING_REASON_PREFIX, NOT_AN_EXPIRED_LISTING_FILTER, isExpiredListing } from "@/lib/expiredListing";
 import { JobsList } from "@/pages/user/JobsList";
-import { posterStatusLine, EXPIRED_LISTING_DETAIL } from "@/components/job-card/jobStatusLine";
-import type { Job } from "@/components/job-card/activityConstants";
+import { helperStatusLine, posterStatusLine, EXPIRED_LISTING_DETAIL } from "@/components/job-card/jobStatusLine";
+import { describeCancellation } from "@/pages/jobs/appliedJobCard/appliedJobCardHelpers";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import type { ProfileJob } from "@/pages/user/types";
 
 const ROOT = join(__dirname, "..", "..");
@@ -132,6 +133,26 @@ describe("the poster's own Posted card line", () => {
   });
 });
 
+describe("an applicant to the expired listing", () => {
+  const job = { id: "j1", status: "cancelled", helper_id: null, customer_id: POSTER, cancelled_by: null, payment_status: "refunded", cancellation_reason: SWEEP_REASON } as unknown as Job;
+
+  it("the Applied card line reads Expired, never Cancelled", () => {
+    const line = helperStatusLine({ id: "a1", status: "pending", job } as unknown as AppliedApp);
+    if (line.id === "cancelled") {
+      expect(line.eyebrow).toBe("Expired");
+      expect([line.eyebrow, line.detail, line.suffix].join(" ")).not.toMatch(/cancel/i);
+    }
+    expect([line.eyebrow, line.detail, line.suffix].join(" ")).not.toMatch(/Job listing expired/);
+  });
+
+  it("the closed card's who-closed-it line says Expired, not Cancelled", () => {
+    expect(describeCancellation(job, HELPR)).toBe("Expired before anyone was hired");
+    expect(describeCancellation({ ...job, cancellation_reason: null }, HELPR)).toBe("Cancelled automatically");
+  });
+});
+
+// @mutate src/components/job-card/jobStatusLine.ts |   const expired = id === "cancelled" && !!app.job && isExpiredListing(app.job); |   const expired = false;
+// @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | ? "Expired before anyone was hired" | ? "Cancelled automatically"
 // @mutate src/lib/expiredListing.ts |     !job.helper_id && |     true &&
 // @mutate src/lib/expiredListing.ts |   return (\n    job.status === "cancelled" && |   return false && (\n    job.status === "cancelled" &&
 // @mutate src/pages/user/JobsList.tsx |             {isExpiredListing(job) ? ( |             {false ? (

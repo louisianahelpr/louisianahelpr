@@ -24,7 +24,7 @@ const state = vi.hoisted(() => ({ route: null as unknown, shown: [] as { n: numb
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "ready" }));
-vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}` }));
+vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}`, photoCardUrl: (p: string) => `https://cdn.test/${p}`, CARD_PHOTO_PX: 480 }));
 vi.mock("@/lib/helprTasks/api", () => ({
   fetchMyRoute: async () => state.route,
   fetchRouteSuggestions: async () => ({ suggestions: [], reason: "none_near" }),

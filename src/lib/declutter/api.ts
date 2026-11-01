@@ -445,6 +445,25 @@ export function photoPublicUrl(path: string): string {
   return supabase.storage.from(DECLUTTER_PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
+/**
+ * A Browse card's photo is shown at most ~250 CSS px wide (162 at 375); 480 px covers it at 2x-3x (owner 10-31:
+ * "When you're scrolling on declutter it takes the pictures awhile to load").
+ */
+export const CARD_PHOTO_PX = 480;
+
+/**
+ * THE CARD-SIZED PHOTO (owner 10-31, via the lead): a small square thumbnail from Supabase's image transform
+ * (storage/v1/render/image/public, WebP when the browser accepts it), never the full-size original. Measured
+ * 2026-10-31 on 12 live listing photos (GET only): originals 356-560 KB each, these 16-54 KB. The transform answered
+ * 200 that day (it 403'd on 2026-08-31, src/lib/imageUrl.ts), so a card falls back to photoPublicUrl when it fails.
+ * The item page keeps the full photo (photoPublicUrl). Guard: src/test/declutterCardsLoadThumbnails.test.tsx.
+ */
+export function photoCardUrl(path: string): string {
+  return supabase.storage
+    .from(DECLUTTER_PHOTO_BUCKET)
+    .getPublicUrl(path, { transform: { width: CARD_PHOTO_PX, height: CARD_PHOTO_PX, resize: "cover", quality: 70 } }).data.publicUrl;
+}
+
 /** The seller's shared star rating (the jobs' public aggregate, row 45). */
 export async function fetchSellerRating(sellerId: string): Promise<{ avg: number; count: number } | null> {
   const rows = unwrap(await supabase.rpc("get_public_profile_stats", { p_user_ids: [sellerId] })) ?? [];

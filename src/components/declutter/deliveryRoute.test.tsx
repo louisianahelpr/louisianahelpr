@@ -20,7 +20,7 @@ const state = { route: null as unknown, calls: [] as unknown[][], toasts: [] as 
 vi.mock("sonner", () => ({ toast: Object.assign((m: string) => { state.toasts.push(m); }, { success: (m: string) => { state.toasts.push(m); }, error: vi.fn() }) }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
-vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}` }));
+vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}`, photoCardUrl: (p: string) => `https://cdn.test/${p}`, CARD_PHOTO_PX: 480 }));
 vi.mock("@/lib/helprTasks/api", () => ({
   fetchMyRoute: async () => state.route,
   fetchRouteSuggestions: async () => ({ suggestions: [], reason: "none_near" }),

@@ -144,7 +144,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchSellerCard: async () => state.seller,
     fetchSellerReviewTags: async () => state.tags,
     fetchMyCard: async () => null,
-    photoPublicUrl: (p: string) => `https://cdn/${p}`,
+    photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
     setWatch: async () => "watching",
     askQuestion: async () => "q",
     answerQuestion: async () => "a",

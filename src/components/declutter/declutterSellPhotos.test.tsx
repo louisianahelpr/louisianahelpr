@@ -102,7 +102,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyPickupWindows: async () => [],
   fetchPhotos: async () => upload.onDraft,
   fetchHasAgreedSales: async () => false,
-  photoPublicUrl: (p: string) => `https://cdn/${p}`,
+  photoPublicUrl: (p: string) => `https://cdn/${p}`, photoCardUrl: (p: string) => `https://cdn/${p}`, CARD_PHOTO_PX: 480,
   // Before 20261031160546 is live the server picks its own id (early.serverId); after it, the one the app chose.
   createDraft: async (f: { priceCents: number; floorPriceCents: number }, withId?: string) => {
     calls.push("createDraft");

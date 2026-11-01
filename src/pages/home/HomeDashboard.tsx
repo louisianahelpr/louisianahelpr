@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { FirstRun } from "@/components/firstRun/FirstRun";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Button } from "@/components/ui/button";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
@@ -318,9 +319,9 @@ function HomeDashboardScreen() {
             <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">Your sections</h2>
-              <button type="button" data-testid="open-customize" onClick={() => setCustomize(true)} className="text-ds-13 font-semibold text-primary">
+              <Button type="button" variant="link" size="sm" data-testid="open-customize" onClick={() => setCustomize(true)} className="px-0 text-ds-13 font-semibold tracking-normal text-primary">
                 Customize
-              </button>
+              </Button>
             </div>
             {/* Only OPEN sections get a box; the rest share ONE compact line (owner, 2026-10-21: no full
                 "Opening soon" cards). */}

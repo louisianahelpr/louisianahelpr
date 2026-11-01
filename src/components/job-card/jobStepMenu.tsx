@@ -24,6 +24,8 @@ interface JobStepMenu {
   listHost: HTMLElement | null;
   /** The page's lead slot, mounted only when the page has no step of its own: the card's first primary goes here. */
   leadHost: HTMLElement | null;
+  /** Above the page's row: the card's `ask` (the finished job's crew tip rows, or why a Tip can't be sent yet). */
+  askHost?: HTMLElement | null;
   /** How many actions the card holds (the page picks its row from it). */
   setCount: (n: number) => void;
   /** How many primaries the card holds (the page mounts `leadHost` when it has none of its own). */
@@ -55,9 +57,9 @@ export function MenuAction({ chip, className = "", lead = false }: { chip: React
       <Button
         type="button"
         variant={lead ? "primary" : "outline"}
-        size="lg"
+        size="wrap"
         data-menu-action={p.label}
-        className={`min-w-0 h-auto min-h-[60px] whitespace-normal rounded-full px-4 py-2 text-center text-ds-15 leading-tight ${danger ? "text-destructive-ink" : ""} ${className}`}
+        className={`min-w-0 rounded-full px-4 text-ds-15 leading-tight ${danger ? "text-destructive-ink" : ""} ${className}`}
         disabled={p.disabled}
         aria-label={composeAccessibleName(p.label, p.ariaLabel)}
         onClick={p.onClick}

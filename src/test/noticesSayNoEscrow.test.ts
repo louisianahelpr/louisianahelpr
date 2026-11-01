@@ -84,7 +84,7 @@ describe("the links a notice opens", () => {
     expect(at).toBeGreaterThan(0);
     const notice = src.slice(at, at + 900);
     expect(notice).toContain("link: `/post-job?rebook=${job.id}`");
-    expect(notice).toContain("without a Helpr being assigned");
+    expect(notice).toContain("with no Helpr hired"); // owner 10-31: it expired, never "cancelled"
   });
 
   it("seller emails and payout lines use the one Declutter address", () => {

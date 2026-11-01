@@ -40,7 +40,7 @@ export function lookupQuery(item: LookupItem): string {
   return cond ? `${parts}. Used, ${cond} condition.` : `${parts}. Used.`;
 }
 
-const SYSTEM = `You price ONE used item for a local resale listing in Louisiana. You have ONE web search: make it count. Search for SOLD prices of this exact item, used: put the brand and model (when given) and the item's name in the query, for example "Natra Cure gel booties used sold". Use sold listings first, then current used listings; if the exact item has none, use the closest same-kind items. Never use new or retail prices. Then answer with ONE line of JSON and nothing else: {"low": <whole dollars>, "high": <whole dollars>}, the range a used one in this condition really sells for. Read the range generously: sellers here ask near the top because buyers offer less, so "high" is what a well-kept one fetches, not a quick-sale price. Only when nothing comparable sells at all, answer {"low": 0, "high": 0}.`;
+const SYSTEM = `You price ONE used item for a local Louisiana garage or yard sale. You have ONE web search: make it count. Search for SOLD prices of this exact item, used: put the brand and model (when given) and the item's name in the query, for example "Natra Cure gel booties used sold". Use sold listings first, then current used listings; if the exact item has none, use the closest same-kind items. Never use new or retail prices. Online resale sold prices are only a CEILING: a garage or yard sale price for most household goods is well below them. Then answer with ONE line of JSON and nothing else: {"low": <whole dollars>, "high": <whole dollars>}, the range a used one in this condition would realistically sell for at a local garage or yard sale, priced to move. Only when nothing comparable sells at all, answer {"low": 0, "high": 0}.`;
 
 /** The last JSON object a text block carries, or null. Never throws. */
 export function rangeFromAnswer(data: unknown): PriceRange | null {
@@ -111,9 +111,12 @@ export async function lookupUsedPrice(
   }
 }
 
-/** PRICE_RULE (owner): the HIGH end of the real used range, never above it. */
+/**
+ * The garage-sale point of the range (owner 2026-11-01, superseding 10-30's "high end"): the low-to-middle, about a
+ * third of the way up from low, never the top. Integer math so a .5 step rounds the same on every runtime.
+ */
 export function priceFromRange(r: PriceRange): number {
-  return Math.max(1, Math.min(1000, Math.round(r.low + (r.high - r.low) * 0.8)));
+  return Math.max(1, Math.min(1000, Math.round(r.low + ((r.high - r.low) * 35) / 100)));
 }
 
 /** The member-facing reason: numbers only, so no store or marketplace name can appear. */

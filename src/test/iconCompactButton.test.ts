@@ -25,9 +25,9 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/DesktopTopNav.tsx |             size="iconCompact"\n            aria-label="Profile" |             size="icon"\n            aria-label="Profile"
 // @mutate src/pages/profile/SavedSearchesTab.tsx |                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} |                   <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(s)}
 // @mutate src/pages/user/ReviewsSection.tsx |                   size="iconCompact"\n                  aria-label="Report this review" |                   size="icon"\n                  aria-label="Report this review"
-// @mutate src/pages/auth/Login.tsx |                 size="iconCompact"\n                onClick={() => setShowPassword(!showPassword)} |                 size="icon"\n                onClick={() => setShowPassword(!showPassword)}
-// @mutate src/pages/auth/signup/SignupStep1.tsx |               size="iconCompact"\n              onClick={() => setShowPassword(!showPassword)} |               size="icon"\n              onClick={() => setShowPassword(!showPassword)}
-// @mutate src/pages/info/Legal.tsx |             size="iconCompact"\n            onClick={closeSearch} |             size="icon"\n            onClick={closeSearch}
+// @mutate src/pages/auth/Login.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}
+// @mutate src/pages/auth/signup/SignupStep1.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}
+// @mutate src/pages/info/Legal.tsx | size="iconCompact" onClick={closeSearch} | size="icon" onClick={closeSearch}
 // @mutate src/components/dashboard/browseTasksToolbar/FiltersIconButton.tsx |       className={`relative shrink-0 btn-press | className={`relative h-10 w-10 shrink-0 btn-press
 
 const REPO = resolve(__dirname, "../..");

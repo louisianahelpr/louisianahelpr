@@ -10,7 +10,7 @@
 // has three doors and all three must ask the same rule: the jobs trigger (authoritative), rpc_helper_mark_done (the
 // clean refusal), and create-payment's release path (a service-role write the trigger's caller check skips), which
 // must fail CLOSED on an error. The link table that says who wrote a listing is private.
-// Behaviour under real roles: src/test/pglite/declutterListForSeller.pglite.mjs (48 checks; NEW_MIGRATION=skip red).
+// Behaviour under real roles: src/test/pglite/declutterListForSeller.pglite.mjs (NEW_MIGRATION=skip red).
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";

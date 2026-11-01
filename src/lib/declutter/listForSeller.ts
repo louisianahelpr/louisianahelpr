@@ -27,7 +27,7 @@ export interface HelprJobListing {
   sent_at: string | null;
 }
 
-export interface HelprListingFields {
+interface HelprListingFields {
   title: string;
   description: string;
   category: string;
@@ -38,7 +38,7 @@ export interface HelprListingFields {
 }
 
 /** A listing waiting for the seller's OK. */
-export interface ListedForMe {
+interface ListedForMe {
   item_id: string;
   job_id: string;
   title: string;
@@ -68,16 +68,8 @@ export async function helprCreateListing(jobId: string, f: HelprListingFields, a
   }), (e) => rpcErrorMessage("declutter_helpr_create_listing", e)) as string;
 }
 
-export async function helprUpdateListing(itemId: string, f: HelprListingFields): Promise<void> {
-  rpcData(await supabase.rpc("declutter_helpr_update_listing", {
-    p_item_id: itemId, p_title: f.title, p_description: f.description, p_category: f.category,
-    p_condition_stars: f.conditionStars, p_delivery_size: f.deliverySize, p_price_cents: f.priceCents,
-    p_floor_price_cents: f.floorPriceCents,
-  }), (e) => rpcErrorMessage("declutter_helpr_update_listing", e));
-}
-
 /** The photo is the Helpr's own upload at `<helpr id>/declutter/<item id>/<name>` in job-photos. */
-export async function helprAddListingPhoto(itemId: string, storagePath: string): Promise<string> {
+async function helprAddListingPhoto(itemId: string, storagePath: string): Promise<string> {
   return rpcData(await supabase.rpc("declutter_helpr_add_listing_photo", { p_item_id: itemId, p_storage_path: storagePath }),
     (e) => rpcErrorMessage("declutter_helpr_add_listing_photo", e)) as string;
 }

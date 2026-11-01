@@ -2282,6 +2282,36 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_listed_for_seller: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          helpr_id: string
+          item_id: string
+          job_id: string
+          sent_at: string | null
+          seller_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          helpr_id: string
+          item_id: string
+          job_id: string
+          sent_at?: string | null
+          seller_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          helpr_id?: string
+          item_id?: string
+          job_id?: string
+          sent_at?: string | null
+          seller_id?: string
+        }
+        Relationships: []
+      }
       declutter_meetup_choices: {
         Row: {
           buyer_id: string
@@ -14735,6 +14765,14 @@ export type Database = {
       declutter_item_pickup_windows: {
         Args: { p_item_id: string }
         Returns: { ends: string; starts: string; weekday: number }[]
+      }
+      declutter_list_for_seller_draft: {
+        Args: { p_item_id: string }
+        Returns: Database["public"]["Tables"]["declutter_items"]["Row"]
+      }
+      declutter_list_for_seller_job: {
+        Args: { p_job_id: string }
+        Returns: string
       }
       declutter_listed_for_me: {
         Args: never

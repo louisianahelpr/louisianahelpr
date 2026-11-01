@@ -17,7 +17,7 @@
  * @mutate src/components/tracker/workHasBegun.ts | export const HELPR_NOT_STARTED: ReadonlySet<string> = new Set<string>(["start_working", "before_photo"]); | export const HELPR_NOT_STARTED: ReadonlySet<string> = new Set<string>([]);
  * @mutate src/pages/posts/PostedJobCard.tsx | , pendingApplicants: pendingApplicantCounts ? pendingApplicantCounts[job.id] ?? 0 : undefined }) | })
  * @mutate src/components/profile/EarningsTab.tsx |     totalEarningsDollars: paidOutDollars(payoutLedger), |     totalEarningsDollars: 5000,
- * @mutate src/pages/post-job/EntryChoice.tsx | A draft keeps your words, so add your photos and video again. |
+ * @mutate src/lib/i18n/enPostJob.ts | A draft keeps your words, so add your photos and video again. |
  * @mutate src/pages/post-job/FormStep.tsx | We copied your last job. Add your photos again, and check the crew size, start time and repeat days. |
  * @mutate src/components/PhotoProof.tsx | Show the job as you found it, before you start. These are your proof if there's ever a question. |
  * @mutate src/pages/jobs/appliedJobCard/crewAcceptCopy.ts | You can head out once the job is booked. At the start time | You can head out once every spot on the crew is filled. At the start time
@@ -77,7 +77,9 @@ describe("the earnings milestone counts money that went out (JOBS2-40)", () => {
 
 describe("source-level words", () => {
   it("say what was not kept, and a crew goes ahead with who's on (JOBS-10, 20, 27, 52)", () => {
-    expect(code("src/pages/post-job/EntryChoice.tsx")).toContain("add your photos and video again");
+    // A3-3 (Spanish): the draft card reads t("postJob.draftBody"); its English lives in enPostJob.ts.
+    expect(code("src/pages/post-job/EntryChoice.tsx")).toContain('t("postJob.draftBody")');
+    expect(code("src/lib/i18n/enPostJob.ts")).toContain("add your photos and video again");
     expect(code("src/pages/post-job/FormStep.tsx")).toContain("We copied your last job.");
     expect(code("src/components/PhotoProof.tsx")).toContain("Show the job as you found it");
     expect(CREW_ACCEPT_COPY.onCrewWaiting).not.toMatch(/every spot/);

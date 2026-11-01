@@ -835,7 +835,7 @@ export const GAPS: Record<string, string> = {
   // LEAD-LIST-FOR-SELLER (20261101034159): not swept yet (new 11-01); its server checks are proven in
   // src/test/pglite/declutterListForSeller.pglite.mjs.
   "src/components/declutter/ListedForYouCard.tsx": "no typed text: Approve, Not this one and one checkbox; each approval goes through the normal publish path's checks.",
-  "src/pages/jobs/appliedJobCard/steps/ListForSellerPanel.tsx": "Not swept yet (new 11-01): title, description, price and area go through declutter_helpr_create_listing's checks (the same price, area and length rules as a listing; contact-leak trigger on the table).",
+  "src/pages/jobs/appliedJobCard/steps/ListForSellerPanelOpen.tsx": "Not swept yet (new 11-01): title, description, price and area go through declutter_helpr_create_listing's checks (the same price, area and length rules as a listing; contact-leak trigger on the table).",
   "src/components/declutter/SellerSetup.tsx": "Not swept yet: it shows only to a seller missing saved settings. Its address and area go through the same lookup and declutter_save_porch_place checks as the pickup places in Settings.",
   "src/components/declutter/declutterUi.tsx": "The four statements' one checkbox: no text to type, and the sell forms that mount it are swept themselves.",
   // LEAD-SHAKE-PROMPT: the shake switch, split out of SecurityTab (componentSizeRatchet).

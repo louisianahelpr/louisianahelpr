@@ -66,6 +66,18 @@ const hasPerformedJobAction = (): boolean =>
 /** Fired on EVERY job action; the website's push ask listens (useWebPushAskAfterJobAction). */
 export const JOB_ACTION_EVENT = "helpr:job-action";
 
+/**
+ * PUSH-REACH (measured 11-01 on prod: 2 web subscriptions, 0 native tokens; since web push shipped 10-30 the
+ * only asks were after a job post or an application, ~7 signed-in actions in all, while 137 messages were sent):
+ * a sent message is where a member most wants to hear the reply, so it offers the website's push ask too. Only the
+ * ask's event: it does not mark the first job action (the Activity nudges key on that).
+ */
+export const offerPushAfterAction = (): void => {
+  if (typeof window === "undefined") return;
+  const ask = new Event(JOB_ACTION_EVENT);
+  window.dispatchEvent(ask);
+};
+
 export const recordJobActionForPermissionPrompt = (): void => {
   // Before the first-action early return: the web push ask keeps its own
   // 14-day cooldown and wants every job action (src/hooks/useWebPush.ts).

@@ -3,6 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { hapticError } from "@/lib/haptics";
 import { track } from "@/lib/analytics";
+import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
 import { toast } from "sonner";
 import { scanMessage } from "@/lib/messageScanner";
 import { requireOnline } from "@/lib/requireOnline";
@@ -383,6 +384,8 @@ export function createSendHandlers({
     // Key product event (Q283): once per stored message, never for a retry
     // that only recovered a row an earlier attempt already wrote.
     if (!alreadyLanded) track("message_sent", { job_id: optimistic.job_id });
+    // PUSH-REACH: the website's push ask (14-day cooldown, never over a dialog) after a sent message.
+    if (!alreadyLanded) offerPushAfterAction();
 
     // Reconcile: swap the optimistic bubble for the confirmed server row.
     // If the realtime echo raced ahead and already appended the real row,

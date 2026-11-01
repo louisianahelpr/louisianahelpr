@@ -12,6 +12,7 @@
 // Both are web only; the native app has its own APNs path (nativePush.ts).
 import { useEffect } from "react";
 import { safeStorage } from "@/lib/safeStorage";
+import { track } from "@/lib/analytics";
 import { explainPermission } from "@/hooks/usePermissionRationale";
 import { waitForNoModal } from "@/lib/pushPermissionNudge";
 import { hasWebPushApis, isIosOutsideHomeScreen, subscribeWebPushOnUse } from "@/lib/webPushSupport";
@@ -43,17 +44,25 @@ export async function offerWebPushAfterJobAction(): Promise<void> {
   // Never over the job's own confirmation dialog; skip (and ask next time) if one stays open.
   if (!(await waitForNoModal(60_000))) return;
   safeStorage.setItem(WEB_PUSH_ASKED_KEY, String(Date.now()));
+  // PUSH-REACH: the ask's funnel is recorded, so "2 web subscriptions" can be told apart into never asked,
+  // asked and said no, said yes but the save failed, or an iPhone outside the Home Screen.
+  track("web_push_ask", { kind, step: "shown" });
   if (kind === "home_screen") {
     await explainPermission("notifications_home_screen", () => {});
     return;
   }
-  await explainPermission("notifications", async () => {
+  const agreed = await explainPermission("notifications", async () => {
     // FIRST statement, synchronously inside the sheet button's click: Safari
     // only shows the prompt from a user gesture, and an await before this
     // line would spend it.
     const answer = await Notification.requestPermission();
-    if (answer === "granted") await subscribeWebPushOnUse();
+    track("web_push_ask", { kind, step: "browser_answer", answer });
+    if (answer === "granted") {
+      const saved = await subscribeWebPushOnUse();
+      track("web_push_ask", { kind, step: "saved", result: saved });
+    }
   });
+  if (!agreed) track("web_push_ask", { kind, step: "not_now" });
 }
 
 export function useWebPushAskAfterJobAction(): void {

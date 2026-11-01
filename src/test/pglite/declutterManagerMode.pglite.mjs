@@ -22,7 +22,15 @@ const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathna
 const FILE = readdirSync(MIG_DIR).find((f) => f.endsWith("_declutter_manager_mode.sql"));
 if (!FILE) throw new Error("migration *_declutter_manager_mode.sql not found");
 const VERSION = FILE.slice(0, 14);
-const FIX = readMigration(FILE);
+const PLANT_ATTEST = process.env.PLANT === "attest";
+let FIX = readMigration(FILE);
+if (PLANT_ATTEST) {
+  // Planted defect: the manager path stops putting the seller's attestation back.
+  const find = "    UPDATE public.declutter_tax_attestations SET seller_id = p_seller, attested_at = v_attested_at WHERE item_id = v_target;\n";
+  if (!FIX.includes(find)) throw new Error("PLANT=attest: the restore line is not in the migration");
+  FIX = FIX.replace(find, "");
+  console.log("PLANT=attest: the attestation restore is removed (the attestation check must FAIL)");
+}
 const SKIP = process.env.NEW_MIGRATION === "skip";
 if (SKIP) console.log("NEW_MIGRATION=skip: running without the migration (expect FAILs)");
 const { P: K, A: M, B: N, X } = USERS; // K = Kaci (seller), M = manager, N = another member, X = a buyer
@@ -35,7 +43,6 @@ const RECORDERS = [
   ["declutter_remove_item_photo", "p_photo_id uuid", "text", "'removed'"],
   ["declutter_attest_item", "p_item_id uuid, a boolean, b boolean, c boolean, d boolean", "timestamptz", "now()"],
   ["declutter_publish_item", "p_item_id uuid", "text", "'pending_review'"],
-  ["declutter_edit_listing", "p_item_id uuid, a text, b text, c text, d integer, e text, f text[], g boolean, h boolean, i boolean, j boolean", "text", "'saved'"],
   ["declutter_set_handovers", "p_item_id uuid, p text[]", "text[]", "p"],
   ["declutter_pause_listing", "p_item_id uuid", "text", "'paused'"],
   ["declutter_withdraw_item", "p_item_id uuid", "text[]", "array['withdrawn']"],
@@ -123,6 +130,26 @@ const WORLD = `
   grant select on all tables in schema public to authenticated;
   grant all on all tables in schema public to service_role;
   ${RECORDERS}
+  create table public.declutter_tax_attestations (item_id uuid primary key, seller_id uuid not null,
+    bought_for_personal_use boolean not null check (bought_for_personal_use), not_in_the_business boolean not null check (not_in_the_business),
+    not_a_frequent_seller boolean not null check (not_a_frequent_seller), keeps_item_until_handover boolean not null check (keeps_item_until_handover),
+    attested_at timestamptz not null default now());
+  -- declutter_edit_listing: a recorder that also re-stamps the attestation EXACTLY as the real one does (its newest body's
+  -- ON CONFLICT ... attested_at = now(), pinned in declutterManagerModeAccess.test.ts), so the proof sees what a manager's
+  -- edit would do to the seller's row.
+  create function public.declutter_edit_listing(p_item_id uuid, a text, b text, c text, d integer, e text, f text[], g boolean, h boolean, i boolean, j boolean)
+    returns text language plpgsql security definer set search_path to 'public' as $f$
+  begin
+    insert into public.rpc_calls (fn, uid) values ('declutter_edit_listing', auth.uid());
+    if not (coalesce(g, false) and coalesce(h, false) and coalesce(i, false) and coalesce(j, false)) then
+      raise exception 'attestation_required' using errcode = '22023';
+    end if;
+    insert into public.declutter_tax_attestations as t (item_id, seller_id, bought_for_personal_use, not_in_the_business, not_a_frequent_seller, keeps_item_until_handover)
+    values (p_item_id, auth.uid(), true, true, true, true)
+    on conflict (item_id) do update set seller_id = excluded.seller_id, bought_for_personal_use = true, not_in_the_business = true,
+      not_a_frequent_seller = true, keeps_item_until_handover = true, attested_at = now();
+    return 'saved';
+  end $f$;
 `;
 const REAL = ["declutter_answer_question", "declutter_send_order_message"].map((n) => newestFunctionSql(n, VERSION));
 
@@ -272,6 +299,19 @@ check("a file in the manager's folder that someone else uploaded is refused",
 check("the manager's own upload outside their folder is refused",
   refused(await manage(M, K, "add_item_photo", { item_id: draft, storage_path: `${N}/declutter/${draft}/d.jpg` }), /photo_not_uploaded/));
 
+// ── Lead 11-01: a manager's edit of a live listing never touches the seller's attestation ─────
+await db.exec(`insert into public.declutter_tax_attestations values ('${item}', '${K}', true, true, true, true, '2026-10-01 12:00:00+00')`);
+r = await manage(M, K, "edit_listing", { item_id: item, title: "Oak dresser, 6 drawers", bought_for_personal_use: false });
+const att = await q1(`select seller_id, to_char(attested_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI') as at from public.declutter_tax_attestations where item_id = '${item}'`);
+check("a manager's edit goes through (as the seller) and leaves her attestation exactly as she made it",
+  r.ok && att?.seller_id === K && att?.at === "2026-10-01 12:00", r.err ?? JSON.stringify(att));
+const noAtt = (await q1(`insert into public.declutter_items (seller_id, status, title, category, condition_stars, delivery_size,
+    price_cents, current_price_cents, area_label, area_lat, area_lng) values ('${K}', 'live', 'Stool', 'furniture', 3, 'small',
+    1000, 1000, 'Mid City', 30.45, -91.18) returning id`)).id;
+r = await manage(M, K, "edit_listing", { item_id: noAtt, title: "Stool" });
+check("a listing the seller never attested can't be edited by the manager (no attesting for her)",
+  refused(r, /attestation_required/) && !(await q1(`select 1 as x from public.declutter_tax_attestations where item_id = '${noAtt}'`)), r.err);
+
 // ── Owner 11-01: the manager drafts, the seller approves before posting ─────
 check("a live listing can't be sent for approval", refused(await manage(M, K, "submit_for_approval", { item_id: item }), /item_not_editable/));
 check("another member's draft can't be sent", refused(await manage(M, K, "submit_for_approval", { item_id: nItem }), /not_found/));
@@ -330,7 +370,7 @@ check("after a successful action, in the same transaction, auth.uid() is the man
 // ── What the manager sees ────────────────────────────────────────────────────
 let ov = await as(M, `select public.declutter_managed_overview('${K}') as o`);
 let o = ov.rows?.[0]?.o;
-check("overview: the seller's own listings only", ov.ok && o.items.length === 2 && o.items.every((i) => i.title !== "Chair"), JSON.stringify(ov.err ?? o?.items?.map((i) => i.title)));
+check("overview: the seller's own listings only", ov.ok && o.items.length === 3 && o.items.every((i) => i.title !== "Chair"), JSON.stringify(ov.err ?? o?.items?.map((i) => i.title)));
 check("overview: offers on her items only (Offers on)", o?.offers?.length === 1 && o.offers[0].id === off, JSON.stringify(o?.offers));
 check("overview: her sales as the SELLER only, never her purchases", o?.orders?.length === 1 && o.orders[0].id === ord, JSON.stringify(o?.orders));
 check("a stranger gets no overview", refused(await as(N, `select public.declutter_managed_overview('${K}')`), /not_your_seller/));

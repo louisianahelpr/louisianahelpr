@@ -144,7 +144,7 @@ const CARD_POLL_MS = 1_500;
  */
 function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize }) {
   // Audit BUY-3: on an item the seller offers only delivered (way "none"), the pickup total is a figure nobody can
-  // pay. The label names the least it costs delivered instead, the item page's own "from" floor (fromDeliveredCents).
+  // pay. The label names the least it costs delivered instead, the least a Helpr delivery can cost (one road mile).
   const delivered = way === "none";
   return (
     <span className="whitespace-nowrap font-semibold" data-buy-label="">

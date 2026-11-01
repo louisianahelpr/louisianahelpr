@@ -21,6 +21,8 @@ import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress
 import type { Job } from "@/components/job-card/activityConstants";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
+/** The "What to fix" card (RevisionAsk): a card on a phone, flat inside the desktop side column. */
+const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
 const MONEY = "text-[hsl(var(--burnt-sienna))]";
 
 /**

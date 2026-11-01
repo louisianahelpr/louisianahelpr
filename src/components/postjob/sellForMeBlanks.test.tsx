@@ -25,21 +25,21 @@ describe("POST-H15: the three blanks as their own fields", () => {
   const start = buildSellForMePrefill().description;
 
   it("each blank reads as empty until answered, and an answer goes into its own line", () => {
-    expect(SELL_FOR_ME_BLANKS.length).toBe(3);
+    // Two since POST-H3 (owner 10-31) took out "Also handle pickups with buyers".
+    expect(SELL_FOR_ME_BLANKS.length).toBe(2);
+    expect(start).not.toMatch(/pickups/i);
     for (const b of SELL_FOR_ME_BLANKS) expect(sellForMeBlankValue(start, b)).toBe("");
-    const [count, size, pickups] = SELL_FOR_ME_BLANKS;
+    const [count, size] = SELL_FOR_ME_BLANKS;
     let d = fillSellForMeBlank(start, count, "20");
     d = fillSellForMeBlank(d, size, "Furniture");
-    d = fillSellForMeBlank(d, pickups, "No");
     expect(d).toContain("How many items: 20\n");
     expect(d).toContain("Rough size: Furniture\n");
-    expect(d).toContain("Also handle pickups with buyers: No\n");
     expect(hasUnfilledPlaceholders(d)).toBe(false);
     // Cleared again: the [placeholder] comes back, so Continue still refuses it.
     expect(fillSellForMeBlank(d, count, " ")).toContain("How many items: [about how many]");
     // The rest of the description is untouched.
-    expect(d.split("\n").filter((l) => !/^(How many items|Rough size|Also handle pickups with buyers):/.test(l)))
-      .toEqual(start.split("\n").filter((l) => !/^(How many items|Rough size|Also handle pickups with buyers):/.test(l)));
+    expect(d.split("\n").filter((l) => !/^(How many items|Rough size):/.test(l)))
+      .toEqual(start.split("\n").filter((l) => !/^(How many items|Rough size):/.test(l)));
   });
 
   it("the fields write the description", () => {
@@ -49,15 +49,15 @@ describe("POST-H15: the three blanks as their own fields", () => {
     expect(screen.getByLabelText("How many items?").className).toBe(getByTestId("shared-input").className);
     fireEvent.change(screen.getByLabelText("How many items?"), { target: { value: "12" } });
     fireEvent.click(screen.getByRole("button", { name: "A mix" }));
-    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
     const d = screen.getByTestId("desc").textContent ?? "";
     expect(d).toContain("How many items: 12");
     expect(d).toContain("Rough size: A mix");
-    expect(d).toContain("Also handle pickups with buyers: Yes");
-    expect(screen.getByRole("button", { name: "Yes" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "A mix" })).toHaveAttribute("aria-pressed", "true");
+    // No pickups question (POST-H3, owner 10-31).
+    expect(screen.queryByRole("button", { name: "Yes" })).toBeNull();
     // A second tap clears the choice.
-    fireEvent.click(screen.getByRole("button", { name: "Yes" }));
-    expect(screen.getByTestId("desc").textContent).toContain("Also handle pickups with buyers: [yes or no]");
+    fireEvent.click(screen.getByRole("button", { name: "A mix" }));
+    expect(screen.getByTestId("desc").textContent).toContain("Rough size: [small things, furniture or a mix]");
   });
 
   it("a description without the three lines shows no fields", () => {

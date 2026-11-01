@@ -35,15 +35,17 @@ describe("sell it for me", () => {
 
   // POST-H15 (posting audit 10-30 #15): Continue went on with the template's three blanks empty.
   // @mutate src/lib/declutter/sellForMe.ts | label: "How many items", placeholder: "[about how many]" }, | label: "How many items", placeholder: "about " },
-  // @mutate src/lib/declutter/sellForMe.ts | placeholder: "[yes or no]", choices | placeholder: "", choices
+  // @mutate src/lib/declutter/sellForMe.ts | placeholder: "[small things, furniture or a mix]", choices | placeholder: "", choices
   it("every blank in the template is a placeholder, so Details refuses it until each is filled", () => {
     const p = buildSellForMePrefill();
-    const asks = p.description.split("\n").filter((l) => /^(How many items|Rough size|Also handle pickups)/.test(l));
-    expect(asks).toHaveLength(3);
+    const asks = p.description.split("\n").filter((l) => /^(How many items|Rough size)/.test(l));
+    expect(asks).toHaveLength(2);
+    // POST-H3 (owner 10-31): the pickups line is gone.
+    expect(p.description).not.toMatch(/pickups/i);
     for (const ask of asks) expect(ask).toMatch(/: \[[^\]]+\]$/);
     expect(detailsBlocker({ title: p.title, description: p.description, category: p.category })).toBe("Replace the [placeholders] to continue");
     const filled = p.description
-      .replace("[about how many]", "about 20").replace("[small things, furniture or a mix]", "a mix").replace("[yes or no]", "yes");
+      .replace("[about how many]", "about 20").replace("[small things, furniture or a mix]", "a mix");
     expect(detailsBlocker({ title: p.title, description: filled, category: p.category })).toBeNull();
   });
 

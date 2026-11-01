@@ -1,7 +1,7 @@
 /**
  * THE SHARED POPUP SHELL (spec v2 §3 "Sheets and menus"; lead 2026-10-20):
  * on the phone every popup is a bottom sheet (full width, pinned to the bottom,
- * 28px top corners, square bottom corners, a drag handle); from sm it is a
+ * 28px top corners, square bottom corners, NO drag bar: owner 10-31 14:22, every sheet keeps the X only); from sm it is a
  * centred 480px dialog; its primary and secondary actions are pills.
  *
  * ONE place: DialogContent wears POPUP_SHEET_CLS + POPUP_DIALOG_CLS
@@ -12,7 +12,7 @@
  * @mutate src/components/ui/popupFooter.ts | sm:w-full sm:max-w-[480px] | sm:w-full sm:max-w-lg
  * @mutate src/components/ui/popupFooter.ts | const POPUP_ACTION_RADIUS = "rounded-full"; | const POPUP_ACTION_RADIUS = "rounded-ds-md";
  * @mutate src/components/ui/sheet.tsx | `overflow-y-auto data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 ${POPUP_SHEET_CLS} ${POPUP_DIALOG_CLS}` | `overflow-y-auto data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0`
- * @mutate src/components/ui/dialog.tsx |       <span data-sheet-handle aria-hidden className={POPUP_HANDLE_CLS} /> |       {null}
+ * @mutate src/components/ui/dialog.tsx |       <DialogConfirmCtx.Provider value={isConfirm}> |       <span data-sheet-handle aria-hidden className="sm:hidden absolute left-1/2 top-2 h-1 w-9 rounded-full" /><DialogConfirmCtx.Provider value={isConfirm}>
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -56,16 +56,16 @@ describe("every popup: a sheet on the phone, a 480px dialog on desktop, pill act
     }
   });
 
-  it("a rendered dialog wears both halves, a phone-only handle, and pill actions", () => {
+  it("a rendered dialog wears both halves, no drag bar, and pill actions", () => {
     const d = open();
     const cls = d.className.split(/\s+/);
     for (const c of ["bottom-0", "inset-x-0", "!rounded-b-none", "sm:max-w-[480px]", "sm:top-1/2"]) expect(cls).toContain(c);
     // The old centred-on-phone card is gone.
     expect(cls).not.toContain("top-1/2");
     expect(cls).not.toContain("w-[calc(100vw-2rem)]");
-    const handle = d.querySelector("[data-sheet-handle]") as HTMLElement;
-    expect(handle.getAttribute("aria-hidden")).not.toBeNull();
-    expect(handle.className).toMatch(/\bsm:hidden\b/);
+    // Owner 10-31 14:22: no drag bar on any sheet, app-wide (b19 took it off SheetContent; this is the dialog's).
+    expect(d.querySelector("[data-sheet-handle]")).toBeNull();
+    expect(d.querySelector("[class*='rounded-full'][aria-hidden]")).toBeNull();
     for (const name of ["Cancel", "Log out"]) {
       expect(screen.getByRole("button", { name }).className).toMatch(/\brounded-full\b/);
     }

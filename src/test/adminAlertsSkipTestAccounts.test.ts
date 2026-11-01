@@ -50,6 +50,7 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   auto_restrict_repeat_violators: "link",
   block_user_and_settle: "link",
   declutter_answer_no_show: "caller", // 20261031004529: the seller answering a buyer's no-show report
+  declutter_alert_overdue_checks: "explicit", // 20261101042045: listings on sale 45+ min with no check; NOT is_test_subject(i.seller_id) and NOT is_seed in the select
   declutter_handover_sweep: "explicit", // 20261031004529: the 60-day held sale
   declutter_helpr_answer_no_show: "explicit", // 20261031134217: the Helpr answers a seller's "didn't come"; is_test_subject on buyer, seller and caller, and is_seed
   declutter_hold_unchecked_listings: "explicit", // 20261031152545: a reserved or sold listing never checked; is_test_subject on the seller

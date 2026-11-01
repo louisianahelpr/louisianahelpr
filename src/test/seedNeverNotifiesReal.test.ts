@@ -218,6 +218,7 @@ function tsSites(): Site[] {
 // broadcast. Anything about a JOB or a counterpart belongs in KNOWN_GAP.
 const NO_SEED_SUBJECT: Record<string, string> = {
   "sql:declutter_record_ai_check#1": "an admin alert that a sold listing failed its check: the insert is skipped when the seller is a test account (IF NOT public.is_test_subject(v_item.seller_id), 20261031152545)",
+  "sql:declutter_alert_overdue_checks#1": "an admin alert that listings on sale 45+ minutes have no check: only listings with NOT i.is_seed AND NOT public.is_test_subject(i.seller_id) are counted, and none means no insert (20261101042045)",
   "sql:declutter_hold_unchecked_listings#1": "an admin alert that a sold listing was never checked: the insert is skipped when the seller is a test account (IF NOT public.is_test_subject(r.seller_id), 20261031152545)",
   "ts:supabase/functions/admin-update-email/index.ts#1": "own email updated by an admin",
   "ts:supabase/functions/admin-support-reply/index.ts#1": "an admin's answer to the member's own support ticket",

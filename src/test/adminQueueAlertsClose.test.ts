@@ -43,7 +43,7 @@
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |   ELSIF p_rule = 'stalled-job' THEN |   ELSIF p_rule = 'stalled-jobs' THEN
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |       ('repeat offender: ', | 
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |   ELSIF p_rule = 'notice' THEN |   ELSIF p_rule = 'notices' THEN
- * @mutate supabase/migrations/20261031184552_declutter_check_alerts_close_by_hand.sql |         ('cancellation fee transfer failed', 'manual') |         ('cancellation fee transfer failure', 'manual')
+ * @mutate supabase/migrations/20261101042045_declutter_check_sweep_followups.sql |         ('cancellation fee transfer failed', 'manual') |         ('cancellation fee transfer failure', 'manual')
  * @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql | 'dismiss_message_ban_review') | 'dismiss_message_ban_reviewed')
  * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   AFTER INSERT ON public.notifications |   AFTER UPDATE ON public.notifications
  * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'

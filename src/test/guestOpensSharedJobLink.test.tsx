@@ -11,7 +11,8 @@
  * @mutate src/App.tsx | <ProtectedRoute allowGuest><PageTransition><JobDetail /> | <ProtectedRoute><PageTransition><JobDetail />
  * @mutate src/components/ProtectedRoute.tsx |   if (!user && allowGuest) return <>{children}</>;\n | \n
  * @mutate src/components/ProtectedRoute.tsx |   if (!user && allowGuest) return <>{children}</>; |   if (allowGuest) return <>{children}</>;
- * @mutate src/pages/jobs/JobDetail.tsx | date_needed, location, status, | date_needed, location, customer_id, status,
+ * @mutate src/pages/jobs/JobDetail.tsx | category, budget, location, status, | category, budget, location, customer_id, status,
+ * @mutate src/pages/jobs/JobDetail.tsx | "id, title, category, budget, location, status, expires_at" | "id, title, description, category, budget, location, status, expires_at"
  * @mutate src/pages/jobs/JobDetail.tsx | navigate(signupUrlFor(id ? `/jobs/${id}` : null)) | navigate("/signup")
  * @mutate src/pages/jobs/JobDetail.tsx | onClose={() => navigate("/browse")} | onClose={() => navigate("/home")}
  * @mutate src/pages/auth/Login.tsx | const signupHref = signupUrlFor(pendingRedirect); | const signupHref = pendingRedirect?.match(/^\/jobs\/([^/?#]+)$/) ? signupUrlFor(pendingRedirect) : "/signup";
@@ -41,18 +42,7 @@ vi.mock("@/hooks/usePendingSaveConsumer", () => ({ usePendingSaveConsumer: vi.fn
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: vi.fn() }));
 vi.mock("@/components/marketing/PublicLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock("@/pages/jobs/jobPage/JobPage", () => ({ default: () => <div>MEMBER JOB PAGE</div> }));
-// The sheet's own tests live with it; here it reports what it was given and its two ways out.
-vi.mock("@/components/dashboard/JobDetailDialog", () => ({
-  default: ({ job, guest, onClose, onApply }: { job: Record<string, unknown>; guest: boolean; onClose: () => void; onApply: () => void }) => (
-    <div>
-      <p>{guest ? "GUEST SHEET" : "MEMBER SHEET"}</p>
-      <p>{String(job.title)}</p>
-      <p>{String(job.location)}</p>
-      <button onClick={onClose}>close sheet</button>
-      <button onClick={onApply}>apply</button>
-    </div>
-  ),
-}));
+// The real guest preview (GuestJobPreview, JOBS-29): title, category, parish, budget, "Sign Up to Apply".
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({
@@ -90,7 +80,7 @@ beforeEach(() => {
   localStorage.clear();
   state.auth = { user: null, profile: null, isLoading: false };
   state.columns = [];
-  state.row = { id: JOB_ID, title: "Move a sofa", location: "Lafayette, LA", expires_at: null, boost_expires_at: null };
+  state.row = { id: JOB_ID, title: "Move a sofa", category: "moving", budget: 120, location: "Lafayette, LA", description: "Gate code 1234, 12 Oak St", expires_at: null, boost_expires_at: null };
 });
 
 describe("the route", () => {
@@ -105,25 +95,27 @@ describe("the route", () => {
 describe("a guest opening a shared link", () => {
   it("sees the job, not the login wall, with ?ref=share on the link", async () => {
     openLink();
-    expect(await screen.findByText("GUEST SHEET")).toBeTruthy();
+    expect(await screen.findByText("Sign Up to Apply")).toBeTruthy();
     expect(screen.getAllByText("Move a sofa").length).toBeGreaterThan(0);
-    expect(screen.getByText("Lafayette, LA")).toBeTruthy();
+    expect(screen.getByText("Lafayette Parish")).toBeTruthy();
+    expect(screen.getByText("$120")).toBeTruthy();
+    expect(screen.queryByText(/Oak St/)).toBeNull();
     expect(screen.queryByTestId("where")).toBeNull();
   });
 
   it("asks the public view for nothing private", async () => {
     openLink();
-    await screen.findByText("GUEST SHEET");
-    expect(state.columns.length).toBeGreaterThan(15);
-    expect(state.columns).toContain("title");
-    for (const column of ["customer_id", "latitude", "longitude", "offered_to_helper_id", "direct_offer_status", "applicant_count", "special_requirements"]) {
+    await screen.findByText("Sign Up to Apply");
+    // JOBS-29 (lead 2026-10-31): exactly the four facts plus id, status and expiry.
+    expect(state.columns).toEqual(["id", "title", "category", "budget", "location", "status", "expires_at"]);
+    for (const column of ["customer_id", "latitude", "longitude", "description", "photos", "offered_to_helper_id", "direct_offer_status", "applicant_count", "special_requirements"]) {
       expect(state.columns, column).not.toContain(column);
     }
   });
 
   it("goes to sign-up carrying the job, and the job survives it", async () => {
     openLink();
-    fireEvent.click(await screen.findByText("apply"));
+    fireEvent.click(await screen.findByText("Sign Up to Apply"));
     const where = screen.getByTestId("where").textContent!;
     expect(where).toBe(`/signup?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}`);
     rememberSignupRedirect(new URLSearchParams(where.split("?")[1]).get("redirect"));
@@ -132,7 +124,7 @@ describe("a guest opening a shared link", () => {
 
   it("closing goes to the public Browse list, never a page that bounces them to log in", async () => {
     openLink();
-    fireEvent.click(await screen.findByText("close sheet"));
+    fireEvent.click(await screen.findByText("Not Now"));
     expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 

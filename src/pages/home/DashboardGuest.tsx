@@ -22,9 +22,8 @@ const BrowseMap = lazy(() =>
   import("@/components/BrowseMap").then((m) => ({ default: m.BrowseMap })),
 );
 
-// Guests may open a read-only job detail (Apple "preview before signup").
-// Apply/contact/save/report inside the dialog stay gated to /signup.
-const JobDetailDialog = lazy(() => import("@/components/dashboard/JobDetailDialog"));
+// Guests may open a job preview (Apple "preview before signup"): title, category, parish, budget (JOBS-29).
+import { GuestJobPreview } from "@/components/dashboard/GuestJobPreview";
 import { supabase } from "@/integrations/supabase/client";
 import { formatName } from "@/lib/utils";
 import { fetchRatingStats } from "@/lib/reviewStats";
@@ -415,21 +414,18 @@ const DashboardGuest = () => {
   const [detailJob, setDetailJob] = useState<EnrichedJob | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Tapping a card sends a logged-out visitor to /signup rather than opening
-  // the read-only preview — matching /jobs, the web guest feed (Jobs.tsx:173).
-  // Owner decision 2026-08-22: the two guest browse surfaces had diverged
-  // (native previewed the job, web walled it), and this is the direction they
-  // were reconciled in.
-  //
-  // The preview dialog is NOT dead code: a direct link (/browse?job=<id>) still
-  // restores it below, same as its /jobs sibling. Only the in-feed tap changed.
-  //
-  // The tapped job rides to signup as `?redirect=/jobs/<id>` and survives the
-  // whole journey — including the email verification round-trip, which a query
-  // param alone cannot (see lib/jobIntent for why it has to be storage).
+  // JOBS-29 (lead decision 2026-10-31, under the owner's 9-2 rule): tapping a card shows the job first, then
+  // "Sign Up to Apply". The preview is GuestJobPreview: title, category, parish and budget only (no poster, address,
+  // coordinates or description). This reverses the 2026-08-22 tap-straight-to-sign-up. The id rides in ?job= so a
+  // back or a reload restores it (below), and Sign up carries the job as `?redirect=/jobs/<id>` (lib/jobIntent).
   const openDetailJob = useCallback((job: EnrichedJob) => {
-    navigate(signupUrlFor(`/jobs/${job.id}`));
-  }, [navigate]);
+    setDetailJob(job);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("job", job.id);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const closeDetailJob = useCallback(() => {
     setDetailJob(null);
@@ -664,16 +660,7 @@ const DashboardGuest = () => {
   );
 
   const detailDialog = detailJob && (
-    <Suspense fallback={null}>
-      <JobDetailDialog
-        guest
-        job={detailJob}
-        effectiveFee={TIER_PERKS.free.platformFeePercent}
-        onClose={closeDetailJob}
-        onApply={requireSignup}
-        onReport={requireSignup}
-      />
-    </Suspense>
+    <GuestJobPreview job={detailJob} onClose={closeDetailJob} onSignUp={requireSignup} />
   );
 
   if (isNativePlatform) {

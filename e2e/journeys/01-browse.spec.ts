@@ -131,10 +131,14 @@ test(guestTitle, async ({ browser, request, journey }) => {
     await journey.milestone(page, "guest-browse");
   });
 
-  await test.step("guest taps a job and is asked to create an account, keeping the job", async () => {
-    // By design (DashboardGuest.tsx: signupUrlFor(`/jobs/${job.id}`)): a guest
-    // tap goes to sign-up carrying the job, so the job opens after signing in.
+  await test.step("guest taps a job, sees it, and is asked to create an account, keeping the job", async () => {
+    // JOBS-29 (lead 2026-10-31): a guest tap shows the job first (GuestJobPreview: title, category, parish,
+    // budget), then "Sign Up to Apply" goes to sign-up carrying the job, so the job opens after signing in.
     await page.getByRole("heading", { level: 2 }).first().click();
+    const preview = page.locator("[data-guest-job-preview]");
+    await expect(preview, "tapping a job as a guest did not show the job").toBeVisible({ timeout: 30_000 });
+    await expect(preview.getByText("Budget")).toBeVisible();
+    await preview.getByRole("button", { name: "Sign Up to Apply" }).click();
     await expect(page, "tapping a job as a guest did not prompt sign-up").toHaveURL(/\/signup\?redirect=%2Fjobs%2F[0-9a-f-]{36}/, { timeout: 30_000 });
     // Board 55 (owner 10-20): the sign-up heading is "Create your account".
     await expect(page.getByRole("heading", { name: /create (your )?account/i })).toBeVisible({ timeout: 20_000 });

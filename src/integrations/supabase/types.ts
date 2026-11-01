@@ -2392,6 +2392,7 @@ export type Database = {
           seller_id: string
           status: string
           updated_at: string
+          voided_by_line: string | null
           wanted_id: string | null
         }
         Insert: {
@@ -2408,6 +2409,7 @@ export type Database = {
           seller_id: string
           status?: string
           updated_at?: string
+          voided_by_line?: string | null
           wanted_id?: string | null
         }
         Update: {
@@ -2424,6 +2426,7 @@ export type Database = {
           seller_id?: string
           status?: string
           updated_at?: string
+          voided_by_line?: string | null
           wanted_id?: string | null
         }
         Relationships: [
@@ -14627,6 +14630,10 @@ export type Database = {
         Args: { p_handover: string; p_lines: string[] }
         Returns: boolean
       }
+      declutter_hold_length: {
+        Args: { p_price: number; p_source: string }
+        Returns: unknown
+      }
       declutter_hold_unchecked_listings: { Args: never; Returns: number }
       declutter_item_link_visible: {
         Args: { p_item_id: string }
@@ -15646,6 +15653,7 @@ export type Database = {
         Returns: string
       }
       declutter_refresh_seller_hidden: { Args: { p_seller: string }; Returns: undefined }
+      declutter_reopen_voided_offers: { Args: { p_line: string }; Returns: number }
       declutter_refund_after_handover: {
         Args: { p_order_id: string; p_part_cents: number; p_reason: string }
         Returns: Json

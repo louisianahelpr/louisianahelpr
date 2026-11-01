@@ -219,9 +219,9 @@ function HomeDashboardScreen() {
                           {todoOpen ? "Hide" : `See all (${todoCount})`}
                         </button>
                       ) : <span />}
-                      <button type="button" data-testid="next-up-action" onClick={() => navigate(next.to)} className="btn-grad-primary btn-press rounded-full min-h-11 px-5 text-ds-15 font-semibold shrink-0">
+                      <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(next.to)} className="px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
                         {next.action}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </>

@@ -1,4 +1,5 @@
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { identityView } from "@/lib/identityCheck";
@@ -56,9 +57,9 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
           <li key={r.key} className="flex items-center justify-between gap-3 min-h-11 py-1">
             <span className="text-ds-14 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{r.label}</span>
             {r.onClick ? (
-              <button type="button" onClick={r.onClick} className="min-h-11 px-1 text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+              <Button type="button" variant="ghost" size="sm" onClick={r.onClick} className="px-1 text-ds-13 font-semibold tracking-normal" style={{ color: "hsl(var(--ink-deep))" }}>
                 {r.state}
-              </button>
+              </Button>
             ) : (
               <span className="inline-flex items-center gap-1 text-ds-13 font-semibold" style={{ color: r.done ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)" }}>
                 {r.done && <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />}

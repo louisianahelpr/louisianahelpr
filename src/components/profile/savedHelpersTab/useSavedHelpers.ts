@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { isConfirmedOffline } from "@/lib/connectivity";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { hapticWarning, hapticSuccess } from "@/lib/haptics";
@@ -69,7 +70,7 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
     const { data, error } = await supabase.rpc("get_my_saved_helpers");
     if (error) {
       report(error, { severity: "warning", tags: { source: "useSavedHelpers.retry" } });
-      setWasOffline(typeof navigator !== "undefined" && navigator.onLine === false);
+      setWasOffline(isConfirmedOffline());
       setLoadError(true);
       setRetrying(false);
       return;
@@ -90,7 +91,7 @@ export function useSavedHelpers({ user }: UseSavedHelpersArgs) {
       if (cancelled) return;
       if (error) {
         report(error, { severity: "warning", tags: { source: "useSavedHelpers.load" } });
-        setWasOffline(typeof navigator !== "undefined" && navigator.onLine === false);
+        setWasOffline(isConfirmedOffline());
         setLoadError(true);
         setLoading(false);
         return;

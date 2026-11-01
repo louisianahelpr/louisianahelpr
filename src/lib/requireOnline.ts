@@ -1,4 +1,5 @@
 import { onlineManager } from "@tanstack/react-query";
+import { isConfirmedOffline } from "@/lib/connectivity";
 import { toast } from "sonner";
 
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -16,9 +17,11 @@ import { isNativePlatform } from "@/lib/nativeInit";
  *
  * Two signals, because neither is sufficient alone:
  *
- *  - `navigator.onLine` — the only signal on the web surface, and read
- *    directly (not via `useOnlineStatus`) so this stays callable outside
- *    a React render body and always reflects the state at click time.
+ *  - Web: the CONFIRMED connectivity state (src/lib/connectivity.ts,
+ *    `isConfirmedOffline()`), read synchronously so this stays callable
+ *    outside a React render body. navigator.onLine=false there is only a
+ *    hint until a probe confirms it (owner, 10-31: Chrome reported offline
+ *    while she was online). Native reads `navigator.onLine` directly.
  *
  *  - `onlineManager.isOnline()` — the NATIVE signal. Inside WKWebView,
  *    `navigator.onLine` is the weaker of the two: WebKit keeps reporting
@@ -35,9 +38,8 @@ import { isNativePlatform } from "@/lib/nativeInit";
  *    the same fact.
  *
  * Treated as offline when EITHER signal says offline. That ordering is
- * deliberate in both directions: `navigator.onLine === false` is
- * trustworthy on both surfaces (the browser only reports it when the
- * interface is genuinely down), and `onlineManager` is consulted only on
+ * deliberate in both directions: on native `navigator.onLine === false` is
+ * trusted (on the web it is not, see above), and `onlineManager` is consulted only on
  * native, where TanStack's own web fallback would otherwise be a third
  * opinion about a fact `navigator.onLine` already answers.
  *
@@ -54,7 +56,12 @@ import { isNativePlatform } from "@/lib/nativeInit";
  * it now visibly does.
  */
 export function requireOnline(): boolean {
-  const browserOnline = typeof navigator === "undefined" || navigator.onLine;
+  // Web: only a CONFIRMED offline blocks (src/lib/connectivity.ts). Chrome can
+  // report navigator.onLine=false while online (owner, 10-31), and every write
+  // was refused with this toast. Native keeps reading navigator.onLine here.
+  const browserOnline = isNativePlatform
+    ? typeof navigator === "undefined" || navigator.onLine
+    : !isConfirmedOffline();
   const nativeOnline = !isNativePlatform || onlineManager.isOnline();
   if (browserOnline && nativeOnline) return true;
   toast.error("You're offline. Try again when you're back.");

@@ -37,11 +37,21 @@ describe("requireOnline", () => {
       expect(toastError).not.toHaveBeenCalled();
     });
 
-    it("blocks and toasts when navigator.onLine is false", async () => {
+    it("blocks and toasts once offline is confirmed", async () => {
       const requireOnline = await loadRequireOnline(false);
       setNavigatorOnLine(false);
+      (await import("./connectivity")).setConnectivity(false);
       expect(requireOnline()).toBe(false);
       expect(toastError).toHaveBeenCalledWith("You're offline. Try again when you're back.");
+    });
+
+    // Owner 10-31: online, but Chrome said navigator.onLine=false. The hint
+    // alone (before the probe confirms it) never refuses a write on web.
+    it("does not block on navigator.onLine=false alone (the probe has not confirmed it)", async () => {
+      const requireOnline = await loadRequireOnline(false);
+      setNavigatorOnLine(false);
+      expect(requireOnline()).toBe(true);
+      expect(toastError).not.toHaveBeenCalled();
     });
 
     it("ignores onlineManager on web — navigator.onLine is the web signal", async () => {
@@ -88,4 +98,6 @@ describe("requireOnline", () => {
 // Reverts the gate to navigator.onLine only — the pre-2026-08-31 behaviour
 // that waved a WKWebView user with a routeless wifi association straight
 // through, which is the one case this gate exists for.
+// @mutate src/lib/requireOnline.ts |     : !isConfirmedOffline(); |     : typeof navigator === "undefined" \|\| navigator.onLine;
+// @mutate src/lib/requireOnline.ts |     : !isConfirmedOffline(); |     : true;
 // @mutate src/lib/requireOnline.ts | const nativeOnline = !isNativePlatform \|\| onlineManager.isOnline(); | const nativeOnline = true;

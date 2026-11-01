@@ -1,3 +1,4 @@
+// @mutate src/components/rentals/RentPanel.tsx | <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked | <input type="checkbox" checked
 // @mutate src/components/admin/helprFault/HelprFaultFields.tsx | <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name="helpr-fault-kind" value="no_show" | <input type="radio" name="helpr-fault-kind" value="no_show"
 // @mutate src/components/admin/AdminExceptionQueue.tsx | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--primary))]" | className="h-4 w-4 accent-[hsl(var(--primary))]"
 // @mutate src/components/admin/AdminIDVReview.tsx | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--bark))]" | className="h-4 w-4 shrink-0 accent-[hsl(var(--bark))]"
@@ -28,13 +29,8 @@ const ROOT = path.resolve(__dirname, "../..");
 // Q2047 (B42, 10-31): the last four sized ones (credential license/insurance, exception bulk select, series dates) now
 // sit in a 44px label with min-h-0 min-w-0 on the box.
 // B42 (10-31, BUY-36 screen check): a BARE box (no class at all) is inflated the same way: at 375 the admin's "Was the
-// report true?" radios were 44px browser-blue circles. Admin's are fixed; these are in other lanes' screens.
-const KNOWN = new Set<string>([
-  "src/components/rentals/MaintenanceRequestForm.tsx#1",
-  "src/components/rentals/MaintenanceRequestView.tsx#1",
-  "src/components/rentals/RentPanel.tsx#1",
-  "src/components/rentals/listings/editorParts.tsx#1",
-]);
+// report true?" radios were 44px browser-blue circles. The admin and rentals ones are fixed the same way.
+const KNOWN = new Set<string>([]);
 
 function scan() {
   const inflated: string[] = [];

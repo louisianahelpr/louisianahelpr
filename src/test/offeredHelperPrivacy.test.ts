@@ -271,6 +271,18 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:user_may_see_job_address": "no-return",
     // 20261030150630: reads the offeree only to skip a job with a pending direct offer; the poster's notice and email carry title and applicant count; returns a count.
     "function:sweep_unanswered_applications": "no-return",
+    // CMP-4 instant book (20261101063725, 20261101065105, 20261101071621): each reads the
+    // offeree to judge, write, end or announce a booking and returns text, a boolean, jsonb,
+    // a trigger row or (rpc_my_instant_bookings) the caller's own bookings without the column.
+    "function:instant_book_block_reason": "no-return",
+    "function:instant_book_captured_not_hired": "no-return",
+    "function:instant_book_end_if_unhireable": "no-return",
+    "function:instant_book_payment_failed": "no-return",
+    "function:instant_book_tell_helpr_on_close": "no-return",
+    "function:jobs_instant_book_server_only": "no-return",
+    "function:rpc_instant_book": "no-return",
+    "function:rpc_instant_book_decline": "no-return",
+    "function:rpc_my_instant_bookings": "no-return",
   };
 
   const touching = (): Array<[string, DbObject]> =>

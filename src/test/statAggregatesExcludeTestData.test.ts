@@ -55,6 +55,7 @@ const ALLOWED: Record<string, string> = {
   apply_to_job: LIMIT,
   // LEAD-LIST-FOR-SELLER: counts one listing's own photos for the Helpr writing it (a draft's photo count), not a stat.
   declutter_helpr_job_listings: "counts one listing's own photos for the Helpr writing it, not a stat over members",
+  rpc_set_instant_book_floor: LIMIT, // CMP-4: at most 3 floors per Helpr
   block_user_and_settle: SPOTS,
   can_send_message_to_in_job: LIMIT,
   check_db_saturation: OPS,

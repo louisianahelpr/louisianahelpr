@@ -20,7 +20,7 @@
  *   F3  set: a banned member, bad category, out-of-range floor and a 4th category are refused; a change updates; NULL removes
  *   F4  rpc_my_instant_book_floors returns only the caller's own floors
  *   F5  candidates: only the job's poster may ask; the list never carries a floor or a price column
- *   F6  candidates: the qualifying Helprs, best first (rating, then jobs done), at most 3
+ *   F6  candidates: the qualifying Helprs, best first (rating, then jobs done), at most 3; a test account's review never counts
  *   F7  a floor above the job's price, or no floor for the category, keeps a Helpr off the list
  *   F8  free day: no availability row = not free; a specific_date row overrides the weekly row both ways
  *   F9  only REAL completed jobs count toward the 3 (not is_seed, poster not a test account)
@@ -96,6 +96,10 @@ CREATE FUNCTION public.are_users_blocked(a uuid, b uuid) RETURNS boolean LANGUAG
 CREATE FUNCTION public.member_display_name(n text, fallback text DEFAULT 'A neighbor') RETURNS text LANGUAGE sql STABLE AS $$ SELECT COALESCE(n, fallback) $$;
 CREATE FUNCTION public.job_offer_cutoff(d date, t time) RETURNS timestamptz LANGUAGE sql STABLE AS $$ SELECT (d + COALESCE(t, time '23:59'))::timestamptz $$;
 CREATE FUNCTION public.get_user_credential_tier(u uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
+-- is_test_member as prod (20261030015205): a seed profile or an enrolled test account.
+CREATE FUNCTION public.is_test_member(p_user_id uuid) RETURNS boolean LANGUAGE sql STABLE AS $$
+  SELECT p_user_id IS NOT NULL AND (EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = p_user_id AND p.is_seed IS TRUE)
+    OR EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p_user_id)) $$;
 CREATE FUNCTION public.is_helper_shadowbanned(u uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT EXISTS (SELECT 1 FROM public._shadow s WHERE s.user_id = u) $$;
 `;
 
@@ -192,6 +196,8 @@ const dj = await done(D);
 const rate = async (h, r) => owner(`INSERT INTO public.reviews (job_id, reviewee_id, rating) VALUES ('${dj}', '${h}', ${r})`);
 await rate(A, 5); await rate(B, 4); await rate(C, 3); await rate(D, 4);
 await rate(HIGH, 5); await rate(TH, 5);
+// A test account's review never counts (owner: test data never shows): A's 1-star from TP is left out, so A stays 5.0.
+await owner(`INSERT INTO public.reviews (job_id, reviewer_id, reviewee_id, rating) VALUES ('${dj}', '${TP}', '${A}', 1)`);
 
 // Availability: everyone free on the weekly day except NOAVAIL (nothing), DAYOFF (date says no), DAYON (date only).
 for (const h of ALL_H.filter((x) => ![NOAVAIL, DAYON].includes(x))) await owner(`INSERT INTO public.helper_availability (helper_id, day_of_week, is_available) VALUES ('${h}', ${dow}, true)`);
@@ -267,7 +273,7 @@ check("F5 only the job's poster may ask; the list carries no floor or price colu
 const full = await owner(`SELECT f.helper_id FROM public.instant_book_floors f WHERE public.instant_book_block_reason('${J.real}', f.helper_id) IS NULL ORDER BY 1`);
 const ids = ok(list) ? list.map((r) => r.helper_id) : [];
 check("F6 the qualifying Helprs, best first (rating, then jobs done), at most 3",
-  ids.join(",") === [A, D, B].join(",") && ok(full) && full.map((r) => r.helper_id).sort().join(",") === [...QUALIFY].sort().join(","),
+  ids.join(",") === [A, D, B].join(",") && Number(list[0]?.rating) === 5 && list[0]?.review_count === 1 && ok(full) && full.map((r) => r.helper_id).sort().join(",") === [...QUALIFY].sort().join(","),
   `list ${ids.map((x) => x.slice(-2)).join(",")}; qualify ${ok(full) ? full.map((r) => r.helper_id.slice(-2)).join(",") : err(full)}`);
 
 const reason = async (h, jid = J.real) => (await owner(`SELECT public.instant_book_block_reason('${jid}', '${h}') AS r`))[0]?.r;

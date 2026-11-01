@@ -23,14 +23,7 @@ import { useFeatureStatus } from "@/hooks/useFeature";
 import { ListedWhatNext } from "./ListedWhatNext";
 import { ListedForYouCard } from "./ListedForYouCard";
 import { BoughtWhatNext } from "./BoughtWhatNext";
-import {
-  fetchMySales,
-  fetchOpenFreeRequestCounts,
-  fetchPhotos,
-  fetchDropStates,
-  photoPublicUrl,
-  withdrawItem,
-} from "@/lib/declutter/api";
+import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";

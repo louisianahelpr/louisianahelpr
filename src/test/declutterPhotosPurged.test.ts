@@ -20,9 +20,11 @@
  * @mutate src/lib/helprTasks/api.ts |   return uploadCleaned(`${userId}/vehicle/${nonce()}.jpg`, file); |   return uploadCleaned(`${userId}/truck/${nonce()}.jpg`, file);
  * @mutate supabase/functions/_shared/accountPurge.ts |     for (const bucket of failing) { |     for (const bucket of missingSub) {
  * LEAD-LIST-FOR-SELLER: a Helpr's photos of a seller's listing go with the SELLER's account, never the Helpr's.
- * @mutate supabase/functions/_shared/purgeBuckets.ts |     if (l.seller_id === userId) sellerExtra.push(p.storage_path); |     if (l.seller_id === "x") sellerExtra.push(p.storage_path);
- * @mutate supabase/functions/_shared/purgeBuckets.ts |     else if (l.helpr_id === userId) helprKeep.add(p.storage_path); |     else if (l.helpr_id === "x") helprKeep.add(p.storage_path);
- * @mutate supabase/functions/_shared/purgeBuckets.ts |     if (!l \|\| l.helpr_id === l.seller_id \|\| !p.storage_path.startsWith(`${l.helpr_id}/declutter/${l.item_id}/`)) continue; |     if (!l) continue;
+ * @mutate supabase/functions/_shared/purgeBuckets.ts |     if (p.seller_id === userId && seg[0] !== userId) sellerExtra.push(p.storage_path); |     if (false) sellerExtra.push(p.storage_path);
+ * @mutate supabase/functions/_shared/purgeBuckets.ts |     else if (p.seller_id !== null && p.seller_id !== userId && seg[0] === userId) helprKeep.add(p.storage_path); |     else if (false) helprKeep.add(p.storage_path);
+ * @mutate supabase/functions/_shared/purgeBuckets.ts |     if (seg.length !== 4 \|\| !seg[0] \|\| seg[1] !== "declutter" \|\| seg[2] !== p.item_id \|\| !seg[3]) continue; |     if (!seg[0]) continue;
+ * @mutate supabase/functions/_shared/accountPurge.ts |     if (rows.length < PHOTO_PAGE) return { data: all, error: null }; |     return { data: all, error: null };
+ * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("seller_id", userId).not("storage_path", "like", `${userId}/%`) |     .eq("seller_id", "nobody").not("storage_path", "like", `${userId}/%`)
  * @mutate supabase/functions/_shared/accountPurge.ts |     { bucket: "job-photos", paths: listed.sellerExtra }, |     { bucket: "job-photos", paths: [] },
  * @mutate supabase/functions/_shared/accountPurge.ts |   ], listed.helprKeep)) && listed.ok; |   ])) \&\& listed.ok;
  * @mutate supabase/functions/_shared/accountPurge.ts |       const left = kept(bucket, await listAllObjects(admin, bucket, prefix)); |       const left = await listAllObjects(admin, bucket, prefix);
@@ -113,24 +115,80 @@ describe("account deletion erases job-photos/<uid>/declutter/ (Declutter B4)", (
 
 describe("listed-for-seller photos (a Helpr's folder, the seller's listing) follow the seller", () => {
   const S = "seller-1", H = "helpr-1", I = "item-1";
-  const links = [{ item_id: I, helpr_id: H, seller_id: S }, { item_id: "item-own", helpr_id: S, seller_id: S }];
   const photos = [
-    { item_id: I, storage_path: `${H}/declutter/${I}/a.jpg` },
-    { item_id: I, storage_path: `${H}/declutter/${I}/b.jpg` },
-    { item_id: I, storage_path: `someone-else/declutter/${I}/x.jpg` }, // not the link's Helpr folder: never touched
-    { item_id: I, storage_path: `${H}/declutter/other-item/y.jpg` }, // not this item's folder: never touched
-    { item_id: "item-own", storage_path: `${S}/declutter/item-own/z.jpg` }, // the seller's own upload: the folder sweep's
+    { item_id: I, storage_path: `${H}/declutter/${I}/a.jpg`, seller_id: S },
+    { item_id: I, storage_path: `${H}/declutter/${I}/b.jpg`, seller_id: S },
+    { item_id: I, storage_path: `${H}/declutter/other-item/y.jpg`, seller_id: S }, // not this item's folder: never touched
+    { item_id: I, storage_path: `${H}/quotes/${I}/q.jpg`, seller_id: S }, // not a declutter folder: never touched
+    { item_id: I, storage_path: `${H}/declutter/${I}/deep/z.jpg`, seller_id: S }, // not the exact shape: never touched
+    { item_id: "item-own", storage_path: `${S}/declutter/item-own/z.jpg`, seller_id: S }, // the seller's own upload: the folder sweep's
+    { item_id: "h-own", storage_path: `${H}/declutter/h-own/h.jpg`, seller_id: H }, // the Helpr's own listing: the Helpr's sweep
+    { item_id: "gone", storage_path: `${H}/declutter/gone/g.jpg`, seller_id: null }, // a seller already gone: swept
   ];
   it("the seller's deletion removes their listing's photos from the Helpr's folder, by exact path", () => {
-    const p = listedForSellerPhotoPlan(S, links, photos);
+    const p = listedForSellerPhotoPlan(S, photos);
     expect(p.sellerExtra).toEqual([`${H}/declutter/${I}/a.jpg`, `${H}/declutter/${I}/b.jpg`]);
     expect(p.helprKeep.size).toBe(0);
   });
   it("the Helpr's deletion keeps them for the seller", () => {
-    const p = listedForSellerPhotoPlan(H, links, photos);
+    const p = listedForSellerPhotoPlan(H, photos);
     expect([...p.helprKeep]).toEqual([`${H}/declutter/${I}/a.jpg`, `${H}/declutter/${I}/b.jpg`]);
     expect(p.sellerExtra).toEqual([]);
   });
+
+  type Row = { id: number; item_id: string; storage_path: string; seller_id: string | null };
+  /** PostgREST stand-in for the two declutter_item_photos reads: eq / not like / like / neq / order / range, 1,000-row cap. */
+  function fakeAdmin(rows: Row[], reads: string[] = []) {
+    return {
+      from(table: string) {
+        const preds: Array<(r: Row) => boolean> = [];
+        const like = (pat: string) => new RegExp(`^${pat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*")}$`);
+        let lo = 0, hi = 999;
+        const q = {
+          select: () => q,
+          eq: (c: keyof Row, v: unknown) => (preds.push((r) => r[c] === v), q),
+          neq: (c: keyof Row, v: unknown) => (preds.push((r) => r[c] !== null && r[c] !== v), q),
+          like: (c: keyof Row, pat: string) => (preds.push((r) => like(pat).test(String(r[c]))), q),
+          not: (c: keyof Row, op: string, pat: string) => (op === "like" && preds.push((r) => !like(pat).test(String(r[c]))), q),
+          order: () => q,
+          range: (a: number, b: number) => ((lo = a), (hi = Math.min(b, a + 999)), q),
+          then: (res: (v: unknown) => unknown) => {
+            reads.push(`${table} ${lo}-${hi}`);
+            const all = rows.filter((r) => preds.every((p) => p(r))).sort((x, y) => x.id - y.id);
+            return Promise.resolve({ data: all.slice(lo, hi + 1), error: null }).then(res);
+          },
+        };
+        return q;
+      },
+    };
+  }
+  const collect = async (admin: unknown, uid: string) => {
+    const mod = (await import(/* @vite-ignore */ new URL("../../supabase/functions/_shared/accountPurge.ts", import.meta.url).pathname)) as {
+      collectListedForSellerPhotos: (a: unknown, u: string, s: unknown[]) => Promise<{ ok: boolean; sellerExtra: string[]; helprKeep: Set<string> }>;
+    };
+    return mod.collectListedForSellerPhotos(admin, uid, []);
+  };
+
+  it("the Helpr deletes first, then the seller: the seller's purge still finds the photos (no link row needed)", async () => {
+    // After the Helpr's deletion the link row is gone (ON DELETE CASCADE); only declutter_item_photos remains.
+    const rows: Row[] = photos.map((p, k) => ({ id: k + 1, ...p }));
+    const helprSide = await collect(fakeAdmin(rows), H);
+    expect([...helprSide.helprKeep].sort()).toEqual([`${H}/declutter/${I}/a.jpg`, `${H}/declutter/${I}/b.jpg`]);
+    const sellerSide = await collect(fakeAdmin(rows), S);
+    expect(sellerSide.ok).toBe(true);
+    expect(sellerSide.sellerExtra.sort()).toEqual([`${H}/declutter/${I}/a.jpg`, `${H}/declutter/${I}/b.jpg`]);
+  });
+
+  it("pages past PostgREST's 1,000-row cap: 2,500 photos are all found", async () => {
+    const rows: Row[] = Array.from({ length: 2500 }, (_, k) => ({ id: k + 1, item_id: `i${k}`, storage_path: `${H}/declutter/i${k}/p.jpg`, seller_id: S }));
+    const reads: string[] = [];
+    const out = await collect(fakeAdmin(rows, reads), S);
+    expect(out.sellerExtra.length).toBe(2500);
+    expect(reads.filter((r) => r.startsWith("declutter_item_photos")).length).toBeGreaterThan(3);
+    const keep = await collect(fakeAdmin(rows), H);
+    expect(keep.helprKeep.size).toBe(2500);
+  });
+
   it("the purge reads the plan before the RPC, removes the seller's extras, and skips the kept ones in the sweep and its check", () => {
     const body = fnBody(purge, "purgeAccount");
     expect(body.indexOf("collectListedForSellerPhotos(admin, userId, steps)")).toBeGreaterThan(0);
@@ -140,5 +198,6 @@ describe("listed-for-seller photos (a Helpr's folder, the seller's listing) foll
     const storage = fnBody(purge, "purgeIdentityStorage");
     expect(storage).toContain("targets.push({ bucket, paths: kept(bucket, await listAllObjects(admin, bucket, prefix)) });");
     expect(storage).toContain("const left = kept(bucket, await listAllObjects(admin, bucket, prefix));");
+    expect(purge).not.toMatch(/from\("declutter_listed_for_seller"\)/);
   });
 });

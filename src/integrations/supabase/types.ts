@@ -15739,6 +15739,73 @@ export type Database = {
         Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }
         Returns: number
       }
+      declutter_manage: {
+        Args: { p_seller: string; p_action: string; p_args?: Json }
+        Returns: Json
+      }
+      declutter_managed_overview: {
+        Args: { p_seller: string }
+        Returns: Json
+      }
+      declutter_manager_end: {
+        Args: { p_grant_id: string }
+        Returns: string
+      }
+      declutter_manager_message_labels: {
+        Args: { p_kind: string; p_ids: string[] }
+        Returns: { message_id: string; label: string }[]
+      }
+      declutter_manager_offer: {
+        Args: {
+          p_manager: string
+          p_share_type: string
+          p_share_value: number
+          p_can_list: boolean
+          p_can_prices: boolean
+          p_can_offers: boolean
+          p_can_messages: boolean
+          p_can_pickups: boolean
+        }
+        Returns: string
+      }
+      declutter_manager_respond: {
+        Args: { p_grant_id: string; p_accept: boolean }
+        Returns: string
+      }
+      declutter_manager_set_permissions: {
+        Args: {
+          p_grant_id: string
+          p_can_list: boolean
+          p_can_prices: boolean
+          p_can_offers: boolean
+          p_can_messages: boolean
+          p_can_pickups: boolean
+        }
+        Returns: undefined
+      }
+      declutter_my_manager_grants: {
+        Args: never
+        Returns: {
+          id: string
+          role: string
+          seller_id: string
+          manager_id: string
+          seller_first_name: string
+          manager_first_name: string
+          status: string
+          share_type: string
+          share_pct: number | null
+          share_cents: number | null
+          can_list: boolean
+          can_prices: boolean
+          can_offers: boolean
+          can_messages: boolean
+          can_pickups: boolean
+          created_at: string
+          responded_at: string | null
+          ended_at: string | null
+        }[]
+      }
       declutter_my_cart: {
         Args: never
         Returns: {

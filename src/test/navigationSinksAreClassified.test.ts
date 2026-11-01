@@ -137,6 +137,7 @@ const CLASSIFIED: Record<string, string> = {
   "components/declutter/DeclutterMeetup.tsx::meetupMapUrl(m)": "meetupMapUrl(): a fixed https://maps.apple.com prefix + Number() coordinates + encodeURIComponent(spot name)",
   "components/declutter/DeclutterRefundReturn.tsx::meetupMapUrl({ spot_lat: r.return_lat, spot_lng: r.return_lng, spot_name: r.return_address })": "meetupMapUrl(): a fixed https://maps.apple.com prefix + Number() coordinates + encodeURIComponent(return address) (returns, Q2486)",
   "pages/jobs/appliedJobCard/DirectionsButton.tsx::href": MAPS,
+  "pages/jobs/jobPage/JobPage.tsx::mapsSearchUrl(job.location)": MAPS,
   // Declutter share-fb (Train D): window.open / openExternalUrl of the Facebook sharer for a listing.
   "components/declutter/DeclutterShareCard.tsx::url": "facebookShareUrl(): a fixed https://www.facebook.com/sharer/sharer.php?u= prefix + encodeURIComponent(`${getPublicOrigin()}/declutter/item/${id}`)",
   "components/declutter/DeclutterPickupDayCard.tsx::s.map": "meetupMapUrl() (fixed https://maps.apple.com prefix, Number() coordinates, encodeURIComponent(name)) or mapsSearchUrl() (src/lib/mapsLink.ts, encodeURIComponent(address))",

@@ -242,14 +242,14 @@ export function SupportReplyComposer({
         </div>
       )}
       <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => setOpen(false)} disabled={sending}>
+          Cancel
+        </Button>
         <Button size="sm" onClick={send} disabled={!trimmed || tooLong || sending}>
           {sending
             ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" aria-hidden="true" />
             : <Send className="w-3.5 h-3.5 mr-1" aria-hidden="true" />}
           Send reply
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setOpen(false)} disabled={sending}>
-          Cancel
         </Button>
       </div>
     </div>

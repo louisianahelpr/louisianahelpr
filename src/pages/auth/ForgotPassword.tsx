@@ -190,6 +190,13 @@ const ForgotPassword = () => {
             </p>
             <div className="flex items-center gap-2">
               <Button
+                variant="outline"
+                className="flex-1 rounded-full"
+                onClick={() => setSent(false)}
+              >
+                Use another email
+              </Button>
+              <Button
                 variant="primary"
                 type="button"
                 className="flex-1 rounded-full"
@@ -202,13 +209,6 @@ const ForgotPassword = () => {
                   : resendCooldown > 0
                     ? `Resend in ${resendCooldown}s`
                     : "Resend email"}
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 rounded-full"
-                onClick={() => setSent(false)}
-              >
-                Use another email
               </Button>
             </div>
           </div>

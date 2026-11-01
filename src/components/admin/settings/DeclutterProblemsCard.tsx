@@ -238,8 +238,8 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       <input id={id("note")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" maxLength={1000}
         value={note} onChange={(e) => setNote(e.target.value)} />
       <div data-admin-decide="" className="flex flex-wrap gap-2">
-        <Button onClick={() => decide.mutate("refund_buyer")} disabled={decide.isPending || (falseOn && againstReporter !== "refund_buyer")}>Refund the buyer</Button>
         <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending || helprFault || (falseOn && againstReporter !== "pay_seller")}>Pay the seller</Button>
+        <Button onClick={() => decide.mutate("refund_buyer")} disabled={decide.isPending || (falseOn && againstReporter !== "refund_buyer")}>Refund the buyer</Button>
       </div>
       {canPart && !falseOn && !helprFault && (
         <div className="space-y-1" data-admin-part-refund="">

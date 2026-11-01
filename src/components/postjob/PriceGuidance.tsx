@@ -68,11 +68,11 @@ function PriceGuidanceView({ g, category, budget, onUse }: { g: PriceGuidance; c
           Most {what} jobs on Helpr paid <span className="whitespace-nowrap" style={MONEY}>{range}</span>. Lower prices usually take longer to fill.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button type="button" size="sm" className="btn-grad-primary" onClick={() => onUse(g.low)}>
-            Use ${g.low}
-          </Button>
           <Button type="button" size="sm" variant="outline" onClick={() => setKept(budget)}>
             Keep ${budget}
+          </Button>
+          <Button type="button" size="sm" className="btn-grad-primary" onClick={() => onUse(g.low)}>
+            Use ${g.low}
           </Button>
         </div>
       </section>

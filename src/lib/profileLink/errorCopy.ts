@@ -14,6 +14,7 @@ export const PROFILE_LINK_RPC_ERROR_COPY = {
   rpc_ensure_my_handle: {
     not_authenticated: SIGN_IN,
     profile_not_found: NO_PROFILE,
+    handle_unavailable: "We couldn't make your profile link just now. Try again in a moment.",
   },
   rpc_set_my_handle: {
     not_authenticated: SIGN_IN,

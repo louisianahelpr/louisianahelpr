@@ -87,11 +87,11 @@ function IdColumn({ r, onDone }: { r: LandlordIdReview | undefined; onDone: () =
         onChange={(e) => setNote(e.target.value)}
       />
       <div className="flex gap-2">
-        <Button size="sm" disabled={decide.isPending} onClick={() => decide.mutate(true)}>
-          Approve ID
-        </Button>
         <Button size="sm" variant="outline" disabled={decide.isPending} onClick={() => decide.mutate(false)}>
           Reject ID
+        </Button>
+        <Button size="sm" disabled={decide.isPending} onClick={() => decide.mutate(true)}>
+          Approve ID
         </Button>
       </div>
     </div>
@@ -165,11 +165,11 @@ function Row({ p, matches, onDone }: { p: RentalProperty; matches: TakedownMatch
         onChange={(e) => setNote(e.target.value)}
       />
       <div className="flex gap-2">
-        <Button size="sm" disabled={m.isPending} onClick={() => m.mutate(true)}>
-          Approve
-        </Button>
         <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => m.mutate(false)}>
           Reject
+        </Button>
+        <Button size="sm" disabled={m.isPending} onClick={() => m.mutate(true)}>
+          Approve
         </Button>
       </div>
     </div>

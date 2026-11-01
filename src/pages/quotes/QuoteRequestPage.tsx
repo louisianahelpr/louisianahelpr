@@ -150,11 +150,11 @@ function SetMyOwnPrice({ request }: { request: MyQuoteRequest }) {
         <Input id="own-price" inputMode="numeric" autoComplete="off" value={price} onChange={(e) => setPrice(e.target.value)} />
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={budget == null || go.isPending}>
-          Post and pay
-        </Button>
         <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={go.isPending}>
           Back
+        </Button>
+        <Button type="submit" disabled={budget == null || go.isPending}>
+          Post and pay
         </Button>
       </div>
     </form>

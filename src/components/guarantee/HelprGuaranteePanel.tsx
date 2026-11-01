@@ -132,11 +132,11 @@ function AskForFix({ job, userId }: { job: GuaranteeJob; userId: string }) {
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="primary" className="rounded-full" disabled={short || send.isPending} onClick={() => send.mutate()}>
-          {send.isPending ? "Sending…" : "Ask for a fix"}
-        </Button>
         <Button type="button" variant="ghost" className="rounded-full" disabled={send.isPending} onClick={() => setOpen(false)}>
           Cancel
+        </Button>
+        <Button type="button" variant="primary" className="rounded-full" disabled={short || send.isPending} onClick={() => send.mutate()}>
+          {send.isPending ? "Sending…" : "Ask for a fix"}
         </Button>
       </div>
     </div>
@@ -168,11 +168,11 @@ function PosterView({ claim, jobId }: { claim: GuaranteeClaim; jobId: string }) 
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="primary" className="rounded-full" disabled={fixed.isPending} onClick={() => fixed.mutate()}>
-                It's fixed
-              </Button>
               <Button type="button" variant="outline" className="rounded-full" onClick={() => setRejecting(true)}>
                 Still not right
+              </Button>
+              <Button type="button" variant="primary" className="rounded-full" disabled={fixed.isPending} onClick={() => fixed.mutate()}>
+                It's fixed
               </Button>
             </div>
           )}
@@ -225,11 +225,11 @@ function HelprView({ claim, jobId }: { claim: GuaranteeClaim; jobId: string }) {
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="primary" className="rounded-full" disabled={accept.isPending} onClick={() => accept.mutate()}>
-                Accept fix
-              </Button>
               <Button type="button" variant="outline" className="rounded-full" onClick={() => setCantFix(true)}>
                 Can't fix
+              </Button>
+              <Button type="button" variant="primary" className="rounded-full" disabled={accept.isPending} onClick={() => accept.mutate()}>
+                Accept fix
               </Button>
             </div>
           )}

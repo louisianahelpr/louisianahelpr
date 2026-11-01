@@ -25,10 +25,8 @@ interface CredentialTierSelectorProps {
 //     two-column grid shipped, and the reason this block was stacked in the
 //     first place.
 // So the label stays whole and is allowed to WRAP inside the chip, and the
-// per-chip italic subtitles collapse into ONE line beneath the row that
-// describes the SELECTED tier. That is what buys back the vertical room the
-// chips need: the row carries three names, the line under it carries the
-// meaning of the one that's chosen.
+// per-chip subtitles live only in each chip's accessible name (the visible
+// line under the row was dropped in audit 11-01 JA-42: it repeated the chip).
 //
 // The chips are a grid (`grid-cols-3`), so all three share the height of the
 // tallest — the two-line "Licensed + Insured" sets it and "Open"/"Licensed"

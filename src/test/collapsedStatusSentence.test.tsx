@@ -53,7 +53,7 @@
  * @mutate src/components/job-card/JobStatusStrip.tsx | className={variant === "line" ? "flex items-center gap-1.5 flex-wrap" : "px-4 py-2 flex items-center gap-1.5 flex-wrap"} | className={variant === "line" ? "flex items-center gap-1.5 flex-nowrap" : "px-4 py-2 flex items-center gap-1.5 flex-nowrap"}
  * @mutate src/pages/posts/PostedJobCard.tsx | status={isExpanded ? null : (\n                <PosterStatusStrip | status={false ? null : (\n                <PosterStatusStrip
  * @mutate src/components/job-card/jobStatusLine.ts | return "done_both_open";\n      }\n      return payoutNotSettled(job) ? "done_payout_pending" : "done_paid"; | return "done_both_open";\n      }\n      return "done_paid";
- * @mutate src/pages/jobs/AppliedJobCard.tsx | reviewed={isFullyDone} tracking={initialTracking} /> | reviewed={isFullyDone} />
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | reviewed={isFullyDone} tracking={initialTracking} progress={faceProgress} | reviewed={isFullyDone} progress={faceProgress}
  * @mutate src/components/job-card/jobStatusLine.ts | return job.status === "completed" && job.payment_status === "refunded"; | return false;
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";

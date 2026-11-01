@@ -175,12 +175,12 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       {reporter ? (
         <fieldset className="space-y-1">
           <legend className="text-xs font-medium">Was the report true?</legend>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name={id("truth")} checked={!falseReport} onChange={() => setFalseReport(false)} />
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name={id("truth")} checked={!falseReport} onChange={() => setFalseReport(false)} />
             Yes, or I can't tell
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="radio" name={id("truth")} checked={falseReport} onChange={() => { setFalseReport(true); setStrike(false); }} />
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name={id("truth")} checked={falseReport} onChange={() => { setFalseReport(true); setStrike(false); }} />
             No, it was false: the {reporter} gets a strike for a false report
           </label>
           {falseReport ? (
@@ -203,8 +203,8 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         If you refund: the seller's fault = the whole payment back (the seller owes the card fee); the buyer's fault = the
         item price back (the buyer's fee is kept); nobody's = the payment back minus the card fee.
       </p>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
+      <label className="flex min-h-11 items-center gap-2 text-sm">
+        <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
         Give the at-fault side a strike
       </label>
       <label htmlFor={id("note")} className="block text-xs font-medium">Note (both sides see it)</label>

@@ -23,6 +23,8 @@ import { refundTookItBack, type RefundTookItBack } from "@/lib/declutter/refundR
 import { endedOnPrefix } from "./DeclutterEndedSales";
 import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
+import { fetchPickupWindows } from "@/lib/declutter/pickupWindow";
+import { pickupWindowWords } from "@/lib/declutter/pickupSlots";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { useOpenProblems } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
@@ -226,6 +228,9 @@ export function useBuyingTracker(): BuyingTracker {
   const problemIds = ids.filter((id) => problems.has(id));
   const problemRows = useQueries({ queries: problemIds.map((id) => ({ queryKey: ["declutter", "problem", id], queryFn: () => fetchOrderProblem(id) })) });
   const pickups = live.filter((o) => o.handover !== "delivery" && o.handover !== "seller_delivery");
+  // B112: a porch order's window chosen at checkout (the booking holds only its first 30 minutes).
+  const porchIds = live.filter((o) => o.handover === "porch").map((o) => o.orderId).sort();
+  const windows = useQuery({ queryKey: ["declutter", "pickup-windows", porchIds.join(",")], queryFn: () => fetchPickupWindows(porchIds), enabled: porchIds.length > 0 });
   const handovers = useQueries({ queries: pickups.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
   const sd = live.filter((o) => o.handover === "seller_delivery");
   const sdRows = useQueries({ queries: sd.map((o) => ({ queryKey: ["declutter", "seller-delivery-booking", o.orderId], queryFn: () => fetchSellerDeliveryBooking(o.orderId) })) });
@@ -262,7 +267,10 @@ export function useBuyingTracker(): BuyingTracker {
     const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null
       : o.handover === "delivery" ? task?.pickup_slot_start ?? null : slot;
     // A1-C2: a porch pickup is a DAY (pickup_day); its slot_start is only the day's start, so never show it as a time.
+    // B112: a porch order paid with a window chosen at checkout says that window ("Sun, Nov 2, 3–5 PM").
+    const porchWindow = o.handover === "porch" && slot ? pickupWindowWords(windows.data?.get(o.orderId)?.start, windows.data?.get(o.orderId)?.end) : null;
     const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day)
+      : porchWindow ? porchWindow
       : whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
     const total = paidCents?.get(o.orderId) ?? null;
     views.set(o.orderId, {

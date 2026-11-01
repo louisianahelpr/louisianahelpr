@@ -1,11 +1,15 @@
 /**
- * The item page's ONE pickup block (owner mockup 11-01, Mockups 1 and 2: "Pickup: one block, no repeats"):
+ * The item page's ONE pickup block (owner mockup 11-01, Mockups 1 and 2: "Pickup: one block, no repeats"; A3-47):
  *   Porch pickup · New Iberia or Delcambre
- *   Every day, 7 AM – 9 PM · exact address after you pay
- * Line 1 names every way the seller ticked (checkout's words, HANDOVER_TITLE) and the cities (the pickup places'
- * cities, else the item's area). Line 2 says the hours once: places with identical hours show them once; places with
- * different hours each get "City: hours". The usual times show only as Meetup times (or an older item's pickup times),
- * by the same plan as before (itemTimesPlan). No "You can get it by:" list, no repeated "Pickup in <town>".
+ *   Every day 7 AM–9 PM
+ *   Meet at a safe spot
+ *   Sat 9 AM–12 PM, Sun 1–5 PM · you pick the spot at checkout
+ *   Helpr delivery
+ *   Exact address after you pay
+ * One line per way the seller ticked (checkout's words, HANDOVER_TITLE), its hours under it in one time format
+ * (weekHoursLine: days in week order from today). The porch line names the pickup places' cities (else the item's
+ * area) and their hours (identical ones once, else "City: hours"); the usual times go under the way they belong to
+ * (itemTimesPlan). The address note is said once, last, and only when a way goes to the seller's place (A3-55).
  * The reads and their cache keys are the ones ItemPickupWays / ItemHandoverTimes / ItemPickupDisplay use.
  */
 import { useQuery } from "@tanstack/react-query";
@@ -13,11 +17,10 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchItemHandovers, type SellerHandover } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchItemPickupWindows } from "@/lib/declutter/handover";
-import { windowsSummary } from "@/lib/declutter/pickupSlots";
+import { weekHoursLine } from "@/lib/declutter/pickupSlots";
 import { fetchItemPickupPlaces } from "@/lib/declutter/porchPlaces";
 import { noDeliveryWay } from "@/lib/declutter/pickupWords";
 import { HANDOVER_TITLE } from "./handoverCopy";
-import { placeHoursLine } from "./DeclutterPickupTimes";
 import { itemTimesPlan } from "./ItemHandoverTimes";
 
 const ORDER: SellerHandover[] = ["porch", "meetup", "seller_delivery", "delivery"];
@@ -53,20 +56,28 @@ export function ItemPickupBlock({ itemId, porchOk, areaLabel, free, isSeller, sh
   const way = noDeliveryWay(ways.data);
   const heading = way === "none" ? "Delivery" : way === "meetup" ? "Meetup" : "Pickup";
 
-  // Line 1: how, and where.
+  // A3-47 (owner mockup 11-01): one line per way, its hours under it, the address note once at the end.
   const ticked = Array.isArray(ways.data) ? ORDER.filter((w) => ways.data!.includes(w)) : null;
-  const how = ticked === null ? [porchOk ? "Porch pickup" : "Meet at the seller's home"] : ticked.map((w) => HANDOVER_TITLE[w]);
   const placeList = plan.places && Array.isArray(places.data) ? places.data : [];
   const cities = placeList.length > 0 ? [...new Set(placeList.map((p) => p.area).filter(Boolean))] : [areaLabel];
-
-  // Line 2: the hours, identical ones once.
-  const hourLines = placeList.map((p) => ({ area: p.area, hours: placeHoursLine(p.windows, p.weekdays) })).filter((h) => h.hours);
+  const usualLine = usual.data ? weekHoursLine(usual.data) : "";
+  // The porch places' hours: identical ones once, otherwise "City: hours" each.
+  const hourLines = placeList.map((p) => ({ area: p.area, hours: weekHoursLine(p.windows, p.weekdays) })).filter((h) => h.hours);
   const distinct = [...new Set(hourLines.map((h) => h.hours))];
   const placeHours = distinct.length === 1 ? distinct[0] : hourLines.map((h) => `${h.area}: ${h.hours}`).join("; ");
-  const usualLine = usual.data ? windowsSummary(usual.data) : "";
-  const note = showAddressNote ? addressNote(free, isSeller) : "";
-  const second = [placeHours, plan.usual === "Meetup times" && placeHours ? "" : usualLine, note].filter(Boolean);
-  const meetupLine = plan.usual === "Meetup times" && placeHours && usualLine ? `Meetup times: ${usualLine}` : "";
+  const pickupUsual = plan.usual === "Pickup times" || plan.usual === "Pickup and meetup times" ? usualLine : "";
+  const rows: { way: string; title: string; hours: string }[] = [];
+  const porch = ticked === null ? porchOk : ticked.includes("porch");
+  if (porch) rows.push({ way: "porch", title: `${HANDOVER_TITLE.porch} · ${orList(cities)}`, hours: placeHours || pickupUsual });
+  if (ticked === null && !porchOk) rows.push({ way: "pickup_home", title: `${HANDOVER_TITLE.pickup_home} · ${orList(cities)}`, hours: pickupUsual });
+  if (ticked?.includes("meetup")) {
+    const meetHours = plan.usual === "Meetup times" || plan.usual === "Pickup and meetup times" ? usualLine : "";
+    rows.push({ way: "meetup", title: HANDOVER_TITLE.meetup, hours: [meetHours, "you pick the spot at checkout"].filter(Boolean).join(" · ") });
+  }
+  for (const w of ["seller_delivery", "delivery"] as const) if (ticked?.includes(w)) rows.push({ way: w, title: HANDOVER_TITLE[w], hours: "" });
+  // Said once, last, and only for a way that goes to the seller's place (never under delivery: A3-55).
+  const note = showAddressNote && rows.some((r) => r.way === "porch" || r.way === "pickup_home") ? addressNote(free, isSeller) : "";
+  const cap = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
 
   return (
     <section className="space-y-0.5" aria-labelledby="declutter-pickup" data-item-pickup-block="">
@@ -74,16 +85,16 @@ export function ItemPickupBlock({ itemId, porchOk, areaLabel, free, isSeller, sh
       {ticked !== null && ticked.length === 0 ? (
         <p className="text-sm" data-pickup-ways="">The seller hasn't said how buyers can get it yet.</p>
       ) : (
-        <p className="text-ds-15 [overflow-wrap:anywhere]" data-pickup-ways="">
-          {how.join(" or ")} · {orList(cities)}
-        </p>
+        <ul className="space-y-1.5" data-pickup-ways="">
+          {rows.map((r) => (
+            <li key={r.way} data-pickup-way={r.way}>
+              <p className="text-ds-15 [overflow-wrap:anywhere]">{r.title}</p>
+              {r.hours && <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]" data-item-pickup-hours={r.way}>{cap(r.hours)}</p>}
+            </li>
+          ))}
+        </ul>
       )}
-      {second.length > 0 && (
-        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]" data-item-pickup-hours="">
-          {second.join(" · ").replace(/^./, (c) => c.toUpperCase())}
-        </p>
-      )}
-      {meetupLine && <p className="text-sm text-muted-foreground" data-item-meetup-times="">{meetupLine}</p>}
+      {note && <p className="pt-1 text-sm text-muted-foreground" data-item-address-note="">{cap(note)}</p>}
       {readTimes && places.isError && (
         <ErrorState variant="inline" title="We couldn't load the pickup places." body={declutterErrorMessage(places.error)} onRetry={() => void places.refetch()} />
       )}

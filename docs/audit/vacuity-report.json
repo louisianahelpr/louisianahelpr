@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-01T10:22:23.774Z",
-  "guards": 3081,
-  "registered": 3081,
+  "generated": "2026-11-01T11:15:58.373Z",
+  "guards": 3102,
+  "registered": 3102,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -112,6 +112,24 @@
       ],
       "parents": [
         "src/components/admin/AdminUsers.tsx"
+      ]
+    },
+    {
+      "module": "src/components/declutter/DeclutterPickupDayCard.tsx",
+      "tests": [
+        "src/components/declutter/declutterPickupDayCard.test.tsx"
+      ],
+      "parents": [
+        "src/components/declutter/DeclutterMineViews.tsx"
+      ]
+    },
+    {
+      "module": "src/components/declutter/DeclutterWatching.tsx",
+      "tests": [
+        "src/components/declutter/declutterWatching.test.tsx"
+      ],
+      "parents": [
+        "src/components/declutter/DeclutterMineViews.tsx"
       ]
     },
     {

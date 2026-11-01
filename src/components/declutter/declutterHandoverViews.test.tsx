@@ -327,15 +327,28 @@ describe("Declutter slice 4: paid-order cards", () => {
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("book"));
     unmount();
     show([line({ my_side: "seller" })]);
-    expect(await screen.findByText(/Waiting for the buyer to book a pickup time/)).toBeInTheDocument();
+    expect(await screen.findByText("Paid. Waiting on Dana to book a pickup time.")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
   });
 
+  // A3-49 (audit 11-01): the seller's unbooked sale says "waiting on the buyer" ONCE, naming the buyer.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") return null; |   if (!booked && order.side === "seller") return <p>Waiting for the buyer to book a pickup time (within 7 days of paying).</p>;
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const buyer = times.buyer \|\| "the buyer"; |   const buyer = "the buyer";
+  it("the seller's unbooked sale says the wait once, with the buyer's first name (A3-49)", async () => {
+    for (const handover of ["porch", "pickup_home", "meetup"]) {
+      const { unmount } = show([line({ my_side: "seller", handover })]);
+      await screen.findByText(/^Paid\. Waiting on Dana to /);
+      expect(screen.getAllByText(/waiting (on|for) (the buyer|Dana)/i)).toHaveLength(1);
+      expect(screen.queryByText(/within 7 days of paying/)).toBeNull();
+      unmount();
+    }
+  });
+
   // B48 live check 2026-10-29: a safe-spot meetup's seller card said "book a pickup time".
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "meetup" ? "a time to meet" : "a pickup time"} | a pickup time
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : waiting("book a time to meet") | : waiting("book a pickup time")
   it("meetup: the seller waits for the buyer to book a time to meet", async () => {
     show([line({ my_side: "seller", handover: "meetup" })]);
-    expect(await screen.findByText(/Waiting for the buyer to book a time to meet/)).toBeInTheDocument();
+    expect(await screen.findByText("Paid. Waiting on Dana to book a time to meet.")).toBeInTheDocument();
     expect(screen.queryByText(/book a pickup time/)).toBeNull();
   });
 
@@ -1676,7 +1689,7 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     show([line({ handover: "meetup", my_side: "seller" })]);
     const steps = await parts("meetup");
     expect(within(steps).getByText("Met")).toBeInTheDocument();
-    expect(screen.getByText("Paid. Waiting on the buyer to book a time to meet.")).toBeInTheDocument();
+    expect(screen.getByText("Paid. Waiting on Dana to book a time to meet.")).toBeInTheDocument();
   });
 
   it("porch and door pickup keep theirs (the kinds that had it)", async () => {

@@ -14,7 +14,7 @@ export type TakeHomeJob = HelperEarningsJob & FlatFeeStamp & {
 
 /**
  * What the viewer would take home from this job — the SAME computation the job
- * page's "You take home" box runs (HelprMoney, src/pages/jobs/jobPage/JobPageParts.tsx):
+ * page's "You take home" box runs (useHelprMoney, src/pages/jobs/jobPage/JobPageParts.tsx):
  * computeNet over the job's fee stamp (5% + 70c on a flat-model job), the
  * viewer's tier rate for an older unstamped job, the group split
  * (helperShareCount), and the one-time setup fee from a first payout (never on

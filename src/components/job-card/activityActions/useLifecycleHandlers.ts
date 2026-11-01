@@ -82,7 +82,27 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
   } = deps;
 
   const tryCancelJob = async (job: Job) => {
-    const { data: tracking, error: trackingErr } = await supabase.from("job_tracking").select("status").eq("job_id", job.id).order("created_at", { ascending: false }).limit(1);
+    // A crew (JOBS-3): only members still on the roster count. A member reported a no-show after tapping
+    // "on my way" left a tracking row behind, and must not block the poster's cancel once nobody is left
+    // (crewNobodyLeft). Read fails closed like the tracking read below.
+    let crewOnRoster: string[] | null = null;
+    if (job.is_group_job) {
+      const { data: roster, error: rosterErr } = await supabase.from("group_job_helpers").select("helper_id").eq("job_id", job.id);
+      if (rosterErr) {
+        report(rosterErr, { tags: { area: "activity", op: "tryCancelJob.rosterRead" }, context: { jobId: job.id } });
+        hapticError();
+        toast.error("We couldn't check this job's status. Please try again in a moment.", { duration: 5000 });
+        return;
+      }
+      crewOnRoster = (roster ?? []).map((r) => r.helper_id).filter((id): id is string => !!id);
+      if (crewOnRoster.length === 0) {
+        setCancelDialogJob(job);
+        return;
+      }
+    }
+    let trackingQuery = supabase.from("job_tracking").select("status").eq("job_id", job.id);
+    if (crewOnRoster) trackingQuery = trackingQuery.in("helper_id", crewOnRoster);
+    const { data: tracking, error: trackingErr } = await trackingQuery.order("created_at", { ascending: false }).limit(1);
     // Fail CLOSED: if we can't read the tracking status we cannot prove the
     // Helpr isn't already en route/working, so block the cancel rather than
     // silently letting a false-negative through (the guard is the only thing

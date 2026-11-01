@@ -13,7 +13,8 @@ import { MapPin } from "lucide-react";
 import { queryKeys } from "@/lib/queryKeys";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
-import { CrewActionError, crewMemberStatusLabel, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
+import { CrewActionError, crewMemberStatusLabel, crewNobodyLeft, posterConfirmMemberArrival, posterReportMemberNoShow } from "@/lib/crewLifecycle";
+import { Button } from "@/components/ui/button";
 import { hasJobStarted } from "@/lib/dateUtils";
 
 /** Label for a roster slot whose helper has deleted their account.
@@ -50,6 +51,7 @@ export function GroupJobHelpers({
   initialHelpers,
   dateNeeded,
   startTime,
+  onCancelJob,
 }: {
   jobId: string;
   helpersNeeded: number;
@@ -73,10 +75,15 @@ export function GroupJobHelpers({
   /** `jobs.date_needed` / `jobs.start_time`: "Didn't show" is offered only once the start has passed (JOBS-3). */
   dateNeeded?: string | null;
   startTime?: string | null;
+  /** The card's own Cancel (tryCancelJob -> CancellationDialog -> poster_cancel_job), offered when every
+   *  member was reported a no-show and nobody is left (crewNobodyLeft, JOBS-3). */
+  onCancelJob?: () => void;
 }) {
   // Seed from the parent-batched rows when present so we don't fire two
   // queries per group-job card on every Activity render.
   const [helpers, setHelpers] = useState<GroupHelper[]>(initialHelpers ?? []);
+  // The roster is known once the parent supplied it or our own read came back (crewNobodyLeft).
+  const [rosterKnown, setRosterKnown] = useState(initialHelpers !== undefined);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [pendingRemoval, setPendingRemoval] = useState<GroupHelper | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -98,7 +105,10 @@ export function GroupJobHelpers({
   // Keep local helpers in sync when the parent re-supplies a fresh
   // batch — e.g. after the activity cache invalidates and refetches.
   useEffect(() => {
-    if (initialHelpers !== undefined) setHelpers(initialHelpers);
+    if (initialHelpers !== undefined) {
+      setHelpers(initialHelpers);
+      setRosterKnown(true);
+    }
   }, [initialHelpers]);
 
   const loadHelpers = async () => {
@@ -142,6 +152,7 @@ export function GroupJobHelpers({
     } else {
       setHelpers([]);
     }
+    setRosterKnown(true);
   };
 
   /**
@@ -224,11 +235,14 @@ export function GroupJobHelpers({
     setReportingId(h.id);
     try {
       const { jobComplete } = await posterReportMemberNoShow(jobId, h.helper_id);
+      const nobodyLeft = !helpers.some((x) => x.id !== h.id && x.helper_id != null);
       setHelpers((prev) => prev.filter((x) => x.id !== h.id));
       hapticSuccess();
       toast.success(
         jobComplete
           ? `${h.helperName || "That Helpr"} is reported. The rest of your crew is done, so you can approve the job.`
+          : nobodyLeft
+          ? `${h.helperName || "That Helpr"} is reported. Nobody is left on your crew, so you can cancel and get all your money back.`
           : `${h.helperName || "That Helpr"} is reported. Most of their share comes back to you after the job.`,
       );
       void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
@@ -329,6 +343,7 @@ export function GroupJobHelpers({
   const slotTotal = Math.max(1, Math.floor(helpersNeeded) || 1);
   const filledSlots = helpers.filter((h) => h.status === "accepted").length;
   const remaining = Math.max(0, slotTotal - filledSlots);
+  const nobodyLeft = isOwner && !!onCancelJob && crewNobodyLeft(jobStatus, helpers, rosterKnown);
 
   return (
     /* FLAT, like the poster tracker (6e3d2f7d1) and HelperTrackerPanel
@@ -428,7 +443,8 @@ export function GroupJobHelpers({
         <p className="font-semibold">How crew jobs work</p>
         <p className="text-muted-foreground">When you approve, every Helpr on the crew is paid their share. If someone drops out, the spot opens again for your applicants. If someone never shows, tap Didn&apos;t show: they aren&apos;t paid and most of their share comes back to you.</p>
       </div>
-      {remaining > 0 && (
+      {/* Not beside the nobody-left Cancel: with no one on the crew the whole budget comes back on the cancel. */}
+      {remaining > 0 && !nobodyLeft && (
         <p className="text-ds-11 text-muted-foreground text-center">
           {/* Q1378 (owner 2026-10-05): a booked crew a member left carries on.
               The server keeps it booked, lets the poster refill the spot from
@@ -440,6 +456,17 @@ export function GroupJobHelpers({
               ? `${remaining} spot${remaining > 1 ? "s" : ""} open. Most of that share comes back to you after the job.`
               : `${remaining} more Helpr${remaining > 1 ? "s" : ""} needed`}
         </p>
+      )}
+
+      {nobodyLeft && (
+        <div data-crew-nobody-left="" className="space-y-2">
+          <p className="text-ds-13 text-muted-foreground">
+            Nobody from your crew came. Cancel the job and you get all your money back.
+          </p>
+          <Button variant="outline" size="lg" className="w-full rounded-full text-ds-15 text-destructive-ink" onClick={onCancelJob}>
+            Cancel and get a refund
+          </Button>
+        </div>
       )}
 
       <BrandConfirmDialog

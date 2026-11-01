@@ -157,11 +157,18 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/supportGuest.ts";`,
   );
 
-  // CMP-4 instant book: `_shared/instantBookSweep.ts` has ZERO imports (its
-  // database, capture and pager are injected), so point at the REAL module.
+  // CMP-4 instant book: `_shared/instantBookSweep.ts` has only a type import
+  // (its database, capture, pager and refund are injected), so point at the REAL module.
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/instantBookSweep\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/instantBookSweep.ts";`,
+  );
+  // CMP-4 instant book refund: `_shared/instantBookRefund.ts` imports only the
+  // pure stripeRefusal.ts by `./` (Stripe, the database and the pager are
+  // injected), so the REAL module serves cardHold.ts's refundInstantBookingWith.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/instantBookRefund\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/instantBookRefund.ts";`,
   );
 
   // "First L." (Q2292): `_shared/memberDisplayName.ts` has ZERO imports, so

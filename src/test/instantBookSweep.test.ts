@@ -7,6 +7,8 @@
 // @mutate supabase/functions/_shared/instantBookSweep.ts | if (captured.reason === "poster_must_pay") return endForPayment(deps, jobId); | if (captured.reason === "poster_must_pay") return "none";
 // @mutate supabase/functions/_shared/instantBookSweep.ts | if (row.payment_status === "failed") return endForPayment(deps, jobId); | if (row.payment_status === "nope") return endForPayment(deps, jobId);
 // @mutate supabase/functions/_shared/instantBookSweep.ts | if (!doneErr && done != null) return "hired"; | return "hired";
+// @mutate supabase/functions/_shared/instantBookSweep.ts |   const refunded = await deps.refund(jobId); |   const refunded = "refunded" as InstantRefundOutcome;
+// @mutate supabase/functions/_shared/instantBookSweep.ts | return endCapturedNotHired(deps, jobId, helperId, | return endCapturedNotHired({ ...deps, refund: async () => "retry" as const }, jobId, helperId,
 /**
  * CMP-4 (lead 2026-11-01, design A): the 2-hour capture of an instant booking
  * (supabase/functions/_shared/instantBookSweep.ts, run by card-hold-sweep).
@@ -25,6 +27,7 @@ import {
   type InstantBookingRow,
   type InstantCaptureResult,
 } from "../../supabase/functions/_shared/instantBookSweep";
+import type { InstantRefundOutcome } from "../../supabase/functions/_shared/instantBookRefund";
 
 const JOB = "00000000-0000-0000-0000-000000000101";
 const HELPR = "00000000-0000-0000-0000-000000000011";
@@ -36,7 +39,7 @@ function world(row: Partial<InstantBookingRow>, captureAnswers: InstantCaptureRe
     status: "open", payment_status: "held", helper_id: null, offered_to_helper_id: HELPR,
     direct_offer_status: "pending", instant_decline_until: new Date(NOW - 60_000).toISOString(), ...row,
   };
-  const calls = { capture: 0, complete: 0, failed: 0, pages: 0, ended: 0, notHired: 0, captureFor: [] as string[], defects: [] as string[] };
+  const calls = { capture: 0, complete: 0, failed: 0, pages: 0, ended: 0, notHired: 0, refunds: 0, pageText: [] as string[], captureFor: [] as string[], defects: [] as string[] };
   /** instant_book_end_if_unhireable's answer: can the Helpr be hired now (block, ban, ID, payout setup)? */
   const hireable = { now: true };
   const notHiredMarked = new Set<string>();
@@ -63,7 +66,8 @@ function world(row: Partial<InstantBookingRow>, captureAnswers: InstantCaptureRe
         if (notHiredMarked.has(JOB)) return { data: false, error: null };
         notHiredMarked.add(JOB);
         calls.notHired++;
-        Object.assign(job, { offered_to_helper_id: null, direct_offer_status: null, instant_decline_until: null });
+        // 20261101074901: closed for review with the refund claim taken.
+        Object.assign(job, { offered_to_helper_id: null, direct_offer_status: null, instant_decline_until: null, status: "cancelled", payment_status: "cancelling" });
         return { data: true, error: null };
       }
       if (name === "instant_book_payment_failed") {
@@ -88,7 +92,8 @@ function world(row: Partial<InstantBookingRow>, captureAnswers: InstantCaptureRe
   const deps = {
     db, capture, now: NOW,
     record: (d: string) => { calls.defects.push(d); },
-    page: async () => { calls.pages++; },
+    page: async (_t: string, message: string) => { calls.pages++; calls.pageText.push(message); },
+    refund: async (): Promise<InstantRefundOutcome> => { calls.refunds++; return "refunded"; },
   };
   return { job, calls, deps, hireable, charged: () => charged };
 }
@@ -175,7 +180,23 @@ describe("instant book: the 2-hour capture (CMP-4)", () => {
     expect(w.calls.notHired).toBe(1);
     expect(w.calls.pages).toBe(1);
     expect(w.charged()).toBe(1);
-    expect(w.job).toMatchObject({ offered_to_helper_id: null, direct_offer_status: null });
+    expect(w.job).toMatchObject({ offered_to_helper_id: null, direct_offer_status: null, status: "cancelled", payment_status: "cancelling" });
+    // The full refund runs at once, once; the one page says what it did (never "refund by hand").
+    expect(w.calls.refunds).toBe(1);
+    expect(w.calls.pageText[0]).toMatch(/closed for review/);
+    expect(w.calls.pageText[0]).toMatch(/the refund went out/);
+    expect(w.calls.pageText[0]).not.toMatch(/by hand/);
+  });
+
+  it("captured, hire refused, the refund not answered yet: the one page says the sweep retries it", async () => {
+    const w = world({}, [{ ok: true, already: false }]);
+    const realRpc = w.deps.db.rpc;
+    w.deps.db.rpc = (async (name: string) => (name === "complete_direct_offer_accept" ? { data: null, error: null } : realRpc(name))) as typeof w.deps.db.rpc;
+    w.deps.refund = async () => { w.calls.refunds++; return "retry"; };
+    expect(await settleInstantBooking(w.deps, JOB)).toBe("captured_not_hired");
+    expect(w.calls.refunds).toBe(1);
+    expect(w.calls.pages).toBe(1);
+    expect(w.calls.pageText[0]).toMatch(/retries it every run/);
   });
 
   it("captured, hire refused, and the job already marked (a run that crashed after marking): no second page", async () => {
@@ -186,6 +207,7 @@ describe("instant book: the 2-hour capture (CMP-4)", () => {
       : name === "instant_book_captured_not_hired" ? { data: false, error: null } : realRpc(name))) as typeof w.deps.db.rpc;
     expect(await settleInstantBooking(w.deps, JOB)).toBe("none");
     expect(w.calls.pages).toBe(0);
+    expect(w.calls.refunds).toBe(0);
   });
 
   it("a hire that errored (not a refusal) retries with no page and no second charge", async () => {

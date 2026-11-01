@@ -172,8 +172,12 @@ describe("Helpr Guarantee: the screens", () => {
 
   it("members see no fee numbers in any guarantee copy (owner rule)", () => {
     const panel = blankComments(readFileSync("src/components/guarantee/HelprGuaranteePanel.tsx", "utf8"));
-    const words = [panel, JSON.stringify(GUARANTEE_RPC_ERROR_COPY)];
-    for (const w of words) expect(w).not.toMatch(/\$\d|\d+\s?%|\bfees?\b/i);
+    // Each source checked on its own (vacuity scan: a loop over a list declared here read as input == oracle), with a
+    // floor that the panel read is the real one.
+    const feeWords = /\$\d|\d+\s?%|\bfees?\b/i;
+    expect(panel.length).toBeGreaterThan(2_000);
+    expect(panel).not.toMatch(feeWords);
+    expect(JSON.stringify(GUARANTEE_RPC_ERROR_COPY)).not.toMatch(feeWords);
     expect(Object.keys(GUARANTEE_RPC_ERROR_COPY).length).toBeGreaterThan(3);
   });
 });

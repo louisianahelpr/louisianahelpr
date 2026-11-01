@@ -29961,6 +29961,227 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/profile?tab=instant_book",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4180",
+      "capturedAt": 2149,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=instant_book",
+      "loadingPng": "/Users/lexilombas/.lh-shots/b80-1101/loading/helper_profile_tab_instant_book.loading.png",
+      "loading": {
+        "found": 7,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "testid:help-entry": {
+            "y": 12,
+            "h": 44
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 7,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 579
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 5,
+            "rowH": 68,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 28,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 2,
+            "placeholders": 7,
+            "text": "Instant book"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/b80-1101/loading/helper_profile_tab_instant_book.loaded.png",
+      "loaded": {
+        "found": 0,
+        "docH": 812,
+        "landmarks": {
+          "testid:instant-book-tab": {
+            "y": 0,
+            "h": 578.8
+          },
+          "div[data-testid=\"instant-book-tab\"] > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "testid:help-entry": {
+            "y": 12,
+            "h": 44
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 578.8
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 5,
+            "rowH": 68,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 32,
+            "textLeaves": 9,
+            "media": 0,
+            "controls": 3,
+            "placeholders": 0,
+            "text": "Instant bookLet people book you right away. Pick up to 3 kinds of work and the least you'd take for each. When a job pays at least that much and you're free tha"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 579
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 578.8
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -0.2,
+          "deltaContainerPx": 0,
+          "rows": [
+            5,
+            5
+          ],
+          "rowH": [
+            68,
+            68
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            2,
+            3
+          ],
+          "textLeaves": [
+            1,
+            9
+          ],
+          "placeholderCount": 7,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": -0.2,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 3,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "WebSocket connection to 'ws://127.0.0.1:54321/realtime/v1/websocket?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZuY21nb2FzYWxoZGdmd3poc3FhIiwicm9sZSI6ImFub24iLCJpYXQi"
+      ],
+      "requests": 0
+    },
+    {
+      "url": "/profile?tab=instant_book",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4180",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dinstant_book",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -30227,6 +30448,15 @@
       "base": "http://127.0.0.1:4373",
       "surfaces": [
         "anon /hire/handyman/lafayette"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-11-01T09:09:37.217Z",
+      "base": "http://127.0.0.1:4180",
+      "surfaces": [
+        "helper /profile?tab=instant_book",
+        "anon /profile?tab=instant_book"
       ],
       "replaced": []
     }

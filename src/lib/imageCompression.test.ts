@@ -96,7 +96,9 @@ describe("tryHeic: a caller that refuses what it can't clean", () => {
   });
 
   it("a listing photo uses it", () => {
-    expect(readFileSync(resolve(__dirname, "declutter/photos.ts"), "utf8")).toContain("{ tryHeic: true }");
+    const src = readFileSync(resolve(__dirname, "declutter/photos.ts"), "utf8");
+    expect(src.length).toBeGreaterThan(500);
+    expect(src).toContain("{ tryHeic: true }");
   });
 });
 

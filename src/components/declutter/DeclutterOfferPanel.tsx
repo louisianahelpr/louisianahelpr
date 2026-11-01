@@ -19,7 +19,7 @@ import { deliveryPriceCents } from "@/lib/declutter/delivery";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { minOfferCents } from "@/lib/declutter/money";
-import { BuyerTotal } from "./BuyerTotal";
+import { BuyerTotal, SetupFeeNote } from "./BuyerTotal";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, cardCancelledFromState, offerAmountFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
@@ -136,31 +136,28 @@ const CARD_POLL_MS = 1_500;
  * the server checks every buy and offer (strikes, card, sold) on its own.
  */
 /**
- * Board 4: "Buy now" over "$40.60 total". The total is the checkout
- * total (buyNowTotalCents = checkoutAmounts, the rule declutter_start_checkout
- * freezes), never the bare price (D6), PLUS the one-time account setup fee a
- * first purchase carries (A1-B2: the button said $32.20 while Stripe charged
- * $34.20; checkout's payCents adds the same useFirstPayoutFeeCents). Until that
- * answer is in, the label says a setup fee may be added rather than show a
- * figure $2 low. Screen readers hear one line.
+ * Owner 11-01 (app-wide): side-by-side buttons are ONE line with short labels. So "Buy · $37.45", not "Buy now" over
+ * "$37.45 total + any one-time setup fee" (four lines at 375); the setup-fee words are a SetupFeeNote under the
+ * buttons. The figure is the checkout total (buyNowTotalCents = checkoutAmounts, the rule declutter_start_checkout
+ * freezes), never the bare price (D6), PLUS the one-time account setup fee a first purchase carries (A1-B2: the
+ * button said $32.20 while Stripe charged $34.20). Screen readers hear "Buy now · $37.45 total" (and the setup-fee words while they apply).
  */
 function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize }) {
   // Audit BUY-3: on an item the seller offers only delivered (way "none"), the pickup total is a figure nobody can
   // pay. The label names the least it costs delivered instead, the item page's own "from" floor (fromDeliveredCents).
   const delivered = way === "none";
   return (
-    <span className="flex flex-col items-center leading-tight">
-      <span className="font-semibold">Buy now</span>{" "}
-      <span className="sr-only">·</span>{" "}
-      <span className="text-xs font-medium">
-        {delivered && "from "}
-        <BuyerTotal
-          priceCents={priceCents}
-          addCents={delivered ? deliveryPriceCents(1, [size]) : 0}
-          suffix={delivered ? " delivered" : " total"}
-          pendingClassName="text-xs font-medium"
-        />
-      </span>
+    <span className="whitespace-nowrap font-semibold" data-buy-label="">
+      {/* Text nodes carry the spaces: a space at a span's edge is dropped from the accessible name. */}
+      <span aria-hidden>Buy ·</span>
+      <span className="sr-only">Buy now ·</span>{" "}
+      {delivered && "from "}
+      <BuyerTotal
+        priceCents={priceCents}
+        addCents={delivered ? deliveryPriceCents(1, [size]) : 0}
+        suffix={<>{" "}<span className="sr-only">{delivered ? "delivered" : "total"}</span></>}
+        pendingClassName="sr-only"
+      />
     </span>
   );
 }
@@ -391,21 +388,23 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   }
   return (
     <section ref={panel} tabIndex={-1} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4 focus:outline-none" aria-label="Buy or make an offer">
-      {/* Owner mockup 11-01 (Mockup 1/2): Make an offer on the LEFT (outline), Buy now on the RIGHT (solid, with the
-          total), side by side at every width, as in the phone bar below. Alone (offers off, or an offer already sent),
-          Buy now takes the whole row. */}
-      <div ref={buttons} className={myOffer || offersOff ? "grid gap-2" : "grid grid-cols-2 gap-2"} data-offer-buttons="">
+      {/* Owner mockup 11-01 (Mockup 1/2): Offer on the LEFT (outline), Buy on the RIGHT (solid, with the total), side
+          by side at every width, as in the phone bar below; each ONE line with a short label (owner 11-01, app-wide),
+          Buy taking the wider share for its figure, the setup-fee words on a line under them. Alone (offers off, or an
+          offer already sent), Buy takes the whole row. */}
+      <div ref={buttons} className={myOffer || offersOff ? "grid gap-2" : "grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-2"} data-offer-buttons="">
         {!myOffer && !offersOff && (
           <Button
             type="button"
             variant="outline"
             size="wrap"
-            className="w-full min-w-0 rounded-full"
+            className="w-full min-w-0 rounded-full px-3"
             aria-expanded={open}
             disabled={offers.isLoading}
             onClick={() => (open ? setOpen(false) : tap("offer"))}
           >
-            Make an offer
+            <span aria-hidden className="whitespace-nowrap" data-offer-label="">Offer</span>
+            <span className="sr-only">Make an offer</span>
           </Button>
         )}
         {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
@@ -414,7 +413,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           type="button"
           size="wrap"
           variant={showCardStep ? "outline" : undefined}
-          className="w-full min-w-0 rounded-full"
+          className="w-full min-w-0 rounded-full px-3"
           disabled={buy.isPending || card.isLoading}
           aria-busy={card.isLoading || undefined}
           onClick={() => tap("buy")}
@@ -422,6 +421,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
         </Button>
       </div>
+      <SetupFeeNote className="-mt-1 text-center text-ds-12 text-muted-foreground" />
       {footer}
       {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
       {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
@@ -514,9 +514,9 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
                     panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
                   }}
                 >
-                  {/* The same words as the panel's button (audit 3 A3-7: "Make offer" here, "Make an offer" there).
-                      One line at 320 and 375, measured 2026-10-28. */}
-                  Make an offer
+                  {/* The same word as the panel's button (audit 3 A3-7); owner 11-01: short labels, one line. */}
+                  <span aria-hidden data-offer-label="">Offer</span>
+                  <span className="sr-only">Make an offer</span>
                 </Button>
               )}
               <Button
@@ -532,6 +532,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
                 <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
               </Button>
             </div>
+            <SetupFeeNote className="mx-auto mt-1 max-w-xl text-center text-ds-11 text-muted-foreground" />
           </div>,
           document.body,
         )}

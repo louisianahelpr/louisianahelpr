@@ -215,6 +215,20 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
   });
 
+  // B106 (item page shots 11-01): the note under Ask for it had a tall gap between its two lines, because the inline
+  // "How it works" link kept the Button's inline-flex box. It now flows as text.
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | className="inline h-auto p-0 align-baseline | className="h-auto p-0 align-baseline
+  it("the note under Ask for it reads as one paragraph: How it works flows inline, no 44px box", async () => {
+    show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
+    const how = await screen.findByRole("button", { name: "How it works" });
+    expect(how.closest("[data-free-ask-note]")).not.toBeNull();
+    const cls = how.className.split(/\s+/);
+    expect(cls).toContain("inline");
+    expect(cls).not.toContain("inline-flex");
+    expect(cls).not.toContain("h-11");
+    expect(cls).toContain("h-auto");
+  });
+
   // DA-5 (Declutter audit 2026-10-30): the ask line said "at their home or from their porch" whatever the giver ticked.
   it("the ask line names only the ways this free item offers (DA-5)", async () => {
     const FREE = { ...ITEM, current_price_cents: 0, price_cents: 0 };
@@ -298,14 +312,14 @@ describe("Buy now names the charge, setup fee included (A1-B2)", () => {
     state.setupFeeCents = 200;
     show(<OfferPanel item={ITEM} userId="u1" />);
     // $40 price -> $42.70 checkout total (5% + 70c) -> $44.70 with the $2 setup fee: the Stripe charge.
-    expect((await screen.findAllByText("$44.70 total")).length).toBeGreaterThan(0);
-    expect(screen.queryByText("$42.70 total")).toBeNull();
+    expect((await screen.findAllByRole("button", { name: "Buy now · $44.70 total" })).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /\$42\.70/ })).toBeNull();
     expect(screen.queryByText("+ any one-time setup fee")).toBeNull();
   });
 
   it("once paid it is the checkout total alone", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
-    expect((await screen.findAllByText("$42.70 total")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("button", { name: "Buy now · $42.70 total" })).length).toBeGreaterThan(0);
   });
 
   it("while the fee answer is not in, it says a setup fee may be added, never a figure $2 low on its own", async () => {
@@ -315,12 +329,60 @@ describe("Buy now names the charge, setup fee included (A1-B2)", () => {
   });
 });
 
+// Owner 11-01 (app-wide): side-by-side buttons are ONE line with short labels. At 375 "Make an offer" took 2 lines
+// and Buy now 4 ("Buy now / $37.45 total + any one-time setup fee"). Now "Offer" (outline, left) and "Buy · $37.45"
+// (filled, right), each nowrap, the setup-fee words a small line UNDER the pair. Screen readers keep the full names.
+// The pixel half (each label inside its button at 320 and 375, one line tall) is measured in WebKit by
+// ~/.lh-shots/b109/shots.mjs (measure-*.json).
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |       <span aria-hidden>Buy ·</span> |       <span aria-hidden>Buy now ·</span>
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |     <span className="whitespace-nowrap font-semibold" data-buy-label=""> |     <span className="font-semibold" data-buy-label="">
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |         pendingClassName="sr-only" |         pendingClassName="block text-xs"
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |             <span aria-hidden className="whitespace-nowrap" data-offer-label="">Offer</span> |             <span aria-hidden className="whitespace-nowrap" data-offer-label="">Make an offer</span>
+describe("Offer and Buy are one line each, the setup fee under them (owner 11-01)", () => {
+  /** What a sighted buyer reads on a button: its text without the screen-reader-only spans. */
+  const seen = (el: Element) => {
+    const c = el.cloneNode(true) as Element;
+    c.querySelectorAll(".sr-only").forEach((n) => n.remove());
+    return (c.textContent ?? "").replace(/\s+/g, " ").trim();
+  };
+  for (const known of [true, false]) {
+    it(`short nowrap labels, setup fee ${known ? "known" : "not yet known"}`, async () => {
+      state.setupFeeKnown = known;
+      show(<OfferPanel item={ITEM} userId="u1" />);
+      const region = await screen.findByRole("region", { name: "Buy or make an offer" });
+      const buy = await within(region).findByRole("button", { name: /^Buy now · \$42\.70 total/ });
+      const offer = within(region).getByRole("button", { name: "Make an offer" });
+      expect(seen(offer)).toBe("Offer");
+      expect(seen(buy)).toBe("Buy · $42.70");
+      // Fits the narrow column at 320 up to $999.99 ("Buy · $999.99", 13 characters).
+      expect(seen(buy).length).toBeLessThanOrEqual(13);
+      for (const b of [buy, offer]) {
+        const label = b.querySelector("[data-buy-label], [data-offer-label]");
+        expect(label?.className, seen(b)).toMatch(/whitespace-nowrap/);
+        expect(seen(b)).not.toMatch(/setup fee|total/);
+      }
+      // Offer left, Buy right, in one row; the fee words are a line UNDER the row, never inside a button.
+      const row = region.querySelector("[data-offer-buttons]")!;
+      expect([...row.querySelectorAll("button")]).toEqual([offer, buy]);
+      expect(row.className).toMatch(/grid-cols-\[/);
+      const note = region.querySelector("[data-setup-fee-note]");
+      if (known) expect(note).toBeNull();
+      else {
+        expect(note?.textContent).toBe("+ any one-time setup fee");
+        expect(row.compareDocumentPosition(note!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(row.contains(note)).toBe(false);
+        expect(buy.textContent).toContain("+ any one-time setup fee"); // heard by screen readers in the button
+      }
+    });
+  }
+});
+
 // Smart offers (owner 2026-10-29): a seller who turned offers off sells Buy only. The item page shows no
 // "Make an offer" (panel or phone bar) and says so; an item read before the column existed counts as offers on.
 describe("offers off = Buy only (smart offers)", () => {
   it("no Make an offer when the seller turned offers off", async () => {
     show(<OfferPanel item={{ ...ITEM, accepts_offers: false }} userId="u1" />);
-    expect((await screen.findAllByText("$42.70 total")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("button", { name: "Buy now · $42.70 total" })).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: "Make an offer" })).toBeNull();
     expect(screen.getByText("The seller isn't taking offers on this one.")).toBeTruthy();
   });

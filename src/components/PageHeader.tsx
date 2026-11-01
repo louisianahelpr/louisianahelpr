@@ -264,6 +264,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
       title={title}
       back={hideBack ? undefined : { onBack, backTo }}
       actions={desktopActions}
+      titleHidden={hidesTitle}
       phone={<>
       {showTopBar && (
         <header className="glass-header sticky top-0 z-50">

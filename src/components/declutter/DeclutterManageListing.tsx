@@ -386,13 +386,17 @@ export function SellerListingPanel({ item, coverUrl }: { item: DeclutterItem; co
   const [open, setOpen] = useState<null | "menu" | "price">(null);
   const relist = useListingAction(() => relistListing(item.id), "Back on sale.");
   const paused = item.status === "paused";
+  // A free item (20261027170717) has no price and no drops (B106 found "Change the price, stop the drops" on one).
+  const free = item.current_price_cents === 0;
   return (
     <section className="space-y-2" aria-label="Your listing" data-seller-panel={item.status}>
       <div className="rounded-[20px] border border-border bg-card px-4 py-4 space-y-3">
         <div>
-          <p className="text-ds-17 font-bold">{paused ? "Paused" : "Your listing is for sale"}</p>
-          <p className="text-ds-13 text-muted-foreground">
-            {paused ? "Hidden from buyers. Its photos and price are kept." : "Change the price, stop the drops, pause it or take it down."}
+          <p className="text-ds-17 font-bold">{paused ? "Paused" : free ? "Your free item is up" : "Your listing is for sale"}</p>
+          <p className="text-ds-13 text-muted-foreground" data-seller-panel-line="">
+            {paused
+              ? free ? "Hidden from neighbors. Its photos are kept." : "Hidden from buyers. Its photos and price are kept."
+              : free ? "Pause it or take it down." : "Change the price, stop the drops, pause it or take it down."}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -414,7 +418,7 @@ export function SellerListingPanel({ item, coverUrl }: { item: DeclutterItem; co
         {/* Q2426: share only a listing buyers can open now, never a paused one. */}
         {!paused && (
           <div className="border-t border-border pt-3 space-y-2">
-            <p className="text-ds-13 text-muted-foreground">Post it in your local Facebook groups. The link shows its photo, price and town.</p>
+            <p className="text-ds-13 text-muted-foreground">Post it in your local Facebook groups. {free ? "The link shows its photo and town, and that it's free." : "The link shows its photo, price and town."}</p>
             <ShareListingRow item={item} />
           </div>
         )}

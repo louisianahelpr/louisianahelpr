@@ -12,6 +12,7 @@ import {
 } from "@/components/job-card/activityFilters";
 import { assertNever } from "@/lib/assertNever";
 import { isExpiredListing } from "@/lib/expiredListing";
+import { posterFirstName } from "@/lib/deletedPerson";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { afterPhotoIsThePrimary, beforePhotoIsThePrimary } from "./primaryPhotoAsk";
 import { arrivalEstablished } from "@/lib/arrivalGate";
@@ -1004,7 +1005,8 @@ export function helperStatusLine(
   const id = deriveHelperWait(app, progress);
   const copy = HELPER_WAIT[id];
   const bucket = appliedActivityBucket(app);
-  const named = app.posterName ? HELPER_NAMED[id]?.(firstName(app.posterName)) : undefined;
+  const posterFirst = posterFirstName(app.posterName);
+  const named = posterFirst ? HELPER_NAMED[id]?.(posterFirst) : undefined;
   // Expired is not cancelled (owner 10-31): an applicant to a listing that
   // expired with no Helpr reads "Closed · No longer open", never "Cancelled"
   // and never "Expired" (only the poster sees "Expired", on their own jobs).

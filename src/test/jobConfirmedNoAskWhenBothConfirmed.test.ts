@@ -7,6 +7,7 @@
  * @mutate supabase/functions/_shared/notification-templates.ts |       if (byPoster ? f.job.helper_dayof_confirmed_at : f.job.poster_confirmed_at) { |       if (false) {
  */
 import { describe, it, expect } from "vitest";
+import { jobLocalDateISO } from "./helpers/jobLocalDate";
 import { NOTIFICATION_TEMPLATES, type TemplateFacts } from "../../supabase/functions/_shared/notification-templates";
 
 const job = (o: Partial<TemplateFacts["job"]>): TemplateFacts["job"] => ({
@@ -16,7 +17,7 @@ const job = (o: Partial<TemplateFacts["job"]>): TemplateFacts["job"] => ({
   helper_id: "helpr",
   response_deadline: null,
   dispute_status: null,
-  date_needed: "2026-11-01",
+  date_needed: jobLocalDateISO(1),
   ...o,
 });
 const build = (senderRole: "poster" | "helper", j: Partial<TemplateFacts["job"]>) =>

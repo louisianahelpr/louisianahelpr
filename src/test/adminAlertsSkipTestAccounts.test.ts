@@ -60,6 +60,9 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   declutter_withdraw_problem: "caller",
   detect_stuck_payments: "link",
   enforce_retained_payment_ban: "explicit",
+  helpr_task_cant_finish: "explicit", // 20261031231150 (BUY-36): a Helpr with the item reports a problem; is_seed on task and order, is_test_subject on buyer, seller and Helpr
+  helpr_task_seller_return_answer: "explicit", // 20261031231150 (BUY-36): the seller says it did not come back; is_seed on task and order, is_test_subject on buyer, seller and Helpr
+  helpr_task_sweep: "explicit", // 20261031231150 (BUY-36): a stalled can't-finish delivery; is_seed on the task, is_test_subject on customer, pickup contact and Helpr
   facilitator_threshold_check: "sum",
   notify_admins_support_ticket: "explicit",
   open_dispute_as: "explicit",

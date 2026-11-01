@@ -194,7 +194,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (2026-10-31: 24.) 20261031004529 (handover money) re-created a function that had been rewritten in place.
     // (2026-10-31: 23.) 20261031015647 (JOBS-14) re-created poster_cancel_job from its effective body, so
     // 20261030220537's in-place rewrite of it is superseded.
-    expect(rewritten.length).toBe(23);
+    // (2026-10-31: 22.) 20261031231150 (BUY-36, a Helpr who can't finish) re-created declutter_close_paid_order from
+    // its effective body, so 20261027172503's in-place rewrite of it is superseded.
+    expect(rewritten.length).toBe(22);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

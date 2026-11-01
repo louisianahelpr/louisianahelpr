@@ -434,7 +434,7 @@ describe("the photo-first Declutter item page", () => {
     await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
     expect(within(bar).getByRole("button", { name: "Buy now · $42.70 total" })).toBeInTheDocument();
     // A3-7: the bar and the panel use the same words for the same button.
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx |                   Make an offer\n                </Button>\n              )} |                   Make offer\n                </Button>\n              )}
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-label="">Offer</span>\n                  <span className="sr-only">Make an offer</span> | data-offer-label="">Offer</span>\n                  <span className="sr-only">Make offer</span>
     expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
     expect(within(bar).queryByRole("button", { name: "Make offer" })).toBeNull();
   });

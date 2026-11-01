@@ -44,6 +44,13 @@ export const ROUTES = [
   // The public Declutter item page (DECL-ITEM-SPEED, B67): every shared listing link lands here, cold. Lazy from App
   // after the boot graph (round 3), so its budget is the bytes its closure carries.
   { path: "/declutter/item/:id", chunk: "DeclutterItemPage" },
+  // Admin's Dashboard and Money (Profile's Earnings tab, B72): the 2 s goal's admin and money screens.
+  { path: "/admin", chunk: "Admin" },
+  { path: "/profile", chunk: "Profile" },
+  // Money itself: Profile's lazy Earnings tab, walked from its own chunk (its payout reads wait for this closure).
+  { path: "/profile?tab=earnings", chunk: "EarningsTab" },
+  // Admin's Dashboard KPI trend lines (lazy from KpiCard), walked from their own chunk: they were recharts.
+  { path: "/admin?kpi-sparkline", chunk: "KpiSparkline" },
 ];
 
 function die(msg) {

@@ -30,16 +30,9 @@ import { useReducedMotion } from "@/lib/accessibility";
 // formatPriceExact: this announces a payout that has already settled, so the
 // cents are known. Rounding could greet a helper with more than they got paid.
 import { formatPriceExact as formatPrice } from "@/lib/format";
+import { LAST_SEEN_PAYOUT_KEY, newPaidPayouts, payoutTimestampMs, readLastSeen, type CelebratablePayout } from "@/components/wallet/payoutCelebrationGate";
 
-/** Subset of payout_transfers we need for the celebration. */
-export interface CelebratablePayout {
-  id: string;
-  amount_cents: number;
-  status: string;
-  paid_at: string | null;
-  created_at: string;
-  jobs?: { title?: string } | null;
-}
+export type { CelebratablePayout } from "@/components/wallet/payoutCelebrationGate";
 
 interface PayoutCelebrationProps {
   /** Recent payouts (already fetched by parent — we do NOT re-query). */
@@ -48,7 +41,7 @@ interface PayoutCelebrationProps {
   onViewDetails?: () => void;
 }
 
-const STORAGE_KEY = "helpr_last_seen_payout_at";
+const STORAGE_KEY = LAST_SEEN_PAYOUT_KEY;
 const AUTO_DISMISS_MS = 4000;
 
 /** Brand palette for the confetti dots. Pulled from CSS variables. */
@@ -57,21 +50,6 @@ const PARTICLE_TOKENS = [
   "--bark",
   "--burnt-sienna",
 ] as const;
-
-/** Returns the epoch ms timestamp the user last "saw" payouts, or 0. */
-function readLastSeen(): number {
-  const raw = safeStorage.getItem(STORAGE_KEY);
-  if (!raw) return 0;
-  const n = parseInt(raw, 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
-/** Treat paid_at as authoritative; fall back to created_at if missing. */
-function payoutTimestampMs(p: CelebratablePayout): number {
-  const stamp = p.paid_at ?? p.created_at;
-  const t = stamp ? new Date(stamp).getTime() : NaN;
-  return Number.isFinite(t) ? t : 0;
-}
 
 function formatUsdCents(cents: number): string {
   return `$${formatPrice(cents / 100)}`;
@@ -88,9 +66,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
   // status === "paid" — pending/failed/reversed shouldn't celebrate.
   const newPayouts = useMemo(() => {
     const lastSeen = lastSeenRef.current ?? 0;
-    return payouts
-      .filter((p) => p.status === "paid" && payoutTimestampMs(p) > lastSeen)
-      .sort((a, b) => payoutTimestampMs(b) - payoutTimestampMs(a));
+    return newPaidPayouts(payouts, lastSeen);
   }, [payouts]);
 
   const totalCents = useMemo(

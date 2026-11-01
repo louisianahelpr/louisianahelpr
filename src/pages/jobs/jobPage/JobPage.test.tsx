@@ -50,6 +50,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     : instantUntil\n      ? null\n |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {viewer.status && !(!isPoster && instantUntil) && | {viewer.status &&
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {(isPoster \|\| isHired) && job.status === "accepted" && <CountdownRows | {false && <CountdownRows
  */
 import { describe, expect, it, vi, beforeEach, onTestFinished } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -1506,5 +1507,29 @@ describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
     state.party = true;
     renderPage();
     expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
+  });
+});
+
+// JA-34 (audit 11-01): the Posted / Working card said "28m until the job starts"; the page for the same job had no
+// clock. The page now draws the card's own clock (collapsedClocks) under the tracker for a booked job's two parties.
+describe("job page: the booked job's clock, as its card shows it (JA-34)", () => {
+  const booked = (over: Partial<JobPageRow> = {}) => row({ status: "accepted", helper_confirmed_at: null, ...over });
+  it("the poster sees when the job starts", () => {
+    state.job = booked({ customer_id: ME, helper_id: POSTER });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector('[data-job-steps] [data-countdown-row="start"]')?.textContent).toMatch(/Starts|until the job starts/);
+  });
+  it("the hired Helpr sees it too", () => {
+    state.job = booked({ helper_id: ME });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector('[data-job-steps] [data-countdown-row="start"]')).not.toBeNull();
+  });
+  it("an open job (nobody hired) draws no clock", () => {
+    state.job = row({ customer_id: ME });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector("[data-job-steps] [data-countdown-row]")).toBeNull();
   });
 });

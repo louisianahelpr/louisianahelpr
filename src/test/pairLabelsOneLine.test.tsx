@@ -1,7 +1,7 @@
 /**
  * Owner 11-01 (phone screenshot of the job page's Done stage): the side-by-side buttons wrapped to two lines
  * ("Message / Yusef", "Approve and / release"). In a pair each button wears its SHORT label on ONE line; a button
- * alone keeps the full words. The cap (PAIR_LABEL_MAX, 12) is the width of half the 320 row at 14px (pairLabel.ts),
+ * alone keeps the full words. The cap (PAIR_LABEL_MAX, 12) is the width of half the 320 row at 14px (measured 2026-11-01) (pairLabel.ts),
  * checked by eye in the 320 and 375 shots (~/.lh-shots/b107/after).
  * Inventory: every label literal the page's rows draw (posterPageActions, JobPage, helperFaceAction, the release).
  *
@@ -16,6 +16,7 @@ import { render, screen } from "@testing-library/react";
 import { JobPageActionRow } from "@/pages/jobs/jobPage/JobPageActionRow";
 import { MenuAction } from "@/components/job-card/jobStepMenu";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
+import { MessageCircle } from "lucide-react";
 import { pairLabel, PAIR_LABEL_MAX } from "@/components/ui/pairLabel";
 import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { blankComments } from "@/test/helpers/blankNonCode";
@@ -39,7 +40,7 @@ describe("a side-by-side pair reads on one line", () => {
   });
 
   it("the card's own action in the pair is short too; in the More options list it keeps the full words", () => {
-    const chip = <JobActionChip label="Message Yusef" onClick={go} />;
+    const chip = <JobActionChip icon={MessageCircle} tone="message" label="Message Yusef" onClick={go} />;
     const { unmount } = render(<MenuAction chip={chip} pair />);
     expect(screen.getByRole("button").textContent).toBe("Message");
     expect(screen.getByRole("button").className).toMatch(/whitespace-nowrap/);

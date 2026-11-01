@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { posterFirstName } from "@/lib/deletedPerson";
 import { hasJobStarted, todayLocalISO } from "@/lib/dateUtils";
 import { CountdownRows, jobStartTarget } from "@/components/job-card/CountdownRows";
 import { confirmationOpensClock } from "@/components/job-card/confirmationOpensClock";
@@ -105,7 +106,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
      section used to hand-draw the identical container, which is how its row
      would have stayed stacked while the others went to one row (owner,
      2026-09-14, VN-21). */
-  const posterFirst = (app.posterName ?? "").trim().split(/\s+/)[0] || null;
+  const posterFirst = posterFirstName(app.posterName) || null;
   const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${app.job_id}&userId=${job.customer_id}` : "/messages");
   return (
     <JobStepCard

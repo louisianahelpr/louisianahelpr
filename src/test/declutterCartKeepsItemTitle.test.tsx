@@ -6,11 +6,11 @@
  * ended-card renderers (buyer's EndedLine, seller's EndedSaleRows) show the date. The behaviour runs in
  * src/test/pglite/declutterCartKeepsItemTitle.pglite.mjs (migration applied 3x; red with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261030131715_declutter_cart_keeps_item_title.sql |          COALESCE(i.title, c.item_title, |          COALESCE(i.title, NULL::text,
- * @mutate supabase/migrations/20261030131715_declutter_cart_keeps_item_title.sql | CASE WHEN c.seller_id IS NULL THEN 'An item from a former member' | CASE WHEN true THEN 'An item from a former member'
+ * @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql |          COALESCE(i.title, c.item_title, |          COALESCE(i.title, NULL::text,
+ * @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql | CASE WHEN c.seller_id IS NULL THEN 'An item from a former member' | CASE WHEN true THEN 'An item from a former member'
  * @mutate supabase/migrations/20261030131715_declutter_cart_keeps_item_title.sql |   NEW.item_title := COALESCE(v_title, NEW.item_title); |   NEW.item_title := NEW.item_title;
  * @mutate supabase/migrations/20261030131715_declutter_cart_keeps_item_title.sql |   BEFORE INSERT OR UPDATE OF item_id, status ON public.declutter_cart_items |   BEFORE UPDATE OF item_id ON public.declutter_cart_items
- * @mutate supabase/migrations/20261030131715_declutter_cart_keeps_item_title.sql |          c.closed_at,  -- DC-18: when an ended line ended |          NULL::timestamptz,  -- DC-18: when an ended line ended
+ * @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql |          c.closed_at,  -- DC-18: when an ended line ended |          NULL::timestamptz,  -- DC-18: when an ended line ended
  * @mutate src/components/declutter/BuyingOrders.tsx | {endedOnPrefix(line.closed_at)}{endedWords(line)} | {endedWords(line)}
  * @mutate src/components/declutter/BuyingOrders.tsx | {itemPriceLabel(line.price_cents)}</span> | </span>
  * @mutate src/components/declutter/DeclutterEndedSales.tsx | {endedOnPrefix(l.closed_at)}{endedSaleWords(l)} | {endedSaleWords(l)}

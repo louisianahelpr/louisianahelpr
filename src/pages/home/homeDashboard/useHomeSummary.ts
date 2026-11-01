@@ -161,7 +161,7 @@ export function useHomeSummary(user: SupaUser | null) {
         // are booked and ahead of you, in the Jobs status boxes' own word.
         ...sectionCardLines(
           {
-            jobs: countLine([[jobTodos, "need you"], [postedUpcoming.length + appliedLive.length, "upcoming"]]),
+            jobs: countLine([[jobTodos, "needs you", "need you"], [postedUpcoming.length + appliedLive.length, "upcoming"]]),
             declutter: countLine([[items.filter((i) => i.status === "live").length, "listed"], [items.filter((i) => i.status === "pending_review").length, "in review"]]),
           },
           jobTodos,

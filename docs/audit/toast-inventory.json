@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1078,
-    "files": 300,
+    "files": 301,
     "rendering": 997,
     "suppressedByPolicy": 81,
     "byKind": {
@@ -17,8 +17,8 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 461,
-      "template": 97,
+      "literal": 460,
+      "template": 98,
       "dynamic": 571,
       "jsx": 0
     }
@@ -4663,27 +4663,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 81,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Asked. The giver picks who gets it, and we'll tell you."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 84,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 89,
+      "line": 104,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4693,7 +4673,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 92,
+      "line": 107,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4703,17 +4683,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 139,
+      "line": 174,
       "kind": "toast",
       "title": {
         "form": "literal",
-        "text": "Picked. They have 48 hours to choose a pickup."
+        "text": "Picked. We've told them."
       },
       "renders": true
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 142,
+      "line": 177,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4723,7 +4703,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 258,
+      "line": 295,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4733,7 +4713,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 264,
+      "line": 301,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4993,7 +4973,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 143,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5223,7 +5203,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 259,
+      "line": 261,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5233,7 +5213,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 271,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6247,6 +6227,26 @@
     {
       "file": "src/components/declutter/DeliveryTipPanel.tsx",
       "line": 47,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/FreeAskSheet.tsx",
+      "line": 68,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Asked. ${giverFirstName} picks who gets it, and we'll tell you."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/FreeAskSheet.tsx",
+      "line": 72,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

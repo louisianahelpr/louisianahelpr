@@ -288,6 +288,9 @@ DECLARE
   v_item uuid;
 BEGIN
   PERFORM public.require_feature('declutter');
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   SELECT item_id INTO v_item FROM public.declutter_item_photos WHERE id = p_photo_id;
   IF v_item IS NULL THEN
     RAISE EXCEPTION 'photo_not_found' USING ERRCODE = 'P0002';
@@ -309,6 +312,9 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
 BEGIN
   PERFORM public.require_feature('declutter');
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   PERFORM public.declutter_list_for_seller_draft(p_item_id);
   DELETE FROM public.declutter_items WHERE id = p_item_id AND status = 'draft';
 END;
@@ -397,9 +403,11 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_helpr_send_listings(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_helpr_send_listings(uuid) TO authenticated, service_role;
 
--- 11. The seller's approval card: listings waiting for them, with the Helpr's first name.
+-- 11. The seller's approval card: listings waiting for them, with the lowest price the Helpr set and the Helpr's
+--     first name.
 CREATE OR REPLACE FUNCTION public.declutter_listed_for_me()
-RETURNS TABLE (item_id uuid, job_id uuid, title text, price_cents integer, helpr_first_name text, sent_at timestamptz)
+RETURNS TABLE (item_id uuid, job_id uuid, title text, price_cents integer, floor_price_cents integer,
+               helpr_first_name text, sent_at timestamptz)
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
@@ -408,9 +416,12 @@ AS $fn$
 BEGIN
   PERFORM public.require_feature('declutter');
   RETURN QUERY
-    SELECT l.item_id, l.job_id, i.title, i.price_cents, split_part(COALESCE(p.full_name, ''), ' ', 1), l.sent_at
+    SELECT l.item_id, l.job_id, i.title, i.price_cents, pv.floor_price_cents,
+           split_part(COALESCE(p.full_name, ''), ' ', 1), l.sent_at
       FROM public.declutter_listed_for_seller l
       JOIN public.declutter_items i ON i.id = l.item_id
+      -- The lowest price the Helpr set, so the seller sees it before approving (lh-authz-rls review, 11-01).
+      LEFT JOIN public.declutter_item_private pv ON pv.item_id = l.item_id
       LEFT JOIN public.profiles p ON p.user_id = l.helpr_id
      WHERE l.seller_id = (SELECT auth.uid()) AND i.seller_id = (SELECT auth.uid())
        AND i.status = 'pending_seller_approval'
@@ -505,7 +516,7 @@ RETURNS boolean
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
   v_seller uuid;
@@ -622,7 +633,7 @@ CREATE OR REPLACE FUNCTION public.rpc_helper_mark_done(_job_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path TO 'public'
+SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
   -- `record`, not `public.jobs`, so the function body does not bind the jobs

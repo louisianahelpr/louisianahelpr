@@ -14778,6 +14778,7 @@ export type Database = {
         Args: never
         Returns: {
           helpr_first_name: string
+          floor_price_cents: number
           item_id: string
           job_id: string
           price_cents: number

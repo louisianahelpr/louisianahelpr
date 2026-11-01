@@ -40,19 +40,23 @@ export function useMapFollowsTheme(mapRef: RefObject<MKMap | null>, mapReady: bo
  * waiting (counts by the job's parish, drawn at the parish centroid), so the
  * busy areas read at a glance before zooming in. Follows the filtered pins.
  */
-export function useBusyAreaShading(mapRef: RefObject<MKMap | null>, mapReady: boolean, jobs: ReadonlyArray<{ parish?: string | null }>) {
+export function useBusyAreaShading(mapRef: RefObject<MKMap | null>, mapReady: boolean, jobs: ReadonlyArray<{ parish?: string | null }>): boolean {
   const overlaysRef = useRef<Parameters<MKMap["addOverlays"]>[0]>([]);
+  // NIGHT-JOBSMA5-4: whether any circle is on the map, so BrowseMap can say what the circles are (BusyAreasMapKey).
+  const [shown, setShown] = useState(false);
   useEffect(() => {
     const mk = getMapKit();
     const map = mapRef.current;
     if (!mk || !map || !mapReady) return;
     try {
       overlaysRef.current = drawBusyAreas(mk, map, busyAreas(jobs, []).areas, overlaysRef.current);
+      setShown(overlaysRef.current.length > 0);
     } catch (e) {
       // Not silent; the pins still show every job, so the map stays usable.
       report(e instanceof Error ? e : new Error("busy-area shading failed"), { tags: { source: "BrowseMap.busyAreas" } });
     }
   }, [jobs, mapReady, mapRef]);
+  return shown;
 }
 
 /**

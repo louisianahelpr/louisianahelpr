@@ -24,6 +24,8 @@ function arrow(label: string): string {
 
 describe("photo viewer arrows paint above the photo (NIGHT-BUYINGpresse-1)", () => {
   it("reads the real viewer: the image is transformed and sits between the two arrows", () => {
+    // Floor: the real viewer, not a stub.
+    expect(src.length).toBeGreaterThan(2000);
     const prev = src.indexOf('aria-label="Previous photo"');
     const img = src.indexOf("alt={`Photo ${lightboxIndex + 1}`}");
     const next = src.indexOf('aria-label="Next photo"');

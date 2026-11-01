@@ -33,8 +33,8 @@
  * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE t.user_id = v_uid));\n  v_out := v_out \|\| jsonb_build_object('nps_responses' |       WHERE true));\n  v_out := v_out \|\| jsonb_build_object('nps_responses'
  * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | AND t.user_id IS NULL AND t.created_at | AND t.created_at
  * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | = v_email AND t.recipient_id IS NULL) | = v_email)
- * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
- * @mutate supabase/migrations/20261030064021_declutter_free_requests.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.export_my_data(uuid) TO service_role, authenticated;
+ * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql | DROP FUNCTION IF EXISTS public.export_my_data(); | SELECT 1;
  * @mutate supabase/migrations/20261101022048_export_my_data_signup_source.sql |       WHERE lower(t.email) = v_email AND t.created_at >= v_created)); |       WHERE lower(t.email) = v_email));
  * @mutate src/test/helpers/dataExportInventory.ts |   "profiles.email": { reason: | "profiles.no_such_column": { reason:
  * @mutate src/test/helpers/dataExportInventory.ts |   "retained_bans.email_sha256": { reason: | "retained_banz.email_sha256": { reason:

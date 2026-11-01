@@ -93,7 +93,6 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_ask_question: "hides",
   // #36 (20261028214524): a test listing is left out of the answer for a member it is hidden from.
   declutter_bundle_applies: "hides",
-  declutter_decline_listed_for_me: "hides", // 20261101034159/20261101054258: a seed seller's decline never notifies a real Helpr
   // The Free change (Q2487): the ask carries the old claim's test-listing rule (declutter_claim_free just calls it).
   declutter_request_free: "hides",
   declutter_delivery_dropoffs_seed: "tags",

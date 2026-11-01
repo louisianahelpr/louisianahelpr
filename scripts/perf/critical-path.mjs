@@ -51,6 +51,8 @@ export const ROUTES = [
   { path: "/profile?tab=earnings", chunk: "EarningsTab" },
   // Admin's Dashboard KPI trend lines (lazy from KpiCard), walked from their own chunk: they were recharts.
   { path: "/admin?kpi-sparkline", chunk: "KpiSparkline" },
+  // Declutter (Buying and Selling tabs share one page chunk), started by the entry (declutterRoute.ts).
+  { path: "/declutter", chunk: "DeclutterPage" },
 ];
 
 function die(msg) {

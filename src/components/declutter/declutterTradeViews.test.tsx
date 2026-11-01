@@ -58,6 +58,8 @@ import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-
 const state = {
   /** B110: the seller's pickup times for the checkout chips (none unless a test sets them). */
   pickupWindows: [] as { weekday: number; starts: string; ends: string }[],
+  /** B112: declutter_checkout_porch_days for this checkout (null: not on the server). */
+  porchDays: null as number[] | null,
   /** The seller's pickup places in the cart (none unless a test sets them). */
   sellerPlaces: [] as unknown[],
   underAge: false,
@@ -174,6 +176,7 @@ vi.mock("@/lib/declutter/api", () => ({
 // Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
 // The cart reads the seller's porch places (D-NEW14); these sellers have none. Places are proved in porchPlacesUi.test.tsx.
+vi.mock("@/lib/declutter/porchDays", async (orig) => ({ ...(await orig<object>()), fetchCheckoutPorchDays: async () => state.porchDays }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchSellerPorchPlaces: async () => state.sellerPlaces }));
 vi.mock("@/lib/declutter/handoverTalk", () => ({
   openHandoverTalk: async (other: string) => { state.talksOpened.push(other); return "t1"; },
@@ -231,6 +234,7 @@ const OFFER = {
 describe("Declutter slice 3 screens", () => {
   beforeEach(() => {
     state.pickupWindows = [];
+    state.porchDays = null;
     state.sellerPlaces = [];
     state.underAge = false;
     state.responded = [];
@@ -1035,6 +1039,29 @@ describe("Declutter slice 3 screens", () => {
     const home = document.querySelector('[data-handover-option="pickup_home"]') as HTMLElement;
     await waitFor(() => expect(within(home).getByText("When you'll pick it up")).toBeInTheDocument());
     expect(within(within(home).getByRole("group", { name: /Pickup time on/ })).getAllByRole("button")[0].textContent).toMatch(/^\d{1,2}:\d\d [AP]M$/);
+  });
+
+  // B112 (B110 leftover 2): a porch pickup with no place of its own offers only the seller's porch days, so Pay never
+  // carries a day the server refuses ("Pick a time inside the seller's pickup times"). A door pickup keeps every day.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     : porchNoPlace ? onPorchDays(sellerTimes.data ?? [], porchDays.data) : (sellerTimes.data ?? [])) |     : (sellerTimes.data ?? []))
+  // @mutate src/lib/declutter/porchDays.ts |   return days ? windows.filter((w) => days.includes(w.weekday)) : [...windows]; |   return [...windows];
+  it("B112: porch chips keep to the seller's porch days when no porch place is chosen", async () => {
+    state.pickupWindows = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "09:00", ends: "17:00" }));
+    state.porchDays = [6];
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    show(<CartView />);
+    await screen.findAllByRole("radio");
+    const porch = document.querySelector('[data-handover-option="porch"]') as HTMLElement;
+    await waitFor(() => expect(within(porch).getByRole("group", { name: "Pickup day" })).toBeInTheDocument());
+    const dayChips = () => within(within(porch).getByRole("group", { name: "Pickup day" })).getAllByRole("button").map((b) => b.textContent ?? "");
+    await waitFor(() => expect(dayChips().every((d) => d.startsWith("Sat"))).toBe(true));
+    expect(dayChips().length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByLabelText(/Meet at the seller's home/));
+    const home = document.querySelector('[data-handover-option="pickup_home"]') as HTMLElement;
+    await waitFor(() => expect(within(home).getByRole("group", { name: "Pickup day" })).toBeInTheDocument());
+    expect(within(within(home).getByRole("group", { name: "Pickup day" })).getAllByRole("button").length).toBeGreaterThan(3);
   });
 
   it("slice 5: Helpr delivery is offered, priced by the server for the typed address, and Pay carries the delivery fee", async () => {

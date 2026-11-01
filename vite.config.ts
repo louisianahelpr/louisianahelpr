@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { guestBrowseSplit, signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
+import { guestBrowseSplit, homeIconFiles, signedInOnlyModules, signedInSplit } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -165,6 +165,7 @@ function restartOnDependencyChange(): Plugin {
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd());
+const homeIcons = homeIconFiles(process.cwd());
 const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
 
 export default defineConfig(({ mode, command }) => ({
@@ -737,6 +738,17 @@ export default defineConfig(({ mode, command }) => ({
             // every icon the app draws on every first screen (26 KB gz of the 258 KB boot); one chunk per icon set
             // without the merge made ~120 tiny files. Measured with the virtualizer cut: boot 251 -> 236 KB gz for
             // +1 file (a 20 KB merge gave 230, but grew the entry's preload lists to 5.4 KB gz).
+            // B79 11-01: the icons Home's page draws (bootReach.mjs homeIconFiles, ~34) get their own chunk. In the
+            // merged icons groups they sat in one 166-icon chunk (~16 KB gz) that Home's first round downloaded whole.
+            // Other screens that draw them fetch this chunk beside their own icons, in the same round.
+            {
+              name: "icons-home",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && homeIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 91,
+              minSize: 0,
+              // lucide's runtime stays in its own chunk: taken in here, every icon chunk imported this one onto boot.
+              includeDependenciesRecursively: false,
+            },
             {
               name: "icons",
               test: /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/,

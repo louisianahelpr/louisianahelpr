@@ -20,3 +20,4 @@ export function signedInSplit(root: string): {
 export function homeFirstScreenRoots(root: string): string[];
 export function guestBrowseOnlyModules(root: string): Set<string>;
 export function guestBrowseSplit(root: string): { browseOnly: Set<string>; homeShared: Set<string> };
+export function homeIconFiles(root: string): Set<string>;

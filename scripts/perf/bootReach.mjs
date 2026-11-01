@@ -260,3 +260,36 @@ export function guestBrowseSplit(root) {
   };
 }
 
+
+/**
+ * The lucide icons Home's PAGE draws (B79, 11-01), as icon file names (`circle-check`, ...), minus those main.tsx's
+ * own graph draws (they ride in the boot icons chunk). Home's 30-odd icons sat in one 166-icon chunk shared by the
+ * job lists, quotes and Declutter screens (~16 KB gz), so Home's first round downloaded every one of them; vite.config
+ * gives these their own small chunk. Names map to files through lucide-react's own export table, so an alias
+ * (CheckCircle2 -> circle-check) resolves as the build resolves it.
+ */
+export function homeIconFiles(root) {
+  const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
+  const fileOf = new Map();
+  for (const m of index.matchAll(/export \{([^}]*)\} from '\.\/icons\/([^']+)\.mjs'/g)) {
+    for (const n of m[1].matchAll(/default as (\w+)/g)) fileOf.set(n[1], m[2]);
+  }
+  if (fileOf.size < 1000) throw new Error(`bootReach: read ${fileOf.size} lucide icon names from lucide-react.mjs. Fix the scan.`);
+  const iconsOf = (files) => {
+    const out = new Set();
+    for (const f of files) {
+      if (!/\.(tsx?|mjs)$/.test(f)) continue;
+      const src = stripComments(fs.readFileSync(f, "utf8"));
+      for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
+        for (const n of x[1].split(",")) {
+          const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
+          if (fileOf.has(name)) out.add(fileOf.get(name));
+        }
+      }
+    }
+    return out;
+  };
+  const page = homeFirstScreenRoots(root).filter((r) => !EVERY_PAGE_ROOTS.some((e) => toPosix(r).endsWith(e)));
+  const boot = iconsOf(staticReach(root, [path.join(root, "src/main.tsx")]));
+  return new Set([...iconsOf(staticReach(root, page))].filter((i) => !boot.has(i)));
+}

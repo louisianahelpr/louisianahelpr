@@ -880,7 +880,10 @@ describe("Declutter slice 3 screens", () => {
   });
 
   it("lead 2026-10-28: a reserved line says \"Reserved for you, not paid yet\" with the time left; the bundle hint only when the seller has one", async () => {
-    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         <span>{allFree ? "Reserved for you" : "Reserved for you, not paid yet"}</span> |         <span>{allFree ? "Reserved for you" : "Reserved for you"}</span>
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {allFree ? "Reserved for you. " : "Reserved for you, not paid yet. "} |         {allFree ? "Reserved for you. " : "Reserved for you. "}
+    // Next-step line (owner 2026-11-01): the hold opens with the buyer's move and its deadline.
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |       <NextStep value={cartNextStep(allFree, timeLeft)} /> |       <NextStep value={null} />
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx | allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: timeLeft \|\| null | allFree ? "Choose how you get it, then confirm" : "Choose how you get it, then pay", by: null
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {!allFree && rule.data ? |         {!allFree ?
     // @mutate src/components/declutter/DeclutterReserveSheet.tsx |             <Link to={`/user/${sellerId}`} data-cart-bundle-more="" |             <Link to="/declutter" data-cart-bundle-more=""
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
@@ -889,7 +892,9 @@ describe("Declutter slice 3 screens", () => {
     const first = show(<CartView />);
     await waitFor(() => expect(document.querySelector("[data-cart-hold]")).not.toBeNull());
     const hold = document.querySelector("[data-cart-hold]") as HTMLElement;
-    expect(hold.textContent).toMatch(/^Reserved for you, not paid yet20 hours left/);
+    expect(hold.querySelector("[data-next-step]")?.getAttribute("data-next-step")).toBe("you");
+    expect(hold.textContent).toMatch(/^Next: choose how you get it, then pay · 20 hours left/);
+    expect(hold.textContent).toMatch(/Reserved for you, not paid yet\. Check out by /);
     expect(hold.textContent).toMatch(/Check out by .+\. If you don't, you get a strike and the item goes back up for sale\.$/);
     expect(hold.textContent).not.toMatch(/bundle/i);
     first.unmount();

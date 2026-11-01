@@ -31,6 +31,7 @@ function tickBox(photo: number): { w: number; h: number } {
 
 describe("a bunch photo's tick is a corner", () => {
   it("reads the tick's own classes (floor)", () => {
+    expect(tick.split(/\s+/).length).toBeGreaterThan(3);
     expect(tick).toContain("absolute");
     expect(tick).toContain("right-0");
     expect(tick).toContain("top-0");

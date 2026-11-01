@@ -16,7 +16,7 @@ import {
   takeFirstScreenZipParish,
 } from "@/lib/declutter/bootPrefetch";
 
-// @mutate src/boot/declutterPrefetch.ts | return session.expires_at - nowS > MIN_TOKEN_LIFE_S ? { token: session.access_token, userId } : null; | return { token: session.access_token, userId };
+// @mutate src/boot/storedSession.ts | return session.expires_at - nowS > MIN_TOKEN_LIFE_S ? { token: session.access_token, userId } : null; | return { token: session.access_token, userId };
 // @mutate src/boot/declutterPrefetch.ts | if (path !== "/declutter" \|\| typeof fetch !== "function") return; | if (typeof fetch !== "function") return;
 // @mutate src/lib/declutter/bootPrefetch.ts |   return ok ? (x as FirstScreenAnswer) : null; |   return x as FirstScreenAnswer;
 // @mutate src/lib/declutter/api.ts | const prefetched = await takeFirstScreenItems(); | const prefetched = null;
@@ -27,7 +27,7 @@ import {
 // @mutate src/lib/declutter/bootPrefetch.ts |   return sellerIds.every((id) => asked.has(id)) ? a.bundle_sellers : null; |   return a.bundle_sellers;
 // @mutate src/lib/declutter/bootPrefetch.ts |   if (!defaultView) return false; |
 // @mutate src/lib/declutter/bootPrefetch.ts |   return known?.zip === zip && known.parish ? known.parish : null; |   return known?.parish ?? null;
-// @mutate src/entry.ts | .then((m) => m?.startDeclutterPrefetch(window.location.pathname)) | .then(() => undefined)
+// @mutate src/boot/signedInPrefetch.ts |   startDeclutterPrefetch(pathname); |
 
 const BASE = "https://x.supabase.co";
 const session = (expiresInS: number) =>
@@ -205,7 +205,9 @@ describe("the entry's /declutter first screen", () => {
 
   it("the entry starts it, and every read on the page takes its part", () => {
     const code = (p: string) => blankComments(readFileSync(p, "utf8"));
-    expect(code("src/entry.ts")).toContain(".then((m) => m?.startDeclutterPrefetch(window.location.pathname))");
+    // B78: through the entry's one signed-in prefetch door (src/boot/signedInPrefetch.ts).
+    expect(code("src/entry.ts")).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\|home\)\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)\s*\.then\(\(m\) => m\?\.startSignedInPrefetch\(window\.location\.pathname\)\)/);
+    expect(code("src/boot/signedInPrefetch.ts")).toContain("startDeclutterPrefetch(pathname);");
     const api = code("src/lib/declutter/api.ts");
     for (const call of ["takeFirstScreenItems()", "takeFirstScreenPhotos(itemIds)", "takeFirstScreenDropStates(itemIds)", "takeFirstScreenWatching(userId)"]) {
       expect(api).toContain(call);

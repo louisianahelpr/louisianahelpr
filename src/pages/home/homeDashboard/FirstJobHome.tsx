@@ -11,6 +11,7 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { formatShortDate } from "@/lib/format";
+import { takeHomeFirstJobPrefetch } from "./homePrefetchTake";
 import type { Profile } from "@/components/profile/profileLanding/types";
 
 /** Jobs near you shows this many; the count beside the heading is the real total up to NEAR_CAP. */
@@ -43,22 +44,36 @@ export function useFirstJobState(userId: string | undefined): FirstJobState | nu
     queryKey: ["home", "first-job-state", userId],
     enabled: !!userId,
     queryFn: async () => {
-      const apps = await supabase.from("applications").select("id", { count: "exact", head: true }).eq("helper_id", userId!);
+      // The entry already asked these three on a cold load of /home (src/boot/homePrefetch.ts): taken once.
+      const pre = await takeHomeFirstJobPrefetch(userId!);
+      if (pre) return firstJobState(pre.appCount, pre.jobCount, pre.prefs);
+      // Independent reads, asked together (they ran one after another: three round trips before Home's first card).
+      const [apps, mine, prefsRead] = await Promise.all([
+        supabase.from("applications").select("id", { count: "exact", head: true }).eq("helper_id", userId!),
+        supabase
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .or(`customer_id.eq.${userId},helper_id.eq.${userId}`),
+        supabase.from("notification_preferences").select("job_matches, email_job_matches").eq("user_id", userId!).maybeSingle(),
+      ]);
       // A head-only count: unwrap() throws the read error (Q1182) and hands back the count.
       const appCount = unwrap({ data: apps.count, error: apps.error, status: apps.status });
-      const mine = await supabase
-        .from("jobs")
-        .select("id", { count: "exact", head: true })
-        .or(`customer_id.eq.${userId},helper_id.eq.${userId}`);
       const jobCount = unwrap({ data: mine.count, error: mine.error, status: mine.status });
-      const prefs = unwrap(await supabase.from("notification_preferences").select("job_matches, email_job_matches").eq("user_id", userId!).maybeSingle());
-      return {
-        isNew: (appCount ?? 0) === 0 && (jobCount ?? 0) === 0,
-        alertsOff: !!prefs && prefs.job_matches === false && prefs.email_job_matches === false,
-      };
+      return firstJobState(appCount, jobCount, unwrap(prefsRead));
     },
   });
   return data ?? null;
+}
+
+function firstJobState(
+  appCount: number | null,
+  jobCount: number | null,
+  prefs: { job_matches?: boolean | null; email_job_matches?: boolean | null } | null,
+): FirstJobState {
+  return {
+    isNew: (appCount ?? 0) === 0 && (jobCount ?? 0) === 0,
+    alertsOff: !!prefs && prefs.job_matches === false && prefs.email_job_matches === false,
+  };
 }
 
 /** A budget splits across helpers_needed only on a group job. */

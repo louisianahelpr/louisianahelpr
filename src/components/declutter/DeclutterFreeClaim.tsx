@@ -8,6 +8,7 @@
  * Owner 11-01 (Mockup 3): the button opens FreeAskSheet, where the asker picks the pickup time from the giver's
  * times (declutter_request_free_at); the giver's list shows each asker's time.
  */
+import { NextStep } from "@/components/ui/NextStep";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
 import { lazy, Suspense, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -122,7 +123,8 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
     return (
       <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="You asked for this item" data-free-claim="">
         <p className="text-ds-15 font-semibold text-foreground">You asked for this.</p>
-        <p className="text-sm text-muted-foreground">The giver picks who gets it. We'll tell you either way.</p>
+        {/* The shared next-step line (owner 11-01 12:02 PM): nothing is the asker's to do; it waits on the giver. */}
+        <NextStep className="!text-sm" value={{ who: "them", text: `Waiting on ${giverFirstName === "The giver" ? "the giver" : giverFirstName} to pick who gets it. We'll tell you either way.` }} />
         <Button type="button" variant="outline" size="wrap" className="w-full rounded-full" disabled={takeBack.isPending}
           onClick={() => takeBack.mutate(myAsk.id)}>
           Take back my ask
@@ -186,9 +188,13 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label="Who asked for this item" data-free-requests="">
       <h2 className="text-base font-semibold">Requests ({rows.length})</h2>
+      {/* The shared next-step line (owner 11-01 12:02 PM): with asks in, picking one is the giver's move. */}
       {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nobody has asked yet. It stays up until you pick someone.</p>
+        <NextStep className="!text-sm" value={{ who: "info", text: "Nobody has asked yet. It stays up until you pick someone." }} />
       ) : (
+        <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it" }} />
+      )}
+      {rows.length === 0 ? null : (
         <ul className="space-y-2">
           {rows.map((r) => (
             <li key={r.request_id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">

@@ -1,5 +1,5 @@
 /**
- * PUSH-REACH (11-01; prod: 2 web push subscriptions, 0 native tokens; 200 Declutter items listed since web push
+ * PUSH-REACH (2026-11-01; prod: 2 web push subscriptions, 0 native tokens; 200 Declutter items listed since web push
  * shipped and none of them raised the ask): listing an item, making an offer and Buy now offer the website's push
  * ask once they SUCCEED (offerPushAfterAction; the ask keeps its own 14-day cooldown and never opens over a dialog).
  * A refused call offers nothing.

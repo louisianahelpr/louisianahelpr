@@ -62,9 +62,9 @@ export function ApplicantsCompareCard({
         <>
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="text-ds-16 font-bold">Comparing {picked.length}</h2>
-            <button type="button" onClick={clear} className="min-h-11 px-1 text-ds-12 font-semibold text-muted-foreground hover:text-foreground">
+            <Button type="button" variant="ghost" size="sm" onClick={clear} className="px-1 text-ds-12 font-semibold tracking-normal text-muted-foreground hover:text-foreground">
               Clear
-            </button>
+            </Button>
           </div>
           <dl className="mt-1">
             {rows.map((r) => (

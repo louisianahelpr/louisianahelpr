@@ -13,6 +13,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 // @mutate src/components/JobConfirmation.tsx |       {isOwner ? `Confirm the new time, ${newSlot}` : `Confirm you'll be there ${newSlot}`} |       {isOwner ? `Confirm the new time` : `Confirm you'll be there`}
 // @mutate src/components/JobConfirmation.tsx |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm ${newSlot}` |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm`
 // @mutate src/components/job-card/JobStepCard.tsx |           {moreChips.length > 1 ? ( |           {moreChips.length > 0 ? (
+// @mutate src/components/job-card/JobStepCard.tsx |               {moreChips} |               {moreChips.slice(1)}
 /**
  * VN-21 — EVERY BUTTON ON A STEP CARD SITS ON ONE ROW (owner, 2026-09-14).
  *
@@ -828,6 +829,9 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
       if (moreTrigger) {
         const held = Number(/More — (\d+) more/.exec(moreTrigger.getAttribute("aria-label") ?? "")?.[1] ?? NaN);
         expect(held, "a More menu holding ONE action").toBeGreaterThanOrEqual(2);
+        // Owner 11-01 ("If More options doesn't actually have more options, it's not needed"): counted from what the
+        // opened menu really draws, not from the number it announces (a chip that renders nothing is not an option).
+        expect(moreLabels.length, `a More menu that draws fewer than 2 options: [${moreLabels.join(" | ")}]`).toBeGreaterThanOrEqual(2);
         expect(moreTrigger.nextElementSibling?.hasAttribute("data-job-step-primary"), "More sits directly left of the primary").toBe(true);
       }
       // The primary TRAILS the row on the right (owner, 2026-09-15, V2/V3:

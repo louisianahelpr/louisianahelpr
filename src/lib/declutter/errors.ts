@@ -203,6 +203,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   too_many_problem_photos: "Add up to 3 photos.",
   // D2-14 (20261029231235): Louisiana Helpr's part refund is for an item the buyer keeps.
   part_refund_after_handover_only: "A part refund is for an item the buyer keeps. Before the handover, refund in full or pay the seller.",
+  // LEAD-ADMIN-HELPR-FAULT (20261101000817): the Helpr's fault is one outcome only.
+  helpr_fault_not_possible: "The Helpr's fault is a full refund, before the handover, on a delivery a Helpr took and never picked up.",
   not_handed_over: "Reviews open after the handover.",
   invalid_stars: "Pick 1 to 5 stars.",
   comment_too_long: "Keep your review under 1,000 characters.",

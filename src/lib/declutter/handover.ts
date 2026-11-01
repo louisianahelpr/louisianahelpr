@@ -461,7 +461,8 @@ export async function fetchItemAddress(itemId: string): Promise<{ pickup_address
 export async function adminDecideProblem(
   problemId: string,
   decision: "refund_buyer" | "pay_seller" | "refund_part",
-  fault: "seller" | "buyer" | "none",
+  /** "helpr" (LEAD-ADMIN-HELPR-FAULT, 20261101000817): a Helpr delivery the Helpr took and never brought; refund only. */
+  fault: "seller" | "buyer" | "none" | "helpr",
   strike: boolean,
   note: string | null,
   falseReport = false,

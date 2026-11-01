@@ -8,10 +8,10 @@
  *   - declutter_admin_open_problems gives the card the seller's last offer to pre-fill it.
  * Backend proof: src/test/pglite/declutterAdminPartRefund.pglite.mjs (3x; RED without the migration).
  *
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |      OR (p_decision = 'refund_part') <> (p_part_cents IS NOT NULL) |      OR false
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF p_decision = 'refund_part' AND o.status <> 'handed_over' THEN | IF false THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF p_decision = 'refund_part' AND (p_part_cents <= 0 OR p_part_cents >= o.items_cents) THEN |   IF p_decision = 'refund_part' AND p_part_cents <= 0 THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |       v_out := public.declutter_refund_after_handover(o.id, 'refund_request_part', p_part_cents); |       v_out := public.declutter_refund_after_handover(o.id, 'admin_no_fault', NULL);
+ * @mutate supabase/migrations/20261101000817_declutter_admin_helpr_fault.sql |      OR (p_decision = 'refund_part') <> (p_part_cents IS NOT NULL) |      OR false
+ * @mutate supabase/migrations/20261101000817_declutter_admin_helpr_fault.sql |   IF p_decision = 'refund_part' AND o.status <> 'handed_over' THEN | IF false THEN
+ * @mutate supabase/migrations/20261101000817_declutter_admin_helpr_fault.sql |   IF p_decision = 'refund_part' AND (p_part_cents <= 0 OR p_part_cents >= o.items_cents) THEN |   IF p_decision = 'refund_part' AND p_part_cents <= 0 THEN
+ * @mutate supabase/migrations/20261101000817_declutter_admin_helpr_fault.sql |       v_out := public.declutter_refund_after_handover(o.id, 'refund_request_part', p_part_cents); |       v_out := public.declutter_refund_after_handover(o.id, 'admin_no_fault', NULL);
  * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |            p.other_side_note, p.other_side_photo_paths, rr.offer_cents |            p.other_side_note, p.other_side_photo_paths, NULL::integer
  */
 import { describe, expect, it } from "vitest";

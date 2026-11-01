@@ -107,7 +107,7 @@ function SidePhoto({ path, alt }: { path: string; alt: string }) {
 
 function ProblemItem({ row }: { row: ProblemRow }) {
   const qc = useQueryClient();
-  const [fault, setFault] = useState<"seller" | "buyer" | "none">("none");
+  const [fault, setFault] = useState<"seller" | "buyer" | "none" | "helpr">("none");
   const [strike, setStrike] = useState(false);
   const [note, setNote] = useState("");
   const [falseReport, setFalseReport] = useState(false);
@@ -123,6 +123,9 @@ function ProblemItem({ row }: { row: ProblemRow }) {
   // A false report goes against the reporter: the one decision left.
   const againstReporter = reporter === "buyer" ? "pay_seller" : "refund_buyer";
   const falseOn = falseReport && reporter !== null;
+  // LEAD-ADMIN-HELPR-FAULT (owner rule 10-30 "Helpr's fault, Helpr bears it"): on a Helpr delivery the Helpr can be at
+  // fault, which is a full refund only (the server refuses the rest: helpr_fault_not_possible).
+  const helprFault = fault === "helpr" && !falseOn;
   const decide = useMutation({
     mutationFn: (decision: "refund_buyer" | "pay_seller" | "refund_part") => {
       const args = [row.id, decision, falseOn ? (reporter as "buyer" | "seller") : fault, falseOn ? false : strike, note.trim() || null, falseOn] as const;
@@ -199,14 +202,16 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       <label htmlFor={id("fault")} className="block text-xs font-medium">Whose fault?</label>
       <select id={id("fault")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
         value={falseOn ? (reporter as string) : fault} disabled={falseOn}
-        onChange={(e) => { const f = e.target.value as "seller" | "buyer" | "none"; setFault(f); if (f === "none") setStrike(false); }}>
+        onChange={(e) => { const f = e.target.value as "seller" | "buyer" | "none" | "helpr"; setFault(f); if (f === "none") setStrike(false); }}>
         <option value="none">Nobody's</option>
         <option value="seller">The seller's</option>
         <option value="buyer">The buyer's</option>
+        {row.detail?.helpr_delivery ? <option value="helpr">The Helpr's</option> : null}
       </select>
       <p className="text-xs text-muted-foreground">
         If you refund: the seller's fault = the whole payment back (the seller owes the card fee); the buyer's fault = the
         item price back (the buyer's fee is kept); nobody's = the payment back minus the card fee.
+        {row.detail?.helpr_delivery ? " The Helpr's fault (they took it and never picked it up) = the whole payment back, delivery included; the Helpr isn't paid and owes the card fee." : ""}
       </p>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
@@ -217,9 +222,9 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         value={note} onChange={(e) => setNote(e.target.value)} />
       <div className="flex gap-2">
         <Button onClick={() => decide.mutate("refund_buyer")} disabled={decide.isPending || (falseOn && againstReporter !== "refund_buyer")}>Refund the buyer</Button>
-        <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending || (falseOn && againstReporter !== "pay_seller")}>Pay the seller</Button>
+        <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending || helprFault || (falseOn && againstReporter !== "pay_seller")}>Pay the seller</Button>
       </div>
-      {canPart && !falseOn && (
+      {canPart && !falseOn && !helprFault && (
         <div className="space-y-1" data-admin-part-refund="">
           <label htmlFor={id("part")} className="block text-xs font-medium">Or refund part of the price (the buyer keeps the item)</label>
           {offer ? <p className="text-xs text-muted-foreground">The seller offered {formatPrice(offer)}.</p> : null}

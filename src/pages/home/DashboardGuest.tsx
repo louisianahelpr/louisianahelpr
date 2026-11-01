@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef, useMemo, lazy, Suspense } from "react";
+import { useEffect, useLayoutEffect, useCallback, useState, useRef, useMemo, lazy, Suspense } from "react";
 import { browseFilteredEmptyCopy } from "@/lib/browseEmptyCopy";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -465,6 +465,16 @@ const DashboardGuest = () => {
   const { containerRef, pullDistance, refreshing, isPulling, canTrigger } = usePullToRefresh({
     onRefresh: async () => { await refetch(); },
   });
+
+  // PERF-SHELL (Q652): the job cards api/share.ts drew into the HTML cover the page until this list (or its
+  // empty, error or offline state) is on screen, then go in the same frame (src/boot/browseShellHandoff.ts; the
+  // id is a literal because a page must not import src/boot, see src/boot/guestJobsPrefetch.ts). Also on unmount.
+  // Above the session check's early return (hooks); the list draws only once that check is done.
+  const shellCanGo = sessionChecked && (feedReady || phase === "offline-empty");
+  useLayoutEffect(() => {
+    if (shellCanGo) document.getElementById("lh-browse-shell")?.remove();
+  }, [shellCanGo]);
+  useEffect(() => () => document.getElementById("lh-browse-shell")?.remove(), []);
 
   // Never paint the guest surface before we know whether there's a session.
   if (!sessionChecked) return <GuestBrowseSkeleton />;

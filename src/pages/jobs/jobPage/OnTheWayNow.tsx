@@ -28,14 +28,14 @@ function onTheWaySince(iso: string): string {
 }
 
 /** The poster sees this block: set off, not arrived, the job still live. */
-export function showsOnTheWay(job: Pick<JobPageRow, "helper_on_the_way_at" | "helper_arrived_at" | "status">): boolean {
+function showsOnTheWay(job: Pick<JobPageRow, "helper_on_the_way_at" | "helper_arrived_at" | "status">): boolean {
   return !!job.helper_on_the_way_at && !job.helper_arrived_at && (job.status === "accepted" || job.status === "in_progress");
 }
 
 type NowJob = Pick<JobPageRow, "helper_on_the_way_at" | "helper_arrived_at" | "helper_completed_at" | "poster_confirmed_working_at" | "status">;
 
 /** The poster sees the arrived block: he tapped Arrived, the work has not started, the job is still live. */
-export function showsArrived(job: NowJob, trackingStatus: string | null = null): boolean {
+function showsArrived(job: NowJob, trackingStatus: string | null = null): boolean {
   return !!job.helper_arrived_at && !job.helper_completed_at && !job.poster_confirmed_working_at
     && trackingStatus !== "working" && trackingStatus !== "done"
     && (job.status === "accepted" || job.status === "in_progress");

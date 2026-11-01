@@ -4,7 +4,7 @@
  * links on that same screen, not cards. Before: "How do you want to start?" (4 cards) -> "Start from scratch" ->
  * the groups: one tap more before the first field.
  *
- * @mutate src/pages/post-job/EntryChoice.tsx |       {/* JA-41 (owner pick 2026-11-01): the group grid is the first screen. *\/}\n      {groupGrid} |       {/* JA-41 (owner pick 2026-11-01): the group grid is the first screen. *\/}
+ * @mutate src/pages/post-job/EntryChoice.tsx |       {groupGrid}\n\n      {/* The other ways to start | \n      {/* The other ways to start
  * @mutate src/pages/post-job/EntryChoice.tsx |         form.startFresh();\n        form.setFormPage(1);\n        form.setCategoryGroup(g); |         form.setCategoryGroup(g);
  * @mutate src/pages/post-job/EntryChoice.tsx |         if (atOpenJobLimit) return;\n        form.startFresh();\n        form.setFormPage(2); |         form.startFresh();\n        form.setFormPage(2);
  * @mutate src/pages/post-job/usePostJobForm.ts |         if (!hasKind && !skipEntry) { |         if (false) {

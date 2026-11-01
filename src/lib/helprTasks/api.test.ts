@@ -8,7 +8,7 @@
  * real Postgres in src/test/pglite/declutterDelivery.pglite.mjs, and the price
  * formula is held to the SQL text below.
  *
- * @mutate src/lib/declutter/delivery.ts | export const DELIVERY_PER_MILE_CENTS = 200; | export const DELIVERY_PER_MILE_CENTS = 150;
+ * @mutate src/lib/declutter/delivery.ts | export const DELIVERY_PER_MILE_CENTS = 150; | export const DELIVERY_PER_MILE_CENTS = 200;
  * @mutate src/lib/declutter/delivery.ts |   const miles = Math.max(1, Math.ceil(Number.isFinite(roadMiles) ? roadMiles : 1)); |   const miles = Math.max(0, Math.floor(Number.isFinite(roadMiles) ? roadMiles : 0));
  * @mutate src/lib/declutter/delivery.ts |   return roundPayoutDownCents(pay - Math.min(pay, Math.round((pay * 5) / 100) + 70)); |   return roundPayoutDownCents(pay - Math.round((pay * 5) / 100));
  * @mutate src/lib/declutter/delivery.ts |   return roundPayoutDownCents(pay - Math.min(pay, Math.round((pay * 5) / 100) + 70)); |   return pay - Math.min(pay, Math.round((pay * 5) / 100) + 70);
@@ -121,18 +121,18 @@ beforeEach(() => {
 describe("delivery price mirror (row 29) agrees with the SQL", () => {
   it("uses the same constants as declutter_delivery_price_cents", () => {
     expect(PRICE_SQL.length).toBeGreaterThan(50); // the body was read, not an empty match
-    expect(PRICE_SQL).toContain("SELECT 1000 + 200 * greatest(COALESCE(p_miles, 1), 1)");
+    expect(PRICE_SQL).toContain("SELECT 600 + 150 * greatest(COALESCE(p_miles, 1), 1)");
     expect(PRICE_SQL).toContain("CASE s WHEN 'large' THEN 2000 WHEN 'xl' THEN 4000 ELSE 0 END");
-    expect([DELIVERY_BASE_CENTS, DELIVERY_PER_MILE_CENTS]).toEqual([1000, 200]);
+    expect([DELIVERY_BASE_CENTS, DELIVERY_PER_MILE_CENTS]).toEqual([600, 150]); // owner 2026-11-01: $6 + $1.50 a mile
     expect(DELIVERY_SIZE_CENTS).toEqual({ small: 0, large: 2000, xl: 4000 });
   });
 
   it("prices one checkout: one base + miles, a size add-on per item", () => {
-    expect(deliveryPriceCents(1, ["small"])).toBe(1200);
-    expect(deliveryPriceCents(10, ["small", "large", "xl"])).toBe(1000 + 2000 + 6000);
-    expect(deliveryPriceCents(0, ["small"])).toBe(1200);
-    expect(deliveryPriceCents(4.2, ["large"])).toBe(1000 + 1000 + 2000);
-    expect(deliveryPriceCents(Number.NaN, [])).toBe(1200);
+    expect(deliveryPriceCents(1, ["small"])).toBe(750);
+    expect(deliveryPriceCents(10, ["small", "large", "xl"])).toBe(600 + 1500 + 6000);
+    expect(deliveryPriceCents(0, ["small"])).toBe(750);
+    expect(deliveryPriceCents(4.2, ["large"])).toBe(600 + 750 + 2000);
+    expect(deliveryPriceCents(Number.NaN, [])).toBe(750);
   });
 
   it("the Helpr keeps the fee minus jobs' flat 5% + 70c (same as helpr_task_fee_cents), rounded down to the dollar", () => {

@@ -31,6 +31,7 @@ import { useOptimisticJobCache } from "@/components/job-card/activityActions/use
 import { ActivityDialogs, type TipDialogState, type TipTarget } from "@/components/job-card/ActivityDialogs";
 import { PostedJobActions } from "@/pages/posts/postedJobCard/PostedJobActions";
 import { crewNobodyLeft } from "@/lib/crewLifecycle";
+import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 
 export interface PosterPageFlows {
   /** The Posted list's row for this job is read: the flows below can run. */
@@ -152,6 +153,14 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   const panel = (
     <Suspense fallback={null}>
     <div data-poster-more="" hidden={!moreOpen} ref={moreRef} className="scroll-mb-28">
+      {/* JOBS-3: an under-way crew's roster, as the Posted card draws it (per-member "Didn't show" and arrival). No
+          onCancelJob here: the page's own Cancel job row covers a crew with nobody left (crewNobodyLeft below). */}
+      {job.is_group_job && job.status === "in_progress" && (
+        <div data-poster-crew="" className="pb-3">
+          <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner jobStatus={job.status}
+            initialHelpers={detail?.groupHelpersByJob?.[job.id]} dateNeeded={job.date_needed} startTime={job.start_time} />
+        </div>
+      )}
       <PostedJobActions
         job={job}
         userId={userId}

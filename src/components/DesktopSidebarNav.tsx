@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import HelprMark from "@/components/HelprMark";
-import { CreateSheet } from "@/components/create/CreateSheet";
+import { useDockSheetsLoader } from "@/components/mobileNav/useDockSheets";
 import { leftItems, rightItems, exploreItem, youItem } from "@/components/mobileNav/mobileNavHelpers";
 import { useSectionTabs, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import type { DockItem } from "@/components/mobileNav/dockItems";
@@ -128,6 +128,8 @@ const DesktopSidebarRail = () => {
   // and no "Post a Job" button: Jobs' "+" is in its top bar. A section switched
   // off for this viewer is listed greyed and says "coming soon".
   const [createOpen, setCreateOpen] = useState(false);
+  // The create sheet loads after the page settles or on the tap that opens it, as the phone dock's does (B85).
+  const dockSheets = useDockSheetsLoader(!user, createOpen);
   // BADGE = TO-DO (owner, 2026-10-20): the counts NeedsYouBridge publishes from Home's list.
   const todo = useNeedsYouCounts(user?.id);
   // The SAME shared store MobileNav reads (Q103): one unread query and one
@@ -289,7 +291,7 @@ const DesktopSidebarRail = () => {
       </ul>
 
       {/* Mounted only once asked for: the sheet reads whether the member has a shop, and a page load should not. */}
-      {createOpen && <CreateSheet open={createOpen} onOpenChange={setCreateOpen} />}
+      {createOpen && dockSheets && <dockSheets.CreateSheet open={createOpen} onOpenChange={setCreateOpen} />}
     </nav>
   );
 };

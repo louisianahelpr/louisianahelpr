@@ -1,3 +1,5 @@
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPostJob";
 import { POST_JOB_SCREENS, POST_JOB_SCREEN_COUNT as POST_JOB_STEP_COUNT, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 interface Props {
@@ -19,17 +21,19 @@ interface Props {
  */
 export function PostJobStepHeader({ screen, question, helper, onPick, canPick }: Props) {
   const step = screenNumber(screen);
+  // Post a job in Spanish (A3-3): re-renders when the language or its words arrive.
+  const { t } = useLanguage();
   return (
     <header className="space-y-4">
       {/* Desktop shows the step rail instead (board 166, PostJobStepRail). */}
       <div className="flex items-center gap-3 lg:hidden">
         <div
           role="progressbar"
-          aria-label="Post a job progress"
+          aria-label={t("postJob.progress")}
           aria-valuemin={1}
           aria-valuemax={POST_JOB_STEP_COUNT}
           aria-valuenow={step}
-          aria-valuetext={`Step ${step} of ${POST_JOB_STEP_COUNT}`}
+          aria-valuetext={t("postJob.stepOfLong", { step, count: POST_JOB_STEP_COUNT })}
           className="flex flex-1 gap-1.5"
         >
           {Array.from({ length: POST_JOB_STEP_COUNT }, (_, i) => {
@@ -44,7 +48,7 @@ export function PostJobStepHeader({ screen, question, helper, onPick, canPick }:
                 type="button"
                 data-done=""
                 data-step-pick={key}
-                aria-label={`Go back to step ${i + 1}`}
+                aria-label={t("postJob.goBackToStep", { step: i + 1 })}
                 onClick={() => onPick(key)}
                 className="flex-1 basis-0 -my-5 flex min-h-[44px] !min-w-0 items-center p-0"
               >
@@ -58,7 +62,7 @@ export function PostJobStepHeader({ screen, question, helper, onPick, canPick }:
           })}
         </div>
         <span className="shrink-0 font-sans text-ds-13 font-semibold tabular-nums text-muted-foreground" aria-hidden>
-          {step} of {POST_JOB_STEP_COUNT}
+          {t("postJob.stepOf", { step, count: POST_JOB_STEP_COUNT })}
         </span>
       </div>
       <div className="space-y-1.5">

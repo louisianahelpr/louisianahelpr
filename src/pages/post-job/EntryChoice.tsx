@@ -5,6 +5,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { FileText, ChevronRight } from "lucide-react";
 import { START_EMOJI } from "@/lib/categoryEmoji";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPostJob";
 import { sampleJobs } from "@/data/sampleJobs";
 import { usePostedBefore, useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
@@ -121,6 +123,8 @@ function shortRelativeDate(iso: string): string {
  * Purely presentational — all transitions/handlers come from usePostJobForm.
  */
 export function EntryChoice({ form }: EntryChoiceProps) {
+  // Post a job in Spanish (A3-3): re-renders when the language or its words arrive.
+  const { t } = useLanguage();
   /* NO UNPAID JOBS HERE (owner, 2026-09-27): "Finish paying should not even
      be a thing." A job exists for the poster only once it is paid; a checkout
      they back out of returns them to their own local draft (useJobSubmit keeps
@@ -218,7 +222,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // The question paints with the screen; only the cards wait for their data.
   const startHeader = (
     <div className="mb-3">
-      <PostJobStepHeader screen="groups" question="What do you need done?" helper="Search, or pick a category." />
+      <PostJobStepHeader screen="groups" question={t("postJob.groupsQ")} helper={t("postJob.groupsH")} />
     </div>
   );
   // JA-41: a group tap starts the form at that group's kinds (screen 2); a one-category group or a search
@@ -280,10 +284,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // page's back arrow returns to the cards (handlePostJobBack).
   if (panel) {
     const head = {
-      templates: { q: "Pick a template", h: "Start from a common job, then edit anything." },
-      offer: { q: "Pick a saved Helpr", h: "They get first refusal for a window you set, before it opens to everyone." },
-      ai: { q: "Describe the job", h: "In your own words. AI fills in the form, and you check it." },
-      repost: { q: "Repost a recent job", h: "The quickest way to ask for the same help again." },
+      templates: { q: t("postJob.templatesQ"), h: t("postJob.templatesH") },
+      offer: { q: t("postJob.offerQ"), h: t("postJob.offerH") },
+      ai: { q: t("postJob.aiQ"), h: t("postJob.aiH") },
+      repost: { q: t("postJob.repost"), h: t("postJob.repostH") },
     }[panel];
     return (
       <div className="space-y-section">
@@ -321,13 +325,13 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                 aria-expanded={showAllTemplates}
                 className="min-h-[44px] font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]"
               >
-                {showAllTemplates ? "Show fewer" : `Show all ${sampleJobs.length} templates`}
+                {showAllTemplates ? t("postJob.showFewer") : t("postJob.showAllTemplates", { count: sampleJobs.length })}
               </button>
             )}
           </>
         )}
         {panel === "repost" && !hasRecent && (
-          <p className="text-ds-14 text-muted-foreground">No recent jobs to repost yet.</p>
+          <p className="text-ds-14 text-muted-foreground">{t("postJob.noRecent")}</p>
         )}
         {panel === "repost" && hasRecent && (
           <ul className="space-y-2">
@@ -392,10 +396,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         startCard(
           "draft",
           <FileText className="h-5 w-5" />,
-          "Pick up your draft",
+          t("postJob.draftTitle"),
           draftCheckout === "open"
             ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
-            : "Continue the request you saved earlier. A draft keeps your words, so add your photos and video again.",
+            : t("postJob.draftBody"),
           () => {
             // F25: a draft with its category picked opens at Details, as a template does.
             if (form.loadDraftAndContinue()) form.setFormPage(2);
@@ -409,18 +413,18 @@ export function EntryChoice({ form }: EntryChoiceProps) {
 
       {/* The other ways to start, as small links (owner pick: "small links on that screen"). Each opens in place of
           the grid; the page's back arrow returns here (handlePostJobBack). */}
-      <nav aria-label="Other ways to start" className="flex flex-col" data-testid="entry-start-links">
+      <nav aria-label={t("postJob.otherWays")} className="flex flex-col" data-testid="entry-start-links">
         {/* 2 — USE A TEMPLATE */}
-        {entryLink("templates", START_EMOJI.templates, "Use a template", () => {
+        {entryLink("templates", START_EMOJI.templates, t("postJob.useTemplate"), () => {
           track("post_job_entry_choice", { choice: "use_template_open" });
           form.setEntryPanel("templates");
         })}
         {/* 3 — OFFER TO A SAVED HELPR */}
-        {entryLink("offer", START_EMOJI.offer, "Hire a saved Helpr", () => form.setEntryPanel("offer"))}
+        {entryLink("offer", START_EMOJI.offer, t("postJob.hireSaved"), () => form.setEntryPanel("offer"))}
         {/* 4 — AI JOB BUILDER */}
-        {entryLink("ai", START_EMOJI.ai, "Describe it with AI", () => form.setEntryPanel("ai"))}
+        {entryLink("ai", START_EMOJI.ai, t("postJob.describeAi"), () => form.setEntryPanel("ai"))}
         {/* 6 — REPOST A RECENT TASK */}
-        {hasRecent && entryLink("repost", "🔁", "Repost a recent job", () => {
+        {hasRecent && entryLink("repost", "🔁", t("postJob.repost"), () => {
           track("post_job_entry_choice", { choice: "repost_open" });
           form.setEntryPanel("repost");
         })}

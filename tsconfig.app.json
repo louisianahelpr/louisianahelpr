@@ -83,6 +83,7 @@
     "supabase/functions/stripe-webhook-config-check/shape.ts",
     "supabase/functions/backfill-job-geocode/budget.ts",
     "supabase/functions/_shared/geocodeDropoff.ts",
+    "supabase/functions/_shared/instantBookSweep.ts",
     "supabase/functions/_shared/addressMatch.ts",
     "supabase/functions/_shared/geocodeAddressPoint.ts",
     "supabase/functions/_shared/declutterCheckoutName.ts",

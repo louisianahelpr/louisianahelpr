@@ -8,7 +8,7 @@ Generated from findings.jsonl as of its newest entry: 2026-10-07T04:09:05.401Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
 - **Findings:** 1 open (0 open launch blockers), 356 fixed, 4 wontfix, 22 obsolete, 14 retracted, 32 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
-- **Surface:** 1854 auditable surfaces (728 navigable, 1126 copy) per SURFACE.md
+- **Surface:** 1856 auditable surfaces (729 navigable, 1127 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
 very different.** `RAN — no report` means findings exist in the bus with no
@@ -63,7 +63,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | — | `lh-mkt-instagram` | NOT STARTED | – | – | – |
 | — | `lh-mkt-orchestrator` | NOT STARTED | – | – | – |
 
-## Surface coverage — 1854 auditable surfaces, not 46 lanes
+## Surface coverage — 1856 auditable surfaces, not 46 lanes
 
 Routes are 3% of the surface. Coverage is measured against SURFACE.md classes,
 each naming the lane accountable for it.
@@ -75,8 +75,8 @@ each naming the lane accountable for it.
 | `?tab=` variants | 34 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | `?view=` variants | 27 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | Overlay surfaces | 213 | `lh-state-matrix` · `lh-visual-critic` | COVERED |
-| Toast messages | 1077 | `lh-copy-content` | COVERED |
-| Multi-step flows — confirmed | 39 | `lh-e2e-journeys` | COVERED |
+| Toast messages | 1078 | `lh-copy-content` | COVERED |
+| Multi-step flows — confirmed | 40 | `lh-e2e-journeys` | COVERED |
 | Multi-step flows — probable | 31 | `lh-e2e-journeys` | COVERED |
 | Back/next navigation only | 58 | `lh-e2e-journeys` · `lh-state-matrix` | COVERED |
 | Forms (submittable) | 93 | `lh-input-boundary` | COVERED |

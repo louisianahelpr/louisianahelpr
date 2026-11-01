@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 213 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1077 (across 299 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 39 |
+| Toast messages | **call site** | 1078 (across 300 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Multi-step flows — confirmed | flow | 40 |
 | Multi-step flows — probable | flow | 31 |
 | Back/next navigation only | flow | 58 |
 | Forms (submittable) | form | 93 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 176 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **728** |
-| **Copy surfaces** (strings a person may read) | mixed | **1126** |
-| **Total auditable surface** | mixed | **1854** |
+| **Navigable surfaces** (places a person can stand) | mixed | **729** |
+| **Copy surfaces** (strings a person may read) | mixed | **1127** |
+| **Total auditable surface** | mixed | **1856** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 27 | 24 | agree |
 | Overlay surfaces | 213 | 130 | agree within method (script counts every menu instance) |
 | Forms | 93 | ~38 | agree |
-| Confirmed multi-step flows | 39 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 40 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -413,6 +413,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/declutter/DeclutterFreeView.tsx` | compare |
 | `src/components/declutter/DeclutterManageListing.tsx` | nav-handler, union-state |
 | `src/components/declutter/DeclutterSellView.tsx` | compare, nav-handler |
+| `src/components/declutter/DeclutterTradeViews.tsx` | compare, nav-handler, union-state |
 | `src/components/declutter/DeliveryCantFinish.tsx` | compare, union-state |
 | `src/components/declutter/FallbackImg.tsx` | compare, union-state |
 | `src/components/declutter/sellForm.ts` | compare |
@@ -495,8 +496,8 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/AppPage.tsx` | nav-handler |
 | `src/components/declutter/DeclutterBunchBar.tsx` | nav-handler |
 | `src/components/declutter/DeclutterBunchView.tsx` | nav-handler |
-| `src/components/declutter/DeclutterTradeViews.tsx` | nav-handler |
 | `src/components/declutter/DeliveryRouteMap.tsx` | nav-handler |
+| `src/components/firstRun/FirstRunHost.tsx` | nav-handler |
 | `src/components/header/PageTitleBar.tsx` | nav-handler |
 | `src/components/messages/ChatHeader.tsx` | nav-handler |
 | `src/components/messages/ChatView.tsx` | nav-handler |

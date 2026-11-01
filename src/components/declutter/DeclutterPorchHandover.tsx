@@ -29,6 +29,7 @@ import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { GOOD_NEWS_NOTE } from "./goodNews";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { sellerPayoutRule, type SellerPayoutKind } from "@/lib/declutter/sellerPayoutRule";
+import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
 
 type Pickup = "porch" | "pickup_home" | "meetup";
 
@@ -51,19 +52,28 @@ export function onDay(day: string): string {
   return w === "Today" || w === "Tomorrow" ? w.toLowerCase() : `on ${w}`;
 }
 
-function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: string | null, free = false): NextStepValue {
+/** A3-18 (lead 11-01 5:01 PM): the checkout time once booked ("Sat 11/2, 3–5 PM"), or "by <book_by>" while nothing is. */
+type TimeWords = { chosen: string | null; by: string | null };
+
+export function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: string | null, free = false,
+  times: TimeWords = { chosen: null, by: null }): NextStepValue {
   // Owner 11-01 12:02 PM: the line is the shared next step. The viewer's own move reads "Next: <step>"; the other
   // side's move reads "Waiting on the buyer to …" / where it stands. #6: a free claim was never paid ("Claimed.").
   const paid = free ? "Claimed." : "Paid.";
-  const you = (text: string): NextStepValue => ({ who: "you", text });
-  const them = (text: string): NextStepValue => ({ who: "them", text });
+  const you = (text: string, by: string | null = null): NextStepValue => ({ who: "you", text, by });
+  const them = (text: string, by: string | null = null): NextStepValue => ({ who: "them", text, by });
   const info = (text: string): NextStepValue => ({ who: "info", text });
+  const { chosen, by } = times;
+  // Nothing booked yet: the other side's line drops its full stop so " · by <date>" follows it.
+  const waiting = (what: string) => them(`${paid} Waiting on the buyer to ${what}${by ? "" : "."}`, by);
   // The booked day or time is the booking panel's line, right below; it is not repeated here.
   if (handover === "porch") {
     // LEAD-PLACE-TIMES: a porch pickup is booked for a time inside the place's hours (a day booked before stays a day).
-    if (at === 0) return side === "buyer" ? you("Pick a time to collect it from the porch") : them(`${paid} Waiting on the buyer to pick a pickup time.`);
+    if (at === 0) return side === "buyer" ? you("Pick a time to collect it from the porch", by) : waiting("pick a pickup time");
     if (at === 1) {
+      if (side === "seller" && chosen) return you("Put it out and post the porch photo", `Pickup ${chosen}`);
       if (side === "seller") return day ? you(`Put it out ${onDay(day)} and post the porch photo`) : you("Put it out and take one photo where the buyer will find it");
+      if (chosen) return them("Not out yet. We'll tell you when it's on the porch", `Pickup ${chosen}`);
       return them("Not out yet. We'll tell you when it's on the porch. Don't go before then.");
     }
     if (at === 2) {
@@ -74,11 +84,13 @@ function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: s
     return info("Picked up.");
   }
   if (handover === "meetup") {
-    if (at === 0) return side === "buyer" ? you("Book a time to meet") : them(`${paid} Waiting on the buyer to book a time to meet.`);
+    if (at === 0) return side === "buyer" ? you("Book a time to meet", by) : waiting("book a time to meet");
+    if (at === 1 && chosen) return side === "seller" ? you("Meet the buyer at the place below", `Meet ${chosen}`) : info(`Meet ${chosen}`);
     if (at === 1) return side === "seller" ? you("Meet the buyer at the time and place below") : info("Booked. The time and place are below.");
     return info(at === 2 ? "Met." : "Handed over.");
   }
-  if (at === 0) return side === "buyer" ? you("Book a pickup time") : them(`${paid} Waiting on the buyer to book a pickup time.`);
+  if (at === 0) return side === "buyer" ? you("Book a pickup time", by) : waiting("book a pickup time");
+  if (at === 1 && chosen) return side === "seller" ? you("Have it ready at the door", `Pickup ${chosen}`) : info(`Pickup ${chosen} · at the door`);
   if (at === 1) return side === "seller" ? you("Have it ready at the pickup time below") : info("Booked. The pickup time is below.");
   return info(at === 2 ? "Picked up." : "Handed over.");
 }
@@ -120,6 +132,7 @@ export function PickupStatus({
   part?: "all" | "status" | "money";
 }) {
   const h = useMyHandover(orderId);
+  const times = useQuery({ queryKey: orderPickupTimesKey([orderId]), queryFn: () => fetchOrderPickupTimes([orderId]) });
   // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
   const free = itemsCents === 0;
   // A1-B2: the buyer's "You paid" is the card charge (the sale plus a first purchase's setup fee), read for the buyer
@@ -140,7 +153,7 @@ export function PickupStatus({
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
-      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing(handover, side, at, day, free)} />
+      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing(handover, side, at, day, free, orderTimeWords(times.data?.[0], handover, slot))} />
       {part === "all" && money}
     </div>
   );

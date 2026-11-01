@@ -48,6 +48,10 @@ vi.mock("@/lib/declutter/deliveryTip", () => ({
   startDeliveryTip: vi.fn(),
 }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: vi.fn() }));
+// A taken or picked-up delivery also draws these; each reads its own rows, which this file does not serve.
+vi.mock("./DeclutterNoHelpr", async (orig) => ({ ...(await orig<object>()), HelprNoShowAnswer: () => null }));
+vi.mock("./DeliveryCantFinish", async (orig) => ({ ...(await orig<object>()), HelprCantFinish: () => null }));
+vi.mock("./DeliveryTalk", async (orig) => ({ ...(await orig<object>()), DeliveryTalkButton: () => null }));
 
 import { DeliverView } from "./DeclutterDeliveryViews";
 
@@ -74,12 +78,29 @@ beforeEach(() => {
 
 describe("the Helpr's card after the drop-off (deep audit #40)", () => {
   // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       {t.status === "delivered" && ( |       {false && (
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |             <NextStep className="!text-sm" value={{ who: "you", text: "Pick it up from the seller", by: v.pickup_slot_start ? when(v.pickup_slot_start) : null }} /> |             null
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |             <NextStep className="!text-sm" value={{ who: "you", text: "Take it to the buyer and tap Left at the door" }} /> |             null
+  it("the Helpr's next step on a taken delivery, then on the road (owner 11-01)", async () => {
+    state.mine = [{ ...TASK, status: "accepted" }];
+    state.view = { ...VIEW, status: "accepted", pickup_slot_start: "2037-10-20T15:00:00Z" };
+    const a = show();
+    const first = await screen.findByText("Next: pick it up from the seller");
+    expect(first.closest("[data-next-step]")!.textContent).toMatch(/^Next: pick it up from the seller · \S/);
+    a.unmount();
+    state.mine = [{ ...TASK, status: "picked_up" }];
+    state.view = { ...VIEW, status: "picked_up", picked_up_at: "2037-10-20T15:10:00Z" };
+    show();
+    expect(await screen.findByText("Next: take it to the buyer and tap Left at the door")).toBeInTheDocument();
+  });
+
   it("delivered, not yet confirmed: the card says it is waiting for the buyer", async () => {
     state.mine = [{ ...TASK, status: "delivered" }];
     state.view = { ...VIEW, status: "delivered", delivered_at: "2026-10-20T16:00:00Z" };
     show();
     const line = await screen.findByText("Delivered. Waiting for the buyer to confirm it arrived.");
-    expect(line).toHaveAttribute("role", "status");
+    // The shared next-step line (owner 11-01): whose move it is now, in a status region.
+    expect(line.closest("[role=status]")).not.toBeNull();
+    expect(line.closest("[data-next-step]")?.getAttribute("data-next-step")).toBe("them");
     // No photo step is offered again.
     expect(screen.queryByRole("button", { name: "Left at the door" })).toBeNull();
   });

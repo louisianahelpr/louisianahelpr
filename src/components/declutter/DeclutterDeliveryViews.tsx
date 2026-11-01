@@ -12,6 +12,7 @@
  * Built on the shared Helpr task module (src/lib/helprTasks/api.ts); every rule
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
+import { NextStep } from "@/components/ui/NextStep";
 import { stillInHandLine } from "@/lib/declutter/stillInHand";
 import { DELIVERY_ADDRESSES_SHOW } from "@/lib/declutter/deliveryAddressWords";
 import { useEffect, useState } from "react";
@@ -413,15 +414,23 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
       )}
       {/* Deep audit #40: after the drop-off photo the card said nothing until the buyer confirmed. */}
       {t.status === "delivered" && (
-        <p className="text-sm font-semibold text-[hsl(var(--sage-ink))]" role="status" data-task-delivered="">
-          Delivered. Waiting for the buyer to confirm it arrived.
-        </p>
+        <div role="status" data-task-delivered="">
+          <NextStep className="!text-sm" value={{ who: "them", text: "Delivered. Waiting for the buyer to confirm it arrived." }} />
+        </div>
       )}
       {/* Q2453: the buyer's tip, all of it the Helpr's (Stripe sends it straight to their account). */}
       {tipCents > 0 && <p className="text-sm">The buyer tipped you {formatPrice(tipCents)}.</p>}
       {active && view.isError && <p className="text-sm" role="alert">{declutterErrorMessage(view.error)}</p>}
       {active && v && (
         <>
+          {/* The shared next-step line (owner 11-01 12:02 PM): the Helpr's move on this delivery, with the pickup time.
+              The steps themselves are on the route (toRoute). */}
+          {!v.problem_open && v.status === "accepted" && (
+            <NextStep className="!text-sm" value={{ who: "you", text: "Pick it up from the seller", by: v.pickup_slot_start ? when(v.pickup_slot_start) : null }} />
+          )}
+          {v.status === "picked_up" && !v.stuck_stage && (
+            <NextStep className="!text-sm" value={{ who: "you", text: "Take it to the buyer and tap Left at the door" }} />
+          )}
           {v.pickup_slot_start && <p className="text-sm">Pickup: <span className="font-medium">{when(v.pickup_slot_start)}</span></p>}
           {v.pickup_address && <p className="text-sm">Pick up at: <span className="font-medium">{v.pickup_address}</span></p>}
           {v.dropoff_address && <p className="text-sm">Deliver to: <span className="font-medium">{v.dropoff_address}</span></p>}

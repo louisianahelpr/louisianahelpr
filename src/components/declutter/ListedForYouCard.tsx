@@ -8,12 +8,11 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { formatPrice } from "@/lib/declutter/distance";
 import { requestAiCheckWithRetry } from "@/lib/declutter/api";
 import { approveListedForMe, declineListedForMe, fetchListedForMe, type ApprovalResult } from "@/lib/declutter/listForSeller";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { TAX_STATEMENTS, TAX_TICK_LABEL } from "./declutterUi";
+import { TaxStatementsCheck } from "./declutterUi";
 
 const KEY = ["declutter", "listed-for-me"] as const;
 
@@ -79,13 +78,7 @@ export function ListedForYouCard() {
         ))}
       </ul>
       <div className="mt-3 rounded-2xl bg-muted/50 p-3">
-        <ul className="list-disc space-y-1 pl-5 text-ds-13 text-muted-foreground">
-          {TAX_STATEMENTS.map((s) => <li key={s}>{s}</li>)}
-        </ul>
-        <label className="mt-2 flex min-h-11 items-center gap-3 text-ds-15">
-          <Checkbox checked={ticked} onCheckedChange={(v) => setTicked(v === true)} />
-          {TAX_TICK_LABEL}
-        </label>
+        <TaxStatementsCheck id="listed-for-you-tax" checked={ticked} onChange={setTicked} />
       </div>
       {rows.length > 1 && (
         <Button className="mt-3 w-full rounded-full" disabled={busy || !ticked} onClick={() => approve.mutate(rows.map((r) => r.item_id))}>

@@ -541,6 +541,9 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  // LEAD-LIST-FOR-SELLER (20261101034159): a private link (item, job, Helpr, seller, sent/decided times), service role only.
+  "declutter_listed_for_seller.seller_id": { reason: "link row; the listing itself is a declutter_items row exported under the seller (seller_id), and the job under its poster" },
+  "declutter_listed_for_seller.helpr_id": { reason: "link row; the listing the Helpr wrote is the seller's declutter_items row (exported under the seller), and the Helpr's side is the job, exported under helper_id" },
   "payee_accounts.user_id": { reason: "PayPal phase 1 (20261023223419, 2026-10-23): switch paypal_payments is off, so no member rows exist; export added before the switch goes to everyone (OPEN Q2377, a go-live blocker)" },
   "payee_accounts.paypal_email": { reason: "PayPal phase 1 (20261023223419, 2026-10-23): switch paypal_payments is off, so no member rows exist; export added before the switch goes to everyone (OPEN Q2377, a go-live blocker)" },
   "provider_payments.payer_id": { reason: "PayPal phase 1 (20261023223419, 2026-10-23): switch paypal_payments is off, so no member rows exist; export added before the switch goes to everyone (OPEN Q2377, a go-live blocker)" },

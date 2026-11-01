@@ -76,7 +76,7 @@ describe("the four statements, one box, on every sell form", () => {
   it("every sell form uses the shared box", () => {
     const users = files.filter((f) => /<TaxStatementsCheck\b/.test(code(`${dir}/${f}`))).sort();
     expect(users.length).toBeGreaterThan(3);
-    expect(users).toEqual(["BunchDraftsSection.tsx", "DeclutterBunchListStep.tsx", "DeclutterEditListing.tsx", "SellFormParts.tsx"]);
+    expect(users).toEqual(["BunchDraftsSection.tsx", "DeclutterBunchListStep.tsx", "DeclutterEditListing.tsx", "ListedForYouCard.tsx", "SellFormParts.tsx"]);
   });
 
   it("all four statements stay, word for word, above one tick", () => {

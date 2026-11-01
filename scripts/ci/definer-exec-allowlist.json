@@ -171,6 +171,7 @@
     "get_job_view_counts(uuid[])": "client",
     "get_closed_application_job_labels()": "client",
     "get_jobs_for_my_applications()": "client",
+    "get_message_thread_job_titles(uuid[])": "client",
     "get_messaging_closes_at(uuid[])": "client",
     "get_muted_threads(jsonb)": "client",
     "get_my_job_card_hold(uuid)": "reviewed 2026-10-25 (Q2399): card hold at post (20261027185146) client RPC behind the card_hold_at_post switch (require_feature first); returns only the caller's OWN job's hold (jobs.customer_id = auth.uid()): state, amount, place_at, capture_before; no other member's data.",

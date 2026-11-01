@@ -16794,6 +16794,13 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_message_thread_job_titles: {
+        Args: { p_job_ids: string[] }
+        Returns: {
+          job_id: string
+          title: string
+        }[]
+      }
       get_messaging_closes_at: {
         Args: { _job_ids: string[] }
         Returns: {

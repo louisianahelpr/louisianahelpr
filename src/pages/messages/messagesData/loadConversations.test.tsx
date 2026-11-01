@@ -392,3 +392,39 @@ describe("buildDeepLinkPlaceholder — a link to a deleted account (Q333)", () =
     expect(rpcMock).not.toHaveBeenCalledWith("get_thread_counterparty_deleted", expect.anything());
   });
 });
+
+// NOID-20 "a job" label (lead 2026-10-31): a job row security hides from a former participant is named from
+// get_message_thread_job_titles (participants only, migration 20261101014031), never "a job" when the server knows.
+// @mutate src/pages/messages/messagesData/loadConversations.ts |     jobTitle: jobMap.get(v.jobId)?.title \|\| threadTitles.get(v.jobId) \|\| "a job", |     jobTitle: jobMap.get(v.jobId)?.title \|\| "a job",
+// @mutate src/lib/messageThreadJobTitles.ts |   for (const r of (data ?? []) as Array<{ job_id: string; title: string \| null }>) if (r.title) out.set(r.job_id, r.title); |
+describe("fetchConversations — a thread's job title when row security hides the job (NOID-20)", () => {
+  it("names the thread from the participant-only title read, and keeps 'a job' when the server has none", async () => {
+    messagesResponse = {
+      data: [
+        message({ job_id: "job-hidden", sender_id: ME, receiver_id: CAMILLE_AUTH, created_at: "2026-08-17T11:00:00.000Z" }),
+        message({ job_id: "job-gone", sender_id: ME, receiver_id: ELI_AUTH, created_at: "2026-08-17T10:00:00.000Z" }),
+      ],
+      error: null,
+    };
+    rpcMock.mockImplementation(async (fn: string, args: unknown) => {
+      if (fn === "get_safe_profiles") return profilesResponse;
+      if (fn === "get_message_thread_job_titles") {
+        expect((args as { p_job_ids: string[] }).p_job_ids.sort()).toEqual(["job-gone", "job-hidden"]);
+        return { data: [{ job_id: "job-hidden", title: "Haul the old shed" }], error: null };
+      }
+      return { data: [], error: null };
+    });
+    const convos = await fetchConversations(ME, thumbRef());
+    expect(convos.find((c) => c.jobId === "job-hidden")?.jobTitle).toBe("Haul the old shed");
+    expect(convos.find((c) => c.jobId === "job-gone")?.jobTitle).toBe("a job");
+  });
+
+  it("degrades quietly to 'a job' while the function is not deployed (PGRST202)", async () => {
+    messagesResponse = { data: [message({ job_id: "job-hidden" })], error: null };
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_safe_profiles" ? profilesResponse : fn === "get_message_thread_job_titles" ? { data: null, error: { code: "PGRST202", message: "not found" } } : { data: [], error: null },
+    );
+    const [c] = await fetchConversations(ME, thumbRef());
+    expect(c.jobTitle).toBe("a job");
+  });
+});

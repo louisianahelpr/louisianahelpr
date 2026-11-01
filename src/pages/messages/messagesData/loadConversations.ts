@@ -9,6 +9,7 @@ import { getMessageAttachmentSignedUrls, isImageMime } from "@/lib/messageAttach
 import { getMutedThreadMap, threadMuteKey } from "@/lib/threadMutes";
 import { fetchMessagingClosesAt } from "@/lib/messagingLockout";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
+import { fetchMessageThreadJobTitles } from "@/lib/messageThreadJobTitles";
 import type { Conversation, Message } from "@/components/messages/types";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { fetchCounterpartyDeleted } from "@/lib/deletedCounterparty";
@@ -287,7 +288,7 @@ export async function fetchConversations(
   // single round-trip instead of N. The RPC was shipped in
   // `20260609090000_user_last_active_rpc.sql` (handoff item #28); we
   // degrade silently when the function isn't deployed (PGRST202).
-  const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes, closesAtMap, offerTargets, staffSideRes] = await Promise.all([
+  const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes, closesAtMap, offerTargets, staffSideRes, threadTitles] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
     // No offered_to_helper_id here: it is not selectable (20260915045110,
     // owner decision 2026-09-14). Whether *I* am a job's offeree comes from
@@ -303,6 +304,8 @@ export async function fetchConversations(
     staffTeamUsers.length === 0
       ? Promise.resolve({ data: [], error: null })
       : supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", staffTeamUsers),
+    // NOID-20: the title for a thread whose job row security now hides from me (a participant only).
+    fetchMessageThreadJobTitles(jobIds),
   ]);
   const lastActiveMap = new Map<string, string>();
   if (
@@ -377,7 +380,7 @@ export async function fetchConversations(
     // Q262: the deleted-account thread says so plainly.
     otherUserName: otherDeleted ? FORMER_MEMBER_LABEL : other?.name || UNRESOLVED_PERSON,
     otherUserAvatarUrl: other?.avatarUrl ?? null,
-    jobTitle: jobMap.get(v.jobId)?.title || "a job",
+    jobTitle: jobMap.get(v.jobId)?.title || threadTitles.get(v.jobId) || "a job",
     jobId: v.jobId,
     jobStatus: jobMap.get(v.jobId)?.status ?? null,
     jobExpired: jobMap.get(v.jobId)?.expired ?? false,
@@ -445,12 +448,13 @@ export async function buildDeepLinkPlaceholder(
 ): Promise<Conversation | { problem: string }> {
   // No existing conversation — fetch profile + job to build a
   // placeholder thread so the user can start messaging.
-  const [profileRes, jobRes, closesAtMap, offerTargets] = await Promise.all([
+  const [profileRes, jobRes, closesAtMap, offerTargets, threadTitles] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: [deepLinkUserId] }),
     // offered_to_helper_id via get_job_offer_targets, as in the list path.
     supabase.from("jobs").select("id, title, status, customer_id, helper_id, cancelled_by, cancellation_reason").eq("id", deepLinkJobId).maybeSingle(),
     fetchMessagingClosesAt([deepLinkJobId]),
     fetchJobOfferTargets([deepLinkJobId]),
+    fetchMessageThreadJobTitles([deepLinkJobId]),
   ]);
 
   // A FAILED read is not the same fact as an ABSENT row, and the dead-thread
@@ -498,7 +502,7 @@ export async function buildDeepLinkPlaceholder(
       ? FORMER_MEMBER_LABEL
       : resolved?.name || UNRESOLVED_PERSON,
     otherUserAvatarUrl: resolved?.avatarUrl ?? null,
-    jobTitle: jobRes.data?.title || "a job",
+    jobTitle: jobRes.data?.title || threadTitles.get(deepLinkJobId) || "a job",
     jobId: deepLinkJobId,
     jobStatus: jobRes.data?.status ?? null,
     jobExpired: jobRes.data ? jobIsExpiredListing(jobRes.data) : false,

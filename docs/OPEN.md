@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 505** (431 to do, 74 fixed with protection pending; 1627 done). Feeds mirrored in: 70 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 18 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 506** (432 to do, 74 fixed with protection pending; 1627 done). Feeds mirrored in: 71 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 18 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 14 red, 14 stale, 1 unknown, 48 green of 77 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-22T04:06Z)_
@@ -91,7 +91,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2132 items — 1627 done, 74 partly done (fixed, protection pending), 431 open.**
+**Queue: 2133 items — 1627 done, 74 partly done (fixed, protection pending), 432 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -703,12 +703,12 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41045303398. feed: issue #3491 · feed: ledger 2e4f3e726722
   - db-drift-detect: issue #3743, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41225818194. feed: issue #3743 · feed: ledger 8018e82cb167
   - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218192294. feed: issue #3784 · feed: ledger db0fb15c4ec3
-  - main: Sensitive review record: issue #3802, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41262033084. feed: issue #3802 · feed: ledger e41c806b9175
   - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218039744. feed: issue #3813 · feed: ledger 3a3460b71be7
   - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41218255151. feed: issue #3824 · feed: ledger 4aa239aefeb6
   - core-loop-canary: issue #3833, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41128418672. feed: issue #3833 · feed: ledger 18539240a894
   - codeql: issue #3846, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41151980186. feed: issue #3846 · feed: ledger 11d7173a8901
   - code-scanning-alerts: issue #3875, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41203680439. feed: issue #3875 · feed: ledger c2e77e40435e
+  - main: sensitive review record: no open issue. feed: ledger e41c806b9175
 - [ ] **Q2144 MEDIUM cron http failure: declutter-money returned 500 (# defect(s) reported).** Mirrored 2026-10-18 from alert-ledger row e62e32bec0c4 (error_logs: cron-http; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger e62e32bec0c4. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'e62e32bec0c415c8c17d26c4ff5e035f'` => closed **TRIAGE 2026-10-21: still applies, ledger row e62e32bec0c4 is open (prod SQL 2026-10-21) and the item has no root cause recorded yet.** **TRIAGE 2026-10-30: still applies.**
 - [ ] **Q2293 MEDIUM rentalscopyerror: verify your id first. every landlord on louisiana helpr is id-verified.** Mirrored 2026-10-21 from alert-ledger row 104294997a13 (sentry: sentry:assets/rentals; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 104294997a13. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '104294997a1397368cafcb572c15de09'` => closed **TRIAGE 2026-10-30: still applies.**
 - [ ] **Q2294 MEDIUM error: invalid_name.** Mirrored 2026-10-21 from alert-ledger row 8f84bf1e767f (sentry: sentry:assets/app-shared; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 8f84bf1e767f. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '8f84bf1e767f22ab8718ee3be3f73b2b'` => closed **TRIAGE 2026-10-30: still applies.**
@@ -769,6 +769,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q2542 MEDIUM analytics: message_sent stopped recording (real users acted, zero events).** Mirrored 2026-10-31 from alert-ledger row a526aff531da (workflow: analytics-freshness; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger a526aff531da. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'a526aff531da165c860c6babfc0dc3f2'` => closed
 - [ ] **Q2543 MEDIUM new member joined.** Mirrored 2026-10-31 from alert-ledger row 3a801ee231b0 (edge_slack: ops-alert:custom; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 3a801ee231b0. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '3a801ee231b0cb5622678dd6e59362c5'` => closed
 - [ ] **Q2544 MEDIUM /jobs · failed to fetch dynamically imported module: <url>.** Mirrored 2026-10-31 from alert-ledger row bf6860c13035 (user-error-screen: user-error-screen; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger bf6860c13035. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'bf6860c13035a95fdccbf8c10dd9edc7'` => closed
+- [ ] **Q2545 MEDIUM sweep_old_notifications: deleted # rows (# read, # unread).** Mirrored 2026-11-01 from alert-ledger row 043a7a13b735 (error_logs: sweep_old_notifications; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 043a7a13b735. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '043a7a13b73539a44b5175ae12d3cc3e'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

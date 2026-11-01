@@ -56,6 +56,8 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 
 const state = {
+  /** The seller's pickup places in the cart (none unless a test sets them). */
+  sellerPlaces: [] as unknown[],
   underAge: false,
   handovers: null as string[] | null,
   card: null as unknown,
@@ -163,7 +165,7 @@ vi.mock("@/lib/declutter/api", () => ({
 // Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
 // The cart reads the seller's porch places (D-NEW14); these sellers have none. Places are proved in porchPlacesUi.test.tsx.
-vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchSellerPorchPlaces: async () => [] }));
+vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchSellerPorchPlaces: async () => state.sellerPlaces }));
 vi.mock("@/lib/declutter/handoverTalk", () => ({
   openHandoverTalk: async (other: string) => { state.talksOpened.push(other); return "t1"; },
   fetchMyOpenHandoverTalks: async () => [],
@@ -219,6 +221,7 @@ const OFFER = {
 
 describe("Declutter slice 3 screens", () => {
   beforeEach(() => {
+    state.sellerPlaces = [];
     state.underAge = false;
     state.responded = [];
     state.setupFeeCents = 0;
@@ -970,6 +973,30 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "porch" }]));
     expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]);
+  });
+
+  // Owner 2026-11-01 (checkout screenshot): the seller's pickup places sat after Helpr delivery in a box of their own.
+  // They go UNDER the chosen way that uses them: porch pickup (the default), a door pickup or Helpr delivery.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |           {chosen === h && needsPlace && ( |           {false && (
+  it("the pickup places sit under Porch pickup, inside its option, while it is chosen", async () => {
+    state.sellerPlaces = [
+      { id: "p1", label: null, area: "New Iberia", weekdays: [6], chosen: false },
+      { id: "p2", label: null, area: "Delcambre", weekdays: [0], chosen: false },
+    ];
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    show(<CartView />);
+    await screen.findAllByRole("radio");
+    expect(screen.getByLabelText(/Porch pickup/)).toBeChecked();
+    const porch = document.querySelector('[data-handover-option="porch"]') as HTMLElement;
+    await waitFor(() => expect(within(porch).getByText(/New Iberia/)).toBeInTheDocument());
+    expect(within(porch).getByText(/Delcambre/)).toBeInTheDocument();
+    expect(document.querySelectorAll("[data-places-under]")).toHaveLength(1);
+    // A door pickup is at the chosen place too (LEAD-PLACE-TIMES): they move under that way instead.
+    fireEvent.click(screen.getByLabelText(/Meet at the seller's home/));
+    await waitFor(() => expect(porch.querySelector("[data-places-under]")).toBeNull());
+    expect(document.querySelector('[data-handover-option="pickup_home"] [data-places-under]')).not.toBeNull();
   });
 
   it("slice 5: Helpr delivery is offered, priced by the server for the typed address, and Pay carries the delivery fee", async () => {

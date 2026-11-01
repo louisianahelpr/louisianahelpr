@@ -17,7 +17,6 @@ import { render, screen } from "@testing-library/react";
 import { JobPageActionRow } from "@/pages/jobs/jobPage/JobPageActionRow";
 import { MenuAction } from "@/components/job-card/jobStepMenu";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
-import { MessageCircle } from "lucide-react";
 import { pairLabel, PAIR_LABEL_MAX } from "@/components/ui/pairLabel";
 import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { blankComments } from "@/test/helpers/blankNonCode";

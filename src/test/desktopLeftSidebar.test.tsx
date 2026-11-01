@@ -36,6 +36,8 @@ vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: 
 vi.mock("@/components/admin/adminBadgeStore", () => ({ useAdminBadges: () => ({}) }));
 vi.mock("@/lib/routePrefetch", () => ({ prefetchRoute: () => {} }));
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+// The title bars draw NotificationBell, which swaps the panel in: the same stand-in.
+vi.mock("@/components/notificationPanel/NotificationBell", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 vi.mock("@/components/create/CreateSheet", () => ({
   CreateSheet: ({ open }: { open: boolean }) => {
     if (open) state.sheetOpened++;

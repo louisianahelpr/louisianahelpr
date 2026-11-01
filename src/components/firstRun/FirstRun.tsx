@@ -1,11 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useSearchParams } from "react-router-dom";
 import { Check } from "lucide-react";
 import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
-import { useFirstRunGate } from "./firstRunGate";
 
 /**
  * FIRST RUN (board 53) + THE SHORT TOUR (owner 2026-10-20; replaces the old
@@ -17,7 +15,8 @@ import { useFirstRunGate } from "./firstRunGate";
  * 2. Three or four coach marks on the REAL chrome (the bottom bar on a phone,
  *    the sidebar on desktop), worded for the picks: one line, dots, Skip and
  *    Next, "Done" on the last. Olive actions, sentence case, no rust.
- * Seen state: firstRunGate (the old tour's account column + device key).
+ * Seen state: firstRunGate (the old tour's account column + device key), held by
+ * ./FirstRunHost, which loads these screens only when the gate opens.
  * Replay: /home?tour=1 (Help's "Take the tour again") runs step 2 again.
  */
 
@@ -70,29 +69,15 @@ function findTarget(t: Target): HTMLElement | null {
   return null;
 }
 
-export function FirstRun({ userId, onActiveChange }: { userId?: string; onActiveChange?: (active: boolean) => void }) {
-  const [params, setParams] = useSearchParams();
-  const replayAsked = params.get("tour") === "1";
-  const gate = useFirstRunGate(userId, true);
-  const [phase, setPhase] = useState<"pick" | "tour">("pick");
+/** The first run's screens. Loaded only when the gate opens (./FirstRunHost holds the gate). */
+export default function FirstRunScreens({ startInTour, onDone }: { startInTour: boolean; onDone: () => void }) {
+  const [phase, setPhase] = useState<"pick" | "tour">(startInTour ? "tour" : "pick");
   const [picks, setPicks] = useState<Pick[]>([]);
   const live = useSectionTabs();
   const { putFirst } = useSectionPrefs();
   const declutterOpen = !!live.find((t) => t.path === "/declutter")?.on;
   const options = FIRST_RUN_OPTIONS.filter((o) => o.section === "jobs" || declutterOpen);
 
-  useEffect(() => {
-    if (!replayAsked) return;
-    setPhase("tour");
-    gate.replay();
-    const next = new URLSearchParams(params);
-    next.delete("tour");
-    setParams(next, { replace: true });
-  }, [replayAsked]); // once per ?tour=1 arrival
-
-  useEffect(() => { onActiveChange?.(gate.pending); }, [gate.pending, onActiveChange]);
-
-  if (!gate.open) return null;
   if (phase === "pick") {
     return (
       <FirstRunPicker
@@ -107,7 +92,7 @@ export function FirstRun({ userId, onActiveChange }: { userId?: string; onActive
       />
     );
   }
-  return <CoachMarks steps={tourSteps(picks, declutterOpen)} onDone={gate.finish} />;
+  return <CoachMarks steps={tourSteps(picks, declutterOpen)} onDone={onDone} />;
 }
 
 function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {

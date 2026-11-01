@@ -94,7 +94,7 @@ const LOAD_TIMEOUT_MS = 15_000;
 const withLoadTimeout = <T,>(pending: PromiseLike<T>): Promise<T> =>
   raceVisibleDeadline(pending, LOAD_TIMEOUT_MS, "Loading notifications timed out");
 
-const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } = {}) => { // sizes the bell (Home: 44px)
+const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerClassName?: string; defaultOpen?: boolean } = {}) => { // sizes the bell (Home: 44px); defaultOpen: NotificationBell swapped this in on a tap
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const titleId = useId();
@@ -116,7 +116,7 @@ const NotificationPanel = ({ triggerClassName }: { triggerClassName?: string } =
      users saw the least accurate number.
      `head: true` returns no rows, and the (user_id, read) index already exists
      for exactly this shape, so it costs a count and no payload. */
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   /* framer-motion is fetched when the panel first opens, never on page load —
      see useFramerMotion for the measured chain this breaks. `null` until the
      chunk arrives; rows render as plain divs with the same box meanwhile. */

@@ -251,7 +251,7 @@ export function PickupPlacesHoursList({ places, cityOnly = false }: { places: Pi
     <ul className="space-y-1" data-pickup-places-hours="">
       {places.map((p, i) => (
         <li key={`${p.label}-${i}`} className="text-ds-13 [overflow-wrap:anywhere]" data-pickup-place-hours="">
-          <span className="font-semibold text-foreground">{cityOnly ? p.area : [p.label, p.area].filter(Boolean).join(" · ")}</span>
+          <span className="font-semibold text-foreground">{cityOnly || !p.label ? p.area : [p.label, p.area].filter(Boolean).join(" · ")}</span>
           <span className="block text-muted-foreground">{placeHoursLine(p.windows, p.weekdays)}</span>
         </li>
       ))}
@@ -266,7 +266,7 @@ export function MyPickupPlacesSummary() {
   return <PickupPlacesHoursList places={mine.data} />;
 }
 
-/** The item page's places (declutter_item_pickup_places): label, area, days and hours; nothing before it is on the server. */
+/** The item page's places (declutter_item_pickup_places): city, days and hours (the label only to the seller); nothing before it is on the server. */
 export function ItemPickupPlaces({ itemId }: { itemId: string }) {
   // retryOnMount false: ItemHandoverTimes mounts this BECAUSE the shared read failed. Refetching on mount put the query
   // back to pending (no data yet), which unmounted this, and the next failure mounted it again: an endless request loop

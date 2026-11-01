@@ -231,13 +231,16 @@ describe("the buyer's pick", () => {
     { id: "p2", label: "Camp", area: "New Orleans", weekdays: [0], chosen: false },
   ];
 
+  // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |             <span className="block text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.area}</span> |             <span className="block text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.label}</span>
   it("Pay waits for a pick; the pick goes to the server; no address before paying", async () => {
     answers({ declutter_seller_porch_places: OPTIONS, declutter_set_porch_place: "p2" });
     const { container } = wrap(<Checkout />);
-    fireEvent.click(await screen.findByRole("radio", { name: /Camp/ }));
+    fireEvent.click(await screen.findByRole("radio", { name: /New Orleans/ }));
     expect(screen.getByRole("button", { name: "Pay" })).toBeDisabled();
     await waitFor(() => expect(h.rpc).toHaveBeenCalledWith("declutter_set_porch_place", { p_seller_id: "s1", p_place_id: "p2" }));
     expect(container.textContent).not.toMatch(/Street|Road/);
+    // Owner 2026-10-31: the city only, never the place's own label, even from an older server that still sends it.
+    expect(container.textContent).not.toMatch(/Home|Camp/);
     answers({ declutter_seller_porch_places: OPTIONS.map((o) => ({ ...o, chosen: o.id === "p2" })) });
   });
 
@@ -245,6 +248,7 @@ describe("the buyer's pick", () => {
   // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |     if (!needed \|\| !only \|\| only.chosen \|\| sent.current === only.id) return; |     return;
   // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |   const places = only ? [{ ...only, chosen: true }] : read; |   const places = read;
   // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |   if (places.length === 1) {\n    const p = places[0]; |   if (false) {\n    const p = places[0];
+  // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |         <p className="text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.area}</p> |         <p className="text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.label}</p>
   describe("a seller with exactly one place", () => {
     const ONE = [{ id: "p1", label: "Home", area: "Lafayette", weekdays: [6], chosen: false, address: "12 Home Street, Lafayette" }];
 
@@ -271,8 +275,9 @@ describe("the buyer's pick", () => {
 
     it("it is picked for the buyer, the server gets the pick, Pay is open, and no address or list shows", async () => {
       answers({ declutter_seller_porch_places: ONE, declutter_set_porch_place: "p1" });
-      wrap(<Checkout />);
-      await screen.findByText("Home");
+      const one = wrap(<Checkout />);
+      await screen.findByText("Lafayette");
+      expect(one.container.textContent).not.toContain("Home");
       expect(screen.getByRole("button", { name: "Pay" })).toBeEnabled();
       expect(screen.queryByRole("radio")).toBeNull();
       expect(document.body.textContent).toContain("Lafayette");
@@ -549,11 +554,14 @@ describe("the paid order", () => {
     expect((await screen.findByText("Camp")).parentElement?.textContent).toContain("99 Camp Road");
   });
 
-  it("names the place for the buyer, whose address line is PickupAddresses", async () => {
+  // @mutate src/components/declutter/DeclutterPorchPlaces.tsx |   const name = side === "seller" ? place.label ?? place.area : place.area; |   const name = place.label ?? place.area;
+  it("names the place's city for the buyer (never its label), whose address line is PickupAddresses", async () => {
+    // The server sends the buyer no label (20261101054401); an older server's label still never shows.
     answers({ declutter_order_place: [FROZEN] });
     const { container } = wrap(<OrderPorchPlace orderId="o1" side="buyer" />);
-    await screen.findByText("Camp");
+    await screen.findByText("New Orleans");
     expect(container.textContent).not.toContain("99 Camp Road");
+    expect(container.textContent).not.toContain("Camp");
   });
 
   it("an order with no place shows nothing", async () => {

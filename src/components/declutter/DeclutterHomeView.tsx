@@ -78,9 +78,10 @@ import { ListingThumb } from "./ListingThumb";
 import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQuery";
 import { useOpenProblems } from "./useOpenProblems";
 import { TAKE_DOWN_WORDS } from "./takeDownWords";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
-const haulLib = () => import("@/lib/declutter/haulAway");
+const haulLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
 
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
@@ -188,7 +189,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     queryKey: ["declutter", "haul-away", userId],
     enabled: haulOn,
     queryFn: async () => {
-      const lib = await haulLib();
+      const lib = (await haulLib()) ?? (await untilReload());
       const rows = await lib.fetchHaulAwayState();
       // The items one trip can take, by the same rule as the server's link (isPostable).
       return { rows, trip: lib.oneTripGroup(rows) };
@@ -203,7 +204,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   // removed from here; a delete the policy refuses anyway is reported inside
   // deleteNeverPaidHaulJob (unwrapMutation) and told the same way.
   const releaseJob = async (row: HaulAwayRow) => {
-    const lib = await haulLib();
+    const lib = (await haulLib()) ?? (await untilReload());
     // Its words ride on userMessage (declutterErrorMessage shows them): the
     // haul-away copy loads with the haul-away code, never on /posts (Q178).
     const stuck = () => Object.assign(new Error("haul_away_job_stuck"), { userMessage: lib.HAUL_AWAY_CLIENT_ERROR_COPY.haul_away_job_stuck });
@@ -221,7 +222,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const putBack = useMutation({
     mutationFn: async (row: HaulAwayRow) => {
       await releaseJob(row);
-      return (await haulLib()).cancelHaulAway(row.item_id);
+      return ((await haulLib()) ?? (await untilReload())).cancelHaulAway(row.item_id);
     },
     onSuccess: (status) => {
       toast(status === "live" ? "Back on sale." : "Haul-away cancelled. The item is off sale.");

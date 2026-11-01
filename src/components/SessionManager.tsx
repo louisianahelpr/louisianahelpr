@@ -11,10 +11,11 @@ import { useStatusBarStyle } from "@/hooks/useStatusBarStyle";
 import { useAppLifecycle } from "@/lib/appLifecycle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
+import { loadModule } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const supabaseClient = () => import("@/integrations/supabase/client");
+const supabaseClient = () => loadModule(() => import("@/integrations/supabase/client"));
 
 // App-wide boot hooks with no UI, mounted once inside <BrowserRouter> by App.tsx.
 // Moved verbatim out of App.tsx (component-size ratchet, Q806); App.tsx still
@@ -97,8 +98,8 @@ export const SessionManager = () => {
     const patch = seniorModeMetadataPatch(user, profileSenior);
     if (!patch) return;
     void supabaseClient()
-      .then(({ supabase }) => supabase.auth.updateUser({ data: patch }))
-      .then((r) => { if (r.error) console.warn("[senior-mode] session hint not saved", r.error.message); })
+      .then((m) => m?.supabase.auth.updateUser({ data: patch }))
+      .then((r) => { if (r?.error) console.warn("[senior-mode] session hint not saved", r.error.message); })
       .catch((e: unknown) => console.warn("[senior-mode] session hint not saved", e));
   }, [profile, user]);
 

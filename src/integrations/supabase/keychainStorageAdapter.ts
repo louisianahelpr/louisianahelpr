@@ -2,10 +2,11 @@ import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 import { KeychainAccess, SecureStorage } from '@aparajita/capacitor-secure-storage';
 import { markSessionKnown } from '@/lib/sessionKnown';
+import { loadModule } from '@/lib/loadModule';
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const errorLogger = () => import('@/lib/errorLogger');
+const errorLogger = () => loadModule(() => import('@/lib/errorLogger'));
 
 // Native-side mirror for sb-*-auth-token entries. WebKit can evict
 // localStorage under memory pressure on iOS, silently logging users out, so
@@ -57,7 +58,7 @@ async function readKeychain(key: string): Promise<string | null> {
 // which the client imports at the top of the boot path, stays small.
 function reportKeychain(err: unknown, step: string): void {
   void errorLogger()
-    .then(({ report }) => report(err, { severity: 'error', tags: { area: 'keychain_session' }, context: { step } }))
+    .then((m) => m?.report(err, { severity: 'error', tags: { area: 'keychain_session' }, context: { step } }))
     .catch(() => { /* Silent by design: the logger itself failed to load; nothing else can record it. */ });
 }
 

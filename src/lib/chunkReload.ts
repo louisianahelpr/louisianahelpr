@@ -1,3 +1,5 @@
+import { isRecoveryReloadInFlight, setRecoveryReloadInFlight } from "@/lib/loadModule";
+
 /**
  * Stale-chunk recovery — shared by the error boundaries and the eager
  * `vite:preloadError` handler in `main.tsx`.
@@ -305,7 +307,7 @@ export const handleVitePreloadError = (event: Event): void => {
     if (payload === null || (typeof payload !== "object" && typeof payload !== "function")) return;
     setTimeout(() => {
       if (backgroundOwnedErrors.has(payload)) return;
-      if (recoveryReloadInFlight) return;
+      if (isRecoveryReloadInFlight()) return;
       recoverFromChunkError();
     }, 0);
     return;
@@ -351,8 +353,8 @@ export const isSpeculativePrefetchInFlight = (): boolean => speculativePrefetche
  * WebKit, /browse: card at +15ms, pagehide at +37ms, on every run. Boundaries
  * read this flag to show their quiet reloading state instead.
  */
-let recoveryReloadInFlight = false;
-export const isRecoveryReloadInFlight = (): boolean => recoveryReloadInFlight;
+// The flag itself lives in loadModule.ts, which every lazy-module site reads (B68, 11-01).
+export { isRecoveryReloadInFlight };
 
 /**
  * Call when a lazy chunk loaded successfully. Clears the attempt counter, but
@@ -389,7 +391,7 @@ export const cancelPendingChunkRetry = (): boolean => {
   if (pendingOnlineRetry) window.removeEventListener("online", pendingOnlineRetry);
   pendingRetry = null;
   pendingOnlineRetry = null;
-  recoveryReloadInFlight = false;
+  setRecoveryReloadInFlight(false);
   return true;
 };
 
@@ -399,7 +401,7 @@ export const __resetChunkReloadForTests = (): void => {
   pendingRetry = null;
   if (pendingOnlineRetry) window.removeEventListener("online", pendingOnlineRetry);
   pendingOnlineRetry = null;
-  recoveryReloadInFlight = false;
+  setRecoveryReloadInFlight(false);
   speculativePrefetchesInFlight = 0;
   lateBackgroundImports = 0;
   for (const k of Object.keys(backgroundImportFailures)) delete backgroundImportFailures[k];
@@ -472,7 +474,7 @@ export const hardReloadBypassCache = async () => {
   }
   // Set synchronously, before the first await: the errors this flag exists for
   // arrive on the very next microtasks.
-  recoveryReloadInFlight = true;
+  setRecoveryReloadInFlight(true);
   // A hung unregister or cache delete must not strand the page on
   // "updating": each purge step gets a bounded wait, then we reload anyway.
   const bounded = (p: Promise<unknown>) =>
@@ -561,7 +563,7 @@ export const recoverFromChunkError = (): boolean => {
   if (!pendingRetry) {
     // Committed to reloading: from now until the page goes away, errors from
     // the dead chunk are symptoms, not new failures (see recoveryReloadInFlight).
-    recoveryReloadInFlight = true;
+    setRecoveryReloadInFlight(true);
     const fire = () => {
       pendingRetry = null;
       pendingOnlineRetry = null;
@@ -575,7 +577,7 @@ export const recoverFromChunkError = (): boolean => {
       // Re-check at fire time: another boundary may have spent the attempt.
       const current = readState();
       if (!decideChunkReload(current, Date.now(), false).reload || !writeAttempt(current.count + 1)) {
-        recoveryReloadInFlight = false;
+        setRecoveryReloadInFlight(false);
         return;
       }
       void hardReloadBypassCache();

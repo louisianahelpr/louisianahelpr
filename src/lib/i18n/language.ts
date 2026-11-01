@@ -13,10 +13,11 @@ import { useSyncExternalStore } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 import type { MsgKey } from "./en";
 import { englishWords } from "./enRegistry";
+import { loadModule } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
-const esModule = () => import("./es");
+const esModule = () => loadModule(() => import("./es"));
 
 export type Lang = "en" | "es";
 export const LANG_KEY = "helpr_lang";
@@ -56,6 +57,11 @@ export function ensureLangLoaded(): Promise<void> {
   if (!loading) {
     loading = esModule().then(
       (m) => {
+        // A recovery reload is under way: stay in English, and let the next call try again.
+        if (!m) {
+          loading = null;
+          return;
+        }
         esDict = m.es;
         emit();
       },

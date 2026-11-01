@@ -243,11 +243,11 @@ export default function MaintenanceRequestView() {
               onChange={(e) => setNote(e.target.value)}
             />
             <div className="flex gap-2">
-              <Button type="button" size="sm" disabled={fixed.isPending} onClick={() => fixed.mutate(true)}>
-                Yes, it's fixed
-              </Button>
               <Button type="button" size="sm" variant="outline" disabled={fixed.isPending} onClick={() => fixed.mutate(false)}>
                 No, not fixed
+              </Button>
+              <Button type="button" size="sm" disabled={fixed.isPending} onClick={() => fixed.mutate(true)}>
+                Yes, it's fixed
               </Button>
             </div>
           </RentalsCard>

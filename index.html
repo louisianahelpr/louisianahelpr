@@ -245,23 +245,18 @@
          image too, so any stale scrape self-heals on revalidation. Bump to v=h3 (and
          so on) whenever the artwork changes.
 
-         og-image-square.png (1024×1024 — the App Store icon at native resolution) is
-         declared as a SECOND og:image. Every major consumer takes the FIRST og:image,
-         so the banner remains the large-card image everywhere; the square exists for
-         any consumer that selects a candidate by aspect ratio instead. Order is
-         therefore significant — keep the banner first, and keep each
-         og:image:width/height/alt immediately after the og:image it describes, since
-         Open Graph binds structured sub-properties to the preceding parent by
-         position, not by name. -->
+         Exactly ONE og:image, the 1200×630 banner (owner, 10-31: an iMessage preview
+         showed the H mark doubled and cut off). A second, square og:image
+         (og-image-square.png, 1024×1024) used to follow it "for consumers that pick by
+         aspect ratio"; iMessage can pick it and crop it, so it is gone, and every page
+         (this shell and every card api/share.ts writes) offers only its own 1200×630
+         card. Guard: src/test/oneShareImagePerPage.test.ts. Keep
+         og:image:type/width/height/alt immediately after the og:image, since Open
+         Graph binds structured sub-properties to the preceding parent by position. -->
     <meta property="og:image" content="https://www.louisianahelpr.com/og-image.png?v=h2" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
-    <meta property="og:image" content="https://www.louisianahelpr.com/og-image-square.png" />
-    <meta property="og:image:type" content="image/png" />
-    <meta property="og:image:width" content="1024" />
-    <meta property="og:image:height" content="1024" />
     <meta property="og:image:alt" content="The Helpr mark — an ornate wrought-iron letter H with a fleur-de-lis at its centre" />
     <meta property="og:site_name" content="Louisiana Helpr" />
     <meta property="og:locale" content="en_US" />

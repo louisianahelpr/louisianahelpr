@@ -103,8 +103,8 @@ describe("Q2426: the link preview (api/share.ts + vercel.json)", () => {
     expect(html).toContain(`<link rel="canonical" href="https://www.louisianahelpr.com/declutter/item/${ITEM}"`);
     expect(html).toContain(`<meta property="og:image" content="https://example.supabase.co/functions/v1/shop-photo?id=${PHOTO}&amp;kind=declutter&amp;w=1200&amp;og=1"`);
     expect(html).not.toMatch(/job-photos|storage\/v1/);
-    // Values only: still exactly two og:image tags, in the shell's order.
-    expect(html.match(/<meta property="og:image" /g)?.length).toBe(2);
+    // Values only: still exactly one og:image tag (owner 10-31: no second, square one).
+    expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
     // Members never see fee numbers anywhere (owner rule): the card names no fee.
     expect(html.match(/<meta property="og:description" content="([^"]*)"/)?.[1]).not.toMatch(/fee/i);
   });

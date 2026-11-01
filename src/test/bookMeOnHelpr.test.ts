@@ -149,7 +149,7 @@ describe("the link preview (api/share.ts + vercel.json)", () => {
     expect(html).toContain('<meta property="og:description" content="Marie is a Helpr in Lafayette on Louisiana Helpr. 4.9 stars (12 reviews) · 8 jobs done. Covered by the Helpr Guarantee.');
     expect(html).toContain('<meta name="robots" content="noindex, follow"');
     expect(html).toContain(`<meta property="og:url" content="https://www.louisianahelpr.com/book/${HELPR}"`);
-    expect(html.match(/<meta property="og:image" /g)?.length).toBe(2);
+    expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
     expect(html.match(/<meta property="og:description" content="([^"]*)"/)?.[1]).not.toMatch(/fee/i);
   });
 

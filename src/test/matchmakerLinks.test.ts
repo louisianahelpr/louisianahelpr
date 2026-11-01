@@ -82,7 +82,7 @@ describe("the matchmaker link preview (api/share.ts + vercel.json)", () => {
     const html = await res.text();
     expect(html).toContain('<meta property="og:title" content="Post this job: Fix a &quot;faucet&quot; in Lafayette · $80"');
     expect(html).toContain('<meta name="robots" content="noindex, follow"');
-    expect(html.match(/<meta property="og:image" /g)?.length).toBe(2);
+    expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
   });
 
   it("vercel.json sends /post-job?mm= to the card before the SPA catch-all", () => {

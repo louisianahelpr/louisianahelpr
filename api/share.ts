@@ -175,9 +175,9 @@ function escapeRegExp(value: string): string {
 
 /**
  * Replace the `content` of the FIRST matching meta tag. Deliberately not
- * global: og:image appears twice by design, and while this function never
- * targets it, a global replace is the kind of thing that quietly becomes
- * wrong later.
+ * global: the shell carries exactly one og:image (owner 10-31: a second, square
+ * one let iMessage show the H mark doubled and cut off), and a global replace is
+ * the kind of thing that quietly becomes wrong later.
  *
  * If the tag is not found the document is returned unchanged rather than
  * throwing — a preview that falls back to today's card is a far better

@@ -149,6 +149,36 @@ describe("process-scheduled-payouts: a crew member the poster confirmed is paid 
     expect(scenario.writes.filter((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toHaveLength(1);
   });
 
+  // lh-money-escrow review 11-01: a crashed or failed early run leaves an ORPHANED claim (pending, no transfer id).
+  // The due list keeps listing the member (crewMemberPaidOnApproval.pglite.mjs D5), and the claim code resumes it
+  // on the SAME idempotency key: one transfer, no second claim row.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |           ? `scheduled-payout-${job.id}-${helperId}` |           ? `scheduled-payout-early-${job.id}-${helperId}`
+  it("E4 an orphaned early claim is resumed on the next early run with the same key, never a second claim", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { inMainPass: false });
+    scenario.rpc.crew_members_due_early_payout = [{ job_id: "job-crew", helper_id: "m1" }];
+    (scenario.reads.payout_transfers as { eqOverrides?: unknown[] }).eqOverrides = [
+      { column: "helper_id", value: "m1", result: { rows: [{ id: "led-orphan", helper_id: "m1", stripe_transfer_id: null, status: "pending", created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() }] } },
+    ];
+    await run();
+    expect(claimsFor()).toEqual([]);
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.transfers.create.mock.calls[0][1]).toEqual({ idempotencyKey: "scheduled-payout-job-crew-m1" });
+    expect(released()).toBe(false);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  it("E5 never paid twice: a member whose transfer settled is skipped even if a stale due list names them", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { inMainPass: false });
+    scenario.rpc.crew_members_due_early_payout = [{ job_id: "job-crew", helper_id: "m1" }];
+    (scenario.reads.payout_transfers as { eqOverrides?: unknown[] }).eqOverrides = [
+      { column: "helper_id", value: "m1", result: { rows: [{ id: "led-orphan", helper_id: "m1", stripe_transfer_id: "tr_m1", status: "paid", created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() }] } },
+    ];
+    await run();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(claimsFor()).toEqual([]);
+    expect(released()).toBe(false);
+  });
+
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |        defects.record(`early crew payout list: ${dueErr.message}`); |        void 0;
   it("E3 an unreadable due list pays nobody early and is a defect; a list not deployed yet is no early pass", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { inMainPass: false });

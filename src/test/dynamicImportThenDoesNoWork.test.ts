@@ -13,7 +13,7 @@
  * with R the wrapped import.
  *
  * 1. No `queryFn` / `mutationFn` makes a call inside an `import(...).then` callback (zero, exact).
- * 2. Nowhere else either (B65, 11-01): the 16 non-query sites pinned on 11-01 each got a loader. Some made real
+ * 2. Nowhere else either (B65, 2026-11-01): the 16 non-query sites pinned on 2026-11-01 each got a loader. Some made real
  *    reads or writes in the wrapper (the inbox's blocked-user read, Post a Job's repair-request read, the Senior
  *    Mode session write, the refetch after a held sign-in), so a failed one could reload the page.
  *

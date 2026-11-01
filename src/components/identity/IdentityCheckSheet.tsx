@@ -1,7 +1,5 @@
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { FreeClaimFirstTime } from "@/components/identity/FreeClaimFirstTime";
-import { setPayoutAfterHireOn } from "@/lib/payoutAfterHireSwitch";
-import { useFeature } from "@/hooks/useFeature";
 import { useIdentityCheckStatus } from "@/hooks/useIdentityCheckOn";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -82,15 +80,11 @@ const REVIEW_ONLY = {
  * reopens it on the honest state the webhook has written.
  */
 export function IdentityCheckHost() {
-  // The ID check switch (OFF until an admin turns it on, owner 2026-10-30). The
-  // host publishes it for the plain functions (openIdentityCheck,
-  // acceptMissingFromProfile...) and draws nothing while it is off.
+  // The ID check switch (OFF until an admin turns it on, owner 2026-10-30): the
+  // sheet draws nothing while it is off.
+  // Both switch answers are published by IdentityCheckMount, which is always
+  // mounted; this host is fetched only once the sheet has something to show.
   const { on: idOn, settled: idSettled } = useIdentityCheckStatus();
-  useEffect(() => setIdentityCheckOn(idOn), [idOn]);
-  // Payout setup after the hire (owner 2026-10-25): published the same way, for
-  // the accept-gate mirror and the job card's "Finish payout setup" line.
-  const payoutAfterHire = useFeature("payout_after_hire");
-  useEffect(() => setPayoutAfterHireOn(payoutAfterHire), [payoutAfterHire]);
   const { open, reason } = useIdentityCheckSheet();
   const { user, profile, refresh } = useCurrentUser();
   const [params, setParams] = useSearchParams();

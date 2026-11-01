@@ -9,6 +9,11 @@ import { signOutAwareFetch } from '@/lib/signOutAbort';
 import { noteReachableFetch } from '@/lib/connectivity';
 import { defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
 
+// Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
+// failure reads as a broken chunk (dynamicImportThenDoesNoWork).
+const errorLogger = () => import('@/lib/errorLogger');
+const queryClientModule = () => import('@/lib/queryClient');
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
@@ -86,7 +91,7 @@ const reportHeld = (info: { surface: string; method: string }) => {
   const now = Date.now();
   if (now - lastHeldReportAt < 60_000) return;
   lastHeldReportAt = now;
-  void import('@/lib/errorLogger')
+  void errorLogger()
     .then(({ report }) =>
       report(new Error('Held a signed-in request while the sign-in refreshed'), {
         severity: 'warning',
@@ -132,7 +137,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 supabase.auth.onAuthStateChange((event) => {
   if (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN') return;
   if (!takeHeldSinceRefresh()) return;
-  void import('@/lib/queryClient')
+  void queryClientModule()
     .then(({ queryClient }) =>
       queryClient.refetchQueries({ type: 'active', predicate: (q) => q.state.status === 'error' }),
     )

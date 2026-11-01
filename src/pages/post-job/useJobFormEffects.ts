@@ -20,6 +20,10 @@ import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import { recordBookingSourceFor } from "@/lib/bookMe";
 import { readMatchmakerLink } from "@/lib/matchmakerLink";
 
+// Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
+// failure reads as a broken chunk (dynamicImportThenDoesNoWork).
+const maintenancePrefill = () => import("./maintenancePrefill");
+
 /**
  * useJobFormEffects — owns the mount/reactive side effects that populate
  * and persist the Post-a-Task form: setup-fee RPC, open-job preflight,
@@ -429,7 +433,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     // Loaded only for a maintenance post: it reads the Rentals words, which stay off
     // Post a Job's first screen (check-deferred-vendors). A failed chunk load lands in the
     // error branch below like a failed fetch.
-    import("./maintenancePrefill").then((m) => m.fetchMaintenancePrefill(requestId)).then(
+    maintenancePrefill().then((m) => m.fetchMaintenancePrefill(requestId)).then(
       (p) => {
         if (!live) return;
         if (!p || p.notApproved) {

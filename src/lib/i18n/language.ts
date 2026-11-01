@@ -14,6 +14,10 @@ import { safeStorage } from "@/lib/safeStorage";
 import type { MsgKey } from "./en";
 import { englishWords } from "./enRegistry";
 
+// Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
+// failure reads as a broken chunk (dynamicImportThenDoesNoWork).
+const esModule = () => import("./es");
+
 export type Lang = "en" | "es";
 export const LANG_KEY = "helpr_lang";
 export const LANGS: readonly Lang[] = ["en", "es"];
@@ -50,7 +54,7 @@ function applyHtmlLang() {
 export function ensureLangLoaded(): Promise<void> {
   if (lang !== "es" || esDict) return Promise.resolve();
   if (!loading) {
-    loading = import("./es").then(
+    loading = esModule().then(
       (m) => {
         esDict = m.es;
         emit();

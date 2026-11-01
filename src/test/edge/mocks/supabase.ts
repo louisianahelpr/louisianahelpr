@@ -696,6 +696,13 @@ function storageBucket(_bucket: string) {
       }
       return { data: entries, error: null };
     },
+    // Additive (LEAD-CHECK-SWEEP, declutterCheckSweep.test.ts): a live object downloads as a small JPEG-sized blob;
+    // a missing one answers the not-found error the Storage API gives.
+    download: async (path: string) => {
+      const s = store();
+      if (!s.objects.has(path)) return { data: null, error: { message: "Object not found" } };
+      return { data: new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4])]), error: null };
+    },
     remove: async (paths: string[]) => {
       const s = store();
       s.removeCalls.push(paths);

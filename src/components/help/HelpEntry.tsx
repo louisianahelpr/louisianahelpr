@@ -1,6 +1,8 @@
 import { useRef, useState, type ComponentType, type ComponentProps } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LifeBuoy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type HelpEntryPanel from "./HelpEntryPanel";
 
@@ -48,18 +50,20 @@ export function HelpEntry({ triggerClassName = "h-11 w-11" }: { triggerClassName
 
   return (
     <>
-      <button
+      <Button
         ref={triggerRef}
         type="button"
+        variant="ghost"
+        size="iconCompact"
         aria-label="Help"
         aria-haspopup="dialog"
         aria-expanded={open}
         data-testid="help-entry"
         onClick={onTap}
-        className={`btn-press rounded-full inline-flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-[22px] [&>svg]:h-[22px] ${triggerClassName}`}
+        className={cn("shrink-0 text-muted-foreground hover:text-foreground [&_svg]:size-[22px]", triggerClassName)}
       >
         <LifeBuoy aria-hidden="true" />
-      </button>
+      </Button>
       {Panel && open && (
         <Panel
           anchorRef={triggerRef}

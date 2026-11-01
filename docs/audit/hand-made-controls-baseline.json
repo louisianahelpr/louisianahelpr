@@ -558,9 +558,6 @@
     "src/components/guarantee/HelprGuaranteePanel.tsx": {
       "input": 1
     },
-    "src/components/help/HelpEntry.tsx": {
-      "button": 1
-    },
     "src/components/identity/IdentityPromptCard.tsx": {
       "button": 2
     },

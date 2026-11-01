@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 
 /**
  * The admin console's top bar — the SAME bar as the rest of the signed-in app.
@@ -37,6 +38,11 @@ const AdminTopBar = ({ titleRow }: {
   // The hamburger toggles the SAME shadcn sidebar this page already provides,
   // so open/close state has one owner rather than a second copy living here.
   const { toggleSidebar, state } = useSidebar();
+  // The fixed OfflineBanner (top 0, z-60) painted over this bar (z-50) at 375 and cut the emblem, bell and menu in
+  // half: measured offline on /admin, banner 0-31.9, bar 0-56, while #root padding (31.9) + the 56px spacer started
+  // the content at 87.9. The bar now moves down by the same offset, like DesktopTopNav (B47 10-31). 0 with no banner.
+  // Guard: src/test/offlineBannerOverDesktopBar.test.ts.
+  const bannerOffset = useOfflineBannerOffset();
 
   return (
     <header
@@ -51,6 +57,7 @@ const AdminTopBar = ({ titleRow }: {
       className="fixed top-0 left-0 right-0 z-50 glass-nav"
       style={{
         paddingTop: "var(--safe-area-top, 0px)",
+        top: bannerOffset,
         // Blur only, no saturate() — copied from DesktopTopNav, where saturate
         // on a backdrop filter amplified the colour of whatever scrolled beneath
         // and read as a cast shifting under the bar.

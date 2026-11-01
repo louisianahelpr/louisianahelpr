@@ -39,12 +39,12 @@ export const HelprFaultFields = ({
       </p>
       <fieldset className="flex gap-4">
         <legend className="sr-only">What happened</legend>
-        <label className="flex items-center gap-1.5 text-ds-13">
-          <input type="radio" name="helpr-fault-kind" value="no_show" checked={kind === "no_show"} onChange={() => onKindChange("no_show")} />
+        <label className="flex min-h-11 items-center gap-1.5 text-ds-13">
+          <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name="helpr-fault-kind" value="no_show" checked={kind === "no_show"} onChange={() => onKindChange("no_show")} />
           No-show
         </label>
-        <label className="flex items-center gap-1.5 text-ds-13">
-          <input type="radio" name="helpr-fault-kind" value="backout" checked={kind === "backout"} onChange={() => onKindChange("backout")} />
+        <label className="flex min-h-11 items-center gap-1.5 text-ds-13">
+          <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name="helpr-fault-kind" value="backout" checked={kind === "backout"} onChange={() => onKindChange("backout")} />
           Backed out
         </label>
       </fieldset>

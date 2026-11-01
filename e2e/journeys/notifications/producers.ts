@@ -215,6 +215,9 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:declutter_alert_overdue_checks": {
     uncovered: "admin-only alert from the declutter-check-sweep follow-up (20261101042045): it fires for a live listing unchecked 45+ minutes, which a journey cannot age; the alert and its one-open-notice dedupe are asserted in src/test/pglite/declutterCheckSweep.pglite.mjs",
   },
+  "sql:rpc_poster_approve_member": {
+    uncovered: "needs a funded crew job with a member who marked their part done; the journeys have no paid crew job (Stripe is live, no checkout is ever paid), so the member's work-confirmed notice and its payout day are asserted in src/test/pglite/crewMemberPaidOnApproval.pglite.mjs (A1)",
+  },
   "sql:rpc_poster_report_member_no_show": {
     uncovered: "needs a funded crew job past its start time with a member who confirmed and never arrived; the journeys have no paid crew job and cannot move the clock past the start, so the member's no-show notice on both rungs is asserted in src/test/pglite/crewMemberNoShow.pglite.mjs (N9, N10)",
   },

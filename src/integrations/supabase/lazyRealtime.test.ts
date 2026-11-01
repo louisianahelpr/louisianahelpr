@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // @mutate src/integrations/supabase/lazyRealtime.ts | for (const [type, filter, cb] of this.bindings) (ch.on as (...a: unknown[]) => unknown)(type, filter, cb); | for (const [type, filter, cb] of this.bindings) void [ch, type, filter, cb];
 // @mutate src/integrations/supabase/lazyRealtime.ts | if (this.auth) void c.setAuth(this.auth.token); | if (this.auth) void c;
 // @mutate src/integrations/supabase/lazyRealtime.ts |         if (this.removed) return; |         if (this.removed === null) return;
+// @mutate src/integrations/supabase/lazyRealtime.ts |       if (this.removed) throw new Error("realtime channel removed before realtime-js loaded"); |
 // @mutate src/integrations/supabase/lazyRealtime.ts |         if (!this.removed) callback?.("CHANNEL_ERROR", | if (this.removed) callback?.("CHANNEL_ERROR",
 
 const made: FakeClient[] = [];
@@ -29,7 +30,12 @@ class FakeClient {
   channels: FakeChannel[] = [];
   removed: FakeChannel[] = [];
   constructor(public url: string, public opts: unknown) { made.push(this); }
-  channel(topic: string) { const c = new FakeChannel(`realtime:${topic}`); this.channels.push(c); return c; }
+  // As realtime-js does: a topic still open hands back that same channel.
+  channel(topic: string) {
+    const open = this.channels.find((x) => x.topic === `realtime:${topic}` && !this.removed.includes(x));
+    if (open) return open;
+    const c = new FakeChannel(`realtime:${topic}`); this.channels.push(c); return c;
+  }
   async setAuth(t?: string | null) { this.auth.push(t); }
   async removeChannel(c: FakeChannel) { this.removed.push(c); return "ok" as const; }
 }
@@ -81,6 +87,24 @@ describe("lazyRealtime (the build's realtime-js stand-in)", () => {
     await tick(); await tick();
     expect(made[0]?.channels[0]?.subscribed ?? []).toEqual([]);
     expect(rt.getChannels()).toEqual([]);
+  });
+
+  it("a fixed-name channel removed and reopened while realtime loads: the old removal never closes the new one's channel", async () => {
+    // usePresence-style: remove the presence channel by its name and open it again before realtime-js has arrived.
+    const rt = new RealtimeClient("wss://x", {});
+    const old = rt.channel("online-users");
+    old.subscribe();
+    const removing = rt.removeChannel(old);
+    const fresh = rt.channel("online-users");
+    expect(fresh).not.toBe(old);
+    const got: string[] = [];
+    fresh.subscribe((s) => got.push(s));
+    await removing;
+    await tick(); await tick();
+    expect(got).toEqual(["SUBSCRIBED"]);
+    expect(made[0].channels.length).toBe(1);
+    expect(made[0].removed).toEqual([]);
+    expect(fresh.state).toBe("joined");
   });
 
   it("a failed load is a CHANNEL_ERROR (realtimeRecovery retries), and the next subscribe loads again", async () => {

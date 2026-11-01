@@ -92,7 +92,7 @@ BEGIN
   IF v_req.pickup_at IS NOT NULL
      AND v_req.pickup_at > now()
      AND v_req.pickup_at + interval '30 minutes' <= now() + interval '7 days'
-     AND (public.has_role(v_req.requester_id, 'admin')
+     AND (EXISTS (SELECT 1 FROM public.user_roles ur WHERE ur.user_id = v_req.requester_id AND ur.role = 'admin')
           OR public.identity_check_exempt(v_req.requester_id)
           OR public.is_identity_verified(v_req.requester_id))
      AND NOT EXISTS (SELECT 1 FROM public.declutter_orders o

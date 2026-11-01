@@ -175,7 +175,12 @@ export function signedInSplit(root) {
   // which those screens fetch beside signed-in-shared in the same round.
   const home = staticReach(root, homeFirstScreenRoots(root));
   const homeOff = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !home.has(f)));
-  return { signedInOnly, firstScreen, deep, declutterOnly, homeOff };
+  // `homeLate` (B79, 11-01): the rest that Home's PAGE never runs (main.tsx, HomeDashboard, ProtectedRoute), only the
+  // every-page roots App mounts lazily beside it (MobileNav's unread counts and message previews, Legal's data export,
+  // ...). Those load after Home's first paint, so Home's first round should not carry their code.
+  const page = staticReach(root, homeFirstScreenRoots(root).filter((r) => !EVERY_PAGE_ROOTS.some((e) => toPosix(r).endsWith(e))));
+  const homeLate = new Set([...firstScreen].filter((f) => !declutterOnly.has(f) && !homeOff.has(f) && !page.has(f)));
+  return { signedInOnly, firstScreen, deep, declutterOnly, homeOff, homeLate };
 }
 
 /**

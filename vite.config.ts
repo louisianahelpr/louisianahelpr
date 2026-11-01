@@ -164,7 +164,7 @@ function restartOnDependencyChange(): Plugin {
 }
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
-const { deep: signedInDeep, declutterOnly, homeOff } = signedInSplit(process.cwd());
+const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd());
 const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
 
 export default defineConfig(({ mode, command }) => ({
@@ -949,6 +949,18 @@ export default defineConfig(({ mode, command }) => ({
               test: (id: string) => homeOff.has(id.split("?")[0].replace(/\\/g, "/")),
               minShareCount: 2,
               priority: 15.5,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // The signed-in shared code Home's PAGE never runs, only the every-page roots App mounts lazily beside it
+            // (bootReach.mjs signedInSplit homeLate: MobileNav's unread counts and message previews, Legal's data
+            // export, ...). Those load after Home's first paint, so it left Home's first round (B79, 11-01); the
+            // every-page roots fetch it beside signed-in-shared. src/test/homeSkipsOtherScreensCode.test.ts.
+            {
+              name: "signed-in-late",
+              test: (id: string) => homeLate.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 15.2,
               minSize: 0,
               includeDependenciesRecursively: false
             },

@@ -15,6 +15,7 @@ export function signedInSplit(root: string): {
   deep: Set<string>;
   declutterOnly: Set<string>;
   homeOff: Set<string>;
+  homeLate: Set<string>;
 };
 export function homeFirstScreenRoots(root: string): string[];
 export function guestBrowseOnlyModules(root: string): Set<string>;

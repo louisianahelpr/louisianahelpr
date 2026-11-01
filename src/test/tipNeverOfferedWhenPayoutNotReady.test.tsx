@@ -201,7 +201,7 @@ describe("F29: a Helpr whose payout setup is not finished is never offered a tip
     };
     expect(posterFaceAction("done_tip_open", job, { ...h, tipsReady: true }).label).toBe("Tip Hallie");
     expect(posterFaceAction("done_tip_open", job, { ...h, tipsReady: null }).label).toBe("Tip Hallie");
-    expect(posterFaceAction("done_tip_open", job, { ...h, tipsReady: false }).label).toBe("Manage job");
+    expect(posterFaceAction("done_tip_open", job, { ...h, tipsReady: false }).label).toBe("More options");
   });
 
   it("the 5-star prompt and the completion prompts skip the tip on the same answer", () => {

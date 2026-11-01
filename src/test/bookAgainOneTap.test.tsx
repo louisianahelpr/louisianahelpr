@@ -7,7 +7,7 @@
  *   1. the link: rebook=<job> (the copy) + offerTo=<helper> (the direct offer) + bookAgain=1;
  *   2. Post a job reads that link and opens at When and where (page 4), once the copy's category lands;
  *   3. the finished job's card (Posts, Completed step) draws the chip and it navigates to that link;
- *   4. the Job done screen draws the link beside Hire again, plus the heart that saves the Helpr.
+ *   4. the Job done screen draws the link (the ONE "again" button, audit 11-01 JA-53), plus the heart that saves the Helpr.
  *
  * @mutate src/lib/bookAgain.ts |   const q = new URLSearchParams({ rebook: jobId, offerTo: helperId, [BOOK_AGAIN_PARAM]: "1" }); |   const q = new URLSearchParams({ offerTo: helperId, [BOOK_AGAIN_PARAM]: "1" });
  * @mutate src/lib/bookAgain.ts |   return !!(searchParams.get(BOOK_AGAIN_PARAM) && searchParams.get("rebook") && searchParams.get("offerTo")); |   return !!searchParams.get("rebook");
@@ -17,6 +17,7 @@
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |       ]}\n      dialogs={ |         job.helper_id ? <JobActionChip key="again2" icon={RotateCcw} label="Hire again" onClick={() => {}} /> : null,\n      ]}\n      dialogs={
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |             onClick={ageGate("post", () => navigate(bookAgainLink(job.id, job.helper_id as string)))} |             onClick={ageGate("post", () => navigate(`/post-job?offerTo=${job.helper_id}`))}
  * @mutate src/components/jobDone/JobDoneSummary.tsx |             to={bookAgainLink(jobId, job.helper_id)} |             to={`/post-job?offerTo=${job.helper_id}`}
+ * @mutate src/components/jobDone/JobDoneSummary.tsx |           {/* ONE "again" button | <Link to="/post-job">Hire again</Link>{/* ONE "again" button
  * @mutate src/components/jobDone/JobDoneSummary.tsx |           <SaveHelperButton helperId={job.helper_id} customerId={viewerId} /> |           {null}
  */
 import { readFileSync } from "node:fs";
@@ -159,13 +160,15 @@ describe("Book <Helpr> again (Q2471 #3)", () => {
     expect(screen.queryByRole("button", { name: /^Book .* again — / })).toBeNull();
   });
 
-  it("the Job done screen offers Book <Helpr> again (the copy) beside Hire again (blank), and the heart", async () => {
+  // Audit 11-01 JA-53: ONE "again" button on Job done; "Hire again" beside it read the same.
+  it("the Job done screen offers Book <Helpr> again (the copy) and the heart, and no second Hire again", async () => {
     const { JobDoneSummary } = await import("@/components/jobDone/JobDoneSummary");
     wrap(<JobDoneSummary jobId="job-1" side="poster" otherName="Hallie H." viewerId="poster-1" />);
     const book = await screen.findByTestId("book-again");
     expect(book.getAttribute("href")).toBe(bookAgainLink("job-1", "helper-1"));
     expect(book.textContent).toBe("Book Hallie again");
-    expect(screen.getByRole("link", { name: "Hire again" }).getAttribute("href")).toBe("/post-job?offerTo=helper-1");
+    expect(screen.queryByRole("link", { name: /Hire again/ })).toBeNull();
+    expect(screen.getAllByRole("link").filter((l) => /again/i.test(l.textContent ?? ""))).toHaveLength(1);
     expect(await screen.findByRole("button", { name: /Save Helpr|Unsave Helpr|Loading saved status/ })).toBeTruthy();
   });
 });

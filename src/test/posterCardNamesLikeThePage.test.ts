@@ -4,7 +4,7 @@
  * "never a generic Manage job") and calls the same thing "More options". Card and page now use the same name.
  * Inventory: every PosterWait the card face handles, each drawn with a Helpr and without one.
  *
- * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | export const POSTER_CONTROLS_LABEL = "More options"; | export const POSTER_CONTROLS_LABEL = "Manage job";
+ * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | const POSTER_CONTROLS_LABEL = "More options"; | const POSTER_CONTROLS_LABEL = "Manage job";
  */
 import { describe, expect, it } from "vitest";
 import { posterFaceAction, type PosterFaceHandlers } from "@/pages/posts/postedJobCard/posterFaceAction";

@@ -80,7 +80,7 @@ const toSteps = (r: MkRoute | null): NavStep[] =>
 const REROUTE_M = 400;
 const REROUTE_MS = 30_000;
 /** Send the live position to the seller/buyer at most this often (the viewers poll every 10 s). */
-export const SHARE_MS = 15_000;
+const SHARE_MS = 15_000;
 /**
  * Audit 1c D3-9: with one pin, showItems zoomed to the street around it. Never closer than about 3 km across (MapKit
  * JS showItems `minimumSpan`), so the area around a lone stop shows.

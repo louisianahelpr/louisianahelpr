@@ -217,7 +217,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
 
 /** A wrapping title longer than this is set smaller on a phone (JA-14): the job page's "Haul off an old couch and two
  *  chairs" is 36. Short titles ("Declutter settings") keep the full size. */
-export const LONG_TITLE_CHARS = 24;
+const LONG_TITLE_CHARS = 24;
 
 // `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
 // recorded in the retirement note below (title only; ~15 call sites still pass it).

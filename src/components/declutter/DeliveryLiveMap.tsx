@@ -13,7 +13,7 @@ import { fetchLivePosition } from "@/lib/helprTasks/api";
 
 const TrackingMap = lazy(() => import("@/components/TrackingMap").then((m) => ({ default: m.TrackingMap })));
 
-export const POLL_MS = 10_000;
+const POLL_MS = 10_000;
 
 /** "about 12 min away" (the server's rough ETA: road miles at 30 mph, straight to this stop). */
 export function etaWords(minutes: number): string {

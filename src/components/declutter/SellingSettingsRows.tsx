@@ -19,7 +19,7 @@ import { HANDOVER_CHOICE, SELLER_WAYS } from "./SellHandoverChoices";
 import { priceChoiceToSave, type FormState } from "./sellForm";
 
 /** The ways under "Pickup": porch pickup is just "Porch" there (the label already says pickup). */
-export function waysWords(ways: readonly SellerHandover[]): string {
+function waysWords(ways: readonly SellerHandover[]): string {
   return SELLER_WAYS.filter((w) => ways.includes(w)).map((w) => (w === "porch" ? "Porch" : HANDOVER_CHOICE[w].title)).join(", ");
 }
 

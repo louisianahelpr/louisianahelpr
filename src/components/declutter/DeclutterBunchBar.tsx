@@ -17,7 +17,7 @@ export interface BunchUndo {
  * button; once the step is in view the bar's "Next: list N items" goes, and the step's own List button, with the tick
  * visible right above it, is the one. No IntersectionObserver (an old WebView): the bar keeps its Next, as before.
  */
-export function useListStepInView(active: boolean): boolean {
+function useListStepInView(active: boolean): boolean {
   const [inView, setInView] = useState(false);
   useEffect(() => {
     const section = active ? document.getElementById("bunch-list")?.closest("section") : null;

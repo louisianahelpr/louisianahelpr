@@ -56,7 +56,8 @@ const JobDetail = () => {
   // the fetch entirely for authed users: they get the job page below.
   // This column list is the guest's whole view of a job (JOBS-29, lead
   // 2026-10-31, under the owner's 9-2 rule): title, category, parish (from the
-  // view's town) and budget, plus status and expiry to know it is still open.
+  // view's town) and the take-home (budget, rush fee, crew split, fee stamp: the
+  // guest card's own figure), plus status and expiry to know it is still open.
   // No poster, no address, no coordinates, no description (free text can carry
   // an address or a phone number). Guards: src/test/guestOpensSharedJobLink.test.tsx,
   // src/test/guestSeesFourFacts.test.tsx.
@@ -65,7 +66,7 @@ const JobDetail = () => {
     queryFn: async (): Promise<GuestJob | null> => {
       const data = unwrap<unknown>(
         await readJobsAheadOfDb(
-          "id, title, category, budget, location, status, expires_at",
+          "id, title, category, budget, location, urgent_fee, is_group_job, helpers_needed, helper_fee_flat_cents, helper_fee_percent, status, expires_at",
           (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id!).maybeSingle(),
           { browseView: true },
         ),
@@ -75,7 +76,11 @@ const JobDetail = () => {
       const row = data as Database["public"]["Views"]["open_jobs_browse"]["Row"];
       // A job that expired between share and open is no longer browsable.
       if (row.expires_at && new Date(row.expires_at) <= new Date()) return null;
-      return { id: row.id ?? id!, title: row.title, category: row.category, budget: row.budget, location: row.location };
+      return {
+        id: row.id ?? id!, title: row.title, category: row.category, budget: row.budget, location: row.location,
+        urgent_fee: row.urgent_fee, is_group_job: row.is_group_job, helpers_needed: row.helpers_needed,
+        helper_fee_flat_cents: row.helper_fee_flat_cents, helper_fee_percent: row.helper_fee_percent,
+      };
     },
     enabled: !!id && !authLoading && !user,
     staleTime: 60 * 1000,
@@ -96,7 +101,7 @@ const JobDetail = () => {
   // one only set the tab title — every social/search preview of a shared job
   // link fell back to the generic homepage description and canonical instead
   // of the job's own. usePageMeta covers both.
-  // The preview's own facts, never the description (JOBS-29: a guest sees title, category, parish and budget only).
+  // The preview's own facts, never the description (JOBS-29: a guest sees title, category, parish and take-home only).
   const jobFacts = job ? guestJobFacts(job).map((f) => f.value).join(" · ") : "";
   const jobDescription = jobFacts
     ? `${jobFacts}. Payment is held safely until the work is confirmed done. Sign up to apply.`

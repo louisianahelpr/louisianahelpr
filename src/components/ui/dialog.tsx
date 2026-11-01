@@ -3,7 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { AlertTriangle, X, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { POPUP_DIALOG_CLS, POPUP_FOOTER_ROW, POPUP_HANDLE_CLS, POPUP_SHEET_CLS } from "@/components/ui/popupFooter";
+import { POPUP_DIALOG_CLS, POPUP_FOOTER_ROW, POPUP_SHEET_CLS } from "@/components/ui/popupFooter";
 import { PopupDismissCtx, usePopupDismissPresence } from "@/components/ui/popupDismiss";
 import { useDialogFocus } from "@/components/ui/useDialogFocus";
 // The footer actions and the confirm context they read live in dialogActions.tsx
@@ -289,8 +289,7 @@ const DialogContent = React.forwardRef<
       onEscapeKeyDown={closeDisabled ? (e) => e.preventDefault() : undefined}
       {...props}
     >
-      {/* Phone sheet drag handle, decorative (spec v2 §3). */}
-      <span data-sheet-handle aria-hidden className={POPUP_HANDLE_CLS} />
+      {/* No drag bar (owner 10-31 14:22: every sheet keeps the X only, app-wide; close by X or a tap outside). */}
       <DialogConfirmCtx.Provider value={isConfirm}>
         <PopupDismissCtx.Provider value={setHasDismiss}>{children}</PopupDismissCtx.Provider>
       </DialogConfirmCtx.Provider>

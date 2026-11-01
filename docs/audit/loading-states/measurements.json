@@ -29979,15 +29979,15 @@
       "url": "/profile?tab=instant_book",
       "persona": "helper",
       "base": "http://127.0.0.1:4180",
-      "capturedAt": 2149,
+      "capturedAt": 1994,
       "stage": {
         "waves": 0,
         "ended": "captured"
       },
       "finalUrl": "/profile?tab=instant_book",
-      "loadingPng": "/Users/lexilombas/.lh-shots/b80-1101/loading/helper_profile_tab_instant_book.loading.png",
+      "loadingPng": "/Users/lexilombas/.lh-shots/b80-1101/loading-0/helper_profile_tab_instant_book.loading.png",
       "loading": {
-        "found": 7,
+        "found": 9,
         "docH": 812,
         "landmarks": {
           "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
@@ -30021,7 +30021,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 579
+              "h": 772
             },
             "containerRect": {
               "x": 0,
@@ -30029,8 +30029,8 @@
               "w": 375,
               "h": 812
             },
-            "rows": 5,
-            "rowH": 68,
+            "rows": 6,
+            "rowH": 101,
             "rect": {
               "x": 0,
               "y": 0,
@@ -30038,11 +30038,47 @@
               "h": 812
             },
             "scrollH": 812,
-            "elements": 28,
+            "elements": 31,
             "textLeaves": 1,
             "media": 0,
             "controls": 2,
-            "placeholders": 7,
+            "placeholders": 9,
+            "text": "Instant book"
+          },
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 2,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 772
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 6,
+            "rowH": 101,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 31,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 2,
+            "placeholders": 9,
             "text": "Instant book"
           }
         ]
@@ -30050,14 +30086,14 @@
       "shiftsAtLoading": 0,
       "placeholdersLeft": [],
       "placeholdersLeftCount": 0,
-      "loadedPng": "/Users/lexilombas/.lh-shots/b80-1101/loading/helper_profile_tab_instant_book.loaded.png",
+      "loadedPng": "/Users/lexilombas/.lh-shots/b80-1101/loading-0/helper_profile_tab_instant_book.loaded.png",
       "loaded": {
         "found": 0,
         "docH": 812,
         "landmarks": {
           "testid:instant-book-tab": {
             "y": 0,
-            "h": 578.8
+            "h": 770.8
           },
           "div[data-testid=\"instant-book-tab\"] > div > div > div > div:nth-of-type(2) > h1": {
             "y": 21.7,
@@ -30084,7 +30120,7 @@
               "x": 20,
               "y": 0,
               "w": 335,
-              "h": 578.8
+              "h": 770.8
             },
             "containerRect": {
               "x": 8,
@@ -30092,17 +30128,47 @@
               "w": 359,
               "h": 812
             },
-            "rows": 5,
-            "rowH": 68,
+            "rows": 6,
+            "rowH": 101,
             "rect": {
               "x": 8,
               "y": 0,
               "w": 359,
               "h": 812
             },
-            "scrollH": 812,
-            "elements": 32,
-            "textLeaves": 9,
+            "scrollH": 883,
+            "elements": 39,
+            "textLeaves": 12,
+            "media": 0,
+            "controls": 3,
+            "placeholders": 0,
+            "text": "Instant bookLet people book you right away. Pick up to 3 kinds of work and the least you'd take for each. When a job pays at least that much and you're free tha"
+          },
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 770.8
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 6,
+            "rowH": 101,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 883,
+            "elements": 39,
+            "textLeaves": 12,
             "media": 0,
             "controls": 3,
             "placeholders": 0,
@@ -30119,13 +30185,13 @@
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 579
+            "h": 772
           },
           "realBox": {
             "x": 20,
             "y": 0,
             "w": 335,
-            "h": 578.8
+            "h": 770.8
           },
           "skeletonContainer": {
             "x": 0,
@@ -30139,15 +30205,15 @@
             "w": 359,
             "h": 812
           },
-          "deltaRowPx": -0.2,
+          "deltaRowPx": -1.2,
           "deltaContainerPx": 0,
           "rows": [
-            5,
-            5
+            6,
+            6
           ],
           "rowH": [
-            68,
-            68
+            101,
+            101
           ],
           "deltaRowH": 0,
           "media": [
@@ -30160,17 +30226,69 @@
           ],
           "textLeaves": [
             1,
-            9
+            12
           ],
           "placeholderCount": 7,
           "shapeMatch": true
+        },
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 772
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 770.8
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -1.2,
+          "deltaContainerPx": 0,
+          "rows": [
+            6,
+            6
+          ],
+          "rowH": [
+            101,
+            101
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            2,
+            3
+          ],
+          "textLeaves": [
+            1,
+            12
+          ],
+          "placeholderCount": 2,
+          "shapeMatch": true
         }
       ],
-      "worstDeltaRowPx": -0.2,
+      "worstDeltaRowPx": -1.2,
       "worstDeltaRowH": null,
       "worstDeltaRows": 0,
       "shapeMismatches": 0,
-      "clustersMeasured": 1,
+      "clustersMeasured": 2,
       "maxLandmarkShiftPx": 0,
       "landmarkMoves": [],
       "landmarksCompared": 3,
@@ -30480,6 +30598,42 @@
 >>>>>>> 34a8d8ce6a (chore(loading-states): measure /profile?tab=instant_book (CMP-4), so loadingStateShape is green before deploy)
       ],
       "replaced": []
+    },
+    {
+      "at": "2026-11-01T09:25:07.930Z",
+      "base": "http://127.0.0.1:4180",
+      "surfaces": [
+        "helper /profile?tab=instant_book",
+        "anon /profile?tab=instant_book"
+      ],
+      "replaced": [
+        "helper /profile?tab=instant_book",
+        "anon /profile?tab=instant_book"
+      ]
+    },
+    {
+      "at": "2026-11-01T09:24:57.403Z",
+      "base": "http://127.0.0.1:4180",
+      "surfaces": [
+        "helper /profile?tab=instant_book",
+        "anon /profile?tab=instant_book"
+      ],
+      "replaced": [
+        "helper /profile?tab=instant_book",
+        "anon /profile?tab=instant_book"
+      ]
+    },
+    {
+      "at": "2026-11-01T09:24:46.399Z",
+      "base": "http://127.0.0.1:4180",
+      "surfaces": [
+        "helper /profile?tab=instant_book",
+        "anon /profile?tab=instant_book"
+      ],
+      "replaced": [
+        "helper /profile?tab=instant_book",
+        "anon /profile?tab=instant_book"
+      ]
     }
   ]
 }

@@ -129,14 +129,18 @@ export function BudgetSection({
             >
               <Minus className="h-5 w-5" aria-hidden />
             </button>
-            <output
-              htmlFor="budget"
-              aria-live="polite"
-              className="min-w-[4ch] text-center font-sans text-ds-40 font-bold tabular-nums"
-              style={{ color: budgetNum > 0 ? "hsl(var(--burnt-sienna))" : "hsl(var(--muted-foreground))" }}
-            >
-              ${budgetNum > 0 ? formatPriceExact(budgetNum) : "0"}
-            </output>
+            {/* ONE budget control (audit 11-01 JA-43): the big number IS the field. It used to be a read-out
+                here plus a "Budget * $0.00" field under it for the same value. CurrencyInput stores a number;
+                the form keeps `budget` as a string (drafts, validation), converted at this boundary only. */}
+            <CurrencyInput
+              id="budget"
+              hero
+              value={budget === "" ? undefined : Number.parseFloat(budget) || undefined}
+              onChange={(next) => setBudget(next === undefined ? "" : next.toString())}
+              required
+              aria-label="Job budget in dollars"
+              enterKeyHint="done"
+            />
             <button
               type="button"
               aria-label="Raise the budget by $5"
@@ -147,20 +151,6 @@ export function BudgetSection({
               <Plus className="h-5 w-5" aria-hidden />
             </button>
           </div>
-          <Label htmlFor="budget">Budget <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
-          {/* CurrencyInput stores the value as a number, but the parent form
-              still keeps `budget` as a string (it's threaded through draft
-              persistence and validation that expect a string). Convert at
-              this boundary only — `""` ↔ `undefined`, else `toString()`. */}
-          <CurrencyInput
-            id="budget"
-            value={budget === "" ? undefined : Number.parseFloat(budget) || undefined}
-            onChange={(next) => setBudget(next === undefined ? "" : next.toString())}
-            className="text-ds-15 font-medium"
-            required
-            aria-label="Job budget in dollars"
-            enterKeyHint="done"
-          />
           {/* Gift note — the answer to "where did my gift card go?".
               Deliberately phrased as a DEDUCTION off whatever they choose,
               not as a budget suggestion: the field above stays the poster's

@@ -420,8 +420,7 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
       </div>
       {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
       {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
-      {/* The card step says it itself; once is enough. */}
-      {!showCardStep && <p className="text-xs text-muted-foreground">You're only charged when you buy.</p>}
+      {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons; the card step says when the card is charged. */}
       {card.isError && (
         <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />
       )}
@@ -482,9 +481,6 @@ export function OfferPanel({ item, userId, askSignal = 0 }: {
         </form>
       )}
       {showCardStep && needCard === "offer" && cardStep("offer")}
-      <p className="text-xs text-muted-foreground">
-        You see one total before you pay. The seller keeps the whole price.
-      </p>
       {barShown && typeof document !== "undefined" &&
         createPortal(
           // Portaled to <body>: a fixed bar inside the page would be placed by its transformed ancestor, not the screen.

@@ -3,7 +3,7 @@
  * Helpr) each drew their own: 4 bars twice and an 8-icon stepper. Every job-progress render goes through
  * <JobProgress> (src/components/tracker/JobProgress.tsx) fed by jobProgress (src/components/tracker/jobProgressState.ts); no other
  * file keeps a job step list, and StepTracker is used for jobs only through JobProgress.
- * @mutate src/components/messages/chatView/DealCard.tsx | <JobProgress progress={stage} compact /> | <StepTracker steps={["Posted", "Hired", "Working", "Done"]} at={0} />
+ * @mutate src/components/messages/chatView/DealCard.tsx | <JobProgress progress={step ? { ...stage, next: "" } : stage} compact /> | <StepTracker steps={["Posted", "Hired", "Working", "Done"]} at={0} />
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <JobProgress progress={step \|\| hideNext ? { ...progress, next: "" } : progress} /> |       <ol aria-label="Job progress">{["Posted", "Hired", "Working", "Done"].map((s) => <li key={s}>{s}</li>)}</ol>
  * EIGHT steps on the job cards too (owner, 2026-10-22): MineJobFace draws the bar under a collapsed card's face,
  * fed by jobProgress on both the poster's Posted card and the Helpr's Working card.

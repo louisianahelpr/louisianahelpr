@@ -159,9 +159,9 @@ function HomeDashboardScreen() {
                   {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? `Next up · ${at + 1} of ${todoCount}` : "Next up"}
                 </h2>
                 {!next && summary.waiting && (
-                  <button type="button" data-testid="next-up-see-job" onClick={() => navigate(`/jobs/${summary.waiting!.jobId}`)} className="min-h-11 px-1 -my-2 -mr-1 text-ds-13 font-bold text-primary whitespace-nowrap">
+                  <Button type="button" variant="ghost" size="sm" data-testid="next-up-see-job" onClick={() => navigate(`/jobs/${summary.waiting!.jobId}`)} className="px-1 -my-2 -mr-1 text-ds-13 tracking-normal text-primary">
                     See job
-                  </button>
+                  </Button>
                 )}
                 {next && (() => {
                   // Board 7: the to-do's section, by icon and name, top right.

@@ -2978,6 +2978,7 @@ describe("charge-recurring-visits edge function", () => {
   // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!withholdFee && lapsedHolder) { |         if (false) {
   // @mutate supabase/functions/charge-recurring-visits/index.ts |             fail(`visit payment ${row.id}: ${billProblem}; nothing refunded, retried next run`);\n            continue; |             fail(`visit payment ${row.id}: ${billProblem}; nothing refunded, retried next run`);
   // @mutate supabase/functions/_shared/helprFaultFee.ts |     p_card_fee_cents: cents, |     p_card_fee_cents: 0,
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |               oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`, |               oncePerDayKey: undefined,
   const billCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "bill_helpr_card_fee_debt");
   const lapsedSetup = (fee: unknown = "helper_payout_setup_incomplete") => {
     seedHappyPath();
@@ -3023,6 +3024,10 @@ describe("charge-recurring-visits edge function", () => {
     expect(visitPaymentWrites("update")).toEqual([]);
     expect(reasons(b)).toContain("billing the lapsed Helpr the 320-cent card fee failed");
     expect(b.errors).toBe(1);
+    // Lead 11-02: the waiting refund pages ops once a day, never in silence.
+    const pages = slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical");
+    expect(pages).toHaveLength(1);
+    expect((pages[0] as { oncePerDayKey?: string }).oncePerDayKey).toBe("visit-sweep-lapsed-bill:vp-orphan");
   });
 
   it("Q2245: a refund an earlier run already made in full is billed before it is settled", async () => {

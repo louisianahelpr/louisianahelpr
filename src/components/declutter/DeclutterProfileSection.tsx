@@ -6,6 +6,7 @@
  * server's read never returns who wrote a review. No visible reviews, or a viewer without Declutter (the hidden
  * switch), renders nothing; a failed read says so with Try again. A "sold" count needs a server read first.
  */
+import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -14,9 +15,12 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchProfileReviews, fetchSellerSoldCount, reviewSummary, type ProfileReview } from "@/lib/declutter/profile";
 import { topReviewTags } from "@/lib/declutter/reviewTags";
 
+const ReportDialog = lazy(() => import("@/components/ReportDialog"));
+
 const monthYear = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Chicago" });
 
 function ReviewGroup({ title, reviews }: { title: string; reviews: ProfileReview[] }) {
+  const [reporting, setReporting] = useState<string | null>(null);
   const sum = reviewSummary(reviews);
   if (!sum) return null;
   const tags = topReviewTags(reviews.map((r) => r.tags));
@@ -38,12 +42,22 @@ function ReviewGroup({ title, reviews }: { title: string; reviews: ProfileReview
           {words.map((r) => (
             <li key={r.id} className="rounded-xl bg-muted/50 px-3 py-2 text-ds-14">
               <p className="[overflow-wrap:anywhere]">{r.comment!.trim()}</p>
-              <p className="mt-0.5 text-ds-12 text-muted-foreground">
-                {r.stars} star{r.stars === 1 ? "" : "s"} · {monthYear(r.created_at)}
-              </p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-ds-12 text-muted-foreground">
+                  {r.stars} star{r.stars === 1 ? "" : "s"} · {monthYear(r.created_at)}
+                </p>
+                <button type="button" className="min-h-11 shrink-0 pl-4 text-ds-13 text-muted-foreground" onClick={() => setReporting(r.id)} data-report="declutter_review">
+                  Report
+                </button>
+              </div>
             </li>
           ))}
         </ul>
+      )}
+      {reporting && (
+        <Suspense fallback={null}>
+          <ReportDialog open onClose={() => setReporting(null)} reportedType="declutter_review" reportedId={reporting} />
+        </Suspense>
       )}
     </div>
   );

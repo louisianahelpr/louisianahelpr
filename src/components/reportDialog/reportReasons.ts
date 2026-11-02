@@ -1,6 +1,6 @@
 
 // Moved out of ReportDialog.tsx unchanged (component-size ratchet, Q806).
-export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer";
+export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review";
 
 interface Reason {
   label: string;
@@ -93,6 +93,14 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Shares contact info" },
     { label: "Something else" },
   ],
+  // A3-75 (audit 11-01): a Declutter review, as a Jobs review is reported (plus contact info, which reviews refuse).
+  declutter_review: [
+    { label: "Fake or dishonest review" },
+    { label: "Harassment or abuse" },
+    { label: "Inappropriate content" },
+    { label: "Shares contact info" },
+    { label: "Something else" },
+  ],
 };
 
 /**
@@ -111,6 +119,7 @@ export const REPORTED_NOUN: Record<ReportedType, string> = {
   declutter_wanted: "Wanted Post",
   declutter_question: "Question",
   declutter_answer: "Answer",
+  declutter_review: "Review",
 };
 
 /**
@@ -129,6 +138,7 @@ export const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   declutter_wanted: "Wanted post",
   declutter_question: "question",
   declutter_answer: "answer",
+  declutter_review: "review",
 };
 
 /**
@@ -146,4 +156,5 @@ export const REASON_PROMPT: Record<ReportedType, string> = {
   declutter_wanted: "What's wrong with this Wanted post?",
   declutter_question: "What's wrong with this question?",
   declutter_answer: "What's wrong with this answer?",
+  declutter_review: "What's wrong with this review?",
 };

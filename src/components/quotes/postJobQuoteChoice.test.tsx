@@ -129,7 +129,10 @@ describe("Post a job: Set a price or Get quotes", () => {
     expect(group.closest("[data-form-page]")?.getAttribute("data-form-page")).toBe("3");
     expect(screen.getByRole("heading", { name: "What will you pay?" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "Set a price" })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText(/You set the budget and review it before anything is charged/)).toBeInTheDocument();
+    // Q2613 (Jobs audit 1102b row 27): when the card is charged is said once, in the step header, not again here.
+    // @mutate src/components/quotes/PostJobQuoteChoice.tsx |   price: "You set the price. Helprs apply at your price.", |   price: "You set the budget and review it before anything is charged. Helprs apply at your price.",
+    expect(screen.getByText("You set the price. Helprs apply at your price.")).toBeInTheDocument();
+    expect(screen.queryByText(/before anything is charged/)).toBeNull();
     fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
     expect(screen.getByText(/Helprs near you send theirs; you pick one and pay only when you book/)).toBeInTheDocument();
   });

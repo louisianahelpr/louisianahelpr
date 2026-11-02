@@ -8,7 +8,7 @@
  * email page sends the confirmed member to that job when this browser has none.
  *
  * @mutate supabase/functions/_shared/confirmLink.ts |  if (jobId && JOB_ID.test(jobId)) url.searchParams.set("job", jobId);\n |
- * @mutate supabase/functions/_shared/confirmLink.ts |    return url.pathname === CONFIRM_LINK_PATH && JOB_ID.test(job) ? job.toLowerCase() : null; |    return job || null;
+ * @mutate supabase/functions/_shared/confirmLink.ts |    return url.pathname === CONFIRM_LINK_PATH && JOB_ID.test(job) ? job.toLowerCase() : null; |    return job \|\| null;
  * @mutate supabase/functions/auth-email-hook/index.ts | confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup', confirmLinkJobFromRedirect(emailData.redirect_to)) | confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup')
  * @mutate src/lib/jobIntent.ts |  const job = id ?? linkJobId; |  const job = id;
  * @mutate src/pages/auth/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(peekJobIntent()), | emailRedirectTo: getSignupConfirmRedirect(),

@@ -104,13 +104,17 @@ describe("Deliver: accepting confirms, and asks nothing more of the taken task (
   it("Save says Vehicle saved on the form; changing a box clears it", async () => {
     show();
     const save = await screen.findByRole("button", { name: "Save" });
+    const car = screen.getByRole("checkbox", { name: "I have a car" });
+    // Q2584: Save is pressable only once a box changes, so change one first.
+    const before = car.getAttribute("aria-checked");
+    fireEvent.click(car);
+    await waitFor(() => expect(save).toBeEnabled());
     fireEvent.click(save);
     expect(await screen.findByText("Vehicle saved.")).toBeInTheDocument();
     expect(state.calls.some((c) => c[0] === "vehicle")).toBe(true);
-    const car = screen.getByRole("checkbox", { name: "I have a car" });
     fireEvent.click(car);
     // The click is the precondition (the box really changed), then the absence (waitForEmptyIsVacuous).
-    expect(car).not.toBeChecked();
+    expect(car.getAttribute("aria-checked")).toBe(before);
     expect(screen.queryByText("Vehicle saved.")).toBeNull();
   });
 

@@ -482,7 +482,9 @@ const Signup = () => {
     <AuthShell
       hideHeader
       centerColumn
-      maxWidth={step === 1 ? "sm" : "2xl"}
+      // A3-101 (audit 11-01): step 2 ran to page-measure (1,344 px at 1440) on a screen with no nav above it; it
+      // now keeps one centred column ("lg": 576 px at lg+).
+      maxWidth={step === 1 ? "sm" : "lg"}
       noWebChrome
       // Board 55: step 1 sits in the Log in card's width with its heading inside the card and no
       // back (the H links home); step 2 keeps the row title and walks the wizard back.

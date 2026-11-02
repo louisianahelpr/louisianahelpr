@@ -129,6 +129,7 @@ export const es: Record<MsgKey, string> = {
   "signup.photoUpload": "Subir foto de perfil",
   "signup.city": "Ciudad",
   "signup.zip": "Código postal",
+  "signup.zipExample": "p. ej. 70801",
   "signup.about": "Sobre usted",
   "signup.aboutPlaceholder": "Cuéntenos un poco sobre usted: si busca trabajo o necesita ayuda en la casa…",
   "signup.aboutHelp": "La descripción es opcional; puede agregarla después desde su perfil.",

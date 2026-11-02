@@ -155,6 +155,7 @@ export function AddressBlock({ streetAddress, setStreetAddress, city, setCity, a
                 id="city"
                 value={city}
                 onChange={setCity}
+                required
                 className="px-3 text-ds-14"
               />
             </div>

@@ -155,3 +155,17 @@ describe("suggestion popup keyboard model", () => {
 });
 
 // @mutate src/hooks/useComboboxKeyboard.ts | if (i >= 0 && i < n) { | if (i < n) {
+
+// A3-100 (audit 11-01): City is required only where the form needs it (Post a job's address); everywhere else (sign-up
+// step 2, Complete Profile: "City (optional)") the browser must not stop the form.
+// @mutate src/components/postjob/CityAutocomplete.tsx | className, required = false }: | className, required = true }:
+// @mutate src/components/postjob/CityAutocomplete.tsx |         required={required} |         required={false}
+describe("CityAutocomplete required", () => {
+  it("is not required by default, and required when asked", () => {
+    const { unmount } = render(<CityAutocomplete value="" onChange={() => {}} />);
+    expect((screen.getByLabelText("City") as HTMLInputElement).required).toBe(false);
+    unmount();
+    render(<CityAutocomplete value="" onChange={() => {}} required />);
+    expect((screen.getByLabelText("City") as HTMLInputElement).required).toBe(true);
+  });
+});

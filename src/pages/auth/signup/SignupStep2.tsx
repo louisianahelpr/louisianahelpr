@@ -234,7 +234,7 @@ export function SignupStep2(props: SignupStep2Props) {
                 inputMode="numeric"
                 autoComplete="postal-code"
                 maxLength={5}
-                placeholder="70801"
+                placeholder={t("signup.zipExample")}
                 aria-invalid={!!fieldErrors.zipCode}
                 aria-describedby={fieldErrors.zipCode ? "zipCode-error" : undefined}
                 className={`${inputCls}${fieldErrors.zipCode ? " border-destructive" : ""}${zipRecognised ? " pr-8" : ""}`}

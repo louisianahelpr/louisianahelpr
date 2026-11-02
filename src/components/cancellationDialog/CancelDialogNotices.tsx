@@ -10,18 +10,58 @@ import type { PosterCancelQuote } from "@/lib/posterCancelQuote";
 // whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
 
+/**
+ * Q2677 (audit 1102e row 15): what "Cancel job" reaches on a recurring job, read from poster_cancel_job
+ * itself. It cancels ONLY the row it is given (UPDATE ... WHERE id = p_job_id; it never touches
+ * parent_job_id or any other visit):
+ *  - "visit": a booked visit (a jobs row with parent_job_id). Only that visit is cancelled. The series
+ *    goes on: charge-recurring-visits counts a visit row of ANY status on a date as booked, so the date
+ *    is never booked again, and every other date books as usual.
+ *  - "series": the series itself (no parent_job_id, recurrence_days set). The parent is cancelled, and
+ *    charge-recurring-visits never scans a cancelled parent (status not in (cancelled, disputed)), so no
+ *    more visits are booked; a visit that is already booked is its own row and still goes ahead.
+ */
+export type CancelSeriesScope = "series" | "visit" | null;
+
+export function cancelSeriesScope(row: { parent_job_id?: string | null; recurrence_days?: number[] | null } | null | undefined): CancelSeriesScope {
+  if (!row) return null;
+  if (row.parent_job_id) return "visit";
+  return (row.recurrence_days?.length ?? 0) > 0 ? "series" : null;
+}
+
+/** "Thu, Nov 5" from a date_needed (YYYY-MM-DD, read as a local calendar day). */
+export function visitDayLabel(dateNeeded: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateNeeded ?? "");
+  if (!m) return "";
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+export function cancelDialogTitle(scope: CancelSeriesScope, jobTitle: string, jobDate: string): string {
+  const day = visitDayLabel(jobDate);
+  if (scope === "visit") return day ? `Cancel only the ${day} visit?` : "Cancel only this visit?";
+  if (scope === "series") return `Cancel the whole "${jobTitle}" series?`;
+  return `Cancel "${jobTitle}"?`;
+}
+
 /** Series scope — stated HERE, at the decision, instead of living permanently on the card (owner, 2026-08-24). */
-export function CancelSeriesNotice() {
+export function CancelSeriesNotice({ scope, jobDate }: { scope: Exclude<CancelSeriesScope, null>; jobDate: string }) {
+  const day = visitDayLabel(jobDate);
   return (
     <div
       className="rounded-ds-md p-3"
+      data-testid="cancel-series-scope"
       style={{
         background: "hsl(var(--bark) / 0.06)",
         border: "0.5px solid hsl(var(--bark) / 0.22)",
       }}
     >
       <p className="text-ds-12 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
-        <strong>This cancels the whole series.</strong> Every future visit stops; visits already funded are unaffected.
+        {scope === "visit" ? (
+          <><strong>This cancels only the visit on {day || "this day"}.</strong> The rest of the series goes on as planned.</>
+        ) : (
+          <><strong>This cancels the whole series.</strong> No more visits are booked. A visit that is already booked still goes ahead.</>
+        )}
       </p>
     </div>
   );

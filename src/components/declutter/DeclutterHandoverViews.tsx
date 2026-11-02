@@ -342,6 +342,8 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
   // uses), never "(30 minutes)". Door and meetup keep their exact 30-minute time.
   const porch = order.handover === "porch";
   const windowWords = usePorchWindowWords(order, booked);
+  // Q2632 (audit 1102c R7): a safe-spot meeting is a meeting in its buttons too, as its tracker and time line say.
+  const what = order.handover === "meetup" ? "meeting" : "pickup";
   const timeLine = (label: string) => <BookedTimeLine order={order} booked={booked!} label={label} windowWords={windowWords} />;
   // A3-49: the seller's wait is said once, by the card's next-step line ("Waiting on Ann to pick a pickup time · by …").
   if (!booked && order.side === "seller") return null;
@@ -358,16 +360,16 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
       )}
       {/* Each side moves a booked time once (deep audit #25: "Move it" was still offered after the move was used). */}
       {movedAlready ? (
-        <p className="text-xs text-muted-foreground" data-testid="declutter-move-used">You've already moved this pickup once. Message the other side if the time doesn't work.</p>
+        <p className="text-xs text-muted-foreground" data-testid="declutter-move-used">{`You've already moved this ${what} once. Message the other side if the time doesn't work.`}</p>
       ) : booked && order.side === "seller" ? (
         // Night audit sold states #3: once the booked time has started the seller's next step is "Picked up" or
         // "They didn't show", so "Move the pickup" goes.
         // Deep audit #32: folded behind one button, so a booked card is not two full pickers deep at 390.
-        Date.now() >= new Date(booked).getTime() ? null : <FoldedTimePicker id={id} openLabel="Move the pickup" title="Move it (you can do this once)" fieldLabel="New pickup time"
+        Date.now() >= new Date(booked).getTime() ? null : <FoldedTimePicker id={id} openLabel={`Move the ${what}`} title="Move it (you can do this once)" fieldLabel={`New ${what} time`}
           confirmLabel="Move" pending={book.isPending} onConfirm={(iso) => book.mutate(iso)} />
       ) : booked && !moving ? (
         // The buyer's move folds the same way (#32), and opens the seller's own times (#2).
-        <button type="button" className={btn} aria-expanded={false} disabled={book.isPending} onClick={() => setMoving(true)}>Move the pickup</button>
+        <button type="button" className={btn} aria-expanded={false} disabled={book.isPending} onClick={() => setMoving(true)}>{`Move the ${what}`}</button>
       ) : (
       <>
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
@@ -434,26 +436,30 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
       return rule('the buyer taps "I got it" or takes their pickup photo, or 24 hours after the later of the pickup time and your porch photo, if no problem is reported');
     }
     const fileId = `dcl-door-${order.orderId}`;
+    // Q2632 (audit 1102c R7): at a safe meeting spot the seller hands it over: "Handed over", "from the meeting time".
+    const meet = order.handover === "meetup";
+    const done = meet ? "Handed over" : "Picked up";
+    const from = meet ? "the meeting time" : "the pickup time";
     // A buyer's no-show report: the card's answer is the seller's way forward (the server refuses Picked up: no_show_reported).
     if (handoverRow.data?.no_show_reported_at) return null;
     // Owner 10-30: the seller's word waits for the buyer. Said once; toasts for a confirmation show nothing (toastPolicy).
     if (handoverRow.data?.seller_confirmed_at && !free) {
-      return <p role="status" className="text-sm text-foreground" data-seller-confirmed="">You said it was picked up. We asked the buyer to confirm. If they don't say anything, you're paid in about 48 hours. If they report a problem, Louisiana Helpr decides.</p>;
+      return <p role="status" className="text-sm text-foreground" data-seller-confirmed="">{`You said it was ${meet ? "handed over" : "picked up"}. We asked the buyer to confirm. If they don't say anything, you're paid in about 48 hours. If they report a problem, Louisiana Helpr decides.`}</p>;
     }
     // From the booked time only (the server checks again: before_pickup_time).
     if (Date.now() < new Date(slotStart).getTime()) {
-      return free ? rule('the buyer taps "I got it" or you tap "Picked up", from the pickup time')
-        : <p className="text-sm text-muted-foreground">You can tap "Picked up" from the pickup time.</p>;
+      return free ? rule(`the buyer taps "I got it" or you tap "${done}", from ${from}`)
+        : <p className="text-sm text-muted-foreground">{`You can tap "${done}" from ${from}.`}</p>;
     }
     return (
       <div className="space-y-2">
-        {rule('the buyer taps "I got it" or you tap "Picked up"')}
+        {rule(`the buyer taps "I got it" or you tap "${done}"`)}
         <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional, taken where you hand it over)</label>
         <PhotoPickButton id={fileId} picked={photo} disabled={pickedUp.isPending} onPick={setPhoto} />
         <button type="button" className={primary} disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
-          Picked up
+          {done}
         </button>
-        <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} free={free} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} />
+        <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} free={free} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} label={done} />
       </div>
     );
   }

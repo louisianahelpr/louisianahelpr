@@ -17,7 +17,8 @@ import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { queryKeys } from "@/lib/queryKeys";
 import type { JobPageRow } from "./useJobPage";
 
-export function HiredSeriesSection({ job, userId }: { job: JobPageRow; userId: string }) {
+/** A3-44 (audit 11-01): the poster's job page shows the series too (`isPoster`), with which visits still need a Helpr. */
+export function HiredSeriesSection({ job, userId, isPoster = false }: { job: JobPageRow; userId: string; isPoster?: boolean }) {
   const isSeries = !job.parent_job_id && (job.recurrence_days?.length ?? 0) > 0;
   const state = useQuery({
     queryKey: [...queryKeys.jobs.all, "page", job.id, "series-state"],
@@ -28,7 +29,7 @@ export function HiredSeriesSection({ job, userId }: { job: JobPageRow; userId: s
   if (!line) return null;
   const endedOn = state.data?.series_ended_on ?? null;
   // The standing Helpr who is still hired on the series parent (same rule as HelperSeriesRow).
-  const canLeave = job.recurring_helper_id === userId && job.helper_id === userId && !endedOn && job.status !== "cancelled";
+  const canLeave = !isPoster && job.recurring_helper_id === userId && job.helper_id === userId && !endedOn && job.status !== "cancelled";
   const seriesJob = { ...job, status: job.status ?? "", series_ended_on: endedOn, series_split_ok: state.data?.series_split_ok ?? null };
   return (
     <div data-job-series="" className="space-y-2">
@@ -41,7 +42,7 @@ export function HiredSeriesSection({ job, userId }: { job: JobPageRow; userId: s
           </span>
         )}
       </div>
-      <SeriesDatesForJob job={seriesJob} userId={userId} isPoster={false} inset={false} />
+      <SeriesDatesForJob job={seriesJob} userId={userId} isPoster={isPoster} inset={false} nextStep />
     </div>
   );
 }

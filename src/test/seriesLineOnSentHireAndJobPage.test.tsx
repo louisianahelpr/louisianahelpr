@@ -6,9 +6,11 @@
  *
  * @mutate src/components/dashboard/ApplicationSentDialog.tsx |   if (series) return date ? `Do the job: ${series}, starting ${date}` : `Do the job: ${series}`; |
  * @mutate src/components/ResponseDeadlineDialog.tsx |   const seriesLine = job ? seriesSummary(job) : null; |   const seriesLine = null;
- * @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |   const canLeave = job.recurring_helper_id === userId && job.helper_id === userId && | const canLeave = job.helper_id === userId &&
+ * @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |   const canLeave = !isPoster && job.recurring_helper_id === userId && job.helper_id === userId && | const canLeave = job.helper_id === userId &&
  * @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |   const line = isSeries ? seriesSummary(job) : null; |   const line = isSeries ? "Repeats" : null;
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {isHired && <HiredSeriesSection job={job} userId={userId} />}\n |
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {(isHired \|\| isPoster) && <HiredSeriesSection job={job} userId={userId} isPoster={isPoster && !isHired} />}\n |
+ * @mutate src/components/series/JobSeriesCardControls.tsx |       nextStep={nextStep} |
+ * @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx | isPoster={isPoster} inset={false} nextStep /> | isPoster={isPoster} inset={false} />
  * @mutate src/pages/jobs/jobPage/useJobPage.ts | payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude"; | payout_scheduled_at, direct_offer_status, latitude, longitude";
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -91,13 +93,23 @@ describe("the hired Helpr's /jobs/:id carries the series line and Leave series",
     expect(screen.queryByRole("button", { name: "Leave series" })).toBeNull();
   });
 
+  it("A3-44: the poster sees the line, never Leave series (even as the standing Helpr id's match)", () => {
+    render(<QueryClientProvider client={new QueryClient()}><HiredSeriesSection job={{ ...base(), customer_id: "h1", recurring_helper_id: "h1" } as JobPageRow} userId="h1" isPoster /></QueryClientProvider>);
+    expect(document.querySelector("[data-job-series]")?.textContent).toContain(LINE);
+    expect(screen.queryByRole("button", { name: "Leave series" })).toBeNull();
+  });
+
   it("a one-time job renders nothing", () => {
     renderSection({ ...base(), recurrence_days: null, recurring_helper_id: "h1" });
     expect(document.querySelector("[data-job-series]")).toBeNull();
   });
 
   it("JobPage renders it for the hired Helpr, and the party read carries the series fields", () => {
-    expect(read("src/pages/jobs/jobPage/JobPage.tsx")).toMatch(/\{isHired && <HiredSeriesSection job=\{job\} userId=\{userId\} \/>\}/);
+    // A3-44: the job page asks the dates panel for its next step (SeriesDatesForJob passes it on; mocked above).
+    expect(read("src/pages/jobs/jobPage/HiredSeriesSection.tsx")).toContain("<SeriesDatesForJob job={seriesJob} userId={userId} isPoster={isPoster} inset={false} nextStep />");
+    expect(read("src/components/series/JobSeriesCardControls.tsx")).toContain("nextStep={nextStep}");
+    // A3-44: and for the poster (isPoster), who reads which visits still need a Helpr.
+    expect(read("src/pages/jobs/jobPage/JobPage.tsx")).toContain("{(isHired || isPoster) && <HiredSeriesSection job={job} userId={userId} isPoster={isPoster && !isHired} />}");
     const cols = read("src/pages/jobs/jobPage/useJobPage.ts").match(/const PARTY_COLUMNS =\s*"([^"]+)"/)?.[1] ?? "";
     const names = cols.split(",").map((c) => c.trim());
     expect(names.length).toBeGreaterThan(20);

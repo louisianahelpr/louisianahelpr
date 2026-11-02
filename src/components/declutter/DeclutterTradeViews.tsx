@@ -28,7 +28,9 @@ import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
-import { fetchMyCart, fetchPhotos, photoPublicUrl, startCheckoutPayment, type CartLine, type Handover } from "@/lib/declutter/api";
+import { fetchItemsCanShip, fetchMyCart, fetchPhotos, photoPublicUrl, startCheckoutPayment, type CartLine, type Handover, type ShipQuote } from "@/lib/declutter/api";
+import { buyerFeeCentsShip } from "@/lib/shipping/policy";
+import { ShipToMe } from "./ShipToMe";
 import { wayAllowed, waysEveryLineAllows } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -76,7 +78,8 @@ export { StrikeCount } from "./DeclutterTabHeads";
 function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void; held: boolean }) {
   const b = useBundleDiscount(sellerId, lines);
   return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} held={held}
-    ways={waysEveryLineAllows(lines)} itemId={lines.find((l) => l.item_id)?.item_id ?? null} />;
+    ways={waysEveryLineAllows(lines)} itemId={lines.find((l) => l.item_id)?.item_id ?? null}
+    itemIds={lines.flatMap((l) => (l.item_id ? [l.item_id] : []))} />;
 }
 
 /**
@@ -88,7 +91,7 @@ function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: s
  * the drop-off address, the SERVER geocodes it and prices the trip ($6 + $1.50 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null, itemId = null }: {
+function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null, itemId = null, itemIds = [] }: {
   sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
   /** B-1: this checkout was just paid and the cart has not caught up: Pay stays off. */
   held?: boolean;
@@ -98,6 +101,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   discountCents?: number;
   /** B110: an item of this checkout, to read the seller's pickup times (declutter_item_pickup_windows). */
   itemId?: string | null;
+  /** Shipping S3: every item of this checkout, to ask whether all of them can ship. */
+  itemIds?: string[];
   /** Board 161: how many items this one checkout covers. The bill shows the items and what the buyer pays, never a fee line (owner 2026-10-25, issue #3672). */
   itemCount?: number;
 }) {
@@ -125,6 +130,11 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
     ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])] as Handover[]).filter((h) => wayAllowed(ways, h));
   // Owner 2026-10-29 (DC-4): Helpr delivery is always a choice for what the buyer pays for, whatever was ticked.
   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
+  // Shipping S3 (testers only: declutter_shipping): "Ship it to me" when every item has a parcel ("Ship it").
+  const shipOn = useFeature("declutter_shipping");
+  const canShip = useQuery({ queryKey: ["declutter", "items-can-ship", itemIds.join(",")], queryFn: () => fetchItemsCanShip(itemIds),
+    enabled: shipOn && itemIds.length > 0, staleTime: 60_000 });
+  if (shipOn && canShip.data === true) ticked.push("ship");
   const offered = ticked; // None open to this buyer: no fallback to the seller's door (Q2462); NoWayWorks opens the chat.
   // DB-15: the buyer's tap, never useState(offered[0]) (it froze Helpr delivery before spots loaded); else the first way now.
   const [picked, setPicked] = useState<Handover | null>(null);
@@ -145,6 +155,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   });
   const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
   const delivering = chosen === "delivery";
+  const shipping = chosen === "ship";
+  const [shipQuote, setShipQuote] = useState<ShipQuote | null>(null);
+  const shipRate = shipping && shipQuote ? shipQuote.rate_cents : null;
   // D-NEW14: a seller with saved pickup places: the buyer picks one for porch pickup and Helpr delivery (the server
   // refuses checkout and a delivery price without it, porch_place_needed). LEAD-PLACE-TIMES (20261031164337): a door
   // pickup is at the chosen place too.
@@ -208,10 +221,12 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // Q2427: every amount after the items line is on the discounted items (what checkout freezes).
   const netItemsCents = itemsTotalCents - discountCents;
   const sdAmounts = sdRate !== null ? sellerDeliveryAmounts(netItemsCents, sdRate) : null;
-  const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
+  // Shipping: the server's fee rule f1_ship (5% of items + shipping, + 70c) on the discounted items, plus the postage.
+  const payCents = (shipRate !== null ? netItemsCents + buyerFeeCentsShip(netItemsCents, shipRate) + shipRate
+    : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
   // #20 (owner 2026-10-28, "Words only"): when the total holds more than the lines above it (the buyer's service fee),
   // one quiet line says so, with no number. A free claim never reaches this sheet with a fee.
-  const listedCents = netItemsCents + (delivering && liveQuote ? liveQuote.delivery_cents : 0) + (sdRate ?? 0) + setupFeeCents;
+  const listedCents = netItemsCents + (delivering && liveQuote ? liveQuote.delivery_cents : 0) + (sdRate ?? 0) + (shipRate ?? 0) + setupFeeCents;
   const includesServiceFee = payCents > listedCents;
   const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff && sdChecked !== null;
   // BUY-8 (audit 10-30): Pay was grey with nothing saying why, and at 375 the choice it waited on was far above it,
@@ -219,6 +234,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const payWaitsOn =
     needsPlace && !placeReady && porchPlaces.places.length > 0 ? "Choose a pickup place above to pay."
       : delivering && !liveQuote ? "Get the delivery price above to pay."
+        : shipping && !shipQuote ? "Get shipping prices above to pay."
         : sellerDelivering && sdState === "pick" && !sdReady ? "Finish the delivery choices above to pay."
           : !meetupReady ? "Choose a meeting spot above to pay."
             : !pickupTimeReady ? (chosen === "porch" ? "Choose a pickup day and time above to pay." : meetingUp ? "Choose when you'll meet above to pay." : "Choose a pickup day and time above to pay.")
@@ -245,6 +261,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             </span>
             <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--accent-ink))]">
               {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>)
+                : h === "ship" ? (shipQuote ? formatPrice(shipQuote.rate_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>)
                 : h === "seller_delivery" ? (sdState === "no_times"
                   ? <span className="font-semibold text-muted-foreground">{sellerDeliveryPriceWords(sdOffer.data, sdState)}</span>
                   : sellerDeliveryPriceWords(sdOffer.data, sdState))
@@ -255,12 +272,13 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               or a door pickup or Helpr delivery from that place), shown while it is the one chosen. */}
           {/* Owner 2026-11-01 (1:02 PM): each way's details sit INSIDE it, shown while it is the one chosen: the seller's
               pickup places, the meeting spot, the day and time, the delivery address and price. */}
-          {chosen === h && (needsPlace || meetingUp || timedPickup || h === "seller_delivery" || h === "delivery") && (
+          {chosen === h && (needsPlace || meetingUp || timedPickup || h === "seller_delivery" || h === "delivery" || h === "ship") && (
             <div className="space-y-3 pl-4" data-places-under={needsPlace ? h : undefined} data-details-under={h}>
               {needsPlace && (
                 <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} refused={porchPlaces.refused} loadError={porchPlaces.query.error}
                   onRetry={() => void porchPlaces.reread()} onChosen={() => { setQuote(null); setPickupPick(null); }} />
               )}
+              {h === "ship" && <ShipToMe sellerId={sellerId} picked={shipQuote} onPick={setShipQuote} />}
               {h === "meetup" && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
               {timedPickup && placeReady && (!meetingUp || meetupReady) && (
                 <CheckoutPickupTime days={pickupChoices} porch={h === "porch"} meetup={h === "meetup"} value={pickupStart}
@@ -308,6 +326,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         {delivering && liveQuote && (
           <div className="flex justify-between gap-3"><dt>Helpr delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(liveQuote.delivery_cents)}</dd></div>
         )}
+        {shipRate !== null && (
+          <div className="flex justify-between gap-3" data-ship-line=""><dt>Shipping</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(shipRate)}</dd></div>
+        )}
         {sdRate !== null && (
           <div className="flex justify-between gap-3"><dt>Seller delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{sdRate === 0 ? "Free" : formatPrice(sdRate)}</dd></div>
         )}
@@ -317,6 +338,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             {formatPrice(payCents)}
             {/* Delivery chosen but not priced yet: the total is not complete, so say so (money review #4). */}
             {delivering && !liveQuote && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">+ delivery</span>}
+            {shipping && !shipQuote && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">+ shipping</span>}
             {!setupFeeKnown && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground" data-setup-fee-pending="">+ any setup fee</span>}
           </dd>
         </div>
@@ -336,6 +358,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         The seller keeps the whole {formatPrice(netItemsCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
         {delivering
           ? "It's paid to the seller once the delivery is done."
+          // Shipping S5 (20261102013630): the sale is final, and paid out, 48 hours after the carrier's delivered scan.
+          : shipping ? "It's paid to the seller about 48 hours after the carrier delivers it, unless you report a problem."
           : sellerDelivering
             ? "It's paid to the seller when you have your items, or about 48 hours after they mark it delivered unless you report a problem."
             : "It's paid to the seller when you say you have it, or about 48 hours after the seller says you do, unless you report a problem."}
@@ -347,14 +371,14 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         type="button"
         aria-describedby={!held && !opening && payWaitsOn ? `${addressId}-pay-waits` : undefined}
         className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
-        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady || !pickupTimeReady}
+        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (shipping && !shipQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady || !pickupTimeReady}
         onClick={async () => {
           setOpening(true);
           rememberPaying(sellerId);
           try {
             await porchPlaces.whenPicked();
             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,
-              sellerDelivering ? sdRate : null);
+              sellerDelivering ? sdRate : null, shipping ? shipQuote?.quote_id ?? null : null);
             if (res.paid || !res.url) {
               toast("This order is already paid.");
               invalidateTrades(qc);

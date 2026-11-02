@@ -159,8 +159,8 @@ export const FEATURE_SWITCH_KEYS = [
   "card_hold_at_post",
   // Declutter shipping (owner 2026-10-20 and 2026-10-29, Q2259; lead 2026-10-30): live postage quotes
   // (ship-rates), then "Ship it" at checkout, labels and tracking. Created 'testers' by 20261030012052; ship-rates
-  // calls requireFeature and the shipping_quotes trigger reads feature_enabled_for_user per buyer. No screen until
-  // the S3 checkout: SERVER_ONLY below, moved out of it with the first useFeature("declutter_shipping").
+  // calls requireFeature and the shipping_quotes trigger reads feature_enabled_for_user per buyer. Read by the
+  // checkout's "Ship it to me" (DeclutterTradeViews, useFeature("declutter_shipping"); B131).
   "declutter_shipping",
 ] as const;
 
@@ -174,7 +174,7 @@ export const FEATURE_SWITCH_KEYS = [
  * useFeature and IS read by a migration's feature_enabled_for_user('<key>',
  * ...); every other key is read by useFeature.
  */
-export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links", "declutter_shipping"];
+export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links"];
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];
 

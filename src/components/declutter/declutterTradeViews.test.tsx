@@ -40,13 +40,13 @@
  * @mutate src/components/declutter/DeclutterTabHeads.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : null, shipping ? shipQuote?.quote_id ?? null : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
  * Row 101 (porch is the default; a seller can turn it off per item).
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = picked && offered.includes(picked) ? picked : offered[0]; |   const chosen = picked ?? offered[0];
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order; |   const ticked: Handover[] = wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady} |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady}
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = (sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady} |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |     : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} onBack= | porchOk={true} onBack=
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
@@ -105,10 +105,17 @@ const state = {
   talksOpened: [] as string[],
   /** D4-9: the answers respondOffer was called with. */
   responded: [] as string[],
+  /** Shipping S3 (B131): declutter_shipping for this account, every item has a parcel, ship-rates' answer. */
+  shipOn: false,
+  canShip: true,
+  shipQuotes: [] as unknown[],
+  shipAsked: [] as unknown[],
+  canShipReads: 0,
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "declutter_seller_delivery" ? state.sellerDeliveryOn : state.deliveryOn) }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "declutter_seller_delivery" ? state.sellerDeliveryOn
+  : key === "declutter_shipping" ? state.shipOn : state.deliveryOn) }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/sellerDelivery")>()),
@@ -170,8 +177,10 @@ vi.mock("@/lib/declutter/api", () => ({
   sellerCancelSale: async () => 1,
   removeCartItem: async (lineId: string) => { state.removed.push(lineId); return "removed"; },
   startCardSave: async () => "https://checkout.stripe.test/setup",
-  startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null) => {
-    state.paid.push(handover === "seller_delivery" ? { sellerId, handover, slot, handoff } : slot ? { sellerId, handover, slot } : { sellerId, handover });
+  fetchItemsCanShip: async () => { state.canShipReads += 1; return state.canShip; },
+  fetchShipRates: async (sellerId: string, shipTo: unknown) => { state.shipAsked.push({ sellerId, shipTo }); return state.shipQuotes; },
+  startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null, _rate?: number | null, quoteId?: string | null) => {
+    state.paid.push(handover === "ship" ? { sellerId, handover, quoteId } : handover === "seller_delivery" ? { sellerId, handover, slot, handoff } : slot ? { sellerId, handover, slot } : { sellerId, handover });
     return { url: "https://checkout.stripe.test/pay", paid: false };
   },
 }));
@@ -242,6 +251,11 @@ describe("Declutter slice 3 screens", () => {
     state.responded = [];
     state.setupFeeCents = 0;
     state.setupFeeKnown = true;
+    state.shipOn = false;
+    state.canShip = true;
+    state.shipQuotes = [];
+    state.shipAsked = [];
+    state.canShipReads = 0;
     state.card = null;
     state.cardReadFails = false;
     state.buyRefusal = null;
@@ -812,7 +826,7 @@ describe("Declutter slice 3 screens", () => {
   // "You pay", exactly as declutter-checkout charges it; an account that paid it sees neither.
   // Audit 1a #6 (2026-10-29): "Item $12, setup fee $2, You pay $15.30" did not add up. Board 161: the bill is the items
   // and what you pay, never a fee line, so the setup fee is said in words under the total, like the service fee.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents);
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {setupFeeCents > 0 && ( |         {false && (
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |         <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2"> |         {setupFeeCents > 0 && <div className="flex justify-between gap-3"><dt>One-time account setup fee</dt><dd>{formatPrice(setupFeeCents)}</dd></div>}<div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
   it("Q2352 + audit 1a #6: the first purchase's setup fee is in the total and said in words, never a fee line", async () => {
@@ -1322,6 +1336,69 @@ describe("Declutter slice 3 screens", () => {
     expect(bill.textContent!.replace("Includes a small Louisiana Helpr service fee.", "")).not.toMatch(/fee|%|¢|\$1\.85/i);
     fireEvent.click(screen.getByRole("button", { name: "Pay $24.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "seller_delivery", slot: slots[0], handoff: "leave" }]));
+  });
+
+  // Shipping S3 checkout (B131, Q2259): "Ship it to me" only while declutter_shipping is on and every item has a parcel;
+  // the buyer's Louisiana address gets ship-rates' options (cheapest pre-picked); You pay = items + f1_ship fee + postage;
+  // Pay sends the picked quote's id.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: shipOn && itemIds.length > 0, staleTime: 60_000 }); |     enabled: itemIds.length > 0, staleTime: 60_000 });
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (shipOn && canShip.data === true) ticked.push("ship"); |   if (shipOn) ticked.push("ship");
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (shipRate !== null ? netItemsCents + buyerFeeCentsShip(netItemsCents, shipRate) + shipRate | const payCents = (shipRate !== null ? netItemsCents + shipRate
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | sellerDelivering ? sdRate : null, shipping ? shipQuote?.quote_id ?? null : null); | sellerDelivering ? sdRate : null);
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| | (delivering && !liveQuote) \|\|
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |           : shipping ? "It's paid to the seller about 48 hours |           : false ? "It's paid to the seller about 48 hours
+  // @mutate src/components/declutter/ShipToMe.tsx |       onPick(q.find((x) => x.preselected) ?? q[0] ?? null); |       onPick(null);
+  // @mutate src/components/declutter/ShipToMe.tsx |     if (quotes.length > 0 \|\| picked) { setQuotes([]); onPick(null); } |     if (false) { setQuotes([]); onPick(null); }
+  it("Shipping: Ship it to me shows only when on and shippable, prices the address, totals items + fee + postage, and pays with the quote", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 2000, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: 170, total_cents: 2170, porch_ok: true };
+    state.cart = [line];
+    // Switch off: no ship way at all.
+    const off = show(<CartView />);
+    await screen.findByLabelText(/^Porch pickup/);
+    expect(screen.queryByLabelText(/Ship it to me/)).toBeNull();
+    expect(state.canShipReads).toBe(0); // switch off: the items are not even asked
+    off.unmount();
+    // On, but an item without a parcel: still none.
+    state.shipOn = true;
+    state.canShip = false;
+    const noParcel = show(<CartView />);
+    await screen.findByLabelText(/^Porch pickup/);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByLabelText(/Ship it to me/)).toBeNull();
+    noParcel.unmount();
+    state.canShip = true;
+    state.shipQuotes = [
+      { quote_id: "11111111-1111-4111-8111-111111111111", service: "usps_ground_advantage", rate_cents: 733, delivery_days: 3, preselected: true },
+      { quote_id: "22222222-2222-4222-8222-222222222222", service: "ups_ground", rate_cents: 1105, delivery_days: 2, preselected: false },
+    ];
+    show(<CartView />);
+    fireEvent.click(await screen.findByLabelText(/Ship it to me/));
+    expect(screen.getByText("Get shipping prices above to pay.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Street address"), { target: { value: "12 Oak St" } });
+    fireEvent.change(screen.getByLabelText("City"), { target: { value: "Baton Rouge" } });
+    fireEvent.change(screen.getByLabelText("ZIP"), { target: { value: "70801" } });
+    fireEvent.click(screen.getByRole("button", { name: "Get prices" }));
+    expect(await screen.findByText("USPS Ground Advantage")).toBeInTheDocument();
+    expect(screen.getByText("UPS Ground")).toBeInTheDocument();
+    expect(state.shipAsked).toEqual([{ sellerId: "s2", shipTo: { street1: "12 Oak St", city: "Baton Rouge", state: "LA", zip: "70801" } }]);
+    // $20 item + $7.33 postage: fee 5% of $27.33 = $1.37 (rounded) + 70c = $2.07; You pay $29.40.
+    const bill = document.querySelector("[data-checkout-breakdown]")!;
+    expect(bill.textContent).toMatch(/Shipping\$7\.33/);
+    expect(bill.textContent).toMatch(/You pay\$29\.40/);
+    expect(document.querySelector("[data-checkout-note]")!.textContent).toMatch(/about 48 hours after the carrier delivers it/);
+    fireEvent.click(screen.getByRole("radio", { name: /UPS Ground/ }));
+    // $20 + $11.05: fee 5% of $31.05 = $1.55 + 70c = $2.25; You pay $33.30.
+    expect(bill.textContent).toMatch(/You pay\$33\.30/);
+    // A changed address drops the old prices.
+    fireEvent.change(screen.getByLabelText("ZIP"), { target: { value: "70802" } });
+    expect(screen.queryByText("UPS Ground")).toBeNull();
+    expect(screen.getByRole("button", { name: /^Pay / })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Get prices" }));
+    await screen.findByText("UPS Ground");
+    fireEvent.click(screen.getByRole("button", { name: "Pay $29.40" }));
+    await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "ship", quoteId: "11111111-1111-4111-8111-111111111111" }]));
   });
 
   // Audit 2026-10-30 DB-9: the server keeps the last drop-off per buyer and seller (the Helpr delivery box writes the

@@ -199,7 +199,13 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (2026-11-02: 21.) 20261102070622 (Q1979, late-cancel notices in whole dollars) re-created
     // settle_one_off_jobs_for_banned_account from its effective body, so the in-place rewrites of 20261025203540 and
     // 20261030220537 are superseded.
-    expect(rewritten.length).toBe(21);
+    // (2026-11-02: 18.) 20261102043115 (job notices say the next step) re-created notify_on_payment_escrowed and
+    // notify_on_application, and 20261102055222 (a moving payout blocks the failed-bank cancel) re-created
+    // cancel_job_after_failed_bank_payment, each from its effective body: the copy 20261030220537 (#60-#100) and
+    // 20261025203540 (#230) wrote in place is written in ('Payment secured', 'is safely held', 'Not picked this time',
+    // 'They went with someone else', 'You haven''t been charged anything.'; read 11-02, builder 164), so those
+    // in-place rewrites are superseded.
+    expect(rewritten.length).toBe(18);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

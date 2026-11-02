@@ -1878,7 +1878,7 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
   // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       setDay = { key: "continue-set", label: row ? "Set a different day" : CONTINUE_DAY_LABEL, go: open }; |
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | continueStep ?? jobNextStep( | jobNextStep(
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })} | posterActions.row(posterStep)}
-  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     if (offerSetDay) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open }; |
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     if (offerSetDay && !job.helper_completed_at) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open }; |
   const underWay = (over: Partial<JobPageRow> = {}) => row({
     customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
     helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
@@ -2064,6 +2064,8 @@ describe("JA-17: Accept and Decline on the job page", () => {
  * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       posterExtras.push({ key: "continue-change", label: "Change day", go: open }); |       posterExtras.push();
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const continuingOn = continueDayHeader(continueDay.row); |   const continuingOn = null as string \| null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | <MineFaceNote note={continueDay.doneAheadNote ?? hiredFace?.note} /> | <MineFaceNote note={hiredFace?.note} />
+ * Q2680 (audit 1102e row 17): the header and the line under it in one format.
+ * @mutate src/lib/continueDayWords.ts |   return when ? `Continuing ${when}` : "Continuing " + formatJobDate(row.new_date); |   return "Continuing " + formatJobDate(row.new_date);
  */
 describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () => {
   const ahead = jobLocalDateISO(3);
@@ -2108,8 +2110,11 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
     const names = within(document.querySelector('[data-job-row="poster"]') as HTMLElement).getAllByRole("button").map(fullName);
     expect(names).toEqual(["Change day", "Message Rhonda"]);
     expect(screen.queryByRole("button", { name: "Set a different day" })).toBeNull();
-    expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${formatJobDate(ahead)} · 9:00 AM`));
-    expect(document.querySelector("[data-next-step]")?.textContent).toMatch(/^Rhonda confirmed /);
+    // Q2680: the header and the line under it use ONE format, the owner's "Thu 11/5 at 9 AM".
+    const [, m, d] = ahead.split("-").map(Number);
+    const when = `${formatJobDate(ahead).slice(0, 3)} ${m}/${d} at 9 AM`;
+    expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${when}`));
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe(`Rhonda confirmed ${when}`);
   });
 });
 

@@ -63,7 +63,7 @@ describe("five section tabs fit a phone (A3-6)", () => {
     render(<SectionTabs label="Declutter view" tabs={[...five, { value: "free", label: "Free" }]} value="free" onChange={() => {}} />);
     const over = screen.getByRole("tablist");
     expect(over.hasAttribute("data-tabs-more")).toBe(true);
-    expect(screen.getByRole("button", { name: "More tabs" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^\d+ more tabs$/ })).toBeInTheDocument();
     over.scrollLeft = 55;
     fireEvent.scroll(over);
     expect(over.hasAttribute("data-tabs-more")).toBe(false);

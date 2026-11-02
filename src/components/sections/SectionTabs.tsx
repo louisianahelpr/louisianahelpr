@@ -98,6 +98,8 @@ export function SectionTabs<T extends string>({
   // A3-97 (audit 7, 11-01): at 375 Declutter shows Browse and Buying only, so a seller's to-do count on Selling sat off
   // screen behind a bare chevron. The chevrons carry the to-do counts of the tabs they hide.
   const [aheadCount, setAheadCount] = useState(0);
+  // Q2563: how many tabs the end of the row hides, for the "N more" pill.
+  const [aheadTabs, setAheadTabs] = useState(0);
   const [behindCount, setBehindCount] = useState(0);
   const memberMoved = useRef(false);
   useLayoutEffect(() => {
@@ -117,16 +119,19 @@ export function SectionTabs<T extends string>({
       const box = list.getBoundingClientRect();
       let ahead = 0;
       let behind = 0;
+      let hiddenAhead = 0;
       for (const tab of Array.from(list.children)) {
         const t = tab.getBoundingClientRect();
         const cut = t.width > 0 && (t.left < box.left - 1 || t.right > box.right + 1);
         // Wider than the row itself (nothing can make it whole), the selected tab still shows until the member moves on.
         tab.toggleAttribute("data-tab-cut", cut && (tab !== selected || memberMoved.current));
+        if (t.width > 0 && t.right > box.right + 1) hiddenAhead++;
         const n = Number(tab.getAttribute("data-tab-count")) || 0;
         if (n > 0 && t.right > box.right + 1) ahead += n;
         else if (n > 0 && t.left < box.left - 1) behind += n;
       }
       setAheadCount(ahead);
+      setAheadTabs(hiddenAhead);
       setBehindCount(behind);
     };
     update();
@@ -227,11 +232,16 @@ export function SectionTabs<T extends string>({
           );
         })}
       </div>
+      {/* Q2563 (owner 11-02): the bare chevron read as decoration, so a buyer never saw Free or Wanted. It is a
+          labelled pill, "4 more ›", naming how many tabs it hides (its spoken name starts with the same words). */}
       {more && !onlySelected && (
-        <button type="button" aria-label={aheadCount > 0 ? tr("tabs.moreToDo", { n: aheadCount }) : tr("tabs.more")} data-tabs-more-button="" onClick={showNext}
-          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-0.5 text-muted-foreground">
-          {aheadCount > 0 && <span data-testid="tabs-more-count" aria-hidden className="segmented-count-attention tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5 text-center">{aheadCount}</span>}
-          <ChevronRight className="h-4 w-4" aria-hidden />
+        <button type="button" aria-label={aheadCount > 0 ? tr("tabs.nMoreToDo", { n: aheadTabs, m: aheadCount }) : tr("tabs.nMoreTabs", { n: aheadTabs })} data-tabs-more-button="" onClick={showNext}
+          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center">
+          <span data-tabs-more-pill="" className="inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-muted pl-2.5 pr-1.5 text-ds-13 font-semibold text-foreground">
+            {aheadCount > 0 && <span data-testid="tabs-more-count" aria-hidden className="segmented-count-attention tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5 text-center">{aheadCount}</span>}
+            <span data-testid="tabs-more-label" aria-hidden>{tr("tabs.nMore", { n: aheadTabs })}</span>
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </span>
         </button>
       )}
       {end}

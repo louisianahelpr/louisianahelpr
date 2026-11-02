@@ -13,7 +13,7 @@ import { shareNative } from "@/lib/nativeShare";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 
 /** A3-70: the Home screen's words for a listing the auto-check held (DeclutterHomeView). */
-export const BEING_CHECKED = "We'll send you a notice when it's done.";
+const BEING_CHECKED = "We'll send you a notice when it's done.";
 
 type Listed = Extract<BunchOutcome, { status: string }>;
 type Failed = Extract<BunchOutcome, { error: unknown }>;

@@ -327,7 +327,7 @@ describe("the Wanted hub", () => {
 
   // Next-step line (owner 2026-11-01: "people aren't told what to do next"): each of your posts says your move (a
   // reply waiting on you, an accepted answer, a post that ran out) or who it waits on and how long it stays up.
-  // @mutate src/components/declutter/DeclutterWantedViews.tsx |       <NextStep value={wantedNextStep(post, gotIt)} /> |
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |       <NextStep value={wantedNextStep(post, gotIt, payBy?.checkout_by ?? null)} /> |
   // @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (yours > 0) return { who: "you", |   if (yours < 0) return { who: "you",
   // @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (post.status === "expired") return { who: "you", text: "Post it again to keep looking" }; |
   // @mutate src/components/declutter/DeclutterWantedViews.tsx | text: "Waiting on sellers near you to answer", by: postTimeLeft(post.expires_at, now) | text: "Waiting on sellers near you to answer"

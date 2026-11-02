@@ -1812,8 +1812,8 @@ describe("BUY-30: a notice's ?order= opens that order's card", () => {
 
 // A3-63 (lead 1:14 PM: porch = a 2-hour window the seller leaves it out for): the seller's card said a porch booking as
 // "5:14 PM (30 minutes)". With the checkout window on the order row it says the window; door and meetup keep their time.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const windowWords = porch && booked | const windowWords = false && booked
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.side === "seller" ? "Leave it out" : "Pickup"} | {"Pickup"}
+// @mutate src/components/declutter/DeclutterBookedTimeLine.tsx |   const windowWords = porch && booked | const windowWords = false && booked
+// @mutate src/components/declutter/DeclutterBookedTimeLine.tsx | {order.side === "seller" ? "Leave it out" : "Pickup"} | {"Pickup"}
 describe("A3-63: a porch booking says its 2-hour window, not (30 minutes)", () => {
   beforeEach(() => {
     state.refundRequest = null;

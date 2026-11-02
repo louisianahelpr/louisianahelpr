@@ -28,7 +28,7 @@ const completedAtMs = (j: SpentJobRow) => {
  * A3-111 (audit 8, 11-01): a row says where its money stands: Cancelled, or, on a job not done yet, the charge is held
  * until the poster approves the work (posterSpend's held rule). A done job needs no word.
  */
-export function spentStatusWord(r: SpentRow<SpentJobRow>): string {
+function spentStatusWord(r: SpentRow<SpentJobRow>): string {
   if (!r.job) return "";
   if (r.job.status === "completed") return "";
   if (r.job.status === "cancelled") return " · Cancelled";
@@ -36,7 +36,7 @@ export function spentStatusWord(r: SpentRow<SpentJobRow>): string {
 }
 
 /** A3-111: each row opens its job (a tip on a job opens that job); a tip with no job stays text. */
-export const spentRowHref = (r: SpentRow<SpentJobRow>): string | null => {
+const spentRowHref = (r: SpentRow<SpentJobRow>): string | null => {
   const id = r.job?.id ?? r.tip?.job_id ?? null;
   return id ? `/jobs/${id}` : null;
 };
@@ -202,7 +202,7 @@ export function SpentSection() {
           {bought.map((p) => (
             <Link key={p.id} to="/declutter?view=cart" data-spent-purchase="" className="rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3 min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
               <div className="flex-1 min-w-0">
-                <h4 className="font-display font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
+                <h4 className="font-display font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }} title={`Bought: ${p.title}`}>
                   Bought: {p.title}
                 </h4>
                 <p className="font-sans text-ds-12 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

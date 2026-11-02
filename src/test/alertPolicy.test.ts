@@ -20,6 +20,8 @@
  * invisible; only `pg_get_functiondef` against prod would see it.
  *
  * @mutate supabase/functions/_shared/alertPolicy.ts | includes(kind)) return 'critical' | includes(kind)) return 'warning'
+ * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |       kind: "job_auto_cancelled",\n      severity: "warning", |       kind: "money_at_risk",\n      severity: "warning",
+ * @mutate supabase/functions/_shared/alertPolicy.ts |   'money_at_risk',\n |   'money_at_risk',\n  'job_auto_cancelled',\n
  * @mutate supabase/functions/_shared/alertPolicy.ts | 'rls-escalation-refused', | 'rls-escalation-tolerated',
  */
 import { describe, it, expect } from "vitest";
@@ -119,6 +121,16 @@ const MUST_PAGE = [
   /Banned identity attempted to re-verify/,
   /Instant-payout fee NOT collected/,
   /Cancellation-fee payout not sent/,
+  /Cancelled bank-payment job — the poster's gift card was NOT returned/,
+];
+
+/**
+ * Q2075 (lh-money-escrow review of 56346b5eb, #7): DESIGNED outcomes that need
+ * no one, so they must not page. Matched on title; each must resolve to the
+ * severity its call passes, never critical.
+ */
+const MUST_NOT_PAGE = [
+  /A hired job's bank payment failed — job cancelled/,
 ];
 
 /** The newest definition of notify_slack_on_error_log — the one prod runs. */
@@ -216,6 +228,19 @@ describe("alertPolicy", () => {
       }
     }
     expect(demoted).toEqual([]);
+  });
+
+  it("a designed outcome (the failed-bank-payment auto-cancel) posts as a warning, not a page (Q2075)", () => {
+    const calls = slackAlertCallSites((f) => readFileSync(f, "utf8"), tsFiles(FUNCTIONS));
+    for (const re of MUST_NOT_PAGE) {
+      const hits = calls.filter((c) => re.test(c.title));
+      expect(hits.length, `no call site found for ${re}`).toBeGreaterThan(0);
+      for (const c of hits) {
+        expect(c.kind, `${c.title}: kind`).toBe("job_auto_cancelled");
+        expect(effectiveSeverity(c.kind ?? undefined, c.severity ?? "warning"), c.title).toBe("warning");
+      }
+    }
+    expect((CRITICAL_KINDS as readonly string[]).includes("job_auto_cancelled")).toBe(false);
   });
 
   it("the SQL trigger's critical sources equal CRITICAL_ERROR_LOG_SOURCES", () => {

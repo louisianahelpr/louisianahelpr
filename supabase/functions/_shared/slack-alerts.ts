@@ -42,6 +42,11 @@ type SlackAlertKind =
   // A payout held on the platform past its bound (declutter-money, payout waits). Its own
   // kind so the hourly cap of a shared kind can never keep it out of the channel for good.
   | 'payout_wait'
+  // A designed automatic cancel that needs no one (Q2075: a hired job whose
+  // bank payment failed). NOT in CRITICAL_KINDS: it posts with its caller's
+  // severity, so it never pages; anything left needing a person around it
+  // posts separately as money_at_risk.
+  | 'job_auto_cancelled'
 
 export interface SlackAlertInput {
   kind: SlackAlertKind

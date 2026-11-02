@@ -35,6 +35,8 @@
  * @mutate src/lib/declutter/wanted.ts |   if (!f.category) out.category = "Pick a category."; |   if (!f.category && what === null) out.category = "Pick a category.";
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <FieldProblem id="wanted-what-problem" text={problems.what} /> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | {feeLine(form.maxPrice)} |
+ * Q2578 (audit 1102a): the empty field's line is an example, not "A $30 item".
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | return `${valid ? "A" : "For example, a"} | return `${"A"}
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | placeholder="Kids bike" enterKeyHint | placeholder="Kids bike, 16 inch" enterKeyHint
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |   useEffect(() => { saveWantedDraft(form); }, [form, editing]);
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const gotIt = !payBy && accepted.some((r) => r.paid === true \|\| r.paid === undefined); |   const gotIt = false;
@@ -238,9 +240,10 @@ describe("the Wanted hub", () => {
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Post what you're looking for" }));
     const sheet = await screen.findByRole("dialog");
-    expect(sheet.querySelector("[data-wanted-fee]")!.textContent).toContain("A $30 item costs $32.20 with our fee.");
+    // Q2578: with nothing typed the line is an example, so the grey placeholder 30 never reads as a set price.
+    expect(sheet.querySelector("[data-wanted-fee]")!.textContent).toMatch(/^For example, a \$30 item costs \$32\.20 with our fee\./);
     fireEvent.change(within(sheet).getByLabelText("The most you'd pay for the item"), { target: { value: "100" } });
-    expect(sheet.querySelector("[data-wanted-fee]")!.textContent).toContain("A $100 item costs $105.70 with our fee.");
+    expect(sheet.querySelector("[data-wanted-fee]")!.textContent).toMatch(/^A \$100 item costs \$105\.70 with our fee\./);
   });
 
   it("#4: the toast says what matching does and the placeholder is what it finds", async () => {

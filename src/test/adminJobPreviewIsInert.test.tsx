@@ -17,6 +17,7 @@
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (!open) { |   if (open === null) {
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |     opens: stage === "cancel_sheet" ? "Cancel job" : null, |     opens: null,
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |           tips: [{ |           tips_off: [{
+ * @mutate src/pages/admin/preview/jobPreviewSamples.ts |         { status: "pending", closed_reason: null, helper_id: PREVIEW_HELPR_ID }, |         { status: "pending", closed_reason: null, helper_id: "00000000-0000-4000-a000-000000000005" },
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |       job_guarantee_claims: [],\n |
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |     const undoRealtime = installInertRealtime(); |     const undoRealtime = () => undefined;
  * @mutate src/App.tsx | <ProtectedRoute><AdminRoute><AdminJobPreview /></AdminRoute></ProtectedRoute> | <ProtectedRoute><AdminJobPreview /></ProtectedRoute>
@@ -150,6 +151,20 @@ describe("admin job-page preview", () => {
     await screen.findAllByText(previewSample("tip_sent", "poster").job.title, undefined, { timeout: 10000 });
     await waitFor(() => expect(screen.queryAllByRole("button").some((b) => /Review/.test(b.textContent ?? ""))).toBe(true), { timeout: 10000 });
     expect(tipButtons().map((b) => b.textContent)).toEqual([]);
+    expect(leaked()).toEqual([]);
+  }, 30000);
+
+  // Q2616 (audit 1102b row 30): an Applied stage. The Helpr who applied sees View application, not Apply.
+  it("Applied: the Helpr's one button is View application; on Posted it is Apply", async () => {
+    const named = (re: RegExp) => screen.queryAllByRole("button").filter((b) => re.test((b.textContent ?? "").trim()));
+    renderPreview("posted", "helpr");
+    await screen.findAllByText(previewSample("posted", "helpr").job.title, undefined, { timeout: 10000 });
+    await waitFor(() => expect(named(/^Apply\b/).length).toBeGreaterThan(0), { timeout: 10000 });
+    cleanup();
+    renderPreview("applied", "helpr");
+    await screen.findAllByText(previewSample("applied", "helpr").job.title, undefined, { timeout: 10000 });
+    await waitFor(() => expect(named(/^View application\b/).length).toBeGreaterThan(0), { timeout: 10000 });
+    expect(named(/^Apply\b/).map((b) => b.textContent)).toEqual([]);
     expect(leaked()).toEqual([]);
   }, 30000);
 

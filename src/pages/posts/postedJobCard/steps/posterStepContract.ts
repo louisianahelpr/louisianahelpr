@@ -57,6 +57,8 @@ export interface PosterStepCtx {
    *  cannot close it. */
   completionSheetOpen: boolean;
   setCompletionSheetOpen: (open: boolean) => void;
+  /** Where the completion sheet opens: the choice (Approve) or the fix form (Something's not right, A3-8). */
+  completionStartMode?: "choice" | "revision";
   /** Dispute controls, all container-owned for the same reason. */
   disputeActing: boolean;
   resolveConfirmOpen: boolean;

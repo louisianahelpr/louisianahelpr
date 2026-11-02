@@ -74,6 +74,15 @@ GRANT ALL ON TABLE public.job_continue_days TO service_role;
 GRANT ALL ON TABLE public.job_continue_events TO service_role;
 GRANT ALL ON TABLE public.job_continue_reminder_sends TO service_role;
 
+-- Q807: writes from an unconfirmed email are refused on every public table (the gate's own statement trigger).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
 -- The job's two parties read; nobody writes from the client (every write is an RPC below).
 DROP POLICY IF EXISTS "Job parties read continue days" ON public.job_continue_days;
 CREATE POLICY "Job parties read continue days" ON public.job_continue_days FOR SELECT TO authenticated

@@ -5,9 +5,9 @@
  * declutter_refund_after_handover. Behaviour proven in PGlite: src/test/pglite/shippingBuyerFaultAfterDelivery.pglite.mjs
  * (50/50; skip 5 FAIL incl. refund_amount_unknown; plants RED).
  *
- * @mutate supabase/migrations/20261102060324_shipping_buyer_fault_after_delivery.sql |   v_paid := o.total_cents - v_reserved - v_ship; |   v_paid := o.total_cents - v_reserved;
- * @mutate supabase/migrations/20261102060324_shipping_buyer_fault_after_delivery.sql |   IF p_reason = 'admin_buyer_fault' THEN\n    v_ship | IF p_reason IN ('admin_buyer_fault', 'admin_no_fault') THEN\n    v_ship
- * @mutate supabase/migrations/20261102060324_shipping_buyer_fault_after_delivery.sql | THEN format(' The $%s for shipping is not refunded: the parcel was sent.', | THEN format(' %s',
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |   v_paid := o.total_cents - v_reserved - v_ship; |   v_paid := o.total_cents - v_reserved;
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |   IF p_reason = 'admin_buyer_fault' THEN\n    v_ship | IF p_reason IN ('admin_buyer_fault', 'admin_no_fault') THEN\n    v_ship
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql | THEN format(' The $%s for shipping is not refunded: the parcel was sent.', | THEN format(' %s',
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";

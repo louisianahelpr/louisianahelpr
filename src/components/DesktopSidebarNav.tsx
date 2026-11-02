@@ -141,8 +141,8 @@ const DesktopSidebarRail = () => {
     exploreItem,
     ...visibleSections.map((sec) => {
       const t = sectionTabs.find((x) => x.path === sec.path);
-      // Jobs and Shops carry their share of the To-do count (Explore's badge is the total); Declutter and Homes have no to-dos yet, so none is shown.
-      const badgeKey = sec.key === "jobs" ? ("todoJobs" as const) : sec.key === "shops" ? ("todoShops" as const) : undefined;
+      // Jobs, Shops and Declutter (A3-81) carry their share of the To-do count (Explore's badge is the total); Homes has no to-dos yet.
+      const badgeKey = sec.key === "jobs" ? ("todoJobs" as const) : sec.key === "shops" ? ("todoShops" as const) : sec.key === "declutter" ? ("todoDeclutter" as const) : undefined;
       return { path: sec.path, icon: sec.icon, label: sec.label, nested: true, comingSoon: t ? !t.on : false, preview: t ? t.preview : false, badgeKey };
     }),
     { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" },
@@ -178,6 +178,7 @@ const DesktopSidebarRail = () => {
     if (key === "todo") return todo.total;
     if (key === "todoJobs") return todo.jobs;
     if (key === "todoShops") return todo.shops;
+    if (key === "todoDeclutter") return todo.declutter;
     return 0;
   };
 

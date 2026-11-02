@@ -340,8 +340,10 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                       20260924182505): at 3+ unresolved reports on that
                       account in 90 days it notifies every admin (throttled to
                       once per 7 days);
-                    • nothing notifies the reported party, and nothing
-                      notifies the REPORTER of the outcome either.
+                    • nothing notifies the reported party;
+                    • when the report is resolved or dismissed, the REPORTER
+                      gets one notice (trg_reports_zz_reporter_outcome,
+                      20261102015348, A3-113) quoting this case number.
                   The 24h figure exists only as the admin queue's own overdue
                   colouring (SLA_BREACH_HOURS) — an internal triage target, not
                   a commitment to the user — so it is not quoted here. */}
@@ -354,8 +356,8 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                 and the other person is never told who reported them.
               </p>
               <p className="text-ds-12 text-muted-foreground leading-relaxed">
-                There&apos;s no automatic status update — keep this case number if
-                you want to follow up.
+                We&apos;ll send you a notice when we&apos;ve looked into it.
+                It quotes this case number.
               </p>
               <div className="space-y-1">
                 <p className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">

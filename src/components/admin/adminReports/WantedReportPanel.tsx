@@ -62,7 +62,7 @@ export function WantedReportPanel({ post, reportId, open, onDone }: {
       {open && !post.removed && (
         <div className="flex flex-wrap gap-2 pt-1">
           {post.photos_held.length > 0 && (
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => releaseWantedPhotos(post.wanted_id, reportId), "Photos showing. The report is resolved.")}>
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => run(() => releaseWantedPhotos(post.wanted_id, reportId), "Photos showing. The report is closed.")}>
               Show Photos
             </Button>
           )}

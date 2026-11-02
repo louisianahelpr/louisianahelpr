@@ -53,9 +53,12 @@ function QuestionCard({
   mine,
   canReport,
   isSeller,
+  listingDown = false,
 }: {
   q: DeclutterQuestion;
   sellerName: string | null;
+  /** Q2579: the seller's own taken-down listing; no buyer can see it, so nothing waits on an answer. */
+  listingDown?: boolean;
   onAnswer: (() => void) | null;
   /** AUD31-15: the viewer asked it (declutter_my_question_ids); only the asker is ever told. */
   mine: boolean;
@@ -84,7 +87,7 @@ function QuestionCard({
         </>
       ) : (
         <p className="text-ds-13 text-muted-foreground">
-          {mine ? "Your question · asked" : "Asked"} {asked} · {onAnswer ? "waiting for your answer" : `waiting for ${sellerName ?? "the seller"}`}
+          {mine ? "Your question · asked" : "Asked"} {asked} · {listingDown && isSeller ? "relist it to answer" : onAnswer ? "waiting for your answer" : `waiting for ${sellerName ?? "the seller"}`}
         </p>
       )}
       {!q.answer && onAnswer && (
@@ -185,10 +188,17 @@ export function DeclutterQuestions({
   free = false,
   preview = false,
   onMakeOffer,
+  listingDown = false,
 }: {
   itemId: string;
   sellerId: string;
   isSeller: boolean;
+  /**
+   * Q2579 (audit 1102a): the seller's own listing is taken down (withdrawn): no buyer sees it, so an unanswered
+   * question asks for no answer (no Answer button, no "waiting for your answer"); the Selling To answer count already
+   * leaves taken-down listings out (SellerQuestionsToAnswer ASKABLE).
+   */
+  listingDown?: boolean;
   /** A signed-in buyer on a live or reserved item. */
   canAsk: boolean;
   /** A free item is claimed, never offered on (deep audit #23): no "Make an offer" line. */
@@ -244,7 +254,7 @@ export function DeclutterQuestions({
       ) : (
         <ul className="space-y-2">
           {list.map((q) => (
-            <QuestionCard key={q.id} q={q} sellerName={sellerName} onAnswer={isSeller ? () => setAnswering(q) : null} mine={!!myIds.data?.has(q.id)} canReport={!!user} isSeller={isSeller} />
+            <QuestionCard key={q.id} q={q} sellerName={sellerName} onAnswer={isSeller && !listingDown ? () => setAnswering(q) : null} mine={!!myIds.data?.has(q.id)} canReport={!!user} isSeller={isSeller} listingDown={listingDown} />
           ))}
         </ul>
       )}

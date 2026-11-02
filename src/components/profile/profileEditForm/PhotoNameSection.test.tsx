@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { PhotoNameSection, avatarCaption } from "./PhotoNameSection";
 import type { Profile } from "./types";
 
@@ -22,10 +22,10 @@ const profile = {
   avatar_url: null,
 } as unknown as Profile;
 
-function renderRow() {
+function renderRow(p: Profile = profile) {
   return render(
     <PhotoNameSection
-      profile={profile}
+      profile={p}
       firstName="Lexi"
       lastName="Lombas"
       initials="LL"
@@ -46,7 +46,17 @@ describe("avatarCaption", () => {
       // The distinction this whole callback exists for: a member looking at a
       // coloured square must be told the upload did not take, not invited to
       // "change" a photo they believe is fine.
-      expect(avatarCaption(reason)).toBe("That photo came through blank — tap to pick another.");
+      expect(avatarCaption(reason, true)).toBe("That photo came through blank — tap to pick another.");
+    },
+  );
+
+  // Q2655 (account audit 1102d row 15, p-profile-375.png): the poster's STORED photo renders blank, and the
+  // upload-error line stood there on every visit with nothing uploaded.
+  it.each(["blank-bitmap", "placeholder-url"] as const)(
+    "a stored photo that renders blank gets the first-photo hint, not an upload error (%s)",
+    (reason) => {
+      expect(avatarCaption(reason)).toBe("Add a photo so people know who they're hiring.");
+      expect(avatarCaption(reason, false)).not.toMatch(/came through blank/);
     },
   );
 
@@ -86,6 +96,16 @@ describe("PhotoNameSection", () => {
     expect(live).toHaveTextContent("Add a photo so people know who they're hiring.");
   });
 
+  it("opening the form with a stored placeholder photo shows no upload error; picking a file does (Q2655)", () => {
+    const stored = { user_id: "u-1", avatar_url: "https://api.dicebear.com/7.x/initials/svg?seed=LL" } as unknown as Profile;
+    const { container } = renderRow(stored);
+    const live = container.querySelector('[aria-live="polite"]');
+    expect(live).toHaveTextContent("Add a photo so people know who they're hiring.");
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [] } });
+    expect(live).toHaveTextContent("That photo came through blank — tap to pick another.");
+  });
+
   it("keeps the file input reachable and named", () => {
     const { container } = renderRow();
     expect(screen.getByText("Change profile photo")).toBeInTheDocument();
@@ -95,4 +115,7 @@ describe("PhotoNameSection", () => {
 
 // The second half of the notice is the whole point of it: "Your photo is
 // public" alone did not stop a member publishing their driver's licence.
+// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx |       if (!uploadedThisVisit) return "Add a photo so people know who they're hiring."; |       if (!uploadedThisVisit) {}
+// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | {avatarCaption(photoRejection, uploadedThisVisit)} | {avatarCaption(photoRejection, true)}
+// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | onChange={(e) => { setUploadedThisVisit(true); onAvatarUpload(e); }} | onChange={(e) => { onAvatarUpload(e); }}
 // @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | Anyone can see this photo — never use a photo of an ID, licence or document. | Anyone can see this photo.

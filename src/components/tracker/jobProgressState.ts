@@ -222,7 +222,7 @@ export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState
     tone: bar.tone,
     ...(bar.label ? { label: bar.label } : {}),
     word: sameStep || offPath ? base.word : bar.label ?? ((JOB_PROGRESS_STEPS as readonly string[])[bar.stage] ?? "Done"),
-    // JOBS3-48: arrived and not started, the Helpr's bar is on Working, but the line is the card's ("Tap Start working"), never "Mark it done".
+    // JOBS3-48: arrived and not started, the Helpr's bar is on Working, but the line is the card's ("Tap Start when you begin"), never the finish.
     // JA-12 / JA-13: the poster's late line wins over the card's calm one while the bar is on On the way.
     // Owner 11-01 (job 7b1da54b): after photos in, not marked done: the base's line says so, unless the card owes the
     // poster a step first (confirm the arrival) or the Helpr is waiting on one.
@@ -393,13 +393,13 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // they are doing (the Helpr's Start working is not on the job row; the card's line says when it comes).
   // "is working" exactly when the bar's Working step has begun (workHasBegun, the same rule as JobProgressState.begun
   // and the poster's card line), so the line and the step colour can never disagree.
-  if (working) return at(6, !poster, "Working", poster ? (workHasBegun(job, { workUnderway: o.workUnderway }) ? `${other} is working` : `${other} is at the job`) : "Mark it done when you finish", held);
+  if (working) return at(6, !poster, "Working", poster ? (workHasBegun(job, { workUnderway: o.workUnderway }) ? `${other} is working` : `${other} is at the job`) : "Complete the job when you finish", held);
   if (job.helper_arrived_at) {
     return at(5, poster, "Arrived", poster ? `${other} arrived. Confirm they've arrived` : `You've arrived. Waiting on ${otherLow} to confirm`, held);
   }
   // JA-12 / JA-13 (audit 11-01): past the start time the poster is told the Helpr is late, never only the calm line.
   const lateBy = minutesLate(job, now);
-  if (job.helper_on_the_way_at) return at(4, !poster, "On the way", poster ? (lateBy ? `${other} is on the way, ${lateBy} late` : `${other} is on the way`) : "You're on the way", held);
+  if (job.helper_on_the_way_at) return at(4, !poster, "On the way", poster ? (lateBy ? `${other} is on the way, ${lateBy} late` : `${other} is on the way`) : "Tap I've arrived when you get there", held);
 
   // Booked, before setting out: the day-before confirm (the server's rule, _shared/confirmDeadline.ts:
   // opens at midnight the day before, owed until 2 hours before the start).

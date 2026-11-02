@@ -795,7 +795,7 @@ describe("job page, the hired Helpr", () => {
     state.party = true;
     renderPage();
     expect(screen.getByLabelText(/^Job progress, step 7 of 8: Working, waiting on you\./)).toBeTruthy();
-    expect(screen.getByText("Next: mark it done when you finish")).toBeTruthy();
+    expect(screen.getByText("Next: complete the job when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
     // F10: Working's own card for THIS job, in its bucket and opened (`?job=`; `?highlight=` there is an application id).

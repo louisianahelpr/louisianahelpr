@@ -50,7 +50,7 @@ describe("AUD31-76: the tracker for an auto-started job the Helpr has not set ou
   it("once they set out the bar is still On the way, and arrived moves it on", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-10-30T19:50:00Z"));
-    expect(page(row({ helper_on_the_way_at: "2024-10-30T19:10:00Z" })).next).toBe("You're on the way");
+    expect(page(row({ helper_on_the_way_at: "2024-10-30T19:10:00Z" })).next).toBe("Tap I've arrived when you get there");
     expect(page(row({ helper_on_the_way_at: "2024-10-30T19:10:00Z", helper_arrived_at: "2024-10-30T19:40:00Z" })).stage).toBeGreaterThan(4);
   });
 });

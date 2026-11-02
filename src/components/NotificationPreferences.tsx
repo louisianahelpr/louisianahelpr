@@ -50,7 +50,8 @@ const NotificationPreferences = () => {
   // Push-token count drives the "Send test" button. Zero = no devices
   // registered (probably haven't opened the iOS app and granted
   // permission yet); button is disabled with explanatory copy.
-  const [pushTokenCount, setPushTokenCount] = useState<number>(0);
+  // null = the count could not be read (Q2321): never shown as "no devices".
+  const [pushTokenCount, setPushTokenCount] = useState<number | null>(0);
   const [sendingTest, setSendingTest] = useState(false);
   // Deploy-lag guard: which new notification_preferences columns the loaded
   // row really has; a missing one is stripped from writes (deployLagColumns.ts).
@@ -109,7 +110,7 @@ const NotificationPreferences = () => {
       // fire them together instead of one-after-another. Sequential
       // awaits here were the main contributor to the long blank period
       // before the toggles hydrated (two round-trips instead of one).
-      const [{ count: tokenCount }, { data, error }, consentRead] = await Promise.all([
+      const [tokenRead, { data, error }, consentRead] = await Promise.all([
         // Push tokens count — head:true so we only get the count, not rows.
         supabase
           .from("push_tokens")
@@ -127,7 +128,13 @@ const NotificationPreferences = () => {
           .maybeSingle(),
       ]);
       if (cancelled) return;
-      setPushTokenCount(tokenCount ?? 0);
+      // Q2321: a failed count read is "don't know", not zero devices.
+      if (tokenRead.error) {
+        console.error("[NotificationPreferences] failed to count registered devices:", tokenRead.error);
+        setPushTokenCount(null);
+      } else {
+        setPushTokenCount(tokenRead.count ?? 0);
+      }
       // Display only: a failed read shows a never-chosen Promotions switch as
       // off, and pressing it then writes an explicit ON, which is still the
       // member's own choice. Logged, not toasted: nothing is lost.
@@ -784,7 +791,9 @@ const NotificationPreferences = () => {
               Send a test
             </Label>
             <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {pushTokenCount === 0
+              {pushTokenCount === null
+                ? "Couldn't check your devices — we'll still test by email and in-app."
+                : pushTokenCount === 0
                 ? "No devices registered — we'll test by email and in-app instead."
                 : `Push to ${pushTokenCount} registered device${pushTokenCount === 1 ? "" : "s"}, plus email and in-app.`}
             </p>

@@ -601,7 +601,14 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q2259 S6 2c (20261102045553, shipping, testers only), reviewed: READS declutter_refunds only to ask whether the
       // order was refunded on the seller; on a rejected label void it books the spent label as the seller's fee debt
       // (ship_void_rejected, once per shipment). It records no refund and changes no refund amount or card fee.
-      declutter_ship_void_rejected_debt: "20261102045553_shipping_void_rejected_seller_debt.sql 0457a2d0103ead49",
+      // Q2259 S6 2f (20261102055653, for verdict): restated verbatim; only 'admin_no_fault' joins its reason list (a rejected
+      // void after a no-fault refund is the seller's, decision 6). Still records no refund and changes no amount or fee.
+      declutter_ship_void_rejected_debt: "20261102055653_shipping_admin_no_fault_label_debt.sql 864c62bed818444a",
+      // Q2259 S6 2f (20261102055653, shipping, testers only; for verdict): AFTER INSERT trigger on declutter_refunds; for an
+      // 'admin_no_fault' refund of a ship order it READS the refund row's reason and order only, then books a spent label
+      // as the seller's fee debt (ship_label / ship_void_rejected, once per shipment) or asks for a test label's void. It
+      // records no refund and changes no refund amount, card fee or policy.
+      declutter_ship_no_fault_label: "20261102055653_shipping_admin_no_fault_label_debt.sql 0ea42b15f201345b",
       // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): the shipping a buyer-fault close held back goes
       // back once the label is VOIDED: one declutter_delivery_refunds row ('ship_void_refunded', refund_cents = the order's
       // shipping_cents, order_id UNIQUE), only when the order's refund row is buyer-fault and left the shipping out
@@ -817,6 +824,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       "declutter_refunds 20261017060455_declutter_seller_out_pays_fee.sql": ["1192c0e245b11665", "47702b9f63c08805", "afb94a44f9fb4011", "12bd66289bce9d64"],
       // A10: AFTER INSERT ... WHEN fee_policy = 'full_seller_pays_fee' -> declutter_refund_cancels_setup_jobs.
       "declutter_refunds 20261017073146_declutter_add_a_helpr.sql": ["fcfe90bf2d9d7b5b"],
+      // Q2259 S6 2f: AFTER INSERT -> declutter_ship_no_fault_label (books the spent label of an admin_no_fault ship refund as
+      // a seller debt; never changes the refund row or its fee).
+      "declutter_refunds 20261102055653_shipping_admin_no_fault_label_debt.sql": ["1f800dd3a4f13113"],
       // Payout readiness: the status CHECK swapped to add held_for_review / settled_by_hand (DROP + ADD in one DO block)
       // and the review / settled-by-hand / held_notified_at columns; none touches refund_cents, card_fee_cents or fee_policy.
       "declutter_refunds 20261019070737_payout_waits_for_payee_setup.sql": ["8e751398a6ae0f95","c964f08d0e8c041d","064bf163b9bea4fa","af87ef16f6190cb0"],

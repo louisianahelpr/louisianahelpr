@@ -2848,12 +2848,21 @@ serve(async (req) => {
           if (!cardGift && !cardGiftGone && chargeRefundedCents > voidSplit.ceilingCents + 1) {
             console.error(`[void-cancelled-payments] job ${job.id}: charge already refunded ${chargeRefundedCents}¢, more than the ${voidSplit.ceilingCents}¢ this cancel may return — not settled`);
             defects.record(`refunded past kept fees ${job.id}: ${chargeRefundedCents}¢ > ${voidSplit.ceilingCents}¢`);
+            const unbilledSellerFeeCents = sellerFault ? actualOrEstimatedFeeCents(pi, capturedCents) : 0;
             await postSlackOpsAlert({
               kind: "money_at_risk",
               severity: "warning",
               title: "Cancelled job's charge was already refunded past what the cancel keeps",
-              message: "Earlier refunds on this charge returned more than the cancellation may (they ate into the cancellation fee or the card fee). The job was NOT settled and no cancellation fee was paid; reconcile by hand.",
-              fields: { job_id: job.id, payment_intent: paymentIntentId, refunded_cents: chargeRefundedCents, refundable_cents: voidSplit.ceilingCents },
+              // Q1965: on a Declutter seller-fault setup job (A10) this skip also stops the seller's card-fee bill
+              // below, so the page says so and names the amount: whoever reconciles it bills the seller too.
+              message: "Earlier refunds on this charge returned more than the cancellation may (they ate into the cancellation fee or the card fee). The job was NOT settled and no cancellation fee was paid; reconcile by hand."
+                + (sellerFault
+                  ? ` This is a Declutter seller-fault setup job: the seller's $${(unbilledSellerFeeCents / 100).toFixed(2)} card-fee debt was NOT billed either; bill it when you reconcile (declutter_setup_job_fee_debt).`
+                  : ""),
+              fields: {
+                job_id: job.id, payment_intent: paymentIntentId, refunded_cents: chargeRefundedCents, refundable_cents: voidSplit.ceilingCents,
+                ...(sellerFault ? { seller_fault: true, seller_fee_cents: unbilledSellerFeeCents } : {}),
+              },
               oncePerDayKey: `void-refunded-past-kept:${job.id}`,
             });
             results.push({ job_id: job.id, title: job.title, status: "refunded_past_kept_fees" });

@@ -4,6 +4,8 @@
 // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (sellerFault) { |           if (sellerFault && refundAmount > 0 && !alreadyRefunded) {
 // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (withheldForSeller > 0) { |         if (false) {
 // @mutate supabase/functions/void-cancelled-payments/index.ts |               results.push({ job_id: job.id, title: job.title, status: "seller_fee_debt_failed" });\n              continue; |               results.push({ job_id: job.id, title: job.title, status: "seller_fee_debt_failed" });
+// @mutate supabase/functions/void-cancelled-payments/index.ts |                 ...(sellerFault ? { seller_fault: true, seller_fee_cents: unbilledSellerFeeCents } : {}), |                 ...({}),
+// @mutate supabase/functions/void-cancelled-payments/index.ts |             const unbilledSellerFeeCents = sellerFault ? actualOrEstimatedFeeCents(pi, capturedCents) : 0; |             const unbilledSellerFeeCents = 0;
 /**
  * A10 (owner rule, 2026-10-17): a Declutter refund that is the SELLER's fault
  * cancels the buyer's linked Helpr setup job (declutter_refund_cancels_setup_jobs,
@@ -186,6 +188,24 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
     const page = (slackAlerts as Array<{ title: string; fields?: Record<string, unknown> }>).find((a) => /seller not billed/.test(a.title));
     expect(page, JSON.stringify(slackAlerts)).toBeDefined();
     expect(page!.fields).toMatchObject({ job_id: "job-a10", seller_fee_cents: STRIPE_FEE });
+  });
+
+  // Q1965: the refunded-past-kept-fees skip stops before the seller's card-fee bill, so its page must say this is a
+  // seller fault and name the unbilled amount (whoever reconciles it bills the seller too).
+  it("a charge already refunded past what the cancel keeps: the skip page names the seller fault and the unbilled fee", async () => {
+    const captured = seed({ marker: MARKED, setupFee: true });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_a10", status: "succeeded", amount: captured, amount_received: captured,
+      latest_charge: { id: "ch_a10", amount_refunded: captured, balance_transaction: { fee: STRIPE_FEE } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(debtCalls()).toEqual([]);
+    const page = (slackAlerts as Array<{ title: string; message?: string; fields?: Record<string, unknown> }>).find((a) => /already refunded past/.test(a.title));
+    expect(page, JSON.stringify(slackAlerts)).toBeDefined();
+    expect(page!.fields).toMatchObject({ job_id: "job-a10", seller_fault: true, seller_fee_cents: STRIPE_FEE });
+    expect(page!.message).toContain("seller-fault setup job: the seller's $6.68 card-fee debt was NOT billed");
   });
 
   it("the next run, with the refund already on the ledger, bills the seller and settles without a second refund", async () => {

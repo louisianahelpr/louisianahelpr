@@ -17,6 +17,7 @@
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |   const [sent, setSent] = useState(() => rememberedReviewed(orderId, side)); |   const [sent, setSent] = useState(false);
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |     onSuccess: (r) => {\n      rememberReviewed(orderId, side); |     onSuccess: (r) => {
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |         rememberReviewed(orderId, side);\n        setSent(true); |         setSent(true);
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx |     if (mine.data === true) { |     if (false) {
  * @mutate src/lib/declutter/reviews.ts |   if (row.buyer_id === myId) return row.seller_id ?? null; |   if (row.buyer_id === myId) return row.buyer_id ?? null;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -29,6 +30,7 @@ const state = {
   calls: [] as unknown[][],
   fail: null as string | null,
   dropTags: false,
+  iReviewed: null as boolean | null,
 };
 
 const toasts = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
@@ -43,6 +45,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchSellerCard: async (id: string) => ({ name: state.names[id] ?? null, avatarUrl: null, joinedAt: null }),
 }));
 vi.mock("@/lib/declutter/handover", () => ({
+  fetchIReviewed: async () => state.iReviewed,
   leaveReview: async (...a: unknown[]) => {
     state.calls.push(a);
     if (state.fail) throw new Error(state.fail);
@@ -71,6 +74,7 @@ beforeEach(() => {
   state.calls = [];
   state.fail = null;
   state.dropTags = false;
+  state.iReviewed = null;
   toasts.mockClear();
   localStorage.clear();
 });
@@ -166,5 +170,14 @@ describe("board 163: reviews after a sale", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: "Send review" }));
     expect(await screen.findByText(/Review sent\./)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Leave a review" })).toBeNull();
+  });
+
+  // A3-76: on a second device (no local mark) the button came back and the filled form failed with already_reviewed.
+  it("A3-76: the server says this side already reviewed: no Leave a review, on any device", async () => {
+    state.iReviewed = true;
+    renderIt("buyer");
+    expect(await screen.findByText(/Review sent\./)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Leave a review" })).toBeNull();
+    expect(state.calls).toEqual([]);
   });
 });

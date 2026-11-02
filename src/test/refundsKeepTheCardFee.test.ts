@@ -667,7 +667,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // only the seller's payout rebook changes (a full refund also undoes a seller delivery's rate for the seller).
       // D2-5 (20261029224147, lh-money-escrow approve 2026-10-29): notice words only (the card-network sentence on a keep_card_fee refund, the order chat instead of Messages), from the body 20261027172503 left; amounts, fee policies and the payout rebook unchanged.
       // BUY-25 (lead 10-30): never got it is reason seller_no_show (full_seller_pays_fee: the seller owes the card fee), already pinned; verdict owed.
-      declutter_refund_after_handover: "20261031010243_declutter_never_got_it_no_return.sql 9789b5c5095d8eff",
+      // Q2259 S6 2g (20261102060324, shipping, testers only; for verdict): restated from 20261031010243; only an
+      // 'admin_buyer_fault' refund passes total - delivery reserved - declutter_shipping_reserved_cents (a ship order's
+      // spent label), matching declutter_record_refund's keep_buyer_fee whole-order check (it raised refund_amount_unknown);
+      // the buyer fee is still kept. Every other reason passes the same amount; the card fee and policies are unchanged.
+      declutter_refund_after_handover: "20261102060324_shipping_buyer_fault_after_delivery.sql 6886bfce1f57b91b",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       declutter_payouts_due: "20261026155251_declutter_refund_requests.sql a7c6262ff5abda7d",

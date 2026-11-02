@@ -16021,6 +16021,18 @@ export type Database = {
           updated_at: string
         }[]
       }
+      declutter_my_refund_todos: {
+        Args: never
+        Returns: {
+          due_at: string
+          item_count: number
+          my_side: string
+          order_id: string
+          request_id: string
+          status: string
+          title: string
+        }[]
+      }
       declutter_my_paid_cents: {
         Args: { p_order_ids: string[] }
         Returns: {

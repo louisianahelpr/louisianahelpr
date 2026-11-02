@@ -1276,6 +1276,29 @@ export async function fetchOpenFreeRequestCounts(userId: string): Promise<Map<st
   return out;
 }
 
+/** A3-81: one of the giver's free listings with people waiting on their pick (title, how many asked, the first ask). */
+export type FreeAskToPick = { item_id: string; title: string; asked: number; first_at: string };
+
+/**
+ * A3-81: the giver's free listings that people asked for, for Home's "Pick who gets <item>" (RLS lets the giver read
+ * the rows; the same read as fetchOpenFreeRequestCounts, with each item's title). Oldest first ask first.
+ */
+export async function fetchFreeAsksToPick(userId: string): Promise<FreeAskToPick[]> {
+  const rows = (unwrap(
+    await supabase.from("declutter_free_requests").select("item_id, created_at, declutter_items!inner(title)")
+      .eq("seller_id", userId).eq("status", "open").order("created_at", { ascending: true }),
+  ) ?? []) as unknown as { item_id: string; created_at: string; declutter_items: { title: string } | null }[];
+  const out = new Map<string, FreeAskToPick>();
+  for (const r of rows) {
+    const had = out.get(r.item_id);
+    if (had) had.asked++;
+    else out.set(r.item_id, { item_id: r.item_id, title: r.declutter_items?.title ?? "your free item", asked: 1, first_at: r.created_at });
+  }
+  return [...out.values()];
+}
+
+export { fetchMyRefundTodos } from "@/lib/declutter/refundRequests";
+
 export type FreeRequester = {
   request_id: string; requester_id: string; display_name: string; avg_rating: number | null; review_count: number | null; created_at: string;
   /** The pickup time the asker picked (20261101174857); null for an ask made before, or from an older app build. */

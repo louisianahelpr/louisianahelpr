@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p>Your Wanted stays up 30 days. You can edit or close it anytime.</p> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none | className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold outline-none
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });\n      onClose(); |       void qc.invalidateQueries({ queryKey: ["declutter", "wanted"] });
- * @mutate src/components/declutter/DeclutterWantedViews.tsx | <p className="text-sm text-muted-foreground">You haven't posted anything yet. Each post lasts 30 days, and sellers near you can answer it.</p> | <p />
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | <DeclutterEmptyCard icon={Search} title="No Wanted posts yet" data-wanted-mine-empty="">Each post lasts 30 days, and sellers near you can answer it.</DeclutterEmptyCard> | <p />
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |   const near = useQuery( |   const near = { isError: false, isLoading: false, data: [] as WantedNear[], error: null, refetch: () => {} }; void useQuery(
  * Owner 2026-10-30: replies on your posts, and photos on the form, your post and the near-you cards (20261030064727).
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       <WantedReplies replies={post.replies} /> |       {null}
@@ -27,7 +27,9 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <p className="text-ds-13 text-muted-foreground" data-wanted-where="">{where}</p> |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (source === "device") return "Measured from where you are now (a rough area, never your address)."; |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       toast(openReplies > 0 | toast(false
- * @mutate src/components/declutter/DeclutterWantedReplies.tsx | <p className="text-sm text-muted-foreground" data-wanted-near-empty="">No one near you has posted a Wanted yet. When someone does, you can answer it with one of your listings.</p> | <p data-wanted-near-empty="" />
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx | <DeclutterEmptyCard icon={MapPin} title="No one near you has posted a Wanted yet" data-wanted-near-empty="">When someone does, you can answer it with one of your listings.</DeclutterEmptyCard> | <p data-wanted-near-empty="" />
+ * Q2568 (audit 1102a): both Wanted empties wear Selling's empty card, not a bare grey line.
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | <DeclutterEmptyCard icon={Search} title="No Wanted posts yet" data-wanted-mine-empty="">Each post lasts 30 days, and sellers near you can answer it.</DeclutterEmptyCard> | <p>No Wanted posts yet Each post lasts 30 days, and sellers near you can answer it.</p>
  * Tester 10-30: beside "Up to" at 375 the category picker sat in a half-width column, and opening it left an empty one.
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | groups={CATEGORY_PICKER_GROUPS} triggerClassName="border-input" /> | groups={CATEGORY_PICKER_GROUPS} />
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | <div className="min-w-0 space-y-1" data-wanted-category-row=""> | <div className="grid grid-cols-2 gap-3" data-wanted-category-row="">
@@ -402,9 +404,12 @@ describe("the Wanted hub", () => {
     expect(await screen.findByRole("button", { name: "Post what you're looking for" })).toBeInTheDocument();
     expect(screen.queryByLabelText("I'm looking for"), "the form is not inline").toBeNull();
     expect(screen.getByRole("heading", { name: "Your Wanted posts" })).toBeInTheDocument();
-    expect(await screen.findByText("You haven't posted anything yet. Each post lasts 30 days, and sellers near you can answer it.")).toBeInTheDocument();
+    expect(await screen.findByText("Each post lasts 30 days, and sellers near you can answer it.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Wanted near you" })).toBeInTheDocument();
     expect(await screen.findByText(/No one near you has posted a Wanted yet/)).toBeInTheDocument();
+    // Q2568: each empty is Selling's empty card (icon, title, what shows here).
+    expect(screen.getByText("No Wanted posts yet").closest("[data-empty-card]")).not.toBeNull();
+    expect(screen.getByText(/No one near you has posted a Wanted yet/).closest("[data-empty-card]")).not.toBeNull();
   });
 
   // The sell chooser's "Looking for something? Post a Wanted" (owner 2026-10-30) links ?post=1: the form opens at once.

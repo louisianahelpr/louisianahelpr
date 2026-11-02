@@ -25,6 +25,8 @@ import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { blockWantedPoster, canAnswerWanted, dollarsToCents, fetchMyReplyListings, fetchWantedFromAlert, fetchWantedNear, quickListHref, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
 import { focusSheetItself } from "./focusSheetItself";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { MapPin } from "lucide-react";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
@@ -239,7 +241,7 @@ export function WantedNearSection({ at, userId }: { at: { lat: number; lng: numb
       ) : near.isLoading ? (
         <p className="text-sm text-muted-foreground" role="status">Looking near you…</p>
       ) : (near.data ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground" data-wanted-near-empty="">No one near you has posted a Wanted yet. When someone does, you can answer it with one of your listings.</p>
+        <DeclutterEmptyCard icon={MapPin} title="No one near you has posted a Wanted yet" data-wanted-near-empty="">When someone does, you can answer it with one of your listings.</DeclutterEmptyCard>
       ) : (
       <ul className="space-y-2">
         {(near.data ?? []).map((w) => (

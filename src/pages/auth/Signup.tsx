@@ -17,7 +17,7 @@ import AuthShell from "@/components/auth/AuthShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { isCaptchaError } from "@/lib/turnstile";
-import { signupSubtitle } from "@/lib/jobIntent";
+import { peekJobIntent, signupSubtitle } from "@/lib/jobIntent";
 import { useSignupEntry } from "./signup/useSignupEntry";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import {
@@ -311,7 +311,7 @@ const Signup = () => {
       const { data: authData, error: authError } = await captcha.run((captchaToken) => supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { emailRedirectTo: getSignupConfirmRedirect(), data: { full_name: fullName }, captchaToken },
+        options: { emailRedirectTo: getSignupConfirmRedirect(peekJobIntent()), data: { full_name: fullName }, captchaToken },
       }));
       // A refused security check (Q1314) is not a real attempt: lift the cooldown.
       if (authError && isCaptchaError(authError.message)) safeStorage.removeItem(SIGNUP_COOLDOWN_KEY);

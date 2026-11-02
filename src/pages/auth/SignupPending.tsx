@@ -11,12 +11,12 @@ import { recognizedAuthError } from "@/lib/authErrors";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
-import { postAuthDestination } from "@/lib/jobIntent";
+import { peekJobIntent, postAuthDestination } from "@/lib/jobIntent";
 import { report } from "@/lib/errorLogger";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { Button } from "@/components/ui/button";
 import { ConfirmLinkPanel } from "./signupPending/ConfirmLinkPanel";
-import { readConfirmLink } from "../../../supabase/functions/_shared/confirmLink";
+import { confirmLinkJob, readConfirmLink } from "../../../supabase/functions/_shared/confirmLink";
 
 // How long to disable the resend button after each send. Supabase's own
 // rate limit is at least this strict on the server; this just sets user
@@ -172,7 +172,7 @@ const SignupPending = () => {
     const { error } = await runWithCaptcha(turnstileRef.current, (captchaToken) => supabase.auth.resend({
       type: "signup",
       email: prefillEmail.trim(),
-      options: { emailRedirectTo: getSignupConfirmRedirect(), captchaToken },
+      options: { emailRedirectTo: getSignupConfirmRedirect(peekJobIntent() ?? confirmLinkJob(location.search)), captchaToken },
     }));
     setResending(false);
     if (error) {
@@ -241,7 +241,7 @@ const SignupPending = () => {
             token={confirmLink.kind === "token" ? { tokenHash: confirmLink.tokenHash, type: confirmLink.type } : null}
             email={prefillEmail}
             setEmail={setPrefillEmail}
-            onConfirmed={() => navigate(postAuthDestination(), { replace: true })}
+            onConfirmed={() => navigate(postAuthDestination("/home", confirmLinkJob(location.search)), { replace: true })}
             onResend={handleResend}
             resending={resending}
             resendCooldown={resendCooldown}

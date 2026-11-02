@@ -65,7 +65,7 @@ describe("scanner-safe confirm links", () => {
     // @mutate supabase/functions/auth-email-hook/index.ts | scannerSafe = scannerSafeOn === true | scannerSafe = true
     expect(hook).toMatch(/scannerSafe = scannerSafeOn === true/);
     expect(hook).toMatch(/rpc\('scanner_safe_confirm_link_for'/);
-    expect(hook).toMatch(/confirmLinkUrl\(getAppUrl\(\),\s*emailData\.token_hash,\s*'signup'\)/);
+    expect(hook).toMatch(/confirmLinkUrl\(getAppUrl\(\),\s*emailData\.token_hash,\s*'signup'(,\s*confirmLinkJobFromRedirect\(emailData\.redirect_to\))?\)/);
     expect(hook).toMatch(/:\s*verifyUrl\.toString\(\)/);
     expect(SCANNER_SAFE_CONFIRM_SWITCH).toBe("scanner_safe_confirm_links");
     // The switch is created at 'testers' (any migration), and the hook's question reads it on

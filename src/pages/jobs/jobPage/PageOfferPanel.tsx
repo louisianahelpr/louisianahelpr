@@ -52,7 +52,7 @@ export function PageOfferPanel({ jobId, onChanged, fallback }: {
   if (!app?.job) return <>{fallback}</>;
   return (
     <div data-page-offer="">
-      <OfferedActions app={app} job={app.job} onHelperResponse={actions.handleHelperResponse} respondingHelperAppId={actions.respondingHelperAppId} />
+      <OfferedActions flush app={app} job={app.job} onHelperResponse={actions.handleHelperResponse} respondingHelperAppId={actions.respondingHelperAppId} />
       <ActivityOfferDialogs actions={actions} />
     </div>
   );

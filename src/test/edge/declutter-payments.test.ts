@@ -25,7 +25,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}` }, |     {},
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
- * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged)) { |     if (false) {
+ * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged \|\| feeChanged)) { |     if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |     bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0); |     bundleChanged = false; void off;
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (refused) return json({ error: "porch_unavailable" }, 400); |         if (false) return json({ error: "porch_unavailable" }, 400);
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (parties && !partyGone && (parties.buyer_id !== meta.buyer_id \|\| parties.seller_id !== meta.seller_id)) { |   if (false) {
@@ -906,6 +906,41 @@ describe("declutter-checkout: pay", () => {
     scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_open", bundle_discount_cents: 650 }] };
     scenario.rpcErrors = { declutter_bundle_preview: { message: "boom", code: "XX000" } };
     stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_open", "open", "https://x/open"));
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(503);
+    expect(rpcs("declutter_start_checkout")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+  });
+
+  // Q2403: the setup fee the open order froze is not the one checkout charges now: its page is closed FIRST, so a payment
+  // on it is the old order, never a superseded one refunded as the buyer's own restart.
+  // @mutate supabase/functions/declutter-checkout/index.ts |       feeChanged = Number(due ?? 0) !== Number(open.setup_fee_cents ?? 0); |       feeChanged = false; void due;
+  // @mutate supabase/functions/declutter-checkout/index.ts |         console.error(`[declutter-checkout] setup fee read failed: ${dueErr.message}`);\n        return json({ error: TRY_AGAIN }, 503); |         console.error(`[declutter-checkout] setup fee read failed: ${dueErr.message}`);
+  it("Q2403: the setup fee changed since the open order froze it: the open page is closed BEFORE the order is replaced", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_old", setup_fee_cents: 200 }] };
+    scenario.rpc.declutter_setup_fee_due_cents = 0;
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_old", "open", "https://x/old"));
+    const steps: string[] = [];
+    stripeMock.checkout.sessions.expire.mockImplementation(async () => { steps.push("expire"); return { status: "expired" }; });
+    scenario.rpc.declutter_start_checkout = () => { steps.push("start"); return order({ superseded_session_id: "cs_live_old" }); };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_new", url: "https://x/new", amount_total: 4600 });
+    await fn.fetch(payReq(fn));
+    expect(rpcs("declutter_setup_fee_due_cents")[0]?.args).toEqual({ p_user: BUYER });
+    expect(steps.slice(0, 2)).toEqual(["expire", "start"]);
+  });
+
+  it("Q2403: the same setup fee leaves the open page alone, and a failed fee read says try again and touches nothing", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_open", setup_fee_cents: 200 }] };
+    scenario.rpc.declutter_setup_fee_due_cents = 200;
+    scenario.rpc.declutter_start_checkout = order({ checkout_session_id: "cs_live_open" });
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_open", "open", "https://x/open"));
+    const body = await json(await fn.fetch(payReq(fn)));
+    expect(body.url).toBe("https://x/open");
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    scenario.rpcErrors = { declutter_setup_fee_due_cents: { message: "boom", code: "XX000" } };
+    (scenario.rpcCalls ?? []).length = 0;
     const res = await fn.fetch(payReq(fn));
     expect(res.status).toBe(503);
     expect(rpcs("declutter_start_checkout")).toHaveLength(0);

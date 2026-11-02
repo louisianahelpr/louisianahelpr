@@ -368,12 +368,13 @@ const Login = () => {
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5 text-primary" strokeWidth={1.75} />
               </div>
-              <h2
+              {/* Q2250: the card head (and its h1) is hidden on this step, so this title is the step's one h1. */}
+              <h1
                 className="font-display font-bold leading-tight"
                 style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
               >
                 {t("login.mfaTitle")}
-              </h2>
+              </h1>
               <p
                 className="font-sans text-ds-14"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}

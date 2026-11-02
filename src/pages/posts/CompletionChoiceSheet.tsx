@@ -37,7 +37,7 @@ import { report } from "@/lib/errorLogger";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import { backgroundImport } from "@/lib/chunkReload";
 import { formatPriceExact } from "@/lib/format";
-import { releaseActionLabel } from "@/lib/releaseCopy";
+import { NOT_RIGHT_LABEL, releaseActionLabel } from "@/lib/releaseCopy";
 import { STANDARD_PAYOUT_PHRASE } from "../../../supabase/functions/_shared/escrowTiming";
 import { endSentence } from "@/lib/utils";
 
@@ -82,6 +82,11 @@ interface CompletionChoiceSheetProps {
   onConfirm: () => void;
   /** Called after a revision is submitted (path B) — parent refetches. */
   onRevisionSubmitted: () => void;
+  /**
+   * A3-8 (audit 11-01): "Something's not right" under the row opens this sheet straight at the fix form, so an unhappy
+   * poster never has to tap Approve to complain. Default "choice" (the Approve tap).
+   */
+  startMode?: "choice" | "revision";
 }
 
 export function CompletionChoiceSheet({
@@ -98,6 +103,7 @@ export function CompletionChoiceSheet({
   onClose,
   onConfirm,
   onRevisionSubmitted,
+  startMode = "choice",
 }: CompletionChoiceSheetProps) {
   // Who the sheet is about. A crew job has no one `helper_id` (it is null), so naming that slot printed "Former
   // member says it's done" (audit 2026-10-28 A2-B7): the crew is named instead. Guard: src/test/crewCopyNamesTheCrew.test.tsx.
@@ -128,7 +134,11 @@ export function CompletionChoiceSheet({
   }, [open, jobId, groupJob]);
   const beforeUrls = fresh?.before ?? proofBeforeUrls;
   const afterUrls = fresh?.after ?? proofAfterUrls;
-  const [mode, setMode] = useState<"choice" | "revision">("choice");
+  const [mode, setMode] = useState<"choice" | "revision">(startMode);
+  // Each opening starts where the tap asked: the choice (Approve) or the fix form (Something's not right).
+  useEffect(() => {
+    if (open) setMode(startMode);
+  }, [open, startMode]);
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -339,7 +349,7 @@ export function CompletionChoiceSheet({
                 className="w-full min-h-11 font-sans font-semibold"
                 style={{ color: "hsl(var(--bark))" }}
               >
-                Something's not right
+                {NOT_RIGHT_LABEL}
               </button>
             </div>
 

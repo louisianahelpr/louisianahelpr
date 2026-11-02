@@ -99,6 +99,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
     onActionComplete,
     completionSheetOpen,
     setCompletionSheetOpen,
+    completionStartMode = "choice",
   } = ctx;
 
   // VN-33(b): also when the Helpr was refused as a little too far from a map
@@ -372,6 +373,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
             onClose={() => setCompletionSheetOpen(false)}
             onConfirm={() => onComplete(job.id)}
             onRevisionSubmitted={onActionComplete}
+            startMode={completionStartMode}
           />
           ) : null}
         </>

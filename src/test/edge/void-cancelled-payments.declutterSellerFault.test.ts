@@ -137,6 +137,28 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
     expect(debtCalls()).toHaveLength(1);
   });
 
+  // Q1966 (lh-money-escrow review of the train's rebase resolution): A10 + Q1675 together. An earlier partial refund
+  // on the charge is taken off the refund (alreadyRefundedCents), the setup fee is still kept, and the seller is still
+  // billed the card fee Stripe kept: captured $222.00, $30.00 refunded earlier, $2 setup fee -> $190.00 back.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |               alreadyRefundedCents: chargeRefundedCents,\n              taxCents: await chargeTaxCentsFor(stripe, pi), |               alreadyRefundedCents: 0,\n              taxCents: await chargeTaxCentsFor(stripe, pi),
+  it("a charge with an earlier partial refund: refunds the rest less the setup fee, and still bills the seller", async () => {
+    const captured = seed({ marker: MARKED, setupFee: true });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_a10", status: "succeeded", amount: captured, amount_received: captured,
+      latest_charge: { id: "ch_a10", amount_refunded: 3000, balance_transaction: { fee: STRIPE_FEE } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_a10", amount: captured - 3000 - 200 },
+      { idempotencyKey: "cancel-refund-job-a10" },
+    );
+    expect(debtCalls().map((c) => c.args)).toEqual([{ p_job_id: "job-a10", p_card_fee_cents: STRIPE_FEE }]);
+    expect(settledRefunded()).toBe(true);
+  });
+
   it("the committed Helpr's withheld late-cancel fee is paged to ops, once a day per job", async () => {
     seed({ marker: MARKED });
     const h = await load();

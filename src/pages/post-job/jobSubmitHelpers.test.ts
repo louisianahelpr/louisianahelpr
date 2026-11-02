@@ -49,7 +49,7 @@ describe("buildJobInsertPayload — sales tax", () => {
   });
 
   it("writes the parish rate on the labor line for a taxable category", () => {
-    const p = buildJobInsertPayload({ ...base, category: "assembly" }) as Record<string, unknown>;
+    const p = buildJobInsertPayload({ ...base, category: "auto_repair" }) as Record<string, unknown>;
     // Q1486: the column holds a FRACTION (0..1 CHECK), not the percent.
     expect(p.sales_tax_rate).toBe(0.1045);
     expect(p.sales_tax_amount).toBeCloseTo(10.45, 2);
@@ -59,14 +59,14 @@ describe("buildJobInsertPayload — sales tax", () => {
   // @mutate src/pages/post-job/jobSubmitHelpers.ts | salesTaxCents(Math.round(parseFloat(budget) * 100) + urgentBonusCents, category, salesTaxRate) | salesTaxCents(Math.round(parseFloat(budget) * 100), category, salesTaxRate)
   it("taxes the urgent bonus with the labor on a taxable category, and neither on an exempt one", () => {
     const urgent = { ...base, isUrgent: true, urgentFee: "20", salesTaxRate: 10 };
-    expect((buildJobInsertPayload({ ...urgent, category: "assembly" }) as Record<string, unknown>).sales_tax_amount).toBeCloseTo(12, 2);
+    expect((buildJobInsertPayload({ ...urgent, category: "auto_repair" }) as Record<string, unknown>).sales_tax_amount).toBeCloseTo(12, 2);
     expect((buildJobInsertPayload(urgent) as Record<string, unknown>).sales_tax_amount).toBe(0);
     // Not urgent: a stale urgentFee in the form never adds tax.
-    expect((buildJobInsertPayload({ ...urgent, isUrgent: false, category: "assembly" }) as Record<string, unknown>).sales_tax_amount).toBeCloseTo(10, 2);
+    expect((buildJobInsertPayload({ ...urgent, isUrgent: false, category: "auto_repair" }) as Record<string, unknown>).sales_tax_amount).toBeCloseTo(10, 2);
   });
 
   it("writes zero when the parish rate is unknown (0), not a guess", () => {
-    const p = buildJobInsertPayload({ ...base, category: "assembly", salesTaxRate: 0 }) as Record<string, unknown>;
+    const p = buildJobInsertPayload({ ...base, category: "auto_repair", salesTaxRate: 0 }) as Record<string, unknown>;
     expect(p.sales_tax_rate).toBe(0);
     expect(p.sales_tax_amount).toBe(0);
   });

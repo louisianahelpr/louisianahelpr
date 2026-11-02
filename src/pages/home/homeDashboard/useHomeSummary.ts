@@ -159,6 +159,8 @@ export function useHomeSummary(user: SupaUser | null) {
       // JA-36 (audit 11-01): a booked job is live (on the way, under way) but not in Coming up: the empty line says
       // "Nothing else booked", never "Nothing booked yet" under that very job.
       hasBookedJob: hasBookedJob(pj, aa),
+      // A3-82 (audit 11-01): a member who sells or buys on Declutter is not new to the app: never the Jobs checklist.
+      usesDeclutter: items.length > 0 || (cart.data ?? []).length > 0,
       // You tab's activity tiles (board 18): real counts, 0 = no number shown.
       counts: {
         posted: postedLive.length,

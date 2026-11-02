@@ -321,8 +321,9 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
         <p className="text-ds-13 text-muted-foreground">{SIZE_WORDS[t.size]}</p>
       </div>
       <div className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.08)] p-3 space-y-1">
-        <p className="flex items-baseline justify-between gap-3">
-          <span className="text-ds-15 font-semibold">You take home</span>
+        {/* Owner 11-01 (lead): no "You take home" label, the figure alone; a screen reader hears "Your pay". */}
+        <p className="flex items-baseline justify-end gap-3" data-delivery-take-home="">
+          <span className="sr-only">Your pay</span>
           <span className="text-ds-22 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(t.take_home_cents)}</span>
         </p>
         <p className="text-ds-12 text-muted-foreground">

@@ -18,7 +18,7 @@
  * @mutate src/components/jobs/InstantBookingCard.tsx |     if (rpcErrorCode("rpc_instant_book_decline", e) === "decline_window_closed") return done("booked_now"); |     if (false) return done("booked_now");
  * @mutate src/components/jobs/InstantBookingCard.tsx |       {left && ( |       {true && (
  * @mutate src/pages/profile/InstantBookTab.tsx | {Array.from({ length: Math.max(0, INSTANT_BOOK_MAX_CATEGORIES - rows.length) }, | {Array.from({ length: 0 },
- * @mutate src/components/profile/ProfileTabFallback.tsx |   instant_book: [{ h: 101 }, { h: 38 }, { h: 38 }, { h: 181 }, { h: 298 }], |   instant_book: [{ h: 101 }, { h: 38 }, { h: 38 }, { h: 298 }],
+ * @mutate src/components/profile/ProfileTabFallback.tsx |   instant_book: [{ h: 122 }, { h: 38 }, { h: 38 }, { h: 181 }, { h: 298 }], |   instant_book: [{ h: 122 }, { h: 38 }, { h: 38 }, { h: 298 }],
  * @mutate src/components/jobs/InstantBookPanel.tsx |       return { ...row, offered_to_helper_id: targets.get(jobId) ?? null }; |       return { ...row, offered_to_helper_id: null };
  * @mutate src/components/jobs/InstantBookPanel.tsx |         .select("status, helper_id, direct_offer_status, instant_decline_until, payment_status") |         .select("status, helper_id, offered_to_helper_id, direct_offer_status, instant_decline_until, payment_status")
  * @mutate src/components/jobs/InstantBookingCard.tsx |           {left\n            ? <>Can |           {true\n            ? <>Can
@@ -167,7 +167,8 @@ describe("the list card is always 3 spots (no jump when the floors land)", () =>
 
   it("the loading bone has the list card's slot between the 2-hour line and the form", async () => {
     const { TAB_SHAPES } = await import("@/components/profile/ProfileTabFallback");
-    expect(TAB_SHAPES.instant_book?.map((b) => b.h)).toEqual([101, 38, 38, 181, 298]);
+    // Q1695: the intro is 122px on the prod build (loading-states refresh 2026-11-02 01:07Z), not the stub build's 101.
+    expect(TAB_SHAPES.instant_book?.map((b) => b.h)).toEqual([122, 38, 38, 181, 298]);
   });
 });
 

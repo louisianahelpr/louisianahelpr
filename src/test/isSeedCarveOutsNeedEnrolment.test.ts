@@ -278,6 +278,7 @@ const EDGE_READERS: Record<string, Kind> = {
   // Q2399 card hold: is_seed only tags the Slack page (seed: job.is_seed), which pages for seed jobs too.
   "_shared/cardHold.ts": "alerts",
   "card-hold-sweep/index.ts": "alerts",
+  "cash-out-credits/index.ts": "alerts", // Q2406 (b157): the cash-out reads the Helpr's is_seed only to route a live-gate defect alert to the seed digest; the hold itself never reads it
   "create-payment/index.ts": "alerts",
   "engagement-automations/index.ts": "hides",
   "money-reconciliation/index.ts": "alerts",

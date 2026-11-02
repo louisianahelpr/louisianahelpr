@@ -6,14 +6,14 @@
  * each function. Behaviour proven in PGlite: src/test/pglite/shippingRefundAfterVoid.pglite.mjs (66/66; skip and plants
  * RED).
  *
- * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql | o.total_cents - v_reserved - v_ship, o.card_fee_cents); | o.total_cents - v_reserved, o.card_fee_cents);
- * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |   IF p_reason IN ('buyer_no_show', 'admin_buyer_fault', 'buyer_cancelled', 'buyer_restarted_checkout') THEN\n    v_ship | IF p_reason IN ('buyer_no_show') THEN\n    v_ship
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql | v_fee_reason, o.total_cents - v_reserved - v_ship, | v_fee_reason, o.total_cents - v_reserved,
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |   IF v_fee_reason IN ('buyer_no_show', 'admin_buyer_fault', 'buyer_cancelled', 'buyer_restarted_checkout') THEN  -- CHANGED (Q1928 gap 3)\n    v_ship | IF v_fee_reason IN ('buyer_no_show') THEN  -- CHANGED (Q1928 gap 3)\n    v_ship
  * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql | AND s.label_state IN ('bought', 'void_requested', 'voided', 'void_rejected')) THEN o.shipping_cents | AND s.label_state IN ('voided')) THEN o.shipping_cents
- * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |                                         + v_order.shipping_cents - public.declutter_shipping_reserved_cents(p_order_id) THEN |                                         THEN
+ * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |                                         + v_order.shipping_cents - public.declutter_shipping_reserved_cents(p_order_id) THEN |                                         THEN
  * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |   VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.shipping_cents) |   VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.total_cents)
  * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |                        AND d.paid_cents <= o.total_cents - o.shipping_cents) THEN |                        AND d.paid_cents <= o.total_cents) THEN
  * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |   IF NEW.label_state = 'voided' AND OLD.label_state IS DISTINCT FROM 'voided' | IF NEW.label_state IN ('voided', 'void_rejected') AND OLD.label_state IS DISTINCT FROM NEW.label_state
- * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |       IF v_label.label_mode = 'test' THEN |       IF true THEN
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |       IF v_label.label_mode = 'test' THEN |       IF true THEN
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -59,10 +59,11 @@ describe("a buyer-fault close of a shipped order gives the shipping back only af
   it("declutter_close_paid_order holds it back for exactly the buyer-fault reasons and asks for the test label's void", () => {
     const { file, sql } = newestFn("declutter_close_paid_order");
     expect(file >= "20261102051521").toBe(true);
-    const held = /IF p_reason IN \(([^)]*)\) THEN v_ship := COALESCE\(public\.declutter_shipping_reserved_cents\(o\.id\), 0\);/.exec(sql)?.[1];
+    // Q1928 gap 3 (20261102063343) restated it from this one, the list now read off v_fee_reason (seller_out swaps in first).
+    const held = /IF (?:p_reason|v_fee_reason) IN \(([^)]*)\) THEN v_ship := COALESCE\(public\.declutter_shipping_reserved_cents\(o\.id\), 0\);/.exec(sql)?.[1];
     expect(quoted(held)).toEqual(BUYER_FAULT);
     expect(quoted(held).length).toBeGreaterThan(3);
-    expect(sql).toContain("p_reason, o.total_cents - v_reserved - v_ship, o.card_fee_cents);");
+    expect(sql).toContain("v_fee_reason, o.total_cents - v_reserved - v_ship, public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved));");
     expect(sql).toContain("IF v_label.label_state = 'bought' AND v_label.accepted_at IS NULL THEN IF v_label.label_mode = 'test' THEN UPDATE public.shipments SET label_state = 'void_requested'");
     expect(sql).toContain("ELSIF v_label.label_state = 'voided' THEN PERFORM public.declutter_ship_refund_after_void(o.id);");
   });

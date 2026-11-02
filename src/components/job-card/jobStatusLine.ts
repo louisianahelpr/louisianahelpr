@@ -184,6 +184,16 @@ function confirmDeadline(job: Job): StatusDeadline | null {
   return Number.isNaN(ms) ? null : { source: "confirm_deadline", at: new Date(ms).toISOString(), consequenceText: "left to confirm", expiredText: "Confirm window passed" };
 }
 
+/**
+ * The poster's own confirm closes at the start (posterConfirmClosesMs, JobConfirmation's "I'm still on"), not 2 hours
+ * before it like the Helpr's: the card's clock and the line's "by" (A3-9, audit 11-01) name the same time.
+ */
+function posterConfirmDeadline(job: Job): StatusDeadline | null {
+  if (!job.date_needed) return null;
+  const ms = posterConfirmClosesMs(job.date_needed, job.start_time ?? null);
+  return Number.isNaN(ms) ? null : { source: "confirm_deadline", at: new Date(ms).toISOString(), consequenceText: "left to confirm", expiredText: "Confirm window passed" };
+}
+
 function columnDeadline(
   source: Exclude<DeadlineSource, "auto_complete">,
   at: string | null | undefined,
@@ -705,7 +715,7 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
       return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed");
     // In the confirm window the clock that matters is the confirm's own deadline, not the start (item 6).
     case "confirm_still_on":
-      return confirmDeadline(job);
+      return posterConfirmDeadline(job);
     case "revision_fixed":
       return columnDeadline(
         "revision_acceptance_deadline",

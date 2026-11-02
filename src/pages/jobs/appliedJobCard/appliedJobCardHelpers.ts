@@ -176,6 +176,7 @@ export function closedCardLabel(app: { closed_reason?: string | null; status?: s
   // Owner, 2026-10-21: an applicant who was not hired is not told about a cancellation; the card just says this.
   if (app.closed_reason === "job_cancelled") return "This job is no longer available";
   if (app.closed_reason === "offer_expired") return "Offer expired";
+  if (app.closed_reason === "offer_withdrawn") return "Offer withdrawn";
   if (app.closed_reason === "not_confirmed") return "Reposted: you didn't confirm";
   if (app.closed_reason === "no_show") return "This job was reported as a no-show";
   if (app.closed_reason === "helper_cancelled") return "You cancelled this job";

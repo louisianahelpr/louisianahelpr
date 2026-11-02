@@ -19876,6 +19876,7 @@ export type Database = {
         Args: { _job_id: string; _member_id: string }
         Returns: Json
       }
+      rpc_poster_withdraw_offer: { Args: { p_job_id: string }; Returns: Json }
       rpc_record_application_attempt: {
         Args: { _applicant_id: string }
         Returns: undefined

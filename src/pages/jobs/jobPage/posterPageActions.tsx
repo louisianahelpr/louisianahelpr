@@ -24,6 +24,7 @@ import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
+import { useWithdrawOffer } from "./useWithdrawOffer";
 import type { JobPageRow } from "./useJobPage";
 import type { PosterPageFlows } from "./usePosterPageFlows";
 
@@ -85,6 +86,8 @@ export function usePosterPageActions({
   const [changeOpen, setChangeOpen] = useState(false);
   // Q1586(c): "Post this job again" opens /post-job, so under 18 it explains instead (as Posted's own Repost).
   const { gate: ageGate } = useAgeGate();
+  // Q2604 (JA-49): an offer out can be taken back without cancelling the job (useWithdrawOffer).
+  const withdrawOffer = useWithdrawOffer(enabled ? job : null, helperFirst, onChanged);
   if (!enabled || !job) return { primary: null, row: () => null, panel: null, dialogs: null, edit: () => {}, notRight: null };
 
   const id = encodeURIComponent(job.id);
@@ -131,6 +134,7 @@ export function usePosterPageActions({
   const pageExtras = (): RowAction[] => [
     canEdit && { key: "edit", label: "Edit job", go: flows.edit, disabled: !flows.ready },
     canChange && { key: "change", label: "Change date or time", go: () => setChangeOpen(true) },
+    withdrawOffer.action,
     canCancel && { key: "cancel", label: "Cancel job", go: flows.cancel, disabled: !flows.ready, danger: true },
   ].filter(Boolean) as RowAction[];
   const row = (override: PagePrimary | null | undefined, moreExtras: RowAction[] = [], opts: { noCardSteps?: boolean } = {}) => {
@@ -199,6 +203,7 @@ export function usePosterPageActions({
           onCancelJob={flows.cancel}
         />
       )}
+      {withdrawOffer.dialog}
       {flows.dialogs}
     </>
   );

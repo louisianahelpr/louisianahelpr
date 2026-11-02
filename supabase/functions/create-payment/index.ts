@@ -1564,7 +1564,7 @@ serve(async (req) => {
       }
       // A direct offer (an instant booking among them): the capture gives its claim
       // back if the offer stops being this Helpr's after the claim (CMP-4 race fix).
-      const result = await captureCardHold({ db: supabaseAdmin, stripe, mode: stripeMode }, jobId, directOpen ? { offerTo: user.id } : {});
+      const result = await captureCardHold({ db: supabaseAdmin, stripe, mode: stripeMode }, jobId, directOpen ? { offerTo: user.id } : offerOpen ? { hireOf: user.id } : {});
       if (result.ok) {
         const done = await hire();
         if (!done.error) return json({ state: "accepted", result: done.data ?? null });

@@ -526,7 +526,7 @@ async function completePendingAccept(deps: Deps, job: HoldJob, defects: Defects)
              (l.response_deadline != null && Date.parse(l.response_deadline) <= Date.now())) {
     return false;
   }
-  const captured = await captureCardHold(deps, job.id);
+  const captured = await captureCardHold(deps, job.id, direct ? {} : { hireOf: helperId });
   if (!captured.ok) {
     if (captured.reason === "retry") defects.record(`job ${job.id}: pending accept capture will retry: ${captured.detail}`);
     // The poster has to pay again: the waiting Helpr hears why (once a day), as a tapped Accept does (round 2, silent #9).

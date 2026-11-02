@@ -74,6 +74,7 @@ import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
 import { crewPosterStep } from "@/components/tracker/crewPosterStep";
 import { crewMemberLine } from "@/components/tracker/crewMemberLine";
 import { useCrewSlot } from "@/hooks/useCrewSlot";
+import { offerIsOut } from "./useWithdrawOffer";
 
 /** The hired Helpr's way to this job's card on the Jobs tab, one name everywhere (Q2598). */
 const OPEN_IN_JOBS = "Open in Jobs";
@@ -310,7 +311,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   ) : null;
 
   // JA-48 / JA-49: an offer or a booking out to one Helpr; the page waits on them, never on "more applicants".
-  const offerOut = isPoster && open && job.direct_offer_status === "pending";
+  // Q2604: a Hire's offer (accepted, not confirmed) is out too, and says until when (response_deadline).
+  const offerOut = isPoster && offerIsOut(job);
+  const offerUntil = job.status === "accepted" ? job.response_deadline ?? null : job.direct_offer_expires_at ?? null;
   // JA-27: a no-show put this job back up (the closed application's time); null when there was none.
   const noShowAt = isPoster && open ? applicants.data?.noShowAt ?? null : null;
   const noShowRepostedOn = noShowAt === null ? null : noShowAt ? formatJobDate(noShowAt.slice(0, 10)) : "";
@@ -402,7 +405,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             hideNext={isPoster && !continueDay.row && showsNow(job, trackingStatus)}
             otherFirst={isPoster ? helperFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
-            offerOut={offerOut} offerUntil={job.direct_offer_expires_at ?? null} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
+            offerOut={offerOut} offerUntil={offerUntil} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined}
             continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job)
               : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} />

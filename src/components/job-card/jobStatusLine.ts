@@ -833,7 +833,7 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
      started), before photo taken or not owed: the expanded primary is the
      tracker's "Start working" (lane B, 2026-10-12: the line read "Finish and
      mark it done"). Read only when the card passes its tracking progress. */
-  start_working: { detail: "Tap Start working", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
+  start_working: { detail: "Tap Start when you begin", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   /* The same step while Start working is still locked on the arrival rule
      (no GPS match, no poster tap: arrivalEstablished). The tracker's amber
      line names the poster's "Confirm they've arrived" as the one way out. */

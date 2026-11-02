@@ -153,8 +153,10 @@ describe("the collapsed line and the expanded primary name the same next step", 
  * it done"), and says finish only when nothing else is the primary.
  */
 describe("the collapsed strip names the tracker's next step (Start working)", () => {
-  const TRACKER_SRC = readFileSync(join(__dirname, "../components/JobTracking.tsx"), "utf8");
-  const START = "Start working";
+  // The tracker's step list moved out of JobTracking.tsx into job-card/trackerSteps.ts (size ratchet).
+  const TRACKER_SRC = readFileSync(join(__dirname, "../components/job-card/trackerSteps.ts"), "utf8");
+  // A3-11 (audit 2026-11-01): the line says "Tap Start", the word the job page's pair shows (pairLabel).
+  const START = "Tap Start";
 
   const STRIP_CASES: Array<[string, Record<string, unknown>, string | null]> = [];
   for (const tracking of [null, "arrived", "working"])
@@ -222,7 +224,7 @@ describe("the collapsed strip names the tracker's next step (Start working)", ()
     const job = arrivedJob({ require_photo_proof: true, proof_before_urls: ["before.jpg"], helper_arrival_verified_at: ago(1) });
     const line = helperStatusLine(app(job), false, { workUnderway: helperProgress(job, "arrived").workUnderway });
     expect(line.id).toBe("start_working");
-    expect(line.detail).toBe("Tap Start working");
+    expect(line.detail).toBe("Tap Start when you begin");
     expect(line.eyebrow).toBe("Needs You");
   });
 });

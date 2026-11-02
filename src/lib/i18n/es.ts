@@ -267,6 +267,8 @@ export const es: Record<MsgKey, string> = {
   "tabs.browse": "Ver todo",
   "tabs.less": "Pestañas anteriores",
   "tabs.more": "Más pestañas",
+  "tabs.moreToDo": "Más pestañas, {n} pendientes",
+  "tabs.lessToDo": "Pestañas anteriores, {n} pendientes",
   "jobs.tabPosted": "Publicados",
   "jobs.tabWorking": "Trabajando",
   "jobs.tabsLabel": "Trabajos y publicaciones",

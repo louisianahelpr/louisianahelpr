@@ -72,6 +72,26 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/userDetail/JobsTab.tsx` | select×1 |  |  | Job role filter |
 | `src/components/admin/userDetail/UserAuditLog.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Reason for reversing this strike |
 
+## /admin/preview/job, /jobs/:id
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/components/DisputeTimelineDialog.tsx` | input×1 | file |  | Remove file |
+| `src/components/guarantee/HelprGuaranteePanel.tsx` | input×1, textarea×2 | file |  | Photos · guarantee-note · guarantee-photos · guarantee-reject · Day to fix it · Helpr Guarantee |
+| `src/components/jobs/ContinueDaySheet.tsx` | textarea×1 |  | 300 | Day to finish |
+| `src/components/refund/RefundAnswerDialog.tsx` | input×2, date/calendar×2 | date, time |  |  |
+| `src/components/refund/RefundRequestDialog.tsx` | textarea×1 |  | 1000 | refund-amount · e.g. 20.00 · refund-amount-of · refund-reason · refund-reason-hint |
+| `src/components/reviewPanel/ReviewForm.tsx` | input×1 | file |  | Add review photo |
+| `src/components/schedule/ScheduleChangeControl.tsx` | input×2, date/calendar×2 | date, time |  |  |
+| `src/components/series/SeriesDatesPanel.tsx` | input×1 | checkbox |  |  |
+| `src/pages/posts/CompletionChoiceSheet.tsx` | input×1, textarea×1 | file | 1000 | Back to choices · Describe what needs to be redone · Remove photo |
+
+## /admin/preview/job, /messages, /jobs/:id
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/lib/nativeCamera.ts` | input×1 | file |  |  |
+
 ## /browse
 
 | File | Controls | input types | maxLength | hints |
@@ -252,25 +272,11 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx` | textarea×1 |  |  | Private note |
 | `src/pages/posts/postedJobs/DeclineApplicantSheet.tsx` | textarea×1 |  |  | Decline reason · decline-note |
 
-## /jobs, /jobs/:id
+## /jobs, /admin/preview/job, /jobs/:id
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/reviewPanel/ReviewQuestionCard.tsx` | textarea×1 |  |  | Quick review tags · A few words (optional) · Add a few words (optional) |
-
-## /jobs/:id
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/components/DisputeTimelineDialog.tsx` | input×1 | file |  | Remove file |
-| `src/components/guarantee/HelprGuaranteePanel.tsx` | input×1, textarea×2 | file |  | Photos · guarantee-note · guarantee-photos · guarantee-reject · Day to fix it · Helpr Guarantee |
-| `src/components/jobs/ContinueDaySheet.tsx` | textarea×1 |  | 300 | Day to finish |
-| `src/components/refund/RefundAnswerDialog.tsx` | input×2, date/calendar×2 | date, time |  |  |
-| `src/components/refund/RefundRequestDialog.tsx` | textarea×1 |  | 1000 | refund-amount · e.g. 20.00 · refund-amount-of · refund-reason · refund-reason-hint |
-| `src/components/reviewPanel/ReviewForm.tsx` | input×1 | file |  | Add review photo |
-| `src/components/schedule/ScheduleChangeControl.tsx` | input×2, date/calendar×2 | date, time |  |  |
-| `src/components/series/SeriesDatesPanel.tsx` | input×1 | checkbox |  |  |
-| `src/pages/posts/CompletionChoiceSheet.tsx` | input×1, textarea×1 | file | 1000 | Back to choices · Describe what needs to be redone · Remove photo |
 
 ## /legal, /terms, /privacy, /rules
 
@@ -297,12 +303,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/messages/ChatView.tsx` | textarea×1 |  |  | Dismiss safety reminder |
 | `src/components/messages/ConversationList.tsx` | input×2 | search |  | messages-search-row · messages-section-tabs · Bulk hide action bar |
 | `src/components/RichMessageInput.tsx` | input×5 | file, text |  |  |
-
-## /messages, /jobs/:id
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/lib/nativeCamera.ts` | input×1 | file |  |  |
 
 ## /post-job
 

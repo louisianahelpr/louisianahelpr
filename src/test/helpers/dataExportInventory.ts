@@ -188,6 +188,10 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // jobs' rows (poster or Helpr) plus any row the member wrote.
   job_continue_days: { by: ["proposed_by", "decided_by"] },
   job_continue_events: { by: ["actor_id"] },
+  // Q2245 (20261102072106; exported by 20261102074248): the Helpr's own card-fee debts, refund_ref (a Stripe id) left out.
+  helpr_card_fee_debts: { by: ["helper_id"] },
+  // Q2199 (20261102074244; exported by 20261102074248): the member's own Customize choice.
+  member_section_prefs: { by: ["user_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.
@@ -336,6 +340,28 @@ export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stri
     stripped: ["quoter_id", "photo_paths"],
   },
   // Q1866: the counter-offers on any quote the member gave or received (no person column; keyed by its quote).
+  // Q2271 (exported by 20261102074248): the handover row of each order the member is a side of (no person column;
+  // one row per order), the 4-digit handover code left out.
+  declutter_handovers: {
+    table: "declutter_handovers",
+    scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
+    stripped: ["code"],
+    noPersonColumn: true,
+  },
+  // Q2454 (exported by 20261102074248): the seller's haul-away links and donation history (no person column; keyed by
+  // item), through the member's own items.
+  declutter_haul_aways: {
+    table: "declutter_haul_aways",
+    scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_items i WHERE i.id = t.item_id AND i.seller_id = v_uid)",
+    stripped: [],
+    noPersonColumn: true,
+  },
+  declutter_donations: {
+    table: "declutter_donations",
+    scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_items i WHERE i.id = t.item_id AND i.seller_id = v_uid)",
+    stripped: [],
+    noPersonColumn: true,
+  },
   job_quote_offers: {
     table: "job_quote_offers",
     scope: "WHERE t.quote_id IN (SELECT q.id FROM public.job_quotes q JOIN public.job_quote_requests r ON r.id = q.request_id WHERE q.quoter_id = v_uid OR r.poster_id = v_uid)",
@@ -573,6 +599,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "refund_requests.answer_by": { reason: "a deadline timestamp (when the Helpr must answer the refund request), not a person; the request is exported by refund_requests.requester_id/responder_id/answered_by (20261021102943)" },
   "shop_orders.accept_by": { reason: "a deadline timestamp (when the shop must answer the order), not a person; the order is exported by shop_orders.buyer_id/seller_id (20261018164443)" },
   "shops.hidden_by": { reason: "the staff member who hid a shop; the shop is the member's (exported by shops.owner_id, 20261017061157, with this staff id dropped; the hide reason stays)", stripped: true },
+  "declutter_seller_fee_debts.waived_by": { reason: "the staff member who waived a seller's Declutter fee debt (Q1928 gap 1, 20261102065446); the debt is the member's (exported by declutter_seller_fee_debts.seller_id, with this staff id dropped by 20261102074248; the waived amount, date and note stay)", stripped: true },
   "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_orders.book_by": { reason: "a deadline timestamp (when the buyer must pick a pickup or delivery time, the handover sweep's 7-day mark; 20261101230519), not a person; the order is exported by declutter_orders.buyer_id/seller_id" },

@@ -1,5 +1,6 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { safeStorage } from "@/lib/safeStorage";
+import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SECTIONS, type SectionKey } from "./sectionsConfig";
 
@@ -11,6 +12,11 @@ import { SECTIONS, type SectionKey } from "./sectionsConfig";
  *
  * Stored per member under "<key>:<userId>" (never one global key: one
  * account's choice must not paint on the next account to sign in).
+ *
+ * Q2199: the choice follows the ACCOUNT. It is saved to the member's own row
+ * (public.member_section_prefs, 20261102074244) and read back once per
+ * account per app run; the device copy is what shows first and the offline
+ * fallback. A device choice made before the row existed is copied up once.
  */
 export interface SectionPrefs {
   order: SectionKey[];
@@ -78,6 +84,44 @@ export function hidesLastOpenSection(hidden: readonly SectionKey[], key: Section
 /** What a refused switch-off says. */
 export const KEEP_ONE_OPEN_TOAST = "Keep at least one open section on";
 
+/** Accounts whose row was read this app run (keyed by user id, so another account reads its own). */
+const pulled = new Set<string>();
+
+function writeLocal(userId: string, prefs: SectionPrefs): void {
+  try {
+    safeStorage.setItem(`${KEY}:${userId}`, JSON.stringify(normalizePrefs(prefs)));
+  } catch {
+    /* best-effort: storage blocked, the choice lasts this session only */
+  }
+  listeners.forEach((l) => l());
+}
+
+/** Saves the choice to the member's own row. Best-effort: on an error the device copy stays and the next save retries. */
+async function pushToAccount(userId: string, prefs: SectionPrefs): Promise<void> {
+  const p = normalizePrefs(prefs);
+  const { error } = await supabase.from("member_section_prefs").upsert(
+    { user_id: userId, section_order: p.order, sections_hidden: p.hidden, updated_at: new Date().toISOString() },
+    { onConflict: "user_id" },
+  );
+  if (error) console.warn(`[sections] saving Customize to the account failed: ${error.message}`);
+}
+
+/** Reads the account's row once: it wins over the device copy; with no row, a device choice is copied up. */
+async function pullFromAccount(userId: string): Promise<void> {
+  const { data, error } = await supabase.from("member_section_prefs")
+    .select("section_order, sections_hidden").eq("user_id", userId).maybeSingle();
+  if (error) {
+    pulled.delete(userId); // read again next mount; the device copy shows meanwhile
+    console.warn(`[sections] reading Customize from the account failed: ${error.message}`);
+    return;
+  }
+  if (data) {
+    writeLocal(userId, { order: data.section_order as SectionKey[], hidden: data.sections_hidden as SectionKey[] });
+    return;
+  }
+  if (readRaw(userId)) await pushToAccount(userId, read(userId));
+}
+
 function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => listeners.delete(cb);
@@ -88,15 +132,17 @@ export function useSectionPrefs() {
   const userId = user?.id;
   const prefs = useSyncExternalStore(subscribe, () => read(userId));
 
+  useEffect(() => {
+    if (!userId || pulled.has(userId)) return;
+    pulled.add(userId);
+    void pullFromAccount(userId);
+  }, [userId]);
+
   const save = useCallback(
     (next: SectionPrefs) => {
       if (!userId) return;
-      try {
-        safeStorage.setItem(`${KEY}:${userId}`, JSON.stringify(normalizePrefs(next)));
-      } catch {
-        /* best-effort: the choice lasts this session only */
-      }
-      listeners.forEach((l) => l());
+      writeLocal(userId, next);
+      void pushToAccount(userId, next);
     },
     [userId],
   );

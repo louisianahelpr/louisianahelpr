@@ -6,7 +6,6 @@
  */
 import { nextStepWords, type NextStepValue } from "@/lib/nextStepWords";
 import { formatJobDate } from "@/lib/dateUtils";
-import { jobStartTimeLabel } from "@/lib/jobDate";
 
 export type ContinueDay = {
   id: string;
@@ -91,10 +90,15 @@ export function continueDayDoneNote(row: ContinueDay | null | undefined, now: Da
   return `You can mark it done on ${continueDayLabel(row.new_date, row.new_start_time).replace(/ at .*$/, "")}, the day you set to finish.`;
 }
 
-/** The job page's first line on a SET day: "Continuing Thu, Nov 5 · 9:00 AM" (null: day 1's line stands). */
+/**
+ * The job page's first line on a SET day: "Continuing Thu 11/5 at 9 AM" (null: day 1's line stands), the owner's own
+ * words (11-01 5:05 PM) and the same label as the tracker line under it. Q2680 (audit 1102e row 17): it read
+ * "Continuing Thu, Nov 5 · 9:00 AM" over a line saying "Thu 11/5 at 9 AM", two formats on one screen.
+ */
 export function continueDayHeader(row: ContinueDay | null | undefined): string | null {
   if (!row || row.status !== "set" || !row.new_date) return null;
-  return ["Continuing " + formatJobDate(row.new_date), jobStartTimeLabel(row.new_start_time.slice(0, 5))].filter(Boolean).join(" · ");
+  const when = continueDayLabel(row.new_date, row.new_start_time);
+  return when ? `Continuing ${when}` : "Continuing " + formatJobDate(row.new_date);
 }
 
 /**

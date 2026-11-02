@@ -13,6 +13,9 @@ import { continueDayLabel, proposeContinueDay } from "@/lib/continueDay";
 /** Today's chip, when today is offered: it is "another day" only in the sense of later today (Q2606). */
 const LATER_TODAY = "Later today";
 
+/** The sheet's title when no day is set yet; a caller passes the name of the button that opened it otherwise (Q2679). */
+export const CONTINUE_DAY_SHEET_TITLE = "Set a day to finish";
+
 /** The next 30 days from today (the server's own limit, propose_job_continue_day). */
 const DAYS = 30;
 /** Today is offered only before 10 PM: a start at least an hour out (propose_job_continue_day) must still fit in it. */
@@ -32,6 +35,7 @@ export function ContinueDaySheet({
   otherFirst,
   onSaved,
   helprMarkedDone = false,
+  title = CONTINUE_DAY_SHEET_TITLE,
   today = new Date(),
 }: {
   open: boolean;
@@ -42,6 +46,8 @@ export function ContinueDaySheet({
   onSaved: () => void;
   /** The Helpr already marked it done: the day is to come back, so today is not offered (A3-119). */
   helprMarkedDone?: boolean;
+  /** Q2679: the name of the button that opened the sheet ("Ask for a different day", "Change day"). */
+  title?: string;
   /** For tests: the first day of the strip. */
   today?: Date;
 }) {
@@ -86,7 +92,7 @@ export function ContinueDaySheet({
           (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
         }}
       >
-        <SheetHero title="Set a day to finish" />
+        <SheetHero title={title} />
         <p className="text-ds-13 text-muted-foreground">
           {poster
             ? `${other || "Your Helpr"} comes back to finish. The payment stays held until the work is done.`

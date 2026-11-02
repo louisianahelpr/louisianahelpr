@@ -84,5 +84,5 @@ export async function reviewCategorySuggestion(id: string, approve: boolean, not
 /** The words to show for any error these helpers threw. */
 export function suggestionErrorMessage(err: unknown): string {
   const m = (err as { userMessage?: unknown } | null)?.userMessage;
-  return typeof m === "string" && m ? m : "Something went wrong. Please try again.";
+  return typeof m === "string" && m ? m : "Couldn't do that just now. Check your connection and try again.";
 }

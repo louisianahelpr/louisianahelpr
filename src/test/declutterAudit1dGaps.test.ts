@@ -121,7 +121,7 @@ describe("D4-14: a Declutter call that never reached the server says so", () => 
     vi.stubGlobal("navigator", { ...navigator, onLine: true });
     expect(declutterErrorMessage(new Error("TypeError: Failed to fetch"))).toBe(CONNECTION_TROUBLE_COPY);
     expect(declutterErrorMessage(new Error("Load failed"))).toBe(CONNECTION_TROUBLE_COPY);
-    expect(declutterErrorMessage(new Error("boom"))).toBe("Something went wrong. Please try again.");
+    expect(declutterErrorMessage(new Error("boom"))).toBe("Couldn't do that just now. Check your connection and try again.");
     expect(declutterErrorMessage(Object.assign(new Error("x"), { userMessage: "Its own words." }))).toBe("Its own words.");
   });
 

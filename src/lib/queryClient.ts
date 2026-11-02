@@ -46,6 +46,8 @@ import { isNetworkFailure } from "./networkFailure";
 //     once, as a warning, with how many reads failed and which screens' keys.
 export function reportCacheError(kind: "QueryCache" | "MutationCache", error: unknown, key: unknown, timeoutMessage?: string) {
   if (isConfirmedOffline()) return;
+  // Q1882: a designed refusal (src/lib/declutter/api.ts rpcData: a code with plain words) is not a defect.
+  if ((error as { designedRefusal?: unknown } | null)?.designedRefusal === true) return;
   const head = Array.isArray(key) ? key[0] : key;
   const keyName = typeof head === "string" ? head : String(head ?? "");
   if (kind === "QueryCache" && isNetworkFailure(error)) return noteNetworkBurst(error, kind, keyName);

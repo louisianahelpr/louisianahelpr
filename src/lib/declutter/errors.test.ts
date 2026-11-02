@@ -20,7 +20,7 @@ import {
   declutterErrorMessage,
 } from "./errors";
 
-const GENERIC = "Something went wrong. Please try again.";
+const GENERIC = "Couldn't do that just now. Check your connection and try again.";
 
 describe("the copy tables", () => {
   const all = { ...DECLUTTER_ERROR_COPY, ...DECLUTTER_CLIENT_ERROR_COPY };

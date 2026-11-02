@@ -54,9 +54,11 @@ export function rpcData<T>(result: { data: T; error: { message: string } | null;
   try {
     unwrap(result);
   } catch (thrown) {
-    const e = thrown as Error & { userMessage?: string };
+    const e = thrown as Error & { userMessage?: string; designedRefusal?: boolean };
     const msg = words(thrown);
-    if (msg && Object.isExtensible(e)) e.userMessage = msg;
+    // A code with copy is a designed refusal (rate limit, open limit, ...): the member reads the words, and
+    // queryClient's cache hooks do not log it as a defect (Q1882). An unmapped error keeps being reported.
+    if (msg && Object.isExtensible(e)) Object.assign(e, { userMessage: msg, designedRefusal: true });
     throw e;
   }
   return result.data;

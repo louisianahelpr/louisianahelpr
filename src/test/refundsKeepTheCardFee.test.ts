@@ -352,6 +352,13 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2245 (owner MASTER-LIST 10-21): the card fee a lapsed series Helpr owes for a visit refunded to the poster
   // IN FULL (bill_helpr_card_fee_debt, once per visit payment); a Helpr debt, never a refund amount or fee change.
   'supabase/functions/_shared/helprFaultFee.ts: p_card_fee_cents: cents,',
+  // Q2259 S3/S6 (shipping, testers only): the label worker moves a ship order's card hold state (ship_capture held ->
+  // captured/lost) only from 'held', READS paid ship orders whose hold is still held (to capture after the label), and
+  // READS one order's status/hold/PaymentIntent for a shipment. No amount, fee or refund column is read or written;
+  // a lost hold closes through declutter_ship_hold_released (no charge, no refund row).
+  'supabase/functions/_shared/shipLabelRun.ts: .from("declutter_orders").update({ ship_capture: st }) .eq("id", orderId).eq("ship_capture", "held").select("id")',
+  'supabase/functions/_shared/shipLabelRun.ts: .from("declutter_orders") .select("id, status, ship_capture, stripe_payment_intent_id") .eq("status", "paid").eq("handover", "ship").eq("ship_capture", "held").limit(50)',
+  'supabase/functions/_shared/shipLabelRun.ts: .from("declutter_orders") .select("status, ship_capture, stripe_payment_intent_id").eq("id", s.declutter_order_id).maybeSingle()',
   // Shops M1: the card fee Stripe kept at capture, recorded on the order (no refund here).
   'supabase/functions/_shared/shopHolds.ts: const { error } = await admin.rpc("shop_order_captured", { p_order_id: orderId, p_card_fee_cents: fee });',
   // Q2170: admin_bill_helpr_fault READS the ruling's card fee (already billed?) and audits what it billed; the
@@ -364,7 +371,9 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/create-payment/index.ts: p_card_fee_cents: Math.max(0, Math.round(cardFeeCents ?? 0)),',
   'supabase/functions/create-payment/index.ts: fields: { job_id: jobId, helper_id: helperId, card_fee_cents: String(cardFeeCents ?? "") },',
   // Q2403 (builder 144): READS the open order's frozen setup fee too, to close its page first when the fee changed; no write.
-  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, pickup_slot_start, setup_fee_cents") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
+  // Q2259 S3 (ship checkout): also READS the order's shipping_quote_id to price the shipping line from the frozen quote;
+  // no fee column, no write.
+  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, pickup_slot_start, setup_fee_cents, shipping_quote_id") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   // Q2352: READS the setup fee the order froze, to put it on its own Stripe line; no refund, no write.
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("setup_fee_cents") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
@@ -581,6 +590,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_delivery_raise_status: "20261021185418_declutter_delivery_raise_pay.sql 359d147a69ed2a51",
       declutter_delivery_raises_on_task_close: "20261021185418_declutter_delivery_raise_pay.sql adc539c67564a84c",
       declutter_hand_refund_failed: "20261017055500_declutter_refund_hand_settle.sql df3bdc676a1d434c",
+      // Q2259 S6 (20261101221604, shipping, testers only), reviewed: a ship order's card hold was RELEASED (never captured),
+      // so a pending/failed refund row for its PaymentIntent is settled by hand at 0 cents ('settled_by_hand'): nothing was
+      // charged, so nothing goes back and no card fee exists to keep. Refuses any non-ship order and a paid order still on
+      // that PaymentIntent; replay 'already'. It records no refund and sends no amount.
+      declutter_ship_hold_refund_released: "20261101221604_shipping_hold_refund_row.sql f5cc722c854edabf",
       // Owner answer 7 (20261017060455): the three seller-out paths record
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
       // Board 158 (20261020064354): the same body, a 'paused' listing sells like a 'live' one (two status

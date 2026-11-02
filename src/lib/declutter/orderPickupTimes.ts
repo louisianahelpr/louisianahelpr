@@ -8,6 +8,7 @@
  * Guard: src/lib/declutter/orderPickupTimes.test.ts.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 
 export type OrderPickupTimes = {
   id: string;
@@ -22,12 +23,10 @@ const COLUMN_NOT_YET = new Set(["42703", "PGRST204", "42501"]);
 export async function fetchOrderPickupTimes(orderIds: string[]): Promise<OrderPickupTimes[]> {
   if (orderIds.length === 0) return [];
   const res = await supabase.from("declutter_orders").select("id, book_by, pickup_slot_start, pickup_slot_end").in("id", orderIds);
-  if (res.error) {
-    if (COLUMN_NOT_YET.has(res.error.code ?? "")) return [];
-    throw res.error;
-  }
+  if (res.error && COLUMN_NOT_YET.has(res.error.code ?? "")) return [];
+  // Any other error throws through unwrap() so the retry policy keeps the HTTP status (queryReadsThrowThroughUnwrap).
   // The generated types predate book_by (20261101230519); the row shape is the select above.
-  return (res.data ?? []) as unknown as OrderPickupTimes[];
+  return (unwrap(res) ?? []) as unknown as OrderPickupTimes[];
 }
 
 export const orderPickupTimesKey = (orderIds: string[]) => ["declutter", "order-pickup-times", orderIds.join(",")] as const;

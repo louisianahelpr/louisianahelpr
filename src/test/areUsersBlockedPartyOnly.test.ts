@@ -188,6 +188,11 @@ const EXPECTED_CALLERS = [
   "shops_order_terms",
   "shops_request_order",
   "submit_job_quote",
+  // Unread-message reminders (20261101200929): asks about the sender vs the
+  // recipient, neither of whom is auth.uid(). EXECUTE is service_role only and
+  // it runs from pg_cron, so is_server_context() is true and it gets the real
+  // answer; a NULL would only skip the reminder (COALESCE(..., false) keeps it).
+  "sweep_declutter_talk_reminders",
 ];
 
 describe("Q348: are_users_blocked refuses a third-party pair", () => {

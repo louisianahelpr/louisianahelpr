@@ -14,7 +14,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import { fireSuccessMoment } from "@/lib/successMoment";
 import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
-import { crewNobodyLeft } from "@/lib/crewLifecycle";
+import { crewNobodyLeft } from "@/lib/crewNobodyLeft";
 import { hasJobStarted } from "@/lib/dateUtils";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";

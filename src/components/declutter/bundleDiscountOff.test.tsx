@@ -92,9 +92,12 @@ describe("Bundle discount: one dropdown row that saves with Listing defaults' Sa
     expect(saveBtn).toBeEnabled();
     fireEvent.click(saveBtn);
     await waitFor(() => expect(state.bundleSaves).toEqual([null]));
-    await waitFor(() => expect(screen.queryByText("Not saved yet. Tap Save to keep these.")).toBeNull());
+    // Wait for the save itself (a positive condition), then the absence: "Not saved yet" is gone because it saved.
+    await waitFor(() => {
+      expect(state.defaultsSaves).toBe(1);
+      expect(screen.queryByText("Not saved yet. Tap Save to keep these.")).toBeNull();
+    });
     expect(await select()).toHaveValue("off");
-    expect(state.defaultsSaves).toBe(1);
   });
 
   it("picking back the saved value leaves nothing to save", async () => {

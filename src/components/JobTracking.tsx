@@ -21,6 +21,7 @@ import { formatShortDate } from "@/lib/format";
 import { usePermissionRationale } from "@/hooks/usePermissionRationale";
 import { arrivalEstablished, arrivalEvidenceState, arrivalGateMessage, arrivalMapLabel, arrivalRefusalFromError, arrivalRefusalMessage, arrivalState, arrivalVerdictFromRpc, arrivalVerdictMessage, type ArrivalRefusal, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { trackingProofCaption } from "./trackingProofCaption";
+import { railDisplayIdx } from "@/components/tracker/railDisplayIdx";
 import { report } from "@/lib/errorLogger";
 import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { BEFORE_PHOTO_GATE_REASON, isExpectedLifecycleRefusal, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -71,22 +72,6 @@ type TrackerStep = {
   icon: LucideIcon;
   color: string;
 };
-
-/** Where the compact rail's cursor sits, given the same inputs the full rail
- *  derives from. One definition of the `includePostingSteps` offset, so the
- *  two rails cannot disagree about which step a job is on. */
-function railDisplayIdx({
-  currentStatusIdx,
-  includePostingSteps,
-  helperId,
-}: {
-  currentStatusIdx: number;
-  includePostingSteps: boolean;
-  helperId: string | null | undefined;
-}): number {
-  if (!includePostingSteps) return currentStatusIdx;
-  return helperId ? PRE_STATUSES.length + currentStatusIdx : 0;
-}
 
 const STATUSES: TrackerStep[] = [
   // Step 0 is never the TARGET of the next-step button (nextIdx is always
@@ -1245,9 +1230,9 @@ export function JobTracking({
 
   const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
   // ONE definition of the offset, shared with the collapsed card's compact
-  // rail — see `railDisplayIdx` at the top of this file. Inlined here until
+  // rail — see src/components/tracker/railDisplayIdx.ts. Inlined here until
   // 2026-09-19, when a second rail started needing the same answer.
-  const displayIdx = railDisplayIdx({ currentStatusIdx, includePostingSteps, helperId });
+  const displayIdx = railDisplayIdx({ currentStatusIdx, includePostingSteps, helperId, preStepCount: PRE_STATUSES.length });
 
 
 

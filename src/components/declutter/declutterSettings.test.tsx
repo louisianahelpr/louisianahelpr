@@ -140,6 +140,14 @@ describe("Declutter settings", () => {
     expect(button).toBeDisabled();
     expect(radio("How much each evening", "5%")).toHaveAttribute("aria-checked", "true");
     expect(radio("Lowest you'll take", "50%")).toHaveAttribute("aria-checked", "true");
+    // Q2571 (audit 1102a): the five % chips are the compact size, so they fit one row of a 375 card ("75%" wrapped alone).
+    // @mutate src/components/declutter/DeclutterListingDefaults.tsx | value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} compact /> | value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} />
+    // @mutate src/components/declutter/DeclutterSellSteps.tsx | ${compact ? "px-3" : "px-4"} | px-4
+    for (const group of ["Lowest you'll take", "How much each evening"]) {
+      const chips = within(screen.getByRole("radiogroup", { name: group })).getAllByRole("radio");
+      expect(chips.length).toBeGreaterThan(3);
+      for (const c of chips) expect(c.className.split(/\s+/), `${group} ${c.textContent}`).toContain("px-3");
+    }
     fireEvent.click(radio("How much each evening", "15%"));
     fireEvent.click(radio("Lowest you'll take", "60%"));
     fireEvent.click(screen.getByRole("checkbox", { name: "Safe meeting spot" }));

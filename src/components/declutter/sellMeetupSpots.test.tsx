@@ -2,12 +2,14 @@
  * B110 (owner 11-01 1:00 PM): the seller's own meet spots in Declutter settings (20261101194608). A police safe spot
  * is a one-tap suggestion that fills the form with its name, address and point; Save sends the point and the days and
  * times; Cancel sits left of the primary Save (app-wide rule, owner 11-01); a saved spot can be removed. At checkout a
- * seller spot reads "The seller's meet spot", and its own days and times drive the meetup time chips.
+ * seller spot reads "Seller's spot · public place" (A3-52: never "checked"), and its own days and times drive the meetup time chips.
  *
  * @mutate src/components/declutter/SellMeetupSpots.tsx |       const point = d.point && d.point.address.trim() === address ? d.point : await place.locate(address); |       const point = await place.locate(address);
  * @mutate src/components/declutter/SellMeetupSpots.tsx |       return saveMyMeetupSpot({ id: null, name: d.name.trim(), address, area: d.area.trim(), lat: point.lat, lng: point.lng, windows: d.windows }); |       return saveMyMeetupSpot({ id: null, name: d.name.trim(), address, area: d.area.trim(), lat: point.lat, lng: point.lng, windows: null });
  * @mutate src/components/declutter/SellMeetupSpots.tsx |   if (q.data === MEETUP_SPOTS_NOT_DEPLOYED) return null; |
- * @mutate src/components/declutter/DeclutterMeetup.tsx |   seller: "The seller's meet spot", |   seller: "Public place",
+ * @mutate src/components/declutter/DeclutterMeetup.tsx |   seller: "Seller's spot · public place", |   seller: "Public place · Louisiana Helpr checked",
+ * @mutate src/components/declutter/handoverCopy.ts |   meetup: "Meet at a public place: the seller's own spot, or a police safe exchange spot Louisiana Helpr checked. No home address is shared.", |   meetup: "Meet at a public place Louisiana Helpr checked, like a police safe exchange spot. No address is shared.",
+ * @mutate src/components/declutter/DeclutterMeetup.tsx | {spots.every((s) => s.kind !== "seller") | {true
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchPlaces.places.find((p) => p.chosen)?.windows : spotHours.data; | porchPlaces.places.find((p) => p.chosen)?.windows : null;
  */
 import { readFileSync } from "node:fs";
@@ -22,6 +24,7 @@ vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.lookup }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }));
 
 import { SellMeetupSpots } from "./SellMeetupSpots";
+import { HANDOVER_WORDS } from "./handoverCopy";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
 
 const SPOT = { id: "m1", name: "Walmart parking lot", address: "1205 E Admiral Doyle Dr, New Iberia, LA", area: "New Iberia", lat: 30.0, lng: -91.8,
@@ -85,10 +88,16 @@ describe("SellMeetupSpots", () => {
 });
 
 describe("checkout: a seller's spot", () => {
-  it("reads as the seller's meet spot, and its own days and times drive the meetup chips", () => {
-    wrap(<MeetupSpotPicker sellerId="s1" spots={[{ id: "m1", name: "Walmart parking lot", address: SPOT.address, parish: "New Iberia", kind: "seller", note: null, miles: 3, chosen: true }]} onChosen={() => {}} />);
-    expect(screen.getByText(/The seller's meet spot · 1205 E Admiral/)).toBeInTheDocument();
+  it("reads as the seller's spot, never 'checked', and its own days and times drive the meetup chips (A3-52)", () => {
+    const { container, unmount } = wrap(<MeetupSpotPicker sellerId="s1" spots={[{ id: "m1", name: "Walmart parking lot", address: SPOT.address, parish: "New Iberia", kind: "seller", note: null, miles: 3, chosen: true },
+      { id: "p1", name: "Police Dept", address: "731 Jefferson St", parish: "Lafayette", kind: "police", note: null, miles: 1, chosen: false }]} onChosen={() => {}} />);
+    expect(screen.getByText(/Seller's spot · public place · 1205 E Admiral/)).toBeInTheDocument();
+    expect(screen.getByText(/Police safe exchange spot · Louisiana Helpr checked · 731 Jefferson/)).toBeInTheDocument();
     expect(screen.getByText("Public places to meet. Nobody's home address is shared.")).toBeInTheDocument();
+    // "checked" is said only of the curated spot, never of the seller's own.
+    expect(container.textContent!.match(/checked/g)?.length).toBe(1);
+    expect(HANDOVER_WORDS.meetup).not.toMatch(/public place Louisiana Helpr checked/);
+    unmount();
     const src = readFileSync("src/components/declutter/DeclutterTradeViews.tsx", "utf8");
     expect(src).toContain('porchPlaces.places.find((p) => p.chosen)?.windows : spotHours.data;');
   });

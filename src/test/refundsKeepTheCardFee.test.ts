@@ -384,7 +384,7 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("id, setup_fee_cents").eq("stripe_payment_intent_id", paymentIntentId).eq("setup_fee_state", "refund_due").maybeSingle()',
   // A10: the card fee Stripe kept on a seller-fault setup job's charge, billed to the seller after the full refund.
   "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
-  // Q1940 (b) (builder 140, verdict owed): the same bill on the "already been refunded" catch, before settling; the
+  // Q1940 (b) (builder 140; lh-money-escrow approve 11-01, ~/.lh-shots/verdicts/b140.txt): the same bill on the "already been refunded" catch, before settling; the
   // card fee Stripe kept (from the retrieved PaymentIntent) goes to the seller's debt, never into a refund amount.
   "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
 ];
@@ -536,7 +536,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // LEAD-ADMIN-HELPR-FAULT (20261101000817, for verdict): restated from its effective body (170717 with 172503's notice
       // rewrites); only the buyer's refund notice for 'helpr_fault' added ("All $X ... delivery included"). Reasons,
       // the amount it passes to declutter_record_refund (total - reserved, the order's card fee) and the task branches unchanged.
-      // Q1935 (20261102040952, builder 140, verdict owed): restated verbatim; only the fee it passes changes, to the
+      // Q1935 (20261102040952, builder 140; lh-money-escrow + lh-authz-rls approve 11-01, ~/.lh-shots/verdicts/b140.txt): restated verbatim; only the fee it passes changes, to the
       // order's card fee prorated to what is refunded (declutter_card_fee_left: fee x (total - reserved) / total), so a
       // seller's debt or a kept fee no longer carries card cost on a delivery fee already given back or paid to the Helpr.
       declutter_close_paid_order: "20261102040952_declutter_card_fee_prorated.sql 5bb92b283b065a37",
@@ -641,7 +641,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // only the seller's payout rebook changes (a full refund also undoes a seller delivery's rate for the seller).
       // D2-5 (20261029224147, lh-money-escrow approve 2026-10-29): notice words only (the card-network sentence on a keep_card_fee refund, the order chat instead of Messages), from the body 20261027172503 left; amounts, fee policies and the payout rebook unchanged.
       // BUY-25 (lead 10-30): never got it is reason seller_no_show (full_seller_pays_fee: the seller owes the card fee), already pinned; verdict owed.
-      // Q1935 (20261102040952, builder 140, verdict owed): restated verbatim; only the fee passed to declutter_record_refund
+      // Q1935 (20261102040952, builder 140; lh-money-escrow + lh-authz-rls approve 11-01, ~/.lh-shots/verdicts/b140.txt): restated verbatim; only the fee passed to declutter_record_refund
       // is prorated to v_paid (total - reserved) by declutter_card_fee_left. Reasons, amounts and the part refund unchanged.
       declutter_refund_after_handover: "20261102040952_declutter_card_fee_prorated.sql 2319c12797fa7813",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
@@ -679,7 +679,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_refund_cancels_setup_jobs: "20261017073146_declutter_add_a_helpr.sql ac0eabd46005cf1d",
       // A10: the trigger's (and the admin hand tool's) body: reads the refund row, cancels and marks setup jobs.
       declutter_apply_seller_fault: "20261017073146_declutter_add_a_helpr.sql 943675e46fc54277",
-      // Q1939 (20261102035736, builder 140, verdict owed): reads seller-fault refund rows (fee_policy, reason, order) to
+      // Q1939 (20261102035736, builder 140; lh-money-escrow approve 11-01, ~/.lh-shots/verdicts/b140.txt): reads seller-fault refund rows (fee_policy, reason, order) to
       // re-run the unchanged declutter_apply_seller_fault on setup jobs the trigger missed; records no refund, no amount.
       declutter_seller_fault_sweep: "20261102035736_declutter_seller_fault_sweep.sql 229723c76c70ea79",
       // A10: adds the setup job's card fee to the seller's debt for that refund, once; never a refund amount.

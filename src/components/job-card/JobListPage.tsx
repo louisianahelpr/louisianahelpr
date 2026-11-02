@@ -495,8 +495,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
           {/* Jobs waiting for the poster's bank payment: shown, never bucketed. */}
           {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mb-3" />}
           {tab === "posted" && (
-            /* `space-y-list` (12px, Q213a), which is what PostedJobsTab and the grouped
-               ActivitySectionedView both use. It said `space-y-2.5` — 10px
+            /* `space-y-list` (12px, Q213a), which is what PostedJobsTab uses. It said `space-y-2.5` — 10px
                against the real 12px — the same 2px-per-row drift
                ActivityPageSkeleton was fixed for on 2026-09-21; a gap is part
                of the reservation. */

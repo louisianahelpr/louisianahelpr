@@ -1708,7 +1708,7 @@ html.web-desktop {
 
   /* Activity (My Posts / My Jobs) card column. Gated by web-desktop so the
      native app + phone-width browsers keep their identical single column.
-     Used by both the sectioned view (ActivitySectionedView) and the flat
+     Used by the flat
      per-status view (PostedJobsTab / AppliedJobsTab render here instead of
      the window-virtualized list when useIsWebDesktop() is true). `!important`
      (below) cancels the base `space-y-3` vertical margins so the grid gap

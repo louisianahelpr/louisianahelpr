@@ -23,6 +23,7 @@ import { matchesSearch, searchOrFilter } from "@/lib/declutter/searchMatch";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { likePattern, type SearchSection } from "./searchQuery";
+import { SearchStart } from "./SearchStart";
 import { searchJobPrice, type PricedJobHit } from "./searchJobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -260,7 +261,7 @@ export default function SearchPage() {
           />
         )}
 
-        {!q && <p className="font-sans text-ds-13 text-muted-foreground px-1">Search every section at once.</p>}
+        {!q && <SearchStart userId={user?.id ?? null} declutterOn={declutterOn} />}
         {q && failed && (
           <div className="flex items-center justify-between gap-3 px-1" role="alert">
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--alert-ink))" }}>Search didn't load.</p>

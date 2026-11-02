@@ -54,21 +54,34 @@ function pinEvening() {
 // Owner 2026-10-25: members never see a fee name, percentage or fee maths. The
 // confirm screen shows the dollar amount for the Helpr's time and that most of
 // the rest comes back; nothing else.
-// @mutate src/components/CancellationDialog.tsx | {crewQuote ? "For your hired Helprs' time" : `For ${helperName \|\| "your Helpr"}'s time`} | {`Cancellation fee (${cancellationFeePercent}% of $${formatPrice(jobBudget)})`}
+// Q2674 (audit 1102e row 7): the $ for the Helpr's time was said four times and "most of the rest comes back" twice,
+// under a greyed "Before a Helpr is selected" step and an all-caps strike box. Now ONE money box ("$25 for Marie's
+// time · counts as a strike"), what comes back said once (Back to you), no past step, the strike box only when it applies.
+// @mutate src/components/cancellationDialog/CancelDialogNotices.tsx | {crew ? "your hired Helprs'" : `${helperName \|\| "your Helpr"}'s`} time | {crew ? "your hired Helprs'" : "your Helpr's"} time
+// @mutate src/components/cancellationDialog/CancelDialogNotices.tsx |           {feeTier}{strike ? " · counts as a strike" : ""} |           {feeTier} · most of the rest of your payment comes back to you
+// @mutate src/components/CancellationDialog.tsx |             {!hasHelper && (<> |             {(<>
+// @mutate src/components/CancellationDialog.tsx |           {strikeApplies && ( |           {(
+// @mutate src/components/cancellationDialog/CancelDialogNotices.tsx | comes out of that amount and is sent | comes out of the ${formatPrice(fee)} and is sent
 // @mutate src/components/CancellationDialog.tsx |                   Cancel anytime before you hire. Most of your payment comes back to your card within the hour. |                   Cancel anytime with no cancellation fee. Your payment is refunded, less the card-processing fee Stripe keeps.
 const FEE_WORDS = /fee|%|platform|card-processing|card processing|commission/i;
 const shown = () => (document.body.textContent ?? "").replace(/one-time \$[\d.]+ account setup fee/g, "");
 
 describe("CancellationDialog shows amounts, never fees", () => {
-  it("a late cancel: the dollar amount for the Helpr's time, and that most of the rest comes back", () => {
+  it("a late cancel: ONE money box for the Helpr's time and the strike, what comes back said once (Q2674)", () => {
     pinEvening();
     render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(6) })} />);
-    // 25% of $100 = $25 for the Helpr's time (the ladder, unchanged).
-    expect(screen.getByText("For Marie's time")).toBeInTheDocument();
-    expect(screen.getAllByText("$25").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Strike recorded/)).toBeInTheDocument();
-    expect(screen.getByText(/Most of the rest of your payment comes back to your card within the hour\./)).toBeInTheDocument();
-    expect(shown()).not.toMatch(FEE_WORDS);
+    const t = shown();
+    // 25% of $100 = $25 for the Helpr's time (the ladder, unchanged): in the box and on the button, nowhere else.
+    expect(screen.getByText(/for Marie's time/)).toBeInTheDocument();
+    expect(t.match(/\$25(?:\.00)?\b/g)?.length).toBe(2);
+    expect(t).toContain("Cancel · pay $25");
+    expect(screen.getByText(/ before job · counts as a strike$/)).toBeInTheDocument();
+    expect(t.match(/Back to you/g)?.length).toBe(1);
+    expect(t).not.toMatch(/most of the rest/i);
+    expect(t).not.toMatch(/Before a Helpr is selected/);
+    expect(t).toContain("How strikes work");
+    expect(t).toContain("Keep the job");
+    expect(t).not.toMatch(FEE_WORDS);
   });
 
   it("a flat-model job, and a legacy one, before a hire: most of the payment comes back, no fee named", () => {
@@ -86,11 +99,12 @@ describe("CancellationDialog shows amounts, never fees", () => {
   it("24+ hours out with a Helpr: nothing for the Helpr's time, no breakdown", () => {
     pinEvening();
     render(<CancellationDialog {...makeProps({ jobDate: isoDateHoursFromNow(72) })} />);
-    expect(screen.queryByText("For Marie's time")).not.toBeInTheDocument();
+    expect(screen.queryByText(/for Marie's time/)).not.toBeInTheDocument();
     // JOBS-14 (owner 10-30): poster_cancel_job files the strike only inside 24 hours, as for Helprs.
     expect(screen.getByText(/No charge for your Helpr's time\. The start is more than 24 hours away, so this isn't a strike\./)).toBeInTheDocument();
-    expect(screen.queryByText(/Strike recorded/)).not.toBeInTheDocument();
-    expect(screen.getByText(/These consequences don't apply to this cancel/)).toBeInTheDocument();
+    expect(screen.queryByText(/ before job · counts as a strike$/)).not.toBeInTheDocument();
+    // Q2674: no strike box on a cancel that is no strike (the green line above says so).
+    expect(screen.queryByText(/How strikes work/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Free cancellation/)).not.toBeInTheDocument();
     expect(shown()).not.toMatch(FEE_WORDS);
   });

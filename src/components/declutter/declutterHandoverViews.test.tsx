@@ -925,7 +925,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return them("Not out yet. We'll tell you when it's on the porch. Don't go before then."); |       return them("Booked. Pick it up on your day.");
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return porchDayIsNow(day) ? you("Pick it up today") | return porchDayIsNow(day) ? you("Pick it up at your pickup time")
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "seller" && !booking.pickup_day && ( |       {order.side === "seller" && (
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | slotStart={noShowFrom(booking) ?? booking.slot_start} | slotStart={booking.slot_start}
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | slotStart={noShowFrom(booking, porchSeller) ?? booking.slot_start} | slotStart={booking.slot_start}
   it("owner 10-28 / 10-31: a new porch pickup books a time; a day already booked: told not to go until it's out, then 'Pick it up today'", async () => {
     const today = new Date();
     const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -1288,12 +1288,15 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
   });
 
   it("each pickup kind and side: hidden before booking and during the booked time, shown once it is over", async () => {
-    const cases: { name: string; handover: string; booking: unknown; offered: boolean }[] = [];
+    // Q2627: the porch SELLER's moment is the end of the porch window (no "out until": the end of the slot's day).
+    const s16 = new Date(Date.now() - 16 * 60_000);
+    const slotDayOver = key(s16) !== today;
+    const cases: { name: string; handover: string; booking: unknown; offered: boolean; sellerOffered?: boolean }[] = [];
     for (const handover of ["pickup_home", "porch"]) {
       cases.push({ name: `${handover}, not booked`, handover, booking: null, offered: false });
       cases.push({ name: `${handover}, booked time 5 min in`, handover, booking: slot(5), offered: false });
       cases.push({ name: `${handover}, booked time in an hour`, handover, booking: slot(-60), offered: false });
-      cases.push({ name: `${handover}, booked time 16 min in`, handover, booking: slot(16), offered: true });
+      cases.push({ name: `${handover}, booked time 16 min in`, handover, booking: slot(16), offered: true, sellerOffered: handover === "porch" ? slotDayOver : true });
     }
     cases.push({ name: "porch day today", handover: "porch", booking: { ...slot(60), pickup_day: today }, offered: false });
     cases.push({ name: "porch day tomorrow", handover: "porch", booking: { ...slot(-600), pickup_day: tomorrow }, offered: false });
@@ -1310,12 +1313,35 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
         const dayCard = c.handover === "porch" && !!c.booking && "pickup_day" in (c.booking as object);
         if (dayCard) expect((await screen.findAllByText(/pick a pickup day|Pickup day:/i)).length).toBeGreaterThan(0);
         const offered = !!screen.queryByRole("button", { name: "Report a problem" });
-        expect(`${c.name} (${side}): ${offered}`).toBe(`${c.name} (${side}): ${c.offered}`);
+        const want = side === "seller" && c.sellerOffered !== undefined ? c.sellerOffered : c.offered;
+        expect(`${c.name} (${side}): ${offered}`).toBe(`${c.name} (${side}): ${want}`);
         if (!offered) hidden++;
         unmount();
       }
     }
     expect(hidden).toBeGreaterThan(9);
+  });
+
+  // Q2627 (audit 1102c R2): the item is "out until" a time. While it is out, the seller has no "They didn't show" and
+  // no "Report a problem" (the server refuses the no-show until porch_until: declutter_report_no_show); after it, both.
+  // @mutate src/components/declutter/DeclutterPorchDay.tsx |   if (porchSeller) { |   if (false) {
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const porchSeller = order.handover === "porch" && order.side === "seller"; |   const porchSeller = false;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | trigger={pickupTimeOver(booking, Date.now(), porchSeller)} /> | trigger={pickupTimeOver(booking)} />
+  // @mutate src/components/declutter/DeclutterPorchDay.tsx | const until = booking.porch_until ? new Date(booking.porch_until) : | const until = false ? new Date(booking.porch_until ?? "") :
+  it("Q2627: porch out until a time: the seller's They didn't show and Report a problem wait until it is over", async () => {
+    const outUntil = (minsFromNow: number) => ({ ...slot(120), porch_mode: "until", porch_until: new Date(Date.now() + minsFromNow * 60_000).toISOString() });
+    let checked = 0;
+    for (const [mins, offered] of [[60, false], [-20, true]] as const) {
+      state.bookings = [outUntil(mins)];
+      const { unmount } = show([line({ handover: "porch", my_side: "seller", porch_ok: true })]);
+      await screen.findByText(/Pickup( day)?:/);
+      expect(await screen.findByText(/out until/)).toBeInTheDocument();
+      expect(`${mins}: ${!!screen.queryByRole("button", { name: "They didn't show" })}`).toBe(`${mins}: ${offered}`);
+      expect(`${mins}: ${!!screen.queryByRole("button", { name: "Report a problem" })}`).toBe(`${mins}: ${offered}`);
+      checked++;
+      unmount();
+    }
+    expect(checked).toBeGreaterThan(1);
   });
 
   // LEAD-PLACE-TIMES: a new porch order books a TIME, so "none left" is the time picker's "No pickup times are open"

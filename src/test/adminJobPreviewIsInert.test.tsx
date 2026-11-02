@@ -10,6 +10,11 @@
  *
  * @mutate src/pages/admin/preview/previewBackend.ts | if (!base \|\| !url.startsWith(base)) return o.realFetch(input, init); | if (base) return o.realFetch(input, init);
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx | push: (to: To) => sayWouldHave(`open ${toText(to)}`), | push: outer.navigator.push,
+ * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (sheetOpen) return null; |   if (sheetOpen) void 0;
+ * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (!open) { |   if (open === null) {
+ * @mutate src/pages/admin/preview/jobPreviewSamples.ts |     opens: stage === "cancel_sheet" && viewer === "poster" ? "Cancel job" : null, |     opens: null,
+ * @mutate src/pages/admin/preview/previewBackend.ts |      o.onUnlisted?.(`rpc ${name}`); |      void name;
+ * @mutate src/pages/admin/preview/jobPreviewSamples.ts |       job_guarantee_claims: [],\n |
  * @mutate src/App.tsx | <ProtectedRoute><AdminRoute><AdminJobPreview /></AdminRoute></ProtectedRoute> | <ProtectedRoute><AdminJobPreview /></ProtectedRoute>
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -35,6 +40,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 
 import JobPreviewPage from "@/pages/admin/preview/JobPreviewPage";
 import { PREVIEW_STAGES, previewSample } from "@/pages/admin/preview/jobPreviewSamples";
+import { jobPreviewChecks } from "@/pages/admin/preview/previewBackend";
 
 const SUPABASE = String(import.meta.env.VITE_SUPABASE_URL);
 let sent: Array<{ url: string; method: string }> = [];
@@ -54,6 +60,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   globalThis.fetch = realFetch;
+  jobPreviewChecks.onUnlisted = undefined;
 });
 
 let where = "";
@@ -105,10 +112,18 @@ function pressEveryButton() {
 describe("admin job-page preview", () => {
   for (const { key } of PREVIEW_STAGES) {
     for (const viewer of ["poster", "helpr"] as const) {
-      it(`${key} as ${viewer}: draws the job page and sends nothing to Supabase, even with every button pressed`, async () => {
+      it(`${key} as ${viewer}: draws the job page from its sample alone and sends nothing to Supabase, even with every button pressed`, async () => {
+        // Audit 1102b / 1102c P1: a read the sample does not answer draws a made-up state. Every read the page makes
+        // as it draws must be in the sample.
+        const unlisted: string[] = [];
+        jobPreviewChecks.onUnlisted = (what) => unlisted.push(what);
         renderPreview(key, viewer);
         const title = previewSample(key, viewer).job.title;
         await screen.findAllByText(title, undefined, { timeout: 10000 });
+        await new Promise((r) => setTimeout(r, 50));
+        expect(document.querySelector("[data-preview-crashed]"), `${key}:${viewer} crashed`).toBeNull();
+        expect([...new Set(unlisted)].sort(), `${key}:${viewer} reads its sample does not answer`).toEqual([]);
+        jobPreviewChecks.onUnlisted = undefined;
         const start = where;
         pressEveryButton();
         await new Promise((r) => setTimeout(r, 50));
@@ -122,12 +137,15 @@ describe("admin job-page preview", () => {
     renderPreview("working", "helpr");
     await screen.findAllByText(previewSample("working", "helpr").job.title, undefined, { timeout: 10000 });
     const start = where;
-    // The hired Helpr's "Open in working" is a navigation: it stays here and says where it would have gone.
-    const open = screen.getAllByRole("button", { name: "Open in working" })[0];
+    // The sample's people are named on the page (get_safe_profiles and get_public_profile_stats answered from the sample).
+    expect((await screen.findAllByLabelText("See the poster, Lexi L., 4.8 stars from 9 reviews")).length).toBeGreaterThan(0);
+    // The hired Helpr's "Open in working" (under More options) is a navigation: it stays here and says where it would have gone.
+    const more = screen.getAllByRole("button", { name: "More options" })[0];
+    fireEvent.pointerDown(more);
+    fireEvent.click(more);
+    const open = (await screen.findAllByRole("button", { name: "Open in working" }))[0];
     fireEvent.pointerDown(open);
     fireEvent.click(open);
-    // The sample's people are named on the page (get_safe_profiles answered from the sample).
-    expect(screen.getAllByRole("button", { name: "Message Lexi" }).length).toBeGreaterThan(0);
     expect(toasts).toContain(`Preview: this would open /jobs?tab=working&job=${previewSample("working", "helpr").jobId}&open=1.`);
     pressEveryButton();
     await waitFor(() => expect(toasts.filter((t) => t.startsWith("Preview: this would ")).length).toBeGreaterThan(1));
@@ -143,6 +161,37 @@ describe("admin job-page preview", () => {
     await waitFor(() => expect(toasts.some((t) => t.startsWith("Preview: this would ") && !t.startsWith("Preview: this would open"))).toBe(true));
     expect(leaked()).toEqual([]);
     expect(sent.filter((r) => r.method !== "GET")).toEqual([]);
+  }, 30000);
+
+  it("Q2617: Hide collapses the dock to one small button, and it comes back on a tap", async () => {
+    renderPreview("hired", "poster");
+    await screen.findAllByText(previewSample("hired", "poster").job.title, undefined, { timeout: 10000 });
+    fireEvent.click(screen.getByRole("button", { name: "Hide" }));
+    const dock = screen.getByRole("region", { name: "Job page preview controls" });
+    expect(dock.hasAttribute("data-preview-collapsed")).toBe(true);
+    expect(dock.querySelectorAll("button")).toHaveLength(1);
+    expect(screen.queryByRole("radiogroup", { name: "Stage" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+    expect(screen.getByRole("radiogroup", { name: "Stage" })).toBeInTheDocument();
+  }, 30000);
+
+  it("Q2617 + audit 1102b: the Cancel sheet stage opens the poster's cancel sheet, and the dock steps aside while it is open", async () => {
+    const unlisted: string[] = [];
+    jobPreviewChecks.onUnlisted = (what) => unlisted.push(what);
+    renderPreview("cancel_sheet", "poster");
+    // The cancel sheet itself (CancellationDialog, with its quote), not the More options list it is reached through.
+    const sheet = await waitFor(() => {
+      const d = screen.getAllByRole("dialog").find((x) => !/^More options/.test(x.textContent ?? ""));
+      expect(d).toBeTruthy();
+      return d as HTMLElement;
+    }, { timeout: 10000 });
+    expect(sheet.textContent ?? "").toMatch(/cancel/i);
+    // Its quote is the late one (the start is about 3 hours away), drawn from the sample alone.
+    expect(sheet.textContent ?? "").not.toMatch(/more than 24 hours away/);
+    expect([...new Set(unlisted)]).toEqual([]);
+    // Nothing of the preview sits over the sheet's buttons (at 375 the dock covered each sheet's second button).
+    await waitFor(() => expect(document.querySelector("[data-preview-controls]")).toBeNull());
+    expect(leaked()).toEqual([]);
   }, 30000);
 
   it("is behind the same admin gate as /admin, in its own lazy chunk", () => {

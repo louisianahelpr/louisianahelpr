@@ -12,7 +12,8 @@
  * @mutate supabase/migrations/20261102015348_reporter_hears_the_outcome.sql | SET status = CASE WHEN reporter_id IS NULL THEN 'resolved' ELSE 'dismissed' END | SET status = 'resolved'
  * @mutate src/components/ReportDialog.tsx | We&apos;ll send you a notice when we&apos;ve looked into it | There&apos;s no automatic status update
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { describe, expect, it } from "vitest";
 import { newestFunction } from "./helpers/parityReaders";
 import { blankSqlComments } from "./helpers/blankNonCode";

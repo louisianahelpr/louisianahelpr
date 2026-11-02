@@ -1644,6 +1644,90 @@ describe("stripe-webhook edge function", () => {
       expect(res.status).toBe(500);
     });
 
+    // Q1994: a payment that settles on a job already refunded/cancelled/
+    // cancelling is captured money with no escrow. A BANK payment pages ops to
+    // refund it; a CARD one is a redelivery and stays quiet; an unreadable
+    // payment method fails closed and pages.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | } else if (!FUNDED_PAYMENT_STATUSES.has(String(taxJob.payment_status))) { | } else if (false) {
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | if (paidWith !== "us_bank_account" && paidWith !== null) { | if (paidWith !== null) {
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | if (paidWith !== "us_bank_account" && paidWith !== null) { | if (paidWith !== "us_bank_account") {
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | const FUNDED_PAYMENT_STATUSES = new Set(["escrow", "payout_pending", "released"]); | const FUNDED_PAYMENT_STATUSES = new Set(["escrow", "payout_pending", "released", "refunded"]);
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | new Set(["escrow", "payout_pending", "released"]) | new Set(["escrow", "payout_pending"])
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | const fromEvent = typeOf(pi.latest_charge); | const fromEvent = null as string \| null;
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | return typeOf(full?.latest_charge); | return "card";
+    describe("Q1994 a payment that settles on a job already refunded or closed", () => {
+      async function settle(paymentStatus: string, latestCharge?: unknown) {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: `evt_pi_succeeded_closed_${paymentStatus}`,
+          type: "payment_intent.succeeded",
+          data: { object: { id: "pi_closed", amount: 5000, amount_details: { tax: { total_tax_amount: 0 } }, latest_charge: latestCharge ?? "ch_closed" } },
+        });
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: paymentStatus, status: "cancelled", sales_tax_amount: 0, is_seed: true }],
+        };
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        const pages = (slackAlerts as Array<{ kind?: string; title?: string; fields?: Record<string, unknown> }>).filter((a) => a.kind === "money_at_risk");
+        const escrowWrite = scenario.writes.find(
+          (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "escrow",
+        );
+        return { res, pages, escrowWrite };
+      }
+
+      for (const ps of ["refunded", "cancelled", "cancelling"]) {
+        it(`pages ops to refund a BANK payment that settles on a '${ps}' job (read from the PI's charge)`, async () => {
+          stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_closed", latest_charge: { id: "ch_closed", payment_method_details: { type: "us_bank_account" } } });
+          const { res, pages, escrowWrite } = await settle(ps);
+          expect(res.status).toBe(200);
+          expect(escrowWrite).toBeUndefined();
+          expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_closed", { expand: ["latest_charge"] });
+          expect(pages).toHaveLength(1);
+          expect(pages[0].title).toMatch(/Bank payment settled on a job that is already refunded or closed/);
+          expect(pages[0].fields).toMatchObject({ job_id: "job-1", payment_intent: "pi_closed", payment_status: ps, method: "us_bank_account" });
+        });
+      }
+
+      it("reads the type from the event's expanded charge without a Stripe call", async () => {
+        const { pages } = await settle("refunded", { id: "ch_closed", payment_method_details: { type: "us_bank_account" } });
+        expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        expect(pages).toHaveLength(1);
+      });
+
+      it("stays quiet on a CARD redelivery for a job refunded later", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_closed", latest_charge: { id: "ch_closed", payment_method_details: { type: "card" } } });
+        const { res, pages, escrowWrite } = await settle("refunded");
+        expect(res.status).toBe(200);
+        expect(escrowWrite).toBeUndefined();
+        expect(pages).toHaveLength(0);
+        expect(slackAlerts).toHaveLength(0);
+      });
+
+      it("fails closed and pages when the PI cannot be read", async () => {
+        stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("stripe down"));
+        const { pages } = await settle("refunded");
+        expect(pages).toHaveLength(1);
+        expect(pages[0].title).toMatch(/payment method could not be read/);
+        expect(pages[0].fields).toMatchObject({ method: "unknown" });
+      });
+
+      it("fails closed and pages when the charge carries no payment method type", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_closed", latest_charge: "ch_closed" });
+        const { pages } = await settle("cancelling");
+        expect(pages).toHaveLength(1);
+        expect(pages[0].fields).toMatchObject({ method: "unknown" });
+      });
+
+      it("never reads Stripe or pages for a funded job (escrow, payout_pending, released)", async () => {
+        for (const ps of ["escrow", "payout_pending", "released"]) {
+          resetStripeMock();
+          resetSharedMocks();
+          const { pages } = await settle(ps);
+          expect(pages).toHaveLength(0);
+          expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        }
+      });
+    });
+
     it("does not promote a job that is already in escrow (sync card payment)", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({

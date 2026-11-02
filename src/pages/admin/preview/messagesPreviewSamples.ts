@@ -47,10 +47,20 @@ export interface MessagesPreviewSample {
   tables: Record<string, unknown[]>;
 }
 
+/** The Helprs the admin hired (side poster). */
 const PEOPLE = [
   { id: MP_ELI, full_name: "Eli Robichaux", first: "Eli" },
   { id: MP_MAYA, full_name: "Maya Thibodeaux", first: "Maya" },
   { id: MP_JOE, full_name: "Joe Fontenot", first: "Joe" },
+];
+/**
+ * Q2691 (audit 1102e row 24): on the Helpr side the same ids are the people who POSTED the jobs, so they carry
+ * posters' names and a poster's record, not Eli's name and Helpr stats.
+ */
+const POSTERS = [
+  { id: MP_ELI, full_name: "Lexi Landry", first: "Lexi" },
+  { id: MP_MAYA, full_name: "Nora Guidry", first: "Nora" },
+  { id: MP_JOE, full_name: "Paul Hebert", first: "Paul" },
 ];
 
 /** The sample for one stage and side, around the admin's own id. `now` is injectable so a test can pin the clock. */
@@ -82,7 +92,8 @@ export function messagesPreviewSample(stage: MessagesPreviewStage, side: Message
     msg(MP_JOB_MOVE, me, MP_MAYA, "The side door, I'll open it now.", 60),
     msg(MP_JOB_PAINT, me, MP_JOE, "Thanks again, the fence looks great.", 60 * 26),
   ];
-  const profiles = PEOPLE.map((p) => ({ id: p.id, user_id: p.id, full_name: p.full_name, avatar_url: null, created_at: "2025-06-02T15:00:00Z" }));
+  const people = poster ? PEOPLE : POSTERS;
+  const profiles = people.map((p) => ({ id: p.id, user_id: p.id, full_name: p.full_name, avatar_url: null, created_at: "2025-06-02T15:00:00Z" }));
   // A block takes the thread out of the inbox (loadConversations hides a blocked person's rows), so "After a block" is
   // the inbox without Eli; the two sheets open over his thread.
   const openThread = stage === "thread" || stage === "reported" || stage === "block_sheet" ? { jobId: MP_JOB_RAKE, userId: MP_ELI } : null;
@@ -97,15 +108,20 @@ export function messagesPreviewSample(stage: MessagesPreviewStage, side: Message
       },
       get_user_last_active: (body: Record<string, unknown>) => {
         const ids = Array.isArray(body.user_ids) ? (body.user_ids as string[]) : [];
-        return ids.filter((id) => PEOPLE.some((p) => p.id === id)).map((id) => ({ user_id: id, last_active_at: ago(5) }));
+        return ids.filter((id) => people.some((p) => p.id === id)).map((id) => ({ user_id: id, last_active_at: ago(5) }));
       },
       are_users_blocked: stage === "blocked",
       get_public_profile_stats: (body: Record<string, unknown>) => {
         const ids = Array.isArray(body.p_user_ids) ? (body.p_user_ids as string[]) : [];
-        return ids.filter((id) => PEOPLE.some((p) => p.id === id)).map((id) => ({
+        return ids.filter((id) => people.some((p) => p.id === id)).map((id) => (poster ? {
           user_id: id, avg_rating: 4.9, review_count: 11, completed_jobs_as_helper: 14, completed_jobs_total: 14, posted_jobs_total: 3,
           jobs_total: 17, cancelled_jobs: 0, cancellation_rate: 0, on_time_rate: 1, on_time_sample: 14, poster_avg_rating: 4.8,
           has_pending_credentials: false, has_stripe_account: true, is_background_checked: false, is_id_verified: true,
+        } : {
+          // A poster's record: jobs posted, no Helpr work.
+          user_id: id, avg_rating: null, review_count: 0, completed_jobs_as_helper: 0, completed_jobs_total: 9, posted_jobs_total: 9,
+          jobs_total: 9, cancelled_jobs: 0, cancellation_rate: 0, on_time_rate: null, on_time_sample: 0, poster_avg_rating: 4.8,
+          has_pending_credentials: false, has_stripe_account: false, is_background_checked: false, is_id_verified: true,
         }));
       },
       // The send gate: the admin may message the other person on the job (the Blocked stage's block still closes it).

@@ -24,7 +24,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { OrderSteps, orderStepAt, type OrderFacts } from "./OrderSteps";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { useMyPaidCents } from "./useMyPaidCents";
-import { porchDayIsNow, porchDayWords } from "./DeclutterPorchDay";
+import { porchDayIsNow, porchDayWords, porchPhotoDay } from "./DeclutterPorchDay";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { GOOD_NEWS_NOTE } from "./goodNews";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
@@ -59,7 +59,9 @@ export function onDay(day: string): string {
 }
 
 /** A3-18 (lead 11-01 5:01 PM): the checkout time once booked ("Sat 11/2, 3–5 PM"), or "by <book_by>" while nothing is. */
-type TimeWords = { chosen: string | null; by: string | null; buyer?: string | null };
+type TimeWords = { chosen: string | null; by: string | null; buyer?: string | null;
+  /** Q2626: a porch pickup's photo day (porchPhotoDay); before it the seller is told the day, not "put it out" now. */
+  photoDay?: string | null };
 
 export function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: string | null, free = false,
   times: TimeWords = { chosen: null, by: null }): NextStepValue {
@@ -79,8 +81,11 @@ export function standing(handover: Pickup, side: "buyer" | "seller", at: number,
     // LEAD-PLACE-TIMES: a porch pickup is booked for a time inside the place's hours (a day booked before stays a day).
     if (at === 0) return side === "buyer" ? you("Pick a time to collect it from the porch", by) : waiting("pick a pickup time");
     if (at === 1) {
-      if (side === "seller" && chosen) return you("Put it out and post the porch photo", `Pickup ${chosen}`);
-      if (side === "seller") return day ? you(`Put it out ${onDay(day)} and post the porch photo`) : you("Put it out and take one photo where the buyer will find it");
+      // Q2626 (audit 1102c R1): booked for tomorrow, "put it out" read as tonight. Before the photo day, the day.
+      const early = side === "seller" && !day && times.photoDay && !porchDayIsNow(times.photoDay) ? times.photoDay : null;
+      if (side === "seller" && chosen) return you(early ? `Put it out ${onDay(early)}, then post the porch photo` : "Put it out and post the porch photo", `Pickup ${chosen}`);
+      if (side === "seller") return day ? you(`Put it out ${onDay(day)} and post the porch photo`)
+        : early ? you(`Put it out ${onDay(early)}, then take one photo where the buyer will find it`) : you("Put it out and take one photo where the buyer will find it");
       if (chosen) return them("Not out yet. We'll tell you when it's on the porch", `Pickup ${chosen}`);
       return them("Not out yet. We'll tell you when it's on the porch. Don't go before then.");
     }
@@ -181,7 +186,7 @@ export function PickupStatus({
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
       <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }
-        : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null })} />
+        : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null, photoDay: handover === "porch" ? porchPhotoDay({ pickup_day: day, slot_start: slot }) : null })} />
       {part === "all" && money}
     </div>
   );

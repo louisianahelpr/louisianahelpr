@@ -814,7 +814,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // the server refuses the photo, so the card says the day instead of offering the button.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const posted = seller && !!handoverRow.data?.set_out_at; |   const posted = false;
   // @mutate src/components/declutter/DeclutterPorchDay.tsx |   const putOut = side === "seller" && !!out.data?.set_out_at; |   const putOut = false;
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const notYet = seller && !posted && !!booking.pickup_day && !porchDayIsNow(booking.pickup_day); |   const notYet = false;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const notYet = seller && !posted && !!photoDay && !porchDayIsNow(photoDay); |   const notYet = false;
   it("the seller's porch card: the day before it's due, then the photo, then no more asking (D1-5)", async () => {
     const today = new Date();
     const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -842,6 +842,31 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.queryByRole("button", { name: "Take the porch photo" })).toBeNull();
     expect(screen.queryByText(/You need it before you can be paid automatically/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Pick another day (once)" })).toBeNull();
+    v.unmount();
+  });
+
+  // Q2626 (audit 1102c R1): a porch pickup booked for a TIME tomorrow (no pickup_day) showed "Next: put it out and take
+  // one photo" and the primary "Take the porch photo" the evening before; a seller who followed it left the item out
+  // overnight. The server takes the photo from the slot's day (declutter_porch_photo, 20261030164712).
+  // @mutate src/components/declutter/DeclutterPorchDay.tsx |   return booking.slot_start ? todayKey(new Date(booking.slot_start)) : null; |   return null;
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | photoDay: handover === "porch" ? porchPhotoDay({ pickup_day: day, slot_start: slot }) : null | photoDay: null
+  it("Q2626: a porch time booked for tomorrow: the day, and no photo button until then", async () => {
+    const now = new Date();
+    const at = (days: number, h: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + days, h, 11);
+    const timed = (start: Date) => ({ order_id: "o1", slot_start: start.toISOString(), slot_end: new Date(start.getTime() + 60 * 60_000).toISOString(), porch_mode: null, porch_until: null });
+    state.handover = { side: "seller" };
+    state.bookings = [timed(at(1, 6))];
+    let v = show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    expect(await screen.findByText("You can take the porch photo tomorrow.")).toBeInTheDocument();
+    expect(screen.getByText("Next: put it out tomorrow, then take one photo where the buyer will find it")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Take the porch photo" })).toBeNull();
+    v.unmount();
+    // The day itself (a time later today): the photo is asked for.
+    state.bookings = [timed(at(0, 23))];
+    v = show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    expect(await screen.findByRole("button", { name: "Take the porch photo" })).toBeInTheDocument();
+    expect(screen.getByText("Next: put it out and take one photo where the buyer will find it")).toBeInTheDocument();
+    expect(screen.queryByText(/You can take the porch photo/)).toBeNull();
     v.unmount();
   });
 

@@ -18,6 +18,7 @@ import { fetchMyBookings } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { useBuyingTracker } from "./BuyingOrders";
 import { deliveryStanding, standing, useMyHandover } from "./DeclutterPorchHandover";
+import { porchPhotoDay } from "./DeclutterPorchDay";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { orderStepAt, type OrderFacts } from "./OrderSteps";
 import { paidOrdersFromCart } from "./paidOrders";
@@ -68,7 +69,7 @@ function SellerStep({ orderId }: { orderId: string }) {
       done: done || handover.data?.status === "handed_over",
     };
     step = standing(kind, "seller", orderStepAt(facts), b?.pickup_day ?? null, free,
-      { ...orderTimeWords(times.data?.[0], kind, b?.slot_start ?? null), buyer: other.first });
+      { ...orderTimeWords(times.data?.[0], kind, b?.slot_start ?? null), buyer: other.first, photoDay: kind === "porch" && b ? porchPhotoDay(b) : null });
   } else if (delivers && sd.data) {
     const facts: OrderFacts = {
       handover: "seller_delivery", side: "seller", free,

@@ -39,6 +39,17 @@ export function porchDayIsNow(day: string, now = new Date()): boolean {
 }
 
 /**
+ * Q2626 (audit 1102c R1): the day the server first takes the seller's porch photo (declutter_porch_photo,
+ * 20261030164712: COALESCE(pickup_day, the Louisiana date of slot_start)). A porch pickup booked for a TIME has no
+ * pickup_day, so the card used to ask for the photo the evening before ("put it out and take one photo" with the
+ * primary "Take the porch photo"), and a seller who followed it left the item outside overnight. Null: not booked.
+ */
+export function porchPhotoDay(booking: { pickup_day?: string | null; slot_start?: string | null }): string | null {
+  if (booking.pickup_day) return booking.pickup_day;
+  return booking.slot_start ? todayKey(new Date(booking.slot_start)) : null;
+}
+
+/**
  * When "They didn't show" may open. A booked time: its start (the button adds its own 15 minutes). A porch
  * day: 15 minutes before the day ends, so the button opens when the day is over (the server's rule).
  *

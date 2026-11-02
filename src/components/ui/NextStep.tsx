@@ -12,7 +12,8 @@ export { nextStepWords, type NextStepValue } from "@/lib/nextStepWords";
 
 export function NextStep({ value, className = "" }: { value: NextStepValue | null; className?: string }) {
   if (!value || !value.text.trim()) return null;
-  const lead = value.who === "you" ? `Next: ${lowerFirst(value.text)}` : value.text;
+  // Q2590 (Jobs audit 1102b row 4): a line that starts with a name keeps its capital ("Next: Lexi offered you this job").
+  const lead = value.who === "you" ? `Next: ${value.keepCase ? value.text : lowerFirst(value.text)}` : value.text;
   return (
     <p data-next-step={value.who} className={`text-ds-16 leading-snug ${className}`}>
       <span className="font-semibold text-foreground">{lead}</span>

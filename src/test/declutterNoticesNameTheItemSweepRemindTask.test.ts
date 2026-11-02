@@ -13,7 +13,7 @@
  *   5. (AUD31-22) a notice whose title is built at run time (CASE, format, a variable) still files under a Declutter
  *      kind: its kind is a Declutter one, job_match on purpose, or one declutter_notice_type's kind fallback maps.
  *
- * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |       o := public.declutter_lock_order(r.order_id); |       SELECT * INTO o FROM public.declutter_orders WHERE id = r.order_id;
+ * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql |       o := public.declutter_lock_order(r.order_id); |       SELECT * INTO o FROM public.declutter_orders WHERE id = r.order_id;
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |         'message', public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, p_link, p_message)), |         'message', p_message,
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql | format('The delivery of "%s" was cancelled. You do not need to go.', t.title), '/declutter?tab=deliver', | 'A delivery you took was cancelled. You do not need to go.', '/declutter?tab=deliver',
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql | t.title), '/declutter?tab=deliver', t.customer_id); | t.title), '/declutter?view=deliver', t.customer_id);

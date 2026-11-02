@@ -182,7 +182,7 @@ describe("JobStatTiles — a re-listed crew's tile says its open spots (Q1464)",
 /**
  * A3-94 (audit 11-01): the tile read "Closes · 4 days left" on a job starting in 30 minutes (expires_at is after the
  * start on every dated open job on prod). It names whichever comes first: the start ("Starts") or the close.
- * @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx |         const startsFirst = Number.isFinite(closeMs) && Number.isFinite(startMs) && startMs < closeMs; |         const startsFirst = false;
+ * @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx |         const first = listingDeadline(job); |         const first = listingDeadline({ ...job, date_needed: null });
  * @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx |                 label: startsFirst ? "Starts" : "Closes", |                 label: "Closes",
  */
 describe("A3-94: the deadline tile names whichever comes first, the start or the close", () => {

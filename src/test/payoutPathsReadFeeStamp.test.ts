@@ -245,6 +245,8 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
       "src/pages/jobs/jobPage/useJobPage.ts",
       "src/pages/jobs/jobPage/useJobPage.ts",
       "src/pages/profile/HelprWrapped.tsx",
+      // Q2642 (lead PASS 11-02): a Search job hit prices the browse card's take-home; the list names the stamp.
+      "src/pages/search/SearchPage.tsx",
       "src/pages/tips/TipMoment.tsx",
     ];
     expect(lists.map((l) => l.rel).sort()).toEqual(MEASURED_LISTS);

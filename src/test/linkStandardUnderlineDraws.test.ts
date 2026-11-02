@@ -11,10 +11,11 @@
  * @mutate src/index.css |   .link-standard.underline {\n    text-decoration-color: currentColor;\n  } |   .link-standard.underline {\n    text-decoration-color: transparent;\n  }
  * @mutate src/index.css |   .link-standard.underline { |   .link-standard.underlined {
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments, blankCssComments } from "./helpers/blankNonCode";
+import { readdirSync } from "./helpers/trackedFiles";
 
 function tsxFiles(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

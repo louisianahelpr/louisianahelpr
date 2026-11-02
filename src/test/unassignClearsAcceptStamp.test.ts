@@ -45,6 +45,10 @@ const UNCONFIRMED_ONLY: Record<string, { proof: RegExp; why: string }> = {
     proof: /OR v_job_status IS DISTINCT FROM 'accepted'\s+OR v_job_confirmed IS NOT NULL THEN\s+RAISE EXCEPTION 'offer_not_active';/,
     why: "refuses anything but a live, unconfirmed offer before it reopens (20261003193541)",
   },
+  rpc_poster_withdraw_offer: {
+    proof: /IF v_job\.status = 'accepted' AND v_job\.helper_id IS NOT NULL AND v_job\.helper_confirmed_at IS NULL THEN\s+v_kind := 'offer';/,
+    why: "Q2604 (20261102103429): helper_id is cleared only in the 'offer' arm, taken only when the job row, locked FOR UPDATE, has helper_confirmed_at IS NULL",
+  },
 };
 
 /** Client and edge writes (supabase-js) that unassign, with their proof. */

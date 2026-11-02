@@ -153,11 +153,11 @@ describe("admin Messages preview", () => {
 
   // Audit 1102e (Auditor 5): "Blocking…" never finished, so the owner never saw the after-state; and opening a thread
   // said "this would update notifications" (a read receipt nobody pressed).
-  it("Block sheet: Just block finishes and the preview moves to After a block", async () => {
+  it("Block sheet: Block finishes and the preview moves to After a block", async () => {
     // The sheet reads the signed-in user from the real session (sign-in traffic passes through the preview); here, the admin.
     const getUser = vi.spyOn(supabase.auth, "getUser").mockResolvedValue({ data: { user: { id: ADMIN_ID } }, error: null } as never);
     renderPreview("stage=block_sheet&side=poster");
-    const just = await screen.findByRole("button", { name: "Just block" }, { timeout: 10000 });
+    const just = await screen.findByRole("button", { name: "Block" }, { timeout: 10000 });
     fireEvent.pointerDown(just);
     fireEvent.click(just);
     await waitFor(() => expect(document.querySelector('[data-preview-view="blocked:poster"]')).not.toBeNull(), { timeout: 10000 });

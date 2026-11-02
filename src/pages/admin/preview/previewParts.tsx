@@ -108,7 +108,7 @@ export function usePageSheetOpen(): boolean {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const read = () => {
-      const any = Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"]')).some((d) => !d.closest("[data-preview-controls]"));
+      const any = Array.from(document.querySelectorAll("[role=dialog], [role=alertdialog]")).some((d) => !d.closest("[data-preview-controls]"));
       setOpen((was) => (was === any ? was : any));
     };
     read();

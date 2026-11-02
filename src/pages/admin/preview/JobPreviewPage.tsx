@@ -17,10 +17,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/ui/chipClasses";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { cn } from "@/lib/utils";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { PREVIEW_STAGES, isPreviewStage, previewSample, type PreviewSample, type PreviewStage, type PreviewViewer } from "./jobPreviewSamples";
 import { installPreviewFetch, jobPreviewChecks } from "./previewBackend";
@@ -182,16 +181,9 @@ function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
         {/* One row that scrolls sideways on a phone, so the page stays in view. */}
         <div role="radiogroup" aria-label="Stage" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible">
           {PREVIEW_STAGES.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              role="radio"
-              aria-checked={s.key === stage}
-              className={cn(CHIP, "min-h-9 shrink-0 px-3", s.key === stage ? CHIP_ON : CHIP_OFF)}
-              onClick={() => onStage(s.key)}
-            >
+            <ChoicePill key={s.key} selected={s.key === stage} className="shrink-0" onClick={() => onStage(s.key)}>
               {s.label}
-            </button>
+            </ChoicePill>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">

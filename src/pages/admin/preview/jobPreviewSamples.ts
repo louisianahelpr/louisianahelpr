@@ -20,7 +20,7 @@ export const PREVIEW_STAGES = [
   { key: "done", label: "Done" },
   // The other states the code knows.
   { key: "cancelled", label: "Cancelled" },
-  { key: "expired", label: "Expired" },
+  { key: "expired", label: "Listing ran out" },
   { key: "no_show", label: "No-show" },
   { key: "disputed", label: "Disputed" },
   { key: "crew", label: "Crew job" },

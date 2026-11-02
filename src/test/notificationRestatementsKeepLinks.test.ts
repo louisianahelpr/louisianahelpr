@@ -56,6 +56,9 @@ const Q194 = "20260923152630_notification_links_point_direct_not_at_redirects.sq
  * Two-way: each must actually change one.
  */
 const INTENDED_LINK_CHANGES = new Set([
+  // Q2606 (lead PASS 11-02): when the poster proposed the new day, the Helpr's answer now notifies the POSTER, on the
+  // poster's link '/posts?job=<id>' (the same rule as propose_job_continue_day's CASE); the Helpr's '/jobs?job=' stays.
+  "20261102102402_poster_continue_day_goes_to_the_helpr.sql::answer_job_continue_day",
   // Audit 11-01 JA-58 + owner 11-01: the direct-offer notice opens the job page itself, '/jobs/<id>', instead of
   // the jobs list '/jobs?job=<id>' (lead verdict b100: "link to the job page the recipient can already open").
   "20261101180708_direct_offer_notice_next_step.sql::notify_helper_on_direct_offer",

@@ -27,10 +27,15 @@ const ROOT = "supabase/functions";
  * adopt-mismatch, and (Q764) the error that IS a payout hold (the
  * payout_transfers trigger refused the claim insert with payout_held, so no
  * row was left behind), answered like the hold check itself.
+ * Q2172 (c), lead 11-02: plus the two Helpr-fault fee exits (the take/clamp
+ * failed; the fee could not be stamped on the claim). The debt is taken only
+ * once the claim is held, so these sit inside the window, but neither strands
+ * a NEW row: a fresh claim is released ('canceled', releaseClaimAndRestoreFaultFee)
+ * before the exit, and a resumed claim was already the orphan it stays.
  */
 const EXPECTED_EXITS: Record<string, number> = {
-  "process-scheduled-payouts": 4,
-  "release-payout": 4,
+  "process-scheduled-payouts": 6,
+  "release-payout": 6,
 };
 
 function claimWindows() {

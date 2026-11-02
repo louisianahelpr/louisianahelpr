@@ -29,3 +29,9 @@ export function hasStartTime(job: { start_time?: string | null }): boolean {
 export function anyTimeFaceOpensAt(dateNeeded: string | null | undefined): Date | null {
   return jobStartDateTime(dateNeeded ?? null, ANY_TIME_FACE_FROM);
 }
+
+/**
+ * A crew member's "It's time" (Jobs audit 1102b row 16, A3-33 seen again, Q2602): their I'm on my way is on the crew
+ * roster, behind the page's "See your crew steps", so the line names that button, never one the page does not have.
+ */
+export const CREW_TODAY_LINE = "It's time — tap See your crew steps to set out";

@@ -83,7 +83,9 @@ const EMPTY: Form = {
 function ShopEditSkeleton() {
   return (
     <AppPage title="My shop" backTo="/shops">
-      <div className="space-y-4" role="status" aria-label="Loading your shop">
+      {/* Q2558: the "Open a shop" form is 1472px at 375 (measured 2026-11-02, both test accounts); 224px of
+          bones jumped 1248px when it landed, so the block reserves the form's height. */}
+      <div className="space-y-4 min-h-[1472px]" role="status" aria-label="Loading your shop">
         <Skeleton className="h-10 w-full rounded-xl" />
         <Skeleton className="h-10 w-full rounded-xl" />
         <Skeleton className="h-28 w-full rounded-xl" />

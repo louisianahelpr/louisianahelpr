@@ -36,6 +36,9 @@ export const BEFORE_PHOTO_GATE_REASON =
   'Tap "Before photo" and add one before you start working — it\'s the record of how the job looked when you got there.';
 
 const LIFECYCLE_REASONS: Record<string, string> = {
+  // Continue another day (20261101231015, Auditor 11 11-01): trg_refuse_done_before_continue_day refuses "done"
+  // before the day set to finish, whichever write marks it (the date is on the page beside the toast).
+  continue_day_ahead: "You can mark it done on the day you set to finish.",
   // Board 141: a cancel, back-out or no-show report while a refund request on
   // the job waits or is being settled (trg_refuse_job_move_while_refund_requested).
   refund_request_live:

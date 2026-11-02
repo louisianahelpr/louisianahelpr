@@ -5,7 +5,7 @@
  * Inventory: the Helpr's own stages that reach Next up (on the way, and the day-before confirm for contrast).
  *
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return lineId === "on_the_way" ? "You're on the way" : "You're working"; |   return "You're working";
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | title: line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail, | title: line.detail,
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail), | ?? (line.detail),
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ...(line.id === "on_the_way" && !a.job!.is_group_job | ...(false
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (t.helperStep) request(t.helperStep.jobId, t.helperStep.key); |   void request;
  * @mutate src/pages/home/HomeDashboard.tsx | onClick={() => navigate(todoTarget(next, requestHelperStep))} | onClick={() => navigate(next.to)}

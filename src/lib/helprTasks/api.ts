@@ -125,16 +125,18 @@ export type DeliveredResult =
 
 /**
  * The RPC's data, or a thrown Error carrying the server's code as its message
- * and its plain words (RPC_ERROR_COPY) as `userMessage`.
+ * and its plain words (RPC_ERROR_COPY) as `userMessage`, marked `designedRefusal` when it has words.
  */
 function data<T>(result: { data: unknown; error: { message: string } | null }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data as T;
   try {
     unwrap(result);
   } catch (thrown) {
-    const e = thrown as Error & { userMessage?: string };
+    const e = thrown as Error & { userMessage?: string; designedRefusal?: boolean };
     const msg = words(thrown);
-    if (msg && Object.isExtensible(e)) e.userMessage = msg;
+    // A code with words is a designed refusal (payouts not set up, ...): the member reads the words, and
+    // queryClient's cache hooks do not log it as a defect (Q2509, as Q1882 did for Declutter's rpcData).
+    if (msg && Object.isExtensible(e)) Object.assign(e, { userMessage: msg, designedRefusal: true });
     throw e;
   }
   return result.data as T;

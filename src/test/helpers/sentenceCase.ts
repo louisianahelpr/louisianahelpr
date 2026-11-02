@@ -11,6 +11,8 @@ const PROPER = new Set([
   "Declutter", "Shops", "Homes", "Explore", "Messages", "Venmo", "PayPal", "Zelle", "Facebook", "Instagram",
   "I", "I'm", "I've", "I'll", "OK", "Terms", "Use", "Privacy", "Policy", "Community", "Rules",
   "App", "Store", "AI", "Jobs", "Home", "Wrapped",
+  // Jobs tab names, when a line points at the tab ("See it under Posted", Q2392).
+  "Posted",
   // Days and months are names.
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun",
   "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December",

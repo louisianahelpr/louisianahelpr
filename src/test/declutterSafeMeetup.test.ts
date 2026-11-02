@@ -96,7 +96,7 @@ describe("Q2425 safe meetup spots: the edge function and the admin screen", () =
   it("a changed spot closes the old payment page before the order is replaced (lh-authz-rls review #2)", () => {
     const s = read("supabase/functions/declutter-checkout/index.ts");
     expect(s).toContain("spotChanged = frozenSpot !== pickedSpot;");
-    expect(s).toContain('if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged)) {');
+    expect(s).toContain('if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged || feeChanged)) {');
   });
 
   it("Admin settings shows the meetup spots card", () => {

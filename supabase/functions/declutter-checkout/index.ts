@@ -286,14 +286,14 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // can never be paid next to the new one. A page that cannot be closed
   // stays the buyer's page.
   const { data: openOrder, error: openErr } = await admin.from("declutter_orders")
-    .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, pickup_slot_start")
+    .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, pickup_slot_start, setup_fee_cents")
     .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle();
   if (openErr) {
     console.error(`[declutter-checkout] open order read failed: ${openErr.message}`);
     return json({ error: TRY_AGAIN }, 503);
   }
   const open = openOrder as { id: string; handover: string; stripe_checkout_session_id: string | null; delivery_cents?: number | null;
-    bundle_discount_cents?: number | null; pickup_slot_start?: string | null } | null;
+    bundle_discount_cents?: number | null; pickup_slot_start?: string | null; setup_fee_cents?: number | null } | null;
   // lh-money-escrow review #4: a seller delivery whose TIME changed replaces the open order
   // too, so its page is closed first exactly as for a changed handover.
   let slotChanged = false;
@@ -349,7 +349,20 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       }
       bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0);
     }
-    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged)) {
+    // Q2403: the one-time setup fee the order froze is no longer the one checkout charges now (the account paid it
+    // on another order meanwhile, or owes it again), so declutter_start_checkout replaces the order. Close the page
+    // FIRST, as for a changed time, spot or bundle: a payment on it is then the old order, never a superseded one the
+    // webhook refunds as the buyer's own restart (buyer_restarted_checkout keeps the card fee). Same function as the RPC.
+    let feeChanged = false;
+    if (page.status === "open") {
+      const { data: due, error: dueErr } = await admin.rpc("declutter_setup_fee_due_cents", { p_user: user.id });
+      if (dueErr) {
+        console.error(`[declutter-checkout] setup fee read failed: ${dueErr.message}`);
+        return json({ error: TRY_AGAIN }, 503);
+      }
+      feeChanged = Number(due ?? 0) !== Number(open.setup_fee_cents ?? 0);
+    }
+    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged || feeChanged)) {
       // Owner 2026-10-28: a way the seller did not tick must not cost the buyer their open page either
       // (declutter_start_checkout refuses it: handover_not_offered; the RPC stays the protection).
       const notOffered = await handoverNotOffered(admin, user.id, sellerId, handover);

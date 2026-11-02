@@ -2792,6 +2792,31 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.errors).toBe(0);
   });
 
+  // Q2148 (5) (owner 'J3'; delta review of 2e397597d #1): a POSTER-FEE series' fee line sits inside the visit's tax
+  // transaction, so the sweep's tax base is the whole charge and the kept card fee keeps its tax: 11569c charged
+  // ($100 + $5.70 fee + $9.99 tax), Stripe fee 369c, tax kept ceil(369 * 999 / (11569 - 999)) = 35c -> 11165c back.
+  // A legacy series (no poster_fee_flat_cents) still bases on labor + tax only, keeping no tax on its fee (11200c).
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           ? Number(row.amount_cents ?? 0)\n | ? Number(row.amount_cents ?? 0) - Number(row.fee_cents ?? 0)\n
+  it("Q2148 (5): the sweep keeps the tax on the card fee of a POSTER-FEE visit (its fee line is taxed); a legacy visit's is not", async () => {
+    const taxed = { ...orphan, amount_cents: 11569, fee_cents: 570, tax_cents: 999 };
+    const intent = { id: "pi_orphan", amount: 11569, amount_received: 11569, metadata: { refund_withhold_fee: "true" }, latest_charge: { balance_transaction: { fee: 369 } } };
+    for (const [posterFee, want] of [[70, 11165], [null, 11200]] as const) {
+      const fn = await loadConfigured();
+      resetSupabaseMock(); resetStripeMock(); resetSharedMocks(); otherPiRetrieve.mockReset();
+      seedHappyPath();
+      wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: null, status: "open", poster_fee_flat_cents: posterFee }] } });
+      wireVisitPayments({ sweep: { rows: [taxed] } });
+      scenario.writeSelectRows.notifications = [{ id: "n1" }];
+      otherPiRetrieve.mockResolvedValue(intent);
+      stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+      await body(await runOn(fn, "2026-09-01"));
+
+      expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan", amount: want, metadata: { fee_withheld: "true" } });
+    }
+  });
+
   // ── Q808 (owner, 2026-09-27): the fee is withheld on BOTH paths ──────────
   // A paid visit skipped BEFORE the charge re-read (series ended, date no
   // longer held) never had its intent tagged; the sweep reads the cause.

@@ -429,10 +429,13 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
       if (poster && !posterIn && now >= posterConfirmClosesMs(job.date_needed, job.start_time)) {
         return at(3, false, "Confirmed", helprIn ? `It's start time. ${other} confirmed they'll be there` : `It's start time. ${other} hasn't confirmed`, held);
       }
+      // A3-9 (audit 11-01): every confirm line says by when ("Next: <what> · by <deadline>"). The poster's own confirm
+      // stays open until the start (posterConfirmClosesMs, JobConfirmation's I'm still on), so both sides name that time.
+      const posterBy = when(posterConfirmClosesMs(job.date_needed, job.start_time));
       if (poster) {
-        return at(3, mine, "Confirmed", !posterIn ? "Confirm the job is still on" : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);
+        return at(3, mine, "Confirmed", !posterIn ? `Confirm the job is still on by ${posterBy}` : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);
       }
-      return at(3, mine, "Confirmed", !helprIn ? `Confirm you'll be at the job by ${when(due)}` : `Waiting on ${otherLow} to confirm`, held);
+      return at(3, mine, "Confirmed", !helprIn ? `Confirm you'll be at the job by ${when(due)}` : `Waiting on ${otherLow} to confirm by ${posterBy}`, held);
     }
   }
   // Both confirmed: setting out is the Helpr's move. AUD31-76: once the start has passed (or auto_start_due_jobs has

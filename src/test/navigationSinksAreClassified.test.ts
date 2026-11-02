@@ -155,6 +155,11 @@ const CLASSIFIED: Record<string, string> = {
   "lib/chunkReload.ts::url.toString()": "new URL(window.location.href) with a _v param: the current page, reloaded",
   "lib/nativeReturnBounce.ts::target": "`${NATIVE_RETURN_SCHEME}://${url.pathname}${url.search}`: fixed app scheme",
   "lib/openExternalUrl.ts::url": "the helper itself; every caller is classified below",
+  // Q2259 shipping (testers only): the seller's label is the EasyPost postage_label.label_url the label worker stored
+  // (declutter_ship_order_view returns it to the seller only once the label is ready); the buyer's Track is a fixed
+  // ups.com / tools.usps.com address with the tracking code URL-encoded (shipOrder.ts trackingUrl).
+  "components/declutter/ShipOrderPanel.tsx::l.label_url as string": "the EasyPost label URL the ship-label worker stored, served to the seller by declutter_ship_order_view (20261102023246)",
+  "components/declutter/ShipOrderPanel.tsx::trackingUrl(t.data.service, code)": "a fixed ups.com or tools.usps.com tracking address with the code encodeURIComponent-ed (lib/declutter/shipOrder.ts trackingUrl)",
   // --- openExternalUrl callers: edge-function-returned Stripe URLs ---
   "components/AwardGateDialog.tsx::data.url": STRIPE_EDGE_URL,
   // Q2352: the one-time setup fee page (pay-onboarding-fee) for a refused first Declutter listing.

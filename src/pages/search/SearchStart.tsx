@@ -36,7 +36,7 @@ export function SearchStart({ userId, declutterOn }: { userId: string | null; de
           <h2 className="font-sans font-bold text-ds-15 px-1" style={{ color: "hsl(var(--ink-deep))" }}>Your saved searches</h2>
           <div className="rounded-2xl overflow-hidden" style={{ background: "hsl(var(--card))" }}>
             {rows.map((s) => (
-              <Link key={s.id} to={resultsPath(s)} className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border last:border-b-0 ctl-tint">
+              <Link key={s.id} to={resultsPath(s)} title={`${s.name} · ${SECTION_LABEL[s.section as keyof typeof SECTION_LABEL]}`} className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border last:border-b-0 ctl-tint">
                 <Bookmark className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="flex-1 min-w-0">
                   <span className="block font-sans font-semibold text-ds-14 leading-snug truncate" style={{ color: "hsl(var(--ink-deep))" }}>{s.name}</span>

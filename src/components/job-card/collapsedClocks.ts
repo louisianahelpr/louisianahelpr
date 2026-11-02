@@ -25,7 +25,7 @@ export function collapsedClocks(
   // way" says the job starts tomorrow-ish. No start clock then.
   if (job.helper_on_the_way_at) return [];
   const opens = job.helper_confirmed_at ? confirmationOpensClock(job.date_needed, job.status, isOwner, undefined, job.start_time ?? null) : null;
-  if (opens) return [{ ...opens.clock, farLabel: "Confirm opens" }];
+  if (opens) return [{ ...opens.clock, farLabel: "Confirm from" }];
   const start = jobStartTarget(job.date_needed, job.start_time);
   // Q2588/Q2589: a no-start-time job is "any time that day" (anyTimeThatDay.ts): on its day there is nothing to count
   // down to (the clock ran to midnight, "20h 57m until the job starts" at 3 AM); the tracker line says "any time".

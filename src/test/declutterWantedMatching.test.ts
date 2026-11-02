@@ -27,7 +27,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 const ROOT = join(__dirname, "../..");
 const defs = effectiveDefs(join(ROOT, "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");
-const TAG: Record<string, string> = { Home: "home", Outdoors: "outdoors", Family: "family", "Hobbies and fun": "fun", Other: "misc" };
+const TAG: Record<string, string> = { Home: "home", Outdoors: "outdoors", Family: "family", "Hobbies and fun": "fun", More: "misc" }; // A3-110: the picker's "Other" group heading reads "More"
 
 describe("Wanted matching and managing a post (posting audit 10-30)", () => {
   it("#4: pairs match on any meaningful word and near categories", () => {

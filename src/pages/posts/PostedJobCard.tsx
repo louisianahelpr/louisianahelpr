@@ -184,7 +184,7 @@ function PostedJobCardInner({
      (nothing about the Helpr on a collapsed card) lives at `helperTile` above. */
   // ONE line per card: the strip prints it, the face's one button (board 14) and the 8-step bar, closed and open (A2-B15), read it.
   const cardLine = withClosedApplicants(posterStatusLine(withDisputeSettling(job, unsettledDisputeJobIds), pendingApplicantCounts?.[job.id] ?? 0, undefined, completedJobMeta[job.id]), closedApplicantSummaries?.[job.id] ?? null);
-  const { faceAction, completionRequest } = usePosterFaceAction({
+  const { faceAction, completionRequest, revisionRequest } = usePosterFaceAction({
     job, isExpanded, helperName, toggle: toggleExpandedJobId, navigate, wait: cardLine.id as PosterWait,
     pendingApplicants: pendingApplicantCounts?.[job.id] ?? 0,
     confirmingArrival: confirmingArrivalJobId === job.id, completing: completingJobId === job.id,
@@ -743,6 +743,7 @@ function PostedJobCardInner({
                 applicantsPrimary={job.status === "open" && takesApplicants(job, initialGroupHelpers) ? { count: applicantCounts[job.id] || 0, onOpen: () => onLoadApplications(job) } : null}
                 onActionComplete={onActionComplete}
                 completionRequest={completionRequest}
+                revisionRequest={revisionRequest}
               />
             </div>
             )}

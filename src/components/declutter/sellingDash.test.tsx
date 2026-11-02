@@ -91,6 +91,9 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
       items_off: [], rules: real.SELLER_DELIVERY_RULES }),
   };
 });
+// Manager mode (switch mocked on here): no grants, nothing waiting, no labels.
+vi.mock("@/lib/declutter/managerMode", async (orig) => ({ ...(await orig<object>()), useManagerLabels: () => ({ data: undefined }),
+  fetchWaitingDrafts: async () => [], useMyManagerGrants: () => ({ data: [] }) }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: () => true,
   useFeatureStatus: () => ({ on: true, settled: true }),

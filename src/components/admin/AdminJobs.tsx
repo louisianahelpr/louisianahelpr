@@ -463,12 +463,7 @@ const AdminJobs = () => {
 
   return (
     <AdminViewShell>
-      {/* The member's job page at every stage, made-up data (owner 2026-11-01): /admin/preview/job. */}
-      <Button asChild variant="outline" size="sm" className="gap-1.5 self-start rounded-full">
-        <Link to="/admin/preview/job">
-          Preview the job page at every stage
-        </Link>
-      </Button>
+      <Button asChild variant="outline" size="sm" className="gap-1.5 self-start rounded-full"><Link to="/admin/preview/job">Preview the job page at every stage</Link></Button>
       <AdminFilterStrip label="Job filter">
         {FILTERS.map((f) => (
           <Button

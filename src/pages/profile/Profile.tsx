@@ -33,12 +33,9 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
 import { requireOnline } from "@/lib/requireOnline";
 import { useProfileTabQueries } from "./useProfileTabQueries";
-// Only the landing tab + its lightweight header are needed on first paint.
-// Every other tab panel and the rarely-opened dialogs are code-split so the
-// Profile route chunk stays small — each is fetched the first time it shows.
-// The full non-landing tab router (and its lazy panel imports) lives in the
-// co-located <ProfileTabPanels />; only the landing hero + delete dialog are
-// referenced directly here.
+// Only the landing tab + its lightweight header are needed on first paint. Every other tab panel and the rarely-opened
+// dialogs are code-split so the Profile route chunk stays small — each is fetched the first time it shows. The full
+// non-landing tab router (and its lazy panel imports) lives in <ProfileTabPanels />; only the landing hero + delete dialog here.
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./ProfileTabPanels";
@@ -47,6 +44,7 @@ import { PAGE_COLUMN } from "@/lib/pageColumn";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { queryKeys } from "@/lib/queryKeys";
+import { useInstantBookTabRedirect } from "./useInstantBookTabRedirect";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 /**
@@ -171,15 +169,7 @@ const ProfilePage = () => {
     );
   }, [tab]);
 
-  // Instant book is off for everyone (switch 'instant_book', owner 11-01) and its tab draws nothing then, so an old
-  // link or notice to ?tab=instant_book landed on a blank screen (Q2647). Once the switch answers off, swap that
-  // entry for Settings (replace, so Back never walks into the blank tab again).
-  const instantBookSwitch = useFeatureStatus("instant_book");
-  const instantBookOff = instantBookSwitch.settled && !instantBookSwitch.on;
-  useEffect(() => {
-    if (tab !== "instant_book" || !instantBookOff) return;
-    setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", "settings"); return next; }, { replace: true });
-  }, [tab, instantBookOff, setSearchParams]);
+  useInstantBookTabRedirect(tab, setSearchParams); // Q2647: an old ?tab=instant_book link opens Settings
 
   // Mirror URL → state when back/forward (or a deep link) changes the tab param.
   useEffect(() => {

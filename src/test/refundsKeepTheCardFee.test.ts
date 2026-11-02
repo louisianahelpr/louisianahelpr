@@ -338,6 +338,8 @@ const TS_MONEY_TOUCHES: string[] = [
   // A3-18/19 (20261101230519): READS the order's book_by and the window chosen at checkout (column grants), the ONE
   // source of the cards' "by <date>" and chosen time; no money column, no write.
   'src/lib/declutter/orderPickupTimes.ts: .from("declutter_orders").select("id, book_by, pickup_slot_start, pickup_slot_end").in("id", orderIds)',
+  // A3-112 (lead lh-money-escrow 11-01): Money > Spent READS the buyer's own paid orders (no write).
+  'src/lib/declutter/purchaseSpend.ts: .from("declutter_orders").select("id, status, total_cents, paid_at").eq("buyer_id", userId).not("paid_at", "is", null), ) ?? []) as PurchaseOrder[]',
   // Declutter reviews (Builder 3c s3): READS the order's two parties to name who is being reviewed; no money column, no write.
   'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
   // Board 177 Receipts: READS the buyer's own paid orders (total and date) to list what left their card; no fee column, no write.
@@ -577,7 +579,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_mark_order_paid: "20261101191500_declutter_checkout_pickup_time.sql 521fd16163d444dd",
       // Owner 11-01 (B103, 20261101181129; lh-money-escrow via the lead): the giver's pick turns the asked time into a
       // paid FREE order ($0, card_fee_cents = 0, no payment) with its booking; it records no refund and moves no money.
-      declutter_pick_free_request: "20261101181129_free_pick_confirms_the_asked_time.sql 0af9427699ae0747",
+      // A3-57 (20261102011547, lh-money-escrow 11-01): restated with one early refusal (request_time_passed: an ask
+      // whose own pickup time has passed can't be picked). No refund, amount or fee touched.
+      declutter_pick_free_request: "20261102011547_free_asks_close_when_their_time_passes.sql 916a12add24bc8a0",
+      // Not refund paths (lh-money-escrow 11-01): they only NAME the 'declutter_refunds' notice kind and its reminder
+      // titles (20261102002011, offer and refund deadline reminders). They map/send notices and record nothing.
+      sms_kind_for: "20261102002011_needs_you_deadline_reminders.sql 4c2a804834d2c32e",
+      sweep_needs_you_reminders: "20261102002011_needs_you_deadline_reminders.sql 4fa7776ee46055c9",
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.

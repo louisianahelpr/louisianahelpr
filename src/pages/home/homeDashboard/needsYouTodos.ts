@@ -15,6 +15,8 @@ import { useFeature } from "@/hooks/useFeature";
 import { posterStatusLine, helperStatusLine, type JobStatusLine } from "@/components/job-card/jobStatusLine";
 import { jobStartTarget } from "@/components/job-card/CountdownRows";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { continueDayNextStep, continueDayWords, type ContinueDay } from "@/lib/continueDayWords";
+import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
 // The import alone goes through Vite's preload wrapper; the read runs after it (Sentry JAVASCRIPT-54,
 // src/test/dynamicImportThenDoesNoWork.test.ts).
 const shopOrdersApi = () => loadModule(() => import("@/lib/shops/orders"));
@@ -60,6 +62,8 @@ export interface NeedsYouInputs {
   /** A3-81: refund requests waiting on the member (declutter_my_refund_todos) and the giver's free asks to pick from. */
   declutterRefunds?: readonly MyRefundTodo[];
   declutterFreeAsks?: readonly FreeAskToPick[];
+  /** The active continue days of my jobs under way, by job id (useContinueDays). */
+  continueDays?: Readonly<Record<string, ContinueDay>>;
 }
 
 /** "$30" for whole dollars (garage-sale prices), "$7.50" otherwise. */
@@ -257,8 +261,14 @@ function rank(due: number | null, waiting: boolean, date: number, now: number): 
 export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now()): TodoItem[] {
   const posted = i.postedJobs.filter((j) => !jobIsUnfundedDraft(j)).map((j) => withBackout(j, i.backout));
   const applied = i.appliedApps.map((a) => (a.job ? { ...a, job: withBackout(a.job, i.backout) } : a));
-  const postedNeeds = posted.filter((j) => postedActivityBucket(j, i.pendingApplicantCounts[j.id] ?? 0) === "needs_you");
-  const appliedNeeds = applied.filter((a) => a.job && appliedActivityBucket(a) === "needs_you");
+  // Continue another day (Auditor 11, 11-01): a job under way with a day set or asked for is a to-do only when the
+  // job page's own line is the member's move (confirm the day, confirm you'll be there), in those words; never
+  // "Mark it done" before the day the server lets it be done.
+  const cd = i.continueDays ?? {};
+  const contStep = (jobId: string, side: "poster" | "helpr", other: string | null) => continueDayNextStep(cd[jobId], { side, otherFirst: other });
+  const helprOther = (a: AppliedApp) => (a.posterName ? a.posterName.trim().split(/\s+/)[0] || null : null);
+  const postedNeeds = posted.filter((j) => (cd[j.id] ? contStep(j.id, "poster", null)?.who === "you" : postedActivityBucket(j, i.pendingApplicantCounts[j.id] ?? 0) === "needs_you"));
+  const appliedNeeds = applied.filter((a) => a.job && (cd[a.job.id] ? contStep(a.job.id, "helpr", helprOther(a))?.who === "you" : appliedActivityBucket(a) === "needs_you"));
   // Orders waiting for MY SHOP's answer, soonest deadline first: each one lapses at accept_by.
   const shopWaiting = i.shopOrders
     .filter((o) => o.status === "held")
@@ -300,7 +310,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       item: {
         id: `p-${j.id}`,
         section: "jobs",
-        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : line.detail,
+        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : continueDayWords(cd[j.id], { side: "poster", otherFirst: null }) ?? line.detail,
         meta: `${j.helper_id ? "You hired" : "You posted"} · ${j.title}`,
         // "Open job" opens THE job (audit #12, 2026-10-21); the applicant
         // review still lands on the Posted list where applicants are handled.
@@ -321,11 +331,11 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         section: "jobs",
         // JA-39 (Jobs audit 11-01): on the way is not working yet. The task is the arrival tap, and the side word
         // says where they are ("You're on the way · Haul off..."), never "You're working" before they arrive.
-        title: line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail,
+        title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail),
         meta: `${helprSide(a.job!, line.id)} · ${a.job!.title}`,
         // JA-39: the button IS the arrival step ("I've arrived"), run by the Working card's tracker (not a crew: a
         // member's steps are on the roster), instead of "Open job" and a second tap on the page.
-        ...(line.id === "on_the_way" && !a.job!.is_group_job
+        ...(line.id === "on_the_way" && !a.job!.is_group_job && !cd[a.job!.id]
           ? { to: `/jobs?tab=working&job=${encodeURIComponent(a.job!.id)}&open=1`, action: ARRIVED_ACTION, helperStep: { jobId: a.job!.id, key: "arrived" as const } }
           : { to: `/jobs/${a.job!.id}`, action: "Open job" }),
       },
@@ -445,9 +455,10 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
   const offerRows = (declutterOn ? dOffers.data : undefined) ?? EMPTY_OFFERS;
   const refundRows = (declutterOn && refundsOn ? dRefunds.data : undefined) ?? EMPTY_REFUNDS;
   const freeAskRows = (declutterOn ? dFreeAsks.data : undefined) ?? EMPTY_FREE_ASKS;
+  const continueDays = useContinueDays(inProgressJobIds([...postedJobs, ...apps.map((a) => a.job)]));
   const todos = useMemo(
-    () => deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows, declutterRefunds: refundRows, declutterFreeAsks: freeAskRows }),
-    [postedJobs, pending, apps, orders, backout, cartLines, offerRows, refundRows, freeAskRows],
+    () => deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows, declutterRefunds: refundRows, declutterFreeAsks: freeAskRows, continueDays }),
+    [postedJobs, pending, apps, orders, backout, cartLines, offerRows, refundRows, freeAskRows, continueDays],
   );
   return { todos, loading: posted.data === undefined && applied.data === undefined };
 }

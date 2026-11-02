@@ -9,6 +9,9 @@
  *
  * @mutate src/pages/admin/preview/previewParts.tsx |   static getDerivedStateFromError(error: Error) { return { error }; } |   static getDerivedStateFromError(error: Error): { error: Error } { throw error; }
  * @mutate src/pages/admin/preview/previewParts.tsx |     if (!this.state.error) return this.props.children; |     if (!this.state.error) return this.props.children;\n    throw this.state.error;
+ * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |     if (!base \|\| !url.startsWith(base)) return o.realFetch(input, init); |     if (base) return o.realFetch(input, init);
+ * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |       o.onUnlisted?.(`rpc ${name}`); |       void name;
+ * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |       if (listed === undefined) o.onUnlisted?.(`table ${table}`); |       void listed;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -36,6 +39,8 @@ afterEach(() => {
 });
 
 import MessagesPreviewPage from "@/pages/admin/preview/MessagesPreviewPage";
+import { installMessagesPreviewFetch } from "@/pages/admin/preview/messagesPreviewBackend";
+import { messagesPreviewSample } from "@/pages/admin/preview/messagesPreviewSamples";
 
 /** Stands in for the route's RouteErrorBoundary: it must never catch the preview's crash. */
 class RouteBoundary extends Component<{ onCatch: () => void; children: ReactNode }, { failed: boolean }> {
@@ -83,5 +88,28 @@ describe("admin Messages preview: a crashed page still sends nothing", () => {
     expect(globalThis.fetch).not.toBe(spy);
     r.unmount();
     expect(globalThis.fetch).toBe(spy);
+  });
+});
+
+describe("admin Messages preview backend: a read the sample does not answer", () => {
+  it("is answered null (an RPC) or [] (a table), reported, and never sent", async () => {
+    const unlisted: string[] = [];
+    const { uninstall } = installMessagesPreviewFetch({
+      supabaseUrl: SUPABASE, sample: () => messagesPreviewSample("thread", "poster", "11111111-1111-4111-8111-111111111111"), ownUserId: () => null,
+      onBlocked: () => {}, onUnlisted: (w) => unlisted.push(w),
+    });
+    try {
+      const rpc = await fetch(`${SUPABASE}/rest/v1/rpc/get_something_new`, { method: "POST", body: "{}" });
+      expect(await rpc.json()).toBeNull();
+      const table = await fetch(`${SUPABASE}/rest/v1/some_new_table?select=*`);
+      expect(await table.json()).toEqual([]);
+      // A listed read answers from the sample, filtered by the request, and is not reported.
+      const thread = await fetch(`${SUPABASE}/rest/v1/messages?select=*&job_id=eq.00000000-0000-4000-b000-000000000101`);
+      expect(((await thread.json()) as unknown[]).length).toBe(3);
+    } finally {
+      uninstall();
+    }
+    expect(unlisted).toEqual(["rpc get_something_new", "table some_new_table"]);
+    expect(supabaseCalls()).toHaveLength(0);
   });
 });

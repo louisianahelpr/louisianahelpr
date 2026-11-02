@@ -10,9 +10,7 @@
  * or role row, and which feature switches are on. It also pins the route behind the same admin gate as /admin, in its
  * own lazy chunk, and proves a crash in the page still sends nothing.
  *
- * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |     if (!base \|\| !url.startsWith(base)) return o.realFetch(input, init); |     if (base) return o.realFetch(input, init);
- * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |       o.onUnlisted?.(`rpc ${name}`); |       void name;
- * @mutate src/pages/admin/preview/messagesPreviewSamples.ts |       notifications: [],\n |
+ * @mutate src/pages/admin/preview/messagesPreviewSamples.ts |       thread_pins: [],\n |
  * @mutate src/pages/admin/preview/previewParts.tsx |   client.channel = channel; |   void channel;
  * @mutate src/pages/admin/preview/MessagesPreviewPage.tsx |     const undoRealtime = installInertRealtime(); |     const undoRealtime = () => undefined;
  * @mutate src/pages/admin/preview/messagesPreviewSamples.ts |     opens: stage === "reported" ? ["Conversation options", "Report user"] : stage === "block_sheet" ? ["Conversation options", "Block user"] : null, |     opens: null,

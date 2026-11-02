@@ -58,8 +58,10 @@ export interface ShipLabelPorts {
 /** The ops line for a label that will never be used. */
 export function voidLine(requested: boolean): string {
   return requested
-    ? "The label void was requested (its postage returns to the EasyPost balance once refunded)."
-    : "The label could NOT be marked for void (already scanned or not bought): check it in EasyPost.";
+    // B134: once EasyPost settles the void, the void pass closes the order (declutter_ship_hold_released,
+    // 20261102030530): nothing to do by hand.
+    ? "The label void was requested (its postage returns to the EasyPost balance once refunded). The order closes by itself, at no charge, once the void settles."
+    : "The label could NOT be marked for void (already scanned or not bought): check it in EasyPost and close the order by hand.";
 }
 
 export type LabelOutcome =
@@ -115,7 +117,7 @@ export async function runShipLabel(s: ClaimedShipment, order: ShipOrder | null, 
     const captured = await p.capture(pi, s.declutter_order_id, amount);
     if (captured === "hold_lost") {
       await p.page("Shipped order: label bought but the hold could not be captured",
-        `The card hold lapsed or was cancelled after the label was bought. ${voidLine(await p.requestVoid(s.id))} Close the order by hand.`,
+        `The card hold lapsed or was cancelled after the label was bought. ${voidLine(await p.requestVoid(s.id))}`,
         { Order: s.declutter_order_id, Shipment: s.provider_shipment_id, PaymentIntent: pi });
       return "capture_lost";
     }
@@ -183,7 +185,7 @@ export async function reconcileShipCapture(
   const pi = order.stripe_payment_intent_id;
   const lost = async (): Promise<ReconcileOutcome> => {
     await p.page("Shipped order: label bought but the hold could not be captured",
-      `The card hold lapsed or was cancelled after the label was bought. ${voidLine(await p.requestVoid(s.id))} Close the order by hand.`,
+      `The card hold lapsed or was cancelled after the label was bought. ${voidLine(await p.requestVoid(s.id))}`,
       { Order: s.declutter_order_id, Shipment: s.provider_shipment_id, PaymentIntent: pi });
     return "capture_lost";
   };

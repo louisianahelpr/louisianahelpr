@@ -136,6 +136,11 @@ async function runVoids(admin: Db, record: (defect: string) => void, counts: Cou
           if (e) throw new Error(`void error record failed: ${e.message}`);
         },
         page: pageWith(s.id, s.label_mode),
+        closeOrder: async (orderId) => {
+          const { data, error: e } = await admin.rpc("declutter_ship_hold_released", { p_order_id: orderId });
+          if (e) throw new Error(`closing the voided order failed: ${e.message}`);
+          return String(data);
+        },
       });
       counts[outcome] = (counts[outcome] ?? 0) + 1;
     } catch (e) {

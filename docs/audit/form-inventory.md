@@ -93,7 +93,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeliveryRaisePanel.tsx` | input×1 | text |  | Raise the pay |
 | `src/components/declutter/DeliveryTalk.tsx` | textarea×1 |  | 1000 | Messages |
 | `src/components/declutter/ManagerActForSeller.tsx` | textarea×1 |  | 500 |  |
-| `src/components/declutter/ManagerPanel.tsx` | input×2, checkbox/switch/radio×1 | search, text |  | manager-setup-title · manager-search · Search by name · Members · setup · Share type · manager-share · managed-by-title |
+| `src/components/declutter/ManagerPanel.tsx` | input×1, checkbox/switch/radio×1 | text |  | manager-setup-title · Search by name · Members · setup · Share type · manager-share · managed-by-title · change |
 | `src/components/declutter/ManagerWaitingForOk.tsx` | textarea×1 |  | 500 | manager-waiting-title · What to change · manager-waiting-tax |
 
 ## /admin/preview/declutter, /declutter, /declutter/item/:id

@@ -6492,7 +6492,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 84,
+      "line": 85,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -6502,7 +6502,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 85,
+      "line": 86,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6512,7 +6512,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 169,
+      "line": 170,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6522,7 +6522,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 170,
+      "line": 171,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6532,7 +6532,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 174,
+      "line": 175,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6552,7 +6552,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 175,
+      "line": 176,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6562,7 +6562,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 211,
+      "line": 212,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6582,7 +6582,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 212,
+      "line": 213,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11416,7 +11416,7 @@
     },
     {
       "file": "src/pages/admin/preview/DeclutterPreviewPage.tsx",
-      "line": 44,
+      "line": 46,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -11426,7 +11426,7 @@
     },
     {
       "file": "src/pages/admin/preview/DeclutterPreviewPage.tsx",
-      "line": 113,
+      "line": 115,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11453,7 +11453,7 @@
     },
     {
       "file": "src/pages/admin/preview/DeclutterPreviewPage.tsx",
-      "line": 164,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11463,7 +11463,7 @@
     },
     {
       "file": "src/pages/admin/preview/JobPreviewPage.tsx",
-      "line": 143,
+      "line": 150,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11473,7 +11473,7 @@
     },
     {
       "file": "src/pages/admin/preview/previewParts.tsx",
-      "line": 32,
+      "line": 35,
       "kind": "toast",
       "title": {
         "form": "template",

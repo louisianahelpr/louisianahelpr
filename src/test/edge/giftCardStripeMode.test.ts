@@ -19,6 +19,9 @@
  * @mutate supabase/functions/_shared/stripeMode.ts |   if (owners.length !== 1) return false; |   if (owners.length === 0) return true;
  * @mutate supabase/functions/_shared/stripeMode.ts |   return tests.has(donor) && tests.has(owners[0]); |   return tests.has(owners[0]);
  * @mutate supabase/functions/stripe-webhook/index.ts | !(await testGiftIsTestToTest(supabase, eventObject)) | false
+ * @mutate supabase/functions/stripe-webhook/index.ts |             .update({ status: "expired" }) |             .update({ status: "sent" })
+ * @mutate supabase/functions/stripe-webhook/index.ts |             .eq("payment_status", "pending")\n            .neq("status", "expired") |             .neq("status", "expired")
+ * @mutate supabase/functions/stripe-webhook/index.ts |               status: 500,\n            });\n          }\n          console.log(JSON.stringify({ event: "stripe_test_gift_refused_closed" |               status: 200,\n            });\n          }\n          console.log(JSON.stringify({ event: "stripe_test_gift_refused_closed"
  * @mutate supabase/functions/claim-gift-card/index.ts | if (callerMode !== "test") | if (callerMode === "nope")
  * @mutate supabase/functions/claim-gift-card/index.ts | if (sessionIdMode(credit.stripe_session_id as string \| null) === "test") | if (sessionIdMode(credit.stripe_session_id as string \| null) === "nope")
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | ${stripeMode === "test" ? "test:" : ""} |
@@ -305,6 +308,41 @@ describe("Q1750: a gift card runs in the buyer mode, and test credit goes only t
       const { body } = await deliverGift(TEST_BUYER, REAL_RECIPIENT_EMAIL);
       expect(String(body.ignored)).toMatch(/^(test_event_names_real_account|test_gift_not_test_to_test)$/);
       expect(applied()).toBe(false);
+    });
+
+    // Q1907: the gift create-gift-card-checkout pre-registered (payment_status 'pending') is closed, never left pending.
+    const giftClose = () => scenario.writes.filter((w) => w.table === "gift_cards" && w.op === "update");
+    it("a refused gift's pre-registered row is closed as expired, only while still pending", async () => {
+      env();
+      enrol(TEST_BUYER);
+      scenario.reads.profiles = { ...(scenario.reads.profiles ?? {}), rows: [] };
+      const { status, body } = await deliverGift(TEST_BUYER, "nobody.yet@example.com");
+      expect(status).toBe(200);
+      expect(body).toMatchObject({ ignored: "test_gift_not_test_to_test" });
+      const w = giftClose();
+      expect(w).toHaveLength(1);
+      expect(w[0].payload).toEqual({ status: "expired" });
+      expect(w[0].filters).toEqual(expect.arrayContaining([
+        { op: "eq", column: "stripe_session_id", value: "cs_test_gift" },
+        { op: "eq", column: "payment_status", value: "pending" },
+      ]));
+    });
+
+    it("a refused gift whose row cannot be closed is not acknowledged (Stripe retries)", async () => {
+      env();
+      enrol(TEST_BUYER);
+      scenario.reads.profiles = { ...(scenario.reads.profiles ?? {}), rows: [] };
+      scenario.writeErrors.gift_cards = { message: "boom" };
+      const { status } = await deliverGift(TEST_BUYER, "nobody.yet@example.com");
+      expect(status).toBeGreaterThanOrEqual(500);
+    });
+
+    it("an applied test-to-test gift is not closed by this path", async () => {
+      env();
+      enrol(TEST_BUYER, TEST_RECIPIENT);
+      scenario.reads.profiles = { ...(scenario.reads.profiles ?? {}), rows: [{ user_id: TEST_RECIPIENT }] };
+      await deliverGift(TEST_BUYER, TEST_RECIPIENT_EMAIL);
+      expect(giftClose().some((w) => (w.payload as { status?: string }).status === "expired")).toBe(false);
     });
   });
 });

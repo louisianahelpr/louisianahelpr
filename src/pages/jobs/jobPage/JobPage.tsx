@@ -309,8 +309,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 <span className="font-semibold text-primary">{eyebrow}</span>
                 {meta && <>{" · "}<span data-job-meta="">{meta}</span></>}
               </p>
-              {/* JOBS-18: every visit, before they apply or answer; a hired Helpr reads it in HiredSeriesSection. */}
-              {!isHired && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
+              {/* JOBS-18: every visit, before they apply or answer; the hired Helpr and the poster read it in HiredSeriesSection (A3-44). */}
+              {!isHired && !isPoster && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
               {/* JA-20: the hired Helpr's street opens Maps; JA-25: not once the job is cancelled. */}
               {isHired && job.location && job.status !== "cancelled" && (
                 <p data-job-address="" className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
@@ -393,7 +393,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               <DeclutterGallery urls={job.photos ?? []} category={job.category} title={job.title} icon={job.category === "other" ? Briefcase : getCategoryIcon(job.category)} shape="banner" />
             </div>
           )}
-          {isHired && <HiredSeriesSection job={job} userId={userId} />}
+          {(isHired || isPoster) && <HiredSeriesSection job={job} userId={userId} isPoster={isPoster && !isHired} />}
           {/* CMP-4: the poster's top 3 with Book now, or who is booked and until when. Nothing when nobody qualifies. */}
           {instantBookOn && isPoster && !job.is_group_job && job.status === "open" && <InstantBookPanel jobId={job.id} />}
           {/* Board 57: the poster's open, paid job that nobody has applied to yet; never while an offer or booking is

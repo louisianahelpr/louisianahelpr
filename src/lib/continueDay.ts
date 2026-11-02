@@ -13,7 +13,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 export type { ContinueDay } from "./continueDayWords";
-export { continueDayLabel, continueDayNextStep, continueDayWords, continueDayAhead, continueDayHeader, jobOnContinueDay } from "./continueDayWords";
+export { continueDayLabel, continueDayNextStep, continueDayWords, continueDayAhead, continueDayDoneNote, continueDayHeader, jobOnContinueDay } from "./continueDayWords";
 import type { ContinueDay } from "./continueDayWords";
 
 /** The job's active continue day, or null. */

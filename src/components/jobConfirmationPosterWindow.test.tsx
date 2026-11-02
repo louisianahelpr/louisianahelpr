@@ -47,17 +47,17 @@ describe("the poster can say the job is still on until it starts", () => {
   it("1:00 PM on the day of a 2:00 PM job: I'm still on is there (it closed at noon)", () => {
     at("2032-10-14T18:00:00Z");
     render(poster("14:00:00"));
-    expect(screen.getByRole("button", { name: /I'm still on/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Confirm it's still on/ })).toBeTruthy();
   });
   it("after the start it is gone", () => {
     at("2032-10-14T19:05:00Z");
     render(poster("14:00:00"));
-    expect(screen.queryByRole("button", { name: /I'm still on/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Confirm it's still on/ })).toBeNull();
   });
   it("no start time: open all day", () => {
     at("2032-10-14T22:00:00Z");
     render(poster(null));
-    expect(screen.getByRole("button", { name: /I'm still on/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Confirm it's still on/ })).toBeTruthy();
   });
 });
 

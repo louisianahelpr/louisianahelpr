@@ -8,10 +8,17 @@
  *
  * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const second = others === 0 |   const second = others === -1
  * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |     : others === 1 |     : others === -1
+ * @mutate src/pages/user/ReviewsSection.tsx |                   Report\n                </Button> |                   <MoreHorizontal aria-hidden />\n                </Button>
+ *
+ * The same rule off the job screens: a public review's ⋯ held ONE action (Report this review), so it is a visible
+ * "Report" text button (lead 11-01, the owner's rule app-wide). It took the review's slot in iconCompactButton.test.ts.
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { JobPageActionRow, type RowAction } from "@/pages/jobs/jobPage/JobPageActionRow";
+import { blankComments } from "@/test/helpers/blankNonCode";
 
 const act = (k: string): RowAction => ({ key: k, label: `Action ${k}`, go: () => {} });
 
@@ -46,5 +53,15 @@ describe("More options holds 2 or more, or is not drawn (owner 11-01)", () => {
       }
     }
     expect(walked).toBeGreaterThan(30);
+  });
+
+  it("a review's one action (Report) is a visible text button, never a ⋯ icon", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../pages/user/ReviewsSection.tsx"), "utf8"));
+    const at = src.indexOf('aria-label="Report this review"');
+    expect(at).toBeGreaterThan(-1);
+    const button = src.slice(src.lastIndexOf("<Button", at), src.indexOf("</Button>", at));
+    expect(button.length).toBeGreaterThan(40);
+    expect(button).toMatch(/>\s*Report\s*$/);
+    expect(src).not.toMatch(/MoreHorizontal|MoreVertical/);
   });
 });

@@ -319,79 +319,34 @@ describe("every fixture literal could be inserted", () => {
   // Object literals that look like a table row but are not one. Each entry names
   // the file and the keys that identify the non-row shape.
   const NOT_ROWS = [
-    // Declutter slices 3-4 (2026-10-15) made `expires_at`, `series`-adjacent and `stars` columns shared or new, so
-    // three non-row shapes became attributable to one table: a Certificial webhook payload (not a
-    // helper_credentials row), the charge-recurring-visits mock reads `{ rows, count }` (not an ops_alert_ledger
-    // row), and a source string `count: ..., stars: 0` (ReviewsSection's display object, not a declutter_reviews row).
+    // Q1920 (11-02): the scanner blanks comments and skips block bodies, so the 16 entries written for whole test
+    // bodies read as one literal, or for @mutate text, matched nothing and were removed (each counted 0 matches),
+    // as was a repeated stripe_mode entry.
+    // Declutter slices 3-4 (2026-10-15) made `expires_at` and `series`-adjacent columns shared or new, so two
+    // non-row shapes became attributable to one table: a Certificial webhook payload (not a helper_credentials
+    // row) and the charge-recurring-visits mock reads `{ rows, count }` (not an ops_alert_ledger row).
     { file: "src/test/edge/verification-webhook.test.ts", keys: ["certificate_id", "expiration_date"] },
-    // B131 (2026-11-01): types.ts now names declutter_orders.ship_capture, which made the label worker test's
-    // provider answers `{ ok, status: 200, body }` (read as one literal with a ShipOrder beside them) gradable as orders.
-    { file: "src/test/shipLabelWorker.test.ts", keys: ["ok", "body"] },
-    // 20261025161801 put gift_cards_payment_status_check in the migrations for the first time (it was
-    // only on prod), so two test BLOCKS read as one literal became gradable as gift rows: a jobs mock
-    // rewrite next to a gift read (`payment_status: "failed"` is the JOB's) and the gift-ledger cases
-    // whose `{ ...job, payment_status: "unpaid" }` sits beside gift rows. Neither is one row.
-    { file: "src/test/edge/money-reconciliation.test.ts", keys: ["rows", "poster_completed_at", "restored_from_job_id"] },
-    { file: "src/test/giftCardJourneyLedger.test.ts", keys: ["id", "recipient_id", "redeemed_at", "job_id"] },
     { file: "src/test/edge/charge-recurring-visits.test.ts", keys: ["rows", "count"] },
+    // 20261025161801 put gift_cards_payment_status_check in the migrations, so the gift-ledger cases' gift rows with a
+    // job beside them (`{ ...job, payment_status: "unpaid" }`) became gradable as gift rows; that is not one row.
+    { file: "src/test/giftCardJourneyLedger.test.ts", keys: ["id", "recipient_id", "redeemed_at", "job_id"] },
     // Shops M1 (20261018164442) gave shop_orders a decline_reason, so an applications mock read `{ rows: [{
     // status, decline_reason }], count }` lost its applications marker and `count` pointed at ops_alert_ledger.
     { file: "src/test/edge/create-notification.test.ts", keys: ["rows", "status", "decline_reason", "count"] },
-    { file: "src/test/reviewCountOneSource.test.ts", keys: ["stars"] },
     // Shipping S3 (B111, 2026-11-01): an EasyPost Rate object (`{ id, carrier, service, rate, currency }`, EasyPost's own
     // service names) is not a shipments row, but its `service` key reads as shipments.service.
     { file: "src/test/easypostLabels.test.ts", keys: ["carrier", "service", "rate", "currency"] },
-    { file: "e2e/visual-audit/responsive.spec.ts", keys: ["screen", "url", "notes"] },
     // Slice 5 (20261017055505) gave declutter_problems a named decision CHECK, so the admin audit-log `details`
     // object of a dispute split (`{ decision: "split", helper_cents, refund_cents }`) became attributable to it.
     { file: "e2e/happy-path/seedData.ts", keys: ["decision", "helper_cents", "refund_cents"] },
-    // A test BODY (`{ scenario.reads.jobs = …; scenario.reads.disputes = …;
-    // fn.request({ headers, body: { action } }) }`), not a row: a jobs row, a
-    // disputes row and a request share one brace. It was skipped as ambiguous
-    // until admin_stalled_job_queue's return columns (types.ts, 2026-09-23)
-    // stopped its jobs keys being distinctive, leaving only disputes'.
-    { file: "src/test/edge/create-payment.test.ts", keys: ["execution_status", "payout_split", "headers", "body", "action"] },
-    // Mock scenario bodies whose reads hold a payout_transfers row (`rows: [{
-    // stripe_transfer_id, status: "paid" }]`) beside a disputes or clawback
-    // row; the transfer's status is graded against the other table.
-    { file: "src/test/edge/chargebackClawback.test.ts", keys: ["rows", "op", "column", "value", "stripe_reversal_id"] },
-    { file: "src/test/edge/execute-dispute-split.test.ts", keys: ["dispute", "execution_status", "rows", "stripe_transfer_id"] },
-    // A run of test BODIES the brace reader takes as one literal once the Q1764 cases sit beside them
-    // (lander, 2026-10-17): a seeded dispute, a Stripe refund mock (`status: "failed"`, `failure_reason`)
-    // and an account mock share one brace, so the refund's status is graded against disputes.
-    { file: "src/test/edge/execute-dispute-split.test.ts", keys: ["dispute", "decided_at", "failure_reason", "payouts_enabled", "verdict", "token"] },
-    { file: "src/test/edge/release-payout-dispute-stamp.test.ts", keys: ["execution_transfer_id", "rows", "stripe_transfer_id"] },
     // A health-check response mock (`{ checks: { stripe_mode: "missing" } }`), not a job_card_holds row: the card hold
     // (Q2399, 20261026001019) made `stripe_mode` a column only job_card_holds has.
     { file: "src/test/pressNeverWritesToLiveStripe.test.ts", keys: ["stripe_mode"] },
-    // Test bodies that set a jobs read (`job({ status: "completed" })`) beside
-    // a clawback row; the job's status was graded against chargeback_clawbacks.
-    { file: "src/test/edge/chargebackHeldPayoutNotice.test.ts", keys: ["rows", "stripe_transfer_id", "amount_reversed", "original_transfer_id"] },
-    // A Stripe refund object in a refunds.list mock (`{ id, amount, status, reason, metadata }`), not a disputes row:
-    // once lane J's declutter_hand_refunds (2026-10-16) took no generic column, `reason` + `status` pointed at disputes.
-    { file: "src/test/edge/disputeSettlementWebhook.test.ts", keys: ["id", "amount", "status", "reason", "metadata"] },
     // storage.objects rows (`{ bucket_id, name, size }`), not public rows: once rental_photo_purge_queue (20261019071203)
     // took bucket_id as the only public table with it, these were graded against its bucket CHECK.
     { file: "src/test/storageBackup.test.ts", keys: ["bucket_id", "name", "size"] },
-    // A slack-ops-alert request body (`{ ...watcherBody(), fields: {...} }`) beside a mocked Slack reply (`{ status: 200 }`):
-    // once rental_leases (20261019110137, lease) took `fields` as the only public table with it, they were graded against its status CHECK.
-    { file: "src/test/edge/slack-ops-alert.test.ts", keys: ["fields", "status"] },
-    // Shops M3 (20261019071055): shop_hand_refunds shares `livemode` and facilitator_threshold_alerts took `year`, so a
-    // checkout.session.completed event mock with its PaymentIntent mocks (`payer_id` in the session metadata) became
-    // attributable to recurring_visit_payments, and a Stripe Identity `dob: { year, month, day }` to the alerts table.
-    { file: "src/test/edge/shop-checkout.test.ts", keys: ["mode", "payment_intent", "payer_id", "status"] },
-    { file: "src/test/edge/stripe-idv-webhook.test.ts", keys: ["year", "month", "day"] },
-    // A function result in a @mutate line (`return { status: 409, body: { error: ... } }`), not a disputes row: once
-    // paypal_webhook_events (20261023223419) shared `error`, only disputes' `status` marker was left.
-    { file: "src/test/edge/clearTestModeDisputeRecords.test.ts", keys: ["status", "body", "error"] },
     // The data-export inventory's `{ section, by }` entries, not saved_searches rows (Q2275 gave saved_searches a section CHECK).
     { file: "src/test/helpers/dataExportInventory.ts", keys: ["section", "by"] },
-    // health-check's answer `{ checks: { stripe_mode } }`, not a job_card_holds row (Q2399 gave that table the only stripe_mode column).
-    { file: "src/test/pressNeverWritesToLiveStripe.test.ts", keys: ["stripe_mode"] },
-    // useHomeMoney's answer `{ coming, held }` (and the test bodies holding it), not a helpr_task_tips row: delivery
-    // tips (Q2453, 20261028014848) gave helpr_task_tips the only `held` column, so a jobs earnings mock beside it
-    // (`payment_status: "released"`) was graded against the tip table's payment_status CHECK.
-    { file: "src/test/homeMoneyGating.test.tsx", keys: ["coming", "held"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

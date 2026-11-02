@@ -58,6 +58,8 @@ export function BlockUserDialog({
   // pays the fee and takes the reliability strike).
   const [estimatedFee, setEstimatedFee] = useState(0);
   const [isPosterOnAny, setIsPosterOnAny] = useState(false);
+  // Q2675 (audit 1102e row 8): the sheet counted "2 active jobs" and never named them.
+  const [jobTitles, setJobTitles] = useState<string[]>([]);
 
   // Look up active jobs between the two users so we can warn the user
   useEffect(() => {
@@ -68,7 +70,7 @@ export function BlockUserDialog({
       if (!user) return;
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, budget, date_needed, start_time, customer_id, helper_id, helper_confirmed_at")
+        .select("id, title, budget, date_needed, start_time, customer_id, helper_id, helper_confirmed_at")
         .or(
           `and(customer_id.eq.${user.id},helper_id.eq.${blockedUserId}),and(customer_id.eq.${blockedUserId},helper_id.eq.${user.id})`,
         )
@@ -86,6 +88,7 @@ export function BlockUserDialog({
       if (cancelled) return;
       const rows = data ?? [];
       setActiveJobCount(rows.length);
+      setJobTitles(rows.map((r) => (r.title ?? "").trim()).filter(Boolean));
       const mine = rows.filter((r) => r.customer_id === user.id);
       setIsPosterOnAny(mine.length > 0);
       setEstimatedFee(
@@ -153,12 +156,13 @@ export function BlockUserDialog({
               <DialogBody>
                 <ul className="space-y-1 list-disc pl-5">
                 <li>You won&apos;t see their messages, applications, or profile.</li>
-                <li>They won&apos;t be able to apply to your jobs or message you.</li>
+                {/* Q2676 (audit 1102e row 9): both seats, never only the poster's ("apply to your jobs"). */}
+                <li>They can&apos;t apply to your jobs, offer you a job, or message you.</li>
                 <li>They won&apos;t be notified that you blocked them.</li>
                 {activeJobCount !== null && activeJobCount > 0 && (
                   // Plain words, not a red paragraph; only the money is rust (audit #51).
                   <li className="not-italic font-sans font-medium text-foreground">
-                    {activeJobCount} active job{activeJobCount === 1 ? "" : "s"} between you will be cancelled.{" "}
+                    {activeJobCount} active job{activeJobCount === 1 ? "" : "s"} between you will be cancelled{jobTitles.length > 0 ? `: ${jobTitles.map((t) => `"${t}"`).join(", ")}` : ""}.{" "}
                     {isPosterOnAny ? (
                       estimatedFee > 0 ? (
                         <>

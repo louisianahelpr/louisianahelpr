@@ -2840,6 +2840,8 @@ export type Database = {
           setup_fee_cents: number
           setup_fee_refund_id: string | null
           setup_fee_state: string | null
+          ship_capture: string | null
+          shipping_quote_id: string | null
           seller_id: string | null
           status: string
           stripe_checkout_session_id: string | null
@@ -2872,6 +2874,8 @@ export type Database = {
           setup_fee_cents?: number
           setup_fee_refund_id?: string | null
           setup_fee_state?: string | null
+          ship_capture?: string | null
+          shipping_quote_id?: string | null
           seller_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
@@ -2904,6 +2908,8 @@ export type Database = {
           setup_fee_cents?: number
           setup_fee_refund_id?: string | null
           setup_fee_state?: string | null
+          ship_capture?: string | null
+          shipping_quote_id?: string | null
           seller_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
@@ -12062,6 +12068,7 @@ export type Database = {
           ship_to: Json
           shop_order_id: string | null
           label_state: string
+          packed_at: string | null
           tracking_code: string | null
           tracking_status: string | null
           updated_at: string
@@ -12091,6 +12098,7 @@ export type Database = {
           ship_to: Json
           shop_order_id?: string | null
           label_state?: string
+          packed_at?: string | null
           tracking_code?: string | null
           tracking_status?: string | null
           updated_at?: string
@@ -12120,6 +12128,7 @@ export type Database = {
           ship_to?: Json
           shop_order_id?: string | null
           label_state?: string
+          packed_at?: string | null
           tracking_code?: string | null
           tracking_status?: string | null
           updated_at?: string
@@ -16307,6 +16316,9 @@ export type Database = {
       declutter_ship_hold_released: { Args: { p_order_id: string }; Returns: string }
       declutter_ship_setup_fee_at_capture: { Args: { p_order_id: string }; Returns: number }
       declutter_ship_sweep: { Args: never; Returns: Json }
+      declutter_ship_by: { Args: { p_paid: string }; Returns: string }
+      declutter_my_ship_label: { Args: { p_order_id: string }; Returns: Json }
+      declutter_mark_packed: { Args: { p_order_id: string }; Returns: string }
       declutter_order_place: {
         Args: { p_order_id: string }
         Returns: { address: string; area: string; label: string; lat: number; lng: number; weekdays: number[] }[]

@@ -30,7 +30,7 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | others.length === 0 ? "Nothing for sale near you yet." | others.length === 0 ? "Opens soon"
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |               !searched && others.length === 0 ? <NothingForSaleActions guest={!member} /> : |               false ? <NothingForSaleActions guest={!member} /> :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |       {wanted && ( |       {true && (
- * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
+ * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side && (!scope \|\| !l.order_id \|\| scope(l.order_id))); |   const lines = (cart.data ?? []).filter((l) => !scope \|\| !l.order_id \|\| scope(l.order_id));
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine" \|\| view === "sales") return "selling"; |   if (view === "mine" \|\| view === "sales") return "buying";
  * @mutate src/lib/declutter/tabs.ts |   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying"; |   return "buying";
  * @mutate src/lib/declutter/tabs.ts |     selling: sellerOffers + salesOpen, |     selling: sellerOffers,
@@ -133,6 +133,8 @@ vi.mock("@/lib/declutter/handoverTalk", () => ({ fetchMyOpenHandoverTalks: async
 // A1-B2 (b28): "You paid" reads the card charge per order (declutter_my_paid_cents); which tab an order lands on is
 // what this file checks, so no figure is answered here.
 vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
+// Q2630: what a refunded order sent back (none read here: the card keeps its plain words; its own test: buyingOrders "Q2630").
+vi.mock("@/lib/declutter/refundedCents", async (orig) => ({ ...(await orig<object>()), fetchMyRefundedCents: async () => new Map() }));
 // A3-53: checkout's delivery size read (none here; its own test: declutterTradeViews "A3-53").
 vi.mock("@/lib/declutter/checkoutSize", async (orig) => ({ ...(await orig<object>()), fetchCheckoutSize: async () => null }));
 // Checkout's porch days (none here).
@@ -589,7 +591,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/BuyingOrders.tsx |   counts.needs_you += checkouts; |   counts.needs_you += 0;
   // @mutate src/components/declutter/BuyingOrders.tsx |   counts.cancelled += ended.length; |   counts.cancelled += 0;
   // @mutate src/components/declutter/BuyingOrders.tsx |   return ORDER_BUCKETS.filter((b) => counts[b.key] > 0).map( |   return ORDER_BUCKETS.map(
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       <PaidOrders side="buyer" views={t.views} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> |       <PaidOrders side="buyer" views={t.views} />
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> | scope={(id) => !refunded(id)} />
   // Audit DB-6 (2026-10-30): a seller's counter to answer sat under every order, below the fold. It now comes before
   // the orders; offers that wait on the seller stay below them.
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {offers.has && offers.toAnswer && <OffersSection side="buyer" />}\n |
@@ -648,6 +650,26 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     // Cancelled shows the refunded order and the checkout that ran out, and says nothing was charged for it.
     expect(screen.getByText("paid order o-refunded as buyer")).toBeInTheDocument();
     expect(screen.getByText(/The time to check out ran out\. Nothing was charged\./)).toBeInTheDocument();
+  });
+
+  // Q2630 (audit 1102c R5): a paid order refunded in full sat under Your orders as if still in progress. It is filed
+  // under Ended now, beside the checkouts that ran out, and drawn once.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show= | show=
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |           {endedOrders > 0 && <PaidOrders side="buyer" views={t.views} scope={refunded} ended />} |
+  // @mutate src/components/declutter/DeclutterTabParts.tsx | (l) => l.my_side === side && (!scope \|\| !l.order_id \|\| scope(l.order_id)) | (l) => l.my_side === side
+  it("Q2630: a refunded order is filed under Ended, not under Your orders", async () => {
+    state.cart = [
+      { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-live", order_status: "paid", handover: "pickup_home" },
+      { ...LINE, line_id: "p5", item_id: "p5", item_title: "Vase", status: "paid", order_id: "o-refunded", order_status: "refunded", handover: "pickup_home" },
+    ];
+    at("/declutter?tab=buying");
+    const ended = await screen.findByRole("region", { name: "Ended" });
+    expect(within(ended).getByText("paid order o-refunded as buyer")).toBeInTheDocument();
+    expect(within(ended).queryByText("paid order o-live as buyer")).toBeNull();
+    const yours = screen.getByRole("heading", { name: "Your orders" }).closest("section") as HTMLElement;
+    expect(within(yours).getByText("paid order o-live as buyer")).toBeInTheDocument();
+    expect(within(yours).queryByText("paid order o-refunded as buyer")).toBeNull();
+    expect(screen.getAllByText("paid order o-refunded as buyer")).toHaveLength(1);
   });
 
   // Q2569 (audit 1102a): a buyer with only ended orders saw "All · 2" "Cancelled · 2" (the chip repeating All) and

@@ -15,6 +15,7 @@
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | .eq("id", jobId).eq("customer_id", userId).limit(1)); | .eq("id", jobId).limit(1));
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     <div data-poster-more="" hidden> |     <div data-poster-more="">
  * @mutate src/components/job-card/JobStepCard.tsx | menu?.secondHost && menuCount === 1 ? | menu?.secondHost && menuCount === 2 ?
+ * @mutate src/components/job-card/JobStepCard.tsx | const menuPrimaries = menu && primaryChipKey !== "message" ? primaryButtons(ownPrimary) : []; | const menuPrimaries = menu ? primaryButtons(ownPrimary) : [];
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     crewRoster: job.is_group_job && detail ? detail.groupHelpersByJob?.[job.id] ?? [] : undefined, |     crewRoster: undefined,
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -77,6 +78,8 @@ import { usePosterPageFlows } from "./usePosterPageFlows";
 
 // Whether the page's options sheet (its list host) is open in this harness.
 const listOpen = { value: false };
+// Whether the page mounts its lead slot (it does when it has no step of its own).
+const leadOn = { value: false };
 
 function Harness() {
   const f = usePosterPageFlows({ jobId: "job-1", enabled: true, trackingStatus: null, onChanged: () => {} });
@@ -88,6 +91,8 @@ function Harness() {
       <button onClick={f.approve}>approve</button>
       <button onClick={f.cancel}>cancel</button>
       <p data-testid="count">{f.moreCount}</p>
+      <p data-testid="leads">{f.leadCount}</p>
+      {leadOn.value && <div data-testid="lead" ref={f.setLeadHost} />}
       <div data-testid="second" ref={f.setSecondHost} />
       {listOpen.value && <div data-testid="list" ref={f.setListHost} />}
       {f.panel}
@@ -106,6 +111,7 @@ beforeEach(() => {
   calls.from.length = 0;
   calls.invoke.length = 0;
   listOpen.value = false;
+  leadOn.value = false;
 });
 
 describe("the job page runs the Posted card's own flows (usePosterPageFlows)", () => {
@@ -149,6 +155,27 @@ describe("the job page runs the Posted card's own flows (usePosterPageFlows)", (
       await waitFor(() => expect(screen.getByTestId("roster").textContent).toBe("rows=0"));
       expect(container.querySelector("[data-poster-more]")!.textContent).not.toContain("Your crew");
       expect(screen.getByTestId("nobody").textContent).toBe("true");
+    } finally {
+      Object.assign(JOB, saved);
+      delete (JOB as { helpers_needed?: number }).helpers_needed;
+    }
+  });
+
+  // A3-35 (audit 2026-11-01, Auditor 4 on 7d3976024a): an under-way crew's page led with a big lone "Message". It was
+  // the hidden card's "Message your crew" primary, handed to the page's lead slot (pairLabel shortens it to "Message"),
+  // and it opened the inbox, not anyone's thread. Fixed on main by 5732449e8f (a Message primary is never handed over);
+  // this pins it for the crew: the roster's own per-member Message is the way to reach a member.
+  it("an under-way crew with nothing to approve hands the page no lone Message lead", async () => {
+    const saved = { ...JOB };
+    Object.assign(JOB, { is_group_job: true, helper_id: null, helper_completed_at: null, helpers_needed: 2, helper_arrived_at: null, poster_confirmed_arrival_at: null });
+    leadOn.value = true;
+    try {
+      mount();
+      await waitFor(() => expect(screen.getByTestId("ready").textContent).toBe("true"));
+      await waitFor(() => expect(screen.getByTestId("roster").textContent).toBe("rows=0"));
+      expect(screen.getByTestId("leads").textContent).toBe("0");
+      expect(screen.getByTestId("lead").textContent).not.toMatch(/Message/);
+      expect(screen.queryByRole("button", { name: /Message your crew/ })).toBeNull();
     } finally {
       Object.assign(JOB, saved);
       delete (JOB as { helpers_needed?: number }).helpers_needed;

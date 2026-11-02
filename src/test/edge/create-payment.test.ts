@@ -531,6 +531,32 @@ describe("create-payment edge function", () => {
       });
 
       /**
+       * Q1993 (lh-money-escrow review of 4ec0dea84, #6), verified 11-02: the webhook's funding write accepts an 'unpaid'
+       * job, so a SECOND completed checkout on a job whose bank (ACH) payment is still settling would replace its
+       * PaymentIntent and flip it to escrow. It cannot open: the ACH session is 'complete' with payment_status 'unpaid'
+       * (and its PI 'processing') while the job stays 'unpaid', and the re-mint refuses on `complete` alone. The retire
+       * step runs before every job checkout and gift redemption in create-payment (the gift difference session too),
+       * and the stamped PI check below refuses a live row PI as well. This pins the exact ACH shape.
+       */
+      // @mutate supabase/functions/create-payment/index.ts | if (prior.status === "complete" \|\| prior.payment_status === "paid" \|\| priorPiLive) { | if (prior.payment_status === "paid") {
+      it("Q1993: refuses a second checkout while the first is a COMPLETED bank payment still settling (session complete + unpaid: refused on complete alone, whatever its PI reads)", async () => {
+        seedRemintable("unpaid", "cs_ach");
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+          id: "cs_ach",
+          status: "complete",
+          payment_status: "unpaid",
+          payment_intent: { id: "pi_ach", status: "requires_payment_method" },
+        });
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect((await json(res)).error).toMatch(/still being processed/i);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+        expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+      });
+
+      /**
        * lh-money-escrow review of a2f1618d0, #1 (the 7440a72d sequence): a
        * bounced bank payment leaves 'failed', no session and the bank's PI on
        * the row. A card retry used to stamp 'unpaid' + a new session with that

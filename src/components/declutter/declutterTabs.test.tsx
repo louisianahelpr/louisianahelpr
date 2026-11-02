@@ -650,6 +650,30 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(screen.getByText(/The time to check out ran out\. Nothing was charged\./)).toBeInTheDocument();
   });
 
+  // Q2569 (audit 1102a): a buyer with only ended orders saw "All · 2" "Cancelled · 2" (the chip repeating All) and
+  // no way back to shopping. One group: no chips; nothing active: "Find something in Browse" under Ended.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | {chips.length > 1 && <StatusBoxes | {orders && <StatusBoxes
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |           {nothingActive && ( |           {false && (
+  it("Q2569: only ended orders: no chip that repeats All, and a way back to Browse", async () => {
+    state.cart = [
+      { ...LINE, line_id: "e1", item_id: "e1", item_title: "Rake", status: "missed" },
+      { ...LINE, line_id: "e2", item_id: "e2", item_title: "Hoe", status: "missed" },
+    ];
+    const { container, unmount } = at("/declutter?tab=buying");
+    const ended = await screen.findByRole("region", { name: "Ended" });
+    expect(ended.querySelectorAll("[data-ended-line]").length).toBe(2);
+    expect(container.querySelector("[data-status-box]")).toBeNull();
+    expect(container.querySelector("[data-status-all]")).toBeNull();
+    expect(within(ended).getByRole("link", { name: "Find something in Browse" })).toHaveAttribute("href", "/declutter");
+    unmount();
+    // A live order beside them: the chips are back (two groups) and no Browse pointer.
+    state.cart = [...state.cart, { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-x", order_status: "paid", handover: "pickup_home" }];
+    const again = at("/declutter?tab=buying");
+    await screen.findByText("paid order o-x as buyer");
+    await vi.waitFor(() => expect(again.container.querySelectorAll("[data-status-box]").length).toBeGreaterThan(1));
+    expect(screen.queryByRole("link", { name: "Find something in Browse" })).toBeNull();
+  });
+
   it("Selling: your listings, the offers on your items, sales waiting to be paid and paid sales, every old action still there", async () => {
     everything();
     at("/declutter?view=selling");

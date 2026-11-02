@@ -6,6 +6,11 @@
  *
  * @mutate src/lib/jobPaymentCardState.ts |     body: "The cardholder disputed this charge with their bank.", |     body: "Helpr answers the bank for you with the delivery record.",
  * @mutate src/lib/jobPaymentCardState.ts |     money: "Payouts for this job are on hold because of this dispute.", |     money: "If the bank sides with the payment, the payout goes through automatically.",
+ *
+ * Q1977 (lh-money-escrow review of the Q1970 fix, 2026-10-17): a failed payment is also a bank (ACH) payment now,
+ * so its words name the payment, never the card.
+ * @mutate src/lib/jobPaymentCardState.ts |     detail: "The payment was declined", |     detail: "The card was declined",
+ * @mutate src/lib/jobPaymentCardState.ts |     body: "The payment was declined, so this job | body: "The card was declined, so this job
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -32,5 +37,13 @@ describe("board 145: chargeback copy promises only what exists", () => {
     const files = readdirSync(dir).filter((f) => f.endsWith(".ts"));
     expect(files.length).toBeGreaterThan(3);
     for (const f of files) expect(blankComments(readFileSync(join(dir, f), "utf8"))).not.toMatch(/disputes\.update\(/);
+  });
+});
+
+describe("Q1977: a failed payment's words fit a bank payment too", () => {
+  it("never says card", () => {
+    const failed = Object.values(PAYMENT_PROBLEM_COPY.failed);
+    expect(failed.length).toBeGreaterThan(2);
+    for (const line of failed) expect(line).not.toMatch(/\bcard\b/i);
   });
 });

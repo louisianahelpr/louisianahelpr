@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
@@ -284,7 +285,12 @@ function Managing({ g }: { g: ManagerGrant }) {
       {view === "mine" ? (
         <MyShares g={g} />
       ) : !o ? (
-        <p className="mt-2 text-ds-14 text-muted-foreground">{ov.isError ? "We couldn't load that. Try again." : "Loading…"}</p>
+        ov.isError ? (
+          // A failed read is an error screen (reported, with a retry), not plain text (errorSurfacesReport, Builder 187).
+          <ErrorState variant="inline" title="We couldn't load that." body={userFacingError(ov.error, "Try again in a moment.")} onRetry={() => void ov.refetch()} />
+        ) : (
+          <p className="mt-2 text-ds-14 text-muted-foreground">Loading…</p>
+        )
       ) : (
         <div className="mt-3 space-y-2" data-managed-overview="">
           <NextStep value={waitingOffers > 0

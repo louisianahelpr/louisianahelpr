@@ -1033,14 +1033,16 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
 // city. Owner rule 2026-08-31 ("Should only see address when they are offered the job"): the offered
 // Helpr sees the street on both; a Helpr who only applied sees the city and the line saying when.
 describe("job page, the street address follows the Working card", () => {
-  it("the offered Helpr sees the street the offer card shows, and no 'shared once' line", () => {
+  it("the offered Helpr sees the street the offer card shows, and no 'shared once' line", async () => {
     state.job = row({ helper_id: ME, status: "accepted", helper_confirmed_at: null });
     state.party = true;
     renderPage();
     // JA-16 (audit 11-01): said once, by the tracker, never again as a bold status line under it.
     // @mutate src/pages/jobs/jobPage/viewerState.ts |     return { action: { kind: "see_offer" }, status: null }; |     return { action: { kind: "see_offer" }, status: "Lexi offered you this job" };
     expect(document.querySelector("[data-viewer-status]")).toBeNull();
-    expect(document.body.textContent!.match(/offered you this job/g)?.length).toBe(1);
+    // Q2601: the tracker says it as the step ("accept or decline Rhonda's offer"), once.
+    await waitFor(() => expect(document.body.textContent!.match(/accept or decline Rhonda's offer/g)?.length).toBe(1));
+    expect(document.body.textContent).not.toMatch(/offered you this job/);
     expect(document.querySelector("[data-job-address]")?.textContent).toBe("Address: 123 Main St, Delcambre, LA 70528");
     expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();

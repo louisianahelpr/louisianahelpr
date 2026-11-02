@@ -71,7 +71,8 @@ export interface PreviewSample {
   /** The viewer's pending direct offer (instant booking), when there is one. */
   pendingOffer: { id: string; instant_decline_until: string | null } | null;
   offeredTo: string | null;
-  profiles: Array<{ id: string; full_name: string; avatar_url: string | null; created_at: string }>;
+  /** get_safe_profiles rows. is_payout_ready + is_id_verified: the sample Helpr can take a tip (useHelprTakesTips). */
+  profiles: Array<{ id: string; full_name: string; avatar_url: string | null; created_at: string; is_payout_ready: boolean; is_id_verified: boolean }>;
   candidates: Array<{ helper_id: string; display_name: string; avatar_url: string | null; jobs_done: number; rating: number | null; review_count: number }>;
   /** Every other read RPC the page makes, by name (an RPC not here is answered null and reported, never sent). */
   reads: Record<string, unknown>;
@@ -383,9 +384,11 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       helper_cancel_booking: stage === "cancel_sheet" ? {} : { action: "none" },
     },
     profiles: [
-      { id: PREVIEW_POSTER_ID, full_name: "Lexi Landry", avatar_url: null, created_at: "2025-03-14T15:00:00Z" },
-      { id: PREVIEW_HELPR_ID, full_name: "Eli Robichaux", avatar_url: null, created_at: "2025-06-02T15:00:00Z" },
-      { id: PREVIEW_CREWMATE_ID, full_name: "Maya Thibodeaux", avatar_url: null, created_at: "2025-08-20T15:00:00Z" },
+      // Audit 1102e: the Tip stage showed "Tips open once Eli finishes verifying": the sample Helprs are verified and
+      // set up for payouts, so Tip shows the real button.
+      { id: PREVIEW_POSTER_ID, full_name: "Lexi Landry", avatar_url: null, created_at: "2025-03-14T15:00:00Z", is_payout_ready: false, is_id_verified: true },
+      { id: PREVIEW_HELPR_ID, full_name: "Eli Robichaux", avatar_url: null, created_at: "2025-06-02T15:00:00Z", is_payout_ready: true, is_id_verified: true },
+      { id: PREVIEW_CREWMATE_ID, full_name: "Maya Thibodeaux", avatar_url: null, created_at: "2025-08-20T15:00:00Z", is_payout_ready: true, is_id_verified: true },
     ],
   };
 }

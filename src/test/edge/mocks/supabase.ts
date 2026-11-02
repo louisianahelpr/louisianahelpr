@@ -774,6 +774,11 @@ export function createClient(
       const data = typeof configured === "function"
         ? (configured as (a?: unknown) => unknown)(args)
         : configured;
+      // A function value may answer one call with an error: { __rpcError: { message, code } } (e.g. PGRST202 for an
+      // argument the database does not know yet, while other calls to the same rpc succeed).
+      if (data && typeof data === "object" && "__rpcError" in (data as Record<string, unknown>)) {
+        return { data: null, error: (data as { __rpcError: { message: string; code?: string } }).__rpcError };
+      }
       return { data, error: null };
     }),
   };

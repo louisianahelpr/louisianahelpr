@@ -144,6 +144,8 @@ serve(async (req) => {
       withholdReason = "the crew members whose spots you closed close to the start",
     ): Promise<{ ok: boolean; outcome: string | null }> => {
       let shareBps: number | undefined;
+      // Q1914: the exact cents to give back (applied - withheld), so the poster loses no rounding.
+      let restoreCents: number | undefined;
       let keptForBlockFees = 0;
       if (withholdCents > 0) {
         // What the gift paid toward this job, read without restoring anything.
@@ -163,17 +165,26 @@ serve(async (req) => {
           // The RPC floors applied * bps / 10000: the largest bps that does not
           // overshoot the target, as process-scheduled-payouts sizes a crew's
           // gift share, so the gift never returns any of the withheld fee.
+          // Only the fallback below uses it (a database without p_restore_cents yet).
           shareBps = target <= 0 || applied <= 0 ? 0 : Math.min(10000, Math.floor(((target + 1) * 10000 - 1) / applied));
-          keptForBlockFees = applied - Math.floor((applied * shareBps) / 10000);
+          restoreCents = target;
+          keptForBlockFees = applied - target;
           console.log(
-            `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for fees the poster owes; restoring ${Math.floor((applied * shareBps) / 10000)}c of ${applied}c.`,
+            `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for fees the poster owes; restoring ${target}c of ${applied}c.`,
           );
         }
       }
-      const { data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
+      let { data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
         p_job_id: job.id,
-        ...(shareBps !== undefined ? { p_share_bps: shareBps } : {}),
+        ...(restoreCents !== undefined ? { p_restore_cents: restoreCents } : {}),
       });
+      if (rpcErr?.code === "PGRST202" && restoreCents !== undefined && shareBps !== undefined) {
+        // Q1914: the database predates p_restore_cents (20261102071958): the whole-basis-point share, as before.
+        console.warn(`[void-cancelled-payments] job ${job.id}: restore_gift_card_for_job has no p_restore_cents yet; using ${shareBps} bps.`);
+        const applied = keptForBlockFees + restoreCents;
+        keptForBlockFees = applied - Math.floor((applied * shareBps) / 10000);
+        ({ data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", { p_job_id: job.id, p_share_bps: shareBps }));
+      }
 
       // A null `error` is not proof the restore happened — read the outcome
       // the function reports and accept only the ones it actually defines.

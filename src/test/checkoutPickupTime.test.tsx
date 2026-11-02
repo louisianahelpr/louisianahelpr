@@ -5,8 +5,11 @@
  * src/test/pglite/declutterCheckoutPickupTime.pglite.mjs) and closes an open page first when the time changed.
  * Pay waits on the pick while the seller has a time open; each way's details sit INSIDE its option.
  *
- * @mutate src/lib/declutter/pickupSlots.ts |         spans.set(m, Math.max(spans.get(m) ?? 0, Math.min(m + PORCH_WINDOW_MIN, wEnd))); |         spans.set(m, m + PORCH_WINDOW_MIN);
- * @mutate src/lib/declutter/pickupSlots.ts |       for (let m = minutes(w.starts); m + SLOT_MIN <= wEnd; m += PORCH_WINDOW_MIN) { |       for (let m = minutes(w.starts); m + SLOT_MIN <= wEnd; m += SLOT_MIN) {
+ * @mutate src/lib/declutter/pickupSlots.ts |         spans.set(s, Math.max(spans.get(s) ?? 0, Math.min(s + PORCH_WINDOW_MIN, wEnd))); |         spans.set(s, s + PORCH_WINDOW_MIN);
+ * A3-65 (audit 7, 11-01): the last window slides back to end at the close, so every chip is 2 hours.
+ * @mutate src/lib/declutter/pickupSlots.ts | const s = m + PORCH_WINDOW_MIN > wEnd ? Math.max(wStart, wEnd - PORCH_WINDOW_MIN) : m; | const s = m;
+ * @mutate src/lib/declutter/pickupSlots.ts | Math.max(wStart, wEnd - PORCH_WINDOW_MIN) : m; | wEnd - PORCH_WINDOW_MIN : m;
+ * @mutate src/lib/declutter/pickupSlots.ts |       for (let m = wStart; m + SLOT_MIN <= wEnd; m += PORCH_WINDOW_MIN) { |       for (let m = wStart; m + SLOT_MIN <= wEnd; m += SLOT_MIN) {
  * @mutate src/lib/declutter/api.ts |       : (handover === "porch" \|\| handover === "pickup_home" \|\| handover === "meetup") && slotStart ? { slot_start: slotStart } |       : false ? { slot_start: slotStart }
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const pickupTimeReady = !timedPickup \|\| pickupChoices.length === 0 \|\| pickupStart !== null; |   const pickupTimeReady = true;
  * @mutate supabase/functions/declutter-checkout/index.ts | slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged)) { | slotChanged \|\| spotChanged \|\| bundleChanged)) {
@@ -28,10 +31,10 @@ const now = Date.parse("2026-10-28T13:00:00Z");
 const wed = (starts: string, ends: string): SellerWindow[] => [{ weekday: 3, starts, ends }];
 
 describe("porchWindowDays: 2-hour porch windows", () => {
-  it("steps 2 hours from the window's start and cuts the last one at the window's end", () => {
+  it("steps 2 hours from the window's start; the last one slides back to end at the close (A3-65)", () => {
     const days = porchWindowDays(wed("09:00", "16:00"), now, null);
     expect(days[0].ymd).toBe("2026-10-28");
-    expect(days[0].slots.map((s) => s.label)).toEqual(["9–11 AM", "11 AM–1 PM", "1–3 PM", "3–4 PM"]);
+    expect(days[0].slots.map((s) => s.label)).toEqual(["9–11 AM", "11 AM–1 PM", "1–3 PM", "2–4 PM"]);
     expect(days[0].slots[0].iso).toBe("2026-10-28T14:00:00.000Z");
   });
   it("a door pickup keeps the 30-minute times (more chips than windows)", () => {
@@ -40,7 +43,16 @@ describe("porchWindowDays: 2-hour porch windows", () => {
   });
   it("no window starts in the past", () => {
     const later = Date.parse("2026-10-28T17:30:00Z"); // 12:30 PM Chicago
-    expect(porchWindowDays(wed("09:00", "16:00"), later, null)[0].slots.map((s) => s.label)).toEqual(["1–3 PM", "3–4 PM"]);
+    expect(porchWindowDays(wed("09:00", "16:00"), later, null)[0].slots.map((s) => s.label)).toEqual(["1–3 PM", "2–4 PM"]);
+  });
+  it("A3-65: Sat 9 AM-12 PM reads 9-11 AM and 10 AM-12 PM, every chip 2 hours; the slid chip starts at 10", () => {
+    const days = porchWindowDays(wed("09:00", "12:00"), now, null);
+    expect(days[0].slots.map((s) => s.label)).toEqual(["9–11 AM", "10 AM–12 PM"]);
+    expect(days[0].slots[1].iso).toBe("2026-10-28T15:00:00.000Z");
+  });
+  it("A3-65: hours shorter than 2 hours keep their own length, never starting before they open", () => {
+    expect(porchWindowDays(wed("09:00", "10:00"), now, null)[0].slots.map((s) => s.label)).toEqual(["9–10 AM"]);
+    expect(porchWindowDays(wed("09:00", "11:00"), now, null)[0].slots.map((s) => s.label)).toEqual(["9–11 AM"]);
   });
 });
 

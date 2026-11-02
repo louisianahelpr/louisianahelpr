@@ -8,7 +8,7 @@
  * @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |          closed_reason = 'helper_cancelled'\n |          closed_reason = NULL\n
  * @mutate src/pages/posts/postedJobs/applicantBadge.ts |   helper_cancelled: "Cancelled", |   helper_cancelled: "Declined",
  * @mutate src/components/job-card/jobStatusLine.ts |   if (app.status === "rejected" && app.closed_reason === "helper_cancelled") return "helper_cancelled"; |
- * @mutate src/pages/jobs/jobPage/viewerState.ts |     if (app.status === "rejected" && app.closed_reason === "helper_cancelled") return { action: { kind: "none" }, status: "You cancelled this job" }; |
+ * @mutate src/pages/jobs/jobPage/viewerState.ts |     if (app.status === "rejected" && app.closed_reason === "helper_cancelled") return { action: { kind: "none" }, status: helprCancelledStatus(app.updated_at, o.job) }; |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

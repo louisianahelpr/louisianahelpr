@@ -345,6 +345,13 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
     }
   }
 
+  // Q2691 (audit 1102e row 17): both day-of confirmations come before the Helpr sets off. bothIn's fixed times fell
+  // after every on-the-way time older than 3 hours ("Confirmed 3:39 AM" under "On the way 1:29 AM").
+  const setOff = Date.parse(job.helper_on_the_way_at ?? "");
+  if (!Number.isNaN(setOff) && job.helper_dayof_confirmed_at && Date.parse(job.helper_dayof_confirmed_at) > setOff) {
+    job = { ...job, helper_dayof_confirmed_at: new Date(setOff - 30 * 60_000).toISOString(), poster_confirmed_at: new Date(setOff - 20 * 60_000).toISOString() };
+  }
+
   const lateFeeCents = stage === "cancel_sheet" && job.helper_id ? Math.round(job.budget * 25) : 0;
   // The poster always reads their own row; a Helpr is a party once offered or hired (or on the crew).
   const party = viewer === "poster" || job.helper_id === PREVIEW_HELPR_ID || crew.includes(PREVIEW_HELPR_ID);

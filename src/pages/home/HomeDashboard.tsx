@@ -236,7 +236,7 @@ function HomeDashboardScreen() {
               ) : (
                 <>
                   <p className="font-moment text-ds-22 leading-tight text-foreground">You're all caught up</p>
-                  <p className="text-ds-14 text-muted-foreground">Orders to answer and jobs that need you show up here.</p>
+                  <p className="text-ds-14 text-muted-foreground">Things that need you show up here.</p>
                 </>
               )}
             </section>

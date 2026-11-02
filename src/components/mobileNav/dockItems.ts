@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { leftItems, rightItems, exploreItem, youItem } from "@/components/mobileNav/mobileNavHelpers";
 
-export type DockItem = { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "todo" | "todoJobs" | "todoShops"; comingSoon?: boolean };
+export type DockItem = { path: string; icon: LucideIcon; label: string; badgeKey?: "messages" | "todo" | "todoJobs" | "todoShops" | "todoDeclutter"; comingSoon?: boolean };
 
 /**
  * The PHONE bottom bar (owner-approved mock-up, 2026-10-20): Home and Explore

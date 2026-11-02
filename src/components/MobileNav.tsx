@@ -375,7 +375,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             ? todo.jobs
             : badgeKey === "todoShops"
               ? todo.shops
-              : 0;
+              : badgeKey === "todoDeclutter"
+                ? todo.declutter
+                : 0;
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {

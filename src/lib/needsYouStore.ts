@@ -22,9 +22,11 @@ export interface NeedsYouCounts {
   readonly jobs: number;
   /** Shops to-dos (orders waiting for my shop's answer). */
   readonly shops: number;
+  /** A3-81: Declutter to-dos (offers to answer, checkouts due, handovers), both sides. */
+  readonly declutter: number;
 }
 
-export const NO_TODOS: NeedsYouCounts = Object.freeze({ total: 0, jobs: 0, shops: 0 });
+export const NO_TODOS: NeedsYouCounts = Object.freeze({ total: 0, jobs: 0, shops: 0, declutter: 0 });
 
 let owner: string | null = null;
 let counts: NeedsYouCounts = NO_TODOS;
@@ -33,9 +35,9 @@ const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
 export function publishNeedsYou(userId: string, next: NeedsYouCounts): void {
-  if (owner === userId && counts.total === next.total && counts.jobs === next.jobs && counts.shops === next.shops) return;
+  if (owner === userId && counts.total === next.total && counts.jobs === next.jobs && counts.shops === next.shops && counts.declutter === next.declutter) return;
   owner = userId;
-  counts = { total: next.total, jobs: next.jobs, shops: next.shops };
+  counts = { total: next.total, jobs: next.jobs, shops: next.shops, declutter: next.declutter };
   emit();
 }
 

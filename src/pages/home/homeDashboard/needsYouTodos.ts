@@ -6,6 +6,7 @@ import { postedActivityBucket, appliedActivityBucket, jobIsUnfundedDraft } from 
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import { backoutNoticeApplies, backoutNoticesKey, useBackoutNotices, type BackoutNotice } from "@/lib/backoutNotices";
 import type { ShopOrder } from "@/lib/shops/orders";
+import type { CartLine, MyOffer } from "@/lib/declutter/api";
 import { formatCents } from "@/lib/shops/formatCents";
 import { queryKeys } from "@/lib/queryKeys";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
@@ -16,11 +17,13 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 // The import alone goes through Vite's preload wrapper; the read runs after it (Sentry JAVASCRIPT-54,
 // src/test/dynamicImportThenDoesNoWork.test.ts).
 const shopOrdersApi = () => loadModule(() => import("@/lib/shops/orders"));
+// A3-81: Declutter's own cart and offers reads (the Buying / Selling tabs' sources), loaded only when signed in.
+const declutterApi = () => loadModule(() => import("@/lib/declutter/api"));
 
 export interface TodoItem {
   id: string;
   /** Which section the to-do belongs to: the nav counts are per section. */
-  section: "jobs" | "shops";
+  section: "jobs" | "shops" | "declutter";
   /** The TASK (spec v2 §5.2: "title = the task"), never just the job's name. */
   title: string;
   /** Which side you are on, then the job or order it is about ("You hired · Mow the lawn"). */
@@ -50,6 +53,90 @@ export interface NeedsYouInputs {
   appliedApps: readonly AppliedApp[];
   shopOrders: readonly ShopOrder[];
   backout: ReadonlyMap<string, BackoutNotice>;
+  /** A3-81: the member's Declutter cart lines and offers (the Buying / Selling tabs' own reads). */
+  declutterCart?: readonly CartLine[];
+  declutterOffers?: readonly MyOffer[];
+}
+
+/** "Mon 2:00 PM" in Louisiana time: the Declutter to-do's "by" (the offer's respond_by, the cart's checkout_by). */
+function byWhen(ms: number): string {
+  const d = new Date(ms);
+  const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short" });
+  const time = d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  return `${day} ${time}`;
+}
+
+/**
+ * A3-81 (audit 11-01, High): what needs the member on Declutter, from the SAME rules as the Buying / Selling badges
+ * (src/lib/declutter/tabs.ts declutterTodo): an offer waiting on their answer (either side), a cart checkout still
+ * inside its time (one per seller: one checkout per seller), and a paid pickup order still in its handover. Each
+ * carries its deadline when it has one. A Helpr-delivered order is left out (the Helpr does the handover).
+ */
+export function declutterTodos(cart: readonly CartLine[], offers: readonly MyOffer[], now: number): { item: TodoItem; due: number | null; waiting: boolean }[] {
+  const out: { item: TodoItem; due: number | null; waiting: boolean }[] = [];
+  for (const o of offers) {
+    if (o.status !== "open" || o.awaiting !== o.my_side) continue;
+    const due = Date.parse(o.respond_by);
+    const live = Number.isFinite(due) && due >= now ? due : null;
+    if (Number.isFinite(due) && due < now) continue;
+    const seller = o.my_side === "seller";
+    out.push({
+      due: live,
+      waiting: true,
+      item: {
+        id: `do-${o.offer_id}`,
+        section: "declutter",
+        title: seller ? `Answer a ${formatCents(o.amount_cents)} offer` : `Answer the seller's ${formatCents(o.amount_cents)} counteroffer`,
+        meta: `${seller ? "Selling" : "Buying"} · ${o.item_title}${live ? ` · by ${byWhen(live)}` : ""}`,
+        to: `/declutter?tab=${seller ? "selling" : "buying"}`,
+        action: "Answer offer",
+        money: formatCents(o.amount_cents),
+      },
+    });
+  }
+  const checkouts = new Map<string, CartLine[]>();
+  for (const l of cart) {
+    if (l.my_side !== "buyer" || l.status !== "in_cart" || !(Date.parse(l.checkout_by) > now)) continue;
+    const k = l.seller_id ?? l.line_id;
+    checkouts.set(k, [...(checkouts.get(k) ?? []), l]);
+  }
+  for (const [k, lines] of checkouts) {
+    const due = Math.min(...lines.map((l) => Date.parse(l.checkout_by)));
+    out.push({
+      due,
+      waiting: true,
+      item: {
+        id: `dc-${k}`,
+        section: "declutter",
+        title: lines.length === 1 ? `Check out ${lines[0].item_title}` : `Check out ${lines.length} items`,
+        meta: `Buying · by ${byWhen(due)}`,
+        to: "/declutter?tab=buying",
+        action: "Check out",
+        money: formatCents(lines.reduce((s, l) => s + l.price_cents, 0)),
+      },
+    });
+  }
+  const orders = new Map<string, CartLine>();
+  for (const l of cart) {
+    if (l.status !== "paid" || !l.order_id || l.order_status !== "paid" || l.handover === "delivery") continue;
+    if (!orders.has(l.order_id)) orders.set(l.order_id, l);
+  }
+  for (const [id, l] of orders) {
+    const seller = l.my_side === "seller";
+    out.push({
+      due: null,
+      waiting: true,
+      item: {
+        id: `dh-${id}`,
+        section: "declutter",
+        title: seller ? `Hand over ${l.item_title}` : `Pick up ${l.item_title}`,
+        meta: seller ? "Selling · sold, waiting for the handover" : "Buying · paid, waiting for the pickup",
+        to: `/declutter?tab=${seller ? "selling" : "buying"}`,
+        action: seller ? "Open sale" : "Open order",
+      },
+    });
+  }
+  return out;
 }
 
 /** An open back-out notice rides on its job, as useActivityData does it (Q1575). */
@@ -145,6 +232,10 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       },
     });
   }
+  for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now)) {
+    const [tier, at] = rank(d.due, d.waiting, Infinity, now);
+    ranked.push({ tier, at, item: d.item });
+  }
   // The task is the job card's own status sentence (jobStatusLine), so Home and the
   // card never name a different step of one job (boards 7, 83, 165).
   for (const j of postedNeeds) {
@@ -198,6 +289,8 @@ const EMPTY_JOBS: Job[] = [];
 const EMPTY_APPS: AppliedApp[] = [];
 const EMPTY_COUNTS: Record<string, number> = {};
 const EMPTY_ORDERS: ShopOrder[] = [];
+const EMPTY_CART: CartLine[] = [];
+const EMPTY_OFFERS: MyOffer[] = [];
 
 /**
  * The to-dos for `user`, from the SAME React Query cache entries Jobs and Home
@@ -228,6 +321,10 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
   });
   // My shop's incoming orders: the same query (key and fetch) the Shop dashboard reads.
   const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchShopOrders(uid) : untilReload())), enabled: !!uid && shopsOn });
+  // A3-81: Declutter's cart and offers, the same query keys and fetches the Buying / Selling tabs read (useDeclutterTodo).
+  const declutterOn = useFeature("declutter");
+  const dCart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyCart() : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
+  const dOffers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyOffers() : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
   const backout = useBackoutNotices(uid || null);
 
   const queryClient = useQueryClient();
@@ -242,6 +339,8 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
       queryClient.invalidateQueries({ queryKey: queryKeys.activity.applied(uid) });
       queryClient.invalidateQueries({ queryKey: backoutNoticesKey(uid) });
       queryClient.invalidateQueries({ queryKey: ["shops", "shop-orders", uid] });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "my-cart"] });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "my-offers"] });
     };
     const schedule = () => {
       if (hidden()) {
@@ -281,9 +380,11 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
   const pending = posted.data?.pendingApplicantCounts ?? EMPTY_COUNTS;
   const apps = applied.data?.appliedApps ?? EMPTY_APPS;
   const orders = (shopsOn ? shopOrders.data : undefined) ?? EMPTY_ORDERS;
+  const cartLines = (declutterOn ? dCart.data : undefined) ?? EMPTY_CART;
+  const offerRows = (declutterOn ? dOffers.data : undefined) ?? EMPTY_OFFERS;
   const todos = useMemo(
-    () => deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout }),
-    [postedJobs, pending, apps, orders, backout],
+    () => deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows }),
+    [postedJobs, pending, apps, orders, backout, cartLines, offerRows],
   );
   return { todos, loading: posted.data === undefined && applied.data === undefined };
 }

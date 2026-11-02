@@ -15,11 +15,12 @@ export default function NeedsYouBridge({ user }: { user: SupaUser }) {
   const uid = user.id;
   const jobs = todos.filter((t) => t.section === "jobs").length;
   const shops = todos.filter((t) => t.section === "shops").length;
+  const declutter = todos.filter((t) => t.section === "declutter").length;
   useEffect(() => {
     // Nothing read yet: publish nothing, rather than a "0" that is not a fact.
     if (loading) return;
-    publishNeedsYou(uid, { total: jobs + shops, jobs, shops });
-  }, [uid, loading, jobs, shops]);
+    publishNeedsYou(uid, { total: jobs + shops + declutter, jobs, shops, declutter });
+  }, [uid, loading, jobs, shops, declutter]);
   useEffect(() => () => clearNeedsYou(), [uid]);
   return null;
 }

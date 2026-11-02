@@ -48,8 +48,12 @@ export const getPublicOrigin = (): string => {
  * URL fragment on load, and the page's poll then sends the confirmed user
  * into the app. ONE definition for Signup's first email and every resend
  * (Q193: it was `/account-pending`, a screen that no longer exists).
+ * Q2496: `jobId`, the job a guest came for, rides along as `?job=` (the email
+ * hook copies it into the confirm link), because the job intent in this
+ * browser's storage is gone when the email is opened in another browser.
  */
-export const getSignupConfirmRedirect = (): string => `${getPublicOrigin()}/signup-pending`;
+export const getSignupConfirmRedirect = (jobId: string | null = null): string =>
+  `${getPublicOrigin()}/signup-pending${jobId ? `?job=${encodeURIComponent(jobId)}` : ""}`;
 
 export const getPublicReturnUrl = (): string => {
   if (typeof window === "undefined") return getPublicSiteUrl();

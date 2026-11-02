@@ -38,6 +38,7 @@ import { helperShareCount } from "@/lib/helperEarnings";
 import { DirectionsButton } from "./DirectionsButton";
 import { HelperPhotoAsk } from "./steps/HelperPhotoAsk";
 import { JobStatusStrip } from "@/components/job-card/JobStatusStrip";
+import { takeCrewFaceRequest } from "@/pages/jobs/jobPage/crewMemberFace";
 import { helperStatusLine, withDisputeSettling } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
 
@@ -233,6 +234,16 @@ export function CrewMemberSection({
   };
 
   const slot = slotQuery.data;
+  // A3-33 (audit 11-01): the job page's button for this member's step ("I'm on my way", "I've arrived", "Mark my part
+  // done", crewMemberFace) opens this card with a one-shot request; it runs here, behind the same gates as the button.
+  useEffect(() => {
+    if (!isExpanded || busy) return;
+    const taken = takeCrewFaceRequest(app.job_id, slot, job);
+    if (taken === "crew_on_the_way") void onSetOut();
+    else if (taken === "crew_arrived") void onArrive();
+    else if (taken === "crew_done") void onDone();
+    // The handlers are rebuilt each draw; the request is one-shot, so the slot and the expand are what matter.
+  }, [isExpanded, slot, job.status, app.job_id]);
   if (slotQuery.isError) {
     return isExpanded ? (
       <div className="px-4 py-3 border-t border-border/30">

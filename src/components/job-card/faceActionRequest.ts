@@ -9,8 +9,10 @@ const REQUEST_TTL_MS = 10_000;
 const pending = new Map<string, { action: FaceRequest; at: number }>();
 
 /** The job page's approve, cancel, edit and "More options" run the card's flows on the page now
- *  (usePosterPageFlows, LEAD-JOBPAGE-LAYOUT), so the confirm is the one request left. */
-type FaceRequest = "confirm";
+ *  (usePosterPageFlows, LEAD-JOBPAGE-LAYOUT), so the confirm is the one request left on the single-Helpr side.
+ *  A3-33: a crew member's page button asks their Working card's CrewMemberSection to take its step. */
+export type CrewFaceRequest = "crew_on_the_way" | "crew_arrived" | "crew_done";
+type FaceRequest = "confirm" | CrewFaceRequest;
 
 export function requestFaceAction(jobId: string, action: FaceRequest): void {
   pending.set(jobId, { action, at: Date.now() });

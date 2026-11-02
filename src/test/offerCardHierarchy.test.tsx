@@ -35,7 +35,7 @@
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |       {!isExpired && acceptPending && ( |       {false && (
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | const acceptLabel = busy && pressed === "accept" ? "Accepting…" : acceptPending ? "Finish accepting" : "Accept job"; | const acceptLabel = busy && pressed === "accept" ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept job";
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | { id: "answer", at: deadline, text: "left to answer", expiredText: "Response deadline expired" }, |
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |             startClock,\n |             \n
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |             startClock,\n          ]}\n          note={\n            hardDeadline |           ]}\n          note={\n            hardDeadline
  * @mutate src/pages/posts/PostedJobCard.tsx |       eyebrow={offerUnanswered ? "Offered to" : "Helpr"} |       eyebrow="Helpr"
  * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const answerDeadline = offerUnanswered ? posterDeadline("unconfirmed", job) : null; |   const answerDeadline = null;
  * @mutate src/pages/posts/postedJobCard/posterOfferClocks.ts |   const posterConfirmOpens = offerUnanswered ? null : confirmationOpensClock(job.date_needed, job.status, true, undefined, job.start_time ?? null); |   const posterConfirmOpens = confirmationOpensClock(job.date_needed, job.status, true, undefined, job.start_time ?? null);

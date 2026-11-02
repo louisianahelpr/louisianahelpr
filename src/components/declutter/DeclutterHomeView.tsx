@@ -78,11 +78,9 @@ type HaulLib = typeof import("@/lib/declutter/haulAway");
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically from two Declutter screens, the shared Helpr task module rode in signed-in-shared and put /posts over its budget.
 const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
 
-// B77 (2026-11-01, "Nothing slow for users"): each tab's own code loads on its own (Buying/Selling through
-// DeclutterMineLazy, B74), so the first screen downloads only
-// the tab it draws. Imported statically, every tab's code (Browse's map and filters, Buying's checkout, Selling's
-// sale tools, Wanted, Free: 608 KB gz with the boot code) downloaded beside the boot code and the app first drew at
-// 5.7 s on Slow 4G. src/boot/declutterRoute.ts starts the URL's tab beside the page, so it costs no extra round.
+// B77 (2026-11-01, "Nothing slow for users"): each tab's code loads on its own (Buying/Selling via DeclutterMineLazy,
+// B74), so the first screen downloads only its tab (all tabs statically: 608 KB gz with boot, first draw 5.7 s on
+// Slow 4G). src/boot/declutterRoute.ts starts the URL's tab beside the page, so it costs no extra round.
 const DeclutterBrowse = lazy(() => import("./DeclutterBrowseView").then((m) => ({ default: m.DeclutterBrowse })));
 const WantedView = lazy(() => import("./DeclutterWantedViews").then((m) => ({ default: m.WantedView })));
 // Opened from a listing's Manage button (or a price-drop notice), never part of the first screen.
@@ -393,9 +391,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
 // Board 80: opens once after a publish (router state from DeclutterSellView).
 function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null }) {
   return (
-    // Q2562: a flex gap, not space-y-6. The Sell an item row below is display:none on a phone and on desktop, and
-    // space-y still gave the NEXT child its 24px top margin, so Selling started 24px lower than every other tab.
-    // A display:none child is no flex item, so it takes no gap.
+    // Q2562: a flex gap, not space-y-6 (space-y gave the child after the display:none Sell row a 24px margin).
     <div className="flex flex-col gap-6">
       <ListedWhatNext />
       <ListedForYouCard />
@@ -587,10 +583,7 @@ function DeclutterMemberHome() {
     // Jobs (this replaces the 2026-10-28 call that left it off a member's own lists). Guard:
     // src/components/declutter/sellingDash.test.tsx.
     <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}>
-      {/* Q2562 (lead 11-02: every Declutter tab uses Browse's gap under the tab row): Browse's first row (Miles from,
-          DeclutterMilesFrom) is a 44px row whose 19px line sits ~12px into it, so its first ink is 12px lower than
-          the column top; pt-3 puts every other tab's first box at that same line. flex-1 keeps a tab's empty state
-          filling the column as before. Guard: src/components/declutter/declutterTabs.test.tsx "Q2562". */}
+      {/* Q2562 (lead 11-02): pt-3 = Browse's first line, 12px into its 44px Miles-from row; guard declutterTabs.test.tsx. */}
       <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3">
       <StrikeCount userId={user.id} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}

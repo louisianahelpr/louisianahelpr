@@ -9,7 +9,8 @@
 // @mutate src/components/profile/SettingsTab.tsx |             sub={BIGGER_TEXT_SUB} |             sub="Easier reading everywhere"
 // @mutate src/components/profile/AccessibilityTab.tsx | <p className="text-ds-11 text-muted-foreground mt-0.5">{BIGGER_TEXT_SUB}</p> | <p className="text-ds-11 text-muted-foreground mt-0.5">Larger text and bigger tap targets</p>
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "@/test/helpers/trackedFiles";
 import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { BIGGER_TEXT_SUB } from "./biggerTextWords";

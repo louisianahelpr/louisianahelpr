@@ -29,6 +29,11 @@ import type { ReactNode } from "react";
 import { blankComments } from "./helpers/blankNonCode";
 
 const desktop = { on: true };
+// The train's member_section_prefs read (useSectionPrefs) is data, not what this spec measures: answered locally.
+vi.mock("@/components/sections/useSectionPrefs", async (orig) => {
+  const { SECTIONS } = await import("@/components/sections/sectionsConfig");
+  return { ...(await orig<object>()), useSectionPrefs: () => ({ prefs: { order: SECTIONS.map((s) => s.key), hidden: [] }, visible: SECTIONS, setHidden: vi.fn(() => true), move: vi.fn(), putFirst: vi.fn() }) };
+});
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop.on }));
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 // The title bars draw NotificationBell, which swaps the panel in: the same stand-in.

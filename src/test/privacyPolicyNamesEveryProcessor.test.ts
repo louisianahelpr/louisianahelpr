@@ -65,12 +65,14 @@ const DISCLOSED: Record<string, string> = {
 // legal copy in phase 1; Q2375: the go-live phase adds the vendor line and moves the hosts to DISCLOSED).
 // Two-way: an entry whose name is already in the vendor list must move to DISCLOSED, and an entry's
 // hosts may appear only under its server-only directory.
-const PENDING_BEHIND_SWITCH: Record<string, { name: string; switchKey: string; onlyUnder: string }> = {
+const PENDING_BEHIND_SWITCH: Record<string, { name: string; switchKey: string; onlyUnder: string | string[] }> = {
   "api-m.sandbox.paypal.com": { name: "PayPal", switchKey: "paypal_payments", onlyUnder: "supabase/functions/_shared/payments/" },
   "api-m.paypal.com": { name: "PayPal", switchKey: "paypal_payments", onlyUnder: "supabase/functions/_shared/payments/" },
   // Shipping S2 (Q2259): ship-rates sends the buyer's Louisiana street address and the seller's ZIP to EasyPost for
   // postage quotes, testers only (declutter_shipping). The policy names EasyPost when members can reach it.
-  "api.easypost.com": { name: "EasyPost", switchKey: "declutter_shipping", onlyUnder: "supabase/functions/ship-rates/" },
+  // Shipping S6: the label worker (_shared/shipLabelRun.ts, run by declutter-money) buys the label with the same two
+  // addresses, the same switch, test-mode only until the owner turns shipping on. Each listed path is server-only.
+  "api.easypost.com": { name: "EasyPost", switchKey: "declutter_shipping", onlyUnder: ["supabase/functions/ship-rates/", "supabase/functions/_shared/shipLabelRun.ts"] },
 };
 // Hosts that are links, our own domains, test fixtures, or calls that carry no
 // personal data (HIBP gets a 5-char hash prefix only).
@@ -91,6 +93,8 @@ const NOT_PROCESSORS = [
   // A docs link in a comment (supabase/functions/_shared/smsPolicy.ts, Twilio's
   // request-signing docs); the host that receives data is DISCLOSED above.
   "www.twilio.com",
+  // Links only: a shipped Declutter order's tracking number opens the carrier's own tracking page (src/lib/declutter/shipOrder.ts).
+  "www.ups.com", "tools.usps.com",
 ];
 
 const files = [...walk("src"), ...walk("supabase/functions")];
@@ -120,8 +124,9 @@ describe("the privacy policy names every data processor (CS-002)", () => {
     for (const [host, p] of Object.entries(PENDING_BEHIND_SWITCH)) {
       expect(switches, `${host}: ${p.switchKey} is a registered switch`).toContain(p.switchKey);
       expect(DISCLOSED[host], `${host} is pending AND disclosed`).toBeUndefined();
-      const outside = [...(hostFiles.get(host) ?? [])].filter((f) => !f.startsWith(p.onlyUnder));
-      expect(outside, `${host} reached outside ${p.onlyUnder}`).toEqual([]);
+      const under = Array.isArray(p.onlyUnder) ? p.onlyUnder : [p.onlyUnder];
+      const outside = [...(hostFiles.get(host) ?? [])].filter((f) => !under.some((u) => f.startsWith(u)));
+      expect(outside, `${host} reached outside ${under.join(", ")}`).toEqual([]);
       expect(vendorList.includes(p.name), `${p.name} is in the vendor list: move ${host} to DISCLOSED`).toBe(false);
     }
   });

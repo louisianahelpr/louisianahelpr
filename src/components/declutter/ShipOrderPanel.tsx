@@ -15,6 +15,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
@@ -34,8 +35,6 @@ import {
 } from "@/lib/declutter/shipOrder";
 import { OrderSteps } from "./OrderSteps";
 
-const outline = "min-h-11 rounded-full border border-border px-5 text-sm font-semibold";
-const primary = "btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-5 text-sm font-semibold";
 
 /** The seller's next-step line for a shipped order. Pure: tested apart from the screen. */
 export function sellerShipNext(l: Pick<ShipLabel, "label_url" | "label_state" | "service" | "ship_by" | "packed_at" | "accepted_at" | "delivered_at" | "tracking_status"> | null): NextStepValue {
@@ -80,13 +79,13 @@ function SellerShip({ orderId }: { orderId: string }) {
       {l.tracking_code && <p className="text-ds-13 text-muted-foreground">Tracking <span className="font-mono">{l.tracking_code}</span></p>}
       {l.label_url && !l.accepted_at && (
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <button type="button" className={outline} onClick={() => void openExternalUrl(l.label_url as string)} data-print-label="">
+          <Button type="button" variant="outline" size="sm" onClick={() => void openExternalUrl(l.label_url as string)} data-print-label="">
             Print label
-          </button>
+          </Button>
           {canPack && (
-            <button type="button" className={primary} disabled={pack.isPending} onClick={() => pack.mutate()} data-packed="">
+            <Button type="button" size="sm" disabled={pack.isPending} onClick={() => pack.mutate()} data-packed="">
               Packed
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -106,9 +105,9 @@ function BuyerShip({ orderId }: { orderId: string }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3" data-ship-panel="buyer">
       <p className="text-ds-13 text-muted-foreground">{shipCarrier(t.data.service)} tracking <span className="font-mono">{code}</span></p>
-      <button type="button" className={`${outline} ml-auto`} onClick={() => void openExternalUrl(trackingUrl(t.data.service, code))} data-track="">
+      <Button type="button" variant="outline" size="sm" className="ml-auto" onClick={() => void openExternalUrl(trackingUrl(t.data.service, code))} data-track="">
         Track
-      </button>
+      </Button>
     </div>
   );
 }

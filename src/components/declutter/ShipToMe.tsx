@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RadioCardList } from "@/components/ui/RadioCardList";
 import { fetchShipRates, type ShipQuote } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -91,21 +92,25 @@ export function ShipToMe({ sellerId, picked, onPick }: {
       </Button>
       {error && <p role="alert" className="text-ds-13 text-destructive">{error}</p>}
       {quotes.length > 0 && (
-        <fieldset className="space-y-2" data-ship-quotes="">
-          <legend className="text-ds-12 font-semibold text-muted-foreground">Shipping</legend>
-          {quotes.map((q) => (
-            <label key={q.quote_id} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 ${picked?.quote_id === q.quote_id ? "border-2 border-primary" : "border-border"}`}>
-              <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" name={`${id}-quote`} checked={picked?.quote_id === q.quote_id}
-                onChange={() => onPick(q)} style={{ accentColor: "hsl(var(--primary))" }} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-ds-14 font-semibold text-foreground">{SHIP_SERVICE_NAME[q.service]}</span>
-                {daysWords(q.delivery_days) && <span className="block text-ds-12 text-muted-foreground">{daysWords(q.delivery_days)}</span>}
-              </span>
-              <span className="shrink-0 text-ds-14 font-bold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(q.rate_cents)}</span>
-            </label>
-          ))}
+        <div className="space-y-2" data-ship-quotes="">
+          <p className="text-ds-12 font-semibold text-muted-foreground">Shipping</p>
+          <RadioCardList
+            label="Shipping"
+            options={quotes.map((q) => ({
+              value: q.quote_id,
+              label: (
+                <span className="flex items-center gap-3">
+                  <span className="min-w-0 flex-1">{SHIP_SERVICE_NAME[q.service]}</span>
+                  <span className="shrink-0 font-bold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(q.rate_cents)}</span>
+                </span>
+              ),
+              sub: daysWords(q.delivery_days) || undefined,
+            }))}
+            value={picked?.quote_id ?? ""}
+            onChange={(v) => { const q = quotes.find((x) => x.quote_id === v); if (q) onPick(q); }}
+          />
           <p className="text-ds-12 text-muted-foreground">Prices hold for 30 minutes.</p>
-        </fieldset>
+        </div>
       )}
     </div>
   );

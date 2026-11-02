@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1078,
-    "files": 301,
-    "rendering": 997,
+    "calls": 1090,
+    "files": 303,
+    "rendering": 1009,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 32,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 181,
+      "toast": 193,
       "toast.error": 742,
       "toast.loading": 1,
       "toast.message": 1,
@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 460,
-      "template": 98,
-      "dynamic": 571,
+      "literal": 462,
+      "template": 100,
+      "dynamic": 579,
       "jsx": 0
     }
   },
@@ -3470,7 +3470,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 107,
+      "line": 109,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3480,7 +3480,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 110,
+      "line": 112,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3490,7 +3490,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 121,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3500,7 +3500,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 127,
+      "line": 129,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4773,7 +4773,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 327,
+      "line": 330,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4793,7 +4793,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 333,
+      "line": 336,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4803,7 +4803,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 401,
+      "line": 404,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4813,7 +4813,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 405,
+      "line": 408,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4823,7 +4823,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 418,
+      "line": 421,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4833,7 +4833,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 504,
+      "line": 507,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4843,7 +4843,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 505,
+      "line": 508,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4853,7 +4853,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 531,
+      "line": 534,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4873,7 +4873,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 532,
+      "line": 535,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4883,7 +4883,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 533,
+      "line": 536,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4893,7 +4893,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 534,
+      "line": 537,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4903,7 +4903,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 537,
+      "line": 540,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4913,7 +4913,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 206,
+      "line": 208,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4933,7 +4933,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 209,
+      "line": 211,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4943,7 +4943,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 214,
+      "line": 216,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4953,7 +4953,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 229,
+      "line": 231,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4963,7 +4963,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 232,
+      "line": 234,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5500,7 +5500,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 120,
+      "line": 125,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5510,7 +5510,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
-      "line": 217,
+      "line": 222,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6387,6 +6387,146 @@
       "title": {
         "form": "dynamic",
         "text": "e.userMessage ?? \"We couldn't remove that. Try again.\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 79,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Asked ${name}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 80,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't send that. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 165,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Saved."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 166,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't save that. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 170,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "g.status === \"offered\" ? \"Offer taken back.\" : `${name} can't manage your Declutter now.`",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Offer taken back."
+          },
+          {
+            "form": "template",
+            "text": "${name} can't manage your Declutter now."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 171,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't do that. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 207,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "r === \"active\" ? `You're managing for ${g.seller_first_name}.` : \"Declined.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "You're managing for ${g.seller_first_name}."
+          },
+          {
+            "form": "literal",
+            "text": "Declined."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 208,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't answer that. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerWaitingForOk.tsx",
+      "line": 31,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Approved. It's on sale now."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerWaitingForOk.tsx",
+      "line": 32,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't approve that. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerWaitingForOk.tsx",
+      "line": 36,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Sent back to ${manager}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerWaitingForOk.tsx",
+      "line": 37,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't send that back. Try again.\")"
       },
       "renders": true
     },

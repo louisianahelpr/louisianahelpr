@@ -7,7 +7,7 @@
 // NEWEST storage DELETE policy for Declutter photos: its attached check runs without the caller's RLS (a manager cannot
 // read the seller's photo rows, so a check under RLS saw every upload as unattached). Buyers see a listing photo by
 // its public URL from whatever folder it is in (job-photos is a public bucket, read on prod 11-01), so nothing has to
-// move when the grant ends. Behaviour: src/test/pglite/declutterManagerPhotosStay.pglite.mjs (7 checks; NEW_MIGRATION=skip
+// move when the grant ends. Behaviour: src/test/pglite/declutterManagerPhotosStay.pglite.mjs (7 checks, measured 2026-11-01; NEW_MIGRATION=skip
 // and PLANT=rls go red on P1).
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";

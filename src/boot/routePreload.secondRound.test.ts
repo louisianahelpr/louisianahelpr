@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // B90 (2026-11-01): pages whose first screen waited one extra network round for a chunk only a rendered parent asked
 // for. Lab (HTTP/2, Slow 4G, 4x CPU, 375, median of 5): /admin ready 3.66 -> 3.11 s, Money 4.33 -> 3.87 s (with the
 // profile-first-screen chunk, profileFirstScreen.test.ts), Notifications 4.32 -> 4.12 s.
-// @mutate src/boot/routePreload.ts | signedIn: [() => import("@/boot/profileRoute"), protectedRoute],\n  },\n  // A signed-out | signedIn: [protectedRoute],\n  },\n  // A signed-out
+// @mutate src/boot/routePreload.ts | signedIn: [profileRoute, protectedRoute],\n  },\n  // A signed-out | signedIn: [protectedRoute],\n  },\n  // A signed-out
 // @mutate src/boot/profileRoute.ts | return [() => import("@/components/AdminRoute"), () => import("@/pages/admin/Admin")]; | return [() => import("@/components/AdminRoute")];
 // @mutate src/boot/profileRoute.ts | return [() => import("@/components/profile/EarningsTab"), () => import("@/components/PaymentTab")]; | return [() => import("@/components/profile/EarningsTab")];
 // @mutate src/boot/profileRoute.ts | if (tab === "notifications") { | if (tab === "notifications-off") {

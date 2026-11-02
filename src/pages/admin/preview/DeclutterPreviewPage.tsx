@@ -25,6 +25,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 import { BuyingDash, SellingDash } from "@/components/declutter/DeclutterMineViews";
+import { declutterTodo } from "@/lib/declutter/tabs";
 // Loaded on demand, never statically: a static import from this admin route made DeclutterHomeView a chunk of its own
 // (shared by two lazy routes), which put ~1.8 KB gz more on /declutter's critical path (Q178 budget, train 2 11-02).
 // The dynamic import resolves to the chunk /declutter already has.
@@ -175,12 +176,16 @@ function previewClient(userId: string): QueryClient {
 function Views({ sample }: { sample: DeclutterPreviewSample }) {
   // A fresh cache per stage and side: the sample never mixes with the app's own cache or another stage's.
   const qc = useMemo(() => previewClient(sample.userId), [sample]);
+  // Audit 1102c P3 (Q2621): the tabs' own to-do counts, from the sample's cart and offers (DeclutterTabHeads reads the
+  // same declutterTodo from the live cart). With null, the Selling chips showed no counts and a sale to hand over never
+  // came first (AUD31-4), so the preview drew a Selling tab no member sees.
+  const todo = useMemo(() => declutterTodo(sample.cart, sample.offers), [sample]);
   return (
     <QueryClientProvider client={qc}>
       <div data-preview-view={`${sample.stage}:${sample.side}`} className="space-y-6 pb-56">
         {sample.side === "buyer"
-          ? <BuyingDash todo={null} />
-          : <SellingDash todo={null} userId={sample.userId} listings={<Suspense fallback={null}><MyListingsView userId={sample.userId} haulOn /></Suspense>} />}
+          ? <BuyingDash todo={todo} />
+          : <SellingDash todo={todo} userId={sample.userId} listings={<Suspense fallback={null}><MyListingsView userId={sample.userId} haulOn /></Suspense>} />}
       </div>
     </QueryClientProvider>
   );

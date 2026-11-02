@@ -244,8 +244,8 @@ describe("stripe-webhook edge function", () => {
         return (slackAlerts as Array<{ title: string }>).filter((a) => /\$0 Louisiana sales tax/.test(a.title));
       }
 
-      it("alerts on an assembly job billed to LA with $0 tax", async () => {
-        const alerts = await deliver("assembly");
+      it("alerts on an auto repair job billed to LA with $0 tax (assembly is untaxed since Q2083 part 1)", async () => {
+        const alerts = await deliver("auto_repair");
         expect(alerts).toHaveLength(1);
         expect((alerts[0] as unknown as { oncePerDayKey: string }).oncePerDayKey).toBe("taxable-zero-tax:test");
       });
@@ -253,9 +253,9 @@ describe("stripe-webhook edge function", () => {
       it("stays quiet on an exempt category, a non-LA address, and a gift-card shortfall", async () => {
         expect(await deliver("yard_work")).toHaveLength(0);
         resetSharedMocks();
-        expect(await deliver("assembly", {}, "TX")).toHaveLength(0);
+        expect(await deliver("auto_repair", {}, "TX")).toHaveLength(0);
         resetSharedMocks();
-        expect(await deliver("assembly", { gift_card_id: "gc-1" })).toHaveLength(0);
+        expect(await deliver("auto_repair", { gift_card_id: "gc-1" })).toHaveLength(0);
       });
     });
 
@@ -265,7 +265,7 @@ describe("stripe-webhook edge function", () => {
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, taxableBaseCents); |           updateData.sales_tax_rate = Math.round((taxCents / taxableBaseCents) * 100 * 100) / 100;
     it("a taxed job's escrow write stores sales_tax_rate as a fraction that fits the CHECK", async () => {
       const fn = await loadConfigured();
-      scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "assembly", is_seed: false }] };
+      scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "auto_repair", is_seed: false }] };
       stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax", amount_details: { tax: { total_tax_amount: 1120 } } });
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_tax_rate",
@@ -300,7 +300,7 @@ describe("stripe-webhook edge function", () => {
     it("Q2152: a basil PaymentIntent (no amount_details.tax) records the SESSION's tax, 1105c -> 11.05; a gift difference session's $0 does not overwrite the estimate", async () => {
       const deliver = async (metadata: Record<string, string>, amountTax: number) => {
         const fn = await loadConfigured();
-        scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "assembly", is_seed: false }] };
+        scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "auto_repair", is_seed: false }] };
         stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax", amount_details: { tip: {} } });
         stripeMock.webhooks.constructEventAsync.mockResolvedValue({
           id: `evt_q2152_${amountTax}`,
@@ -343,13 +343,13 @@ describe("stripe-webhook edge function", () => {
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 } |           ? jobRow
     it.each([
       // [label, job, taxCents, rate]
-      ["a taxed poster-fee job divides by budget + the taxed fee", { budget: 100, category: "assembly", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1105, 0.1045],
+      ["a taxed poster-fee job divides by budget + the taxed fee", { budget: 100, category: "auto_repair", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1105, 0.1045],
       ["an exempt poster-fee job's fee is not in the base", { budget: 100, category: "yard_work", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1045, 0.1045],
-      ["a flat-model job divides by the budget", { budget: 100, category: "assembly", customer_fee_amount: 0, poster_fee_flat_cents: null }, 1045, 0.1045],
+      ["a flat-model job divides by the budget", { budget: 100, category: "auto_repair", customer_fee_amount: 0, poster_fee_flat_cents: null }, 1045, 0.1045],
       // The row was re-priced to Pay in 4 ($9.70) after this $5.70 charge opened.
-      ["the charge's own fee wins over a re-priced row", { budget: 100, category: "assembly", customer_fee_amount: 9.7, poster_fee_flat_cents: 70, piFee: "570" }, 1105, 0.1045],
+      ["the charge's own fee wins over a re-priced row", { budget: 100, category: "auto_repair", customer_fee_amount: 9.7, poster_fee_flat_cents: 70, piFee: "570" }, 1105, 0.1045],
       // Q1843: a taxed urgent job's $20 bonus is taxed with the labor: 10.45% of $120.
-      ["a taxed urgent job divides by budget + the bonus", { budget: 100, category: "assembly", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 20 }, 1254, 0.1045],
+      ["a taxed urgent job divides by budget + the bonus", { budget: 100, category: "auto_repair", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 20 }, 1254, 0.1045],
       ["an exempt urgent job's bonus is not in the base", { budget: 100, category: "yard_work", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 20 }, 1045, 0.1045],
     ] as Array<[string, Record<string, unknown>, number, number]>)("%s", async (_label, jobIn, taxCents, rate) => {
       const fn = await loadConfigured();

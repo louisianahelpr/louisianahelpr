@@ -14,6 +14,7 @@
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "payout_transfers", column: "stripe_transfer_id" },\n |
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "declutter_orders", column: "stripe_payment_intent_id" },\n |
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "declutter_refunds", column: "stripe_refund_ref" },\n |
+ * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "declutter_manager_payouts", column: "stripe_transfer_id" },\n |
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |       if (ID_PREFIX[kind].test(s)) ids.add(s); |       if (true) ids.add(s);
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |       else if (!ANY_STRIPE_ID.test(s)) rejected.push( |       else if (true) rejected.push(
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "payout_settlements", column: "stripe_ref" },\n  ],\n}; |   ],\n};
@@ -125,6 +126,8 @@ describe("Declutter and Shops money is in the restore check (Q2230, before the D
       "declutter_hand_refunds.stripe_payment_intent_id", "declutter_hand_refunds.stripe_refund_id",
       "declutter_delivery_refunds.stripe_payment_intent_id", "declutter_delivery_refunds.stripe_refund_ref",
       "declutter_payouts.stripe_transfer_id", "helpr_task_payouts.stripe_transfer_id",
+      // Declutter manager mode: the manager's share is its own platform transfer.
+      "declutter_manager_payouts.stripe_transfer_id",
       "shop_orders.stripe_payment_intent_id", "shop_payouts.stripe_transfer_id",
       // Q2232: Shops refunds (M3, 20261019071055), by the app and by hand in Stripe.
       "shop_refunds.stripe_payment_intent_id", "shop_refunds.stripe_refund_id",

@@ -84,6 +84,10 @@ const EXPECTED_CALLERS = [
   "declutter_free_requests_for_item",
   "declutter_item_pickup_places",
   "declutter_lock_buyable_item",
+  // Manager mode (20261101181005): offer passes v_uid := auth.uid() (the seller) and the manager she names;
+  // respond passes v_uid (checked to be the grant's manager_id) and the grant's seller.
+  "declutter_manager_offer",
+  "declutter_manager_respond",
   // The paid-order chat (20261030004216, D2-1): the caller must be the order's buyer or seller (declutter_order_side), and
   // each passes the order's own pair (o.buyer_id, o.seller_id), so the caller is always one party.
   "declutter_my_order_talks",

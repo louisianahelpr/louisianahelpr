@@ -1,6 +1,6 @@
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,6 +83,20 @@ const NotificationPreferences = () => {
   // normalises the corrupt-session case in one place.
   const { user: authUser, isReady: authReady } = useAuthReady();
   const authUserId = authUser?.id ?? null;
+  // Q2320 (finding lh-silent-failure@4ffa9adb8c#4): the account whose settings `prefs` holds. When the signed-in
+  // account changes while this screen stays open, everything read for the old one is dropped and the switches lock
+  // until the new account's row is read: both writers send the WHOLE row, so one press in between would have saved
+  // the first account's settings into the second (src/test/notificationMasterSwitch.test.tsx).
+  const loadedFor = useRef<string | null>(null);
+  const forgetAccount = () => {
+    loadedFor.current = null;
+    setUserId(null);
+    setPrefs(defaultPrefs);
+    setColumns(ALL_PRESENT);
+    setMarketingConsent(false);
+    setPushTokenCount(0);
+    setLoadFailed(false);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -95,10 +109,15 @@ const NotificationPreferences = () => {
       // the tab stops presenting itself as mid-load; the controls have nothing
       // to write to and the surrounding route guards own that case.
       if (!user) {
-        if (!cancelled) setLoaded(true);
+        if (!cancelled) { forgetAccount(); setLoaded(true); }
         return;
       }
       if (cancelled) return;
+      if (loadedFor.current !== user.id) {
+        forgetAccount();
+        setLoaded(false);
+        loadedFor.current = user.id;
+      }
       setUserId(user.id);
       // Independent reads, fired together (sequential awaits caused the long blank before the toggles hydrated).
       const [tokenRead, { data, error }, consentRead] = await Promise.all([

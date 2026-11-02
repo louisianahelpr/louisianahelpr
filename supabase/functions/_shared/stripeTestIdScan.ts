@@ -21,7 +21,7 @@
  */
 
 /** Stripe went live on prod 2026-09-27 (CLAUDE.md). Rows written before it hold test ids only. */
-export const STRIPE_LIVE_SINCE = "2026-09-27T00:00:00Z";
+const STRIPE_LIVE_SINCE = "2026-09-27T00:00:00Z";
 
 export interface TestIdTable {
   table: "jobs" | "recurring_visit_payments" | "payment_refunds" | "payout_transfers" | "gift_cards" | "tips";

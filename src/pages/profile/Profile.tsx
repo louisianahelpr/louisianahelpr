@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { savePhoneIfChanged } from "@/lib/phoneSaveIfChanged";
 import { assertUploadableAvatar, replaceAvatarObject } from "@/lib/avatarStorage";
 import { readProfileAvatarUrl } from "@/lib/readProfileAvatarUrl";
 import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
@@ -395,10 +396,7 @@ const ProfilePage = () => {
     const submitted = { phone, location, zipCode, bio, skills };
     let saved: Pick<Profile, "full_name" | "phone" | "location" | "bio" | "skills" | "date_of_birth" | "zip_code" | "parish">;
     try {
-      // Q1586(a): the phone is never in the UPDATE. phoneSave pulls in the RPC copy table
-      // (lifecycleErrors), so it loads only when the phone changed (/profile critical-path budget).
-      const saveMyPhone = phone.trim() === (profile?.phone ?? "") ? null : (await import("@/lib/phoneSave")).saveMyPhone;
-      const phoneResult = saveMyPhone === null ? null : await saveMyPhone(user.id, phone.trim());
+      const phoneResult = await savePhoneIfChanged(user.id, phone.trim(), profile?.phone ?? ""); // Q1586(a): never in the UPDATE
       if (phoneResult && !phoneResult.ok) { setSaving(false); hapticError(); toast.error(phoneResult.message); return; }
       // `.select(...)` + unwrapMutation: a null `error` is not a write; the row is the new baseline.
       [saved] = unwrapMutation(
@@ -418,11 +416,8 @@ const ProfilePage = () => {
       return;
     }
     setSaving(false);
-    // MOVE THE BASELINE. ProfileEditForm's `dirty` (isProfileEditDirty)
-    // compares the fields against `profile`; this used to stay at the pre-save
-    // row, so once "Saved" cleared the bar came back as "Save Changes"
-    // (measured: Saved at +0.7s, Save Changes at +3.7s), and editing a field
-    // back to its old value read as clean and could not be saved.
+    // MOVE THE BASELINE: ProfileEditForm's `dirty` compares against `profile`; a pre-save baseline brought
+    // "Save Changes" back after "Saved" (+0.7s / +3.7s) and made an edit back to the old value unsaveable.
     setProfile((prev) => (prev ? { ...prev, ...saved } : prev));
     // The fields take the stored (trimmed / normalised) values too, or a
     // trailing space keeps them "dirty" against the new baseline — but only

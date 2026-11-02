@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { PHONE_IN_USE_MESSAGE, phoneInUseMessage, unwrapMutation } from "@/lib/mutationResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * THE ONE WAY THE APP SAVES A MEMBER'S PHONE (Q1586(a), owner 2026-10-13).
@@ -32,7 +33,7 @@ export async function saveMyPhone(userId: string, phone: string): Promise<PhoneS
     // The RPC ships in the migration that revokes the direct write; until that
     // migration is live the direct write is still the way (a new bundle ahead
     // of db-deploy).
-    if ((error as { code?: string }).code === "PGRST202") {
+    if (isMissingRpcNamed(error, "save_my_phone")) {
       const res = await supabase.from("profiles").update({ phone: phone.trim() || null }).eq("user_id", userId).select("id");
       // Before the RPC, the database's duplicate refusal arrives as an error.
       const inUse = phoneInUseMessage(res.error);

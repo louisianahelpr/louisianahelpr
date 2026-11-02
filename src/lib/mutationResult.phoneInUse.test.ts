@@ -23,9 +23,9 @@ describe("phoneInUseMessage", () => {
     // PhotoPrompt.tsx and CompleteProfile.tsx also saved a phone until the
     // owner removed both asks (2026-10-14: "no later prompt"; Complete
     // Profile asks no phone).
-    for (const f of ["src/pages/profile/Profile.tsx"]) {
-      expect(readFileSync(f, "utf8"), f).toMatch(/saveMyPhone\(/);
-    }
+    // Profile saves through savePhoneIfChanged, which lazy-loads saveMyPhone (/profile critical-path budget).
+    expect(readFileSync("src/pages/profile/Profile.tsx", "utf8")).toMatch(/savePhoneIfChanged\(/);
+    expect(readFileSync("src/lib/phoneSaveIfChanged.ts", "utf8")).toMatch(/saveMyPhone\(/);
     const save = readFileSync("src/lib/phoneSave.ts", "utf8");
     expect(save).toMatch(/phone_in_use:\s*PHONE_IN_USE_MESSAGE/);
     expect(save).toMatch(/phoneInUseMessage\(res\.error\)/);

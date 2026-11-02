@@ -224,6 +224,7 @@
     "public.declutter_listed_for_seller.declutter_listed_for_seller_seller_idx",
     "public.declutter_listed_for_seller.declutter_listed_for_seller_helpr_idx",
     "public.declutter_photo_purge_queue.declutter_photo_purge_queue_seller_idx",
-    "public.profile_handles_retired.profile_handles_retired_user_idx"
+    "public.profile_handles_retired.profile_handles_retired_user_idx",
+    "public.phone_save_attempts.phone_save_attempts_user_created_idx"
   ]
 }

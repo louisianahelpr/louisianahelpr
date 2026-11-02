@@ -8,6 +8,7 @@ import type { EnrichedJob } from "../types";
 import { JobLocationPreview } from "./JobLocationPreview";
 import { calendarEventUrl } from "@/lib/calendarLink";
 import { openCrewSpots } from "@/components/job-card/JobHelprsChip";
+import { jobStartTarget } from "@/components/job-card/CountdownRows";
 
 interface JobStatTilesProps {
   job: EnrichedJob;
@@ -83,9 +84,16 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
         const distLabel = distOnly && drivingLabel
           ? `${drivingLabel} · ${distOnly}`
           : drivingLabel ?? distOnly;
-        // Closes urgency: <24h to expiry → render in Sienna with subtle pulse
-        const hoursLeft = job.expires_at
-          ? differenceInHours(new Date(job.expires_at), new Date())
+        // A3-94 (audit 11-01): the listing's close can be days after the job starts (all 115 dated open jobs on
+        // prod, read-only); a Helpr read "Closes · 4 days left" on work starting in 30 minutes. The tile names
+        // whichever comes first: "Starts" (the job's start) or "Closes" (expires_at).
+        const closeMs = job.expires_at ? Date.parse(job.expires_at) : NaN;
+        const startMs = jobStartTarget(job.date_needed, job.start_time)?.getTime() ?? NaN;
+        const startsFirst = Number.isFinite(closeMs) && Number.isFinite(startMs) && startMs < closeMs;
+        const deadline = job.expires_at ? new Date(startsFirst ? startMs : closeMs) : null;
+        // Closes urgency: <24h to that deadline → render in Sienna with subtle pulse
+        const hoursLeft = deadline
+          ? differenceInHours(deadline, new Date())
           : null;
         const closesUrgent = hoursLeft != null && hoursLeft >= 0 && hoursLeft < 24;
         // "a time, the word Flexible, or nothing" — one rule, every surface.
@@ -175,11 +183,11 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           // export); only this dialog's tile is gone.
           // Closes tile is omitted entirely when the job has no expiry —
           // an empty "—" deadline read as a bug rather than "no deadline".
-          ...(job.expires_at
+          ...(deadline
             ? [{
                 Icon: Timer,
-                label: "Closes",
-                value: formatTimeLeft(new Date(job.expires_at)),
+                label: startsFirst ? "Starts" : "Closes",
+                value: formatTimeLeft(deadline),
                 sub: null,
                 href: null,
                 onClick: undefined,

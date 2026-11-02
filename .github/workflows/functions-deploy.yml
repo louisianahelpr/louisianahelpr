@@ -349,10 +349,13 @@ jobs:
             # BR-024: stamp THIS function's build hash into _shared/buildStamp.ts
             # right before the CLI bundles it; the "serves HEAD's build" step
             # below reads it back from the running function.
+            # --yes (L40 11-02): the latest CLI refuses a production deploy it cannot confirm at a terminal
+            # ("Confirmation required: Deploy 1 Function ... Re-run with --yes to confirm. Nothing was changed.",
+            # all 106 functions in run 41503464926); this step IS the confirmed deploy, like db-deploy's push.
             node scripts/edge-build-stamp.mjs write "$fn"
             # --no-verify-jwt is set per-function in supabase/config.toml
             # so we don't need to pass it here. The CLI reads config.toml.
-            if supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" 2>&1 | tee -a functions-deploy.log; then
+            if supabase functions deploy "$fn" --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}" --yes 2>&1 | tee -a functions-deploy.log; then
               echo "✓ $fn deployed"
             else
               echo "::error::$fn deploy FAILED"
@@ -453,7 +456,7 @@ jobs:
             : > "$LOG"
             for fn in $RETRY; do
               node scripts/edge-build-stamp.mjs write "$fn"
-              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" 2>&1 | tee -a "$LOG"
+              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --yes 2>&1 | tee -a "$LOG"
             done
             TARGETS="$RETRY"
           done
@@ -509,7 +512,7 @@ jobs:
             echo "::warning::Attempt $ATTEMPT: not serving HEAD's build:$STALE — redeploying just those."
             for fn in $STALE; do
               node scripts/edge-build-stamp.mjs write "$fn"
-              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF"
+              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --yes
             done
           done
 

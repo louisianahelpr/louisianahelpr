@@ -1506,6 +1506,74 @@ describe("process-scheduled-payouts: a payout is held, not attempted, unless Str
     expect(heldAlert()?.fields).toMatchObject({ gate: "not_payable" });
   });
 
+  // Q2407 (lh-silent-failure@baf9ffc31c#9): an orphaned claim whose transfer
+  // Stripe already holds is adopted BEFORE the gate, as chargebackClawback
+  // does: the money already went out, so the ledger records it whatever the
+  // account reads now. Only a NEW transfer waits for a payable account.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         adoptBeforeGate = peek.kind === "adopt"; |         adoptBeforeGate = false;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |         const live = adoptBeforeGate ? { held: false as const } : await holdUnlessPayable({ |         const live = await holdUnlessPayable({
+  describe("Q2407 an orphaned claim whose transfer Stripe holds, on an account that reads not payable", () => {
+    const orphan = (amount_cents: number) => ({ id: "led-orphan", helper_id: "helper-1", stripe_transfer_id: null, status: "pending", amount_cents, created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() });
+    const notPayable = () => stripeMock.accounts.retrieve.mockResolvedValue({ ...PAYABLE_CONNECT_ACCOUNT, payouts_enabled: false });
+    async function cleanAmount(): Promise<number> {
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+      await run();
+      const amount = stripeMock.transfers.create.mock.calls[0][0].amount as number;
+      resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+      return amount;
+    }
+
+    it("a MATCHING unrecorded transfer is adopted into the ledger; no new transfer, no hold", async () => {
+      const amount = await cleanAmount();
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      notPayable();
+      scenario.reads.payout_transfers = { rows: [orphan(amount)] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_release", amount, amount_reversed: 0, destination: "acct_helper", metadata: { job_id: "job-1", helper_id: "helper-1" } }],
+      });
+      const { body } = await run();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update");
+      expect((settle?.payload as Record<string, unknown>)?.stripe_transfer_id, JSON.stringify(body)).toBe("tr_release");
+      expect((body.results as Array<Record<string, unknown>>)[0].status).not.toBe("payee_not_payable");
+      expect(heldAlert()).toBeUndefined();
+    });
+
+    it("a NON-matching unrecorded transfer is not adopted early: the gate still holds, nothing moves", async () => {
+      const amount = await cleanAmount();
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      notPayable();
+      scenario.reads.payout_transfers = { rows: [orphan(amount)] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_other", amount: amount + 1, amount_reversed: 0, destination: "acct_helper", metadata: { job_id: "job-1" } }],
+      });
+      const { body } = await run();
+      expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "payee_not_payable", gate: "not_payable" });
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "payout_transfers")).toBe(false);
+    });
+
+    it("no orphaned claim: Stripe's transfer list is not read before the gate, and the gate holds", async () => {
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      notPayable();
+      const { body } = await run();
+      expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "payee_not_payable" });
+      expect(stripeMock.transfers.list).not.toHaveBeenCalled();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    it("the transfer list fails before the gate: the gate decides (held), never read as adoptable", async () => {
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      notPayable();
+      scenario.reads.payout_transfers = { rows: [orphan(9000)] };
+      stripeMock.transfers.list.mockRejectedValue(new Error("stripe 503"));
+      const { body } = await run();
+      expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "payee_not_payable" });
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+  });
+
   it("a read that fails for any other reason is \"cannot verify\": held, never read as payable, a defect, the cache untouched", async () => {
     seedPayableJob(scenario);
     stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("stripe 503"), { statusCode: 503 }));

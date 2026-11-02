@@ -14,7 +14,7 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
-import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
+import { checkUnrecordedTransfers, claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
 // release-payout — see _shared/releaseFlip.ts for TC-008, the stranded payout
 // that made a retry non-optional.
@@ -1573,8 +1573,25 @@ serve(async (req) => {
       // (towards false only), and ops hear once a day per Helpr.
       // After the already-transferred check on purpose: a transfer that went
       // out still heals its flip whatever the account reads now.
+      // Adopt BEFORE the gate (Q2407, as chargebackClawback does): an orphaned
+      // claim whose transfer Stripe already holds is money that went out, so
+      // it is recorded whatever the account reads now; only a NEW transfer
+      // waits for a payable account. Asked only when this Helpr's ledger holds
+      // an open claim (no extra Stripe reads on the ordinary payout). Anything
+      // but an unmistakable adopt (clear, conflict, in flight, a failed read)
+      // falls to the gate; the check below runs again, fresh, before the claim.
+      let adoptBeforeGate = false;
+      if (classifyLedger((ledgerRows ?? []) as LedgerRow[]).openClaim) {
+        const peek = await checkUnrecordedTransfers(supabaseAdmin, stripe, {
+          jobId: job.id,
+          helperId,
+          stripeAccountId: helperProfile.stripe_account_id,
+          amountCents: roundPayoutDownCents(unroundedPayoutCents),
+        });
+        adoptBeforeGate = peek.kind === "adopt";
+      }
       {
-        const live = await holdUnlessPayable({
+        const live = adoptBeforeGate ? { held: false as const } : await holdUnlessPayable({
           stripe,
           supabaseAdmin,
           helperId,

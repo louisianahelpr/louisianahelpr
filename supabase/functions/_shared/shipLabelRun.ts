@@ -6,6 +6,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { easypostKeyName } from "./easypostRates.ts";
 import { nextAttemptDelayMs, reconcileShipCapture, runShipLabel, type ClaimedShipment, type LabelOutcome, type ReconcileOutcome, type ShipOrder } from "./shipLabelWorker.ts";
+import { runShipVoid, type VoidableShipment, type VoidOutcome } from "./shipLabelVoid.ts";
 import { postSlackOpsAlert } from "./slack-alerts.ts";
 import { caughtMessage } from "./caughtMessage.ts";
 
@@ -13,6 +14,8 @@ import { caughtMessage } from "./caughtMessage.ts";
 type Db = any;
 const EASYPOST = "https://api.easypost.com/v2/shipments";
 const TIMEOUT_MS = 20_000;
+/** A void that EasyPost has not settled (or did not answer) is asked again 30 min later. */
+const VOID_RETRY_MS = 30 * 60_000;
 
 /** The capture port, shared by the label worker and the crash reconcile (same amount, same per-order key). */
 function captureWith(testStripe: Stripe) {
@@ -52,6 +55,31 @@ function setCaptureWith(admin: Db) {
   };
 }
 
+/** Shipping S6: bought + no acceptance scan -> void_requested (compare-and-set; a scan that lands first wins). */
+function requestVoidWith(admin: Db) {
+  return async (shipmentId: string): Promise<boolean> => {
+    const { data, error: e } = await admin.from("shipments")
+      .update({ label_state: "void_requested", last_error: null, next_attempt_at: new Date().toISOString() })
+      .eq("id", shipmentId).eq("label_state", "bought").is("accepted_at", null)
+      .or("tracking_status.is.null,tracking_status.eq.pre_transit").select("id");
+    if (e) throw new Error(`void request failed: ${e.message}`);
+    return Array.isArray(data) && data.length === 1;
+  };
+}
+
+/** One EasyPost caller per key: a timeout or network failure is an answer with ok false (the caller retries). */
+function easypostCaller(key: string) {
+  const auth = { Authorization: `Basic ${btoa(`${key}:`)}`, "Content-Type": "application/json" };
+  return async (url: string, init: RequestInit) => {
+    try {
+      const res = await fetch(url, { ...init, headers: auth, signal: AbortSignal.timeout(TIMEOUT_MS) });
+      return { ok: res.ok, status: res.status, body: await res.json().catch(() => null) };
+    } catch (e) {
+      return { ok: false, status: 0, body: { error: caughtMessage(e).slice(0, 100) } };
+    }
+  };
+}
+
 function pageWith(shipmentId: string, labelMode: string) {
   return (title: string, message: string, fields: Record<string, string>) => postSlackOpsAlert({
     kind: "money_at_risk", severity: "warning", title, message, fields, oncePerDayKey: `ship-label-${shipmentId}-${title}`,
@@ -60,11 +88,60 @@ function pageWith(shipmentId: string, labelMode: string) {
   }).then(() => undefined);
 }
 
-export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, record: (defect: string) => void): Promise<Partial<Record<LabelOutcome | ReconcileOutcome, number>>> {
-  const counts: Partial<Record<LabelOutcome | ReconcileOutcome, number>> = {};
+type Counts = Partial<Record<LabelOutcome | ReconcileOutcome | VoidOutcome, number>>;
+
+export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, record: (defect: string) => void): Promise<Counts> {
+  const counts: Counts = {};
   await runClaimedLabels(admin, testStripeOf, record, counts);
   await reconcileCaptures(admin, testStripeOf, record, counts);
+  await runVoids(admin, record, counts);
   return counts;
+}
+
+/**
+ * Shipping S6 void pass (shipLabelVoid.ts runShipVoid): 'void_requested' labels that are due, at most 10 a run. Runs
+ * last, so a void this run's worker or reconcile requested is asked of EasyPost in the same call.
+ */
+async function runVoids(admin: Db, record: (defect: string) => void, counts: Counts): Promise<void> {
+  const { data: rows, error } = await admin.from("shipments")
+    .select("id, declutter_order_id, label_mode, provider_shipment_id, tracking_status, accepted_at")
+    .eq("label_state", "void_requested").not("declutter_order_id", "is", null).lte("next_attempt_at", new Date().toISOString())
+    .order("next_attempt_at").limit(10);
+  if (error) {
+    if (error.code === "42P01" || error.code === "42703") return;
+    record(`ship voids: read failed: ${error.message}`);
+    return;
+  }
+  if (!rows || rows.length === 0) return;
+  const key = Deno.env.get(easypostKeyName("test"));
+  if (!key) {
+    record("ship voids: the EasyPost test key is not set");
+    return;
+  }
+  const call = easypostCaller(key);
+  for (const s of rows as VoidableShipment[]) {
+    try {
+      const outcome = await runShipVoid(s, {
+        getShipment: (_m, id) => call(`${EASYPOST}/${id}`, { method: "GET" }),
+        refundShipment: (_m, id) => call(`${EASYPOST}/${id}/refund`, { method: "POST" }),
+        recordVoid: async (id, state) => {
+          const { error: e } = await admin.from("shipments").update({ label_state: state, last_error: null })
+            .eq("id", id).eq("label_state", "void_requested").select("id");
+          if (e) throw new Error(`void record failed: ${e.message}`);
+        },
+        recordVoidError: async (id, why) => {
+          const { error: e } = await admin.from("shipments").update({
+            last_error: why.slice(0, 500), next_attempt_at: new Date(Date.now() + VOID_RETRY_MS).toISOString(),
+          }).eq("id", id).eq("label_state", "void_requested").select("id");
+          if (e) throw new Error(`void error record failed: ${e.message}`);
+        },
+        page: pageWith(s.id, s.label_mode),
+      });
+      counts[outcome] = (counts[outcome] ?? 0) + 1;
+    } catch (e) {
+      record(`ship void ${s.id}: ${caughtMessage(e)}`.slice(0, 200));
+    }
+  }
 }
 
 /**
@@ -73,7 +150,7 @@ export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, recor
  * already 'captured' and is not read here.
  */
 async function reconcileCaptures(admin: Db, testStripeOf: () => Stripe, record: (defect: string) => void,
-  counts: Partial<Record<LabelOutcome | ReconcileOutcome, number>>): Promise<void> {
+  counts: Counts): Promise<void> {
   const { data: orders, error } = await admin.from("declutter_orders")
     .select("id, status, ship_capture, stripe_payment_intent_id")
     .eq("status", "paid").eq("handover", "ship").eq("ship_capture", "held").limit(50);
@@ -107,6 +184,7 @@ async function reconcileCaptures(admin: Db, testStripeOf: () => Stripe, record: 
         capture: captureWith(testStripe),
         setCapture: setCaptureWith(admin),
         page: pageWith(s.id, s.label_mode),
+        requestVoid: requestVoidWith(admin),
       });
       counts[outcome] = (counts[outcome] ?? 0) + 1;
     } catch (e) {
@@ -116,7 +194,7 @@ async function reconcileCaptures(admin: Db, testStripeOf: () => Stripe, record: 
 }
 
 async function runClaimedLabels(admin: Db, testStripeOf: () => Stripe, record: (defect: string) => void,
-  counts: Partial<Record<LabelOutcome | ReconcileOutcome, number>>): Promise<void> {
+  counts: Counts): Promise<void> {
   const { data: rows, error } = await admin.from("shipments")
     .select("id, declutter_order_id, label_mode, provider_shipment_id, provider_rate_id, quoted_cents, attempts")
     .eq("label_state", "claimed").not("declutter_order_id", "is", null).lte("next_attempt_at", new Date().toISOString())
@@ -142,16 +220,8 @@ async function runClaimedLabels(admin: Db, testStripeOf: () => Stripe, record: (
       record("ship labels: the EasyPost test key is not set");
       break;
     }
-    const auth = { Authorization: `Basic ${btoa(`${key}:`)}`, "Content-Type": "application/json" };
-    const call = async (url: string, init: RequestInit) => {
-      try {
-        const res = await fetch(url, { ...init, headers: auth, signal: AbortSignal.timeout(TIMEOUT_MS) });
-        return { ok: res.ok, status: res.status, body: await res.json().catch(() => null) };
-      } catch (e) {
-        // A timeout or network failure: the worker retries (an unanswered buy is read back first next time).
-        return { ok: false, status: 0, body: { error: caughtMessage(e).slice(0, 100) } };
-      }
-    };
+    // A timeout or network failure is a retry (an unanswered buy is read back first next time).
+    const call = easypostCaller(key);
     const { data: order, error: orderErr } = await admin.from("declutter_orders")
       .select("status, ship_capture, stripe_payment_intent_id").eq("id", s.declutter_order_id).maybeSingle();
     if (orderErr) {
@@ -200,6 +270,7 @@ async function runClaimedLabels(admin: Db, testStripeOf: () => Stripe, record: (
           return String(data);
         },
         page: pageWith(s.id, s.label_mode),
+        requestVoid: requestVoidWith(admin),
       });
       counts[outcome] = (counts[outcome] ?? 0) + 1;
     } catch (e) {

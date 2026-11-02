@@ -35,7 +35,12 @@ const sql = readdirSync(MIG)
 
 /** Pruners that are deliberately run by hand, each with why. Empty on 2026-09-23. */
 // @two-way src/test/prunersAreScheduled.test.ts:listed as manual but scheduled or gone
-const MANUAL: Record<string, string> = {};
+// Not scheduled by name: each runs inside a wrapper sweep that cron runs every few minutes.
+const MANUAL: Record<string, string> = {
+  sweep_declutter_free_asks: "run by sweep_deadline_reminders (20261102011547), which cron 'declutter-book-by-reminders' runs every 10 minutes",
+  sweep_declutter_talk_reminders: "run by sweep_chat_unread_reminders (20261101200929), which cron 'sweep-unread-message-reminders' runs every 5 minutes",
+  sweep_needs_you_reminders: "run by sweep_deadline_reminders (20261102002011, 20261102011547), which cron 'declutter-book-by-reminders' runs every 10 minutes",
+};
 
 const NAME = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?((?:cleanup|prune|sweep)_\w+)\s*\(/gi;
 const DROP = /DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?((?:cleanup|prune|sweep)_\w+)/gi;

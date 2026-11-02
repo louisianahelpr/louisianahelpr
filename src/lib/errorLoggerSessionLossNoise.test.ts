@@ -35,7 +35,10 @@ const denied = (table: string) => ({ message: `permission denied for table ${tab
 /** Every message POSTed to error_logs after the debounce. */
 const loggedMessages = async (): Promise<string[]> => {
   await new Promise((r) => setTimeout(r, 300));
-  return fetchSpy.mock.calls.flatMap((c) => (JSON.parse(String(c[1].body)) as Array<{ message: string }>).map((r) => r.message));
+  const msgs = fetchSpy.mock.calls.flatMap((c) => (JSON.parse(String(c[1].body)) as Array<{ message: string }>).map((r) => r.message));
+  // Floor: every case logs at least one row, so an empty batch never passes a "nothing denied" check.
+  expect(msgs.length).toBeGreaterThan(0);
+  return msgs;
 };
 
 beforeEach(() => {

@@ -29,6 +29,16 @@ export const DECLUTTER_PREVIEW_STAGES = [
   { key: "haul_away", label: "Haul-away" },
   { key: "donation", label: "Donation (charity chosen)" },
   { key: "donated", label: "Donated (receipt)" },
+  // Audit 1102c P6 (Q2624): the stages the preview did not offer.
+  { key: "offer_open", label: "Offer made (seller to answer)" },
+  { key: "offer_countered", label: "Offer countered (buyer to answer)" },
+  { key: "offer_accepted", label: "Offer accepted (to pay)" },
+  { key: "cart_two", label: "Cart with 2 items" },
+  { key: "refund_asked", label: "Refund asked" },
+  { key: "refund_offered", label: "Refund: seller offered part" },
+  { key: "no_show", label: "No-show reported" },
+  { key: "delivered", label: "Seller marked delivered" },
+  { key: "reviewed", label: "Review left" },
 ] as const;
 
 export type DeclutterPreviewStage = (typeof DECLUTTER_PREVIEW_STAGES)[number]["key"];
@@ -66,6 +76,10 @@ const OTHER = "00000000-0000-4000-d000-000000000002";
 const ITEM_ID = "00000000-0000-4000-d000-000000000010";
 const ORDER_ID = "00000000-0000-4000-d000-000000000020";
 const LINE_ID = "00000000-0000-4000-d000-000000000030";
+const ITEM2_ID = "00000000-0000-4000-d000-000000000011";
+const LINE2_ID = "00000000-0000-4000-d000-000000000031";
+const OFFER_ID = "00000000-0000-4000-d000-000000000070";
+const REFUND_ID = "00000000-0000-4000-d000-000000000080";
 
 const hoursFrom = (now: number, h: number) => new Date(now + h * 3_600_000).toISOString();
 
@@ -80,6 +94,12 @@ function item(sellerId: string, now: number, over: Partial<DeclutterItem> = {}):
 
 function handover(side: DeclutterPreviewSide, over: Partial<MyHandover> = {}): MyHandover {
   return { order_id: ORDER_ID, status: "paid", side, confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null, ...over };
+}
+
+/** declutter_refund_request_view for a handed-over order with no request (null crashed Details: it reads .handed_over). */
+function noRefundAsked(side: DeclutterPreviewSide, now: number) {
+  return { order_id: ORDER_ID, side, handed_over: true, can_drop_off: true, window_ends_at: hoursFrom(now, 19), can_ask: side === "buyer", can_report: side === "buyer",
+    items_cents: 4000, full_refund_cents: 4100, delivery_kept_cents: 0, request: null };
 }
 
 const TASK_ID = "00000000-0000-4000-d000-000000000040";
@@ -187,8 +207,9 @@ export function declutterPreviewSample(stage: DeclutterPreviewStage, side: Declu
         declutter_delivery_raise_status: { order_id: ORDER_ID, task_status: "accepted", open_until: hoursFrom(now, 20), delivery_cents: 900, raised_cents: 0, can_raise: false, room_cents: 0, raises: [] },
       });
     case "handed_over":
-      return { ...base, cart: [paid("pickup_home", { order_status: "handed_over" })],
-        handovers: { [ORDER_ID]: handover(side, { status: "handed_over", confirmed_at: hoursFrom(now, -3), confirmed_by: "buyer", picked_up_at: hoursFrom(now, -3) }) } };
+      return withReads({ ...base, cart: [paid("pickup_home", { order_status: "handed_over" })],
+        handovers: { [ORDER_ID]: handover(side, { status: "handed_over", confirmed_at: hoursFrom(now, -3), confirmed_by: "buyer", picked_up_at: hoursFrom(now, -3) }) } },
+        { declutter_refund_request_view: noRefundAsked(side, now), declutter_i_reviewed: false });
     case "refund":
       return { ...base, cart: [paid("pickup_home", { order_status: "refunded", closed_at: hoursFrom(now, -5) })], handovers: { [ORDER_ID]: handover(side) } };
     case "problem_seller":
@@ -220,6 +241,68 @@ export function declutterPreviewSample(stage: DeclutterPreviewStage, side: Declu
           partner_address: "220 St Vincent St, Baton Rouge", chosen_at: hoursFrom(now, -30), donated_at: null, receipt: false }] : [] }, {
         declutter_donation_partners_near: [{ id: "00000000-0000-4000-d000-000000000062", name: "St. Vincent de Paul (sample)", address: "220 St Vincent St, Baton Rouge", parish: "East Baton Rouge", takes: "Furniture, housewares", miles: 3.4, chosen: true }],
       });
+    case "offer_open":
+    case "offer_countered":
+    case "offer_accepted": {
+      // Audit 1102c P6 (Q2624): an offer under the asking price, then the seller's counter, then accepted (in the cart to pay).
+      const countered = stage !== "offer_open";
+      const offer: MyOffer = {
+        offer_id: OFFER_ID, item_id: ITEM_ID, item_title: "Oak rocking chair (sample)", my_side: side, amount_cents: countered ? 3600 : 3200,
+        awaiting: stage === "offer_countered" ? "buyer" : "seller", status: stage === "offer_accepted" ? "accepted" : "open",
+        respond_by: hoursFrom(now, 20), counter_count: countered ? 1 : 0, current_price_cents: 4000,
+        floor_price_cents: side === "seller" ? 3000 : null, updated_at: hoursFrom(now, -1),
+      };
+      if (stage !== "offer_accepted") {
+        return { ...base, offers: [offer], paidCents: [], items: side === "seller" ? [item(sellerId, now)] : [] };
+      }
+      return { ...base, offers: [offer], paidCents: [], items: side === "seller" ? [item(sellerId, now, { status: "reserved" })] : [],
+        cart: [line({ status: "in_cart", price_cents: 3600, order_id: null, order_status: null, handover: null, total_cents: null, source: "offer" })] };
+    }
+    case "cart_two":
+      // Audit 1102c P6 (Q2624): two items from one seller in the cart (one checkout, one handover). No bundle discount set.
+      return withReads({ ...base, paidCents: [],
+        items: side === "seller" ? [item(sellerId, now, { status: "reserved" }), item(sellerId, now, { id: ITEM2_ID, title: "Brass floor lamp (sample)", status: "reserved", price_cents: 1500, current_price_cents: 1500 })] : [],
+        cart: [line({ status: "in_cart", order_id: null, order_status: null, handover: null, total_cents: null }),
+          line({ line_id: LINE2_ID, item_id: ITEM2_ID, item_title: "Brass floor lamp (sample)", price_cents: 1500, status: "in_cart", order_id: null, order_status: null, handover: null, total_cents: null })] },
+        { declutter_bundle_preview: 0 });
+    case "refund_asked":
+    case "refund_offered": {
+      // Audit 1102c P6 (Q2624): after the handover the buyer asks for a refund; then the seller offers part of it back.
+      const offered = stage === "refund_offered";
+      return withReads({ ...base, cart: [paid("pickup_home", { order_status: "handed_over" })],
+        handovers: { [ORDER_ID]: handover(side, { status: "handed_over", confirmed_at: hoursFrom(now, -5), confirmed_by: "buyer", picked_up_at: hoursFrom(now, -5) }) } }, {
+        declutter_i_reviewed: false,
+        declutter_refund_request_view: {
+          order_id: ORDER_ID, side, handed_over: true, can_drop_off: true, window_ends_at: hoursFrom(now, 19), can_ask: false, can_report: false,
+          items_cents: 4000, full_refund_cents: 4100, delivery_kept_cents: 0,
+          request: {
+            id: REFUND_ID, status: offered ? "offered" : "open", reason: "damaged", note: "One rocker is cracked (sample).", answer_by: hoursFrom(now, 22),
+            offer_cents: offered ? 2000 : null, offer_answer_by: offered ? hoursFrom(now, 23) : null, declined_at: null, return_by: null, returned_at: null,
+            report_until: null, refund_cents: null, refund_status: null, created_at: hoursFrom(now, -2), photo_paths: [],
+          },
+        },
+      });
+    }
+    case "no_show":
+      // Audit 1102c P6 (Q2624): the pickup time passed, the buyer reported that the seller didn't show; the seller has 24 hours to answer.
+      return withReads({ ...base, cart: [paid("pickup_home")],
+        handovers: { [ORDER_ID]: handover(side, { no_show_reported_at: hoursFrom(now, -1), no_show_answer_by: hoursFrom(now, 23) }) },
+        bookings: [{ order_id: ORDER_ID, slot_start: hoursFrom(now, -3), slot_end: hoursFrom(now, -2), porch_mode: null, porch_until: null }] },
+        {}, { declutter_orders: baseTables(buyerId, sellerId, now, { start: hoursFrom(now, -3), end: hoursFrom(now, -2) }).declutter_orders });
+    case "delivered":
+      // Audit 1102c P6 (Q2624): the seller delivered and marked it, with a photo; the buyer's "I got it" is next.
+      return withReads({ ...base, cart: [paid("seller_delivery", { delivery_cents: 800, total_cents: 5070 })], handovers: { [ORDER_ID]: handover(side) } }, {
+        declutter_seller_delivery_booking: {
+          order_id: ORDER_ID, side, order_status: "paid", status: "booked", slot_start: hoursFrom(now, -2), slot_end: hoursFrom(now, -1), delivery_cents: 800,
+          dropoff_area: "Mid-City, Baton Rouge", handoff: "hand", dropoff_address: "1500 Sample Ave, Baton Rouge, LA 70806", proposed_start: null, proposed_by: null,
+          proposals_left: 2, delivered_at: hoursFrom(now, -1), delivered_photo_path: "sample/delivered.jpg", confirmed_at: null, not_delivered_from: null,
+        },
+      });
+    case "reviewed":
+      // Audit 1102c P6 (Q2624): handed over, and this side has left its review.
+      return withReads({ ...base, cart: [paid("pickup_home", { order_status: "handed_over" })],
+        handovers: { [ORDER_ID]: handover(side, { status: "handed_over", confirmed_at: hoursFrom(now, -26), confirmed_by: "buyer", picked_up_at: hoursFrom(now, -26) }) } },
+        { declutter_i_reviewed: true, declutter_refund_request_view: noRefundAsked(side, now) });
     case "donated":
       // The donation job is done: the receipt (the item, the date, the charity; never a value).
       return { ...base, cart: [], paidCents: [], items: side === "seller" ? [item(sellerId, now, { status: "withdrawn" })] : [],

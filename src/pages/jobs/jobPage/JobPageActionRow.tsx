@@ -59,6 +59,7 @@ export function JobPageActionRow({
   leadIsStep,
   extras,
   cardCount = 0,
+  cardInMenu = false,
   cardLead = false,
   setCardLeadHost,
   setCardSecondHost,
@@ -74,6 +75,8 @@ export function JobPageActionRow({
   extras: RowAction[];
   /** How many of the hidden card's actions the page offers (jobStepMenu.tsx). */
   cardCount?: number;
+  /** Q2592 (owner 11-02): the card's actions go inside More options even when there is one (a lone SOS). */
+  cardInMenu?: boolean;
   /** The card's own primary leads the row (the page has no step; the card has one). */
   cardLead?: boolean;
   setCardLeadHost?: (el: HTMLElement | null) => void;
@@ -88,9 +91,11 @@ export function JobPageActionRow({
   // Nothing leads (an open job with no applicants: Edit, Change, Cancel): the first action takes the left half, so
   // the row is never a lone "More options".
   if (!lead && !cardLead && extras.length > 0) {
-    return <JobPageActionRow {...{ lead: extras[0], leadIsStep: false, extras: extras.slice(1), cardCount, setCardSecondHost, setCardListHost, tag }} plainLead />;
+    return <JobPageActionRow {...{ lead: extras[0], leadIsStep: false, extras: extras.slice(1), cardCount, cardInMenu, setCardSecondHost, setCardListHost, tag }} plainLead />;
   }
   const others = extras.length + cardCount;
+  // Q2592: a lone card action that belongs in the menu (SOS) still opens "More options", never a peer button.
+  const menuOnly = cardInMenu && cardCount > 0;
   // The green one is always on the right (owner 2026-11-01 12:00 PM); an outlined (plain) lead reads left to right.
   // `leadIsStep` still says which kind of lead it is (the callers' own reading); it no longer moves it.
   void leadIsStep;
@@ -101,7 +106,7 @@ export function JobPageActionRow({
     : lead ? <ActionButton key="lead" a={lead} lead={!plainLead} pair={pair} /> : null;
   const second = others === 0
     ? null
-    : others === 1
+    : others === 1 && !menuOnly
       ? extras.length === 1
         ? <ActionButton key="second" a={extras[0]} pair={pair} />
         : <div key="second" ref={setCardSecondHost} data-row-one-action="" className="flex min-w-0" />
@@ -117,7 +122,7 @@ export function JobPageActionRow({
       {/* A3-13 (audit 11-01): from md up each button is capped at 240px and the row sits right (step last), not ~547px
           a button across the page at 1440. */}
       <div data-job-row={tag} className={cells.length === 2 ? "grid grid-cols-2 gap-2 md:ml-auto md:w-full md:max-w-[488px]" : "grid grid-cols-1 md:ml-auto md:w-full md:max-w-[240px]"}>{cells}</div>
-      {others > 1 && (
+      {(others > 1 || menuOnly) && (
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent side="bottom" data-row-options={tag}>
             <SheetHero title="More options" />

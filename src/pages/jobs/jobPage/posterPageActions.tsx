@@ -152,7 +152,7 @@ export function usePosterPageActions({
       <>
       {/* The card's own words above its buttons (a crew's Tip rows; why a Tip can't be sent yet). */}
       {cardSteps && <div ref={flows.setAskHost} data-card-ask="" className="empty:hidden" />}
-      <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} extras={extras} cardCount={cardCount}
+      <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} extras={extras} cardCount={cardCount} cardInMenu={cardSteps && flows.loneSos}
         cardLead={cardLead} setCardLeadHost={flows.setLeadHost} setCardSecondHost={flows.setSecondHost} setCardListHost={flows.setListHost} />
       {/* A3-40 (lead 11-01): Tip beside Review is a visible text button under the row, not in More options. */}
       {cardLead && <div ref={flows.setTextHost} data-card-text="" className="flex justify-center empty:hidden" />}

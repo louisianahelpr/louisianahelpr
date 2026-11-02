@@ -10,6 +10,7 @@ import {
 import { useClaimedPersonTile } from "./jobCardPerson";
 import { JobStepOverflowChip } from "./JobActionRow";
 import { JobStepMenuContext, MenuAction, MenuTextAction, primaryButtons } from "./jobStepMenu";
+import { SosShareButton } from "@/components/SosShareButton";
 
 /** React keys of chips that ALWAYS live inside `More`, at every width, even
  *  when the row has room (owner, 2026-09-27: "report a problem should be under
@@ -371,6 +372,10 @@ export function JobStepCard({
     ? [...(menu.leadHost && !menu.textHost ? menuPrimaries.slice(1) : []), ...moreChips.filter((c) => !(isValidElement(c) && c.key === "message"))]
     : [];
   const menuCount = menuChips.length;
+  // Q2592 (owner 11-02): a lone SOS is drawn in the options list, never in the page's second-button slot.
+  const loneSos = menuCount === 1 && isValidElement(menuChips[0]) && menuChips[0].type === SosShareButton;
+  const setMenuLoneSos = menu?.setLoneSos;
+  useEffect(() => { setMenuLoneSos?.(loneSos); }, [setMenuLoneSos, loneSos]);
   const setMenuCount = menu?.setCount;
   const setMenuLeadCount = menu?.setLeadCount;
   useEffect(() => { setMenuCount?.(menuCount); }, [setMenuCount, menuCount]);
@@ -483,7 +488,7 @@ export function JobStepCard({
         {menu?.askHost && ask ? createPortal(ask, menu.askHost) : null}
         {menu?.leadHost && menuLead ? createPortal(<MenuAction chip={menuLead} lead pair className="w-full" />, menu.leadHost) : null}
         {menu?.textHost && menuText.length > 0 ? createPortal(<>{menuText.map((c, i) => <MenuTextAction key={i} chip={c} />)}</>, menu.textHost) : null}
-        {menu?.secondHost && menuCount === 1 ? createPortal(<MenuAction chip={menuChips[0]} pair className="w-full" />, menu.secondHost) : null}
+        {menu?.secondHost && menuCount === 1 && !loneSos ? createPortal(<MenuAction chip={menuChips[0]} pair className="w-full" />, menu.secondHost) : null}
         {menu?.listHost && menuCount >= 1
           ? createPortal(<>{menuChips.map((c, i) => <MenuAction key={isValidElement(c) && c.key != null ? String(c.key) : i} chip={c} className="w-full" />)}</>, menu.listHost)
           : null}

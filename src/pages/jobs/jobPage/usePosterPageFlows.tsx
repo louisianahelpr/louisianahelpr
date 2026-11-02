@@ -48,6 +48,8 @@ export interface PosterPageFlows {
   moreCount: number;
   /** How many primaries the card holds (Review, Tip): the first leads the row when the page has no step. */
   leadCount: number;
+  /** Q2592: the card's one action is SOS, so the row puts it inside More options (never beside Message). */
+  loneSos: boolean;
   /** The page's lead slot, where the card's first primary is drawn. */
   setLeadHost: (el: HTMLElement | null) => void;
   /** Above the row: where the card's `ask` is drawn (a crew's per-member Tip rows; why a Tip can't be sent yet). */
@@ -142,10 +144,11 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   const [secondHost, setSecondHost] = useState<HTMLElement | null>(null);
   const [listHost, setListHost] = useState<HTMLElement | null>(null);
   const [leadCount, setLeadCount] = useState(0);
+  const [loneSos, setLoneSos] = useState(false);
   const [leadHost, setLeadHost] = useState<HTMLElement | null>(null);
   const [askHost, setAskHost] = useState<HTMLElement | null>(null);
   const [textHost, setTextHost] = useState<HTMLElement | null>(null);
-  const menu = useMemo(() => ({ secondHost, listHost, leadHost, askHost, textHost, setCount: setMoreCount, setLeadCount }), [secondHost, listHost, leadHost, askHost, textHost]);
+  const menu = useMemo(() => ({ secondHost, listHost, leadHost, askHost, textHost, setCount: setMoreCount, setLeadCount, setLoneSos }), [secondHost, listHost, leadHost, askHost, textHost]);
 
   const handlers = createLifecycleHandlers({
     user,
@@ -171,7 +174,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   });
 
   if (!enabled || !job) {
-    return { ready: false, completing: false, approve: () => {}, notRight: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, setLeadHost: () => {}, setAskHost: () => {}, setTextHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
+    return { ready: false, completing: false, approve: () => {}, notRight: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, loneSos: false, setLeadHost: () => {}, setAskHost: () => {}, setTextHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
   }
 
   // Its own Suspense: the card's steps lazy-load dialogs (the refund ask), and a suspend with no boundary of its own
@@ -259,6 +262,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     edit: () => setEditJob(job),
     moreCount,
     leadCount,
+    loneSos,
     setLeadHost,
     setAskHost,
     setTextHost,

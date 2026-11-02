@@ -14,6 +14,7 @@
  * @mutate src/pages/admin/preview/previewParts.tsx |   client.channel = channel; |   void channel;
  * @mutate src/pages/admin/preview/MessagesPreviewPage.tsx |     const undoRealtime = installInertRealtime(); |     const undoRealtime = () => undefined;
  * @mutate src/pages/admin/preview/messagesPreviewSamples.ts |     opens: stage === "reported" ? ["Conversation options", "Report user"] : stage === "block_sheet" ? ["Conversation options", "Block user"] : null, |     opens: null,
+ * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |         o.onAction?.(name); |         void 0;
  * @mutate src/App.tsx | <ProtectedRoute><AdminRoute><AdminMessagesPreview /></AdminRoute></ProtectedRoute> | <ProtectedRoute><AdminMessagesPreview /></ProtectedRoute>
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -149,6 +150,21 @@ describe("admin Messages preview", () => {
       }, 30000);
     }
   }
+
+  // Audit 1102e (Auditor 5): "Blocking…" never finished, so the owner never saw the after-state; and opening a thread
+  // said "this would update notifications" (a read receipt nobody pressed).
+  it("Block sheet: Just block finishes and the preview moves to After a block", async () => {
+    // The sheet reads the signed-in user from the real session (sign-in traffic passes through the preview); here, the admin.
+    const getUser = vi.spyOn(supabase.auth, "getUser").mockResolvedValue({ data: { user: { id: ADMIN_ID } }, error: null } as never);
+    renderPreview("stage=block_sheet&side=poster");
+    const just = await screen.findByRole("button", { name: "Just block" }, { timeout: 10000 });
+    fireEvent.pointerDown(just);
+    fireEvent.click(just);
+    await waitFor(() => expect(document.querySelector('[data-preview-view="blocked:poster"]')).not.toBeNull(), { timeout: 10000 });
+    expect(toasts.some((t) => /block_user_and_settle/.test(t))).toBe(true);
+    expect(leaked()).toEqual([]);
+    getUser.mockRestore();
+  }, 30000);
 
   it("a thread shows both people's messages; the other side sees the same thread from the Helpr's chair", async () => {
     renderPreview("stage=thread&side=poster");

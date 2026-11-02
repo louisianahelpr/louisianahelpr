@@ -12,8 +12,8 @@
  *
  * The body is read as the migrations leave it (effectiveDefs: the newest CREATE, any dollar-quote tag).
  *
- * @mutate supabase/migrations/20261029180706_application_closed_by_no_show.sql |   UPDATE public.applications\n     SET status = 'rejected',\n         closed_reason = 'no_show'\n   WHERE job_id = p_job_id\n     AND helper_id = v_helper_id | UPDATE public.applications\n     SET status = 'rejected',\n         closed_reason = 'no_show'\n   WHERE false\n     AND helper_id = v_helper_id
- * @mutate supabase/migrations/20261029180706_application_closed_by_no_show.sql |      AND helper_id = v_helper_id\n     AND status = 'accepted'; |      AND status = 'accepted';
+ * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |   UPDATE public.applications\n     SET status = 'rejected',\n         closed_reason = 'no_show'\n   WHERE job_id = p_job_id\n     AND helper_id = v_helper_id | UPDATE public.applications\n     SET status = 'rejected',\n         closed_reason = 'no_show'\n   WHERE false\n     AND helper_id = v_helper_id
+ * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |      AND helper_id = v_helper_id\n     AND status = 'accepted'; |      AND status = 'accepted';
  */
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";

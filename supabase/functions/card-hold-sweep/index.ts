@@ -339,7 +339,7 @@ async function sweepOne(deps: Deps, hold: HoldRow, now: number, counts: Record<s
 
   // 6. A scheduled hold whose day has come.
   if (hold.state === "scheduled" && hold.place_at && Date.parse(hold.place_at) <= now) {
-    const allowed = offSessionAllowed(hold.amount_cents, job.category);
+    const allowed = offSessionAllowed(hold.amount_cents, job.category, job.tax_kind);
     if (!allowed.ok) {
       await failHold(deps, job, hold, "needs_action", allowed.why === "large" ? "on_session_required" : "taxed_on_session",
         allowed.why === "large" ? "a hold of $300 or more is confirmed on a Checkout page (Q210b)" : "a taxed category is held on a Checkout page");
@@ -381,7 +381,7 @@ async function sweepOne(deps: Deps, hold: HoldRow, now: number, counts: Record<s
     // Still capturable at Stripe past the recorded window (the window read was early, or a run was
     // missed): renewed now all the same, never left to lapse in silence (round 4, silent #6).
     if (Date.parse(hold.capture_before) <= now) defects.record(`job ${hold.job_id}: hold ${oldPi} is past its recorded capture_before and still capturable; renewing it now`);
-    const allowed = offSessionAllowed(hold.amount_cents, job.category);
+    const allowed = offSessionAllowed(hold.amount_cents, job.category, job.tax_kind);
     if (!allowed.ok || !hold.payment_method_id) {
       await failHold(deps, job, hold, "needs_action", allowed.ok ? "no_saved_card" : allowed.why === "large" ? "on_session_required" : "taxed_on_session",
         "the hold is about to expire and can only be renewed on a Checkout page");

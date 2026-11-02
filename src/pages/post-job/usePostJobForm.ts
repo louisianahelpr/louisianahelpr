@@ -1,5 +1,6 @@
 import { useFeature } from "@/hooks/useFeature";
 import { useCallback, useEffect, useState } from "react";
+import { TAXABLE_CATEGORIES } from "@/lib/salesTax";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDeclutterIntent } from "./useDeclutterIntent";
 import { useDraftJob } from "@/hooks/useDraftJob";
@@ -120,6 +121,14 @@ export function usePostJobForm() {
   // No category until the poster picks one (owner, 2026-10-07: "dont auto
   // select other"). Submit already refuses an empty one ("Pick a category.").
   const [category, setCategory] = useState<string>("");
+  /* The poster's answer that taxes the labor (Q2083, owner Option 1): does
+     the job fix a movable item, clean carpet, rugs, furniture or clothes, or
+     alter clothes? Asked outside auto and appliance repair (those are taxed
+     anyway), so moving into one of them clears it. null = neither / not asked. */
+  const [taxKind, setTaxKind] = useState<"item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations" | null>(null);
+  useEffect(() => {
+    if (TAXABLE_CATEGORIES.has(category)) setTaxKind(null);
+  }, [category]);
   /* Pet profiles attached to this job — written to `job_pets` after the insert.
      Cleared when the category leaves pet_care so a poster who starts a dog-walk
      post and switches it to yard work does not silently ship a pet list with a
@@ -450,6 +459,7 @@ export function usePostJobForm() {
     title,
     description,
     category,
+    taxKind,
     selectedPetIds,
    
     streetAddress,
@@ -639,6 +649,8 @@ export function usePostJobForm() {
     setDescription,
     category,
     setCategory,
+    taxKind,
+    setTaxKind,
     selectedPetIds,
     togglePet,
     // logistics fields

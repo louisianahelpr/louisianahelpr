@@ -451,7 +451,7 @@ describe("Q2082 (b): a Helpr-fault card fee comes out of the next payout", () =>
   // The earnings export adds the withheld fee back, so its gross is what the
   // Helpr earned (NEWEST get_helper_earnings_export; PGlite proof:
   // src/test/pglite/helprFaultEarningsExport.pglite.mjs).
-  // @mutate supabase/migrations/20261019015304_helpr_fault_earnings_export.sql | this payout kept back.\n                        + GREATEST(0, COALESCE((p.metadata->>'helpr_fault_fee_cents')::bigint, 0)) | this payout kept back.\n                        + 0
+  // @mutate supabase/migrations/20261102152453_q2083_job_tax_kind.sql | this payout kept back.\n                        + GREATEST(0, COALESCE((p.metadata->>'helpr_fault_fee_cents')::bigint, 0)) | this payout kept back.\n                        + 0
   it("the earnings export adds the Helpr-fault fee back in both ledger laterals", async () => {
     const { readdirSync, readFileSync } = await import("node:fs");
     const { blankSqlComments } = await import("../helpers/blankNonCode");

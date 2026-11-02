@@ -5,6 +5,8 @@ import { CREDENTIAL_TIER_CATEGORIES } from "./detailsSection/detailsSectionConst
 import { TitleField } from "./detailsSection/TitleField";
 import { DescriptionField } from "./detailsSection/DescriptionField";
 import { CredentialTierSelector } from "./detailsSection/CredentialTierSelector";
+import { TaxKindQuestion } from "./detailsSection/TaxKindQuestion";
+import { TAXABLE_CATEGORIES } from "@/lib/salesTax";
 import { PhotoProofToggle } from "./detailsSection/PhotoProofToggle";
 import { PhotoUpload } from "./detailsSection/PhotoUpload";
 import { VideoScope } from "./detailsSection/VideoScope";
@@ -30,6 +32,8 @@ export function DetailsSection({
   detailsComplete,
   credentialTier,
   setCredentialTier,
+  taxKind,
+  setTaxKind,
   requirePhotoProof,
   setRequirePhotoProof,
   scopeVideoUrl,
@@ -78,6 +82,14 @@ export function DetailsSection({
             setCredentialTier={setCredentialTier}
           />
         </>
+      )}
+
+      {/* Q2083 (owner Option 1): outside auto and appliance repair (taxed
+          anyway), the poster says whether the job fixes a movable item, cleans
+          carpet, rugs, furniture or clothes, or alters clothes, the work
+          Louisiana taxes (La. R.S. 47:301.3 items 5 and 7; jobs.tax_kind). */}
+      {setTaxKind && category && !TAXABLE_CATEGORIES.has(category) && (
+        <TaxKindQuestion taxKind={taxKind ?? null} setTaxKind={setTaxKind} />
       )}
 
       {/* Sits beside the credential tier because both answer the same

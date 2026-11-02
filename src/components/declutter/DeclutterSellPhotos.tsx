@@ -11,6 +11,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import { Camera, X } from "lucide-react";
 import { photoPublicUrl, type DeclutterPhoto } from "@/lib/declutter/api";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
+import { useHeldPhotoReorder } from "./heldPhotoReorder";
 
 export const MAX_PHOTOS = DECLUTTER_MAX_PHOTOS;
 const MIN_PHOTOS = DECLUTTER_MIN_PHOTOS;
@@ -44,6 +45,7 @@ export function SellPhotos({
   heldFailed = false,
   refusedNote = null,
   onMakeCover,
+  onReorderHeld,
   coverUndo = null,
   free = false,
   tipDone = false,
@@ -62,6 +64,8 @@ export function SellPhotos({
   refusedNote?: string | null;
   /** A held photo becomes the cover. */
   onMakeCover?: (index: number) => void;
+  /** POST-S9: a held photo dragged onto another's place (heldPhotoReorder.ts). */
+  onReorderHeld?: (from: number, to: number) => void;
   /** The AI moved the cover: says so, and this puts it back. */
   coverUndo?: (() => void) | null;
   free?: boolean;
@@ -73,6 +77,8 @@ export function SellPhotos({
   const previews = useMemo(() => held.map((f) => URL.createObjectURL(f)), [held]);
   useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
   const count = uploaded.length + held.length;
+  // POST-S9: only photos still on the device reorder (their order is the upload order); a failed batch does not.
+  const reorder = useHeldPhotoReorder(held.length, heldFailed ? undefined : onReorderHeld);
   const addTile = count < MAX_PHOTOS && (
     <li>
       {/* Board 31a: the dashed "Add photos" tile after the photos. */}
@@ -98,12 +104,15 @@ export function SellPhotos({
           </li>
         ))}
         {previews.map((url, i) => (
-          <li key={url} data-held-photo="">
+          <li key={url} data-held-photo="" data-held-index={i}
+            data-photo-dragging={reorder.dragging === i ? "" : undefined}
+            data-photo-drop={reorder.dragging !== null && reorder.dragging !== i && reorder.over === i ? "" : undefined}
+            {...reorder.handlers(i)}>
             {/* The chips and X sit on the photo; Make cover sits under it, so its height never moves them. */}
-            <div className="relative">
+            <div className={`relative rounded-2xl ${reorder.dragging === i ? "ring-2 ring-[hsl(var(--bark)/0.45)]" : reorder.dragging !== null && reorder.over === i ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
             {/* Only a local blob: preview is drawn (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
             {url.startsWith("blob:") && (
-              <img src={url} alt={`Photo ${uploaded.length + i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
+              <img src={url} alt={`Photo ${uploaded.length + i + 1}`} draggable={false} className="aspect-square w-full select-none object-cover rounded-2xl bg-photo-empty [-webkit-touch-callout:none]" />
             )}
             {heldFailed ? (
               <span data-photo-failed="" className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-full bg-background/95 px-2 py-0.5 text-ds-12 font-semibold text-destructive-ink">
@@ -124,6 +133,7 @@ export function SellPhotos({
       <p className="text-ds-13 text-muted-foreground" data-photo-count="">
         {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
         {held.length > 0 && !heldFailed ? " · these go up when you post" : ""}
+        {onReorderHeld && !heldFailed && held.length > 1 ? " · hold and drag a photo to move it" : ""}
       </p>
       {coverUndo && (
         <p className="text-ds-13 text-foreground" data-cover-moved="">

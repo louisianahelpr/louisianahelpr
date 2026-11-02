@@ -5,6 +5,8 @@ import type { TrackingData } from "@/components/JobTracking";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import { helperFaceAction, helperFaceNextStep } from "@/pages/jobs/appliedJobCard/helperFaceAction";
 import type { JobPageRow } from "./useJobPage";
+import type { CrewSlot } from "@/lib/crewLifecycle";
+import { crewMemberFace } from "./crewMemberFace";
 
 /**
  * The hired Helpr's job page button (audit 2026-10-28 F26: the page had no next action, only "Open in working").
@@ -21,6 +23,8 @@ export function hiredHelprFace(
     userId: string; posterFirst: string | null; trackingStatus: string | null; doneFloorMinutes?: number; open: () => void; message: () => void;
     /** JA-22: a finished, paid job this Helpr has not reviewed (the Working card's own owesReview), and how to review. */
     owesReview?: boolean; review?: () => void;
+    /** A3-33: a crew member's own roster row (useCrewSlot): their step is the page's button. */
+    crewSlot?: CrewSlot | null;
   },
 ): MineFaceAction | null {
   const row = job as unknown as Job;
@@ -49,6 +53,10 @@ export function hiredHelprFace(
   });
   // JOBS-27 (Jobs audit 10-30, h6-crew): a crew member's page fell through to the generic "Manage job". Their own
   // steps (on the way, arrived, photos, done) are on the crew roster in the Working card, so the button says that.
-  if (job.is_group_job && face && !face.step && face.label === "Manage job") return { ...face, label: "See your crew steps" };
+  // A3-33 (audit 11-01): when the member has a step of their own (on the way, arrived, mark my part done), that step
+  // is the button; only a wait keeps "See your crew steps".
+  if (job.is_group_job && face && !face.step && face.label === "Manage job") {
+    return crewMemberFace(job.id, o.crewSlot, job, o.open) ?? { ...face, label: "See your crew steps" };
+  }
   return face;
 }

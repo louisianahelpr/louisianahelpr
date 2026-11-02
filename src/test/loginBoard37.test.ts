@@ -56,8 +56,9 @@ describe("Log in matches board 37", () => {
     const order = [
       at('id="email"'),
       at('htmlFor="password"'),
-      at('t("login.forgot")'),
+      // Q2248: the link draws on the Password row but follows the input in the DOM (Tab order); loginTabOrder.test.ts.
       at('id="password"'),
+      at('t("login.forgot")'),
       at('t("login.submit")'),
       at("<OrRule />"),
       at("<SocialAuthButtons"),

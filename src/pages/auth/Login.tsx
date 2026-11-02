@@ -368,12 +368,13 @@ const Login = () => {
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5 text-primary" strokeWidth={1.75} />
               </div>
-              <h2
+              {/* Q2250: the card head (and its h1) is hidden on this step, so the step's own title is the page's h1. */}
+              <h1
                 className="font-display font-bold leading-tight"
                 style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
               >
                 {t("login.mfaTitle")}
-              </h2>
+              </h1>
               <p
                 className="font-sans text-ds-14"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
@@ -462,22 +463,11 @@ const Login = () => {
               </p>
             )}
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="password" className="text-ds-13 font-sans font-medium">{t("login.password")}</Label>
-              {/* Board 37: the recovery link sits on the Password label's row. */}
-              {/* The typed email rides along in router state (never the URL, so it stays
-                  out of history and logs): audit 2026-10-29 A3-C12. */}
-              <Link
-                to="/forgot-password"
-                state={{ email: email.trim() }}
-                className="min-h-[44px] -my-3 inline-flex items-center text-ds-13 font-sans font-bold hover:underline active:opacity-60 transition-opacity"
-                style={{ color: "hsl(var(--bark))" }}
-              >
-                {t("login.forgot")}
-              </Link>
-            </div>
-            <div className="relative">
+          {/* Q2248: a grid so "Forgot password?" still draws on the Password label's row (board 37) but comes AFTER
+              the input in the DOM: Tab from Email reaches Password first, then the link. */}
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-2" data-testid="login-password-field">
+            <Label htmlFor="password" className="col-start-1 row-start-1 text-ds-13 font-sans font-medium">{t("login.password")}</Label>
+            <div className="relative col-span-2 row-start-2">
               <Input
                 ref={passwordRef}
                 id="password"
@@ -505,8 +495,19 @@ const Login = () => {
                 {showPassword ? <EyeOff /> : <Eye />}
               </Button>
             </div>
+            {/* Board 37: the recovery link sits on the Password label's row. */}
+            {/* The typed email rides along in router state (never the URL, so it stays
+                out of history and logs): audit 2026-10-29 A3-C12. */}
+            <Link
+              to="/forgot-password"
+              state={{ email: email.trim() }}
+              className="col-start-2 row-start-1 justify-self-end min-h-[44px] -my-3 inline-flex items-center text-ds-13 font-sans font-bold hover:underline active:opacity-60 transition-opacity"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              {t("login.forgot")}
+            </Link>
             {passwordError && (
-              <p id="login-password-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+              <p id="login-password-error" role="alert" className="col-span-2 row-start-3 justify-self-start inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
                 <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
                 {t("login.passwordMissing")}
               </p>

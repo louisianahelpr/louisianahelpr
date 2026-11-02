@@ -68,7 +68,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   if (progress.stage === null && !progress.next) return null;
   // THE STATUS LINE IS THE NEXT STEP (owner 11-01 12:05 PM): what to do or who we wait on, with its deadline, ABOVE the
   // bar (mockups 4 and 5); the bar draws no line of its own under it. Off the path the tracker keeps its own words.
-  const step = hideNext ? null : continueStep ?? jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, offerUntil, noShowRepostedOn, approveLeft });
+  const step = hideNext ? null : continueStep ?? jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, offerUntil, noShowRepostedOn, approveLeft, crew: job.is_group_job === true });
   return (
     <div data-job-tracker="" className="space-y-3">
       {step && <NextStep value={step} />}

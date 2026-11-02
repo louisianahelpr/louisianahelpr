@@ -889,7 +889,7 @@ export default defineConfig(({ mode, command }) => ({
             // Q178). Same shape as pdf-documents: their own small chunk, fetched with their importers only.
             {
               name: "spent-reads",
-              test: /[\\/]src[\\/]lib[\\/]declutter[\\/](purchaseSpend|paidCents)\.ts$/,
+              test: /[\\/]src[\\/]lib[\\/]declutter[\\/](purchaseSpend|paidCents|refundedCents)\.ts$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

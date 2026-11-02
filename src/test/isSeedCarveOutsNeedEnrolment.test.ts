@@ -85,6 +85,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_admin_open_problems: "hides",
   declutter_admin_pending_items: "hides",
   declutter_admin_reported_questions: "tags", // B48 (20261101021934): the admin's read returns is_seed so the queue drops test questions and answers
+  declutter_admin_reported_reviews: "tags", // A3-75 (20261102040000): the admin's read returns is_seed so the queue drops test reviews
   declutter_admin_reported_wanted: "tags", // posting audit #8 (20261030225143): the admin's read returns is_seed so the queue drops a test post
   declutter_block_wanted_poster: "hides", // posting audit #8: a test post reads as not found to a member
   declutter_wanted_hold_photos: "alerts", // posting audit #8: a test post's held photo files no report for admin

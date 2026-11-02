@@ -14,6 +14,9 @@
  * @mutate src/components/declutter/DeclutterProfileSection.tsx | queryFn: () => fetchSellerSoldCount(userId), enabled: on }); | queryFn: () => fetchSellerSoldCount(userId), enabled: true });
  * @mutate src/lib/declutter/profile.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_seller_sold_count")) return null; |   void isMissingRpcNamed;
  * @mutate src/lib/declutter/profile.ts |   const res = await supabase.rpc("declutter_seller_sold_count", { p_seller_id: sellerId }); |   const res = await supabase.rpc("declutter_seller_sold_count", { p_seller_id: "me" });
+ * A3-75 (audit 11-01): each review shown has Report, which opens the shared ReportDialog for that review.
+ * @mutate src/components/declutter/DeclutterProfileSection.tsx | onClick={() => setReporting(r.id)} data-report="declutter_review" | onClick={() => setReporting(null)} data-report="declutter_review"
+ * @mutate src/components/declutter/DeclutterProfileSection.tsx | reportedType="declutter_review" reportedId={reporting} | reportedType="review" reportedId={reporting}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -50,6 +53,10 @@ vi.mock("@/integrations/supabase/client", () => ({
       return { data: state.reviews, error: null };
     },
   },
+}));
+
+vi.mock("@/components/ReportDialog", () => ({
+  default: ({ reportedType, reportedId }: { reportedType: string; reportedId: string }) => <div role="dialog" data-type={reportedType} data-id={reportedId} />,
 }));
 
 import { DeclutterProfileSection } from "./DeclutterProfileSection";
@@ -153,5 +160,16 @@ describe("Declutter sales and reviews on a profile (#61)", () => {
     const section = await screen.findByRole("region", { name: /^Declutter reviews/ });
     expect(section).toHaveTextContent("Great.");
     expect(section.querySelector("[data-profile-sold]")).toHaveTextContent("3 sold");
+  });
+
+  it("A3-75: each review shown has Report, which opens the report form for that review", async () => {
+    state.reviews = [review("r1", "buyer", 2, "Rude.", []), review("r3", "seller", 3, "Late.", [])];
+    show();
+    const buttons = await screen.findAllByRole("button", { name: "Report" });
+    expect(buttons).toHaveLength(2);
+    fireEvent.click(buttons[0]);
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveAttribute("data-type", "declutter_review");
+    expect(dialog).toHaveAttribute("data-id", "r1");
   });
 });

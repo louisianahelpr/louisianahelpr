@@ -134,6 +134,38 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(isSamePageMove("/home", here)).toBe(false);
   });
 
+  // Audit 1102c P5 (Q2623): three samples did not match the real flows. Donation: the item was withdrawn with no
+  // haul-away row, so nothing about the donation drew (a charity is chosen while the item is live). Ran out: the item
+  // was removed, so the seller saw "You haven't listed anything yet" though it goes back up for sale. Problem: only a
+  // buyer-reported one could be drawn.
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts | name: "St. Vincent de Paul (sample)", address: "220 St Vincent St, Baton Rouge", parish: "East Baton Rouge", takes: "Furniture, housewares", miles: 3.4, chosen: true }], | }],
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |         items: side === "seller" ? [item(sellerId, now)] : [], paidCents: [] }; |         items: [], paidCents: [] };
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts | problems: [{ id: PROBLEM_ID, order_id: ORDER_ID, reporter_side: "seller", reason: "other" }] }, { | problems: [{ id: PROBLEM_ID, order_id: ORDER_ID, reporter_side: "buyer", reason: "other" }] }, {
+  it("Q2623: donation, donated, ran out and a seller-reported problem draw as the real flows do", async () => {
+    let r = open("?stage=donation&side=seller");
+    const picker = await waitFor(() => { const el = document.querySelector("[data-donate-picker]"); expect(el).not.toBeNull(); return el as HTMLElement; });
+    expect(picker.querySelector('[aria-checked="true"]')?.textContent).toMatch(/St\. Vincent de Paul \(sample\)/);
+    r.unmount();
+    // Donated: the stage draws. Its receipt does not show yet when the donated item was the seller's only listing:
+    // MyListingsView's "You haven't listed anything yet" returns before the haul-away card that holds the receipts (Q2667).
+    r = open("?stage=donated&side=seller");
+    await waitFor(() => expect(document.querySelector('[data-preview-view="donated:seller"]')).not.toBeNull());
+    await new Promise((res) => setTimeout(res, 50));
+    r.unmount();
+    r = open("?stage=cancelled&side=seller");
+    await waitFor(() => expect(document.querySelector('[data-preview-view="cancelled:seller"]')).not.toBeNull());
+    await new Promise((res) => setTimeout(res, 50));
+    expect(screen.queryByText(/You haven't listed anything yet/)).toBeNull();
+    r.unmount();
+    expect(DECLUTTER_PREVIEW_STAGES.map((x) => x.key)).toContain("problem_seller");
+    r = open("?stage=problem_seller&side=buyer");
+    await waitFor(() => expect(document.querySelector('[data-preview-view="problem_seller:buyer"]')).not.toBeNull());
+    expect(await screen.findByText(/, reported by the seller\./)).toBeInTheDocument();
+    await new Promise((res) => setTimeout(res, 50));
+    r.unmount();
+    expect(supabaseCalls()).toEqual([]);
+  });
+
   it("the controls name every stage and both sides", async () => {
     open("?stage=booked&side=seller");
     await screen.findByRole("region", { name: "Declutter preview controls" });

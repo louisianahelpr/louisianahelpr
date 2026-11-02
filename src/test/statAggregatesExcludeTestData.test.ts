@@ -57,6 +57,12 @@ const ALLOWED: Record<string, string> = {
   apply_to_job: LIMIT,
   // LEAD-LIST-FOR-SELLER: counts one listing's own photos for the Helpr writing it (a draft's photo count), not a stat.
   declutter_helpr_job_listings: "counts one listing's own photos for the Helpr writing it, not a stat over members",
+  // 20261101230519 (A3-18/A3-50): count(*) - 1 over ONE order's own cart lines, for "<item> and N more" in that
+  // order's own book-by reminder; a service_role cron sweep, not a number over members.
+  declutter_book_by_reminder_sweep: "counts one order's own cart lines for the words of that order's own reminder, not a stat over members",
+  // 20261102002217 (A3-81): count(*) over ONE order's own cart lines (item_count on the caller's own refund step);
+  // every row is an order where the caller is the buyer or the seller (lh-authz-rls, lead verdict b124).
+  declutter_my_refund_todos: "counts one order's own cart lines for the caller's own refund step, not a stat over members",
   rpc_set_instant_book_floor: LIMIT, // CMP-4: at most 3 floors per Helpr
   block_user_and_settle: SPOTS,
   can_send_message_to_in_job: LIMIT,

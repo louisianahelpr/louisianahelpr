@@ -33,6 +33,7 @@ import { HelperMoneyNotices } from "./appliedJobCard/HelperMoneyNotices";
 import { ClosedJobCard } from "./appliedJobCard/ClosedJobRow";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
+import { descriptionAddsToTitle, hasProofPhotos } from "@/lib/jobCardFacts";
 import { HelperSeriesRow, JobRequestRows } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
 import { useContinueDay } from "@/hooks/useContinueDays";
@@ -151,9 +152,7 @@ function AppliedJobCardInner({
    *  `job.customer_id` again inside a callback re-widens it. */
   const posterId = job.customer_id;
 
-  /** Is there anything behind the Photos chip? Gated on the photos EXISTING,
-   *  because the chip opens a dialog and an empty one is a dead-end tap. */
-  const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
+  const hasProof = hasProofPhotos(job);
   /** `payout_pending` counts too, and a review needs a reviewee — both rules
    *  are unchanged, just named once now that this gate decides a chip in a
    *  shared row rather than a row of its own. See the notes at the call site. */
@@ -162,12 +161,7 @@ function AppliedJobCardInner({
     // DH-003: past the 30-day window only "Reviewed" is left to show.
     (helperReviewedJobIds.has(app.job_id) || reviewWindowOpen(job));
 
-  /** Does the description say anything the TITLE hasn't already said? A job
-   *  whose description is its own title back again is one line of duplication. */
-  const showDescription =
-    !isMinimalCard &&
-    isExpanded &&
-    job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase();
+  const showDescription = !isMinimalCard && isExpanded && descriptionAddsToTitle(job);
   /** Whether the block between the meta row and the action row has ANY content.
    *  Every child of it is conditional — see the note at the block itself. */
   /* `app.posterName` no longer counts: the identity row sits in the meta block, so counting it would reserve an

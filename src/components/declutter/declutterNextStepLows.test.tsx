@@ -181,7 +181,7 @@ describe("A3-28: Payout history says each payout's next step", () => {
   const day = 1792800000;
   it.each([
     ["failed", "Next: check your payout account · we try again once it's right", "Payout settings", "/profile?tab=payment"],
-    ["canceled", "Next: message Support", "Message Support", "/support?topic=message"],
+    ["canceled", "Next: message Support", "Message support", "/support?topic=message"],
   ] as const)("%s: %s, button %s", (status, words, label, to) => {
     const n = payoutNextStep({ status, arrival_date: day });
     expect(n && nextStepWords(n.step)).toBe(words);

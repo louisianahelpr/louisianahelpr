@@ -29,12 +29,15 @@ import { formatJobDate } from "@/lib/dateUtils";
 import { helperFaceAction } from "@/pages/jobs/appliedJobCard/helperFaceAction";
 import { continueDayDoneNote } from "@/lib/continueDayWords";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+import { pinJobClock } from "@/test/helpers/pinJobClock";
 
 vi.mock("@/lib/continueDay", async (orig) => ({ ...(await orig<typeof import("@/lib/continueDay")>()), proposeContinueDay: async () => ({ status: "set" }) }));
 import { ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
 
 // The time wheel scrolls its column into view (jsdom has no scrollTo).
 Element.prototype.scrollTo ??= () => {};
+// A job dated today with a literal 08:00 start: noon Central, so no case flips with the hour CI runs at.
+pinJobClock();
 const TODAY = jobLocalDateISO(0);
 const AHEAD = jobLocalDateISO(3);
 // Yusef's job: under way today, after photos in, not marked done (the server clears a "done" when a day is set).

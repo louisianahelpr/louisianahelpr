@@ -213,6 +213,7 @@
     "PAYPAL_CLIENT_ID": "PayPal REST app client id (PayPal phase 1); an identifier, no expiry date",
     "PAYPAL_CLIENT_SECRET": "PayPal REST app secret (PayPal phase 1); PayPal secrets carry no expiry date, rotated by hand in the PayPal developer dashboard",
     "PAYPAL_ENV": "config (sandbox | live), not a credential",
+    "EASYPOST_WEBHOOK_SECRET": "shipping tracking webhook (easypost-webhook, X-Hmac-Signature over the raw body): a shared HMAC secret we choose when creating the EasyPost webhook; no expiry at the vendor, rotated by hand",
     "PAYPAL_WEBHOOK_ID": "the PayPal webhook id the signature check verifies against (PayPal phase 1); an identifier, no expiry date",
     "APNS_BUNDLE_ID": "config, not a credential",
     "TWILIO_ACCOUNT_SID": "SMS alerts (2026-10-20): account id, not a credential; does not expire",

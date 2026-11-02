@@ -1114,6 +1114,26 @@ export async function removeReportedQuestion(questionId: string, part: "question
   return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_remove_question", e) ?? null) as string;
 }
 
+export type ReportedReview = {
+  review_id: string; reviewer_id: string | null; reviewee_id: string | null; reviewer_side: string;
+  stars: number; comment: string | null; removed: boolean; is_seed: boolean;
+};
+
+/** A3-75 (audit 11-01): the Declutter reviews behind review reports, read as admin (members can't read the table). */
+export async function fetchReportedReviews(reviewIds: string[]): Promise<ReportedReview[]> {
+  if (!reviewIds.length) return [];
+  const res = await supabase.rpc("declutter_admin_reported_reviews", { p_review_ids: reviewIds });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return (rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_reported_reviews", e) ?? null) ?? []) as ReportedReview[];
+}
+
+/** A3-75: an admin removes a reported Declutter review (members stop seeing it; it leaves the rating); the report resolves. */
+export async function removeReportedReview(reviewId: string, reportId: string): Promise<string> {
+  const res = await supabase.rpc("declutter_admin_remove_review", { p_review_id: reviewId, p_note: "", p_report_id: reportId });
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_remove_review", e) ?? null) as string;
+}
+
 /** Audit 10-30 #8: a held Wanted photo an admin looked at and found fine: members see it now. */
 export async function releaseWantedPhotos(wantedId: string, reportId: string): Promise<string> {
   const res = await supabase.rpc("declutter_admin_release_wanted_photos", { p_wanted_id: wantedId, p_report_id: reportId });

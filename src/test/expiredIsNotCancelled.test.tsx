@@ -208,10 +208,10 @@ describe("an applicant to the expired listing", () => {
 // @mutate src/lib/expiredListing.ts |   return (\n    job.status === "cancelled" && |   return false && (\n    job.status === "cancelled" &&
 // @mutate src/pages/user/JobsList.tsx |             {isExpiredListing(job) ? ( |             {false ? (
 // @mutate src/pages/user/useUserProfileData.ts | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS), | .eq("customer_id", userId!),
-// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |       COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND NOT |      COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND true OR NOT
-// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |       COUNT(*) FILTER (WHERE NOT (j.status = 'cancelled' |      COUNT(*) FILTER (WHERE true OR NOT (j.status = 'cancelled'
+// @mutate supabase/migrations/20261102040000_declutter_review_report.sql |       COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND NOT |      COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND true OR NOT
+// @mutate supabase/migrations/20261102040000_declutter_review_report.sql |       COUNT(*) FILTER (WHERE NOT (j.status = 'cancelled' |      COUNT(*) FILTER (WHERE true OR NOT (j.status = 'cancelled'
 // @mutate src/pages/user/JobsList.tsx |                 {job.customer_id === viewerId && ( |                 {false && (
 // @mutate src/pages/user/useUserProfileData.ts | .eq("status", "cancelled").or(NOT_AN_EXPIRED_LISTING_FILTER), | .eq("status", "cancelled"),
 // @mutate src/components/job-card/jobStatusLine.ts |   const expired = id === "cancelled" && isExpiredListing(job); |   const expired = false;
 // @mutate src/components/job-card/jobStatusLine.ts |   const reason = isExpiredListing(job) ? null : sanitizeCancellationReason(job.cancellation_reason); |   const reason = sanitizeCancellationReason(job.cancellation_reason);
-// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |         AND NOT (j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS cancelled_jobs | )::integer AS cancelled_jobs
+// @mutate supabase/migrations/20261102040000_declutter_review_report.sql |         AND NOT (j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS cancelled_jobs | )::integer AS cancelled_jobs

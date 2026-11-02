@@ -75,6 +75,9 @@ import { crewPosterStep } from "@/components/tracker/crewPosterStep";
 import { crewMemberLine } from "@/components/tracker/crewMemberLine";
 import { useCrewSlot } from "@/hooks/useCrewSlot";
 import { offerIsOut } from "./useWithdrawOffer";
+import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
+import { RefundRequestPanel } from "@/components/refund/RefundRequestPanel";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 
 /** The hired Helpr's way to this job's card on the Jobs tab, one name everywhere (Q2598). */
 const OPEN_IN_JOBS = "Open in Jobs";
@@ -485,6 +488,17 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {/* The note sent with a new day is shown here to the two parties only, never in a notice (Q223). */}
             {continueDay.row?.note && (
               <p data-continue-day-note="" className="text-ds-14 text-muted-foreground break-words">Note with the new day: {continueDay.row.note}</p>
+            )}
+            {/* Q2694 (audit 1102e row 6): an open refund request on the page itself, both sides (amount, reason, answer-by;
+                the Helpr's Answer opens Accept / Say no), the Working and Posted cards' own panel behind the same switch. */}
+            {party && (isPoster || isHired) && !!job.helper_id && !job.is_group_job && (
+              <RefundsSwitchProvider>
+                <div data-job-refund="" className="-mx-4 empty:hidden lg:-mx-5">
+                  <RefundRequestPanel job={job} userId={userId} expanded
+                    otherName={isPoster ? helperCard.data?.name : posterCard.data?.name}
+                    feeFallbackPercent={isPoster ? null : tierFeePercent(ownProfile?.subscription_tier, ownProfile?.subscription_expires_at ?? null)} />
+                </div>
+              </RefundsSwitchProvider>
             )}
             {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })}
             {continueDay.sheet}

@@ -39,15 +39,16 @@
 // @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql |   IF TG_OP = 'INSERT' AND NEW.status = 'pending' THEN |   IF TG_OP = 'INSERT' THEN
 // @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |   PERFORM 1 FROM public.profiles WHERE user_id = auth.uid() FOR SHARE; |   PERFORM 1;
 // @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     NEW.direct_offer_status := 'expired'; |     NULL;
-// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |             AND NEW.offered_to_helper_id = p.helper_id AND NEW.direct_offer_status = 'pending')); |             AND false));
+// @mutate supabase/migrations/20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql |             AND NEW.offered_to_helper_id IS NOT DISTINCT FROM p.helper_id AND NEW.direct_offer_status IS NOT DISTINCT FROM 'pending')); |             AND false));
+// @mutate supabase/migrations/20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql | AND NEW.offered_to_helper_id IS NOT DISTINCT FROM p.helper_id AND | AND NEW.offered_to_helper_id = p.helper_id AND
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     if (accept && answer.action === "pending_setup") { |     if (false) {
 // @mutate src/lib/awardGate.ts |     missing.includes("stripe_id") ? "verify your ID with Stripe (a photo ID and a selfie)" : null, |     "verify your ID with Stripe (a photo ID and a selfie)",
 // @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike." | Your Stripe setup isn't finished yet, so declining now isn't a strike."
 // @mutate src/lib/lifecycleErrors.ts |   accept_required:\n |   accept_required_retired:\n
 // @mutate src/lib/seriesDates.ts | rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) | rpcErrorMessage("claim_series_dates", error)
-// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) THEN |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) AND false THEN
-// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |   IF NEW.status::text = 'open'\n     AND (OLD.date_needed |   IF true\n     AND (OLD.date_needed
-// @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | CASE WHEN NEW.direct_offer_expires_at IS NULL OR NEW.direct_offer_expires_at > now() | CASE WHEN true
+// @mutate supabase/migrations/20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) THEN |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) AND false THEN
+// @mutate supabase/migrations/20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql |   IF NEW.status::text = 'open'\n     AND (OLD.date_needed |   IF true\n     AND (OLD.date_needed
+// @mutate supabase/migrations/20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql | CASE WHEN NEW.direct_offer_expires_at IS NULL OR NEW.direct_offer_expires_at > now() | CASE WHEN true
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |                   title, description, category, special_requirements, photos,\n |                   title, description, category, special_requirements,\n
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |           CASE WHEN public.helper_accept_block_reason(p.helper_id) IS NOT NULL |           CASE WHEN true
 // @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |     IF v_done IS NULL THEN\n      RAISE EXCEPTION 'offer_not_active';\n    END IF;\n    RETURN v_done; |     RETURN v_done;
@@ -190,7 +191,8 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
     expect(body("complete_pending_accepts_on_setup")).toContain("public.complete_direct_offer_accept(r.job_id, NEW.user_id) IS NOT NULL");
     // a pending row survives only while its offer is live and its Helpr's
     const clear = body("clear_job_accept_pending");
-    expect(clear).toMatch(/NEW\.offered_to_helper_id = p\.helper_id AND NEW\.direct_offer_status = 'pending'\)\)/);
+    // Q2641 (20261102110120): null-safe, so a reopened Hire's job (offered_to_helper_id NULL) drops its pending row.
+    expect(clear).toMatch(/NEW\.offered_to_helper_id IS NOT DISTINCT FROM p\.helper_id AND NEW\.direct_offer_status IS NOT DISTINCT FROM 'pending'\)\)/);
     // ...and while its terms are the ones the Helpr said yes to (final review #2): a change
     // ends it and tells the Helpr; the trigger fires on exactly the compared terms
     // direct offers only (the job is open): a Hire's yes is untouched (re-review of the final fixes, must-fix 2-3)

@@ -345,7 +345,7 @@ export function useBuyingTracker(): BuyingTracker {
 }
 
 /** Q2630: "Cancelled. $42.70 was refunded to your card on Nov 2." (the day only when the server sends closed_at). */
-export function refundedStep(cents: number, closedAt: string | null): NextStepValue {
+function refundedStep(cents: number, closedAt: string | null): NextStepValue {
   const day = closedAt && !Number.isNaN(Date.parse(closedAt)) ? new Date(closedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : null;
   return { who: "info", text: `Cancelled. ${formatPrice(cents)} was refunded to your card${day ? ` on ${day}` : ""}.` };
 }

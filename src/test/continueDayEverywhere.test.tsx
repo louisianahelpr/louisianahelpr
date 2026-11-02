@@ -114,7 +114,8 @@ describe("A3-119: the 'Set a day to finish' sheet", () => {
     const { unmount } = sheet(true, 9);
     const chips = within(screen.getByRole("radiogroup", { name: "Day to finish" })).getAllByRole("radio").map((b) => b.textContent);
     expect(chips[0]).toBe(formatJobDate("2026-11-02"));
-    expect(screen.getByText(`Yusef's "done" is cleared and the payment waits until the work is finished.`)).toBeTruthy();
+    // Q2606 (owner): the poster's day is a proposal now; the "done" clears once Yusef accepts it.
+    expect(screen.getByText(`Once Yusef accepts the day, their "done" is cleared and the payment waits until the work is finished.`)).toBeTruthy();
     unmount();
   });
   it("no 'done' yet: today while a start an hour out still fits, not late at night", () => {

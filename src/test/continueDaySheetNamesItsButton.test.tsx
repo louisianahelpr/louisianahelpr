@@ -6,9 +6,9 @@
  *  - Q2679 (row 16): the Helpr's "Ask for a different day" opened a sheet titled "Set a day to finish". The sheet now
  *    carries the name of the button that opened it, on both sides.
  * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     if (offerSetDay && !job.helper_completed_at) setDay = |     if (offerSetDay) setDay =
- * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     : side === "helpr"\n      ? "Ask for a different day" |     : side === "helpr"\n      ? CONTINUE_DAY_SHEET_TITLE
- * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       : row.status === "set" ? "Change day" : "Set a different day"; |       : CONTINUE_DAY_SHEET_TITLE;
- * @mutate src/components/jobs/ContinueDaySheet.tsx | <SheetHero title={title} /> | <SheetHero title={CONTINUE_DAY_SHEET_TITLE} />
+ * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     : side === "helpr"\n      ? "Ask for a different day" |     : side === "helpr"\n      ? undefined
+ * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       : row.status === "set" ? "Change day" : "Set a different day"; |       : undefined;
+ * @mutate src/components/jobs/ContinueDaySheet.tsx | <SheetHero title={title ?? "Set a day to finish"} /> | <SheetHero title={"Set a day to finish"} />
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, renderHook, screen, waitFor } from "@testing-library/react";

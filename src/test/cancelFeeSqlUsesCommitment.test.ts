@@ -21,7 +21,7 @@
  * block_user_and_settle = 20260914215112) the per-function test fails naming
  * block_user_and_settle.
  *
- * @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql | now());\n    v_percent := public.cancellation_fee_percent(v_committed, v_hours); | now());\n    v_percent := public.cancellation_fee_percent(v_job.helper_id IS NOT NULL, v_hours);
+ * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | now());\n    v_percent := public.cancellation_fee_percent(v_committed, v_hours); | now());\n    v_percent := public.cancellation_fee_percent(v_job.helper_id IS NOT NULL, v_hours);
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

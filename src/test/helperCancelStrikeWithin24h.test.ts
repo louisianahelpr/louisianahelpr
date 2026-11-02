@@ -22,7 +22,8 @@
  * @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |   -- start, for a series visit and a one-time job alike.\n  IF public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts_at - now())) / 3600.0) THEN |   IF true THEN
  * @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |   IF v_job.is_group_job IS TRUE\n     AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |   IF false THEN
  * @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |     v_released := public.series_release_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled', |     v_released := public.series_visit_dates(v_job.parent_job_id, auth.uid(), ARRAY[v_job.date_needed], 'visit_cancelled',
- * @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |          AND public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts - now())) / 3600.0) THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id, |          AND true THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id,
+ * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |     IF v_helpr_blocks AND v_job.helper_confirmed_at IS NOT NULL AND public.is_late_cancellation(true, v_hours) THEN |     IF v_helpr_blocks AND v_job.helper_confirmed_at IS NOT NULL THEN
+ * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |          AND public.is_late_cancellation(true, EXTRACT(EPOCH FROM (v_starts - now())) / 3600.0) THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id, |          AND true THEN\n        PERFORM public.apply_job_denial_consequence(\n          v_user, v_crew.id,
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -80,10 +81,13 @@ describe("a before-start give-up strikes only within 24 hours (Q407 6, 11)", () 
     expect(give.match(LATE_GATE)?.length ?? 0).toBe(0); // it gates by WHERE, not IF
     expect(give).toMatch(/WHERE\s+public\.is_late_cancellation\(\s*true,/);
     expect(give).toMatch(/IF\s+v_late\s+IS\s+NULL\s+THEN\s+RETURN\s+false;/);
-    // block_user_and_settle: its one ladder call (a crew member blocking the
-    // poster; the crew pass skips a started crew) is gated on is_late_cancellation.
+    // block_user_and_settle: its two give-up strikes are each gated on is_late_cancellation: a crew member blocking the
+    // poster (the crew pass skips a started crew), and since 20261102131745 (Q2692) a hired Helpr blocking the poster.
     const block = body("block_user_and_settle");
-    expect((block.match(/apply_job_denial_consequence\s*\(/g) ?? []).length).toBe(1);
+    expect((block.match(/apply_job_denial_consequence\s*\(/g) ?? []).length).toBe(2);
+    expect(block).toMatch(
+      /IF\s+v_helpr_blocks\s+AND\s+v_job\.helper_confirmed_at\s+IS\s+NOT\s+NULL\s+AND\s+public\.is_late_cancellation\(\s*true\s*,\s*v_hours\)\s+THEN\s+PERFORM\s+public\.apply_job_denial_consequence\(/,
+    );
     expect(block).toMatch(
       /IF\s+v_crew\.member_confirmed_at\s+IS\s+NOT\s+NULL\s+AND\s+public\.is_late_cancellation\(\s*true\s*,\s*EXTRACT\(EPOCH FROM \(v_starts - now\(\)\)\) \/ 3600\.0\)\s+THEN\s+PERFORM\s+public\.apply_job_denial_consequence\(/,
     );

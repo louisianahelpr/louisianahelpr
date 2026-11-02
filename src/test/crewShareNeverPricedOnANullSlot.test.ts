@@ -14,9 +14,9 @@
  * definitions (later rewrites applied), comments blanked. Behaviour:
  * src/test/pglite/crewBlockSlotlessShare.pglite.mjs.
  *
- * @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql | COALESCE(v_crew.helpers_needed, 1), v_hire_ix)); | COALESCE(v_crew.helpers_needed, 1), v_crew.slot_no));
- * @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |                     ELSE x.joined_at < v_crew.member_joined_at |                     ELSE x.id < v_crew.slot_id
- * @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql | THEN x.joined_at IS NOT NULL OR x.id < v_crew.slot_id | THEN x.id < v_crew.slot_id
+ * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | COALESCE(v_crew.helpers_needed, 1), v_hire_ix)); | COALESCE(v_crew.helpers_needed, 1), v_crew.slot_no));
+ * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |                     ELSE x.joined_at < v_crew.member_joined_at |                     ELSE x.id < v_crew.slot_id
+ * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | THEN x.joined_at IS NOT NULL OR x.id < v_crew.slot_id | THEN x.id < v_crew.slot_id
  */
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";

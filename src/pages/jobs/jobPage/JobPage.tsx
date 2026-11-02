@@ -55,6 +55,7 @@ import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
+import { usePageMarkFixDone } from "./usePageMarkFixDone";
 import { hiredHelprFace } from "./hiredHelprFace";
 
 import { HAS_HELPR, usePosterPageActions } from "./posterPageActions";
@@ -150,6 +151,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // Computer (the `lg` grid): the price sits in the side card; a phone shows it beside the title (mockups 4 and 5).
   const wide = useIsWebDesktop();
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
+  // Q2668: the hired Helpr's "Mark it done" on a job sent back for a fix (the Working card's own resolve_revision).
+  const fixDone = usePageMarkFixDone(isPoster ? null : id, posterFirst, () => void q.refetch());
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
   // The Working card's own 30 minutes: Mark it done is greyed here too (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
@@ -231,7 +234,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${job.customer_id}` : "/messages");
   const openWorking = () => navigate(highlight);
   const hiredFace = isHired && viewer.action.kind === "open_working"
-    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data })
+    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data, markFixDone: () => void fixDone.mark(), markingFix: fixDone.marking })
     : null;
   // The poster's own step on this page, over posterPageActions' (undefined: theirs).
   const posterStep = posterWait === "confirm_arrival"

@@ -257,7 +257,8 @@ export function HelprMoneyNotes({ job, hired, noShow = false }: { job: JobPageRo
 export function RevisionAsk({ job, side, posterFirst }: { job: JobPageRow; side: "poster" | "helpr"; posterFirst?: string | null }) {
   if (job.status !== "revision_requested") return null;
   const note = (job.revision_note ?? "").trim();
-  const dueMs = Date.parse(job.revision_deadline ?? "");
+  // Q2668: once the Helpr marked the fix done, no deadline is left to meet here (the step line says who checks it, by when).
+  const dueMs = job.revision_completed_at ? NaN : Date.parse(job.revision_deadline ?? "");
   if (!note && Number.isNaN(dueMs)) return null;
   const due = Number.isNaN(dueMs) ? null : new Date(dueMs).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const whose = side === "poster" ? "Your note" : posterFirst?.trim() ? `${posterFirst.trim()}'s note` : "Their note";
@@ -265,7 +266,7 @@ export function RevisionAsk({ job, side, posterFirst }: { job: JobPageRow; side:
     <section aria-label="What to fix" data-revision-ask="" className={CARD}>
       <p className="text-ds-15 font-semibold">What to fix</p>
       {note && <p className="mt-1.5 whitespace-pre-line text-ds-14 [overflow-wrap:anywhere]"><span className="font-semibold">{whose}: </span>{note}</p>}
-      {due && <p className="mt-1.5 text-ds-13 text-muted-foreground">{side === "poster" ? "The fix is due by" : "Send the fix by"} {due}.</p>}
+      {due && <p className="mt-1.5 text-ds-13 text-muted-foreground">{side === "poster" ? "The fix is due by" : "Fix it and mark it done by"} {due}.</p>}
     </section>
   );
 }

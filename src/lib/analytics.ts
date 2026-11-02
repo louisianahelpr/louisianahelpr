@@ -51,6 +51,9 @@ export const AhaEvent = {
   SignupStepCompleted: "signup_step_completed",
   SignupStepValidationFailed: "signup_step_validation_failed",
   SignupCompleted: "signup_completed",
+  // Q2090: complete-signup's request never got an answer and the form sent it once more
+  // (src/pages/auth/signup/retrySignupCompletion.ts); props say how the second send ended.
+  SignupCompletionRetried: "signup_completion_retried",
   EmailVerified: "email_verified",
   // Aha moments — moments where users "get it"
   FirstJobPosted: "first_job_posted",

@@ -422,6 +422,12 @@ export const RPC_ERROR_COPY = {
     suggestion_date_invalid: "Pick a day from today to 90 days out for the time you suggest.",
     suggestion_same_as_job: "That's the job's own day and time. Choose \"Yes, that works\" instead.",
   },
+  // src/lib/phoneSave.ts — the one way a member saves their phone (Q1586(a)).
+  save_my_phone: {
+    account_restricted: "Your account is restricted right now, so you can't change your phone number.",
+    not_authenticated: "Please sign in again to save your phone number.",
+    profile_not_found: "We couldn't find your profile to save that to. Refresh and try again.",
+  },
   // CancellationDialog.
   poster_cancel_job: {
     not_cancellable:

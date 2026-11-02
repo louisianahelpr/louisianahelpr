@@ -393,6 +393,10 @@ const AdminReports = () => {
 
   return (
     <AdminViewShell>
+      {/* The member's Messages page on made-up threads (lead 11-02, audit 1102d): inbox, a thread, blocked, the report sheet. */}
+      <Button variant="outline" size="sm" className="self-start rounded-full" onClick={() => navigate("/admin/preview/messages")}>
+        Preview the Messages page
+      </Button>
       {/* Five chips wrapped to two ragged rows at 375. One scrollable strip
           with the shared edge fade instead — a cut-off chip then reads as
           "there is more this way" rather than as a broken layout. */}

@@ -190,7 +190,8 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
       const typed = address.trim();
       if (!typed) return buyerFixDelivery(taskId, note.trim(), null, null);
       const point = await geocodeAddress(typed);
-      if (!point) throw new Error("fix_address_not_found");
+      // Q2552: the member fixes the address from the words below; a designed refusal, not a reported defect.
+      if (!point) throw Object.assign(new Error("fix_address_not_found"), { designedRefusal: true });
       return buyerFixDelivery(taskId, note.trim(), typed, { lat: point.latitude, lng: point.longitude });
     },
     onSuccess: () => { setFailed(null); done(); },

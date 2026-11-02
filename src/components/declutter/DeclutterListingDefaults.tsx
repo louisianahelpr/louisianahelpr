@@ -16,7 +16,9 @@ import { DROP_PCT_CHOICES } from "@/lib/declutter/priceDrop";
 import { SELLER_DEFAULTS, fetchSellerDefaults, saveSellerDefaults, type SellerDefaults } from "@/lib/declutter/sellerDefaults";
 import { stopMySellerDelivery } from "@/lib/declutter/stopSellerDelivery";
 import { AutoFreeChoice } from "./AutoFreeRow";
-import { BundleDiscountCard } from "./BundleDiscountCard";
+import { BundleDiscountCard, bundleRuleKey, useBundleRule } from "./BundleDiscountCard";
+import { setBundleDiscount } from "@/lib/declutter/bundle";
+import { bundleErrorMessage } from "@/lib/declutter/bundleErrors";
 import { SellerDeliveryDetails } from "./SellerDeliverySettings";
 import { ChipGroup, dropRunTime } from "./DeclutterSellSteps";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -92,7 +94,11 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
   const change = (patch: Partial<SellerDefaults>) => setEdits((e) => ({ ...e, ...patch }));
   const shown = SELLER_WAYS.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
   const noWay = !draft.handovers.some((w) => shown.includes(w));
-  const unsaved = !same(draft, base);
+  // A3-91: the bundle discount waits for this card's Save like every other field here (undefined = untouched).
+  const [bundlePick, setBundlePick] = useState<number | null | undefined>(undefined);
+  const bundleRule = useBundleRule();
+  const bundleDirty = bundlePick !== undefined && bundlePick !== (bundleRule.data ?? null);
+  const unsaved = !same(draft, base) || bundleDirty;
   // LEAD-DELIVER-OFF-ALL (owner 2026-10-31): unticking "I'll deliver" here also stops delivery on the listings already
   // up (orders already placed keep theirs). Ticking it again changes only what new listings start with.
   const deliverOff = base.handovers.includes("seller_delivery") && !draft.handovers.includes("seller_delivery");
@@ -103,6 +109,13 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
       // while live listings still offer delivery. If the stop fails, nothing is saved and the error is shown.
       const stopped = deliverOff ? await stopMySellerDelivery() : null;
       const done = await saveSellerDefaults(userId, draft);
+      if (done && bundleDirty) {
+        try {
+          await setBundleDiscount(bundlePick ?? null);
+        } catch (e) {
+          throw Object.assign(new Error("bundle_save_failed"), { bundleError: e });
+        }
+      }
       return { done, stopped };
     },
     onSuccess: ({ done, stopped }) => {
@@ -114,10 +127,23 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
       toast(stopped ? `Listing defaults saved. ${stopped === 1 ? "1 listing no longer offers" : `${stopped} listings no longer offer`} your delivery.` : "Listing defaults saved.");
       qc.setQueryData(["declutter", "seller-defaults", userId], draft);
       setEdits({});
+      if (bundleDirty) {
+        qc.setQueryData(bundleRuleKey(userId), bundlePick ?? null);
+        void qc.invalidateQueries({ queryKey: ["declutter", "bundle-rule"] });
+      }
+      setBundlePick(undefined);
     },
     onError: (err) => {
       // The stop may have gone through before a failed save: re-read the listings and the saved default.
       if (deliverOff) void qc.invalidateQueries({ queryKey: ["declutter"] });
+      const bundleError = (err as { bundleError?: unknown }).bundleError;
+      // The listing defaults saved; only the bundle discount did not: say that, and keep the pick to try again.
+      if (bundleError !== undefined) {
+        qc.setQueryData<SellerDefaults>(["declutter", "seller-defaults", userId], draft);
+        setEdits({});
+        toast.error(bundleErrorMessage(bundleError));
+        return;
+      }
       toast.error(declutterErrorMessage(err));
     },
   });
@@ -129,9 +155,9 @@ function ListingDefaultsForm({ userId, current }: { userId: string; current: Sel
         the new start. Listings already up stay as they are.
       </p>
       <ListingChoiceFields draft={draft} change={change} />
-      {/* LEAD-BUNDLE-DROPDOWN: directly under the free-after row, in its own panel: it applies to all the seller's
-          listings and saves on change, apart from these next-listing fields and their Save. */}
-      <BundleDiscountCard />
+      {/* LEAD-BUNDLE-DROPDOWN: directly under the free-after row, in its own panel (it applies to all the seller's
+          listings). A3-91: it saves with this card's Save, like every field here. */}
+      <BundleDiscountCard pick={bundlePick} onPick={setBundlePick} disabled={save.isPending} />
       <div className="space-y-2" role="group" aria-labelledby="defaults-ways">
         <p id="defaults-ways" className="text-ds-14 font-semibold text-foreground">How buyers can get it</p>
         <SellWayTiles shown={shown} ways={draft.handovers} setWays={(w) => change({ handovers: w })} onSettingsPage />

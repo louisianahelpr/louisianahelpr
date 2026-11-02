@@ -269,7 +269,7 @@ const ConversationRowBase = ({
           className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center self-center"
         >
           <span
-            className="w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+            className="w-[18px] h-[18px] rounded-full flex items-center justify-center transition-colors"
             style={
               selected
                 ? { background: "hsl(var(--bark))", border: "1px solid hsl(var(--bark))" }
@@ -277,7 +277,7 @@ const ConversationRowBase = ({
             }
           >
             {selected && (
-              <Check className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />
+              <Check className="w-3 h-3" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />
             )}
           </span>
         </button>

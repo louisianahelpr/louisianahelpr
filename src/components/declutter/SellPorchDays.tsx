@@ -62,7 +62,7 @@ export function SellPorchDays({ pickupDays }: { pickupDays?: number[] }) {
       {pickup.length > 0 && <p className="text-ds-13 text-muted-foreground" data-porch-pickup-days="">Your pickup days: {shortDays(pickup)}.</p>}
       <div className="flex items-start gap-3 text-ds-14">
         <Checkbox id="sell-porch-only" className="mt-0.5" checked={only} disabled={save.isPending} onCheckedChange={(v) => choose(v === true)} />
-        <label htmlFor="sell-porch-only" className="font-semibold text-foreground">Porch only on some of these days?</label>
+        <label htmlFor="sell-porch-only" className="min-h-11 flex-1 font-semibold text-foreground">Porch only on some of these days?</label>
       </div>
       {only && (
         <div className="space-y-2 pl-8" role="group" aria-label="Porch days">

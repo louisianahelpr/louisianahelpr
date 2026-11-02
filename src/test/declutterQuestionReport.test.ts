@@ -5,8 +5,8 @@
  * question reportable, the asker reports their own question, the seller reports their own answer, test askers not
  * flagged).
  *
- * @mutate supabase/migrations/20261101021934_declutter_question_report.sql | 'declutter_question'::text, 'declutter_answer'::text])); | 'declutter_question'::text]));
- * @mutate supabase/migrations/20261101021934_declutter_question_report.sql |       RAISE EXCEPTION 'report_own_content' USING ERRCODE = '42501'; |       NULL;
+ * @mutate supabase/migrations/20261102040000_declutter_review_report.sql | 'declutter_question'::text, 'declutter_answer'::text, 'declutter_review'::text])); | 'declutter_question'::text, 'declutter_review'::text]));
+ * @mutate supabase/migrations/20261102040000_declutter_review_report.sql | it.seller_id)) THEN\n      RAISE EXCEPTION 'report_own_content' USING ERRCODE = '42501'; | it.seller_id)) THEN\n      NULL;
  * @mutate supabase/migrations/20261101021934_declutter_question_report.sql |   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN\n    RAISE EXCEPTION 'not_admin' USING ERRCODE = '42501';\n  END IF;\n  IF p_part IS NULL | IF false THEN\n    RAISE EXCEPTION 'not_admin' USING ERRCODE = '42501';\n  END IF;\n  IF p_part IS NULL
  * @mutate supabase/migrations/20261101021934_declutter_question_report.sql | REVOKE ALL ON FUNCTION public.declutter_admin_reported_questions(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_reported_questions(uuid[]) FROM PUBLIC;
  */
@@ -28,13 +28,14 @@ const types = sqlOf(typeFile);
 describe("Declutter questions and answers can be reported (B48)", () => {
   it("reads the newest definitions (floor)", () => {
     expect(files.length).toBeGreaterThan(1000);
-    expect(typeFile).toBe("20261101021934_declutter_question_report.sql");
-    expect(DEFS.get("report_message_party_and_copy")?.file ?? "").toContain("20261101021934_declutter_question_report.sql");
+    // A3-75 (20261102040000) restated both with the declutter_review type and branch; the question rules are unchanged.
+    expect(typeFile).toBe("20261102040000_declutter_review_report.sql");
+    expect(DEFS.get("report_message_party_and_copy")?.file ?? "").toContain("20261102040000_declutter_review_report.sql");
     expect(flat("report_message_party_and_copy").length).toBeGreaterThan(1500);
   });
 
   it("both report types are allowed", () => {
-    expect(types).toMatch(/'declutter_question'::text, 'declutter_answer'::text\]\)\)/);
+    expect(types).toMatch(/'declutter_question'::text, 'declutter_answer'::text[,\]]/);
   });
 
   it("the copy trigger: only what the reporter could be shown, an answer needs one, never your own words", () => {

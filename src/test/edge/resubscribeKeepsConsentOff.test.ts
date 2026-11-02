@@ -22,6 +22,11 @@
  *   - the edge function makes ONE call per direction and writes nothing else
  *     itself; a failed opt-out RPC still turns both flags off directly; a
  *     failed undo fails the request and writes nothing;
+ *   - Q2160: the newest 'Users can insert their own profile' policy pins the
+ *     record to NULL (Q2159's triggers fire on UPDATE only, so a record
+ *     arriving by a client INSERT would otherwise survive). Behaviour, red
+ *     then green: src/test/pglite/profileInsertPinsUndoRecord.pglite.mjs
+ *     (18/18; 3 FAIL on main's policy);
  *   - the newest definitions in the migrations keep each rule (static, so each
  *     mutation registered below can be shown red).
  */
@@ -44,6 +49,9 @@
 // @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |   AFTER INSERT OR UPDATE OF email_promotions ON public.notification_preferences |   AFTER INSERT ON public.notification_preferences
 // @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |        SET promotions_before_unsubscribe = NULL\n     WHERE user_id = NEW.user_id\n       AND promotions_before_unsubscribe IS NOT NULL; |        SET full_name = full_name\n     WHERE user_id = NEW.user_id\n       AND promotions_before_unsubscribe IS NOT NULL;
 // @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql | REVOKE ALL ON FUNCTION public.promotions_resubscribe(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.promotions_resubscribe(uuid) FROM PUBLIC;
+// A client INSERT may not carry a record (Q2160).
+// @mutate supabase/migrations/20261102071347_pin_promotions_undo_on_profile_insert.sql |     AND is_seed = false\n    AND promotions_before_unsubscribe IS NULL\n |     AND is_seed = false\n
+// @mutate supabase/migrations/20261102071347_pin_promotions_undo_on_profile_insert.sql |     AND promotions_before_unsubscribe IS NULL\n |     OR promotions_before_unsubscribe IS NULL\n
 // The edge function.
 // @mutate supabase/functions/email-unsubscribe/index.ts |     if (error) throw new Error(`resubscribe failed: ${error.message}`) |     if (error) return
 // @mutate supabase/functions/email-unsubscribe/index.ts |   console.error('[email-unsubscribe] promotions_unsubscribe failed; opting out without a record:', rpcError.message) |   throw new Error(rpcError.message)
@@ -167,6 +175,19 @@ describe("the newest definitions keep each rule", () => {
     expect(body).toMatch(/v_untouched := FOUND AND v_consent IS FALSE AND v_promo IS FALSE;/);
     expect(body).toMatch(/SET marketing_consent = \(v_saved ->> 'marketing_consent'\)::boolean IS TRUE, promotions_before_unsubscribe = NULL/);
     expect(body).toMatch(/IF \(v_saved ->> 'email_promotions'\)::boolean IS DISTINCT FROM false THEN UPDATE public\.notification_preferences SET email_promotions = CASE WHEN \(v_saved ->> 'email_promotions'\)::boolean THEN true END/);
+  });
+
+  it("a member's own profile INSERT may not carry a record (Q2160): the newest INSERT policy pins it to NULL", () => {
+    const name = 'CREATE POLICY "Users can insert their own profile"';
+    const files = migrationFiles(dir).filter((f) => blankSqlComments(readFileSync(join(dir, f), "utf8")).includes(name));
+    expect(files.length).toBeGreaterThan(1);
+    const sql = blankSqlComments(readFileSync(join(dir, files[files.length - 1] ?? ""), "utf8")).replace(/\s+/g, " ");
+    const at = sql.lastIndexOf(name);
+    const policy = sql.slice(at, sql.indexOf(";", at));
+    expect(policy).toMatch(/FOR INSERT TO authenticated WITH CHECK \(/);
+    // Every predicate is AND-ed: an OR anywhere would let a record through.
+    expect(policy).toMatch(/ AND is_seed = false AND promotions_before_unsubscribe IS NULL \)$/);
+    expect(/\bOR\b(?! ban_status = 'active')/.test(policy), "only the ban_status pin may use OR").toBe(false);
   });
 
   it("both RPCs are server-only", () => {

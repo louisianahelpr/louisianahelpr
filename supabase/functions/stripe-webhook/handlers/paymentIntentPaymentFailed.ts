@@ -2,6 +2,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { rpcNotDeployed } from "../../_shared/rpcNotDeployed.ts";
 
 /**
  * The payment states that say "the poster's money is here". A failure event
@@ -111,7 +112,7 @@ async function unfundFailedEscrow(
     "cancel_job_after_failed_bank_payment",
     { p_job_id: job.id, p_payment_intent_id: piId, p_gift_card_id: giftCardId },
   );
-  const cancelNotDeployed = cancelErr?.code === "PGRST202" || cancelErr?.code === "42883";
+  const cancelNotDeployed = rpcNotDeployed(cancelErr);
   if (cancelErr && !cancelNotDeployed) {
     // Throw: Stripe retries, and nothing was committed.
     throw new Error(`Failed to cancel job ${job.id} after its payment failed: ${cancelErr.message}`);
@@ -382,10 +383,10 @@ async function returnBouncedGift(
   });
   const fields = { "Job ID": jobId, "Gift card": giftCardId, "Payment Intent": piId };
   if (error) {
-    // PGRST202: the function is not deployed yet (this code can ship before
+    // Not deployed yet (PGRST202 or 42883, Q2079: this code can ship before
     // its migration). Retrying cannot help until it is, so page ops and let
     // the bounce itself (job failed, poster told) stand.
-    const notDeployed = (error as { code?: string }).code === "PGRST202";
+    const notDeployed = rpcNotDeployed(error as { code?: string });
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "critical",

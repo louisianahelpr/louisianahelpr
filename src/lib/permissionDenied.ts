@@ -51,9 +51,54 @@ export function announcePermissionDenied(err: unknown): void {
  */
 let sessionLostMarked = false;
 
+/**
+ * HELD DENIALS (Q2295, lead-approved 2026-11-02, extends Q1596). The denial
+ * that STARTS ProtectedRoute's session-loss check, and any others that arrive
+ * while confirmSessionLost() runs its refresh, came before the mark, so they
+ * still reported: measured on prod (read-only SQL, Builder 188), the
+ * 2026-10-19 16:00:48Z batch carried "Session lost on a signed-in screen"
+ * together with denials on my_schedule_clashes, get_job_offer_targets and
+ * applications from the same client.
+ *
+ * So report() holds a grant denial instead of sending it at once:
+ * - markSessionLost() drops every held one (they are that loss);
+ * - a "not lost" answer (ProtectedRoute calls releaseHeldDenials()), the hold
+ *   window ending, or the page going away (pagehide) sends them as before.
+ * The window starts at the first held denial and is not extended, so a steady
+ * stream of denials can never hold reports for longer than DENIAL_HOLD_MS.
+ */
+export const DENIAL_HOLD_MS = 10_000;
+let heldDenials: Array<() => void> = [];
+let holdTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearHoldTimer = (): void => {
+  if (holdTimer !== null) clearTimeout(holdTimer);
+  holdTimer = null;
+};
+
+/** Hold one denial's report until the session-loss check answers (or the window ends). */
+export function holdDenial(send: () => void): void {
+  heldDenials.push(send);
+  if (holdTimer === null) holdTimer = setTimeout(releaseHeldDenials, DENIAL_HOLD_MS);
+}
+
+/** Send every held denial now (a confirmed loss already dropped them in markSessionLost). */
+export function releaseHeldDenials(): void {
+  clearHoldTimer();
+  const sends = heldDenials;
+  heldDenials = [];
+  for (const send of sends) send();
+}
+
+/** How many denials are held right now (tests and diagnostics). */
+export const heldDenialCount = (): number => heldDenials.length;
+
 /** ProtectedRoute calls this when it reports a confirmed session loss. */
 export function markSessionLost(): void {
   sessionLostMarked = true;
+  // Q2295: the denials held while the check ran are this loss too.
+  clearHoldTimer();
+  heldDenials.length = 0;
 }
 
 /** A new session (SIGNED_IN): denials report again. */

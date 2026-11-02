@@ -298,7 +298,7 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
       <JobProgress progress={stage} compact noLine={!!step} />
 
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 flex-1 text-ds-14">{step && <NextStep value={step} />}</div>
+        <div className="min-w-0 flex-1 text-ds-14">{step && <NextStep value={step} compact />}</div>
         <button
           type="button"
           onClick={open}

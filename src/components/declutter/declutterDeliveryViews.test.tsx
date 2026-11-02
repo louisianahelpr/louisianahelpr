@@ -379,6 +379,21 @@ describe("DeliverView (the Helpr's screen)", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Turn on location to see the nearest deliveries first."));
   });
 
+  // Q2584: Save stays greyed until what is shown differs from what is saved.
+  // @mutate src/components/declutter/DeliverVehicleForm.tsx |  \|\| !changed \|\| | \|\|
+  it("Save is greyed until a box changes (Q2584)", async () => {
+    state.vehicle = { has_car: true, has_truck: false, second_person: false, photo_path: null };
+    show(<DeliverView />);
+    const car = await screen.findByRole("checkbox", { name: "I have a car" });
+    await waitFor(() => expect(car).toHaveAttribute("aria-checked", "true"));
+    const saveBtn = screen.getByRole("button", { name: "Save" });
+    expect(saveBtn).toBeDisabled();
+    fireEvent.click(car);
+    expect(saveBtn).toBeEnabled();
+    fireEvent.click(car);
+    expect(saveBtn).toBeDisabled();
+  });
+
   it("a car alone is saved as a car (Q2452)", async () => {
     state.vehicle = null;
     show(<DeliverView />);

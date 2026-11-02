@@ -920,6 +920,36 @@ describe("card hold at posting (Q2399)", () => {
       expect(notices().find((x) => x.user_id === POSTER.id)?.title).toBe(CARD_HOLD_COPY.confirmTitle);
     });
 
+    // Q2083 (lead review 11-02): a job taxed by the poster's ANSWER (an untaxed category) is held on a
+    // Checkout page exactly like a taxed category; dropping the kind from either sweep check placed it off-session.
+    // @mutate supabase/functions/card-hold-sweep/index.ts |   if (hold.state === "scheduled" && hold.place_at && Date.parse(hold.place_at) <= now) {\n    const allowed = offSessionAllowed(hold.amount_cents, job.category, job.tax_kind); |   if (hold.state === "scheduled" && hold.place_at && Date.parse(hold.place_at) <= now) {\n    const allowed = offSessionAllowed(hold.amount_cents, job.category);
+    // @mutate supabase/functions/card-hold-sweep/index.ts |     if (Date.parse(hold.capture_before) <= now) defects.record(`job ${hold.job_id}: hold ${oldPi} is past its recorded capture_before and still capturable; renewing it now`);\n    const allowed = offSessionAllowed(hold.amount_cents, job.category, job.tax_kind); |     if (Date.parse(hold.capture_before) <= now) defects.record(`job ${hold.job_id}: hold ${oldPi} is past its recorded capture_before and still capturable; renewing it now`);\n    const allowed = offSessionAllowed(hold.amount_cents, job.category);
+    it("Q2083: a due scheduled hold on a job taxed by its answer (cleaning + item_repair) is never placed off-session", async () => {
+      scenario.reads.job_card_holds = { rows: [holdRow({ state: "scheduled", payment_intent_id: null, place_at: new Date(Date.now() - 60_000).toISOString(), notified_state: "scheduled" })] };
+      scenario.reads.jobs = { rows: [heldJob({ status: "open", helper_id: null, category: "cleaning", tax_kind: "item_repair" })] };
+      scenario.reads.job_accept_pending = { rows: [] };
+      scenario.reads.crew_confirm_pending = { rows: [] };
+      scenario.writeSelectRows = { job_card_holds: [{ job_id: JOB }] };
+      stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_placed", status: "requires_capture", amount: 4200, latest_charge: null });
+      await sweep();
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(updates("job_card_holds").some((w) => (w.payload as Record<string, unknown>).failure_code === "taxed_on_session")).toBe(true);
+    });
+
+    it("Q2083: an expiring hold on a job taxed by its answer is not renewed off-session", async () => {
+      scenario.reads.job_card_holds = { rows: [holdRow({ capture_before: new Date(Date.now() + 3_600_000).toISOString() })] };
+      scenario.reads.jobs = { rows: [heldJob({ status: "open", helper_id: null, category: "cleaning", tax_kind: "fabric_cleaning" })] };
+      scenario.reads.job_accept_pending = { rows: [] };
+      scenario.reads.crew_confirm_pending = { rows: [] };
+      scenario.writeSelectRows = { job_card_holds: [{ job_id: JOB }], jobs: [{ id: JOB }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_hold", status: "requires_capture" });
+      stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_renewed", status: "requires_capture", amount: 4200, latest_charge: null });
+      stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_hold", status: "canceled" });
+      await sweep();
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(updates("job_card_holds").some((w) => (w.payload as Record<string, unknown>).failure_code === "taxed_on_session")).toBe(true);
+    });
+
     it("a pending accept whose Helpr is ready now: captured, then completed through complete_job_accept", async () => {
       scenario.reads.job_card_holds = { rows: [holdRow()] };
       scenario.reads.jobs = { rows: [heldJob()] };

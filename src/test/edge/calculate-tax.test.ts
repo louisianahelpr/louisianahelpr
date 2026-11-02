@@ -17,13 +17,15 @@
  * a real user" branch — the second half of the cost gate — answers 200 to
  * `Bearer nope`: 1 failed, 3 passed.
  */
+// @mutate supabase/functions/calculate-tax/index.ts |     if (!isLaborTaxable(category, taxKind)) { |     if (!isLaborTaxable(category)) {
 // @mutate supabase/functions/calculate-tax/index.ts | if (authError \|\| !authData?.user) { | if (false) {
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, rateLimitState } from "./mocks/shared";
-import { resetStripeMock } from "./mocks/stripe";
+import { resetStripeMock, stripeMock } from "./mocks/stripe";
+import { laborTaxCode } from "../../../supabase/functions/_shared/salesTax";
 
 async function load(): Promise<EdgeHarness> {
   setEnv({
@@ -87,5 +89,20 @@ describe("calculate-tax — cost gate", () => {
     expect(res.status).toBe(200);
     const body = JSON.parse(await res.text());
     expect(body).toEqual({ taxCents: 0, exempt: true });
+  });
+
+  it("Q2083: an untaxed category the poster answered is taxed work (item_repair) is quoted by Stripe with that kind's code", async () => {
+    scenario.authUser = { id: "u-1", email: "poster@test.dev" };
+    stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_k", tax_amount_exclusive: 1045, amount_total: 11_045, line_items: { data: [] } });
+    const fn = await load();
+    const res = await fn.fetch(
+      fn.request({ headers: { Authorization: "Bearer good" }, body: { ...VALID_BODY, taxKind: "item_repair" } }),
+    );
+    expect(res.status).toBe(200);
+    const body = JSON.parse(await res.text());
+    expect(body.taxCents).toBe(1045);
+    expect(body.exempt).toBeUndefined();
+    const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+    expect(calc.line_items[0]).toMatchObject({ amount: 10_000, tax_code: laborTaxCode("cleaning", "item_repair") });
   });
 });

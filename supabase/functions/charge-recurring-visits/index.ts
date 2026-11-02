@@ -2411,7 +2411,7 @@ serve(async (req) => {
             // Over the base Stripe taxed: the labor, plus the poster fee on a
             // taxable poster-fee series (jobEscrowTaxableBaseCents).
             sales_tax_rate: effectiveSalesTaxRate(taxCents, jobEscrowTaxableBaseCents({
-              budget: budgetCents / 100, category: parent.category as string,
+              budget: budgetCents / 100, category: parent.category as string, tax_kind: (parent.tax_kind as string | null) ?? null,
               customer_fee_amount: feeCents / 100, poster_fee_flat_cents: posterFeeSeries ? parent.poster_fee_flat_cents : null,
             })),
             sales_tax_amount: taxCents / 100,

@@ -41,7 +41,6 @@ import { OrdersUpdating } from "./OrdersUpdating";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 import { TabletSellRow } from "./TabletSellRow";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import type { DeclutterBrowseHeader } from "./DeclutterBrowseView";

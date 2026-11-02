@@ -101,7 +101,7 @@ export function GuestJobPreview({ job, onClose, onSignUp }: {
             </div>
           ))}
         </dl>
-        {/* No "Not Now": the sheet's X closes it (owner 10-31, every sheet has the X). */}
+        {/* No "Not now": the sheet's X closes it (owner 10-31, every sheet has the X). */}
         <DialogFooter>
           <DialogPrimaryAction onClick={() => onSignUp(job.id)}>Sign Up to Apply</DialogPrimaryAction>
         </DialogFooter>

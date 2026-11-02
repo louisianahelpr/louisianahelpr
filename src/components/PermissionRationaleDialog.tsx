@@ -32,7 +32,7 @@ export function PermissionRationaleDialog() {
     // did nothing, and the corner ✕ that DialogContent renders for every
     // confirm in the app fired its Cancel and left the dialog on screen. A
     // dead ✕ is worse than none. Dismissing resolves the rationale as a
-    // decline, exactly like "Not Now".
+    // decline, exactly like "Not now".
     <Dialog open={state.open} onOpenChange={(next) => { if (!next) __resolveRationale(false); }}>
       <DialogContent role="alertdialog">
         {/* NO ICON ROW. This was a bespoke 56px tile rendered ABOVE the Hero,
@@ -81,7 +81,7 @@ export function PermissionRationaleDialog() {
             the ones in the confirm that might open right after it. */}
         <DialogFooter>
           <DialogSecondaryAction onClick={() => __resolveRationale(false)}>
-            Not Now
+            Not now
           </DialogSecondaryAction>
           <DialogPrimaryAction onClick={() => __resolveRationale(true)}>
             {copy.cta}

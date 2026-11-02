@@ -523,7 +523,7 @@ export async function requestPushPermission(): Promise<boolean> {
  * (e.g. SSR or a browser without the Notification API).
  */
 /**
- * What a push request ended in. "dismissed" means the person tapped Not Now in
+ * What a push request ended in. "dismissed" means the person tapped Not now in
  * our own rationale dialog: no OS/browser prompt was shown, so whatever the
  * permission already was is not news and must not be reported as a refusal.
  * "refused" means the OS/browser was asked (or cannot be) and did not grant.

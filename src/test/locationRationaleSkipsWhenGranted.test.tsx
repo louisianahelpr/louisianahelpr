@@ -1,6 +1,6 @@
 /**
  * A2-C23 (app audit 2026-10-28): opening the Browse map showed the "Location"
- * explainer ("Share Location" / "Not Now") over a blurred map even though the
+ * explainer ("Share location" / "Not now") over a blurred map even though the
  * browser had ALREADY granted location. The explainer exists to warm up the
  * OS prompt; when the OS answer is already yes there is no prompt to explain,
  * so the read goes straight through.

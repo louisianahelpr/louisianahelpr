@@ -29,7 +29,7 @@
  * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip }; | helperCents: tip - feeCents };
  * @mutate supabase/functions/declutter-checkout/index.ts | application_fee_amount: q.feeCents }), | application_fee_amount: 0 }),
  * @mutate src/components/declutter/DeliveryTipPanel.tsx | import { TipCostBreakdown, TipPicker, centsLabel } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipPicker, centsLabel } from "@/components/TipCostBreakdownCopy";
- * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdownCopy";
+ * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipPicker, tipPayLabel, useTipJob } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipPicker, tipPayLabel, useTipJob } from "@/components/TipCostBreakdownCopy";
  */
 import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";

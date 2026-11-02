@@ -7,7 +7,7 @@
  * @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |           : <SellingDash todo={null} userId={sample.userId} listings={<MyListingsView userId={sample.userId} haulOn />} />} |           : null}
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |   globalThis.fetch = previewFetch; |   void previewFetch;
  * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_my_free_pause: null,\n |
- * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_order_meetups: [],\n |
+ * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_payouts: [],\n |
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |       if (Object.prototype.hasOwnProperty.call(s.reads, name)) { |       if (false) {
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

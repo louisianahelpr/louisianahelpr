@@ -9,7 +9,11 @@
  *   M3  no way for a lane to hold a marker job on purpose: the sweep would
  *       settle or delete it;
  *   L2  settling forward (it ends in a real `release`) with nothing saying
- *       Stripe is in TEST mode;
+ *       Stripe is in TEST mode. Since test mode for test accounts (owner
+ *       2026-10-12) create-payment picks the key from the job's parties, so
+ *       the row's own cs_test_ Checkout Session is that proof and the repo
+ *       variable E2E_STRIPE_MODE (what ALL of prod runs: live) no longer
+ *       gates it (Q1754: it deferred every row forever);
  *   L3  the listing was every marker title the poster could read (not only its
  *       own seed rows), and a zero-row reopen PATCH counted as a reopen.
  *
@@ -20,7 +24,7 @@
 
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | if (HELPER_TOKEN && !HELPER_ID) { | if (false) {
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |   if (PHASE === "teardown") failures.push(`settle forward: ${msg}`); |   if (false) failures.push(`settle forward: ${msg}`);
-// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | const STRIPE_TEST_MODE = STRIPE_MODE === "test"; | const STRIPE_TEST_MODE = true;
+// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | const CAN_SETTLE_FORWARD = HOLDS_BOTH_SEATS; | const CAN_SETTLE_FORWARD = HOLDS_BOTH_SEATS && process.env.E2E_STRIPE_MODE === "test";
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |     `&customer_id=eq.${POSTER_ID}&is_seed=is.true` + |
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |     return Array.isArray(rows) && rows.length === 1; |     return true;
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |   const holdWhy = heldReason(job); |   const holdWhy = null;
@@ -172,7 +176,7 @@ describe("the sweeper fails closed", () => {
 
   it("a teardown that held both seats in test mode FAILS on a row past 48h it could not settle (M1)", async () => {
     const r = await sweep(
-      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
+      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown" },
       { rows: [staleHiredFunded] },
     );
     expect(r.code, r.out).toBe(1);
@@ -180,15 +184,25 @@ describe("the sweeper fails closed", () => {
     expect(seen.some((s) => s.url.includes(WALK_FIRST_LEG)), "the walk was attempted").toBe(true);
   }, 30_000);
 
-  it("never settles forward unless E2E_STRIPE_MODE says test (L2)", async () => {
+  it("settles a cs_test_ row forward whatever E2E_STRIPE_MODE says: the row's own session is the test-mode proof (L2, Q1754)", async () => {
+    for (const mode of ["live", ""]) {
+      const r = await sweep(
+        { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: mode },
+        { rows: [staleHiredFunded] },
+      );
+      expect(r.out).not.toMatch(/Sweep will not settle forward/);
+      expect(seen.some((s) => s.url.includes(WALK_FIRST_LEG)), `E2E_STRIPE_MODE="${mode}": the walk was attempted\n${r.out}`).toBe(true);
+    }
+  }, 60_000);
+
+  it("a cs_live_ row is never walked, even with E2E_STRIPE_MODE=test (L2)", async () => {
+    const liveFunded = { ...staleHiredFunded, id: "aaaaaaaa-0000-4000-8000-000000000008", stripe_session_id: "cs_live_xyz" };
     const r = await sweep(
-      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "live" },
-      { rows: [staleHiredFunded] },
+      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
+      { rows: [liveFunded] },
     );
-    expect(r.out).toMatch(/E2E_STRIPE_MODE is "live", not "test"/);
+    expect(r.out).toMatch(/NOT settling — not funded through a test-mode Checkout Session/);
     expect(seen.filter((s) => s.url.includes("/rpc/") || s.url.includes("/functions/")), r.out).toEqual([]);
-    // Deferred and warned, never a walk; not a failure the sweep could have fixed.
-    expect(r.code, r.out).toBe(0);
   }, 30_000);
 
   it("lists only this poster's seed rows (L3)", async () => {
@@ -210,7 +224,7 @@ describe("the sweeper fails closed", () => {
     const heldRow = { ...staleHiredFunded, id: "aaaaaaaa-0000-4000-8000-000000000003", title: `${MARKER} [E2E HOLD] two-role fixture` };
     const heldUnfunded = { ...heldRow, id: "aaaaaaaa-0000-4000-8000-000000000004", payment_status: "unpaid", stripe_session_id: null };
     const r = await sweep(
-      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
+      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown" },
       { rows: [heldRow, heldUnfunded], patchAnswer: [{ id: "x" }] },
     );
     expect(r.code, r.out).toBe(0);
@@ -223,7 +237,7 @@ describe("the sweeper fails closed", () => {
     const fixtureUnfunded = { ...fixture, payment_status: "unpaid", stripe_session_id: null };
     for (const row of [fixture, fixtureUnfunded]) {
       const r = await sweep(
-        { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test", PLAYWRIGHT_LIFECYCLE_JOB_ID: row.id as string },
+        { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", PLAYWRIGHT_LIFECYCLE_JOB_ID: row.id as string },
         { rows: [row], patchAnswer: [{ id: "x" }] },
       );
       expect(r.code, r.out).toBe(0);
@@ -232,7 +246,7 @@ describe("the sweeper fails closed", () => {
     }
     // Control: the same row with the secret unset IS walked (it is not held by title).
     const r = await sweep(
-      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
+      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown" },
       { rows: [fixture] },
     );
     expect(seen.some((s) => s.url.includes(WALK_FIRST_LEG)), r.out).toBe(true);
@@ -241,7 +255,7 @@ describe("the sweeper fails closed", () => {
   it("a hired+funded row with NO Checkout Session is held with a warning, not a teardown failure", async () => {
     const giftFunded = { ...staleHiredFunded, id: "aaaaaaaa-0000-4000-8000-000000000006", stripe_session_id: null };
     const r = await sweep(
-      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
+      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown" },
       { rows: [giftFunded] },
     );
     expect(r.code, r.out).toBe(0);
@@ -253,7 +267,7 @@ describe("the sweeper fails closed", () => {
   it("a stale cs_live_ row is refused and warned about, not counted as a failed settle", async () => {
     const liveFunded = { ...staleHiredFunded, id: "aaaaaaaa-0000-4000-8000-000000000007", stripe_session_id: "cs_live_abc" };
     const r = await sweep(
-      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown", E2E_STRIPE_MODE: "test" },
+      { HELPER_ACCESS_TOKEN: jwt(HELPER), SWEEP_PHASE: "teardown" },
       { rows: [liveFunded] },
     );
     expect(r.code, r.out).toBe(0);

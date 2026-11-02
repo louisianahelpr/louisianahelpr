@@ -30,10 +30,7 @@ import { emailSkipCopy, joinList, type TestSendResult } from "./notificationPref
 
 const NotificationPreferences = () => {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
-  // Tracks WHICH toggle is in flight (not just whether *something* is
-  // saving) so the inline spinner can render next to the actual switch
-  // being changed instead of floating in one fixed spot unrelated to
-  // the control the user is touching.
+  // WHICH toggle is in flight, so the inline spinner renders next to the switch being changed.
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const saving = savingKey !== null;
   const [userId, setUserId] = useState<string | null>(null);
@@ -47,10 +44,7 @@ const NotificationPreferences = () => {
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const locked = !loaded || loadFailed;
-  // Push-token count drives the "Send test" button. Zero = no devices
-  // registered (probably haven't opened the iOS app and granted
-  // permission yet); button is disabled with explanatory copy.
-  // null = the count could not be read (Q2321): never shown as "no devices".
+  // Push-token count for "Send a test": 0 = no devices registered; null = unreadable (Q2321), never "no devices".
   const [pushTokenCount, setPushTokenCount] = useState<number | null>(0);
   const [sendingTest, setSendingTest] = useState(false);
   // Deploy-lag guard: which new notification_preferences columns the loaded
@@ -106,10 +100,7 @@ const NotificationPreferences = () => {
       }
       if (cancelled) return;
       setUserId(user.id);
-      // Both queries are independent (token count vs. preferences row) —
-      // fire them together instead of one-after-another. Sequential
-      // awaits here were the main contributor to the long blank period
-      // before the toggles hydrated (two round-trips instead of one).
+      // Independent reads, fired together (sequential awaits caused the long blank before the toggles hydrated).
       const [tokenRead, { data, error }, consentRead] = await Promise.all([
         // Push tokens count — head:true so we only get the count, not rows.
         supabase
@@ -135,9 +126,7 @@ const NotificationPreferences = () => {
       } else {
         setPushTokenCount(tokenRead.count ?? 0);
       }
-      // Display only: a failed read shows a never-chosen Promotions switch as
-      // off, and pressing it then writes an explicit ON, which is still the
-      // member's own choice. Logged, not toasted: nothing is lost.
+      // Display only: a failed read shows a never-chosen Promotions switch off; pressing it writes the member's ON. Logged.
       if (consentRead.error) {
         console.error("[NotificationPreferences] failed to load the sign-up email choice:", consentRead.error);
       }

@@ -447,6 +447,35 @@ describe("auto-release-payment honours the payout hold", () => {
     });
   }
 
+  // Q2397 (lh-money-escrow review of the seedmode lane, #3): a Stripe-mode
+  // party refusal (a job mixing a test and a real account, or an unenrolled
+  // test-looking Helpr) is fixed by the account's enrolment or a hand payout,
+  // never by retrying: no failed attempt (so no give-up page that says "pay it
+  // by hand" for the wrong reason). It is a run defect naming the reason, as
+  // the same refusal is at this sweep's own Stripe read and in
+  // process-scheduled-payouts.
+  // @mutate supabase/functions/auto-release-payment/index.ts |           } else if (json.code === "stripe_mode_refused") { |           } else if (false) {
+  // @mutate supabase/functions/auto-release-payment/index.ts | if (reason === "unenrolled_seed" \|\| reason === "fixture_email") seedDefects.push | if (false) seedDefects.push
+  for (const [reason, status] of [["mixed_parties", 409], ["unenrolled_seed", 403], ["fixture_email", 403]] as const) {
+    it(`release-payout refusing the Stripe mode (${reason}) is not a failed attempt, and the run says why`, async () => {
+      seed(scenario);
+      scenario.reads.payout_holds = { rows: [] };
+      vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "refused", code: "stripe_mode_refused", reason }), { status })));
+      const res = await run();
+      const body = await json(res);
+      const row = (body.payoutResults as Array<{ status: string; detail?: string }>)[0];
+      expect(row.status).toBe("stripe_mode_refused");
+      expect(row.detail).toContain(reason);
+      expect(failedAttempts()).toHaveLength(0);
+      expect(JSON.stringify(body)).toContain(`stripe mode job-p: ${reason}`);
+      // A test-looking account is test data: digest only (seedDefects), never
+      // a counted defect that pages the owner. A real mix is counted.
+      const seedOnly = reason !== "mixed_parties";
+      expect((body.seedDefects as string[]).some((d) => d.includes(`stripe mode job-p: ${reason}`))).toBe(seedOnly);
+      expect(res.status).toBe(seedOnly ? 200 : 500);
+    });
+  }
+
   it("an unreadable hold attempts NO payout this run and is a defect", async () => {
     seed(scenario);
     scenario.reads.payout_holds = { error: { message: "connection reset", code: "08006" } };

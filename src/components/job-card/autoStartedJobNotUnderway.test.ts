@@ -5,7 +5,7 @@
  * job's line is still the On my way step; any such stamp, or a crew job (its steps are per member), reads as before.
  *
  * @mutate src/components/job-card/jobStatusLine.ts |       if (!job.is_group_job && !setOutOrArrived(job)) return "today"; |
- * @mutate src/components/job-card/jobStatusLine.ts | job.status === "in_progress" && (job.is_group_job \|\| setOutOrArrived(job)) ? "overdue_unfinished" | job.status === "in_progress" ? "overdue_unfinished"
+ * @mutate src/components/job-card/jobStatusLine.ts | if (job.status === "in_progress" && (job.is_group_job \|\| setOutOrArrived(job))) return "overdue_unfinished"; | if (job.status === "in_progress") return "overdue_unfinished";
  * @mutate src/components/job-card/jobStatusLine.ts |   return !!(job.helper_on_the_way_at \|\| job.helper_arrived_at \|\| job.helper_arrival_verified_at | return !!(job.helper_arrived_at \|\| job.helper_arrival_verified_at
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

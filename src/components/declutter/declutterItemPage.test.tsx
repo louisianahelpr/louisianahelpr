@@ -443,12 +443,38 @@ describe("the photo-first Declutter item page", () => {
     expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
     expect(within(bar).queryByRole("button", { name: "Make offer" })).toBeNull();
   });
+  // Q2560 (Auditor 1, audit 1102a): a free item gets the same pinned bar, with its one "Ask for it" button.
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   const askBarShown = useOffScreen(askButton) && item.status === "live" && !underAge && !myAsk; |   const askBarShown = false;
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   useDockYield(askBarShown); |   void askBarShown;
+  it("phone: a free item's Ask for it rides in the same bottom bar once its button is off screen (Q2560)", async () => {
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(private cb: (e: { isIntersecting: boolean }[]) => void) {}
+        observe() { this.cb([{ isIntersecting: false }]); }
+        disconnect() {}
+      },
+    );
+    state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
+    open();
+    await screen.findAllByRole("button", { name: "Ask for it" });
+    const bar = await waitFor(() => {
+      const el = document.body.querySelector("[data-declutter-askbar]") as HTMLElement | null;
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(bar.className).toContain("bottom-0");
+    expect(within(bar).getByRole("button", { name: "Ask for it" })).toBeInTheDocument();
+    await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
+    // A paid item's bar is not drawn for a free item.
+    expect(document.body.querySelector("[data-declutter-buybar]")).toBeNull();
+  });
   // Audit 1030 DB-14: at 375 the in-page Buy now sat in the strip behind the dock, and the observer counted that strip
   // as on screen, so the bar never came and Buy now stayed hidden. The strip the dock covers is cut off the observed
   // screen, and a group only partly clear of it still gets the bar (local repro 375x900: before no bar, after bar
   // 827-900 with the dock hidden; ~/.lh-shots/b96/db14).
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       { rootMargin: `0px 0px -${dockCoverPx()}px 0px`, threshold: [0, 0.99] }, |       { threshold: [0, 0.99] },
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       ([entry]) => setOff(!entry.isIntersecting \|\| (entry.intersectionRatio ?? 1) < 0.99), |       ([entry]) => setOff(!entry.isIntersecting),
+  // @mutate src/components/declutter/useOffScreen.ts |       { rootMargin: `0px 0px -${dockCoverPx()}px 0px`, threshold: [0, 0.99] }, |       { threshold: [0, 0.99] },
+  // @mutate src/components/declutter/useOffScreen.ts |       ([entry]) => setOff(!entry.isIntersecting \|\| (entry.intersectionRatio ?? 1) < 0.99), |       ([entry]) => setOff(!entry.isIntersecting),
   it("DB-14: the strip behind the dock does not count as on screen, and buttons only partly clear of it still get the bar", async () => {
     const dock = document.createElement("div");
     dock.className = "mobile-nav-frame";

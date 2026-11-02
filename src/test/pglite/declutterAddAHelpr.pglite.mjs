@@ -253,12 +253,26 @@ check("H4 the buyer links their own open assembly job and the pre-fill lists it"
   && h4p.r.jobs[0].job_id === JOB && h4p.r.jobs[0].category === "assembly" && h4p.r.jobs[0].payment_status === "unpaid",
   JSON.stringify([h4, h4p]));
 
+// Q1942: Post a job retries a failed link call and PaymentSuccess links again, so linking the same order and job
+// twice must change nothing: no second link row, no change to the job's money columns, no notice.
+const linkState = async () => {
+  await db.exec("RESET ROLE");
+  const hasNotes = (await q(`SELECT to_regclass('public.notifications') IS NOT NULL AS t`)).rows?.[0]?.t === true;
+  const r = await q(`SELECT (SELECT count(*)::int FROM public.declutter_order_jobs) AS links,
+    (SELECT row_to_json(x)::text FROM (SELECT status, payment_status FROM public.jobs WHERE id = '${JOB}') x) AS job
+    ${hasNotes ? ", (SELECT count(*)::int FROM public.notifications) AS notes" : ""}`);
+  // A read error is never a match: the comparison below would pass on two equal errors.
+  return r.err ? `ERR ${Math.random()}` : JSON.stringify(r.rows);
+};
+const h5before = await linkState();
 await as(BUYER);
 const h5a = await link(ORDER, JOB);
+const h5afterSame = await linkState();
 await as(BUYER);
 const h5b = await link(ORDER2, JOB);
-check("H5 linking again is a yes; the same job cannot move to another order",
-  h5a.r === true && h5b.r === false && (await linkOf(JOB)) === ORDER, JSON.stringify([h5a, h5b]));
+check("H5 linking again is a yes and changes nothing (no second row, job, or notice); the same job cannot move to another order",
+  h5a.r === true && h5b.r === false && (await linkOf(JOB)) === ORDER && h5afterSame === h5before && (await linkState()) === h5before,
+  JSON.stringify([h5a, h5b, h5before, h5afterSame]));
 
 await as(BUYER);
 const h6 = await link(ORDER, CLEANING);

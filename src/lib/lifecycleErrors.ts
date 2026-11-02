@@ -15,6 +15,7 @@
  * Unknown codes fall through to the caller's own fallback string.
  */
 import { isWriteRejected } from "./mutationResult";
+import { loadModule } from "./loadModule";
 import { JOB_STARTS_TOO_SOON_COPY } from "./offerDeadline";
 import { UNDER_18_APPLY_COPY } from "./ageGate";
 import { DECLUTTER_ERROR_COPY as DC } from "./declutter/errors";
@@ -2434,10 +2435,18 @@ export function rpcErrorMessage(rpc: MappedRpc, error: unknown): string | null {
  * caller then shows its own fallback words, and the RPC error itself is still
  * thrown or reported exactly as before.
  */
+const errorLogger = () => loadModule(() => import("@/lib/errorLogger"));
+
 export function loadAdminRpcErrorCopy(): Promise<typeof import("@/components/admin/adminRpcErrorCopy") | null> {
-  return import("@/components/admin/adminRpcErrorCopy").catch(() => {
-    // Not silent: the caller's own fallback copy is shown and the RPC error is
-    // still thrown or reported; only the more specific sentence is lost.
+  return import("@/components/admin/adminRpcErrorCopy").catch((err: unknown) => {
+    // The caller's own fallback copy is shown and the RPC error is still thrown
+    // or reported; only the more specific sentence is lost. Q1883: that loss is
+    // reported (warning), so a chunk that keeps failing to load is visible.
+    void errorLogger()
+      .then((m) => m?.report(err, { severity: "warning", tags: { source: "lifecycleErrors.loadAdminRpcErrorCopy" } }))
+      .catch(() => {
+        // The logger chunk failed to load as well (offline): there is nothing left to report with.
+      });
     return null;
   });
 }

@@ -64,6 +64,7 @@ import { fetchItemPickupWindows } from "@/lib/declutter/handover";
 import { pickupDays, porchWindowDays } from "@/lib/declutter/pickupSlots";
 import { CheckoutPickupTime } from "./CheckoutPickupTime";
 import { fetchCheckoutPorchDays, onPorchDays } from "@/lib/declutter/porchDays";
+import { fetchCheckoutSize } from "@/lib/declutter/checkoutSize";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
@@ -76,7 +77,8 @@ export { StrikeCount } from "./DeclutterTabHeads";
 function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void; held: boolean }) {
   const b = useBundleDiscount(sellerId, lines);
   return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} held={held}
-    ways={waysEveryLineAllows(lines)} itemId={lines.find((l) => l.item_id)?.item_id ?? null} />;
+    ways={waysEveryLineAllows(lines)} itemId={lines.find((l) => l.item_id)?.item_id ?? null}
+    itemIds={lines.map((l) => l.item_id).filter((id): id is string => !!id)} />;
 }
 
 /**
@@ -88,7 +90,7 @@ function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: s
  * the drop-off address, the SERVER geocodes it and prices the trip ($6 + $1.50 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null, itemId = null }: {
+function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null, itemId = null, itemIds = [] }: {
   sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
   /** B-1: this checkout was just paid and the cart has not caught up: Pay stays off. */
   held?: boolean;
@@ -98,6 +100,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   discountCents?: number;
   /** B110: an item of this checkout, to read the seller's pickup times (declutter_item_pickup_windows). */
   itemId?: string | null;
+  /** A3-53: every item of this checkout, to mark the size the delivery is priced at before any quote. */
+  itemIds?: string[];
   /** Board 161: how many items this one checkout covers. The bill shows the items and what the buyer pays, never a fee line (owner 2026-10-25, issue #3672). */
   itemCount?: number;
 }) {
@@ -132,6 +136,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const [opening, setOpening] = useState(false);
   const [address, setAddress] = useState("");
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
+  const sizeIds = [...itemIds].sort();
+  const checkoutSize = useQuery({ queryKey: ["declutter", "checkout-size", sizeIds.join(",")], queryFn: () => fetchCheckoutSize(sizeIds), enabled: sizeIds.length > 0 });
   // The quote is for the cart as it was priced: a changed cart total asks again.
   const [quotedFor, setQuotedFor] = useState<number | null>(null);
   const priceIt = useMutation({
@@ -283,7 +289,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
                     {priceIt.isPending ? "Pricing…" : "Get price"}
                   </Button>
                   {/* Owner 2026-11-01: the price by size up front, this checkout's size marked, then the total once priced. */}
-                  <DeliveryPriceList quote={liveQuote} />
+                  <DeliveryPriceList quote={liveQuote} size={checkoutSize.data ?? null} />
                   <p className="text-xs text-muted-foreground">If no Helpr takes it within 48 hours, what you paid for delivery comes back. Then you pick it up instead, or cancel for a refund.</p>
                 </div>
               )}

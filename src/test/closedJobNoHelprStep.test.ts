@@ -43,10 +43,13 @@ describe("an ended job or a closed application offers the Helpr no tracker step 
   });
 
   it("a no-show report (the application closed no_show), whatever the job row says: no step", () => {
-    for (const status of ["cancelled", "accepted", "open"]) {
-      const f = face(job({ status } as Partial<JobPageRow>), { status: "rejected", closed_reason: "no_show" });
-      expect(f?.step, status).toBeUndefined();
-      expect(f?.label ?? "", status).not.toMatch(/on my way/i);
+    for (const status of ["accepted", "open"]) {
+      // Each closing signal on its own: the reason alone, and the status alone.
+      for (const app of [{ status: "accepted", closed_reason: "no_show" }, { status: "rejected", closed_reason: null }]) {
+        const f = face(job({ status: status } as Partial<JobPageRow>), app);
+        expect(f?.step, `${status} ${JSON.stringify(app)}`).toBeUndefined();
+        expect(f?.label ?? "", status).not.toMatch(/on my way/i);
+      }
     }
   });
 

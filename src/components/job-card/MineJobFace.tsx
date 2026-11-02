@@ -234,17 +234,19 @@ export function MineJobFace({
       )}
       <MineFaceNote note={action?.note} className="order-3 mt-1 md:order-none md:basis-full md:mt-0 md:text-right" />
       {action?.under && (
-        <button
+        <Button
           type="button"
+          variant="link"
+          size="sm"
           data-mine-face-under-action=""
-          className="link-standard order-3 mt-1 min-h-11 w-full text-center text-ds-14 font-semibold text-primary md:order-none md:basis-full md:mt-0 md:text-right"
+          className="order-3 mt-1 w-full px-0 text-ds-14 font-semibold md:order-none md:basis-full md:mt-0 md:justify-end"
           onClick={(e) => {
             e.stopPropagation();
             action.under?.onClick();
           }}
         >
           {action.under.label}
-        </button>
+        </Button>
       )}
       {/* The tracker under the face, above the button on phone (order); from 768px a full-width row of its own under face + button, so the
           eight full step names fit beside the rail. */}

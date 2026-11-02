@@ -9,6 +9,7 @@
 import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useFeature } from "@/hooks/useFeature";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -46,9 +47,9 @@ function ReviewGroup({ title, reviews }: { title: string; reviews: ProfileReview
                 <p className="text-ds-12 text-muted-foreground">
                   {r.stars} star{r.stars === 1 ? "" : "s"} · {monthYear(r.created_at)}
                 </p>
-                <button type="button" className="min-h-11 shrink-0 pl-4 text-ds-13 text-muted-foreground" onClick={() => setReporting(r.id)} data-report="declutter_review">
+                <Button type="button" variant="ghost" size="sm" className="shrink-0 pl-4 pr-0 text-ds-13 font-normal text-muted-foreground" onClick={() => setReporting(r.id)} data-report="declutter_review">
                   Report
-                </button>
+                </Button>
               </div>
             </li>
           ))}

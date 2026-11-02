@@ -349,6 +349,7 @@ export const es: Record<MsgKey, string> = {
   "postJob.aiH": "Con sus propias palabras. La IA llena el formulario y usted lo revisa.",
   "postJob.repostH": "La forma más rápida de pedir la misma ayuda otra vez.",
   "postJob.showFewer": "Ver menos",
+  "postJob.inSeason": "De temporada",
   "postJob.showAllTemplates": "Ver las {count} plantillas",
   "postJob.noRecent": "Aún no tiene trabajos recientes para volver a publicar.",
   "postJob.draftTitle": "Seguir con su borrador",

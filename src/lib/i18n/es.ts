@@ -314,6 +314,7 @@ export const es: Record<MsgKey, string> = {
   "postJob.whereH": "Los Helprs ven la zona ahora y su dirección después de que usted contrate.",
   "postJob.searchCategories": "Buscar categorías",
   "postJob.searchPlaceholder": "p. ej., lavar mi entrada",
+  "postJob.clearSearch": "Borrar la búsqueda",
   "postJob.matchingCategories": "Categorías que coinciden",
   "postJob.matches": "Coincidencias",
   "postJob.noMatch": "Ninguna categoría coincide con \"{query}\". Elija un grupo abajo, u Otra cosa.",

@@ -193,7 +193,8 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
       {rows.length === 0 ? (
         <NextStep className="!text-sm" value={{ who: "info", text: "Nobody has asked yet. It stays up until you pick someone." }} />
       ) : (
-        <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it" }} />
+        // A3-25 (audit 11-01): with how many asked. The server sets the giver no deadline, so no "by".
+        <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it", by: `${rows.length} asked` }} />
       )}
       {rows.length === 0 ? null : (
         <ul className="space-y-2">

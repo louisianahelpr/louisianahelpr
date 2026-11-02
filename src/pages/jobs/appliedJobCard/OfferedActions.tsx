@@ -29,9 +29,9 @@ interface OfferedActionsProps {
  * cannot be undone: the job goes back to everyone. Strikes are only for
  * backing out AFTER accepting (helper_cancel_booking).
  *
- * A DIRECT offer is exempt: the helper never applied, so turning down
- * unsolicited work isn't misconduct and `respond_to_direct_offer` files no
- * violation. Those decline in one tap, as they should.
+ * A DIRECT offer files no violation either (`respond_to_direct_offer`), but it
+ * is just as final and sits right beside Accept, so it asks too (Q2605, Jobs
+ * audit 1102b row 19: one tap declined a paid offer with no confirm or undo).
  */
 /**
  * Offered: accept/decline — celebratory framing since this is a poster
@@ -93,7 +93,8 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
     text: "until the job starts",
     expiredText: "Job time has arrived",
   };
-  const skipConfirm = isDirectOffer(app);
+  const direct = isDirectOffer(app);
+  const posterFirst = app.posterName?.trim().split(/\s+/)[0] || null;
   // The clock and whether it has run out, from the one predicate the
   // Activity buckets use too (offerClock.ts): an expired offer leaves Needs
   // You the moment this card says so. Only the backend-stamped deadline is
@@ -293,11 +294,7 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
           className="flex-1"
           disabled={busy}
           aria-busy={busy}
-          onClick={() => {
-            if (!skipConfirm) return setConfirmOpen(true);
-            setPressed("decline");
-            onHelperResponse(app, false);
-          }}
+          onClick={() => setConfirmOpen(true)}
           style={{
             color: "hsl(var(--burnt-sienna))",
             borderColor: "hsl(var(--burnt-sienna) / 0.30)",
@@ -324,13 +321,15 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
       <BrandConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Decline this job?"
-        description="You applied for this one and the person who posted it picked you. Declining isn't a strike."
+        title={direct ? (posterFirst ? `Decline ${posterFirst}’s offer?` : "Decline this offer?") : "Decline this job?"}
+        description={direct
+          ? `The offer goes back to ${posterFirst ?? "the person who posted it"}. Declining isn't a strike.`
+          : "You applied for this one and the person who posted it picked you. Declining isn't a strike."}
         callout={{
-          // decline_job_offer files no strike (Q1281, 20261012184444).
-          text: "The job goes back to everyone. This can’t be undone.",
+          // decline_job_offer / respond_to_direct_offer file no strike (Q1281, 20261012184444).
+          text: direct ? "This can’t be undone." : "The job goes back to everyone. This can’t be undone.",
         }}
-        primaryLabel="Decline job"
+        primaryLabel={direct ? "Decline offer" : "Decline job"}
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={() => {

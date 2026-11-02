@@ -2026,6 +2026,12 @@ html.web-desktop.desktop-rail:not(.app-shell) #root:has(.app-shell-frame) {
     border-radius: 3px;
     text-decoration-color: currentColor;
   }
+  /* Builder 187 (11-02, measured in a local build at 375): a link-standard that also asks for Tailwind's `underline`
+     (the seller's money-note "Details", Free's "How it works") computed text-decoration-color transparent from the
+     rule above, so the underline it asked for never drew. Asking for it shows it, at rest too. */
+  .link-standard.underline {
+    text-decoration-color: currentColor;
+  }
 }
 
 

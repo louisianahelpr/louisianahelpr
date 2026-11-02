@@ -190,6 +190,60 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(supabaseCalls()).toEqual([]);
   });
 
+  // Audit 1102c P6 (Q2624): the stages the preview did not offer (offers, a 2-item cart, refund asked and answered,
+  // no-show, delivered, review left). Each draws its own state on the real views, nothing sent.
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |         awaiting: stage === "offer_countered" ? "buyer" : "seller", | awaiting: "seller",
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |         return { ...base, offers: [offer], paidCents: [], items: side === "seller" ? [item(sellerId, now)] : [] }; |         return { ...base, paidCents: [], items: side === "seller" ? [item(sellerId, now)] : [] };
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |             id: REFUND_ID, status: offered ? "offered" : "open", | id: REFUND_ID, status: "open",
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |         handovers: { [ORDER_ID]: handover(side, { no_show_reported_at: hoursFrom(now, -1), no_show_answer_by: hoursFrom(now, 23) }) }, |         handovers: { [ORDER_ID]: handover(side) },
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |           proposals_left: 2, delivered_at: hoursFrom(now, -1), delivered_photo_path: "sample/delivered.jpg", | proposals_left: 2, delivered_at: null, delivered_photo_path: null,
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |         { declutter_i_reviewed: true, declutter_refund_request_view: noRefundAsked(side, now) }); |         { declutter_i_reviewed: false, declutter_refund_request_view: noRefundAsked(side, now) });
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |         { declutter_refund_request_view: noRefundAsked(side, now), declutter_i_reviewed: false }); |         { declutter_i_reviewed: false });
+  it("Q2624: the added stages draw their own state", async () => {
+    const want: [string, string, RegExp][] = [
+      ["offer_open", "buyer", /Waiting on the seller to answer/],
+      ["offer_open", "seller", /Next: answer their offer/],
+      ["offer_countered", "buyer", /their counter/],
+      ["offer_countered", "seller", /Waiting on the buyer to answer/],
+      ["offer_accepted", "buyer", /Reserved for you, not paid yet/],
+      ["offer_accepted", "seller", /Sold, waiting for the buyer to pay/],
+      ["cart_two", "buyer", /One checkout for 2 items/],
+      ["refund_asked", "buyer", /You asked for a refund/],
+      ["refund_asked", "seller", /Next: answer the refund request/],
+      ["refund_offered", "buyer", /You have a refund offer to answer/],
+      ["no_show", "seller", /The buyer says you didn't show/],
+      ["delivered", "buyer", /Next: tap I got it once you have it/],
+      ["delivered", "seller", /Waiting on the buyer to say they have it/],
+      ["reviewed", "buyer", /Handed over\. It's yours\./],
+    ];
+    expect(want.length).toBeGreaterThan(10);
+    for (const [key, side, text] of want) {
+      expect(DECLUTTER_PREVIEW_STAGES.map((x) => x.key), key).toContain(key);
+      const r = open(`?stage=${key}&side=${side}`);
+      const view = await waitFor(() => { const el = document.querySelector(`[data-preview-view="${key}:${side}"]`); expect(el).not.toBeNull(); return el as HTMLElement; });
+      await waitFor(() => expect(view.textContent, `${key}:${side}`).toMatch(text));
+      await new Promise((res) => setTimeout(res, 20));
+      r.unmount();
+    }
+    // Review left: the order's Details say "Review sent." instead of offering the form (declutter_i_reviewed true).
+    localStorage.clear();
+    const r = open("?stage=reviewed&side=buyer");
+    fireEvent.click(await screen.findByRole("button", { name: /^Details/ }));
+    expect(await screen.findByText(/^Review sent\./)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Leave a review" })).toBeNull();
+    await new Promise((res) => setTimeout(res, 20));
+    r.unmount();
+    // Handed over (no review yet): Details draws (the refund view was null and Details crashed on it) and offers the form.
+    localStorage.clear();
+    const h = open("?stage=handed_over&side=buyer");
+    fireEvent.click(await screen.findByRole("button", { name: /^Details/ }));
+    expect(await screen.findByRole("button", { name: "Leave a review" })).toBeInTheDocument();
+    expect(document.querySelector("[data-preview-crashed]")).toBeNull();
+    await new Promise((res) => setTimeout(res, 20));
+    h.unmount();
+    expect(supabaseCalls()).toEqual([]);
+  }, 30_000);
+
   it("the controls name every stage and both sides", async () => {
     open("?stage=booked&side=seller");
     await screen.findByRole("region", { name: "Declutter preview controls" });

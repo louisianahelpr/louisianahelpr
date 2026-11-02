@@ -100,10 +100,12 @@ export function cardPaymentProblem(job: {
  *
  * Every clause is what the server actually does: a chargeback blocks the
  * job's payouts (chargeDisputeCreated writes the block; a paid-out job has its
- * transfer reversed) until the dispute closes; a failed payment is only ever
- * stamped on a job that was still unpaid (paymentIntentPaymentFailed's
- * precondition), and unpaid jobs are hidden from every browse feed
- * (open_jobs_browse requires escrow / payout_pending / released).
+ * transfer reversed) until the dispute closes; a failed payment is stamped on a
+ * job that was still unpaid (paymentIntentPaymentFailed's precondition) and,
+ * since Q1970, also on a job whose bank (ACH) payment failed after it was
+ * funded, so its words name the payment, never "the card" (Q1977). A failed job
+ * is hidden from every browse feed (open_jobs_browse requires escrow /
+ * payout_pending / released).
  */
 export const PAYMENT_PROBLEM_COPY: Record<
   JobPaymentProblem,
@@ -126,8 +128,8 @@ export const PAYMENT_PROBLEM_COPY: Record<
   },
   failed: {
     eyebrow: "Payment failed",
-    detail: "The card was declined",
-    title: "The card payment didn't go through",
-    body: "The card was declined, so this job isn't funded and isn't listed for anyone to see.",
+    detail: "The payment was declined",
+    title: "The payment didn't go through",
+    body: "The payment was declined, so this job isn't funded and isn't listed for anyone to see.",
   },
 };

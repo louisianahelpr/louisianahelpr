@@ -582,7 +582,7 @@ describe("Declutter location ask", () => {
     }];
     watchCalls.length = 0;
     at("/declutter", <DeclutterPage />);
-    const heart = await screen.findByRole("button", { name: "Watch Oak rocking chair" });
+    const heart = await screen.findByRole("button", { name: "Save Oak rocking chair" });
     expect(heart).toHaveAttribute("aria-pressed", "false");
     expect(heart.closest("a")).toBeNull();
     fireEvent.click(heart);

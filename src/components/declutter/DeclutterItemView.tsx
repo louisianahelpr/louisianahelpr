@@ -181,7 +181,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
         <button
           type="button"
           aria-pressed={isWatching}
-          aria-label={isWatching ? "Stop watching this item" : "Watch this item"}
+          aria-label={isWatching ? "Remove from saved" : "Save this item"}
           className={`w-11 h-11 rounded-full border border-border bg-card flex items-center justify-center ${isWatching ? "text-[hsl(var(--burnt-sienna))]" : ""}`}
           disabled={toggleWatch.isPending}
           onClick={() => (preview ? noteOwnListing() : toggleWatch.mutate())}

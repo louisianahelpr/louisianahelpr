@@ -104,7 +104,9 @@ describe("a bell-panel row is gated by its chain, not its own words", () => {
 });
 
 describe("a Watch heart is a mutating control (declutter_set_watch is VOLATILE)", () => {
-  it.each(["Watch Fixture rocking chair [E2E-PRODAUDIT] runmdivxodm", "Unwatch Fixture rocking chair"])("%s", (label) => {
+  it.each(["Watch Fixture rocking chair [E2E-PRODAUDIT] runmdivxodm", "Unwatch Fixture rocking chair",
+    // A3-98 (11-01): the hearts now read Save / Remove ... from saved; both stay gated.
+    "Save Fixture rocking chair [E2E-PRODAUDIT] runmdivxodm", "Remove Fixture rocking chair from saved", "Save this item", "Remove from saved"])("%s", (label) => {
     expect(DESTRUCTIVE_RX.test(label)).toBe(true);
   });
 });

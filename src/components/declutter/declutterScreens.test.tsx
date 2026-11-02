@@ -337,7 +337,7 @@ describe("Declutter screens", () => {
     // Owner mockup 11-01 / A3-47: ONE pickup block, the way and the town once, the address note once at the end.
     await waitFor(() => expect(document.querySelector("[data-pickup-way='porch'] p")?.textContent).toBe("Porch pickup · Mid-City, Baton Rouge"));
     expect(document.querySelector("[data-item-address-note]")?.textContent).toBe("Exact address after you pay");
-    expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save this item" })).toBeInTheDocument();
     // Owner 2026-10-19: the two actions show with no saved card (Marketplace / OfferUp / Mercari).
     const buyNow = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
     // AUD31-15: the Questions hint has its own "Make an offer"; this is the panel's.

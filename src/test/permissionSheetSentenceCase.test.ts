@@ -8,9 +8,9 @@
  * 2. No shipped source file shows "Not Now": inventory from source, every
  *    tracked .ts/.tsx under src/ outside tests, comments blanked.
  *
- * @mutate src/hooks/usePermissionRationale.ts | cta: "Share location", | cta: "Share Location",
+ * @mutate src/hooks/usePermissionRationale.ts | never see your exact location.",\n    cta: "Share location", | never see your exact location.",\n    cta: "Share Location",
  * @mutate src/hooks/usePermissionRationale.ts | cta: "Turn on notifications", | cta: "Turn On Notifications",
- * @mutate src/components/PermissionRationaleDialog.tsx | Not now | Not Now
+ * @mutate src/components/PermissionRationaleDialog.tsx | __resolveRationale(false)}>\n            Not now | __resolveRationale(false)}>\n            Not Now
  * @mutate src/components/AwardGateDialog.tsx | pendingMissing ? "Later" : "Not now" | pendingMissing ? "Later" : "Not Now"
  */
 import { execFileSync } from "node:child_process";

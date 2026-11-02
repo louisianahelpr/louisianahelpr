@@ -137,10 +137,10 @@ export async function readPushPermission(): Promise<
  * to Settings?
  *
  * Only when the OS/browser actually says no. `useRequestPushPermission`
- * returns `false` for two different things — the user tapping "Not Now" in
+ * returns `false` for two different things — the user tapping "Not now" in
  * our own rationale dialog (no OS prompt was ever shown; permission is still
  * "prompt") and a real denial. press-every-control (run 34744828202, 2026-09-13)
- * pressed "Not Now" and got an ERROR toast, "Notifications are off. Turn them
+ * pressed "Not now" and got an ERROR toast, "Notifications are off. Turn them
  * on in your browser settings." — scolding a choice the user just made and
  * pointing at a setting that was never touched. "prompt" is a choice, not a
  * failure: say nothing, and the row stays there for next time.
@@ -301,7 +301,7 @@ export function usePushPermissionNudge() {
             onClick: () => {
               // THIS TOAST IS THE RATIONALE. Without the line below,
               // requestPush() opened the rationale dialog — "Notifications /
-              // Get notified when a helper applies… / Not Now · Turn On
+              // Get notified when a helper applies… / Not now · Turn On
               // Notifications" — which is the question this toast just asked,
               // with the same two choices. Two prompts to grant one
               // permission, the second one appearing *because* you accepted

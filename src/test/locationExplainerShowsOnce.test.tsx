@@ -2,7 +2,7 @@
  * Audit 2026-10-28 part 4, F13 + F34: the "Location" explainer
  * (usePermissionRationale, kind "location") came back on every day-of step
  * after the Helpr had already shared their location (on my way, arrived,
- * done, ending on "Mark Complete"). The record of a "Share Location" yes lived
+ * done, ending on "Mark Complete"). The record of a "Share location" yes lived
  * in sessionStorage, which a reopened app or a new tab starts empty.
  *
  * Now the yes is kept on the device: the explainer shows once, the first time
@@ -34,7 +34,7 @@ beforeEach(() => {
 });
 
 describe("F13/F34: the location explainer shows once, the first time it is needed", () => {
-  it("after Share Location, no later step shows it again, even in a reopened app (fresh sessionStorage)", async () => {
+  it("after Share location, no later step shows it again, even in a reopened app (fresh sessionStorage)", async () => {
     expect(DAY_OF_STEPS.length).toBeGreaterThan(2);
     const { result } = renderHook(() => usePermissionRationale());
     const reads: string[] = [];

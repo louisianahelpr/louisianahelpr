@@ -13,11 +13,12 @@
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {(t.side === "buyer" \|\| t.side === "seller") && <Suspense | {false && <Suspense
  * @mutate src/components/declutter/OrderTalkStep.tsx |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}&order=${orderId}`; |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}`;
  * @mutate src/components/declutter/OrderTalkStep.tsx | action={step.who === "you" ? "See the order" : null} | action={null}
+ * @mutate src/components/declutter/OrderTalkStep.tsx |       { ...orderTimeWords(times.data?.[0], kind, b?.slot_start ?? null), buyer: other.first }); |       { chosen: null, by: null });
  * @mutate src/pages/profile/PayoutHistory.tsx | action: { label: "Payout settings", to: "/profile?tab=payment" } | action: null
  * @mutate src/pages/profile/PayoutHistory.tsx |       return { step: { who: "them", text: "Waiting on the bank", by: `arrives about ${payoutDay(p.arrival_date)}` }, action: null }; |       return null;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, useLocation } from "react-router-dom";
 
@@ -27,6 +28,7 @@ const state = vi.hoisted(() => ({
   bookings: [] as unknown[],
   handover: { order_id: "o1", status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null } as unknown,
   talk: null as unknown,
+  times: [] as unknown[],
 }));
 
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null, loading: false }) }));
@@ -34,6 +36,7 @@ vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("./DeclutterHandoverTalk", () => ({ SellerTalks: () => null, NoWayWorks: () => null }));
 vi.mock("./useOpenProblems", () => ({ useOpenProblems: () => new Map() }));
 vi.mock("./useMarkTalkRead", () => ({ useMarkTalkRead: () => {} }));
+vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: "u2", name: "Dana R", avatarUrl: null, first: "Dana", who: "Dana" }) }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
   fetchMyCart: () => Promise.resolve(state.cart),
@@ -49,6 +52,10 @@ vi.mock("@/lib/declutter/orderTalk", async (orig) => ({
   fetchOrderTalk: () => Promise.resolve(state.talk),
   fetchMyOrderTalks: () => Promise.resolve([]),
 }));
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()),
+  fetchOrderPickupTimes: () => Promise.resolve(state.times),
+}));
 vi.mock("./BuyingOrders", () => ({
   useBuyingTracker: () => ({
     views: new Map([["33333333-3333-4333-8333-333333333333", { orderId: "33333333-3333-4333-8333-333333333333", next: { who: "you", text: "Pick a pickup time" }, action: "Pick a pickup time" }]]),
@@ -58,6 +65,7 @@ vi.mock("./BuyingOrders", () => ({
 import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { FreeRequestsForGiver } from "./DeclutterFreeClaim";
 import { OrderTalkFromLink } from "./DeclutterOrderTalk";
+import { pickupWhenWords } from "@/lib/declutter/orderPickupTimes";
 import { byClock } from "@/lib/declutter/timeLeft";
 import { payoutNextStep } from "@/pages/profile/PayoutHistory";
 import { nextStepWords } from "@/components/ui/NextStep";
@@ -83,6 +91,7 @@ beforeEach(() => {
   state.cart = [];
   state.asks = [];
   state.bookings = [];
+  state.times = [];
   state.talk = null;
   where = "";
 });
@@ -136,6 +145,25 @@ describe("A3-27: the order chat shows the order card's step", () => {
     expect(box.getAttribute("data-order-talk-step")).toBe("you");
     fireEvent.click(within(box).getByRole("button", { name: "See the order" }));
     expect(where).toBe(`/declutter?tab=selling&order=${id}`);
+  });
+
+  it("lead 11-01: the seller's chat line carries the card's chosen pickup time, never a line the card disagrees with", async () => {
+    const id = "44444444-4444-4444-8444-444444444444";
+    const start = "2026-11-07T21:00:00Z";
+    const end = "2026-11-07T23:00:00Z";
+    state.talk = talk("seller");
+    state.cart = [{ ...LINE, status: "paid", order_id: id, order_status: "paid", handover: "porch", porch_ok: true }];
+    state.bookings = [{ order_id: id, slot_start: start, slot_end: end, porch_mode: null, porch_until: null, pickup_day: null }];
+    state.times = [{ id, book_by: null, pickup_slot_start: start, pickup_slot_end: end }];
+    state.handover = { order_id: id, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null };
+    show(<OrderTalkFromLink />, `/declutter?tab=selling&order_talk=${id}`);
+    const words = pickupWhenWords(start, end, true);
+    const box = await waitFor(() => {
+      const el = document.querySelector("[data-order-talk-step]") as HTMLElement | null;
+      expect(el?.textContent).toContain(`Pickup ${words}`);
+      return el!;
+    });
+    expect(box.textContent).toContain("Next: put it out and post the porch photo");
   });
 
   it("buyer: the Buying card's step and its action words", async () => {

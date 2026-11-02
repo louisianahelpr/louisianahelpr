@@ -1005,10 +1005,10 @@ serve(async (req) => {
    */
   // Q2082 (b): what this payout withheld for a Helpr-fault card fee (below).
   let helprFaultFeeCents = 0;
-  const rollBackOnboardingFeeClaim = async (opts: { transferMayExist?: boolean } = {}) => {
+  const rollBackOnboardingFeeClaim = async (opts: { transferMayExist?: boolean; keepHelprFaultFee?: boolean } = {}) => {
     // The Helpr-fault card fee taken below goes back on the same exits, except a transfer error that may have
     // moved money (Q2204, the transfer catch).
-    if (helprFaultFeeCents > 0 && !opts.transferMayExist) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
+    if (helprFaultFeeCents > 0 && !opts.transferMayExist && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
     // Lead 11-02: the one-time setup fee too stays claimed when the transfer may exist (a timeout may have
     // sent it with the fee held back; un-claimed, the next payout would take the fee again).
     if (onboardingFeeDeductedCents <= 0 || opts.transferMayExist) return;
@@ -1126,7 +1126,10 @@ serve(async (req) => {
   }
   if (unrecorded.kind === "conflict") {
     console.error(`[release-payout] REFUSING job ${job.id}: Stripe shows ${unrecorded.transferIds.join(", ")} with no payout_transfers row`);
-    await rollBackOnboardingFeeClaim();
+    // Q2172 (a): the transfer at Stripe may be an earlier run's, sent with this
+    // job's Helpr-fault deduction held back (take_helpr_fault_fee answers per job):
+    // keep the deduction, or the next payout takes the debt again.
+    await rollBackOnboardingFeeClaim({ keepHelprFaultFee: true });
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "critical",

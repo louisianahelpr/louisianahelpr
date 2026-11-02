@@ -10,7 +10,7 @@
  * change: poster_cancel_job accepts 'accepted' and prices an empty roster at fee 0 with no strike (pinned in
  * crewAllNoShowCanCancel.test.tsx, "the server" block).
  *
- * @mutate src/lib/crewLifecycle.ts |   const underWay = jobStatus === "in_progress" \|\| (jobStatus === "accepted" && started); |   const underWay = jobStatus === "in_progress";
+ * @mutate src/lib/crewNobodyLeft.ts |   const underWay = jobStatus === "in_progress" \|\| (jobStatus === "accepted" && started); |   const underWay = jobStatus === "in_progress";
  * @mutate src/components/GroupJobHelpers.tsx |   const nobodyLeft = isOwner && !!onCancelJob && crewNobodyLeft(jobStatus, helpers, rosterKnown, started); |   const nobodyLeft = isOwner && !!onCancelJob && crewNobodyLeft(jobStatus, helpers, rosterKnown);
  * @mutate src/components/GroupJobHelpers.tsx |           {jobStatus === "accepted" && !started |           {jobStatus === "accepted"
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |                 onCancelJob={posterFlows.cancel} |                 data-x=""

@@ -83,7 +83,7 @@ export async function takeHelprFaultFee(
  * `cents`. Fails CLOSED (an error refuses the payout); the database refuses
  * once a paid payout carries the deduction.
  */
-export async function clampHelprFaultFee(
+async function clampHelprFaultFee(
   supabaseAdmin: Db,
   helperId: string,
   jobId: string,

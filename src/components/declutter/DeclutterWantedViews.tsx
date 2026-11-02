@@ -29,6 +29,7 @@ import { DECLUTTER_OFFLINE_COPY, declutterErrorMessage } from "@/lib/declutter/e
 import { CONNECTION_TROUBLE_COPY } from "@/lib/networkFailure";
 import { formatPrice } from "@/lib/declutter/distance";
 import { checkoutAmounts } from "@/lib/declutter/money";
+import { NextStep } from "@/components/ui/NextStep";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { WANTED_POST_PARAM } from "@/lib/declutter/sellChooser";
@@ -266,9 +267,13 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: {
   );
 }
 
+/** "Mon 2:00 PM": a reply's answer-by and an accepted reply's pay-by (A3-77). */
+const byWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+
 /** Where one reply stands, from the poster's side (the offer card in Buying is where it is answered). */
 function replyStatus(r: WantedReply): string {
-  if (r.status === "open") return r.awaiting === "buyer" ? "Waiting for you" : "Waiting for the seller";
+  // A3-77: the seller's offer closes at respond_by; the poster's row says by when.
+  if (r.status === "open") return r.awaiting === "buyer" ? (r.respond_by ? `Answer by ${byWords(r.respond_by)}` : "Waiting for you") : "Waiting for the seller";
   return { accepted: "Accepted", declined: "Declined", expired: "Expired", withdrawn: "Withdrawn", voided: "Ended" }[r.status];
 }
 
@@ -276,6 +281,9 @@ function replyStatus(r: WantedReply): string {
 function WantedReplies({ replies }: { replies: WantedReply[] }) {
   if (replies.length === 0) return <p className="text-xs text-muted-foreground" data-wanted-replies="none">No replies from sellers yet.</p>;
   const yourTurn = replies.some((r) => r.status === "open" && r.awaiting === "buyer");
+  // A3-62: the step names the offer and its deadline (the earliest one waiting on the poster).
+  const first = replies.filter((r) => r.status === "open" && r.awaiting === "buyer" && r.respond_by)
+    .sort((a, b) => Date.parse(a.respond_by!) - Date.parse(b.respond_by!))[0];
   return (
     <div className="space-y-1" data-wanted-replies="">
       <p className="text-xs font-medium">{replies.length === 1 ? "1 reply from a seller:" : `${replies.length} replies from sellers:`}</p>
@@ -292,6 +300,7 @@ function WantedReplies({ replies }: { replies: WantedReply[] }) {
           </li>
         ))}
       </ul>
+      {first && <NextStep className="!text-ds-14" value={{ who: "you", text: `Answer ${first.seller_name}'s ${formatPrice(first.amount_cents)} offer · by ${byWords(first.respond_by!)}` }} />}
       {yourTurn && <Link to="/declutter?tab=buying" className="link-standard inline-flex min-h-11 items-center text-sm font-semibold">Answer in Buying</Link>}
     </div>
   );
@@ -372,7 +381,12 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   // Audit 10-30 #16: buying from an answer doesn't close the post, so ask once one is accepted.
-  const gotIt = post.status === "open" && post.replies.some((r) => r.status === "accepted");
+  // A3-77: an accepted answer still waiting in the cart is "check out by <time>", never "close this post" (closing
+  // then could leave it unpaid and the item goes back up). Close this post shows once it is paid; a server before
+  // 20261102013814 sends no paid, and keeps the old line.
+  const accepted = post.status === "open" ? post.replies.filter((r) => r.status === "accepted") : [];
+  const payBy = accepted.find((r) => r.checkout_by && !r.paid);
+  const gotIt = !payBy && accepted.some((r) => r.paid === true || r.paid === undefined);
   const openReplies = post.replies.filter((r) => r.status === "open").length;
   const close = useMutation({
     mutationFn: () => closeWanted(post.id),
@@ -395,6 +409,8 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
           <p className="font-semibold truncate" title={post.what}>{post.what}</p>
           <p className="text-sm text-muted-foreground">
             {CATEGORY_LABEL[post.category] ?? "Other"} · up to {formatPrice(post.max_price_cents)} · within {post.radius_miles} mi
+            {/* A3-62: the post's own end date was shown nowhere on the card. */}
+            {post.status === "open" && post.expires_at && ` · Open until ${new Date(post.expires_at).toLocaleDateString([], { month: "short", day: "numeric" })}`}
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium" data-status={post.status}>
@@ -423,6 +439,12 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
             </ul>
           </div>
         )
+      )}
+      {payBy && (
+        <div className="space-y-1" data-wanted-pay-by="">
+          <NextStep className="!text-ds-14" value={{ who: "you", text: `Check out by ${byWords(payBy.checkout_by!)}: choose pickup or delivery and pay` }} />
+          <Link to="/declutter?tab=buying" className="link-standard inline-flex min-h-11 items-center text-sm font-semibold">Check out</Link>
+        </div>
       )}
       {gotIt && <p className="text-sm font-medium" data-wanted-got-it="">You accepted an answer. Got what you needed? Close this post.</p>}
       {post.status === "open" ? (

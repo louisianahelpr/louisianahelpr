@@ -37,7 +37,10 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | {feeLine(form.maxPrice)} |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | placeholder="Kids bike" enterKeyHint | placeholder="Kids bike, 16 inch" enterKeyHint
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |   useEffect(() => { saveWantedDraft(form); }, [form, editing]);
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const gotIt = post.status === "open" && post.replies.some((r) => r.status === "accepted"); |   const gotIt = false;
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const gotIt = !payBy && accepted.some((r) => r.paid === true \|\| r.paid === undefined); |   const gotIt = false;
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const payBy = accepted.find((r) => r.checkout_by && !r.paid); |   const payBy = undefined as WantedReply \| undefined;
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | r.respond_by ? `Answer by ${byWords(r.respond_by)}` : "Waiting for you" | "Waiting for you"
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | {post.status === "open" && post.expires_at && ` · Open until | {false && ` · Open until
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const matches = post.matches.filter((m) => !answered.has(m.id)); |   const matches = post.matches;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | onConfirm={() => remove.mutate()} | onConfirm={() => {}}
  * Audit 10-30 #13: the address drops post=1 once the form is open, and what was typed survives a reload.
@@ -287,6 +290,30 @@ describe("the Wanted hub", () => {
     open();
     await screen.findByText("Red bike");
     expect(screen.queryByText(/Got what you needed/)).toBeNull();
+  });
+
+  // A3-77 / A3-62: an open reply showed no deadline though the seller's offer closes in 48 h; an accepted one said
+  // "Close this post" though the real step is checking out (closing then left it unpaid); the post's end date was nowhere.
+  it("A3-77: a reply says answer by when, an accepted one says check out by when, and the post says open until", async () => {
+    const due = "2026-11-03T20:00:00Z";
+    const words = new Date(due).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+    mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], respond_by: due }] }];
+    open();
+    const card = (await screen.findByText("Red bike")).closest("li[data-wanted-post]") as HTMLElement;
+    expect(card.querySelector('[data-wanted-reply="o1"]')!.textContent).toBe(`Red bike · Sam G. · $25 · Answer by ${words}`);
+    expect(within(card).getByText(`Next: answer Sam G.'s $25 offer · by ${words}`)).toBeInTheDocument();
+    expect(card.textContent).toContain(`Open until ${new Date(POST.expires_at).toLocaleDateString([], { month: "short", day: "numeric" })}`);
+    cleanup();
+    mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], status: "accepted", checkout_by: due, paid: false }] }];
+    open();
+    expect(await screen.findByText(`Next: check out by ${words}: choose pickup or delivery and pay`)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Check out" })).toHaveAttribute("href", "/declutter?tab=buying");
+    expect(screen.queryByText(/Close this post/)).toBeNull();
+    cleanup();
+    mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], status: "accepted", checkout_by: null, paid: true }] }];
+    open();
+    expect(await screen.findByText(/Got what you needed\? Close this post/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Next: check out by/)).toBeNull();
   });
 
   it("#19: a reply shows its photo, and a listing that answered isn't listed again as a match", async () => {

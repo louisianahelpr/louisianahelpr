@@ -648,6 +648,10 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  // A3-76 (20261102015451): did the caller's own side already review this order.
+  declutter_i_reviewed: {
+    not_authenticated: DC.not_authenticated,
+  },
   // A1-B2 (20261029161237): what the buyer's card was charged, read for at most 200 of their own orders at once.
   declutter_my_paid_cents: {
     feature_disabled: DC.feature_disabled,

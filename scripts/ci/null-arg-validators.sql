@@ -123,6 +123,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_set_auto_free',       'action',   'VOLATILE: the seller turns "free on day 12" on/off on their own listing and gets the stored value back; a NULL choice raises invalid_choice (Q2430; 20261027205327)'),
   ('declutter_auto_free_state',     'classify', 'reads the seller''s own "free on day 12" switch for one own listing (Q2430; 20261027205327)'),
   ('declutter_set_keep_up',         'action',   'VOLATILE: the seller turns "keep it up until it sells" on/off on their own listing and gets the stored value back; a NULL choice raises invalid_choice, a NULL item item_not_found (20261029154323)'),
+  ('declutter_i_reviewed',          'classify', 'TRUE = the CALLER''s own side of this order already left its review (hides Leave a review); FALSE for no order, not a party or NULL; no access decision (A3-76; 20261102015451)'),
   ('declutter_keep_up_state',       'classify', 'reads the seller''s own "keep it up until it sells" switch for one own listing; a NULL item raises item_not_found (20261029154323)'),
   ('declutter_keeps_up',            'classify', 'service only: does the listing-rounds sweep keep this listing up (its private keep-up switch); a NULL item matches no row and COALESCE makes it FALSE, the normal rounds (20261029154323)'),
   ('declutter_set_listing_drops',   'action',   'VOLATILE: the seller turns price drops on/off on their own listing and gets the stored value back (board 158; 20261020064354)'),

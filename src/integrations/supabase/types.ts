@@ -15579,6 +15579,10 @@ export type Database = {
       }
       declutter_has_agreed_sales: { Args: never; Returns: boolean }
       declutter_haul_job_hold: { Args: { p_job_id: string }; Returns: string }
+      declutter_i_reviewed: {
+        Args: { p_order_id: string }
+        Returns: boolean
+      }
       declutter_identity_gate: {
         Args: { p_code: string; p_member: string }
         Returns: undefined

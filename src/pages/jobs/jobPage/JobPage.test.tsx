@@ -1162,7 +1162,7 @@ describe("a crew member's own job page (A2-B8)", () => {
 
   // JOBS-27 (Jobs audit 10-30, h6-crew): the member's page offered only a generic "Manage job"; their steps are on
   // the crew roster in the Working card, so the button names them and opens that card.
-  // @mutate src/pages/jobs/jobPage/hiredHelprFace.ts | return { ...face, label: "See your crew steps" }; | return face;
+  // @mutate src/pages/jobs/jobPage/hiredHelprFace.ts | ?? { ...face, label: "See your crew steps" }; | ?? face;
   it("names the crew steps as the button, not a generic Manage job, and opens the Working card", async () => {
     state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 3, helper_id: null, location: "4412 Highland Rd, Baton Rouge, LA 70808" });
     state.party = true;
@@ -1206,6 +1206,27 @@ describe("a crew member's own job page (A2-B8)", () => {
     const line = () => document.querySelector("[data-next-step]")?.textContent ?? "";
     await waitFor(() => expect(line()).toMatch(/^Waiting on .+ to confirm you arrived$/));
     expect(line()).not.toMatch(/Your spot is confirmed/);
+  });
+
+  // A3-33 (audit 11-01): working, the member's page said "Next: finish and mark it done" but its only button was "See
+  // your crew steps". Their own step is the button now; it opens the Working card, which takes it (crewMemberFace).
+  // @mutate src/pages/jobs/jobPage/hiredHelprFace.ts |     return crewMemberFace(job.id, o.crewSlot, job, o.open) ?? { ...face, label: "See your crew steps" }; |     return { ...face, label: "See your crew steps" };
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | review: () => setReviewOpen(true), crewSlot: crewSlot.data }) | review: () => setReviewOpen(true) })
+  it("A3-33: a working crew member's button is 'Mark my part done', not 'See your crew steps'", async () => {
+    state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 2, helper_id: null });
+    state.party = true;
+    state.myApplication = { status: "accepted", closed_reason: null };
+    state.onCrew = true;
+    state.crewConfirmed = true;
+    const long = new Date(Date.now() - 3 * 3600_000).toISOString();
+    state.crewSlot = {
+      helper_confirmed_at: long, helper_on_the_way_at: long, helper_arrived_at: long, poster_confirmed_arrival_at: long,
+      poster_confirmed_working_at: long, helper_completed_at: null, proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"],
+    };
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Mark my part done" }));
+    expect(screen.queryByRole("button", { name: "See your crew steps" })).toBeNull();
+    expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
   });
 
   it("an applicant NOT on the crew still reads as closed out", async () => {
@@ -1495,7 +1516,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
 // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const cells = (stepRight ? [second, leadNode] : [leadNode, second]).filter(Boolean); |   const cells = [leadNode, second].filter(Boolean);
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0; |     const cardLead = false;
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const approveLeft = isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease |   const approveLeft = false && isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease
-// @mutate src/pages/jobs/jobPage/JobPage.tsx | owesReview, review: () => setReviewOpen(true) }) | review: () => setReviewOpen(true) })
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data }) | review: () => setReviewOpen(true), crewSlot: crewSlot.data })
 describe("one row of buttons at every stage (B93)", () => {
   const live = { customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
     helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",

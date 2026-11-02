@@ -16,6 +16,21 @@
  */
 
 export const TEAM_THREAD_NAME = "Louisiana Helpr Team";
+
+/**
+ * Q1883: every code admin_send_team_message raises, each final for that text (not staff, own account, empty,
+ * too long, account gone). Kept here, not only as keys of ADMIN_RPC_ERROR_COPY, because that table is a lazy
+ * chunk: when it cannot load, the team thread still has to know a refusal is final and offer no retry. The
+ * keys of ADMIN_RPC_ERROR_COPY.admin_send_team_message must equal this list (sendHandlers.teamRefusal.test.ts).
+ */
+export const ADMIN_SEND_TEAM_MESSAGE_CODES = [
+  "admin_only",
+  "cannot_message_self",
+  "empty_message",
+  "message_too_long",
+  "user_not_found",
+] as const;
+
 /** The app icon stands in for a face on the user's side of the thread. */
 export const TEAM_THREAD_AVATAR = "/apple-touch-icon.png";
 

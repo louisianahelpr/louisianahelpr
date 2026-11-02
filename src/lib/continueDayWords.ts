@@ -55,7 +55,7 @@ export function continueDayNextStep(
       : { who: "them", text: `Continuing ${when}`, by: `waiting on ${other || "your Helpr"} to confirm` };
   }
   return row.helper_confirmed_at
-    ? { who: "info", text: `You're set for ${when}`, by: "complete the job when you finish" }
+    ? { who: "info", text: `You're set for ${when}`, by: "mark it done when you finish" }
     : { who: "you", text: "Confirm you'll be there", by: `continuing ${when}` };
 }
 

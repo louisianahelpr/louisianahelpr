@@ -9,7 +9,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 export async function fetchMyRefundedCents(orderIds: string[]): Promise<Map<string, number> | null> {
   if (orderIds.length === 0) return new Map();
@@ -20,7 +19,14 @@ export async function fetchMyRefundedCents(orderIds: string[]): Promise<Map<stri
     rows = (unwrap(res) ?? []) as { order_id: string; refunded_cents: number }[];
   } catch (thrown) {
     const e = thrown as Error & { userMessage?: string };
-    const words = rpcErrorMessage("declutter_my_refunded_cents", thrown);
+    // lifecycleErrors.ts is loaded only here, on a failure, as in paidCents.ts: Money > Spent reads this on
+    // /profile?tab=earnings, and the static import pulled lifecycleErrors and the signed-in-deep chunk (with
+    // signed-in-pages, declutter-first-screen and three more behind it) onto that route's first screen: 386 -> 509 KB gz,
+    // 6 -> 8 rounds (critical-path budget, Q178; L33 train 11-02).
+    const copy = await import("@/lib/lifecycleErrors").catch(
+      () => null, // Not silent: the error itself is still thrown below; only its specific sentence is lost.
+    );
+    const words = copy ? copy.rpcErrorMessage("declutter_my_refunded_cents", thrown) : null;
     if (words && Object.isExtensible(e)) e.userMessage = words;
     throw e;
   }

@@ -46,6 +46,7 @@ export function usePosterPageActions({
   pending,
   onChanged,
   flows,
+  refundOpen = false,
 }: {
   job: JobPageRow | null | undefined;
   userId: string;
@@ -59,6 +60,8 @@ export function usePosterPageActions({
   onChanged: () => void;
   /** The Posted card's own flows, mounted on this page (usePosterPageFlows). */
   flows: PosterPageFlows;
+  /** Q2694: a refund request on this job still waits for the Helpr's answer (its panel's line is the next step). */
+  refundOpen?: boolean;
 }): {
   /** The step due now, or Message when none is (the page's lead without an override). */
   primary: PagePrimary | null;
@@ -113,7 +116,9 @@ export function usePosterPageActions({
   // Q2594 (Jobs audit 1102b row 8): while a dispute is open the money stays held and Louisiana Helpr decides, so the
   // poster's lead is never Approve (its sheet does not know about the case); Message leads and "See the case" sits
   // under the tracker. has_active_dispute covers an open case on a job whose row is still in progress.
-  const disputeOpen = status === "disputed" || !!job.has_active_dispute;
+  // Q2694 (lead 11-02): the same while a refund request waits for the Helpr's answer: the panel's "Waiting on Eli"
+  // is the one next line, so Approve is not offered beside it (withdraw the request first).
+  const disputeOpen = status === "disputed" || !!job.has_active_dispute || refundOpen;
   const primaryOrMessage: PagePrimary | null =
     posterWait === "confirm_still_on"
       ? { label: "Confirm it's still on", go: () => setConfirmAsk((n) => n + 1) }
@@ -145,7 +150,8 @@ export function usePosterPageActions({
     const step = override !== undefined ? override : primaryOrMessage === message ? null : primaryOrMessage;
     const msg: RowAction | null = message ? { key: "message", label: message.label, go: message.go } : null;
     // No step of the page's own, and the card has one (Review, Tip on a finished job): the card's leads.
-    const cardLead = !step && cardSteps && flows.leadCount > 0;
+    // Q2694: never while a refund request waits (the card's primary there is its own Approve): Message leads.
+    const cardLead = !step && cardSteps && flows.leadCount > 0 && !refundOpen;
     const lead: RowAction | null = step ? { key: "step", label: step.label, go: step.go, disabled: step.disabled } : cardLead ? null : msg;
     const extras = [...(lead === msg ? [] : msg ? [msg] : []), ...pageExtras(), ...moreExtras];
     return (

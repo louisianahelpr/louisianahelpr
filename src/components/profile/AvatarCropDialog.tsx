@@ -122,7 +122,7 @@ export function useAvatarCrop() {
             Cancel
           </DialogSecondaryAction>
           <DialogPrimaryAction onClick={save} disabled={saving || !area}>
-            {saving ? "Saving…" : "Use Photo"}
+            {saving ? "Saving…" : "Use photo"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

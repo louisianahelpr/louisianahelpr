@@ -6,7 +6,7 @@
  * The 10-30 jobs audit: on guest Browse, tapping a card went straight to the sign-up form with no job shown first.
  * Holds, for both guest surfaces (the Browse tap and a shared /jobs/:id link, guestOpensSharedJobLink covers the link):
  *  - the preview prints exactly the four facts and the title, nothing from the description, poster or address;
- *  - "Sign Up to Apply" carries the job's id; the X closes;
+ *  - "Sign up to apply" carries the job's id; the X closes;
  *  - the take-home equals the guest card's JobPrice chip for the same row (flat stamp, crew split, rush fee);
  *  - guest Browse's card tap opens that preview (it no longer navigates to sign-up), and its dialog is the preview.
  *
@@ -68,14 +68,14 @@ describe("the guest job preview", () => {
     ]);
   });
 
-  it("Sign Up to Apply carries the job; the X closes; no drag bar", () => {
+  it("Sign up to apply carries the job; the X closes; no drag bar", () => {
     const onSignUp = vi.fn();
     const onClose = vi.fn();
     render(<GuestJobPreview job={JOB} onClose={onClose} onSignUp={onSignUp} />);
     const sheet = document.querySelector("[data-guest-job-preview]") as HTMLElement;
     expect(sheet.querySelector("[data-sheet-handle]")).toBeNull();
     expect(screen.queryByRole("button", { name: /^not now$/i })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Sign Up to Apply" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign up to apply" }));
     expect(onSignUp).toHaveBeenCalledWith(JOB.id);
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(onClose).toHaveBeenCalled();

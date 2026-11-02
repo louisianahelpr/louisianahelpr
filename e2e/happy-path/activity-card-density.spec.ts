@@ -739,7 +739,7 @@ test.describe("My Posts — card density + header", () => {
     // dialog is stacked and `toHaveCount(0)` never arrives — the app being
     // careful read as this test's own failure (WebKit, 2026-09-15). Answer the
     // guard the way a user would, then assert the card is still expanded.
-    const discard = page.getByRole("button", { name: /^Discard Changes$/ });
+    const discard = page.getByRole("button", { name: /^Discard changes$/ });
     if (await discard.count()) await discard.first().click();
     // The More panel (a Radix popover, role=dialog) can take the first Escape;
     // close whatever is still up, the way a user would, before judging the card.

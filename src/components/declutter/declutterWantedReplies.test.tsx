@@ -5,6 +5,8 @@
  * whole price. No pronouns.
  *
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |   const tooHigh = cents !== null && limit !== null && cents > limit; |   const tooHigh = false;
+ * A3-80 (audit 2026-11-01): before Send, the sheet says the buyer has 48 hours and the listing stays up meanwhile.
+ * @mutate src/components/declutter/DeclutterWantedReplies.tsx | Your listing stays up at {formatPrice(item.current_price_cents)}; | Your listing stays up;
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |     if (post && it) setPrice(String(Math.min(post.max_price_cents, it.current_price_cents) / 100)); |     if (post && it) setPrice(String(it.current_price_cents / 100));
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |     mutationFn: () => replyToWanted(post!.id, itemId!, cents!), |     mutationFn: () => replyToWanted(post!.id, itemId!, limit!),
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |             {w.replied ? ( |             {false ? (
@@ -101,6 +103,7 @@ describe("board 117: Wanted near you and I have this", () => {
     const price = within(sheet).getByLabelText("Your price");
     expect(price).toHaveValue("30");
     expect(within(sheet).getByText(/You keep the whole/).textContent).toBe("You keep the whole $30. If Lexi accepts, Lexi pays and you're paid after the handover.");
+    expect(within(sheet).getByText(/48 hours to accept/).textContent).toBe("Lexi has 48 hours to accept. Your listing stays up at $40; if someone else buys it first, this answer ends.");
     expect(sheet.textContent).not.toMatch(/\b(he|she|his|her)\b/);
     fireEvent.change(price, { target: { value: "31" } });
     expect(within(sheet).getByRole("alert").textContent).toContain("Up to $30, the lower of their Wanted price and your listing's price.");

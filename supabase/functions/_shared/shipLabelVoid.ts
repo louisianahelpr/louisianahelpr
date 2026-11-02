@@ -12,6 +12,9 @@
  *      recorded, never asked again; a shipment never asked (a crash between 1 and the POST) is asked once now;
  *      'submitted' waits for the next run; 'rejected' is recorded and pages ops (spent postage: the seller-debt rule
  *      of 5.3 books it in S6 part 2). A network or provider error is kept on the row and retried next run.
+ *   3. (B134) once a void is settled (voided or void_rejected) the order is closed by declutter_ship_hold_released
+ *      (20261102030530): an order whose hold is gone closes at no charge, items back on sale, both sides told; an order
+ *      whose money was taken answers 'not_held' and is left alone. Any other answer or a failure pages ops.
  * TEST MODE ONLY until the owner turns shipping on (lead 2026-10-30): a live-mode label is never touched.
  * The ports are injected so vitest drives every branch (src/test/shipLabelVoid.test.ts); shipLabelRun.ts wires
  * EasyPost and the service-role database.
@@ -39,7 +42,16 @@ export interface VoidPorts {
   /** Keeps the provider's error on the row (never the buyer's address); the row stays void_requested. */
   recordVoidError(id: string, error: string): Promise<void>;
   page(title: string, message: string, fields: Record<string, string>): Promise<void>;
+  /**
+   * B134: declutter_ship_hold_released (20261102030530) once the void is settled: an order whose hold is gone closes
+   * at no charge (items back on sale, both sides told). It answers 'closed' / 'already', or 'not_held' for an order
+   * whose money was taken (never closed this way); anything else is paged.
+   */
+  closeOrder(orderId: string): Promise<string>;
 }
+
+/** The answers of closeOrder that need nobody. */
+const CLOSE_FINE = new Set(["closed", "already", "not_held"]);
 
 /** The carrier has not taken the parcel: no acceptance scan and no tracking past pre-transit. */
 export function beforePickup(s: Pick<VoidableShipment, "tracking_status" | "accepted_at">): boolean {
@@ -69,9 +81,25 @@ export type VoidOutcome = "voided" | "void_rejected" | "void_wait" | "void_retry
 export async function runShipVoid(s: VoidableShipment, p: VoidPorts): Promise<VoidOutcome> {
   if (s.label_mode !== "test") return "skipped_live";
   const expect = { shipmentId: s.provider_shipment_id, mode: "test" as const };
+  // B134: the void is settled (the row has left void_requested, so this pass never sees it again): close the order now.
+  // A close that fails or answers something unexpected is paged, never thrown (it would not be retried).
+  const close = async () => {
+    let answer: string;
+    try {
+      answer = await p.closeOrder(s.declutter_order_id);
+    } catch (e) {
+      answer = `error: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200);
+    }
+    if (!CLOSE_FINE.has(answer)) {
+      await p.page("Shipped order: label voided but the order did not close",
+        `The label was voided but closing the order answered "${answer}". Close the order by hand.`,
+        { Order: s.declutter_order_id, Shipment: s.provider_shipment_id });
+    }
+  };
   const settle = async (state: ReturnType<typeof labelStateAfterVoid>): Promise<VoidOutcome | null> => {
     if (state === "voided") {
       await p.recordVoid(s.id, "voided");
+      await close();
       return "voided";
     }
     if (state === "void_rejected") {
@@ -79,6 +107,7 @@ export async function runShipVoid(s: VoidableShipment, p: VoidPorts): Promise<Vo
       await p.page("Shipping label void rejected",
         "EasyPost rejected the void of a label that was never used. The postage is spent (seller debt, Shipping S6 part 2).",
         { Order: s.declutter_order_id, Shipment: s.provider_shipment_id });
+      await close();
       return "void_rejected";
     }
     if (state === "void_requested") return "void_wait";

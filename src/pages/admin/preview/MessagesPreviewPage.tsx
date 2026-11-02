@@ -66,6 +66,11 @@ function PreviewBackend({ sample, children }: { sample: MessagesPreviewSample; c
       setReady(false);
     };
   }, []);
+  // Audit 1102e: a new stage or side drops the shared reads too. The block read is kept 2 s (userBlocks.ts), so "After
+  // a block" opened within 2 s of another stage drew that stage's blocks (none), and Eli stayed in the inbox.
+  useLayoutEffect(() => {
+    forgetSharedReads();
+  }, [sample]);
   return ready ? <>{children}</> : null;
 }
 
@@ -222,7 +227,7 @@ export default function MessagesPreviewPage() {
         </InertNavigation>
       </QueryClientProvider>
       <PreviewErrorBoundary resetKey="controls">
-        <Controls stage={stage} side={side} onStage={(s) => set({ stage: s })} onSide={(s) => set({ side: s })} onLeave={() => navigate("/admin?tab=settings")} />
+        <Controls stage={stage} side={side} onStage={(s) => set({ stage: s })} onSide={(s) => set({ side: s })} onLeave={() => navigate("/admin?view=reports")} />
       </PreviewErrorBoundary>
     </PreviewBackend>
   );

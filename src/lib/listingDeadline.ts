@@ -4,7 +4,6 @@
  * left" sat on work starting in 30 minutes. The browse card's countdown chip and the job dialog's tile both read this.
  * Guard: src/test/listingDeadline.test.tsx, JobStatTiles.test.tsx.
  */
-import { differenceInHours } from "date-fns";
 import { formatTimeLeft, jobStartDateTime } from "@/lib/dateUtils";
 
 /** The instant a job starts: its start time in the job's zone, or the END of
@@ -41,7 +40,9 @@ export function listingChip(job: Parameters<typeof listingDeadline>[0], now: Dat
   if (!first) return null;
   const startPassed = first.startsFirst && first.at.getTime() <= now.getTime();
   const at = startPassed ? new Date(Date.parse(job.expires_at!)) : first.at;
-  const hours = differenceInHours(at, now);
+  // Whole hours, truncated (date-fns differenceInHours' default). Plain math on purpose: date-fns here put its 7.9 KB gz
+  // "dates" chunk on /home's critical path (CountdownRows -> browse-home-shared; Q178 budget, train 2 11-02).
+  const hours = Math.trunc((at.getTime() - now.getTime()) / 3_600_000);
   const expired = at.getTime() <= now.getTime();
   if (!expired && hours >= 48) return null;
   // formatTimeLeft owns "Expired" too: one rule for when a listing has closed.

@@ -9,7 +9,8 @@
  * The second half reads every Declutter seller-facing source file and refuses the old wordings anywhere in code.
  *
  * @mutate src/lib/declutter/sellerPayoutRule.ts | If you tap "Picked up" and the buyer says nothing, you're paid about 48 hours later. | If you tap "Picked up", you're paid 24 hours later.
- * @mutate src/lib/declutter/sellerPayoutRule.ts | If neither of you says anything, the money stays held. | If neither of you says anything, you're paid after 7 days.
+ * @mutate src/lib/declutter/sellerPayoutRule.ts | "Picked up" and the buyer says nothing, you're paid about 48 hours later. If neither of you says anything, the money stays held. | "Picked up" and the buyer says nothing, you're paid about 48 hours later. If neither of you says anything, you're paid after 7 days.
+ * @mutate src/lib/declutter/sellerPayoutRule.ts | "Handed over" and the buyer says nothing, you're paid about 48 hours later. If neither of you says anything, the money stays held. | "Handed over" and the buyer says nothing, you're paid about 48 hours later. If neither of you says anything, you're paid after 7 days.
  * @mutate src/lib/declutter/sellerPayoutRule.ts | If you mark it delivered and the buyer says nothing, you're paid about 48 hours later. | If you mark it delivered, you're paid in 24 hours.
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | left it at the buyer's address. ${sellerPayoutRule("delivery")} | left it at the buyer's address. You're paid when the buyer confirms, or after 24 hours.
  */
@@ -33,7 +34,11 @@ describe("the seller's payout rule, per handover kind", () => {
   });
 
   it("door and meeting spot: nobody says anything, the money stays held (owner 10-30: no auto-pay)", () => {
-    for (const k of ["pickup_home", "meetup"] as const) {
+    // Q2632: at a safe meeting spot the seller's button is "Handed over".
+    // @mutate src/lib/declutter/sellerPayoutRule.ts | If you tap "Handed over" and | If you tap "Picked up" and
+    expect(sellerPayoutRule("meetup")).toContain('If you tap "Handed over" and the buyer says nothing, you\'re paid about 48 hours later.');
+    expect(sellerPayoutRule("meetup")).toContain("If neither of you says anything, the money stays held.");
+    for (const k of ["pickup_home"] as const) {
       expect(sellerPayoutRule(k)).toContain('If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later.');
       expect(sellerPayoutRule(k)).toContain("If neither of you says anything, the money stays held.");
     }

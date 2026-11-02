@@ -224,6 +224,7 @@ export function PickedUpSheet({
   free = false,
   pending,
   onConfirm,
+  label = "Picked up",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -233,15 +234,17 @@ export function PickedUpSheet({
   free?: boolean;
   pending: boolean;
   onConfirm: () => void;
+  /** Q2632: "Handed over" at a safe meeting spot; "Picked up" at the door. */
+  label?: string;
 }) {
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!pending) onOpenChange(o); }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} data-picked-up-sheet="">
         <SheetHero title={`Did ${who} take it?`} />
-        <Note>{free ? `Tap Picked up once ${who} has it. That finishes the free pickup.` : "We ask the buyer to confirm. If they don't say anything, you're paid in about 48 hours."}</Note>
+        <Note>{free ? `Tap ${label} once ${who} has it. That finishes the free pickup.` : "We ask the buyer to confirm. If they don't say anything, you're paid in about 48 hours."}</Note>
         <SheetFooter>
           <SheetSecondaryAction onClick={() => onOpenChange(false)} disabled={pending}>Not yet</SheetSecondaryAction>
-          <SheetPrimaryAction onClick={onConfirm} disabled={pending}>Picked up</SheetPrimaryAction>
+          <SheetPrimaryAction onClick={onConfirm} disabled={pending}>{label}</SheetPrimaryAction>
         </SheetFooter>
       </SheetContent>
     </Sheet>

@@ -865,7 +865,9 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   it("board 72: porch, the seller: booked until the photo, told to put it out, and paid the whole item price by the real rule", async () => {
     // Booked but no porch photo yet: still Paid (a porch pickup is Ready only once the photo is in).
-    state.bookings = [slot(-120)];
+    // Starts now, not in 2 h: the photo day is the slot's local date (Q2626), so a slot 2 h ahead fell on tomorrow
+    // after 22:00 and the card said the day instead (red on CI, which runs in UTC, from 22:00Z; #4022/#4023 shard 5).
+    state.bookings = [slot(0)];
     state.handover = { side: "seller" };
     show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
     expect((await screen.findAllByText(/^Pickup:/)).length).toBeGreaterThan(0);

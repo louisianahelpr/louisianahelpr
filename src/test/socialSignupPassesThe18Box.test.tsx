@@ -28,6 +28,7 @@
  * @mutate src/pages/auth/CompleteProfile.tsx |                   {t("profileGate.ageConfirm")} <span | <span
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = false;
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = true;
+ * @mutate src/components/postjob/CityAutocomplete.tsx |         required={required} |         required
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -204,6 +205,31 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
     } finally {
       socialUser.app_metadata.provider = "google";
       socialProfile.full_name = name;
+    }
+  });
+});
+
+// A3-100 (audit 11-01): "City (optional)" was required by the browser (CityAutocomplete hard-coded `required`), so
+// "Enter App" stopped at "Please fill out this field." and no save was sent. City is optional (owner 2026-10-26).
+describe("Complete Profile: an empty optional City never blocks Enter App", () => {
+  it("the City box is not required, and the form is valid and saves with City empty", async () => {
+    updates.length = 0;
+    const was = { location: socialProfile.location, zip: socialProfile.zip_code };
+    socialProfile.location = "";
+    socialProfile.zip_code = "";
+    try {
+      const { container } = renderPage();
+      const city = container.querySelector<HTMLInputElement>("#city");
+      expect(city).not.toBeNull();
+      expect(city!.required).toBe(false);
+      expect(city!.validity.valueMissing).toBe(false);
+      expect(container.querySelector("form")!.checkValidity()).toBe(true);
+      fireEvent.click(screen.getByRole("checkbox", { name: /I confirm I am 18 years of age or older/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Enter App/ }));
+      await waitFor(() => expect(updates).toHaveLength(1));
+    } finally {
+      socialProfile.location = was.location;
+      socialProfile.zip_code = was.zip;
     }
   });
 });

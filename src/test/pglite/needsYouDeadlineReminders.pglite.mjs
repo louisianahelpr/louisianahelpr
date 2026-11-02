@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261102002011_needs_you_deadline_reminders.sql (A3-85, owner 11-01 12:19 PM): a member with a
+ * PGlite proof for 20261102002011_needs_you_deadline_reminders.sql (A3-85, owner 2026-11-01 12:19 PM): a member with a
  * Declutter step due (answer an offer, answer a refund request or a refund offer) gets a reminder about 12 hours and
  * 2 hours before the deadline, at most 2 per item per Louisiana day, never 8:50 PM-8 AM, never after the step is done
  * or the deadline passed, never for test data; the needs-you notices (these, plus the existing checkout, pickup and
@@ -141,7 +141,7 @@ check("an answered offer is never reminded", (await notes(B, "%offer%")).length 
 await q(`insert into declutter_offers(item_id,buyer_id,seller_id,status,awaiting,respond_by) values ($1,$2,$3,'open','buyer',$4)`, [ITEM, B, A, at(NOON, 20)]);
 check("an offer already past its deadline gets nothing", (await sweep(at(NOON, 21))) === 0);
 
-// Cap: 2 per item per day, even when the deadline resets (a counter-offer bounce).
+// The daily cap per item holds even when the deadline resets (a counter-offer bounce).
 const DAY2 = at(NOON, 24); // next day noon
 await q(`update declutter_offers set respond_by=$2 where id=$1`, [OFF, at(DAY2, 10)]);
 check("next day, a new deadline for the same offer: reminded again", (await sweep(DAY2)) === 1);

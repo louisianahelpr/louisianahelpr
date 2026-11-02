@@ -259,10 +259,9 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
       insuranceExt,
       insuranceContentType,
       isInsured,
-      // Session-only (not in NO_SESSION_FIELDS). A phone on the
-      // no-session path went straight to enforce_retained_ban, so a stranger
-      // who typed a banned number for a brand-new account got its real owner
-      // banned (or, once Q1714 lands, flagged).
+      // Session-only (not in NO_SESSION_FIELDS). A phone on the no-session
+      // path would be saved for whoever owns that new account. Q1903: the
+      // phone itself is never sent to enforce_retained_ban (see below).
       phone,
       bio,
       location,
@@ -448,21 +447,23 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
       });
     }
 
-    // ── Retained-ban check on the PHONE ───────────────────────────────────
+    // ── Retained-ban re-check when a phone is given (Q1903) ─────────────────
     //
-    // `handle_new_user()` already checked the email at `auth.users` INSERT.
-    // It could not check the phone, because email/password signup leaves
-    // `auth.users.phone` NULL — this function is the first moment the number
-    // is known, and it is the last moment before the profile becomes real.
+    // `handle_new_user()` checked the email at `auth.users` INSERT; this
+    // re-checks it (and nothing else) right before the profile becomes real,
+    // BEFORE any storage upload or profile write, so a banned person does not
+    // fill the ID/licence/insurance buckets on the way to being refused.
     //
-    // Ordering matters: this runs BEFORE any storage upload or profile write,
-    // so a banned person returning under a new address does not get to fill
-    // the ID/licence/insurance buckets on the way to being refused.
+    // The PHONE is never sent (p_phone null). Since Q1714 (owner 2026-10-15,
+    // "just flag it") a phone match only files a doubt-check, never a ban, and
+    // the profiles UPDATE trigger flag_possible_ban_evasion_by_phone files that
+    // same doubt-check when this function actually writes the phone. Sending it
+    // here filed one for a number the request might then fail to save.
     //
-    // `enforce_retained_ban` re-applies the original judgment to this account
-    // (so signing in lands them on /account-banned with the real reason and
-    // the Contact Support appeal route) and tells us it did, so we can also
-    // stop the completion here with a message that is not a generic 500.
+    // `enforce_retained_ban` re-applies an email or identity ban to this
+    // account (so signing in lands them on /account-banned with the real
+    // reason and the appeal route) and tells us it did, so the completion
+    // stops here with a plain 403, not a generic 500.
     //
     // FAILS OPEN, deliberately and narrowly: an unreachable RPC must not turn
     // into "nobody can finish signing up". The check runs again on every
@@ -470,19 +471,18 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
     // fail open at all.
     if (phone) {
       try {
-        // The email goes in too, so the fraud flag this raises can name the
-        // address the person is attempting — the operator's whole starting
-        // point. It costs nothing on the match itself: `handle_new_user` has
-        // already checked this address at `auth.users` INSERT.
+        // The email: the fraud flag this raises names the address the person
+        // is attempting, the operator's whole starting point.
         const { data: authForBan } = await supabase.auth.admin.getUserById(userId);
         const { data: banCheck, error: banErr } = await supabase.rpc("enforce_retained_ban", {
           p_user_id: userId,
           p_email: authForBan?.user?.email ?? null,
-          p_phone: phone,
+          // Q1903: never the phone (the profiles trigger files its doubt-check when it is saved).
+          p_phone: null,
           p_identity_sha256: null,
         });
         if (banErr) {
-          console.error("[complete-signup] retained-ban phone check failed:", banErr.message);
+          console.error("[complete-signup] retained-ban re-check failed:", banErr.message);
         } else if (banCheck?.banned) {
           console.warn(
             `[complete-signup] refused: retained ban matched on ${banCheck.matched_on} for ${userId}`,
@@ -508,7 +508,7 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
           );
         }
       } catch (e) {
-        console.error("[complete-signup] retained-ban phone check threw:", e);
+        console.error("[complete-signup] retained-ban re-check threw:", e);
       }
     }
 

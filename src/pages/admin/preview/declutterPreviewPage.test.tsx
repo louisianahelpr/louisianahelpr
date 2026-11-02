@@ -8,7 +8,7 @@
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |   globalThis.fetch = previewFetch; |   void previewFetch;
  * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_my_free_pause: null,\n |
  * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_order_meetups: [],\n |
- * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |      o.onUnlisted?.(`rpc ${name}`); |      void name;
+ * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |       if (Object.prototype.hasOwnProperty.call(s.reads, name)) { |       if (false) {
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";

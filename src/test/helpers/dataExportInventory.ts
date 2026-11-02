@@ -184,6 +184,10 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // CMP-4 instant book (20261101063725, 20261101065105; exported by 20261101140006): the Helpr's own floors and declines.
   instant_book_floors: { by: ["helper_id"] },
   instant_book_declines: { by: ["helper_id"] },
+  // Continue another day (20261101231015; exported by 20261102030000, LEAD-EXPORT-CONTINUE-DAY): the member's own
+  // jobs' rows (poster or Helpr) plus any row the member wrote.
+  job_continue_days: { by: ["proposed_by", "decided_by"] },
+  job_continue_events: { by: ["actor_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.
@@ -351,8 +355,6 @@ export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stri
 export const POSTER_SIDE_EXEMPT: Record<string, string> = {
   job_checkins: "a check-in is the Helpr's own location event, exported to them by user_id; never the poster's data",
   job_tracking: "the Helpr's live location trail, exported to them by helper_id; never the poster's data",
-  job_continue_days: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY",
-  job_continue_events: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY",
 };
 
 /**
@@ -573,6 +575,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "shops.hidden_by": { reason: "the staff member who hid a shop; the shop is the member's (exported by shops.owner_id, 20261017061157, with this staff id dropped; the hide reason stays)", stripped: true },
   "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
+  "declutter_orders.book_by": { reason: "a deadline timestamp (when the buyer must pick a pickup or delivery time, the handover sweep's 7-day mark; 20261101230519), not a person; the order is exported by declutter_orders.buyer_id/seller_id" },
   "declutter_offers.respond_by": { reason: "a deadline timestamp (when the offer must be answered), not a person; the offer is exported by declutter_offers.buyer_id/seller_id (20261014210518)" },
   "declutter_refund_requests.answer_by": { reason: "a deadline timestamp (when the seller must answer a refund request), not a person; the table has no person column (keyed by order_id; the buyer and seller are the order's, exported by declutter_orders.buyer_id/seller_id; 20261026155251)" },
   "declutter_refund_requests.return_by": { reason: "a deadline timestamp (when the seller must confirm the item came back after agreeing a full refund, #3558), not a person; the table has no person column (keyed by order_id; 20261026155251)" },
@@ -663,10 +666,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "job_match_queue.send_email": { reason: "a boolean (send the parish email or not), not a person: matched by name only" },
   "saved_searches.notify_email": { reason: "a boolean (Q2275: the saved search's email channel on or off), not a person: matched by name only" },
   "application_nudge_sends.user_id": { reason: "owner 2026-10-29 (UX-3, Q2484): which job's poster was sent the one 24-hour \"Your applicants are waiting\" nudge and when, service role only; the nudge itself is exported as the member's notifications, and the rows are deleted with the account" },
-  "job_continue_days.proposed_by": { reason: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY" },
-  "job_continue_days.decided_by": { reason: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY" },
-  "job_continue_events.actor_id": { reason: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY" },
   "declutter_talk_reminder_sends.user_id": { reason: "owner 11-01 (20261101200929): which unread Declutter chat message got the 15-minute or 2-hour reminder for which member and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },
+  "needs_you_reminder_sends.user_id": { reason: "owner 11-01 (20261102002011): which offer or refund deadline reminder (about 12 hours, the last 2 hours) went to which member and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },
   "unread_message_reminder_sends.user_id": { reason: "owner 11-01 (20261101183017): which unread message got the 15-minute or 2-hour reminder for which member and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },
   "helpr_start_reminder_sends.user_id": { reason: "owner 2026-10-29 (Q2483): which start reminder (2 hours, 8 AM, head out) went to the Helpr for which job and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },
   "payout_setup_reminders.helper_id": { reason: "owner 2026-10-25: which payout setup reminder (hired, day 1/3/7, money waiting) went to the Helpr and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },

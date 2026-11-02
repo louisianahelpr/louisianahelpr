@@ -100,7 +100,11 @@ describe("D1: marketplace listing reads hide test sellers' rows by the launch sw
   });
 
   it("the Declutter items policy keeps the seller's own rows and uses the discovery predicate (admins not spared)", () => {
-    const p = discovery.find((x) => x.table === "declutter_items");
+    // The MEMBERS' policy (TO authenticated). Since 20261102022901 restated it after the guests' one (20261031060656,
+    // TO anon: no own rows, never seeds), the first declutter_items match was the guest policy (train 1, 11-02).
+    const items = discovery.filter((x) => x.table === "declutter_items");
+    expect(items.length).toBeGreaterThan(0);
+    const p = items.find((x) => /\bTO\s+authenticated\b/i.test(x.stmt));
     expect(p).toBeDefined();
     const body = blankSqlComments(p!.stmt);
     expect(body).toMatch(/seller_id\s*=\s*\(SELECT auth\.uid\(\)\)/);

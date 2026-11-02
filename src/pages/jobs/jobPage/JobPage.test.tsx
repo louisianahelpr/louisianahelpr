@@ -1840,7 +1840,8 @@ describe("JA-17: Accept and Decline on the job page", () => {
     state.party = true;
     workingApps.rows = [workingRow("44444444-4444-4444-4444-444444444444", "app-other"), workingRow(state.job.id, "app-this")];
     renderPage();
-    const accept = await screen.findByRole("button", { name: /Accept job/ });
+    // The Working card is lazy: the 1 s default timed out on a loaded CI shard (#3987, 1042 ms).
+    const accept = await screen.findByRole("button", { name: /Accept job/ }, { timeout: 5000 });
     expect(screen.queryByRole("button", { name: "See the offer" })).toBeNull();
     expect(screen.getByTestId("offer-dialogs")).toBeTruthy();
     fireEvent.click(accept);

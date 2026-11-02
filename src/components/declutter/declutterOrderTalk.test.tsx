@@ -39,6 +39,10 @@ vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonner
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 // B112: the open chat marks the viewer's side read (declutter_mark_talk_read).
 const marked = vi.fn(async (_kind: string, _ref: string) => undefined);
+// The chat's next-step line (OrderTalkStep, lazy) reads the cart, bookings and delivery itself; it has its own proof in
+// declutterNextStepLows.test.tsx. Left real, its lazy chunk resolved mid-run on CI and its declutter_my_cart read hit
+// the prod-network guard in a later test (L32, PR #3987 shard 5).
+vi.mock("@/components/declutter/OrderTalkStep", () => ({ default: () => null }));
 vi.mock("@/lib/declutter/talkRead", () => ({ markTalkRead: (kind: string, ref: string) => marked(kind, ref) }));
 vi.mock("@/lib/declutter/orderTalk", () => ({
   MY_ORDER_TALKS_KEY: ["declutter", "my-order-talks"],

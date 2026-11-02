@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { CreditCard, DollarSign } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +20,23 @@ const completedAtMs = (j: SpentJobRow) => {
     ? j.cancelled_at
     : j.poster_completed_at ?? j.helper_completed_at;
   return completedAt ? new Date(completedAt).getTime() : new Date(j.created_at).getTime();
+};
+
+/**
+ * A3-111 (audit 8, 11-01): a row says where its money stands: Cancelled, or, on a job not done yet, the charge is held
+ * until the poster approves the work (posterSpend's held rule). A done job needs no word.
+ */
+export function spentStatusWord(r: SpentRow<SpentJobRow>): string {
+  if (!r.job) return "";
+  if (r.job.status === "completed") return "";
+  if (r.job.status === "cancelled") return " · Cancelled";
+  return r.cents > 0 ? " · Held until the job is approved" : "";
+}
+
+/** A3-111: each row opens its job (a tip on a job opens that job); a tip with no job stays text. */
+export const spentRowHref = (r: SpentRow<SpentJobRow>): string | null => {
+  const id = r.job?.id ?? r.tip?.job_id ?? null;
+  return id ? `/jobs/${id}` : null;
 };
 
 /** A row's date: its job's (above), or a tip's own when it stands alone. */
@@ -132,15 +150,16 @@ export function SpentSection() {
           <h3 className="font-display font-bold leading-tight text-ds-17 pt-1" style={{ color: "hsl(var(--ink-deep))" }}>
             Jobs you paid for
           </h3>
-          {listed.map((r) => (
-            <div key={r.job?.id ?? `tip-${r.tip?.id}`} className="rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3">
+          {listed.map((r) => {
+            const href = spentRowHref(r);
+            const body = (<>
               <div className="flex-1 min-w-0">
                 <h4 className="font-display font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   {r.job ? r.job.title ?? "Job" : "Tip"}
                 </h4>
                 <p className="font-sans text-ds-12 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {formatShortDate(new Date(rowMs(r)))}
-                  {r.job?.status === "cancelled" ? " · Cancelled" : ""}
+                  {spentStatusWord(r)}
                   {refundedReceiptNote(r)}
                   {r.job && r.tipGivenCents > 0 ? ` · includes ${formatCents(r.tipGivenCents)} tip` : ""}
                   {r.job ? setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded) : ""}
@@ -149,8 +168,16 @@ export function SpentSection() {
               <p className="font-sans font-bold tabular-nums text-ds-16 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>
                 {formatCents(r.cents)}
               </p>
-            </div>
-          ))}
+            </>);
+            const rowClass = "rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3";
+            return href ? (
+              <Link key={r.job?.id ?? `tip-${r.tip?.id}`} to={href} data-spent-row="" className={`${rowClass} min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}>
+                {body}
+              </Link>
+            ) : (
+              <div key={`tip-${r.tip?.id}`} data-spent-row="" className={rowClass}>{body}</div>
+            );
+          })}
         </div>
       )}
 

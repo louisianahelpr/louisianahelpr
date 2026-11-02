@@ -26,7 +26,7 @@ import {
   type MessagesPreviewSample, type MessagesPreviewSide, type MessagesPreviewStage,
 } from "./messagesPreviewSamples";
 import { installMessagesPreviewFetch, messagesPreviewChecks } from "./messagesPreviewBackend";
-import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
+import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetSharedReads, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
 
 // The member's Messages page itself: the same module /messages lazy-loads (App.tsx).
 const Messages = lazy(() => import("@/pages/messages/Messages"));
@@ -55,9 +55,11 @@ function PreviewBackend({ sample, children }: { sample: MessagesPreviewSample; c
       onUnlisted: (what) => messagesPreviewChecks.onUnlisted?.(what),
     });
     const undoRealtime = installInertRealtime();
+    forgetSharedReads();
     setReady(true);
     return () => {
       undoRealtime();
+      forgetSharedReads();
       uninstall();
       document.removeEventListener("pointerdown", mark, true);
       document.removeEventListener("keydown", mark, true);

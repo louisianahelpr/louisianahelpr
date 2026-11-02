@@ -1,7 +1,7 @@
 // @mutate supabase/functions/_shared/cardHold.ts | if (opts.offerTo && hold.state !== "capturing" && | if (false && opts.offerTo && hold.state !== "capturing" &&
 // @mutate supabase/functions/_shared/cardHold.ts | (fresh.offered_to_helper_id !== opts.offerTo \|\| fresh.direct_offer_status !== "pending")) { | (fresh.direct_offer_status !== "pending")) {
 // @mutate supabase/functions/card-hold-sweep/index.ts | ? captureCardHold(depsFor(hold), id, { offerTo: helper }) | ? captureCardHold(depsFor(hold), id)
-// @mutate supabase/functions/create-payment/index.ts | jobId, directOpen ? { offerTo: user.id } : {}); | jobId, {});
+// @mutate supabase/functions/create-payment/index.ts | jobId, directOpen ? { offerTo: user.id } : offerOpen | jobId, false ? { offerTo: user.id } : offerOpen
 /**
  * CMP-4 money review FAIL (lead 2026-11-01): the sweep's 2-hour capture and
  * the Helpr's decline must never both win. This is the capture side
@@ -132,7 +132,7 @@ describe("instant book: a decline that lands after the capture's claim (CMP-4 ra
     const pay = blankComments(readFileSync("supabase/functions/create-payment/index.ts", "utf8"));
     const offerToSites = (sweep.match(/offerTo: helper\b/g) ?? []).length + (pay.match(/offerTo: user\.id/g) ?? []).length;
     expect(sweep).toContain("captureCardHold(depsFor(hold), id, { offerTo: helper })");
-    expect(pay).toContain("jobId, directOpen ? { offerTo: user.id } : {});");
+    expect(pay).toContain("jobId, directOpen ? { offerTo: user.id } : offerOpen ? { hireOf: user.id } : {});");
     expect(offerToSites).toBeGreaterThan(1);
   });
 });

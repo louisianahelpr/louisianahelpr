@@ -115,6 +115,7 @@ export const HELPER_STEP: Record<HelperWait, Entry> = {
   applied: at(0),
   offer: at(1),
   offer_expired: at(1, "problem", "Expired"),
+  offer_withdrawn: at(1, "problem", "Withdrawn"),
   confirm_booking: at(1),
   confirm_spot: at(1),
   confirmed: booked,

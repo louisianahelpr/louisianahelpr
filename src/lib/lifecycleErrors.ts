@@ -2426,6 +2426,14 @@ export const RPC_ERROR_COPY = {
   dismiss_sms_phone_prompt: {
     not_authenticated: "Sign in again to change your text alert settings.",
   },
+  // Q2604: the poster's Withdraw offer (20261102103429_poster_withdraws_an_offer.sql).
+  rpc_poster_withdraw_offer: {
+    offer_being_accepted: "Your Helpr is accepting this offer right now, so it can't be withdrawn. Check the job again in a minute.",
+    offer_not_active: "This offer was already answered or has ended. The job shows where it stands now.",
+    group_job_not_supported: "A crew's spots can't be withdrawn here.",
+    not_your_job: "Only the person who posted this job can withdraw its offer.",
+    not_authenticated: "Sign in again to withdraw this offer.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type MappedRpc = keyof typeof RPC_ERROR_COPY;

@@ -1654,7 +1654,7 @@ describe("one row of buttons at every stage (B93)", () => {
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const detailsLong = posterDetails.length > 90 |   const detailsLong = posterDetails.length > 90000
  * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const stepRight = cardLead \|\| (!!lead && !plainLead); |   const stepRight = cardLead \|\| leadIsStep;
  * @mutate src/components/tracker/jobProgressState.ts |   if (status === "in_progress" && !job.is_group_job && (job.proof_after_urls |   if (false && status === "in_progress" && !job.is_group_job && (job.proof_after_urls
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const offerOut = isPoster && open && job.direct_offer_status === "pending"; |   const offerOut = false;
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const offerOut = isPoster && offerIsOut(job); |   const offerOut = false;
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |  && job.direct_offer_status !== "pending"; | ;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | [msg, job.status === "cancelled" ? null : work] | [msg, work]
  */
@@ -1830,7 +1830,7 @@ describe("job page, no dead column at 1440", () => {
  * JA-49 (lead 11-01, B107): the poster's direct offer out names the offered Helpr and says until when it stands.
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  ?? (offerPending ? offerTarget.data ?? null : null) : null; |  : null;
  * @mutate src/components/tracker/jobNextStep.ts |     return { who: "them", text: `Waiting on ${other \|\| "the Helpr"} to accept your offer`, by }; |     return { who: "them", text: `Waiting on ${other \|\| "the Helpr"} to accept your offer` };
- * @mutate src/pages/jobs/jobPage/useJobPage.ts |  completed_at, direct_offer_expires_at, has_active_dispute, |  completed_at, has_active_dispute,
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts |  completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, |  completed_at, response_deadline, has_active_dispute,
  */
 describe("job page, the poster's direct offer out (JA-49)", () => {
   it("names the offered Helpr and the offer's expiry, read through get_job_offer_targets", async () => {

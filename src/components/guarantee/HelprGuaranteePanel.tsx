@@ -32,20 +32,23 @@ import {
   type GuaranteeClaim,
   type GuaranteeJob,
   guaranteeExplainerApplies,
+  guaranteeClaimBy,
 } from "@/lib/guarantee";
 
 // The summary panel's own card style (JobPageParts CARD): a card on a phone, a ruled section inside the panel from lg.
 const CARD = "space-y-3 rounded-2xl border border-border bg-card p-4 lg:rounded-none lg:border-0 lg:border-t lg:!border-border lg:bg-transparent lg:p-0 lg:pt-4 lg:!shadow-none";
 
+const laWhen = (d: Date) =>
+  new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(d);
 const when = (iso: string | null) =>
   iso ? new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso)) : "";
 
-/** The poster's one-paragraph explainer (also in the Terms). */
-function GuaranteeExplainer() {
+/** The poster's one-paragraph explainer (also in the Terms). A3-40: once the job is done, the window's end as a date. */
+function GuaranteeExplainer({ job }: { job: GuaranteeJob }) {
+  const by = guaranteeClaimBy(job);
   return (
     <p data-guarantee-explainer="" className="text-ds-13 text-muted-foreground">
-      Not done right? Tell us within 48 hours of
-      the job being done. Your Helpr comes back to fix it, and their pay waits until it's settled. If it can't be fixed,
+      {by ? `Not done right? Tell us by ${laWhen(by)}.` : "Not done right? Tell us within 48 hours of the job being done."} Your Helpr comes back to fix it, and their pay waits until it's settled. If it can't be fixed,
       we decide whether you get a refund of the job price.
     </p>
   );
@@ -264,7 +267,7 @@ export function HelprGuaranteePanel({ job, userId, side }: { job: GuaranteeJob; 
     return (
       <section aria-label="Helpr Guarantee" data-guarantee-panel="poster" className={CARD}>
         <p className="flex items-center gap-2 text-ds-15 font-semibold"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />Helpr Guarantee</p>
-        <GuaranteeExplainer />
+        <GuaranteeExplainer job={job} />
       </section>
     );
   }
@@ -285,7 +288,7 @@ export function HelprGuaranteePanel({ job, userId, side }: { job: GuaranteeJob; 
   return (
     <section aria-label="Helpr Guarantee" data-guarantee-panel="poster" className={CARD}>
       <p className="flex items-center gap-2 text-ds-15 font-semibold"><ShieldCheck className="h-4 w-4 text-primary" aria-hidden />Helpr Guarantee</p>
-      {c ? <PosterView claim={c} jobId={job.id} /> : <GuaranteeExplainer />}
+      {c ? <PosterView claim={c} jobId={job.id} /> : <GuaranteeExplainer job={job} />}
       {ask && <AskForFix job={job} userId={userId} />}
     </section>
   );

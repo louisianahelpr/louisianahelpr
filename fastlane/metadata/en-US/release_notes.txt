@@ -1,1 +1,9 @@
-Bug fixes and stability improvements.
+New in 1.0.4: Declutter, for buying and selling used household things with people near you.
+
+- Sell an item from a few photos, or list a bunch at once
+- Moving? Run a moving out sale, then hire a Helpr to haul away what's left
+- Give things away free, or post a Wanted for what you're looking for
+- Buy now or make an offer, then pick up, or have it delivered by the seller or a Helpr
+- Pay in the app. The money is held until the handover is confirmed
+
+Jobs, Messages and payments also get fixes and smaller improvements throughout.

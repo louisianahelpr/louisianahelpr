@@ -923,6 +923,9 @@ platform :ios do
         skip_metadata:                        false,
         metadata_path:                        staged_metadata_dir,
         skip_screenshots:                     !screenshots_present,
+        # Replace the live sets instead of adding beside them (App Store Connect caps
+        # each device at 10). Only takes effect when screenshots are being uploaded.
+        overwrite_screenshots:                screenshots_present,
         ignore_language_directory_validation: true
       }
       upload_args[:screenshots_path] = staged_screenshots_dir if screenshots_present

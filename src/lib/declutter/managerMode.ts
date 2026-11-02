@@ -106,6 +106,30 @@ export async function approveManagerDraft(itemId: string, attest: { personalUse:
   }), (e) => rpcErrorMessage("declutter_manager_approve", e));
 }
 
+/** One draft the seller's manager sent for her OK (declutter_manager_submissions, status waiting). */
+export interface WaitingDraft {
+  item_id: string;
+  title: string;
+  price_cents: number;
+  submitted_at: string;
+}
+
+/** The seller's "Waiting for your OK" list: her own waiting submissions (RLS: the two people read), oldest first. */
+export async function fetchWaitingDrafts(sellerId: string): Promise<WaitingDraft[]> {
+  const subs = await supabase.from("declutter_manager_submissions").select("item_id, submitted_at")
+    .eq("seller_id", sellerId).eq("status", "waiting").order("submitted_at", { ascending: true });
+  if (subs.error) throw subs.error;
+  const rows = (subs.data ?? []) as { item_id: string; submitted_at: string }[];
+  if (rows.length === 0) return [];
+  const items = await supabase.from("declutter_items").select("id, title, price_cents").in("id", rows.map((r) => r.item_id));
+  if (items.error) throw items.error;
+  const byId = new Map(((items.data ?? []) as { id: string; title: string; price_cents: number }[]).map((i) => [i.id, i]));
+  return rows.flatMap((r) => {
+    const i = byId.get(r.item_id);
+    return i ? [{ item_id: r.item_id, title: i.title, price_cents: i.price_cents, submitted_at: r.submitted_at }] : [];
+  });
+}
+
 /** The seller sends a draft back to her manager with a note. */
 export async function sendManagerDraftBack(itemId: string, note: string): Promise<string> {
   return rpcData(await supabase.rpc("declutter_manager_send_back", { p_item_id: itemId, p_note: note }),

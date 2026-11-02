@@ -48,6 +48,9 @@ const state = {
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
+// Manager mode (switch mocked on here): no grants, nothing waiting, no labels.
+vi.mock("@/lib/declutter/managerMode", async (orig) => ({ ...(await orig<object>()), useManagerLabels: () => ({ data: undefined }),
+  fetchWaitingDrafts: async () => [], useMyManagerGrants: () => ({ data: [] }) }));
 vi.mock("@/lib/declutter/movingSale", async (orig) => ({ ...(await orig<object>()), fetchItemInMovingSale: async () => false }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null,
   // The item page's places read (ItemHandoverTimes): none saved, so the usual times are the pickup times. Unmocked, it

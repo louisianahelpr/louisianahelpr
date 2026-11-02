@@ -1,7 +1,7 @@
 /**
  * Jobs audit 1102b row 2 (Q2588): a job with no start time was called late from midnight. At 3:00 AM the poster read
  * "your Helpr is 3 h 2 min late and hasn't set out" and the Helpr "It's time — tap I'm on my way", because every
- * clock read jobStartDateTime(date, null) = 12:00 AM. 368 of the 535 jobs posted in the last 60 days have no start
+ * clock read jobStartDateTime(date, null) = 12:00 AM. 368 of the 535 jobs posted in the 60 days to 2026-11-02 have no start
  * time. The rule (src/lib/anyTimeThatDay.ts): no start time is "any time that day", the Post a job form's own words;
  * never late and never "It's time" on its day; the face's I'm on my way from 8:00 AM, never the night before.
  *

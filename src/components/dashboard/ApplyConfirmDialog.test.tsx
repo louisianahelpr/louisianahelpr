@@ -1,8 +1,8 @@
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const single = !confirmApplyJob?.is_group_job; |   const single = true;
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const applyLabel = "Apply now"; |   const applyLabel = confirmApplyJob?.is_group_job ? "Apply now" : "Apply now";
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           event.preventDefault(); |           void event;
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           {confirmApplyJob && <ApplyJobSummary job={confirmApplyJob} />} |
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx | ${applySheetPrice(job)}</span> | ${job.budget}</span>
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | `Apply at $${applySheetPrice(confirmApplyJob)}` | `Apply at $${confirmApplyJob.budget}`
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const applyLabel = "Apply now"; |   const applyLabel = `Apply at $${confirmApplyJob?.budget}`;
 // @mutate src/components/dashboard/applyConfirmDialog/applyTakeHome.ts |   if (!isGiveawayFixedPayJob(job)) return formatPrice(job.budget); |   if (false) return formatPrice(job.budget);
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
@@ -76,7 +76,7 @@ function makeProps(overrides: Record<string, unknown> = {}) {
 describe("ApplyConfirmDialog", () => {
   it("renders nothing when open is false", () => {
     render(<ApplyConfirmDialog {...makeProps({ open: false })} />);
-    expect(screen.queryByText("Apply at $100")).not.toBeInTheDocument();
+    expect(screen.queryByText("Apply now")).not.toBeInTheDocument();
   });
 
   it("leads with the take-home number and names no fee (owner 2026-10-25)", () => {
@@ -129,7 +129,7 @@ describe("ApplyConfirmDialog", () => {
   it("submits via handleApplyConfirm when Apply now is clicked", () => {
     const props = makeProps();
     render(<ApplyConfirmDialog {...props} />);
-    fireEvent.click(screen.getByRole("button", { name: "Apply at $100" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply now" }));
     expect(props.handleApplyConfirm).toHaveBeenCalledTimes(1);
   });
 
@@ -270,7 +270,7 @@ describe("ApplyConfirmDialog", () => {
       );
       // THE POINT: still applyable. A notice that disabled this would be the
       // opposite of the owner's decision.
-      expect(screen.getByRole("button", { name: "Apply at $100" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Apply now" })).toBeEnabled();
     });
 
     it("stays silent on helper_unknown — a failed profile read is not news for this screen", () => {
@@ -377,36 +377,40 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
     expect(toastDismiss).not.toHaveBeenCalledWith("apply-offline");
     await setOnline(true);
     expect(toastDismiss).toHaveBeenCalledWith("apply-offline");
-    expect(screen.getByRole("button", { name: "Apply at $100" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Apply now" })).toBeEnabled();
     cleanup();
   });
 
-  // Board 58: what you apply to, said once at the top; the note addressed by first name; the button names the price.
-  it("board 58: the job card, 'Say hi to <first name>', the contact rule, and 'Apply at $X' (crew: 'Apply now')", () => {
+  // Board 58: what you apply to, said once at the top; the note addressed by first name. JA-55 (Jobs audit 11-01, lead
+  // 11-01): the button is plain "Apply now" for every job, never board 58's "Apply at $X": a bare $ read as either the
+  // budget or the take-home (the owner removed the "You take home" label 11-01); the figure stays once, on the card.
+  it("board 58: the job card, 'Say hi to <first name>', the contact rule; JA-55: the button is plain 'Apply now'", () => {
     const { unmount } = render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ posterName: "Travis Boudreaux" }) })} />);
     const card = screen.getByTestId("apply-job-summary");
     expect(card.textContent).toMatch(/Travis Boudreaux/);
     expect(card.textContent).toMatch(/\$100/);
     expect(screen.getByLabelText(/Say hi to Travis/)).toBeInTheDocument();
     expect(screen.getByText(/can't be sent until you're hired/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Apply at $100" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Apply now" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Apply at/ })).toBeNull();
     unmount();
     render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ budget: 200, is_group_job: true, helpers_needed: 4 }) })} />);
     expect(screen.getByRole("button", { name: "Apply now" })).toBeInTheDocument();
   });
 
   // Owner 2026-10-30 (lead's decision, T1 saw $60 around the $50): applying to the giveaway shows $50 only.
-  describe("the price on the card and the button", () => {
+  // JA-55: the button no longer carries a price ("Apply now"); the card is the one place it shows.
+  describe("the price on the card (the button names none, JA-55)", () => {
     const stamp = { budget: 60, urgent_fee: 0, helper_fee_percent: 5 };
     afterEach(() => { owedFee.cents = 0; cleanup(); });
 
     for (const cents of [0, 200]) {
       const owing = cents ? ", setup fee owed" : "";
-      it(`the giveaway says $50 on both, with no $60, no take-home words and no setup fee${owing}`, () => {
+      it(`the giveaway says $50 on the card, with no $60, no take-home words and no setup fee${owing}`, () => {
         owedFee.cents = cents;
         render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ ...stamp, helper_fee_flat_cents: 700 }) })} />);
         expect(screen.getByTestId("apply-job-summary").textContent).toContain("$50");
-        expect(screen.getByRole("button", { name: "Apply at $50" })).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Apply now" })).toBeEnabled();
         const sheet = document.body.textContent ?? "";
         expect(sheet).not.toContain("$60");
         expect(sheet).not.toContain("$48");
@@ -414,11 +418,11 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
         expect(sheet).not.toMatch(/setup fee/i);
       });
 
-      it(`every other job keeps its price on both and its take-home below${owing}`, () => {
+      it(`every other job keeps its price on the card and its take-home below${owing}`, () => {
         owedFee.cents = cents;
         render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ ...stamp, helper_fee_flat_cents: 70 }) })} />);
         expect(screen.getByTestId("apply-job-summary").textContent).toContain("$60");
-        expect(screen.getByRole("button", { name: "Apply at $60" })).toBeEnabled();
+        expect(screen.getByRole("button", { name: "Apply now" })).toBeEnabled();
         const sheet = document.body.textContent ?? "";
         expect(sheet).toContain(cents ? "$54" : "$56");
         expect(sheet).toMatch(/take home/i);

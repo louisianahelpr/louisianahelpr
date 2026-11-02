@@ -1,5 +1,5 @@
 /**
- * Q2583 (Auditor 1 Declutter audit 1102a, adm-s4-1440.png): at 1440 the
+ * Q2583 (Auditor 1 Declutter audit 1102a, 2026-11-02, adm-s4-1440.png): at 1440 the
  * floating scroll-to-top button sat on the first "Edit" in "Declutter meetup
  * spots", and the Declutter admin cards were scattered among Shops, Homes and
  * SMS cards on one ~9,900 px Settings page.

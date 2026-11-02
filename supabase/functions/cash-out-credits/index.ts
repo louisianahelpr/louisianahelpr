@@ -163,7 +163,7 @@ serve(async (req) => {
     });
     // Q2406: the gate's defect (a failed cached-gate close, an unexplained
     // "could not verify") reaches ops, never only console.warn.
-    if (live.defect) await reportLiveGateDefect({ fn: "cash-out-credits", helperId: userId, defect: live.defect, seed: (profile as { is_seed?: boolean | null }).is_seed === true });
+    if (live.held && live.defect) await reportLiveGateDefect({ fn: "cash-out-credits", helperId: userId, defect: live.defect, seed: (profile as { is_seed?: boolean | null }).is_seed === true });
     if (live.held) {
       return new Response(
         JSON.stringify({

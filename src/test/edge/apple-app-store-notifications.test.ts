@@ -457,3 +457,61 @@ describe("Q1849 · a grant to a member the memberships switch is off for is repo
     expect(offAlerts()).toHaveLength(0);
   });
 });
+
+/**
+ * Q1982: Billing Grace Period. Apple reports it as subscription status 4 with
+ * JWSRenewalInfo.gracePeriodExpiresDate; the transaction's expiresDate is NOT
+ * extended. A member in grace keeps the tier until the grace end.
+ *
+ * @mutate supabase/functions/_shared/appleAppStore.ts | if (typeof renewal.gracePeriodExpiresDate === "number") latest.gracePeriodExpiresDate = renewal.gracePeriodExpiresDate; | void renewal;
+ * @mutate supabase/functions/_shared/appleAppStore.ts | const until = Math.max(tx.expiresDate ?? 0, tx.gracePeriodExpiresDate ?? 0); | const until = tx.expiresDate ?? 0;
+ * @mutate supabase/functions/_shared/appleAppStore.ts | if (last.status === APPLE_STATUS_BILLING_GRACE_PERIOD && last.signedRenewalInfo) { | if (last.signedRenewalInfo) {
+ * @mutate supabase/functions/_shared/appleAppStore.ts |         if (renewal.originalTransactionId !== tx.originalTransactionId) { |         if (false) {
+ */
+describe("a member in Apple's Billing Grace Period keeps the tier (Q1982)", () => {
+  const lapsed = () => baseTx({ expiresDate: Date.now() - 3600 * 1000 });
+  function appleInGrace(status: number, renewal: Record<string, unknown>) {
+    const tx = lapsed();
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+      if (String(url).includes("/inApps/v1/subscriptions/")) {
+        return new Response(JSON.stringify({ environment: "Production", data: [{ subscriptionGroupIdentifier: "g1", lastTransactions: [
+          { originalTransactionId: TX, status, signedTransactionInfo: jws(tx), signedRenewalInfo: jws(renewal) },
+        ] }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ signedTransactionInfo: jws(tx) }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }));
+  }
+  const graceEnd = Date.now() + 6 * 24 * 3600 * 1000;
+
+  it("status 4 with a future gracePeriodExpiresDate keeps the tier until the grace end", async () => {
+    appleInGrace(4, { originalTransactionId: TX, gracePeriodExpiresDate: graceEnd });
+    linkedRow("apple");
+    const res = await notify("DID_FAIL_TO_RENEW");
+    expect(res.status).toBe(200);
+    expect((await res.json()).outcome).toBe("granted");
+    expect(profileWrites()[0].payload).toMatchObject({ subscription_tier: "plus", subscription_expires_at: new Date(graceEnd).toISOString() });
+  });
+
+  it("a grace end already past clears the tier", async () => {
+    appleInGrace(4, { originalTransactionId: TX, gracePeriodExpiresDate: Date.now() - 60_000 });
+    linkedRow("apple");
+    const res = await notify("GRACE_PERIOD_EXPIRED");
+    expect((await res.json()).outcome).toBe("revoked");
+    expect(profileWrites()[0].payload).toMatchObject({ subscription_tier: null });
+  });
+
+  it("a grace date on a subscription NOT in grace (status 2, expired) is ignored", async () => {
+    appleInGrace(2, { originalTransactionId: TX, gracePeriodExpiresDate: graceEnd });
+    linkedRow("apple");
+    const res = await notify("EXPIRED");
+    expect((await res.json()).outcome).toBe("revoked");
+  });
+
+  it("renewal info naming another subscription is refused (500, nothing written)", async () => {
+    appleInGrace(4, { originalTransactionId: "999", gracePeriodExpiresDate: graceEnd });
+    linkedRow("apple");
+    const res = await notify("DID_FAIL_TO_RENEW");
+    expect(res.status).toBe(500);
+    expect(profileWrites()).toHaveLength(0);
+  });
+});

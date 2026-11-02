@@ -115,6 +115,13 @@ export interface AppleTransaction {
   expiresDate?: number;
   /** ms epoch; set when Apple refunds or revokes the purchase. */
   revocationDate?: number;
+  /**
+   * ms epoch; NOT a transaction field. fetchLatestSubscriptionTransaction
+   * fills it from JWSRenewalInfo.gracePeriodExpiresDate when Apple reports
+   * the subscription in Billing Grace Period (status 4): Apple does not move
+   * expiresDate during grace, so the member is entitled until this (Q1982).
+   */
+  gracePeriodExpiresDate?: number;
   type?: string;
   purchaseDate?: number;
   /**
@@ -362,6 +369,9 @@ export async function fetchAppleTransaction(
  * Throws when Apple has no status for this subscription: the caller writes
  * nothing and lets the notice be retried, never grades from the stale one.
  */
+/** App Store Server API subscription status 4: in Billing Grace Period. */
+const APPLE_STATUS_BILLING_GRACE_PERIOD = 4;
+
 export async function fetchLatestSubscriptionTransaction(
   tx: AppleTransaction,
 ): Promise<AppleTransaction> {
@@ -376,7 +386,7 @@ export async function fetchLatestSubscriptionTransaction(
     throw new Error(`App Store subscription status lookup failed (status ${res.status})`);
   }
   const body = (await res.json()) as {
-    data?: Array<{ lastTransactions?: Array<{ originalTransactionId?: string; signedTransactionInfo?: string }> }>;
+    data?: Array<{ lastTransactions?: Array<{ originalTransactionId?: string; status?: number; signedTransactionInfo?: string; signedRenewalInfo?: string }> }>;
   };
   for (const group of body.data ?? []) {
     for (const last of group.lastTransactions ?? []) {
@@ -387,6 +397,16 @@ export async function fetchLatestSubscriptionTransaction(
         throw new Error("Latest transaction belongs to another subscription");
       }
       if (!latest.environment) latest.environment = tx.environment;
+      // Q1982: status 4 = Billing Grace Period. Apple keeps retrying the
+      // renewal and the member keeps access until the renewal info's
+      // gracePeriodExpiresDate; the transaction's expiresDate is not extended.
+      if (last.status === APPLE_STATUS_BILLING_GRACE_PERIOD && last.signedRenewalInfo) {
+        const renewal = decodeJwsPayload<{ originalTransactionId?: string; gracePeriodExpiresDate?: number }>(last.signedRenewalInfo);
+        if (renewal.originalTransactionId !== tx.originalTransactionId) {
+          throw new Error("Renewal info belongs to another subscription");
+        }
+        if (typeof renewal.gracePeriodExpiresDate === "number") latest.gracePeriodExpiresDate = renewal.gracePeriodExpiresDate;
+      }
       return latest;
     }
   }
@@ -443,7 +463,9 @@ export function resolveProduct(productId: string): ProductMeta | null {
 export function computeExpiry(tx: AppleTransaction, meta: ProductMeta): string | null {
   if (tx.revocationDate) return null;
   if (meta.kind === "auto") {
-    return tx.expiresDate ? new Date(tx.expiresDate).toISOString() : null;
+    // Q1982: a member in Billing Grace Period keeps access until its end.
+    const until = Math.max(tx.expiresDate ?? 0, tx.gracePeriodExpiresDate ?? 0);
+    return until > 0 ? new Date(until).toISOString() : null;
   }
   const base = tx.purchaseDate ?? Date.now();
   return new Date(base + ONE_TIME_PASS_DAYS * 24 * 60 * 60 * 1000).toISOString();

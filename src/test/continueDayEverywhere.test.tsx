@@ -107,18 +107,18 @@ describe("A3-119: the 'Set a day to finish' sheet", () => {
   );
   it("after the Helpr marked it done: tomorrow onward, and it says the 'done' is cleared and the payment waits", () => {
     const { unmount } = sheet(true, 9);
-    const chips = within(screen.getByRole("group", { name: "Day to finish" })).getAllByRole("button").map((b) => b.textContent);
+    const chips = within(screen.getByRole("radiogroup", { name: "Day to finish" })).getAllByRole("radio").map((b) => b.textContent);
     expect(chips[0]).toBe(formatJobDate("2026-11-02"));
     expect(screen.getByText(`Yusef's "done" is cleared and the payment waits until the work is finished.`)).toBeTruthy();
     unmount();
   });
   it("no 'done' yet: today while a start an hour out still fits, not late at night", () => {
     const { unmount } = sheet(false, 9);
-    expect(within(screen.getByRole("group", { name: "Day to finish" })).getAllByRole("button")[0].textContent).toBe(formatJobDate("2026-11-01"));
+    expect(within(screen.getByRole("radiogroup", { name: "Day to finish" })).getAllByRole("radio")[0].textContent).toBe(formatJobDate("2026-11-01"));
     expect(document.querySelector("[data-continue-day-effect]")).toBeNull();
     unmount();
     sheet(false, 23);
-    expect(within(screen.getByRole("group", { name: "Day to finish" })).getAllByRole("button")[0].textContent).toBe(formatJobDate("2026-11-02"));
+    expect(within(screen.getByRole("radiogroup", { name: "Day to finish" })).getAllByRole("radio")[0].textContent).toBe(formatJobDate("2026-11-02"));
   });
 });
 

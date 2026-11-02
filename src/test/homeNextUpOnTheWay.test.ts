@@ -9,7 +9,7 @@
  *
  * A3-84 (audit 11-01): before arrival (hired, confirmed, confirm-due) the side word is "You're hired", never
  * "You're working"; "You're working" only once helper_arrived_at is set.
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | title: line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail, | title: line.detail,
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | title: line.id === "on_the_way" ? ON_THE_WAY_TASK : withTodoBy(line.detail, line, now), | title: withTodoBy(line.detail, line, now),
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ...(line.id === "on_the_way" && !a.job!.is_group_job | ...(false
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (t.helperStep) request(t.helperStep.jobId, t.helperStep.key); |   void request;
  * @mutate src/pages/home/HomeDashboard.tsx | onClick={() => navigate(todoTarget(next, requestHelperStep))} | onClick={() => navigate(next.to)}

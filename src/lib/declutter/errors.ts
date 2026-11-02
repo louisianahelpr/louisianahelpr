@@ -375,7 +375,7 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
  */
 export class ListingPhotoError extends Error {}
 
-const GENERIC = "Something went wrong. Please try again.";
+const GENERIC = "Couldn't do that just now. Check your connection and try again.";
 
 /** Audit 1d D4-14: the device is offline (the browser says so). Any typed text stays where it was. */
 export const DECLUTTER_OFFLINE_COPY = "You're offline. Try again when you're back online.";

@@ -190,15 +190,15 @@ describe("Declutter error copy is exact (both ways)", () => {
     const leak = "Phone number detected in the title. Keep contact details and payment off the listing; questions, payment and pickup happen in the app.";
     expect(declutterErrorMessage({ message: leak, code: "23514" })).toBe(leak);
     expect(declutterErrorMessage({ message: 'new row for relation "declutter_items" violates check constraint', code: "23514" })).not.toMatch(/relation|constraint/);
-    expect(declutterErrorMessage({ message: "some_unknown_code" })).toBe("Something went wrong. Please try again.");
-    expect(declutterErrorMessage(null)).toBe("Something went wrong. Please try again.");
+    expect(declutterErrorMessage({ message: "some_unknown_code" })).toBe("Couldn't do that just now. Check your connection and try again.");
+    expect(declutterErrorMessage(null)).toBe("Couldn't do that just now. Check your connection and try again.");
   });
 
   it("shows a refused photo's own plain words (the app wrote them), and hides any other Error's text", () => {
     // The photo picker's toast reads declutterErrorMessage only (toastCopy.test.ts:
     // no toast shows an error's raw .message).
     expect(declutterErrorMessage(new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE))).toBe(LISTING_PHOTO_UNCLEANABLE);
-    expect(declutterErrorMessage(new Error("pg_temp.x does not exist"))).toBe("Something went wrong. Please try again.");
+    expect(declutterErrorMessage(new Error("pg_temp.x does not exist"))).toBe("Couldn't do that just now. Check your connection and try again.");
     // Audit 1d D4-14: a request that never reached the server says so (declutterAudit1dGaps.test.ts), never its raw text.
     expect(declutterErrorMessage(new Error("Failed to fetch"))).toBe("Connection trouble. Check your signal and try again.");
   });

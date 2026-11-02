@@ -25,7 +25,8 @@
  * @mutate src/components/declutter/SellPorchPlaces.tsx |             <Pencil className="h-[18px] w-[18px]" aria-hidden="true" /> |             Edit
  * @mutate src/components/declutter/SellPorchPlaces.tsx |   "inline-flex min-h-11 min-w-11 items-center | "inline-flex items-center
  * @mutate src/components/declutter/SellPorchPlaces.tsx |       <div className="flex items-start gap-2"> |       <div className="space-y-2">
- * @mutate src/components/declutter/SellHandoverChoices.tsx | on ? "border-[hsl(var(--bark))] dark:!border-[hsl(var(--bark))]" : `border-border ${PLACE_CARD_EDGE}` | on ? "border-[hsl(var(--bark))]" : "border-border"
+ * @mutate src/components/declutter/SellHandoverChoices.tsx | on ? "!border-[hsl(var(--bark))]" : `border-border ${PLACE_CARD_EDGE}` | on ? "border-[hsl(var(--bark))]" : "border-border"
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | {placesWords(places.length, free, helprOnly, card)} | {placesWords(places.length, free, helprOnly)}
  * @mutate src/components/declutter/DeclutterHomeView.tsx | Listing defaults, pickup places, pickup times, delivery | Listing defaults, pickup times, delivery
  * @mutate src/components/declutter/DeclutterPorchPlaces.tsx | {side === "seller" && place.address ? <> ({place.address})</> : null} | {place.address ? <> ({place.address})</> : null}
  * @mutate src/components/declutter/SellPorchPlaces.tsx | lat: point.lat, lng: point.lng | lat: 0, lng: 0
@@ -56,7 +57,7 @@ vi.mock("@/lib/addressLookup", () => ({ lookUpAddress: h.lookup }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "seller-1" } }) }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: h.toastError, success: vi.fn() }) }));
 
-import { SellPorchPlaces } from "./SellPorchPlaces";
+import { PLACES_BOTH_KINDS, SellPorchPlaces } from "./SellPorchPlaces";
 import { ItemPickupPlaces } from "./ItemPickupDisplay";
 import { SellWaysFields } from "./SellFormParts";
 import type { SellFlow } from "./useSellFlowState";
@@ -503,6 +504,16 @@ describe("the places editor follows the server's rule, not the porch tick", () =
   });
 });
 
+describe("Declutter settings' places card covers paid and free listings (Q2495)", () => {
+  it("names both: after paying, or once you confirm on a free item", async () => {
+    answers({ declutter_my_porch_days: null, declutter_my_porch_places: [HOME] });
+    const { container } = wrap(<SellPorchPlaces card />);
+    const block = await waitFor(() => { const el = container.querySelector("[data-porch-places]"); expect(el).not.toBeNull(); return el!; });
+    expect(block.textContent).toContain(PLACES_BOTH_KINDS);
+    expect(block.textContent).not.toContain("They only get its address after paying.");
+  });
+});
+
 describe("a place's days and the usual pickup times say which is which", () => {
   const flow = { place: { inexact: null, locating: false, shareMyLocation: vi.fn() }, form: { free: false, areaLabel: "", pickupAddress: "" }, set: vi.fn(), ways: ["porch"], setWays: vi.fn(), sellerDeliveryOpen: false, windows: [], setWindows: vi.fn() } as unknown as SellFlow;
 
@@ -539,7 +550,8 @@ describe("finding places, and their edges in dark", () => {
     const { container } = wrap(<SellHandoverChoices ways={["porch"]} setWays={() => undefined} free={false} sellerDeliveryOpen={false} pickupDays={[6]} />);
     const row = await waitFor(() => { const el = container.querySelector("[data-porch-place]"); expect(el).not.toBeNull(); return el!; });
     expect(row.className).toContain("dark:!border-border");
-    expect(container.querySelector('[data-handover-tile="porch"]')!.className).toContain("dark:!border-[hsl(var(--bark))]");
+    // Q2495: light mode too, so the edge is forced in both themes (a dark: class left light transparent).
+    expect(container.querySelector('[data-handover-tile="porch"]')!.className.split(/\s+/)).toContain("!border-[hsl(var(--bark))]");
     expect(container.querySelector('[data-handover-tile="meetup"]')!.className).toContain("dark:!border-border");
     fireEvent.click(screen.getByRole("button", { name: "Add a pickup place" }));
     expect(container.querySelector("[data-porch-place-form]")!.className).toContain("dark:!border-border");

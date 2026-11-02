@@ -60,8 +60,17 @@ export const PLACE_CARD_EDGE = "dark:!border-border";
 /** What the server books: the frozen place's days and hours (declutter_order_is_porch_day, declutter_order_pickup_windows). */
 const PLACE_DAYS_RULE = "Buyers come on each place's own days and hours.";
 
+/** Settings words: a buyer sees the address after paying; on a free item, once the seller confirms. */
+export const PLACES_BOTH_KINDS = "Buyers pick one and get its address after paying, or once you confirm on a free item.";
+
 /** The words over the places. `free`: nobody pays. `helprOnly`: porch is unticked, so only Helpr delivery reads them. */
-function placesWords(count: number, free: boolean, helprOnly: boolean): string {
+function placesWords(count: number, free: boolean, helprOnly: boolean, card = false): string {
+  // Declutter settings: one seller's places serve paid AND free listings, so the words name both (Q2495).
+  if (card) {
+    return count > 0
+      ? `${PLACES_BOTH_KINDS} This applies to all your listings.`
+      : `Keep things in more than one place? Save up to ${MAX_PORCH_PLACES}, each with its own days and hours. ${PLACES_BOTH_KINDS}`;
+  }
   if (free) {
     return count > 0
       ? "The person who gets it picks one of these and sees its address once they confirm. This applies to all your listings."
@@ -221,7 +230,7 @@ export function SellPorchPlaces({ card = false, free = false, helprOnly = false 
   return inCard(
     <div className="space-y-2" data-porch-places="">
       <p className="text-ds-14 font-semibold text-foreground">Pickup places</p>
-      <p className="text-ds-13 text-muted-foreground">{placesWords(places.length, free, helprOnly)}</p>
+      <p className="text-ds-13 text-muted-foreground">{placesWords(places.length, free, helprOnly, card)}</p>
       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}
       {places.length > 0 && (
         <ul className="grid gap-2 lg:grid-cols-2">

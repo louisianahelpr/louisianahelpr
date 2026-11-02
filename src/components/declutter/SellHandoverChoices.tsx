@@ -58,7 +58,7 @@ export function SellWayTiles({ shown, ways, setWays, fixed = false, onSettingsPa
         return (
           <li key={w}>
             <label htmlFor={`sell-way-${w}`} data-handover-tile={w} data-on={on ? "" : undefined}
-              className={`flex h-full cursor-pointer items-start gap-3 rounded-[16px] border bg-card p-4 transition-colors focus-within:ring-2 focus-within:ring-ring ${on ? "border-[hsl(var(--bark))] dark:!border-[hsl(var(--bark))]" : `border-border ${PLACE_CARD_EDGE}`}`}>
+              className={`flex h-full cursor-pointer items-start gap-3 rounded-[16px] border bg-card p-4 transition-colors focus-within:ring-2 focus-within:ring-ring ${on ? "!border-[hsl(var(--bark))]" : `border-border ${PLACE_CARD_EDGE}`}`}>
               <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${on ? "bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] dark:text-foreground" : "bg-muted text-muted-foreground"}`} aria-hidden>
                 <Icon className="h-5 w-5" />
               </span>

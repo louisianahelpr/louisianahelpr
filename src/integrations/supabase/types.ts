@@ -3552,6 +3552,7 @@ export type Database = {
           id: string
           is_seed: boolean
           order_id: string
+          removed_at: string | null
           reviewee_id: string | null
           reviewer_id: string | null
           reviewer_side: string
@@ -3564,6 +3565,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           order_id: string
+          removed_at?: string | null
           reviewee_id?: string | null
           reviewer_id?: string | null
           reviewer_side: string
@@ -3576,6 +3578,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           order_id?: string
+          removed_at?: string | null
           reviewee_id?: string | null
           reviewer_id?: string | null
           reviewer_side?: string
@@ -16937,6 +16940,10 @@ export type Database = {
         Args: { p_note: string; p_part: string; p_question_id: string; p_report_id: string }
         Returns: string
       }
+      declutter_admin_remove_review: {
+        Args: { p_note: string; p_report_id: string; p_review_id: string }
+        Returns: string
+      }
       declutter_admin_reported_questions: {
         Args: { p_question_ids: string[] }
         Returns: {
@@ -16949,6 +16956,19 @@ export type Database = {
           question_id: string
           removed: boolean
           seller_id: string
+        }[]
+      }
+      declutter_admin_reported_reviews: {
+        Args: { p_review_ids: string[] }
+        Returns: {
+          comment: string
+          is_seed: boolean
+          removed: boolean
+          review_id: string
+          reviewee_id: string
+          reviewer_id: string
+          reviewer_side: string
+          stars: number
         }[]
       }
       declutter_admin_reported_wanted: {

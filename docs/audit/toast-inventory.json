@@ -3570,27 +3570,17 @@
     },
     {
       "file": "src/components/admin/adminReports/ReportedCopy.tsx",
-      "line": 34,
+      "line": 46,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "part === \"question\" ? \"Question removed. The report is resolved.\" : \"Answer removed. The report is resolved.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Question removed. The report is resolved."
-          },
-          {
-            "form": "literal",
-            "text": "Answer removed. The report is resolved."
-          }
-        ]
+        "text": "DONE[part]"
       },
       "renders": true
     },
     {
       "file": "src/components/admin/adminReports/ReportedCopy.tsx",
-      "line": 37,
+      "line": 49,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

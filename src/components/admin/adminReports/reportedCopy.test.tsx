@@ -3,25 +3,37 @@
  * the words as reported and the take-down: "Remove Answer" (answer reports) clears only the answer, "Remove Question"
  * takes the whole entry off the listing. Server rules: src/test/pglite/declutterQuestionReport.pglite.mjs.
  *
- * @mutate src/components/admin/adminReports/ReportedCopy.tsx | onClick={() => remove("answer")} | onClick={() => remove("question")}
+ * @mutate src/components/admin/adminReports/ReportedCopy.tsx | removeButton("answer", "Remove Answer") | removeButton("question", "Remove Answer")
  * @mutate src/components/admin/adminReports/ReportedCopy.tsx | {report.reported_type !== "message" && open && !gone && ( | {report.reported_type !== "message" && open && (
- * @mutate src/components/admin/adminReports/reportedQuestions.ts | q ? (type === "declutter_answer" ? q.seller_id : q.asker_id) : null; | q ? q.asker_id : null;
+ * @mutate src/components/admin/adminReports/reportedQuestions.ts | type === "declutter_answer" ? q.seller_id : q.asker_id; | q.asker_id;
+ * A3-75 (audit 11-01): a reported Declutter review shows its stars and words and "Remove Review".
+ * @mutate src/components/admin/adminReports/ReportedCopy.tsx |       if (part === "review") await removeReportedReview(report.reported_id, report.id); |       if (part === "review") await removeReportedQuestion(report.reported_id, "question", report.id);
+ * @mutate src/components/admin/adminReports/ReportedCopy.tsx | {isReview ? "This review was removed." : "This question was removed."} | {"This question was removed."}
+ * @mutate src/components/admin/adminReports/reportedQuestions.ts | !q ? null : isReview(q) ? q.reviewer_id : | !q ? null :
+ * @mutate src/components/admin/adminReports/reportedQuestions.ts | const QUESTION_REPORTS: readonly string[] = ["declutter_question", "declutter_answer", REVIEW_REPORT]; | const QUESTION_REPORTS: readonly string[] = ["declutter_question", "declutter_answer"];
+ * @mutate src/components/admin/adminReports/reportedQuestions.ts |     for (const r of rs) questions.set(r.review_id, r); |     void rs;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
-const calls = vi.hoisted(() => ({ removed: [] as unknown[][] }));
+const calls = vi.hoisted(() => ({ removed: [] as unknown[][], reviewsRemoved: [] as unknown[][], reviewReads: [] as unknown[][] }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/declutter/api", () => ({
   removeReportedQuestion: async (...a: unknown[]) => { calls.removed.push(a); return "removed"; },
+  removeReportedReview: async (...a: unknown[]) => { calls.reviewsRemoved.push(a); return "removed"; },
+  fetchReportedQuestions: async () => [],
+  fetchReportedReviews: async (...a: unknown[]) => {
+    calls.reviewReads.push(a);
+    return [{ review_id: "rv1", reviewer_id: "u9", reviewee_id: "u2", reviewer_side: "buyer", stars: 1, comment: "bad", removed: false, is_seed: true }];
+  },
 }));
 
 import { ReportedCopy } from "./ReportedCopy";
-import { questionAuthor, questionSubject } from "./reportedQuestions";
+import { hydrateReportedQuestions, isQuestionReport, questionAuthor, questionSubject } from "./reportedQuestions";
 
 const base = { id: "r1", reported_id: "q1", status: "pending", reported_content: "Question: Is it oak?\nAnswer: Call me at 555" };
 
-beforeEach(() => { calls.removed = []; });
+beforeEach(() => { calls.removed = []; calls.reviewsRemoved = []; calls.reviewReads = []; });
 
 describe("a reported Declutter question or answer in the queue", () => {
   it("an answer report: the words, and Remove Answer clears only the answer", async () => {
@@ -61,5 +73,34 @@ describe("a reported Declutter question or answer in the queue", () => {
     expect(questionSubject("declutter_answer", q, false)).toBe('Answer on "Oak dresser"');
     expect(questionSubject("declutter_question", undefined, true)).toBe("Question unavailable");
     expect([questionAuthor("declutter_question", q), questionAuthor("declutter_answer", q)]).toEqual(["a1", "s1"]);
+  });
+
+  it("A3-75: a review report shows its stars and words, and Remove Review takes it down", async () => {
+    const done = vi.fn();
+    render(<ReportedCopy report={{ ...base, reported_id: "rv1", reported_type: "declutter_review", reported_content: "1 star: Call me at 555" }} onDone={done} />);
+    expect(screen.getByText(/Reported review:/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remove Question" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Remove Review" }));
+    await waitFor(() => expect(calls.reviewsRemoved).toEqual([["rv1", "r1"]]));
+    expect(calls.removed).toEqual([]);
+    expect(done).toHaveBeenCalled();
+  });
+
+  it("A3-75: a removed review says so, with no take-down", () => {
+    render(<ReportedCopy report={{ ...base, reported_id: "rv1", reported_type: "declutter_review", reported_content: "1 star" }} gone onDone={() => undefined} />);
+    expect(screen.getByText("This review was removed.")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("A3-75: the queue reads review reports as admin; the card names the stars, the person is the reviewer, test flag kept", async () => {
+    expect(isQuestionReport("declutter_review")).toBe(true);
+    const { questions, failed } = await hydrateReportedQuestions([{ reported_type: "declutter_review", reported_id: "rv1" }, { reported_type: "job", reported_id: "j1" }]);
+    expect(failed).toBe(false);
+    expect(calls.reviewReads).toEqual([[["rv1"]]]);
+    const rv = questions.get("rv1");
+    expect(rv?.is_seed).toBe(true);
+    expect(questionSubject("declutter_review", rv, false)).toBe("Declutter review · 1 star");
+    expect(questionSubject("declutter_review", undefined, false)).toBe("Deleted review");
+    expect(questionAuthor("declutter_review", rv)).toBe("u9");
   });
 });

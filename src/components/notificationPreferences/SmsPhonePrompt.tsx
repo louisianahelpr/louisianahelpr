@@ -22,6 +22,8 @@ export const SMS_PHONE_PROMPT_TITLE = "Add your phone so you don't miss updates"
 export const SMS_PROMPT_ALL_SET_MS = 2000;
 /** They already gave a phone: ask them to turn texts on, not to add one. */
 export const SMS_TEXTS_PROMPT_TITLE = "Turn on texts so you don't miss updates";
+/** The prompt's one line, for every section (Q2646: it said "something on your job" to Declutter-only sellers). */
+export const SMS_PROMPT_LINE = "We'll text you when a job or a Declutter sale needs you and you haven't seen it in the app.";
 
 /**
  * The one-time "Add your phone so you don't miss updates" prompt (owner-approved 2026-10-27), with the existing

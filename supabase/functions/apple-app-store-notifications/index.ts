@@ -173,8 +173,10 @@ serve(async (req) => {
     // EXPIRED, GRACE_PERIOD_EXPIRED, REFUND, REVOKE, DID_CHANGE_RENEWAL_STATUS
     // …) and mapping each to an outcome is a long list that rots. The
     // transaction already says whether it is revoked and when it expires, so
-    // ask it. A grace period shows up as an expiresDate still in the future,
-    // which is exactly the behaviour we want: keep access while Apple retries.
+    // ask it. A Billing Grace Period does NOT move expiresDate (Apple
+    // reports it as status 4 with JWSRenewalInfo.gracePeriodExpiresDate), so
+    // fetchLatestSubscriptionTransaction carries that date and computeExpiry
+    // grants access until it: kept while Apple retries the renewal (Q1982).
     const entitled = isEntitled(tx, meta);
     const expiresAt = computeExpiry(tx, meta);
 

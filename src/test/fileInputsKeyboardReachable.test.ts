@@ -74,4 +74,4 @@ describe("file inputs stay keyboard-reachable", () => {
 // `className="hidden"` — display:none removes it from the tab order and the
 // <label> around it is not focusable, so keyboard and switch users cannot set
 // the photo the profile gate demands. This is the ORIGINAL bug, re-planted.
-// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | <input type="file" accept="image/*" className="sr-only" onChange={(e) => { setUploadedThisVisit(true); | <input type="file" accept="image/*" className="hidden" onChange={(e) => { setUploadedThisVisit(true);
+// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | <input type="file" accept="image/*" className="sr-only" onChange={handlePick} | <input type="file" accept="image/*" className="hidden" onChange={handlePick}

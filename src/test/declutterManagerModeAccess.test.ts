@@ -148,10 +148,14 @@ function runTargets(): Map<string, string> {
 }
 
 /** Whether `authenticated` may EXECUTE public.<fn> after every migration, replayed in order (explicit grant needed). */
+/** Every migration, comments blanked, read once in order (CI 7e9112f7f6: re-reading all of them per function took 25 s). */
+let migrationSql: string[] | null = null;
+const migrationsInOrder = () =>
+  (migrationSql ??= readdirSync(MIG).filter((n) => n.endsWith(".sql")).sort().map((f) => blankSqlComments(readFileSync(resolve(MIG, f), "utf8"))));
+
 function authenticatedMayRun(fn: string): boolean {
   let may = false;
-  for (const f of readdirSync(MIG).filter((n) => n.endsWith(".sql")).sort()) {
-    const sql = blankSqlComments(readFileSync(resolve(MIG, f), "utf8"));
+  for (const sql of migrationsInOrder()) {
     for (const m of sql.matchAll(new RegExp(`\\b(REVOKE|GRANT)\\b[^;]*ON FUNCTION public\\.${fn}\\s*\\([^;]*;`, "g"))) {
       const st = flat(m[0]);
       if (!/\bauthenticated\b/.test(st)) continue;

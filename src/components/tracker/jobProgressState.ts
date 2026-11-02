@@ -12,6 +12,7 @@ import { continueDayNextStep, jobOnContinueDay, type ContinueDay } from "@/lib/c
 import { nextStepWords } from "@/lib/nextStepWords";
 import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
+import { TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
 import { EXPIRED_LISTING_DETAIL, autoCompleteAt, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
@@ -266,6 +267,8 @@ const LATE_GRACE_MIN = 10;
 
 /** "75 min" / "1 h 20 min" past the job's start when that is more than the grace, else null (no start time: null). */
 function minutesLate(job: ProgressJob, nowMs: number): string | null {
+  // Q2588: no start time is "any time that day" (anyTimeThatDay.ts): never late on its day.
+  if (!hasStartTime(job)) return null;
   const start = jobStartDateTime(job.date_needed ?? null, job.start_time ?? null);
   if (!start || job.helper_arrived_at) return null;
   const mins = Math.floor((nowMs - start.getTime()) / 60_000);
@@ -442,5 +445,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // moved the job to in_progress), the Helpr's line is the card's "today" line, not "when you leave".
   const startAt = jobStartDateTime(job.date_needed, job.start_time ?? null);
   const started = status === "in_progress" || (!!startAt && now >= startAt.getTime());
-  return at(4, !poster, "On the way", poster ? (lateBy ? `${other} is ${lateBy} late and hasn't set out` : `You're both confirmed. ${other} taps On my way when they leave`) : started ? "It's time — tap I'm on my way" : "Tap I'm on my way when you leave", held);
+  // Q2588: a no-start-time job is never "It's time" (anyTimeThatDay.ts); on its day the line says any time.
+  const helprLine = !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : "Tap I'm on my way when you leave") : started ? "It's time — tap I'm on my way" : "Tap I'm on my way when you leave";
+  return at(4, !poster, "On the way", poster ? (lateBy ? `${other} is ${lateBy} late and hasn't set out` : `You're both confirmed. ${other} taps On my way when they leave`) : helprLine, held);
 }

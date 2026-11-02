@@ -5,6 +5,7 @@ import { requestPhotoCapture } from "@/components/job-card/photoCaptureRequest";
 import { requestFaceAction } from "@/components/job-card/faceActionRequest";
 import type { HelperWait } from "@/components/job-card/jobStatusLine";
 import { jobStartDateTime } from "@/lib/dateUtils";
+import { anyTimeFaceOpensAt } from "@/lib/anyTimeThatDay";
 import { doneFloorNote } from "@/lib/doneFloor";
 
 /** How long before the start the face offers "I'm on my way" (owner, 2026-10-23: 3 hours). */
@@ -54,6 +55,12 @@ export function helperFaceNextStep(
     // "I'm on my way" on the face from 3 hours before the start (owner, 2026-10-23, card critique item 3): a day
     // early it invited a tap that tells the poster the Helpr has left. Before that the face keeps "Manage job"
     // (the open card's tracker still offers the step, its gates unchanged).
+    // Q2588: no start time is "any time that day": the face offers it from 8:00 AM on the day, never 9 PM the night before.
+    if (!job.start_time) {
+      const from = anyTimeFaceOpensAt(job.date_needed);
+      if (from && Date.now() < from.getTime()) return null;
+      return { jobId: job.id, key: "on_the_way", label: "I'm on my way" };
+    }
     const start = job.date_needed ? jobStartDateTime(job.date_needed, job.start_time ?? null) : null;
     if (start && start.getTime() - Date.now() > ON_MY_WAY_LEAD_MS) return null;
     return { jobId: job.id, key: "on_the_way", label: "I'm on my way" };

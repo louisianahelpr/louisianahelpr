@@ -79,11 +79,24 @@ describe("soldstates-2: Selling folds finished sales", () => {
     expect(await screen.findByText("Sale 1 paid")).toBeInTheDocument();
     expect(screen.queryByText("Sale 2 handed_over")).toBeNull();
     expect(screen.queryByText("Sale 3 refunded")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Show 2 finished sales" }));
+    // Q2630 (audit 1102c R5): the refunded one is never counted as a "finished sale".
+    fireEvent.click(screen.getByRole("button", { name: "Show 1 finished and 1 refunded sales" }));
     expect(screen.getByText("Sale 2 handed_over")).toBeInTheDocument();
     expect(screen.getByText("Sale 3 refunded")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Hide finished sales" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hide finished and refunded sales" }));
     expect(screen.queryByText("Sale 2 handed_over")).toBeNull();
+  });
+
+  // Q2630 (audit 1102c R5): a refunded sale alone reads "refunded", never "finished".
+  // @mutate src/components/declutter/DeclutterTabParts.tsx |   const refundedDone = new Set(sold.filter((l) => l.order_status === "refunded" && | const refundedDone = new Set(sold.filter((l) => false &&
+  it("Q2630: a refunded sale folds as refunded, not finished", async () => {
+    state.cart = [line(1, "paid"), line(3, "refunded")];
+    show();
+    expect(await screen.findByText("Sale 1 paid")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show 1 refunded sale" }));
+    expect(screen.getByText("Sale 3 refunded")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hide refunded sales" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /finished/ })).toBeNull();
   });
 
   it("every sale finished: the heading stays, says nothing to hand over, and the fold opens them", async () => {

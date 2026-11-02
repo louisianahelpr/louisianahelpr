@@ -357,7 +357,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {/* lh-money-escrow review (2026-10-20): the seller can be paid without a buyer step (home pickup marked by the
           seller; declutter_handover_sweep pays 24 h after the slot unless a problem is open, porch also needs the
           set-out photo: measured live with pg_get_functiondef), so never "held until you have your items". */}
-      <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-checkout-note="">
+      {/* Q2633 (audit 1102c R8): the seller's payout promise is information, not a warning: neutral ink, no rust box. */}
+      <p className="text-ds-13 text-muted-foreground" data-checkout-note="">
         The seller keeps the whole {formatPrice(netItemsCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
         {delivering
           ? "It's paid to the seller once the delivery is done."
@@ -410,21 +411,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       >
         {held ? "Confirming your payment…" : opening ? "Opening…" : `Pay ${formatPrice(payCents)}`}
       </button>
-      <p className="text-xs text-muted-foreground">You pay on a secure payment page.</p>
-      <AddHelprNote />
+      {/* Q2633 (owner rule: no line under the buttons): Pay is the last thing in the bill. The secure-page line went, and
+          the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */}
     </div>
     </div>
-  );
-}
-
-/** Declutter "Add a Helpr" at checkout: the add-on is one tap on the paid order (docs/specs/declutter-add-a-helpr.md). */
-function AddHelprNote() {
-  const on = useFeature("declutter_add_helpr");
-  if (!on) return null;
-  return (
-    <p className="text-xs text-muted-foreground">
-      Need it put together or hung on the wall? Once you pay, one tap posts a Helpr job for your place. You set the price and pay for it separately.
-    </p>
   );
 }
 

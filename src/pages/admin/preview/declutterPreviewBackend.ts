@@ -4,9 +4,11 @@
  *
  * It sits under supabase-js at the fetch layer (the client calls the global `fetch` at call time, src/lib/signOutAbort.ts),
  * so the real Buying and Selling views run unchanged. DENY BY DEFAULT:
- *  - a READ RPC on the allowlist below gets the sample; every other RPC (each write, and any read not listed) is
- *    answered with an empty list WITHOUT being sent;
- *  - a GET on a table gets the sample's rows for the tables below, an empty list for any other; nothing is sent;
+ *  - a READ RPC on the allowlist below or in the sample's `reads` gets the sample; every other RPC (each write, and
+ *    any read not listed) is answered with null WITHOUT being sent (audit 1102c P1: [] drew made-up states), and a
+ *    read not listed is reported to declutterPreviewChecks.onUnlisted, which the page tests turn into a failure;
+ *  - a GET on a table gets the sample's rows for the tables below or in the sample's `tables`, an empty list for any
+ *    other (reported the same way); nothing is sent;
  *  - every POST / PATCH / PUT / DELETE on a table, every edge function and every storage call is answered without
  *    being sent;
  *  - only two kinds of request still go out: sign-in traffic (/auth/v1/), so the admin stays signed in, and a READ of
@@ -15,6 +17,9 @@
  * Guard: src/test/adminDeclutterPreviewIsInert.test.ts.
  */
 import type { DeclutterPreviewSample } from "./declutterPreviewSamples";
+
+/** Tests set this to fail on a read the sample does not answer (the page passes every one here). */
+export const declutterPreviewChecks: { onUnlisted?: (what: string) => void } = {};
 
 export interface DeclutterPreviewLog {
   method: string;
@@ -45,12 +50,13 @@ function readRpc(name: string, body: Record<string, unknown>, s: DeclutterPrevie
   }
 }
 
-function tableRows(table: string, s: DeclutterPreviewSample): unknown[] {
+function tableRows(table: string, s: DeclutterPreviewSample): unknown[] | undefined {
+  if (Object.prototype.hasOwnProperty.call(s.tables, table)) return s.tables[table];
   switch (table) {
     case "declutter_items": return s.items;
     case "declutter_bookings": return s.bookings;
     case "declutter_problems": return s.problems;
-    default: return [];
+    default: return undefined;
   }
 }
 
@@ -86,6 +92,8 @@ export interface DeclutterPreviewFetchOptions {
   realFetch: typeof fetch;
   /** A write or action the page tried; the page says "Preview: this would ...". */
   onBlocked: (what: string) => void;
+  /** A read RPC or table the sample does not answer (Q2585 audit 1102c P1). Tests make it throw; the page notes it. */
+  onUnlisted?: (what: string) => void;
 }
 
 /** A fetch that answers Supabase from the sample. `log` records every Supabase request it saw. */
@@ -107,14 +115,21 @@ export function createDeclutterPreviewFetch(o: DeclutterPreviewFetchOptions): { 
     const rpc = path.match(/^\/rest\/v1\/rpc\/([^/]+)$/);
     if (rpc) {
       const name = decodeURIComponent(rpc[1]);
+      if (Object.prototype.hasOwnProperty.call(s.reads, name)) {
+        note("sample");
+        const v = s.reads[name];
+        return Array.isArray(v) ? json(v, 200, v.length) : json(v ?? null);
+      }
       const out = readRpc(name, bodyJson(init), s);
       if (out !== undefined || name === "declutter_my_handover") {
         note("sample");
         return Array.isArray(out) ? json(out, 200, out.length) : json(out ?? null);
       }
       note("blocked");
+      o.onUnlisted?.(`rpc ${name}`);
       o.onBlocked(name.replace(/^declutter_/, "").replace(/_/g, " "));
-      return json([], 200, 0);
+      // null, not []: most reads want an object or nothing, and [] drew made-up states (Invalid Date, crashes).
+      return json(null);
     }
     const table = path.match(/^\/rest\/v1\/([^/]+)$/)?.[1];
     if (table && (method === "GET" || method === "HEAD")) {
@@ -124,7 +139,9 @@ export function createDeclutterPreviewFetch(o: DeclutterPreviewFetchOptions): { 
         return o.realFetch(input, init);
       }
       note("sample");
-      const rows = tableRows(table, s);
+      const listed = tableRows(table, s);
+      if (listed === undefined) o.onUnlisted?.(`table ${table}`);
+      const rows = listed ?? [];
       if (method === "HEAD") return json(undefined, 200, rows.length);
       if (accept.includes("vnd.pgrst.object+json")) {
         return rows.length === 1 ? json(rows[0]) : json({ code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned", details: null, hint: null }, 406);

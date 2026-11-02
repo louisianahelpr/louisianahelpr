@@ -12,7 +12,7 @@
  * directly; "Phone window" opens the same address in a 375-wide window.
  * Admin-gated by the route (ProtectedRoute + AdminRoute, the same as /admin). Guard: src/test/adminDeclutterPreviewIsInert.test.ts.
  */
-import { useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { UNSAFE_NavigationContext, useSearchParams, type To } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -31,7 +31,7 @@ import {
   DECLUTTER_PREVIEW_STAGES, declutterPreviewSample, isDeclutterPreviewStage,
   type DeclutterPreviewSample, type DeclutterPreviewSide, type DeclutterPreviewStage,
 } from "./declutterPreviewSamples";
-import { installDeclutterPreviewFetch } from "./declutterPreviewBackend";
+import { declutterPreviewChecks, installDeclutterPreviewFetch } from "./declutterPreviewBackend";
 
 const PHONE_WINDOW = "lh-declutter-preview-phone";
 
@@ -89,6 +89,7 @@ function PreviewBackend({ sample, children }: { sample: DeclutterPreviewSample; 
       sample: () => sampleRef.current,
       ownUserId: () => ownRef.current,
       onBlocked: (what) => { if (Date.now() - lastGesture < 2000) sayWouldHave(what); },
+      onUnlisted: (what) => declutterPreviewChecks.onUnlisted?.(what),
     });
     setReady(true);
     return () => {
@@ -99,6 +100,35 @@ function PreviewBackend({ sample, children }: { sample: DeclutterPreviewSample; 
     };
   }, []);
   return ready ? <>{children}</> : null;
+}
+
+/**
+ * Audit 1102c P2: a crash inside the views must never reach the route's error boundary. That one unmounted
+ * PreviewBackend, which put the window's own fetch back, so the page read PROD, and its "Go Home" navigated for real.
+ * This boundary sits INSIDE the backend and the inert navigation, so the fetch layer stays in place and the
+ * fallback has no link or navigation of its own. A new stage or side (resetKey) draws again.
+ */
+class PreviewErrorBoundary extends Component<{ resetKey: string; children: ReactNode }, { error: Error | null; key: string }> {
+  state: { error: Error | null; key: string } = { error: null, key: this.props.resetKey };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  static getDerivedStateFromProps(props: { resetKey: string }, state: { error: Error | null; key: string }) {
+    return props.resetKey === state.key ? null : { error: null, key: props.resetKey };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    // Shown on screen below; the console keeps the stack for whoever fixes the view.
+    console.error("Declutter preview: a view crashed", error, info.componentStack);
+  }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div role="alert" data-preview-crashed="" className="space-y-3 rounded-2xl border border-border bg-card p-4 pb-56">
+        <p className="text-ds-15 font-semibold">This stage hit a problem in the preview.</p>
+        <p className="break-words text-ds-13 text-muted-foreground">{this.state.error.message || String(this.state.error)}</p>
+        <p className="text-ds-13 text-muted-foreground">Nothing was sent. Pick another stage or side below, or draw it again.</p>
+        <Button type="button" variant="outline" className="rounded-full" onClick={() => this.setState({ error: null })}>Draw it again</Button>
+      </div>
+    );
+  }
 }
 
 function Controls({ stage, side, onStage, onSide }: {
@@ -169,12 +199,17 @@ export default function DeclutterPreviewPage() {
   const label = DECLUTTER_PREVIEW_STAGES.find((s) => s.key === stage)?.label ?? stage;
   return (
     <AppPage title={`Declutter preview: ${label}, ${side === "buyer" ? "buyer" : "seller"}`} backTo="/admin?tab=settings">
+      {/* The backend wraps everything the page draws, the controls too, and stays in place until the route unmounts. */}
       <PreviewBackend sample={sample}>
         <InertNavigation>
-          <Views key={`${stage}:${side}`} sample={sample} />
+          <PreviewErrorBoundary resetKey={`${stage}:${side}`}>
+            <Views key={`${stage}:${side}`} sample={sample} />
+          </PreviewErrorBoundary>
         </InertNavigation>
+        <PreviewErrorBoundary resetKey="controls">
+          <Controls stage={stage} side={side} onStage={(s) => set("stage", s)} onSide={(s) => set("side", s)} />
+        </PreviewErrorBoundary>
       </PreviewBackend>
-      <Controls stage={stage} side={side} onStage={(s) => set("stage", s)} onSide={(s) => set("side", s)} />
     </AppPage>
   );
 }

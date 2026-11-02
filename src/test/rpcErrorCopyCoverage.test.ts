@@ -366,14 +366,35 @@ const PROFILE = PROFILE_RPC_ERROR_COPY as CopyTable;
 // LEAD-PROFILE-LINK's handle RPCs, likewise (src/lib/profileLink/errorCopy.ts, 20261101034834).
 const PROFILE_LINK = PROFILE_LINK_RPC_ERROR_COPY as CopyTable;
 const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK };
-/** An RPC that refuses anyone without the admin role, read from its latest definition. */
+/** An RPC that checks the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
-/** Reads a party OR an admin may call: has_role(.., 'admin') is one branch of an OR, so members get the copy too. */
-const PARTY_OR_ADMIN = new Set([
-  "declutter_order_problem", // the order's buyer or seller, or an admin (B81, 20261030044444); members see its refusals
-]);
-const adminGated = new Set([...calls.keys()].filter((rpc) => !PARTY_OR_ADMIN.has(rpc) && ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));
+/**
+ * Q1884: an owner-or-admin allowance, `... OR has_role(.., 'admin')` (no NOT): a party OR an admin may call it, so
+ * members see its refusals and its copy must not be forced into the admin-only table. `OR NOT has_role(...)` (as in
+ * `v_uid IS NULL OR NOT has_role(...)`) is still an admin-only gate. Replaces the hand list that named
+ * declutter_order_problem (B81, 20261030044444), which this rule now finds by itself.
+ */
+const OWNER_OR_ADMIN = /\bOR\s+(?:\(\s*SELECT\s+)?(?:public\.)?has_role\s*\([^;]*?'admin'/i;
+/** Admin-only: an admin check that is not an owner-or-admin allowance. */
+const isAdminOnlyBody = (body: string): boolean =>
+  ADMIN_GATE.test(body) && !OWNER_OR_ADMIN.test(body);
+const adminGated = new Set([...calls.keys()].filter((rpc) => isAdminOnlyBody(defs.get(rpc)?.body ?? "")));
 const source = (file: string) => readFileSync(resolve(ROOT, file), "utf8");
+
+// Q1884: the gate tells admin-only bodies from owner-or-admin ones.
+// @mutate src/test/rpcErrorCopyCoverage.test.ts | boolean =>\n  ADMIN_GATE.test(body) && !OWNER_OR_ADMIN.test(body); | boolean =>\n  ADMIN_GATE.test(body);
+describe("the admin gate tells admin-only from owner-or-admin (Q1884)", () => {
+  it("an admin-only body is admin-only; an owner-or-admin allowance is not", () => {
+    expect(isAdminOnlyBody("IF NOT public.has_role((SELECT auth.uid()), 'admin') THEN RAISE EXCEPTION 'admin_only'; END IF;")).toBe(true);
+    expect(isAdminOnlyBody("IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN RAISE EXCEPTION 'admin_only'; END IF;")).toBe(true);
+    expect(isAdminOnlyBody("IF NOT (o.seller_id = v_uid OR public.has_role(v_uid, 'admin')) THEN RAISE EXCEPTION 'not_party'; END IF;")).toBe(false);
+    expect(isAdminOnlyBody("IF NOT (v_owner = auth.uid() OR (SELECT public.has_role(auth.uid(), 'admin'::app_role))) THEN RAISE EXCEPTION 'not_yours'; END IF;")).toBe(false);
+    expect(isAdminOnlyBody("IF NOT v_is_party THEN RAISE EXCEPTION 'not_party'; END IF;")).toBe(false);
+    // The live corpus: the order-problem read is a party-or-admin read.
+    expect(adminGated.has("declutter_order_problem")).toBe(false);
+    expect(adminGated.size).toBeGreaterThan(20);
+  });
+});
 
 describe("the inventory still sees the world", () => {
   it("finds client RPC calls and their codes, including codes raised by a nested function", () => {

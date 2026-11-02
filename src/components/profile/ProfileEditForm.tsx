@@ -41,6 +41,12 @@ export const SHORT_FIELD_MEASURE = "max-w-[22rem]";
 /** Area + ZIP side by side: a city name and five digits. */
 export const AREA_FIELD_MEASURE = "max-w-[36rem]";
 
+/** Q2648: the About-you counter counts UP to the 20-character minimum ("2 more characters to go"). */
+export function bioCharsToGo(bio: string): string {
+  const left = Math.max(0, 20 - bio.trim().length);
+  return `${left} more character${left === 1 ? "" : "s"} to go`;
+}
+
 export function ProfileEditForm({
   profile,
   firstName,
@@ -308,12 +314,13 @@ export function ProfileEditForm({
               <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
                 <Check className="w-3 h-3" strokeWidth={3} /> Looks good
               </span>
-            ) : (
+            ) : bio.trim().length < 20 ? (
               <span className="text-ds-11 font-medium text-muted-foreground tabular-nums">
-                {/* The old counter ended in "min" and read as minutes (audit 2026-10-29 A3-C5): name the unit. */}
-                {bio.trim().length} of 20 characters
+                {/* The old counter ended in "min" and read as minutes (audit 2026-10-29 A3-C5): name the unit.
+                    "18 of 20 characters" then read like a limit almost reached (Q2648): say what is still needed. */}
+                {bioCharsToGo(bio)}
               </span>
-            )}
+            ) : null}
           </div>
           <Textarea
             id="bio"

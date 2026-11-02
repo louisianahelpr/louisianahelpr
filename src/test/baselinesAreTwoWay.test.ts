@@ -191,6 +191,9 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "scripts/eslint-rules/button-height-legacy.json": {
     "[]": "src/test/buttonHeightLedger.test.ts:legacy ledger only lists files that still violate",
   },
+  "scripts/eslint-rules/edge-silent-catch-legacy.json": {
+    "[]": "src/test/edgeSilentCatchLedger.test.ts:expect([...LEDGER].sort()).toEqual(offenders);",
+  },
   "scripts/eslint-rules/deleting-comment-stripper-legacy.json": {
     "[]": "src/test/deletingStripperLegacyOnlyShrinks.test.ts:const stale = legacy.filter",
   },

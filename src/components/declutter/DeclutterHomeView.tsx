@@ -143,7 +143,8 @@ function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | unde
   );
 }
 
-function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
+/** Exported for the admin Declutter stage preview (Q2585), which draws Selling on sample data. */
+export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   // Audit 1028 D1-8: read again while a listing waits for review, and on every new notice (an approval sends one).

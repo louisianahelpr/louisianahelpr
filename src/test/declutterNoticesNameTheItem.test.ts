@@ -20,6 +20,7 @@
 // @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(p_message), v_link);
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |   AFTER INSERT OR UPDATE ON public.declutter_orders\n  FOR EACH ROW EXECUTE FUNCTION public.declutter_orders_notice_about(); |   AFTER DELETE ON public.declutter_orders\n  FOR EACH ROW EXECUTE FUNCTION public.declutter_orders_notice_about();
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql | CREATE TRIGGER trg_declutter_orders_a_notice_about | CREATE TRIGGER trg_declutter_orders_z_notice_about
+// @mutate supabase/migrations/20261102161911_declutter_manager_share_trigger_after_notice_about.sql | RENAME TO trg_declutter_orders_manager_share; | RENAME TO trg_declutter_lock_manager_share2;
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -35,9 +36,14 @@ function orderAfterTriggers(): Map<string, string> {
   const live = new Map<string, string>();
   for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql")).sort()) {
     const sql = blankSqlComments(readFileSync(resolve(MIG_DIR, f), "utf8")).replace(/\s+/g, " ");
-    for (const m of sql.matchAll(/DROP TRIGGER IF EXISTS (\w+) ON public\.declutter_orders|CREATE TRIGGER (\w+) (AFTER [^;]*?) ON public\.declutter_orders/g)) {
+    for (const m of sql.matchAll(/DROP TRIGGER IF EXISTS (\w+) ON public\.declutter_orders|CREATE TRIGGER (\w+) (AFTER [^;]*?) ON public\.declutter_orders|ALTER TRIGGER (\w+) ON public\.declutter_orders RENAME TO (\w+)/g)) {
       if (m[1]) live.delete(m[1]);
-      else live.set(m[2], m[3]);
+      else if (m[2]) live.set(m[2], m[3]);
+      else if (live.has(m[4])) {
+        // A rename keeps the trigger's timing and events (20261102161911).
+        live.set(m[5], live.get(m[4])!);
+        live.delete(m[4]);
+      }
     }
   }
   return live;

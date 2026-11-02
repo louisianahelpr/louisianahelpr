@@ -24,7 +24,7 @@
  * @mutate supabase/functions/stripe-webhook/index.ts | import { serve } from "../_shared/buildStamp.ts"; | import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
  * @mutate scripts/lib/edgeBuildStamp.mjs |     .filter((p) => p !== STAMP_FILE); |     ;
  * @mutate supabase/functions/_shared/buildStamp.ts |   if (req.method !== "OPTIONS" \|\| !req.headers.has(BUILD_PROBE_HEADER)) return null; |   if (!req.headers.has(BUILD_PROBE_HEADER)) return null;
- * @mutate .github/workflows/functions-deploy.yml |               node scripts/edge-build-stamp.mjs write "$fn"\n              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" 2>&1 |               supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" 2>&1
+ * @mutate .github/workflows/functions-deploy.yml |               node scripts/edge-build-stamp.mjs write "$fn"\n              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --yes 2>&1 |               supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --yes 2>&1
  * @mutate .github/workflows/functions-deploy.yml |             if node scripts/check-edge-build-stamps.mjs --wait-seconds 120 | if node scripts/check-edge-build-stamps.mjs --functions "${{ steps.targets.outputs.functions }}" --wait-seconds 120
  * @mutate .github/workflows/functions-deploy.yml | if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then | if false; then
  * @mutate scripts/lib/edgeBuildStamp.mjs |   add(STAMP_FILE, withStamp(readFileSync(join(root, STAMP_FILE), "utf8"), PLACEHOLDER)); |

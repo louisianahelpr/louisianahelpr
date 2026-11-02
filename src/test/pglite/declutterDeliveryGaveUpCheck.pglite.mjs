@@ -12,6 +12,8 @@
  *
  * Then 20261102064215_declutter_gave_up_notice_opens_buying (DC-17 link format) is applied on top (3x): the buyer's
  * notice opens ?tab=buying; everything else is unchanged. FOLLOW_MUTANT=keepCart plants the old link back.
+ * Then 20261102070238_declutter_gave_up_notice_no_fee_words (3x): the buyer's notice names what the money was for,
+ * never a fee. FOLLOW2=skip leaves "delivery fee" (RED); FOLLOW2_MUTANT=feeWord plants it back (RED).
  *
  * Stubbed, said so: auth.users, declutter_orders, helpr_task_payouts, declutter_delivery_refunds and
  * declutter_delivery_raises reduced to the columns this reads (same status values); error_logs (severity, message, tags,
@@ -46,6 +48,9 @@ const skip = process.env.NEW_MIGRATION === "skip";
 const FOLLOW = "20261102064215_declutter_gave_up_notice_opens_buying.sql";
 const followSkip = process.env.FOLLOW === "skip";
 const FOLLOW_MUTANTS = { keepCart: ["'/declutter?tab=buying');", "'/declutter?view=cart');"] };
+const FOLLOW2 = "20261102070238_declutter_gave_up_notice_no_fee_words.sql";
+// keepCart again on the newest definition (FOLLOW_MUTANT=keepCart alone is overwritten by FOLLOW2).
+const FOLLOW2_MUTANTS = { feeWord: ["THEN 'delivery' ELSE", "THEN 'delivery fee' ELSE"], keepCart: FOLLOW_MUTANTS.keepCart };
 
 let failures = 0;
 const check = (ok, name) => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}`); if (!ok) failures++; };
@@ -115,6 +120,18 @@ if (!skip) {
     for (let k = 1; k <= 3; k++) {
       try { await db.exec(next); check(true, `${FOLLOW} applies (run ${k})`); } catch (e) { check(false, `${FOLLOW} applies (run ${k}): ${e.message}`); }
     }
+    if (process.env.FOLLOW2 !== "skip") {
+      let next2 = readFileSync(MIG_DIR + FOLLOW2, "utf8");
+      const fm2 = process.env.FOLLOW2_MUTANT;
+      if (fm2) {
+        const m = FOLLOW2_MUTANTS[fm2];
+        if (!m || !next2.includes(m[0])) throw new Error(`follow2 mutant ${fm2} did not apply`);
+        next2 = next2.replace(m[0], m[1]);
+      }
+      for (let k = 1; k <= 3; k++) {
+        try { await db.exec(next2); check(true, `${FOLLOW2} applies (run ${k})`); } catch (e) { check(false, `${FOLLOW2} applies (run ${k}): ${e.message}`); }
+      }
+    }
   }
 }
 
@@ -137,8 +154,9 @@ check(msg.includes("$7.99") && msg.includes("card expired"), `[fix] the ledger r
 const h = await notices(HELPR);
 check(h.length === 1 && h[0].message.includes("$18.00 delivery pay"), `[fix] the Helpr is told once about the $18.00 pay (${h.length})`);
 const b1 = await notices(BUYER), b2 = await notices(BUYER2);
-check(b1.length === 1 && b1[0].message.includes("$7.99 delivery fee"), `[fix] the buyer is told the delivery fee is being sent by hand (${b1.length})`);
-check(b2.length === 1 && b2[0].message.includes("$3.12 delivery pay raise"), `[fix] the raise buyer is told too (${b2.length})`);
+check(b1.length === 1 && b1[0].message.includes("$7.99 you paid for delivery"), `[fix] the buyer is told the $7.99 they paid for delivery is being sent by hand (${b1[0]?.message})`);
+check(b2.length === 1 && b2[0].message.includes("$3.12 you paid for the delivery pay raise"), `[fix] the raise buyer is told too (${b2[0]?.message})`);
+check(![...b1, ...b2].some((n) => /\bfees?\b/i.test(`${n.title} ${n.message}`)), `[fee words] the buyer's notices name no fee (owner: members see no fee words)`);
 // DC-17 format (20261102064215): the buyer's notice opens their side, the Helpr's stays on earnings.
 check(b1[0]?.link === "/declutter?tab=buying" && b2[0]?.link === "/declutter?tab=buying", `[fix] the buyer's notice opens ?tab=buying (${b1[0]?.link}, ${b2[0]?.link})`);
 check(h[0]?.link === "/profile?tab=earnings", `the Helpr's notice still opens earnings (${h[0]?.link})`);

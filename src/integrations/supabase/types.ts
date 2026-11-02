@@ -3668,6 +3668,8 @@ export type Database = {
           remaining_cents: number
           seller_id: string
           shop_refund_id: string | null
+          source_kind: string
+          source_ref: string
         }
         Insert: {
           amount_cents: number
@@ -3679,6 +3681,8 @@ export type Database = {
           remaining_cents: number
           seller_id: string
           shop_refund_id?: string | null
+          source_kind?: string
+          source_ref?: string
         }
         Update: {
           amount_cents?: number
@@ -3690,6 +3694,8 @@ export type Database = {
           remaining_cents?: number
           seller_id?: string
           shop_refund_id?: string | null
+          source_kind?: string
+          source_ref?: string
         }
         Relationships: [
           {
@@ -15907,6 +15913,8 @@ export type Database = {
       declutter_ship_hold_released: { Args: { p_order_id: string }; Returns: string }
       declutter_ship_setup_fee_at_capture: { Args: { p_order_id: string }; Returns: number }
       declutter_ship_sweep: { Args: never; Returns: Json }
+      declutter_shipping_reserved_cents: { Args: { p_order_id: string }; Returns: number }
+      declutter_ship_refund_after_void: { Args: { p_order_id: string }; Returns: string }
       declutter_ship_by: { Args: { p_paid: string }; Returns: string }
       declutter_my_ship_label: { Args: { p_order_id: string }; Returns: Json }
       declutter_mark_packed: { Args: { p_order_id: string }; Returns: string }

@@ -57,8 +57,9 @@ describe("the Declutter Free section", () => {
     // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     // declutter_close_paid_order: LEAD-ADMIN-HELPR-FAULT (20261101000817) restated its effective body plus the
-    // helpr_fault refund (train 6); the free branch below still reads that newest definition.
-    expect(newestFunction("declutter_close_paid_order").file).toContain("20261101000817_declutter_admin_helpr_fault.sql");
+    // helpr_fault refund (train 6); Shipping S6 2d (20261102051521) restated it again (a buyer-fault ship close holds the
+    // shipping back; the free branch unchanged); the free branch below still reads that newest definition.
+    expect(newestFunction("declutter_close_paid_order").file).toContain("20261102051521_shipping_refund_after_void.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now",
       "declutter_update_draft", "payout_setup_hire_allowed"];

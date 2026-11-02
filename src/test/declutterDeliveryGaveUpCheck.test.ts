@@ -6,11 +6,11 @@
  * planted defects).
  *
  * @mutate supabase/functions/declutter-money/index.ts | admin.rpc("declutter_delivery_gave_up_check", {}) | admin.rpc("declutter_delivery_gave_up_check_off", {})
- * @mutate supabase/migrations/20261102064215_declutter_gave_up_notice_opens_buying.sql |        WHERE p.status = 'failed' AND p.attempts >= 12 |        WHERE p.status = 'failed' AND p.attempts >= 99
- * @mutate supabase/migrations/20261102064215_declutter_gave_up_notice_opens_buying.sql |        WHERE d.status = 'failed' AND d.attempts >= 12 |        WHERE d.status = 'succeeded' AND d.attempts >= 12
- * @mutate supabase/migrations/20261102064215_declutter_gave_up_notice_opens_buying.sql |        WHERE g.status = 'refunding' AND g.refund_attempts >= 12 |        WHERE g.status = 'refunded' AND g.refund_attempts >= 12
- * @mutate supabase/migrations/20261102064215_declutter_gave_up_notice_opens_buying.sql |            AND e.created_at > date_trunc('day', now()) |            AND e.created_at > now() + interval '1 day'
- * @mutate supabase/migrations/20261102064215_declutter_gave_up_notice_opens_buying.sql | REVOKE ALL ON FUNCTION public.declutter_delivery_gave_up_check() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_delivery_gave_up_check() FROM PUBLIC;
+ * @mutate supabase/migrations/20261102070238_declutter_gave_up_notice_no_fee_words.sql |        WHERE p.status = 'failed' AND p.attempts >= 12 |        WHERE p.status = 'failed' AND p.attempts >= 99
+ * @mutate supabase/migrations/20261102070238_declutter_gave_up_notice_no_fee_words.sql |        WHERE d.status = 'failed' AND d.attempts >= 12 |        WHERE d.status = 'succeeded' AND d.attempts >= 12
+ * @mutate supabase/migrations/20261102070238_declutter_gave_up_notice_no_fee_words.sql |        WHERE g.status = 'refunding' AND g.refund_attempts >= 12 |        WHERE g.status = 'refunded' AND g.refund_attempts >= 12
+ * @mutate supabase/migrations/20261102070238_declutter_gave_up_notice_no_fee_words.sql |            AND e.created_at > date_trunc('day', now()) |            AND e.created_at > now() + interval '1 day'
+ * @mutate supabase/migrations/20261102070238_declutter_gave_up_notice_no_fee_words.sql | REVOKE ALL ON FUNCTION public.declutter_delivery_gave_up_check() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_delivery_gave_up_check() FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -20,7 +20,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 const defs = effectiveDefs(resolve(__dirname, "../../supabase/migrations"));
 const flat = (s: string) => s.replace(/\s+/g, " ");
-const MIG = flat(blankSqlComments(readFileSync(join(process.cwd(), "supabase/migrations/20261102064215_declutter_gave_up_notice_opens_buying.sql"), "utf8")));
+const MIG = flat(blankSqlComments(readFileSync(join(process.cwd(), "supabase/migrations/20261102070238_declutter_gave_up_notice_no_fee_words.sql"), "utf8")));
 
 describe("Declutter delivery money that gave up is raised daily and the payee is told once", () => {
   it("the check covers all three delivery queues at their 12-try cap", () => {

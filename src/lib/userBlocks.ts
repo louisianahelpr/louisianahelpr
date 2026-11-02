@@ -90,6 +90,15 @@ export function readUserBlockRows(currentUserId: string, now: number = Date.now(
   return entry.read;
 }
 
+/**
+ * Every held block read, for every member, dropped. The admin previews call it when they open and when they close
+ * (previewParts.ts forgetSharedReads): a read the preview answered from its sample must never be reused by the real
+ * app, and a real read must never be drawn inside the preview.
+ */
+export function forgetAllBlockReads(): void {
+  blockReads.clear();
+}
+
 /** Test-only. */
 export function __resetBlockReadsForTests(): void {
   blockReads.clear();

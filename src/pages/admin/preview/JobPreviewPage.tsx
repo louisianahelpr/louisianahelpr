@@ -23,7 +23,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
 import { PREVIEW_STAGES, isPreviewStage, previewSample, type PreviewSample, type PreviewStage, type PreviewViewer } from "./jobPreviewSamples";
 import { installPreviewFetch, jobPreviewChecks } from "./previewBackend";
-import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
+import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetSharedReads, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
 
 // The member's job page itself: the same module /jobs/:id lazy-loads (JobDetail.tsx).
 const JobPage = lazy(() => import("@/pages/jobs/jobPage/JobPage"));
@@ -53,9 +53,11 @@ function PreviewBackend({ sample, children }: { sample: PreviewSample; children:
     });
     // A new realtime channel (a live job list, a chat) never connects while the preview is open (lead 11-02).
     const undoRealtime = installInertRealtime();
+    forgetSharedReads();
     setReady(true);
     return () => {
       undoRealtime();
+      forgetSharedReads();
       uninstall();
       document.removeEventListener("pointerdown", mark, true);
       document.removeEventListener("keydown", mark, true);

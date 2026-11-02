@@ -73,6 +73,17 @@ const STRIPE_BNPL_PCT: Readonly<Record<string, number>> = {
 };
 
 /**
+ * The highest Pay-in-4 fee on `amountCents` (today Afterpay's 6% + 30c), for a
+ * check made BEFORE a charge exists, which cannot know which method the poster
+ * will be charged through (Q2097 (1): a 5.99% estimate left the gift a few
+ * cents short of an Afterpay hold's real fee, cents the platform paid).
+ */
+export function highestPayInFourFeeCents(amountCents: number): number {
+  if (!(amountCents > 0)) return 0;
+  return Math.round(amountCents * Math.max(...Object.values(STRIPE_BNPL_PCT))) + STRIPE_FLAT_CENTS;
+}
+
+/**
  * The fee ESTIMATE for a charge whose real fee could not be read: the
  * method's own rate when the charge says how it was paid, or when every
  * method the PaymentIntent allowed is a Pay-in-4 one (a Pay-in-4 checkout

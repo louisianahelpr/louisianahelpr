@@ -147,7 +147,14 @@ function createPreviewFetch(o: PreviewBackendOptions): { fetch: typeof fetch; lo
       const name = decodeURIComponent(rpc[1]);
       if (PASS_THROUGH_RPC.has(name)) {
         note("passed");
-        return o.realFetch(input, init);
+        const real = await o.realFetch(input, init);
+        // Q2683: a stage drawn by a switch the admin has off (Refund asked: refund_requests is testers-only) gets it on
+        // in this answer only. A failed read stays failed (it reads as every switch off).
+        if (s.switchesOn.length === 0 || !real.ok) return real;
+        const answer: unknown = await real.json().catch(() => null);
+        const on: Record<string, unknown> = answer && typeof answer === "object" && !Array.isArray(answer) ? { ...answer } : {};
+        for (const key of s.switchesOn) on[key] = true;
+        return json(on);
       }
       // Audit 1102e: a final action (Cancel · pay $30, the Helpr's Cancel job) gets the success shape its screen
       // expects, so the button finishes, and the page moves to the stage after it. Still never sent, still said.

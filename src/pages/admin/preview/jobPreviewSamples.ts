@@ -7,17 +7,18 @@
  * never reads or writes a real job.
  */
 import type { JobPageRow } from "@/pages/jobs/jobPage/useJobPage";
+import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressState";
 
 export const PREVIEW_STAGES = [
-  // The tracker's eight steps, in its order (jobProgressState.ts JOB_PROGRESS_STEPS).
-  { key: "posted", label: "Posted" },
-  { key: "offered", label: "Offered" },
-  { key: "hired", label: "Hired" },
-  { key: "confirmed", label: "Confirmed" },
-  { key: "on_the_way", label: "On the way" },
-  { key: "arrived", label: "Arrived" },
-  { key: "working", label: "Working" },
-  { key: "done", label: "Done" },
+  // The tracker's eight steps, named by the one step list (jobProgressState.ts JOB_PROGRESS_STEPS; oneJobTracker).
+  { key: "posted", label: JOB_PROGRESS_STEPS[0] },
+  { key: "offered", label: JOB_PROGRESS_STEPS[1] },
+  { key: "hired", label: JOB_PROGRESS_STEPS[2] },
+  { key: "confirmed", label: JOB_PROGRESS_STEPS[3] },
+  { key: "on_the_way", label: JOB_PROGRESS_STEPS[4] },
+  { key: "arrived", label: JOB_PROGRESS_STEPS[5] },
+  { key: "working", label: JOB_PROGRESS_STEPS[6] },
+  { key: "done", label: JOB_PROGRESS_STEPS[7] },
   // The other states the code knows.
   { key: "cancelled", label: "Cancelled" },
   { key: "expired", label: "Listing ran out" },

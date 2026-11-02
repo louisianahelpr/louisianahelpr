@@ -30,7 +30,7 @@ const ALLOWED: Record<string, number> = {
   "DeclutterSellView.tsx": 1, // the seller's own draft cover while listing
   "DeclutterHandoverSheets.tsx": 3, // the porch photo and buyer pickup photo previews (object URLs, BUY-5) and the signed "where it was left" photo
   "DeclutterPorchHandover.tsx": 1, // the signed "where it was left" photo (evidence)
-  "DeclutterDeliveryViews.tsx": 1, // the signed delivery proof photo (evidence)
+  "DeliveryTaskPhotos.tsx": 1, // the signed delivery proof photo (evidence; moved out of DeclutterDeliveryViews.tsx unchanged, Q2615)
 };
 
 function bareImgs(): Record<string, number> {

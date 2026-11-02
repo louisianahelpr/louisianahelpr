@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { STATUS_IDX } from "@/lib/jobProgressIndex";
 
-const src = readFileSync(path.join(process.cwd(), "src/components/JobTracking.tsx"), "utf8");
+const src = readFileSync(path.join(process.cwd(), "src/components/job-card/trackerSteps.ts"), "utf8"); // STATUSES moved out of JobTracking.tsx (trackerSteps.ts)
 
 describe("STATUS_IDX matches the tracker's steps", () => {
   it("every step's key sits at its STATUS_IDX index", () => {

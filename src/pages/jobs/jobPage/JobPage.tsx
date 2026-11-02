@@ -223,7 +223,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${job.customer_id}` : "/messages");
   const openWorking = () => navigate(highlight);
   const hiredFace = isHired && viewer.action.kind === "open_working"
-    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true) })
+    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data })
     : null;
   // The poster's own step on this page, over posterPageActions' (undefined: theirs).
   const posterStep = posterWait === "confirm_arrival"

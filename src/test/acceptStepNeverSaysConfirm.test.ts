@@ -61,11 +61,12 @@ describe("the Helpr's accept step never says confirm (Q1523)", () => {
       readFileSync(join(process.cwd(), "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx"), "utf8"),
     );
     // Every string literal in the component (comments blanked) that says confirm
-    // must be a poster-side step it names ("Confirm they've arrived"), not the accept.
+    // must be a poster-side step it names ("Confirm they've arrived"; JOBS-3/A3-33: the poster confirms each
+    // member's work, "confirms your work" / "Your work is confirmed"), not the accept.
     // Sentences only (a space inside): the step key "confirm" is an id, not copy.
     const literals = [...src.matchAll(/"((?:\\.|[^"\\\n])*)"|`((?:\\.|[^`\\])*)`/g)].map((m) => m[1] ?? m[2]);
     const confirmWords = literals.filter(
-      (l) => / /.test(l) && CONFIRM.test(l) && !/Confirm they've arrived/.test(l),
+      (l) => / /.test(l) && CONFIRM.test(l) && !/Confirm they've arrived|confirms your work|Your work is confirmed/.test(l),
     );
     expect(confirmWords).toEqual([]);
     expect(src).toContain("CREW_ACCEPT_COPY.button");

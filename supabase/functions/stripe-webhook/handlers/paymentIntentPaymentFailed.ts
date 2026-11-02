@@ -154,6 +154,21 @@ async function unfundFailedEscrow(
     // would be 7440a72d again with this event spent: retry later instead
     // (lh-money-escrow review of 56346b5eb #5).
     throw new Error(`Job ${job.id} is mid-refund ('cancelling') while its payment failed; retrying so the failure is not lost`);
+  } else if (cancelOutcome === "payout_moving") {
+    // Q1978, decided under the job's row lock (20261102055222): a payout
+    // claimed or sent, or a settlement claim, appeared after the read above.
+    // Same answer as there: page, write nothing, tell nobody.
+    logStep("payment_failed while the payout is moving (RPC) — nothing written", { jobId: job.id, piId });
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Bank payment failed WHILE the payout was being sent",
+      message: `The poster's payment for job ${job.id} ("${job.title}") failed (PaymentIntent ${piId} is ${liveStatus}), but the Helpr's payout is already moving. Nothing was written: the job was not un-escrowed and nobody was told. The Helpr is being paid from money that never arrived. Decide whether to reverse the transfer.`,
+      fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, payment_status: job.payment_status ?? null },
+      oncePerDayKey: `funded-job-payment-failed-released:${job.id}`,
+      seed: job.is_seed ?? false,
+    });
+    return;
   } else if (cancelOutcome === "moved_on" || cancelOutcome === "not_found") {
     logStep("payment_failed on a funded job: the job moved on before the cancel — nothing written", {
       jobId: job.id, piId, outcome: cancelOutcome,

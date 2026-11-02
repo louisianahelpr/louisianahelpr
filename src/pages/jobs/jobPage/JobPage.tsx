@@ -243,7 +243,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
     const extras = [msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
-    // Continue another day: a set day the Helpr has not confirmed leads; "Need another day" sits with the others.
+    // Continue another day: a set day the Helpr has not confirmed leads; "Not finished? Set a day" sits with the others.
     if (continueDay.helprLead) {
       return <JobPageActionRow tag="helpr" lead={continueDay.helprLead} leadIsStep extras={[...(faceIs === "step" ? [] : [lead]), ...extras, ...continueDay.helprExtras]} />;
     }

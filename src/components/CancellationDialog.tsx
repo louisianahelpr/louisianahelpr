@@ -22,7 +22,7 @@ import {
   DialogDestructiveAction,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight } from "lucide-react";
+import { AlertTriangle, ShieldAlert, CheckCircle, ArrowRight } from "lucide-react";
 import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeriesNotice } from "@/components/cancellationDialog/CancelDialogNotices";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -427,8 +427,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           <div className="rounded-ds-md border border-border bg-muted/30 p-4 space-y-3">
             <p className="text-ds-11 font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
 
-            {/* Step 1: Before helpr selected */}
-            <div className={`flex items-start gap-2.5 p-3 rounded-ds-sm border transition-all ${!hasHelper ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" : "bg-muted/20 border-border opacity-50"}`}>
+            {/* Step 1: Before helpr selected. Q2674 (audit 1102e row 7): not drawn once a Helpr is hired (a greyed step
+                for a state already past turned the confirm sheet into a policy page). */}
+            {!hasHelper && (<>
+            <div className="flex items-start gap-2.5 p-3 rounded-ds-sm border transition-all bg-primary/10 border-primary/30 ring-1 ring-primary/20">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -459,6 +461,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             </div>
 
             <div className="flex justify-center"><ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 rotate-90" /></div>
+            </>)}
 
             {/* Step 2: After helpr selected */}
             <div className={`p-3 rounded-ds-sm border space-y-2 transition-all ${hasHelper ? "bg-card border-border ring-1 ring-border" : "bg-muted/20 border-border opacity-50"}`}>
@@ -473,28 +476,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job pays your Helpr for the time they set aside, and it counts as a strike; you see the exact amount here before you confirm.
                   </p>
                   {hasHelper && keptFeeSentence && <p className="text-ds-11 text-muted-foreground mt-1">{keptFeeSentence.trim()}</p>}
-                  {hasHelper && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <DollarSign className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="text-ds-11 text-foreground font-medium">
-                        {cancellationFee > 0 ? `$${formatPrice(cancellationFee)} for your Helpr's time` : "Nothing for your Helpr's time"} · {strikeApplies ? "Strike recorded" : "No strike"}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
-
-              {hasHelper && cancellationFee > 0 && (
-                <div className="rounded-ds-sm bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
-                  <div className="flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">
-                      {crewQuote ? "For your hired Helprs' time" : `For ${helperName || "your Helpr"}'s time`}
-                    </span>
-                    <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
-                  </div>
-                  <p className="text-ds-11 text-muted-foreground">Most of the rest of your payment comes back to your card within the hour.</p>
-                </div>
-              )}
 
               {hasHelper && cancellationFee === 0 && (
                 <div className="rounded-ds-sm bg-primary/10 border border-primary/20 p-3 ml-7 flex items-center gap-2">
@@ -507,10 +490,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             </div>
           </div>
 
-          {/* Strike system — always visible */}
-          <div className={`rounded-ds-md border p-4 space-y-3 ${strikeApplies ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
-            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${strikeApplies ? "text-destructive-ink" : "text-muted-foreground"}`}>
-              <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies inside 24 hours of the start, once a Helpr is selected)
+          {/* Strike system: Q2674 (audit 1102e row 7) only when this cancel IS a strike; otherwise the step above says so. */}
+          {strikeApplies && (
+          <div className="rounded-ds-md border p-4 space-y-3 border-destructive/30 bg-destructive/5">
+            <p className="text-ds-11 font-semibold flex items-center gap-1.5 text-destructive-ink">
+              <ShieldAlert className="w-3.5 h-3.5" /> How strikes work
             </p>
             <div className="space-y-2 text-ds-11 text-muted-foreground">
               <div className="flex items-start gap-2">
@@ -520,13 +504,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                 ))}
               </div>
             </div>
-            {!hasHelper && (
-              <p className="text-ds-11 text-muted-foreground">✓ These consequences don&apos;t apply to you — no Helpr has been selected.</p>
-            )}
-            {hasHelper && !strikeApplies && (
-              <p className="text-ds-11 text-muted-foreground">✓ These consequences don&apos;t apply to this cancel — the job is 24 or more hours away.</p>
-            )}
           </div>
+          )}
           </>)}
 
           {/* Series scope — stated at the decision (owner, 2026-08-24). */}
@@ -534,14 +513,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
 
           {/* Fee summary callout: only when a non-zero fee applies (hasHelper + late). */}
           {hasHelper && cancellationFee > 0 && (
-            <CancelFeeCallout fee={cancellationFee} crew={!!crewQuote} feeTier={feeTier} />
+            <CancelFeeCallout fee={cancellationFee} crew={!!crewQuote} feeTier={feeTier} helperName={helperName} strike={strikeApplies} />
           )}
 
           {/* Boards 66/172 slice 2: "Back to you" is only ever the SERVER's number (see CancelBackToYou). */}
           {wasFunded && <CancelBackToYou quote={quote} quoteLoading={quoteLoading} backToYouCents={backToYouCents} />}
 
           {/* What the Helpr actually gets: gated on the FEE (see CancelHelprToldAndPaid). */}
-          {hasHelper && cancellationFee > 0 && <CancelHelprToldAndPaid helperName={helperName} fee={cancellationFee} />}
+          {hasHelper && cancellationFee > 0 && <CancelHelprToldAndPaid helperName={helperName} />}
 
           <div className="space-y-1.5">
             <label

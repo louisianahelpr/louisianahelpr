@@ -24,7 +24,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { listAllObjects } from "../_shared/accountPurge.ts";
-import { IDENTITY_BUCKETS } from "../_shared/purgeBuckets.ts";
+import { IDENTITY_BUCKETS, identitySubfolderPrefixes } from "../_shared/purgeBuckets.ts";
 
 /** How long each file link in the export works. */
 const SIGNED_URL_SECONDS = 60 * 60 * 24 * 7;
@@ -81,11 +81,17 @@ serve(async (req) => {
       return json({ error: "We couldn't put your data together just now. Try again, or email support." }, 500);
     }
 
-    // What to sign: every object under <uid>/ in the identity buckets, plus the
-    // attachments on the messages this export contains.
+    // What to sign: every object under <uid>/ in the identity buckets and under
+    // each <uid>/<folder> deletion erases, plus the attachments on the messages
+    // this export contains.
     const targets: { bucket: string; paths: string[] }[] = [];
     for (const bucket of IDENTITY_BUCKETS) {
       targets.push({ bucket, paths: await listAllObjects(admin, bucket, user.id) });
+    }
+    // Q1863: the member's own folders inside shared buckets (Declutter listing, porch and problem photos, quote
+    // photos, a Helpr's truck photo, shop photos): export what account deletion erases (purgeBuckets.ts).
+    for (const { bucket, prefix } of identitySubfolderPrefixes(user.id)) {
+      targets.push({ bucket, paths: await listAllObjects(admin, bucket, prefix) });
     }
     const messages = ((exported as { messages?: { attachment_url?: string | null }[] }).messages) ?? [];
     const attachments = new Set<string>();

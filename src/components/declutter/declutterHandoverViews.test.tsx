@@ -1132,7 +1132,9 @@ describe("boards 159 + 160: handover sheets", () => {
   });
 
   it("159 seller, porch: the photo is checked in 'Put it out' and only sent on 'Send photo · it's out'", async () => {
-    state.bookings = [slot(-60)];
+    // Starts now, not in 1 h: the photo day is the slot's local date (Q2626), so a slot 1 h ahead fell on tomorrow
+    // after 23:00 and the photo input was not drawn (red on CI, which runs in UTC, from 23:00Z; #4022 shard 5).
+    state.bookings = [slot(0)];
     show([line({ handover: "porch", my_side: "seller" })]);
     const input = await screen.findByLabelText(/Photo of the item on your porch/);
     fireEvent.change(input, { target: { files: [new File(["x"], "porch.jpg", { type: "image/jpeg" })] } });
@@ -1151,7 +1153,7 @@ describe("boards 159 + 160: handover sheets", () => {
 
   it("Q2266 retake: a photo sent with no note still clears the old note (lh-authz-rls review #1)", async () => {
     // @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (r.result === "set_out" && order.side === "seller") { | if (r.result === "set_out" && note) {
-    state.bookings = [slot(-60)];
+    state.bookings = [slot(0)];
     show([line({ handover: "porch", my_side: "seller" })]);
     fireEvent.change(await screen.findByLabelText(/Photo of the item on your porch/), { target: { files: [new File(["x"], "porch.jpg", { type: "image/jpeg" })] } });
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Send photo · it's out" }));
@@ -1393,7 +1395,9 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
       cases.push({ name: `${handover}, booked time in an hour`, handover, booking: slot(-60), offered: false });
       cases.push({ name: `${handover}, booked time 16 min in`, handover, booking: slot(16), offered: true, sellerOffered: handover === "porch" ? slotDayOver : true });
     }
-    cases.push({ name: "porch day today", handover: "porch", booking: { ...slot(60), pickup_day: today }, offered: false });
+    // slot(0), not slot(60): the porch seller's moment is the end of the slot's day (Q2627), so a slot that began an
+    // hour ago fell on yesterday from 00:00 to 01:00 local and the seller was offered the button.
+    cases.push({ name: "porch day today", handover: "porch", booking: { ...slot(0), pickup_day: today }, offered: false });
     cases.push({ name: "porch day tomorrow", handover: "porch", booking: { ...slot(-600), pickup_day: tomorrow }, offered: false });
     cases.push({ name: "porch day yesterday", handover: "porch", booking: { ...slot(60 * 30), pickup_day: yesterday }, offered: true });
     let hidden = 0;

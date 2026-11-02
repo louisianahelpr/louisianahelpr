@@ -13,7 +13,7 @@
     "src/components/MobileNav.tsx": 686,
     "src/components/NotificationPanel.tsx": 959,
     "src/components/NotificationPreferences.tsx": 869,
-    "src/components/postjob/CheckoutStep.tsx": 731,
+    "src/components/postjob/CheckoutStep.tsx": 729,
     "src/components/profile/CredentialsTab.tsx": 911,
     "src/components/profile/ScheduleTab.tsx": 839,
     "src/components/profile/SubscriptionTab.tsx": 871,

@@ -48,8 +48,6 @@ const SQL_SOMEONE_OK: Record<string, string> = {
     "HINT 'Someone else got this item first.': an error to the member trying to take an item, not a notice; the member who got it first is a stranger the app never names to them",
   declutter_wanted_record_match:
     "'Someone near you wants one': a wanted post is private to its poster (RLS 'poster reads own'); a seller never learns who wants an item",
-  notify_user_on_review:
-    "the HELD branch only ('Someone reviewed you'): the review is double-blind until both sides review or 14 days pass (20260831162131), and RLS hides a held review from its subject; the revealed branch names the reviewer",
 };
 
 /** Edge/client files that may write "Someone" for a person. path -> why. Exact and two-way. */
@@ -191,10 +189,15 @@ describe("a notification with a known actor names them, never 'Someone' (owner 2
     }
   });
 
-  it("the review exception is the held branch only: the revealed branch names the reviewer", () => {
+  // Q2328 (owner 2026-10-21, issue #3515): the held notice names the reviewer too; the rating stays out of it.
+  // @mutate supabase/migrations/20261102230737_review_held_notice_names_reviewer.sql |     v_msg := v_reviewer_name \|\| ' reviewed you for "' | v_msg := 'Someone reviewed you for "'
+  it("both review notices name the reviewer; the held one gives no rating", () => {
     const body = blankSqlComments(defs.get("notify_user_on_review")!.stmt);
-    expect(sqlSomeoneOffences(body)).toEqual([`'Someone reviewed you for "'`]);
+    expect(sqlSomeoneOffences(body)).toEqual([]);
     expect(body).toMatch(/v_title := 'New review from ' \|\| v_reviewer_name;/);
+    const held = body.slice(body.search(/\bELSE\b/));
+    expect(held).toMatch(/v_msg := v_reviewer_name \|\| ' reviewed you for "'/);
+    expect(held.slice(0, held.search(/END IF;\s*SELECT COALESCE\(reviews/))).not.toMatch(/NEW\.rating/);
   });
 
   it("memberDisplayNameOf: 'First L.', a deleted member, a block, a blank name, a failed read, no id", async () => {

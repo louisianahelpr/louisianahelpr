@@ -270,7 +270,7 @@ export const NOTIFICATION_ROWS = 17;
  * review in the list (stars, a date, two lines), not the "No reviews yet" card, so the loading frame claims
  * neither "none" nor "some".
  */
-export const ReviewRowReserve = () => (
+const ReviewRowReserve = () => (
   <div data-testid="profile-tab-fallback" data-review-row-reserve="" className="rounded-ds-md liquid-glass p-card space-y-2.5" aria-hidden>
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-0.5">

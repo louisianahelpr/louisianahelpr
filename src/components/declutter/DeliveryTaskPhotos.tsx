@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { taskPhotoUrl, type TaskView } from "@/lib/helprTasks/api";
+import { Button } from "@/components/ui/button";
 
 // The pickup and drop-off photos on a Helpr delivery, moved out of DeclutterDeliveryViews.tsx unchanged (Q2615).
 
@@ -10,7 +11,7 @@ function TaskPhoto({ path, label }: { path: string; label: string }) {
     return (
       <p className="text-xs" role="alert">
         {label}: the photo couldn't load.{" "}
-        <button type="button" className="underline" onClick={() => void url.refetch()}>Try again</button>
+        <Button type="button" variant="link" size="sm" className="h-auto p-0 align-baseline underline" onClick={() => void url.refetch()}>Try again</Button>
       </p>
     );
   }

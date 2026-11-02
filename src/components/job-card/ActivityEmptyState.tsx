@@ -2,6 +2,7 @@ import { navIconFor } from "@/components/mobileNav/mobileNavHelpers";
 import { EmptyState, MAIN_TAB_EMPTY_BODY_LINES } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
+import { Button } from "@/components/ui/button";
 import type { Tab } from "@/components/job-card/activityConstants";
 import { useAgeGate } from "@/hooks/useAgeGate";
 
@@ -174,9 +175,9 @@ export function ActivityEmptyState({
           /* Q2609: on an empty All, the bucket All leaves out (Not picked) is a quiet link under the
              tab's own button, never the only way on. */
           isLiveEmpty && !isTrulyEmpty && jumpTo && onSelectStatusFilter ? (
-            <button type="button" data-empty-jump="" className="text-ds-14 underline underline-offset-2 text-muted-foreground" onClick={() => onSelectStatusFilter(jumpTo.key)}>
+            <Button type="button" variant="link" size="sm" data-empty-jump="" className="h-auto p-0 text-ds-14 underline underline-offset-2 text-muted-foreground" onClick={() => onSelectStatusFilter(jumpTo.key)}>
               Show {jumpTo.label} ({statusCounts?.[jumpTo.key] ?? 0})
-            </button>
+            </Button>
           ) : undefined
         }
         action={

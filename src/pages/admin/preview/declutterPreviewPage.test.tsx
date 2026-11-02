@@ -4,7 +4,7 @@
  * window's fetch underneath is a spy that must stay unused for every Supabase request).
  * The backend's rules are proved request by request in src/test/adminDeclutterPreviewIsInert.test.ts.
  *
- * @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |           : <SellingDash todo={null} userId={sample.userId} listings={<MyListingsView userId={sample.userId} haulOn />} />} |           : null}
+ * @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |           : <SellingDash todo={null} userId={sample.userId} listings={<Suspense fallback={null}><MyListingsView userId={sample.userId} haulOn /></Suspense>} />} |           : null}
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |   globalThis.fetch = previewFetch; |   void previewFetch;
  * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_my_free_pause: null,\n |
  * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_payouts: [],\n |

@@ -188,7 +188,9 @@ export function declutterPreviewSample(stage: DeclutterPreviewStage, side: Declu
       return { ...base, cart: [paid("pickup_home", { order_status: "handed_over" })],
         handovers: { [ORDER_ID]: handover(side, { status: "handed_over", confirmed_at: hoursFrom(now, -3), confirmed_by: "buyer", picked_up_at: hoursFrom(now, -3) }) } };
     case "refund":
-      return { ...base, cart: [paid("pickup_home", { order_status: "refunded", closed_at: hoursFrom(now, -5) })], handovers: { [ORDER_ID]: handover(side) } };
+      // Q2630: a refunded order says how much came back (declutter_my_refunded_cents): here the whole $42.70.
+      return withReads({ ...base, cart: [paid("pickup_home", { order_status: "refunded", closed_at: hoursFrom(now, -5) })], handovers: { [ORDER_ID]: handover(side) } },
+        { declutter_my_refunded_cents: [{ order_id: ORDER_ID, refunded_cents: 4270 }] });
     case "problem":
       return withReads({ ...base, cart: [paid("pickup_home")], handovers: { [ORDER_ID]: handover(side) },
         problems: [{ id: PROBLEM_ID, order_id: ORDER_ID, reporter_side: "buyer", reason: "not_as_described" }] }, {

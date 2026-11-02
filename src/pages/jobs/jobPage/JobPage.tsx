@@ -440,7 +440,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {isPoster && open && !offerOut && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
             <NoApplicantsYet job={job} onManage={posterActions.edit} />
           )}
-          {!isPoster && !isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
         </div>
 
         {/* Lead 11-01 (B107): a stage with nothing in the main column (no photos, crew or fix: Done, Cancelled) left an
@@ -455,7 +454,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {viewer.status && !(!isPoster && instantUntil) && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
             {/* Owner 2026-11-01: the other person's card sits ABOVE the buttons. */}
             {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <HiredHelpr helprId={job.helper_id} />}
-            {isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
+            {/* Q2599 (Jobs audit 1102b row 13): every Helpr, hired or not, sees the poster's card here. On Posted it sat
+                alone in the main column, so the page split in two at 1440 (a short card left, pay and Apply right)
+                while every other stage is one full-width card. */}
+            {!isPoster && job.customer_id && <PostedBy posterId={job.customer_id} />}
             {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
             {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
             {/* The note sent with a new day is shown here to the two parties only, never in a notice (Q223). */}

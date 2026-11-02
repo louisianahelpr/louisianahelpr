@@ -29,6 +29,7 @@
  * @mutate src/components/sections/sectionsConfig.ts | add: { label: "Sell an item", path: SELL_CHOOSER_PATH } | add: { label: "Sell an item", path: "/declutter/sell" }
  * @mutate src/components/create/CreateSheet.tsx | declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH } | declutter: [{ label: "Sell an item", path: "/declutter/sell" }
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | <Link to={SELL_CHOOSER_PATH}>Sell something</Link> | <Link to="/declutter/sell">Sell something</Link>
+ * @mutate src/components/declutter/SellChooserEntry.tsx |       to={SELL_CHOOSER_PATH} |       to="/declutter/sell"
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
  * @mutate src/pages/post-job/EntryChoice.tsx |     <ChoiceCard key={key} icon={icon} title={title} line={line} onClick={onClick} extra={extra} /> |     <button key={key} type="button" onClick={onClick}>{title}{line}</button>
  */
@@ -217,7 +218,8 @@ describe("every Sell button opens the chooser", () => {
     const stale = [...ALLOWED].filter((f) => !files.includes(f) || !namesBarePath(f));
     expect(stale, "stale baseline entry in the bare-path list: remove it").toEqual([]);
     // The Sell buttons this guard was built for each name the chooser.
-    for (const f of ["src/components/create/CreateSheet.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterHomeView.tsx", "src/components/sections/sectionsConfig.ts"]) {
+    // DeclutterHomeView's Sell buttons moved into SellChooserEntry (the phone card) and TabletSellRow (B77, tab code split).
+    for (const f of ["src/components/create/CreateSheet.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/SellChooserEntry.tsx", "src/components/declutter/TabletSellRow.tsx", "src/components/sections/sectionsConfig.ts"]) {
       expect(blankComments(readFileSync(join(process.cwd(), f), "utf8")), f).toMatch(/SELL_CHOOSER_PATH/);
     }
   });

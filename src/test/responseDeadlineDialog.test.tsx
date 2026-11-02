@@ -37,7 +37,7 @@ beforeAll(() => {
 });
 
 describe("ResponseDeadlineDialog", () => {
-  it("shows an award-gate refusal inline and stays open with Send re-enabled", async () => {
+  it("shows an award-gate refusal inline and stays open with Hire re-enabled", async () => {
     const gateMessage = posterAwardBlockMessage("helper_payout_setup_incomplete", "Jane Doe");
     const onConfirm = vi.fn().mockRejectedValue(new Error(gateMessage));
     const onClose = vi.fn();
@@ -46,22 +46,22 @@ describe("ResponseDeadlineDialog", () => {
       <ResponseDeadlineDialog open helperName="Jane Doe" onConfirm={onConfirm} onClose={onClose} />,
     );
 
-    const send = screen.getByRole("button", { name: /send offer/i });
+    const send = screen.getByRole("button", { name: /^hire jane$/i });
     fireEvent.click(send);
 
     // The refusal is rendered INSIDE the dialog, verbatim.
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(gateMessage);
 
-    // Dialog stayed open (never closed itself) and Send is usable again.
+    // Dialog stayed open (never closed itself) and Hire is usable again (A3-46: the button says Hire).
     expect(onClose).not.toHaveBeenCalled();
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /send offer/i })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: /^hire jane$/i })).toBeEnabled(),
     );
 
     // A retry clears the previous error while in flight and re-shows on
     // a second refusal.
-    fireEvent.click(screen.getByRole("button", { name: /send offer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^hire jane$/i }));
     expect(onConfirm).toHaveBeenCalledTimes(2);
     expect(await screen.findByRole("alert")).toHaveTextContent(gateMessage);
   });
@@ -72,7 +72,7 @@ describe("ResponseDeadlineDialog", () => {
     render(
       <ResponseDeadlineDialog open helperName="Jane Doe" onConfirm={onConfirm} onClose={vi.fn()} />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /send offer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^hire jane$/i }));
     await screen.findByRole("alert");
     expect(toast.error).not.toHaveBeenCalled();
   });
@@ -82,7 +82,7 @@ describe("ResponseDeadlineDialog", () => {
     render(
       <ResponseDeadlineDialog open helperName="Jane Doe" onConfirm={onConfirm} onClose={vi.fn()} />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /send offer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^hire jane$/i }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Couldn't send the offer — please try again.",
     );

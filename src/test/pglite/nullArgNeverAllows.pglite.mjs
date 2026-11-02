@@ -151,6 +151,8 @@ CREATE TABLE IF NOT EXISTS public.platform_settings (id uuid PRIMARY KEY DEFAULT
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
 -- 20261028151647: the newest feature_enabled_for_user (a loaded allow function) also lets a switch's own members in.
 CREATE TABLE public.feature_switch_members (key text NOT NULL, user_id uuid NOT NULL, note text, PRIMARY KEY (key, user_id));
+-- 20261101154236: the newest feature_enabled_for_user also lets the store review accounts into member switches.
+CREATE TABLE public.store_review_accounts (user_id uuid PRIMARY KEY, note text, created_at timestamptz NOT NULL DEFAULT now());
 -- job_announceable_to (newest body) also reads Q1401's cutoff (loaded verbatim as a HELPER below) and Q1411's ban
 -- review queue (created below as live).
 -- Declutter (20261015042253's two allow checks read the cart and the pickup windows; the class SQL's

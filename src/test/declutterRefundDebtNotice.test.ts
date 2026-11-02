@@ -8,9 +8,9 @@
  * without a notice turns this red. (Shops refunds and delivery raises key their debts by other columns.)
  * Backend proof: src/test/pglite/declutterRefundDebtNotice.pglite.mjs (3x; RED without the migration).
  *
- * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF false THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
- * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |       IF FOUND THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund', |       IF true THEN\n        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',
- * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql | sale''s payout.',\n                           public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0 | sale''s payout.',\n                           NULL::text, to_char(v_fee / 100.0
+ * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |       IF FOUND AND NOT (p_reason = 'seller_out' |       IF false AND NOT (p_reason = 'seller_out'
+ * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |       IF FOUND AND NOT (p_reason = 'seller_out' |       IF true AND NOT (p_reason = 'seller_out'
+ * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql | sale''s payout.',\n                           public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0 | sale''s payout.',\n                           NULL::text, to_char(v_fee / 100.0
  * BUY-30 (20261031105148): the notice names the item; proof src/test/pglite/declutterRefundDebtNoticeNamesItem.pglite.mjs (3x; skip red).
  */
 import { describe, expect, it } from "vitest";
@@ -40,7 +40,10 @@ describe("audit 1b #6: a refund that leaves the seller owing money tells them", 
 
   it("record_refund tells the seller only when it recorded a new debt, in words that name no fee", () => {
     const b = flat(DEFS.get("declutter_record_refund")?.stmt ?? "");
-    expect(b).toMatch(/ON CONFLICT \(refund_id\) DO NOTHING; IF FOUND THEN PERFORM public\.declutter_notify\(v_seller, 'declutter_refunds', 'You owe from a refund',/);
+    // Q2556 (20261102080936): a seller_out refund of a payment the order never took (declutter_mark_order_paid's
+    // refusal, told by declutter_seller_out_fee_notice) is not told twice; proof
+    // src/test/pglite/declutterBlockedOutSellerNotice.pglite.mjs case (d).
+    expect(b).toMatch(/ON CONFLICT \(refund_id\) DO NOTHING; IF FOUND AND NOT \(p_reason = 'seller_out' AND NOT EXISTS \(SELECT 1 FROM public\.declutter_orders o WHERE o\.id = p_order_id AND o\.stripe_payment_intent_id = p_payment_intent_id\)\) THEN PERFORM public\.declutter_notify\(v_seller, 'declutter_refunds', 'You owe from a refund',/);
     // BUY-30 (20261031105148): the notice names the item.
     const words = "'This refund on %s leaves you owing $%s. It comes out of your next Declutter sale''s payout.', public.declutter_order_items_named(p_order_id),";
     expect(b).toContain(words);

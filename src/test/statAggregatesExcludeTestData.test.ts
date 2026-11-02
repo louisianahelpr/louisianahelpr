@@ -102,6 +102,9 @@ const ALLOWED: Record<string, string> = {
   declutter_pickup_reminder_sweep: "logic: names the first item of one order in its reminder (\"and N more\")",
   declutter_publish_item: VALID,
   declutter_record_hand_refund: MONEY,
+  // Q2338 (20261102032514): counts the strikes it just moved back onto a re-verified identity; stripe-idv-webhook
+  // discards the number, and an is_seed filter would change whose strikes come back, not any displayed total.
+  declutter_restore_retained_strikes: LADDER,
   declutter_seller_delivery_check: MONEY,
   declutter_seller_hidden_sweep: OPS,
   declutter_send_handover_message: LIMIT,

@@ -68,6 +68,11 @@ export function PhotoNameSection({
   const [photoRejection, setPhotoRejection] = useState<AvatarPhotoRejection | null>(null);
   // Whether the member picked a file on this visit: only then is "came through blank" about something they did.
   const [uploadedThisVisit, setUploadedThisVisit] = useState(false);
+  // A named handler, not an inline arrow: fileInputsKeyboardReachable reads the <input> tag up to its first ">".
+  const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadedThisVisit(true);
+    onAvatarUpload(e);
+  };
 
   return (
     <div className="rounded-2xl liquid-glass p-card space-y-4">
@@ -132,7 +137,7 @@ export function PhotoNameSection({
                 A <label> names the control it wraps, so an sr-only child names
                 the file input properly and works everywhere. */}
             <span className="sr-only focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]">Change profile photo</span>
-            <input type="file" accept="image/*" className="sr-only" onChange={(e) => { setUploadedThisVisit(true); onAvatarUpload(e); }} disabled={avatarUploading} />
+            <input type="file" accept="image/*" className="sr-only" onChange={handlePick} disabled={avatarUploading} />
           </label>
         </div>
         <div className="min-w-0 flex-1">

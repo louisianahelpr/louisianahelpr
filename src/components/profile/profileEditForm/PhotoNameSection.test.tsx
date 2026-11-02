@@ -117,5 +117,5 @@ describe("PhotoNameSection", () => {
 // public" alone did not stop a member publishing their driver's licence.
 // @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx |       if (!uploadedThisVisit) return "Add a photo so people know who they're hiring."; |       if (!uploadedThisVisit) {}
 // @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | {avatarCaption(photoRejection, uploadedThisVisit)} | {avatarCaption(photoRejection, true)}
-// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | onChange={(e) => { setUploadedThisVisit(true); onAvatarUpload(e); }} | onChange={(e) => { onAvatarUpload(e); }}
+// @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx |     setUploadedThisVisit(true);\n    onAvatarUpload(e); |     onAvatarUpload(e);
 // @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | Anyone can see this photo — never use a photo of an ID, licence or document. | Anyone can see this photo.

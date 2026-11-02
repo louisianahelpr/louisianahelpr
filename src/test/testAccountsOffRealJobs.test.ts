@@ -24,7 +24,7 @@
  * @mutate supabase/migrations/20261030063902_test_accounts_off_real_jobs.sql | CREATE TRIGGER trg_applications_test_account_off_real_jobs\n  BEFORE INSERT OR UPDATE OF helper_id, job_id ON public.applications | CREATE TRIGGER trg_applications_test_account_off_real_jobs\n  BEFORE UPDATE OF helper_id, job_id ON public.applications
  * @mutate supabase/migrations/20261030063902_test_accounts_off_real_jobs.sql |   BEFORE INSERT OR UPDATE OF helper_id, offered_to_helper_id ON public.jobs |   BEFORE INSERT OR UPDATE OF helper_id ON public.jobs
  * @mutate supabase/migrations/20261030063902_test_accounts_off_real_jobs.sql | CREATE TRIGGER trg_jobs_test_account_off_real_jobs | CREATE TRIGGER trg_jobs_a_test_account_off_real_jobs
- * @mutate supabase/migrations/20261030063902_test_accounts_off_real_jobs.sql |   IF v_job_is_seed IS FALSE THEN |   IF v_job_is_seed IS TRUE THEN
+ * @mutate supabase/migrations/20261102071213_store_reviewer_may_apply_to_real_jobs.sql |   IF v_job_is_seed IS FALSE THEN |   IF v_job_is_seed IS TRUE THEN
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -93,6 +93,20 @@ describe("a test account is never put on a real job (Q1755)", () => {
     expect(setters.length).toBeGreaterThan(1);
     const mine = ours(inv, "jobs")[0];
     for (const s of setters) expect(s.name < mine.name, `${s.name} must sort before ${mine.name}`).toBe(true);
+  });
+
+  // Lead 2026-11-02 (20261102071213): the App Review account may APPLY to a real job,
+  // and nothing else; every other test account stays refused. PGlite proof with
+  // planted defects: src/test/pglite/storeReviewerMayApply.pglite.mjs.
+  // @mutate supabase/migrations/20261102071213_store_reviewer_may_apply_to_real_jobs.sql |  IF TG_TABLE_NAME = 'applications'\n     AND EXISTS (SELECT 1 FROM public.store_review_accounts |  IF true\n     AND EXISTS (SELECT 1 FROM public.store_review_accounts
+  it("the store review account is let through on applications only (newest definition)", () => {
+    const body = bodyOf(effectiveDefs(DIR).get(FN)!.stmt);
+    const exempt = /IF\s+TG_TABLE_NAME\s*=\s*'applications'\s+AND\s+EXISTS\s*\(SELECT 1 FROM public\.store_review_accounts r WHERE r\.user_id = v_member\)\s+THEN\s+RETURN NEW;/;
+    expect(body).toMatch(exempt);
+    expect((body.match(/store_review_accounts/g) ?? []).length).toBe(1);
+    // The jobs branch (hire, offer) comes before it and never names the review account.
+    expect(body.indexOf("store_review_accounts")).toBeGreaterThan(body.indexOf("a test account cannot be offered a real job"));
+    expect(bodyOf(effectiveDefs(DIR, { before: "20261102071213" }).get(FN)!.stmt)).not.toMatch(/store_review_accounts/);
   });
 
   it("can fail: before the fix no table ran the rule", () => {

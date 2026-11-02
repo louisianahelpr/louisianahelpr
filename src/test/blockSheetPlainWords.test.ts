@@ -1,11 +1,11 @@
 /**
  * Audit #51 (2026-10-21): the block sheet's only commit read "Just Block" (no
  * alternative); its cancellation paragraph was all red; its reason label was
- * uppercase. Now: "Block" when it is the only commit ("Just block" beside
- * "Block and report"), plain text with only the money amount in rust, and a
+ * uppercase. Now: "Block" ("Block and report" once its Also report box is
+ * ticked, Q2682), plain text with only the money amount in rust, and a
  * sentence-case label.
  *
- * @mutate src/components/BlockUserDialog.tsx |                 "Block"\n |                 "Just Block"\n
+ * @mutate src/components/BlockUserDialog.tsx |               "Block"\n |               "Just Block"\n
  * @mutate src/components/BlockUserDialog.tsx | <li className="not-italic font-sans font-medium text-foreground"> | <li className="not-italic font-sans font-medium" style={{ color: "hsl(var(--burnt-sienna))" }}>
  */
 import { describe, it, expect } from "vitest";

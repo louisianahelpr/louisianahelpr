@@ -25,7 +25,6 @@ const CART_SENDERS: Record<string, string> = {
   declutter_checkout_free: "v_uid",
   declutter_close_paid_order: "o.buyer_id",
   declutter_complete_handover: "o.buyer_id",
-  declutter_delivery_gave_up_check: "r.buyer_id",
   declutter_delivery_raise_paid: "o.buyer_id",
   declutter_delivery_raises_on_task_close: "v_buyer",
   declutter_hand_refund_failed: "v_buyer",

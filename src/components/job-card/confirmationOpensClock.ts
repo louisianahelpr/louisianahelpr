@@ -3,7 +3,7 @@ import { JOB_TIMEZONE } from "../../../supabase/functions/_shared/cancellationFe
 import type { CountdownClock } from "./CountdownRows";
 
 /** The confirm window's countdown words: "1d 21h 0m until you can confirm" (Q2597). */
-export const CONFIRM_OPENS_TEXT = "until you can confirm";
+const CONFIRM_OPENS_TEXT = "until you can confirm";
 
 /**
  * JobConfirmation's not-yet-open state ("Confirmation opens in ...") as a clock row (owner, 2026-10-07, Q1399): the

@@ -34,7 +34,9 @@ export type PriceMode = "price" | "quotes";
 
 /** What happens next, one line per choice (owner 2026-10-19: say it under the pills). */
 const PRICE_MODE_NEXT: Record<PriceMode, string> = {
-  price: "You set the budget and review it before anything is charged. Helprs apply at your price.",
+  // Q2613 (Jobs audit 1102b row 27): the header above already says when the card is charged; this line said it a
+  // second time in other words. It says only what this choice means.
+  price: "You set the price. Helprs apply at your price.",
   quotes: "No price yet. Helprs near you send theirs; you pick one and pay only when you book.",
 };
 

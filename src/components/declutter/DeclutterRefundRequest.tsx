@@ -44,6 +44,8 @@ import {
   returnPickArgs,
   sellerReturnPhotoPath,
 } from "./DeclutterRefundReturn";
+import { SellerSideFields, SellerSideShown } from "./DeclutterRefundSellerSide";
+import { decidesBy } from "@/lib/declutter/decideBy";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -220,6 +222,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
         <div className="space-y-2" data-refund-offer="">
           <NextStep value={{ who: "you", text: "Take the offer or ask Louisiana Helpr to decide", by: r.offer_answer_by ? at(r.offer_answer_by) : null }} />
           <p className="text-sm">{cap(who)} offered {refundDollars(r.offer_cents ?? 0)} back. You keep the item.</p>
+          <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} />
           <div className="flex flex-wrap gap-2">
             <button type="button" className={primary} disabled={offer.isPending} onClick={() => setAnswering("take")}>
               Take {refundDollars(r.offer_cents ?? 0)}
@@ -265,11 +268,12 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
           <p className="text-sm">
             {cap(who)} said no to a refund.{v.can_report && r.report_until ? ` If you still think something is wrong, report a problem by ${at(r.report_until)} and Louisiana Helpr decides.` : ""}
           </p>
+          <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} />
           {v.can_report && problemForm}
         </div>
       );
     case "to_admin":
-      return <p className="text-sm">Louisiana Helpr is looking at your refund request. We decide and tell you both.</p>;
+      return <p className="text-sm" data-refund-to-admin="">Louisiana Helpr is looking at your refund request. We decide and tell you both.{decidesBy(r.decide_by)}</p>;
     case "withdrawn":
       return <p className="text-sm text-muted-foreground">You took back your refund request.</p>;
   }
@@ -314,12 +318,16 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
   // Declutter returns: the way back is picked with "Refund in full" and sent in the same call.
   const [pick, setPick] = useState(() => emptyReturnPick(canDropOff));
   const pickArgs = returnPickArgs(pick);
+  // A3-74: the seller's side on a part offer or a no (optional words, up to 3 photos), uploaded when sent.
+  const [sideNote, setSideNote] = useState("");
+  const [sidePhotos, setSidePhotos] = useState<File[]>([]);
   const send = useMutation({
-    mutationFn: (): Promise<{ result: string }> => {
+    mutationFn: async (): Promise<{ result: string }> => {
       const r = v.request;
       // BUY-25: on "never got it" there is no way back to pick, and the refund goes at once.
       if (r && choice === "full" && pickArgs && !neverGotIt) return acceptRefundWithReturn(r.id, pick.way, pickArgs.day, pickArgs.atIso);
-      return answerRefund(r?.id ?? "", choice ?? "decline", choice === "part" ? offerCents : null);
+      const paths = choice !== "full" && sidePhotos.length ? await uploadProblemPhotos(v.order_id, sidePhotos) : [];
+      return answerRefund(r?.id ?? "", choice ?? "decline", choice === "part" ? offerCents : null, choice === "full" ? "" : sideNote, paths);
     },
     onSuccess: (r) => {
       toast(r.result === "returning" ? "Agreed. Tap I got it back once you have the item." : r.result === "refunded" ? "Refund sent. The buyer is told." : r.result === "offered" ? "Offer sent." : "Answer sent.");
@@ -368,7 +376,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
   if (r.status === "offered") return <p className="text-sm">You offered {refundDollars(r.offer_cents ?? 0)}. Waiting for {who} to answer.</p>;
   if (r.status === "declined" && r.admin_decided) return <p className="text-sm" data-refund-admin-decided="">Louisiana Helpr decided: you keep the payment, and the sale is final.</p>;
   if (r.status === "declined") return <p className="text-sm">You said no to the refund. {cap(who)} can still ask Louisiana Helpr to decide.</p>;
-  if (r.status === "to_admin") return <p className="text-sm">Louisiana Helpr is looking at this refund request. Your payout waits until we decide.</p>;
+  if (r.status === "to_admin") return <p className="text-sm" data-refund-to-admin="">Louisiana Helpr is looking at this refund request. Your payout waits until we decide.{decidesBy(r.decide_by)}</p>;
   if (r.status === "withdrawn") return <p className="text-sm text-muted-foreground">{cap(who)} took back their refund request.</p>;
   const id = `dcl-answer-${r.id}`;
   return (
@@ -403,6 +411,9 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
           <label htmlFor={`${id}-amount`} className="block text-xs font-medium">How much back? (less than {refundDollars(v.items_cents)})</label>
           <input id={`${id}-amount`} className={amountInput} inputMode="decimal" value={amount} placeholder="$" onChange={(e) => setAmount(e.target.value)} />
         </div>
+      )}
+      {(choice === "part" || choice === "decline") && (
+        <SellerSideFields id={id} note={sideNote} onNote={setSideNote} photos={sidePhotos} onPhotos={setSidePhotos} disabled={send.isPending} />
       )}
       <button type="button" className={primary} disabled={send.isPending || !choice || (choice === "part" && offerCents === null) || (choice === "full" && !neverGotIt && !pickArgs)} onClick={() => setAskingSend(true)}>
         Send answer

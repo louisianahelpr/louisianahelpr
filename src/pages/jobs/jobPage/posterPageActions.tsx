@@ -67,6 +67,11 @@ export function usePosterPageActions({
   panel: React.ReactNode;
   dialogs: React.ReactNode;
   edit: () => void;
+  /**
+   * A3-8 (audit 11-01): at the approve step, "Something's not right" as a visible text button under the pair (the
+   * pair stays Message | Approve, owner 12:49 PM); it opens the approve sheet at the fix form. Null at other steps.
+   */
+  notRight: (() => void) | null;
 } {
   const navigate = useNavigate();
   const helperId = enabled ? job?.helper_id ?? null : null;
@@ -80,7 +85,7 @@ export function usePosterPageActions({
   const [changeOpen, setChangeOpen] = useState(false);
   // Q1586(c): "Post this job again" opens /post-job, so under 18 it explains instead (as Posted's own Repost).
   const { gate: ageGate } = useAgeGate();
-  if (!enabled || !job) return { primary: null, row: () => null, panel: null, dialogs: null, edit: () => {} };
+  if (!enabled || !job) return { primary: null, row: () => null, panel: null, dialogs: null, edit: () => {}, notRight: null };
 
   const id = encodeURIComponent(job.id);
   const status = job.status ?? "";
@@ -193,5 +198,6 @@ export function usePosterPageActions({
       {flows.dialogs}
     </>
   );
-  return { primary: primaryOrMessage, row, panel, dialogs, edit: flows.edit };
+  const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null;
+  return { primary: primaryOrMessage, row, panel, dialogs, edit: flows.edit, notRight };
 }

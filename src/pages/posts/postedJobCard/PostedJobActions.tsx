@@ -49,6 +49,8 @@ interface PostedJobActionsProps {
   /** Bumped by the card face's "Approve and release" (board 14): opens the
    *  completion sheet, which stays the confirmation (never a one-tap release). */
   completionRequest?: number;
+  /** Bumped by "Something's not right" under the row (A3-8, audit 11-01): the same sheet, opened at the fix form. */
+  revisionRequest?: number;
 }
 
 /**
@@ -135,6 +137,7 @@ export function PostedJobActions({
   applicantsPrimary = null,
   onActionComplete,
   completionRequest = 0,
+  revisionRequest = 0,
 }: PostedJobActionsProps) {
   // Own instant-release flag — when on, the 24h review countdown is replaced
   // by an honest "releases within minutes" line (owner, 2026-08-24). Cast:
@@ -142,10 +145,19 @@ export function PostedJobActions({
   const { profile: _ownProfile } = useCurrentUser();
   const instantReleaseOn = !!(_ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
   const navigate = useNavigate();
-  const [completionSheetOpen, setCompletionSheetOpen] = useState(false);
+  const [completionSheetOpen, setSheetOpen] = useState(false);
+  const [completionStartMode, setCompletionStartMode] = useState<"choice" | "revision">("choice");
+  // Closing puts the next opening back at the choice, so the card's own Approve never lands on the fix form.
+  const setCompletionSheetOpen = (o: boolean) => {
+    if (!o) setCompletionStartMode("choice");
+    setSheetOpen(o);
+  };
   useEffect(() => {
-    if (completionRequest > 0 && !job.poster_completed_at) setCompletionSheetOpen(true);
+    if (completionRequest > 0 && !job.poster_completed_at) { setCompletionStartMode("choice"); setSheetOpen(true); }
   }, [completionRequest, job.poster_completed_at]);
+  useEffect(() => {
+    if (revisionRequest > 0 && !job.poster_completed_at) { setCompletionStartMode("revision"); setSheetOpen(true); }
+  }, [revisionRequest, job.poster_completed_at]);
   // Guards the Resolve & Pay / Escalate to Admin buttons while their
   // supabase UPDATE is in-flight — prevents double-tap submission.
   const [disputeActing, setDisputeActing] = useState(false);
@@ -366,6 +378,7 @@ export function PostedJobActions({
     onActionComplete,
     completionSheetOpen,
     setCompletionSheetOpen,
+    completionStartMode,
     disputeActing,
     resolveConfirmOpen,
     setResolveConfirmOpen,

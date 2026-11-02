@@ -4,7 +4,7 @@
  * window's fetch underneath is a spy that must stay unused for every Supabase request).
  * The backend's rules are proved request by request in src/test/adminDeclutterPreviewIsInert.test.ts.
  *
- * @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |           : <SellingDash todo={null} userId={sample.userId} listings={<MyListingsView userId={sample.userId} haulOn />} />} |           : null}
+ * @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |           : <SellingDash todo={todo} userId={sample.userId} listings={<MyListingsView userId={sample.userId} haulOn />} />} |           : null}
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |   globalThis.fetch = previewFetch; |   void previewFetch;
  * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_my_free_pause: null,\n |
  * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_payouts: [],\n |
@@ -86,6 +86,22 @@ describe("Q2585: /admin/preview/declutter", () => {
     }
     expect(drawn).toBeGreaterThan(20);
     expect(unlisted).toEqual([]);
+    expect(supabaseCalls()).toEqual([]);
+  });
+
+  // Audit 1102c P3 (Q2621): the preview passed todo={null}, so the Selling chips showed no counts and a sale to hand
+  // over never came first. The counts come from the sample (declutterTodo), as the real tab's come from the cart.
+  // @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |           : <SellingDash todo={todo} userId | : <SellingDash todo={null} userId
+  it("Q2621: Selling's chips count the sample's sale to hand over, and the sale comes first", async () => {
+    open("?stage=paid&side=seller");
+    const chip = await waitFor(() => { const el = document.querySelector('[data-status-box="sold"]'); expect(el).not.toBeNull(); return el as HTMLElement; });
+    expect(chip.textContent).toBe("Hand over · 1");
+    // AUD31-4: the sale to hand over is drawn before the listings.
+    const sold = await screen.findByRole("region", { name: /Sold: pickup and payout/ });
+    const listings = await screen.findByText(/Your listings/);
+    expect(sold.compareDocumentPosition(listings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Let the views' last reads land on the preview layer before cleanup puts the real fetch back.
+    await new Promise((res) => setTimeout(res, 50));
     expect(supabaseCalls()).toEqual([]);
   });
 

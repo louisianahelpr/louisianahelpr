@@ -4,7 +4,7 @@
 // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (sellerFault) { |           if (sellerFault && refundAmount > 0 && !alreadyRefunded) {
 // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (withheldForSeller > 0) { |         if (false) {
 // @mutate supabase/functions/void-cancelled-payments/index.ts |               results.push({ job_id: job.id, title: job.title, status: "seller_fee_debt_failed" });\n              continue; |               results.push({ job_id: job.id, title: job.title, status: "seller_fee_debt_failed" });
-// @mutate supabase/functions/void-cancelled-payments/index.ts |                 ...(sellerFault ? { seller_fault: true, seller_fee_cents: unbilledSellerFeeCents } : {}), |                 ...({}),
+// @mutate supabase/functions/void-cancelled-payments/index.ts |                 ...(sellerFault ? { seller_fault: "yes", seller_fee_cents: unbilledSellerFeeCents } : {}), |                 ...({}),
 // @mutate supabase/functions/void-cancelled-payments/index.ts |             const unbilledSellerFeeCents = sellerFault ? actualOrEstimatedFeeCents(pi, capturedCents) : 0; |             const unbilledSellerFeeCents = 0;
 // @mutate supabase/functions/void-cancelled-payments/index.ts |         retrievedPi = pi;\n | \n
 // @mutate supabase/functions/void-cancelled-payments/index.ts |               results.push({ job_id: job.id, title: job.title, status: "already_refunded_seller_fee_debt_failed" });\n              continue; |               results.push({ job_id: job.id, title: job.title, status: "already_refunded_seller_fee_debt_failed" });
@@ -229,7 +229,7 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
     expect(debtCalls()).toEqual([]);
     const page = (slackAlerts as Array<{ title: string; message?: string; fields?: Record<string, unknown> }>).find((a) => /already refunded past/.test(a.title));
     expect(page, JSON.stringify(slackAlerts)).toBeDefined();
-    expect(page!.fields).toMatchObject({ job_id: "job-a10", seller_fault: true, seller_fee_cents: STRIPE_FEE });
+    expect(page!.fields).toMatchObject({ job_id: "job-a10", seller_fault: "yes", seller_fee_cents: STRIPE_FEE });
     expect(page!.message).toContain("seller-fault setup job: the seller's $6.68 card-fee debt was NOT billed");
   });
 

@@ -92,7 +92,7 @@ describe("payout setup after the hire", () => {
     const strings: string[] = Object.values(appCopy as Record<string, unknown>).filter((v): v is string => typeof v === "string");
     const all: string[] = [
       ...strings,
-      appCopy.jobPayoutHeldLine("$40"),
+      appCopy.jobPayoutNextStep("$40").by,
       ...(["hired", "day1", "day3", "day7", "money"] as const).flatMap((s) => Object.values(payoutSetupReminderCopy(s, "Mow"))),
     ];
     expect(all.length).toBeGreaterThan(10);

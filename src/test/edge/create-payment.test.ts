@@ -1157,7 +1157,7 @@ describe("create-payment edge function", () => {
     // Q1867 + Q1862: a job booked from an agreed quote is charged only the
     // accepted quote's price, and a quote checkout may come back to its request
     // page; any other returnPath is refused before Stripe is called.
-    // @mutate supabase/functions/create-payment/index.ts |       await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget); |       void refuseQuoteJobPriceMismatch;
+    // @mutate supabase/functions/create-payment/index.ts |       await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget, job.offered_to_helper_id); |       void refuseQuoteJobPriceMismatch;
     // @mutate supabase/functions/create-payment/index.ts |   if (linkErr) {\n    console.error(`[create-payment] quote request read failed | if (false) {\n    console.error(`[create-payment] quote request read failed
     // @mutate supabase/functions/create-payment/index.ts |   if (acceptedErr) {\n    console.error( | if (false) {\n    console.error(
     // @mutate supabase/functions/create-payment/index.ts |         : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative); |         : buildRedirectUrl(`/post-job`, isNative);
@@ -1223,7 +1223,7 @@ describe("create-payment edge function", () => {
       // under the poster-fee model the charge is budget + urgent bonus + fee,
       // but the agreed price is the BUDGET (book_accepted_quote books it from
       // price_cents). An urgent quote job with the switch on is still charged.
-      // @mutate supabase/functions/create-payment/index.ts | jobId, job.budget); | jobId, jobPriceCents / 100);
+      // @mutate supabase/functions/create-payment/index.ts | jobId, job.budget, job.offered_to_helper_id); | jobId, jobPriceCents / 100, job.offered_to_helper_id);
       it("an urgent quote job on the poster-fee model compares the budget, not the charged total", async () => {
         seedQuoteJob(250, [{ price_cents: 25000 }]);
         scenario.reads.jobs = {
@@ -1244,6 +1244,53 @@ describe("create-payment edge function", () => {
         seedQuoteJob(250, new Error("boom"));
         expect((await escrow()).body.error).toMatch(/Could not check this job's agreed quote/);
         expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+
+      // Q2123 (lh-money-escrow@9542ba1ba#2): cancel_quote_request moves the
+      // accepted quote to 'closed', so a job that outlives its cancelled request
+      // had no accepted quote to compare and passed. With no accepted quote, the
+      // request's quote from the Helpr the job is offered to is the agreed price.
+      // @mutate supabase/functions/create-payment/index.ts |   if (compared.length === 0 && offeredToHelperId) { |   if (false) {
+      // @mutate supabase/functions/create-payment/index.ts |   if (quoterErr) {\n    console.error( | if (false) {\n    console.error(
+      describe("Q2123 the request was cancelled after booking (no accepted quote left)", () => {
+        const HELPR = "helpr-quoter-1";
+        function seedCancelledRequestJob(budget: number, quoterRows: Array<{ price_cents: number }> | Error) {
+          seedQuoteJob(budget, []);
+          scenario.reads.jobs = {
+            rows: [{ id: "job-q", customer_id: POSTER.id, budget, category: "cleaning", title: "Quote job", status: "open",
+              payment_status: "unpaid", offered_to_helper_id: HELPR, direct_offer_status: "pending" }],
+          };
+          scenario.reads.job_quotes = {
+            rows: [],
+            eqOverrides: [{ column: "quoter_id", value: HELPR,
+              result: quoterRows instanceof Error ? { error: { message: quoterRows.message } } : { rows: quoterRows } }],
+          };
+        }
+
+        it("refuses a budget that differs from the offered Helpr's (now closed) quote, before Stripe", async () => {
+          seedCancelledRequestJob(300, [{ price_cents: 25000 }]);
+          const { body } = await escrow();
+          expect(body.error).toMatch(/doesn't match the quote you agreed/);
+          expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+          const read = scenario.readQueries.filter((q) => q.table === "job_quotes").at(-1);
+          expect(read?.filters).toEqual(expect.arrayContaining([
+            expect.objectContaining({ op: "in", column: "request_id", value: [REQ_ID] }),
+            expect.objectContaining({ op: "eq", column: "quoter_id", value: HELPR }),
+          ]));
+        });
+
+        it("charges a budget equal to that quote", async () => {
+          seedCancelledRequestJob(250, [{ price_cents: 25000 }]);
+          const { res } = await escrow();
+          expect(res.status).toBe(200);
+          expect(stripeMock.checkout.sessions.create).toHaveBeenCalledTimes(1);
+        });
+
+        it("refuses when that quote cannot be read (fail closed)", async () => {
+          seedCancelledRequestJob(250, new Error("boom"));
+          expect((await escrow()).body.error).toMatch(/Could not check this job's agreed quote/);
+          expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+        });
       });
 
       it("a job with no quote, or a set-my-own-price job with no accepted quote, is charged as before", async () => {

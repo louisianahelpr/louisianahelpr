@@ -9,7 +9,7 @@ import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "../_shared/he
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee, returnsToPoster } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
-import { actualOrEstimatedFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
+import { actualOrEstimatedFeeCents, highestPayInFourFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
 import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
@@ -2665,7 +2665,7 @@ serve(async (req) => {
             // be smaller than the fee: the whole hold is captured, so the card
             // keeps what a captured charge would (cardNonRefundableCents) and
             // the gift pays the rest. Checked before any money moves with a
-            // conservative fee estimate (a Klarna/Affirm hold costs ~6%), then
+            // conservative fee estimate (the highest Pay-in-4 rate, Afterpay 6% + 30c; Q2097), then
             // priced from the charge's real fee after the capture.
             const captureCents = holdSplit.captureCents;
             let holdGift: { cents: number; uncollectable?: true } | null = null;
@@ -2674,7 +2674,7 @@ serve(async (req) => {
             /** Review of 8354ebb0e #2: what an earlier restore kept of the gift, still paying its part. */
             let holdGiftKeptOnlyCents = 0;
             if (holdSplit.feesExceedHold) {
-              const estFeeCents = Math.max(stripeProcessingCostCents(holdCents), Math.round(holdCents * 0.0599) + 30);
+              const estFeeCents = Math.max(stripeProcessingCostCents(holdCents), highestPayInFourFeeCents(holdCents));
               holdGift = await giftCoversShortfall(cardNonRefundableCents(holdCents, estFeeCents) + feeCents - holdCents, "fee capture", true);
               if (!holdGift) continue;
               if (holdGift.uncollectable) {

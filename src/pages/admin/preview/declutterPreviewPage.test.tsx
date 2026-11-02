@@ -166,7 +166,7 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(supabaseCalls()).toEqual([]);
   });
 
-  // Audit 1102c P7 (Q2625): the controls covered ~40% of a 375 screen and the stage box showed 4 of the stages.
+  // Audit 1102c P7 (Q2625), measured 2026-11-02: the controls covered ~40% of a 375 screen and the stage box showed 4 of the stages.
   // They fold to the title row, and a phone picks the stage from one dropdown (chips from sm up).
   // @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |       {open && (\n        <div id="declutter-preview-controls-body" | {true && (\n        <div id="declutter-preview-controls-body"
   // @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx | <SelectTrigger aria-label="Order stage"> | <SelectTrigger aria-label="Stage">

@@ -1393,7 +1393,7 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payoutLine(payout, !!problem)} | {payoutLine(payout, false)}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const problems = useOpenProblems(ids); |   const problems = new Map<string, OpenProblem>();
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : problemOpen\n | : false\n
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx | : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing( | : false ? { who: "info", text: PROBLEM_ON_HOLD } : standing(
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx | : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller" | : false ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller"
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemOpen={!!problem}\n          refunded={fullRefund}\n          part= | refunded={fullRefund}\n          part=
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (problem_open).\n    if (anyProblem) return null;\n | (problem_open).\n
 

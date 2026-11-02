@@ -154,9 +154,11 @@ describe("the app says an offer is free to refuse (Q1281)", () => {
   it("the Decline confirm and the countdown line promise no strike, unconditionally", () => {
     const card = src("src/pages/jobs/appliedJobCard/OfferedActions.tsx");
     // Q2605 (3bb6ccd5f6): the confirm now names a direct offer's poster; both branches still promise no strike.
-    const description = card.match(/description=\{direct\s*\?\s*(`[^`]*`)\s*:\s*("[^"]*")\}/);
+    // The direct branch nests a template (endSentence(`...`)), so it is read up to the backtick that ends the branch.
+    const description = card.match(/description=\{direct\s*\?\s*(`[\s\S]*?`)\s*:\s*("[^"]*")\}/);
     expect(description, "the Decline confirm's description is the direct / applied pair").not.toBeNull();
-    expect(description![1]).toBe("`The offer goes back to ${posterFirst ?? \"the person who posted it\"}. Declining isn't a strike.`");
+    // The name ends its sentence through endSentence (nameEndsSentenceOnce), then the promise.
+    expect(description![1]).toBe("`${endSentence(`The offer goes back to ${posterFirst ?? \"the person who posted it\"}`)} Declining isn't a strike.`");
     expect(description![2]).toBe(`"You applied for this one and the person who posted it picked you. Declining isn't a strike."`);
     expect(card).toContain(`"If you don't answer in time, the job reopens to everyone. No strike."`);
     expect(card).not.toMatch(/RELIABILITY_LADDER_SENTENCE|counts against your account|counts the same as declining/);

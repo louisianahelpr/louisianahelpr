@@ -28,6 +28,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { join, resolve } from "node:path";
 import { readFileSync } from "node:fs";
+import { readdirSync } from "../helpers/trackedFiles";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
@@ -43,6 +44,16 @@ import {
 } from "../../../supabase/functions/_shared/refundRequestHold";
 
 const ROOT = resolve(__dirname, "../../..");
+// The newest migration that (re)creates a trigger, by its name: a later restatement of any function in the file that
+// first made it must not leave this reading a superseded file (guardsReadTheNewestMigration).
+const newestCreatingTrigger = (name: string) => {
+  const dir = join(ROOT, "supabase/migrations");
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort().reverse()) {
+    const s = blankSqlComments(readFileSync(join(dir, f), "utf8")).replace(/\s+/g, " ");
+    if (s.includes(`CREATE TRIGGER ${name} `)) return s;
+  }
+  return "";
+};
 /** The embedded dispute a refund_requests read returns (status, execution_status). */
 const embed = (status: string, execution_status: string) => ({ status, execution_status });
 const CRON_SECRET = "test-only-cron";
@@ -174,15 +185,14 @@ describe("isLiveRefundRequest is the SQL rule refund_request_is_live", () => {
     const trig = blankSqlComments(defs.get("refuse_payout_pending_while_refund_requested")?.stmt ?? "");
     expect(trig).toContain("public.refund_request_is_live(r.status, r.dispute_id)");
     expect(trig).toContain("refund_request_open");
-    const mig = blankSqlComments(readFileSync(join(ROOT, "supabase/migrations/20261021102943_refund_requests.sql"), "utf8")).replace(/\s+/g, " ");
     // No reopen, cancel or Helpr swap under a live request (behaviour: refundRequests.pglite.mjs M1-M3).
     const move = blankSqlComments(defs.get("refuse_job_move_while_refund_requested")?.stmt ?? "").replace(/\s+/g, " ");
     expect(move).toContain("public.refund_request_is_live(r.status, r.dispute_id)");
     expect(move).toContain("NEW.helper_id IS DISTINCT FROM OLD.helper_id");
-    expect(mig).toContain(
+    expect(newestCreatingTrigger("trg_refuse_job_move_while_refund_requested")).toContain(
       "CREATE TRIGGER trg_refuse_job_move_while_refund_requested BEFORE UPDATE OF status, helper_id ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.refuse_job_move_while_refund_requested();",
     );
-    expect(mig).toContain(
+    expect(newestCreatingTrigger("trg_refuse_payout_pending_while_refund_requested")).toContain(
       "CREATE TRIGGER trg_refuse_payout_pending_while_refund_requested BEFORE UPDATE OF payment_status ON public.jobs FOR EACH ROW WHEN (OLD.payment_status = 'escrow' AND NEW.payment_status = 'payout_pending') EXECUTE FUNCTION public.refuse_payout_pending_while_refund_requested();",
     );
   });

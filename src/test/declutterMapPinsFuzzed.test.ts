@@ -20,11 +20,11 @@
  * Behaviour under the real roles (pins within 300 m of the public point, unmoved by the exact point, stable, refused
  * for a non-tester; two planted defects red): src/test/pglite/declutterMapPins.pglite.mjs.
  *
- * @mutate supabase/migrations/20261028151144_declutter_map_pins.sql | round((m.area_lat::double precision + m.r_m * cos(m.theta) / 111320.0)::numeric, 4), | m.area_lat::numeric,
- * @mutate supabase/migrations/20261028151144_declutter_map_pins.sql | SELECT i.id, i.seller_id, i.area_lat, i.area_lng\n        FROM public.declutter_items i\n | SELECT i.id, i.seller_id, p.pickup_lat AS area_lat, p.pickup_lng AS area_lng\n        FROM public.declutter_items i JOIN public.declutter_item_private p ON p.item_id = i.id\n
- * @mutate supabase/migrations/20261028151144_declutter_map_pins.sql | 300.0 * sqrt(d.u_radius) | 800.0 * sqrt(d.u_radius)
- * @mutate supabase/migrations/20261028151144_declutter_map_pins.sql | sha256(convert_to(v_salt \|\| '\|' \|\| v.seller_id::text | sha256(convert_to(v.seller_id::text
- * @mutate supabase/migrations/20261028151144_declutter_map_pins.sql |   PERFORM public.require_feature('declutter');\n |
+ * @mutate supabase/migrations/20261102023411_declutter_map_pins_hide_blocked.sql | round((m.area_lat::double precision + m.r_m * cos(m.theta) / 111320.0)::numeric, 4), | m.area_lat::numeric,
+ * @mutate supabase/migrations/20261102023411_declutter_map_pins_hide_blocked.sql | SELECT i.id, i.seller_id, i.area_lat, i.area_lng\n        FROM public.declutter_items i\n | SELECT i.id, i.seller_id, p.pickup_lat AS area_lat, p.pickup_lng AS area_lng\n        FROM public.declutter_items i JOIN public.declutter_item_private p ON p.item_id = i.id\n
+ * @mutate supabase/migrations/20261102023411_declutter_map_pins_hide_blocked.sql | 300.0 * sqrt(d.u_radius) | 800.0 * sqrt(d.u_radius)
+ * @mutate supabase/migrations/20261102023411_declutter_map_pins_hide_blocked.sql | sha256(convert_to(v_salt \|\| '\|' \|\| v.seller_id::text | sha256(convert_to(v.seller_id::text
+ * @mutate supabase/migrations/20261102023411_declutter_map_pins_hide_blocked.sql |   PERFORM public.require_feature('declutter');\n |
  * @mutate src/components/declutter/DeclutterMap.tsx |       const p = pins?.get(r.item.id);\n      return p ? [{ ...r, latitude: p.lat, longitude: p.lng }] : []; |       return [{ ...r, latitude: Number(r.item.area_lat), longitude: Number(r.item.area_lng) }];
  */
 import { describe, it, expect } from "vitest";

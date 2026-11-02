@@ -166,7 +166,7 @@ describe("stalled-completion-reminder", () => {
     const sent = notifs();
     expect(sent.map((n) => n.user_id).sort()).toEqual([POSTED_BY, WORKED_BY].sort());
     // Each side is told the thing only THEY can act on.
-    expect(sent.find((n) => n.user_id === WORKED_BY)!.message).toMatch(/Mark job complete/);
+    expect(sent.find((n) => n.user_id === WORKED_BY)!.message).toMatch(/Mark it done/);
     expect(sent.find((n) => n.user_id === POSTED_BY)!.message).toMatch(/nobody has marked it done/i);
     // …and each on their own surface.
     expect(sent.find((n) => n.user_id === POSTED_BY)!.link).toBe("/posts?job=job-stalled");
@@ -370,6 +370,26 @@ describe("stalled-completion-reminder", () => {
     const mailed = (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls
       .filter(([url]) => String(url).includes("send-notification-email"));
     expect(mailed).toEqual([]);
+    assertNoMoneyMoved();
+  });
+
+  // Q1917: a 200 whose body says the email was neither queued nor sent is a lost reminder, not a clean run.
+  // @mutate supabase/functions/stalled-completion-reminder/index.ts |         if (sent?.success === false) { |         if (false) {
+  it("a 200 {success:false} from send-notification-email is a defect; skipped:true is not", async () => {
+    const fn = await load();
+    seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: false, reason: "queue_and_direct_failed" }), { status: 200 })));
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).not.toBe(200);
+    expect(await res.text()).toMatch(/not sent \(queue_and_direct_failed\)/);
+
+    resetSupabaseMock();
+    resetSharedMocks();
+    const fn2 = await load();
+    seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ skipped: true, reason: "opted_out" }), { status: 200 })));
+    const res2 = await fn2.fetch(cronRequest(fn2));
+    expect(res2.status).toBe(200);
     assertNoMoneyMoved();
   });
 

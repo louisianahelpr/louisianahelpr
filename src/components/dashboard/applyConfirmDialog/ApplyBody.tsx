@@ -22,7 +22,6 @@ import { AgeGateNote } from "@/components/AgeGateNote";
 import type { ApplyConfirmDialogProps } from "./types";
 import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
 import { ApplyTimeQuestion, canSuggestATime } from "./ApplyTimeQuestion";
-import { applySheetPrice } from "./applyTakeHome";
 import {
   MAX_PITCH_LENGTH,
   pitchDraftKey,
@@ -225,16 +224,15 @@ export function ApplyBody({
     if (online) toast.dismiss(OFFLINE_TOAST_ID);
   }, [online]);
 
-  // Board 58: the button names the job's price, the same number the summary card shows. A crew job
-  // is split between Helprs, so it says "Apply now" rather than a price no one Helpr gets.
+  // JA-55 (Jobs audit 11-01, lead 11-01): the button is plain "Apply now" for every job. Board 58's "Apply at $X" put a
+  // bare figure on it that read as either the budget or the take-home (they differ on a fee job; the owner removed the
+  // "You take home" label 11-01); the pay figure stays once, in the sheet's job card above. "Apply now" is the owner's
+  // word for the detail footer that opens this sheet (2026-09-09), so both read the same.
   // The poster's first name, or nothing when only the "a neighbor" fallback is known: "Say hi to a" read
   // as broken (deep audit 2026-10-28, real data whenever the poster's name lookup misses).
   const posterName = confirmApplyJob?.posterName?.trim() ?? "";
   const posterFirst = posterName && posterName !== POSTER_NAME_FALLBACK ? posterName.split(/\s+/)[0] : "";
-  // A crew job (is_group_job) splits the price; helpers_needed alone is never read as a split (helpersNeededSplitIsGroupGated).
-  const single = !confirmApplyJob?.is_group_job;
-  // Only on the standalone sheet (board 58): inline on the job detail sheet the price chip sits right above.
-  const applyLabel = !hideEarnings && confirmApplyJob && single && confirmApplyJob.budget > 0 ? `Apply at $${applySheetPrice(confirmApplyJob)}` : "Apply now";
+  const applyLabel = "Apply now";
 
   const handleConfirm = () => {
     if (underAge) return;

@@ -86,6 +86,13 @@ function jobDoneAt(job: GuaranteeJob): Date | null {
   return stamps.length ? new Date(Math.max(...stamps)) : null;
 }
 
+/** A3-40: until when a finished job's poster can say "Not done right" (done + the claim window); null before Done. */
+export function guaranteeClaimBy(job: GuaranteeJob): Date | null {
+  if (job.status !== "completed") return null;
+  const done = jobDoneAt(job);
+  return done ? new Date(done.getTime() + GUARANTEE_RULES.claimWindowHours * 3600_000) : null;
+}
+
 /** "Not done right" is offered to the poster of a finished one-Helpr job, unpaid out, within 48 hours, with no claim yet. */
 /** The live work statuses where the poster's guarantee explainer applies (JA-28). */
 const EXPLAINER_LIVE = new Set(["in_progress", "revision_requested"]);

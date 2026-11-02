@@ -44,7 +44,7 @@ export function useContinueDayActions({
   sheet: React.ReactNode;
   /**
    * A SET day still ahead (Auditor 11, 11-01): the server refuses "done" until then (continue_day_ahead), so the
-   * Helpr's row never leads with "Mark job complete", and the poster's row drops the card's on-site actions (SOS):
+   * Helpr's row never leads with "Mark it done", and the poster's row drops the card's on-site actions (SOS):
    * nobody is at the job.
    */
   doneAhead: boolean;

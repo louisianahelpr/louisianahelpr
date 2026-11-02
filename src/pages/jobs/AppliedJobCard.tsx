@@ -103,14 +103,14 @@ function AppliedJobCardInner({
   /* The person slot, opened BEFORE the `if (!job)` early return below (rules
      of hooks). The tile is built once the card knows the poster. */
   const { claim: personClaim, stepCarriesTile } = useJobCardPersonSlot();
-  // The face's Mark job complete is greyed for the same 30 minutes as the Working card's (useDoneFloor).
+  // The face's Mark it done is greyed for the same 30 minutes as the Working card's (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(app.job?.poster_confirmed_working_at, app.job?.helper_arrived_at));
 
   // `poster_viewed_at` isn't in the generated types yet (migration lag);
   // read it through this narrow view rather than `as any`.
   const viewedApp = app as AppliedApp & ApplicationViewFields;
   const job = app.job;
-  // A day set to finish still ahead (Auditor 11, 11-01): the face never leads with Mark job complete then. Read
+  // A day set to finish still ahead (Auditor 11, 11-01): the face never leads with Mark it done then. Read
   // before the early return (hooks run on every render); only a hired Helpr's solo job under way can have one.
   const continueDay = useContinueDay(job?.id, !!job && job.status === "in_progress" && !job.is_group_job && job.helper_id === app.helper_id);
   const notes = useCardNotes(job, expandedJobIds.has(app.job_id), app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); // Q1461: access only for a hired Helpr until the job ends

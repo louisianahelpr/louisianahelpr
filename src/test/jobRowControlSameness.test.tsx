@@ -364,7 +364,7 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
     minControls: 3,
   },
   {
-    name: "Jobs · Working — Mark job complete + Message · Report a Problem",
+    name: "Jobs · Working — Mark it done + Message · Report a Problem",
     render: active(makeJob({ ...VERIFIED }), "working"),
     minControls: 3,
   },

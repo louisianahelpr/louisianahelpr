@@ -8,6 +8,7 @@ import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
 import { isWaiting, refundPartTotalCents, refundRushBackCents, withdrawRefundRequest, type RefundJob } from "@/lib/refundRequests";
 import { Money, answerByLabel, useRefundRequest } from "./refundParts";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 
 const RefundAnswerDialog = lazy(() => import("./RefundAnswerDialog").then((m) => ({ default: m.RefundAnswerDialog })));
 
@@ -156,12 +157,21 @@ function RefundRequestPanelOpen({
     );
   }
   if (!line) return null;
+  // A3-21 (audit 11-01): the shared next-step line on both sides, deadline split out, above the panel's own details.
+  const named = otherName?.trim() ? other : null;
+  const by = `by ${answerByLabel(request.answer_by)}`;
+  const step: NextStepValue | null = askedOfMe && dueOpen
+    ? { who: "you", text: named ? `Answer ${named}'s refund request` : "Answer the refund request", by }
+    : asked && request.status === "open"
+      ? { who: "them", text: `Waiting on ${named ?? "your Helpr"} to answer`, by }
+      : null;
   // The poster can take back a request still waiting (open, or declined
   // before Helpr's decision is filed): nothing moves either way.
   const canWithdraw = asked && isWaiting(request);
 
   return (
     <div className="px-4 py-2 border-t border-border/20 space-y-2" data-refund-request="" onClick={(e) => e.stopPropagation()}>
+      <NextStep value={step} className="!text-ds-13" />
       <p className="font-sans text-ds-12 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
         <HandCoins className="inline w-3.5 h-3.5 mr-1 -mt-0.5" aria-hidden style={{ color: "hsl(var(--bark))" }} />
         {line}

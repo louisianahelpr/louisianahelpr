@@ -600,7 +600,7 @@ export function JobTracking({
     // paths deliberately do NOT loadTracking(): nothing was written, so there
     // is nothing to re-read.
     //
-    // SAME GATES AS PayoutPrimary's "Mark job complete" (owner, 2026-08-24 E2E): this
+    // SAME GATES AS PayoutPrimary's "Mark it done" (owner, 2026-08-24 E2E): this
     // button used to write helper_completed_at with no checks at all, so the
     // before/after-photo requirement and the 30-minute work floor on the payout
     // CTA were decorative — the tracker was a free bypass that still started
@@ -1540,7 +1540,7 @@ export function JobTracking({
         // "Confirm they've arrived" tap, which is the way out.
         // The proof-photo gate, at RENDER time rather than only on click.
         // A state sweep found the two money controls disagreeing in 17 frames:
-        // this CTA rendered an ENABLED "Request My Payout" (now "Mark job complete") while
+        // this CTA rendered an ENABLED "Request My Payout" (now "Mark it done") while
         // ActiveJobSection's button sat directly below it, DISABLED, reading
         // "Upload before & after photos first". Both enforce the same rule —
         // the comment on the click-time gate below says the two "must not
@@ -1704,7 +1704,7 @@ export function JobTracking({
                 onOpenChange={(next) => { if (!updating) setConfirmDoneOpen(next); }}
                 title="Mark this job complete?"
                 description="This tells the person who posted this job the work is finished, so they can approve it."
-                primaryLabel="Mark job complete"
+                primaryLabel="Mark it done"
                 primaryTone="bark"
                 primaryDisabled={updating}
                 onPrimary={(e) => {

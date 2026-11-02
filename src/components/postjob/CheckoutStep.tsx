@@ -190,6 +190,8 @@ export function CheckoutStep({
   // a charge Stripe will not make — the same class of defect as the invented
   // 9-11% range this row was built to kill, just pointed at gifts.
   const totalWithTax = hasGift ? totalCharge : totalCharge + (salesTax ?? 0);
+  // JA-45: a plain job (nothing added or taken off) shows its Total alone; any fee, bonus, gift or tax line brings the budget row back.
+  const budgetRowShown = hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category) && salesTax === null);
   // `giftCoversEverything` is the $0 case: nothing left to collect. The CTA
   // and the total both change wording for it, because "Continue to payment"
   // in front of a $0.00 total is the screen contradicting itself.
@@ -321,7 +323,6 @@ export function CheckoutStep({
       <HelprActivityNote activity={helprActivity} />
 
       {quoteAsk ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <>
-      {/* Payment breakdown card */}
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
@@ -329,8 +330,8 @@ export function CheckoutStep({
           </h3>
         </div>
         <div className="p-5 space-y-3">
-          {/* What the customer pays */}
-          <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
+          {/* What the customer pays. A3-96: only over lines to break down; a plain job's Total stands alone. */}
+          {budgetRowShown && <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>}
           {/* A gift id came through the URL and we could not confirm it —
               missing, not this account's, unfunded, expired, or already
               spent. The numbers below are therefore FULL PRICE, and the
@@ -361,9 +362,7 @@ export function CheckoutStep({
               Checking your gift card…
             </div>
           )}
-          {/* JA-45: a plain job (nothing added, nothing taken off) shows its Total alone, not "Job budget $40"
-              over "Total $40". Any fee, bonus, gift or tax line brings the budget row back as the sum's first term. */}
-          {(hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category) && salesTax === null)) && (
+          {budgetRowShown && (
             <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} />
           )}
           {/* Roadmap F3 (owner 2026-10-14/15): the poster pays exactly the job
@@ -610,11 +609,13 @@ export function CheckoutStep({
           genuinely useful prep rather than a distraction from checkout. */}
 
 
-      {/* "Save card for next time" — optional opt-in passed through to
-          the create-payment edge function. Default off, sticky in
-          localStorage so a returning poster who turned it on once
-          doesn't have to re-tap it every post. */}
-      {setSaveCardForFuture && (
+      {/* "Save card for next time": opt-in to create-payment, sticky in localStorage. A3-108: a Repeats job always saves
+          the card (useJobSubmit sends `|| isRecurring`), so it says so instead of a switch that does nothing.
+          Q2143: the saved card is the ONE wallet card (owner 2026-10-18), also used by any automatic charge the member
+          turned on (auto-tip); the switch's lines say so. */}
+      {setSaveCardForFuture && isRecurring ? (
+        <p data-save-card-fixed className="rounded-ds-md liquid-glass p-card text-ds-13 text-foreground leading-snug">Your card is saved to pay for each later visit, about 3 days before it.</p>
+      ) : setSaveCardForFuture && (
         <label
           htmlFor="save-card"
           className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-card cursor-pointer"
@@ -622,12 +623,15 @@ export function CheckoutStep({
           <span className="text-ds-13 text-foreground leading-snug">
             <span className="font-semibold block">Save card for next time</span>
             <span className="text-ds-11 text-muted-foreground">
-              Stripe stores it securely so you can one-tap next time you post.
+              {isRecurring
+                ? "A repeating job saves your card: each later visit is charged to it a few days ahead. It's also charged automatically where you turned on automatic charges."
+                : "Stripe stores it securely. It's charged only when you pay, or automatically where you turned on automatic charges."}
             </span>
           </span>
           <Switch
             id="save-card"
-            checked={!!saveCardForFuture}
+            checked={!!saveCardForFuture || isRecurring}
+            disabled={isRecurring}
             onCheckedChange={(checked) => setSaveCardForFuture(!!checked)}
           />
         </label>
@@ -703,9 +707,8 @@ export function CheckoutStep({
                 ? "Processing…"
                 : giftLoading
                   ? "Checking your gift…"
-                  : !confirmed
-                    ? "Confirm details to continue"
-                    // "Continue to payment" in front of a $0.00 total is the
+                  // A3-96: the checkbox above is the one ask; the button never repeats it ("Confirm details to continue").
+                  // "Continue to payment" in front of a $0.00 total is the
                     // screen arguing with itself — there is no payment step
                     // when the gift covers the job; create-payment returns
                     // straight to /payment-success.

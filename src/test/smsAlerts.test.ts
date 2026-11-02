@@ -121,10 +121,10 @@ describe("SMS alerts source rules", () => {
     expect(SMS_CONSENT_TEXT_BEFORE_LINKS).not.toMatch(/nearby|near you|new jobs/i);
   });
 
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     ELSIF n.read IS TRUE THEN | ELSIF false THEN
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |     ELSIF n.read IS TRUE THEN | ELSIF false THEN
   // @mutate supabase/migrations/20261021193738_sms_alerts.sql | v_kind, 'pending', now() + interval '3 minutes') | v_kind, 'pending', now())
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     v_urgent := r.kind IN ('job_offer', 'starting_soon'); |     v_urgent := false;
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |       IF v_release > v_now THEN |       IF false THEN
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |     v_urgent := r.kind IN ('job_offer', 'starting_soon'); |     v_urgent := false;
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |       IF v_release > v_now THEN |       IF false THEN
   it("a text waits a few minutes, is dropped if the alert was read, and quiet hours defer it (urgent kinds excepted)", () => {
     // Behaviour is proved in src/test/pglite/smsAlerts.pglite.mjs; these are the rules' anchors.
     const fanOut = newestFunctionBody("sms_fan_out_on_notification").replace(/\s+/g, " ");
@@ -140,8 +140,8 @@ describe("SMS alerts source rules", () => {
     expect(claim).toMatch(/WHERE status = 'pending' AND due_at <= v_now ORDER BY due_at .* FOR UPDATE SKIP LOCKED/);
   });
 
-  // @mutate supabase/migrations/20261102030000_export_my_data_continue_days.sql |         CASE WHEN t.kind = 'confirm' THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at) |         CASE WHEN false THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at)
-  // @mutate supabase/migrations/20261102030000_export_my_data_continue_days.sql | jsonb_agg(to_jsonb(t) - 'confirm_code' - 'confirm_phone' - 'confirm_sent_at' - 'updated_at') | jsonb_agg(to_jsonb(t))
+  // @mutate supabase/migrations/20261102074248_export_my_data_handovers_fee_debts.sql |         CASE WHEN t.kind = 'confirm' THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at) |         CASE WHEN false THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at)
+  // @mutate supabase/migrations/20261102074248_export_my_data_handovers_fee_debts.sql | jsonb_agg(to_jsonb(t) - 'confirm_code' - 'confirm_phone' - 'confirm_sent_at' - 'updated_at') | jsonb_agg(to_jsonb(t))
   // @mutate supabase/migrations/20261023181442_sms_no_nearby_job_texts.sql |        WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code = p_code\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF; |        WHERE pending_phone = v_phone\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF;
   it("Download My Data never says whether a number is used on another account (lh-authz-rls review)", () => {
     const ex = newestFunctionBody("export_my_data").replace(/\s+/g, " ");

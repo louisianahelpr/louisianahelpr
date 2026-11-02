@@ -8,6 +8,8 @@
  * @mutate supabase/functions/_shared/geocodeDropoff.ts |     if (!("miss" in a) \|\| a.miss === "not_found") return a; |     if (!("miss" in a)) return a;
  * @mutate supabase/functions/_shared/geocodeDropoff.ts |   const label = [str("locality") ?? str("subAdministrativeArea"), | const label = [str("fullThoroughfare") ?? str("locality"),
  * @mutate supabase/functions/_shared/geocodeDropoff.ts |   if (apple) { |   if (apple && false) {
+ * @mutate supabase/functions/_shared/geocodeDropoff.ts |     return { miss: "unavailable", status: null, detail: thrownName(e) }; |     return { miss: "unavailable", status: null, detail: String(e).slice(0, 200) };
+ * @mutate supabase/functions/_shared/geocodeDropoff.ts |     return { miss: "unavailable", status: null, detail: `Apple Maps: ${thrownName(e)}` }; |     return { miss: "unavailable", status: null, detail: `Apple Maps: ${String(e).slice(0, 190)}` };
  */
 import { describe, expect, it, vi } from "vitest";
 import { geocodeDropoff, plausibleAddress } from "../../supabase/functions/_shared/geocodeDropoff";
@@ -123,5 +125,26 @@ describe("geocodeDropoff with Apple Maps first (Q2413)", () => {
     const r = await geocodeDropoff("1 A St", f as unknown as typeof fetch, apple);
     expect(r).toMatchObject({ miss: "unavailable", status: 403 });
     expect((r as { detail: string }).detail).toMatch(/Apple Maps token HTTP 500; Nominatim: HTTP 403/);
+  });
+});
+
+describe("a thrown fetch never puts the typed address in detail (Q2493)", () => {
+  const quoting = vi.fn(async (u: string) => {
+    throw new TypeError(`error sending request for url (${u}): connection refused`);
+  });
+  it("Nominatim: detail is the error's name only", async () => {
+    const r = await geocodeDropoff("7 Secret Ln, Baker LA", quoting as unknown as typeof fetch);
+    expect(r).toEqual({ miss: "unavailable", status: null, detail: "threw TypeError" });
+  });
+  it("Apple Maps then Nominatim: neither part carries the address", async () => {
+    let n = 0;
+    const f = vi.fn(async (u: string) => {
+      n += 1;
+      if (n === 1) return new Response(JSON.stringify({ accessToken: "t" }), { status: 200 });
+      throw new TypeError(`error sending request for url (${u})`);
+    });
+    const r = await geocodeDropoff("7 Secret Ln, Baker LA", f as unknown as typeof fetch, { developerToken: async () => "jwt" });
+    expect(JSON.stringify(r)).not.toMatch(/Secret|Baker/);
+    expect(r).toMatchObject({ miss: "unavailable" });
   });
 });

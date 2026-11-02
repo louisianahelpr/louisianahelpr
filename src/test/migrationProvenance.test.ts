@@ -275,6 +275,9 @@ describe("the receipts of the runs deleted on 2026-10-30 (db-deploy red, run 411
   // about 19:14Z), by run id. 44 came from run 41111832091's log; the last 3
   // (run 40564500215) were deleted after that run looked them up.
   const LOST: Record<string, string[]> = {
+    // Added 2026-11-01 7:37 PM (L29): the same 10-30 deletion; db-deploy run 41371592369 listed them.
+    "41147292640": ["20261030212051", "20261030212558", "20261030215251", "20261030220537", "20261030221156", "20261030221720", "20261030224733"],
+    "41152862549": ["20261030221255", "20261030223154"],
     // Added 2026-11-01 (L29, lead approve): the same 10-30 deletion; db-deploy run 41362419307 listed them.
   "41111832091": ["20261030134231", "20261030141656", "20261030144112", "20261030144615", "20261030150104", "20261030150556", "20261030150630", "20261030150631", "20261030152217", "20261030152601", "20261030153635", "20261030153722", "20261030154707", "20261030154745", "20261030155159", "20261030161617", "20261030170443"],
     "41115469385": ["20261030160851"],
@@ -297,6 +300,8 @@ describe("the receipts of the runs deleted on 2026-10-30 (db-deploy red, run 411
     "40718824063": ["20261028151647"],
     "40734689453": ["20261028151144"],
     "40738655133": ["20261028155329", "20261028160637"],
+    // Q2553 (builder 148, 11-01): every run created 2026-10-30T19:12Z..2026-10-31T05:50Z answers 404 (total_count 0).
+    "41157098012": ["20261031011531"],
   };
 
   it("the checked-in list is exactly the measured pairs, dated and explained, and each names a real migration", () => {

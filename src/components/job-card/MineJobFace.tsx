@@ -32,7 +32,7 @@ export interface MineFaceAction {
   /** A visible text button under the button: the step's other answer (A3-8: "Something's not right" under Approve). */
   under?: { label: string; onClick: () => void };
   disabled?: boolean;
-  /** Why a greyed button is greyed, on the line under it (the 30-minute wait on Mark job complete). */
+  /** Why a greyed button is greyed, on the line under it (the 30-minute wait on Mark it done). */
   note?: string;
 }
 

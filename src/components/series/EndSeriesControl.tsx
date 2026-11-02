@@ -25,6 +25,9 @@ export function EndSeriesControl({
   userId,
   mode = "end",
   splitOk = false,
+  open: openProp,
+  onOpenChange,
+  trigger = true,
 }: {
   jobId: string;
   jobTitle: string | null;
@@ -37,8 +40,18 @@ export function EndSeriesControl({
   mode?: "end" | "leave";
   /** The series lets days be split between Helprs (series_split_ok); otherwise nobody else is on it (A2-C42). */
   splitOk?: boolean;
+  /** Controlled confirm (A3-44): the job page opens it from its More options list. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** false: no link of its own; the confirm opens from elsewhere (`open`). */
+  trigger?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [openSelf, setOpenSelf] = useState(false);
+  const open = openProp ?? openSelf;
+  const setOpen = (next: boolean) => {
+    setOpenSelf(next);
+    onOpenChange?.(next);
+  };
   const [ending, setEnding] = useState(false);
   const queryClient = useQueryClient();
 
@@ -104,7 +117,7 @@ export function EndSeriesControl({
 
   return (
     <>
-      <button
+      {trigger && <button
         type="button"
         data-end-series
         onClick={(e) => {
@@ -117,7 +130,7 @@ export function EndSeriesControl({
         style={{ color: "hsl(var(--sienna-ink))" }}
       >
         {mode === "leave" ? "Leave series" : "End series"}
-      </button>
+      </button>}
       <BrandConfirmDialog
         open={open}
         onOpenChange={(next) => {

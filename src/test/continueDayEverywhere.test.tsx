@@ -123,9 +123,9 @@ describe("A3-119: the 'Set a day to finish' sheet", () => {
 });
 
 describe("the Working card face before a day set to finish", () => {
-  const base = { isMinimalCard: false, isOffered: false, owesReview: false, review: () => {}, manage: () => {}, step: { jobId: "7b1da54b", key: "done" as const, label: "Mark job complete" } };
-  it("leads with Message and the note, never Mark job complete", () => {
-    expect(helperFaceAction(base)?.label).toBe("Mark job complete");
+  const base = { isMinimalCard: false, isOffered: false, owesReview: false, review: () => {}, manage: () => {}, step: { jobId: "7b1da54b", key: "done" as const, label: "Mark it done" } };
+  it("leads with Message and the note, never Mark it done", () => {
+    expect(helperFaceAction(base)?.label).toBe("Mark it done");
     const note = continueDayDoneNote(day())!;
     expect(note).toMatch(/^You can mark it done on \w{3} \d+\/\d+, the day you set to finish\.$/);
     const f = helperFaceAction({ ...base, continueDayNote: note, message: { name: "Lexi", onClick: () => {} } });

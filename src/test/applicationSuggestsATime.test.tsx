@@ -13,11 +13,15 @@
  * @mutate src/pages/home/useApplyFlow.ts |       const { data: rpcData, error: rpcError } = suggestion\n | const { data: rpcData, error: rpcError } = false\n
  * @mutate src/components/ResponseDeadlineDialog.tsx |           {suggestedTime && (when \|\| suggestedLabel) && ( |           {false && (
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                             <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} /> |
+ * A3-95 (audit 11-01): beside "Yes, that works", "Suggest another time" wrapped to two lines at 375; the pair keeps a
+ * short label ("Other time", within PAIR_LABEL_MAX) and the full words as its name.
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx |           Other time |           Suggest another time
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { PAIR_LABEL_MAX } from "@/components/ui/pairLabel";
 import { ApplyTimeQuestion, canSuggestATime } from "@/components/dashboard/applyConfirmDialog/ApplyTimeQuestion";
 import { ApplicantSuggestedTime } from "@/pages/posts/postedJobs/applicantsPanel/ApplicantSuggestedTime";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -79,7 +83,10 @@ describe("a Helpr can suggest another day/time; hiring them agrees to it (owner 
     render(<ApplyTimeQuestion job={job} value={null} onChange={onChange} />);
     expect(screen.getByText(/Does .* at 12:00 PM work for you\?/)).toBeTruthy();
     expect(screen.getByTestId("apply-time-yes").getAttribute("aria-checked")).toBe("true");
-    fireEvent.click(screen.getByTestId("apply-time-suggest"));
+    const suggest = screen.getByTestId("apply-time-suggest");
+    expect(suggest.textContent!.trim().length).toBeLessThanOrEqual(PAIR_LABEL_MAX);
+    expect(suggest.getAttribute("aria-label")).toBe("Suggest another time");
+    fireEvent.click(suggest);
     // Pre-filled with the job's own day and start time, so nothing empty looks like a choice.
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ jobId: "job-1", date: "2099-01-10", time: "12:00" }));
     // Asked only where another time can be honoured.

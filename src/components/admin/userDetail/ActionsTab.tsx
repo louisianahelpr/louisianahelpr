@@ -9,6 +9,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import AdminUserNotes from "../AdminUserNotes";
 import UserVerificationHistory from "../UserVerificationHistory";
 import { UserAuditLog } from "./UserAuditLog";
+import { DeclutterAmountsOwed } from "./DeclutterAmountsOwed";
 import type { Profile } from "../adminUserHelpers";
 import { useImpersonation } from "@/hooks/useImpersonation";
 import { supabase } from "@/integrations/supabase/client";
@@ -231,6 +232,9 @@ export function ActionsTab({
 
       {/* Internal Admin Notes */}
       <AdminUserNotes userId={viewProfile.user_id} />
+
+      {/* Q1928 gap 1: what this member owes from Declutter refunds; cleared here when a ban or flag is overturned. */}
+      <DeclutterAmountsOwed userId={viewProfile.user_id} />
 
       {/* Verification audit trail (helper_verifications table) —
           shows every change to idv_status, legacy_manual_review,

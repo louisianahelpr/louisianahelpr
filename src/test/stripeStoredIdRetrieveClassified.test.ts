@@ -312,6 +312,8 @@ const EXEMPT: Record<string, string> = {
   // refunded before the dispute.
   "stripe-webhook/handlers/_visitTaxReversal.ts::stripe.charges.retrieve(chargeId)": EVENT,
   "stripe-webhook/handlers/chargeRefunded.ts::stripe.paymentIntents.retrieve(refundPiId)": EVENT,
+  // Q1940 (a): the duplicate-paid session's own PaymentIntent (checkoutSessionCompleted piId, from session.payment_intent).
+  "stripe-webhook/handlers/refundDuplicateFunding.ts::stripe.paymentIntents.retrieve(args.pi)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(closedDispute.charge as string)": EVENT,
   "stripe-webhook/handlers/chargeDisputeCreated.ts::stripe.charges.retrieve(dispute.charge as string)": EVENT,
   // Q1829: the duplicate-funding redelivery reads the job's STORED funding PaymentIntent; a test

@@ -107,8 +107,8 @@ const READ_ONLY_HOLD_READERS: Record<string, string> = {
     "payout_pending_stranded skips a job a hold keeps in payout_pending (reported in payout_pending_held); an unreadable hold exempts nothing",
   "supabase/functions/auto-resolve-disputes/index.ts":
     "the stuck-split sweep sets aside a split execute-dispute-split refused for a hold (PAYOUT_HOLD_SPLIT_ERROR) while the hold stands",
-  "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts":
-    "a PAID delivery tip (Q2453) whose Helpr was put on a hold after the page opened pages staff critical for a hand reversal (Q2459); Stripe already moved the money, this handler moves none",
+  // Q2459: stripe-webhook's declutterCheckout.ts no longer reads the hold itself; a paid delivery tip goes
+  // through heldTipRepay.holdBackPaidTip (a PAYOUT_PATHS file), as a job tip does.
 };
 
 interface Site {

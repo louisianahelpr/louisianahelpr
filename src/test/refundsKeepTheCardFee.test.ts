@@ -81,9 +81,9 @@
  * in the table CHECK; the keep-card-fee amount refunding the fee; (b) a new reason added unclassified; the sites
  * sending something other than the row's refund_cents.
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     fee_policy = CASE WHEN reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN |     fee_policy = CASE WHEN reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     IF p_reason = 'helpr_fault' THEN |     IF p_reason = 'helpr_fault_x' THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
+ * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN
+ * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     IF p_reason = 'helpr_fault' THEN |     IF p_reason = 'helpr_fault_x' THEN
+ * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' | WHEN reason IN ('buyer_no_show') THEN 'keep_buyer_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents | WHEN fee_policy = 'keep_card_fee' THEN paid_cents
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     'refund_request_full', 'refund_request_part'));   -- 141d |     'refund_request_full', 'refund_request_part', 'buyer_changed_mind'));   -- 141d
@@ -93,9 +93,9 @@
  * (M1 fee zeroed for one reason, M8 kept fee shrunk, M4 a caller passing no fee, M9 a caller recording our-mistake,
  * M5 the fee estimate, note 1 the reader projection); table statements (M2 an UPDATE, M6 a trigger, an order
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261102031000_declutter_seller_delivery_book_by.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
+ * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
+ * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
  * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
@@ -338,7 +338,8 @@ const TS_MONEY_TOUCHES: string[] = [
   // A3-18/19 (20261101230519): READS the order's book_by and the window chosen at checkout (column grants), the ONE
   // source of the cards' "by <date>" and chosen time; no money column, no write.
   'src/lib/declutter/orderPickupTimes.ts: .from("declutter_orders").select("id, book_by, pickup_slot_start, pickup_slot_end").in("id", orderIds)',
-  // A3-112 (lead lh-money-escrow 11-01): Money > Spent READS the buyer's own paid orders (no write).
+  // A3-112 Money > Spent (Builder 151 read it): READS the buyer's own paid orders' id, status, total and date (the
+  // Receipts rule); no fee column, no write.
   'src/lib/declutter/purchaseSpend.ts: .from("declutter_orders").select("id, status, total_cents, paid_at").eq("buyer_id", userId).not("paid_at", "is", null), ) ?? []) as PurchaseOrder[]',
   // Declutter reviews (Builder 3c s3): READS the order's two parties to name who is being reviewed; no money column, no write.
   'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
@@ -359,7 +360,8 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2082 (b): the card fee a Helpr at fault is billed (bill_helpr_fault_card_fee), and its page if that fails.
   'supabase/functions/create-payment/index.ts: p_card_fee_cents: Math.max(0, Math.round(cardFeeCents ?? 0)),',
   'supabase/functions/create-payment/index.ts: fields: { job_id: jobId, helper_id: helperId, card_fee_cents: String(cardFeeCents ?? "") },',
-  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, pickup_slot_start") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
+  // Q2403 (builder 144): READS the open order's frozen setup fee too, to close its page first when the fee changed; no write.
+  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, setup_fee_cents, pickup_slot_start") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   // Q2352: READS the setup fee the order froze, to put it on its own Stripe line; no refund, no write.
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("setup_fee_cents") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
@@ -382,7 +384,13 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2352: reads the setup fee owed back (state refund_due); writes nothing, the refund is recorded by RPC.
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("setup_fee_cents, setup_fee_state, stripe_payment_intent_id").eq("id", orderId).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("id, setup_fee_cents").eq("stripe_payment_intent_id", paymentIntentId).eq("setup_fee_state", "refund_due").maybeSingle()',
+  // Q1940 (a) (builder 144; lh-money-escrow approve 11-01, ~/.lh-shots/verdicts/b144.txt): a late payment on a seller-fault Declutter setup job, refunded in full as a duplicate
+  // funding; the card fee Stripe kept (from the retrieved PaymentIntent) goes to the seller's debt, never into a refund.
+  "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts: p_card_fee_cents: cardFeeCents,",
   // A10: the card fee Stripe kept on a seller-fault setup job's charge, billed to the seller after the full refund.
+  "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
+  // Q1940 (b) (builder 140; lh-money-escrow approve 11-01, ~/.lh-shots/verdicts/b140.txt): the same bill on the "already been refunded" catch, before settling; the
+  // card fee Stripe kept (from the retrieved PaymentIntent) goes to the seller's debt, never into a refund amount.
   "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
 ];
 
@@ -443,12 +451,16 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // declutter_record_refund restated with ONE new reason, helpr_fault (the Helpr's fault in a delivery they could not
     // finish): everything goes back and the card fee becomes a debt on the at-fault Helpr, not the seller. Nothing
     // else in them changed (record_refund three-way merged from 20261031105148).
-    // A3-72 (20261102031000, lead 11-01 9:05 PM): the reason CHECK adds 'delivery_never_booked' and the reason -> policy
-    // CHECK is restated unchanged beside it (the new reason takes its ELSE, full_platform_absorbs); declutter_record_refund
-    // is NOT restated, so its own CASE stays pinned to 20261031231150 (functionMigration).
     migration: "20261102031000_declutter_seller_delivery_book_by.sql",
-    functionMigration: "20261031231150_helpr_delivery_cant_finish.sql",
-    proofs: ["src/test/pglite/declutterSellerDeliveryBookBy.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
+    // A3-72 (20261102031000, lead 11-01 9:05 PM): the reason CHECK adds 'delivery_never_booked' and the reason -> policy
+    // CHECK is restated unchanged beside it (the new reason takes its ELSE, full_platform_absorbs).
+    // Q2404 (20261102061022): declutter_record_refund restated verbatim from 20261031231150 plus one block: for
+    // full_seller_pays_fee and keep_card_fee, a charge that also carried the setup fee bills only the sale's share of the
+    // card fee (fee * total / (total + setup fee)). Reasons, policies and the CHECKs are unchanged.
+    // Q2556 (20261102080936): restated verbatim from 20261102061022; only an out seller's refused payment
+    // (seller_out on a payment the order never took) skips record_refund's own notice. Amounts, policies, reasons unchanged.
+    functionMigration: "20261102080936_declutter_seller_out_told_once.sql",
+    proofs: ["src/test/pglite/declutterSellerDeliveryBookBy.pglite.mjs", "src/test/pglite/declutterCardFeeSetupShare.pglite.mjs", "src/test/pglite/declutterSellerOutAfterPayment.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
       "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
     policySources: [
@@ -544,10 +556,12 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // LEAD-ADMIN-HELPR-FAULT (20261101000817, for verdict): restated from its effective body (170717 with 172503's notice
       // rewrites); only the buyer's refund notice for 'helpr_fault' added ("All $X ... delivery included"). Reasons,
       // the amount it passes to declutter_record_refund (total - reserved, the order's card fee) and the task branches unchanged.
-      // A3-72 (20261102031000, lead verdict pending): restated verbatim but for the two notices' words on the new reason
-      // 'delivery_never_booked' (buyer: "All $X is coming back"; seller: why). The amount passed (total - reserved, the
-      // order's card fee), reasons, strike and task branches unchanged.
-      declutter_close_paid_order: "20261102031000_declutter_seller_delivery_book_by.sql 7f47f57f3681610d",
+      // Q1935 (20261102040952, builder 140; lh-money-escrow + lh-authz-rls approve 11-01, ~/.lh-shots/verdicts/b140.txt): restated verbatim; only the fee it passes changes, to the
+      // order's card fee prorated to what is refunded (declutter_card_fee_left: fee x (total - reserved) / total), so a
+      // seller's debt or a kept fee no longer carries card cost on a delivery fee already given back or paid to the Helpr.
+      // Q1928 gap 3 (20261102063343, lead PASS pending): restated from Shipping S6 2d (label hold) with Q1935's prorated
+      // fee restored; buyer_no_show / admin_no_fault become seller_out (full_seller_pays_fee) while the seller is out.
+      declutter_close_paid_order: "20261102063343_declutter_seller_out_after_payment.sql 0dd0e2a8f5c5e2f4",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
       // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
       // #3730 (20261028235247, lh-money-escrow approved via the lead 2026-10-29): only the handover_not_offered refusal
@@ -593,12 +607,27 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_mark_order_paid: "20261101191500_declutter_checkout_pickup_time.sql 521fd16163d444dd",
       // Owner 11-01 (B103, 20261101181129; lh-money-escrow via the lead): the giver's pick turns the asked time into a
       // paid FREE order ($0, card_fee_cents = 0, no payment) with its booking; it records no refund and moves no money.
-      // A3-57 (20261102011547, lh-money-escrow 11-01): restated with one early refusal (request_time_passed: an ask
-      // whose own pickup time has passed can't be picked). No refund, amount or fee touched.
+      // A3-57 (20261102011547, Builder 125; re-pinned by Builder 151 after a line diff against 20261101181129): ONE
+      // refusal added before any write (request_time_passed when the ask's own pickup time has passed); the free order,
+      // its $0 amounts and card_fee_cents 0 are verbatim. Still records no refund and moves no money.
       declutter_pick_free_request: "20261102011547_free_asks_close_when_their_time_passes.sql 916a12add24bc8a0",
-      // Not refund paths (lh-money-escrow 11-01): they only NAME the 'declutter_refunds' notice kind and its reminder
-      // titles (20261102002011, offer and refund deadline reminders). They map/send notices and record nothing.
+      // A3-112 (20261102033426, read by Builder 151): STABLE read of the CALLER's own orders (buyer_id = auth.uid(), at
+      // most 200): sums what came back (succeeded declutter_refunds not settled by hand + live hand refunds + succeeded
+      // delivery refunds) on the order's own payment. Writes nothing; decides no amount or fee.
+      declutter_my_refunded_cents: "20261102033426_declutter_my_refunded_cents.sql 3cf5c4330e5afdc0",
+      // Q1928 gap 1 (20261102065446, lead PASS 067e16c1a5): the admin's read of a member's Declutter fee debts (names
+      // declutter_refunds only to label each debt's reason) and the admin waiver, which clears a debt's REMAINING
+      // amount under consume_fee_debt's lock. Neither records a refund nor decides a refund amount or fee.
+      declutter_admin_fee_debts: "20261102065446_declutter_fee_debt_waiver.sql b69b106b1c9b719e",
+      declutter_admin_waive_fee_debt: "20261102065446_declutter_fee_debt_waiver.sql 106523adcf6e41d5",
+      // A3-85 (20261102002011) / 20261102034632 (read by Builder 151): the text-message queue and its kind map name
+      // 'declutter_refunds' only as a NOTICE KIND (which refund-request reminders count as "needs you"). They write
+      // sms_messages status/due_at only; no refund row, amount or fee.
+      sms_claim_due: "20261102034632_sms_needs_you_step_done.sql c1a41f8e65f5dc47",
       sms_kind_for: "20261102002011_needs_you_deadline_reminders.sql 4c2a804834d2c32e",
+      // A3-85 (20261102002011, read by Builder 151): deadline reminders for an open offer or refund request; reads the
+      // request's answer-by times, writes needs_you_reminder_sends and sends a notice of kind 'declutter_refunds'. No
+      // refund row, amount or fee is read or written.
       sweep_needs_you_reminders: "20261102002011_needs_you_deadline_reminders.sql 4fa7776ee46055c9",
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
@@ -617,7 +646,12 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // D2-6 (20261029232103, lh-money-escrow approve 2026-10-29): restated verbatim from 20261026155251 plus one seller notice when a NEW debt row is inserted; reasons, policies, amounts and the debt row unchanged.
       // BUY-30 (20261031105148): restated verbatim from 20261029232103; only the debt notice names the item and links ?tab=selling. Reasons, policies, amounts and the debt row unchanged.
       // BUY-36 (20261031231150): + helpr_fault (full_seller_pays_fee), whose debt row is on the task's Helpr.
-      declutter_record_refund: "20261031231150_helpr_delivery_cant_finish.sql 1739f61d673db0b3",
+      // Q2404 (20261102061022): verbatim + the setup-fee share of the card fee for the two policies that bill someone;
+      // Q1928 gap 2: the debt row says when its fee was estimated (fee_estimated). Amounts and policies otherwise unchanged.
+      // Based on Shipping S6 2d (20261102051521, wip/b126-ship): its keep_buyer_fee shipping hunks are kept; lands after it.
+      // Q2556 (20261102080936): restated verbatim from 20261102061022; only the seller notice skips a seller_out refund
+      // of a payment the order never took (mark_order_paid tells that seller). Amounts, policies and the debt row unchanged.
+      declutter_record_refund: "20261102080936_declutter_seller_out_told_once.sql 12464dd316d1e698",
       // B100 (20261030134109): take back a problem report. Records no refund: it only marks the problem and the buyer's own
       // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
       // T9 (20261031004529): taking back the buyer's no-show report also clears it, so the sweep can't refund on it; verdict owed.
@@ -638,10 +672,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // T9 (20261031004529): names declutter_refunds only as a notice kind on the 60-day hold; its own refunds all go through declutter_close_paid_order with reasons already pinned (buyer_no_show, seller_no_show), and it writes no amount or fee.
       // 20261031181404 (Builder 16): restated verbatim but for the (d) delivery-reminder loop, which now locks its order and
       // re-reads the booking so its notice names the item; that loop records no refund. Every refund path above unchanged.
-      // A3-72 (20261102031000, lead verdict pending): + loop (b2), a needs_time seller delivery past book_by closes through
-      // declutter_close_paid_order(o.id, 'delivery_never_booked', NULL) = full_platform_absorbs (lead 11-01 9:05 PM:
-      // everything back, no strike, no seller debt). Every other loop byte-for-byte as 20261031181404.
-      declutter_handover_sweep: "20261102031000_declutter_seller_delivery_book_by.sql edffe2c73c219ea3",
+      // 20261102031228 (Builder 135, Q2465): verbatim but for the (d) loop's two "Delivery coming up" sends, now
+      // declutter_notify_strict; that loop records no refund. Every refund path unchanged.
+      declutter_handover_sweep: "20261102031228_declutter_reminders_retry_strict.sql 08f36324e2085c85",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout
@@ -650,7 +683,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // only the seller's payout rebook changes (a full refund also undoes a seller delivery's rate for the seller).
       // D2-5 (20261029224147, lh-money-escrow approve 2026-10-29): notice words only (the card-network sentence on a keep_card_fee refund, the order chat instead of Messages), from the body 20261027172503 left; amounts, fee policies and the payout rebook unchanged.
       // BUY-25 (lead 10-30): never got it is reason seller_no_show (full_seller_pays_fee: the seller owes the card fee), already pinned; verdict owed.
-      declutter_refund_after_handover: "20261031010243_declutter_never_got_it_no_return.sql 9789b5c5095d8eff",
+      // Q1935 (20261102040952, builder 140; lh-money-escrow + lh-authz-rls approve 11-01, ~/.lh-shots/verdicts/b140.txt): restated verbatim; only the fee passed to declutter_record_refund
+      // is prorated to v_paid (total - reserved) by declutter_card_fee_left. Reasons, amounts and the part refund unchanged.
+      // Q1928 gap 3 (20261102063343): restated from Shipping S6 2g with Q1935's prorated fee restored; admin_no_fault
+      // becomes seller_out while the seller is out.
+      declutter_refund_after_handover: "20261102063343_declutter_seller_out_after_payment.sql 595741c2cd15bf1a",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       declutter_payouts_due: "20261026155251_declutter_refund_requests.sql a7c6262ff5abda7d",
@@ -687,6 +724,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_refund_cancels_setup_jobs: "20261017073146_declutter_add_a_helpr.sql ac0eabd46005cf1d",
       // A10: the trigger's (and the admin hand tool's) body: reads the refund row, cancels and marks setup jobs.
       declutter_apply_seller_fault: "20261017073146_declutter_add_a_helpr.sql 943675e46fc54277",
+      // Q1939 (20261102035736, builder 140; lh-money-escrow approve 11-01, ~/.lh-shots/verdicts/b140.txt): reads seller-fault refund rows (fee_policy, reason, order) to
+      // re-run the unchanged declutter_apply_seller_fault on setup jobs the trigger missed; records no refund, no amount.
+      declutter_seller_fault_sweep: "20261102035736_declutter_seller_fault_sweep.sql 229723c76c70ea79",
       // A10: adds the setup job's card fee to the seller's debt for that refund, once; never a refund amount.
       // Q1937 (20261027174633): capped at the order total across the order's linked jobs; still no refund amount.
       // + 20261027172503 (hide-fees) rewrites its notice literals only (lander re-pin, both reviewed).
@@ -698,7 +738,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // amount; each touches declutter_refunds only by status / time / review columns:
       // the admin page's list of held rows (a read; shows refund_cents as recorded).
       // Restated in 20261019112103 (shops-m3 run 3) with kind 'shop_refund' added: lists a held Shops refund too.
-      admin_payouts_held_for_review: "20261019112103_shops_held_for_review_admin_tools.sql c1e1ff95266b714b",
+      // Q1931 (builder 144, 20261102043754; lead approve 11-01, ~/.lh-shots/verdicts/b144.txt): + a Declutter delivery payout / delivery-fee refund that used its 12 tries
+      // ('failed', flagged gave_up), listed as recorded (refund_cents shown, still a read).
+      // Q1931 raise refunds (builder 148, 20261102054153): + a delivery pay-raise refund that used its 12 tries
+      // ('refunding', refund_attempts >= 12; kind 'raise_refund', gave_up), listed with refund_cents as recorded (a read).
+      admin_payouts_held_for_review: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql 1d1e384240069d7f",
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
       // 20261019112103: + a held Shops refund / payout, refused while a refund made in Stripe stands (refunded_in_stripe)
       // or when the queue would not send it; a released Shops row starts its tries at 0. No amount changes.
@@ -710,7 +754,12 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // a short refund never closes the row); only "other:" ends 'settled_by_hand'.
       // 20261019112103: + a held Shops refund, by "other:" only (a Stripe id goes through shop-checkout, checked with
       // Stripe: stripe_check_required) and only for its whole refund_cents (settle_amount_differs); settle_amount_short kept.
-      admin_payout_settle_by_hand: "20261019112103_shops_held_for_review_admin_tools.sql f65d8088fd3c48d3",
+      // Q1931 (builder 144, 20261102043754; lead approve 11-01, ~/.lh-shots/verdicts/b144.txt): + settles a gave-up ('failed', attempts >= 12) Helpr delivery payout or
+      // delivery-fee refund the same way (same id / amount checks; refund_cents never changed, no money sent).
+      // Q1931 raise refunds (builder 148, 20261102054153): + records a gave-up raise refund sent in Stripe: a re_/pyr_ id
+      // only, for EXACTLY refund_cents (settle_amount_differs), whose amount the raise CHECK _refund_amount already fixed
+      // by reason (the card fee kept on delivery_cancelled_buyer); refund_cents never changed, no money sent.
+      admin_payout_settle_by_hand: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql d0136340240d2b1f",
       // pushes next_attempt_at of a pending / failed row; no try used, no amount.
       payout_defer: "20261019070737_payout_waits_for_payee_setup.sql 64f967d0b2d0c9f4",
       // pages ops and tells the payee once per held row; writes only held_notified_at.
@@ -771,7 +820,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       "v_kept := v_order.premium_cents;",
       "CASE WHEN v_policy = 'keep_card_fee' THEN p_paid_cents - v_fee WHEN v_policy = 'keep_buyer_fee' THEN p_paid_cents - v_kept ELSE p_paid_cents END",
       "IF v_policy = 'full_seller_pays_fee' AND v_fee > 0 THEN",
-      "INSERT INTO public.declutter_seller_fee_debts (seller_id, refund_id, amount_cents, remaining_cents) VALUES (v_seller, v_id, v_fee, v_fee)",
+      // Q2404: the sale's share of a charge that also carried the setup fee.
+      "v_fee := round(v_fee::numeric * v_order.total_cents / (v_order.total_cents + v_order.setup_fee_cents))::integer;",
+      "INSERT INTO public.declutter_seller_fee_debts (seller_id, refund_id, amount_cents, remaining_cents, fee_estimated) VALUES (v_seller, v_id, v_fee, v_fee, p_card_fee_cents IS NULL)",
     ] },
   },
   /**
@@ -824,8 +875,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // held-for-review admin tools move status and record what moved, never change refund_cents.
     functions: {
       admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
-      admin_payout_settle_by_hand: "20261019112103_shops_held_for_review_admin_tools.sql f65d8088fd3c48d3",
-      admin_payouts_held_for_review: "20261019112103_shops_held_for_review_admin_tools.sql c1e1ff95266b714b",
+      // Q1931 (builder 144): restated to also settle / list gave-up Declutter delivery rows; Shops branches unchanged.
+      // Q1931 raise refunds (builder 148, 20261102054153): + the 'raise_refund' kind; Shops branches unchanged.
+      admin_payout_settle_by_hand: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql d0136340240d2b1f",
+      admin_payouts_held_for_review: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql 1d1e384240069d7f",
       payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
       shop_hand_refund_failed: "20261019071055_shops_refunds_cancels_strikes.sql ba27ff33a9f0c110",
       shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",
@@ -945,12 +998,15 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     // the card fee is kept out of the refund here.
     "flatCardFeeKeptCents = isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0 ? Math.min(unfilledCents, Math.floor((crewStripeFeeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents)) : 0",
     "feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents })",
-    "taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0",
+    // Q2148 (1) (owner 'J3', Builder 151): the tax on the card fee this refund keeps is kept too (taxOnKeptCents
+    // inside crewTaxKeptAt); the card fee itself is kept exactly as before.
+    "taxReturnCents = taxShareCents - crewTaxKeptCents",
     "unpaidBudgetCents = Math.max(0, budgetCents - paidBudget)",
     "urgentCents = Math.round(Number(job.urgent_fee ?? 0) * 100)",
     "budgetCents = Math.round(Number(job.budget ?? 0) * 100)",
     "crewStripeFeeCents = a.stripeFeeCents ?? stripeProcessingCostCents(a.capturedCents)",
-    "taxCents = Math.max(0, Math.round(Number(job.sales_tax_amount ?? 0) * 100))",
+    "taxShareCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0",
+    "crewTaxKeptCents = Math.min(taxShareCents, crewTaxKeptAt(crewStripeFeeCents))",
   ],
   "cancel-refund-": [
     "refundAmount",
@@ -971,7 +1027,9 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   "createRefundOnce#0": [
     "owedCents",
     "owedCents = withholdFee ? lessFeeCents : amountCents",
-    "lessFeeCents = Number.isFinite(amountCents) ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: Number(row.amount_cents ?? 0) - Number(row.fee_cents ?? 0), actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents : Number.NaN",
+    // Q2148 (5) (Builder 151): the tax base is sweepTaxBaseCents (the whole charge on a poster-fee series, else labor + tax);
+    // the card fee is still kept by refundToPayerCents, only the tax on it changes.
+    "lessFeeCents = Number.isFinite(amountCents) ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: sweepTaxBaseCents, actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents : Number.NaN",
     "amountCents = Number(row.amount_cents)",
   ],
   "createRefundOnce#2": [

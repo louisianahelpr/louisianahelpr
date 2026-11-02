@@ -6,7 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
-import { ledgerDuplicateFundingRefund, refundDuplicateFunding } from "./refundDuplicateFunding.ts";
+import { billSellerFaultDuplicate, ledgerDuplicateFundingRefund, refundDuplicateFunding } from "./refundDuplicateFunding.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
@@ -22,7 +22,6 @@ import {
   subscriptionLinkage,
 } from "../../_shared/subscriptionLinkage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
-import { memberDisplayNameOf } from "../../_shared/memberDisplayName.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { effectiveSalesTaxRate, jobEscrowTaxableBaseCents, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
@@ -354,21 +353,9 @@ async function settleCheckoutSession(
       if (heldBack) {
         // The Helpr is told when the re-pay lands, not now.
       } else if (flippedTip && flippedTip.length > 0) {
+        // Q2329: the Helpr's notice is trg_notify_helper_tip's ("<Name> tipped you $X"), written by the flip above;
+        // this handler used to add a second one. One producer per event.
         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
-        // Notify the helper — only on the delivery that actually captured the tip.
-        if (tipHelperId) {
-          // Owner 2026-10-21: say who, as "First L." (the tipper is known: it is their session).
-          const tipperName = await memberDisplayNameOf(supabase, String(tipperId), String(tipHelperId), "Someone");
-          await insertNotifications(supabase, {
-            user_id: tipHelperId,
-            job_id: tipJobId,
-            title: "You received a tip!",
-            message: `${tipperName} tipped you for a completed job. Thanks for the great work!`,
-            // NOID-15: tips are "Payments and tips" (financial_alerts), not "Job payments".
-            type: "financial_alerts",
-            link: "/profile?tab=earnings",
-          });
-        }
       } else {
         logStep("Tip already paid (duplicate delivery) — skipping notify", { jobId: tipJobId, tipper: tipperId });
       }
@@ -860,6 +847,11 @@ async function settleCheckoutSession(
   // duplicate-funding branch below can put it back if the job turns out to be
   // funded already (the gift must not stay spent on a job it did not pay for).
   let giftConsumedHere = false;
+  // Q1981: set when the zero-row consume below found the job already funded by
+  // ANOTHER PaymentIntent, so it neither re-claimed the gift nor paged. If the
+  // escrow write then funds the job after all (the other payment failed in
+  // between), the underfunded page and hold run there instead.
+  let giftSkippedFundedElsewhere: { status: string; jobId: string | null } | null = null;
   // Q1876 follow-up (lh-money-escrow re-review of 2cd90f553, #1): a bank checkout D1
   // whose first delivery consumed the gift and then threw is retried by
   // Stripe for days. If D1's debit bounced meanwhile, return_bounced_gift_card
@@ -1006,18 +998,37 @@ async function settleCheckoutSession(
         // late redelivery of that bounced session's completion would otherwise
         // find the gift spendable and spend it again on a job nobody funded.
         let sessionIsJobs = false;
-        if (reclaimable) {
+        // Q1981 (lh-money-escrow review of 4ec0dea84, #3): a redelivery of a
+        // DUPLICATE checkout whose first delivery consumed the gift, was
+        // refunded, put the gift back to 'sent' and then failed its ledger
+        // write. The job is funded by another PaymentIntent and this payment
+        // is refunded below (duplicate-funding branch), so the gift is not
+        // this job's to re-claim and the job is not underfunded: re-claiming
+        // re-spent it (a spurious Q1417 page) and the else branch paged a
+        // false CRITICAL and held a funded job's payout.
+        let fundedElsewhere = false;
+        if (giftJobId) {
           const { data: jobRow, error: jobReadErr } = await supabase
             .from("jobs")
-            .select("stripe_session_id, payment_status")
+            .select("stripe_session_id, payment_status, stripe_payment_intent_id")
             .eq("id", giftJobId)
             .maybeSingle();
           if (jobReadErr) {
             throw new Error(`jobs read failed before a gift re-claim for session ${session.id}: ${jobReadErr.message}`);
           }
-          const jr = jobRow as { stripe_session_id?: string | null; payment_status?: string | null } | null;
-          sessionIsJobs = jr?.stripe_session_id === session.id;
-          bouncedRedelivery = !sessionIsJobs && jr?.payment_status === "failed";
+          const jr = jobRow as { stripe_session_id?: string | null; payment_status?: string | null; stripe_payment_intent_id?: string | null } | null;
+          const thisPi = typeof session.payment_intent === "string"
+            ? session.payment_intent
+            : (session.payment_intent as any)?.id as string | undefined;
+          // Funded: a status the escrow write below would NOT overwrite
+          // (its filter takes null, unpaid, failed and abandoned only).
+          fundedElsewhere = !!jr?.stripe_payment_intent_id && !!thisPi &&
+            jr.stripe_payment_intent_id !== thisPi &&
+            jr.payment_status != null && !["unpaid", "failed", "abandoned"].includes(jr.payment_status);
+          if (reclaimable) {
+            sessionIsJobs = !fundedElsewhere && jr?.stripe_session_id === session.id;
+            bouncedRedelivery = !sessionIsJobs && jr?.payment_status === "failed";
+          }
         }
         if (reclaimable && sessionIsJobs) {
           const { data: reclaimRow, error: reclaimErr } = await supabase
@@ -1047,6 +1058,11 @@ async function settleCheckoutSession(
         } else if (bouncedRedelivery) {
           logStep("Completion of a bounced bank checkout redelivered — its gift was returned; not re-claimed", {
             giftCardId, sessionId: session.id, giftJobId: giftJobId ?? null,
+          });
+        } else if (fundedElsewhere) {
+          giftSkippedFundedElsewhere = { status: g?.status ?? "missing", jobId: g?.job_id ?? null };
+          logStep("Gift not consumed: the job is already funded by another payment, so this one is refunded below", {
+            giftCardId, sessionId: session.id, giftStatus: g?.status ?? "missing", giftJobId: g?.job_id ?? null,
           });
         } else {
           logStep("ERROR: difference paid but the gift could not be consumed — job funded by the difference only", {
@@ -1151,12 +1167,29 @@ async function settleCheckoutSession(
     // hiccup only delays tax recording until payment_intent.succeeded fires (if it
     // fires after this event, which is the common case).
     try {
-      const taxPi = await stripe.paymentIntents.retrieve(piId);
+      // Q2152 (lh-money-escrow review of 461a6b724 #2): the PaymentIntent's
+      // amount_details.tax is not returned by the pinned API version
+      // (2025-08-27.basil: AmountDetails has only `tip`, stripe@18.5.0's types;
+      // it went GA in 2025-10-29.clover), so this used to write nothing and the
+      // insert-time ESTIMATE stood. The Checkout Session in hand carries the tax
+      // the page charged (total_details.amount_tax): that is Stripe's figure.
+      // The PI field stays a fallback for a newer API version. A gift
+      // difference session prices its one line non-taxable on purpose
+      // (create-payment; docs/OPEN.md Q441), so its $0 is not the job's tax and
+      // the estimate stays, as before.
+      let taxPi: Stripe.PaymentIntent | null = null;
+      try {
+        taxPi = await stripe.paymentIntents.retrieve(piId);
+      } catch (piErr) {
+        logStep("WARN: PI retrieve failed in checkout handler — tax read from the session only", { piId, error: String(piErr) });
+      }
+      const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : session.total_details?.amount_tax;
+      const piTaxCents = (taxPi?.amount_details as any)?.tax?.total_tax_amount;
       // `> 0` here would never let a genuine $0 clear the estimate written at
       // insert time — and $0 is the normal outcome, since only assembly labor
       // is taxable. Write whenever Stripe HAS a number; skip only when the
       // field is absent, which means "no information", not "zero".
-      const taxCents = (taxPi.amount_details as any)?.tax?.total_tax_amount;
+      const taxCents = typeof sessionTaxForJob === "number" ? sessionTaxForJob : piTaxCents;
       if (typeof taxCents === "number") {
         updateData.sales_tax_amount = taxCents / 100;
 
@@ -1187,7 +1220,7 @@ async function settleCheckoutSession(
         // written by create-payment) wins over the row's, which a re-mint at
         // another price may have changed since (lh-money-escrow review of the
         // pre-flip items, #2). A PaymentIntent without it reads the row.
-        const piFeeRaw = String((taxPi.metadata as Record<string, string> | undefined)?.service_fee_cents ?? "");
+        const piFeeRaw = String((taxPi?.metadata as Record<string, string> | undefined)?.service_fee_cents ?? "");
         const taxedRow = jobRow && /^\d+$/.test(piFeeRaw)
           ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 }
           : jobRow;
@@ -1200,7 +1233,7 @@ async function settleCheckoutSession(
         }
       }
     } catch (taxErr) {
-      logStep("WARN: PI retrieve failed in checkout handler — payment_intent.succeeded will record tax", {
+      logStep("WARN: tax recording failed in checkout handler — payment_intent.succeeded will record tax", {
         piId,
         error: String(taxErr),
       });
@@ -1360,6 +1393,10 @@ async function settleCheckoutSession(
           }
           giftRestored = (restored ?? []).length > 0;
         }
+        // Q1940 (a): on a Declutter setup job cancelled for the seller's fault, the card fee Stripe kept on this
+        // refunded payment is the seller's debt (A10). Throws on failure, so Stripe redelivers (all of the above is
+        // keyed or guarded); before the ledger below, so the retry still writes it.
+        const sellerFeeBilledCents = await billSellerFaultDuplicate(stripe, supabase, { jobId, pi: piId });
         logStep("Job already funded; this checkout's payment refunded in full", {
           jobId, pi: piId, jobPaymentStatus: funded.payment_status, jobPi: funded.stripe_payment_intent_id,
         });
@@ -1373,6 +1410,7 @@ async function settleCheckoutSession(
             job_status: String(funded.status), job_payment_status: String(funded.payment_status),
             job_payment_intent: String(funded.stripe_payment_intent_id ?? "none"),
             gift_card: giftCardId ?? "none",
+            seller_fee_billed_cents: String(sellerFeeBilledCents),
             gift_restored: giftKeptWhy ?? (giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand"),
           },
         });
@@ -1417,6 +1455,32 @@ async function settleCheckoutSession(
         }`,
       );
     } else {
+      if (giftSkippedFundedElsewhere) {
+        // Q1981: the job read above saw it funded by another payment, but the
+        // escrow write funded it with THIS one after all (that payment failed
+        // in between), so it is funded by the difference alone: the Q1491
+        // hold and page. A hold that did not land throws: the retry finds the
+        // job on this PaymentIntent and holds it on the normal path.
+        const { error: lateHoldErr } = await supabase
+          .from("job_payout_holds")
+          .upsert(
+            { job_id: jobId, reason: `Q1491: gift card difference payment ${session.id} — gift ${giftCardId} was not reserved for this job (${giftSkippedFundedElsewhere.status})` },
+            { onConflict: "job_id", ignoreDuplicates: true },
+          );
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "critical",
+          title: lateHoldErr
+            ? "Gift card difference payment — job underfunded, payout hold FAILED"
+            : "Gift card difference payment — job underfunded",
+          message: "A recipient paid the shortfall, the job's other payment failed meanwhile, and the gift was not consumed for this job. The job is funded by the difference alone" +
+            (lateHoldErr ? "; its payout hold could not be written and Stripe will retry this event." : ", and its payout is ON HOLD (job_payout_holds). Reconcile, then release it in the SQL editor: select public.admin_release_job_payout_hold('<job_id>');"),
+          fields: { session_id: session.id, gift_card_id: giftCardId ?? null, job_id: jobId, gift_status: giftSkippedFundedElsewhere.status, gift_job_id: giftSkippedFundedElsewhere.jobId },
+        });
+        if (lateHoldErr) {
+          throw new Error(`late job_payout_holds write failed for session ${session.id}: ${lateHoldErr.message}`);
+        }
+      }
       logStep(
         isAsyncPayment
           ? "Stored payment_intent on job; awaiting async payment settlement (escrow set by paymentIntentSucceeded)"
@@ -1474,8 +1538,17 @@ async function settleCheckoutSession(
     // Claim-or-refund lives in settleOnboardingFee so the standalone
     // `pay-onboarding-fee` checkout shares one implementation of the
     // "never charged twice" guarantee rather than a second copy of it.
+    // Q1975: a bank (ACH) checkout completes "unpaid": the debit has only
+    // started and can still bounce days later. Marking the setup fee paid now
+    // left it marked paid after a failed debit, so the member was never asked
+    // again. paymentIntentSucceeded settles it when the debit actually lands
+    // (settleDeferredSetupFee). Only an explicit "unpaid" defers.
     if ((session.metadata as any)?.onboarding_fee_charged === "true") {
-      await settleOnboardingFee(session, piId, { stripe, supabase, logStep });
+      if (session.payment_status === "unpaid") {
+        logStep("Setup fee deferred until the bank payment settles", { sessionId: session.id, jobId });
+      } else {
+        await settleOnboardingFee(session, piId, { stripe, supabase, logStep });
+      }
     }
   } else if (jobId) {
     logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });

@@ -27,6 +27,13 @@
 // a compare-and-set on the row's status (and, for a stale claim, on the
 // updated_at it was read at), so a second run, a redelivery or a concurrent
 // copy moves nothing twice.
+//
+// Q2459: the same ledger holds a Declutter DELIVERY tip (public.helpr_task_tips,
+// tip_source 'delivery', 20261102052443), also a destination charge. The
+// difference is only where the tip row lives: a delivery tip has no job (its
+// Stripe mode is the Helpr's own, stripeForJob(null, ...)), and its Helpr was
+// already told about the tip when it was paid (helpr_task_tip_paid), so the
+// kept/re-paid notice is a job tip's only.
 
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -45,6 +52,9 @@ type Db = {
 const STALE_MS = 10 * 60 * 1000;
 /** A held tip still owed after this long pages a warning (once a day). */
 const HELD_TIP_AGE_ALERT_MS = 14 * 24 * 60 * 60 * 1000;
+
+/** Which table a tip_hold_redrives row's tip_id is in: public.tips ('job') or public.helpr_task_tips ('delivery'). */
+export type TipSource = "job" | "delivery";
 
 export type HoldBackResult =
   | { kind: "not_held" }
@@ -135,8 +145,13 @@ async function notifyKept(supabase: Db, helperId: string, jobId: string | null, 
 export async function holdBackPaidTip(
   stripe: Stripe,
   supabase: Db,
-  args: { tipId: string; helperId: string; paymentIntentId: string; jobId: string; tipperId?: string | null },
+  args: {
+    tipId: string; helperId: string; paymentIntentId: string; jobId: string | null; tipperId?: string | null;
+    /** Q2459: 'delivery' for a helpr_task_tips row (default 'job'). */
+    source?: TipSource;
+  },
 ): Promise<HoldBackResult> {
+  const source: TipSource = args.source ?? "job";
   const hold = await checkPayoutHold(supabase, args.helperId);
   if (hold.kind === "error") throw new Error(`payout hold read failed for a paid tip ${args.tipId}: ${hold.message}`);
 
@@ -165,7 +180,8 @@ export async function holdBackPaidTip(
       .eq("tip_id", args.tipId).eq("status", "owed").select("tip_id");
     // Second review of Q1222: the delivery that wrote 'owed' told nobody, so
     // the Helpr is told here, once (the row moves to 'kept' once).
-    if (k && k.length > 0) await notifyKept(supabase, args.helperId, args.jobId, args.tipperId ?? null);
+    // A delivery tip's Helpr was told when it was paid (helpr_task_tip_paid).
+    if (k && k.length > 0 && source === "job") await notifyKept(supabase, args.helperId, args.jobId, args.tipperId ?? null);
     return { kind: "kept" };
   }
 
@@ -180,12 +196,15 @@ export async function holdBackPaidTip(
     const amountCents = Number(t.amount ?? 0);
     const { error: insErr } = await supabase
       .from("tip_hold_redrives")
-      .insert({ tip_id: args.tipId, helper_id: args.helperId, transfer_id: transferId, amount_cents: amountCents, status: "owed" });
+      .insert({
+        tip_id: args.tipId, helper_id: args.helperId, transfer_id: transferId, amount_cents: amountCents, status: "owed",
+        tip_source: source,
+      });
     if (insErr && (insErr as { code?: string }).code !== "23505") {
       throw new Error(`tip_hold_redrives insert failed for tip ${args.tipId}: ${insErr.message}`);
     }
   }
-  return reverseOwed(stripe, supabase, { tipId: args.tipId, transferId: transferId!, jobId: args.jobId });
+  return reverseOwed(stripe, supabase, { tipId: args.tipId, transferId: transferId!, jobId: args.jobId ?? undefined });
 }
 
 /**
@@ -234,7 +253,17 @@ type RedriveRow = {
   tip_id: string; helper_id: string; transfer_id: string; amount_cents: number; status: string;
   updated_at: string | null; created_at: string | null;
   first_repay_attempt_at?: string | null;
+  /** Q2459: absent on a row read before 20261102052443 means 'job'. */
+  tip_source?: string | null;
 };
+
+/** The tip's job, which decides its Stripe mode. A delivery tip (helpr_task_tips) has none. */
+async function tipJobId(supabase: Db, r: RedriveRow): Promise<string | null> {
+  if (r.tip_source === "delivery") return null;
+  const { data, error } = await supabase.from("tips").select("job_id").eq("id", r.tip_id).maybeSingle();
+  if (error) throw new Error(`tip job read: ${error.message}`);
+  return (data?.job_id as string | undefined) ?? null;
+}
 
 /**
  * Re-pay every held-back tip whose Helpr is no longer on hold. Never throws:
@@ -249,7 +278,7 @@ export async function redriveHeldTips(
   const out: RedriveResult = { repaid: 0, kept: 0, waiting: 0, defects: [] };
   const { data, error } = await supabase
     .from("tip_hold_redrives")
-    .select("tip_id, helper_id, transfer_id, amount_cents, status, updated_at, created_at, first_repay_attempt_at")
+    .select("tip_id, helper_id, transfer_id, amount_cents, status, updated_at, created_at, first_repay_attempt_at, tip_source")
     .in("status", ["owed", "reversed", "repaying"])
     .limit(200);
   if (error) {
@@ -272,9 +301,8 @@ export async function redriveHeldTips(
     let rowStripe: Stripe | null = stripeForJob ? null : liveStripe;
     const stripeForRow = async (): Promise<Stripe> => {
       if (rowStripe) return rowStripe;
-      const { data: tipJob, error: tipJobErr } = await supabase.from("tips").select("job_id").eq("id", r.tip_id).maybeSingle();
-      if (tipJobErr) throw new Error(`tip job read: ${tipJobErr.message}`);
-      rowStripe = await stripeForJob!((tipJob?.job_id as string | undefined) ?? null, [r.helper_id]);
+      // A delivery tip has no job: the Helpr's own mode decides (stripeForJob(null, [helper])).
+      rowStripe = await stripeForJob!(await tipJobId(supabase, r), [r.helper_id]);
       return rowStripe;
     };
     try {
@@ -293,8 +321,11 @@ export async function redriveHeldTips(
             .eq("tip_id", r.tip_id).eq("status", "owed").select("tip_id");
           if (k && k.length) {
             out.kept++;
-            const { data: tipRow } = await supabase.from("tips").select("job_id, tipper_id").eq("id", r.tip_id).maybeSingle();
-            await notifyKept(supabase, r.helper_id, (tipRow?.job_id as string | undefined) ?? null, (tipRow?.tipper_id as string | undefined) ?? null);
+            // A delivery tip's Helpr was told when it was paid (helpr_task_tip_paid).
+            if (r.tip_source !== "delivery") {
+              const { data: tipRow } = await supabase.from("tips").select("job_id, tipper_id").eq("id", r.tip_id).maybeSingle();
+              await notifyKept(supabase, r.helper_id, (tipRow?.job_id as string | undefined) ?? null, (tipRow?.tipper_id as string | undefined) ?? null);
+            }
           }
           continue;
         }
@@ -374,7 +405,10 @@ async function repayOne(stripe: Stripe, supabase: Db, r: RedriveRow, out: Redriv
     else await ageAlert(r, now, "the Helpr has no payout account to send it to");
     return false; // waits; retried next run
   }
-  const { data: tipRow } = await supabase.from("tips").select("job_id, tipper_id").eq("id", r.tip_id).maybeSingle();
+  const isDelivery = r.tip_source === "delivery";
+  const { data: tipRow } = isDelivery
+    ? { data: null }
+    : await supabase.from("tips").select("job_id, tipper_id").eq("id", r.tip_id).maybeSingle();
   const group = `tip_${r.tip_id}`;
   let transfer: Stripe.Transfer | undefined;
   try {
@@ -474,8 +508,9 @@ async function repayOne(stripe: Stripe, supabase: Db, r: RedriveRow, out: Redriv
     out.defects.push(`tip ${r.tip_id} re-paid (${transfer.id}) but the row was not marked: ${doneErr?.message ?? "matched 0 rows"}`);
     return false;
   }
-  // The same notice as a kept tip (it was insertNotifications with the same row, inline).
-  await notifyKept(supabase, r.helper_id, (tipRow?.job_id as string | undefined) ?? null, (tipRow?.tipper_id as string | undefined) ?? null);
+  // The same notice as a kept tip (it was insertNotifications with the same row, inline). A delivery tip's
+  // Helpr was told when it was paid (helpr_task_tip_paid).
+  if (!isDelivery) await notifyKept(supabase, r.helper_id, (tipRow?.job_id as string | undefined) ?? null, (tipRow?.tipper_id as string | undefined) ?? null);
   return true;
 }
 

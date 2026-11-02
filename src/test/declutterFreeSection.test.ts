@@ -57,9 +57,10 @@ describe("the Declutter Free section", () => {
     // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     // declutter_close_paid_order: LEAD-ADMIN-HELPR-FAULT (20261101000817) restated its effective body plus the
-    // helpr_fault refund (train 6); then A3-72 (20261102031000) restated it with only the delivery_never_booked notices.
-    // The free branch below still reads that newest definition.
-    expect(newestFunction("declutter_close_paid_order").file).toContain("20261102031000_declutter_seller_delivery_book_by.sql");
+    // helpr_fault refund (train 6); the free branch below still reads that newest definition.
+    // Then Q1935 (20261102040952, the prorated card fee), Shipping S6 2d (20261102051521, the label hold) and Q1928 gap 3
+    // (20261102063343: 2d's body + Q1935's fee + an out seller's seller_out); the free branch is untouched in all three.
+    expect(newestFunction("declutter_close_paid_order").file).toContain("20261102063343_declutter_seller_out_after_payment.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now",
       "declutter_update_draft", "payout_setup_hire_allowed"];

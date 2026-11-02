@@ -14,7 +14,7 @@
  *
  * @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents) - helprFaultFeeCents; |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents);
  * @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents) - helprFaultFeeCents; |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents - helprFaultFeeCents);
- * @mutate supabase/functions/release-payout/index.ts |    if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout"); |    if (helprFaultFeeCents < 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
+ * @mutate supabase/functions/release-payout/index.ts | if (helprFaultFeeCents > 0 && !opts.transferMayExist && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout"); | if (helprFaultFeeCents < 0 && !opts.transferMayExist && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
  * @mutate supabase/functions/release-payout/index.ts |      return jsonResponse({ error: "could not read the Helpr's card-fee debt — retry. Nothing was moved." }, 500); |      console.error("ignored");
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0));
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0) - helprFaultFeeCents);
@@ -92,6 +92,21 @@ function seedScheduled(s: SupabaseScenario) {
 
 const takeCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "take_helpr_fault_fee");
 const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_helpr_fault_fee");
+/** The un-claim of the one-time setup fee (profiles.onboarding_fee_paid back to false). */
+const onboardingUnclaims = () =>
+  scenario.writes.filter((w) => w.table === "profiles" && w.op === "update" && (w.payload as { onboarding_fee_paid?: unknown })?.onboarding_fee_paid === false);
+/** The setup fee is still owed, and this payout wins the atomic claim. */
+function owesSetupFee(s: SupabaseScenario) {
+  s.reads.profiles = { rows: [{ ...(s.reads.profiles?.rows?.[0] as Record<string, unknown>), onboarding_fee_paid: false }] };
+  s.writeSelectRows.profiles = [{ user_id: "helper-1" }];
+}
+/** Stripe holds a transfer for job-1 that payout_transfers does not record (the 'conflict' exit). */
+function unrecordedTransferAtStripe() {
+  stripeMock.transfers.list.mockResolvedValue({
+    data: [{ id: "tr_orphan", amount: 8431, amount_reversed: 0, created: 1, destination: "acct_helper", transfer_group: "job_job-1", metadata: { job_id: "job-1" } }],
+    has_more: false,
+  });
+}
 const claimMeta = () =>
   (scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert")?.payload as { metadata?: Record<string, unknown> } | undefined)?.metadata;
 
@@ -144,14 +159,60 @@ describe("Q2082 (b): a Helpr-fault card fee comes out of the next payout", () =>
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
-    it("a failed transfer gives the withheld debt back", async () => {
+    // Q2204: only a DEFINITE refusal (Stripe answered, no transfer exists) gives the debt back. A timeout may have
+    // created the transfer with the fee held back; restored, the next payout would take the debt again.
+    // @mutate supabase/functions/release-payout/index.ts | await rollBackOnboardingFeeClaim({ transferMayExist: !isDefiniteStripeRefusal(err) }); | await rollBackOnboardingFeeClaim();
+    it("a transfer Stripe REFUSED gives the withheld debt back; a timed-out one keeps it (Q2204)", async () => {
       seedRelease(scenario);
       scenario.rpc.take_helpr_fault_fee = 369;
-      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("insufficient funds"), { type: "StripeError" }));
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }));
       const res = await run();
       expect(res.status).toBe(502);
       expect(restoreCalls()).toHaveLength(1);
       expect(restoreCalls()[0].args).toEqual({ p_helper_id: "helper-1", p_job_id: "job-1" });
+
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+      resetSupabaseMock(); scenario.rpcCalls = [];
+      seedRelease(scenario);
+      scenario.rpc.take_helpr_fault_fee = 369;
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Request timed out"), { type: "StripeConnectionError" }));
+      const res2 = await run();
+      expect(res2.status).toBe(502);
+      expect(restoreCalls()).toHaveLength(0);
+    });
+
+    // Q2172 (a): a transfer at Stripe with no ledger row may be an earlier run's, sent with the deduction held back
+    // (take_helpr_fault_fee answers per job). The refusal keeps the deduction.
+    // @mutate supabase/functions/release-payout/index.ts |    await rollBackOnboardingFeeClaim({ keepHelprFaultFee: true }); |    await rollBackOnboardingFeeClaim();
+    it("a transfer at Stripe with no ledger row: refused, and the deduction is kept (Q2172 a)", async () => {
+      seedRelease(scenario);
+      scenario.rpc.take_helpr_fault_fee = 369;
+      unrecordedTransferAtStripe();
+      expect((await run()).status).toBe(409);
+      expect(takeCalls()).toHaveLength(1);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(restoreCalls()).toHaveLength(0);
+    });
+
+    // Lead 11-02 (B151 handoff item 0): the one-time $2 setup fee is un-claimed ONLY on a definite refusal, the
+    // same as Q2204. A timed-out transfer Stripe did create held the $2 back; un-claimed, the next payout takes it again.
+    // @mutate supabase/functions/release-payout/index.ts |    if (onboardingFeeDeductedCents <= 0 \|\| opts.transferMayExist) return; |    if (onboardingFeeDeductedCents <= 0) return;
+    it("a REFUSED transfer un-claims the $2 setup fee; a timed-out one keeps it claimed", async () => {
+      seedRelease(scenario);
+      owesSetupFee(scenario);
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }));
+      expect((await run()).status).toBe(502);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8600);
+      expect(onboardingUnclaims()).toHaveLength(1);
+
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+      resetSupabaseMock(); scenario.rpcCalls = [];
+      seedRelease(scenario);
+      owesSetupFee(scenario);
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Request timed out"), { type: "StripeConnectionError" }));
+      expect((await run()).status).toBe(502);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8600);
+      expect(onboardingUnclaims()).toHaveLength(0);
     });
   });
 
@@ -196,6 +257,55 @@ describe("Q2082 (b): a Helpr-fault card fee comes out of the next payout", () =>
       scenario.rpcErrors = { take_helpr_fault_fee: { message: "connection reset" } };
       await run();
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | await rollBackOnboardingFeeClaim({ transferMayExist: !isDefiniteStripeRefusal(e) }); | await rollBackOnboardingFeeClaim();
+    it("a transfer Stripe REFUSED gives the withheld debt back; a timed-out one keeps it (Q2204)", async () => {
+      seedScheduled(scenario);
+      scenario.rpc.take_helpr_fault_fee = 369;
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("No such destination"), { type: "StripeInvalidRequestError" }));
+      await run();
+      expect(restoreCalls()).toHaveLength(1);
+
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+      resetSupabaseMock(); scenario.rpcCalls = [];
+      seedScheduled(scenario);
+      scenario.rpc.take_helpr_fault_fee = 369;
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Request timed out"), { type: "StripeConnectionError" }));
+      await run();
+      expect(stripeMock.transfers.create).toHaveBeenCalled();
+      expect(restoreCalls()).toHaveLength(0);
+    });
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts |        await rollBackOnboardingFeeClaim({ keepHelprFaultFee: true }); |        await rollBackOnboardingFeeClaim();
+    it("a transfer at Stripe with no ledger row: refused, and the deduction is kept (Q2172 a)", async () => {
+      seedScheduled(scenario);
+      scenario.rpc.take_helpr_fault_fee = 369;
+      unrecordedTransferAtStripe();
+      const res = await run();
+      expect(JSON.stringify(await res.json())).toContain("unrecorded_transfer_at_stripe");
+      expect(takeCalls()).toHaveLength(1);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(restoreCalls()).toHaveLength(0);
+    });
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts |        if (!owesOnboardingFee \|\| opts.transferMayExist) return; |        if (!owesOnboardingFee) return;
+    it("a REFUSED transfer un-claims the $2 setup fee; a timed-out one keeps it claimed", async () => {
+      seedScheduled(scenario);
+      owesSetupFee(scenario);
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("No such destination"), { type: "StripeInvalidRequestError" }));
+      await run();
+      expect(stripeMock.transfers.create).toHaveBeenCalled();
+      expect(onboardingUnclaims()).toHaveLength(1);
+
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+      resetSupabaseMock(); scenario.rpcCalls = [];
+      seedScheduled(scenario);
+      owesSetupFee(scenario);
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Request timed out"), { type: "StripeConnectionError" }));
+      await run();
+      expect(stripeMock.transfers.create).toHaveBeenCalled();
+      expect(onboardingUnclaims()).toHaveLength(0);
     });
   });
 

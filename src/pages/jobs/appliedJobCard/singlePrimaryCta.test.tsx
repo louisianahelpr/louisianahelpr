@@ -196,7 +196,7 @@ const CASES: Array<{
     name: "arrived, work underway",
     job: makeJob({ status: "in_progress" }),
     // FIXED (VN-21, owner 2026-09-14). This state used to render TWO glossy
-    // "Mark job complete" CTAs — the tracker's next-step Done and the
+    // "Mark it done" CTAs — the tracker's next-step Done and the
     // section's PayoutPrimary — and was pinned here at `knownDefect: 2`. The
     // one-row shell now lets the tracker's CTA claim the row's primary slot
     // and the step's own PayoutPrimary stands down, so the invariant applies.

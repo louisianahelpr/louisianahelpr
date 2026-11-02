@@ -24,7 +24,8 @@
 //                   settleRaise below; only a PAID page changes anything.
 //   declutter_delivery_tip (declutter-checkout delivery_tip, mode=payment) the
 //                   buyer tipped the delivery Helpr (Q2453): settleDeliveryTip
-//                   below records it; Stripe already paid the Helpr.
+//                   below records it; Stripe already paid the Helpr (a Helpr
+//                   on a payout hold has it pulled back and re-paid, Q2459).
 //
 // Idempotent: a replayed event finds 'already_paid' or the same refund row,
 // and a refund already 'succeeded' is not sent again. Any failure THROWS, so
@@ -40,7 +41,7 @@ import { queueEmail } from "../../_shared/resend.ts";
 import { declutterEmailParts, emailSeller } from "../../_shared/declutterSellerEmail.ts";
 import { recordDeclutterCardAsWalletDefault } from "./_walletDefaultCard.ts";
 import { tipChargeBreakdown } from "../../_shared/tipFees.ts";
-import { checkPayoutHold } from "../../_shared/payoutHold.ts";
+import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 
 const DECLUTTER_KINDS = new Set(["declutter_card", "declutter_order", "declutter_raise", "declutter_delivery_tip"]);
 
@@ -81,11 +82,11 @@ type TipPaidAnswer = { result: "paid" | "already" | "unknown" | "session_mismatc
  * and kept only the card fee (application_fee_amount, _shared/tipFees.ts). helpr_task_tip_paid
  * marks the row paid ONCE (a replay answers 'already') and tells the Helpr once. Tips are final
  * (Q781). What is never quiet: a page we cannot tie to its row, a charge that is not the tip's
- * own total, and a tip that reached a Helpr placed on a payout hold after the page opened (a job
- * tip is pulled back then, Q1222; a delivery tip is paged to staff, critical, to reverse by hand:
- * tip_hold_redrives only knows job tips). The hold is read on EVERY delivery, the paid one and any
- * replay ('already'), so a failed read that makes Stripe redeliver still pages (lh-money-escrow
- * review #1). Any failure THROWS, so Stripe redelivers.
+ * own total. A tip that reached a Helpr placed on a payout hold after the page opened is pulled back
+ * to the platform and re-paid once the hold lifts, exactly as a job tip (Q1222; Q2459:
+ * holdBackPaidTip with source 'delivery', a tip_hold_redrives row; process-scheduled-payouts
+ * re-pays it). It runs on EVERY delivery, the paid one and any replay ('already'), so a redelivery
+ * finishes a pull-back a failed one began. Any failure THROWS, so Stripe redelivers.
  */
 async function settleDeliveryTip(
   session: Stripe.Checkout.Session,
@@ -151,20 +152,13 @@ async function settleDeliveryTip(
       fields: { "Payment intent": paymentIntentId, Tip: meta.tip_id, Helpr: answer.helpr_id ?? "?" },
     });
   }
+  // A held tip (above) never left the platform; any other tip is a destination charge already on the Helpr's account.
   if (answer.helpr_id && answer.held !== true) {
-    const hold = await checkPayoutHold(supabase, answer.helpr_id);
-    if (hold.kind === "error") throw new Error(`payout hold read failed for ${answer.helpr_id}: ${hold.message}`);
-    if (hold.kind === "held") {
-      await postSlackOpsAlert({
-        kind: "money_at_risk",
-        severity: "critical",
-        // One page per tip, however often Stripe redelivers.
-        oncePerDayKey: `delivery-tip-held-${meta.tip_id}`,
-        title: "A delivery tip reached a Helpr on a payout hold",
-        message: `A ${dollars(Number(answer.tip_cents ?? 0))} delivery tip (session ${session.id}) was paid while its Helpr is on a payout hold. Stripe already sent it to their account. A job tip is pulled back here automatically (Q1222); this one is not: reverse the transfer by hand and pay it again when the hold lifts.`,
-        fields: { "Payment intent": paymentIntentId, Tip: meta.tip_id, Helpr: answer.helpr_id },
-      });
-    }
+    const back = await holdBackPaidTip(ctx.stripe, supabase, {
+      tipId: meta.tip_id, helperId: answer.helpr_id, paymentIntentId, jobId: null, source: "delivery",
+    });
+    // 'not_reversed' has already paged (reverseOwed); 'held_back' is re-paid by process-scheduled-payouts.
+    logStep("Declutter delivery tip payout-hold check", { tip: meta.tip_id, outcome: back.kind });
   }
 }
 

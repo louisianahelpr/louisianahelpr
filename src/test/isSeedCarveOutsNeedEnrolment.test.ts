@@ -102,6 +102,9 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_delivery_on_task_event: "tags",
   declutter_delivery_open_task: "tags",
   declutter_haul_away_job_refunded: "alerts",
+  declutter_seller_fault_sweep: "alerts", // 20261102035736: a test refund's sweep defect is logged under a -seed key (as the haul-away sweep); it moves no money
+  declutter_delivery_gave_up_check: "tags", // 20261102033730: labels the gave-up ledger row seed=true; the row, its severity and the member notice are the same either way
+  bill_helpr_card_fee_debt: "tags", // Q2245 (20261102072106): copies the series job's is_seed onto the Helpr's card-fee debt row; the bill itself is not gated on it
   declutter_haul_away_sweep: "alerts", // Q2423 haul-away sweep: a test row's defect is logged under a -seed key
   declutter_item_link_visible: "hides", // Q2426 share card: a test item is not shown to the public unless seeds are visible
   declutter_pickup_remind: "hides", // Q2432: a test account never reminds a real member (the seed actor rule, like declutter_notify)
@@ -207,7 +210,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   notify_helpers_on_job_post: "hides",
   notify_helpr_of_booking_clash: "alerts",
   notify_ops_dispute_filed: "alerts",
-  notify_reporter_report_outcome: "alerts", // A3-113 (20261102015348): a test reporter (is_seed / test subject) is never sent the outcome notice
+  notify_reporter_report_outcome: "hides", // A3-113 (20261102015348): a test or seed reporter never gets the report-outcome notice
   sweep_declutter_free_asks: "alerts", // A3-57 (20261102011547): a test (is_seed) item's free asks close without a notice
   notify_saved_searches_on_new_job: "hides",
   ops_alert_condition: "alerts",
@@ -248,6 +251,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   sms_claim_confirmation: "hides",
   sms_claim_due: "hides",
   sweep_daily_job_digest: "hides",
+  sweep_declutter_free_asks: "hides", // 20261102011547: a test (is_seed) item's free asks close without a notice
   sweep_disputes_closed_without_payment: "alerts",
   sweep_idv_review_waiting: "alerts",
   sweep_job_match_queue: "alerts",

@@ -20,6 +20,7 @@ import {
 } from "@/lib/seriesDates";
 import { unwrap } from "@/lib/supabaseResult";
 import { todayYmd } from "@/lib/jobDate";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 
 /**
  * Visit dates of a recurring series, per date (docs/OPEN.md Q407 (5), (6) and
@@ -46,6 +47,7 @@ export function SeriesDatesPanel({
   firstVisitHasHelpr = false,
   splitOk,
   inset = true,
+  nextStep = false,
 }: {
   jobId: string;
   jobTitle: string | null;
@@ -61,6 +63,8 @@ export function SeriesDatesPanel({
   splitOk: boolean;
   /** Card-edge margins (the poster's card); false inside an already padded footer. */
   inset?: boolean;
+  /** A3-44: the job page leads the panel with the series' next step (the cards have their own next-step line). */
+  nextStep?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<string[]>([]);
@@ -147,12 +151,20 @@ export function SeriesDatesPanel({
     ? `${allHeld} of ${allDates} upcoming date${allDates === 1 ? "" : "s"} have a Helpr${allOpen ? ` · ${allOpen} open` : ""}`
     : pickUpCount > 0
       ? "A date opened up — pick it up"
-      : `${mine.length} upcoming date${mine.length === 1 ? "" : "s"} are yours${takeable.length ? ` · ${takeable.length} open` : ""}`;
+      // A3-43: short enough for 375 ("6 op…" was cut off), and the viewer's own booked visit counts as theirs.
+      : `${mine.length} yours${takeable.length ? ` · ${takeable.length} open` : ""}`;
+
+  // A3-44 (audit 11-01): on the job page, the open dates are a next step for both sides.
+  const step: NextStepValue | null = !nextStep
+    ? null
+    : isPoster
+      ? (allOpen > 0 ? { who: "you", text: "Find a Helpr for the open visits", by: `${allOpen} still need${allOpen === 1 ? "s" : ""} a Helpr` } : null)
+      : (takeable.length > 0 ? { who: "you", text: "Pick the dates you'll take", by: `${takeable.length} open` } : null);
 
   // Board 118 (restyle only, owner 2026-10-21): each visit is a row, the day in bold and its real state
   // under it, in sentence case. Only the states the series read has (no "Done · paid", no Skip/Pause).
   const stateWords = (d: SeriesDate) =>
-    d.state === "mine" ? "Yours" : d.state === "taken" ? "Has a Helpr" : d.state === "released" ? "Opened up" : "Open";
+    d.state === "mine" ? (d.booked ? "Yours · booked" : "Yours") : d.state === "taken" ? "Has a Helpr" : d.state === "released" ? "Opened up" : "Open";
   const row = (d: SeriesDate, selectable: boolean) => (
     <li key={d.date} className="flex items-center gap-2 min-h-[52px] border-b border-border last:border-b-0">
       {selectable ? (
@@ -179,6 +191,8 @@ export function SeriesDatesPanel({
   );
 
   return (
+    <>
+    {step && <NextStep value={step} className="!text-ds-14 mb-1" />}
     <div className={`${inset ? "mx-4 mb-2 " : ""}rounded-ds-md`} style={{ border: "0.5px solid hsl(var(--bark) / 0.18)" }} data-series-dates>
       <button
         type="button"
@@ -206,7 +220,8 @@ export function SeriesDatesPanel({
           {!isPoster && mine.length > 0 && (
             <section className="space-y-1">
               <h4 className="text-ds-12 font-semibold text-foreground">Your dates</h4>
-              <ul>{mine.map((d) => row(d, true))}</ul>
+              {/* A booked visit is cancelled from its own card, so it is listed but not picked here. */}
+              <ul>{mine.map((d) => row(d, !d.booked))}</ul>
               <button
                 type="button"
                 disabled={busy || pickedMine.length === 0}
@@ -317,5 +332,6 @@ export function SeriesDatesPanel({
         secondaryLabel="Cancel"
       />
     </div>
+    </>
   );
 }

@@ -7,7 +7,7 @@
  * dollar-quote tag; SQL comments blanked) and the EFFECTIVE definition of declutter_item_pickup_windows.
  * Backend proof on a real database: src/test/pglite/declutterBuyerReadsOwnItem.pglite.mjs (3x; 7 FAIL without the
  * migration; RED with the paid-only condition removed: a missed, cancelled or unpaid line then reads the item).
- * @mutate supabase/migrations/20261030080020_declutter_buyer_reads_own_item.sql |                   AND c.status = 'paid') |                   )
+ * @mutate supabase/migrations/20261102022901_declutter_items_hidden_from_blocked.sql |                   AND c.status = 'paid') |                   )
  * @mutate supabase/migrations/20261030080020_declutter_buyer_reads_own_item.sql | RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";

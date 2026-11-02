@@ -14,7 +14,7 @@ import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck,
  * so a label that outgrows its box spills instead of wrapping. On a 320px
  * phone this button has roughly 170px of text room (card px-4, tracker p-3,
  * size="sm" px-4, an 18px icon and its gap), which is ~20 characters of the
- * 14px bold sans it renders in. The Done action reads "Mark job complete"
+ * 14px bold sans it renders in. The Done action reads "Mark it done"
  * (owner, 2026-09-14: name the event, not the money) — the same words as the
  * card's PayoutPrimary button, so the two controls for one action agree.
  *
@@ -62,7 +62,7 @@ export const STATUSES: TrackerStep[] = [
   { key: "on_the_way", label: "On the way", action: "I'm on my way", icon: Truck, color: "text-primary" },
   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" },
   { key: "working", label: "Working", action: "Start working", icon: Wrench, color: "text-primary" },
-  { key: "done", label: "Done", action: "Mark job complete", icon: PartyPopper, color: "text-primary" },
+  { key: "done", label: "Done", action: "Mark it done", icon: PartyPopper, color: "text-primary" },
 ];
 
 /**

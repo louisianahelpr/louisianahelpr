@@ -68,6 +68,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/settings/RentalsOwnershipCard.tsx` | input×2 | text |  | ID note (required to reject) · takedown-address-match · Note (required to reject) · landlord-review-group |
 | `src/components/admin/settings/ShopItemsReviewCard.tsx` | input×1 | text | 500 |  |
 | `src/components/admin/SupportReply.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Replies sent |
+| `src/components/admin/userDetail/DeclutterAmountsOwed.tsx` | textarea×1 |  | 500 | declutter-amounts-owed · Why you |
 | `src/components/admin/userDetail/JobsTab.tsx` | select×1 |  |  | Job role filter |
 | `src/components/admin/userDetail/UserAuditLog.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Reason for reversing this strike |
 
@@ -146,7 +147,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterFilterPanel.tsx` | input×1 | text |  |  |
 | `src/components/declutter/DeclutterFoldedTime.tsx` | input×1, date/calendar×1 | datetime-local |  |  |
 | `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
-| `src/components/declutter/DeclutterHandoverViews.tsx` | input×1 | file |  | declutter-no-show-warning · declutter-move-used |
+| `src/components/declutter/DeclutterHandoverViews.tsx` | input×1 | file |  | declutter-porch-window · declutter-no-show-warning · declutter-move-used |
 | `src/components/declutter/DeclutterMeetup.tsx` | input×1 | radio |  | Meeting spot |
 | `src/components/declutter/DeclutterNoShowAnswer.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterOffersSection.tsx` | input×1 | text |  |  |
@@ -232,7 +233,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/CancellationDialog.tsx` | textarea×1 |  |  | cancel-nobody-left · cancel-reason |
 | `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · apply-message-help · save-default-pitch |
-| `src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx` | input×2, date/calendar×2 | date, time |  | apply-time-question · apply-time-yes · apply-time-suggest · apply-time-date · apply-time-time |
+| `src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx` | input×2, date/calendar×2 | date, time |  | apply-time-question · apply-time-yes · apply-time-suggest · Suggest another time · apply-time-date · apply-time-time |
 | `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |
 | `src/components/DisputeDialog.tsx` | input×1, textarea×1 | file | 1000 | dispute-details · dispute-details-requirement · Remove file |
 | `src/components/feedback/NpsPrompt.tsx` | textarea×1 |  | 500 | Rate your experience, 1 to 5 · nps-comment |

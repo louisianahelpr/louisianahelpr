@@ -7,7 +7,7 @@
  * Backend proof: src/test/pglite/savedSearchKeepsDeclutterFilters.pglite.mjs (3x replay; NEW_MIGRATION=skip RED; 4
  * MUTANTs fail). This guard reads the NEWEST function definitions (effectiveDefs).
  *
- * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |       AND (NOT s.free_only OR v_item.current_price_cents = 0)\n |
+ * @mutate supabase/migrations/20261102025235_declutter_saved_search_alerts_wanted_matches.sql |       AND (NOT s.free_only OR v_item.current_price_cents = 0)\n |
  * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |            AND (NOT s.porch_only OR i.porch_ok)\n |
  * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |   AND (section = 'declutter' OR (NOT free_only | AND (true OR (NOT free_only
  * @mutate src/lib/savedSearches.ts |     if (e.freeOnly) p.set("free", "1"); |     if (e.freeOnly) p.set("free", "0");

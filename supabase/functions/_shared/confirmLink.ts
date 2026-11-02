@@ -28,11 +28,40 @@ export const CONFIRM_LINK_PATH = "/signup-pending";
 const CONFIRM_LINK_TYPES = ["signup", "magiclink"] as const;
 export type ConfirmLinkType = (typeof CONFIRM_LINK_TYPES)[number];
 
-/** The link for an email: the token travels as data and is spent only by a tap. */
-export function confirmLinkUrl(appUrl: string, tokenHash: string, type: ConfirmLinkType): string {
+const JOB_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Q2496: the job a guest came for, from the sign-up's redirect_to
+ * (`<app>/signup-pending?job=<id>`). Only a job id on the confirm page's own
+ * path, so the link can never point anywhere else. Null when there is none.
+ */
+export function confirmLinkJobFromRedirect(redirectTo: unknown): string | null {
+  if (typeof redirectTo !== "string" || !redirectTo) return null;
+  try {
+    const url = new URL(redirectTo);
+    const job = url.searchParams.get("job") ?? "";
+    return url.pathname === CONFIRM_LINK_PATH && JOB_ID.test(job) ? job.toLowerCase() : null;
+  } catch {
+    return null; // not a URL: no job
+  }
+}
+
+/** Q2496: the job id the confirm link carries (`?job=`), or null. */
+export function confirmLinkJob(search: string): string | null {
+  const job = new URLSearchParams(search.replace(/^\?/, "")).get("job") ?? "";
+  return JOB_ID.test(job) ? job.toLowerCase() : null;
+}
+
+/**
+ * The link for an email: the token travels as data and is spent only by a tap.
+ * Q2496: the job a guest came for rides along, so a sign-up finished in another
+ * browser (the email opened in Safari, not the in-app browser) still lands on it.
+ */
+export function confirmLinkUrl(appUrl: string, tokenHash: string, type: ConfirmLinkType, jobId: string | null = null): string {
   const url = new URL(CONFIRM_LINK_PATH, appUrl);
   url.searchParams.set("token_hash", tokenHash);
   url.searchParams.set("type", type);
+  if (jobId && JOB_ID.test(jobId)) url.searchParams.set("job", jobId);
   return url.toString();
 }
 

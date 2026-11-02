@@ -602,6 +602,21 @@ export async function testGiftIsTestToTest(
   const donor = typeof meta.donor_id === "string" ? canonicalUuid(meta.donor_id) : null;
   const email = typeof meta.recipient_email === "string" ? meta.recipient_email.trim().toLowerCase() : "";
   if (!donor || !EMAIL_RE.test(email)) return false;
+  // Q1906: create-gift-card-checkout names the account it checked (metadata.recipient_id). That account must be a
+  // test account whose profiles.email is the gift's recipient_email: the checkout resolved a picked recipient's email
+  // from the login (auth) email, this reads profiles.email, and the two must agree or nothing is applied.
+  if (meta.recipient_id !== undefined) {
+    const rid = typeof meta.recipient_id === "string" ? canonicalUuid(meta.recipient_id) : null;
+    if (!rid) return false;
+    const byId = await db.from("profiles").select("user_id, email").eq("user_id", rid);
+    if (byId?.error || !Array.isArray(byId?.data)) {
+      throw new StripeModeRefused("lookup_failed", `gift recipient by id read failed: ${byId?.error?.message ?? "no rows array"}`);
+    }
+    const row = (byId.data as Array<{ user_id?: string | null; email?: string | null }>)[0];
+    if (!row || String(row.email ?? "").trim().toLowerCase() !== email) return false;
+    const testsById = await loadTestAccountIds(db, [donor, rid]);
+    return testsById.has(donor) && testsById.has(rid);
+  }
   const res = await db.from("profiles").select("user_id").eq("email", email);
   if (res?.error || !Array.isArray(res?.data)) {
     throw new StripeModeRefused("lookup_failed", `gift recipient by email read failed: ${res?.error?.message ?? "no rows array"}`);

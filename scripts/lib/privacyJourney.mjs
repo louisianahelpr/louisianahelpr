@@ -122,6 +122,12 @@ export const EXPORT_SECTIONS = [
   // Continue another day (20261101231015; exported by 20261102030000).
   "job_continue_days",
   "job_continue_events",
+  // Q2271, Q2454, Q2245, Q2199 (exported by 20261102074248).
+  "declutter_handovers",
+  "declutter_haul_aways",
+  "declutter_donations",
+  "helpr_card_fee_debts",
+  "member_section_prefs",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   // A seller's own meet spots (20261101194608; exported by 20261101210500).

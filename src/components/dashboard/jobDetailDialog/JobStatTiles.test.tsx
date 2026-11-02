@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -176,5 +176,32 @@ describe("JobStatTiles — a re-listed crew's tile says its open spots (Q1464)",
   it("two spots open reads plural", () => {
     render(<JobStatTiles job={makeJob({ is_group_job: true, helpers_needed: 4, crew_spots_open: 2 })} distMilesForDriving={null} drivingLabel={null} />);
     expect(screen.getByText("2 spots open")).toBeTruthy();
+  });
+});
+
+/**
+ * A3-94 (audit 11-01): the tile read "Closes · 4 days left" on a job starting in 30 minutes (expires_at is after the
+ * start on every dated open job on prod). It names whichever comes first: the start ("Starts") or the close.
+ * @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx |         const startsFirst = Number.isFinite(closeMs) && Number.isFinite(startMs) && startMs < closeMs; |         const startsFirst = false;
+ * @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx |                 label: startsFirst ? "Starts" : "Closes", |                 label: "Closes",
+ */
+describe("A3-94: the deadline tile names whichever comes first, the start or the close", () => {
+  // Sat Nov 7 2026, 4:00 PM in Louisiana; the job is Sun Nov 8 at 9:00 AM (17 hours away).
+  afterEach(() => vi.useRealTimers());
+  const at = () => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-11-07T22:00:00Z")); };
+
+  it("the listing closes days after the start: Starts · 17 hours left", () => {
+    at();
+    render(<JobStatTiles job={makeJob({ date_needed: "2026-11-08", start_time: "09:00", expires_at: "2026-11-11T22:00:00Z" })} distMilesForDriving={null} drivingLabel={null} />);
+    expect(screen.getByText("Starts")).toBeTruthy();
+    expect(screen.queryByText("Closes")).toBeNull();
+    expect(screen.getByText("17 hours left")).toBeTruthy();
+  });
+
+  it("the listing closes before the start: Closes, with its own time left", () => {
+    at();
+    render(<JobStatTiles job={makeJob({ date_needed: "2026-11-20", start_time: "09:00", expires_at: "2026-11-08T22:00:00Z" })} distMilesForDriving={null} drivingLabel={null} />);
+    expect(screen.getByText("Closes")).toBeTruthy();
+    expect(screen.getByText("1 day left")).toBeTruthy();
   });
 });

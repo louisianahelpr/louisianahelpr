@@ -74,9 +74,9 @@ describe("Q345: block_user_and_settle closes pending applications and offers", (
 });
 
 // The applications close disabled.
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |      AND a.status = 'pending' |      AND false
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |      AND a.status = 'pending' |      AND false
 // The offer decline disabled.
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql | direct_offer_expires_at = NULL\n   WHERE direct_offer_status = 'pending' | direct_offer_expires_at = NULL\n   WHERE false
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | direct_offer_expires_at = NULL\n   WHERE direct_offer_status = 'pending' | direct_offer_expires_at = NULL\n   WHERE false
 // The notification skip removed.
 // @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql |     IF NEW.closed_reason = 'party_blocked' THEN |     IF false THEN
 // The constraint not widened.

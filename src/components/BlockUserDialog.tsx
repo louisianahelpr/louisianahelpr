@@ -58,6 +58,8 @@ export function BlockUserDialog({
   // pays the fee and takes the reliability strike).
   const [estimatedFee, setEstimatedFee] = useState(0);
   const [isPosterOnAny, setIsPosterOnAny] = useState(false);
+  // Q2676: hired on any of them (the blocker is the Helpr): block_user_and_settle treats that like the Helpr cancelling.
+  const [isHelprOnAny, setIsHelprOnAny] = useState(false);
   // Q2675 (audit 1102e row 8): the sheet counted "2 active jobs" and never named them.
   const [jobTitles, setJobTitles] = useState<string[]>([]);
 
@@ -91,6 +93,7 @@ export function BlockUserDialog({
       setJobTitles(rows.map((r) => (r.title ?? "").trim()).filter(Boolean));
       const mine = rows.filter((r) => r.customer_id === user.id);
       setIsPosterOnAny(mine.length > 0);
+      setIsHelprOnAny(rows.some((r) => r.helper_id === user.id));
       setEstimatedFee(
         // Q236(c) (owner, 2026-09-27): NO fee on an offer the Helpr never
         // accepted. block_user_and_settle prices each job on commitment
@@ -163,23 +166,21 @@ export function BlockUserDialog({
                   // Plain words, not a red paragraph; only the money is rust (audit #51).
                   <li className="not-italic font-sans font-medium text-foreground">
                     {activeJobCount} active job{activeJobCount === 1 ? "" : "s"} between you will be cancelled{jobTitles.length > 0 ? `: ${jobTitles.map((t) => `"${t}"`).join(", ")}` : ""}.{" "}
-                    {isPosterOnAny ? (
-                      estimatedFee > 0 ? (
-                        <>
-                          This counts as a late cancellation: about{" "}
-                          <span className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(estimatedFee)}</span> is for your Helpr&rsquo;s time,
-                          most of the rest of your payment comes back to you, and a
-                          cancellation strike is recorded on your account.
-                        </>
-                      ) : (
-                        <>
-                          You&rsquo;re far enough ahead of the job date that nothing
-                          is kept for your Helpr&rsquo;s time — most of your payment comes back to you — but
-                          a cancellation strike is still recorded on your account.
-                        </>
-                      )
+                    {/* Q2675 + Q2676 (lead 11-02, migration 20261102131745): the server's rules, said as they are. A
+                        poster's block is a strike only inside 24 hours of the start (with an amount for the Helpr's
+                        time); a hired Helpr's block costs the poster nothing and is the Helpr's strike only inside
+                        24 hours, exactly like cancelling. */}
+                    {isPosterOnAny && (estimatedFee > 0 ? (
+                      <>
+                        It starts within 24 hours, so about{" "}
+                        <span className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(estimatedFee)}</span> is for your Helpr&rsquo;s time,
+                        most of the rest of your payment comes back to you, and it counts as a strike.
+                      </>
                     ) : (
-                      <>Any payment held on {activeJobCount === 1 ? "it" : "them"} settles under the normal cancellation rules.</>
+                      <>Nothing is kept for your Helpr&rsquo;s time, most of your payment comes back to you, and it isn&rsquo;t a strike.</>
+                    ))}
+                    {isHelprOnAny && (
+                      <>{isPosterOnAny ? " " : ""}For a job you were hired for, it counts as a strike if it starts within 24 hours, the same as cancelling.</>
                     )}
                   </li>
                 )}

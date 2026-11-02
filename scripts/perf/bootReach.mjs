@@ -364,6 +364,22 @@ export function guestBrowseSplit(root) {
  * (CheckCircle2 -> circle-check) resolves as the build resolves it.
  */
 export function homeIconFiles(root) {
+  const { iconsOf } = lucideIconScan(root);
+  const page = homePageRoots(root);
+  const boot = bootIconFiles(root);
+  return new Set([...iconsOf(staticReach(root, page))].filter((i) => !boot.has(i)));
+}
+
+/**
+ * AUD31-66 (11-01): the lucide icons main.tsx's own graph draws (the offline banner's wifi-off and refresh-cw, ...).
+ * vite.config gives them, with lucide's small runtime, their own icons-boot chunk. Before, main imported its two
+ * icons out of the big merged icon chunks, so EVERY route's first round downloaded both (16.7 KB gz) for two icons.
+ */
+export function bootIconFiles(root) {
+  return lucideIconScan(root).iconsOf(staticReach(root, [path.join(root, "src/main.tsx")]));
+}
+
+function lucideIconScan(root) {
   const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
   const fileOf = new Map();
   for (const m of index.matchAll(/export \{([^}]*)\} from '\.\/icons\/([^']+)\.mjs'/g)) {
@@ -384,7 +400,5 @@ export function homeIconFiles(root) {
     }
     return out;
   };
-  const page = homePageRoots(root);
-  const boot = iconsOf(staticReach(root, [path.join(root, "src/main.tsx")]));
-  return new Set([...iconsOf(staticReach(root, page))].filter((i) => !boot.has(i)));
+  return { iconsOf };
 }

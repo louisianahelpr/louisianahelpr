@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, bootIconFiles, homeIconFiles, homePageRoots, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -189,6 +189,7 @@ const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(p
 const { itemDeep: declutterItemDeep, itemPages: declutterItemPages } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
 const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
 const homeIcons = homeIconFiles(process.cwd());
+const bootIcons = bootIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
 // B88: Home's PAGE reach. The every-page roots load after Home's first paint; with them here, their shared code
 // (Legal's public page table, ...) rode app-shared onto every page's boot. Build: boot 204 -> 202 KB gz,
@@ -796,6 +797,22 @@ export default defineConfig(({ mode, command }) => ({
             // B79 11-01: the icons Home's page draws (bootReach.mjs homeIconFiles, ~34) get their own chunk. In the
             // merged icons groups they sat in one 166-icon chunk (~16 KB gz) that Home's first round downloaded whole.
             // Other screens that draw them fetch this chunk beside their own icons, in the same round.
+            // AUD31-66 (11-01): the icons main.tsx's own graph draws (bootReach.mjs bootIconFiles: the offline banner's
+            // wifi-off and refresh-cw) and lucide's runtime (createLucideIcon, Icon, ...) get their own small chunk. main
+            // imported its two icons out of the merged icon chunks, so every route's first round downloaded both of
+            // them (16.7 KB gz) for two icons; and the runtime sat in one of them, so every icon chunk imported it.
+            {
+              name: "icons-0",
+              test: (id: string) => {
+                const file = id.split("?")[0].replace(/\\/g, "/");
+                if (!/lucide-react\/dist\/esm\//.test(file)) return false;
+                if (!/\/icons\//.test(file)) return !/lucide-react\.mjs$/.test(file);
+                return bootIcons.has(file.replace(/^.*\//, "").replace(/\.mjs$/, ""));
+              },
+              priority: 92,
+              minSize: 0,
+              includeDependenciesRecursively: false // the runtime is matched by name above, never by reach
+            },
             {
               name: "icons-home",
               test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && homeIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),

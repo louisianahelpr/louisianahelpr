@@ -26,6 +26,16 @@
  * @mutate scripts/perf/bootReach.mjs |   return new Set([...iconsOf(staticReach(root, page))].filter((i) => !boot.has(i))); |   return new Set();
  * @mutate vite.config.ts | includeDependenciesRecursively: false // lucide's runtime stays put | // lucide's runtime stays put
  *
+ * @mutate vite.config.ts |                 return bootIcons.has(file.replace(/^.*\//, "").replace(/\.mjs$/, "")); |                 return false;
+ * @mutate vite.config.ts |                 if (!/\/icons\//.test(file)) return !/lucide-react\.mjs$/.test(file); |                 if (!/\/icons\//.test(file)) return false;
+ * @mutate vite.config.ts |               priority: 92, |               priority: 88,
+ * @mutate scripts/perf/bootReach.mjs |   return lucideIconScan(root).iconsOf(staticReach(root, [path.join(root, "src/main.tsx")])); |   return new Set();
+ *
+ * AUD31-66 (B129, 11-01): main.tsx's graph draws two icons (the offline banner's wifi-off and refresh-cw) and imported
+ * them out of the two big merged icon chunks, so EVERY boot downloaded both (16.7 KB gz) for two icons; lucide's runtime
+ * sat in one of them too. Both now ride a small icons-0 chunk. Production build, bundle-size.yml env: boot 207 -> 192
+ * KB gz, /home 289 -> 274, /posts 207 -> 192, /login 250 -> 244.
+ *
  * B79 (11-01): Home's icons (bootReach.mjs homeIconFiles, ~34) sat in one 166-icon chunk (~16 KB gz) that Home's first
  * round downloaded whole; they get their own icons-home chunk. Same build: /home 308 -> 295 KB gz; boot unchanged;
  * /, /browse, /login, /signup +0.5 KB gz each (they draw a few of Home's icons, now from this chunk).
@@ -37,7 +47,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { EVERY_PAGE_ROOTS, homeFirstScreenRoots, homeIconFiles, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { EVERY_PAGE_ROOTS, bootIconFiles, homeFirstScreenRoots, homeIconFiles, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -93,5 +103,22 @@ describe("Home's first screen carries only Home's code (AUD31-60/66)", () => {
     expect(group).toMatch(/includeDependenciesRecursively:\s*false/);
     const icon = config.match(/name:\s*"icons",[\s\S]*?priority:\s*(\d+)/)?.[1];
     expect(Number(group.match(/priority:\s*(\d+)/)?.[1])).toBeGreaterThan(Number(icon));
+  });
+
+  it("gives main.tsx's own icons and lucide's runtime a small chunk of their own, above every icon group (AUD31-66)", () => {
+    const boot = bootIconFiles(ROOT);
+    // Floor: the offline banner's two icons (2 when written).
+    expect(boot.size).toBeGreaterThan(1);
+    for (const i of ["wifi-off", "refresh-cw"]) expect([...boot], i).toContain(i);
+    expect([...homeIconFiles(ROOT)].filter((i) => boot.has(i))).toEqual([]);
+    const config = blankComments(readFileSync(resolve(ROOT, "vite.config.ts"), "utf8"));
+    const group = config.match(/name:\s*"icons-0",[\s\S]*?(?=name:\s*"icons-home")/)?.[0] ?? "";
+    expect(group).toMatch(/bootIcons\.has\(/);
+    // The runtime (Icon, createLucideIcon, ...) rides here too: every file under lucide's dist/esm that is not an icon,
+    // except the barrel.
+    expect(group).toMatch(/if \(!\/\\\/icons\\\/\/\.test\(file\)\) return !\/lucide-react\\\.mjs\$\/\.test\(file\);/);
+    expect(group).toMatch(/includeDependenciesRecursively:\s*false/);
+    const home = config.match(/name:\s*"icons-home",[\s\S]*?priority:\s*(\d+)/)?.[1];
+    expect(Number(group.match(/priority:\s*(\d+)/)?.[1])).toBeGreaterThan(Number(home));
   });
 });

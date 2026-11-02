@@ -35,6 +35,7 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
 }
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { StatusBoxes, useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
 import { fetchMyOffers } from "@/lib/declutter/api";
 import { myItemsQuery, PAST_LISTING } from "./myItemsQuery";
@@ -88,6 +89,7 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   const orders = chips.length > 0;
   const showCart = t.ready && (only === null || only === "needs_you") && (t.checkouts > 0 || settling.settling);
   const ended = only === null || only === "cancelled" ? t.ended : [];
+  const nothingActive = t.ready && chips.every((c) => c.key === "cancelled") && offers.has === false && !showCart;
   return (
     <div className="space-y-6">
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
@@ -95,7 +97,9 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {/* D-NEW11: on a day with pickups booked, what to do today comes first. */}
       {/* NIGHT-BUYINGopenpr-1: never on an order on hold (the same open-problem read as its card's "On hold"). */}
       <PickupDayCard orders={t.live} bookings={t.bookings} held={new Set(t.live.filter((o) => t.views.get(o.orderId)?.facts.problem).map((o) => o.orderId))} />
-      {orders && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
+      {/* Q2569 (audit 1102a): with every order in one group the row read "All · 2" "Cancelled · 2", the chip only
+          repeating All; the chips show once there are two groups to choose between. */}
+      {chips.length > 1 && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
       {t.ready && !orders && offers.has === false && !settling.settling && (
         <DeclutterNotice title="Nothing bought yet.">
           When a seller accepts your offer, or you tap Buy, the item comes here. Buy now holds it 30 minutes; an accepted offer gives you 24 hours to check out.
@@ -109,6 +113,12 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
           {/* "Ended", not "Ended before paying": an order cancelled after it was paid or claimed is kept here too (A2-4). */}
           <SectionHeading title="Ended" />
           <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>
+          {/* Q2569: only ended orders, nothing on the way and no offer out: a way back to shopping. */}
+          {nothingActive && (
+            <Link to="/declutter" data-ended-browse="" className="inline-flex min-h-11 items-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">
+              Find something in Browse
+            </Link>
+          )}
         </section>
       )}
       {offers.has && !offers.toAnswer && <OffersSection side="buyer" />}

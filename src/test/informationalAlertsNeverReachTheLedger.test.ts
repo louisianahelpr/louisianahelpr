@@ -16,7 +16,8 @@
  * @mutate .github/workflows/uptime.yml |         run: echo "::warning::${SUMMARY}" |         run: node scripts/ops-alert-ledger.mjs record --source uptime --title "Guest marketplace is empty"
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";

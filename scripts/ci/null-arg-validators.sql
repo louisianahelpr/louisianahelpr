@@ -108,6 +108,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('helpr_task_position_viewer',    'allow',    'TRUE = the caller may see the Helpr''s live position on this started delivery (the seller before pickup, the buyer on the road; 20261101184555)'),
   ('unread_reminder_quiet',         'classify', 'TRUE = this moment is in the 9 PM to 8 AM quiet hours for unread-message reminders; no access decision (20261101183017)'),
   ('needs_you_reminder_quiet',      'classify', 'TRUE = this moment is in the quiet hours (8:50 PM to 8 AM) for offer and refund deadline reminders; no access decision (20261102002011)'),
+  ('is_job_labor_taxable',          'classify', 'TRUE = this job''s labor line is charged LA sales tax (taxable category or taxed tax_kind); NULL kind or category reads as not taxed; service_role only, no access decision (Q2083; 20261102152453)'),
   ('declutter_slot_in_windows',     'allow',    'TRUE = a 30-minute pickup slot at this time fits one of this seller''s windows: the booking is valid (20261015042253)'),
   ('declutter_handover_photo_access', 'allow',  'TRUE = the caller may write (own folder, paid order) or read (a party or an admin) this declutter-handover object (20261017055502)'),
   ('declutter_handover_photo_unattached', 'allow', 'audit 1a #10 (20261029222816): TRUE = this declutter-handover path is in the caller''s own handover folder and no handover row holds it, so the uploader may delete it (storage DELETE policy)'),

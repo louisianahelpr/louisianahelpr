@@ -3410,7 +3410,7 @@ describe("create-payment edge function", () => {
     });
 
     // Q2406: the gate's defect (the cached-gate close failing) reaches ops.
-    // @mutate supabase/functions/create-payment/index.ts |   if (live.defect) await reportLiveGateDefect( |   if (false) await reportLiveGateDefect(
+    // @mutate supabase/functions/create-payment/index.ts |   if (live.held && live.defect) await reportLiveGateDefect( |   if (false) await reportLiveGateDefect(
     it("a dispute release held with a failed cached-gate close reports the defect to ops", async () => {
       seedAuth(scenario, ADMIN);
       scenario.rpc.has_role = true;

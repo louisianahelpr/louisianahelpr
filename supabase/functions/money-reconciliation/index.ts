@@ -43,6 +43,7 @@
 // they never page and never fail the run (docs/OPEN.md Q90).
 
 import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
+import { TEST_ID_TABLES, classifyTestIdRow, testIdColumns, testIdMarker, testIdOrFilter, testIdRefs, type Row as TestIdRow } from "../_shared/stripeTestIdScan.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -511,6 +512,13 @@ serve(async (req) => {
         "stripe_test_object_on_real_job",
         "warning",
         "A REAL (non-seed) job's stripe_payment_intent_id is a Stripe TEST-mode object, so the live key cannot read it and there is no real money behind it. Every money path skips the job, so it is stuck: decide by hand whether it was ever really paid, then fix its payment fields.",
+      ),
+      // Q1909: the database-side sibling of stripeTestObjectOnRealJob. That one only sees the PaymentIntents this run
+      // asks Stripe about; this one reads every money table for a TEST-mode id on a real row (_shared/stripeTestIdScan.ts).
+      stripeTestIdOnRealRow: new Check(
+        "stripe_test_id_on_real_row",
+        "warning",
+        "A REAL (non-seed) row in jobs, recurring_visit_payments, payment_refunds, payout_transfers, gift_cards or tips holds a Stripe TEST-mode id (a cs_test_ Checkout Session, or any Stripe id on a row written before Stripe went live on 2026-09-27). The test-mode webhook lets an event that names no one through on the belief that only test rows hold test ids, and refund notices fall back to gift_cards and tips for a recipient, so a sandbox event could reach a real person. Decide by hand where the id came from and clear or correct it; nothing pays or refunds from here.",
       ),
       // ── The single-Helpr cancellation-fee ledger (LOW-2) ───────────────
       // void-cancelled-payments sends a cancelled job's fee to its Helpr as a
@@ -2319,6 +2327,72 @@ serve(async (req) => {
       }
     }
 
+    // ── Q1909: a Stripe TEST-mode id on a real row (read only) ──────────────
+    // Each table is narrowed server-side to rows that can carry a marker; the shared classifier decides. Seed rows are
+    // skipped (this check is seed-scoped on every run), orphans (no job left, no person) are counted, never reported.
+    // A failed read is a degraded run (caps); a failed seed lookup reports every hit as real.
+    let stripeTestIdOrphans = 0;
+    let stripeTestIdRowsRead = 0;
+    {
+      const marked: Array<{ t: (typeof TEST_ID_TABLES)[number]; row: TestIdRow; marker: { marker: string; column: string } }> = [];
+      for (const t of TEST_ID_TABLES) {
+        const scan = await scanAll<TestIdRow>(`${t.table} (test ids)`, (countOpt) =>
+          admin.from(t.table).select(testIdColumns(t), countOpt).or(testIdOrFilter(t)).order("id", { ascending: true }),
+        );
+        const cap = scanDefect(`${t.table} (test ids)`, scan);
+        if (cap) {
+          caps.push(`stripe test-id check: ${cap}`);
+          continue;
+        }
+        stripeTestIdRowsRead += scan.rows.length;
+        for (const row of scan.rows) {
+          const marker = testIdMarker(row, t);
+          if (marker) marked.push({ t, row, marker });
+        }
+      }
+      const jobIds = new Set<string>();
+      const people = new Set<string>();
+      for (const { t, row } of marked) {
+        if (t.table === "jobs") continue;
+        const refs = testIdRefs(row, t);
+        if (refs.job) jobIds.add(refs.job);
+        for (const p of refs.people) people.add(p);
+      }
+      for (const { t, row } of marked) if (t.table === "jobs") for (const p of testIdRefs(row, t).people) people.add(p);
+      const ctx = { jobs: new Map<string, { is_seed: boolean | null }>(), seedPeople: new Set<string>(), lookupFailed: false };
+      const lookupFail = (what: string, message: string) => {
+        ctx.lookupFailed = true;
+        notes.push(`stripe test-id check: ${what} seed lookup failed (${message}); every hit reported as real`);
+      };
+      if (jobIds.size) {
+        const js = await scanAllIn<{ id: string; is_seed: boolean | null }>("jobs (test-id seed)", [...jobIds], (chunk, countOpt) =>
+          admin.from("jobs").select("id, is_seed", countOpt).order("id", { ascending: true }).in("id", chunk));
+        const jcap = scanDefect("jobs (test-id seed)", js);
+        if (jcap) lookupFail("jobs", jcap);
+        else for (const j of js.rows) ctx.jobs.set(j.id, { is_seed: j.is_seed });
+      }
+      if (people.size) {
+        const ps = await scanAllIn<{ user_id: string; is_seed: boolean | null }>("profiles (test-id seed)", [...people], (chunk, countOpt) =>
+          admin.from("profiles").select("user_id, is_seed", countOpt).order("user_id", { ascending: true }).in("user_id", chunk));
+        const pcap = scanDefect("profiles (test-id seed)", ps);
+        if (pcap) lookupFail("profiles", pcap);
+        else for (const p of ps.rows) if (p.is_seed === true) ctx.seedPeople.add(p.user_id);
+        const ta = await scanAllIn<{ user_id: string }>("test_accounts (test-id seed)", [...people], (chunk, countOpt) =>
+          admin.from("test_accounts").select("user_id", countOpt).order("user_id", { ascending: true }).in("user_id", chunk));
+        const tcap = scanDefect("test_accounts (test-id seed)", ta);
+        if (tcap) lookupFail("test_accounts", tcap);
+        else for (const r of ta.rows) ctx.seedPeople.add(r.user_id);
+      }
+      for (const { t, row, marker } of marked) {
+        const kind = classifyTestIdRow(row, t, ctx);
+        if (kind === "orphan") stripeTestIdOrphans++;
+        if (kind !== "real") continue;
+        const refs = testIdRefs(row, t);
+        // No job_id key: a row's seed-ness is decided above (its job AND its people), not by isSeedHit's job set.
+        checks.stripeTestIdOnRealRow.add({ table: t.table, row_id: row.id, row_job: t.table === "jobs" ? row.id : refs.job, marker: marker.marker, column: marker.column });
+      }
+    }
+
     // ── Emit ─────────────────────────────────────────────────────────────────
     //
     // A NON-2xx STATUS FROM THIS FUNCTION IS BY DESIGN, NOT A CRASH.
@@ -2398,6 +2472,9 @@ serve(async (req) => {
         // many were really asked about.
         stripe_payment_intents: stripeReads,
         stripe_funded_payment_intents: fundedStripeReads,
+        // Q1909: rows read by the test-id check, and the marked ones that name no job left and no person (not reported).
+        stripe_test_id_rows: stripeTestIdRowsRead,
+        stripe_test_id_orphans: stripeTestIdOrphans,
         settled_jobs_with_payment_intent: settledWithPi.length,
       },
       checks_run: Object.values(checks).map((c) => c.name),
@@ -2435,7 +2512,8 @@ serve(async (req) => {
       for (const f of list) {
         fields[f.check] = `${f.count}${f.truncated ? "+" : ""} — ${f.sample
           .map((s) => (s as { job_id?: string; time_credit_id?: string }).job_id ??
-            (s as { time_credit_id?: string }).time_credit_id ?? "?")
+            (s as { time_credit_id?: string }).time_credit_id ??
+            (s as { row_id?: string }).row_id ?? "?")
           .join(", ")}`;
       }
       return fields;

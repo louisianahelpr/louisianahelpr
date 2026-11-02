@@ -19,6 +19,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const calls = vi.hoisted(() => ({ feature: [] as string[], badges: 0, unread: 0, previews: 0, desktop: false }));
 
+// The train's member_section_prefs read (useSectionPrefs) is data, not what this spec measures: answered locally.
+vi.mock("@/components/sections/useSectionPrefs", async (orig) => {
+  const { SECTIONS } = await import("@/components/sections/sectionsConfig");
+  return { ...(await orig<object>()), useSectionPrefs: () => ({ prefs: { order: SECTIONS.map((s) => s.key), hidden: [] }, visible: SECTIONS, setHidden: vi.fn(() => true), move: vi.fn(), putFirst: vi.fn() }) };
+});
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => calls.desktop }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => {

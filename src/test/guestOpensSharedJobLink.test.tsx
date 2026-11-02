@@ -43,7 +43,7 @@ vi.mock("@/hooks/usePendingSaveConsumer", () => ({ usePendingSaveConsumer: vi.fn
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: vi.fn() }));
 vi.mock("@/components/marketing/PublicLayout", () => ({ default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock("@/pages/jobs/jobPage/JobPage", () => ({ default: () => <div>MEMBER JOB PAGE</div> }));
-// The real guest preview (GuestJobPreview, JOBS-29): title, category, parish, budget, "Sign Up to Apply".
+// The real guest preview (GuestJobPreview, JOBS-29): title, category, parish, budget, "Sign up to apply".
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     from: () => ({
@@ -96,7 +96,7 @@ describe("the route", () => {
 describe("a guest opening a shared link", () => {
   it("sees the job, not the login wall, with ?ref=share on the link", async () => {
     openLink();
-    expect(await screen.findByText("Sign Up to Apply")).toBeTruthy();
+    expect(await screen.findByText("Sign up to apply")).toBeTruthy();
     expect(screen.getAllByText("Move a sofa").length).toBeGreaterThan(0);
     expect(screen.getByText("Lafayette Parish")).toBeTruthy();
     // The take-home the guest Browse card shows for the same row (lead 10-31), never the $120 budget.
@@ -112,7 +112,7 @@ describe("a guest opening a shared link", () => {
 
   it("asks the public view for nothing private", async () => {
     openLink();
-    await screen.findByText("Sign Up to Apply");
+    await screen.findByText("Sign up to apply");
     // JOBS-29 (lead 2026-10-31): exactly the preview's facts (the take-home's inputs among them) plus id, status
     // and expiry.
     expect(state.columns).toEqual([
@@ -127,7 +127,7 @@ describe("a guest opening a shared link", () => {
 
   it("goes to sign-up carrying the job, and the job survives it", async () => {
     openLink();
-    fireEvent.click(await screen.findByText("Sign Up to Apply"));
+    fireEvent.click(await screen.findByText("Sign up to apply"));
     const where = screen.getByTestId("where").textContent!;
     expect(where).toBe(`/signup?redirect=${encodeURIComponent(`/jobs/${JOB_ID}`)}`);
     rememberSignupRedirect(new URLSearchParams(where.split("?")[1]).get("redirect"));
@@ -136,7 +136,7 @@ describe("a guest opening a shared link", () => {
 
   it("closing goes to the public Browse list, never a page that bounces them to log in", async () => {
     openLink();
-    await screen.findByText("Sign Up to Apply");
+    await screen.findByText("Sign up to apply");
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(screen.getByTestId("where").textContent).toBe("/browse");
   });

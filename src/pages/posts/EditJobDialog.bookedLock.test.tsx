@@ -48,8 +48,8 @@ const job = (over: Partial<Job>) =>
      is_flexible_schedule: false, require_photo_proof: true, ...over }) as unknown as Job;
 
 const saveAndConfirm = async () => {
-  fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
-  const both = await screen.findAllByRole("button", { name: "Save Changes" });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  const both = await screen.findAllByRole("button", { name: "Save changes" });
   fireEvent.click(both[both.length - 1]);
 };
 
@@ -81,9 +81,9 @@ describe("a booked job's place and details are not offered for editing (Q1204)",
 
   it("booked: Save is off until the one open change (photo proof off) is made, then sends only that", async () => {
     render(<EditJobDialog job={job({ helper_id: "h1" })} onClose={() => {}} onSaved={() => {}} />);
-    expect((screen.getByRole("button", { name: "Save Changes" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Save changes" }) as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByRole("switch", { name: "Require before and after photos" }));
-    expect((screen.getByRole("button", { name: "Save Changes" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Save changes" }) as HTMLButtonElement).disabled).toBe(false);
     await saveAndConfirm();
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
     expect(update.mock.calls[0][0]).toEqual({ require_photo_proof: false });

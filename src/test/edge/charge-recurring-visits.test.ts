@@ -3058,6 +3058,8 @@ describe("charge-recurring-visits edge function", () => {
   // @mutate supabase/functions/charge-recurring-visits/index.ts |               oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`,\n            });\n            continue; |               oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`,\n            });
   // @mutate supabase/functions/_shared/helprFaultFee.ts |     p_card_fee_cents: cents, |     p_card_fee_cents: 0,
   // @mutate supabase/functions/charge-recurring-visits/index.ts |               oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`, |               oncePerDayKey: undefined,
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (billedCents > 0 && row.helper_id) { |           if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (billedCents > 0 && row.helper_id) { |           if (row.helper_id) {
   const billCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "bill_helpr_card_fee_debt");
   const lapsedSetup = (fee: unknown = "helper_payout_setup_incomplete") => {
     seedHappyPath();
@@ -3088,6 +3090,16 @@ describe("charge-recurring-visits edge function", () => {
     expect(billedBeforeRefund).toBe(true);
     expect((scenario.rpcCalls ?? []).find((c) => c.name === "helper_accept_block_reason")?.args).toEqual({ p_user_id: HELPER_ID });
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    // Q2245 (d), lead 11-02: the lapsed Helpr is told once, the amount and where it comes from, no fee name.
+    const toHelpr = scenario.writes
+      .filter((w) => w.table === "notifications" && w.op === "insert")
+      .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]))
+      .filter((n) => (n as Record<string, unknown>).user_id === HELPER_ID) as Array<Record<string, unknown>>;
+    expect(toHelpr).toHaveLength(1);
+    expect(String(toHelpr[0].message)).toContain("couldn't go ahead with you, so the person who posted it got everything back. $3.20 for the cost of refunding it comes out of your next payout.");
+    // Reason-neutral (lead 11-02): the block can be a hold or a review, not only setup.
+    expect(String(toHelpr[0].message)).not.toMatch(/setup/i);
+    expect(String(toHelpr[0].message)).not.toMatch(/card fee|card cost|processing|\d{4}-\d{2}-\d{2}/i);
     expect(b.errors).toBe(0);
   });
 
@@ -3101,7 +3113,7 @@ describe("charge-recurring-visits edge function", () => {
 
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(visitPaymentWrites("update")).toEqual([]);
-    expect(reasons(b)).toContain("billing the lapsed Helpr the 320-cent card fee failed");
+    expect(reasons(b)).toContain("billing the lapsed Helpr 320 cents failed");
     expect(b.errors).toBe(1);
     // Lead 11-02: the waiting refund pages ops once a day, never in silence.
     const pages = slackAlerts.filter((a) => (a as { severity?: string }).severity === "critical");
@@ -3120,6 +3132,8 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(billCalls()).toHaveLength(1);
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    // A replay billed nothing, so the Helpr is not told twice.
+    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).not.toContain("comes out of your next payout");
     expect(b.errors).toBe(0);
   });
 

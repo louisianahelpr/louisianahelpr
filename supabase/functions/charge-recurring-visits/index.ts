@@ -93,6 +93,7 @@ import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { billLapsedHelprCardFee } from "../_shared/helprFaultFee.ts";
+import { formatExactDollars } from "../_shared/money.ts";
 import { chargeTaxCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
@@ -1129,7 +1130,7 @@ serve(async (req) => {
         // payment. A failed bill refunds nothing this run: the row stays paid
         // and the next run bills, then refunds.
         if (!withholdFee && lapsedHolder) {
-          const billProblem = await billLapsedHelprCardFee(
+          const { problem: billProblem, billedCents } = await billLapsedHelprCardFee(
             supabase,
             String(row.id),
             Number.isFinite(amountCents) ? actualOrEstimatedFeeCents(piObj, amountCents) : Number.NaN,
@@ -1147,6 +1148,27 @@ serve(async (req) => {
               oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`,
             });
             continue;
+          }
+          // Q2245 (d), lead 11-02: the lapsed Helpr is told once, when THIS run
+          // billed them (a replay bills 0 and says nothing). Declutter's debt
+          // wording: no fee name, only the amount and where it comes from.
+          if (billedCents > 0 && row.helper_id) {
+            const helprLink = `/jobs?job=${row.parent_job_id}`;
+            const { data: hn, error: hnErr } = await supabase.from("notifications").insert({
+              user_id: row.helper_id,
+              job_id: row.parent_job_id,
+              title: "Owed from your next payout",
+              message: `The visit on ${listVisitDates([String(row.visit_date)])} couldn't go ahead with you, so the person who posted it got everything back. $${formatExactDollars(billedCents / 100)} for the cost of refunding it comes out of your next payout.`,
+              type: "job_updates",
+              link: helprLink,
+            }).select("id");
+            if (
+              hnErr || !hn ||
+              (hn.length === 0 &&
+                (await seedBoundaryDropsRow(supabase, { user_id: String(row.helper_id), job_id: String(row.parent_job_id), link: helprLink })) !== true)
+            ) {
+              fail(`visit payment ${row.id}: the lapsed Helpr was billed but not told (${hnErr?.message ?? "zero rows"})`);
+            }
           }
         }
         // Set before any other Stripe call, so a failure below alerts with

@@ -13,7 +13,9 @@
  * @mutate supabase/functions/money-reconciliation/index.ts |          if (!jobById.has(jobId) \|\| withheldJobs.has(jobId)) continue; |          if (!jobById.has(jobId)) continue;
  * @mutate supabase/functions/money-reconciliation/index.ts |            .filter((t) => isSettledTransfer(t) && money( |            .filter((t) => true && money(
  * @mutate supabase/functions/money-reconciliation/index.ts |          if (at !== null && at > settledBefore) continue; |          void at;
- * @mutate supabase/functions/money-reconciliation/index.ts |        notes.push(`Helpr-fault deduction check skipped: ${dedCap ?? transferCap}`); |        void 0;
+ * @mutate supabase/functions/money-reconciliation/index.ts |        notes.push(`Helpr-fault deduction check skipped (${dedTable}): ${dedCap ?? transferCap}`); |        void 0;
+ * Q2245 (d): a lapsed series visit's card-fee debt deduction (helpr_card_fee_debt_deductions) is read the same way.
+ * @mutate supabase/functions/money-reconciliation/index.ts |     for (const dedTable of ["job_helpr_fault_fee_deductions", "helpr_card_fee_debt_deductions"] as const) { |     for (const dedTable of ["job_helpr_fault_fee_deductions"] as const) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -45,7 +47,7 @@ const refundedJob = {
   stripe_payment_intent_id: null, stripe_session_id: null, cancelled_at: ago(DAY), updated_at: ago(DAY),
 };
 
-function seed(opts: { transfers?: Record<string, unknown>[]; deductions?: Record<string, unknown>[] | { error: { message: string } } } = {}) {
+function seed(opts: { transfers?: Record<string, unknown>[]; deductions?: Record<string, unknown>[] | { error: { message: string } }; cardDeductions?: Record<string, unknown>[] | { error: { message: string } } } = {}) {
   scenario.reads.jobs = { rows: [refundedJob] };
   scenario.reads.payout_transfers = { rows: opts.transfers ?? [] };
   scenario.reads.disputes = { rows: [] };
@@ -56,6 +58,8 @@ function seed(opts: { transfers?: Record<string, unknown>[]; deductions?: Record
   scenario.reads.cancellation_fee_transfers = { rows: [] };
   const d = opts.deductions ?? [{ id: "ded-1", payout_ref: "job_payout_job-1", deducted_cents: 369, created_at: ago(DAY) }];
   scenario.reads.job_helpr_fault_fee_deductions = Array.isArray(d) ? { rows: d } : d;
+  const c = opts.cardDeductions ?? [];
+  scenario.reads.helpr_card_fee_debt_deductions = Array.isArray(c) ? { rows: c } : c;
   stripeMock.transfers.list.mockResolvedValue({ data: [], has_more: false });
 }
 
@@ -74,7 +78,24 @@ describe("money-reconciliation: a Helpr-fault deduction no payout withheld (Q217
     seed();
     const f = hit(await run());
     expect(f?.count).toBe(1);
-    expect(f?.sample[0]).toEqual({ job_id: "job-1", deduction_id: "ded-1", deducted_cents: 369 });
+    expect(f?.sample[0]).toEqual({ job_id: "job-1", deduction_id: "ded-1", deducted_cents: 369, deduction_table: "job_helpr_fault_fee_deductions" });
+  });
+
+  it("Q2245: a lapsed-visit card-fee deduction no payout withheld is reported; one a paid transfer withheld is not", async () => {
+    seed({ deductions: [], cardDeductions: [{ id: "cded-1", payout_ref: "job_payout_job-1", deducted_cents: 320, created_at: ago(DAY) }] });
+    const f = hit(await run());
+    expect(f?.count).toBe(1);
+    expect(f?.sample[0]).toEqual({ job_id: "job-1", deduction_id: "cded-1", deducted_cents: 320, deduction_table: "helpr_card_fee_debt_deductions" });
+
+    resetSupabaseMock();
+    seed({ deductions: [], cardDeductions: [{ id: "cded-1", payout_ref: "job_payout_job-1", deducted_cents: 320, created_at: ago(DAY) }],
+      transfers: [{ job_id: "job-1", helper_id: "helper-1", amount_cents: 8480, platform_fee_cents: 1200, status: "paid", stripe_transfer_id: "tr_1", metadata: { helpr_fault_fee_cents: 320 } }] });
+    expect(hit(await run())).toBeUndefined();
+  });
+
+  it("Q2245: a failed lapsed-visit deduction read skips that half and says so", async () => {
+    seed({ deductions: [], cardDeductions: { error: { message: "boom" } } });
+    expect(JSON.stringify(await run())).toContain("Helpr-fault deduction check skipped (helpr_card_fee_debt_deductions)");
   });
 
   it("a paid transfer that withheld it clears the deduction", async () => {

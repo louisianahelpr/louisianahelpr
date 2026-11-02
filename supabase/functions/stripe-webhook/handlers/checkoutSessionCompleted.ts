@@ -1466,8 +1466,17 @@ async function settleCheckoutSession(
     // Claim-or-refund lives in settleOnboardingFee so the standalone
     // `pay-onboarding-fee` checkout shares one implementation of the
     // "never charged twice" guarantee rather than a second copy of it.
+    // Q1975: a bank (ACH) checkout completes "unpaid": the debit has only
+    // started and can still bounce days later. Marking the setup fee paid now
+    // left it marked paid after a failed debit, so the member was never asked
+    // again. paymentIntentSucceeded settles it when the debit actually lands
+    // (settleDeferredSetupFee). Only an explicit "unpaid" defers.
     if ((session.metadata as any)?.onboarding_fee_charged === "true") {
-      await settleOnboardingFee(session, piId, { stripe, supabase, logStep });
+      if (session.payment_status === "unpaid") {
+        logStep("Setup fee deferred until the bank payment settles", { sessionId: session.id, jobId });
+      } else {
+        await settleOnboardingFee(session, piId, { stripe, supabase, logStep });
+      }
     }
   } else if (jobId) {
     logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });

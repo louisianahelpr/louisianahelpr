@@ -201,6 +201,12 @@ export function LogisticsSection({
   const chip = timeChipOf(startTime, timeChips);
   // A stored time no chip names (a draft, a rebook, the wheel) IS "Other time".
   const showWheel = otherTime || (!!startTime.trim() && !chip);
+  // Q2615: "A set time" / "Flexible" and Need it today are one choice. Picking either while today is on moves the
+  // day to tomorrow (the next card on the strip), which also clears the start Need it today set (useSameDayPick).
+  const chooseWhen = (flexible: boolean) => {
+    setIsFlexibleSchedule(flexible);
+    if (isToday && strip[1]) pickDay(strip[1].iso);
+  };
   const needItToday = () => {
     if (!sameDayStart) return;
     setIsFlexibleSchedule(false);
@@ -352,8 +358,10 @@ export function LogisticsSection({
       <div className="space-y-3">
         <Label id="when-label">When</Label>
         <div id="flexible" role="radiogroup" aria-labelledby="when-label" className="flex flex-wrap gap-2">
-          <ChoicePill selected={!isFlexibleSchedule} onClick={() => setIsFlexibleSchedule(false)}>A set time</ChoicePill>
-          <ChoicePill selected={isFlexibleSchedule} onClick={() => setIsFlexibleSchedule(true)}>Flexible</ChoicePill>
+          {/* Q2615 (Jobs audit 1102b row 29): one filled chip for "when". While Need it today is on, neither of
+              these reads selected (both used to be filled with it); tapping one leaves today for tomorrow. */}
+          <ChoicePill selected={!isToday && !isFlexibleSchedule} onClick={() => chooseWhen(false)}>A set time</ChoicePill>
+          <ChoicePill selected={!isToday && isFlexibleSchedule} onClick={() => chooseWhen(true)}>Flexible</ChoicePill>
         </div>
         {isFlexibleSchedule && (
           <p className="text-ds-12 text-muted-foreground leading-snug">

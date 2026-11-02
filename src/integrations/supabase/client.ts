@@ -9,7 +9,7 @@ import { signOutAwareFetch } from '@/lib/signOutAbort';
 import { noteReachableFetch } from '@/lib/connectivity';
 import { defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
 import { loadModule, untilReload } from '@/lib/loadModule';
-import { clearSessionLost } from '@/lib/permissionDenied';
+import { clearSessionLost, markSignedOut } from '@/lib/permissionDenied';
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -142,6 +142,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 supabase.auth.onAuthStateChange((event) => {
   // Q1596: a new sign-in is a new session; its denials report again.
   if (event === 'SIGNED_IN') clearSessionLost();
+  // Q2507/Q2515: reads in flight at a sign-out come back denied; not reported.
+  if (event === 'SIGNED_OUT') markSignedOut();
   if (event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN') return;
   if (!takeHeldSinceRefresh()) return;
   void queryClientModule()

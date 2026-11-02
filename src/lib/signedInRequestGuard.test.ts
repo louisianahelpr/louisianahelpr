@@ -168,7 +168,7 @@ describe("a signed-in request is never sent as anon", () => {
     expect(src).toMatch(/global:\s*\{\s*fetch:\s*guardSignedInRequests\(\{/);
     // Recovery (review of the hold): after a hold, the next refresh refetches the failed active queries.
     // Q1596 clears the session-loss mark on SIGNED_IN first, in the same listener (errorLoggerSessionLossNoise pins it).
-    expect(src).toMatch(/onAuthStateChange\(\(event\) => \{\s*(?:if \(event === 'SIGNED_IN'\) clearSessionLost\(\);\s*)?if \(event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN'\) return;\s*if \(!takeHeldSinceRefresh\(\)\) return;/);
+    expect(src).toMatch(/onAuthStateChange\(\(event\) => \{\s*(?:if \(event === 'SIGNED_IN'\) clearSessionLost\(\);\s*)?(?:if \(event === 'SIGNED_OUT'\) markSignedOut\(\);\s*)?if \(event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN'\) return;\s*if \(!takeHeldSinceRefresh\(\)\) return;/);
     expect(src).toMatch(/refetchQueries\(\{ type: 'active', predicate: \(q\) => q\.state\.status === 'error' \}\)/);
     expect(src).toMatch(/storage:\s*authStorage,\s*storageKey:\s*defaultAuthStorageKey\(SUPABASE_URL\)/);
   });

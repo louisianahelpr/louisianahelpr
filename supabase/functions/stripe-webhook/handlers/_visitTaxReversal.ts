@@ -2,6 +2,29 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
+import { anyIsTestSubject } from "./_testSubject.ts";
+
+/**
+ * Whether the visit this PaymentIntent paid is test data: its series job is
+ * is_seed, or its payer or Helpr is a test subject. Read only when an alert is
+ * about to go. A failed read (or no visit row) counts as real, so a page is
+ * never hidden because it could not be read.
+ */
+// deno-lint-ignore no-explicit-any
+async function visitIsSeed(supabase: any, piId: string, logStep: (step: string, details?: unknown) => void): Promise<boolean> {
+  const { data: visit, error } = await supabase
+    .from("recurring_visit_payments")
+    .select("parent_job_id, payer_id, helper_id")
+    .eq("stripe_payment_intent_id", piId)
+    .maybeSingle();
+  if (error || !visit) {
+    if (error) logStep("WARNING: could not read the visit payment; its alert pages as real", { piId, error: error.message });
+    return false;
+  }
+  const { data: job, error: jobErr } = await supabase.from("jobs").select("is_seed").eq("id", visit.parent_job_id).maybeSingle();
+  if (jobErr) logStep("WARNING: could not read the visit's job is_seed; checking its people only", { piId, error: jobErr.message });
+  return job?.is_seed === true || await anyIsTestSubject(supabase, [visit.payer_id, visit.helper_id], logStep);
+}
 
 /**
  * Q1655 / Q1782 (2): a refunded recurring visit's sales tax comes off Stripe
@@ -133,9 +156,12 @@ export async function reverseVisitTaxForRefund(args: {
    * back, so nothing is reversed and nobody is told to reverse it.
    */
   listedAnyRefund: boolean;
+  /** Service-role client; read only to mark a test visit's alert as seed (Q1997). */
+  // deno-lint-ignore no-explicit-any
+  supabase: any;
   logStep: (step: string, details?: unknown) => void;
 }): Promise<"none" | "reversed" | "failed_paged"> {
-  const { stripe, piId, charge, refunds, listedAnyRefund, logStep } = args;
+  const { stripe, piId, charge, refunds, listedAnyRefund, supabase, logStep } = args;
   if (!piId) return "none";
   let txId: string | undefined;
   let piMeta: Record<string, string> = {};
@@ -207,8 +233,21 @@ export async function reverseVisitTaxForRefund(args: {
     return "failed_paged";
   }
   if (!(txTotalCents > 0)) {
-    logStep("Recurring-visit tax transaction records nothing to reverse", { txId, chargeId: charge.id });
-    return "none";
+    // Q1997: a live refund returned money on a charge whose Stripe Tax
+    // transaction lists no lines (or only zero amounts). Nothing can be
+    // reversed from it, yet the tax on the refunded money may still be
+    // reported as collected: a person looks, never a log line alone.
+    logStep("Recurring-visit tax transaction records nothing to reverse; paged", { txId, chargeId: charge.id });
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Taxed recurring visit refunded: its tax transaction lists nothing to reverse",
+      message: `Charge ${charge.id} was refunded (live refunds: ${listRefunds(refunds)}), but Stripe Tax transaction ${txId} lists no line items with an amount, so no share of it could be reversed. Open the transaction in Stripe Tax (Transactions > ${txId}): if it does report tax collected on this visit, reverse the refunded share by hand with reference refund:<refund id>, then set metadata.tax_rev_<refund id>=<that reversal's id> on PaymentIntent ${piId}.`,
+      fields: { "Tax transaction": txId, Charge: charge.id, "Payment Intent": piId },
+      oncePerDayKey: `visit-tax-empty:${charge.id}`,
+      seed: await visitIsSeed(supabase, piId, logStep),
+    });
+    return "failed_paged";
   }
 
   let outcome: "none" | "reversed" | "failed_paged" = "none";

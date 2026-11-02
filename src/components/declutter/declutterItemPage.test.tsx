@@ -809,6 +809,13 @@ describe("the photo-first Declutter item page", () => {
     const back = encodeURIComponent(`/declutter/item/${ID}`);
     expect(within(join).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", `/signup?redirect=${back}`);
     expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
+    // Q2581 (audit 1102a): Log in then Sign up in one row, as on Browse's guest card (it was Sign up over Log in).
+    // @mutate src/components/declutter/DeclutterGuest.tsx |         <div className="flex gap-2" data-guest-buttons=""> |         <div className="grid gap-2" data-guest-buttons="">
+    const pair = join.querySelector("[data-guest-buttons]")!;
+    expect(Array.from(pair.querySelectorAll("a")).map((a) => a.textContent)).toEqual(["Log in", "Sign up"]);
+    expect(pair.className.split(/\s+/)).toContain("flex");
+    const browsePair = Array.from(document.querySelectorAll("[data-guest-join='browse'] a")).map((a) => a.textContent);
+    if (browsePair.length) expect(browsePair).toEqual(["Log in", "Sign up"]);
     expect(screen.queryByRole("button", { name: /Buy now/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save this item" })).toBeNull();
     // AUD31-67: the guest has the brand and a way to the rest of Louisiana Helpr.

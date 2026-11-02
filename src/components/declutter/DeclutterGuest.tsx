@@ -90,12 +90,14 @@ export function DeclutterGuestJoin({ free, offers = true }: { free: boolean; off
         {!barShown && <GuestBrand />}
       </div>
       {!barShown && (
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Button asChild size="wrap" className="w-full rounded-full">
-            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
-          </Button>
-          <Button asChild size="wrap" variant="outline" className="w-full rounded-full">
+        // Q2581 (audit 1102a): the same pair, in the same order, as Browse's guest card and the guest top bar: Log in
+        // (outline) then Sign up (filled) in one row. It was Sign up over Log in here.
+        <div className="flex gap-2" data-guest-buttons="">
+          <Button asChild size="wrap" variant="outline" className="flex-1 rounded-full">
             <Link to={`/login?redirect=${here(location)}`}>Log in</Link>
+          </Button>
+          <Button asChild size="wrap" className="flex-1 rounded-full">
+            <Link to={`/signup?redirect=${here(location)}`}>Sign up</Link>
           </Button>
         </div>
       )}

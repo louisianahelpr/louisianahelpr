@@ -603,12 +603,14 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // (ship_void_rejected, once per shipment). It records no refund and changes no refund amount or card fee.
       // Q2259 S6 2f (20261102055653, for verdict): restated verbatim; only 'admin_no_fault' joins its reason list (a rejected
       // void after a no-fault refund is the seller's, decision 6). Still records no refund and changes no amount or fee.
-      declutter_ship_void_rejected_debt: "20261102055653_shipping_admin_no_fault_label_debt.sql 864c62bed818444a",
+      // Re-pinned (Lander 36, train 1, 11-02): only its notice link moved to ?tab=selling (declutterNoticeLinksOneFormat).
+      declutter_ship_void_rejected_debt: "20261102055653_shipping_admin_no_fault_label_debt.sql b48eee5531c780a9",
       // Q2259 S6 2f (20261102055653, shipping, testers only; for verdict): AFTER INSERT trigger on declutter_refunds; for an
       // 'admin_no_fault' refund of a ship order it READS the refund row's reason and order only, then books a spent label
       // as the seller's fee debt (ship_label / ship_void_rejected, once per shipment) or asks for a test label's void. It
       // records no refund and changes no refund amount, card fee or policy.
-      declutter_ship_no_fault_label: "20261102055653_shipping_admin_no_fault_label_debt.sql 0ea42b15f201345b",
+      // Re-pinned (Lander 36, train 1, 11-02): only its two notice links moved to ?tab=selling.
+      declutter_ship_no_fault_label: "20261102055653_shipping_admin_no_fault_label_debt.sql 52b842320d5ce35a",
       // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): the shipping a buyer-fault close held back goes
       // back once the label is VOIDED: one declutter_delivery_refunds row ('ship_void_refunded', refund_cents = the order's
       // shipping_cents, order_id UNIQUE), only when the order's refund row is buyer-fault and left the shipping out
@@ -661,7 +663,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.
       // 20261030170443 (Q2488, lead lh-authz-rls approve "no money") adds the declutter_questions kind; still records nothing.
-      declutter_notice_type: "20261030170443_declutter_question_kind.sql e7a9c90bee616b5e",
+      // Re-pinned (Lander 36, train 1, 11-02): 20261102103524 restates it with four shipping titles added to its lists; a title-to-kind map, no amount.
+      declutter_notice_type: "20261102103524_declutter_ship_notice_kinds.sql 477de9babf8238ab",
       // Q2307 (20261021204947), reviewed: a payment on an order a party has left is refunded in full as 'order_closed'
       // (full_platform_absorbs: nobody at the table did anything wrong); a replay answers the same refund row, and the
       // payment that already paid a settled order answers already_paid (money re-review R1).

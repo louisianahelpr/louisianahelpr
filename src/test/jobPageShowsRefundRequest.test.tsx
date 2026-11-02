@@ -13,10 +13,12 @@
  * Lead look 11-02 (refund-poster-375.png): the poster's tracker still said "Next: approve Eli's work" with Approve
  * leading the row, beside the refund's own "Waiting on Eli R. to answer"; the Helpr's tracker said "Lexi has until
  * ... to check it" beside "Next: answer Lexi L.'s refund request". While the request is open the refund line is the
- * one next step: the tracker drops its "Next:" line on both sides and Approve leaves the poster's row.
+ * one next step: the tracker drops its "Next:" line on both sides, and Approve and "Something's not right" leave the
+ * poster's row (both come back once the request is withdrawn or answered).
  *
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             hideNext={refundOpen \|\| (isPoster && !continueDay.row && showsNow(job, trackingStatus))} |             hideNext={isPoster && !continueDay.row && showsNow(job, trackingStatus)}
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0 && !refundOpen; |     const cardLead = !step && cardSteps && flows.leadCount > 0;
+ * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready && !refundOpen ? flows.notRight : null; |   const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null;
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const disputeOpen = status === "disputed" \|\| !!job.has_active_dispute \|\| refundOpen; |   const disputeOpen = status === "disputed" \|\| !!job.has_active_dispute;
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -94,6 +96,8 @@ describe("the job page shows an open refund request (Q2694)", () => {
     expect(steps).not.toMatch(/approve/i);
     const approve = screen.queryAllByRole("button").filter((b) => /^approve/i.test((b.textContent ?? "").trim()));
     expect(approve).toHaveLength(0);
+    // Lead 11-02: one path at a time: no "Something's not right" (the approve sheet's fix form) while it waits.
+    expect(document.querySelector("[data-not-right-open]")).toBeNull();
   }, 30000);
 
   it("the Helpr's tracker does not contradict the refund line (no 'has until ... to check it')", async () => {
@@ -111,6 +115,7 @@ describe("the job page shows an open refund request (Q2694)", () => {
     await waitFor(() => expect(document.querySelector("[data-job-steps]")?.textContent ?? "").toMatch(/approve/i), { timeout: 10000 });
     const approve = screen.queryAllByRole("button").filter((b) => /^approve/i.test((b.textContent ?? "").trim()));
     expect(approve.length).toBeGreaterThan(0);
+    expect(document.querySelector("[data-not-right-open]")).not.toBeNull();
   }, 30000);
 
   it("with the switch off, nothing about the refund shows", async () => {

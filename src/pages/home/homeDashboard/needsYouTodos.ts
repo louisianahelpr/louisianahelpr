@@ -58,6 +58,9 @@ export interface NeedsYouInputs {
   declutterOffers?: readonly MyOffer[];
 }
 
+/** "$30" for whole dollars (garage-sale prices), "$7.50" otherwise. */
+const dollars = (cents: number) => (cents % 100 === 0 ? `$${cents / 100}` : formatCents(cents));
+
 /** "Mon 2:00 PM" in Louisiana time: the Declutter to-do's "by" (the offer's respond_by, the cart's checkout_by). */
 function byWhen(ms: number): string {
   const d = new Date(ms);
@@ -86,11 +89,11 @@ export function declutterTodos(cart: readonly CartLine[], offers: readonly MyOff
       item: {
         id: `do-${o.offer_id}`,
         section: "declutter",
-        title: seller ? `Answer a ${formatCents(o.amount_cents)} offer` : `Answer the seller's ${formatCents(o.amount_cents)} counteroffer`,
+        // The amount is in the task itself, so no money line repeats it (Home prints money as "order total").
+        title: seller ? `Answer a ${dollars(o.amount_cents)} offer` : `Answer the seller's ${dollars(o.amount_cents)} counteroffer`,
         meta: `${seller ? "Selling" : "Buying"} · ${o.item_title}${live ? ` · by ${byWhen(live)}` : ""}`,
         to: `/declutter?tab=${seller ? "selling" : "buying"}`,
         action: "Answer offer",
-        money: formatCents(o.amount_cents),
       },
     });
   }
@@ -112,7 +115,7 @@ export function declutterTodos(cart: readonly CartLine[], offers: readonly MyOff
         meta: `Buying · by ${byWhen(due)}`,
         to: "/declutter?tab=buying",
         action: "Check out",
-        money: formatCents(lines.reduce((s, l) => s + l.price_cents, 0)),
+        money: dollars(lines.reduce((s, l) => s + l.price_cents, 0)),
       },
     });
   }

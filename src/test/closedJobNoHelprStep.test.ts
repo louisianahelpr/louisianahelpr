@@ -19,9 +19,11 @@ import type { JobPageRow } from "@/pages/jobs/jobPage/useJobPage";
 const ME = "11111111-1111-4111-8111-111111111111";
 const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
 const T = new Date(Date.now() - 3_600_000).toISOString();
+// The start is now (a timed job's face offers I'm on my way from 3 hours before), whatever the hour the test runs.
+const nowHm = new Date().toLocaleTimeString("en-GB", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hour12: false });
 const job = (over: Partial<JobPageRow> = {}) => ({
   id: "22222222-2222-4222-8222-222222222222", title: "Rake the yard", status: "accepted", helper_id: ME, customer_id: "33333333-3333-4333-8333-333333333333",
-  date_needed: today, start_time: null, is_group_job: false, helper_confirmed_at: T, helper_dayof_confirmed_at: T,
+  date_needed: today, start_time: nowHm, is_group_job: false, helper_confirmed_at: T, helper_dayof_confirmed_at: T,
   helper_on_the_way_at: null, helper_arrived_at: null, helper_completed_at: null, payment_status: "held", budget: 120,
   ...over,
 }) as unknown as JobPageRow;

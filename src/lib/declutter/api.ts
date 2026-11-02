@@ -1423,7 +1423,7 @@ export async function fetchItemsCanShip(itemIds: string[], sellerId: string): Pr
   const res = await supabase.rpc("declutter_seller_can_ship", { p_seller_id: sellerId });
   // Before 20261102054848 reaches prod the read is missing: offer it, and the order trigger still refuses (handover_not_offered).
   if (res.error && isMissingRpcNamed(res.error, "declutter_seller_can_ship")) return true;
-  return unwrap(res) === true;
+  return rpcData(res, (e) => rpcErrorMessage("declutter_seller_can_ship", e)) === true;
 }
 
 /** Check out one seller's cart lines (row 38): the Stripe page's URL, or paid=true when it already went through. */

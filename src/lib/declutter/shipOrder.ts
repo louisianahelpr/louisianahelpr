@@ -7,7 +7,8 @@
  * Guard: src/components/declutter/shipOrderPanel.test.tsx.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcData } from "@/lib/declutter/api";
 
 export type ShipLabel = {
   order_status: string | null;
@@ -38,16 +39,16 @@ export const shipLabelKey = (orderId: string) => ["declutter", "ship-label", ord
 export const shipTrackingKey = (orderId: string) => ["declutter", "ship-tracking", orderId] as const;
 
 export async function fetchMyShipLabel(orderId: string): Promise<ShipLabel> {
-  return unwrap(await supabase.rpc("declutter_my_ship_label", { p_order_id: orderId })) as unknown as ShipLabel;
+  return rpcData(await supabase.rpc("declutter_my_ship_label", { p_order_id: orderId }), (e) => rpcErrorMessage("declutter_my_ship_label", e)) as unknown as ShipLabel;
 }
 
 export async function fetchMyShipTracking(orderId: string): Promise<ShipTracking> {
-  return unwrap(await supabase.rpc("declutter_my_ship_tracking", { p_order_id: orderId })) as unknown as ShipTracking;
+  return rpcData(await supabase.rpc("declutter_my_ship_tracking", { p_order_id: orderId }), (e) => rpcErrorMessage("declutter_my_ship_tracking", e)) as unknown as ShipTracking;
 }
 
 /** The seller's "Packed". The server returns the packed time; no time back means nothing was marked, so it throws. */
 export async function markPacked(orderId: string): Promise<string> {
-  const at = unwrap(await supabase.rpc("declutter_mark_packed", { p_order_id: orderId })) as unknown as string | null;
+  const at = rpcData(await supabase.rpc("declutter_mark_packed", { p_order_id: orderId }), (e) => rpcErrorMessage("declutter_mark_packed", e)) as unknown as string | null;
   if (!at) throw new Error("label_not_ready");
   return at;
 }

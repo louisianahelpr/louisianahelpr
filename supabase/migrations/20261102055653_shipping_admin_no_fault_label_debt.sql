@@ -62,7 +62,7 @@ BEGIN
         PERFORM public.declutter_notify(v_seller, 'info', 'Don''t ship it',
           format('The sale of %s was called off, so its shipping label is being cancelled. Don''t put it in the mail.',
                  COALESCE('"' || v_title || '"', 'your item')),
-          '/declutter?view=sales');
+          '/declutter?tab=selling');
       END IF;
     ELSE
       PERFORM public.log_cron_defect('declutter_ship_no_fault_label-live-void', NEW.order_id::text,
@@ -84,7 +84,7 @@ BEGIN
     PERFORM public.declutter_notify(v_seller, 'info', 'Shipping label added to what you owe',
       format('The shipping label for %s was already used when the buyer was refunded, so its $%s comes out of your next Declutter payout.',
              COALESCE('"' || v_title || '"', 'your sale'), to_char(v_label.label_cost_cents / 100.0, 'FM999999990.00')),
-      '/declutter?view=mine');
+      '/declutter?tab=selling');
   END IF;
   RETURN NEW;
 END;
@@ -129,7 +129,7 @@ BEGIN
     PERFORM public.declutter_notify(v_seller, 'info', 'Shipping label added to what you owe',
       format('The shipping label for %s could not be cancelled after the sale was called off, so its $%s comes out of your next Declutter payout.',
              COALESCE('"' || v_title || '"', 'your sale'), to_char(NEW.label_cost_cents / 100.0, 'FM999999990.00')),
-      '/declutter?view=mine');
+      '/declutter?tab=selling');
   END IF;
   RETURN NEW;
 END;

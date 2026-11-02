@@ -171,6 +171,19 @@ ok(refused(pHeld, /label_not_ready/), `cannot mark packed before the hold is cap
 const pBuyer = await packed(BUYER, cap?.id);
 ok(refused(pBuyer, /order_not_found/), `the buyer cannot mark it packed (${short(pBuyer)})`);
 
+// Q281 (train 1 fix, 11-02): Packed is a write, so a banned seller is refused; the label read stays open to them.
+await run(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${SELLER2}'`);
+const bannedPack = await packed(SELLER2, cap?.id);
+ok(refused(bannedPack, /account_restricted/), `a banned seller cannot mark packed (${short(bannedPack)})`);
+const bannedRead = await label(SELLER2, cap?.id);
+ok(bannedRead?.tracking_code === "T31", `a banned seller still reads the label view (${short(bannedRead)})`);
+await run(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${SELLER2}'`);
+const unbannedPack = await packed(SELLER2, cap?.id);
+ok(Array.isArray(unbannedPack), `once the ban is lifted, Packed works again (${short(unbannedPack)})`);
+// The label read is STABLE: it writes nothing, so it leaves the ban gate's write universe (banGateCoverage).
+const vol = await q(`SELECT provolatile FROM pg_proc WHERE proname = 'declutter_my_ship_label'`);
+ok(vol?.provolatile === "s", `declutter_my_ship_label is STABLE (${short(vol)})`);
+
 // Switch: an ordinary seller (not a tester) is refused.
 await run(`DELETE FROM public.test_accounts WHERE user_id = '${SELLER2}'`);
 const ordinary = await label(SELLER2, cap?.id);

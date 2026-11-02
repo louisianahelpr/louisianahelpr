@@ -702,6 +702,29 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     too_many_orders: "There are too many orders to total at once. Open an order to see what was refunded on it.",
   },
+  // Shipping S3/S4 (20261102023246, 20261102025148): the seller's label and Packed, the buyer's tracking.
+  declutter_my_ship_label: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    order_not_found: "We couldn't find this shipped order. Refresh the page.",
+  },
+  declutter_my_ship_tracking: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    order_not_found: "We couldn't find this shipped order. Refresh the page.",
+  },
+  declutter_mark_packed: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    label_not_ready: DC.label_not_ready,
+    not_authenticated: DC.not_authenticated,
+    order_not_found: "We couldn't find this shipped order. Refresh the page.",
+  },
+  // Shipping (20261102054848): may this seller offer shipping (no shipping debt left unpaid).
+  declutter_seller_can_ship: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_confirm_handover: {
     account_restricted: DC.account_restricted,
     delivery_not_done: DC.delivery_not_done,

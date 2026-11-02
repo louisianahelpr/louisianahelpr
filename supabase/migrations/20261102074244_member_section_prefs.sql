@@ -74,3 +74,7 @@ CREATE POLICY "member section prefs: add own" ON public.member_section_prefs
 DROP POLICY IF EXISTS "member section prefs: change own" ON public.member_section_prefs;
 CREATE POLICY "member section prefs: change own" ON public.member_section_prefs
   FOR UPDATE TO authenticated USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
+
+-- Q807 (train 1 fix, B173 11-02): every public table created after Q807 gets the unconfirmed-email write gate in the
+-- migration that creates it (attach_unconfirmed_email_gate is idempotent: it adds the trigger only where it is missing).
+SELECT public.attach_unconfirmed_email_gate();

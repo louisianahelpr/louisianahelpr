@@ -23,8 +23,9 @@
 --
 -- Switch: shipping is testers-only (declutter_shipping). Ship orders exist only for testers, and the sweep is a cron
 -- job (no member calls it: service_role only), so it needs no require_feature.
--- Schedule: its own cron job, 'declutter-ship-sweep', every 10 minutes from :02 (four minutes before
--- declutter-handovers, six before declutter-money; :04 put 11 jobs in one minute, cronStartsSpreadAcrossMinutes).
+-- Schedule: its own cron job, 'declutter-ship-sweep', every 15 minutes from :03 (3, 18, 33, 48). Every 10-minute
+-- offset put 11 jobs in some minute of the day with the jobs already on prod (:02 at 04:52, :04, :00, :01, :05, :07,
+-- :09 elsewhere: cronStartsSpreadAcrossMinutes, train 1 fix 11-02); a finished sale waits at most 15 minutes more.
 --
 -- Proof: src/test/pglite/shippingS5DeliveredPayout.pglite.mjs (applied 3x; NEW_MIGRATION=skip is red).
 -- REPLAY-SAFETY: CREATE OR REPLACE; cron and its expectations row only when those exist; cron.schedule by name.
@@ -80,7 +81,7 @@ BEGIN
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('declutter-ship-sweep', '2-59/10 * * * *',
+    PERFORM cron.schedule('declutter-ship-sweep', '3-59/15 * * * *',
       $c$SELECT public.cron_record_work('declutter-ship-sweep', to_jsonb(public.declutter_ship_sweep()));$c$);
   END IF;
 END

@@ -59,6 +59,8 @@ END $$;
 CREATE SCHEMA IF NOT EXISTS auth;
 GRANT USAGE ON SCHEMA public, auth TO anon, authenticated, service_role;
 CREATE TABLE auth.users (id uuid PRIMARY KEY, email text, created_at timestamptz DEFAULT now());
+-- The unconfirmed-email gate (Q807) is attached by the migration; its body is proven in its own proof.
+CREATE FUNCTION public.attach_unconfirmed_email_gate() RETURNS void LANGUAGE sql AS $$ SELECT $$;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated, service_role;
 -- Supabase's default ACLs: a new table / function is open to anon and authenticated until the migration revokes it.

@@ -156,6 +156,16 @@ export const ADMIN_RPC_ERROR_COPY = {
     meetup_spot_invalid: "Fill in the parish, name and address, pick a type, and put the map point in Louisiana.",
     meetup_spot_not_found: "That spot no longer exists. Refresh the list.",
   },
+  // Q1928 gap 1 (20261102065446): a member's open Declutter amounts owed, and clearing one.
+  declutter_admin_fee_debts: {
+    admin_only: "Only an admin can see what a member owes.",
+  },
+  declutter_admin_waive_fee_debt: {
+    admin_only: "Only an admin can clear an amount owed.",
+    debt_not_found: "That amount no longer exists. Refresh the list.",
+    invalid_note: "Say why you're clearing it, in under 500 characters.",
+    nothing_owed: "This amount was already paid back from a payout. Refresh the list.",
+  },
   // Q2428 partner charities (20261027222743).
   admin_declutter_save_donation_partner: {
     admin_only: "Only an admin can add or edit partner charities.",

@@ -192,6 +192,14 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   helpr_card_fee_debts: { by: ["helper_id"] },
   // Q2199 (20261102074244; exported by 20261102074248): the member's own Customize choice.
   member_section_prefs: { by: ["user_id"] },
+  // Declutter manager mode (20261101181005, 20261101230509; exported by 20261102161715): the member's own
+  // arrangements as the seller or the manager; ended_by is always one of the two (declutter_manager_end).
+  declutter_manager_grants: { by: ["seller_id", "manager_id", "ended_by"] },
+  declutter_manager_actions: { by: ["seller_id", "manager_id"] },
+  declutter_manager_messages: { by: ["seller_id", "manager_id"] },
+  declutter_manager_submissions: { by: ["seller_id", "manager_id"] },
+  declutter_order_manager_shares: { by: ["seller_id", "manager_id"] },
+  declutter_manager_payouts: { by: ["seller_id", "manager_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.

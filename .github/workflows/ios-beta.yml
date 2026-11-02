@@ -21,6 +21,11 @@ on:
         description: "Optional: force build number to be at least this value (use to skip past a 'Redundant Binary Upload' error from App Store Connect)"
         required: false
         default: ""
+      skip_gate_testflight_only:
+        description: "TestFlight ONLY: skip the release gate for this upload (owner 11-02 ~8:10 AM pop-up: skip checks for TestFlight only). The App Store submit (asc-iap.yml release-submit) still requires a green gate."
+        type: boolean
+        required: false
+        default: false
   # schedule:
   #   # 08:00 UTC ≈ 03:00 America/Chicago — keeps TestFlight no more than a
   #   # day behind main; the `check` job no-ops when main hasn't changed.
@@ -46,6 +51,10 @@ jobs:
         with:
           fetch-depth: 0
       - name: Release gate — audits green on Actions for this exact sha
+        # Skipped only for a manual TestFlight-only upload (input
+        # skip_gate_testflight_only; owner 11-02 ~8:10 AM pop-up). Submitting
+        # for App Store review stays gated (asc-iap.yml, ios-metadata.yml).
+        if: ${{ !inputs.skip_gate_testflight_only }}
         # FIRST step of the release path. scripts/release-gate.mjs asks GitHub
         # for the newest run of every required audit (test, e2e-real-backend,
         # journeys, press-every-control, the prod a11y sweep, write-contract) at
@@ -108,6 +117,9 @@ jobs:
 
       # The fastlane lane re-runs scripts/release-gate.mjs via `gh` as step 0.
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Fastfile release_gate!'s only bypass, set only by the TestFlight-only
+      # input (owner 11-02 ~8:10 AM pop-up); empty otherwise, so the gate runs.
+      LH_RELEASE_GATE_SKIP_REASON: "${{ inputs.skip_gate_testflight_only && 'owner 11-02 ~8:10 AM pop-up - skip checks for TestFlight only (App Store submit stays gated)' || '' }}"
 
       FASTLANE_HIDE_CHANGELOG: "1"
       FASTLANE_SKIP_UPDATE_CHECK: "1"

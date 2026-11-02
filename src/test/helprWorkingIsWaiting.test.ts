@@ -16,7 +16,7 @@
  * @mutate src/components/job-card/activityFilters.ts |   return !(start && start.getTime() > now.getTime()); |   return false;
  * @mutate src/components/job-card/activityFilters.ts |   if (j.is_group_job) return false; |   if (j.is_group_job) return true;
  * @mutate src/components/job-card/activityFilters.ts |  \|\| Number(b.status === "in_progress") - Number(a.status === "in_progress")), | ),
- * @mutate src/pages/home/homeDashboard/nextUpStates.ts |     if (j.id === liveJobId \|\| postedActivityBucket(j, n) !== "waiting") continue; |     if (postedActivityBucket(j, n) !== "waiting") continue;
+ * @mutate src/pages/home/homeDashboard/nextUpStates.ts |     if (j.id === liveJobId) continue; |     if (j.id === liveJobId && false) continue;
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts | deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, | deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, null,
  */
 import { describe, it, expect, vi } from "vitest";

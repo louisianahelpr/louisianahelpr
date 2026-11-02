@@ -36,6 +36,9 @@ export const BEFORE_PHOTO_GATE_REASON =
   'Tap "Before photo" and add one before you start working — it\'s the record of how the job looked when you got there.';
 
 const LIFECYCLE_REASONS: Record<string, string> = {
+  // Continue another day (20261101231015, Auditor 11 11-01): trg_refuse_done_before_continue_day refuses "done"
+  // before the day set to finish, whichever write marks it (the date is on the page beside the toast).
+  continue_day_ahead: "You can mark it done on the day you set to finish.",
   // Board 141: a cancel, back-out or no-show report while a refund request on
   // the job waits or is being settled (trg_refuse_job_move_while_refund_requested).
   refund_request_live:
@@ -197,9 +200,6 @@ const CONTINUE_DAY_COMMON = {
   not_authorized: "Only the two people on this job can do that.",
   account_restricted: "Your account can't make changes right now.",
 } as const;
-/** "Done" before the day set to finish (refuse_done_before_continue_day): the date is on the page beside it. */
-export const CONTINUE_DAY_AHEAD_COPY = "You can mark it done on the day you set to finish.";
-
 export const RPC_ERROR_COPY = {
   // useOfferHandlers — accepting an applicant (single and group).
   accept_application: {
@@ -556,8 +556,6 @@ export const RPC_ERROR_COPY = {
     completion_min_work_time: "You can mark it done 30 minutes after you arrived.",
     // LEAD-LIST-FOR-SELLER (20261101034159): a Have a Helpr list it job is done once its listings are sent.
     completion_requires_listings_sent: "Send the listings to the seller for approval first, then mark the job done.",
-    // Continue another day (20261101231015): the trigger refuses "done" before the day set to finish.
-    continue_day_ahead: CONTINUE_DAY_AHEAD_COPY,
   },
   // Continue another day (20261101231015): the Helpr asks / the poster sets a day, the poster answers, the Helpr confirms.
   propose_job_continue_day: {

@@ -1370,7 +1370,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     expect(faceRequests).toEqual([]);
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const panel = cardSteps \|\| posterWait === "approve" ? flows.panel : null; |   const panel = flows.panel;
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const panel = cardStepsAll \|\| posterWait === "approve" ? flows.panel : null; |   const panel = flows.panel;
   it("a booked job not yet under way offers only the page's own actions (no card steps)", async () => {
     state.job = booked();
     state.party = true;
@@ -1685,7 +1685,7 @@ describe("job page, an offered Helpr is not told the address comes with an offer
 describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yusef's job)", () => {
   // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open }; |
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | continueStep ?? jobNextStep( | jobNextStep(
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras)} |             {isPoster && posterActions.row(posterStep)}
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })} | posterActions.row(posterStep)}
   // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open }; |
   const underWay = (over: Partial<JobPageRow> = {}) => row({
     customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
@@ -1747,7 +1747,7 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
 
   // B118 follow-up (lead 11-01): with a SET day the bar read day 1 ("Late" on Arrived on a day that had passed).
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | <JobTracker job={jobOnContinueDay(job, continueDay.row)} side= | <JobTracker job={job} side=
-  // @mutate src/lib/continueDay.ts |   return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) }; |   return job;
+  // @mutate src/lib/continueDayWords.ts |   return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) }; |   return job;
   it("a set day: the tracker bar reads the new day, never 'Late' off day 1's passed date", async () => {
     continueState.row = setRow({ new_date: jobLocalDateISO(3), proposed_by: POSTER });
     state.job = underWay({ customer_id: POSTER, helper_id: ME, date_needed: jobLocalDateISO(-1), helper_arrived_at: null });

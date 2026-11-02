@@ -36,8 +36,8 @@ export function continueDayError(error: unknown, rpc: ContinueRpc = "propose_job
   return rpcErrorMessage(rpc, error);
 }
 
-function fail(rpc: ContinueRpc, error: unknown): never {
-  throw new Error(continueDayError(error, rpc) ?? "Couldn't save that. Check your connection and try again.");
+function fail(copy: string | null): never {
+  throw new Error(copy ?? "Couldn't save that. Check your connection and try again.");
 }
 
 /** The Helpr asks for another day, or the poster sets it (the server decides which from who calls). */
@@ -48,20 +48,20 @@ export async function proposeContinueDay(jobId: string, date: string, time: stri
     p_start_time: time.length === 5 ? `${time}:00` : time,
     p_note: note.trim() || undefined,
   });
-  if (error) fail("propose_job_continue_day", error);
+  if (error) fail(rpcErrorMessage("propose_job_continue_day", error));
   return { status: ((data as { status?: string } | null)?.status === "set" ? "set" : "proposed") };
 }
 
 /** The poster confirms the Helpr's day (one tap) or declines it. */
 export async function answerContinueDay(continueId: string, accept: boolean): Promise<void> {
   const { error } = await supabase.rpc("answer_job_continue_day", { p_continue_id: continueId, p_accept: accept });
-  if (error) fail("answer_job_continue_day", error);
+  if (error) fail(rpcErrorMessage("answer_job_continue_day", error));
 }
 
 /** The Helpr confirms they'll be there on the new day. */
 export async function confirmContinueDay(continueId: string): Promise<void> {
   const { error } = await supabase.rpc("confirm_job_continue_day", { p_continue_id: continueId });
-  if (error) fail("confirm_job_continue_day", error);
+  if (error) fail(rpcErrorMessage("confirm_job_continue_day", error));
 }
 
 /**

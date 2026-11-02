@@ -25,7 +25,7 @@
  * @mutate src/pages/home/HomeDashboard.tsx |                       onClick={() => setShown(i)} |                       onClick={() => setShown(0)}
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   for (const o of shopWaiting) { |   for (const o of shopWaiting.filter(() => false)) {
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: n > 0 ? (n === 1 ? "Review 1 applicant" |         title: j.title, _t: n > 0 ? (n === 1 ? "Review 1 applicant"
- * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |     const liveNow = deriveLiveNow(pj, aa, posted.helperNames ?? {}); |     const liveNow = null;
+ * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |     const liveNow = deriveLiveNow(pj, aa, posted.helperNames ?? {}, continueDays); |     const liveNow = null;
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       waiting: todos.length ? null : deriveWaiting( |       waiting: true ? null : deriveWaiting(
  * @mutate src/components/mobileNav/dockItems.ts |     right: [{ path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }, youItem], |     right: [youItem],
  * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.filter(isListed).map((s) => { |   const options = [...visible].reverse().filter(isListed).map((s) => {

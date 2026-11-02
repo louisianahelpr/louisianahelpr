@@ -47,6 +47,11 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
   markDelivered: async (...a: unknown[]) => { state.calls.push(JSON.stringify(["delivered", ...a])); },
 }));
 
+// A3-72: a needs_time delivery reads its book_by from the order row (sellerDeliveryBookBy.test.tsx covers the words).
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()),
+  fetchOrderPickupTimes: async () => [],
+}));
 import { SellerDeliveryOrderPanel } from "./SellerDeliveryOrder";
 
 const HOUR = 3_600_000;

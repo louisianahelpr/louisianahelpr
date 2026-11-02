@@ -95,7 +95,7 @@
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261101000817_declutter_admin_helpr_fault.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
+ * @mutate supabase/migrations/20261102031000_declutter_seller_delivery_book_by.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
  * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
@@ -443,8 +443,12 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // declutter_record_refund restated with ONE new reason, helpr_fault (the Helpr's fault in a delivery they could not
     // finish): everything goes back and the card fee becomes a debt on the at-fault Helpr, not the seller. Nothing
     // else in them changed (record_refund three-way merged from 20261031105148).
-    migration: "20261031231150_helpr_delivery_cant_finish.sql",
-    proofs: ["src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
+    // A3-72 (20261102031000, lead 11-01 9:05 PM): the reason CHECK adds 'delivery_never_booked' and the reason -> policy
+    // CHECK is restated unchanged beside it (the new reason takes its ELSE, full_platform_absorbs); declutter_record_refund
+    // is NOT restated, so its own CASE stays pinned to 20261031231150 (functionMigration).
+    migration: "20261102031000_declutter_seller_delivery_book_by.sql",
+    functionMigration: "20261031231150_helpr_delivery_cant_finish.sql",
+    proofs: ["src/test/pglite/declutterSellerDeliveryBookBy.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
       "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
     policySources: [
@@ -482,11 +486,18 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // fault = everything back, delivery included, and the card fee Stripe kept is a declutter_seller_fee_debts row
       // on the HELPR (declutter_record_refund: v_seller := the task's helpr_id), taken from their next payout.
       helpr_fault: "full_seller_pays_fee",
+      // A3-72 (lead 11-01 5:34 PM + 9:05 PM): a seller delivery that lost its time when the payment landed (the slot went
+      // to another buyer meanwhile) and has none 7 days on: the order is closed and the buyer's FULL payment refunded;
+      // the platform absorbs the card fee (no seller debt, no strike): neither side set a time, our checkout let the
+      // slot go while the payment was in flight.
+      delivery_never_booked: "full_platform_absorbs",
     } as Record<string, "full_platform_absorbs" | "full_seller_pays_fee" | "keep_card_fee" | "keep_buyer_fee" | "agreed_part">,
     /** Our own mistakes, the only reasons the platform refunds the fee on (owner, 2026-10-14). EXACT. */
     ownMistakes: ["superseded", "order_closed", "amount_mismatch", "duplicate_payment", "order_missing", "sold_elsewhere",
       // Row 43: the platform absorbs damage in a delivery it arranged (owner decision, not a guess).
-      "delivery_damage"],
+      "delivery_damage",
+      // A3-72 (lead decision 11-01 9:05 PM, not a guess): the slot was sold while the payment was in flight.
+      "delivery_never_booked"],
     constraints: [
       {
         name: "declutter_refunds_fee_policy_check",
@@ -533,7 +544,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // LEAD-ADMIN-HELPR-FAULT (20261101000817, for verdict): restated from its effective body (170717 with 172503's notice
       // rewrites); only the buyer's refund notice for 'helpr_fault' added ("All $X ... delivery included"). Reasons,
       // the amount it passes to declutter_record_refund (total - reserved, the order's card fee) and the task branches unchanged.
-      declutter_close_paid_order: "20261101000817_declutter_admin_helpr_fault.sql 0cc6e353aeae56cf",
+      // A3-72 (20261102031000, lead verdict pending): restated verbatim but for the two notices' words on the new reason
+      // 'delivery_never_booked' (buyer: "All $X is coming back"; seller: why). The amount passed (total - reserved, the
+      // order's card fee), reasons, strike and task branches unchanged.
+      declutter_close_paid_order: "20261102031000_declutter_seller_delivery_book_by.sql 7f47f57f3681610d",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
       // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
       // #3730 (20261028235247, lh-money-escrow approved via the lead 2026-10-29): only the handover_not_offered refusal
@@ -624,7 +638,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // T9 (20261031004529): names declutter_refunds only as a notice kind on the 60-day hold; its own refunds all go through declutter_close_paid_order with reasons already pinned (buyer_no_show, seller_no_show), and it writes no amount or fee.
       // 20261031181404 (Builder 16): restated verbatim but for the (d) delivery-reminder loop, which now locks its order and
       // re-reads the booking so its notice names the item; that loop records no refund. Every refund path above unchanged.
-      declutter_handover_sweep: "20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql f4d67855db1ff4c5",
+      // A3-72 (20261102031000, lead verdict pending): + loop (b2), a needs_time seller delivery past book_by closes through
+      // declutter_close_paid_order(o.id, 'delivery_never_booked', NULL) = full_platform_absorbs (lead 11-01 9:05 PM:
+      // everything back, no strike, no seller debt). Every other loop byte-for-byte as 20261031181404.
+      declutter_handover_sweep: "20261102031000_declutter_seller_delivery_book_by.sql edffe2c73c219ea3",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout
@@ -717,6 +734,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Board 141: the reason, fee policy, policy and amount CHECKs swapped in one DO block (agreed_part added, every
       // other arm unchanged), and declutter_refund_requests.refund_id referencing a refund row (no amount).
       // BUY-36: the reason CHECK and the reason -> policy CHECK swapped to add 'helpr_fault' (full_seller_pays_fee).
+      // A3-72: the reason CHECK adds 'delivery_never_booked'; the policy CHECK statements hash the same as 20261031231150's.
+      "declutter_refunds 20261102031000_declutter_seller_delivery_book_by.sql": ["1192c0e245b11665", "ee6fde0ace2bcc93", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261031231150_helpr_delivery_cant_finish.sql": ["1192c0e245b11665", "dafbb2cea83bdc81", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261026155251_declutter_refund_requests.sql": ["1192c0e245b11665", "7b90a5dbd6a21681", "4cf2e4567f6437bd", "2c0ac85e85bd01e6", "afb94a44f9fb4011", "7af5606b0b938d68", "9eb0bd77676aa5f0", "d2e483aa293ef495"],
       "declutter_refunds 20261014224914_declutter_slice3b_payments.sql": ["4bff57b818038dfb", "501086bd450ecad3", "3dac3faed7ee24b1", "f5f2155930f94544"],

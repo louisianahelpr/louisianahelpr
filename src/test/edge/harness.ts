@@ -936,6 +936,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/crewShares.ts";`,
   );
 
+  // Q1909: `_shared/stripeTestIdScan.ts` is pure TS with no imports: the test-id classifier money-reconciliation grades
+  // every money table with, tested as the real one.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeTestIdScan\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeTestIdScan.ts";`,
+  );
+
   // Owner 2026-10-14 (never absorb a fee): `_shared/refundAmount.ts` has ZERO
   // imports and is THE refund-amount definition every refund path uses, so the
   // real module runs and the amounts sent to Stripe stay under test.

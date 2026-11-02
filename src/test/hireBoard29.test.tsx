@@ -4,6 +4,7 @@
  * says so; the amount is the job price in rust, shown only when it is the whole charge for this Helpr.
  * @mutate src/components/ResponseDeadlineDialog.tsx | </strong>, was paid when you posted it, so nothing new is charged now. | </strong>, is charged now.
  * @mutate src/components/ResponseDeadlineDialog.tsx |   const series = !!job?.recurrence_days?.length; |   const series = false;
+ * @mutate src/components/ResponseDeadlineDialog.tsx | : suggestedTime ? `Agree and hire ${them}` : `Hire ${them}`} | : suggestedTime ? "Agree and send offer" : "Send offer"}
  * @mutate src/components/ResponseDeadlineDialog.tsx |             {job?.is_group_job\n |             {false\n
  * @mutate src/components/ResponseDeadlineDialog.tsx |   const price = job && !job.is_group_job && | const price = job &&
  * @mutate src/components/ResponseDeadlineDialog.tsx | <DialogHero title={`Hire ${them}`} /> | <DialogHero title="Set a response deadline" />
@@ -32,7 +33,9 @@ describe("board 29: hire sheet", () => {
     const note = document.querySelector("[data-hire-no-new-charge]")!;
     expect(note.textContent).toMatch(/The job price, \$90, was paid when you posted it, so nothing new is charged now\. Louisiana Helpr holds the money and releases it to Andre after the job is done\. If Andre says no or doesn't answer, the job reopens and your payment stays on it\./);
     expect(note.querySelector("strong")!.className).toContain("sienna-ink");
-    expect(screen.getByRole("button", { name: "Send offer" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hire Andre" })).toBeInTheDocument();
+    // A3-46 (audit 2026-11-01): one word for the step the poster took, never "Send offer".
+    expect(screen.queryByRole("button", { name: /send offer/i })).toBeNull();
   });
 
   it("a crew job or an urgent bonus shows no amount (the budget isn't this Helpr's whole charge)", () => {

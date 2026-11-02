@@ -358,7 +358,9 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
         <DialogFooter>
           <DialogSecondaryAction onClick={handleClose} disabled={submitting}>Cancel</DialogSecondaryAction>
           <DialogPrimaryAction onClick={handleConfirm} disabled={submitting}>
-            {submitting ? "Sending…" : suggestedTime ? "Agree and send offer" : "Send offer"}
+            {/* A3-46 (audit 2026-11-01): the poster tapped Hire, so the sheet's button says Hire too, one word for one step;
+                the note above says the Helpr can still say no and the job reopens. */}
+            {submitting ? "Hiring…" : suggestedTime ? `Agree and hire ${them}` : `Hire ${them}`}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

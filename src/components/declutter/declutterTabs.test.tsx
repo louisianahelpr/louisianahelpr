@@ -133,6 +133,8 @@ vi.mock("@/lib/declutter/handoverTalk", () => ({ fetchMyOpenHandoverTalks: async
 // A1-B2 (b28): "You paid" reads the card charge per order (declutter_my_paid_cents); which tab an order lands on is
 // what this file checks, so no figure is answered here.
 vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
+// A3-53: checkout's delivery size read (none here; its own test: declutterTradeViews "A3-53").
+vi.mock("@/lib/declutter/checkoutSize", async (orig) => ({ ...(await orig<object>()), fetchCheckoutSize: async () => null }));
 // Checkout's porch days (none here).
 vi.mock("@/lib/declutter/porchDays", async (orig) => ({ ...(await orig<object>()), fetchCheckoutPorchDays: async () => null }));
 // One marker per paid order: which tab it lands on is what this file checks.

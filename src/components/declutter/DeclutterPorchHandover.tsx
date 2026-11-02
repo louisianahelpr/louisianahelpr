@@ -31,6 +31,10 @@ import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { sellerPayoutRule, type SellerPayoutKind } from "@/lib/declutter/sellerPayoutRule";
 import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
+import { refundAwaitsSeller } from "./useSellerReportsToAnswer";
+import { fetchRefundRequestView, type RefundRequestView } from "@/lib/declutter/refundRequests";
+import { bookByWords } from "@/lib/declutter/orderPickupTimes";
+import { useFeature } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Pickup = "porch" | "pickup_home" | "meetup";
@@ -140,6 +144,11 @@ export function PickupStatus({
   // A3-49: the seller's waiting line names the buyer (the order row's buyer id, then the public first name).
   const { user } = useCurrentUser();
   const other = useOrderOtherPerson(orderId, user?.id ?? "", side);
+  // A3-78: a handed-over sale with a refund request waiting on the seller says so in its next-step line, with the
+  // deadline (the refund panel's own read and key).
+  const refundsOn = useFeature("declutter_refund_requests");
+  const refund = useQuery({ queryKey: ["declutter", "refund-request", orderId], queryFn: () => fetchRefundRequestView(orderId),
+    enabled: refundsOn && side === "seller" && itemsCents > 0 && h.data?.status === "handed_over" });
   // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
   const free = itemsCents === 0;
   // A1-B2: the buyer's "You paid" is the card charge (the sale plus a first purchase's setup fee), read for the buyer
@@ -160,10 +169,18 @@ export function PickupStatus({
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
-      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null })} />
+      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }
+        : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null })} />
       {part === "all" && money}
     </div>
   );
+}
+
+/** A3-78: the seller's move on a refund request: answer it, or confirm the item came back; by its deadline. */
+function sellerRefundStep(v: RefundRequestView): NextStepValue {
+  const r = v.request!;
+  if (r.status === "open") return { who: "you", text: "Answer the refund request", by: r.answer_by ? bookByWords(r.answer_by) : null };
+  return { who: "you", text: "Confirm you got the item back", by: r.return_deadline ? bookByWords(r.return_deadline) : null };
 }
 
 /** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */

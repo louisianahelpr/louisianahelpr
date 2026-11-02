@@ -14,12 +14,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { FAQ_SECTIONS, TOPICS } from "./helpCenterContent";
 import { TAB_TITLES } from "@/pages/profile/types";
+import { BIGGER_TEXT_LABEL } from "@/components/profile/biggerTextWords";
 
 const ROOT = resolve(__dirname, "../../../..");
 const settings = readFileSync(resolve(ROOT, "src/components/profile/SettingsTab.tsx"), "utf8");
-/** The Settings rows: literal labels plus the TAB_TITLES the rows read. */
+/** The Settings rows: literal labels, the TAB_TITLES the rows read, and the shared bigger-text name (Q2657). */
 const ROWS = new Set<string>([
   ...[...settings.matchAll(/label="([^"]+)"/g)].map((m) => m[1]),
+  ...(/label=\{BIGGER_TEXT_LABEL\}/.test(settings) ? [BIGGER_TEXT_LABEL] : []),
   ...[...settings.matchAll(/label=\{TAB_TITLES\.(\w+)\}/g)].map((m) => TAB_TITLES[m[1] as keyof typeof TAB_TITLES]),
 ]);
 const texts = [...FAQ_SECTIONS.flatMap((s) => s.items.map((i) => `${i.q} ${i.a}`)), ...TOPICS.map((t) => t.desc)];

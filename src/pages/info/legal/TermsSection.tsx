@@ -407,6 +407,7 @@ export const TermsContent = () => {
             <p>Declutter keeps one strike count per member for buying and selling together, separate from job strikes; Declutter strikes never affect your jobs. <strong className="text-foreground">Each strike lasts 1 year. 3 active strikes lock you out of all of Declutter</strong> until one expires, and your listings are hidden meanwhile.</p>
             <p><strong className="text-foreground">Buyers</strong> get a strike for missing the 48-hour checkout, or paying but not picking up within the 7 days. <strong className="text-foreground">Sellers</strong> get one for not showing up at a booked pickup, the item being gone after it sold, backing out after accepting (or cancelling a paid seller delivery), an item that is not as described, or blocking the buyer after the sale.</p>
             <p>You can appeal each strike once, with a note and, if you like, a photo. An admin removes or keeps it.</p>
+            <p><strong className="text-foreground">Strikes stay with your verified ID.</strong> If you delete your account while you have active strikes and you verified your ID, a record of those strikes is kept after deletion to stop repeat abuse. It holds only a one-way code made from your ID check, the reason and the dates, never your name or contact details. If you verify the same ID on a new account, the strikes come back until they would have ended.</p>
           </>
         }
       />

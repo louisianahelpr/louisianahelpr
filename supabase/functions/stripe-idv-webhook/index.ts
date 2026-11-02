@@ -336,6 +336,17 @@ serve(async (req) => {
             throw new Error(`enforce_retained_ban failed: ${banErr.message}`);
           }
 
+          // Q2338: Declutter strikes kept from a deleted account with this identity come back onto this one (moved,
+          // with their original dates; 20261102032514). Idempotent, so a redelivery after a later failure is safe;
+          // like the ban check, an unanswered call never lets the approval through.
+          const { error: strikeErr } = await supabase.rpc("declutter_restore_retained_strikes", {
+            p_user_id: userId,
+            p_identity_sha256: identityHash,
+          });
+          if (strikeErr) {
+            throw new Error(`declutter_restore_retained_strikes failed: ${strikeErr.message}`);
+          }
+
           if (banCheck?.banned) {
             // The account is left UNVERIFIED — `enforce_retained_ban` has
             // already re-applied the ban status, and the jobs INSERT policy

@@ -327,7 +327,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // card whose line says why (its button, "It wasn't delivered", is the step).
   // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time", by) |       return at === 0 ? info("Pick a pickup time")
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time", by); |       if (at === 0) return info("Book a pickup time.");
-  // @mutate src/components/declutter/BuyingOrders.tsx |       return you("Tap I got it once you have it");\n  } |       return info("Delivered.");\n  }
+  // @mutate src/components/declutter/BuyingOrders.tsx |       return you("Tap I got it once you have it");\n    case "ship": { |       return info("Delivered.");\n    case "ship": {
   // @mutate src/components/declutter/BuyingOrders.tsx | value={standing ? { who: "info", text: standing } : view.next} | value={{ who: "info", text: view.next.text }}
   it("Next-step line: every card that waits on the buyer says 'Next: …'; the rest never do", async () => {
     load(CASES);

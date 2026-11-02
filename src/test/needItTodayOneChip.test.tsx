@@ -6,6 +6,11 @@
  *
  * @mutate src/components/postjob/LogisticsSection.tsx | <ChoicePill selected={!isToday && !isFlexibleSchedule} | <ChoicePill selected={!isFlexibleSchedule}
  * @mutate src/components/postjob/LogisticsSection.tsx |     if (isToday && strip[1]) pickDay(strip[1].iso); |     void 0;
+ * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => setHelpersNeeded(String(Math.min(10, Math.max(2, crewCount + 1))))} | onClick={() => setHelpersNeeded(String(crewCount))}
+ * @mutate src/components/postjob/LogisticsSection.tsx |                 disabled={crewCount <= 2} |                 disabled={false}
+ *
+ * Same row (Q2615 part 2): the Group box's Helpr count was a plain number field while the budget one step earlier uses
+ * - / + steppers; it now has the same stepper around the field, inside the field's own 2..10.
  */
 import { useState } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -33,6 +38,8 @@ import { todayYmd } from "@/lib/jobDate";
 
 let seen: { dateNeeded?: string; startTime?: string } = {};
 let flex = false;
+let crew = "";
+let groupStart = false;
 
 function Host() {
   const [streetAddress, setStreetAddress] = useState("12 Bayou Rd");
@@ -44,7 +51,9 @@ function Host() {
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
   flex = isFlexibleSchedule;
   const [isRecurring, setIsRecurring] = useState(false);
-  const [isGroupJob, setIsGroupJob] = useState(false);
+  const [isGroupJob, setIsGroupJob] = useState(groupStart);
+  const [helpersNeeded, setHelpersNeeded] = useState("2");
+  crew = helpersNeeded;
   const [notes, setNotes] = useState("");
   seen = { dateNeeded, startTime };
   const noop = () => {};
@@ -64,7 +73,7 @@ function Host() {
       recurrenceWeeks={4} setRecurrenceWeeks={noop}
       seriesSplitOk={false} setSeriesSplitOk={noop}
       isGroupJob={isGroupJob} setIsGroupJob={setIsGroupJob}
-      helpersNeeded="2" setHelpersNeeded={noop}
+      helpersNeeded={helpersNeeded} setHelpersNeeded={setHelpersNeeded}
       budgetNum={60}
       logisticsComplete={false}
       category="painting"
@@ -83,6 +92,7 @@ beforeAll(() => {
 afterEach(() => {
   cleanup();
   clock.start = null;
+  groupStart = false;
 });
 
 const whenPill = (name: string) => within(screen.getByRole("radiogroup", { name: "When" })).getByRole("radio", { name });
@@ -119,5 +129,24 @@ describe("Q2615: one filled chip for when", () => {
     expect(flex).toBe(true);
     expect(seen.dateNeeded! > todayYmd()).toBe(true);
     expect(whenPill("Flexible").getAttribute("aria-checked")).toBe("true");
+  });
+});
+
+describe("Q2615: the Group count uses the same stepper as the budget", () => {
+  it("- / + move the count inside 2..10", () => {
+    groupStart = true;
+    render(<Host />);
+    const fewer = screen.getByRole("button", { name: "One fewer Helpr" }) as HTMLButtonElement;
+    const more = screen.getByRole("button", { name: "One more Helpr" }) as HTMLButtonElement;
+    expect(fewer.disabled).toBe(true);
+    fireEvent.click(more);
+    fireEvent.click(more);
+    expect(crew).toBe("4");
+    expect(fewer.disabled).toBe(false);
+    fireEvent.click(fewer);
+    expect(crew).toBe("3");
+    for (let i = 0; i < 12; i++) fireEvent.click(more);
+    expect(crew).toBe("10");
+    expect(more.disabled).toBe(true);
   });
 });

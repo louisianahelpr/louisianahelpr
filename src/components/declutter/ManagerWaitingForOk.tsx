@@ -45,7 +45,7 @@ export default function ManagerWaitingForOk({ userId }: { userId: string }) {
       <h2 id="manager-waiting-title" className="text-base font-semibold">Waiting for your OK</h2>
       {/* NextStep: what the seller does now. */}
       <p className="mt-1 text-ds-13 text-muted-foreground" data-next-step="">
-        {manager} wrote {rows.length === 1 ? "this listing" : `these ${rows.length} listings`} for you. Next: approve to put {rows.length === 1 ? "it" : "each"} on sale, or send it back with a note.
+        {manager} wrote {rows.length === 1 ? "this listing" : `these ${rows.length} listings`} for you. Next: {ticked ? "" : "tick the statements below, then "}approve to put {rows.length === 1 ? "it" : "each"} on sale, or send it back with a note.
       </p>
       <ul className="mt-3 divide-y divide-border">
         {rows.map((r) => (

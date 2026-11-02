@@ -6,6 +6,7 @@
  * @mutate src/components/declutter/ManagerWaitingForOk.tsx | sendBack.mutate({ id: r.item_id, note: note.trim() }) | sendBack.mutate({ id: r.item_id, note: "" })
  * @mutate src/components/declutter/ManagerWaitingForOk.tsx |   if (rows.length === 0) return null; |
  * @mutate src/components/declutter/ManagerWaitingForOk.tsx | approve to put {rows.length === 1 ? "it" : "each"} on sale | approve to put it on sale
+ * @mutate src/components/declutter/ManagerWaitingForOk.tsx | {ticked ? "" : "tick the statements below, then "} | {""}
  * @mutate src/components/declutter/ManagerWaitingForOk.tsx | flex flex-wrap items-center justify-end gap-x-3 | flex flex-wrap items-center gap-x-3
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       <ManagerWaitingForOkGate userId={userId} />\n |
  * @mutate src/components/declutter/ManagerWaitingForOkGate.tsx |   if (!on) return null;\n  return <Suspense | return <Suspense
@@ -45,7 +46,8 @@ describe("manager mode: Waiting for your OK", () => {
   it("lists the draft with who wrote it and the next step; Approve waits for her tax statements, then posts as hers", async () => {
     mount();
     expect(await screen.findByText("Oak rocking chair")).toBeTruthy();
-    expect(screen.getByText(/Dana wrote this listing for you\. Next: approve to put it on sale, or send it back with a note\./)).toBeTruthy();
+    // Lead 11-01: the grey Approve is never a dead end; the line names the box first.
+    expect(screen.getByText(/Dana wrote this listing for you\. Next: tick the statements below, then approve to put it on sale, or send it back with a note\./)).toBeTruthy();
     const approve = screen.getByRole("button", { name: "Approve" });
     expect((approve as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(approve);
@@ -53,6 +55,7 @@ describe("manager mode: Waiting for your OK", () => {
     expect(screen.getAllByRole("checkbox").length).toBeGreaterThan(0);
     for (const box of screen.getAllByRole("checkbox")) fireEvent.click(box);
     await waitFor(() => expect((screen.getByRole("button", { name: "Approve" }) as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByText(/Dana wrote this listing for you\. Next: approve to put it on sale, or send it back with a note\./)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     await waitFor(() => expect(st.approved).toEqual([["i1", { personalUse: true, notBusiness: true, notFrequent: true, keepsItem: true }]]));
   });
@@ -68,7 +71,7 @@ describe("manager mode: Waiting for your OK", () => {
   it("two drafts: the plural next step; the buttons sit on the right, Approve last", async () => {
     st.rows = [...st.rows, { item_id: "i2", title: "Brass table lamp", price_cents: 1500, submitted_at: "2026-11-01T10:05:00Z" }];
     mount();
-    expect(await screen.findByText(/Dana wrote these 2 listings for you\. Next: approve to put each on sale, or send it back with a note\./)).toBeTruthy();
+    expect(await screen.findByText(/Dana wrote these 2 listings for you\. Next: tick the statements below, then approve to put each on sale, or send it back with a note\./)).toBeTruthy();
     const row = document.querySelector('[data-waiting-draft="i1"] > div')!;
     expect(row.className.split(" ")).toContain("justify-end");
     const labels = [...row.querySelectorAll("button")].map((b) => b.textContent);

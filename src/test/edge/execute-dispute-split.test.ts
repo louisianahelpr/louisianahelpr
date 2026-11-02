@@ -453,6 +453,33 @@ describe("execute-dispute-split edge function", () => {
       expect(notes.find((n) => n.user_id === "poster-1").message).toContain("$42");
     });
 
+    // JOBS2-33 (Jobs audit 10-30): "a 60% share" was not the money (the commission comes off the share), and a
+    // Helpr whose share came to $0 was told nothing.
+    // @mutate supabase/functions/execute-dispute-split/index.ts | : `The dispute on "${job.title}" is settled. Your share, $${helperAmount}, is on its way to your bank.`, | : `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${helperAmount} is on its way to your bank.`,
+    // @mutate supabase/functions/execute-dispute-split/index.ts |       : `The dispute on "${job.title}" is settled.`; |       : `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you.`;
+    // @mutate supabase/functions/execute-dispute-split/index.ts |   } else if (job.helper_id && !agreement) { |   } else if (false) {
+    it("JOBS2-33: the notices name dollars, never a percent share", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      const fn = await load();
+      await invoke(fn);
+      const notes = scenario.writes.filter((w) => w.table === "notifications").map((w) => w.payload as any);
+      const helper = notes.find((n) => n.user_id === "helper-1");
+      expect(helper.message).toMatch(/Your share, \$52/);
+      for (const n of notes) expect(n.message, n.user_id).not.toMatch(/%/);
+    });
+
+    it("JOBS2-33: a Helpr whose share is $0 is told the dispute is settled with no pay to them", async () => {
+      seedExecutable(scenario, { helperShare: 0, posterShare: 1 });
+      const fn = await load();
+      await invoke(fn);
+      const helperNotes = scenario.writes
+        .filter((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")
+        .map((w) => w.payload as any);
+      expect(helperNotes).toHaveLength(1);
+      expect(helperNotes[0].title).toBe("Dispute settled");
+      expect(helperNotes[0].message).toMatch(/is settled with no pay to you for this job\.$/);
+    });
+
     it("accepts a split recorded in 0–100 percent form", async () => {
       // rpc_decide_dispute normalises percents, but it also ACCEPTS them, so a
       // historical row can hold either shape.
@@ -2040,7 +2067,7 @@ describe("execute-dispute-split: a Helpr-fault card fee comes out of the Helpr l
     expect(row.amount_cents).toBe(4831);
     expect(row.metadata).toEqual(expect.objectContaining({ helpr_fault_fee_cents: 369, rounding_remainder_cents: 80 }));
     const note = (scenario.writes ?? []).find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("your share was sent"));
-    expect(JSON.stringify(note?.payload)).toContain("$48.31 is on its way");
+    expect(JSON.stringify(note?.payload)).toContain("$48.31, is on its way");
   });
 
   it("an unreadable debt moves nothing (fails closed)", async () => {

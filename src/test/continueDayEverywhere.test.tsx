@@ -14,6 +14,8 @@
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail), |         title: (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail),
  * @mutate src/components/jobs/ContinueDaySheet.tsx |   const offerToday = !helprMarkedDone && today.getHours() < LAST_START_HOUR_TODAY; |   const offerToday = true;
  * @mutate src/components/jobs/ContinueDaySheet.tsx |           {helprMarkedDone && ( |           {false && (
+ * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (step?.key === "done" && s.continueDayNote) { |   if (step?.key === "done" && s.continueDayNote && false) {
+ * @mutate src/pages/jobs/AppliedJobCard.tsx |     continueDayNote: continueDayDoneNote(continueDay), |     continueDayNote: null,
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
@@ -24,6 +26,8 @@ import { jobProgress } from "@/components/tracker/jobProgressState";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import type { ContinueDay } from "@/lib/continueDayWords";
 import { formatJobDate } from "@/lib/dateUtils";
+import { helperFaceAction } from "@/pages/jobs/appliedJobCard/helperFaceAction";
+import { continueDayDoneNote } from "@/lib/continueDayWords";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 vi.mock("@/lib/continueDay", async (orig) => ({ ...(await orig<typeof import("@/lib/continueDay")>()), proposeContinueDay: async () => ({ status: "set" }) }));
@@ -115,6 +119,20 @@ describe("A3-119: the 'Set a day to finish' sheet", () => {
     unmount();
     sheet(false, 23);
     expect(within(screen.getByRole("group", { name: "Day to finish" })).getAllByRole("button")[0].textContent).toBe(formatJobDate("2026-11-02"));
+  });
+});
+
+describe("the Working card face before a day set to finish", () => {
+  const base = { isMinimalCard: false, isOffered: false, owesReview: false, review: () => {}, manage: () => {}, step: { jobId: "7b1da54b", key: "done" as const, label: "Mark job complete" } };
+  it("leads with Message and the note, never Mark job complete", () => {
+    expect(helperFaceAction(base)?.label).toBe("Mark job complete");
+    const note = continueDayDoneNote(day())!;
+    expect(note).toMatch(/^You can mark it done on \w{3} \d+\/\d+, the day you set to finish\.$/);
+    const f = helperFaceAction({ ...base, continueDayNote: note, message: { name: "Lexi", onClick: () => {} } });
+    expect([f?.label, f?.note]).toEqual(["Message Lexi", note]);
+    expect(helperFaceAction({ ...base, continueDayNote: note })?.label).toBe("Manage job");
+    // The day itself: nothing to wait for.
+    expect(continueDayDoneNote(day({ new_date: TODAY }))).toBeNull();
   });
 });
 

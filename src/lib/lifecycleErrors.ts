@@ -2410,6 +2410,13 @@ export const RPC_ERROR_COPY = {
   get_my_sms_consent: {
     not_authenticated: "Sign in again to see your text alert settings.",
   },
+  // Q2337 (20261102084156): the code from the confirmation text, typed into SmsAlertsCard. A wrong code is an
+  // answer ({status:'wrong_code'}), not an error, so only the refusals are here.
+  confirm_sms_code: {
+    account_restricted: "Your account is restricted right now, so you can't turn on text alerts.",
+    feature_disabled: "Text alerts aren't available on your account yet.",
+    not_authenticated: "Sign in again to confirm your phone.",
+  },
   // Q2423: the one-time "Add your phone" prompt (20261027183058). Its read fails quietly (no prompt) and its
   // dismiss is logged, so these words only reach a member through a shared error path.
   sms_phone_prompt_due: {

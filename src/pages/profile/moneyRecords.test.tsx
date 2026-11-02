@@ -18,7 +18,7 @@
  * @mutate src/pages/profile/PayoutHistory.tsx |       {next && ( |       {false && (
  * @mutate src/pages/profile/Receipts.tsx |     .filter((o) => o.paid_at && (o.status === "paid" \|\| o.status === "handed_over" \|\| o.status === "refunded")) |     .filter((o) => !!o.paid_at)
  * @mutate src/pages/profile/Receipts.tsx |           .eq("buyer_id", uid!) |           .eq("seller_id", uid!)
- * @mutate src/pages/profile/Receipts.tsx |   receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? []), paid.data ?? null)); |
+ * @mutate src/pages/profile/Receipts.tsx |   receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? []), paid.data ?? null, back.data ?? null)); |
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -232,7 +232,7 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
   // B96 (B93's DB-13 note): a first purchase's one-time account setup fee is charged outside total_cents, so the receipt
   // read ~$2 under what Stripe charged. It now shows the card charge (declutter_my_paid_cents) with the setup fee as
   // the cart's own words under the total (board 161: never a fee line).
-  // @mutate src/pages/profile/Receipts.tsx |         cents: o.status === "refunded" ? null : charged, |         cents: o.status === "refunded" ? null : o.total_cents,
+  // @mutate src/pages/profile/Receipts.tsx | null : netOfRefund(charged, refundedBack?.get(o.id)).cents, | null : netOfRefund(o.total_cents, refundedBack?.get(o.id)).cents,
   // @mutate src/pages/profile/Receipts.tsx |                       {!!r.setupCents && <p | {false && <p
   it("a first purchase's receipt shows what the card was charged, and says the setup fee in words under the total", async () => {
     tables.declutter_orders = [{ id: "o1", status: "paid", total_cents: 3220, paid_at: "2026-10-05T12:00:00Z",

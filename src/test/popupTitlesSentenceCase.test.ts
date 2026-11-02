@@ -163,7 +163,8 @@ describe("every pop-up title is sentence case", () => {
     // "How free items work" (DeclutterFreeClaim's rules sheet behind How it works).
     // 210: +2 continue another day (B118, 20261101231015): "Set a day to finish" and "Need another day" (ContinueDaySheet).
     // 209: -1 "Need another day" (ContinueDaySheet has one title for both sides now, Jobs audit 1102b Q2593).
-    expect(all.length).toBe(209);
+    // 210: +1 "Withdraw your offer?" (Q2604, useWithdrawOffer.tsx, Builder 174; measured by this test 11-02).
+    expect(all.length).toBe(210);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

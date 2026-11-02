@@ -156,12 +156,16 @@ async function unfundFailedEscrow(
   // Q1971 + Q1876: a funded job nobody was hired on was, like an unpaid
   // bounce, never paid for, so the gift its checkout spent goes back (the job
   // is now 'failed' with no checkout, which return_bounced_gift_card needs).
-  // A hired job the RPC would not cancel (work done, a series, a crew part
-  // done) or an RPC that is not deployed keeps it for a person (Q1975).
+  // Q1975 part 2 (lead decision 11-01: 'failed' wins): a hired job the RPC
+  // would not cancel (work done, a series, a crew part done) is 'failed' too,
+  // and process-scheduled-payouts never pays it from the gift alone, so its
+  // gift goes back to the poster as well. return_bounced_gift_card still
+  // refuses ('paid_out') a job that has any payout_transfers row. Only an RPC
+  // that is not deployed keeps it for a person.
   // The return runs AFTER the notices and the page below, so a gift-return
   // error (which throws for a Stripe retry) never swallows them (delta review
   // of dcfde9884 #1).
-  const giftAsked = Boolean(giftCardId) && cancelOutcome === "not_hired";
+  const giftAsked = Boolean(giftCardId) && (cancelOutcome === "not_hired" || cancelOutcome === "not_cancellable");
 
   // Copy follows where the job is (lh-money-escrow review): a 'failed' job is
   // hidden from My Posts and a hired or finished job cannot be checked out

@@ -270,7 +270,7 @@ export function EmptyState({
             <p
               data-empty-title=""
               // Upright Montserrat, the app's title face (owner, 2026-10-18 new look); was Bodoni display italic.
-              className="font-sans font-bold leading-tight break-words"
+              className="font-sans font-bold leading-tight break-words [text-wrap:balance]"
               style={{
                 fontSize: "clamp(1.1rem, 1.2vw + 0.5rem, 1.3rem)",
                 color: "hsl(var(--ink-deep))",
@@ -282,7 +282,7 @@ export function EmptyState({
           )}
           <p
             className={cn(
-              "font-sans text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words",
+              "font-sans text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words [text-wrap:balance]",
               // leading-relaxed is 1.625: N lines of this paragraph, and one more
               // below 360px, where the longest main-tab sentence (My Posts') wraps
               // to 4 lines (measured at 320 on a local build, 2026-10-12).

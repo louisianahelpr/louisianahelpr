@@ -88,6 +88,9 @@ const authStorage = withDeviceClockExpiry(Capacitor.isNativePlatform() ? keychai
 // Once a minute at most: how often a member's request was held back because
 // their sign-in was refreshing (src/lib/signedInRequestGuard.ts). Lazy import:
 // keeps errorLogger out of this module's import graph.
+// Q2347 (lead decision 2026-11-02): the hold is the guard working, so it is
+// counted in error_logs only (localOnly), never sent to Sentry, where every
+// event became an alert-ledger item.
 let lastHeldReportAt = -Infinity;
 const reportHeld = (info: { surface: string; method: string }) => {
   const now = Date.now();
@@ -96,6 +99,7 @@ const reportHeld = (info: { surface: string; method: string }) => {
   void errorLogger()
     .then((m) => m?.report(new Error('Held a signed-in request while the sign-in refreshed'), {
         severity: 'warning',
+        localOnly: true,
         tags: { source: 'signedInRequestGuard.held', surface: info.surface, method: info.method },
       }),
     )

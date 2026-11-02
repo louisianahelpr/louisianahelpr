@@ -154,6 +154,13 @@ interface ReportOptions {
   context?: Record<string, unknown>;
   /** Surface a toast to the user. Default false — silent reporting. */
   notifyUser?: boolean;
+  /**
+   * Q2347 (lead decision 2026-11-02): count it in our own error_logs only,
+   * never in Sentry or PostHog. For an EXPECTED diagnostic (the app handled
+   * the case as designed) that we still want to count: Sentry turns every
+   * issue into an alert-ledger item and a queue item.
+   */
+  localOnly?: boolean;
 }
 
 interface ErrorLogRow {
@@ -430,7 +437,8 @@ function reportNow(err: unknown, opts: ReportOptions) {
   // Fan out to Sentry + PostHog Error Tracking. No-op until their init
   // runs in main.tsx (and the SDKs themselves are lazy-loaded here so
   // they don't bloat the initial bundle).
-  void fanOutToObservability(err, { ...context, ...opts.tags }, opts.severity ?? "error");
+  // Q2347: a localOnly diagnostic stays in error_logs.
+  if (!opts.localOnly) void fanOutToObservability(err, { ...context, ...opts.tags }, opts.severity ?? "error");
 
   scheduleFlush();
 }

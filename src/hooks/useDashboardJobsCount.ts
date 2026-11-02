@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { ilikeContains } from "@/lib/postgrestIlike";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { jobWhenRange } from "@/lib/jobWhenFilter";
 import { categoriesForFilter } from "@/lib/jobCategoryGroups";
@@ -91,13 +92,6 @@ export interface DashboardJobsCountFilters {
   savedOnlyJobIds: string[] | null;
 }
 
-// Escape the characters that are structurally significant inside a
-// PostgREST `.or()`/`ilike` filter string (`%`, `,`, `(`, `)`) so a search
-// query containing them can't break the filter syntax or widen the match.
-function escapeIlike(raw: string): string {
-  return raw.replace(/[%,()]/g, (ch) => `\\${ch}`);
-}
-
 /**
  * The count itself (B90, 11-01: exported so Home's Jobs card counts "open near you" with Browse's own rules, the same
  * read, no second copy of the filters). Same contract as the hook's queryFn.
@@ -175,10 +169,11 @@ export async function fetchDashboardJobsCount(filters: DashboardJobsCountFilters
   if (urgentOnly) query = query.eq("is_urgent", true);
   if (boostedOnly) query = query.gt("boost_expires_at", now.toISOString());
   if (searchQuery.trim()) {
-    const q = escapeIlike(searchQuery.trim());
+    // Q2350: a quoted value, so a comma or ")" in the search cannot break the `.or()` list (src/lib/postgrestIlike.ts).
+    const q = ilikeContains(searchQuery.trim());
     // The category a job sits under matches too ("yard" counts "Yard work", A2-C22), as the list does.
     const cats = categoriesMatchingSearch(searchQuery);
-    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%${cats.length ? `,category.in.(${cats.join(",")})` : ""}`);
+    query = query.or(`title.ilike.${q},description.ilike.${q}${cats.length ? `,category.in.(${cats.join(",")})` : ""}`);
   }
   if (expiresWithin) {
     const hoursMap: Record<string, number> = { "24h": 24, "3d": 72, "7d": 168 };

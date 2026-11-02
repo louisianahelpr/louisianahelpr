@@ -248,7 +248,7 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // public.messages is dropped (20261004192943).
     // 12 -> 13 (2026-10-06, Q1461): job_access_notes, the poster's Access &
     // Parking notes (exported to the poster in their own section).
-    expect(viaJob.size).toBe(15); // 15: +2 continue another day (20261101231015): job_continue_days, job_continue_events (POSTER_SIDE_EXEMPT until LEAD-EXPORT-CONTINUE-DAY)
+    expect(viaJob.size).toBe(15); // 15: +2 continue another day (20261101231015): job_continue_days, job_continue_events (both exported to the poster by 20261102030000, LEAD-EXPORT-CONTINUE-DAY)
     expect(viaJob.has("job_views"), "Q1230: the poster reads view counts through get_job_view_counts, never the rows").toBe(false);
     expect(viaJob.get("applications")).toBe("job_id"); // the auth.uid() IN (SELECT customer_id ...) spelling
     expect(viaJob.get("disputes")).toBe("job_id");
@@ -292,8 +292,9 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     const helperSide = sections.filter((s) =>
       /\(\s*SELECT\s+j\.id\s+FROM\s+public\.jobs\s+j\s+WHERE\s+[^()]*\bj\.helper_id\s*=\s*v_uid\b[^()]*\)/i.test(s.text),
     );
-    // EXACT (2026-10-05): the sections that use the Helpr's job sub-select today.
-    expect(helperSide.map((s) => s.table).sort()).toEqual(["disputes", "job_revisions"]);
+    // EXACT (2026-10-05): the sections that use the Helpr's job sub-select today. +2 (20261102030000,
+    // LEAD-EXPORT-CONTINUE-DAY): job_continue_days and job_continue_events, both read by the job's Helpr in the app.
+    expect(helperSide.map((s) => s.table).sort()).toEqual(["disputes", "job_continue_days", "job_continue_events", "job_revisions"]);
     const wider = helperSide.filter((s) => !viaJob.has(s.table)).map((s) => s.table);
     expect(wider, "these sections give the Helpr rows the app's own SELECT rules never show them").toEqual([]);
   });

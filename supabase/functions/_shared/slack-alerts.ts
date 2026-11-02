@@ -80,6 +80,9 @@ export interface SlackAlertInput {
    * the Slack post's own edge_slack item made every request two open items).
    * The post still goes out. Pass it only when that other item exists;
    * src/test/oneLedgerItemPerSupportRequest.test.ts holds the callers to it.
+   * Also `false` for an informational admin notice mirrored by
+   * send-push-notification (owner closed Q2543, 11-02: a notice, not a defect);
+   * src/test/informationalAlertsNeverReachTheLedger.test.ts holds that one.
    */
   ledger?: boolean
 }

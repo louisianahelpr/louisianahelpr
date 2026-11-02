@@ -162,21 +162,15 @@ jobs:
           curl -sS --fail-with-body -X POST -H 'content-type: application/json' \
             --data "$(jq -nc --arg t "$TEXT" '{text:$t}')" "$SLACK_WEBHOOK_URL"
 
-      # The empty marketplace is a WARNING, never folded into "up": recorded on
-      # every empty run, so the item's last_seen always postdates the run's
-      # start and the ledger's sync cannot close it until a run finds rows.
-      - name: Record the empty marketplace (warning)
+      # The empty marketplace is a WARNING on the run, never folded into "up",
+      # and never an ops-alert ledger item: the owner closed Q2554 (11-02, 26
+      # occurrences) as an intended pre-launch notice, not a defect. Guard:
+      # src/test/informationalAlertsNeverReachTheLedger.test.ts.
+      - name: Note the empty marketplace (warning, no ledger item)
         if: steps.probe.outputs.status == 'empty'
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
           SUMMARY: ${{ steps.probe.outputs.summary }}
-        run: |
-          echo "::warning::${SUMMARY}"
-          node scripts/ops-alert-ledger.mjs record --source "uptime" --source-kind workflow \
-            --title "Guest marketplace is empty: no funded jobs (pre-launch)" --severity warning \
-            --verify-ref "uptime.yml" --sample "${SUMMARY}" \
-            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" --strict
+        run: echo "::warning::${SUMMARY}"
 
       - name: Fail the run while prod is down
         if: steps.probe.outputs.status == 'down'

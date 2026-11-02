@@ -15894,6 +15894,10 @@ export type Database = {
         Returns: { area: string; label: string; weekdays: number[]; windows: Json }[]
       }
       declutter_set_porch_place: { Args: { p_place_id: string; p_seller_id: string }; Returns: string }
+      declutter_ship_hold_refund_released: { Args: { p_payment_intent_id: string }; Returns: string }
+      declutter_ship_hold_released: { Args: { p_order_id: string }; Returns: string }
+      declutter_ship_setup_fee_at_capture: { Args: { p_order_id: string }; Returns: number }
+      declutter_ship_sweep: { Args: never; Returns: Json }
       declutter_order_place: {
         Args: { p_order_id: string }
         Returns: { address: string; area: string; label: string; lat: number; lng: number; weekdays: number[] }[]

@@ -25,7 +25,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}` }, |     {},
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
- * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged)) { |     if (false) {
+ * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged \|\| quoteChanged)) { |     if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |     bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0); |     bundleChanged = false; void off;
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (refused) return json({ error: "porch_unavailable" }, 400); |         if (false) return json({ error: "porch_unavailable" }, 400);
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (parties && !partyGone && (parties.buyer_id !== meta.buyer_id \|\| parties.seller_id !== meta.seller_id)) { |   if (false) {
@@ -35,7 +35,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |   const off = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (off) return off; |
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (deliveryCents > 0) { |   if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (quoteErr) return rpcRefusal(quoteErr);\n      }\n      if (handover === "seller_delivery") { |         void quoteErr;\n      }\n      if (handover === "seller_delivery") {
- * @mutate supabase/functions/declutter-checkout/index.ts |   if (!deliveryShapeOk\n      \|\| | if (
+ * @mutate supabase/functions/declutter-checkout/index.ts |   if (!deliveryShapeOk \|\| !shippingShapeOk\n      \|\| | if (
  * @mutate supabase/functions/declutter-card/index.ts |   const refused = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (refused) return refused; |
  * @mutate supabase/functions/_shared/stripeMode.ts |   if (session.mode === "setup") return meta.kind === "declutter_card"; |   if (session.mode === "setup") return false;
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     p_livemode: event.livemode === true, |     p_livemode: false,
@@ -216,7 +216,7 @@ describe("stripe-webhook: Declutter order paid", () => {
 
   // Deep audit #57 / audit 2 SH2-3 (A2-3): the seller is emailed when the buyer pays, once, with no fee words.
   // AUD31-35: rendered from the branded notice email (React escapes the member's item title), greeting by first name.
-  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep, |     if (Math.random() > 2) await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep,
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep,\n      parties?.handover === "seller_delivery" | if (Math.random() > 2) await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep,\n      parties?.handover === "seller_delivery"
   // @mutate supabase/functions/_shared/declutterSellerEmail.ts |       subject: `You sold ${items}`, |       subject: "You sold an item",
   // @mutate supabase/functions/_shared/declutterSellerEmail.ts |     userName: firstName(opts.fullName), |     userName: "",
   // @mutate supabase/functions/_shared/declutterSellerEmail.ts |     const result = await queueEmail(db, { to, subject, templateName, html, text }); |     const result = await queueEmail(db, { to, subject, templateName, html: `<p>${body}</p>`, text });

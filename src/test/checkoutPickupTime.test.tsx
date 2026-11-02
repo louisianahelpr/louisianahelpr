@@ -9,7 +9,7 @@
  * @mutate src/lib/declutter/pickupSlots.ts |       for (let m = minutes(w.starts); m + SLOT_MIN <= wEnd; m += PORCH_WINDOW_MIN) { |       for (let m = minutes(w.starts); m + SLOT_MIN <= wEnd; m += SLOT_MIN) {
  * @mutate src/lib/declutter/api.ts |       : (handover === "porch" \|\| handover === "pickup_home" \|\| handover === "meetup") && slotStart ? { slot_start: slotStart } |       : false ? { slot_start: slotStart }
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const pickupTimeReady = !timedPickup \|\| pickupChoices.length === 0 \|\| pickupStart !== null; |   const pickupTimeReady = true;
- * @mutate supabase/functions/declutter-checkout/index.ts | slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged)) { | slotChanged \|\| spotChanged \|\| bundleChanged)) {
+ * @mutate supabase/functions/declutter-checkout/index.ts | slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged \|\| quoteChanged)) { | slotChanged \|\| spotChanged \|\| bundleChanged \|\| quoteChanged)) {
  * @mutate supabase/functions/declutter-checkout/index.ts |   const slotStart = handover === "seller_delivery" \|\| PICKUP_TIMED.includes(handover) ? isoTime(body.slot_start) : null; |   const slotStart = handover === "seller_delivery" ? isoTime(body.slot_start) : null;
  */
 import { readFileSync } from "node:fs";
@@ -85,7 +85,8 @@ describe("the checkout sends the pick", () => {
   it("declutter-checkout passes the time on and closes an open page when it changed", () => {
     const s = read("supabase/functions/declutter-checkout/index.ts");
     expect(s).toContain('const slotStart = handover === "seller_delivery" || PICKUP_TIMED.includes(handover) ? isoTime(body.slot_start) : null;');
-    expect(s).toContain("slotChanged || spotChanged || bundleChanged || pickupChanged)) {");
+    // Shipping S3 adds a changed quote to the same gate (quoteChanged).
+    expect(s).toContain("slotChanged || spotChanged || bundleChanged || pickupChanged || quoteChanged)) {");
     expect(s).toContain("? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart }");
   });
 
@@ -105,7 +106,7 @@ describe("the checkout sends the pick", () => {
     expect(fn).toContain("p_order_id: orderId, p_seller: sellerId, p_handover: handover, p_start: slotStart,");
     expect(fn).toMatch(/if \(!end\) return json\(\{ error: "invalid_slot"/);
     // Called on a changed time, after the page is known open and BEFORE it is expired.
-    const gate = s.indexOf("slotChanged || spotChanged || bundleChanged || pickupChanged)) {");
+    const gate = s.indexOf("slotChanged || spotChanged || bundleChanged || pickupChanged || quoteChanged)) {");
     const call = s.indexOf("if (pickupChanged && slotStart) {\n        const refused = await pickupTimeRefused(admin, open.id");
     const close = s.indexOf("await stripeOf(open.stripe_checkout_session_id).checkout.sessions.expire(open.stripe_checkout_session_id);");
     expect(gate).toBeGreaterThan(0);

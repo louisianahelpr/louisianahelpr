@@ -37,6 +37,10 @@ function buyerSteps(handover: CartLine["handover"], booked: boolean): WhatNextSt
   switch (handover) {
     case "delivery":
       return [go("A local Helpr brings it", "You'll see when it's on the way", true)];
+    case "ship":
+      // B134: a shipped order was booked by "Book a pickup time" (it fell to the default). Ship-by is the 3rd business
+      // day (declutter_ship_by, 20261102023246); the tracking number shows on the order in Buying.
+      return [go("The seller ships it", "Within 3 business days. Tracking shows in Buying", true)];
     case "seller_delivery":
       return booked
         ? [go("The seller brings it", "At the time you picked", true)]
@@ -59,8 +63,7 @@ function buyerSteps(handover: CartLine["handover"], booked: boolean): WhatNextSt
 /**
  * Board 82, "What next" after buying, on the shared WhatNextSheet, opened on the Buying tab
  * when the checkout returns (?paid=1). The amount is what the card was charged (useMyPaidCents); the
- * steps follow the order's handover (pickup at home, porch, or Helpr delivery). Shipping
- * does not exist yet, so the board's "ships it / tracking" steps are not shown.
+ * steps follow the order's handover (pickup at home, porch, Helpr delivery, or shipping).
  */
 export function BoughtWhatNext() {
   const location = useLocation();

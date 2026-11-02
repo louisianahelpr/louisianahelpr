@@ -303,7 +303,7 @@ describe("Declutter slice 3 screens", () => {
       const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
       await waitFor(() => expect(buy).toBeEnabled());
       fireEvent.click(buy);
-      const step = await screen.findByText("Add a card to finish.");
+      const step = await screen.findByText("To buy, add a card first.");
       const foot = screen.getByTestId("panel-footer");
       expect(step.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
       const area = step.closest("[data-offer-step-area]");
@@ -328,7 +328,7 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText("Save a card to buy or make offers.")).toBeNull();
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
-    expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();
+    expect(await screen.findByText("To buy, add a card first.")).toBeInTheDocument();
     // #21 (owner chose C, 2026-10-28): two Stripe pages stay; before the first, one line says what it is for.
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged when you check out. | You're only charged when you buy.
     // NIGHT-BUYING0-4: after the card is saved the app holds the item and opens checkout (run("buy")); no confirm press.
@@ -350,20 +350,23 @@ describe("Declutter slice 3 screens", () => {
     await waitFor(() => expect(offer).toBeEnabled());
     fireEvent.click(offer);
     const input = await screen.findByLabelText("Your offer");
-    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    expect(screen.queryByText(/add a card first\./)).toBeNull();
     fireEvent.change(input, { target: { value: "30" } });
     // What they would pay shows before any card is asked for.
     expect(document.querySelector("[data-offer-bill]")?.textContent).toMatch(/You pay if the seller says yes\$32\.20/);
     await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
     expect(await screen.findByText(/Then you send your offer\./)).toBeInTheDocument();
+    // Q2573 (audit 1102a): the step names what it is for, never "to finish" on the first tap.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | {action === "buy" ? "To buy, add a card first." : "To send your offer, add a card first."} | Add a card to finish.
+    expect(screen.getByText("To send your offer, add a card first.")).toBeInTheDocument();
     // Nothing went to the server, the amount is still there, and "Add a card" is the one primary.
     expect(state.sent).toEqual([]);
     expect(screen.getByLabelText("Your offer")).toHaveValue("30");
     expect(document.querySelectorAll("[aria-label='Buy or make an offer'] button.btn-grad-primary").length).toBe(1);
     // Not now only closes the card step.
     fireEvent.click(screen.getByRole("button", { name: "Not now" }));
-    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    expect(screen.queryByText(/add a card first\./)).toBeNull();
     expect(screen.getByLabelText("Your offer")).toHaveValue("30");
     // The trip to Stripe's page remembers the amount for the way back.
     fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
@@ -385,7 +388,7 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled();
-      expect(screen.queryByText("Add a card to finish.")).toBeNull();
+      expect(screen.queryByText(/add a card first\./)).toBeNull();
       expect(screen.queryByText("Checking for your card…")).toBeNull();
     });
     // Never sent on its own: the member's own press sends it.
@@ -420,7 +423,7 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText(/Reserve it/)).toBeNull();
     expect(screen.queryByText(/strike/i)).toBeNull();
     expect(window.confirm).not.toHaveBeenCalled();
-    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    expect(screen.queryByText(/add a card first\./)).toBeNull();
   });
 
   it("DB-5: with a saved card, one tap on Buy now holds the item and opens that seller's checkout", async () => {
@@ -471,7 +474,7 @@ describe("Declutter slice 3 screens", () => {
   it("back before Stripe's webhook filed the card: it keeps looking, then Buy goes on to that seller's checkout (DB-5)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
     expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
-    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    expect(screen.queryByText(/add a card first\./)).toBeNull();
     expect(state.bought).toBe(0);
     state.card = { brand: "visa", last4: "4242" };
     // The Buy now the member started carries on: the hold, then the checkout (Pay is still its own press there).

@@ -24,7 +24,6 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/BirthdayPopup.tsx |                   size="iconCompact" |                   size="icon"
 // @mutate src/components/DesktopTopNav.tsx |             size="iconCompact"\n            aria-label="Profile" |             size="icon"\n            aria-label="Profile"
 // @mutate src/pages/profile/SavedSearchesTab.tsx |                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} |                   <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(s)}
-// @mutate src/pages/user/ReviewsSection.tsx |                   size="iconCompact"\n                  aria-label="Report this review" |                   size="icon"\n                  aria-label="Report this review"
 // @mutate src/pages/auth/Login.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}
 // @mutate src/pages/auth/signup/SignupStep1.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}
 // @mutate src/pages/info/Legal.tsx | size="iconCompact" onClick={closeSearch} | size="icon" onClick={closeSearch}
@@ -90,8 +89,8 @@ describe("the compact icon Button", () => {
   it.each([
     ["src/components/declutter/DeclutterPickupTimes.tsx", /<button\b[^>]*aria-label=\{removeLabel\}/],
     ["src/pages/profile/SavedSearchesTab.tsx", /<button\b[^>]*aria-label=\{`Settings for/],
-    // B47 10-31, /user/:id (mocked public review): 44x44 at 302,384 (375) / 1359,397 (1440), margins -8 unchanged.
-    ["src/pages/user/ReviewsSection.tsx", /<button\b[^>]*aria-label="Report this review"/],
+    // B47 10-31's /user/:id review ⋯ left this list on 11-01: it held one action, so it is a visible "Report" text
+    // button now (owner 2026-11-01: a menu only with two or more items); src/test/moreOptionsHoldsTwo.test.tsx holds it.
     // B75 11-01, the birthday card's close X on /jobs (mocked session, birthday today, 375): 44x44 at (191,5) in the
     // card, 16px glyph at 14,14, colour, radius and hover wash unchanged before and after; it still closes the card.
     ["src/components/BirthdayPopup.tsx", /<button\b[^>]*onClick=\{dismiss\}/],

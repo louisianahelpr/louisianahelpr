@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Briefcase, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { buttonLabel } from "@/components/ui/pairLabel";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatJobDate } from "@/lib/dateUtils";
@@ -219,12 +220,14 @@ export function MineJobFace({
           data-mine-face-action={action.tone}
           size="sm"
           className="order-3 mt-2 w-full rounded-full font-semibold md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0 md:order-none"
+          aria-label={buttonLabel(action.label) !== action.label ? action.label : undefined}
           onClick={(e) => {
             e.stopPropagation();
             action.onClick();
           }}
         >
-          {action.label}
+          {/* Owner 11-01: every confirm reads just "Confirm" (pairLabel.ts buttonLabel); the full words are its name. */}
+          {buttonLabel(action.label)}
         </Button>
       )}
       <MineFaceNote note={action?.note} className="order-3 mt-1 md:order-none md:basis-full md:mt-0 md:text-right" />

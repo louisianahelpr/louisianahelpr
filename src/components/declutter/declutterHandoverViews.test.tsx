@@ -27,6 +27,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
+  /** A3-78: the refund request on a handed-over card (null: none). */
+  refundRequest: null as Record<string, unknown> | null,
   bookings: [] as unknown[],
   payouts: [] as unknown[],
   calls: [] as unknown[][],
@@ -68,7 +70,7 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => state.featur
 // NIGHT-SELL-soldstates-7: a handed-over card reads the refund request (refundedInFull) on both sides.
 vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/refundRequests")>()),
-  fetchRefundRequestView: async (orderId: string) => ({ order_id: orderId, side: "seller", handed_over: true, full_refund_cents: 0, request: null }),
+  fetchRefundRequestView: async (orderId: string) => ({ order_id: orderId, side: "seller", handed_over: true, full_refund_cents: 0, request: state.refundRequest }),
 }));
 vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: ({ problemForm }: { problemForm: import("react").ReactNode }) => <div><p>Refund panel</p>{problemForm}</div> }));
 
@@ -167,6 +169,7 @@ describe("the seller's order card, I'm on my way (D-NEW11)", () => {
   const bookingShown = () => screen.findByText(/You can tap "I'm here" from an hour before the meeting time/);
   const said = () => document.querySelector("[data-buyer-on-way]");
   beforeEach(() => {
+    state.refundRequest = null;
     state.calls = [];
     state.payouts = [];
     state.handover = null;
@@ -352,6 +355,22 @@ describe("Declutter slice 4: paid-order cards", () => {
     show([line({ my_side: "seller", handover: "meetup" })]);
     expect(await screen.findByText("Paid. Waiting on Dana to book a time to meet.")).toBeInTheDocument();
     expect(screen.queryByText(/book a pickup time/)).toBeNull();
+  });
+
+  // A3-78 (audit 11-01): a handed-over sale whose refund request waits on the seller says so in its next-step line,
+  // with the deadline, instead of "Handed over."
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : standing( |         : standing(
+  it("A3-78: the seller's handed-over card says 'Next: answer the refund request · by …'", async () => {
+    state.features = ["declutter_refund_requests"];
+    state.handover = { status: "handed_over", side: "seller", confirmed_at: "2026-10-31T15:00:00Z" };
+    state.refundRequest = { id: "rr1", status: "open", answer_by: "2026-11-02T19:46:00Z" };
+    try {
+      const { container } = show([line({ my_side: "seller", handover: "porch", order_status: "handed_over" })]);
+      await waitFor(() => expect([...container.querySelectorAll("[data-next-step]")].map((e) => e.textContent)).toContain("Next: answer the refund request · by Mon 11/2, 1:46 PM"));
+    } finally {
+      state.features = [];
+      state.refundRequest = null;
+    }
   });
 
   // Deep audit #25: each side moves a booked time once; after that the Move control is gone and the card says so.

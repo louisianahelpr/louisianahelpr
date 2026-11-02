@@ -40,6 +40,7 @@ import {
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { userFacingError } from "@/lib/userFacingError";
 import { useLanguage } from "@/lib/i18n/language";
+import { ProfileNextStep } from "./completeProfile/ProfileNextStep";
 
 // Q292: an incomplete account cannot reach /profile (the gate sends it here),
 // so in-app deletion (Apple 5.1.1(v), GDPR Art. 17) has to be offered here.
@@ -206,8 +207,8 @@ const CompleteProfile = () => {
   // value already on the profile row (e.g. an avatar uploaded previously).
   const checklist = useMemo(() => {
     return [
-      { label: t("profileGate.needName"), done: firstName.trim().length > 0 && lastName.trim().length > 0 },
-      ...(ageBoxShown ? [{ label: t("profileGate.needAge"), done: ageConfirmed }] : []),
+      { label: t("profileGate.needName"), step: t("profileGate.stepName"), done: firstName.trim().length > 0 && lastName.trim().length > 0 },
+      ...(ageBoxShown ? [{ label: t("profileGate.needAge"), step: t("profileGate.stepAge"), done: ageConfirmed }] : []),
       // City and ZIP left the checklist (owner 2026-10-26: optional, as on
       // sign-up step 2); a typed ZIP is still checked on submit.
       // Government-issued ID is intentionally NOT in the required checklist:
@@ -215,7 +216,7 @@ const CompleteProfile = () => {
       // verification is deferred to first-post / IDV. The upload field below
       // stays available so a user CAN attach it early, but it never blocks
       // profile completion.
-      { label: t("profileGate.needPolicies"), done: acceptedPolicies },
+      { label: t("profileGate.needPolicies"), step: t("profileGate.stepPolicies"), done: acceptedPolicies },
     ];
   }, [
     lang, t,
@@ -798,9 +799,8 @@ const CompleteProfile = () => {
                     2026-10-12, Q1288), so a label written with it rendered nothing.
                     Caught here by reading the computed page text, not the
                     class name — same trap as asserting gloss by class. */}
-                <p className="text-ds-11 font-semibold" style={{ color: "hsl(var(--sienna-ink))" }}>
-                  {t("profileGate.stillNeeded")}
-                </p>
+                <ProfileNextStep checklist={checklist} t={t} />
+                <p className="mt-2 text-ds-11 font-semibold" style={{ color: "hsl(var(--sienna-ink))" }}>{t("profileGate.stillNeeded")}</p>
                 <ul className="mt-2 space-y-1.5" aria-live="polite">
                   {checklist
                     .filter((c) => !c.done)
@@ -811,11 +811,6 @@ const CompleteProfile = () => {
                       </li>
                     ))}
                 </ul>
-                {checklist.some((c) => c.done) && (
-                  <p className="mt-2.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {t("profileGate.doneCount", { done: checklist.filter((c) => c.done).length, total: checklist.length })}
-                  </p>
-                )}
               </div>
             )}
 

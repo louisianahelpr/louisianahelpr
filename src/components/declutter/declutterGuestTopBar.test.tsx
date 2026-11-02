@@ -115,8 +115,9 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
     expect(join).toHaveTextContent("Sign up to buy it or make an offer.");
     expect(within(join).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
       "/",
-      "/signup?redirect=%2Fdeclutter%2Fitem%2Fi1",
+      // Q2581: Log in then Sign up, the order Browse's guest card and the top bar use.
       "/login?redirect=%2Fdeclutter%2Fitem%2Fi1",
+      "/signup?redirect=%2Fdeclutter%2Fitem%2Fi1",
     ]);
   });
 });

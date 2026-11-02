@@ -243,7 +243,7 @@ describe("Q343: checkout metadata the webhook reads is metadata a creator writes
     expect(anySpread).toBe(false);
   });
 
-  // @mutate src/test/checkoutMetadataKeysAreWritten.test.ts |     if (cond && !cond[1].includes("{")) { |     if (cond) {
+  // @mutate src/test/checkoutMetadataKeysAreWritten.test.ts |     if (cond && !cond[1].includes("{")) {\n      const inner | if (cond) {\n      const inner
   it("a conditional spread of a literal adds its keys; any other spread still blinds the inventory", () => {
     expect(objectKeys(`{ kind: "x", ...(mode === "test" && id ? { recipient_id: id } : {}) }`)).toEqual({ keys: ["kind", "recipient_id"], spread: false });
     expect(objectKeys(`{ kind: "x", ...extra }`).spread).toBe(true);

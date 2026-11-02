@@ -11,6 +11,12 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 import { trackedFiles } from "@/test/helpers/trackedFiles";
 import { invokeWithOneRetryIfUnsent, isUnsentRequest, waitForAWorkingPage } from "./retrySignupCompletion";
 
+const tracked = vi.hoisted(() => [] as Array<[string, Record<string, unknown>]>);
+vi.mock("@/lib/analytics", async (orig) => ({
+  ...(await orig<typeof import("@/lib/analytics")>()),
+  track: (event: string, props: Record<string, unknown> = {}) => { tracked.push([event, props]); },
+}));
+
 const unsent = () => Object.assign(new Error("Failed to send a request to the Edge Function"), { name: "FunctionsFetchError" });
 const answered = () => Object.assign(new Error("Edge Function returned a non-2xx status code"), { name: "FunctionsHttpError" });
 
@@ -51,6 +57,40 @@ describe("invokeWithOneRetryIfUnsent", () => {
     const send = vi.fn().mockResolvedValue({ data: { success: true }, error: null });
     await invokeWithOneRetryIfUnsent(send, async () => {});
     expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Q2090 (lh-silent-failure@773651052#6): every second send is counted, with how it ended.
+// @mutate src/pages/auth/signup/retrySignupCompletion.ts |   track(AhaEvent.SignupCompletionRetried, { ...atFailure, waited_ms: waitedMs, outcome }); |
+// @mutate src/pages/auth/signup/retrySignupCompletion.ts |   const outcome = !second.error ? "ok" : | const outcome = second.error ? "ok" :
+describe("invokeWithOneRetryIfUnsent records each second send (Q2090)", () => {
+  const run = async (second: { data: unknown; error: unknown } | null, aborted = false) => {
+    tracked.length = 0;
+    const ctl = new AbortController();
+    const send = vi.fn().mockResolvedValueOnce({ data: null, error: unsent() });
+    if (second) send.mockResolvedValueOnce(second);
+    await invokeWithOneRetryIfUnsent(send, async () => { if (aborted) ctl.abort(); }, ctl.signal);
+    return tracked.filter(([e]) => e === "signup_completion_retried").map(([, p]) => p);
+  };
+
+  it("a retry that worked is recorded as ok, with the page state at the failure", async () => {
+    const rows = await run({ data: { success: true }, error: null });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ outcome: "ok", hidden: false, online: true });
+    expect(typeof rows[0].waited_ms).toBe("number");
+  });
+
+  it("names a second unsent request and a second answered error apart", async () => {
+    expect((await run({ data: null, error: unsent() }))[0]).toMatchObject({ outcome: "unsent_again" });
+    expect((await run({ data: null, error: answered() }))[0]).toMatchObject({ outcome: "answered_error" });
+  });
+
+  it("records a caller that gave up during the wait, and nothing when no retry happens", async () => {
+    expect((await run(null, true))[0]).toMatchObject({ outcome: "caller_gave_up" });
+    tracked.length = 0;
+    await invokeWithOneRetryIfUnsent(vi.fn().mockResolvedValue({ data: { success: true }, error: null }), async () => {});
+    await invokeWithOneRetryIfUnsent(vi.fn().mockResolvedValue({ data: null, error: answered() }), async () => {});
+    expect(tracked).toEqual([]);
   });
 });
 

@@ -14,7 +14,7 @@
  * (MAIN_TAB_EMPTY_BODY_LINES), and Messages' desktop header buttons are the
  * same box as My Posts / My Jobs'.
  *
- * @mutate src/components/job-card/ActivityEmptyState.tsx |     ? (isPosted ? "Browse jobs" : "Post a job") |     ? (isPosted ? "Browse Jobs" : "Post a Job")
+ * @mutate src/components/job-card/ActivityEmptyState.tsx |   const ctaLabel = isPosted ? "Post a job" : "Browse jobs"; |   const ctaLabel = isPosted ? "Post a Job" : "Browse Jobs";
  * @mutate src/components/job-card/ActivityEmptyState.tsx |         bodyLines={MAIN_TAB_EMPTY_BODY_LINES}\n |
  * @mutate src/components/messages/ConversationList.tsx |                 bodyLines={MAIN_TAB_EMPTY_BODY_LINES}\n |
  * @mutate src/components/ui/EmptyState.tsx |               bodyLines && EMPTY_BODY_RESERVE_CLASS, |
@@ -131,7 +131,7 @@ describe("main-tab empty pages put their circle, title and button in one place",
 describe("Jobs › Posted / Working empty page buttons are sentence case (audit #16/#61)", () => {
   it("'Post a job' and 'Browse jobs', never Title Case", () => {
     const c = code("src/components/job-card/ActivityEmptyState.tsx");
-    expect(c).toContain('(isPosted ? "Browse jobs" : "Post a job")');
+    expect(c).toContain('const ctaLabel = isPosted ? "Post a job" : "Browse jobs";');
     expect(c).not.toMatch(/"Post a Job"|"Browse Jobs"/);
   });
 });

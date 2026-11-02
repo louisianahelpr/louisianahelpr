@@ -84,6 +84,8 @@ vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
   ...(await orig<object>()),
   fetchRefundRequestView: async (id: string) => state.refunds[id] ?? { order_id: id, side: "seller", handed_over: true, can_ask: false, can_report: false, items_cents: 0, full_refund_cents: 0, delivery_kept_cents: 0, window_ends_at: null, request: null },
 }));
+// Q2629: a sale waiting for payment draws SalesWaiting, which lists open handover chats.
+vi.mock("@/lib/declutter/handoverTalk", async (orig) => ({ ...(await orig<object>()), fetchMyOpenHandoverTalks: async () => [] }));
 // Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
@@ -370,6 +372,17 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     const sold = await screen.findByRole("region", { name: "Sold: pickup and payout" });
     expect(sold.querySelector("[data-seller-empty]")).not.toBeNull();
     expect(within(sold).getByText("Nothing sold yet")).toBeInTheDocument();
+  });
+
+  // Q2629 (audit 1102c R4): a sale waiting for the buyer to pay never sits over "Nothing sold yet".
+  // @mutate src/components/declutter/DeclutterTabParts.tsx |     if (!buyer && lines.some((l) => l.status === "in_cart")) return null; |
+  it("Q2629: a sale waiting for payment hides the Nothing sold yet card", async () => {
+    state.cart = [{ line_id: "l-w1", item_id: "i-w1", item_title: "Oak rocking chair", my_side: "seller", seller_id: "u1", price_cents: 4000, status: "in_cart",
+      checkout_by: new Date(Date.now() + 3_600_000).toISOString(), order_id: null, order_status: null, handover: "porch", premium_cents: 0, total_cents: 4000 }];
+    at("/declutter?tab=selling");
+    expect(await screen.findByText(/Sold, waiting for the buyer to pay/)).toBeInTheDocument();
+    await screen.findByRole("region", { name: "Offers on your items" });
+    expect(screen.queryByText("Nothing sold yet")).toBeNull();
   });
 
   // AUD31-4: a sale to hand over comes first on the whole tab, above the offers and the listings; none: after them.

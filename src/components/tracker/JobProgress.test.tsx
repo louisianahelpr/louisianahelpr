@@ -71,9 +71,22 @@ describe("JobProgress: the 8-step bar", () => {
     expect(container.querySelector("[role='img']")?.getAttribute("aria-label")).toContain("No-show?, needs attention");
   });
 
-  it("cancelled is all grey with Cancelled under it", () => {
+  // Q2600 (Jobs audit 1102b row 14): the Issue step kept Done's party popper, a celebration mark on a dispute.
+  // @mutate src/components/tracker/JobProgress.tsx |         const Icon = s === "alarm" ? AlertTriangle : JOB_STEP_ICONS[i]; |         const Icon = JOB_STEP_ICONS[i];
+  it("a dispute on the last step shows a warning icon, never the party popper", () => {
+    const { container } = render(<JobProgress progress={{ stage: 7, waitingOnYou: false, tone: "problem", label: "Dispute", word: "Under review", next: "x", held: true }} />);
+    expect(states(container)[7]).toBe("alarm");
+    const icon = container.querySelectorAll("[data-step-state]")[7].querySelector("[data-step-icon] svg");
+    expect(icon?.getAttribute("class")).toMatch(/lucide-(alert-triangle|triangle-alert)/);
+    expect(container.querySelector(".lucide-party-popper")).toBeNull();
+  });
+
+  // Q2596 (Jobs audit 1102b row 10): an ended job draws no bars (eight empty grey bars read as a progress bar with no
+  // progress), only its word.
+  // @mutate src/components/tracker/JobProgress.tsx |         <span className="flex items-center gap-1 text-ds-11 | <span className="grid grid-cols-8"><span data-step-state="todo" /></span><span className="flex items-center gap-1 text-ds-11
+  it("cancelled draws no bars, only Cancelled", () => {
     const { container } = render(<JobProgress barOnly progress={{ stage: 0, waitingOnYou: false, tone: "cancelled", label: "Cancelled", word: "Cancelled", next: "", held: false }} />);
-    expect(states(container)).toEqual(Array(8).fill("todo"));
+    expect(states(container)).toEqual([]);
     expect(container.textContent).toContain("Cancelled");
     expect(container.querySelector("[role='img']")?.getAttribute("aria-label")).toBe("Job progress: Cancelled. No steps ahead.");
   });

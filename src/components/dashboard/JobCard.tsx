@@ -3,12 +3,12 @@ import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enJobCard";
 import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
-import { differenceInHours } from "date-fns";
 
 import { JobHelprsChip } from "@/components/job-card/JobHelprsChip";
 import { JobTodayChip } from "@/components/job-card/JobTodayChip";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
-import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
+import { formatJobDate } from "@/lib/dateUtils";
+import { listingChip, listingDeadline } from "@/lib/listingDeadline";
 import { isTodayJob } from "@/lib/sameDayJob";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { formatPrice, formatPriceFloor, formatRecurrenceInterval, seriesSummary } from "@/lib/format";
@@ -162,23 +162,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // while every seeded job had a NULL `start_time` and the row looked empty;
   // that was solving the symptom. Duration still has a home on the job detail
   // (JobStatTiles' "Estimated" tile) — the card answers "when", not "how long".
-  // Expiry — an URGENCY signal, not a permanent meta line.
-  //
-  // Every job is created with the same 14-day window, so an unconditional
-  // countdown printed the identical string ("14 days left") on literally
-  // every card in the feed: zero decision value, and it consumed the one
-  // no-wrap meta slot a browsing helpr actually reads. It only becomes
-  // information once the window is genuinely closing — so it now renders
-  // inside a 48h horizon (or once expired) and stays silent before that.
-  // Under 24h it also goes destructive-red, the same tier as before.
-  const expiryNow = useExpiryClock([job.expires_at]);
-  const expiresAt = job.expires_at ? new Date(job.expires_at) : null;
-  const hoursToExpiry = expiresAt ? differenceInHours(expiresAt, expiryNow) : null;
-  const isExpired = !!expiresAt && expiresAt <= expiryNow;
-  const showExpiry = !!expiresAt && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 48));
-  // formatTimeLeft owns "Expired" too — one rule for when a listing has closed.
-  const expiryText = !showExpiry || !expiresAt ? null : formatTimeLeft(expiresAt, expiryNow);
-  const isExpiringSoon = showExpiry && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 24));
+  // Expiry: an urgency chip inside 48 h, counting to the start when that comes first (listingChip, A3-94).
+  const expiryNow = useExpiryClock([job.expires_at, listingDeadline(job)?.at.toISOString()]);
+  const chip = listingChip(job, expiryNow);
+  const expiryText = chip?.text ?? null;
+  const isExpiringSoon = !!chip?.soon;
 
   // WHEN the job starts, resolved ONCE by the one rule every surface shares:
   // a clock time, the word "Flexible" if the poster ticked the flag, or null

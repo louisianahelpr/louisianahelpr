@@ -54,3 +54,18 @@ describe("continueDayError", () => {
     expect(continueDayError({ message: "something else" })).toBeNull();
   });
 });
+
+/**
+ * A3-115 (Auditor 11, 11-01): "done" before the day set to finish came back as "Couldn't mark the job complete — try
+ * again?" and was reported to Sentry. It now has its sentence and is an expected refusal.
+ * @mutate src/lib/lifecycleErrors.ts |   continue_day_ahead: "You can mark it done on the day you set to finish.", |   continue_day_ahead_x: "",
+ * @mutate src/lib/lifecycleErrors.ts | const EXPECTED_REFUSALS = ["dispute_settlement_in_progress", "continue_day_ahead"] as const; | const EXPECTED_REFUSALS = ["dispute_settlement_in_progress"] as const;
+ */
+describe("continue_day_ahead (A3-115)", () => {
+  it("says when it can be done, and is not reported as a defect", async () => {
+    const { lifecycleErrorMessage, isExpectedLifecycleRefusal } = await import("@/lib/lifecycleErrors");
+    const err = { message: "continue_day_ahead", hint: "This job continues on Thu 11/5." };
+    expect(lifecycleErrorMessage(err)).toBe("You can mark it done on the day you set to finish.");
+    expect(isExpectedLifecycleRefusal(err)).toBe(true);
+  });
+});

@@ -2430,7 +2430,8 @@ export function loadAdminRpcErrorCopy(): Promise<typeof import("@/components/adm
  * copy above, and the caller does NOT report them to Sentry (a settlement in
  * progress is the lock working, not a bug — round-4 review, LOW).
  */
-const EXPECTED_REFUSALS = ["dispute_settlement_in_progress"] as const;
+// continue_day_ahead (A3-115): "done" before the day set to finish is the trigger working, not a defect.
+const EXPECTED_REFUSALS = ["dispute_settlement_in_progress", "continue_day_ahead"] as const;
 
 export function isExpectedLifecycleRefusal(error: unknown): boolean {
   const raw =

@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useFeature } from "@/hooks/useFeature";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { unwrap } from "@/lib/supabaseResult";
 import { rpcData } from "./api";
 
 export type ManagerPart = "list" | "prices" | "offers" | "messages" | "pickups";
@@ -116,14 +117,12 @@ export interface WaitingDraft {
 
 /** The seller's "Waiting for your OK" list: her own waiting submissions (RLS: the two people read), oldest first. */
 export async function fetchWaitingDrafts(sellerId: string): Promise<WaitingDraft[]> {
-  const subs = await supabase.from("declutter_manager_submissions").select("item_id, submitted_at")
-    .eq("seller_id", sellerId).eq("status", "waiting").order("submitted_at", { ascending: true });
-  if (subs.error) throw subs.error;
-  const rows = (subs.data ?? []) as { item_id: string; submitted_at: string }[];
+  const subs = unwrap(await supabase.from("declutter_manager_submissions").select("item_id, submitted_at")
+    .eq("seller_id", sellerId).eq("status", "waiting").order("submitted_at", { ascending: true }));
+  const rows = (subs ?? []) as { item_id: string; submitted_at: string }[];
   if (rows.length === 0) return [];
-  const items = await supabase.from("declutter_items").select("id, title, price_cents").in("id", rows.map((r) => r.item_id));
-  if (items.error) throw items.error;
-  const byId = new Map(((items.data ?? []) as { id: string; title: string; price_cents: number }[]).map((i) => [i.id, i]));
+  const items = unwrap(await supabase.from("declutter_items").select("id, title, price_cents").in("id", rows.map((r) => r.item_id)));
+  const byId = new Map(((items ?? []) as { id: string; title: string; price_cents: number }[]).map((i) => [i.id, i]));
   return rows.flatMap((r) => {
     const i = byId.get(r.item_id);
     return i ? [{ item_id: r.item_id, title: i.title, price_cents: i.price_cents, submitted_at: r.submitted_at }] : [];
@@ -167,8 +166,7 @@ export async function manageForSeller(sellerId: string, action: ManageAction, ar
 /** "Lexi (helping Kaci)" for messages a manager wrote, by message id. */
 async function fetchManagerLabels(kind: "answer" | "order_talk", ids: string[]): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();
-  const { data, error } = await supabase.rpc("declutter_manager_message_labels", { p_kind: kind, p_ids: ids });
-  if (error) throw error;
+  const data = unwrap(await supabase.rpc("declutter_manager_message_labels", { p_kind: kind, p_ids: ids }));
   return new Map(((data ?? []) as { message_id: string; label: string }[]).map((r) => [r.message_id, r.label]));
 }
 
@@ -252,14 +250,12 @@ export interface OrderManagerShare {
 
 /** Every sale share the caller is a party to: the terms locked at paid, plus the manager payout once it exists. */
 async function fetchOrderManagerShares(): Promise<OrderManagerShare[]> {
-  const shares = await supabase.from("declutter_order_manager_shares")
-    .select("order_id, seller_id, manager_id, share_type, share_pct, share_cents");
-  if (shares.error) throw shares.error;
-  const pays = await supabase.from("declutter_manager_payouts").select("order_id, amount_cents, status");
-  if (pays.error) throw pays.error;
-  const byOrder = new Map(((pays.data ?? []) as { order_id: string; amount_cents: number; status: OrderManagerShare["payout_status"] }[])
+  const shares = unwrap(await supabase.from("declutter_order_manager_shares")
+    .select("order_id, seller_id, manager_id, share_type, share_pct, share_cents"));
+  const pays = unwrap(await supabase.from("declutter_manager_payouts").select("order_id, amount_cents, status"));
+  const byOrder = new Map(((pays ?? []) as { order_id: string; amount_cents: number; status: OrderManagerShare["payout_status"] }[])
     .map((p) => [p.order_id, p]));
-  return ((shares.data ?? []) as Omit<OrderManagerShare, "paid_cents" | "payout_status">[]).map((s) => {
+  return ((shares ?? []) as Omit<OrderManagerShare, "paid_cents" | "payout_status">[]).map((s) => {
     const p = byOrder.get(s.order_id);
     return { ...s, paid_cents: p ? p.amount_cents : null, payout_status: p ? p.status : null };
   });

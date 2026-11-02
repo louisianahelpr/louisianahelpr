@@ -308,7 +308,7 @@ describe("process-scheduled-payouts edge function", () => {
       });
     }
 
-    // @mutate supabase/functions/process-scheduled-payouts/index.ts |       if (!isGiveawayFixedPayJob(job)) {\n        const take = await takeHelprFaultFee( |       {\n        const take = await takeHelprFaultFee(
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts |       if (!isGiveawayFixedPayJob(job)) {\n        const take = claim.resumed |       {\n        const take = claim.resumed
     it("the giveaway: a Helpr-fault debt waits for the next payout, the transfer stays $50", async () => {
       seedPayableJob(scenario, {
         job: { budget: 60, platform_fee_amount: 10, helper_fee_percent: 5, helper_fee_flat_cents: 700 },

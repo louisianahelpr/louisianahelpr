@@ -19,6 +19,7 @@
  * old `roundPayoutDownCents(x - debt)` withheld up to 99c more or less.
  */
 import { roundPayoutDownCents } from "./money.ts";
+import { releaseUnsentClaim } from "./payoutClaim.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js rpc builder (thenable), as in heldTipRepay.ts
 type Db = { rpc: (fn: string, args: Record<string, unknown>) => any };
@@ -61,11 +62,105 @@ export async function takeHelprFaultFee(
     if (error.code === "PGRST202") return { cents: 0 };
     return { error: error.message ?? String(error) };
   }
+  const cap = Math.max(0, Math.floor(maxCents));
   const cents = Math.round(Number(data ?? 0));
-  if (!Number.isFinite(cents) || cents < 0 || cents > Math.max(0, Math.floor(maxCents))) {
+  if (!Number.isFinite(cents) || cents < 0) {
     return { error: `take_helpr_fault_fee returned ${String(data)} (cap ${maxCents})` };
   }
+  if (cents > cap) {
+    // Q2172 (d): a retry whose cap shrank (the setup fee owed on this run, or
+    // the exact-cents cap) gets the first, larger answer. Give the excess back
+    // (clamp_helpr_fault_fee, migration 20261102080407) instead of refusing
+    // forever; what stays booked is what this payout withholds.
+    return clampHelprFaultFee(supabaseAdmin, helperId, jobId, cap);
+  }
   return { cents };
+}
+
+/**
+ * Q2172 (c)/(d): gives back whatever this job's payout booked above `cents`
+ * (newest debt first) and returns what stays booked, which is never more than
+ * `cents`. Fails CLOSED (an error refuses the payout); the database refuses
+ * once a paid payout carries the deduction.
+ */
+export async function clampHelprFaultFee(
+  supabaseAdmin: Db,
+  helperId: string,
+  jobId: string,
+  cents: number,
+): Promise<{ cents: number; error?: undefined } | { cents?: undefined; error: string }> {
+  const want = Math.max(0, Math.floor(cents));
+  const { data, error } = await supabaseAdmin.rpc("clamp_helpr_fault_fee", {
+    p_helper_id: helperId,
+    p_job_id: jobId,
+    p_cents: want,
+  });
+  if (error) return { error: `clamp_helpr_fault_fee failed: ${error.message ?? String(error)}` };
+  const kept = Math.round(Number(data ?? 0));
+  if (!Number.isFinite(kept) || kept < 0 || kept > want) {
+    return { error: `clamp_helpr_fault_fee returned ${String(data)} (cap ${want})` };
+  }
+  return { cents: kept };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js query builder, as in payoutClaim.ts
+type DbWithTables = Db & { from: (t: string) => any };
+
+/**
+ * Q2172 (c), lead 11-02 (C1): a run that RESUMES (or adopts) another run's
+ * open payout claim never takes the debt again. It reads what that claim
+ * recorded it withholds (metadata.helpr_fault_fee_cents; absent = 0) and
+ * clamps the job's booked deductions to it, so a debt billed in between is
+ * never booked as collected by a transfer that did not withhold it. Fails
+ * CLOSED: an unreadable claim, a failed clamp, or fewer cents booked than the
+ * claim withholds (the Helpr would be charged twice) refuses the payout.
+ */
+export async function resumedClaimHelprFaultFee(
+  supabaseAdmin: DbWithTables,
+  helperId: string,
+  jobId: string,
+  claimId: string,
+): Promise<{ cents: number; error?: undefined } | { cents?: undefined; error: string }> {
+  const { data, error } = await supabaseAdmin
+    .from("payout_transfers")
+    .select("id, metadata")
+    .eq("id", claimId);
+  if (error) return { error: `claim ${claimId} read failed: ${error.message ?? String(error)}` };
+  const row = ((data ?? []) as Array<{ id?: string; metadata?: Record<string, unknown> | null }>).find((r) => r.id === claimId);
+  if (!row) return { error: `claim ${claimId} not found` };
+  const raw = row.metadata?.helpr_fault_fee_cents ?? 0;
+  const stored = Math.round(Number(raw));
+  if (!Number.isFinite(stored) || stored < 0) return { error: `claim ${claimId} records helpr_fault_fee_cents ${String(raw)}` };
+  const clamped = await clampHelprFaultFee(supabaseAdmin, helperId, jobId, stored);
+  if (clamped.error !== undefined) return clamped;
+  if (clamped.cents !== stored) {
+    return { error: `claim ${claimId} withholds ${stored} cents but only ${clamped.cents} are booked; reconcile by hand` };
+  }
+  return { cents: stored };
+}
+
+/**
+ * Q2172 (c), lead 11-02 (C1): the fresh claim was written BEFORE the debt was
+ * taken, with the payout before the debt; once taken, the claim is stamped
+ * with what its transfer will carry and withhold, so a run that later resumes
+ * or adopts it reads the right numbers. Guarded on the claim still being an
+ * unsent pending claim; zero rows is a failure.
+ */
+export async function stampClaimHelprFaultFee(
+  supabaseAdmin: DbWithTables,
+  claimId: string,
+  patch: { amountCents: number; metadata: Record<string, unknown> },
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { data, error } = await supabaseAdmin
+    .from("payout_transfers")
+    .update({ amount_cents: patch.amountCents, metadata: { ...patch.metadata, claim: true } })
+    .eq("id", claimId)
+    .eq("status", "pending")
+    .is("stripe_transfer_id", null)
+    .select("id");
+  if (error) return { ok: false, message: error.message ?? String(error) };
+  if (!data || data.length === 0) return { ok: false, message: "claim row was no longer an unsent pending claim" };
+  return { ok: true };
 }
 
 /** Gives the withheld debt back; logged loudly when it cannot (never silent). */
@@ -115,4 +210,28 @@ export async function billLapsedHelprCardFee(
     return { problem: `bill_helpr_card_fee_debt returned ${String(data)} for ${cents} cents`, billedCents: 0 };
   }
   return { problem: null, billedCents: billed };
+}
+
+/**
+ * Q2172 (c): the step after a FRESH claim failed and nothing was sent. The
+ * claim is released ('canceled'), then whatever this job's payout booked goes
+ * back (restore refuses while a pending claim exists, so the order matters).
+ * If the release fails the claim stays pending without a recorded fee; the
+ * run that resumes it reads 0 and clamps the booking to 0, so the debt is
+ * never read as collected. Logged loudly, never silent.
+ */
+export async function releaseClaimAndRestoreFaultFee(
+  supabaseAdmin: DbWithTables,
+  claimId: string,
+  helperId: string,
+  jobId: string,
+  reason: string,
+  source: string,
+): Promise<void> {
+  const released = await releaseUnsentClaim(supabaseAdmin, claimId, reason);
+  if (!released.ok) {
+    console.error(`[${source}] could not release unsent claim ${claimId} for job ${jobId} (${released.message}); the next run resumes it and clamps the fee to what it recorded`);
+    return;
+  }
+  await restoreHelprFaultFee(supabaseAdmin, helperId, jobId, source);
 }

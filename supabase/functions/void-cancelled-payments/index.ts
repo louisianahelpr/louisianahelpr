@@ -558,8 +558,10 @@ serve(async (req) => {
       helper_amount: number | string;
       /** Q2356: every transfer of this fee Stripe reported failed or canceled (the stripe-webhook records them). */
       failed_transfer_ids?: string[] | null;
+      /** Q2439: read so a live-gate hold that already says why writes nothing. */
+      failure_reason?: string | null;
     };
-    const FEE_ROW_COLUMNS = "id, status, stripe_transfer_id, created_at, fee_amount, commission_percent, platform_cut, helper_amount, failed_transfer_ids";
+    const FEE_ROW_COLUMNS = "id, status, stripe_transfer_id, created_at, fee_amount, commission_percent, platform_cut, helper_amount, failed_transfer_ids, failure_reason";
     /**
      * Q2356: the transfers of a fee ledger row (single fee or crew share) that are NOT payments: every one the
      * webhook remembered as failed or canceled, and the row's own current transfer while the row says failed.
@@ -599,6 +601,14 @@ serve(async (req) => {
           .select("status, stripe_transfer_id")
           .eq("id", row.id)
           .maybeSingle();
+        if (patch.status === undefined) {
+          // Q2439: a patch with no status (the live-gate hold's reason) moves
+          // nothing; the row another run moved meanwhile now says what that
+          // run recorded, and nothing this run meant to record is lost. Not
+          // out of step; the next run reads the row afresh.
+          console.log(`[void-cancelled-payments] fee row ${row.id} (job ${jobId}) ${stage}: moved by another run; reason not written`);
+          return true;
+        }
         if (rereadErr) {
           why = `zero rows matched; re-read failed: ${rereadErr.message}`;
         } else if (
@@ -875,7 +885,12 @@ serve(async (req) => {
       if (feeLive.held) {
         // The row stays 'pending' (Part E retries it) and says why, so the
         // reconciler's "read failure_reason" has an answer (review #7).
-        await markFeeRow(job.id, feeRow, { failure_reason: `payee_not_payable: ${feeLive.kind}` }, `held (payee_not_payable: ${feeLive.kind})`);
+        // Q2439: written only when it differs, so a held row's text is not
+        // rewritten every hour.
+        const heldReason = `payee_not_payable: ${feeLive.kind}`;
+        if (feeRow.failure_reason !== heldReason) {
+          await markFeeRow(job.id, feeRow, { failure_reason: heldReason }, `held (${heldReason})`);
+        }
         if (feeLive.defect) defects.record(`cancellation fee ${job.id}: ${feeLive.defect}`);
         return true;
       }

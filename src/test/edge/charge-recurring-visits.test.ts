@@ -2036,7 +2036,10 @@ describe("charge-recurring-visits edge function", () => {
   // The mock ignores select lists, so the poster stamp is served ONLY to a
   // series scan that names its two columns (recurring review #2): a scan that
   // drops them reads the parent as a plain flat 0/0 series and goes red.
+  // Q2083 part 2 review: the stamped parent also needs the scan to name
+  // tax_kind, so a scan that drops it reads the unstamped parent and goes red.
   // @mutate supabase/functions/charge-recurring-visits/index.ts | helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, platform_fee_percent", | helper_fee_percent, helper_fee_flat_cents",
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | category, tax_kind, budget, start_time | category, budget, start_time
   const POSTER_STAMP = { poster_fee_flat_cents: 70, platform_fee_percent: 5, helper_fee_flat_cents: 0, helper_fee_percent: 0 };
   function wirePosterSeries(overrides: Record<string, unknown> = {}) {
     const parent: Record<string, unknown> = seriesParent({ ...POSTER_STAMP, ...overrides });
@@ -2044,7 +2047,7 @@ describe("charge-recurring-visits edge function", () => {
       Object.entries(parent).filter(([k]) => k !== "poster_fee_flat_cents" && k !== "platform_fee_percent"),
     );
     wireJobsReads({ series: { rows: [unstamped] } });
-    scenario.reads.jobs!.selectOverrides!.unshift({ includes: "poster_fee_flat_cents, platform_fee_percent", result: { rows: [parent] } });
+    scenario.reads.jobs!.selectOverrides!.unshift({ includes: "poster_fee_flat_cents, platform_fee_percent", alsoIncludes: ["tax_kind"], result: { rows: [parent] } });
   }
   // @mutate supabase/functions/charge-recurring-visits/index.ts |         const computedFeeCents = posterFeeSeries\n          ? posterFeeCents\n          : | const computedFeeCents = false\n          ? posterFeeCents\n          :
   // @mutate supabase/functions/charge-recurring-visits/index.ts |             ...(posterFeeSeries ? { poster_fee_flat_cents: Number(parent.poster_fee_flat_cents) } : {}), |             ...({}),

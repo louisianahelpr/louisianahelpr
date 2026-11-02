@@ -82,8 +82,10 @@ export interface TableResult {
    * aborts before the fee is ever committed).
    *
    * Additive: a scenario that does not set this behaves exactly as before.
+   * `alsoIncludes`: further strings that must ALL appear too, for a guard on
+   * columns that are not next to each other in the list.
    */
-  selectOverrides?: Array<{ includes: string; result: TableResult }>;
+  selectOverrides?: Array<{ includes: string; alsoIncludes?: string[]; result: TableResult }>;
   /**
    * Per-FILTER overrides: the first entry whose column was filtered `eq` to
    * its value wins (checked after `selectOverrides`). For a path that reads one
@@ -564,7 +566,7 @@ class QueryBuilder implements PromiseLike<{ data: unknown; error: unknown }> {
         order: this.orders,
       });
       const base = scenario.reads[this.table] ?? {};
-      const override = base.selectOverrides?.find((o) => this.cols.includes(o.includes));
+      const override = base.selectOverrides?.find((o) => this.cols.includes(o.includes) && (o.alsoIncludes ?? []).every((c) => this.cols.includes(c)));
       const eqOverride = override ? undefined
         : base.eqOverrides?.find((o) => this.filters.some((f) => f.op === "eq" && f.column === o.column && f.value === o.value));
       const t = override ? override.result : eqOverride ? eqOverride.result : base;

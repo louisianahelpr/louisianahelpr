@@ -7,7 +7,8 @@
  *   - The seller's label part: ONE next-step line with the Ship-by day, "Print label" (outline) and "Packed" (green
  *     primary, on the RIGHT, so last in the row), which calls declutter_mark_packed; after Packed the line says drop it
  *     off; after the carrier's scan, no buttons.
- *   - The buyer's part: the tracking number and "Track" (USPS's page), nothing before the label is made.
+ *   - The buyer's part: the tracking number and "Track" (the carrier's page: USPS or UPS), nothing before the label is made.
+ *   - A UPS label (ups_ground, 20261030012052) says UPS, never USPS, on both sides.
  * The order card's title and branch are declutterHandoverViews.test.tsx's "B134: a shipped order".
  *
  * @mutate src/components/declutter/BuyingOrders.tsx | const KINDS: readonly OrderHandover[] = ["porch", "pickup_home", "meetup", "delivery", "seller_delivery", "ship"]; | const KINDS: readonly OrderHandover[] = ["porch", "pickup_home", "meetup", "delivery", "seller_delivery"];
@@ -20,6 +21,7 @@
  * @mutate src/components/declutter/ShipOrderPanel.tsx |   if (l.accepted_at) return { who: "info", text: `On its way. ${trackingStatusWords(l.tracking_status) ?? "In transit"}.` }; |
  * @mutate src/components/declutter/ShipOrderPanel.tsx |  if (!l.label_url) return { who: "info", text: "Your shipping label is being made." }; |
  * @mutate src/lib/declutter/shipOrder.ts |   if (!at) throw new Error("label_not_ready"); |
+ * @mutate src/lib/declutter/shipOrder.ts |   return service?.startsWith("ups_") ? "UPS" : "USPS"; |   return "USPS";
  * @mutate src/components/declutter/BoughtWhatNext.tsx |     case "ship": |     case "ship_never":
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -164,6 +166,15 @@ describe("the buyer's tracking part", () => {
     await screen.findByText("9400111");
     fireEvent.click(screen.getByRole("button", { name: "Track" }));
     await waitFor(() => expect(state.opened).toEqual(["https://tools.usps.com/go/TrackConfirmAction?tLabels=9400111"]));
+  });
+
+  it("a UPS label: the buyer reads UPS tracking and Track opens UPS's page; the seller drops it off at UPS", async () => {
+    state.tracking = { ready: true, service: "ups_ground", tracking_code: "1Z999", tracking_status: "in_transit", ship_by: SHIP_BY, packed_at: null, accepted_at: null, delivered_at: null };
+    mount("buyer");
+    expect((await screen.findByText("1Z999")).parentElement?.textContent).toBe("UPS tracking 1Z999");
+    fireEvent.click(screen.getByRole("button", { name: "Track" }));
+    await waitFor(() => expect(state.opened).toEqual(["https://www.ups.com/track?tracknum=1Z999"]));
+    expect(nextStepWords(sellerShipNext(ready({ service: "ups_ground", packed_at: "x" }) as never))).toBe("Next: drop it off at UPS · by Wed, Nov 4");
   });
 
   it("before the label is made: says the number comes, no button", async () => {

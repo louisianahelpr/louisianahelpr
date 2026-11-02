@@ -75,6 +75,7 @@ function easypostCaller(key: string) {
       const res = await fetch(url, { ...init, headers: auth, signal: AbortSignal.timeout(TIMEOUT_MS) });
       return { ok: res.ok, status: res.status, body: await res.json().catch(() => null) };
     } catch (e) {
+      // Not silent: the network failure is the answer (ok false, status 0, its message), which the caller records.
       return { ok: false, status: 0, body: { error: caughtMessage(e).slice(0, 100) } };
     }
   };
@@ -144,6 +145,7 @@ async function runVoids(admin: Db, record: (defect: string) => void, counts: Cou
       });
       counts[outcome] = (counts[outcome] ?? 0) + 1;
     } catch (e) {
+      // Not silent: record() puts it in the run's defect list, which pages ops; the next shipment still runs.
       record(`ship void ${s.id}: ${caughtMessage(e)}`.slice(0, 200));
     }
   }
@@ -178,6 +180,7 @@ async function reconcileCaptures(admin: Db, testStripeOf: () => Stripe, record: 
   try {
     testStripe = testStripeOf();
   } catch (e) {
+    // Not silent: record() puts it in the run's defect list, which pages ops; nothing else can run without the client.
     record(`ship capture reconcile: no test-mode Stripe client: ${caughtMessage(e)}`);
     return;
   }
@@ -193,6 +196,7 @@ async function reconcileCaptures(admin: Db, testStripeOf: () => Stripe, record: 
       });
       counts[outcome] = (counts[outcome] ?? 0) + 1;
     } catch (e) {
+      // Not silent: record() puts it in the run's defect list, which pages ops; the next order still runs.
       record(`ship capture reconcile ${s.id}: ${caughtMessage(e)}`.slice(0, 200));
     }
   }
@@ -217,6 +221,7 @@ async function runClaimedLabels(admin: Db, testStripeOf: () => Stripe, record: (
   try {
     testStripe = testStripeOf();
   } catch (e) {
+    // Not silent: record() puts it in the run's defect list, which pages ops; nothing else can run without the client.
     record(`ship labels: no test-mode Stripe client: ${caughtMessage(e)}`);
     return;
   }
@@ -279,6 +284,7 @@ async function runClaimedLabels(admin: Db, testStripeOf: () => Stripe, record: (
       });
       counts[outcome] = (counts[outcome] ?? 0) + 1;
     } catch (e) {
+      // Not silent: record() puts it in the run's defect list, which pages ops; the next label still runs.
       record(`ship label ${s.id}: ${caughtMessage(e)}`.slice(0, 200));
     }
   }

@@ -2120,9 +2120,11 @@ serve(async (req) => {
       // Board 141: an agreement is told as what it was, not a "dispute". It is
       // the Helpr's pay notice; the poster's refund notice is the one below.
       title: agreement ? "Settled as you agreed — your share was sent" : "Dispute settled — your share was sent",
+      // JOBS2-33 (Jobs audit 10-30): the dollars, never "a 50% share": the share is of the award, and the Helpr's
+      // commission comes off it, so a percent never matched the money that arrives.
       message: agreement
         ? `What you agreed on "${job.title}" is settled. $${helperAmount} is on its way to your bank.`
-        : `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${helperAmount} is on its way to your bank.`,
+        : `The dispute on "${job.title}" is settled. Your share, $${helperAmount}, is on its way to your bank.`,
       type: "payment",
       // `/profile?tab=earnings` is the earnings screen — `/earnings` and
       // `/analytics` both redirect here, and Dashboard reads no `tab` param.
@@ -2133,6 +2135,19 @@ serve(async (req) => {
         `[execute-dispute-split] helper notification insert failed for dispute ${disputeId}:`,
         helperNoteErr,
       );
+    }
+  } else if (job.helper_id && !agreement) {
+    // JOBS2-33: a decision that sends the Helpr nothing told them nothing; it says so, in words.
+    const { error: zeroNoteErr } = await supabaseAdmin.from("notifications").insert({
+      user_id: job.helper_id,
+      job_id: job.id,
+      title: "Dispute settled",
+      message: `The dispute on "${job.title}" is settled with no pay to you for this job.`,
+      type: "payment",
+      link: "/profile?tab=earnings",
+    });
+    if (zeroNoteErr) {
+      console.error(`[execute-dispute-split] helper notification insert failed for dispute ${disputeId}:`, zeroNoteErr);
     }
   }
   if (job.customer_id && posterReturnedCents > 0) {
@@ -2146,7 +2161,7 @@ serve(async (req) => {
       : `$${formatExactDollars(refundDollars)} has been refunded to your original payment method.`;
     const settled = agreement
       ? `The refund you and your Helpr agreed on "${job.title}" is settled.`
-      : `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you.`;
+      : `The dispute on "${job.title}" is settled.`;
     if (refundId && refundCents > 0) {
       // Q1714: THE refund notice (in the app and by email: amount, card,
       // reference, 5-10 business days), claimed on the refund's id. The

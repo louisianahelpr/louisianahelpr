@@ -2028,6 +2028,22 @@ describe("JA-17: Accept and Decline on the job page", () => {
     expect(offerAnswers).toEqual([[`direct-${state.job.id}`, false]]);
   });
 
+  // Q2601 (Jobs audit 1102b row 15): on the page the Decline / Accept pair sat 16 px inside the page's button column
+  // (x 53-322 vs 37-338 at 375): the Working card's own side padding. On the page the offer box has none.
+  // @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx | <OfferedActions flush app={app} | <OfferedActions app={app}
+  // @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | className={`${flush ? "" : "px-4 "}py-3 space-y-2.5`} | className="px-4 py-3 space-y-2.5"
+  it("the offer box on the page has no side padding of its own, so the pair lines up with the page's buttons", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow(state.job.id, "app-this")];
+    const { container } = renderPage();
+    await screen.findByRole("button", { name: /Accept job/ }, { timeout: 5000 });
+    const box = container.querySelector("[data-page-offer] > div");
+    expect(box).toBeTruthy();
+    expect(box!.className).toMatch(/\bpy-3\b/);
+    expect(box!.className).not.toMatch(/\bpx-\d/);
+  });
+
   it("with no Working row for the job, the way to the offer stays (never a blank card)", async () => {
     state.job = offered();
     state.party = true;

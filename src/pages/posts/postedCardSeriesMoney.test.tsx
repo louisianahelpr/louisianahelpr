@@ -31,8 +31,8 @@ describe("A2-C36: the poster's series card says the budget is per visit and when
     expect(screen.getByText(SAID)).toBeTruthy();
   });
 
-  it("a taxable category (plumbing): the later visits are charged their sales tax too", () => {
-    render(<PostedJobSeriesControls job={{ ...series, category: "plumbing" }} userId="p1" />);
+  it("a taxable category (auto repair): the later visits are charged their sales tax too", () => {
+    render(<PostedJobSeriesControls job={{ ...series, category: "auto_repair" }} userId="p1" />);
     expect(line()).toBe("$40 a visit · 4 visits. Each later visit, plus its sales tax, is charged to your saved card about 3 days before it.");
   });
 

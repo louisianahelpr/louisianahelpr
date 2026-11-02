@@ -19,7 +19,7 @@
 // Owner 2026-10-25: members never see the fee's rate, name or maths, so the
 // fees answer names no Helpr fee, no $100 example and no refund arithmetic.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | When you do a job, every job shows exactly what you will take home before you apply. | When you do a job, Helpr keeps 10% + $0.70 of your pay.
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. | and nothing on top.
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | plus Louisiana sales tax on the labor for taxable job types (auto and appliance repair). | and nothing on top.
 // Delta review (#A): "any sales tax you paid comes back" overstated it: on a
 // refund that keeps a fee, tax stays paid on what is kept (owner 10-15).
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | the cancel screen shows exactly what you will get back before you confirm. | you get back what you paid less the card-processing fee Stripe keeps.

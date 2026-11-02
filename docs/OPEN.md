@@ -7,8 +7,8 @@ Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 - **Open: 512** (438 to do, 74 fixed with protection pending; 1629 done). Feeds mirrored in: 78 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 18 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
-- **Workflows on main:** 14 red, 14 stale, 1 unknown, 48 green of 77 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-22T04:06Z)_
-- **Remote branches:** 607 carry patches not on main, 1 fully merged, of 743 (Q79). _(2026-10-22T04:06Z)_
+- **Workflows on main:** 14 red, 16 stale, 2 unknown, 46 green of 78 — [SCOREBOARD](SCOREBOARD.md). _(2026-11-02T01:10Z)_
+- **Remote branches:** 1054 carry patches not on main, 0 fully merged, of 1194 (Q79). _(2026-11-02T01:10Z)_
 <!-- /live -->
 <!-- /generated: everything-open -->
 
@@ -697,7 +697,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41330884915. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41330880564. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
-  - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41131359413. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
+  - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41350588111. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
   - vacuity: issue #2894, newest red run: see the issue's latest comment. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41018395640. feed: issue #3454 · feed: ledger a8ceee56bbd5
   - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41045303398. feed: issue #3491 · feed: ledger 2e4f3e726722

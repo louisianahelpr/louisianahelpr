@@ -334,7 +334,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const confirmSpy = vi.spyOn(window, "confirm");
     everything();
     at("/declutter?tab=selling");
-    const onMine = await screen.findByRole("region", { name: "Offers on your items" });
+    // 5 s, not the 1 s default: the Selling tab mounts several lazy sections first, and on a loaded CI shard the region
+    // arrived after 1 s (shard 4 of runs 41494619699 and 41503903061, same code green on reruns).
+    const onMine = await screen.findByRole("region", { name: "Offers on your items" }, { timeout: 5000 });
     fireEvent.click(within(onMine).getByRole("button", { name: "Accept" }));
     let sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Sell it for $25?");

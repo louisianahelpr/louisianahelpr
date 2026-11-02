@@ -107,14 +107,29 @@ export function bootModules(root) {
   return staticReach(root, [main]);
 }
 
+/**
+ * The loaders routePreload.ts declares above its table (`const login = () => import("@/pages/auth/Login")`), by name:
+ * a page several routes start is ONE shared loader (each inline `() => import()` copied its preload list into the
+ * entry chunk), so the table names it instead of repeating the import. Every scan below reads both shapes.
+ */
+export function namedLoaders(src) {
+  return new Map([...src.matchAll(/const\s+(\w+)\s*=\s*\(\)\s*=>\s*import\(\s*["']@\/([^"']+)["']\s*\)/g)].map((m) => [m[1], m[2]]));
+}
+
+/** The specifiers a slice of the table starts: inline imports, and named loaders it lists. */
+export function loaderSpecs(text, loaders) {
+  const specs = [...text.matchAll(/import\(\s*["']@\/([^"']+)["']\s*\)/g)].map((m) => m[1]);
+  for (const [name, spec] of loaders) if (new RegExp(`\\b${name}\\b`).test(text)) specs.push(spec);
+  return specs;
+}
+
 /** The files a public cold load starts from, read from routePreload.ts. */
 export function publicRoots(root) {
   const src = stripComments(fs.readFileSync(path.join(root, "src/boot/routePreload.ts"), "utf8"));
-  const protectedSpec = src.match(/const\s+protectedRoute\s*=\s*\(\)\s*=>\s*import\(\s*["']@\/([^"']+)["']/)?.[1];
+  const loaders = namedLoaders(src);
   const specs = new Set();
   for (const block of src.matchAll(/guest:\s*\[([^\]]*)\]/g)) {
-    for (const m of block[1].matchAll(/import\(\s*["']@\/([^"']+)["']\s*\)/g)) specs.add(m[1]);
-    if (/\bprotectedRoute\b/.test(block[1]) && protectedSpec) specs.add(protectedSpec);
+    for (const spec of loaderSpecs(block[1], loaders)) specs.add(spec);
   }
   const roots = [...specs].map((s) => resolveSpecifier(root, root + "/src/x.ts", "@/" + s));
   if (roots.length < 5 || roots.some((r) => !r)) {
@@ -160,8 +175,9 @@ export function firstScreenRoots(root) {
   const src = stripComments(fs.readFileSync(path.join(root, "src/boot/routePreload.ts"), "utf8"));
   const table = src.match(/export const ENTRY_ROUTE_CHUNKS[\s\S]*?\n\};/)?.[0];
   if (!table) throw new Error("bootReach: no ENTRY_ROUTE_CHUNKS table in src/boot/routePreload.ts. Fix the scan.");
-  const specs = new Set([...table.matchAll(/import\(\s*["']@\/([^"']+)["']\s*\)/g)].map((m) => m[1]));
-  const protectedSpec = src.match(/const\s+protectedRoute\s*=\s*\(\)\s*=>\s*import\(\s*["']@\/([^"']+)["']/)?.[1];
+  const loaders = namedLoaders(src);
+  const specs = new Set(loaderSpecs(table, loaders));
+  const protectedSpec = loaders.get("protectedRoute");
   if (protectedSpec) specs.add(protectedSpec);
   const roots = [...specs].map((s) => resolveSpecifier(root, root + "/src/x.ts", "@/" + s));
   if (roots.length < 10 || roots.some((r) => !r) || !protectedSpec) {
@@ -286,9 +302,9 @@ export function homePageRoots(root) {
 export function homeFirstScreenRoots(root) {
   const src = stripComments(fs.readFileSync(path.join(root, "src/boot/routePreload.ts"), "utf8"));
   const row = src.match(/"\/home":\s*\{[\s\S]*?signedIn:\s*\[([^\]]*)\]/)?.[1] ?? "";
-  const specs = [...row.matchAll(/import\(\s*["']@\/([^"']+)["']\s*\)/g)].map((m) => m[1]);
-  const protectedSpec = row.includes("protectedRoute") ? src.match(/const\s+protectedRoute\s*=\s*\(\)\s*=>\s*import\(\s*["']@\/([^"']+)["']/)?.[1] : null;
-  if (protectedSpec) specs.push(protectedSpec);
+  const loaders = namedLoaders(src);
+  const specs = loaderSpecs(row, loaders);
+  const protectedSpec = row.includes("protectedRoute") ? loaders.get("protectedRoute") : null;
   const roots = specs.map((s) => resolveSpecifier(root, root + "/src/x.ts", "@/" + s));
   if (roots.length < 2 || roots.some((r) => !r) || !protectedSpec) {
     throw new Error(`bootReach: read ${roots.length} /home first-screen roots from routePreload.ts (expected its page and protectedRoute). Fix the scan.`);

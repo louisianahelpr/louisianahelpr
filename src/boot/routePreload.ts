@@ -50,28 +50,35 @@ export const hasToken = (): boolean => {
 // the page behind framer-motion on a cold load (Q178), so the page chunk is all
 // a public route needs.
 const protectedRoute = () => import("@/components/ProtectedRoute");
+// One loader per page, shared by every route that starts it: each `() => import()` compiles to its own copy of the
+// page's preload list in the ENTRY chunk, so a page named by three routes paid for three lists (critical-path
+// budget, entry band; train 1, 11-02).
+const homeDashboard = () => import("@/pages/home/HomeDashboard");
+const login = () => import("@/pages/auth/Login");
+const signup = () => import("@/pages/auth/Signup");
+const profileRoute = () => import("@/boot/profileRoute");
 
 /** Path -> the chunks that route cannot paint without. Exported for tests. */
 export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unknown>>; signedIn: Array<() => Promise<unknown>> }> = {
   "/": {
     guest: [() => import("@/pages/info/Index")],
-    signedIn: [() => import("@/pages/home/HomeDashboard"), protectedRoute],
+    signedIn: [homeDashboard, protectedRoute],
   },
   "/browse": {
     guest: [() => import("@/pages/home/DashboardGuest")],
-    signedIn: [() => import("@/pages/home/HomeDashboard"), protectedRoute],
+    signedIn: [homeDashboard, protectedRoute],
   },
   "/login": {
-    guest: [() => import("@/pages/auth/Login")],
-    signedIn: [() => import("@/pages/auth/Login")],
+    guest: [login],
+    signedIn: [login],
   },
   "/signup": {
-    guest: [() => import("@/pages/auth/Signup")],
-    signedIn: [() => import("@/pages/auth/Signup")],
+    guest: [signup],
+    signedIn: [signup],
   },
   "/home": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/home/HomeDashboard"), protectedRoute],
+    signedIn: [homeDashboard, protectedRoute],
   },
   "/messages": {
     guest: [protectedRoute],
@@ -92,17 +99,17 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
   // profileRoute keeps Profile's preload list out of the entry (see that file).
   "/profile": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/boot/profileRoute"), protectedRoute],
+    signedIn: [profileRoute, protectedRoute],
   },
   // profileRoute also starts /admin's gate and page together (see accountPageChunksFor there).
   "/admin": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/boot/profileRoute"), protectedRoute],
+    signedIn: [profileRoute, protectedRoute],
   },
   // A signed-out visitor is sent to /login by ProtectedRoute, so Login is the page they will see.
   // declutterRoute keeps Declutter's long preload list out of the entry (see that file).
   "/declutter": {
-    guest: [() => import("@/pages/auth/Login"), protectedRoute],
+    guest: [login, protectedRoute],
     signedIn: [() => import("@/boot/declutterRoute"), protectedRoute],
   },
 };

@@ -28,3 +28,5 @@ export function homeIconFiles(root: string): Set<string>;
 export const PROFILE_FIRST_SCREEN_ROOTS: string[];
 export const PROFILE_SHARING_PAGE_ROOTS: string[];
 export function profileFirstScreenModules(root: string, split?: { deep: Set<string>; homeOff: Set<string> }): { own: Set<string>; shared: Set<string> };
+export function namedLoaders(src: string): Map<string, string>;
+export function loaderSpecs(text: string, loaders: Map<string, string>): string[];

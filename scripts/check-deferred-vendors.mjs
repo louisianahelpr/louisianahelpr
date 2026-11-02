@@ -40,7 +40,7 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { gzipSync } from "node:zlib";
-import { guestBrowseOnlyModules, signedInOnlyModules, signedInSplit, stripComments } from "./perf/bootReach.mjs";
+import { guestBrowseOnlyModules, loaderSpecs, namedLoaders, signedInOnlyModules, signedInSplit, stripComments } from "./perf/bootReach.mjs";
 
 const DIST = "dist";
 const ASSETS = `${DIST}/assets`;
@@ -299,9 +299,9 @@ for (const { file, why } of DEFERRED_MODULES) {
 const routeSrc = stripComments(readFileSync("src/boot/routePreload.ts", "utf8"));
 const routeBlock = routeSrc.match(/export const ENTRY_ROUTE_CHUNKS[\s\S]*?\n\};/);
 if (!routeBlock) fail("could not find ENTRY_ROUTE_CHUNKS in src/boot/routePreload.ts — fix this scan rather than deleting it.");
-const routeSpecifiers = new Set([...routeBlock[0].matchAll(/import\(\s*["']@\/([^"']+)["']\s*\)/g)].map((x) => x[1]));
-// `protectedRoute` is declared above the table as one shared loader.
-for (const x of routeSrc.matchAll(/const\s+protectedRoute\s*=\s*\(\)\s*=>\s*import\(\s*["']@\/([^"']+)["']/g)) routeSpecifiers.add(x[1]);
+// Pages several routes start (protectedRoute, HomeDashboard, Login, ...) are shared loaders declared above the
+// table and named in it; loaderSpecs reads both those and the inline imports (scripts/perf/bootReach.mjs).
+const routeSpecifiers = new Set(loaderSpecs(routeBlock[0], namedLoaders(routeSrc)));
 const ROUTE_ROOTS = [...routeSpecifiers].map((spec) => ({ label: spec, name: spec.split("/").pop() }));
 // The dock is a lazy chunk of its own, started with every signed-in page.
 ROUTE_ROOTS.push({ label: "components/MobileNav", name: "MobileNav" });

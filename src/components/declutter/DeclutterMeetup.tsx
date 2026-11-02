@@ -19,12 +19,13 @@ import {
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { ErrorState } from "@/components/ui/ErrorState";
 
+// A3-52 (audit 11-01): only the spots Louisiana Helpr curated are called checked; a seller's own spot never is.
 const KIND_WORDS: Record<MeetupSpotNear["kind"], string> = {
-  police: "Police safe exchange spot",
-  store: "Busy store",
-  other: "Public place",
-  // B110: a public place the seller added themselves.
-  seller: "The seller's meet spot",
+  police: "Police safe exchange spot · Louisiana Helpr checked",
+  store: "Busy store · Louisiana Helpr checked",
+  other: "Public place · Louisiana Helpr checked",
+  // B110: a public place the seller added themselves (not reviewed).
+  seller: "Seller's spot · public place",
 };
 
 export function MeetupSpotPicker({ sellerId, spots, onChosen }: { sellerId: string; spots: MeetupSpotNear[]; onChosen: () => void }) {
@@ -36,9 +37,9 @@ export function MeetupSpotPicker({ sellerId, spots, onChosen }: { sellerId: stri
   return (
     <fieldset className="space-y-2 rounded-xl border border-border p-3" data-meetup-picker="">
       <legend className="px-1 text-xs font-medium">Pick a spot to meet</legend>
-      <p className="text-xs text-muted-foreground">{spots.some((s) => s.kind === "seller")
-        ? "Public places to meet. Nobody's home address is shared."
-        : "Public places Louisiana Helpr checked. Nobody's home address is shared."}</p>
+      <p className="text-xs text-muted-foreground">{spots.every((s) => s.kind !== "seller")
+        ? "Public places Louisiana Helpr checked. Nobody's home address is shared."
+        : "Public places to meet. Nobody's home address is shared."}</p>
       {spots.map((s) => (
         <label key={s.id} className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 ${s.chosen ? "border-2 border-primary" : "border-border"}`}>
           <input

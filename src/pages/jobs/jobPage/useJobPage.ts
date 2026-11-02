@@ -70,6 +70,10 @@ export interface JobPageRow {
   /** The poster's fix note and its deadline (party read only): the page says what to fix and by when (JA-31). */
   revision_note?: string | null;
   revision_deadline?: string | null;
+  /** Q2668: when the fix was asked, when the Helpr marked it done (resolve_revision) and the poster's check-by time. */
+  revision_requested_at?: string | null;
+  revision_completed_at?: string | null;
+  revision_acceptance_deadline?: string | null;
   /** The photo rule and the photos taken (party read only): the hired Helpr's line and button hang on them, as on
    *  the Working card (audit 2026-10-28 F1/F26: without them every arrived job read "Take the before photo"). */
   require_photo_proof?: boolean | null;
@@ -95,7 +99,7 @@ export interface JobPageRow {
 const BASE_COLUMNS =
   "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date";
 const PARTY_COLUMNS =
-  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, cancelled_at, cancellation_fee, revision_note, revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude";
+  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, cancelled_at, cancellation_fee, revision_note, revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude, revision_requested_at, revision_completed_at, revision_acceptance_deadline";
 
 function toRow(raw: Record<string, unknown>): JobPageRow {
   return {

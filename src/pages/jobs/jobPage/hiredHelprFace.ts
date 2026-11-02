@@ -7,6 +7,7 @@ import { helperFaceAction, helperFaceNextStep } from "@/pages/jobs/appliedJobCar
 import type { JobPageRow } from "./useJobPage";
 import type { CrewSlot } from "@/lib/crewLifecycle";
 import { crewMemberFace } from "./crewMemberFace";
+import { workIsBackWithHelper } from "@/components/job-card/activityFilters";
 
 /** A job in one of these has no step left for its Helpr (a no-show report and an expired listing are 'cancelled'). */
 const ENDED_JOB_STATUSES = new Set(["cancelled", "expired"]);
@@ -32,6 +33,10 @@ export function hiredHelprFace(
     crewSlot?: CrewSlot | null;
     /** This Helpr's own application row (useJobPage myApplication), or null/undefined when not read yet. */
     application?: { status: string; closed_reason: string | null } | null;
+    /** Q2668: a job sent back for a fix, the fix still owed: "Mark it done" marks the fix done (usePageMarkFixDone). */
+    markFixDone?: () => void;
+    /** The mark is on its way: the button is greyed. */
+    markingFix?: boolean;
   },
 ): MineFaceAction | null {
   const row = job as unknown as Job;
@@ -41,6 +46,10 @@ export function hiredHelprFace(
   // primary "I'm on my way" under "This job was cancelled".
   const app = o.application ?? null;
   const ended = ENDED_JOB_STATUSES.has(job.status ?? "") || !!app?.closed_reason || (!!app && CLOSED_APPLICATION_STATUSES.has(app.status));
+  // Q2668 (audit 1102e row 1): the step line says "Fix it and mark it done by <revision_deadline>", so the page's one
+  // primary is that step, never only Message / Open in Jobs. Once marked (revision_completed_at), the poster checks it.
+  const fixOwed = !ended && !job.is_group_job && job.status === "revision_requested" && workIsBackWithHelper(job);
+  if (fixOwed && o.markFixDone) return { label: "Mark it done", onClick: o.markFixDone, tone: "primary", disabled: !!o.markingFix };
   const workUnderway = helperProgress(row, o.trackingStatus).workUnderway;
   const line = helperStatusLine(
     { id: `page-${job.id}`, job: row, job_id: job.id, helper_id: o.userId, status: app?.status ?? "accepted", closed_reason: app?.closed_reason ?? null, posterName: o.posterFirst } as unknown as AppliedApp,

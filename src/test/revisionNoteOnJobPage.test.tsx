@@ -31,7 +31,7 @@ describe("what to fix, on the job page (JA-31)", () => {
     const { container } = render(<RevisionAsk job={row({ revision_note: "The back gate area was missed.", revision_deadline: "2037-10-21T14:30:00Z" })} side="helpr" posterFirst="Dana" />);
     const t = container.textContent ?? "";
     expect(t).toContain("Dana's note: The back gate area was missed.");
-    expect(t).toContain("Send the fix by Wed, Oct 21, 9:30 AM.");
+    expect(t).toContain("Fix it and mark it done by Wed, Oct 21, 9:30 AM."); // Q2668: the step line's words
   });
 
   it("the poster sees their own note; nothing once the fix is done or with nothing to say", () => {

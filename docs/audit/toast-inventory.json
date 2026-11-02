@@ -4448,7 +4448,7 @@
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",
-      "line": 372,
+      "line": 359,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4519,7 +4519,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBrowseView.tsx",
-      "line": 267,
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

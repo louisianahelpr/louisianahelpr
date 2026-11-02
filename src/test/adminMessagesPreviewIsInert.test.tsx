@@ -183,7 +183,7 @@ describe("admin Messages preview", () => {
         const d = Array.from(document.querySelectorAll('[role="dialog"], [role="alertdialog"]')).find((x) => words.test(x.textContent ?? ""));
         expect(d, `${stage}: its sheet`).toBeTruthy();
       }, { timeout: 10000 });
-      await waitFor(() => expect(document.querySelector("[data-preview-controls]")).toBeNull());
+      expect(document.querySelector("[data-preview-controls]")).toBeNull(); // the sheet above was awaited: the dock had to step aside for it
       expect(leaked()).toEqual([]);
     }, 30000);
   }

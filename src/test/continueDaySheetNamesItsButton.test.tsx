@@ -38,7 +38,16 @@ const day = (over: Partial<ContinueDay> = {}): ContinueDay => ({
 function run(side: "poster" | "helpr", j: ReturnType<typeof job>) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: ReactNode }) => <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
-  return renderHook(() => useContinueDayActions({ job: j, side, otherFirst: "Lexi", trackingStatus: "working", onChanged: () => {} }), { wrapper });
+  return Object.assign(renderHook(() => useContinueDayActions({ job: j, side, otherFirst: "Lexi", trackingStatus: "working", onChanged: () => {} }), { wrapper }), { qc });
+}
+
+/** The hook's reads have answered (a first paint has no row either, so waiting for "no row" waits for nothing). */
+async function answered(r: ReturnType<typeof run>) {
+  await waitFor(() => {
+    const qs = r.qc.getQueryCache().getAll();
+    expect(qs.length).toBeGreaterThan(0);
+    expect(qs.every((q) => q.state.status === "success")).toBe(true);
+  });
 }
 
 /** Opens the hook's sheet and returns its title. */
@@ -60,7 +69,8 @@ describe("Q2678 the Helpr's own Done is never one tap from cleared", () => {
     const before = run("helpr", job());
     await waitFor(() => expect(before.result.current.setDay?.label).toBe("Not finished? Set a day"));
     const after = run("helpr", job({ helper_completed_at: "2026-11-02T13:00:00Z" }));
-    await waitFor(() => expect(after.result.current.row).toBeNull());
+    await answered(after);
+    expect(after.result.current.row).toBeNull();
     expect(after.result.current.setDay).toBeNull();
     const poster = run("poster", job({ helper_completed_at: "2026-11-02T13:00:00Z" }));
     await waitFor(() => expect(poster.result.current.setDay?.label).toBe("Not finished? Set a day"));

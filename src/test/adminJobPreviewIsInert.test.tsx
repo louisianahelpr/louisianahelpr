@@ -195,7 +195,7 @@ describe("admin job-page preview", () => {
     expect(sheet.textContent ?? "").not.toMatch(/more than 24 hours away/);
     expect([...new Set(unlisted)]).toEqual([]);
     // Nothing of the preview sits over the sheet's buttons (at 375 the dock covered each sheet's second button).
-    await waitFor(() => expect(document.querySelector("[data-preview-controls]")).toBeNull());
+    expect(document.querySelector("[data-preview-controls]")).toBeNull(); // the sheet above was awaited: the dock had to step aside for it
     expect(leaked()).toEqual([]);
   }, 30000);
 
@@ -213,7 +213,7 @@ describe("admin job-page preview", () => {
     expect(sheet.textContent ?? "").toMatch(/counts as a reliability strike/);
     expect(document.querySelector("[data-preview-working-card]")).not.toBeNull();
     expect([...new Set(unlisted)]).toEqual([]);
-    await waitFor(() => expect(document.querySelector("[data-preview-controls]")).toBeNull());
+    expect(document.querySelector("[data-preview-controls]")).toBeNull(); // the sheet above was awaited: the dock had to step aside for it
     expect(leaked()).toEqual([]);
   }, 30000);
 

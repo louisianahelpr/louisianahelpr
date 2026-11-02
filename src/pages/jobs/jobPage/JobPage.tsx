@@ -251,7 +251,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
     const extras = [msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
-    // Continue another day: a set day the Helpr has not confirmed leads; "Need another day" sits with the others.
+    // Continue another day: a set day the Helpr has not confirmed leads; "Not finished? Set a day" sits with the others.
     // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
     const leaveAction: RowAction = { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true };
     const canLeave = canLeaveSeries(job, userId, seriesState.data?.series_ended_on ?? null, isPoster);

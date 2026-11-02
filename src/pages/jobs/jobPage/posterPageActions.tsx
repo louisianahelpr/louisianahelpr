@@ -107,10 +107,14 @@ export function usePosterPageActions({
   // JA-48 / JA-49: not while an offer or a booking is out to a Helpr (they are answering the job as it stands).
   const canEdit = !draft && status === "open" && !job.is_group_job && job.direct_offer_status !== "pending";
 
+  // Q2594 (Jobs audit 1102b row 8): while a dispute is open the money stays held and Louisiana Helpr decides, so the
+  // poster's lead is never Approve (its sheet does not know about the case); Message leads and "See the case" sits
+  // under the tracker. has_active_dispute covers an open case on a job whose row is still in progress.
+  const disputeOpen = status === "disputed" || !!job.has_active_dispute;
   const primaryOrMessage: PagePrimary | null =
     posterWait === "confirm_still_on"
       ? { label: "Confirm it's still on", go: () => setConfirmAsk((n) => n + 1) }
-      : posterWait === "approve"
+      : posterWait === "approve" && !disputeOpen
       // The card's own CompletionChoiceSheet (the confirm), then create-payment's release (usePosterPageFlows).
       ? { label: RELEASE_ACTION, go: flows.approve, disabled: !flows.ready || flows.completing }
       : open && pending > 0

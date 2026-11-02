@@ -756,6 +756,7 @@ export type HelperWait =
   | "applied"
   | "offer"
   | "offer_expired"
+  | "offer_withdrawn"
   | "confirm_booking"
   | "confirm_spot"
   | "confirmed"
@@ -810,6 +811,8 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* Its answer window closed (offerClock): filed under Cancelled with the
      card's own "This offer has expired" (owner, 2026-10-03). */
   offer_expired: { detail: "The offer expired" },
+  /* The poster took the offer back (rpc_poster_withdraw_offer, Q2604): nobody passed on them for someone else. */
+  offer_withdrawn: { detail: "The offer was withdrawn" },
   /* Accept, not confirm (owner, 2026-10-07, Q1399): confirm is the later
      day-before step. */
   confirm_booking: { detail: "Accept or decline it" },
@@ -926,6 +929,8 @@ export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress)
   // as 'rejected' and reopens the job, so after it runs only this stamp says
   // the offer expired. Nobody passed on this Helpr.
   if (app.status === "rejected" && app.closed_reason === "offer_expired") return "offer_expired";
+  // Q2604: the poster withdrew the offer (closed_reason 'offer_withdrawn'): say so, never "You weren't picked".
+  if (app.status === "rejected" && app.closed_reason === "offer_withdrawn") return "offer_withdrawn";
   // The poster reported a no-show (report_helper_no_show closes the application with closed_reason
   // 'no_show'): say so plainly, never "You weren't picked".
   if (app.status === "rejected" && app.closed_reason === "no_show") return "reported_no_show";

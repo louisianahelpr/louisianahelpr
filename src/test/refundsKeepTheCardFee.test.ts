@@ -595,6 +595,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // charged, so nothing goes back and no card fee exists to keep. Refuses any non-ship order and a paid order still on
       // that PaymentIntent; replay 'already'. It records no refund and sends no amount.
       declutter_ship_hold_refund_released: "20261101221604_shipping_hold_refund_row.sql f5cc722c854edabf",
+      // Q2259 S6 2c (20261102045553, shipping, testers only), reviewed: READS declutter_refunds only to ask whether the
+      // order was refunded on the seller; on a rejected label void it books the spent label as the seller's fee debt
+      // (ship_void_rejected, once per shipment). It records no refund and changes no refund amount or card fee.
+      declutter_ship_void_rejected_debt: "20261102045553_shipping_void_rejected_seller_debt.sql 0457a2d0103ead49",
       // Owner answer 7 (20261017060455): the three seller-out paths record
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
       // Board 158 (20261020064354): the same body, a 'paused' listing sells like a 'live' one (two status

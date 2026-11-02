@@ -1164,7 +1164,7 @@ describe("stripe-webhook edge function", () => {
       });
 
       // Second review (S-E): released before the pull-back: the Helpr keeps it AND is told, once.
-      // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (k && k.length > 0) await notifyKept(supabase, args.helperId, args.jobId, args.tipperId ?? null); |
+      // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (k && k.length > 0 && source === "job") await notifyKept(supabase, args.helperId, args.jobId, args.tipperId ?? null); |
       it("a redelivery after the hold was released with no reversal at Stripe: 'kept', and the Helpr is told once", async () => {
         const fn = await loadConfigured();
         scenario.reads.payout_holds = { rows: [] };

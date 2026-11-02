@@ -13749,47 +13749,63 @@ export type Database = {
         Row: {
           amount_cents: number
           created_at: string
+          delivery_tip_id: string | null
           failure_reason: string | null
           first_repay_attempt_at: string | null
           helper_id: string
+          job_tip_id: string | null
           repay_transfer_id: string | null
           reversal_id: string | null
           status: string
           tip_id: string
+          tip_source: string
           transfer_id: string
           updated_at: string
         }
         Insert: {
           amount_cents: number
           created_at?: string
+          delivery_tip_id?: never
           failure_reason?: string | null
           first_repay_attempt_at?: string | null
           helper_id: string
+          job_tip_id?: never
           repay_transfer_id?: string | null
           reversal_id?: string | null
           status?: string
           tip_id: string
+          tip_source?: string
           transfer_id: string
           updated_at?: string
         }
         Update: {
           amount_cents?: number
           created_at?: string
+          delivery_tip_id?: never
           failure_reason?: string | null
           first_repay_attempt_at?: string | null
           helper_id?: string
+          job_tip_id?: never
           repay_transfer_id?: string | null
           reversal_id?: string | null
           status?: string
           tip_id?: string
+          tip_source?: string
           transfer_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "tip_hold_redrives_tip_id_fkey"
-            columns: ["tip_id"]
-            isOneToOne: true
+            foreignKeyName: "tip_hold_redrives_delivery_tip_id_fkey"
+            columns: ["delivery_tip_id"]
+            isOneToOne: false
+            referencedRelation: "helpr_task_tips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_hold_redrives_job_tip_id_fkey"
+            columns: ["job_tip_id"]
+            isOneToOne: false
             referencedRelation: "tips"
             referencedColumns: ["id"]
           },

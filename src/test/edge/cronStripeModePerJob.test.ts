@@ -15,7 +15,7 @@
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |         ({ stripe } = await stripes.clientForJob(job.id, "payout", [helperId])); |         ({ stripe } = { stripe: stripes.clientFor("live") });
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |         ({ stripe } = await stripes.clientForJob(job.id, "payout", [helperId])); |         ({ stripe } = await stripes.clientForJob(job.id, "read", []));
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |       (await stripes.clientForJob(jobId, "payout", payees)).stripe; |       stripes.clientFor("live");
- * @mutate supabase/functions/_shared/heldTipRepay.ts |       rowStripe = await stripeForJob!((tipJob?.job_id as string \| undefined) ?? null, [r.helper_id]); |       rowStripe = liveStripe;
+ * @mutate supabase/functions/_shared/heldTipRepay.ts |       rowStripe = await stripeForJob!(await tipJobId(supabase, r), [r.helper_id]); |       rowStripe = liveStripe;
  * @mutate supabase/functions/_shared/chargebackClawback.ts |       const stripe = ctx.stripeForJob ? await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])]) : ctx.stripe; |       const stripe = ctx.stripe;
  * @mutate supabase/functions/_shared/chargebackClawback.ts | await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])]) | await ctx.stripeForJob(jobId, [])
  * @mutate supabase/functions/auto-tip-charge/index.ts |         ({ stripe, mode } = await stripes.clientForJob(jobId, "new", [c.customer_id as string \| null, c.helper_id as string \| null])); |         ({ stripe, mode } = { stripe: stripes.clientFor("live"), mode: "live" });

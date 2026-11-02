@@ -50,6 +50,11 @@ let tipRows: { id: string; job_id: string | null; amount: number; payment_status
 /** poster_crew_block_fee_cents (Q1736): the answer, or the error it returns. */
 let blockFeeResult: { data: { job_id: string; fee_cents: number }[] | null; error: { message: string; code: string } | null } = { data: [], error: null };
 let rpcCalls: string[] = [];
+/** A3-112: the buyer's own paid Declutter orders and their lines. */
+let orderRows: { id: string; status: string; total_cents: number; paid_at: string | null }[] = [];
+let lineRows: { order_id: string; item_title: string }[] = [];
+let paidRows: { order_id: string; paid_cents: number }[] = [];
+let failPaid = false;
 const paid = (r: Row): Row => ({ status: "completed", cancelled_at: null, payment_status: "released", stripe_payment_intent_id: `pi_${r.id}`, ...r });
 let filters: [string, string, unknown][] = [];
 let failRead = false;
@@ -61,10 +66,13 @@ function builder(table: string) {
   b.eq = (col: string, v: unknown) => { filters.push([table, col, v]); return b; };
   b.neq = (col: string, v: unknown) => { filters.push([table, `neq:${col}`, v]); return b; };
   b.in = (col: string, v: unknown) => { filters.push([table, `in:${col}`, v]); return b; };
+  b.not = (col: string, op: string, v: unknown) => { filters.push([table, `not:${col}:${op}`, v]); return b; };
+  b.order = () => b;
   b.then = (resolve: (v: unknown) => unknown) =>
     Promise.resolve(
       failRead ? { data: null, error: { message: "permission denied", code: "42501" } }
-      : { data: table === "jobs" ? rows.map(paid) : table === "payment_refunds" ? refundRows : table === "tips" ? tipRows : giftRows, error: null },
+      : { data: table === "jobs" ? rows.map(paid) : table === "payment_refunds" ? refundRows : table === "tips" ? tipRows
+          : table === "declutter_orders" ? orderRows : table === "declutter_cart_items" ? lineRows : giftRows, error: null },
     ).then(resolve);
   return b;
 }
@@ -73,7 +81,8 @@ vi.mock("@/integrations/supabase/client", () => ({
     from: (t: string) => builder(t),
     rpc: (fn: string) => {
       rpcCalls.push(fn);
-      return Promise.resolve(failRead ? { data: null, error: { message: "permission denied", code: "42501" } } : blockFeeResult);
+      return Promise.resolve(failRead ? { data: null, error: { message: "permission denied", code: "42501" } }
+        : fn === "declutter_my_paid_cents" ? (failPaid ? { data: null, error: { message: "boom", code: "XX000" } } : { data: paidRows, error: null }) : blockFeeResult);
     },
   },
 }));
@@ -148,7 +157,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     ];
     refundRows = [{ job_id: "w3", amount_cents: 5000 }];
     renderSpent();
-    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$95\.60\s*across 2 jobs/));
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$95\.60\s*2 jobs/));
     expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Cancelled open", "In progress"]);
     expect(text()).toMatch(/In progress\s*Sep 29 · Held until the job is approved\s*\$89\.60/);
     expect(text()).toMatch(/Cancelled open\s*Sep 30 · Cancelled · \$50\.00 refunded\s*\$6\.00/);
@@ -170,7 +179,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     ];
     renderSpent();
     // The $8 tip charged $8.55 (tip + card fee, tipChargeBreakdown).
-    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$63\.55\s*across 2 jobs/));
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$63\.55\s*2 jobs/));
     expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Cancelled late", "Tipped job"]);
     expect(text()).toMatch(/Cancelled late\s*Oct 2 · Cancelled · \$45\.00 refunded\s*\$15\.00/);
     // AUD31-55: the row names the tip given ($8), never the tip's charge ($8.55) as the tip; the amount is unchanged.
@@ -178,7 +187,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     expect(text()).not.toMatch(/Cancelled free/);
     // The cancellation is dated when it was cancelled: inside this week's range.
     await act(async () => { fireEvent.click(screen.getByRole("radio", { name: "This week" })); });
-    expect(text()).toMatch(/Total spent\s*\$15\.00\s*across 1 job(?!s)/);
+    expect(text()).toMatch(/Total spent\s*\$15\.00\s*1 job(?!s)/);
   });
 
   it("Q1736: a crew whose uncaptured hold paid the cancellation fee AND block fees counts both", async () => {
@@ -188,7 +197,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     ];
     blockFeeResult = { data: [{ job_id: "c1", fee_cents: 2500 }], error: null };
     renderSpent();
-    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$55\.00\s*across 1 job(?!s)/));
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$55\.00\s*1 job(?!s)/));
     expect(rpcCalls).toEqual(["poster_crew_block_fee_cents"]);
   });
 
@@ -198,7 +207,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     ];
     blockFeeResult = { data: null, error: { message: "Could not find the function", code: "PGRST202" } };
     renderSpent();
-    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$30\.00\s*across 1 job(?!s)/));
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$30\.00\s*1 job(?!s)/));
   });
 
   it("only real charges count: closed unpaid $0, full refund listed at $0 (AUD31-55), partial refund = kept, chargeback $0, gift part out, rows show the charge", async () => {
@@ -213,7 +222,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     refundRows = [{ job_id: "c3", amount_cents: 2500 }, { job_id: "c4", amount_cents: 1500 }];
     giftRows = [{ job_id: "c6", amount: 20 }];
     renderSpent();
-    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$99\.80\s*across 4 jobs/));
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$99\.80\s*4 jobs/));
     expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Gift helped", "Partly refunded", "Fully refunded", "Real paid job"]);
     // AUD31-55 (lead decision 10-31): a job refunded in full stays, at $0 net; the total ($99.80) is the sum of the rows.
     expect(text()).toMatch(/Fully refunded\s*Sep 3 · Refunded in full\s*\$0\.00/);
@@ -226,18 +235,18 @@ describe("the Spent half of the Money tab (Q1177)", () => {
 
   it("same figures: lifetime, week, month and year totals and counts", async () => {
     renderSpent();
-    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$65\.50\s*across 4 jobs/));
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$65\.50\s*4 jobs/));
     const pick = async (label: string) => {
       await act(async () => { fireEvent.click(screen.getByRole("radio", { name: label })); });
     };
     await pick("This year");
-    expect(text()).toMatch(/Total spent\s*\$45\.00\s*across 3 jobs/);
+    expect(text()).toMatch(/Total spent\s*\$45\.00\s*3 jobs/);
     await pick("This month");
-    expect(text()).toMatch(/Total spent\s*\$10\.00\s*across 1 job(?!s)/);
+    expect(text()).toMatch(/Total spent\s*\$10\.00\s*1 job(?!s)/);
     await pick("This week");
-    expect(text()).toMatch(/Total spent\s*\$15\.00\s*across 2 jobs/);
+    expect(text()).toMatch(/Total spent\s*\$15\.00\s*2 jobs/);
     await pick("Lifetime");
-    expect(text()).toMatch(/Total spent\s*\$65\.50\s*across 4 jobs/);
+    expect(text()).toMatch(/Total spent\s*\$65\.50\s*4 jobs/);
   });
 
   it("its range row is the same one-row, sideways-scrolling control as the Earned card's", async () => {
@@ -304,6 +313,55 @@ describe("A3-111: each Spent row opens its job and says where its money stands",
     expect(held.textContent).toMatch(/Held until the job is approved/);
     const done = links.find((a) => a.getAttribute("href") === "/jobs/j-done")!;
     expect(done.textContent).not.toMatch(/Held/);
+  });
+});
+
+// A3-112 (audit 8, 11-01): Spent left out Declutter purchases (Receipts' rule: paid / handed over / refunded, what the
+// card was charged, a refunded order $0 and "Refunded").
+// @mutate src/components/profile/earningsTab/SpentSection.tsx |   const totalSpent = (spentTotalCents(rows) + bought.reduce((s, p) => s + p.cents, 0)) / 100; |   const totalSpent = spentTotalCents(rows) / 100;
+// @mutate src/components/profile/earningsTab/SpentSection.tsx | ${boughtCount > 0 ? ` · ${boughtCount} purchase${boughtCount === 1 ? "" : "s"}` : ""} |
+// @mutate src/components/profile/earningsTab/SpentSection.tsx |       {!isLoading && !isError && bought.length > 0 && ( |       {false && (
+// @mutate src/lib/declutter/purchaseSpend.ts | cents: refunded ? 0 : paid?.get(o.id) ?? o.total_cents, | cents: o.total_cents,
+// @mutate src/lib/declutter/purchaseSpend.ts | const COUNTED = ["paid", "handed_over", "refunded"]; | const COUNTED = ["paid", "handed_over", "refunded", "awaiting_payment"];
+// @mutate src/components/profile/earningsTab/SpentSection.tsx |   const isError = spend.isError \|\| purchases.isError; |   const isError = spend.isError;
+describe("A3-112: Declutter purchases count in Spent", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 4, 12, 0, 0));
+    filters = []; failRead = false; refundRows = []; giftRows = []; tipRows = []; blockFeeResult = { data: [], error: null };
+    window.matchMedia = ((q: string) => ({
+      matches: q.includes("reduce"), media: q, onchange: null,
+      addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false,
+    })) as unknown as typeof window.matchMedia;
+  });
+  afterEach(() => { vi.useRealTimers(); orderRows = []; lineRows = []; paidRows = []; rows = []; failPaid = false; });
+
+  it("adds each paid order at what the card was charged, names its items, says Refunded, and counts '1 job · 2 purchases'", async () => {
+    rows = [{ id: "j1", title: "Mow the lawn", budget: 50, poster_completed_at: "2026-10-02T15:00:00Z", helper_completed_at: null, created_at: "2026-10-01T15:00:00Z", customer_fee_amount: 2 }];
+    orderRows = [
+      { id: "o1", status: "handed_over", total_cents: 2575, paid_at: "2026-10-03T15:00:00Z" },
+      { id: "o2", status: "refunded", total_cents: 1000, paid_at: "2026-10-02T15:00:00Z" },
+      { id: "o3", status: "awaiting_payment", total_cents: 999, paid_at: "2026-10-02T16:00:00Z" },
+    ];
+    lineRows = [{ order_id: "o1", item_title: "Oak rocking chair" }, { order_id: "o2", item_title: "Lamp" }, { order_id: "o2", item_title: "Rug" }];
+    paidRows = [{ order_id: "o1", paid_cents: 2775 }];
+    renderSpent();
+    await waitFor(() => expect(text()).toMatch(/Total spent\s*\$79\.75\s*1 job · 2 purchases/));
+    const bought = [...document.querySelectorAll("a[data-spent-purchase]")];
+    expect(bought.length).toBe(2);
+    expect(bought[0].textContent).toMatch(/^Bought: Oak rocking chairOct 3\$27\.75$/);
+    expect(bought[1].textContent).toMatch(/^Bought: Lamp and 1 moreOct 2 · Refunded\$0\.00$/);
+    expect(bought[0].getAttribute("href")).toBe("/declutter?view=cart");
+    expect(filters).toContainEqual(["declutter_orders", "buyer_id", "user-1"]);
+  });
+
+  it("a failed purchases read is a failed load, never a smaller total", async () => {
+    rows = [{ id: "j1", title: "Mow the lawn", budget: 50, poster_completed_at: "2026-10-02T15:00:00Z", helper_completed_at: null, created_at: "2026-10-01T15:00:00Z", customer_fee_amount: 2 }];
+    orderRows = [{ id: "o1", status: "paid", total_cents: 2575, paid_at: "2026-10-03T15:00:00Z" }];
+    failPaid = true;
+    renderSpent();
+    await waitFor(() => expect(text()).toMatch(/couldn't load what you've spent/));
+    expect(text()).not.toMatch(/Total spent/);
   });
 });
 

@@ -13,7 +13,7 @@
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {(t.side === "buyer" \|\| t.side === "seller") && <Suspense | {false && <Suspense
  * @mutate src/components/declutter/OrderTalkStep.tsx |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}&order=${orderId}`; |   return `/declutter?tab=${side === "buyer" ? "buying" : "selling"}`;
  * @mutate src/components/declutter/OrderTalkStep.tsx | action={step.who === "you" ? "See the order" : null} | action={null}
- * @mutate src/components/declutter/OrderTalkStep.tsx |       { ...orderTimeWords(times.data?.[0], kind, b?.slot_start ?? null), buyer: other.first }); |       { chosen: null, by: null });
+ * @mutate src/components/declutter/OrderTalkStep.tsx |       { ...orderTimeWords(times.data?.[0], kind, b?.slot_start ?? null), buyer: other.first, photoDay: |       { chosen: null, by: null, photoDay:
  * @mutate src/pages/profile/PayoutHistory.tsx | action: { label: "Payout settings", to: "/profile?tab=payment" } | action: null
  * @mutate src/pages/profile/PayoutHistory.tsx |       return { step: { who: "them", text: "Waiting on the bank", by: `arrives about ${payoutDay(p.arrival_date)}` }, action: null }; |       return null;
  */
@@ -130,6 +130,9 @@ describe("A3-25: the free giver's Pick who gets it", () => {
   });
 });
 
+/** Today at a local hour and minute, as ISO. */
+const todayAt = (h: number, m: number) => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).toISOString(); };
+
 describe("A3-27: the order chat shows the order card's step", () => {
   const talk = (side: "buyer" | "seller") => ({ side, open: true, open_until: null, messages: [] });
 
@@ -137,7 +140,8 @@ describe("A3-27: the order chat shows the order card's step", () => {
     const id = "22222222-2222-4222-8222-222222222222";
     state.talk = talk("seller");
     state.cart = [{ ...LINE, status: "paid", order_id: id, order_status: "paid", handover: "porch", porch_ok: true }];
-    state.bookings = [{ order_id: id, slot_start: "2026-11-07T15:00:00Z", slot_end: null, porch_mode: null, porch_until: null, pickup_day: null }];
+    // Booked for today (Q2626: before the slot's day, both the card and this line say the day instead).
+    state.bookings = [{ order_id: id, slot_start: todayAt(0, 30), slot_end: null, porch_mode: null, porch_until: null, pickup_day: null }];
     state.handover = { order_id: id, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null };
     show(<OrderTalkFromLink />, `/declutter?tab=selling&order_talk=${id}`);
     const step = await screen.findByText("Next: put it out and take one photo where the buyer will find it");
@@ -147,10 +151,23 @@ describe("A3-27: the order chat shows the order card's step", () => {
     expect(where).toBe(`/declutter?tab=selling&order=${id}`);
   });
 
+  // Q2626: booked for a time tomorrow, the chat line says the day, as the card does, never "put it out" tonight.
+  // @mutate src/components/declutter/OrderTalkStep.tsx | photoDay: kind === "porch" && b ? porchPhotoDay(b) : null | photoDay: null
+  it("Q2626: a porch time tomorrow: the seller's chat line names the day", async () => {
+    const id = "55555555-5555-4555-8555-555555555555";
+    const d = new Date();
+    state.talk = talk("seller");
+    state.cart = [{ ...LINE, status: "paid", order_id: id, order_status: "paid", handover: "porch", porch_ok: true }];
+    state.bookings = [{ order_id: id, slot_start: new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 6, 11).toISOString(), slot_end: null, porch_mode: null, porch_until: null, pickup_day: null }];
+    state.handover = { order_id: id, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null };
+    show(<OrderTalkFromLink />, `/declutter?tab=selling&order_talk=${id}`);
+    expect(await screen.findByText("Next: put it out tomorrow, then take one photo where the buyer will find it")).toBeInTheDocument();
+  });
+
   it("lead 11-01: the seller's chat line carries the card's chosen pickup time, never a line the card disagrees with", async () => {
     const id = "44444444-4444-4444-8444-444444444444";
-    const start = "2026-11-07T21:00:00Z";
-    const end = "2026-11-07T23:00:00Z";
+    const start = todayAt(0, 30);
+    const end = todayAt(2, 30);
     state.talk = talk("seller");
     state.cart = [{ ...LINE, status: "paid", order_id: id, order_status: "paid", handover: "porch", porch_ok: true }];
     state.bookings = [{ order_id: id, slot_start: start, slot_end: end, porch_mode: null, porch_until: null, pickup_day: null }];

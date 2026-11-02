@@ -73,8 +73,12 @@ export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggl
         {!open && (item.free ? (
           <span className="w-[4.5rem] shrink-0 text-center text-ds-14 font-semibold" data-bunch-row-free="">Free</span>
         ) : (
-          <input id={`price-${item.key}`} aria-label="Price ($)" aria-describedby={nameId} className="h-11 w-[4.5rem] shrink-0 rounded-2xl border border-input glass-field px-2 text-center text-ds-15"
-            inputMode="decimal" enterKeyHint="next" value={item.price} placeholder="$" onChange={(e) => onPrice(e.target.value)} onKeyDown={toNext} />
+          // A3-68: a fixed "$" inside the box (it was only the placeholder, so a filled box read a bare "25").
+          <span className="relative w-[4.5rem] shrink-0" data-bunch-row-price="">
+            <span aria-hidden className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ds-15 text-muted-foreground">$</span>
+            <input id={`price-${item.key}`} aria-label="Price ($)" aria-describedby={nameId} className="h-11 w-full rounded-2xl border border-input glass-field pl-5 pr-2 text-center text-ds-15"
+              inputMode="decimal" enterKeyHint="next" value={item.price} onChange={(e) => onPrice(e.target.value)} onKeyDown={toNext} />
+          </span>
         ))}
       </div>
       {open && <div className="border-t border-border">{children}</div>}

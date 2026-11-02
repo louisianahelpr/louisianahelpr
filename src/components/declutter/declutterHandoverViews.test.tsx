@@ -51,6 +51,8 @@ const state = {
   sd: null as Record<string, unknown> | null,
   /** DB-12: the order's newest problem as declutter_order_problem returns it (decision once decided). */
   orderProblem: null as Record<string, unknown> | null,
+  /** A3-63: the order row's checkout window (fetchOrderPickupTimes); none by default. */
+  pickupTimes: [] as { id: string; book_by: string | null; pickup_slot_start: string | null; pickup_slot_end: string | null }[],
 };
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
@@ -88,7 +90,7 @@ vi.mock("@/lib/declutter/paidCents", () => ({
   fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.paid).map((id) => [id, state.paid[id]])),
 }));
 // A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
-vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => [] }));
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => state.pickupTimes }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => state.payouts,
@@ -1781,5 +1783,52 @@ describe("BUY-30: a notice's ?order= opens that order's card", () => {
     expect(await screen.findByText("Sale A")).toBeInTheDocument();
     expect(screen.queryByText("Sale B")).toBeNull();
     expect(document.querySelector("[data-linked-order]")).toBeNull();
+  });
+});
+
+// A3-63 (lead 1:14 PM: porch = a 2-hour window the seller leaves it out for): the seller's card said a porch booking as
+// "5:14 PM (30 minutes)". With the checkout window on the order row it says the window; door and meetup keep their time.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const windowWords = porch && booked | const windowWords = false && booked
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.side === "seller" ? "Leave it out" : "Pickup"} | {"Pickup"}
+describe("A3-63: a porch booking says its 2-hour window, not (30 minutes)", () => {
+  beforeEach(() => {
+    state.refundRequest = null;
+    state.handover = null;
+    state.porchDays = null;
+    state.meetup = null;
+  });
+  const start = new Date(Date.now() + 26 * 3600e3);
+  start.setUTCMinutes(0, 0, 0);
+  const end = new Date(start.getTime() + 2 * 3600e3);
+  const book = () => {
+    state.bookings = [{ order_id: "o1", slot_start: start.toISOString(), slot_end: new Date(start.getTime() + 30 * 60_000).toISOString(),
+      porch_mode: null, porch_until: null, buyer_reschedules: 0, seller_reschedules: 0 }];
+    state.pickupTimes = [{ id: "o1", book_by: null, pickup_slot_start: start.toISOString(), pickup_slot_end: end.toISOString() }];
+  };
+
+  it("seller: 'Leave it out: <day>, <start>-<end>' and no '(30 minutes)'", async () => {
+    book();
+    show([line({ handover: "porch", my_side: "seller" })]);
+    const row = await screen.findByTestId("declutter-porch-window");
+    const { pickupWhenWords } = await import("@/lib/declutter/orderPickupTimes");
+    expect(row.textContent).toBe(`Leave it out: ${pickupWhenWords(start.toISOString(), end.toISOString(), true)}`);
+    expect(row.textContent).toMatch(/–/);
+    expect(document.body.textContent).not.toMatch(/\(30 minutes\)/);
+    state.pickupTimes = [];
+  });
+
+  it("buyer: 'Pickup: <window>'", async () => {
+    book();
+    show([line({ handover: "porch", my_side: "buyer" })]);
+    expect((await screen.findByTestId("declutter-porch-window")).textContent).toMatch(/^Pickup: .*–/);
+    state.pickupTimes = [];
+  });
+
+  it("door pickup keeps its exact time and (30 minutes)", async () => {
+    book();
+    show([line({ handover: "pickup_home", my_side: "seller" })]);
+    expect(await screen.findByText(/\(30 minutes\)/)).toBeInTheDocument();
+    expect(screen.queryByTestId("declutter-porch-window")).toBeNull();
+    state.pickupTimes = [];
   });
 });

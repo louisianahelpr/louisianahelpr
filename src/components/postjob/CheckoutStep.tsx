@@ -613,7 +613,11 @@ export function CheckoutStep({
       {/* "Save card for next time" — optional opt-in passed through to
           the create-payment edge function. Default off, sticky in
           localStorage so a returning poster who turned it on once
-          doesn't have to re-tap it every post. */}
+          doesn't have to re-tap it every post.
+          Q2143: the saved card is the ONE wallet card (owner 2026-10-18), so it is also the card any automatic
+          charge the member turned on uses (auto-tip). Both lines say so, in Declutter's words. A repeating job
+          FORCES the save (useJobSubmit: saveCardForFuture || isRecurring), because every later visit is charged to
+          it, so the switch shows on and locked there instead of an off switch that is ignored. */}
       {setSaveCardForFuture && (
         <label
           htmlFor="save-card"
@@ -622,12 +626,15 @@ export function CheckoutStep({
           <span className="text-ds-13 text-foreground leading-snug">
             <span className="font-semibold block">Save card for next time</span>
             <span className="text-ds-11 text-muted-foreground">
-              Stripe stores it securely so you can one-tap next time you post.
+              {isRecurring
+                ? "A repeating job saves your card: each later visit is charged to it a few days ahead. It's also charged automatically where you turned on automatic charges."
+                : "Stripe stores it securely. It's charged only when you pay, or automatically where you turned on automatic charges."}
             </span>
           </span>
           <Switch
             id="save-card"
-            checked={!!saveCardForFuture}
+            checked={!!saveCardForFuture || isRecurring}
+            disabled={isRecurring}
             onCheckedChange={(checked) => setSaveCardForFuture(!!checked)}
           />
         </label>

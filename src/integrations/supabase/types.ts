@@ -1492,6 +1492,7 @@ export type Database = {
           applied_at: string | null
           card_fee_cents: number
           created_at: string
+          gave_up_notified_at: string | null
           id: string
           is_seed: boolean
           livemode: boolean | null
@@ -1518,6 +1519,7 @@ export type Database = {
           applied_at?: string | null
           card_fee_cents: number
           created_at?: string
+          gave_up_notified_at?: string | null
           id?: string
           is_seed?: boolean
           livemode?: boolean | null
@@ -1544,6 +1546,7 @@ export type Database = {
           applied_at?: string | null
           card_fee_cents?: number
           created_at?: string
+          gave_up_notified_at?: string | null
           id?: string
           is_seed?: boolean
           livemode?: boolean | null
@@ -1588,6 +1591,7 @@ export type Database = {
           attempts: number
           created_at: string
           executed_at: string | null
+          gave_up_notified_at: string | null
           held_notified_at: string | null
           id: string
           is_seed: boolean
@@ -1609,6 +1613,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           executed_at?: string | null
+          gave_up_notified_at?: string | null
           held_notified_at?: string | null
           id?: string
           is_seed?: boolean
@@ -1630,6 +1635,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           executed_at?: string | null
+          gave_up_notified_at?: string | null
           held_notified_at?: string | null
           id?: string
           is_seed?: boolean
@@ -2663,6 +2669,36 @@ export type Database = {
           seller_id?: string | null
           weekdays?: number[]
           windows?: Json | null
+        }
+        Relationships: []
+      }
+      declutter_retained_strikes: {
+        Row: {
+          expires_at: string
+          given_at: string
+          id: string
+          identity_sha256: string
+          offender_side: string
+          reason: string
+          retained_at: string
+        }
+        Insert: {
+          expires_at: string
+          given_at: string
+          id?: string
+          identity_sha256: string
+          offender_side: string
+          reason: string
+          retained_at?: string
+        }
+        Update: {
+          expires_at?: string
+          given_at?: string
+          id?: string
+          identity_sha256?: string
+          offender_side?: string
+          reason?: string
+          retained_at?: string
         }
         Relationships: []
       }
@@ -5183,6 +5219,7 @@ export type Database = {
           debt_cents: number
           executed_at: string | null
           fee_cents: number
+          gave_up_notified_at: string | null
           held_notified_at: string | null
           helpr_id: string | null
           id: string
@@ -5208,6 +5245,7 @@ export type Database = {
           debt_cents?: number
           executed_at?: string | null
           fee_cents: number
+          gave_up_notified_at?: string | null
           held_notified_at?: string | null
           helpr_id?: string | null
           id?: string
@@ -5233,6 +5271,7 @@ export type Database = {
           debt_cents?: number
           executed_at?: string | null
           fee_cents?: number
+          gave_up_notified_at?: string | null
           held_notified_at?: string | null
           helpr_id?: string | null
           id?: string

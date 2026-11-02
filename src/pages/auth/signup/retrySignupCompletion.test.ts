@@ -201,7 +201,7 @@ describe("complete-signup call sites (Q1810)", () => {
 // @mutate src/pages/auth/signup/retrySignupCompletion.ts |       if (!doc \|\| doc.visibilityState !== "hidden") return resolve(); |       return resolve();
 // @mutate src/pages/auth/signup/retrySignupCompletion.ts |   await wait(); |
 // @mutate src/pages/auth/Signup.tsx | await invokeWithOneRetryIfUnsent(() => supabase.functions.invoke("complete-signup", { | await supabase.functions.invoke("complete-signup", ({
-// @mutate src/pages/auth/signup/retrySignupCompletion.ts |   if (signal?.aborted) return first; |
+// @mutate src/pages/auth/signup/retrySignupCompletion.ts |   if (signal?.aborted) { |   if (false) {
 // @mutate src/pages/auth/signup/retrySignupCompletion.ts |       const cap = setTimeout(finish, maxHiddenMs); |       const cap = undefined;
 // @mutate src/pages/auth/Signup.tsx |     }), undefined, gaveUp); |     }));
 // @mutate src/pages/auth/Signup.tsx | .finally(() => gaveUp.abort()); | ;

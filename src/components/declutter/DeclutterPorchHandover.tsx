@@ -34,7 +34,7 @@ type Pickup = "porch" | "pickup_home" | "meetup";
 
 const time = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-function useMyHandover(orderId: string) {
+export function useMyHandover(orderId: string) {
   return useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
 }
 
@@ -51,7 +51,7 @@ export function onDay(day: string): string {
   return w === "Today" || w === "Tomorrow" ? w.toLowerCase() : `on ${w}`;
 }
 
-function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: string | null, free = false): NextStepValue {
+export function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: string | null, free = false): NextStepValue {
   // Owner 11-01 12:02 PM: the line is the shared next step. The viewer's own move reads "Next: <step>"; the other
   // side's move reads "Waiting on the buyer to …" / where it stands. #6: a free claim was never paid ("Claimed.").
   const paid = free ? "Claimed." : "Paid.";
@@ -84,7 +84,7 @@ function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: s
 }
 
 /** DC-16: a seller-delivers sale, in the same words (OrderSteps: Paid -> Time booked -> Delivered -> Done). */
-function deliveryStanding(side: "buyer" | "seller", at: number, free: boolean): NextStepValue {
+export function deliveryStanding(side: "buyer" | "seller", at: number, free: boolean): NextStepValue {
   if (at === 0) return side === "buyer" ? { who: "you", text: "Pick a delivery time" } : { who: "them", text: `${free ? "Claimed" : "Paid"}. Waiting on the buyer to pick a delivery time.` };
   if (at === 1) return side === "seller" ? { who: "you", text: "Deliver it at the time below" } : { who: "info", text: "Booked. The delivery time is below." };
   if (at === 2) return side === "buyer" ? { who: "you", text: "Tap I got it once you have it" } : { who: "them", text: "Delivered. Waiting on the buyer to say they have it." };

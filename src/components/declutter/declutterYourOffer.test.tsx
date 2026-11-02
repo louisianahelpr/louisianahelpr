@@ -279,7 +279,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
 });
 
 // The giver's request list says the giver's move once someone asked (owner 11-01 12:02 PM: the shared next-step line).
-// @mutate src/components/declutter/DeclutterFreeClaim.tsx |         <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it" }} /> |         null
+// @mutate src/components/declutter/DeclutterFreeClaim.tsx |         <NextStep className="!text-sm" value={{ who: "you", text: "Pick who gets it", by: `${rows.length} asked` }} /> |         null
 describe("the giver's request list: Next: pick who gets it", () => {
   it("with asks: 'Next: pick who gets it'; with none: it stays up, no step", async () => {
     state.giverAsks = [{ request_id: "r1", requester_id: "u1", display_name: "Kaci B.", avg_rating: 5, review_count: 3, created_at: "2026-10-30T00:00:00Z", pickup_at: null }];

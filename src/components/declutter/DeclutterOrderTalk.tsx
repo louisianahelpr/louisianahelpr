@@ -9,7 +9,7 @@
  * (held open while a problem or refund request is open). An ended chat keeps its history and loses the box.
  * Its own module: DeclutterHandoverViews is at the component-size limit.
  */
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useInRouterContext, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,9 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
+
+// A3-27: the order card's step line, loaded only with the chat (it reads the cards' queries).
+const OrderTalkStep = lazy(() => import("./OrderTalkStep"));
 
 // AUD31-12: the weekday alone only within 6 days; older lines carry their date.
 const when = (iso: string) => talkTime(iso);
@@ -95,6 +98,8 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
           <p className="mt-2 text-ds-14 text-muted-foreground">Loading…</p>
         ) : (
           <div className="mt-2 space-y-3">
+            {/* A3-27 (audit 11-01): the same next step the order card shows, with its one button. */}
+            {(t.side === "buyer" || t.side === "seller") && <Suspense fallback={null}><OrderTalkStep orderId={orderId} side={t.side} /></Suspense>}
             <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
               Only you and the {other} can read this. Keep phone numbers, emails and payment out of the chat.
               {open && t.open_until ? ` It's open until ${when(t.open_until)}.` : ""}

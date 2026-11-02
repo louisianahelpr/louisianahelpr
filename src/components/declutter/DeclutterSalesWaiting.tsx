@@ -14,7 +14,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchMyCart, sellerCancelSale, type CartLine } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
-import { timeLeft } from "@/lib/declutter/timeLeft";
+import { byClock, timeLeft } from "@/lib/declutter/timeLeft";
+import { NextStep } from "@/components/ui/NextStep";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { SellerTalks } from "./DeclutterHandoverTalk";
 import { DeclutterNotice } from "./declutterUi";
@@ -23,7 +24,7 @@ import { DeclutterNotice } from "./declutterUi";
 const WORDS = {
   paid: {
     heading: "Sold, waiting for the buyer to pay",
-    line: "Waiting for the buyer to pay",
+    line: "Waiting on the buyer to pay",
     cancel: "Cancel sale",
     sheetTitle: "Cancel this sale?",
     keep: "Keep the sale",
@@ -94,7 +95,9 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
             {lines.map((l) => (
               <li key={l.line_id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
                 <p className="font-semibold">{l.item_title} · {itemPriceLabel(l.price_cents)}</p>
-                <p className="text-sm text-muted-foreground">{WORDS[kind].line} · {timeLeft(l.checkout_by)}</p>
+                {/* A3-24 (audit 11-01): the shared next-step line with the hold's end ("by 7:45 PM": 30 minutes for Buy
+                    now, 24 hours after an accepted offer, the line's checkout_by); the button below is the way out. */}
+                <NextStep className="!text-sm" value={{ who: "them", text: WORDS[kind].line, by: kind === "paid" ? byClock(l.checkout_by) : timeLeft(l.checkout_by) }} />
                 <Button
                   type="button"
                   variant="ghost"

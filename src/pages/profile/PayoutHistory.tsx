@@ -15,6 +15,8 @@ import { useEarningsData } from "@/components/profile/earningsTab/useEarningsDat
 import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers";
 import type { StripePayout } from "@/components/profile/earningsTab/types";
 import { TAB_TITLES } from "@/pages/profile/types";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
+import { Button } from "@/components/ui/button";
 
 /**
  * Board 177, PAYOUT HISTORY and ONE PAYOUT (You → Money → Payout history).
@@ -69,20 +71,54 @@ const ink = { color: "hsl(var(--ink-deep))" };
 const quiet = { color: "hsl(var(--olivewood) / 0.7)" };
 const rust = { color: "hsl(var(--accent-ink))" };
 
+/**
+ * A3-28 (audit 11-01): each payout's next step, in the words Declutter's payouts already use (0d3b56d732), with the
+ * one button that does it. Failed: Stripe holds the money and sends it again once the payout account is right, so the
+ * member checks it. Canceled: nothing sends it again on its own, so Support. Not arrived yet: we wait on the bank,
+ * with Stripe's expected arrival day. Sent: nothing to do (null).
+ */
+export function payoutNextStep(p: Pick<StripePayout, "status" | "arrival_date">): { step: NextStepValue; action: { label: string; to: string } | null } | null {
+  switch (p.status) {
+    case "failed":
+      return { step: { who: "you", text: "Check your payout account", by: "we try again once it's right" }, action: { label: "Payout settings", to: "/profile?tab=payment" } };
+    case "canceled":
+      return { step: { who: "you", text: "Message Support" }, action: { label: "Message Support", to: "/support?topic=message" } };
+    case "pending":
+    case "in_transit":
+      return { step: { who: "them", text: "Waiting on the bank", by: `arrives about ${payoutDay(p.arrival_date)}` }, action: null };
+    default:
+      return null;
+  }
+}
+
 function PayoutRow({ p, onOpen }: { p: StripePayout; onOpen: () => void }) {
+  const navigate = useNavigate();
+  const next = payoutNextStep(p);
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      data-payout-row={p.id}
-      className={`${card} w-full px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform`}
-    >
-      <span className="min-w-0 flex-1">
-        <span className="block text-ds-14 font-semibold" style={ink}>{payoutDay(p.arrival_date)}</span>
-        <span className="block text-ds-12 mt-0.5" style={quiet}>{payoutStatusLabel(p.status)}</span>
-      </span>
-      <span className="shrink-0 font-bold tabular-nums text-ds-15" style={rust}>{formatCents(p.amount, p.currency)}</span>
-    </button>
+    <div className={card} data-payout-item={p.id}>
+      <button
+        type="button"
+        onClick={onOpen}
+        data-payout-row={p.id}
+        className="w-full px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block text-ds-14 font-semibold" style={ink}>{payoutDay(p.arrival_date)}</span>
+          <span className="block text-ds-12 mt-0.5" style={quiet}>{payoutStatusLabel(p.status)}</span>
+        </span>
+        <span className="shrink-0 font-bold tabular-nums text-ds-15" style={rust}>{formatCents(p.amount, p.currency)}</span>
+      </button>
+      {next && (
+        <div className="px-4 pb-3 -mt-1 flex flex-wrap items-center justify-between gap-2" data-payout-next={p.status}>
+          <NextStep value={next.step} className="!text-ds-13 min-w-0" />
+          {next.action && (
+            <Button type="button" variant="outline" size="sm" className="rounded-full shrink-0" onClick={() => navigate(next.action!.to)}>
+              {next.action.label}
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

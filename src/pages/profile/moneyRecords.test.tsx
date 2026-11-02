@@ -15,6 +15,7 @@
  * @mutate src/pages/profile/PayoutHistory.tsx | {data.status === "paid" ? "Sent to " : "To "} | {"Sent to "}
  * @mutate src/pages/profile/PayoutHistory.tsx |       {data.status === "failed" && ( |       {false && (
  * @mutate src/pages/profile/PayoutHistory.tsx |               {payoutStatusLabel(data.status)} |
+ * @mutate src/pages/profile/PayoutHistory.tsx |       {next && ( |       {false && (
  * @mutate src/pages/profile/Receipts.tsx |     .filter((o) => o.paid_at && (o.status === "paid" \|\| o.status === "handed_over" \|\| o.status === "refunded")) |     .filter((o) => !!o.paid_at)
  * @mutate src/pages/profile/Receipts.tsx |           .eq("buyer_id", uid!) |           .eq("seller_id", uid!)
  * @mutate src/pages/profile/Receipts.tsx |   receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? []), paid.data ?? null)); |
@@ -121,6 +122,16 @@ describe("payout history (board 177)", () => {
     expect(text()).toContain("Scheduled");
     expect(text()).toContain("Sent");
     expect(text()).toContain("$128.10");
+  });
+
+  // A3-28 (audit 11-01): each row says its next step; a payout still on its way waits on the bank, a sent one says nothing.
+  it("a payout not arrived yet says it waits on the bank; a sent one has no step", async () => {
+    renderAt(<PayoutHistory />, "?tab=payout_history");
+    await screen.findByText("$93.45");
+    const waiting = document.querySelector('[data-payout-item="po_1aaaaaaaa"] [data-next-step]');
+    expect(waiting?.getAttribute("data-next-step")).toBe("them");
+    expect(waiting?.textContent).toMatch(/^Waiting on the bank · arrives about \w{3}, \w{3} \d{1,2}$/);
+    expect(document.querySelector('[data-payout-item="po_1bbbbbbbb"] [data-next-step]')).toBeNull();
   });
 
   it("a row opens that payout: its lines, the bank it went to, and the total", async () => {

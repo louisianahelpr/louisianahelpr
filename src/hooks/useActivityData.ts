@@ -76,7 +76,7 @@ export interface GroupHelperLite {
   /** This member's share of the budget in cents, frozen at hire (20260925154606). */
   share_cents?: number | null;
   /** This member's own lifecycle stamps (Q1382): the poster's roster shows
-      where each member is and offers "Confirm Arrived" per member. */
+      where each member is and offers "Confirm they've arrived" per member. */
   helper_on_the_way_at?: string | null;
   helper_arrived_at?: string | null;
   poster_confirmed_arrival_at?: string | null;

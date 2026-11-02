@@ -197,7 +197,7 @@ export function posterConfirmationRung(
 ): PosterConfirmRung | null {
   if (step !== "scheduled" && step !== "in_progress") return null;
   // A CREW (Q1382): arrivals are confirmed PER MEMBER, on the roster's own
-  // "Confirm Arrived" chips (GroupJobHelpers, rpc_poster_confirm_member_arrival).
+  // "Confirm they've arrived" chips (GroupJobHelpers, rpc_poster_confirm_member_arrival).
   // This ladder reads the job's scalar stamps, which belong to nobody on a crew
   // (Q407), so it could only ever draw a disabled "Confirm they've arrived" beside
   // the roster's live ones. (Its stalled notice needs a confirmed job-level

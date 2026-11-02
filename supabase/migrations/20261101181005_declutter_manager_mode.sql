@@ -340,6 +340,10 @@ DECLARE
 BEGIN
   PERFORM public.require_feature('declutter');
   PERFORM public.require_feature('declutter_manager');
+  -- A banned or restricted seller can't change what the manager handles (ending access stays open: _end).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   SELECT * INTO v_g FROM public.declutter_manager_grants WHERE id = p_grant_id FOR UPDATE;
   IF v_g.id IS NULL OR v_g.seller_id IS DISTINCT FROM v_uid THEN
     RAISE EXCEPTION 'not_your_grant' USING ERRCODE = '42501';
@@ -688,6 +692,10 @@ BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
+  -- A banned or restricted seller can't approve a draft (lead 11-01 ban gate).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   SELECT * INTO v_sub FROM public.declutter_manager_submissions WHERE item_id = p_item_id FOR UPDATE;
   IF v_sub.item_id IS NULL OR v_sub.seller_id IS DISTINCT FROM v_uid THEN
     RAISE EXCEPTION 'not_found' USING ERRCODE = 'P0002';
@@ -726,6 +734,10 @@ BEGIN
   PERFORM public.require_feature('declutter_manager');
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  -- A banned or restricted seller can't send a draft back (lead 11-01 ban gate).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
   END IF;
   SELECT * INTO v_sub FROM public.declutter_manager_submissions WHERE item_id = p_item_id FOR UPDATE;
   IF v_sub.item_id IS NULL OR v_sub.seller_id IS DISTINCT FROM v_uid THEN

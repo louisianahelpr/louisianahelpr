@@ -185,6 +185,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/memberDisplayName.ts";`,
   );
 
+  // PayPal (Q2525): `_shared/payments/{paypalClient,registry,paypalWebhookVerify}.ts`
+  // import only their siblings and `../caughtMessage.ts` (no network at import),
+  // so point at the REAL modules; a test stubs global fetch for PayPal's API.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payments\/(paypalClient|registry|paypalWebhookVerify)\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payments/$2.ts";`,
+  );
+
   // Jobs flat fee (roadmap F3): `_shared/helprFlatFee.ts` has ZERO imports
   // (constants and pure functions), so the generated file points at the REAL
   // module and the flat-fee arithmetic stays under test.

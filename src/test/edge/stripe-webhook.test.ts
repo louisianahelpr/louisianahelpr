@@ -263,6 +263,58 @@ describe("stripe-webhook edge function", () => {
     // webhook wrote a PERCENT (11.2) in the SAME update that marks the job
     // 'escrow', so the first taxed job would never have been funded.
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, taxableBaseCents); |           updateData.sales_tax_rate = Math.round((taxCents / taxableBaseCents) * 100 * 100) / 100;
+    // Q2083 (lead review 11-02): a job taxed by the poster's ANSWER (an untaxed category) prices its bonus with the
+    // labor's code, so the stored rate divides by labor + bonus: $100 + $50 bonus, 10.45% -> 1568 / 15000, never
+    // 1568 / 10000. The kind must be read (select) and passed (jobEscrowTaxableBaseCents).
+    // @mutate supabase/functions/_shared/salesTax.ts |   if (!isLaborTaxable(job?.category, job?.tax_kind)) return laborCents; |   if (!isLaborTaxable(job?.category)) return laborCents;
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, tax_kind, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee") | .select("budget, category, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee")
+    it("Q2083: a job taxed by its answer stores the rate over labor + the taxed bonus", async () => {
+      const fn = await loadConfigured();
+      const row = { id: "job-tax-k", is_seed: false, budget: 100, category: "cleaning", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 50 };
+      scenario.reads.jobs = {
+        rows: [{ id: "job-tax-k", is_seed: false, budget: 100 }],
+        // The answer arrives only for a select that names tax_kind.
+        selectOverrides: [{ includes: "tax_kind", result: { rows: [{ ...row, tax_kind: "item_repair" }] } }, { includes: "urgent_fee", result: { rows: [row] } }],
+      };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax_k" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_tax_rate_kind",
+        type: "checkout.session.completed",
+        data: { object: {
+          id: "cs_tax_rate_kind", mode: "payment", payment_status: "paid", customer_email: "poster@test.com",
+          customer_details: { address: { state: "LA" } }, total_details: { amount_tax: 1568 }, payment_intent: "pi_tax_k",
+          metadata: { job_id: "job-tax-k" },
+        } },
+      });
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      const w = scenario.writes.find((x) => x.table === "jobs" && x.op === "update" && (x.payload as Record<string, unknown>).payment_status === "escrow");
+      expect(Number((w?.payload as Record<string, unknown>).sales_tax_rate)).toBeCloseTo(0.1045, 3);
+    });
+
+    // Q2083: the $0-tax alert fires for a job taxed by its answer, which reads the kind from the job row.
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | billingState, taxJob?.tax_kind)) { | billingState)) {
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, tax_kind, is_seed") | .select("budget, category, is_seed")
+    it("Q2083: a job taxed by its answer (cleaning + clothes_cleaning) billed to LA with $0 tax alerts", async () => {
+      const fn = await loadConfigured();
+      const zrow = { id: "job-tax-z", budget: 100, category: "cleaning", is_seed: false };
+      // The answer arrives only for a select that names tax_kind.
+      scenario.reads.jobs = { rows: [zrow], selectOverrides: [{ includes: "tax_kind", result: { rows: [{ ...zrow, tax_kind: "clothes_cleaning" }] } }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax_z" });
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_tax_zero_kind",
+        type: "checkout.session.completed",
+        data: { object: {
+          id: "cs_tax_z", livemode: false, mode: "payment", customer_email: "poster@test.com",
+          customer_details: { address: { state: "LA" } }, total_details: { amount_tax: 0 }, payment_intent: "pi_tax_z",
+          metadata: { job_id: "job-tax-z" },
+        } },
+      });
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      expect((slackAlerts as Array<{ title: string }>).filter((a) => /\$0 Louisiana sales tax/.test(a.title))).toHaveLength(1);
+    });
+
     it("a taxed job's escrow write stores sales_tax_rate as a fraction that fits the CHECK", async () => {
       const fn = await loadConfigured();
       scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "auto_repair", is_seed: false }] };

@@ -2086,6 +2086,28 @@ describe("charge-recurring-visits edge function", () => {
     expect(Number((insertedVisits()[0].payload as Record<string, unknown>).sales_tax_rate)).toBeCloseTo(0.1045, 4);
   });
 
+  // Q2083 (lead review 11-02): a series taxed by the poster's ANSWER (an untaxed category, cleaning + fabric_cleaning)
+  // is taxed like a taxed category: the gate calculates, the visit row inherits the answer, and the stored rate
+  // divides by the labor + the taxed poster fee. The reviewer broke each line and every test stayed green.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!paidRow && isLaborTaxable(parent.category as string, parent.tax_kind as string \| null)) { |         if (!paidRow && isLaborTaxable(parent.category as string)) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             tax_kind: parent.tax_kind ?? null, |             tax_kind: null,
+  // @mutate supabase/functions/charge-recurring-visits/index.ts | category: parent.category as string, tax_kind: (parent.tax_kind as string \| null) ?? null, | category: parent.category as string,
+  it("Q2083: a series taxed by its answer is taxed, its visit keeps the answer, and the rate divides by labor + fee", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wirePosterSeries({ category: "cleaning", tax_kind: "fabric_cleaning", budget: 100 });
+    // 10.45% of $100 (1045) + of $5.70 (60).
+    stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_k", tax_amount_exclusive: 1105 });
+    stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_k" });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+    expect(b.funded).toBe(1);
+    expect(stripeMock.tax.calculations.create).toHaveBeenCalledTimes(1);
+    const visit = insertedVisits()[0].payload as Record<string, unknown>;
+    expect(visit.tax_kind).toBe("fabric_cleaning");
+    expect(Number(visit.sales_tax_rate)).toBeCloseTo(0.1045, 4);
+  });
+
   // Recurring review #5: a $300+ visit of a poster-fee series is parked with
   // its own 5% + 70c, and once the payer pays it on-session the visit books
   // from the paid row on the poster-fee model.

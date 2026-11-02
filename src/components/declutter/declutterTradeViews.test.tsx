@@ -290,6 +290,33 @@ describe("Declutter slice 3 screens", () => {
     state.previewCalls = 0;
   });
 
+  // Q2564 (Auditor 1, audit 1102a): at 375 the card step and the offer box opened below the delivery table, behind
+  // the dock. They open right under the buttons, before the panel's footer, and are brought into view.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       </div>\n      {footer}\n      {myOffer && <YourOfferBox |       </div>\n      {myOffer && <YourOfferBox
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (stepOpen) stepArea.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" }); |     void stepOpen;
+  it("Buy and Offer open their step right under the buttons, above the footer, and scroll it into view (Q2564)", async () => {
+    const scrolled: Element[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this); };
+    try {
+      show(<OfferPanel item={ITEM} userId="u1" footer={<div data-testid="panel-footer">Helpr delivery table</div>} />);
+      const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
+      await waitFor(() => expect(buy).toBeEnabled());
+      fireEvent.click(buy);
+      const step = await screen.findByText("Add a card to finish.");
+      const foot = screen.getByTestId("panel-footer");
+      expect(step.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const area = step.closest("[data-offer-step-area]");
+      expect(area).not.toBeNull();
+      await waitFor(() => expect(scrolled).toContain(area));
+      fireEvent.click(screen.getByRole("button", { name: "Make an offer" }));
+      const box = await screen.findByLabelText("Your offer");
+      expect(box.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it("no saved card: Buy now and Make an offer still show; Buy asks for a card first and remembers where to come back (row 36)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });

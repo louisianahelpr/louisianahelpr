@@ -3,16 +3,16 @@
  *
  * Owner, 2026-10-08: "mark job complete should be greyed out until its available in the 30 min". The Working card's
  * button was greyed; the collapsed card's and the job page's read a solid, live "Mark done", and pressing it just
- * opened the card to a greyed button. The same control also had two names ("Mark done", "Mark job complete").
+ * opened the card to a greyed button. The same control also had two names ("Mark done", "Mark it done").
  *
  * The real card, the real face and the real hook; the job page's half is in jobPage/JobPage.test.tsx.
  *
  * @mutate src/pages/jobs/AppliedJobCard.tsx |     doneFloorMinutes,\n |
- * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts | label: "Mark job complete" }; | label: "Mark done" };
+ * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts | label: "Mark it done" }; | label: "Mark done" };
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts | step: step.key, disabled: true, note: | step: step.key, note:
  * @mutate src/components/job-card/MineJobFace.tsx |       <MineFaceNote note={action?.note} className="order-3 mt-1 md:order-none md:basis-full md:mt-0 md:text-right" />\n |
  * AUD31-78 (audit 10-31): the open Working card's "Available in 1 min" line stayed for up to a minute after
- * Mark job complete turned on (ActiveJobSection re-read the clock only every 60 s). It now also wakes at the unlock.
+ * Mark it done turned on (ActiveJobSection re-read the clock only every 60 s). It now also wakes at the unlock.
  * @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx |     const atUnlock = setTimeout(() => setNow(Date.now()), Math.max(0, payoutUnlocksAt - Date.now()) + 50); |     const atUnlock = setTimeout(() => {}, 0);
  * @mutate src/components/job-card/useDoneFloor.ts |     const t = setInterval(() => tick((n) => n + 1), 30_000); |     const t = setInterval(() => {}, 30_000);
  */
@@ -112,7 +112,7 @@ function card(arrivedMinutesAgo: number, toggle = vi.fn(), expanded = false) {
 describe("the collapsed Working card during the 30-minute wait", () => {
   it("is greyed, says when it turns on, and a press opens nothing", () => {
     const toggle = card(10);
-    const face = screen.getByRole("button", { name: "Mark job complete" }) as HTMLButtonElement;
+    const face = screen.getByRole("button", { name: "Mark it done" }) as HTMLButtonElement;
     expect(face.disabled).toBe(true);
     expect(screen.getByText("Available in 20 min — 30 minutes after you arrived, to ensure quality.")).toBeTruthy();
     fireEvent.click(face);
@@ -121,7 +121,7 @@ describe("the collapsed Working card during the 30-minute wait", () => {
 
   it("after the 30 minutes it is live, with no note, and a press opens the card", () => {
     const toggle = card(31);
-    const face = screen.getByRole("button", { name: "Mark job complete" }) as HTMLButtonElement;
+    const face = screen.getByRole("button", { name: "Mark it done" }) as HTMLButtonElement;
     expect(face.disabled).toBe(false);
     expect(document.querySelector("[data-mine-face-note]")).toBeNull();
     fireEvent.click(face);

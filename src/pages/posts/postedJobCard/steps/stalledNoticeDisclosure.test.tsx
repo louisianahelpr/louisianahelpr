@@ -164,7 +164,7 @@ describe("the stalled note is one sentence, and the rest is one tap away", () =>
     // behind "Why?" now (see the reveal test below).
     expect(container.textContent ?? "").not.toContain(STALLED_APPROVE_DISABLED_REASON);
     // The instruction and the escalation promise are NOT on the card.
-    expect(container.textContent ?? "").not.toMatch(/Mark job complete/);
+    expect(container.textContent ?? "").not.toMatch(/Mark it done/);
     expect(container.textContent ?? "").not.toMatch(/our team steps in/i);
   });
 

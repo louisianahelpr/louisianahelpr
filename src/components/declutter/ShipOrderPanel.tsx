@@ -4,11 +4,11 @@
  *
  * Seller: the tracker (Paid -> Packed -> Shipped -> Delivered), ONE next-step line with the Ship-by day
  *   - before Packed: "Next: print the label and pack it · Ship by Wed, Nov 4"
- *   - after Packed:  "Next: drop it off at USPS · by Wed, Nov 4"
+ *   - after Packed:  "Next: drop it off at USPS · by Wed, Nov 4" (or UPS: the label's own carrier)
  *   - after the carrier's acceptance scan: "On its way." with the carrier's status; delivered: when the payout comes,
  * the tracking number, and the buttons: "Print label" (outline; the label file in the browser) and "Packed" (green
  * primary, on the RIGHT). Nothing to print until the label is bought and the payment taken (the server says so).
- * Buyer: the tracking number and "Track" (USPS's own page). The buyer's tracker and line sit in the card head
+ * Buyer: the tracking number and "Track" (the carrier's own page). The buyer's tracker and line sit in the card head
  * (BuyingOrders buyerNextStep), so this part only adds the number.
  * Every rule is the server's: declutter_my_ship_label / declutter_mark_packed (20261102023246),
  * declutter_my_ship_tracking (20261102025148).
@@ -27,8 +27,9 @@ import {
   shipByWords,
   shipLabelKey,
   shipTrackingKey,
+  shipCarrier,
   trackingStatusWords,
-  uspsTrackingUrl,
+  trackingUrl,
   type ShipLabel,
 } from "@/lib/declutter/shipOrder";
 import { OrderSteps } from "./OrderSteps";
@@ -37,7 +38,7 @@ const outline = "min-h-11 rounded-full border border-border px-5 text-sm font-se
 const primary = "btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-5 text-sm font-semibold";
 
 /** The seller's next-step line for a shipped order. Pure: tested apart from the screen. */
-export function sellerShipNext(l: Pick<ShipLabel, "label_url" | "label_state" | "ship_by" | "packed_at" | "accepted_at" | "delivered_at" | "tracking_status"> | null): NextStepValue {
+export function sellerShipNext(l: Pick<ShipLabel, "label_url" | "label_state" | "service" | "ship_by" | "packed_at" | "accepted_at" | "delivered_at" | "tracking_status"> | null): NextStepValue {
   if (!l) return { who: "info", text: "Loading the label." };
   if (l.delivered_at) return { who: "info", text: "Delivered. You get paid 24 hours later if nothing's wrong." };
   if (l.accepted_at) return { who: "info", text: `On its way. ${trackingStatusWords(l.tracking_status) ?? "In transit"}.` };
@@ -47,7 +48,7 @@ export function sellerShipNext(l: Pick<ShipLabel, "label_url" | "label_state" | 
   if (!l.label_url) return { who: "info", text: "Your shipping label is being made." };
   const by = shipByWords(l.ship_by);
   return l.packed_at
-    ? { who: "you", text: "Drop it off at USPS", by: by ? `by ${by}` : null }
+    ? { who: "you", text: `Drop it off at ${shipCarrier(l.service)}`, by: by ? `by ${by}` : null }
     : { who: "you", text: "Print the label and pack it", by: by ? `Ship by ${by}` : null };
 }
 
@@ -104,8 +105,8 @@ function BuyerShip({ orderId }: { orderId: string }) {
   if (!code) return <p className="text-ds-13 text-muted-foreground" data-ship-panel="buyer">The tracking number shows here once the label is made.</p>;
   return (
     <div className="flex flex-wrap items-center justify-between gap-3" data-ship-panel="buyer">
-      <p className="text-ds-13 text-muted-foreground">USPS tracking <span className="font-mono">{code}</span></p>
-      <button type="button" className={`${outline} ml-auto`} onClick={() => void openExternalUrl(uspsTrackingUrl(code))} data-track="">
+      <p className="text-ds-13 text-muted-foreground">{shipCarrier(t.data.service)} tracking <span className="font-mono">{code}</span></p>
+      <button type="button" className={`${outline} ml-auto`} onClick={() => void openExternalUrl(trackingUrl(t.data.service, code))} data-track="">
         Track
       </button>
     </div>

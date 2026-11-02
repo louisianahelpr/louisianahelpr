@@ -52,9 +52,16 @@ export async function markPacked(orderId: string): Promise<string> {
   return at;
 }
 
-/** USPS's own tracking page for a number (every label is USPS: shipments.service). */
-export function uspsTrackingUrl(code: string): string {
-  return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(code)}`;
+/** The carrier of a label (shipments.service: usps_ground_advantage, usps_priority, ups_ground; 20261030012052). */
+export function shipCarrier(service: string | null | undefined): "USPS" | "UPS" {
+  return service?.startsWith("ups_") ? "UPS" : "USPS";
+}
+
+/** The carrier's own tracking page for a number. */
+export function trackingUrl(service: string | null | undefined, code: string): string {
+  return shipCarrier(service) === "UPS"
+    ? `https://www.ups.com/track?tracknum=${encodeURIComponent(code)}`
+    : `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(code)}`;
 }
 
 /** "Wed, Nov 4": the Ship-by day (the deadline is the end of that day, Louisiana time). */

@@ -15,7 +15,22 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 
-const state = vi.hoisted(() => ({ cart: [] as Record<string, unknown>[] }));
+const state = vi.hoisted(() => ({
+  cart: [] as Record<string, unknown>[],
+  /** A3-78: each order's refund request view (declutter_refund_request_view); none unless a test sets it. */
+  refunds: {} as Record<string, { request: Record<string, unknown> | null }>,
+}));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
+vi.mock("@/lib/declutter/handover", async (orig) => ({
+  ...(await orig<object>()),
+  fetchOpenProblems: async () => [],
+  fetchOrderProblem: async () => null,
+  fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null }),
+}));
+vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
+  ...(await orig<object>()),
+  fetchRefundRequestView: async (orderId: string) => state.refunds[orderId] ?? { request: null },
+}));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart, fetchMyOffers: async () => [] }));
 vi.mock("./DeclutterHandoverViews", () => ({
   PaidOrdersSection: ({ cart, show, heading }: { cart: { order_id: string; item_title: string }[]; show?: (id: string) => boolean; heading?: React.ReactNode }) => {
@@ -38,7 +53,25 @@ function show(onlyShow?: (id: string) => boolean, url = "/declutter?tab=selling"
 }
 
 describe("soldstates-2: Selling folds finished sales", () => {
-  beforeEach(() => { state.cart = []; });
+  beforeEach(() => { state.cart = []; state.refunds = {}; });
+
+  // A3-78 (audit 11-01): a finished sale whose refund request waits on the seller (open, or the item dropped back
+  // and not confirmed) stays in the list, never under "Show 1 finished sale".
+  // @mutate src/components/declutter/DeclutterTabParts.tsx |  && !awaiting.has(l.order_id as string)).map( | ).map(
+  // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   return r.status === "open" \|\| (r.status === "returning" && !!r.return_dropped_off_at && !r.returned_at); |   return false;
+  it("A3-78: a refund request waiting on the seller keeps its sale out of the fold", async () => {
+    state.cart = [line(2, "handed_over"), line(3, "handed_over"), line(4, "handed_over")];
+    state.refunds = {
+      [line(2, "x").order_id]: { request: { status: "open", answer_by: "2026-11-02T19:46:00Z" } },
+      [line(3, "x").order_id]: { request: { status: "returning", return_dropped_off_at: "2026-11-01T18:00:00Z", returned_at: null } },
+      [line(4, "x").order_id]: { request: { status: "to_admin" } },
+    };
+    show();
+    expect(await screen.findByText("Sale 2 handed_over")).toBeInTheDocument();
+    expect(await screen.findByText("Sale 3 handed_over")).toBeInTheDocument();
+    expect(screen.queryByText("Sale 4 handed_over")).toBeNull();
+    expect(screen.getByRole("button", { name: "Show 1 finished sale" })).toBeInTheDocument();
+  });
 
   it("live sales show; handed over and refunded fold under one button that opens and closes them", async () => {
     state.cart = [line(1, "paid"), line(2, "handed_over"), line(3, "refunded")];

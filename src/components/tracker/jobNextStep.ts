@@ -19,7 +19,7 @@ function laTime(ms: number): string {
 export function jobNextStep(
   progress: JobProgressState,
   o: { side: "poster" | "helpr"; otherFirst?: string | null; pendingApplicants?: number; offerOut?: boolean; offerUntil?: string | null; noShowRepostedOn?: string | null; approveLeft?: string | null; crew?: boolean;
-    /** Q2669: the hired Helpr cancelled and the job went back up (their closed application): who, and when. */
+    /** Q2693: the hired Helpr cancelled and the job went back up (their closed application): who, and when. */
     helprCancelled?: { name: string | null; at: string } | null },
 ): NextStepValue | null {
   const other = (o.otherFirst ?? "").trim();
@@ -38,7 +38,7 @@ export function jobNextStep(
   }
   if (o.side === "poster" && progress.stage === 0) {
     const n = o.pendingApplicants ?? 0;
-    // Q2669 (audit 1102e row 2): the page looked like a plain open listing after the hired Helpr cancelled.
+    // Q2693 (audit 1102e row 2): the page looked like a plain open listing after the hired Helpr cancelled.
     const gone = o.helprCancelled ? helprCancelledWords(o.helprCancelled) : null;
     if (gone && n === 0) return { who: "info", text: gone.text, body: gone.next };
     if (n > 0) return { who: "you", text: "Choose a Helpr", by: `${n} applied`, ...(gone ? { body: gone.body } : {}) };

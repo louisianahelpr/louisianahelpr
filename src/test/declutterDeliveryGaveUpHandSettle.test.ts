@@ -8,14 +8,14 @@
  * pay-raise refund ('refunding', refund_attempts >= 12) is listed and settled too, with a Stripe refund id for its whole
  * amount only; src/test/pglite/declutterRaiseRefundGaveUpHandSettle.pglite.mjs.
  *
- * @mutate supabase/migrations/20261102054153_declutter_raise_refund_gave_up_hand_settle.sql | AND v_status = 'failed' AND v_attempts >= 12)\n | AND v_attempts >= 12)\n
- * @mutate supabase/migrations/20261102054153_declutter_raise_refund_gave_up_hand_settle.sql |        WHERE d.status = 'failed' AND d.attempts >= 12 |        WHERE d.status = 'failed' AND d.attempts >= 99
- * @mutate supabase/migrations/20261102054153_declutter_raise_refund_gave_up_hand_settle.sql |        WHERE p.status = 'failed' AND p.attempts >= 12 |        WHERE p.status = 'failed' AND p.attempts >= 11
- * @mutate supabase/migrations/20261102054153_declutter_raise_refund_gave_up_hand_settle.sql | p_kind IN ('helpr_task', 'delivery_refund') AND v_status = 'failed' | p_kind IN ('helpr_task', 'delivery_refund', 'declutter') AND v_status = 'failed'
- * @mutate supabase/migrations/20261102054153_declutter_raise_refund_gave_up_hand_settle.sql |        WHERE g.status = 'refunding' AND g.refund_attempts >= 12 |        WHERE g.status = 'refunding' AND g.refund_attempts >= 99
- * @mutate supabase/migrations/20261102054153_declutter_raise_refund_gave_up_hand_settle.sql | (p_kind = 'raise_refund' AND v_status = 'refunding' AND v_attempts >= 12) | (p_kind = 'raise_refund' AND v_attempts >= 12)
- * @mutate supabase/migrations/20261102054153_declutter_raise_refund_gave_up_hand_settle.sql |   IF p_kind = 'raise_refund' AND v_stripe IS NULL THEN |   IF false THEN
- * @mutate supabase/migrations/20261102054153_declutter_raise_refund_gave_up_hand_settle.sql |   IF p_kind = 'raise_refund' AND p_amount_cents <> v_refund_cents THEN |   IF false THEN
+ * @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql | AND v_status = 'failed' AND v_attempts >= 12)\n | AND v_attempts >= 12)\n
+ * @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |        WHERE d.status = 'failed' AND d.attempts >= 12 |        WHERE d.status = 'failed' AND d.attempts >= 99
+ * @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |        WHERE p.status = 'failed' AND p.attempts >= 12 |        WHERE p.status = 'failed' AND p.attempts >= 11
+ * @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql | p_kind IN ('helpr_task', 'delivery_refund') AND v_status = 'failed' | p_kind IN ('helpr_task', 'delivery_refund', 'declutter') AND v_status = 'failed'
+ * @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |        WHERE g.status = 'refunding' AND g.refund_attempts >= 12 |        WHERE g.status = 'refunding' AND g.refund_attempts >= 99
+ * @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql | (p_kind = 'raise_refund' AND v_status = 'refunding' AND v_attempts >= 12) | (p_kind = 'raise_refund' AND v_attempts >= 12)
+ * @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |   IF p_kind = 'raise_refund' AND v_stripe IS NULL THEN |   IF false THEN
+ * @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |   IF p_kind = 'raise_refund' AND p_amount_cents <> v_refund_cents THEN |   IF false THEN
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";

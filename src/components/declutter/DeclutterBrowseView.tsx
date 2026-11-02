@@ -47,7 +47,7 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterFirstRowCount } from "./DeclutterSkeletons";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_CHOOSER_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
 import { toastWatching } from "./declutterLightActions";
 
@@ -98,18 +98,20 @@ function useFillHeight() {
  * quiet row under the list and inside the no-results state, to the Wanted tab. Only while 'declutter_wanted' is on
  * for the viewer, so it is never a link to a view that is not there. Guard: src/components/declutter/declutterTabs.test.tsx.
  */
-function WantedLink() {
+function WantedLink({ query = "", category = null }: { query?: string; category?: string | null }) {
   const on = useFeature("declutter_wanted");
   if (!on) return null;
+  // A3-99: the search words go with it, into the open form (wantedAskHref).
+  const what = query.trim();
   return (
     <p className="flex min-h-11 items-center justify-center text-center">
       {/* One run of text (it wraps as a sentence at 320); link-standard's ::before gives it the 44px tap height. */}
       <Link
-        to="/declutter?tab=wanted"
+        to={what || category ? wantedAskHref(what, category) : "/declutter?tab=wanted"}
         data-testid="declutter-wanted-link"
         className="link-standard text-ds-15 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
       >
-        <span className="font-normal text-muted-foreground">Can't find it?</span> Post what you're looking for
+        <span className="font-normal text-muted-foreground">Can't find it?</span> {what ? `Ask for “${what}”` : "Post what you're looking for"}
       </Link>
     </p>
   );
@@ -384,7 +386,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
                     Show all items
                   </Button>
                 )}
-                <WantedLink />
+                <WantedLink query={query} category={filters.category} />
               </div>
             }
           />
@@ -412,7 +414,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
             // 2026-10-19).
             onWiden={from && maxMiles !== null ? () => setMaxMiles(widerMiles(maxMiles)) : undefined}
             widenLabel={from && maxMiles !== null ? (widerMiles(maxMiles) === null ? "Any distance" : `Widen to ${widerMiles(maxMiles)} mi`) : undefined}
-            footnote={<WantedLink />}
+            footnote={<WantedLink query={query} category={filters.category} />}
           />
         )}
       </div>

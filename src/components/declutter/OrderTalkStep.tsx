@@ -22,6 +22,9 @@ import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { orderStepAt, type OrderFacts } from "./OrderSteps";
 import { paidOrdersFromCart } from "./paidOrders";
 import { useOpenProblems } from "./useOpenProblems";
+import { useOrderOtherPerson } from "./useOrderOtherPerson";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
 
 type Side = "buyer" | "seller";
 
@@ -45,6 +48,11 @@ function SellerStep({ orderId }: { orderId: string }) {
   const bookings = useQuery({ queryKey: ["declutter", "bookings", orderId], queryFn: () => fetchMyBookings([orderId]), enabled: pickup });
   const handover = useMyHandover(orderId);
   const sd = useQuery({ queryKey: ["declutter", "seller-delivery-booking", orderId], queryFn: () => fetchSellerDeliveryBooking(orderId), enabled: delivers });
+  // The card's own words (lead 11-01): the chosen pickup time / "by" deadline and the buyer's name, the same reads
+  // and keys DeclutterPorchHandover uses, so the chat never disagrees with the card.
+  const times = useQuery({ queryKey: orderPickupTimesKey([orderId]), queryFn: () => fetchOrderPickupTimes([orderId]), enabled: pickup });
+  const { user } = useCurrentUser();
+  const other = useOrderOtherPerson(orderId, user?.id ?? "", "seller");
   if (!order || (!pickup && !delivers)) return null;
   const free = order.lines.reduce((sum, l) => sum + l.price_cents, 0) === 0;
   const done = order.status === "handed_over";
@@ -59,7 +67,8 @@ function SellerStep({ orderId }: { orderId: string }) {
       pickedUp: !!(handover.data?.picked_up_at || handover.data?.confirmed_at),
       done: done || handover.data?.status === "handed_over",
     };
-    step = standing(kind, "seller", orderStepAt(facts), b?.pickup_day ?? null, free);
+    step = standing(kind, "seller", orderStepAt(facts), b?.pickup_day ?? null, free,
+      { ...orderTimeWords(times.data?.[0], kind, b?.slot_start ?? null), buyer: other.first });
   } else if (delivers && sd.data) {
     const facts: OrderFacts = {
       handover: "seller_delivery", side: "seller", free,
@@ -67,7 +76,10 @@ function SellerStep({ orderId }: { orderId: string }) {
       delivered: !!sd.data.delivered_at,
       done: sd.data.order_status === "handed_over",
     };
-    step = deliveryStanding("seller", orderStepAt(facts), free);
+    // A3-71: late / reported, as the card reads them.
+    const late = facts.booked && !facts.delivered && !!sd.data.not_delivered_from && Date.now() >= Date.parse(sd.data.not_delivered_from);
+    const reportedBy = !facts.done && !facts.delivered ? (handover.data?.no_show_answer_by ?? null) : null;
+    step = deliveryStanding("seller", orderStepAt(facts), free, late, reportedBy);
   }
   if (!step) return null;
   return <StepLine orderId={orderId} side="seller" step={step} action={step.who === "you" ? "See the order" : null} />;

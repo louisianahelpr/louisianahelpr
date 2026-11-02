@@ -989,6 +989,10 @@ export const RPC_ERROR_COPY = {
     refund_already_answered: DC.refund_already_answered,
     refund_answer_late: DC.refund_answer_late,
     refund_not_found: DC.refund_not_found,
+    // A3-74 (20261102041000): the seller's optional words and photos on a part offer or a no.
+    note_too_long: DC.note_too_long,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    too_many_problem_photos: DC.too_many_problem_photos,
   },
   declutter_answer_refund_offer: {
     account_restricted: DC.account_restricted,

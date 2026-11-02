@@ -530,6 +530,28 @@ export interface AdminProblem {
   created_at: string;
   /** null while declutter_admin_open_problems is not on prod. */
   detail: AdminProblemDetail | null;
+  /** A3-74 (20261102041000): a refund Louisiana Helpr decides usually by then (display only). */
+  decide_by?: string | null;
+}
+
+/**
+ * A3-74 (lead 11-01): the queue shows each problem's decide_by and puts the overdue ones first (oldest due first), the
+ * rest in the order they came. Read straight from declutter_problems (admins read every problem). A failed read keeps
+ * the queue as it was, reported (a missing time must never blank the decisions).
+ */
+export async function withDecideBy(rows: AdminProblem[], now = Date.now()): Promise<AdminProblem[]> {
+  if (!rows.length) return rows;
+  const res = await supabase.from("declutter_problems").select("id, decide_by").in("id", rows.map((r) => r.id));
+  if (res.error) {
+    const { report } = await import("@/lib/errorLogger");
+    report(res.error, { severity: "warning", tags: { source: "DeclutterProblemsCard.decideBy" } });
+    return rows;
+  }
+  const by = new Map((res.data ?? []).map((d: { id: string; decide_by: string | null }) => [d.id, d.decide_by]));
+  const out = rows.map((r) => ({ ...r, decide_by: by.get(r.id) ?? null }));
+  const due = (r: AdminProblem) => (r.decide_by ? new Date(r.decide_by).getTime() : Infinity);
+  const overdue = out.filter((r) => due(r) < now).sort((a, b) => due(a) - due(b));
+  return [...overdue, ...out.filter((r) => !(due(r) < now))];
 }
 type AdminProblemRow = Omit<AdminProblemDetail, "item_titles" | "item_photo_paths"> & {
   problem_id: string; order_id: string; reporter_side: AdminProblem["reporter_side"]; reason: string; note: string;

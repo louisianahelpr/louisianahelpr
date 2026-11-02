@@ -3239,6 +3239,7 @@ export type Database = {
           status: string
           strike_given: boolean
           withdrawn_at: string | null
+          decide_by: string | null
         }
         Insert: {
           other_side_at?: string | null
@@ -3261,6 +3262,7 @@ export type Database = {
           status?: string
           strike_given?: boolean
           withdrawn_at?: string | null
+          decide_by?: string | null
         }
         Update: {
           other_side_at?: string | null
@@ -3283,6 +3285,7 @@ export type Database = {
           status?: string
           strike_given?: boolean
           withdrawn_at?: string | null
+          decide_by?: string | null
         }
         Relationships: [
           {
@@ -3366,6 +3369,9 @@ export type Database = {
           settled_at: string | null
           status: string
           updated_at: string
+          seller_note: string | null
+          seller_photo_paths: string[]
+          seller_side_at: string | null
         }
         Insert: {
           photo_paths?: string[]
@@ -3397,6 +3403,9 @@ export type Database = {
           settled_at?: string | null
           status?: string
           updated_at?: string
+          seller_note?: string | null
+          seller_photo_paths?: string[]
+          seller_side_at?: string | null
         }
         Update: {
           photo_paths?: string[]
@@ -3428,6 +3437,9 @@ export type Database = {
           settled_at?: string | null
           status?: string
           updated_at?: string
+          seller_note?: string | null
+          seller_photo_paths?: string[]
+          seller_side_at?: string | null
         }
         Relationships: [
           {
@@ -15669,7 +15681,13 @@ export type Database = {
       }
       declutter_alert_overdue_checks: { Args: never; Returns: number }
       declutter_answer_refund: {
-        Args: { p_answer: string; p_offer_cents: number; p_request_id: string }
+        Args: {
+          p_answer: string
+          p_note?: string
+          p_offer_cents: number
+          p_photo_paths?: string[]
+          p_request_id: string
+        }
         Returns: Json
       }
       declutter_answer_refund_offer: {

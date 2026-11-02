@@ -53,6 +53,7 @@
  * is nothing that can arrive late or bounce.
  */
 import { describe, it, expect } from "vitest";
+import ts from "typescript";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, relative } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
@@ -188,6 +189,64 @@ describe("every escrow payout path refuses an unsucceeded charge (C)", () => {
       expect(code(join(FUNCTIONS, f))).toMatch(/\.status\s*(?:!==|===)\s*"succeeded"/);
     });
   }
+  // @mutate supabase/functions/create-payment/index.ts | async function transferToHelper( | async function payExtraUnchecked(s: Stripe) { return s.transfers.create({ amount: 1, currency: "usd", destination: "acct_x" }); }\nasync function transferToHelper(
+  // Q1976: per CALL SITE, not per file. A file-wide match let create-payment
+  // pass from its release branch alone, so a new transfer elsewhere in it with
+  // no PaymentIntent check would pass. Each transfers.create must sit in a
+  // function that reads the status, or in a named helper whose every call in
+  // the file sits in one that does.
+  const SUCCEEDED = /\.status\s*(?:!==|===)\s*"succeeded"/;
+  type Fn = ts.FunctionLikeDeclaration;
+  const fnName = (fn: Fn): string | null => {
+    if (fn.name && ts.isIdentifier(fn.name)) return fn.name.text;
+    const p = fn.parent;
+    return p && ts.isVariableDeclaration(p) && ts.isIdentifier(p.name) ? p.name.text : null;
+  };
+  /** Each transfers.create call: the function around it, and whether that function (or every caller of it) checks. */
+  function transferSites(f: string): Array<{ line: number; fn: string; ok: boolean }> {
+    const text = code(join(FUNCTIONS, f));
+    const sf = ts.createSourceFile(f, text, ts.ScriptTarget.Latest, true);
+    const calls: Array<{ node: ts.CallExpression; stack: Fn[] }> = [];
+    const visit = (n: ts.Node, stack: Fn[]) => {
+      const here = ts.isFunctionDeclaration(n) || ts.isArrowFunction(n) || ts.isFunctionExpression(n) || ts.isMethodDeclaration(n)
+        ? [...stack, n as Fn] : stack;
+      if (ts.isCallExpression(n)) calls.push({ node: n, stack: here });
+      ts.forEachChild(n, (c) => visit(c, here));
+    };
+    visit(sf, []);
+    /** The function checks, or it is a named helper and every call of it sits in one that does (followed up, cycle-safe). */
+    const guarded = (fn: Fn | undefined, seen: Set<Fn>): boolean => {
+      if (SUCCEEDED.test(fn ? fn.getText(sf) : text)) return true;
+      const name = fn ? fnName(fn) : null;
+      if (!fn || !name || seen.has(fn)) return false;
+      seen.add(fn);
+      const callers = calls.filter((c) => ts.isIdentifier(c.node.expression) && c.node.expression.text === name);
+      return callers.length > 0 && callers.every((c) => guarded(c.stack[c.stack.length - 1], seen));
+    };
+    return calls
+      .filter((c) => /\.transfers\.create$/.test(c.node.expression.getText(sf)))
+      .map(({ node, stack }) => {
+        const fn = stack[stack.length - 1];
+        return {
+          line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
+          fn: (fn && fnName(fn)) ?? "<anonymous>",
+          ok: guarded(fn, new Set()),
+        };
+      });
+  }
+
+  for (const f of PAYOUT_FROM_JOB_PI) {
+    it(`${f}: every transfers.create sits behind a PaymentIntent status check (its function or all its callers, Q1976)`, () => {
+      const sites = transferSites(f);
+      expect(sites.length).toBeGreaterThan(0);
+      expect(sites.filter((s) => !s.ok)).toEqual([]);
+    });
+  }
+
+  it("the per-site reader sees every call site (floor)", () => {
+    const n = PAYOUT_FROM_JOB_PI.reduce((acc, f) => acc + transferSites(f).length, 0);
+    expect(n).toBeGreaterThan(5);
+  });
 });
 
 describe("a hired job whose bank payment failed is cancelled, not left hired (D, Q1972)", () => {

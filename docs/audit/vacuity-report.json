@@ -1,10 +1,11 @@
 {
-  "generated": "2026-11-02T01:23:48.176Z",
-  "guards": 3158,
-  "registered": 3158,
+  "generated": "2026-11-02T07:16:09.433Z",
+  "guards": 3196,
+  "registered": 3196,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/components/declutter/bundleDiscountOff.test.tsx",
     "src/test/shakeToReportLoadsOnlyInTheApp.test.ts"
   ],
   "classD_selfReferential": [
@@ -149,6 +150,15 @@
       ],
       "parents": [
         "src/components/profile/AvailabilityTab.tsx"
+      ]
+    },
+    {
+      "module": "src/components/jobs/ContinueDaySheet.tsx",
+      "tests": [
+        "src/test/continueDayEverywhere.test.tsx"
+      ],
+      "parents": [
+        "src/pages/jobs/jobPage/useContinueDayActions.tsx"
       ]
     },
     {

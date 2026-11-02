@@ -4,8 +4,8 @@
 // Drives all branching through signInWithProvider in src/lib/socialAuth.ts
 // so the per-provider flow stays in one place. The buttons themselves
 // only know:
-//   - render the provider mark + its name, side by side (the FULL accessible
-//     name — "Sign in with Apple" — stays on aria-label)
+//   - render the provider mark + the full label ("Continue with Apple"),
+//     which is also the button's accessible name
 //   - keep a spinner while sign-in is in flight
 //   - on cancel → hapticError + dismissable toast (no scary copy)
 //   - on success (native) → navigate to redirectTo (default /home)
@@ -110,19 +110,6 @@ export function SocialAuthButtons({
     toast.error(ACCOUNT_CHOICE_RETRY_COPY, { id: "account-choice" });
   });
   return (
-    // Two marks side by side, not two stacked full-width labelled boxes
-    // (owner: "I would prefer using the Apple and Google icons instead of the
-    // 2 large boxes"). The boxes said "Sign in with Apple" / "Sign in with
-    // Google" directly under an "or" divider that had already established
-    // what this is, and took roughly a third of the auth column to do it.
-    //
-    // The accessible name is unchanged — it lives on each button's
-    // `aria-label`, which already carried the full "Sign in with Apple"
-    // string, so a screen reader hears exactly what it heard before.
-    //
-    // Apple renders FIRST (left). Apple's HIG asks that Sign in with Apple be
-    // at least as prominent as any other third-party option; equal-size
-    // buttons with Apple leading satisfies that.
     // STACKED, one provider per full-width row, each showing its mark AND its
     // word. Settled 2026-08-22 — do not flip this again without reading the
     // history, because it has now been changed three times:
@@ -223,7 +210,7 @@ function SocialAuthButton({ provider, redirectTo, onChoose }: SocialAuthButtonPr
       type="button"
       variant="outline"
       size="lg"
-      // w-full inside a half-width grid cell. h-12 keeps the 44pt minimum
+      // w-full in its own row. h-12 keeps the 44pt minimum
       // target with room to spare.
       className={`w-full h-12 rounded-full gap-2 ${provider === "apple" ? "border-transparent" : "border-border/70 hover:bg-muted/40"}`}
       // Board 37/55 (owner, 2026-10-20): Apple is the solid button (ink fill,
@@ -233,23 +220,19 @@ function SocialAuthButton({ provider, redirectTo, onChoose }: SocialAuthButtonPr
       data-provider={provider}
       onClick={handleClick}
       disabled={loading}
-      // Still carries the FULL label ("Sign in with Apple"), not just the
-      // provider word rendered beside the mark — a screen reader hears the
-      // whole action, a sighted user reads the short form.
-      aria-label={loading ? t("auth.connecting") : label}
-      title={label}
+      // The visible label is the accessible name; only the spinner, which
+      // has no text, needs an aria-label.
+      aria-label={loading ? t("auth.connecting") : undefined}
     >
       {loading ? (
         <Loader2 className="w-5 h-5 animate-spin" />
       ) : (
         <>
           {provider === "apple" ? <AppleMark /> : <GoogleMark />}
-          {/* The visible word. Its absence is the whole reason this block was
+          {/* The visible label. Its absence is the whole reason this block was
               stacked into full-width rows — an unlabelled icon in a box wide
-              enough for text reads as a rendering failure. aria-hidden because
-              the button's aria-label already names the action in full; without
-              it a screen reader would announce "Sign in with Apple, Apple". */}
-          <span aria-hidden className="font-sans font-semibold text-ds-15">
+              enough for text reads as a rendering failure. */}
+          <span className="font-sans font-semibold text-ds-15">
             {label}
           </span>
         </>

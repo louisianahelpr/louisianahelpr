@@ -71,6 +71,7 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 2026-10-30 (OPEN.md triage, wip/triage-1030): Q1803 ticked done (under-13 cron live); 23 items found partly done moved [ ] -> [~]; what is left of each is build work,
 // a live look or an owner decision, which no marker kind reads (a marker that held early would auto-tick them).
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
+  Q1863: "builder 132 2026-11-01, built in export-my-data: ticks once the edge function deploys and a test account's export shows a <uid>/declutter/ photo; a live export, which no marker kind reads",
   Q2402: "triage 2026-10-30, left: Reword Shops, Rentals, membership and Instant Payout fee copy and drop their MEMBER_FEE_COPY_ALLOWED entries before each goes to everyone; build work, a live look or an owner call, which no marker kind reads",
   Q1082: "triage 2026-10-30, left: Record the 320/375 look of both dispute rows; build work, a live look or an owner call, which no marker kind reads",
   Q1589: "triage 2026-10-30, left: Prove on prod that a POST to record-signup-lead with no captcha_token answers 403; build work, a live look or an owner call, which no marker kind reads",

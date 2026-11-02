@@ -532,6 +532,43 @@ describe("photo-first selling, one screen", () => {
     expect(calls.filter((c) => c.startsWith("addPhoto")).map((c) => c.split(":")[2])).toEqual(["c.jpg", "a.jpg", "b.jpg"]);
   });
 
+  // POST-S9 (audit posting 1030 #9): photos could not be reordered. A held photo drags onto another's place; the new
+  // order is the order they go up in at Post, and the AI's cover pick leaves it alone.
+  // @mutate src/components/declutter/SellOneScreen.tsx |             onReorderHeld={s.reorderHeld}\n |
+  // @mutate src/components/declutter/useSellFlowState.ts |     setHeld((h) => moveTo(h, from, to)); |     void from; void to;
+  // @mutate src/components/declutter/DeclutterSellPhotos.tsx |             {...reorder.handlers(i)}> |             >
+  // @mutate src/components/declutter/useSellFlowState.ts |     coverChosen.current = true;\n    setCoverUndo(null);\n    setHeld((h) => moveTo(h, from, to)); |     setHeld((h) => moveTo(h, from, to));
+  it("POST-S9: dragging photo 3 onto photo 1 makes it the cover, the AI leaves the order alone, and Post uploads in it", async () => {
+    aiAnswer.extra = { coverPhoto: 1 };
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    addPhotos("a.jpg", "b.jpg", "c.jpg");
+    // The AI moved b.jpg to the front: b, a, c.
+    await screen.findByText("We picked the best photo for the cover.");
+    const tiles = () => [...document.querySelectorAll<HTMLElement>("[data-held-index]")];
+    const restore = document.elementFromPoint;
+    document.elementFromPoint = () => tiles()[0];
+    try {
+      fireEvent.pointerDown(tiles()[2], { button: 0, pointerType: "mouse", clientX: 200, clientY: 10, pointerId: 1 });
+      fireEvent.pointerMove(tiles()[2], { pointerType: "mouse", clientX: 20, clientY: 10, pointerId: 1 });
+      expect(tiles()[0].hasAttribute("data-photo-drop")).toBe(true);
+      fireEvent.pointerUp(tiles()[2], { pointerType: "mouse", clientX: 20, clientY: 10, pointerId: 1 });
+    } finally {
+      document.elementFromPoint = restore;
+    }
+    expect(tiles()[0].querySelector("[data-cover-chip]")).not.toBeNull();
+    // The seller's order stands: the AI's note goes, and writing again does not move the cover back.
+    expect(screen.queryByText("We picked the best photo for the cover.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Write it again" }));
+    await waitFor(() => expect(aiCalls).toHaveLength(2));
+    await screen.findByText("We wrote your listing. Check it before you post");
+    expect(screen.queryByText("We picked the best photo for the cover.")).toBeNull();
+    fillWaysAndTax();
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByTestId("landed");
+    expect(calls.filter((c) => c.startsWith("addPhoto")).map((c) => c.split(":")[2])).toEqual(["c.jpg", "b.jpg", "a.jpg"]);
+  });
+
   // Audit posting 1030 #12, #13: a giveaway talked about selling and offered a price.
   // @mutate src/components/declutter/SellOneScreen.tsx | title={form.free ? "Give it away" : "Sell an item"} | title="Sell an item"
   // @mutate src/components/declutter/SellSummaryCard.tsx | instead={form.free ? { label: "Charge for it", onClick: () => { set("free", false); setOpen(() => "price"); } } : undefined} | instead={undefined}
@@ -723,7 +760,7 @@ describe("photo-first selling, one screen", () => {
     addPhotos("a.jpg", "b.jpg");
     await screen.findByText("We wrote your listing. Check it before you post");
     expect(screen.getByText("Check it below and change anything.")).toBeInTheDocument();
-    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/these go up when you post$/);
+    expect(document.querySelector("[data-photo-count]")?.textContent).toMatch(/these go up when you post( · hold and drag a photo to move it)?$/);
     const words = document.body.textContent ?? "";
     expect(words.length).toBeGreaterThan(200);
     expect(words).not.toMatch(/\bsteps?\b|step \d|next steps/i);

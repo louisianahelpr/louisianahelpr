@@ -23,7 +23,7 @@
  * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |     '/declutter?tab=selling', v_uid); |     '/declutter?tab=selling', NULL);
  * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |   o := public.declutter_lock_order(v_order);\n  IF v_uid IN (o.buyer_id, o.seller_id) THEN\n    -- Another admin decides | \n  SELECT * INTO o FROM public.declutter_orders WHERE id = v_order;\n  IF v_uid IN (o.buyer_id, o.seller_id) THEN\n    -- Another admin decides
  * @mutate supabase/migrations/20261031184929_declutter_damage_notices_name_the_item.sql | '/declutter?tab=buying', o.seller_id);  -- AUD31-34 | '/declutter?tab=buying', NULL);  -- AUD31-34
- * @mutate supabase/migrations/20261030170443_declutter_question_kind.sql |     WHEN p_type IN ('payment', 'financial_alerts') THEN 'declutter_sales' |     WHEN p_type IN ('financial_alerts') THEN 'declutter_sales'
+ * @mutate supabase/migrations/20261102103524_declutter_ship_notice_kinds.sql |     WHEN p_type IN ('payment', 'financial_alerts') THEN 'declutter_sales' |     WHEN p_type IN ('financial_alerts') THEN 'declutter_sales'
  */
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

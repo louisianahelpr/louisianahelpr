@@ -24,7 +24,7 @@
  * real database in src/test/pglite/declutterNoticeKinds.pglite.mjs, where 16
  * planted defects each turn it red.
  */
-// @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | 'Buyer did not check out', 'The seller cancelled', | 'The seller cancelled',
+// @mutate supabase/migrations/20261102103524_declutter_ship_notice_kinds.sql | 'Buyer did not check out', 'The seller cancelled', | 'The seller cancelled',
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

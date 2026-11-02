@@ -742,8 +742,7 @@ function PostedJobCardInner({
                 helperWorking={initialTracking?.status === "working" || initialTracking?.status === "done"}
                 applicantsPrimary={job.status === "open" && takesApplicants(job, initialGroupHelpers) ? { count: applicantCounts[job.id] || 0, onOpen: () => onLoadApplications(job) } : null}
                 onActionComplete={onActionComplete}
-                completionRequest={completionRequest}
-                revisionRequest={revisionRequest}
+                completionRequest={completionRequest} revisionRequest={revisionRequest}
               />
             </div>
             )}

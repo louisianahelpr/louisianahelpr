@@ -18,10 +18,10 @@ export function watchedLine(item: Pick<DeclutterItem, "status" | "current_price_
   return "No longer for sale";
 }
 
-/** "1 item you watched is no longer listed." for hearts whose item the member can't read any more. */
+/** "1 item you saved is no longer listed." for hearts whose item the member can't read any more. */
 export function goneLine(n: number): string | null {
   if (n <= 0) return null;
-  return n === 1 ? "1 item you watched is no longer listed." : `${n} items you watched are no longer listed.`;
+  return n === 1 ? "1 item you saved is no longer listed." : `${n} items you saved are no longer listed.`;
 }
 
 
@@ -40,7 +40,7 @@ export function WatchingList() {
     return (
       <ErrorState
         variant="inline"
-        title="We couldn't load the items you're watching."
+        title="We couldn't load your saved items."
         body={declutterErrorMessage(failed)}
         onRetry={() => void (ids.isError ? ids.refetch() : items.refetch())}
       />
@@ -52,8 +52,8 @@ export function WatchingList() {
   const rows = [...items.data].sort((a, b) => rank(a.status) - rank(b.status) || a.title.localeCompare(b.title));
   const gone = goneLine(list.length - rows.length);
   return (
-    <section className="space-y-2" aria-label="Watching" data-watching="">
-      <h2 className="text-base font-semibold">Watching</h2>
+    <section className="space-y-2" aria-label="Saved" data-watching="">
+      <h2 className="text-base font-semibold">Saved</h2>
       {rows.length > 0 && (
         <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
           {rows.map((item) => (

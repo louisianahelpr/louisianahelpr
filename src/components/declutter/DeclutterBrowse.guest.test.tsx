@@ -110,7 +110,7 @@ describe("BUY-16: guests browse Declutter", () => {
     expect(screen.queryByRole("link", { name: /settings/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /settings/i })).toBeNull();
     // No heart, no map, and none of their reads.
-    expect(screen.queryByRole("button", { name: /^Watch Thing/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Save Thing/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /the map/ })).toBeNull();
     expect(screen.queryByText("THE MAP")).toBeNull();
     expect(reads).toEqual([]);
@@ -147,7 +147,7 @@ describe("BUY-16: guests browse Declutter", () => {
 
   it("a member still gets the hearts, the map and their reads (the same screen, so the guest test can fail)", async () => {
     show(<DeclutterBrowse userId="me" tabs={(h) => <div>{h.end}</div>} />);
-    expect(await screen.findByRole("button", { name: "Watch Thing 1" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Save Thing 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /the map/ })).toBeInTheDocument();
     // The map is a lazy chunk: on a loaded CI runner it can land after the first heart (#3864 shard 1).
     expect(await screen.findByText("THE MAP")).toBeInTheDocument();

@@ -151,7 +151,8 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
         type="button"
         data-card-heart=""
         aria-pressed={save.on}
-        aria-label={save.on ? `Stop watching ${item.title}` : `Watch ${item.title}`}
+        // A3-98 (audit 7, 11-01): one word for keeping something for later, app-wide: Save (the owner's word; Jobs' "Save job").
+        aria-label={save.on ? `Remove ${item.title} from saved` : `Save ${item.title}`}
         disabled={save.pending}
         onClick={save.toggle}
         className="absolute right-0.5 top-0.5 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

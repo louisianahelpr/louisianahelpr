@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 /** SS-5: a heart turned on says where the item can be found again, with a way there. */
 export function toastWatching(navigate: (to: string) => void) {
-  toast("Saved. Find it under Buying, in Watching.", { action: { label: "See it", onClick: () => navigate("/declutter?tab=buying") } });
+  toast("Saved. Find it under Buying, in Saved.", { action: { label: "See it", onClick: () => navigate("/declutter?tab=buying") } });
 }
 
 /** After a trade or offer change: everything Declutter shows may have moved. */

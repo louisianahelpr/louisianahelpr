@@ -14,6 +14,8 @@ const REASON_WORDS: Record<string, string> = {
   data_defect: "The row can't be paid as recorded (a data defect)",
   needs_reconcile: "A transfer may already exist (check Stripe by hand)",
   transfer_failed: "The Stripe transfer failed",
+  // Q1931: a Declutter delivery row that used its 12 tries (admin_payouts_held_for_review, 20261102043754).
+  gave_up: "Stopped after 12 failed tries. Send it by hand in Stripe, then mark it settled",
 };
 
 export function heldReasonWords(reason: string | null): string {

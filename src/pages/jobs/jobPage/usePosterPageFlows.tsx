@@ -63,6 +63,8 @@ export interface PosterPageFlows {
   /** A crew job's roster as the Posted list read it (undefined until read, or not a crew): the page draws it (JA-32,
    *  JOBS-3: per-member arrival, Confirm work and "Didn't show"), never inside the card's hidden controls. */
   crewRoster?: React.ComponentProps<typeof GroupJobHelpers>["initialHelpers"];
+  /** The roster members' names (the Posted list's helperNames), for the crew's next-step line (A3-32). */
+  crewNames?: Record<string, string>;
   /** The card's own controls: always mounted and never shown (its actions reach the page through jobStepMenu.tsx), so
    *  Approve opens its sheet and each action keeps its own confirm step. */
   panel: React.ReactNode;
@@ -265,6 +267,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     // The detail read is done (q.data), so a crew with no roster entry has nobody left on it.
     crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true, hasJobStarted(job.date_needed, job.start_time)),
     crewRoster: job.is_group_job && detail ? detail.groupHelpersByJob?.[job.id] ?? [] : undefined,
+    crewNames: job.is_group_job ? helperNames : undefined,
     panel,
     dialogs,
   };

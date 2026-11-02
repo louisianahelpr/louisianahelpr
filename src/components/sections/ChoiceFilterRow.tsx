@@ -1,5 +1,6 @@
 import { Check } from "lucide-react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import { focusSheetItself } from "@/components/declutter/focusSheetItself";
 
 /**
  * A Browse filter's slide-up sheet of choices (owner, 2026-10-19: no row of
@@ -31,7 +32,7 @@ export function ChoiceSheet<T extends string>({
   const rows: { value: T | null; label: string }[] = [{ value: null, label: allLabel }, ...options];
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()}>
+      <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself}>
         <SheetHero title={title} />
         <ul className="liquid-glass overflow-hidden" role="radiogroup" aria-label={title}>
           {rows.map((r, i) => {

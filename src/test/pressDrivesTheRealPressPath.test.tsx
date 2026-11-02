@@ -56,6 +56,7 @@ const SCRIPT = resolve(__dirname, "../../scripts/audit/press-every-control.mjs")
 
 const acked = vi.hoisted(() => ({ ids: [] as string[], listeners: new Set<(id: string) => void>() }));
 const fake = vi.hoisted(() => ({ browser: null as unknown }));
+const trap = vi.hoisted(() => ({ pressed: 0 }));
 
 vi.mock("@/lib/backoutNotices", async (orig) => ({
   ...(await orig<typeof import("@/lib/backoutNotices")>()),
@@ -147,7 +148,36 @@ function ForgedDismissCard() {
   );
 }
 
+/**
+ * Q2010: a test-owned write whose press-time record read THROWS (LIVE_ROW_TEXT
+ * never returns null; a null meant it threw, and the harness pressed anyway).
+ * Only a Locator.evaluate on the control (the press-time read) throws;
+ * enumeration (page.evaluate) reads normally.
+ */
+function UnreadableRecordCard() {
+  return (
+    <JobCardShell expandable={false} expanded={false} onToggle={() => {}} category="cleaning">
+      <h3>{`${OWNER}'s porch D`}</h3>
+      <button
+        type="button"
+        ref={(el) => {
+          if (!el) return;
+          el.closest = function closest(this: Element, sel: string) {
+            // A Locator.evaluate on this control (the press-time LIVE_ROW_TEXT read); enumeration runs through page.evaluate.
+            if (new Error().stack?.includes("FakeLocator.evaluate")) throw new Error("row read threw");
+            return Element.prototype.closest.call(this, sel);
+          } as Element["closest"];
+        }}
+        onClick={() => { trap.pressed++; }}
+      >
+        Got it
+      </button>
+    </JobCardShell>
+  );
+}
+
 const FIXTURES: Record<string, Fixture> = {
+  "/fixture/unreadable-record": mount(() => <UnreadableRecordCard />),
   "/fixture/owned-cards": mount(() => <BackoutList titles={OWNED} />),
   "/fixture/foreign-card": mount(() => <BackoutList titles={["Someone else's porch clean"]} />),
   "/fixture/payment-held": mount(() => <HeldDialog />),
@@ -221,6 +251,14 @@ describe("press-every-control main(): the real press loop", () => {
     // B's queued path pointed at C's button once A left the list; the press
     // must still ack B, then C. Without the press-time record check: A, C, B.
     expect(acked.ids).toEqual(OWNED.map((t) => `notice-${t}`));
+  });
+
+  // @mutate scripts/audit/press-every-control.mjs |             if (rowReadError !== null) { |             if (rowReadError !== null && false) {
+  it("never presses a write whose record cannot be read at press time (Q2010)", () => {
+    const got = control("/fixture/unreadable-record", "Got it");
+    expect(`${got.mutating} ${got.result}`).toBe("true FAIL");
+    expect(got.why).toMatch(/could not be read before the press \(row read threw\)/);
+    expect(trap.pressed).toBe(0);
   });
 
   it("never presses the same Got it on a card no test entity owns", () => {

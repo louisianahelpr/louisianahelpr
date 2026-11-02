@@ -17,7 +17,7 @@
  * Behaviour (the trigger, a block, the backfill, 3x replay): src/test/pglite/applicationNoticeNamesTheApplicant.pglite.mjs.
  *
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | v_message := COALESCE(v_applicant, 'Someone') \|\| ' applied to "' | v_message := 'Someone applied to "'
- * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | message: `${tipperName} tipped you for a completed job. Thanks for the great work!`, | message: `Someone tipped you for a completed job. Thanks for the great work!`,
+ * @mutate supabase/migrations/20261102045334_paid_tip_tells_the_helpr_once.sql | v_title := COALESCE(v_tipper, 'Someone') \|\| ' tipped you ' \|\| v_amount; | v_title := 'Someone tipped you ' \|\| v_amount;
  * @mutate supabase/functions/_shared/heldTipRepay.ts | message: `${tipperName} tipped you for a completed job. Thanks for the great work!`, | message: `Someone tipped you for a completed job. Thanks for the great work!`,
  */
 import { describe, it, expect } from "vitest";

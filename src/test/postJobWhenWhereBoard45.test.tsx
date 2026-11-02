@@ -17,7 +17,7 @@
  * The Louisiana-day half of the strip is proven in every device zone by
  * postJobDayStrip.tz.test.tsx.
  *
- * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => setIsFlexibleSchedule(true)} | onClick={() => setIsFlexibleSchedule(false)}
+ * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => chooseWhen(true)} | onClick={() => chooseWhen(false)}
  * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => pickTime(t.value)} | onClick={() => pickTime("")}
  * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => pickDay(d.iso)} | onClick={() => pickDay(strip[0].iso)}
  * @mutate src/components/postjob/LogisticsSection.tsx |     if (!streetAddress.trim() && !zipCode.trim()) {\n      applySaved(savedAddress); |     if (!streetAddress.trim() && !zipCode.trim()) {\n      void 0;

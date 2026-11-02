@@ -699,7 +699,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Restated in 20261019112103 (shops-m3 run 3) with kind 'shop_refund' added: lists a held Shops refund too.
       // Q1931 (builder 144, 20261102043754; lead approve 11-01, ~/.lh-shots/verdicts/b144.txt): + a Declutter delivery payout / delivery-fee refund that used its 12 tries
       // ('failed', flagged gave_up), listed as recorded (refund_cents shown, still a read).
-      admin_payouts_held_for_review: "20261102043754_declutter_delivery_gave_up_hand_settle.sql 36c671b2464f485b",
+      // Q1931 raise refunds (builder 148, 20261102054153): + a delivery pay-raise refund that used its 12 tries
+      // ('refunding', refund_attempts >= 12; kind 'raise_refund', gave_up), listed with refund_cents as recorded (a read).
+      admin_payouts_held_for_review: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql 1d1e384240069d7f",
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
       // 20261019112103: + a held Shops refund / payout, refused while a refund made in Stripe stands (refunded_in_stripe)
       // or when the queue would not send it; a released Shops row starts its tries at 0. No amount changes.
@@ -713,7 +715,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Stripe: stripe_check_required) and only for its whole refund_cents (settle_amount_differs); settle_amount_short kept.
       // Q1931 (builder 144, 20261102043754; lead approve 11-01, ~/.lh-shots/verdicts/b144.txt): + settles a gave-up ('failed', attempts >= 12) Helpr delivery payout or
       // delivery-fee refund the same way (same id / amount checks; refund_cents never changed, no money sent).
-      admin_payout_settle_by_hand: "20261102043754_declutter_delivery_gave_up_hand_settle.sql 9af5eeea52698394",
+      // Q1931 raise refunds (builder 148, 20261102054153): + records a gave-up raise refund sent in Stripe: a re_/pyr_ id
+      // only, for EXACTLY refund_cents (settle_amount_differs), whose amount the raise CHECK _refund_amount already fixed
+      // by reason (the card fee kept on delivery_cancelled_buyer); refund_cents never changed, no money sent.
+      admin_payout_settle_by_hand: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql d0136340240d2b1f",
       // pushes next_attempt_at of a pending / failed row; no try used, no amount.
       payout_defer: "20261019070737_payout_waits_for_payee_setup.sql 64f967d0b2d0c9f4",
       // pages ops and tells the payee once per held row; writes only held_notified_at.
@@ -826,8 +831,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     functions: {
       admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
       // Q1931 (builder 144): restated to also settle / list gave-up Declutter delivery rows; Shops branches unchanged.
-      admin_payout_settle_by_hand: "20261102043754_declutter_delivery_gave_up_hand_settle.sql 9af5eeea52698394",
-      admin_payouts_held_for_review: "20261102043754_declutter_delivery_gave_up_hand_settle.sql 36c671b2464f485b",
+      // Q1931 raise refunds (builder 148, 20261102054153): + the 'raise_refund' kind; Shops branches unchanged.
+      admin_payout_settle_by_hand: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql d0136340240d2b1f",
+      admin_payouts_held_for_review: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql 1d1e384240069d7f",
       payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
       shop_hand_refund_failed: "20261019071055_shops_refunds_cancels_strikes.sql ba27ff33a9f0c110",
       shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",

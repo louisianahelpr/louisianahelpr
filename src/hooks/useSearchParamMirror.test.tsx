@@ -160,13 +160,14 @@ describe("useSearchParamMirror runaway-write reporting", () => {
   it("reports once when writes exceed the burst threshold in the window", async () => {
     vi.mocked(report).mockClear();
 
-    // Drive 40 DISTINCT states straight at the hook. Each one genuinely
-    // differs from the URL, so each is a legitimate write — which is exactly
-    // what a loop looks like from inside the hook: real writes, far too fast.
+    // Drive 40 states that ping-pong between two values straight at the hook.
+    // Each one genuinely differs from the URL, so each is a real write — which
+    // is exactly what a loop looks like from inside the hook: the same URLs
+    // written over and over, far too fast (Q1476's trail was this shape).
     const m = renderMirror("/posts", () => {}, { filter: "v0" });
     for (let i = 1; i <= 40; i++) {
       await act(async () => {
-        m.rerender({ state: { filter: `v${i}` } });
+        m.rerender({ state: { filter: `v${i % 2}` } });
         await new Promise((r) => setTimeout(r, 0));
       });
     }
@@ -195,6 +196,27 @@ describe("useSearchParamMirror runaway-write reporting", () => {
     }
     expect(vi.mocked(report)).not.toHaveBeenCalled();
   });
+
+  // Q2506: Sentry JAVASCRIPT-25 (2026-10-24, /jobs, iPhone) was a person
+  // dragging the budget slider: 25 writes in 10 s, trail `max=220 -> max=225
+  // -> ... -> max=250`. Every write was a new value; nothing was looping.
+  // @mutate src/hooks/useSearchParamMirror.ts | mostRepeats >= LOOP_REPEATS && |
+  it("stays silent for a slider drag: many writes, each to a new value (Q2506)", async () => {
+    vi.mocked(report).mockClear();
+    const m = renderMirror("/jobs", () => {}, { max: "" });
+    const steps: string[] = [];
+    for (let v = 100; v <= 250; v += 5) steps.push(String(v)); // 31 steps up
+    for (let v = 245; v >= 200; v -= 5) steps.push(String(v)); // and 10 back
+    expect(steps.length).toBeGreaterThan(25);
+    for (const v of steps) {
+      await act(async () => {
+        m.rerender({ state: { max: v } });
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+    expect(m.lastUrl(), "every step still reaches the URL").toBe("/jobs?max=200");
+    expect(vi.mocked(report), "a slider drag is not a runaway").not.toHaveBeenCalled();
+  });
 });
 
 // ── Circuit breaker ──────────────────────────────────────────────────────────
@@ -207,11 +229,11 @@ describe("useSearchParamMirror circuit breaker", () => {
     vi.mocked(report).mockClear();
     const m = renderMirror("/posts", () => {}, { filter: "v0" });
 
-    // 120 distinct states — comfortably past WebKit's ~100 replaceState
+    // 120 states cycling three values — comfortably past WebKit's ~100 replaceState
     // ceiling, which is the thing that was taking the route down.
     for (let i = 1; i <= 120; i++) {
       await act(async () => {
-        m.rerender({ state: { filter: `v${i}` } });
+        m.rerender({ state: { filter: `v${i % 3}` } });
         await new Promise((r) => setTimeout(r, 0));
       });
     }

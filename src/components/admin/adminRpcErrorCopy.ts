@@ -353,7 +353,8 @@ export const ADMIN_RPC_ERROR_COPY = {
     not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
     ref_already_used: "That Stripe id is already recorded on another payout or refund. Check you have the right one.",
     settle_amount_short: "That's less than this refund owes. Refund the rest in Stripe first, then record the full amount.",
-    settle_amount_differs: "A Shops refund is settled only for its whole amount. Enter the full amount shown.",
+    settle_amount_differs: "This refund is settled only for its whole amount. Enter the full amount shown.",
+    stripe_refund_required: "A pay-raise refund goes back to the buyer's card. Refund it in Stripe, then paste the re_... id.",
     stripe_check_required: "A Shops refund settled with a Stripe refund id is checked with Stripe first. Paste the re_... id in the Stripe id box, or use \"other:\".",
   },
   // Homes take-down and lift (20261019062540): HomesListingsCard.

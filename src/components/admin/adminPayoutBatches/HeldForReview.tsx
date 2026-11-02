@@ -32,7 +32,7 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { heldReasonWords } from "./heldReason";
 
 export type HeldRow = {
-  kind: "declutter" | "helpr_task" | "shop" | "declutter_refund" | "delivery_refund" | "shop_refund";
+  kind: "declutter" | "helpr_task" | "shop" | "declutter_refund" | "delivery_refund" | "shop_refund" | "raise_refund";
   id: string;
   payee_id: string | null;
   payee_account?: string | null;
@@ -52,10 +52,12 @@ const KIND_LABEL: Record<HeldRow["kind"], string> = {
   declutter_refund: "Declutter refund",
   delivery_refund: "Delivery-fee refund",
   shop_refund: "Shops refund",
+  // Q1931: a delivery pay-raise refund that used its 12 tries (always gave_up; settled with a re_ id only).
+  raise_refund: "Delivery pay-raise refund",
 };
 
 /** Settled only for the whole amount the row owes (the SQL CHECKs it too). */
-const WHOLE_AMOUNT_ONLY: ReadonlySet<HeldRow["kind"]> = new Set(["shop_refund"]);
+const WHOLE_AMOUNT_ONLY: ReadonlySet<HeldRow["kind"]> = new Set(["shop_refund", "raise_refund"]);
 
 async function fetchHeld(): Promise<HeldRow[]> {
   const { data, error } = await supabase.rpc("admin_payouts_held_for_review");
@@ -178,12 +180,12 @@ export function HeldForReview() {
               <div className="mt-2 space-y-2">
                 {draft.action === "settle" && (
                   <>
-                    <Input aria-label="Stripe id" placeholder={r.kind.endsWith("refund") ? "re_... or other: how it was refunded" : "tr_... / po_... or other: how it was paid"}
+                    <Input aria-label="Stripe id" placeholder={r.kind === "raise_refund" ? "re_..." : r.kind.endsWith("refund") ? "re_... or other: how it was refunded" : "tr_... / po_... or other: how it was paid"}
                       value={draft.ref} onChange={(e) => setDraft({ ...draft, ref: e.target.value })} />
                     <Input aria-label="Amount" inputMode="decimal" value={draft.amount} readOnly={WHOLE_AMOUNT_ONLY.has(r.kind)}
                       onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
                     {WHOLE_AMOUNT_ONLY.has(r.kind) && (
-                      <p className="text-xs text-muted-foreground">A Shops refund is settled only for its whole amount.</p>
+                      <p className="text-xs text-muted-foreground">This refund is settled only for its whole amount.</p>
                     )}
                   </>
                 )}

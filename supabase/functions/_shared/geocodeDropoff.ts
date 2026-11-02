@@ -46,6 +46,16 @@ const STATE_CODES: Record<string, string> = {
   Louisiana: "LA", Mississippi: "MS", Texas: "TX", Arkansas: "AR", Alabama: "AL",
 };
 
+/**
+ * Only the thrown error's NAME (TimeoutError, TypeError, ...) goes into `detail`, which declutter-checkout logs and
+ * sends in its ops alert: a fetch error's message can quote the request URL, whose query string is the buyer's typed
+ * address (Q2493).
+ */
+export function thrownName(e: unknown): string {
+  const name = e instanceof Error ? e.name : typeof e;
+  return /^[A-Za-z][A-Za-z0-9_]{0,40}$/.test(name) ? `threw ${name}` : "threw an error";
+}
+
 /** Town (or county) + state code from Nominatim's address details. */
 function areaLabelFrom(details: Record<string, unknown> | null | undefined): string {
   const d = details ?? {};
@@ -92,7 +102,7 @@ async function geocodeWithAppleMaps(
     }
     access = body.accessToken;
   } catch (e) {
-    return { miss: "unavailable", status: null, detail: `Apple Maps token: ${String(e).slice(0, 180)}` };
+    return { miss: "unavailable", status: null, detail: `Apple Maps token: ${thrownName(e)}` };
   }
   const url = new URL("https://maps-api.apple.com/v1/geocode");
   url.searchParams.set("q", address);
@@ -105,7 +115,7 @@ async function geocodeWithAppleMaps(
       signal: AbortSignal.timeout(GEOCODE_TIMEOUT_MS),
     });
   } catch (e) {
-    return { miss: "unavailable", status: null, detail: `Apple Maps: ${String(e).slice(0, 190)}` };
+    return { miss: "unavailable", status: null, detail: `Apple Maps: ${thrownName(e)}` };
   }
   if (!res.ok) return { miss: "unavailable", status: res.status, detail: `Apple Maps HTTP ${res.status}` };
   let body: unknown;
@@ -166,7 +176,7 @@ async function geocodeWithNominatim(address: string, fetchImpl: typeof fetch): P
       signal: AbortSignal.timeout(GEOCODE_TIMEOUT_MS),
     });
   } catch (e) {
-    return { miss: "unavailable", status: null, detail: String(e).slice(0, 200) };
+    return { miss: "unavailable", status: null, detail: thrownName(e) };
   }
   if (!res.ok) return { miss: "unavailable", status: res.status, detail: `HTTP ${res.status}` };
   let rows: unknown;

@@ -79,6 +79,8 @@ const state = {
   position: null as { status: string | null; latitude: number | null; longitude: number | null } | null,
   /** useJobPage's crewConfirmed: the member's roster row has helper_confirmed_at (JA-33). */
   crewConfirmed: false,
+  /** A3-33: the member's own roster row (useCrewSlot). */
+  crewSlot: null as Record<string, unknown> | null,
   /** usePosterPageFlows' crewNobodyLeft (JOBS-3: every crew member reported a no-show). */
   crewNobodyLeft: false,
   /** usePosterPageFlows' crewRoster (JA-32: the page draws the crew). */
@@ -92,6 +94,7 @@ const state = {
   owesReview: false,
 };
 
+vi.mock("@/hooks/useCrewSlot", () => ({ useCrewSlot: () => ({ data: state.crewSlot }) }));
 vi.mock("./useJobPage", () => ({
   useOfferedToMe: () => state.offeredToMe,
   useOwesReview: () => ({ owes: state.owesReview, refetch: () => {} }),
@@ -310,6 +313,7 @@ beforeEach(() => {
   workingApps.rows = [];
   offerAnswers.length = 0;
   state.onCrew = false;
+  state.crewSlot = null;
   state.crewConfirmed = false;
   state.job = null;
   state.party = false;
@@ -1187,6 +1191,21 @@ describe("a crew member's own job page (A2-B8)", () => {
     state.crewConfirmed = false;
     renderPage();
     await waitFor(() => expect(tracker()).toContain("Next: confirm your spot on the crew"));
+  });
+
+  // A3-33 (audit 11-01): the member's page says THEIR step, read off their own roster row.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} /> |               : null)} />
+  it("A3-33: a crew member's page reads their own step from their roster row", async () => {
+    state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 2, helper_id: null });
+    state.party = true;
+    state.myApplication = { status: "accepted", closed_reason: null };
+    state.onCrew = true;
+    state.crewConfirmed = true;
+    state.crewSlot = { helper_confirmed_at: "t", helper_on_the_way_at: "t", helper_arrived_at: "t", poster_confirmed_arrival_at: null, helper_completed_at: null };
+    renderPage();
+    const line = () => document.querySelector("[data-next-step]")?.textContent ?? "";
+    await waitFor(() => expect(line()).toMatch(/^Waiting on .+ to confirm you arrived$/));
+    expect(line()).not.toMatch(/Your spot is confirmed/);
   });
 
   it("an applicant NOT on the crew still reads as closed out", async () => {

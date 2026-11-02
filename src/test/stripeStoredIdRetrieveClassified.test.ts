@@ -125,6 +125,8 @@ const CLASSIFIED = [
   "auto-release-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
   "auto-release-payment/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "charge-recurring-visits/index.ts::stripe.checkout.sessions.retrieve(sessionId)",
+  // Q2245 (c): the sweep's own read-back of a Checkout it could not expire (the lapsed holder's one is #1, closeLapsedVisitCheckout).
+  "charge-recurring-visits/index.ts::stripe.checkout.sessions.retrieve(sessionId)#2",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(pi)",
   // J4 (Q2170): admin_bill_helpr_fault reads the job's stored session, then its PaymentIntent; a test-mode

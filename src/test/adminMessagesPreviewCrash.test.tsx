@@ -7,6 +7,7 @@
  * the error, every Supabase request made afterwards (a read and a write) reaches the real fetch ZERO times, and the
  * window gets its fetch back only when the route unmounts.
  *
+ * @mutate src/pages/admin/preview/messagesPreviewBackend.ts | const QUIET_WRITES = new Set(["PATCH notifications", "PATCH messages"]); | const QUIET_WRITES = new Set<string>([]);
  * @mutate src/pages/admin/preview/previewParts.tsx |   static getDerivedStateFromError(error: Error) { return { error }; } |   static getDerivedStateFromError(error: Error): { error: Error } { throw error; }
  * @mutate src/pages/admin/preview/previewParts.tsx |     if (!this.state.error) return this.props.children; |     if (!this.state.error) return this.props.children;\n    throw this.state.error;
  * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |     if (!base \|\| !url.startsWith(base)) return o.realFetch(input, init); |     if (base) return o.realFetch(input, init);
@@ -111,6 +112,27 @@ describe("admin Messages preview backend: a read the sample does not answer", ()
       uninstall();
     }
     expect(unlisted).toEqual(["rpc get_something_new", "table some_new_table"]);
+    expect(supabaseCalls()).toHaveLength(0);
+  });
+});
+
+// Audit 1102e: opening a thread said "this would update notifications": a read receipt nobody pressed.
+describe("admin Messages preview backend: the writes a thread makes on its own are answered, never sent, and not said", () => {
+  it("marking messages and notices read says nothing; a message sent and a block are still said", async () => {
+    const said: string[] = [];
+    const { uninstall } = installMessagesPreviewFetch({
+      supabaseUrl: SUPABASE, sample: () => messagesPreviewSample("thread", "poster", "11111111-1111-4111-8111-111111111111"), ownUserId: () => null,
+      onBlocked: (w) => said.push(w),
+    });
+    try {
+      await fetch(`${SUPABASE}/rest/v1/notifications?id=eq.x`, { method: "PATCH", body: "{}" });
+      await fetch(`${SUPABASE}/rest/v1/messages?id=eq.x`, { method: "PATCH", body: "{}" });
+      await fetch(`${SUPABASE}/rest/v1/messages`, { method: "POST", body: "{}" });
+      await fetch(`${SUPABASE}/rest/v1/rpc/block_user_and_settle`, { method: "POST", body: "{}" });
+    } finally {
+      uninstall();
+    }
+    expect(said).toEqual(["save messages", 'run "block_user_and_settle"']);
     expect(supabaseCalls()).toHaveLength(0);
   });
 });

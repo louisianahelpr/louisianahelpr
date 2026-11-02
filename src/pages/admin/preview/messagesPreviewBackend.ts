@@ -31,7 +31,20 @@ export interface MessagesPreviewFetchOptions {
   realFetch: typeof fetch;
   onBlocked: (what: string) => void;
   onUnlisted?: (what: string) => void;
+  /** A final action the sample answers (a block): the page shows its after-state (audit 1102e). */
+  onAction?: (name: string) => void;
 }
+
+/**
+ * Final actions answered with the success shape their screen expects, so the button finishes (audit 1102e:
+ * "Blocking…" never did). Still never sent, still said.
+ */
+const ACTION_ANSWERS: Record<string, unknown> = { block_user_and_settle: { settled: [] } };
+/**
+ * Writes the page makes on its own as a thread opens (read receipts, notices marked read): answered, never sent,
+ * and not said, because nothing was pressed to cause them (audit 1102e: "this would update notifications").
+ */
+const QUIET_WRITES = new Set(["PATCH notifications", "PATCH messages"]);
 
 const OWN_ROW_TABLES = new Set(["profiles", "user_roles"]);
 const PASS_THROUGH_RPC = new Set(["feature_switches_for_me"]);
@@ -105,6 +118,12 @@ export function createMessagesPreviewFetch(o: MessagesPreviewFetchOptions): { fe
         note("passed");
         return o.realFetch(input, init);
       }
+      if (Object.prototype.hasOwnProperty.call(ACTION_ANSWERS, name)) {
+        note("blocked");
+        o.onBlocked(`run "${name}"`);
+        o.onAction?.(name);
+        return json(ACTION_ANSWERS[name]);
+      }
       if (Object.prototype.hasOwnProperty.call(s.reads, name)) {
         note("sample");
         const read = s.reads[name];
@@ -143,7 +162,7 @@ export function createMessagesPreviewFetch(o: MessagesPreviewFetchOptions): { fe
     }
     note("blocked");
     if (table) {
-      o.onBlocked(`${VERB[method] ?? "change"} ${table.replace(/_/g, " ")}`);
+      if (!QUIET_WRITES.has(`${method} ${table}`)) o.onBlocked(`${VERB[method] ?? "change"} ${table.replace(/_/g, " ")}`);
       // An echo row, so a write that asks for its row back reads as done, not as a failed save.
       const body = bodyJson(init);
       const row = { id: "00000000-0000-4000-e000-00000000ffff", ...(Array.isArray(body) ? {} : body) };

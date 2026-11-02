@@ -27,7 +27,7 @@ export function etaWords(minutes: number): string {
 }
 
 /** A3-61: "Yusef's location paused · last seen 3 min ago". */
-export function pausedWords(who: string, lastAt: string, now: number): string {
+function pausedWords(who: string, lastAt: string, now: number): string {
   const min = Math.max(1, Math.round((now - Date.parse(lastAt)) / 60_000));
   return `${who}'s location paused · last seen ${min} min ago`;
 }

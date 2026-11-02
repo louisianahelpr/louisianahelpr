@@ -190,7 +190,7 @@ export function activeFilterCount(f: DeclutterFilters, maxMiles: number | null):
  * ticked (DC-4), never on a free claim; meet up and seller delivers need the seller's tick, and an older item that
  * recorded no ticks allows every way. Ticks not read yet (undefined) count as not offered, never as a guess.
  */
-export function offersWay(item: BrowseItem, way: "porch" | OtherWay, ticks: string[] | null | undefined): boolean {
+function offersWay(item: BrowseItem, way: "porch" | OtherWay, ticks: string[] | null | undefined): boolean {
   if (way === "porch") return item.porch_ok;
   if (way === "delivery") return item.current_price_cents > 0;
   if (ticks === undefined) return false;

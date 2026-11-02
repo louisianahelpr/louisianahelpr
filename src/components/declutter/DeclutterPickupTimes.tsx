@@ -198,14 +198,6 @@ export function pickupWindowsProblem(windows: PickupWindow[]): string | null {
 
 const SHORT_DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** "Sat 9:00 AM–12:00 PM", or "3 pickup times" when the days differ. */
-export function windowsSummary(windows: PickupWindow[]): string {
-  if (windows.length === 0) return "";
-  if (!sameHoursEveryDay(windows)) return `${windows.length} pickup times`;
-  const days = [...windows].sort((a, b) => a.weekday - b.weekday).map((w) => SHORT_DAY[w.weekday]).join(", ");
-  return `${days} ${timeLabel(windows[0].starts)}–${timeLabel(windows[0].ends)}`;
-}
-
 /**
  * One place's days and hours in words (LEAD-POST-PLACES): "Every day 7:00 AM–9:00 PM", "Mon, Wed 9:00 AM–12:00 PM",
  * or per day when they differ: "Sat 9:00 AM–12:00 PM; Sun 1:00 PM–3:00 PM". No hours (an older server): the days.

@@ -27,7 +27,9 @@ describe("board 186: the pay line names only live wallets", () => {
     expect(form).toMatch(/"You're charged when you post\. The money is held until the job is done\."/);
     // A gift card can cover all of it (money review 2026-10-21 #1): never promise a charge then.
     expect(form).toMatch(/form\.hasGift \? "Your gift card pays first\. Anything left is charged when you post/);
-    expect(form).toMatch(/submitLabel = "Review, then pay"/);
+    // A3-3 part 2: the label is the "postJob.reviewThenPay" key, whose English is "Review, then pay".
+    expect(form).toMatch(/submitLabel = t\("postJob\.reviewThenPay"\)/);
+    expect(readFileSync("src/lib/i18n/enPostJob.ts", "utf8")).toContain('"postJob.reviewThenPay": "Review, then pay",');
     // Q2399 card_hold_at_post (audit 2026-10-28 F3): the price screen follows the same flag the review
     // screen does; with it on, the card is charged at the hire, never "when you post".
     expect(form).toMatch(/: form\.cardHoldOn \? "Your card isn't charged until a Helpr accepts your offer\. The money is then held until the job is done\." : "You're charged when you post/);

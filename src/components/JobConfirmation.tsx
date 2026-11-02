@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { CheckCircle2, CalendarClock } from "lucide-react";
 import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
-import { jobStartDateTime } from "@/lib/dateUtils";
+import { confirmScheduledFor, confirmUrgencyText } from "./jobConfirmationWords";
 import { slotLabel } from "@/components/tracker/jobProgressState";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 import { toast } from "sonner";
@@ -345,17 +345,8 @@ export function JobConfirmation({
   const helperDayOf = helperDayOfConfirmation({ helperConfirmedAt, helperDayofConfirmedAt, dateNeeded, startTime });
   const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperDayOf);
 
-  const urgencyText = hoursUntilJob <= 0
-    ? "Job date has passed"
-    : hoursUntilJob < 24
-    ? "less than 24 hours"
-    : (() => { const h = Math.round(hoursUntilJob); return `${h} hour${h !== 1 ? "s" : ""}`; })();
-
-  // "Thursday, October 22, 2037 at 9:00 AM": the day being confirmed, and the time when the job has one.
-  const scheduledStart = startTime ? jobStartDateTime(dateNeeded, startTime) : null;
-  const scheduledFor = `${jobDate.toLocaleDateString("en-US", { timeZone: JOB_TIMEZONE, weekday: "long", month: "long", day: "numeric", year: "numeric" })}${
-    scheduledStart ? ` at ${scheduledStart.toLocaleTimeString("en-US", { timeZone: JOB_TIMEZONE, hour: "numeric", minute: "2-digit" })}` : ""
-  }`;
+  const urgencyText = confirmUrgencyText(hoursUntilJob);
+  const scheduledFor = confirmScheduledFor(jobDate, dateNeeded, startTime);
 
   /* The confirm popup, hoisted out of the card's return so BOTH variants
      render the identical flow — the "Scheduled for" date, the no-show warning,

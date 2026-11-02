@@ -52,6 +52,7 @@ import { SpentSection } from "@/components/profile/earningsTab/SpentSection";
 import { MoneyRecordRows } from "@/components/profile/earningsTab/MoneyRecordRows";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { FeesOwedLine } from "@/components/money/FeesOwedLine";
+import { SectionRule } from "./SectionRule";
 // MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
 // "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
 // separate Profile entry points onto three screens about the same subject —
@@ -79,22 +80,6 @@ import { FeesOwedLine } from "@/components/money/FeesOwedLine";
 const PayoutCelebration = lazy(() => import("@/components/wallet/PayoutCelebration").then(m => ({ default: m.PayoutCelebration })));
 const EarningsBreakdownCharts = lazy(() => import("@/components/profile/EarningsBreakdownCharts").then(m => ({ default: m.EarningsBreakdownCharts })));
 const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
-
-/**
- * Quiet in-page section rule. Deliberately NOT a second header: the merged
- * tab has exactly one ProfileTabHeader (title + back button) at the top, and
- * three stacked panels each carrying its own header is precisely the shape
- * the owner rejected. The small-caps label that used to sit on this hairline
- * was removed at the owner's direction (2026-08-27) — the rule alone now
- * separates sections, so this takes no props.
- */
-function SectionRule() {
-  return (
-    <div className="flex items-center gap-3 pt-2">
-      <div className="flex-1 h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
-    </div>
-  );
-}
 
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();

@@ -36,7 +36,7 @@ import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { useFeature } from "@/hooks/useFeature";
 import { FailedPayoutLink } from "./FailedPayoutLink";
 import type { CartLine } from "@/lib/declutter/api";
-import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
+import { BookedTimeLine, usePorchWindowWords } from "./DeclutterBookedTimeLine";
 import { invalidate, liveSalesFirst, localInputToIso, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
 import {
   bookPickup,
@@ -339,17 +339,8 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
   // checkout window says the window from the order row (pickup_slot_start / _end, the same read the buyer's card
   // uses), never "(30 minutes)". Door and meetup keep their exact 30-minute time.
   const porch = order.handover === "porch";
-  const times = useQuery({
-    queryKey: orderPickupTimesKey([order.orderId]),
-    queryFn: () => fetchOrderPickupTimes([order.orderId]),
-    enabled: !!booked && porch,
-  });
-  const windowWords = porch && booked
-    ? orderTimeWords(times.data?.find((t) => t.id === order.orderId), order.handover, booked).chosen
-    : null;
-  const timeLine = (label: string) => windowWords
-    ? <p className="text-sm" data-testid="declutter-porch-window">{order.side === "seller" ? "Leave it out" : "Pickup"}: <span className="font-medium">{windowWords}</span></p>
-    : <p className="text-sm">{label}: <span className="font-medium">{when(booked!)}</span> (30 minutes)</p>;
+  const windowWords = usePorchWindowWords(order, booked);
+  const timeLine = (label: string) => <BookedTimeLine order={order} booked={booked!} label={label} windowWords={windowWords} />;
   // A3-49: the seller's wait is said once, by the card's next-step line ("Waiting on Ann to pick a pickup time · by …").
   if (!booked && order.side === "seller") return null;
   const id = `dcl-slot-${order.orderId}`;

@@ -107,8 +107,8 @@ export function standing(handover: Pickup, side: "buyer" | "seller", at: number,
 const answerByWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 
 /** A3-71: the seller's line once the hour has passed (late), or once the buyer says it never came (reported). */
-export const SELLER_DELIVERY_LATE = "Late: deliver it now or ask for a new time. The buyer can now say it didn't come.";
-export const sellerDeliveryReported = (by: string) => `Answer the buyer by ${answerByWords(by)}. They say it wasn't delivered.`;
+const SELLER_DELIVERY_LATE = "Late: deliver it now or ask for a new time. The buyer can now say it didn't come.";
+const sellerDeliveryReported = (by: string) => `Answer the buyer by ${answerByWords(by)}. They say it wasn't delivered.`;
 
 export function deliveryStanding(side: "buyer" | "seller", at: number, free: boolean, late = false, reportedBy: string | null = null): NextStepValue {
   if (at === 1 && side === "seller" && reportedBy) return { who: "you", text: sellerDeliveryReported(reportedBy) };

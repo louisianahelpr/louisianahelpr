@@ -20,7 +20,7 @@
  * @mutate supabase/functions/_shared/shipLabelVoid.ts |       await p.recordVoid(s.id, "voided");\n      await close(); |       await p.recordVoid(s.id, "voided");
  * @mutate supabase/functions/_shared/shipLabelVoid.ts |         { Order: s.declutter_order_id, Shipment: s.provider_shipment_id });\n      await close();\n      return "void_rejected"; |         { Order: s.declutter_order_id, Shipment: s.provider_shipment_id });\n      return "void_rejected";
  * @mutate supabase/functions/_shared/shipLabelVoid.ts | const CLOSE_FINE = new Set(["closed", "already", "not_held"]); | const CLOSE_FINE = new Set(["closed", "already", "not_held", "label_bought"]);
- * @mutate supabase/functions/_shared/shipLabelVoid.ts |       answer = `error: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200); |       throw e;
+ * @mutate supabase/functions/_shared/shipLabelVoid.ts |       answer = `error: ${caughtMessage(e)}`.slice(0, 200); |       throw e;
  * @mutate supabase/functions/_shared/shipLabelRun.ts |           const { data, error: e } = await admin.rpc("declutter_ship_hold_released", { p_order_id: orderId });\n          if (e) throw new Error(`closing the voided order failed | const { data, error: e } = await admin.rpc("declutter_ship_hold_refund_released", { p_order_id: orderId });\n          if (e) throw new Error(`closing the voided order failed
  */
 import { readFileSync } from "node:fs";

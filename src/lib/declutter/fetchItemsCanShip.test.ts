@@ -3,8 +3,8 @@
  * seller may ship now (declutter_seller_can_ship, 20261102054848: no shipping debt owed). Before, a seller owing a spent
  * label was still offered and only the order trigger refused, after the buyer had bought a quote.
  *
- * @mutate src/lib/declutter/api.ts |   return unwrap(res) === true;\n} |   return true;\n}
- * @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_seller_can_ship", { p_seller_id: sellerId }); |   const res = { data: true, error: null };
+ * @mutate src/lib/declutter/api.ts |   return rpcData(res, (e) => rpcErrorMessage("declutter_seller_can_ship", e)) === true;\n} |   return true;\n}
+ * @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_seller_can_ship", { p_seller_id: sellerId }); |   const res = { data: true, error: null, status: 200 };
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

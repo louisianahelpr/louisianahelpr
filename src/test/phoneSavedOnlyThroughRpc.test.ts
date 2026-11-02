@@ -31,7 +31,8 @@
  *   NEW_MIGRATION=skip node src/test/pglite/phoneSaveRpc.pglite.mjs (FAILs)
  *
  * @mutate src/pages/profile/Profile.tsx |           full_name: merged, location: location.trim(), |           full_name: merged, phone: phone.trim(), location: location.trim(),
- * @mutate src/pages/profile/Profile.tsx | : await saveMyPhone(user.id, phone.trim()); | : { ok: true as const }; void saveMyPhone;
+ * @mutate src/pages/profile/Profile.tsx | = await savePhoneIfChanged(user.id, phone.trim(), profile?.phone ?? ""); | = null as null \| { ok: false; message: string }; void savePhoneIfChanged;
+ * @mutate src/lib/phoneSaveIfChanged.ts |   return saveMyPhone(userId, next); |   return { ok: true }; void saveMyPhone;
  * @mutate supabase/migrations/20261102082018_phone_save_rpc_rate_limited.sql |   REVOKE UPDATE (phone) ON public.profiles FROM anon, authenticated; |   PERFORM 1;
  * @mutate supabase/functions/complete-signup/index.ts |     // Q1586(a): the phone is NOT saved here. |     if (phone) updateData.phone = phone;
  * @mutate supabase/migrations/20261102082018_phone_save_rpc_rate_limited.sql |   IF v_refused >= 5 OR v_tries >= 20 THEN |   IF false THEN
@@ -104,7 +105,10 @@ describe("Q1586(a) a member's phone is saved only through save_my_phone", () => 
     const screens = new Set(["src/pages/profile/Profile.tsx"]);
     for (const f of phoneFields) screens.add(SAVED_BY[f.rel] ?? f.rel);
     expect(Object.keys(SAVED_BY).filter((rel) => !phoneFields.some((f) => f.rel === rel))).toEqual([]);
-    const unsaved = [...screens].filter((rel) => !/\bsaveMyPhone\(/.test(sources.find((f) => f.rel === rel)?.code ?? ""));
+    // savePhoneIfChanged (src/lib/phoneSaveIfChanged.ts) lazy-loads saveMyPhone for /profile's critical-path budget.
+    const saves = (rel: string) => /\b(saveMyPhone|savePhoneIfChanged)\(/.test(sources.find((f) => f.rel === rel)?.code ?? "");
+    expect(/\bsaveMyPhone\(userId, next\)/.test(sources.find((f) => f.rel === "src/lib/phoneSaveIfChanged.ts")?.code ?? "")).toBe(true);
+    const unsaved = [...screens].filter((rel) => !saves(rel));
     expect(unsaved).toEqual([]);
   });
 });

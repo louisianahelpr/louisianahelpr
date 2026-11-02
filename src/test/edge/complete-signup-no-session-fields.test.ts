@@ -177,11 +177,15 @@ const NO_SESSION_COLUMNS = [
   "accepted_terms_at", "avatar_url", "bio", "location", "marketing_consent", "parish",
   "terms_accepted_at", "terms_version_accepted", "zip_code",
 ];
-/** Columns only the session-only fields write: the signed-in run must reach every one. */
+/**
+ * Columns only the session-only fields write: the signed-in run must reach every one. `phone` is not
+ * among them since Q1805 (20261102082018): complete-signup still reads the field for the retained-ban
+ * check but never writes profiles.phone; only save_my_phone does (phoneSavedOnlyThroughRpc.test.ts).
+ */
 const SESSION_ONLY_COLUMNS = [
   "availability", "date_of_birth", "emergency_contact_name", "emergency_contact_phone", "experience_level",
   "extra_comments", "hear_about_us", "insurance_status", "insurance_url", "is_insured", "is_licensed",
-  "license_status", "license_url", "phone", "skills", "tools_equipment", "transportation",
+  "license_status", "license_url", "skills", "tools_equipment", "transportation",
 ];
 /** The only RPCs a no-session call may make: no ban, flag or age routine. */
 const NO_SESSION_RPCS = new Set(["get_parish_for_zip", "record_referral_signup", "notify_admins_new_member"]);

@@ -324,6 +324,9 @@ describe("every fixture literal could be inserted", () => {
     // helper_credentials row), the charge-recurring-visits mock reads `{ rows, count }` (not an ops_alert_ledger
     // row), and a source string `count: ..., stars: 0` (ReviewsSection's display object, not a declutter_reviews row).
     { file: "src/test/edge/verification-webhook.test.ts", keys: ["certificate_id", "expiration_date"] },
+    // B131 (2026-11-01): types.ts now names declutter_orders.ship_capture, which made the label worker test's
+    // provider answers `{ ok, status: 200, body }` (read as one literal with a ShipOrder beside them) gradable as orders.
+    { file: "src/test/shipLabelWorker.test.ts", keys: ["ok", "body"] },
     // 20261025161801 put gift_cards_payment_status_check in the migrations for the first time (it was
     // only on prod), so two test BLOCKS read as one literal became gradable as gift rows: a jobs mock
     // rewrite next to a gift read (`payment_status: "failed"` is the JOB's) and the gift-ledger cases

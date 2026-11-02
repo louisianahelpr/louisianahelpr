@@ -710,7 +710,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   });
 
   // Audit posting 1030 #11: on a phone the Selling tab had no way to sell.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <Link to={SELL_ONE_PATH}>Sell an item</Link> | <span>Sell an item</span>
+  // @mutate src/components/declutter/TabletSellRow.tsx | <Link to={SELL_ONE_PATH}>Sell an item</Link> | <span>Sell an item</span>
   it("Selling offers Sell an item straight to the photo screen, and one line to the other ways", async () => {
     state.mine = [ITEM];
     at("/declutter?tab=selling");
@@ -722,7 +722,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // LEAD-SELLING-NO-SELL-BTN-PHONE (owner 2026-10-31): on a phone the + covers it, so the row is off below sm (640px)
   // and the filter chips move up; from sm to the desktop header (lg, 900px) it shows; the header has its own from lg.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell=""> | <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
+  // @mutate src/components/declutter/TabletSellRow.tsx | <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell=""> | <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
   it("the Sell an item row is not on a phone, only from sm until the desktop header", async () => {
     state.mine = [ITEM];
     at("/declutter?tab=selling");

@@ -14,7 +14,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { approveManagerDraft, fetchWaitingDrafts, sendManagerDraftBack, useMyManagerGrants } from "@/lib/declutter/managerMode";
 import { TaxStatementsCheck } from "./declutterUi";
 
-export const WAITING_DRAFTS_KEY = ["declutter", "manager-waiting"] as const;
+const WAITING_DRAFTS_KEY = ["declutter", "manager-waiting"] as const;
 
 export default function ManagerWaitingForOk({ userId }: { userId: string }) {
   const qc = useQueryClient();

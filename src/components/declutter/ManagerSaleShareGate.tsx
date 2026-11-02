@@ -1,4 +1,4 @@
-/** The seller's sale split line (ManagerSaleShare), loaded only while declutter_manager is on: a separate chunk. */
+/** The seller's sale split line (ManagerSaleShare: "$40 sale · $8 to Dana · $32 to you" when a manager shares this sale), loaded only while declutter_manager is on: a separate chunk. */
 import { lazy, Suspense } from "react";
 import { useFeature } from "@/hooks/useFeature";
 

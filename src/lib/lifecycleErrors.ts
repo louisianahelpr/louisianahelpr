@@ -1569,6 +1569,7 @@ export const RPC_ERROR_COPY = {
   },
   // Declutter manager mode, owner 11-01: the seller sends a draft back to her manager with a note.
   declutter_manager_send_back: {
+    account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
     not_found: "This draft isn't waiting for you any more.",
@@ -1580,6 +1581,7 @@ export const RPC_ERROR_COPY = {
   },
   // Declutter manager mode (20261101181005): the seller changes the parts.
   declutter_manager_set_permissions: {
+    account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,
     grant_ended: "This has already ended.",
     no_parts_chosen: "Choose at least one thing for them to handle, or end their access.",

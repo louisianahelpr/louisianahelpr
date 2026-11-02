@@ -68,7 +68,7 @@ export function shareWords(g: Pick<ManagerGrant, "share_type" | "share_pct" | "s
   return `$${dollars} per item sold`;
 }
 
-export async function fetchMyManagerGrants(): Promise<ManagerGrant[]> {
+async function fetchMyManagerGrants(): Promise<ManagerGrant[]> {
   const rows = rpcData(await supabase.rpc("declutter_my_manager_grants"),
     (e) => rpcErrorMessage("declutter_my_manager_grants", e));
   return (rows ?? []) as ManagerGrant[];
@@ -149,7 +149,7 @@ export async function setManagerParts(grantId: string, parts: ManagerParts): Pro
 }
 
 /** The actions declutter_manage accepts (the server's fixed list). */
-export type ManageAction =
+type ManageAction =
   | "create_item" | "update_draft" | "add_item_photo" | "remove_item_photo" | "submit_for_approval"
   | "edit_listing" | "set_handovers" | "pause_listing" | "withdraw_item"
   | "set_listing_price" | "set_listing_drops"
@@ -165,7 +165,7 @@ export async function manageForSeller(sellerId: string, action: ManageAction, ar
 }
 
 /** "Lexi (helping Kaci)" for messages a manager wrote, by message id. */
-export async function fetchManagerLabels(kind: "answer" | "order_talk", ids: string[]): Promise<Map<string, string>> {
+async function fetchManagerLabels(kind: "answer" | "order_talk", ids: string[]): Promise<Map<string, string>> {
   if (ids.length === 0) return new Map();
   const { data, error } = await supabase.rpc("declutter_manager_message_labels", { p_kind: kind, p_ids: ids });
   if (error) throw error;
@@ -251,7 +251,7 @@ export interface OrderManagerShare {
 }
 
 /** Every sale share the caller is a party to: the terms locked at paid, plus the manager payout once it exists. */
-export async function fetchOrderManagerShares(): Promise<OrderManagerShare[]> {
+async function fetchOrderManagerShares(): Promise<OrderManagerShare[]> {
   const shares = await supabase.from("declutter_order_manager_shares")
     .select("order_id, seller_id, manager_id, share_type, share_pct, share_cents");
   if (shares.error) throw shares.error;

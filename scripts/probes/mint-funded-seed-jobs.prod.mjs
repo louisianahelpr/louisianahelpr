@@ -243,9 +243,26 @@ try {
       const card = page.locator("#cardNumber");
       const cardButton = page.getByTestId("card-accordion-item-button");
       const radio = page.getByRole("radio").first();
-      await card.or(cardButton).or(radio).first().waitFor({ state: "visible", timeout: 60_000 });
+      const cardItem = page.getByTestId("card-accordion-item");
+      const submit = page.getByTestId("hosted-payment-submit-button");
+      // Q2238: NOT `a.or(b).first().waitFor(visible)`. `.first()` is the first match in DOM order, and with the
+      // Card item already open that is the card-accordion-item-button OVERLAY, a zero-size click area that never
+      // reads visible (Declutter payout proof run 39342447913 sat 60 s on it with the card fields drawn). Poll
+      // until any one of them is visible, as scripts/e2e/declutterPayoutProof.mjs does.
+      const drawnBy = Date.now() + 60_000;
+      for (;;) {
+        let drawn = false;
+        for (const l of [card, cardButton, cardItem, radio, submit]) {
+          if (await l.first().isVisible().catch(() => false)) { drawn = true; break; }
+        }
+        if (drawn) break;
+        if (Date.now() > drawnBy) throw new Error("Stripe's payment form drew no card field, Card item, radio or Pay button in 60 s");
+        await page.waitForTimeout(500);
+      }
       if (!(await card.isVisible().catch(() => false))) {
-        if (await cardButton.count()) await cardButton.first().click({ force: true });
+        // Item first: the button is a zero-size overlay a forced click can call "outside of the viewport".
+        if (await cardItem.count()) await cardItem.first().click({ force: true });
+        else if (await cardButton.count()) await cardButton.first().dispatchEvent("click");
         else await radio.click({ force: true });
       }
       await card.waitFor({ state: "visible", timeout: 30_000 });

@@ -791,10 +791,10 @@ serve(async (req) => {
     // state; (c) the open future rows of the parents that are over.
     // deno-lint-ignore no-explicit-any
     let seriesOverRows: Array<Record<string, any>> = [];
-    const openParents = await scanAll<{ parent_job_id: string }>("open future visit payments", (countOpt) =>
+    const openParents = await scanAll<{ parent_job_id: string; visit_date?: string; status?: string }>("open future visit payments", (countOpt) =>
       supabase
         .from("recurring_visit_payments")
-        .select("parent_job_id", countOpt)
+        .select("parent_job_id, visit_date, status", countOpt)
         .in("status", ["pending", "paid"])
         .gt("visit_date", today)
         .order("id", { ascending: true }));
@@ -844,7 +844,78 @@ serve(async (req) => {
       }
     }
     const overIds = new Set(seriesOverRows.map((r) => String(r.id)));
-    for (const row of [...(stale ?? []), ...seriesOverRows]) {
+    // Q2071: a PENDING future visit whose date nobody holds any more (a Helpr
+    // gave it up: series_release_dates, give_up_series_dates,
+    // helper_cancel_booking delete the date's series_visit_holds row) kept a
+    // payable Checkout open until its date, and a payment then sat until the
+    // visit-date sweep returned it less the card fee. Its Checkout is closed
+    // and the row expired now, like a series that is over (the webhook refuses
+    // a late payment in full). A pending row is only ever parked for a held
+    // date, so an unheld one was released. If another Helpr picks the date up,
+    // the loop below parks a new payment for it. A PAID row is left to the
+    // visit-date sweep (its visit may still be booked on that payment). Holds
+    // are read only for the series with such rows, and an incomplete read is
+    // not proof a date is unheld: nothing is closed then.
+    // deno-lint-ignore no-explicit-any
+    let releasedRows: Array<Record<string, any>> = [];
+    const overParentSet = new Set(overParentIds);
+    // The series to look at (its rows are re-read and filtered below, which
+    // decides): an open future row of a series that is not over.
+    const pendingAhead = openParents.rows.filter((r) =>
+      typeof r.visit_date === "string" && !overParentSet.has(String(r.parent_job_id))
+    );
+    if (pendingAhead.length > 0 && !openDefect) {
+      const holdScan = await scanAllIn<{ parent_job_id: string; visit_date: string }>(
+        "holds of pending future visit payments",
+        [...new Set(pendingAhead.map((r) => String(r.parent_job_id)))],
+        (chunk, countOpt) =>
+          supabase
+            .from("series_visit_holds")
+            .select("parent_job_id, visit_date", countOpt)
+            .in("parent_job_id", chunk)
+            .gt("visit_date", today)
+            .order("parent_job_id", { ascending: true })
+            .order("visit_date", { ascending: true }),
+      );
+      const holdDefect = scanDefect("holds of pending future visit payments", holdScan);
+      if (holdDefect) {
+        fail(`visit-payment sweep of released dates: ${holdDefect}; none closed this run`);
+      } else {
+        const held = new Set(holdScan.rows.map((h) => `${h.parent_job_id}|${h.visit_date}`));
+        const unheldParents = [...new Set(
+          pendingAhead.filter((r) => !held.has(`${r.parent_job_id}|${r.visit_date}`)).map((r) => String(r.parent_job_id)),
+        )];
+        if (unheldParents.length > 0) {
+          const releasedScan = await scanAllIn<Record<string, unknown>>(
+            "pending future visit payments of released dates",
+            unheldParents,
+            (chunk, countOpt) =>
+              supabase
+                .from("recurring_visit_payments")
+                .select(
+                  "id, parent_job_id, visit_date, status, payer_id, helper_id, amount_cents, stripe_payment_intent_id, stripe_session_id, created_at",
+                  countOpt,
+                )
+                .in("parent_job_id", chunk)
+                .eq("status", "pending")
+                .gt("visit_date", today)
+                .order("id", { ascending: true }),
+          );
+          const releasedDefect = scanDefect("pending future visit payments of released dates", releasedScan);
+          if (releasedDefect) fail(`visit-payment sweep of released dates: ${releasedDefect}`);
+          releasedRows = releasedScan.rows
+            .filter((r) => r.status === "pending" && !overIds.has(String(r.id)))
+            .filter((r) => !held.has(`${r.parent_job_id}|${r.visit_date}`))
+            .sort((a, b) => String(a.visit_date).localeCompare(String(b.visit_date)));
+          if (releasedRows.length > 500) {
+            fail(`visit-payment sweep found ${releasedRows.length} pending visits of released dates; 500 close this run, the rest on later runs`);
+            releasedRows = releasedRows.slice(0, 500);
+          }
+        }
+      }
+    }
+    const releasedIds = new Set(releasedRows.map((r) => String(r.id)));
+    for (const row of [...(stale ?? []), ...seriesOverRows, ...releasedRows]) {
       let stripe: Stripe;
       try {
         ({ stripe } = await visitMoneyClient(row));
@@ -879,7 +950,7 @@ serve(async (req) => {
                 // so its payment never reached the webhook: page, or the money
                 // sits captured with nothing booking or refunding it
                 // (lh-money-escrow review of Q1247).
-                if (!overIds.has(String(row.id))) {
+                if (!overIds.has(String(row.id)) && !releasedIds.has(String(row.id))) {
                   fail(`visit payment ${row.id}: Checkout ${sessionId} was paid but the row is still pending on its visit date; the webhook never settled it (refund or book by hand)`);
                 } else {
                   console.warn(`[charge-recurring-visits] visit payment ${row.id}: Checkout ${sessionId} was completed; the webhook settles it`);
@@ -920,6 +991,8 @@ serve(async (req) => {
             title: "A visit wasn't booked",
             message: overIds.has(row.id)
               ? `The series ended, so the visit on ${row.visit_date} won't be booked and you weren't charged for it.`
+              : releasedIds.has(String(row.id))
+              ? `The Helpr gave up the visit on ${row.visit_date}, so there's nothing to pay for it now and you weren't charged. If another Helpr picks it up, you'll be asked to pay then.`
               : `The visit on ${row.visit_date} wasn't paid in time, so it wasn't booked and you weren't charged.`,
             type: "job_updates",
             link,

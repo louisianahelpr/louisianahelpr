@@ -241,25 +241,38 @@ async function linkMaintenanceJobOrTell(requestId: string, jobId: string): Promi
  * missing line on the order card never reads as "nothing booked yet".
  */
 async function linkSetupJobOrTell(orderId: string, jobId: string): Promise<void> {
-  let linkErr: unknown = null;
-  try {
+  const link = async () => {
     // Loaded only for an "Add a Helpr" post (off /posts' shared chunk, Q178);
     // a chunk that cannot load is a failed link, told to the buyer below. As a
     // background import, so a stale chunk never starts the recovery reload
     // mid-submit, between the job row and the checkout redirect (lh-money-escrow
     // review of 6ef39799d #3a).
     const { linkSetupJob } = await backgroundImport(() => import("@/lib/declutter/setupHelpr"), "declutter-setup-helpr");
-    if (!(await linkSetupJob(orderId, jobId))) linkErr = new Error("declutter setup job not linked");
-  } catch (err) {
-    linkErr = err;
+    return linkSetupJob(orderId, jobId);
+  };
+  // Q1942: a failed CALL is tried once more, and a link still missing is remembered for PaymentSuccess, which tries
+  // again and tells the buyer there: the redirect to Stripe follows at once, so the toast below is seen for a second.
+  // Lazy like ./setupHelpr (Q178). If it cannot load, the link runs once and is told here, as before Q1942.
+  const pending = await backgroundImport(() => import("@/lib/declutter/setupLinkPending"), "declutter-setup-link-pending").catch((err: unknown) => {
+    report(err, { severity: "warning", tags: { source: "useJobSubmit.setupLinkPending" }, context: { job_id: jobId } });
+    return null;
+  });
+  const result: { ok: boolean; err?: unknown; why?: string } = pending
+    ? await pending.linkSetupJobOnceMore(link)
+    : await link().then(
+        (ok) => (ok ? { ok: true } : { ok: false, err: new Error("declutter setup job not linked") }),
+        (err: unknown) => ({ ok: false, err, why: (err as { userMessage?: string } | null)?.userMessage }),
+      );
+  if (result.ok) {
+    pending?.clearPendingSetupLink();
+    return;
   }
-  if (!linkErr) return;
-  report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkDeclutterSetup" }, context: { job_id: jobId } });
+  report(result.err, { severity: "warning", tags: { source: "useJobSubmit.linkDeclutterSetup" }, context: { job_id: jobId } });
+  pending?.rememberPendingSetupLink({ orderId, jobId });
   // A refusal the server explains (banned, switch off, already paid)
   // carries its words in userMessage (setupHelpr.ts, RPC_ERROR_COPY).
-  const why = (linkErr as { userMessage?: string } | null)?.userMessage;
   toast.error("Your job posted, but it isn't showing on your Declutter purchase", {
-    description: why ?? "Find it under your posted jobs.",
+    description: result.why ?? "Find it under your posted jobs.",
   });
 }
 

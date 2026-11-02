@@ -22,7 +22,7 @@
  *     proven in PGlite A1-A10 and src/test/edge/void-cancelled-payments.declutterSellerFault.test.ts.
  *
  * @mutate src/pages/post-job/useJobSubmit.ts | await backgroundImport(() => import("@/lib/declutter/setupHelpr"), "declutter-setup-helpr"); | await import("@/lib/declutter/setupHelpr");
- * @mutate src/pages/post-job/usePostJobForm.ts | const noDraft = !!(searchParams.get("haulAway") \|\| searchParams.get("declutterOrder")); | const noDraft = !!searchParams.get("haulAway");
+ * @mutate src/pages/post-job/useDeclutterIntent.ts |   return { declutterOrderId, noDraft: !!(declutterOrderId \|\| searchParams.get("haulAway")) }; |   return { declutterOrderId, noDraft: !!searchParams.get("haulAway") };
  * @mutate src/pages/post-job/useJobSubmit.ts |           if ((!haulAwayItemIds \|\| haulAwayItemIds.length === 0) && !declutterOrderId) {\n            flushDraft(); |           if (!haulAwayItemIds \|\| haulAwayItemIds.length === 0) {\n            flushDraft();
  * @mutate supabase/migrations/20261028201659_declutter_setup_helpr_item_details.sql |    WHERE id = p_order_id AND buyer_id = v_uid; |    WHERE id = p_order_id;
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |    WHERE j.id = p_job_id AND j.customer_id = v_uid AND j.status = 'open' |    WHERE j.id = p_job_id AND j.status = 'open'
@@ -224,7 +224,9 @@ describe("Declutter Add a Helpr", () => {
 
   it("Post a job opens the order pre-filled, skips the entry screen, and links the new job", () => {
     expect(code("src/pages/post-job/usePostJobForm.ts")).toContain('|| searchParams.get("declutterOrder") ||');
-    expect(code("src/pages/post-job/usePostJobForm.ts")).toContain('declutterOrderId: searchParams.get("declutterOrder"),');
+    // Q1963: read once per mount (useDeclutterIntent), passed on to the submit.
+    expect(code("src/pages/post-job/useDeclutterIntent.ts")).toContain('const declutterOrderId = searchParams.get("declutterOrder") || null;');
+    expect(code("src/pages/post-job/usePostJobForm.ts")).toMatch(/\n\s+declutterOrderId,\n/);
     expect(code("src/pages/post-job/useJobFormEffects.ts")).toMatch(/searchParams\.get\("declutterOrder"\)[\s\S]*?fetchSetupHelpr\(orderId\)[\s\S]*?buildSetupJobPrefill\(/);
     const submit = code("src/pages/post-job/useJobSubmit.ts");
     expect(submit).toContain("if (!(await linkSetupJob(orderId, jobId))) linkErr = ");
@@ -245,7 +247,8 @@ describe("Declutter Add a Helpr", () => {
     expect(submit.match(/safeStorage\.setItem\(DRAFT_CHECKOUT_JOB_KEY/g) ?? []).toHaveLength(2);
     // ... and the form never autosaves or flushes one while ?declutterOrder= is open.
     const form = code("src/pages/post-job/usePostJobForm.ts");
-    expect(form).toContain('const noDraft = !!(searchParams.get("haulAway") || searchParams.get("declutterOrder"));');
+    expect(form).toContain("const { noDraft, declutterOrderId } = useDeclutterIntent(searchParams);");
+    expect(code("src/pages/post-job/useDeclutterIntent.ts")).toContain('return { declutterOrderId, noDraft: !!(declutterOrderId || searchParams.get("haulAway")) };');
     expect(form).toContain("const saveDraft = useCallback<typeof saveAnyDraft>((d) => { if (!noDraft) saveAnyDraft(d); }, [noDraft, saveAnyDraft]);");
     expect(form).toContain("const flushDraft = useCallback(() => { if (!noDraft) flushAnyDraft(); }, [noDraft, flushAnyDraft]);");
     // A failed link is told to the buyer, not only logged (lh-silent-failure review #1).

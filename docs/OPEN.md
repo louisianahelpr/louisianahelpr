@@ -168,7 +168,6 @@ sure someone hears it and closes it.
 - Q651: yes: a CSS-only, filter-free thin olive progress bar in #boot-loader.
 - Q807: YES (against the recommendation): add a server-side refusal of writes from a session whose email is unconfirmed; data-model change with its own lh-authz-rls review.
 - Q652: yes, prerender /, /login, /signup and the /browse shell; hero pixel-identical; tighten the LCP/FCP budgets.
-- Q721: recovery wins: `resolveDependencies: () => []`, re-baseline critical-path.mjs.
 - Q590: the owner adds a REFRESH_PR_TOKEN secret (fine-grained PAT, contents + pull-requests write).
 - Q44: require `Lint, type-check, build, test` and Vacuity checks and turn strict on; keep admin bypass ON (direct landing continues).
 - Q707: hide the date/time fields in Edit once a crew has a booked member (repost to move the date).

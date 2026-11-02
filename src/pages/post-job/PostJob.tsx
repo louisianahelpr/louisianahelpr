@@ -5,6 +5,8 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { resetLargeTitles } from "@/lib/largeTitles";
 import { usePostJobForm } from "./usePostJobForm";
+import { useSearchParams } from "react-router-dom";
+import { postJobIntentKey } from "./useDeclutterIntent";
 import { RedirectingOverlay } from "./RedirectingOverlay";
 import { EntryChoice } from "./EntryChoice";
 import { FormStep } from "./FormStep";
@@ -116,4 +118,14 @@ const PostJob = () => {
   );
 };
 
-export default PostJob;
+/**
+ * The route is not keyed (App.tsx), so tapping Post in the nav while on an Add a Helpr or haul-away
+ * post would keep that form mounted with its link gone (Q1963). A different Declutter link, or none,
+ * is a different post: remount the form, which re-reads the link once (useDeclutterIntent).
+ */
+const PostJobRoute = () => {
+  const [searchParams] = useSearchParams();
+  return <PostJob key={postJobIntentKey(searchParams)} />;
+};
+
+export default PostJobRoute;

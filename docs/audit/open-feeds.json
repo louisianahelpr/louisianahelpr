@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-02T08:19Z",
+  "measured_at": "2026-11-02T08:32Z",
   "issues": {
     "readable": true,
     "open": [
@@ -132,7 +132,7 @@
         "number": 3967,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41410881177",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41413541739",
         "runTruncated": false
       }
     ]
@@ -173,14 +173,6 @@
         "issue": 2353
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": null
-      },
-      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -202,14 +194,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -306,7 +290,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: sensitive review record",
-        "issue": null
+        "issue": 3967
       },
       {
         "fingerprint": "0bebf0385b3e217facd52bb36536de1f",
@@ -562,14 +546,6 @@
         "source": "sentry:assets/Signup",
         "status": "open",
         "title": "error: your account is created, but your details didn't save — the connection dropped. log in to finish your profile.",
-        "issue": null
-      },
-      {
-        "fingerprint": "95a0554486ebd14ed36618e23db7477f",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: prod-deploy",
         "issue": null
       },
       {
@@ -941,11 +917,11 @@
         "issue": null
       },
       {
-        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
+        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
+        "title": "/declutter · error screen shown: we couldn't load your sales.",
         "issue": null
       },
       {
@@ -957,11 +933,11 @@
         "issue": null
       },
       {
-        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
+        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/declutter · error screen shown: we couldn't load your sales.",
+        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
         "issue": null
       },
       {
@@ -987,14 +963,6 @@
         "status": "open",
         "title": "nightly-red: codeql",
         "issue": 3846
-      },
-      {
-        "fingerprint": "a526aff531da165c860c6babfc0dc3f2",
-        "source_kind": "workflow",
-        "source": "analytics-freshness",
-        "status": "open",
-        "title": "analytics: message_sent stopped recording (real users acted, zero events)",
-        "issue": null
       },
       {
         "fingerprint": "bf6860c13035a95fdccbf8c10dd9edc7",
@@ -1174,7 +1142,6 @@
     "ledger 905ec49763b5": "Q2315",
     "ledger 9078a39b3304": "Q1615",
     "ledger 95093fa29c63": "Q2524",
-    "ledger 95a0554486eb": "Q1816",
     "ledger 974ed70164eb": "Q2349",
     "ledger 9934727135a0": "Q2522",
     "ledger 99390a68ded7": "Q1615",
@@ -1236,7 +1203,6 @@
     "ledger ec24ac4f76e6": "Q2516",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
-    "ledger f22e3275d50d": "Q1816",
     "ledger f3c752b3230f": "Q1596",
     "ledger f433ca04d336": "Q2550",
     "ledger fba95b3590a6": "Q2538",

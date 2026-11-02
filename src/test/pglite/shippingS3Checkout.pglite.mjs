@@ -14,6 +14,7 @@
  *   MIGRATION_PATH=<planted copy> node ...                                # RED on a planted defect
  */
 import { readFileSync } from "node:fs";
+import { inspect } from "node:util";
 import { buildHandoverWorld, MIG_DIR } from "../../../scripts/declutter/handoverPhotoWorld.mjs";
 
 const NEW_FILE = "20261101201500_shipping_s3_checkout_claim.sql";
@@ -50,7 +51,8 @@ const { SELLER2, BUYER, BUYER2, BUYER3 } = USERS;
 let pass = 0;
 let fail = 0;
 const ok = (cond, label) => { if (cond) pass++; else fail++; console.log(`${cond ? "PASS" : "FAIL"}  ${label}`); };
-const short = (r) => JSON.stringify(r)?.slice(0, 260);
+// util.inspect, not JSON.stringify: a log label only (CodeQL js/bad-code-sanitization read JSON.stringify as a code sanitizer).
+const short = (r) => inspect(r, { depth: 4, breakLength: Infinity }).slice(0, 260);
 
 await run(`ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email text`);
 await svc(`ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS seller_hidden boolean NOT NULL DEFAULT false`);

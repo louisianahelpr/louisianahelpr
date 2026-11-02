@@ -1859,12 +1859,15 @@ describe("JA-17: Accept and Decline on the job page", () => {
     expect(offerAnswers).toEqual([["app-this", false]]);
   });
 
-  it("a direct offer (the Working list's synthetic row) declines in one tap", async () => {
+  // Q2605 (Jobs audit 1102b row 19): a direct offer asks first too (it declined in one tap beside Accept job).
+  it("a direct offer (the Working list's synthetic row) declines after its confirm", async () => {
     state.job = row({ status: "open", direct_offer_status: "pending" });
     state.offeredToMe = true;
     workingApps.rows = [workingRow(state.job.id, `direct-${state.job.id}`)];
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /^Decline$/ }));
+    expect(offerAnswers).toEqual([]);
+    fireEvent.click(await screen.findByRole("button", { name: "Decline offer" }));
     expect(offerAnswers).toEqual([[`direct-${state.job.id}`, false]]);
   });
 
@@ -1934,5 +1937,23 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
     expect(screen.queryByRole("button", { name: "Set a different day" })).toBeNull();
     expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${formatJobDate(ahead)} · 9:00 AM`));
     expect(document.querySelector("[data-next-step]")?.textContent).toMatch(/^Rhonda confirmed /);
+  });
+});
+
+/**
+ * Q2599 part (Jobs audit 1102b row 13): on Posted the poster's card sat alone in the main column, so at 1440 the
+ * Helpr's page split in two (a short card left with empty space under it, "Your pay / Apply" right) while every other
+ * stage is one full-width card. The poster's card is now in the side card for every Helpr, so the main column is empty
+ * and the card spans the page (the B107 empty-main rule).
+ *
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && job.customer_id && <PostedBy posterId={job.customer_id} />} |             {isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
+ */
+describe("Q2599: the Helpr's Posted page is one column", () => {
+  it("the poster's card is in the side card, and the main column holds nothing", async () => {
+    state.job = row();
+    renderPage();
+    const posted = await screen.findByRole("region", { name: "Posted by" });
+    expect(posted.closest("[data-job-side] [data-job-card]")).not.toBeNull();
+    expect(document.querySelector("[data-job-main]")!.children.length).toBe(0);
   });
 });

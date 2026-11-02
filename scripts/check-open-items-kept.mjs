@@ -16,7 +16,8 @@
  *
  * Guard: src/test/openItemsKept.test.ts. Run by scripts/land.sh.
  */
-import { resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gitRefReader, queueText } from "./lib/openQueue.mjs";
 
@@ -68,7 +69,11 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const base = i >= 0 ? argv[i + 1] : "origin/main";
   const root = process.cwd();
   const ref = gitRefReader(root, base);
-  const lost = lostItems(queueText(root, ref.read, ref.list), queueText(root));
+  // docs/NOT-LAUNCHED.md (owner 11-01 8:00 PM): items for areas that have not launched move there out of OPEN.md;
+  // they are not open items (never counted), but a move there keeps the item, so it holds its number here too.
+  const NOT_LAUNCHED = "docs/NOT-LAUNCHED.md";
+  const local = existsSync(join(root, NOT_LAUNCHED)) ? readFileSync(join(root, NOT_LAUNCHED), "utf8") : "";
+  const lost = lostItems(`${queueText(root, ref.read, ref.list)}\n${ref.read(NOT_LAUNCHED) ?? ""}`, `${queueText(root)}\n${local}`);
   if (lost.length) {
     console.error(`land: ${lost.length} item(s) on ${base} were lost or overwritten (restore main's line; give the branch's item a new number):`);
     for (const l of lost) console.error(`  ${l}`);

@@ -42,13 +42,13 @@
  * spreads. Before this, index.html said "Helpr connects you with trusted
  * neighbors…" until JavaScript swapped in "Hire a Helpr…".
  */
-// @mutate vercel.json | "source": "/help", | "source": "/help-moved",
+// @mutate vercel.json | "source": "/help",\n      "destination": "/api/share | "source": "/help-moved",\n      "destination": "/api/share
 // @mutate api/share.ts | if (route.kind === "page") { | if (route.kind === "page" && url.hostname === "never") {
 // @mutate src/lib/publicPageMeta.mjs | canonical: `${SITE_ORIGIN}/support`, | canonical: SITE_ORIGIN,
 // @mutate src/lib/publicPageMeta.mjs | title: "Help center — Helpr", | title: "Contact support — Helpr",
 // @mutate src/lib/publicPageMeta.mjs | canonical: `${SITE_ORIGIN}/legal?tab=privacy`, | canonical: `${SITE_ORIGIN}/legal?tab=privacy-policy`,
 // @mutate src/pages/info/HelpCenter.tsx | usePageMeta(PUBLIC_PAGE_META["/help"]); | usePageMeta({ ...PUBLIC_PAGE_META["/help"], canonical: "https://www.louisianahelpr.com/help" });
-// @mutate vercel.json | "source": "/forgot-password", | "source": "/forgot-password-moved",
+// @mutate vercel.json | "source": "/forgot-password",\n      "destination": "/api/share | "source": "/forgot-password-moved",\n      "destination": "/api/share
 // @mutate api/share.ts | if (route.kind === "noindex") { | if (route.kind === "noindex" && url.hostname === "never") {
 // @mutate src/lib/publicPageMeta.mjs | export const NOINDEX_ROBOTS = "noindex, follow"; | export const NOINDEX_ROBOTS = "index, follow";
 // @mutate src/lib/publicPageMeta.mjs | canonical: `${SITE_ORIGIN}/signup-pending`, | canonical: SITE_ORIGIN,

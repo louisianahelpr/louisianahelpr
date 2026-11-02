@@ -11,7 +11,8 @@
  * Answers:
  *   200  verified and stored (or already stored)
  *   400  not from PayPal: missing headers, foreign cert URL, signature refused.
- *        Nothing is stored.
+ *        Nothing is stored. Also while not configured, for a request with no
+ *        PayPal transmission headers (Q2525): no page.
  *   503  we cannot decide now (not configured, PayPal unreachable, DB write
  *        failed): PayPal redelivers, up to 25 times over 3 days (DOCS).
  *
@@ -36,7 +37,17 @@ const json = (status: number, body: Record<string, unknown>) =>
 
 const MAX_BODY_BYTES = 256 * 1024;
 
-async function notConfigured(reason: string): Promise<Response> {
+/** PayPal signs every delivery with these (paypalWebhookVerify.ts); a request missing one is not PayPal. */
+const PAYPAL_TRANSMISSION_HEADERS = ["paypal-transmission-id", "paypal-transmission-time", "paypal-transmission-sig", "paypal-cert-url", "paypal-auth-algo"];
+
+async function notConfigured(req: Request, reason: string): Promise<Response> {
+  // Q2525: with PayPal not set up, a request that is not a PayPal delivery
+  // (no transmission headers) is refused 400 and pages nobody; only a real
+  // delivery, which PayPal will redeliver, is answered 503 and paged.
+  if (!PAYPAL_TRANSMISSION_HEADERS.every((h) => req.headers.get(h))) {
+    console.warn(`[paypal-webhook] not configured (${reason}) and the request carries no PayPal transmission headers: refused 400`);
+    return json(400, { error: "not_from_paypal" });
+  }
   console.error(`[paypal-webhook] not configured: ${reason} — refusing (503) so PayPal redelivers`);
   await postSlackOpsAlert({
     kind: "custom",
@@ -62,9 +73,9 @@ serve(async (req) => {
       clientSecret: Deno.env.get("PAYPAL_CLIENT_SECRET") ?? "",
     });
   } catch (e) {
-    return await notConfigured(caughtMessage(e));
+    return await notConfigured(req, caughtMessage(e));
   }
-  if (!webhookId) return await notConfigured("PAYPAL_WEBHOOK_ID unset");
+  if (!webhookId) return await notConfigured(req, "PAYPAL_WEBHOOK_ID unset");
 
   const bytes = new Uint8Array(await req.arrayBuffer());
   if (bytes.length > MAX_BODY_BYTES) return json(413, { error: "too_large" });
@@ -125,7 +136,7 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
   const serviceKey = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (!supabaseUrl || !serviceKey) return await notConfigured("SUPABASE_URL or service key unset");
+  if (!supabaseUrl || !serviceKey) return await notConfigured(req, "SUPABASE_URL or service key unset");
   const supabase = createClient(supabaseUrl, serviceKey);
   const { data: stored, error } = await supabase.from("paypal_webhook_events").upsert(
     {

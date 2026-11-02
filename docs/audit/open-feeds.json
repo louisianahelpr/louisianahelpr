@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-02T02:21Z",
+  "measured_at": "2026-11-02T02:32Z",
   "issues": {
     "readable": true,
     "open": [
@@ -132,14 +132,14 @@
         "number": 3961,
         "title": "nightly-red: main: Supabase DB Deploy",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41371592369",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41376532102",
         "runTruncated": false
       },
       {
         "number": 3967,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41377052657",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41378217995",
         "runTruncated": false
       }
     ]

@@ -32,6 +32,7 @@ import { CompactFeedCard, type CompactCardCommonProps, type JobCardCommonProps }
 import { MainFeedSection } from "@/components/dashboard/MainFeedSection";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { EmptyFeedActions } from "@/components/dashboard/EmptyFeedActions";
+import { OwnOpenJobsNote } from "@/components/dashboard/OwnOpenJobsNote";
 
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
 
@@ -451,6 +452,7 @@ export function BrowseTasksFeed({
                 ? `${helprActivity.count} Helprs have worked jobs in ${helprActivity.parish}. New jobs show up here as people post them.`
                 : "New jobs show up here as people post them."
           }
+          footnote={filters.hasFilters ? undefined : <OwnOpenJobsNote userId={user?.id} />}
           action={
             // Filtered: offer a way out. Otherwise — for both signed-in
             // and signed-out users — surface BOTH a Post and a Notify CTA

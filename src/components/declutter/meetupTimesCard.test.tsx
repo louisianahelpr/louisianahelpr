@@ -3,7 +3,7 @@
  * shown in Declutter settings as "Police spot meetup times" (A3-64), and only when the seller offers a safe meetup.
  *
  * @mutate src/components/declutter/MeetupTimesCard.tsx |   if (!defaults.data?.handovers.includes("meetup")) return null; |   if (!defaults.data) return null;
- * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |         <MeetupTimesCard userId={user.id} />\n |
+ * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <MeetupTimesCard userId={user.id} />\n |
  */
 import { readFileSync } from "node:fs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

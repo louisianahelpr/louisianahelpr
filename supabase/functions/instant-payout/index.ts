@@ -139,7 +139,7 @@ serve(async (req) => {
       throw new PublicError("Could not load your payout account right now. Please try again in a moment.");
     }
     if (hold.kind === "held") {
-      return new Response(JSON.stringify({ error: "Payouts on your account are paused while we review it. Contact support if you have questions.", code: PAYOUT_HELD_CODE }), {
+      return new Response(JSON.stringify({ error: "Your payouts are on hold while we review your account. Contact support if you have questions.", code: PAYOUT_HELD_CODE }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409,
       });
     }

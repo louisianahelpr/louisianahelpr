@@ -382,6 +382,9 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2352: reads the setup fee owed back (state refund_due); writes nothing, the refund is recorded by RPC.
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("setup_fee_cents, setup_fee_state, stripe_payment_intent_id").eq("id", orderId).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("id, setup_fee_cents").eq("stripe_payment_intent_id", paymentIntentId).eq("setup_fee_state", "refund_due").maybeSingle()',
+  // Q1940 (a) (builder 144): a late payment on a seller-fault Declutter setup job, refunded in full as a duplicate
+  // funding; the card fee Stripe kept (from the retrieved PaymentIntent) goes to the seller's debt, never into a refund.
+  "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts: p_card_fee_cents: cardFeeCents,",
   // A10: the card fee Stripe kept on a seller-fault setup job's charge, billed to the seller after the full refund.
   "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
   // Q1940 (b) (builder 140; lh-money-escrow approve 11-01, ~/.lh-shots/verdicts/b140.txt): the same bill on the "already been refunded" catch, before settling; the

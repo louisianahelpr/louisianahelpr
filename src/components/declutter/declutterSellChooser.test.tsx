@@ -158,7 +158,9 @@ describe("What do you want to sell?", () => {
     state.switches = { declutter: true, declutter_wanted: true };
     at(SELL_CHOOSER_PATH);
     await screen.findByRole("heading", { name: "What would you like to do?" });
-    expect(document.querySelector("[data-sell-other]")!.textContent).toBe("Other ways");
+    // Q2576 (audit 1102a): Post a Wanted is no way to sell, so the group is "Other things", not "Other ways".
+    // @mutate src/components/declutter/DeclutterSellChooser.tsx | data-sell-other="">Other things</h3> | data-sell-other="">Other ways</h3>
+    expect(document.querySelector("[data-sell-other]")!.textContent).toBe("Other things");
     expect(document.querySelector('[data-sell-choice="wanted"]')!.textContent).toContain("Post a Wanted");
     fireEvent.click(document.querySelector('[data-sell-choice="helpr"]')!);
     const sheet = await screen.findByRole("dialog");

@@ -1277,7 +1277,7 @@ describe("create-payment edge function", () => {
       // had no accepted quote to compare and passed. With no accepted quote, the
       // request's quote from the Helpr the job is offered to is the agreed price.
       // @mutate supabase/functions/create-payment/index.ts |   if (compared.length === 0 && offeredToHelperId) { |   if (false) {
-      // @mutate supabase/functions/create-payment/index.ts |   if (quoterErr) {\n    console.error( | if (false) {\n    console.error(
+      // @mutate supabase/functions/create-payment/index.ts |     if (quoterErr) {\n      console.error( |     if (false) {\n      console.error(
       describe("Q2123 the request was cancelled after booking (no accepted quote left)", () => {
         const HELPR = "helpr-quoter-1";
         function seedCancelledRequestJob(budget: number, quoterRows: Array<{ price_cents: number }> | Error) {
@@ -1298,7 +1298,8 @@ describe("create-payment edge function", () => {
           const { body } = await escrow();
           expect(body.error).toMatch(/doesn't match the quote you agreed/);
           expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
-          const read = scenario.readQueries.filter((q) => q.table === "job_quotes").at(-1);
+          const quoteReads = scenario.readQueries.filter((q) => q.table === "job_quotes");
+          const read = quoteReads[quoteReads.length - 1];
           expect(read?.filters).toEqual(expect.arrayContaining([
             expect.objectContaining({ op: "in", column: "request_id", value: [REQ_ID] }),
             expect.objectContaining({ op: "eq", column: "quoter_id", value: HELPR }),

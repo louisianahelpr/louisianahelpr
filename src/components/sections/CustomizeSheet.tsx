@@ -8,6 +8,7 @@ import { SECTION_INVITE } from "@/pages/home/homeDashboard/useHomeSummary";
 import { sectionByKey } from "./sectionsConfig";
 import { KEEP_ONE_OPEN_TOAST, useSectionPrefs } from "./useSectionPrefs";
 import { SoonPill } from "@/components/sections/SoonPill";
+import { focusSheetItself } from "@/components/declutter/focusSheetItself";
 
 /**
  * Customize sections = board 90 (2026-10-20; first built 2026-10-19). Home and
@@ -24,7 +25,7 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
   const row = "flex items-center gap-2 px-4 py-2 rounded-2xl border border-border/60";
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" floor data-testid="customize-sheet" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <SheetContent side="bottom" floor data-testid="customize-sheet" onOpenAutoFocus={focusSheetItself}>
         <SheetHero title="Customize sections" />
         {/* Fits without scrolling (owner 2026-10-25, "this doesn't need to scroll"):
             measured 730px of content in a 600px box at a 700px-tall window. Home and

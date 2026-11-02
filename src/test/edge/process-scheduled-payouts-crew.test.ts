@@ -146,7 +146,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     });
     await run();
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 3333 - 106 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3333 - 106 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
   });
@@ -158,7 +158,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     });
     await run();
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 3333 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3333 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
   });
@@ -167,7 +167,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     await run();
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 3333 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3333 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
@@ -200,6 +200,80 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: "re_earlier" }] };
     await run();
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+  });
+
+  // ── docs/OPEN.md Q1992: the dedupe also finds a crew refund the ledger has under another label, or not at all ──
+  // (a) charge.refunded booked the refund first as 'stripe_dashboard' (the crew upsert, ignoreDuplicates, kept that
+  // label), or (b) the run died between refunds.create and the ledger write. The job_id + source read then finds
+  // nothing, and after Stripe's 24-hour idempotency window a SECOND real refund went out. The crew refund now carries
+  // metadata { job_id, crew_source } and the run looks for it on the charge before refunding.
+  const stampedRefund = (over: Record<string, unknown> = {}) => ({
+    id: "re_unfilled", amount: 3333, currency: "usd", status: "succeeded",
+    metadata: { job_id: "job-crew", crew_source: "crew_unfilled_refund" }, ...over,
+  });
+  const jobReleased = () => scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released");
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const mine = listed.data.find((r) => | const mine = [].find((r: Stripe.Refund) =>
+  it("Q1992 (a)/(b): no ledger row under the crew source but a live STAMPED refund on the charge: no second refund, the row is (re)labelled, the job releases", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    stripeMock.refunds.list.mockResolvedValue({ data: [stampedRefund()], has_more: false });
+    await run();
+    expect(stripeMock.refunds.list).toHaveBeenCalledWith({ payment_intent: "pi_1", limit: 100 });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    // (b) the missing row is written under the crew source ...
+    const ins = scenario.writes.find((w) => w.table === "payment_refunds" && w.op === "insert");
+    expect(ins?.payload).toEqual(expect.objectContaining({ stripe_refund_id: "re_unfilled", source: "crew_unfilled_refund", amount_cents: 3333, job_id: "job-crew" }));
+    // ... and (a) a row only the webhook wrote is claimed for it.
+    const relabel = scenario.writes.find((w) => w.table === "payment_refunds" && w.op === "update");
+    expect(relabel?.payload).toEqual(expect.objectContaining({ source: "crew_unfilled_refund" }));
+    expect(relabel?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "eq", column: "stripe_refund_id", value: "re_unfilled" }),
+      expect.objectContaining({ op: "eq", column: "source", value: "stripe_dashboard" }),
+    ]));
+    expect(jobReleased()).toBe(true);
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | && r.status !== "failed" && r.status !== "canceled" | 
+  it("Q1992 control: an unstamped refund, one stamped for another job or source, and a FAILED stamped one never count: the refund goes out once", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    stripeMock.refunds.list.mockResolvedValue({ data: [
+      stampedRefund({ id: "re_dash", metadata: {} }),
+      stampedRefund({ id: "re_other_job", metadata: { job_id: "job-other", crew_source: "crew_unfilled_refund" } }),
+      stampedRefund({ id: "re_dispute", metadata: { job_id: "job-crew", crew_source: "crew_dispute_refund" } }),
+      stampedRefund({ id: "re_failed", status: "failed" }),
+    ], has_more: false });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(jobReleased()).toBe(true);
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | .eq("source", "stripe_dashboard").select("id"); | .eq("source", "crew_unfilled_refund").select("id");
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | metadata: { job_id: job.id, crew_source: source, | metadata: { job_id: job.id, crew_src: source,
+  it("Q1992: a fresh crew refund is STAMPED with its job and crew source, and claims a row the webhook wrote first", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    const [params] = stripeMock.refunds.create.mock.calls[0] as [{ metadata?: Record<string, string> }];
+    expect(params.metadata).toEqual(expect.objectContaining({ job_id: "job-crew", crew_source: "crew_unfilled_refund" }));
+    const relabel = scenario.writes.find((w) => w.table === "payment_refunds" && w.op === "update");
+    expect(relabel?.payload).toEqual(expect.objectContaining({ source: "crew_unfilled_refund" }));
+    expect(relabel?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "eq", column: "source", value: "stripe_dashboard" }),
+    ]));
+  });
+
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (listErr \|\| !listed \|\| listed.has_more) { | if (false) {
+  it("Q1992: the charge's refunds cannot be read (or are more than one page): no refund, not released (fail closed)", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    stripeMock.refunds.list.mockRejectedValue(new Error("stripe down"));
+    await run();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(jobReleased()).toBe(false);
+    resetSupabaseMock(); resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSharedMocks();
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    stripeMock.refunds.list.mockResolvedValue({ data: [], has_more: true });
+    await run();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(jobReleased()).toBe(false);
   });
 
   it("a failed unfilled refund holds the job in payout_pending for the next run (not released)", async () => {
@@ -250,7 +324,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(2);
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 3333 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3333 }),
       { idempotencyKey: "crew-dispute-refund-disp-1" },
     );
     const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
@@ -300,7 +374,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     // Three members, two transfers: m3 (refunded by the decision) is not paid.
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(2);
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 3333 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3333 }),
       { idempotencyKey: "crew-dispute-refund-disp-1" },
     );
     expect((scenario.rpcCalls ?? []).some((c) => c.name === "mark_crew_dispute_executed")).toBe(false);
@@ -321,7 +395,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     stripeMock.refunds.create.mockResolvedValue({ id: "re_short", amount: 2133, currency: "usd" });
     await run();
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 2133 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 2133 }),
       { idempotencyKey: "crew-dispute-refund-disp-1" },
     );
     expect((slackAlerts as Array<{ title?: string }>).some((a) => /Crew refund short/.test(a.title ?? ""))).toBe(true);
@@ -348,7 +422,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 3333 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3333 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
@@ -373,7 +447,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 4031, currency: "usd" });
     await run();
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 4031 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 4031 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
@@ -393,7 +467,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3632, currency: "usd" });
     await run();
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 3632 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3632 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     expect(shortPages()).toBe(0);
@@ -418,7 +492,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 6821, currency: "usd" });
     await run();
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 6821 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 6821 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     expect(shortPages()).toBe(0);
@@ -475,7 +549,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   const stampOf = () =>
     (scenario.writes.find((w) => w.table === "payment_refunds")?.payload as { metadata?: Record<string, unknown> } | undefined)?.metadata;
 
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts |           metadata: { stripe_fee_cents: crewStripeFeeCents, stripe_fee_source: crewStripeFeeSource }, |           metadata: {},
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | { stripe_fee_cents: crewStripeFeeCents, stripe_fee_source: crewStripeFeeSource }); | {});
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |               stripeFeeActual = actualStripeFeeCents(pi) !== null; |               stripeFeeActual = false;
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |         const owedThen = stampHonoured ? Math.max(0, owedAtFee(stamped as number) - giftRestoredCents) : cardOwedCents; |         const owedThen = cardOwedCents;
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |         - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? stripeFee : 0, proRataCents: feeProRataCents }) |         - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents }) + 1
@@ -493,7 +567,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     });
     stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3832, currency: "usd" });
     await run();
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 3832 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 3832 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
     expect(stampOf()).toEqual({ stripe_fee_cents: 1000, stripe_fee_source: "actual" });
 
     // Run 2 cannot read the balance transaction: the 355c estimate would owe
@@ -513,7 +587,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     setJob(job);
     stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3632, currency: "usd" });
     await run();
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 3632 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 3632 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
     expect(stampOf()).toEqual({ stripe_fee_cents: 355, stripe_fee_source: "estimate" });
 
     // Run 2 reads Stripe's real fee, 330c: 25c of the fee is owed back (3657c).
@@ -565,7 +639,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(restores).toHaveLength(1);
     expect(restores[0].args).toEqual({ p_job_id: "job-crew", p_share_bps: 3334, p_dry_run: false });
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 2000 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 2000 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     expect((slackAlerts as Array<{ title?: string }>).some((a) => /manual refund|could not be restored|Crew refund short/i.test(a.title ?? ""))).toBe(false);
@@ -723,7 +797,7 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
     expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "paid")).toBe(true);
     // 3333 - 833: the fee is spent, not owed back.
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 2500 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 2500 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
@@ -764,7 +838,7 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
       return { id: `tr_${params.destination}` };
     });
     await run();
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 2500 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 2500 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
     expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "failed")).toBe(true);
   });
@@ -779,7 +853,7 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
     stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3049, currency: "usd" });
     await run();
     // 3333 - 833 = 2500 of budget; service fee 1000 * 2500 / 10000 = 250; tax 900 * 3333 / 10000 = 299.
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 2500 + 250 + 299 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 2500 + 250 + 299 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
   });
 
   it("a fee Stripe already shows is never paid again: the ledger is repaired", async () => {
@@ -788,14 +862,14 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
     await run();
     expect(blockFeeTransfers()).toHaveLength(0);
     expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).stripe_transfer_id === "tr_old")).toBe(true);
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 2500 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 2500 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
   });
 
   it("an already-paid fee is not paid again and still comes out of the refund", async () => {
     seedBlocked("paid");
     await run();
     expect(blockFeeTransfers()).toHaveLength(0);
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 2500 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 2500 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
   });
 
   it("a member who deleted their account: the fee is voided and the poster gets the whole share back", async () => {
@@ -805,6 +879,6 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
     await run();
     expect(blockFeeTransfers()).toHaveLength(0);
     expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "void")).toBe(true);
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_1", amount: 3333 }, { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 3333 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
   });
 });

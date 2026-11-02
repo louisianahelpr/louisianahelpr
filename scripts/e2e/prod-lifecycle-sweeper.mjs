@@ -77,17 +77,19 @@ if (PHASE !== "pre" && PHASE !== "teardown") {
 }
 
 /*
- * STRIPE MUST BE IN TEST MODE BEFORE THIS SWEEP MOVES MONEY (review L2). The
- * settle-forward walk ends on create-payment's release, which pays the Helpr
- * with whatever key prod holds NOW. CI cannot read that key and must not, so
- * the switch that changes it records the mode as well: stripe-sandbox-on.sh
- * sets the repo variable E2E_STRIPE_MODE=test, stripe-sandbox-off.sh sets it to
- * live BEFORE it swaps the key (launch checklist, docs/OPEN.md). Anything but
- * "test" (unset included) means no settling forward. settleRefusalReason also
- * refuses a row whose Checkout Session is not cs_test_ (the mode it was funded in).
+ * A SETTLE FORWARD MOVES ONLY TEST-MODE MONEY (review L2; Q1754). The walk
+ * ends on create-payment's release. Since "test mode for test accounts"
+ * (owner 2026-10-12, _shared/stripeMode.ts) create-payment picks the key from
+ * the job's own parties, never from the prod-wide key: every party a test
+ * account means the TEST key, none means live, a mix is refused. The seats
+ * this sweep holds are the shared test accounts, and settleRefusalReason
+ * walks only an is_seed row whose Checkout Session is cs_test_ (funded in test
+ * mode). So the repo variable E2E_STRIPE_MODE (which says what key ALL of prod
+ * runs, live since 2026-09-28) no longer decides anything here; it used to
+ * defer every such row forever. A cs_live_ row is still refused and warned
+ * about, and a cs_test_ id presented to the live key matches no
+ * PaymentIntent, so nothing real can move.
  */
-const STRIPE_MODE = process.env.E2E_STRIPE_MODE || "";
-const STRIPE_TEST_MODE = STRIPE_MODE === "test";
 
 // Every job this suite creates carries this marker in its title. It is the only
 // thing that identifies a run's rows, so it is asserted on write as well as
@@ -162,13 +164,7 @@ if (HELPER_TOKEN && !HELPER_ID) {
   process.exit(1);
 }
 const HOLDS_BOTH_SEATS = Boolean(POSTER_ID && HELPER_ID);
-const CAN_SETTLE_FORWARD = HOLDS_BOTH_SEATS && STRIPE_TEST_MODE;
-if (HOLDS_BOTH_SEATS && !STRIPE_TEST_MODE) {
-  console.log(
-    `::warning title=Sweep will not settle forward::E2E_STRIPE_MODE is "${STRIPE_MODE || "(unset)"}", not "test". ` +
-      `Hired+funded leftovers are deferred until the repo variable says Stripe is in test mode (stripe-sandbox-on.sh sets it).`,
-  );
-}
+const CAN_SETTLE_FORWARD = HOLDS_BOTH_SEATS;
 
 /*
  * THE SEATS HOLD NO STRIPE ACCOUNT BUT THE SANCTIONED, READY TEST FIXTURE
@@ -548,7 +544,7 @@ for (const job of jobs) {
 const summary = summariseSweep({ listed: jobs.length, deferred });
 /*
  * A ROW PAST 48H THAT THIS SWEEP COULD HAVE SETTLED IS A FAILURE (review M1).
- * With both seats and test-mode Stripe, a deferred row that old is not waiting
+ * With both seats and a test-mode Checkout Session, a deferred row that old is not waiting
  * on anything but a settle that keeps failing, and a warning is how seven of
  * them sat unread for days (nightly-red #1719). Only a teardown fails on it: a
  * pre-sweep must not block the suite, and the same job's teardown runs
@@ -562,7 +558,7 @@ const staleSettleable = summary.stale.filter((r) => String(sessionOf.get(r.id) ?
 if (!DRY && CAN_SETTLE_FORWARD && staleSettleable.length) {
   const msg =
     `${staleSettleable.length} hired+funded test job(s) past 48h were NOT settled forward although this sweep ` +
-    `held both seats in Stripe test mode: ${staleSettleable.map((r) => r.id).join(", ")}`;
+    `held both seats and the row was funded in test mode: ${staleSettleable.map((r) => r.id).join(", ")}`;
   if (PHASE === "teardown") failures.push(`settle forward: ${msg}`);
   else console.log(`::warning title=Stale escrow rows did not settle (the teardown sweep will fail on them)::${msg}`);
 }

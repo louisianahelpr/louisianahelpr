@@ -17,7 +17,7 @@
  * @mutate src/pages/profile/PayoutHistory.tsx | action: { label: "Payout settings", to: "/profile?tab=payment" } | action: null
  * @mutate src/pages/profile/PayoutHistory.tsx |       return { step: { who: "them", text: "Waiting on the bank", by: `arrives about ${payoutDay(p.arrival_date)}` }, action: null }; |       return null;
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, useLocation } from "react-router-dom";
@@ -98,6 +98,13 @@ beforeEach(() => {
 
 describe("A3-24: the seller's sale waiting for payment", () => {
   it("says who it waits on and the hold's end as a clock time", async () => {
+    // The clock is local noon: from 23:35 local a hold 25 min out ends tomorrow and reads as a day, not "by <time>"
+    // (red on CI, which runs in UTC, from 23:35Z: run 41547173551 shard 5). Only Date is faked; timers stay real.
+    const noon = new Date();
+    noon.setHours(12, 0, 0, 0);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(noon);
+    onTestFinished(() => { vi.useRealTimers(); });
     const end = new Date(Date.now() + 25 * 60_000).toISOString();
     state.cart = [{ ...LINE, checkout_by: end }];
     show(<SalesWaiting />);

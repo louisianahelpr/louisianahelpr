@@ -26,7 +26,7 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx | pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] | pb-1 pl-3 pr-3 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]
  * @mutate src/components/declutter/DeclutterMineViews.tsx | -mx-3 flex items-center gap-2 overflow-x-auto pb-1 | -mx-3 flex flex-wrap items-center gap-2 pb-1
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
- * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
+ * @mutate src/components/declutter/DeclutterTabParts.tsx | data-seller-empty="">{children}</DeclutterEmptyCard> | data-plain="">{children}</DeclutterEmptyCard>
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       data-sell-chooser-entry=""\n      className="flex min-h-14 | data-sell-chooser-entry=""\n      className="rounded-full flex min-h-14
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <SellingSettingsEntry />\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <SellingSettingsEntry />\n |
@@ -532,7 +532,7 @@ describe("Selling tab: Taken down, with Relist", () => {
   // A2-5 (audit 2 SE2-1): "Mark sold elsewhere" keeps the listing as 'sold_elsewhere'. It belongs in the seller's
   // history, reads "Sold elsewhere.", has no Relist (it was sold), and is off the live listings.
   // @mutate src/components/declutter/DeclutterMineViews.tsx | i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | i.status === "withdrawn")
-  // @mutate src/components/declutter/DeclutterTakenDown.tsx |             {item.status === "withdrawn" && ( |             {true && (
+  // @mutate src/components/declutter/DeclutterTakenDown.tsx | {item.status === "withdrawn" && <ReopenListingButton itemId={item.id} quiet />} | {true && <ReopenListingButton itemId={item.id} quiet />}
   // @mutate src/components/declutter/myItemsQuery.ts | new Set(["withdrawn", "sold_elsewhere"]) | new Set(["withdrawn"])
   it("a listing sold elsewhere is in Selling history, reads Sold elsewhere, has no Relist, and is off Your listings (A2-5)", async () => {
     const SOLD = { ...ITEM, id: "i8", status: "sold_elsewhere", title: "Brass lamp", current_price_cents: 2000 };

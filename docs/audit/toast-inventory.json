@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1094,
+    "calls": 1095,
     "files": 306,
-    "rendering": 1013,
+    "rendering": 1014,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 32,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 187,
+      "toast": 188,
       "toast.error": 752,
       "toast.loading": 1,
       "toast.message": 1,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 466,
       "template": 99,
-      "dynamic": 580,
+      "dynamic": 581,
       "jsx": 0
     }
   },
@@ -11206,7 +11206,7 @@
     },
     {
       "file": "src/pages/admin/preview/DeclutterPreviewPage.tsx",
-      "line": 39,
+      "line": 41,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -11216,7 +11216,34 @@
     },
     {
       "file": "src/pages/admin/preview/DeclutterPreviewPage.tsx",
-      "line": 154,
+      "line": 110,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "previewBlockedWords(what, kind)",
+        "from": "src/pages/admin/preview/declutterPreviewReads.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "kind === \"read\" ? `Preview: not loaded (${what}).` : `Preview: this would ${what}.`",
+            "branches": [
+              {
+                "form": "template",
+                "text": "Preview: not loaded (${what})."
+              },
+              {
+                "form": "template",
+                "text": "Preview: this would ${what}."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/admin/preview/DeclutterPreviewPage.tsx",
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "literal",

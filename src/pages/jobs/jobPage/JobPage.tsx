@@ -77,6 +77,7 @@ import { useCrewSlot } from "@/hooks/useCrewSlot";
 import { offerIsOut } from "./useWithdrawOffer";
 import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { RefundRequestPanel } from "@/components/refund/RefundRequestPanel";
+import { useRefundRequest } from "@/components/refund/refundParts";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 
 /** The hired Helpr's way to this job's card on the Jobs tab, one name everywhere (Q2598). */
@@ -162,8 +163,16 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
   // The Posted card's own approve, cancel, edit and step flows, on this page (LEAD-JOBPAGE-LAYOUT, money half).
   const posterFlows = usePosterPageFlows({ jobId: id, enabled: isPoster, trackingStatus, onChanged: () => void q.refetch() });
+  // Q2694 (lead 11-02): while a refund request is open, ITS line is the page's one next step (the side card's panel,
+  // the same read by its query key): the tracker drops its own "Next:" line on both sides and Approve leaves the
+  // poster's row, as during a dispute. Off with the refund_requests switch, as the panel is.
+  const refundsOn = useFeature("refund_requests");
+  const pj = q.data?.job;
+  const refundParty = !!pj?.helper_id && !pj.is_group_job && (pj.customer_id === userId || pj.helper_id === userId);
+  const refundAsk = useRefundRequest(id, refundsOn && refundParty);
+  const refundOpen = refundsOn && refundParty && refundAsk.data?.status === "open";
   const posterActions = usePosterPageActions({
-    job: q.data?.job, userId, enabled: isPoster, flows: posterFlows,
+    job: q.data?.job, userId, enabled: isPoster, flows: posterFlows, refundOpen,
     posterWait: isPoster && q.data ? posterStatusLine(q.data.job as unknown as Job, applicants.data?.pending ?? 0).id : null,
     open: q.data?.job.status === "open", pending: applicants.data?.pending ?? 0, onChanged: () => void q.refetch(),
   });
@@ -415,7 +424,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
           {/* A SET continue day: the bar reads the new day, never day 1's passed date ("Late" on Arrived). */}
           <JobTracker job={jobOnContinueDay(job, continueDay.row)} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
-            hideNext={isPoster && !continueDay.row && showsNow(job, trackingStatus)}
+            hideNext={refundOpen || (isPoster && !continueDay.row && showsNow(job, trackingStatus))}
             otherFirst={isPoster ? helperFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={offerUntil} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft} helprCancelled={helprCancelled}

@@ -44,6 +44,11 @@ import { DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
 import { LISTED_PAYMENT_STATUSES } from "../../../supabase/functions/_shared/listedPaymentStatus";
 import { loadModule } from "@/lib/loadModule";
 
+/** Q1922: a haul-away's items some of which could not be put back on sale after a failed booking. */
+export const HAUL_AWAY_NOT_BACK_COPY = "Some items are still off sale. Put them back from Selling in Declutter.";
+/** The sentence added to a failure toast when `notBack` items stayed off sale; "" when every item went back. */
+const stillOffSaleMessage = (notBack: number) => (notBack > 0 ? ` ${HAUL_AWAY_NOT_BACK_COPY}` : "");
+
 // Declutter haul-away: loaded only for a haul-away post (off the critical path, Q178).
 const haulAwayLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
 // The relink sites below run inside try/catch blocks that report and keep the job: a load that came back empty
@@ -696,15 +701,16 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           // #2: else every press re-links and is refused again);
           // cleanupOrphanJob itself refuses a job that is not deletable.
           const funded = isNetworkFailure(linkErr) ? null : await jobIsFunded(attempt.jobId);
+          let notBack = 0;
           if (funded === false && (await cleanupOrphanJob(attempt.jobId))) {
             const undo = await haulAwayLibOrNull();
-            if (undo) await undo.undoHaulAwayForJob(haulAwayItemIds, attempt.jobId);
+            if (undo) notBack = await undo.undoHaulAwayForJob(haulAwayItemIds, attempt.jobId);
             attemptRef.current = null;
             safeStorage.removeItem(COOLDOWN_KEY);
           }
           hapticError();
           const haul = await haulAwayLibOrNull();
-          toast.error(`Couldn't book the haul-away: ${haul ? haul.haulAwayErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}`);
+          toast.error(`Couldn't book the haul-away: ${haul ? haul.haulAwayErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}${stillOffSaleMessage(notBack)}`);
           setSaving(false);
           setStep("checkout");
           setConfirmed(false);
@@ -879,11 +885,11 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         report(linkErr, { severity: "warning", tags: { source: "useJobSubmit.linkHaulAway" }, context: { job_id: jobData.id } });
         await cleanupOrphanJob(jobData.id);
         const haul = await haulAwayLibOrNull();
-        if (haul) await haul.undoHaulAwayForJob(haulAwayItemIds, jobData.id);
+        const notBack = haul ? await haul.undoHaulAwayForJob(haulAwayItemIds, jobData.id) : 0;
         attemptRef.current = null;
         safeStorage.removeItem(COOLDOWN_KEY);
         hapticError();
-        toast.error(`Couldn't book the haul-away: ${haul ? haul.haulAwayErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}`);
+        toast.error(`Couldn't book the haul-away: ${haul ? haul.haulAwayErrorMessage(linkErr) : CONNECTION_TROUBLE_COPY}${stillOffSaleMessage(notBack)}`);
         setSaving(false);
         setRedirecting(false);
         setStep("checkout");
@@ -1067,6 +1073,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           window.location.assign(`/payment-success?job_id=${encodeURIComponent(jobId)}`);
           return;
         }
+        let notBack = 0;
         if (!outcomeUnknown && funded === false) {
           // The server answered with a refusal for a job that holds no money.
           // Delete the job since payment setup failed — don't leave orphan jobs.
@@ -1075,7 +1082,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
           if (await cleanupOrphanJob(jobId)) {
             attemptRef.current = null;
             // A haul-away took its items off sale for this job: put them back.
-            if (haulAwayItemIds && haulAwayItemIds.length > 0) await (await haulAwayLibOrNull())?.undoHaulAwayForJob(haulAwayItemIds, jobId);
+            if (haulAwayItemIds && haulAwayItemIds.length > 0) notBack = (await (await haulAwayLibOrNull())?.undoHaulAwayForJob(haulAwayItemIds, jobId)) ?? 0;
           }
         }
         // funded === null after a refusal: the job could not be read, so it is
@@ -1091,7 +1098,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
             (paymentError ? await functionErrorMessage(paymentError, "Payment setup failed") : "Payment setup failed"),
           );
         hapticError();
-        toast.error(outcomeUnknown ? CONNECTION_TROUBLE_COPY : `Couldn't start payment: ${errorMsg} Please try again.`);
+        toast.error(outcomeUnknown ? CONNECTION_TROUBLE_COPY : `Couldn't start payment: ${errorMsg} Please try again.${stillOffSaleMessage(notBack)}`);
         setRedirecting(false);
         setStep("checkout");
         // Reset consent — payment failed, so the user must re-confirm

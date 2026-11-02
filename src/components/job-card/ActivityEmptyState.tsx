@@ -10,14 +10,12 @@ import { useAgeGate } from "@/hooks/useAgeGate";
  * active tab has no visible cards. A failed fetch (loadError) takes
  * precedence over the "nothing yet" empty state.
  *
- * Every account in Helpr can both post AND do jobs (the app is never
- * role-based — see memory `app-is-never-role-based`). So when a user has
- * posted nothing yet, the most useful nudge is "go browse jobs and
- * apply" — the helper side may be where they get their first win. And
- * vice-versa: when they haven't applied to anything, "post a job"
- * surfaces the other half of the marketplace they may not have tried.
- * Cross-tab CTAs intentionally swap the suggestion: posted-empty points
- * at /home (Apply), applied-empty points at /post-job (Post).
+ * Each tab's empty state offers that tab's own next step (Jobs audit 1102b
+ * rows 23-24, Q2609/Q2610): an empty Posted says "Post a job", an empty
+ * Working says "Browse jobs". The old cross-tab swap sent a poster with
+ * nothing posted off to earn ("browse open jobs near you and apply") with no
+ * Post a job button on the Posted tab at all. Every account still does both;
+ * the other tab is one tap away.
  */
 export interface ActivityEmptyStateProps {
   tab: Tab;
@@ -81,11 +79,15 @@ export function ActivityEmptyState({
     );
   }
   const isTrulyEmpty = totalCount === 0;
+  // Q2609: "All" is empty and nothing narrows it, so there is nothing live to show, even if a bucket All leaves out
+  // (Not picked) holds a row. That is an empty tab, not a filtered one: "No jobs match the current view" read as if a
+  // filter hid the jobs, and the only button sent the Helpr to the jobs they lost.
+  const isLiveEmpty = isTrulyEmpty || (statusFilter === "all" && !hasSearch);
   // No eyebrow: "Nothing yet" / "No matches" said exactly what the title
   // below it already says ("Nothing posted yet" / "No jobs in this view"),
   // so it read as the same sentence twice in two type sizes.
-  const title = isTrulyEmpty
-    ? (isPosted ? "Nothing posted yet" : "No applications yet")
+  const title = isLiveEmpty
+    ? (isPosted ? "Nothing posted yet" : "No jobs yet")
     : "No jobs in this view";
   // Cross-tab nudge: posted-empty hints at the helper side, applied-empty
   // hints at posting. For the filtered-but-empty case the copy depends on
@@ -128,35 +130,36 @@ export function ActivityEmptyState({
     searchElsewhereText.length <= 1
       ? searchElsewhereText[0]
       : `${searchElsewhereText.slice(0, -1).join(", ")} and ${searchElsewhereText[searchElsewhereText.length - 1]}`;
-  const body = isTrulyEmpty
+  const body = isLiveEmpty
     ? (isPosted
-        ? "While you wait for the right moment to post, you can earn by helping — browse open jobs near you and apply."
-        : "While you scout for the right job, post one of your own — your neighbors might be the perfect match.")
+        ? "Post a job and Helprs near you can apply."
+        : "Apply to jobs near you.")
     : hasSearch
       ? (searchElsewhereLine
           ? `No matches under ${activeLabel.toLowerCase()} — ${searchElsewhereLine} ${
               searchElsewhere.length === 1 && searchMatchCounts?.[searchElsewhere[0].key] === 1 ? "matches" : "match"
             } your search.`
           : "No jobs match your search — try a different term.")
-      : statusFilter === "all"
-        ? "No jobs match the current view."
+      // An empty "All" with no search is isLiveEmpty above (Q2609).
+      : (
         // H4 (Cowork audit 2026-10-20): "Nothing under scheduled — but you
         // have 14 in Needs You, 2 in Waiting…" restated the status boxes right
         // above it, with an old label. Say what is empty, in the box's word;
         // the button below still jumps to where the jobs are.
-        : `Nothing in ${activeLabel} right now.`;
-  // Swap the CTAs on the empty state so each tab promotes the OTHER side
-  // of the marketplace. When the user has data ("no matches" view) we
-  // keep them on the same side they're filtering.
-  const isCrossTabSuggestion = isTrulyEmpty;
+        `Nothing in ${activeLabel} right now.`);
+  // Each tab's own next step (Q2610): Posted -> Post a job, Working -> Browse jobs.
   // "job", not "task" — the nav, the feed heading and the Messages empty
-  // state all say job, and these four labels were the last holdouts.
-  const ctaLabel = isCrossTabSuggestion
-    ? (isPosted ? "Browse jobs" : "Post a job")
-    : (isPosted ? "Post a job" : "Browse jobs");
-  const ctaTo = isCrossTabSuggestion
-    ? (isPosted ? "/home" : "/post-job")
-    : (isPosted ? "/post-job" : "/home");
+  // state all say job.
+  const ctaLabel = isPosted ? "Post a job" : "Browse jobs";
+  const ctaTo = isPosted ? "/post-job" : "/home";
+  const ctaButton = (
+    <BarkPillButton
+      onClick={ctaTo === "/post-job" ? ageGate("post", () => onNavigate(ctaTo)) : () => onNavigate(ctaTo)}
+      {...(ctaTo === "/post-job" ? ageGatedProps("post") : {})}
+    >
+      {ctaLabel}
+    </BarkPillButton>
+  );
   // The page's own nav icon (owner, 2026-10-08, Q1558: "make sure the icon
   // matches that page"), the same circle on every empty page.
   const Icon = navIconFor(isPosted ? "/posts" : "/jobs");
@@ -167,6 +170,15 @@ export function ActivityEmptyState({
         title={title}
         body={body}
         bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
+        footnote={
+          /* Q2609: on an empty All, the bucket All leaves out (Not picked) is a quiet link under the
+             tab's own button, never the only way on. */
+          isLiveEmpty && !isTrulyEmpty && jumpTo && onSelectStatusFilter ? (
+            <button type="button" data-empty-jump="" className="text-ds-14 underline underline-offset-2 text-muted-foreground" onClick={() => onSelectStatusFilter(jumpTo.key)}>
+              Show {jumpTo.label} ({statusCounts?.[jumpTo.key] ?? 0})
+            </button>
+          ) : undefined
+        }
         action={
           /* WHEN WE KNOW WHERE THE ITEMS ARE, GO THERE.
              The body line has named them since this component was written
@@ -195,17 +207,12 @@ export function ActivityEmptyState({
             </BarkPillButton>
           ) : hasSearch && onClearSearch ? (
             <BarkPillButton onClick={onClearSearch}>Clear search</BarkPillButton>
-          ) : jumpTo && onSelectStatusFilter ? (
+          ) : !isLiveEmpty && jumpTo && onSelectStatusFilter ? (
             <BarkPillButton onClick={() => onSelectStatusFilter(jumpTo.key)}>
               Show {jumpTo.label} ({statusCounts?.[jumpTo.key] ?? 0})
             </BarkPillButton>
           ) : (
-            <BarkPillButton
-              onClick={ctaTo === "/post-job" ? ageGate("post", () => onNavigate(ctaTo)) : () => onNavigate(ctaTo)}
-              {...(ctaTo === "/post-job" ? ageGatedProps("post") : {})}
-            >
-              {ctaLabel}
-            </BarkPillButton>
+            ctaButton
           )
         }
       />

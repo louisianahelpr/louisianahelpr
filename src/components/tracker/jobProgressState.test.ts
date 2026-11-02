@@ -182,7 +182,7 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     expect(jobProgress(done, { viewer: "poster", otherFirst: "Yusef", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
     expect(jobProgress(done, { viewer: "helpr", otherFirst: "Dana", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
   });
-  // @mutate src/components/tracker/jobProgressState.ts |   return [who, reason, refund].filter(Boolean).join(" · "); |   return "This job was cancelled";
+  // @mutate src/components/tracker/jobProgressState.ts |   return [who, reason, kept, refund].filter(Boolean).join(" · "); |   return "This job was cancelled";
   // @mutate src/components/tracker/jobProgressState.ts |   const posterDid = !!by && by === job.customer_id; |   const posterDid = false;
   it("JA-26: a cancelled job says who, when, why and the refund", () => {
     const c: ProgressJob = { ...base, status: "cancelled", customer_id: "p", helper_id: "h", helper_confirmed_at: "t", cancelled_by: "p",

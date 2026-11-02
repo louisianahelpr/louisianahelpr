@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-02T01:23Z",
+  "measured_at": "2026-11-02T01:44Z",
   "issues": {
     "readable": true,
     "open": [
@@ -132,7 +132,14 @@
         "number": 3961,
         "title": "nightly-red: main: Supabase DB Deploy",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41362419307",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41371592369",
+        "runTruncated": false
+      },
+      {
+        "number": 3967,
+        "title": "nightly-red: main: Sensitive review record",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41373506163",
         "runTruncated": false
       }
     ]
@@ -290,6 +297,14 @@
         "source": "quota-monitor",
         "status": "open",
         "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
+        "issue": null
+      },
+      {
+        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: sensitive review record",
         "issue": null
       },
       {
@@ -645,19 +660,19 @@
         "issue": null
       },
       {
-        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load deliveries.",
-        "issue": null
-      },
-      {
         "fingerprint": "9ca2900cedab1d571f5794311c9d66f4",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: payout_setup_incomplete",
+        "issue": null
+      },
+      {
+        "fingerprint": "b97c1eafe3cd625a189a044f657d8e2e",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load deliveries.",
         "issue": null
       },
       {
@@ -677,17 +692,17 @@
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
@@ -909,11 +924,11 @@
         "issue": null
       },
       {
-        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
+        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
+        "title": "/declutter · error screen shown: we couldn't load your sales.",
         "issue": null
       },
       {
@@ -925,11 +940,11 @@
         "issue": null
       },
       {
-        "fingerprint": "3ccd4890a4ac2a5a913c1e964ee76664",
+        "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
-        "title": "/declutter · error screen shown: we couldn't load your sales.",
+        "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
         "issue": null
       },
       {
@@ -1052,6 +1067,7 @@
     "issue #3846": "Q1816",
     "issue #3875": "Q1816",
     "issue #3961": "Q1816",
+    "issue #3967": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 043a7a13b735": "Q2545",
@@ -1194,6 +1210,7 @@
     "ledger e06748071241": "Q1596",
     "ledger e306dea6b044": "Q1596",
     "ledger e32aa223d475": "Q2518",
+    "ledger e41c806b9175": "Q1816",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e62e32bec0c4": "Q2144",
     "ledger e6fb014ab099": "Q2511",

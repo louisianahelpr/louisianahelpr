@@ -76,7 +76,8 @@ export function HaulAwayCard({ group, pausedCount = 0 }: { group: HaulAwayRow[];
           {PAUSED_HAUL_AWAY_CARD_LINE}
         </p>
       )}
-      <Button asChild className="w-full sm:w-auto">
+      {/* Q2638 (audit 1102c R13): secondary, so it does not compete with the listing's own next step (Drop the price?). */}
+      <Button asChild variant="outline" className="w-full sm:w-auto" data-haul-away-post="">
         <Link to={haulAwayPostJobPath(group.map((r) => r.item_id))}>
           {n === 1 ? "Post a haul-away job" : `Post a haul-away job for ${n} items`}
         </Link>

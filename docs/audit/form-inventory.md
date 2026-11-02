@@ -341,7 +341,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/HelperAvailability.tsx` | checkbox/switch/radio×2 |  |  |  |
 | `src/components/notificationPreferences/constants.tsx` | input×1, date/calendar×1 | time |  |  |
 | `src/components/notificationPreferences/QuietTimeInput.tsx` | input×1, date/calendar×1 | time |  |  |
-| `src/components/notificationPreferences/SmsAlertsCard.tsx` | input×1, checkbox/switch/radio×1 | tel |  | sms-alerts-card · Loading text alert settings · Stop text alerts? · (225) 555-0123 |
+| `src/components/notificationPreferences/SmsAlertsCard.tsx` | input×2, checkbox/switch/radio×1 | text, tel | 4 | sms-alerts-card · Loading text alert settings · 1234 · Stop text alerts? · (225) 555-0123 |
 | `src/components/notificationPreferences/SwitchSlot.tsx` | checkbox/switch/radio×1 |  |  | Saving |
 | `src/components/profile/AvailabilityTab.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/profile/CredentialsTab.tsx` | input×3 | text, file |  | business-name · e.g. Bayou Plumbing LLC · business-name-help |

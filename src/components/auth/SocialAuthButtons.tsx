@@ -212,7 +212,7 @@ function SocialAuthButton({ provider, redirectTo, onChoose }: SocialAuthButtonPr
         return;
       case "error":
         hapticError();
-        toast.error(userFacingError(result, t("auth.socialFailed", { provider })), { id: `social-auth-${provider}` });
+        toast.error(userFacingError(result, t("auth.socialFailed", { provider: providerName })), { id: `social-auth-${provider}` });
         setLoading(false);
         return;
     }

@@ -20,6 +20,10 @@
 // job. Red first against useJobSubmit.ts as rebased on the stack (a6b60cd85):
 // photoRemovals ["job-1"], one DELETE, an undo, the error toast.
 //
+// Q1922: when some items cannot go back on sale, the toast says so (all three undo sites).
+// @mutate src/pages/post-job/useJobSubmit.ts |         const notBack = haul ? await haul.undoHaulAwayForJob(haulAwayItemIds, jobData.id) : 0; |         const notBack = 0; if (haul) await haul.undoHaulAwayForJob(haulAwayItemIds, jobData.id);
+// @mutate src/pages/post-job/useJobSubmit.ts | Please try again.${stillOffSaleMessage(notBack)}` | Please try again.`
+// @mutate src/pages/post-job/useJobSubmit.ts |             if (undo) notBack = await undo.undoHaulAwayForJob(haulAwayItemIds, attempt.jobId); |             if (undo) await undo.undoHaulAwayForJob(haulAwayItemIds, attempt.jobId);
 // @mutate src/pages/post-job/useJobSubmit.ts |         if (funded === true) { |         if (funded === true && false) {
 // @mutate src/pages/post-job/useJobSubmit.ts |     if (!deletable) { |     if (false) {
 //
@@ -44,6 +48,7 @@ const server = vi.hoisted(() => ({
   links: [] as string[],
   linkAnswers: [] as unknown[],
   undos: [] as string[],
+  undoFailed: 0,
   fundOnPayment: false,
 }));
 const FETCH_FAIL = { code: "", message: "TypeError: Failed to fetch", details: "", hint: "" };
@@ -160,14 +165,14 @@ vi.mock("@/lib/declutter/haulAway", () => ({
     if (next) throw next;
     return ids.length;
   },
-  undoHaulAwayForJob: async (_ids: string[], jobId: string) => { server.undos.push(jobId); return 0; },
+  undoHaulAwayForJob: async (_ids: string[], jobId: string) => { server.undos.push(jobId); return server.undoFailed; },
   haulAwayErrorMessage: (e: { userMessage?: string }) => e.userMessage ?? "Something went wrong. Please try again.",
 }));
 
 import { toast } from "sonner";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { safeStorage } from "@/lib/safeStorage";
-import { useJobSubmit, type UseJobSubmitParams } from "./useJobSubmit";
+import { HAUL_AWAY_NOT_BACK_COPY, useJobSubmit, type UseJobSubmitParams } from "./useJobSubmit";
 
 function params(overrides: Partial<UseJobSubmitParams> = {}): UseJobSubmitParams {
   return {
@@ -238,6 +243,7 @@ beforeEach(() => {
   server.links = [];
   server.linkAnswers = [];
   server.undos = [];
+  server.undoFailed = 0;
   server.fundOnPayment = false;
   vi.mocked(toast.error).mockClear();
   vi.mocked(openExternalUrl).mockClear();
@@ -359,3 +365,43 @@ describe("Q?gift-paid-retry-photos: a job funded by a gift card while its paymen
     expect(errorToasts().slice(-1)[0]).toMatch(/^Couldn't start payment: /);
   });
 });
+
+describe("Q1922: items that could not go back on sale are named in the toast", () => {
+  it("first link refused, one item not put back: the toast says some are still off sale", async () => {
+    server.linkAnswers.push(REFUSED);
+    server.undoFailed = 1;
+    const { result } = renderHook(() => useJobSubmit(params({ haulAwayItemIds: HAUL })));
+    await press(result.current.handleSubmit);
+    expect(server.undos).toEqual(["job-1"]);
+    expect(errorToasts().slice(-1)[0]).toBe(`Couldn't book the haul-away: That job isn't open any more. ${HAUL_AWAY_NOT_BACK_COPY}`);
+  });
+
+  it("every item put back: the toast does not mention it", async () => {
+    server.linkAnswers.push(REFUSED);
+    const { result } = renderHook(() => useJobSubmit(params({ haulAwayItemIds: HAUL })));
+    await press(result.current.handleSubmit);
+    expect(errorToasts().slice(-1)[0]).toBe("Couldn't book the haul-away: That job isn't open any more.");
+  });
+
+  it("payment refused for an unpaid haul-away job, one item not put back: the payment toast says so", async () => {
+    server.refuseNextPayment = true;
+    server.undoFailed = 2;
+    const { result } = renderHook(() => useJobSubmit(params({ haulAwayItemIds: HAUL })));
+    await press(result.current.handleSubmit);
+    expect(server.undos).toEqual(["job-1"]);
+    expect(errorToasts().slice(-1)[0]).toMatch(/^Couldn't start payment: .* Please try again\. Some items are still off sale\./);
+  });
+
+  it("a re-link refused before a retry, job never paid, an item not put back: the toast says so", async () => {
+    const { result } = renderHook(() => useJobSubmit(params({ haulAwayItemIds: HAUL })));
+    server.loseNextPaymentResponse = true;
+    await press(result.current.handleSubmit);
+    server.jobs[0].stripe_session_id = null;
+    server.linkAnswers.push(REFUSED);
+    server.undoFailed = 1;
+    safeStorage.removeItem("helpr_last_job_submit");
+    await press(result.current.handleSubmit);
+    expect(errorToasts().slice(-1)[0]).toContain(HAUL_AWAY_NOT_BACK_COPY);
+  });
+});
+

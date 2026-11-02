@@ -7,6 +7,7 @@
  * person translates it, as the chat screens do; only the question "What will you pay?" is here.
  */
 import { addEnglish } from "./enRegistry";
+import { STREET_ADDRESS_RULE } from "@/lib/streetAddressRule";
 
 export const enPostJob = {
   // The step bar (phone) and the step rail (computer)
@@ -39,7 +40,7 @@ export const enPostJob = {
   "postJob.detailsH": "A few words and a photo help Helprs say yes.",
   "postJob.priceQ": "What will you pay?",
   "postJob.whereQ": "When and where?",
-  "postJob.whereH": "Helprs see the area now and your street address after you hire.",
+  "postJob.whereH": `Helprs see the area now. ${STREET_ADDRESS_RULE}`,
 
   // The group grid
   "postJob.searchCategories": "Search categories",

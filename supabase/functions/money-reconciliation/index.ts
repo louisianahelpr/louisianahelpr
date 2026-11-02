@@ -293,6 +293,16 @@ serve(async (req) => {
     // invariants were actually evaluated — "0 findings" is only meaningful
     // alongside the list of things that were looked at.
     const checks = {
+      // Q2173: take_helpr_fault_fee books a deduction before the transfer, and
+      // restore_helpr_fault_fee only runs on a payout's in-run exits. A Quick
+      // Refund after an unclear Stripe failure, a stuck claim on a job later
+      // refunded, or a transfer clawed back leave the rows: the debt reads
+      // collected while no payout withheld it.
+      helprFaultDeductionNotWithheld: new Check(
+        "helpr_fault_deduction_not_withheld",
+        "warning",
+        `A Helpr-fault card-fee deduction (job_helpr_fault_fee_deductions, payout_ref job_payout_<job>) is more than ${SETTLE_WINDOW_HOURS}h old, but no settled payout_transfers row for that job carries helpr_fault_fee_cents > 0: the debt reads collected while nothing was withheld. Check the job's transfer at Stripe; if none went out (or it was reversed), run restore_helpr_fault_fee(the Helpr's id, the job id) as the service role, or put the cents back on the ruling by hand.`,
+      ),
       // ── Gift-card credit ──────────────────────────────────────────────
       // This file used to say gift_cards needed no reconciliation because it
       // carries no cached balance, so "asserting on them would be theatre".
@@ -1048,6 +1058,37 @@ serve(async (req) => {
         const set = paidMembersByJob.get(t.job_id) ?? new Set<string>();
         set.add(t.helper_id);
         paidMembersByJob.set(t.job_id, set);
+      }
+    }
+
+    // Q2173: a deduction no settled payout withheld. Job-scoped (seed policy follows
+    // `jobById`); skipped on a truncated ledger, which would manufacture hits.
+    {
+      const dedScan = await scanAll<{ id: string; payout_ref: string; deducted_cents: number; created_at: string }>(
+        "job_helpr_fault_fee_deductions",
+        (countOpt) =>
+          admin
+            .from("job_helpr_fault_fee_deductions")
+            .select("id, payout_ref, deducted_cents, created_at", countOpt)
+            .order("id", { ascending: true }),
+      );
+      const dedCap = scanDefect("job_helpr_fault_fee_deductions", dedScan);
+      if (dedCap || transferCap) {
+        notes.push(`Helpr-fault deduction check skipped: ${dedCap ?? transferCap}`);
+      } else {
+        const withheldJobs = new Set(
+          transfers
+            .filter((t) => isSettledTransfer(t) && money((t.metadata as { helpr_fault_fee_cents?: unknown } | null)?.helpr_fault_fee_cents) > 0)
+            .map((t) => t.job_id),
+        );
+        const settledBefore = Date.now() - SETTLE_WINDOW_MS;
+        for (const d of dedScan.rows) {
+          const jobId = String(d.payout_ref ?? "").replace(/^job_payout_/, "");
+          if (!jobById.has(jobId) || withheldJobs.has(jobId)) continue;
+          const at = ts(d.created_at);
+          if (at !== null && at > settledBefore) continue;
+          checks.helprFaultDeductionNotWithheld.add({ job_id: jobId, deduction_id: d.id, deducted_cents: d.deducted_cents });
+        }
       }
     }
 

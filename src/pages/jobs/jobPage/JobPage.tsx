@@ -71,6 +71,8 @@ import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
 import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
 import { crewPosterStep } from "@/components/tracker/crewPosterStep";
+import { crewMemberLine } from "@/components/tracker/crewMemberLine";
+import { useCrewSlot } from "@/hooks/useCrewSlot";
 
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
@@ -100,6 +102,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const { t } = useLanguage();
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew, crewConfirmed } = useJobPage(id, userId);
   const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
+  // A3-33 (audit 11-01): a crew member's own roster row (the Working card's read, shared by its query key).
+  const crewSlot = useCrewSlot(id, userId, !isPoster && onCrew);
   // CMP-4: the booked Helpr's instant booking (Confirm / Decline, the 2-hour countdown), the Working offer card's own.
   // Instant book is off for everyone (owner 11-01, switch 'instant_book'): no Book now list, no booking card.
   const instantBookOn = useFeature("instant_book");
@@ -389,7 +393,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={job.direct_offer_expires_at ?? null} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
             crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined}
-            continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job) : null)} />
+            continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job)
+              : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
           {/* JA-30 (Jobs audit 11-01): the dispute line says when they hear back; "See the case" opens the case itself
               (the Working and Posted cards' own DisputeTimelineDialog: the reason, both sides' evidence, the decision). */}

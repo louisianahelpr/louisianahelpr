@@ -412,6 +412,18 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(screen.queryByTestId("declutter-clear-search")).toBeNull();
   });
 
+  // A3-99 (audit 7, 11-01): the link under an empty search carries the words into the open Wanted form.
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx |         to={what \|\| category ? wantedAskHref(what, category) : "/declutter?tab=wanted"} |         to="/declutter?tab=wanted"
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx | {what ? `Ask for “${what}”` : "Post what you're looking for"} | Post what you're looking for
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink query={query} category={filters.category} />\n |                 <WantedLink />\n
+  it("A3-99: under a search that found nothing, the link reads Ask for “treadmill” and opens the form with the words", async () => {
+    at("/declutter?q=Treadmill");
+    expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
+    const link = screen.getByTestId("declutter-wanted-link");
+    expect(link).toHaveTextContent("Can't find it? Ask for “Treadmill”");
+    expect(link).toHaveAttribute("href", "/declutter?tab=wanted&post=1&what=Treadmill");
+  });
+
   it("owner 10-28: Browse's \"Can't find it? Post what you're looking for\" opens the Wanted tab, under the list and in the no-results state", async () => {
     // Nothing for sale at all (owner 2026-10-30): the empty state's own pill, "Post what you're looking for", beside
     // "Sell something", and no "Opens soon".

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-02T04:48Z",
+  "measured_at": "2026-11-02T07:53Z",
   "issues": {
     "readable": true,
     "open": [
@@ -132,14 +132,21 @@
         "number": 3961,
         "title": "nightly-red: main: Supabase DB Deploy",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41376532102",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41404446913",
         "runTruncated": false
       },
       {
         "number": 3967,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41390364914",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41405924213",
+        "runTruncated": false
+      },
+      {
+        "number": 3992,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41404446776",
         "runTruncated": false
       }
     ]
@@ -178,6 +185,14 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
+      },
+      {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": null
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -564,6 +579,14 @@
         "issue": null
       },
       {
+        "fingerprint": "95a0554486ebd14ed36618e23db7477f",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-deploy",
+        "issue": null
+      },
+      {
         "fingerprint": "e62e32bec0c415c8c17d26c4ff5e035f",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -700,17 +723,17 @@
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
@@ -772,19 +795,19 @@
         "issue": null
       },
       {
-        "fingerprint": "e32aa223d475dd1349363e900374a77e",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "error: script error.",
-        "issue": null
-      },
-      {
         "fingerprint": "bab94ea313cbbaac6e5e036b39d0c1b3",
         "source_kind": "sentry",
         "source": "sentry:unknown",
         "status": "open",
         "title": "cr",
+        "issue": null
+      },
+      {
+        "fingerprint": "e32aa223d475dd1349363e900374a77e",
+        "source_kind": "sentry",
+        "source": "sentry:unknown",
+        "status": "open",
+        "title": "error: script error.",
         "issue": null
       },
       {
@@ -932,19 +955,19 @@
         "issue": null
       },
       {
-        "fingerprint": "fba95b3590a627d7f7d9e284e9b56c20",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/declutter · error screen shown: we couldn't load offers.",
-        "issue": null
-      },
-      {
         "fingerprint": "34e050b1bba0bd78b7a440360b6a0787",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
         "status": "open",
         "title": "/declutter · error screen shown: we couldn't check your haul-aways.",
+        "issue": null
+      },
+      {
+        "fingerprint": "fba95b3590a627d7f7d9e284e9b56c20",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't load offers.",
         "issue": null
       },
       {
@@ -1076,6 +1099,7 @@
     "issue #3875": "Q1816",
     "issue #3961": "Q1816",
     "issue #3967": "Q1816",
+    "issue #3992": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 043a7a13b735": "Q2545",
@@ -1166,6 +1190,7 @@
     "ledger 905ec49763b5": "Q2315",
     "ledger 9078a39b3304": "Q1615",
     "ledger 95093fa29c63": "Q2524",
+    "ledger 95a0554486eb": "Q1816",
     "ledger 974ed70164eb": "Q2349",
     "ledger 9934727135a0": "Q2522",
     "ledger 99390a68ded7": "Q1615",
@@ -1227,6 +1252,7 @@
     "ledger ec24ac4f76e6": "Q2516",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
+    "ledger f22e3275d50d": "Q1816",
     "ledger f3c752b3230f": "Q1596",
     "ledger f433ca04d336": "Q2550",
     "ledger fba95b3590a6": "Q2538",

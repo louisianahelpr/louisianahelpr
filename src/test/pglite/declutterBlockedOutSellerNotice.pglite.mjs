@@ -6,9 +6,15 @@
  * "billed with no notice"; since D2-6 (20261029232103, audit 1b #6) declutter_record_refund tells the seller for
  * every debt it books. This file pins that, end to end through the webhook's declutter_mark_order_paid, for the
  * three paths a seller's block reaches: the open checkout (blocked and out; blocked only) and a checkout the sweep
- * closed as seller_blocked. It also measures how many owe notices a seller who is out (no block) gets.
+ * closed as seller_blocked.
+ * Q2556 (builder 164): a seller who is out (no block) is told ONCE (case d: mark_order_paid's
+ * declutter_seller_out_fee_notice, record_refund stays quiet); a seller_out refund of the order's OWN payment (Q1928
+ * gap 3) is still told by record_refund (case e), and the restate of record_refund in 20261102080936 keeps Q2404's
+ * setup-fee share (case e's amount) and Shipping S6 2d's keep_buyer_fee shipping check (case f). The migration file is
+ * applied for real 3x, with Supabase's default anon/authenticated EXECUTE grant on functions emulated.
  *
  *   node src/test/pglite/declutterBlockedOutSellerNotice.pglite.mjs                        # all PASS
+ *   NEW_MIGRATION=skip node src/test/pglite/declutterBlockedOutSellerNotice.pglite.mjs     # RED: case (d) told twice
  *   RECORD_BEFORE=20261029232103 node src/test/pglite/declutterBlockedOutSellerNotice.pglite.mjs  # RED: record_refund before D2-6
  *   MUTANT=<name> node src/test/pglite/declutterBlockedOutSellerNotice.pglite.mjs          # a planted defect: must FAIL
  *
@@ -27,7 +33,19 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const RECORD_BEFORE = process.env.RECORD_BEFORE ?? "99999999";
 const MUTANT = process.env.MUTANT ?? "";
+const THIS = "20261102080936_declutter_seller_out_told_once.sql";
+const skip = process.env.NEW_MIGRATION === "skip";
 const MUTANTS = {
+  // Q2556 undone: record_refund tells an out seller again (two notices for one debt).
+  toldTwice: ["      IF FOUND AND NOT (p_reason = 'seller_out'\n", "      IF FOUND AND NOT (false\n"],
+  // Q2556 too wide: every seller_out refund is quiet, so a gap-3 refund of the order's own payment tells no one.
+  gapThreeSilent: ["WHERE o.id = p_order_id AND o.stripe_payment_intent_id = p_payment_intent_id)) THEN", "WHERE false)) THEN"],
+  // The restate drops Shipping S6 2d's hunk: keep_buyer_fee no longer counts a shipped order's shipping.
+  dropShipping: ["\n                                        + v_order.shipping_cents - public.declutter_shipping_reserved_cents(p_order_id) THEN", " THEN"],
+  // The restate drops Q2404's hunk: the seller is billed the setup fee's share of the card fee too.
+  dropSetupShare: ["      v_fee := round(v_fee::numeric * v_order.total_cents / (v_order.total_cents + v_order.setup_fee_cents))::integer;\n", ""],
+  // The restate leaves Supabase's default EXECUTE grant on.
+  openGrant: ["REVOKE ALL ON FUNCTION public.declutter_record_refund(uuid, text, text, integer, integer) FROM PUBLIC, anon, authenticated;", ""],
   // record_refund books the debt but tells no one (gap 4 as filed).
   silentDebt: ["        PERFORM public.declutter_notify(v_seller, 'declutter_refunds', 'You owe from a refund',", "        PERFORM public.declutter_notify(NULL, 'declutter_refunds', 'You owe from a refund',"],
   // A seller's block no longer bills the seller (the platform pays).
@@ -53,10 +71,13 @@ function definitionBefore(name, before) {
   if (!last) throw new Error(`no definition of ${name} before ${before}`);
   return last;
 }
+let planted = false;
 const plant = (sql) => {
   if (!MUTANT) return sql;
   const [find, repl] = MUTANTS[MUTANT];
-  return sql.includes(find) ? sql.replace(find, repl) : sql;
+  if (!sql.includes(find)) return sql;
+  planted = true;
+  return sql.replace(find, repl);
 };
 
 let failures = 0;
@@ -68,6 +89,8 @@ const FEE = 163;
 const db = new PGlite();
 await db.exec(`
 CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
 CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE TABLE public.out_sellers (id uuid PRIMARY KEY);
 CREATE TABLE public.declutter_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid, status text, updated_at timestamptz);
@@ -98,8 +121,16 @@ CREATE FUNCTION public.declutter_refund_answer(p uuid) RETURNS jsonb LANGUAGE sq
   SELECT jsonb_build_object('result', 'refunded', 'reason', r.reason, 'fee_policy', r.fee_policy, 'refund_cents', r.refund_cents)
     FROM public.declutter_refunds r WHERE r.id = p $$;
 `);
-for (const fn of ["declutter_record_refund"]) await db.exec(plant(definitionBefore(fn, RECORD_BEFORE)));
+if (process.env.RECORD_BEFORE || skip) {
+  // The record_refund before D2-6 (RECORD_BEFORE), or before this file (NEW_MIGRATION=skip).
+  await db.exec(plant(definitionBefore("declutter_record_refund", skip ? THIS : RECORD_BEFORE)));
+} else {
+  // This file for real, three times (replay-safe), grants included.
+  const mig = plant(readFileSync(MIG_DIR + THIS, "utf8"));
+  for (let k = 1; k <= 3; k++) await db.exec(mig);
+}
 for (const fn of ["declutter_seller_out_fee_notice", "declutter_mark_order_paid"]) await db.exec(plant(definitionBefore(fn, "99999999")));
+if (MUTANT && !planted) throw new Error(`mutant ${MUTANT} did not apply`);
 
 const q = async (s, p = []) => (await db.query(s, p)).rows;
 /** One reserved item at 4000 from `seller`, checked out by `buyer` (awaiting payment, or as `status`/`reason`). */
@@ -150,13 +181,47 @@ const cRes = await pay(c, "pi_gap4_c");
 check(cRes?.reason === "seller_backed_out" && cRes?.refund_cents === 4000, "(c) a closed seller_blocked checkout paid anyway: seller_backed_out, every cent back", JSON.stringify(cRes));
 check((await debt("pi_gap4_c"))?.amount_cents === FEE && (await owes(SELLER_C)).length === 1, "(c) debt booked and the seller told once");
 
-// (d) Measured, not asserted: a seller who is out with no block (seller_out) is told by record_refund AND by
-// declutter_seller_out_fee_notice.
+// (d) Q2556: a seller who is out with no block (seller_out) is told ONCE, by declutter_seller_out_fee_notice
+// (mark_order_paid), not by record_refund too.
 await q(`INSERT INTO public.out_sellers VALUES ($1)`, [SELLER_D]);
 const d = await checkout(SELLER_D, BUYER_D);
 const dRes = await pay(d, "pi_gap4_d");
+check(dRes?.reason === "seller_out" && dRes?.refund_cents === 4000, "(d) seller out, no block: seller_out, every cent back", JSON.stringify(dRes));
+check((await debt("pi_gap4_d"))?.amount_cents === FEE, "(d) the debt is still booked", JSON.stringify(await debt("pi_gap4_d")));
 const dNotes = await owes(SELLER_D);
-console.log(`INFO  (d) seller out, no block: reason ${dRes?.reason}; owe notices to the seller: ${dNotes.length} (${dNotes.map((n) => n.title).join(" | ")})`);
+check(dNotes.length === 1 && ["Card fee owed", "Amount owed"].includes(dNotes[0]?.title), "(d) the seller is told exactly once (Q2556)", JSON.stringify(dNotes));
+await pay(d, "pi_gap4_d");
+check((await owes(SELLER_D)).length === 1, "(d) a replayed webhook tells the seller no second time");
+
+// (e) Q1928 gap 3: a seller_out refund of the order's OWN payment (close_paid_order / refund_after_handover pass the
+// order's stripe_payment_intent_id). Nothing else tells this seller, so record_refund does, once; the charge carried
+// the $2 setup fee, so the debt is the sale's share only (Q2404): round(163 x 4000 / 4200) = 155.
+const SELLER_E = U(9), BUYER_E = U(10);
+await q(`INSERT INTO public.out_sellers VALUES ($1)`, [SELLER_E]);
+const e = (await q(`INSERT INTO public.declutter_orders (status, buyer_id, seller_id, items_cents, total_cents, setup_fee_cents, setup_fee_state, stripe_payment_intent_id)
+  VALUES ('paid', $1, $2, 4000, 4000, 200, 'claimed', 'pi_own_e') RETURNING id`, [BUYER_E, SELLER_E]))[0].id;
+await q(`SELECT public.declutter_record_refund($1, 'pi_own_e', 'seller_out', 4000, ${FEE})`, [e]);
+check((await debt("pi_own_e"))?.amount_cents === 155, "(e) gap 3: the seller owes the sale's share of the card fee (Q2404 kept)", JSON.stringify(await debt("pi_own_e")));
+const eNotes = await owes(SELLER_E);
+check(eNotes.length === 1 && eNotes[0]?.title === "You owe from a refund" && eNotes[0]?.message?.includes("$1.55"),
+  "(e) gap 3: the seller is told once, by record_refund, with the amount", JSON.stringify(eNotes));
+
+// (f) Shipping S6 2d kept: a buyer_no_show refund of a whole shipped order (shipping in its total) keeps the buyer
+// fee and refunds the rest, instead of refusing it as an unknown amount.
+const f = (await q(`INSERT INTO public.declutter_orders (status, buyer_id, seller_id, items_cents, premium_cents, tax_cents, shipping_cents, total_cents)
+  VALUES ('paid', $1, $2, 3000, 300, 200, 500, 4000) RETURNING id`, [U(12), U(11)]))[0].id;
+let fRow;
+try {
+  await q(`SELECT public.declutter_record_refund($1, 'pi_ship_f', 'buyer_no_show', 4000, ${FEE})`, [f]);
+  fRow = (await q(`SELECT kept_cents, refund_cents FROM public.declutter_refunds WHERE stripe_payment_intent_id = 'pi_ship_f'`))[0];
+} catch (err) { fRow = { error: err.message }; }
+check(fRow?.kept_cents === 300 && fRow?.refund_cents === 3700, "(f) a shipped order's buyer_no_show refund counts its shipping (2d kept)", JSON.stringify(fRow));
+
+// Grants: Supabase's default EXECUTE grant is emulated above; the restate takes it back.
+const acl = (await q(`SELECT has_function_privilege('anon', 'public.declutter_record_refund(uuid, text, text, integer, integer)', 'EXECUTE') a,
+  has_function_privilege('authenticated', 'public.declutter_record_refund(uuid, text, text, integer, integer)', 'EXECUTE') u,
+  has_function_privilege('service_role', 'public.declutter_record_refund(uuid, text, text, integer, integer)', 'EXECUTE') s`))[0];
+check(!acl.a && !acl.u && acl.s, `grants on record_refund: anon ${acl.a} authenticated ${acl.u} service_role ${acl.s}`);
 
 console.log(failures ? `\n${failures} FAILED` : "\nall PASS");
 process.exit(failures ? 1 : 0);

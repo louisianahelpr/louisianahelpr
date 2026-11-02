@@ -8,7 +8,8 @@
  * @mutate src/components/postjob/LogisticsSection.tsx | and the distance. {STREET_ADDRESS_RULE} | and the distance. The street address is shared after you hire.
  */
 import { describe, it, expect } from "vitest";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { STREET_ADDRESS_RULE } from "@/lib/streetAddressRule";

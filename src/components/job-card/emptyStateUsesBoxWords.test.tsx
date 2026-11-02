@@ -8,7 +8,7 @@
  * other buckets' counts; the jump button uses the box's word too.
  *
  * @mutate src/components/job-card/embeddedActivity.tsx |   return filters.map((f) => ({ ...f, label: words[f.key] ?? f.label })); |   return [...filters];
- * @mutate src/components/job-card/ActivityEmptyState.tsx |         : `Nothing in ${activeLabel} right now.`; |         : `Nothing under ${activeLabel.toLowerCase()} right now.`;
+ * @mutate src/components/job-card/ActivityEmptyState.tsx |         `Nothing in ${activeLabel} right now.`); |         `Nothing under ${activeLabel.toLowerCase()} right now.`);
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

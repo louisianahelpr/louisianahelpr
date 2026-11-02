@@ -109,7 +109,7 @@ describe("A3-110: the Category filter says Other once", () => {
     const labels = new Set(Object.values(CATEGORY_LABEL));
     for (const g of CATEGORY_GROUPS) expect(labels.has(g.heading), g.heading).toBe(false);
     expect(screen.getAllByText("Other")).toHaveLength(1);
-    expect(CATEGORY_GROUPS.at(-1)?.heading).toBe("More");
+    expect(CATEGORY_GROUPS[CATEGORY_GROUPS.length - 1]?.heading).toBe("More");
     cleanup();
   });
 });

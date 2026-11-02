@@ -185,6 +185,11 @@ type ShopPayoutDue = {
   checkout_session_id: string | null;
   attempts: number;
 };
+/** What a declutter_delivery_refunds row gives back, in an ops page ("shipping refund", "delivery-fee refund"). */
+function refundPartWord(reason: string): string {
+  return reason === "ship_void_refunded" ? "shipping" : "delivery-fee";
+}
+
 type DeliveryRefundDue = {
   delivery_refund_id: string;
   reason: string;
@@ -1365,6 +1370,9 @@ serve(async (req) => {
 
   // 4. Delivery-fee refunds (row 40): the delivery fee alone, back to the buyer.
   for (const d of deliveryRefunds) {
+    // Shipping S6 2d (lead 11-01): this loop also sends the shipping a buyer-fault close held back until the label was
+    // voided ('ship_void_refunded'); its pages and defects name it, never "delivery-fee".
+    const part = refundPartWord(d.reason);
     groupOf.set(d.delivery_refund_id, d.payment_intent_id);
     if (Number(d.attempts ?? 0) > 0) maybeSentRows.add(d.delivery_refund_id);
     if ((d.buyer_id && review.users.has(d.buyer_id)) || (d.seller_id && review.users.has(d.seller_id))) {
@@ -1379,7 +1387,7 @@ serve(async (req) => {
         checkout_session_id: d.checkout_session_id,
       });
       if (!client) {
-        defects.record(`delivery refund ${d.delivery_refund_id}: no Stripe mode; refund it by hand`);
+        defects.record(`${part} refund ${d.delivery_refund_id}: no Stripe mode; refund it by hand`);
         await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "data_defect", "no Stripe mode");
         continue;
       }
@@ -1402,7 +1410,7 @@ serve(async (req) => {
         p_id: d.delivery_refund_id, p_stripe_refund_id: dRefund.id, p_succeeded: ok, p_error: ok ? null : `Stripe answered ${dRefund.status}`,
       });
       if (error) {
-        defects.record(`delivery refund ${d.delivery_refund_id}: Stripe ${dRefund.id} not recorded: ${error.message}`);
+        defects.record(`${part} refund ${d.delivery_refund_id}: Stripe ${dRefund.id} not recorded: ${error.message}`);
         await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 15, "record_failed", `refund ${dRefund.id} not recorded`);
         continue;
       }
@@ -1410,8 +1418,8 @@ serve(async (req) => {
         out.delivery_refunds_failed++;
         await postSlackOpsAlert({
           kind: "money_at_risk", severity: "critical",
-          title: d.attempts + 1 >= 12 ? "Declutter delivery-fee refund gave up" : "Declutter delivery-fee refund did not go through",
-          message: `Stripe answered ${dRefund.status} for delivery refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? "That was the last try: refund it by hand." : "It will be retried with back-off."}`,
+          title: d.attempts + 1 >= 12 ? `Declutter ${part} refund gave up` : `Declutter ${part} refund did not go through`,
+          message: `Stripe answered ${dRefund.status} for ${part} refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? "That was the last try: refund it by hand." : "It will be retried with back-off."}`,
           fields: { Refund: dRefund.id },
         });
         continue;
@@ -1422,7 +1430,7 @@ serve(async (req) => {
     } catch (e) {
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
-        defects.record(`delivery refund ${d.delivery_refund_id}: ${partyWhy(e, "the order")}; settle it by hand`);
+        defects.record(`${part} refund ${d.delivery_refund_id}: ${partyWhy(e, "the order")}; settle it by hand`);
         await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
         continue;
       }
@@ -1430,9 +1438,9 @@ serve(async (req) => {
       const { error } = await admin.rpc("declutter_delivery_refund_executed", {
         p_id: d.delivery_refund_id, p_stripe_refund_id: null, p_succeeded: false, p_error: msg.slice(0, 500),
       });
-      if (error) defects.record(`delivery refund ${d.delivery_refund_id}: failure not recorded: ${error.message}`);
+      if (error) defects.record(`${part} refund ${d.delivery_refund_id}: failure not recorded: ${error.message}`);
       out.delivery_refunds_failed++;
-      defects.record(`delivery refund ${d.delivery_refund_id}${d.attempts + 1 >= 12 ? " (LAST TRY: refund it by hand)" : ""}: ${msg}`.slice(0, 200));
+      defects.record(`${part} refund ${d.delivery_refund_id}${d.attempts + 1 >= 12 ? " (LAST TRY: refund it by hand)" : ""}: ${msg}`.slice(0, 200));
     }
   }
 

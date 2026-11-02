@@ -19,7 +19,6 @@ const SHORT: ReadonlyArray<[RegExp, string]> = [
   [/^Review \d+ applicants?$/, "Applicants"],
   [/^Post this job again$/, "Post again"],
   [/^Change date or time$/, "Change time"],
-  [/^Open in working$/, "Open in Jobs"],
   [/^See your crew steps$/, "Crew steps"],
   [/^Take the before photo$/, "Before photo"],
   [/^Take the after photo$/, "After photo"],

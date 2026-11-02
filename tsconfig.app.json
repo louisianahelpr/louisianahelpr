@@ -20,6 +20,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "npm:@supabase/supabase-js@2": [
+        "./node_modules/@supabase/supabase-js"
       ]
     },
     "skipLibCheck": true,

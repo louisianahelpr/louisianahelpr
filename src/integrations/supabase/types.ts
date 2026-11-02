@@ -15201,6 +15201,14 @@ export type Database = {
         }
         Returns: string
       }
+      bill_helpr_card_fee_debt: {
+        Args: {
+          p_card_fee_cents: number
+          p_refund_ref: string
+          p_visit_payment_id: string
+        }
+        Returns: number
+      }
       bill_helpr_fault_card_fee: {
         Args: {
           p_card_fee_cents: number
@@ -15235,6 +15243,7 @@ export type Database = {
         Args: { _job_id: string; _receiver: string }
         Returns: boolean
       }
+      cancel_fee_payee_frozen: { Args: { p_user: string }; Returns: boolean }
       cancel_job_after_failed_bank_payment: {
         Args: {
           p_gift_card_id?: string
@@ -15272,6 +15281,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      clamp_helpr_fault_fee: {
+        Args: { p_cents: number; p_helper_id: string; p_job_id: string }
+        Returns: number
+      }
       clear_my_job_post_draft: { Args: never; Returns: undefined }
       client_compat_floor: { Args: never; Returns: number }
       close_moot_backout_notices: { Args: { p_job?: string }; Returns: number }
@@ -15290,12 +15303,21 @@ export type Database = {
         Returns: Json
       }
       declutter_book_by_reminder_sweep: { Args: { p_now?: string }; Returns: number }
+      declutter_card_fee_left: {
+        Args: {
+          p_card_fee_cents: number
+          p_reserved_cents: number
+          p_total_cents: number
+        }
+        Returns: number
+      }
       declutter_decline_listed_for_me: {
         Args: {
           p_item_id: string
         }
         Returns: undefined
       }
+      declutter_delivery_gave_up_check: { Args: never; Returns: number }
       declutter_delivery_still_in_hand: {
         Args: { p_order_id: string; p_task: string }
         Returns: Json
@@ -15408,6 +15430,7 @@ export type Database = {
           title: string
         }[]
       }
+      declutter_my_block_partners: { Args: never; Returns: string[] }
       declutter_open_handover_talk: {
         Args: { p_other: string }
         Returns: string
@@ -15424,6 +15447,11 @@ export type Database = {
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
       declutter_pickup_when: { Args: { p_order_id: string }; Returns: string }
+      declutter_restore_retained_strikes: {
+        Args: { p_identity_sha256: string; p_user_id: string }
+        Returns: number
+      }
+      declutter_seller_fault_sweep: { Args: never; Returns: number }
       helpr_task_talk_view: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_send_message: {
         Args: { p_task_id: string; p_body: string }
@@ -15736,6 +15764,10 @@ export type Database = {
         Returns: boolean
       }
       needs_you_reminder_quiet: { Args: { p_at: string }; Returns: boolean }
+      section_keys_ok: {
+        Args: { keys: string[]; max_len: number }
+        Returns: boolean
+      }
       sweep_chat_unread_reminders: {
         Args: { p_now?: string }
         Returns: Json

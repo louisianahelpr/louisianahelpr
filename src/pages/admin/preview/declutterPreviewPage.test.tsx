@@ -52,7 +52,9 @@ function open(search: string) {
   );
 }
 
-const supabaseCalls = () => spy.mock.calls.filter(([u]) => String(u instanceof Request ? u.url : u).startsWith(SUPABASE) && !String(u).includes("/auth/v1/"));
+/** Same origin as the stand-in Supabase URL (an origin compare, not a prefix one: CodeQL js/incomplete-url-substring-sanitization). */
+const isSupabase = (u: unknown) => { try { return new URL(String(u instanceof Request ? u.url : u)).origin === SUPABASE; } catch { return false; } };
+const supabaseCalls = () => spy.mock.calls.filter(([u]) => isSupabase(u) && !String(u).includes("/auth/v1/"));
 
 describe("Q2585: /admin/preview/declutter", () => {
   it("draws the real Buying view on a paid sample order for the buyer, and the real Selling view for the seller", async () => {

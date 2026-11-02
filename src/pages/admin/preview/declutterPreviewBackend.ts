@@ -39,6 +39,8 @@ function readRpc(name: string, body: Record<string, unknown>, s: DeclutterPrevie
     case "declutter_my_paid_cents": return s.paidCents;
     case "declutter_haul_away_state": return s.haulAway;
     case "declutter_my_donations": return s.donations;
+    // Manager mode (owner 11-01): no sample order has a manager, so no grants.
+    case "declutter_my_manager_grants": return [];
     case "declutter_my_handover": {
       const id = typeof body.p_order_id === "string" ? body.p_order_id : "";
       return s.handovers[id] as unknown as Record<string, unknown> | undefined;
@@ -57,6 +59,9 @@ function tableRows(table: string, s: DeclutterPreviewSample): unknown[] | undefi
     case "declutter_items": return s.items;
     case "declutter_bookings": return s.bookings;
     case "declutter_problems": return s.problems;
+    // Manager mode: no sample order has a manager, so no shares and no manager payouts.
+    case "declutter_order_manager_shares": return [];
+    case "declutter_manager_payouts": return [];
     default: return undefined;
   }
 }

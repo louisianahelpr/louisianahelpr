@@ -711,7 +711,7 @@ describe("Declutter slice 3 screens", () => {
   // Accepted) above the live ones. The seller sees the open offers; the closed ones fold under one dated button.
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |   const shown = seller ? mine.filter((o) => o.status === "open") : mine; |   const shown = mine;
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |       ) : shown.length === 0 ? ( |       ) : false ? (
-  // @mutate src/components/declutter/DeclutterOffersSection.tsx |           {showClosed && <ul className="space-y-3" data-closed-offers=""> |           {true && <ul className="space-y-3" data-closed-offers="">
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |           {closedOpen && <ul className="space-y-3" data-closed-offers=""> |           {true && <ul className="space-y-3" data-closed-offers="">
   it("deep audit #30: the seller sees open offers; closed ones fold under one button, and open again on tap", async () => {
     const CLOSED = ["declined", "withdrawn", "accepted", "expired", "voided"] as const;
     state.offers = [

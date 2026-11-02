@@ -40,7 +40,9 @@ describe("Home counts Declutter (A3-81)", () => {
   it("the audit's seller: a $30 offer due in 20 h is a to-do with its deadline, ranked under 24 h", () => {
     const todos = deriveNeedsYouTodos({ ...none, declutterOffers: [offer({})] }, NOW);
     expect(todos).toHaveLength(1);
-    expect(todos[0]).toMatchObject({ section: "declutter", title: "Answer a $30.00 offer", action: "Answer offer", to: "/declutter?tab=selling" });
+    expect(todos[0]).toMatchObject({ section: "declutter", title: "Answer a $30 offer", action: "Answer offer", to: "/declutter?tab=selling" });
+    // The amount is in the task: no money line repeats it as an "order total".
+    expect(todos[0].money).toBeUndefined();
     expect(todos[0].meta).toMatch(/^Selling · Oak rocking chair · by Mon /);
   });
 

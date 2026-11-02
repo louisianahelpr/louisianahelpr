@@ -99,6 +99,8 @@ function useRefresh(orderId: string) {
     void qc.invalidateQueries({ queryKey: ["declutter", "refund-request", orderId] });
     void qc.invalidateQueries({ queryKey: ["declutter", "payouts"] });
     void qc.invalidateQueries({ queryKey: ["declutter", "my-cart"] });
+    // A3-81: Home's "Answer a refund request" goes once it is answered.
+    void qc.invalidateQueries({ queryKey: ["declutter", "my-refund-todos"] });
   };
 }
 

@@ -7,7 +7,7 @@
 import { report } from "@/lib/errorLogger";
 import type { ReportedQuestion, ReportedReview } from "@/lib/declutter/api";
 
-export const REVIEW_REPORT = "declutter_review";
+const REVIEW_REPORT = "declutter_review";
 const QUESTION_REPORTS: readonly string[] = ["declutter_question", "declutter_answer", REVIEW_REPORT];
 /** A report about Declutter words (question, answer or review), each hydrated here. */
 export const isQuestionReport = (t: string) => QUESTION_REPORTS.includes(t);

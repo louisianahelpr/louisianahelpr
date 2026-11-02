@@ -38,7 +38,9 @@ function ShopSkeleton() {
       <div className="space-y-4" role="status" aria-label="Loading the shop">
         <Skeleton className="h-36 w-full rounded-2xl" />
         <Skeleton className="h-6 w-2/3" />
-        <Skeleton className="h-24 w-full rounded-2xl" />
+        {/* Q2558: 345px in all (measured 2026-11-02 on /shops/test, the unavailable card); 296px jumped 49px.
+            A real shop page is longer and grows below. */}
+        <Skeleton className="h-[145px] w-full rounded-2xl" />
       </div>
     </AppPage>
   );

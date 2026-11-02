@@ -113,7 +113,9 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
     return (
       <Frame title="Shop dashboard" backTo="/shops">
         <ul className="space-y-3" role="status" aria-label="Loading your shop's orders">
-          {[0, 1].map((i) => <li key={i}><Skeleton className="h-36 w-full rounded-2xl" /></li>)}
+          {/* Q2558: the "You don't have a shop yet." card, 154px measured 2026-11-02 (both test accounts); two
+              144px order bones collapsed 146px into it. A shop's order list grows below. */}
+          <li><Skeleton className="h-[154px] w-full rounded-2xl" /></li>
         </ul>
       </Frame>
     );

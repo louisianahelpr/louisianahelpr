@@ -12,7 +12,7 @@
  * @mutate supabase/functions/_shared/payoutPromise.ts | return { cents: afterFee - debtCents, setupFeeCents, debtCents }; | return { cents: afterFee, setupFeeCents, debtCents };
  * @mutate supabase/functions/_shared/payoutPromise.ts | Math.min(Math.max(0, opts.debtOwedCents), helprFaultFeeCapCents(opts.unroundedCents - setupFeeCents)); | Math.max(0, opts.debtOwedCents);
  * @mutate supabase/functions/_shared/payoutPromise.ts |   if (!promised) return `Your pay will be sent to your account${payDay}.`; |   if (!promised) return `$0 will be sent to your account${payDay}.`;
- * @mutate supabase/functions/process-scheduled-payouts/index.ts | const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; | const payoutCents = roundPayoutDownCents(unroundedPayoutCents - helprFaultFeeCents);
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts |           payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; |           payoutCents = roundPayoutDownCents(unroundedPayoutCents - helprFaultFeeCents);
  * @mutate supabase/functions/create-payment/index.ts | payoutPromiseSentence(await readPromisedPayout(supabaseAdmin, job.helper_id, job, helperPayout), payDay) | `$${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.`
  * @mutate supabase/functions/auto-release-payment/index.ts | payoutPromiseSentence(await readPromisedPayout(supabaseAdmin, job.helper_id, job, helperPayout), payDay) | `$${helperPayout} will be sent to your account ${payDay}.`
  */
@@ -80,7 +80,7 @@ describe("the arithmetic is the payers'", () => {
   const scheduled = read("supabase/functions/process-scheduled-payouts/index.ts");
 
   it("process-scheduled-payouts: whole dollars after the fee, then the exact debt, under the same cap", () => {
-    expect(scheduled).toContain("const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents;");
+    expect(scheduled).toContain("          payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents;");
     expect(scheduled).toContain("helprFaultFeeCapCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0))");
     expect(scheduled).toContain("if (!isGiveawayFixedPayJob(job)) {");
   });

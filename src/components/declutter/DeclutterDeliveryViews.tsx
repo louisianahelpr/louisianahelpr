@@ -25,7 +25,8 @@ import { HelprNoShowAnswer, HelprNoShowReportButton } from "./DeclutterNoHelpr";
 import { RouteSuggestions } from "./RouteSuggestions";
 import { GoOnlineCard } from "./GoOnlineCard";
 import { Link } from "react-router-dom";
-import { Check } from "lucide-react";
+import { Check, PackageCheck, Truck } from "lucide-react";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { DeclutterNotice } from "./declutterUi";
@@ -571,7 +572,7 @@ export function DeliverView() {
         ) : open.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading deliveries…</p>
         ) : openList.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No deliveries to take right now.{vehicle.data?.has_truck ? "" : " Large items only show once you add a truck."}</p>
+          <DeclutterEmptyCard icon={Truck} title="No deliveries to take right now" data-deliver-open-empty="">{vehicle.data?.has_truck ? "New ones show here as buyers book them." : "New ones show here as buyers book them. Large items only show once you add a truck."}</DeclutterEmptyCard>
         ) : (
           <ul className="space-y-3">{openList.map((t) => <OpenTaskRow key={t.task_id} t={t} />)}</ul>
         )}
@@ -583,7 +584,7 @@ export function DeliverView() {
         ) : mine.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading your deliveries…</p>
         ) : myList.length === 0 ? (
-          <p className="text-sm text-muted-foreground">You haven't taken a delivery yet.</p>
+          <DeclutterEmptyCard icon={PackageCheck} title="You haven't taken a delivery yet" data-deliver-mine-empty="">Deliveries you take show here.</DeclutterEmptyCard>
         ) : (
           <>
             <DeliveryPayoutHeld tasks={myList} />

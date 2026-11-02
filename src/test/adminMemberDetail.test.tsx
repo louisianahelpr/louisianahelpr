@@ -39,6 +39,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/components/admin/AdminUserNotes", () => ({ default: () => null }));
 vi.mock("@/components/admin/UserVerificationHistory", () => ({ default: () => null }));
+vi.mock("@/components/admin/userDetail/DeclutterAmountsOwed", () => ({ DeclutterAmountsOwed: () => null })); // Q1928 gap 1 card reads through react-query
 
 const SENT_AT = "2026-10-25T15:42:00Z";
 const member = (over: Partial<Profile> = {}) => ({

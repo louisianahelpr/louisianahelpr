@@ -12,7 +12,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 export async function fetchMyPaidCents(orderIds: string[]): Promise<Map<string, number> | null> {
   if (orderIds.length === 0) return new Map();
@@ -24,7 +23,12 @@ export async function fetchMyPaidCents(orderIds: string[]): Promise<Map<string, 
   } catch (thrown) {
     // The words ride on the error (userMessage), so any screen that shows the failure says the code's own sentence.
     const e = thrown as Error & { userMessage?: string };
-    const words = rpcErrorMessage("declutter_my_paid_cents", thrown);
+    // lifecycleErrors.ts is loaded only here, on a failure: Money > Spent reads this on /profile?tab=earnings, and a
+    // static import put that ~23 KB gz table on the route's first screen (critical-path budget, Q178, L32).
+    const words = await import("@/lib/lifecycleErrors").then(
+      ({ rpcErrorMessage }) => rpcErrorMessage("declutter_my_paid_cents", thrown),
+      () => null, // Not silent: the error itself is still thrown below; only its specific sentence is lost.
+    );
     if (words && Object.isExtensible(e)) e.userMessage = words;
     throw e;
   }

@@ -9,25 +9,11 @@
  * Guard: src/lib/continueDay.test.ts.
  */
 import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 export type { ContinueDay } from "./continueDayWords";
 export { continueDayLabel, continueDayNextStep, continueDayAhead, continueDayDoneNote, continueDayHeader, jobOnContinueDay } from "./continueDayWords";
-import type { ContinueDay } from "./continueDayWords";
-
-/** The job's active continue day, or null. */
-export async function fetchContinueDay(jobId: string): Promise<ContinueDay | null> {
-  const rows = unwrap(
-    await supabase
-      .from("job_continue_days")
-      .select("id, job_id, proposed_by, new_date, new_start_time, note, status, helper_confirmed_at")
-      .eq("job_id", jobId)
-      .in("status", ["proposed", "set"])
-      .limit(1),
-  ) as ContinueDay[] | null;
-  return rows?.[0] ?? null;
-}
+export { fetchContinueDay } from "./continueDayReads";
 
 type ContinueRpc = "propose_job_continue_day" | "answer_job_continue_day" | "confirm_job_continue_day";
 
@@ -62,20 +48,4 @@ export async function answerContinueDay(continueId: string, accept: boolean): Pr
 export async function confirmContinueDay(continueId: string): Promise<void> {
   const { error } = await supabase.rpc("confirm_job_continue_day", { p_continue_id: continueId });
   if (error) fail(error, rpcErrorMessage("confirm_job_continue_day", error));
-}
-
-/**
- * The active continue days of several jobs, by job id (Home, the to-do list): one read, the same columns and
- * party-only policy as fetchContinueDay.
- */
-export async function fetchContinueDays(jobIds: readonly string[]): Promise<Record<string, ContinueDay>> {
-  if (!jobIds.length) return {};
-  const rows = unwrap(
-    await supabase
-      .from("job_continue_days")
-      .select("id, job_id, proposed_by, new_date, new_start_time, note, status, helper_confirmed_at")
-      .in("job_id", [...jobIds])
-      .in("status", ["proposed", "set"]),
-  ) as ContinueDay[] | null;
-  return Object.fromEntries((rows ?? []).map((r) => [r.job_id, r]));
 }

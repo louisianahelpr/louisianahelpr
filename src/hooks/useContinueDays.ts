@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { QueryClient, QueryClientContext, useQuery } from "@tanstack/react-query";
-import { fetchContinueDay, fetchContinueDays, type ContinueDay } from "@/lib/continueDay";
+import { fetchContinueDay, fetchContinueDays } from "@/lib/continueDayReads";
+import type { ContinueDay } from "@/lib/continueDayWords";
 
 const NONE: Readonly<Record<string, ContinueDay>> = Object.freeze({});
 

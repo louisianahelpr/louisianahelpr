@@ -8,7 +8,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
+import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/payoutReads";
 
 export type SalePayout = MyPayout & { title: string };
 

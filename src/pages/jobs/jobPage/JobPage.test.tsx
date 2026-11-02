@@ -163,9 +163,12 @@ vi.mock("./useJobReach", () => ({ useJobReach: () => state.reach }));
 // Continue another day (owner 2026-11-01): the job's active continue day, and the calls the page makes.
 const continueCalls = vi.hoisted(() => [] as string[]);
 const continueState = vi.hoisted(() => ({ row: null as null | Record<string, unknown> }));
+vi.mock("@/lib/continueDayReads", async (orig) => ({
+  ...(await orig<typeof import("@/lib/continueDayReads")>()),
+  fetchContinueDay: async () => continueState.row,
+}));
 vi.mock("@/lib/continueDay", async (orig) => ({
   ...(await orig<typeof import("@/lib/continueDay")>()),
-  fetchContinueDay: async () => continueState.row,
   answerContinueDay: async (id: string, accept: boolean) => { continueCalls.push(`answer:${id}:${accept}`); },
   confirmContinueDay: async (id: string) => { continueCalls.push(`confirm:${id}`); },
   proposeContinueDay: async () => { continueCalls.push("propose"); return { status: "set" }; },

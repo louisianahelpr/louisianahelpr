@@ -10,7 +10,7 @@ import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const day = vi.hoisted(() => ({ row: null as null | Record<string, unknown> }));
-vi.mock("@/lib/continueDay", async (orig) => ({ ...(await orig<typeof import("@/lib/continueDay")>()), fetchContinueDay: async () => day.row }));
+vi.mock("@/lib/continueDayReads", async (orig) => ({ ...(await orig<typeof import("@/lib/continueDayReads")>()), fetchContinueDay: async () => day.row }));
 
 type Call = { table: string; op: string; payload?: unknown; filters: Array<[string, string, unknown]>; select?: string };
 const calls: Call[] = [];

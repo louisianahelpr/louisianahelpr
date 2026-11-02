@@ -163,7 +163,8 @@ describe("Declutter haul-away (20261017070827)", () => {
     expect(early).toBeGreaterThan(0);
     expect(jobCheck).toBeGreaterThan(early);
     const block = b.slice(early, jobCheck);
-    expect(block).toMatch(/THEN RETURN cardinality\(v_ids\); END IF;/);
+    // Q2418 (20261102050858): the success answer first touches this job's link rows (the daily sweep skips a fresh link).
+    expect(block).toMatch(/THEN UPDATE public\.declutter_haul_aways SET updated_at = now\(\) WHERE item_id = ANY \(v_ids\) AND job_id = p_job_id; RETURN cardinality\(v_ids\); END IF;/);
     // Only the caller's own items and job; a NULL job id never matches.
     expect(b).toContain("IF p_job_id IS NOT NULL AND EXISTS (SELECT 1 FROM public.jobs j WHERE j.id = p_job_id AND j.customer_id = v_uid FOR UPDATE)");
     expect(b).toContain("JOIN public.declutter_items i ON i.id = h.item_id AND i.seller_id = v_uid");

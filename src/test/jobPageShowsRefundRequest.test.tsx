@@ -9,6 +9,15 @@
  * and with it answered off (nothing about the refund shows: the switch still gates it).
  *
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {party && (isPoster \|\| isHired) && !!job.helper_id && !job.is_group_job && ( |             {false && (
+ *
+ * Lead look 11-02 (refund-poster-375.png): the poster's tracker still said "Next: approve Eli's work" with Approve
+ * leading the row, beside the refund's own "Waiting on Eli R. to answer"; the Helpr's tracker said "Lexi has until
+ * ... to check it" beside "Next: answer Lexi L.'s refund request". While the request is open the refund line is the
+ * one next step: the tracker drops its "Next:" line on both sides and Approve leaves the poster's row.
+ *
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             hideNext={refundOpen \|\| (isPoster && !continueDay.row && showsNow(job, trackingStatus))} |             hideNext={isPoster && !continueDay.row && showsNow(job, trackingStatus)}
+ * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0 && !refundOpen; |     const cardLead = !step && cardSteps && flows.leadCount > 0;
+ * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const disputeOpen = status === "disputed" \|\| !!job.has_active_dispute \|\| refundOpen; |   const disputeOpen = status === "disputed" \|\| !!job.has_active_dispute;
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -75,6 +84,33 @@ describe("the job page shows an open refund request (Q2694)", () => {
     await screen.findAllByText(previewSample("refund", "poster").job.title, undefined, { timeout: 10000 });
     await waitFor(() => expect(refundBlock()?.textContent ?? "").toMatch(/You asked .* for \$40(\.00)? back/), { timeout: 10000 });
     expect(refundBlock()?.textContent ?? "").toMatch(/has until .* to answer/);
+  }, 30000);
+
+  it("the poster's page has one next line while the request is open: no tracker 'Next: approve', no Approve button", async () => {
+    refundsOn = true;
+    renderStage("poster");
+    await waitFor(() => expect(refundBlock()?.textContent ?? "").toMatch(/Waiting on .* to answer/), { timeout: 10000 });
+    const steps = document.querySelector("[data-job-steps]")?.textContent ?? "";
+    expect(steps).not.toMatch(/approve/i);
+    const approve = screen.queryAllByRole("button").filter((b) => /^approve/i.test((b.textContent ?? "").trim()));
+    expect(approve).toHaveLength(0);
+  }, 30000);
+
+  it("the Helpr's tracker does not contradict the refund line (no 'has until ... to check it')", async () => {
+    refundsOn = true;
+    renderStage("helpr");
+    await waitFor(() => expect(refundBlock()?.textContent ?? "").toMatch(/refund request/), { timeout: 10000 });
+    const steps = document.querySelector("[data-job-steps]")?.textContent ?? "";
+    expect(steps).not.toMatch(/to check it/);
+  }, 30000);
+
+  it("with the switch off, the poster's approve step is back (the yield is the refund's, not the stage's)", async () => {
+    refundsOn = false;
+    renderStage("poster");
+    await screen.findAllByText(previewSample("refund", "poster").job.title, undefined, { timeout: 10000 });
+    await waitFor(() => expect(document.querySelector("[data-job-steps]")?.textContent ?? "").toMatch(/approve/i), { timeout: 10000 });
+    const approve = screen.queryAllByRole("button").filter((b) => /^approve/i.test((b.textContent ?? "").trim()));
+    expect(approve.length).toBeGreaterThan(0);
   }, 30000);
 
   it("with the switch off, nothing about the refund shows", async () => {

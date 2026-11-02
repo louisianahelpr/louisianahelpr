@@ -1210,7 +1210,7 @@ describe("a crew member's own job page (A2-B8)", () => {
   // A3-33 (audit 11-01): working, the member's page said "Next: finish and mark it done" but its only button was "See
   // your crew steps". Their own step is the button now; it opens the Working card, which takes it (crewMemberFace).
   // @mutate src/pages/jobs/jobPage/hiredHelprFace.ts |     return crewMemberFace(job.id, o.crewSlot, job, o.open) ?? { ...face, label: "See your crew steps" }; |     return { ...face, label: "See your crew steps" };
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | review: () => setReviewOpen(true), crewSlot: crewSlot.data }) | review: () => setReviewOpen(true) })
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data }) | review: () => setReviewOpen(true), application: myApplication.data })
   it("A3-33: a working crew member's button is 'Mark my part done', not 'See your crew steps'", async () => {
     state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 2, helper_id: null });
     state.party = true;
@@ -1963,12 +1963,14 @@ describe("JA-17: Accept and Decline on the job page", () => {
     expect(offerAnswers).toEqual([["app-this", false]]);
   });
 
-  it("a direct offer (the Working list's synthetic row) declines in one tap", async () => {
+  it("a direct offer (the Working list's synthetic row) declines after the same confirm (Q2605)", async () => {
     state.job = row({ status: "open", direct_offer_status: "pending" });
     state.offeredToMe = true;
     workingApps.rows = [workingRow(state.job.id, `direct-${state.job.id}`)];
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /^Decline$/ }));
+    expect(offerAnswers).toEqual([]);
+    fireEvent.click(await screen.findByRole("button", { name: "Decline offer" }));
     expect(offerAnswers).toEqual([[`direct-${state.job.id}`, false]]);
   });
 

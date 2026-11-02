@@ -132,8 +132,6 @@ CREATE TABLE public.messages (job_id uuid, sender_id uuid, receiver_id uuid, cre
 CREATE TABLE public.reviews (job_id uuid, reviewer_id uuid);
 CREATE TABLE public.user_blocks (blocker_id uuid, blocked_id uuid);
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
--- 20261101154236: feature_enabled_for also reads the store reviewer's accounts.
-CREATE TABLE public.store_review_accounts (user_id uuid PRIMARY KEY, note text, created_at timestamptz NOT NULL DEFAULT now());
 -- Rentals S1 (20261017205605): rentals_caller_is_active_tenant_of reads rental_tenancies; the class SQL's
 -- fixture inserts a property, a unit and an active tenancy (the columns it writes).
 CREATE TABLE public.rental_properties (id uuid PRIMARY KEY, owner_id uuid, label text, street_address text, city text,

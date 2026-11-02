@@ -18,7 +18,7 @@
  * BUY-29: accepting a Wanted reply or a counter says what missing the 48 hours costs (declutter_deadline_sweep: source 'offer').
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | check out and pay, or you get a strike. Nothing is charged until you do. | check out and pay; nothing is charged until you do.
  * BUY-45: a truck owner isn't told to add a truck; there is no medium size; a failed payout isn't "on its way".
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | {vehicle.data?.has_truck ? "" : " Large items only show once you add a truck."} | {" Large items only show once you add a truck."}
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | {vehicle.data?.has_truck ? "New ones show here as buyers book them." : "New ones show here as buyers book them. Large items only show once you add a truck."} | {"New ones show here as buyers book them. Large items only show once you add a truck."}
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | : t.payout_status === "failed" ? "Delivered. Your pay didn't go through yet. Check that your payout account is set up." | : t.payout_status === "failed" ? "Delivered. Your pay is on its way."
  * @mutate src/components/declutter/DeliverVehicleForm.tsx | With a truck you can take small and large items. | With a truck you can take small, medium and large items.
  * BUY-47: declutter_payouts_due stops at 12 attempts, so nothing promises it keeps trying.
@@ -80,7 +80,8 @@ describe("the buying audit's small findings", () => {
 
   it("BUY-45: the Deliver words are true for this Helpr", () => {
     const views = code(`${D}DeclutterDeliveryViews.tsx`);
-    expect(views).toContain('{vehicle.data?.has_truck ? "" : " Large items only show once you add a truck."}');
+    // Q2577: the empty card says it; the truck line only for a Helpr with no truck.
+    expect(views).toContain('{vehicle.data?.has_truck ? "New ones show here as buyers book them." : "New ones show here as buyers book them. Large items only show once you add a truck."}');
     expect(views).toContain("Delivered. Your pay didn't go through yet.");
     expect(code(`${D}DeliverVehicleForm.tsx`)).not.toContain("small, medium");
   });

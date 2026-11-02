@@ -1607,6 +1607,7 @@ describe("execute-dispute-split edge function", () => {
     // @mutate supabase/functions/execute-dispute-split/index.ts |       .or(NOT_TEST_MODE_CLEARED)\n      .select("id");\n    if (error) { |       .select("id");\n    if (error) {
     // @mutate supabase/functions/execute-dispute-split/index.ts |     .or(NOT_TEST_MODE_CLEARED)\n    .select("id");\n  if (claimErr) { |     .select("id");\n  if (claimErr) {
     // @mutate supabase/functions/execute-dispute-split/index.ts | const NOT_TEST_MODE_CLEARED = `execution_error.is.null,execution_error.not.like."${TEST_MODE_CLEARED_MARKER}*"`; | const NOT_TEST_MODE_CLEARED = `execution_error.is.null`;
+    const CLEARED_WORDS = "this decision's Stripe test-mode records were cleared, so it cannot be settled; press Clear test-mode records and re-open to re-open the dispute";
     const CLEARED_GUARD = { op: "or", column: "", value: 'execution_error.is.null,execution_error.not.like."test-mode records cleared by an admin*"' };
     it("Q1764: test-mode records cleared after step 1 are seen under the claim: no split, the claim handed back, the marker never overwritten", async () => {
       seedExecutable(scenario, { helperShare: 0.6, dispute: { decided_at: "2026-09-14T10:00:00Z", execution_status: "failed", execution_error: "this escrow was paid in Stripe test mode" } });
@@ -1631,6 +1632,47 @@ describe("execute-dispute-split edge function", () => {
       const failures = writeRecords("disputes").filter((w) => (w.payload as { execution_status?: string }).execution_status === "failed");
       expect(failures.length).toBeGreaterThan(0);
       for (const f of failures) expect(f.filters).toEqual(expect.arrayContaining([CLEARED_GUARD]));
+      // Q1911: the admin is told it was the clear, never "superseded, re-decided or already executed".
+      expect((await json(res)).error).toBe(CLEARED_WORDS);
+    });
+
+    // Q1911: the clear commits between step 1 and the step-6 claim, so the claim's NOT_TEST_MODE_CLEARED filter is
+    // what refuses it. The admin gets the clear's words, not "may have already settled", and the marker is untouched.
+    // @mutate supabase/functions/execute-dispute-split/index.ts |     if (String(after?.execution_error ?? "").startsWith(TEST_MODE_CLEARED_MARKER)) { |     if (false) {
+    // @mutate supabase/functions/execute-dispute-split/index.ts |           error: cleared\n            ? TEST_MODE_CLEARED_REFUSAL | error: false\n            ? TEST_MODE_CLEARED_REFUSAL
+    it("Q1911: a split that loses the step-6 claim to Clear test-mode records says the decision was cleared", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      scenario.writeOverrides = [{
+        table: "disputes",
+        op: "update",
+        when: (payload) => {
+          if (payload.execution_status !== "executing") return false;
+          // clear_test_mode_dispute_ledger committed between step 1 and this claim (a fresh object: step 1 keeps its copy).
+          scenario.reads.disputes.rows![0] = {
+            ...scenario.reads.disputes.rows![0],
+            execution_error: "test-mode records cleared by an admin (checked at Stripe): paid before go-live",
+          };
+          return true;
+        },
+        rows: [],
+      }];
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toBe(CLEARED_WORDS);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      // Plain refusal: no failure stamp over the marker.
+      expect(writesTo("disputes").filter((p) => p?.execution_status === "failed")).toHaveLength(0);
+    });
+
+    it("Q1911: an empty step-6 claim with no clear still says it may have settled", async () => {
+      seedExecutable(scenario);
+      scenario.writeSelectRows.disputes = [];
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toMatch(/no longer executable/i);
     });
 
     it("Q1764: the execution claim (step 6) never claims a decision whose test-mode records were cleared", async () => {

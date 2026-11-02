@@ -121,6 +121,10 @@ const RESUME_PAYMENT_STATES = ["released", "refunded"] as const;
  * The quoted value keeps the marker's spaces inside one term.
  */
 const NOT_TEST_MODE_CLEARED = `execution_error.is.null,execution_error.not.like."${TEST_MODE_CLEARED_MARKER}*"`;
+// Q1732's words for a cleared decision. Q1911: also what a split that lost to the clear in the race is told, at the
+// step-6 claim and under the claim, instead of "may have already settled" / "superseded, re-decided".
+const TEST_MODE_CLEARED_REFUSAL =
+  "this decision's Stripe test-mode records were cleared, so it cannot be settled; press Clear test-mode records and re-open to re-open the dispute";
 
 /** A dispute id must be a uuid — the column is `uuid`, and a malformed one
  *  otherwise reaches Postgres and comes back as an opaque 22P02 cast error. */
@@ -323,10 +327,7 @@ serve(async (req) => {
   // button supersedes it). Plain json, not refuse(): markFailed would
   // overwrite the marker this check reads.
   if ((dispute.execution_error ?? "").startsWith(TEST_MODE_CLEARED_MARKER)) {
-    return json(
-      { error: "this decision's Stripe test-mode records were cleared, so it cannot be settled; press Clear test-mode records and re-open to re-open the dispute" },
-      409,
-    );
+    return json({ error: TEST_MODE_CLEARED_REFUSAL }, 409);
   }
   if (dispute.execution_status === "executed") {
     return json(
@@ -1233,6 +1234,12 @@ serve(async (req) => {
     return await refuse({ error: "could not claim this split for execution — retry" }, 500);
   }
   if (!claimed || claimed.length === 0) {
+    // Q1911: the claim's NOT_TEST_MODE_CLEARED filter may be what refused it (a Clear test-mode records that committed
+    // since step 1). Re-read the marker to pick the words; plain json, as at step 1, so the marker is never touched.
+    const { data: after } = await supabaseAdmin.from("disputes").select("execution_error").eq("id", disputeId).maybeSingle();
+    if (String(after?.execution_error ?? "").startsWith(TEST_MODE_CLEARED_MARKER)) {
+      return json({ error: TEST_MODE_CLEARED_REFUSAL }, 409);
+    }
     return await refuse(
       { error: "this split is no longer executable — it may have already settled" },
       409,
@@ -1391,8 +1398,15 @@ serve(async (req) => {
     if (decisionChanged) {
       console.error(`[execute-dispute-split] dispute ${disputeId} changed under the claim (status ${nowDispute.status}, execution ${nowDispute.execution_status}) — refusing`);
       await markFailed(supabaseAdmin, disputeId, "the decision changed while this split was starting", {}, job.id, settlementClaim);
+      // Q1911: a clear that committed since step 1 is named as the clear, not as a re-decision.
+      const cleared = `${nowDispute.execution_error ?? ""}`.startsWith(TEST_MODE_CLEARED_MARKER);
       return json(
-        { error: "this decision changed while the split was starting (superseded, re-decided or already executed) — nothing was moved; refresh", decisionChanged: true },
+        {
+          error: cleared
+            ? TEST_MODE_CLEARED_REFUSAL
+            : "this decision changed while the split was starting (superseded, re-decided or already executed) — nothing was moved; refresh",
+          decisionChanged: true,
+        },
         409,
       );
     }

@@ -1,3 +1,4 @@
+import { BIGGER_TEXT_LABEL, BIGGER_TEXT_SUB } from "@/components/profile/biggerTextWords";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import type { Theme } from "@/hooks/useDarkMode";
 import { Sun, Moon, Monitor, Type } from "lucide-react";
@@ -68,8 +69,8 @@ export function AccessibilityTab({ seniorMode, onToggleSeniorMode, onBack }: Acc
               </div>
               <div className="min-w-0">
                 {/* One name for the one setting (audit #34): Settings calls it the same. */}
-                <p className="text-ds-13 font-semibold text-foreground leading-tight">Bigger text and buttons</p>
-                <p className="text-ds-11 text-muted-foreground mt-0.5">Larger text and bigger tap targets</p>
+                <p className="text-ds-13 font-semibold text-foreground leading-tight">{BIGGER_TEXT_LABEL}</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">{BIGGER_TEXT_SUB}</p>
               </div>
             </div>
             <div

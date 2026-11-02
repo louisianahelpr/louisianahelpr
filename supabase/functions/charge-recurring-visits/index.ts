@@ -92,6 +92,7 @@ import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
+import { billLapsedHelprCardFee } from "../_shared/helprFaultFee.ts";
 import { chargeTaxCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
@@ -946,6 +947,22 @@ serve(async (req) => {
       const seriesEndedCause = Boolean(causeParentRow?.series_ended_on) || causeParentRow?.status === "cancelled";
       const nowHolder = ((causeHold.data ?? []) as Array<{ helper_id: string | null }>)[0];
       const dateUnheldCause = !nowHolder || (row.helper_id != null && nowHolder.helper_id !== row.helper_id);
+      // Q2245 (owner MASTER-LIST 2026-10-21): a date still held by the Helpr
+      // this visit was paid for, unbooked because that Helpr is NOT ready
+      // (their setup lapsed after the payment was parked; the booking step kept
+      // the date, see "ID once" below), is still refunded IN FULL, and the
+      // lapsed Helpr owes the card fee, taken from their next payout. Read
+      // with the same helper the booking step uses. Unread: refund nothing
+      // this run, retry next.
+      let lapsedHolder = false;
+      if (!seriesEndedCause && !dateUnheldCause && row.helper_id) {
+        const { data: visitNotReady, error: visitReadyErr } = await supabase.rpc("helper_accept_block_reason", { p_user_id: String(row.helper_id) });
+        if (visitReadyErr) {
+          fail(`visit payment ${row.id}: could not read whether its Helpr is ready (${visitReadyErr.message}); nothing refunded, retried next run`);
+          continue;
+        }
+        lapsedHolder = visitNotReady != null;
+      }
       let refundParams: Stripe.RefundCreateParams = { payment_intent: pi };
       let alreadyRefunded = false;
       let refundMade: { id: string; cents: number } | null = null;
@@ -1061,6 +1078,22 @@ serve(async (req) => {
           ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: sweepTaxBaseCents, actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents
           : Number.NaN;
         const owedCents = withholdFee ? lessFeeCents : amountCents;
+        // Q2245: the lapsed Helpr's card-fee debt is recorded BEFORE any
+        // refund (and before settling one made earlier), once per visit
+        // payment. A failed bill refunds nothing this run: the row stays paid
+        // and the next run bills, then refunds.
+        if (!withholdFee && lapsedHolder) {
+          const billProblem = await billLapsedHelprCardFee(
+            supabase,
+            String(row.id),
+            Number.isFinite(amountCents) ? actualOrEstimatedFeeCents(piObj, amountCents) : Number.NaN,
+            pi,
+          );
+          if (billProblem) {
+            fail(`visit payment ${row.id}: ${billProblem}; nothing refunded, retried next run`);
+            continue;
+          }
+        }
         // Set before any other Stripe call, so a failure below alerts with
         // the amount actually owed, not "in full".
         if (withholdFee) {

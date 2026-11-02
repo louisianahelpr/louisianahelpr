@@ -81,3 +81,37 @@ export async function restoreHelprFaultFee(supabaseAdmin: Db, helperId: string, 
     );
   }
 }
+
+/**
+ * Q2245 (owner MASTER-LIST 2026-10-21): a series visit whose Helpr's setup
+ * lapsed after it was paid is refunded to the poster IN FULL, and the Helpr
+ * owes that charge's card fee, taken from their NEXT payout by the same
+ * take/restore pair as above (migration 20261102072106). Bills the visit
+ * payment's own Helpr once (bill_helpr_card_fee_debt is idempotent on the
+ * visit payment, so a re-run bills nothing).
+ *
+ * Returns null when billed (or nothing to bill: an unreadable or zero fee),
+ * else the problem. Fails CLOSED: the caller refunds nothing this run on a
+ * problem, so a refund never goes out with the debt unrecorded. A database
+ * without the function yet (PGRST202) is a problem too: the row waits a run.
+ */
+export async function billLapsedHelprCardFee(
+  supabaseAdmin: Db,
+  visitPaymentId: string,
+  cardFeeCents: number,
+  refundRef: string,
+): Promise<string | null> {
+  const cents = Math.round(Number(cardFeeCents));
+  if (!Number.isFinite(cents) || cents <= 0) return null;
+  const { data, error } = await supabaseAdmin.rpc("bill_helpr_card_fee_debt", {
+    p_visit_payment_id: visitPaymentId,
+    p_card_fee_cents: cents,
+    p_refund_ref: refundRef,
+  });
+  if (error) return `billing the lapsed Helpr the ${cents}-cent card fee failed (${error.message ?? String(error)})`;
+  const billed = Number(data ?? 0);
+  if (!Number.isFinite(billed) || billed < 0 || billed > cents) {
+    return `bill_helpr_card_fee_debt returned ${String(data)} for a ${cents}-cent card fee`;
+  }
+  return null;
+}

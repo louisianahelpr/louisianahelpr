@@ -43,12 +43,20 @@ describe("jobNextStep", () => {
   });
   // Jobs audit 1102b row 4 (Q2590): "Next: lexi offered you this job" under "Lexi L.".
   it("a 'you' line that starts with the other person's name keeps its capital", () => {
-    const v = jobNextStep(p({ stage: 1, waitingOnYou: true, next: "Lexi offered you this job" }), { side: "helpr", otherFirst: "Lexi" })!;
-    expect(nextStepWords(v)).toBe("Next: Lexi offered you this job");
+    const v = jobNextStep(p({ stage: 3, waitingOnYou: true, next: "Lexi wants a new time. Confirm it" }), { side: "helpr", otherFirst: "Lexi" })!;
+    expect(nextStepWords(v)).toBe("Next: Lexi wants a new time. Confirm it");
     const { container } = render(<NextStep value={v} />);
-    expect(container.textContent).toBe("Next: Lexi offered you this job");
+    expect(container.textContent).toBe("Next: Lexi wants a new time. Confirm it");
     // A verb first still reads as one sentence.
     expect(nextStepWords(jobNextStep(p({ waitingOnYou: true, next: "Confirm the job is still on" }), { side: "poster", otherFirst: "Lexi" })!)).toBe("Next: confirm the job is still on");
+  });
+  // Q2601 (Jobs audit 1102b row 15): the offered Helpr's line is the step, accept or decline, with the offer's clock.
+  // @mutate src/components/tracker/jobNextStep.ts |   if (o.side === "helpr" && progress.waitingOnYou && / offered you this job$/.test(line)) { |   if (false) {
+  it("an offer to this Helpr reads 'Next: accept or decline Lexi's offer · by <time>', not the news", () => {
+    const until = new Date(Date.now() + 5 * 3_600_000).toISOString();
+    const v = jobNextStep(p({ stage: 1, waitingOnYou: true, next: "Lexi offered you this job" }), { side: "helpr", otherFirst: "Lexi", offerUntil: until })!;
+    expect(nextStepWords(v)).toMatch(/^Next: accept or decline Lexi's offer · by \w{3} \d{1,2}:\d{2} [AP]M$/);
+    expect(nextStepWords(jobNextStep(p({ stage: 1, waitingOnYou: true, next: "Lexi offered you this job" }), { side: "helpr" })!)).toBe("Next: accept or decline the offer");
   });
   it("off the path keeps the tracker's word and line", () => {
     expect(nextStepWords(jobNextStep(p({ stage: null, word: "Cancelled", next: "You cancelled Sat 9:00 AM" }), { side: "poster" })!)).toBe("Cancelled · You cancelled Sat 9:00 AM");

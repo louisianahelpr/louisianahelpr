@@ -18,7 +18,7 @@
  * @mutate src/lib/declutter/api.ts |   if (itemIds.length === 0) return []; |   if (false) return [];
  * @mutate src/lib/declutter/api.ts |   if (paths.length === 0) return; |   if (false) return;
  * @mutate src/lib/declutter/api.ts |     await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note ?? "" }) |     await supabase.rpc("declutter_admin_review_item", { p_item_id: itemId, p_approve: approve, p_note: note })
- * @mutate src/lib/declutter/api.ts |     if (msg && Object.isExtensible(e)) e.userMessage = msg; |     if (msg) e.userMessage = msg;
+ * @mutate src/lib/declutter/api.ts |     if (msg && Object.isExtensible(e)) Object.assign(e, { userMessage: msg, designedRefusal: true }); |     if (msg) Object.assign(e, { userMessage: msg, designedRefusal: true });
  * @mutate src/lib/declutter/api.ts |       throw new Error("photo_not_uploaded");\n    },\n    attach: |       return;\n    },\n    attach:
  * @mutate src/lib/declutter/api.ts |   if (cleaned && !LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
@@ -588,7 +588,7 @@ describe("RPC writes", () => {
     const e = await rejection(c.call());
     expect(e.message).toBe("some_future_code");
     expect(e.userMessage).toBeUndefined();
-    expect(declutterErrorMessage(e)).toBe("Something went wrong. Please try again.");
+    expect(declutterErrorMessage(e)).toBe("Couldn't do that just now. Check your connection and try again.");
   });
 
   it("keeps the HTTP status of a refused write", async () => {

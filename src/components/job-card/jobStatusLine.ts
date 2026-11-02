@@ -979,7 +979,9 @@ export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress)
       if (jobIsOverdue(job)) return helperOverdue(job, progress);
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       const stage = agreedJobStage(job, "helper");
-      if (stage === "confirm_owed") return "confirm_day";
+      // A3-51 (audit 11-01): a crew owes no day-of confirm (crewMemberStep has none; the start sweep's owes_dayof is
+      // false for crews, 20261030035326), so a confirmed member is scheduled, never "Confirm you'll be at the job".
+      if (stage === "confirm_owed") return job.is_group_job ? "confirmed" : "confirm_day";
       if (stage === "started") return "today";
       return "confirmed";
     }

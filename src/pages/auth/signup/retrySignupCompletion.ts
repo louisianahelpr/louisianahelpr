@@ -26,6 +26,8 @@
 // the function's decision and a relay error is Supabase's; resending either
 // would just repeat it.
 
+import { track, AhaEvent } from "@/lib/analytics";
+
 /** The shape `supabase.functions.invoke` resolves to. */
 export type InvokeResult = { data: unknown; error: unknown };
 
@@ -79,7 +81,22 @@ export async function invokeWithOneRetryIfUnsent<T extends InvokeResult>(
 ): Promise<T> {
   const first = await send();
   if (!isUnsentRequest(first.error)) return first;
+  // Q2090 (lh-silent-failure@773651052#6): a retry that worked used to drop the first FunctionsFetchError, so
+  // nobody could count how often the second send fires or what it does. An analytics event, not a Sentry report:
+  // sentryLedgerSync maps every non-fatal level to an alert row, which would page once per retry.
+  const atFailure = {
+    hidden: typeof document !== "undefined" && document.visibilityState === "hidden",
+    online: typeof navigator === "undefined" ? null : navigator.onLine,
+  };
+  const startedAt = Date.now();
   await wait();
-  if (signal?.aborted) return first;
-  return send();
+  const waitedMs = Date.now() - startedAt;
+  if (signal?.aborted) {
+    track(AhaEvent.SignupCompletionRetried, { ...atFailure, waited_ms: waitedMs, outcome: "caller_gave_up" });
+    return first;
+  }
+  const second = await send();
+  const outcome = !second.error ? "ok" : isUnsentRequest(second.error) ? "unsent_again" : "answered_error";
+  track(AhaEvent.SignupCompletionRetried, { ...atFailure, waited_ms: waitedMs, outcome });
+  return second;
 }

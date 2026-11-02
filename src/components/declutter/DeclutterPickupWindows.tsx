@@ -13,7 +13,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchOrderPickupWindows } from "@/lib/declutter/handover";
 import { fetchSamePickupSlot, fetchTaskPickupWindows } from "@/lib/helprTasks/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { pickupDays, windowsSummary } from "@/lib/declutter/pickupSlots";
+import { pickupDays, porchWindowDays, windowsSummary } from "@/lib/declutter/pickupSlots";
 import { Chip } from "./DeclutterFilterPanel";
 import { DateTimeField } from "@/components/DateTimeField";
 
@@ -23,7 +23,7 @@ import { DateTimeField } from "@/components/DateTimeField";
  * An order (the buyer booking) or an OPEN delivery task (the Helpr accepting it: helpr_task_pickup_windows,
  * 20261028232930, the same chips and the same rule).
  */
-export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, enabled = true, own = false, current = null, noTimes = null }: {
+export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, enabled = true, own = false, current = null, noTimes = null, porch = false }: {
   orderId?: string;
   taskId?: string;
   value: string | null;
@@ -40,14 +40,20 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
   own?: boolean;
   /** AUD31-83: the time booked now, marked among the chips ("now"). */
   current?: string | null;
+  /**
+   * A3-63 follow-up (lead 11-01: a porch pickup is a 2-hour window): a porch order's chips are 2-hour windows ("3–5 PM",
+   * porchWindowDays, as checkout offers them); the chip's ISO is the window's start, which declutter_book_pickup turns
+   * into the order's window (20261102005411).
+   */
+  porch?: boolean;
 }) {
   const q = useQuery(taskId
     ? { queryKey: ["helpr-tasks", "task-pickup-windows", taskId], queryFn: () => fetchTaskPickupWindows(taskId), enabled }
     : { queryKey: ["declutter", "order-pickup-windows", orderId], queryFn: () => fetchOrderPickupWindows(orderId ?? "") });
   // Slots are worked out once per read: a long-open card keeps the same chips (the server re-checks on Book).
   const days = useMemo(
-    () => (q.data ? pickupDays(q.data.windows, Date.now(), q.data.latestPickupAt ? Date.parse(q.data.latestPickupAt) : null) : []),
-    [q.data],
+    () => (q.data ? (porch ? porchWindowDays : pickupDays)(q.data.windows, Date.now(), q.data.latestPickupAt ? Date.parse(q.data.latestPickupAt) : null) : []),
+    [q.data, porch],
   );
   const [dayPick, setDayPick] = useState<string | null>(null);
   if (q.isError) return <ErrorState variant="inline" title="We couldn't load the seller's pickup times." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;

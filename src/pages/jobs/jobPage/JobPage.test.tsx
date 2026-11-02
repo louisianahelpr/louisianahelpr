@@ -1753,8 +1753,8 @@ describe("JA-17: Accept and Decline on the job page", () => {
   });
 });
 
-// A3-44 rest (audit 11-01, B137): the standing Helpr's "Leave series" is one more item in the row's More options
-// (owner 5:42 PM: a menu only when it holds 2+ items), with its confirm; never a second link beside the series line.
+// A3-44 rest (audit 2026-11-01, B137): the standing Helpr's "Leave series" is one more item in the row's More options
+// (owner 2026-11-01 5:42 PM: a menu only when it holds 2+ items), with its confirm; never a second link beside the series line.
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | extras={withLeave.extras} /> | extras={extras} />
 // @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |               trigger={!leaveInMenu} |               trigger
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | go: () => setLeaveOpen(true), danger: true | go: () => {}, danger: true

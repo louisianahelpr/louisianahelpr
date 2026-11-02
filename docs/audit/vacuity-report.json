@@ -1,12 +1,14 @@
 {
-  "generated": "2026-11-02T09:14:04.917Z",
-  "guards": 3197,
-  "registered": 3197,
+  "generated": "2026-11-02T16:11:19.460Z",
+  "guards": 3257,
+  "registered": 3257,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/declutter/bundleDiscountOff.test.tsx",
-    "src/test/shakeToReportLoadsOnlyInTheApp.test.ts"
+    "src/test/desktopProfileButtonFocusRing.test.ts",
+    "src/test/shakeToReportLoadsOnlyInTheApp.test.ts",
+    "src/test/shippingNeverShippedSweep.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -225,6 +227,7 @@
         "src/test/scopeVideoShown.test.tsx",
         "src/pages/post-job/checkoutTaxNote.test.tsx",
         "src/pages/post-job/orderSummaryGlance.test.tsx",
+        "src/pages/post-job/reviewAsksOnce.test.tsx",
         "src/pages/post-job/reviewDesktopRail.test.tsx",
         "src/pages/post-job/reviewNamesVisitsAndCrew.test.tsx",
         "src/pages/post-job/reviewTotalSaysItOnce.test.tsx",
@@ -251,6 +254,7 @@
       "tests": [
         "src/test/detailsPlaceholdersAskOnContinue.test.tsx",
         "src/test/flexibleScheduleUnlocksSubmit.test.tsx",
+        "src/test/priceContinueStopsOnWhenWhere.test.tsx",
         "src/components/quotes/postJobQuoteChoice.test.tsx"
       ],
       "parents": [

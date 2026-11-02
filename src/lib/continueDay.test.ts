@@ -50,7 +50,7 @@ describe("continueDayNextStep", () => {
 describe("continueDayError", () => {
   it("says every server refusal in plain words, never a code", () => {
     expect(continueDayError({ message: "continue_day_too_soon" })).toBe("Pick a time at least an hour from now.");
-    expect(continueDayError({ message: "not_authorized" })).toMatch(/two people/);
+    expect(continueDayError({ message: "not_authorized" })).toMatch(/posted this job or its Helpr/);
     expect(continueDayError({ message: "something else" })).toBeNull();
   });
 });

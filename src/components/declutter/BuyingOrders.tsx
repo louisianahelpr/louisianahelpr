@@ -24,6 +24,7 @@ import { refundTookItBack, type RefundTookItBack } from "@/lib/declutter/refundR
 import { endedOnPrefix } from "./DeclutterEndedSales";
 import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
+import { fetchMyRefundedCents } from "@/lib/declutter/refundedCents";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { useOpenProblems } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
@@ -265,6 +266,9 @@ export function useBuyingTracker(): BuyingTracker {
   const bookings = useQuery({ queryKey: ["declutter", "bookings", ids.join(",")], queryFn: () => fetchMyBookings(ids), enabled: ids.length > 0 });
   // A1-B2: "You paid" is the card charge (the sale plus a first purchase's setup fee), never the line's total_cents.
   const paidCents = useMyPaidCents(ids);
+  // Q2630 (audit 1102c R5): a refunded order says what came back (declutter_my_refunded_cents), never a bare "refunded".
+  const refundedIds = orders.filter((o) => o.status === "refunded").map((o) => o.orderId).sort();
+  const refundedCents = useQuery({ queryKey: ["declutter", "my-refunded-cents", refundedIds.join(",")], queryFn: () => fetchMyRefundedCents(refundedIds), enabled: refundedIds.length > 0 });
   // Audit 1b D2-2: an open problem puts the order on hold (the same key the order card reads).
   const problems = useOpenProblems(ids);
   // NIGHT-BUYINGopenpr-2: whether this buyer still owes their side of each open problem (the card reads the same key).
@@ -320,12 +324,13 @@ export function useBuyingTracker(): BuyingTracker {
     const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day)
       : whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
     const total = paidCents?.get(o.orderId) ?? null;
+    const back = facts.cancelled ? refundedCents.data?.get(o.orderId) ?? null : null;
     views.set(o.orderId, {
       orderId: o.orderId,
       facts,
       bucket,
       action: buyerNextAction(facts),
-      next: buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
+      next: back != null && back > 0 ? refundedStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
         o.handover === "delivery" ? task?.status ?? null : null,
         orderTimeWords(orderTimes, o.handover, slot), shipRows[shipOrders.indexOf(o)]?.data ?? null),
       // #6: a free item never reads like a paid order ("You paid $0").
@@ -337,6 +342,12 @@ export function useBuyingTracker(): BuyingTracker {
   const ended = endedLines(lines);
   counts.cancelled += ended.length;
   return { ready: !!cart.data, views, checkouts, ended, counts, live, bookings: bookings.data };
+}
+
+/** Q2630: "Cancelled. $42.70 was refunded to your card on Nov 2." (the day only when the server sends closed_at). */
+export function refundedStep(cents: number, closedAt: string | null): NextStepValue {
+  const day = closedAt && !Number.isNaN(Date.parse(closedAt)) ? new Date(closedAt).toLocaleDateString([], { month: "short", day: "numeric" }) : null;
+  return { who: "info", text: `Cancelled. ${formatPrice(cents)} was refunded to your card${day ? ` on ${day}` : ""}.` };
 }
 
 /**
@@ -372,7 +383,8 @@ export function BuyerOrderHead({ view, standing, open, onOpen, onClose, onAction
 }) {
   return (
     <div className="space-y-2" data-buyer-order={view.bucket}>
-      <OrderSteps facts={view.facts} />
+      {/* Q2630: a refunded order did not go ahead, so no step bar stopped at "Paid" as if it were still in progress. */}
+      {!view.facts.cancelled && <OrderSteps facts={view.facts} />}
       <NextStep value={standing ? { who: "info", text: standing } : view.next} className="!text-ds-14" />
       {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
       <div className="flex flex-wrap items-center gap-3">

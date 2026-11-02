@@ -54,6 +54,8 @@ const state = {
   problem: {} as Record<string, Record<string, unknown>>,
   /** declutter_orders.book_by / pickup_slot_start / pickup_slot_end per order (fetchOrderPickupTimes); absent = no row. */
   times: {} as Record<string, { book_by?: string | null; pickup_slot_start?: string | null; pickup_slot_end?: string | null }>,
+  /** Q2630: declutter_my_refunded_cents per order; absent = nothing came back. */
+  refunded: {} as Record<string, number>,
 };
 
 vi.mock("@/components/DateTimeField", () => ({
@@ -65,6 +67,9 @@ vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), err
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
+vi.mock("@/lib/declutter/refundedCents", () => ({
+  fetchMyRefundedCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.refunded).map((id) => [id, state.refunded[id]])),
+}));
 vi.mock("@/lib/declutter/paidCents", () => ({
   fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.paid).map((id) => [id, state.paid[id]])),
 }));
@@ -190,6 +195,7 @@ function load(cases: Case[]) {
   state.sd = Object.fromEntries(cases.filter((c) => c.sd).map((c) => [c.id, c.sd!]));
   state.tasks = Object.fromEntries(cases.filter((c) => c.task).map((c) => [`t-${c.id}`, c.task!]));
   state.times = {};
+  state.refunded = {};
 }
 
 const card = (id: string) => screen.getByText(`Item ${id}`).closest("article") as HTMLElement;
@@ -223,6 +229,22 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     const order = () => Array.from(document.querySelectorAll("article")).map((a) => /Item ([a-z0-9]+)/.exec(a.textContent ?? "")?.[1]);
     await waitFor(() => expect(order()).toEqual(["porch0", "porch3", "home1", "done", "refunded"]));
     expect(order().length).toBeGreaterThan(4);
+  });
+
+  // Q2630 (audit 1102c R5): a refunded order read as one still in progress: the step bar stopped at "Paid" and the line
+  // gave no amount. It now has no step bar and says what came back and when.
+  // @mutate src/components/declutter/BuyingOrders.tsx |       {!view.facts.cancelled && <OrderSteps facts={view.facts} />} |       {<OrderSteps facts={view.facts} />}
+  // @mutate src/components/declutter/BuyingOrders.tsx |       next: back != null && back > 0 ? refundedStep(back, o.lines[0]?.closed_at ?? null) : buyerNextStep( |       next: buyerNextStep(
+  it("Q2630: a refunded order has no step bar and says the amount refunded and the day", async () => {
+    const closed = new Date(NOW - 5 * 3_600_000);
+    load([{ id: "refunded", line: { order_status: "refunded", closed_at: closed.toISOString() }, step: 0, bucket: "cancelled", action: null },
+      { id: "home1", line: {}, slot: iso(5), step: 1, bucket: "upcoming", action: null }]);
+    state.refunded = { refunded: 4270 };
+    show();
+    const day = closed.toLocaleDateString([], { month: "short", day: "numeric" });
+    await waitFor(() => expect(card("refunded")).toHaveTextContent(`Cancelled. $42.70 was refunded to your card on ${day}.`));
+    expect(within(card("refunded")).queryAllByRole("list", { name: /^Step/ })).toHaveLength(0);
+    expect(within(card("home1")).getAllByRole("list", { name: /^Step/ }).length).toBeGreaterThan(0);
   });
 
   // T13, BUY-37: past 24 hours the closed card's head stopped being true; the new line was only inside Details.
@@ -267,7 +289,8 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     let checked = 0;
     for (const c of CASES) {
       const el = card(c.id);
-      expect(el.querySelector("[data-order-step]")?.getAttribute("data-order-step"), c.id).toBe(String(c.step));
+      // Q2630: a refunded (cancelled) order has no step bar; every other card shows its step.
+      expect(el.querySelector("[data-order-step]")?.getAttribute("data-order-step") ?? null, c.id).toBe(c.bucket === "cancelled" ? null : String(c.step));
       expect(el.querySelector("[data-buyer-order]")?.getAttribute("data-buyer-order"), c.id).toBe(c.bucket);
       const primaries = Array.from(el.querySelectorAll(".btn-grad-primary")).map((b) => b.textContent);
       expect(primaries, c.id).toEqual(c.action ? [c.action] : []);

@@ -54,6 +54,9 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   if (views && !lines.some((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id) || l.order_id === linked))) return null;
   if (!lines.some((l) => l.status === "paid" && l.order_id)) {
     const buyer = side === "buyer";
+    // Q2629 (audit 1102c R4): a sale waiting for the buyer to pay (SalesWaiting, right above) read "Sold, waiting for the
+    // buyer to pay" over "Nothing sold yet". While one waits, the empty card is left out.
+    if (!buyer && lines.some((l) => l.status === "in_cart")) return null;
     return (
       <section className="space-y-2" aria-label={buyer ? "Purchases" : "Sold: pickup and payout"}>
         <SectionHeading title={buyer ? "Purchases" : "Sold: pickup and payout"} />
@@ -74,9 +77,14 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   // Done, so the sales still to hand over are the list. A chip's own `show` (To answer's reports) is never folded.
   const done = new Set(side === "seller" && !show ? sold.filter((l) => (l.order_status === "handed_over" || l.order_status === "refunded") && !awaiting.has(l.order_id as string)).map((l) => l.order_id as string) : []);
   const allDone = done.size > 0 && sold.every((l) => done.has(l.order_id as string));
+  // Q2630 (audit 1102c R5): a refunded sale did not go ahead, so the fold never calls it a "finished sale".
+  const refundedDone = new Set(sold.filter((l) => l.order_status === "refunded" && done.has(l.order_id as string)).map((l) => l.order_id as string)).size;
+  const finishedDone = done.size - refundedDone;
+  const doneCounts = [finishedDone > 0 ? `${finishedDone} finished` : null, refundedDone > 0 ? `${refundedDone} refunded` : null].filter(Boolean).join(" and ");
+  const doneKinds = [finishedDone > 0 ? "finished" : null, refundedDone > 0 ? "refunded" : null].filter(Boolean).join(" and ");
   const doneToggle = done.size > 0 && (
     <button type="button" className="text-sm font-medium underline underline-offset-2" aria-expanded={showDone} onClick={() => setShowDone((v) => !v)} data-done-sales-toggle="">
-      {showDone ? "Hide finished sales" : `Show ${done.size} finished ${done.size === 1 ? "sale" : "sales"}`}
+      {showDone ? `Hide ${doneKinds} sales` : `Show ${doneCounts} ${done.size === 1 ? "sale" : "sales"}`}
     </button>
   );
   if (allDone && !showDone && !(linked && done.has(linked))) {

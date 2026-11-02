@@ -76,11 +76,13 @@ const FEE = 15000;
 /** The gift RPC: a dry run reports what the gift paid; a mint restores applied * bps. */
 function giftRpc(dry: Record<string, unknown> = { outcome: "would_restore", credit_id: "gift-1", applied_cents: APPLIED, restore_cents: APPLIED }) {
   scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
-    const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number };
+    const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number; p_restore_cents?: number };
     if (a.p_dry_run) return dry;
     if (dry.outcome !== "would_restore") return dry;
     const bps = a.p_share_bps ?? 10000;
-    return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: APPLIED, restore_cents: Math.floor((APPLIED * bps) / 10000) };
+    // Q1914: exact cents when given (capped to what the gift paid), else the basis-point share.
+    const cents = a.p_restore_cents !== undefined ? Math.min(Math.max(a.p_restore_cents, 0), APPLIED) : Math.floor((APPLIED * bps) / 10000);
+    return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: APPLIED, restore_cents: cents };
   };
 }
 
@@ -115,12 +117,35 @@ const restoreCalls = () =>
 const mints = () => restoreCalls().filter((c) => !c.p_dry_run);
 const restoredCents = () => {
   const m = mints()[0];
-  return m ? Math.floor((APPLIED * Number(m.p_share_bps ?? 10000)) / 10000) : null;
+  if (!m) return null;
+  if (m.p_restore_cents !== undefined) return Math.min(Math.max(Number(m.p_restore_cents), 0), APPLIED);
+  return Math.floor((APPLIED * Number(m.p_share_bps ?? 10000)) / 10000);
 };
 const feeTransferCalls = () =>
   stripeMock.transfers.create.mock.calls.filter(([p]) => (p as { metadata?: { type?: string } }).metadata?.type === "cancellation_fee");
 const jobSettles = () =>
   scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" && "payment_status" in (w.payload as Record<string, unknown>));
+
+describe("void-cancelled-payments: the gift comes back to the exact cent (Q1914)", () => {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         ...(restoreCents !== undefined ? { p_restore_cents: restoreCents } : {}), |         ...(shareBps !== undefined ? { p_share_bps: shareBps } : {}),
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |       if (rpcErr?.code === "PGRST202" && restoreCents !== undefined && shareBps !== undefined) { |       if (false) {
+  it("a database without p_restore_cents yet falls back to the basis-point share (never leaves the job stuck)", async () => {
+    seedSingle();
+    const base = scenario.rpc.restore_gift_card_for_job as (a?: unknown) => unknown;
+    scenario.rpc.restore_gift_card_for_job = (args?: unknown) =>
+      (args as { p_restore_cents?: number } | undefined)?.p_restore_cents !== undefined
+        ? { __rpcError: { message: "Could not find the function", code: "PGRST202" } }
+        : base(args);
+    const h = await load();
+    await h.fetch(cronReq());
+    const m = mints();
+    expect(m).toHaveLength(2);
+    expect(m[0].p_restore_cents).toBe(APPLIED - FEE);
+    expect(m[1].p_share_bps).toBe(5454);
+    expect(m[1].p_restore_cents).toBeUndefined();
+    expect(jobSettles()).toHaveLength(1);
+  });
+});
 
 describe("void-cancelled-payments: a fully gift-funded job's late-cancellation fee is paid from the gift (Q1806)", () => {
   beforeEach(() => {
@@ -153,8 +178,8 @@ describe("void-cancelled-payments: a fully gift-funded job's late-cancellation f
     // Sent before the gift was given back.
     expect(mintsAtTransfer).toBe(0);
     // The gift comes back less the $150, never a cent of it.
-    expect(restoredCents()).toBeLessThanOrEqual(APPLIED - FEE);
-    expect(restoredCents()).toBeGreaterThan(APPLIED - FEE - 5);
+    // Q1914: exactly applied - fee, never a basis-point floor below it.
+    expect(restoredCents()).toBe(APPLIED - FEE);
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
   });
@@ -370,8 +395,8 @@ describe("void-cancelled-payments: a fully gift-funded CREW's fee shares are pai
       expect((p as { amount: number }).amount).toBe(4400);
       expect((p as Record<string, unknown>).source_transaction).toBeUndefined();
     }
-    expect(restoredCents()).toBeLessThanOrEqual(APPLIED - FEE);
-    expect(restoredCents()).toBeGreaterThan(APPLIED - FEE - 5);
+    // Q1914: exactly applied - fee, never a basis-point floor below it.
+    expect(restoredCents()).toBe(APPLIED - FEE);
     expect(jobSettles().map((w) => w.payload)).toEqual([{ payment_status: "cancelled", cancellation_fee_status: "charged", cancellation_fee: 150 }]);
     const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
     expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$150 of it paid your crew for their time\./);
@@ -384,8 +409,7 @@ describe("void-cancelled-payments: a fully gift-funded CREW's fee shares are pai
     const h = await load();
     await h.fetch(cronReq());
     expect(feeTransferCalls()).toHaveLength(3);
-    expect(restoredCents()).toBeLessThanOrEqual(APPLIED - FEE - 2500);
-    expect(restoredCents()).toBeGreaterThan(APPLIED - FEE - 2500 - 5);
+    expect(restoredCents()).toBe(APPLIED - FEE - 2500);
     const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
     expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$175 of it paid your crew for their time and the crew members whose spots you closed close to the start\./);
   });

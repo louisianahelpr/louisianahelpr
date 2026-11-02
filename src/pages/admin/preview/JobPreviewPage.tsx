@@ -10,9 +10,9 @@
  *  - every link and navigation inside the page stays here, with the same note.
  * Admin-gated by the route (ProtectedRoute + AdminRoute, the same as /admin). Guard: src/test/adminJobPreviewIsInert.test.tsx.
  */
-import { lazy, Suspense, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { UNSAFE_NavigationContext, useNavigate, useSearchParams, type To } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -22,49 +22,13 @@ import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
 import { PREVIEW_STAGES, isPreviewStage, previewSample, type PreviewSample, type PreviewStage, type PreviewViewer } from "./jobPreviewSamples";
-import { installPreviewFetch } from "./previewBackend";
+import { installPreviewFetch, jobPreviewChecks } from "./previewBackend";
+import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, sayWouldHave, usePageSheetOpen } from "./previewParts";
 
 // The member's job page itself: the same module /jobs/:id lazy-loads (JobDetail.tsx).
 const JobPage = lazy(() => import("@/pages/jobs/jobPage/JobPage"));
 
 const PHONE_WINDOW = "lh-job-preview-phone";
-
-function toText(to: To | number): string {
-  if (typeof to === "number") return to < 0 ? "the previous screen" : "the next screen";
-  if (typeof to === "string") return to;
-  return `${to.pathname ?? ""}${to.search ?? ""}` || "another screen";
-}
-
-/** Says what a tap would have done; a burst of the same note shows once. */
-function sayWouldHave(what: string) {
-  toast(`Preview: this would ${what}.`, { id: `preview-${what}` });
-}
-
-/** The page's navigation, kept on this screen: the router's own navigator, with every move turned into a note. */
-function InertNavigation({ children }: { children: ReactNode }) {
-  const outer = useContext(UNSAFE_NavigationContext);
-  const value = useMemo(() => ({
-    ...outer,
-    navigator: {
-      ...outer.navigator,
-      push: (to: To) => sayWouldHave(`open ${toText(to)}`),
-      replace: (to: To) => sayWouldHave(`open ${toText(to)}`),
-      go: (n: number) => sayWouldHave(`go to ${toText(n)}`),
-    },
-  }), [outer]);
-  // A plain <a href> (or a router Link, which yields to an earlier preventDefault) is caught before it leaves.
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      const a = (e.target as Element | null)?.closest?.("a[href]");
-      if (!a || a.closest("[data-preview-controls]")) return;
-      e.preventDefault();
-      sayWouldHave(`open ${a.getAttribute("href")}`);
-    };
-    document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
-  }, []);
-  return <UNSAFE_NavigationContext.Provider value={value}>{children}</UNSAFE_NavigationContext.Provider>;
-}
 
 /** The preview backend, in place while this screen is open (previewBackend.ts). Children draw only once it is. */
 function PreviewBackend({ sample, children }: { sample: PreviewSample; children: ReactNode }) {
@@ -85,6 +49,7 @@ function PreviewBackend({ sample, children }: { sample: PreviewSample; children:
       sample: () => sampleRef.current,
       ownUserId: () => ownRef.current,
       onBlocked: (what) => { if (Date.now() - lastGesture < 2000) sayWouldHave(what); },
+      onUnlisted: (what) => jobPreviewChecks.onUnlisted?.(what),
     });
     setReady(true);
     return () => {
@@ -97,16 +62,54 @@ function PreviewBackend({ sample, children }: { sample: PreviewSample; children:
   return ready ? <>{children}</> : null;
 }
 
+/**
+ * Presses one control on the page once it has drawn (the Cancel sheet stage opens the poster's cancel quote). It looks
+ * on the row first, then under "More options". Never inside the preview controls.
+ */
+function useOpenOnDraw(label: string | null, key: string) {
+  useEffect(() => {
+    if (!label) return;
+    let tries = 0;
+    const find = (name: string) => Array.from(document.querySelectorAll<HTMLButtonElement>("button"))
+      .find((b) => !b.closest("[data-preview-controls]") && !b.disabled && b.textContent?.trim() === name);
+    const t = window.setInterval(() => {
+      tries++;
+      const target = find(label);
+      if (target) { target.click(); window.clearInterval(t); return; }
+      const more = find("More options");
+      if (more && tries % 4 === 1) more.click();
+      if (tries > 40) window.clearInterval(t);
+    }, 150);
+    return () => window.clearInterval(t);
+  }, [label, key]);
+}
+
 function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
   stage: PreviewStage; viewer: PreviewViewer; onStage: (s: PreviewStage) => void; onViewer: (v: PreviewViewer) => void; onLeave: () => void;
 }) {
   const [open, setOpen] = useState(true);
+  // Q2617: while one of the page's sheets is open the dock steps aside, so it never covers the sheet's buttons.
+  const sheetOpen = usePageSheetOpen();
   const label = PREVIEW_STAGES.find((s) => s.key === stage)?.label ?? stage;
   const inPhoneWindow = typeof window !== "undefined" && window.name === PHONE_WINDOW;
   const openPhone = () => {
     const w = window.open(window.location.href, PHONE_WINDOW, "popup=yes,width=375,height=812");
     if (!w) toast.error("Your browser blocked the phone window. Allow pop-ups for this site and try again.");
   };
+  if (sheetOpen) return null;
+  if (!open) {
+    // Q2617: "Hide" collapses the dock to one small button in the top corner, clear of the page's buttons.
+    return createPortal(
+      <div data-preview-controls="" data-preview-collapsed="" role="region" aria-label="Job page preview controls"
+        className="fixed right-2 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[60] pointer-events-auto">
+        <Button variant="outline" size="sm" className="rounded-full bg-card shadow-lg" onClick={() => setOpen(true)} aria-expanded={false}>
+          <PreviewGlyph d={EYE_GLYPH} className="h-4 w-4 text-primary" />
+          Preview
+        </Button>
+      </div>,
+      document.body,
+    );
+  }
   return createPortal(
     <div
       data-preview-controls=""
@@ -115,52 +118,50 @@ function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
       className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-[60] mx-auto max-w-2xl rounded-2xl border border-border bg-card p-3 shadow-lg pointer-events-auto lg:bottom-4 lg:left-[calc(var(--desktop-sidebar-w,0px)+1rem)] lg:right-auto lg:mx-0 lg:w-[34rem]"
     >
       <div className="flex items-center gap-2">
-        <PreviewGlyph d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" className="h-4 w-4 shrink-0 text-primary" />
+        <PreviewGlyph d={EYE_GLYPH} className="h-4 w-4 shrink-0 text-primary" />
         <p className="min-w-0 flex-1 truncate text-ds-14 font-semibold">
           Preview: {label} · {viewer === "poster" ? "Poster" : "Helpr"}
         </p>
-        <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-          <PreviewGlyph d={open ? "m6 9 6 6 6-6" : "m18 15-6-6-6 6"} className="h-4 w-4" />
-          {open ? "Hide" : "Change"}
+        <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setOpen(false)} aria-expanded>
+          <PreviewGlyph d="m6 9 6 6 6-6" className="h-4 w-4" />
+          Hide
         </Button>
       </div>
-      {open && (
-        <div className="mt-2 space-y-2">
-          <p className="hidden text-ds-13 text-muted-foreground lg:block">
-            Made-up job, real job page. Nothing here reads or changes a real job, and no button does anything.
-          </p>
-          {/* One row that scrolls sideways on a phone, so the page stays in view. */}
-          <div role="radiogroup" aria-label="Stage" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible">
-            {PREVIEW_STAGES.map((s) => (
-              <button
-                key={s.key}
-                type="button"
-                role="radio"
-                aria-checked={s.key === stage}
-                className={cn(CHIP, "min-h-9 shrink-0 px-3", s.key === stage ? CHIP_ON : CHIP_OFF)}
-                onClick={() => onStage(s.key)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <SegmentedControl
-              ariaLabel="Seen by"
-              className="min-w-0 flex-1"
-              value={viewer}
-              onChange={onViewer}
-              options={[{ value: "poster", label: "Poster" }, { value: "helpr", label: "Helpr" }]}
-            />
-            {inPhoneWindow ? (
-              <Button variant="outline" size="sm" className="rounded-full" onClick={() => window.close()}>Close phone window</Button>
-            ) : (
-              <Button variant="outline" size="sm" className="hidden rounded-full sm:inline-flex" onClick={openPhone}>Phone size (375)</Button>
-            )}
-            <Button variant="outline" size="sm" className="rounded-full" onClick={onLeave}>Leave</Button>
-          </div>
+      <div className="mt-2 space-y-2">
+        <p className="hidden text-ds-13 text-muted-foreground lg:block">
+          Made-up job, real job page. Nothing here reads or changes a real job, and no button does anything.
+        </p>
+        {/* One row that scrolls sideways on a phone, so the page stays in view. */}
+        <div role="radiogroup" aria-label="Stage" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible">
+          {PREVIEW_STAGES.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              role="radio"
+              aria-checked={s.key === stage}
+              className={cn(CHIP, "min-h-9 shrink-0 px-3", s.key === stage ? CHIP_ON : CHIP_OFF)}
+              onClick={() => onStage(s.key)}
+            >
+              {s.label}
+            </button>
+          ))}
         </div>
-      )}
+        <div className="flex flex-wrap items-center gap-2">
+          <SegmentedControl
+            ariaLabel="Seen by"
+            className="min-w-0 flex-1"
+            value={viewer}
+            onChange={onViewer}
+            options={[{ value: "poster", label: "Poster" }, { value: "helpr", label: "Helpr" }]}
+          />
+          {inPhoneWindow ? (
+            <Button variant="outline" size="sm" className="rounded-full" onClick={() => window.close()}>Close phone window</Button>
+          ) : (
+            <Button variant="outline" size="sm" className="hidden rounded-full sm:inline-flex" onClick={openPhone}>Phone size (375)</Button>
+          )}
+          <Button variant="outline" size="sm" className="rounded-full" onClick={onLeave}>Leave</Button>
+        </div>
+      </div>
     </div>,
     document.body,
   );
@@ -178,31 +179,24 @@ export default function JobPreviewPage() {
   const set = (next: { stage?: PreviewStage; viewer?: PreviewViewer }) =>
     setParams({ stage: next.stage ?? stage, viewer: next.viewer ?? viewer }, { replace: true });
 
+  useOpenOnDraw(sample.opens, `${stage}-${viewer}`);
+
+  // The backend wraps everything this screen draws, the controls too, and stays until the route unmounts; a crash in
+  // the page is caught INSIDE it (PreviewErrorBoundary), so nothing ever falls back to the real network.
   return (
-    <>
-      <PreviewBackend sample={sample}>
-        <QueryClientProvider client={client}>
-          <InertNavigation>
+    <PreviewBackend sample={sample}>
+      <QueryClientProvider client={client}>
+        <InertNavigation>
+          <PreviewErrorBoundary resetKey={`${stage}-${viewer}`}>
             <Suspense fallback={<div role="status" aria-busy="true" aria-label="Loading job"><JobCardSkeleton /></div>}>
               <JobPage key={`${stage}-${viewer}`} id={sample.jobId} userId={sample.userId} />
             </Suspense>
-          </InertNavigation>
-        </QueryClientProvider>
-      </PreviewBackend>
-      <PreviewControls stage={stage} viewer={viewer} onStage={(s) => set({ stage: s })} onViewer={(v) => set({ viewer: v })} onLeave={() => navigate("/admin?view=jobs")} />
-    </>
-  );
-}
-
-/**
- * The preview's three marks (eye, chevron down/up), drawn inline instead of from lucide-react (B111, 11-01): a new
- * importer of lucide icons regroups the entriesAware icon chunks, and the extra group was named in the entry's preload
- * lists (entry 5363 -> 5383 B gz, over budget; ~/.lh-shots/b111/cp-prev1.log). Same 24-unit stroke style as lucide.
- */
-function PreviewGlyph({ d, className }: { d: string; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
-      <path d={d} />
-    </svg>
+          </PreviewErrorBoundary>
+        </InertNavigation>
+      </QueryClientProvider>
+      <PreviewErrorBoundary resetKey="controls">
+        <PreviewControls stage={stage} viewer={viewer} onStage={(s) => set({ stage: s })} onViewer={(v) => set({ viewer: v })} onLeave={() => navigate("/admin?view=jobs")} />
+      </PreviewErrorBoundary>
+    </PreviewBackend>
   );
 }

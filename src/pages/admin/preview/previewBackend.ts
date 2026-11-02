@@ -13,6 +13,9 @@
  */
 import type { PreviewSample } from "./jobPreviewSamples";
 
+/** Tests set this to fail on a read the sample does not answer (audit 1102b; the Declutter preview's pattern, B172). */
+export const jobPreviewChecks: { onUnlisted?: (what: string) => void } = {};
+
 export interface PreviewRequestLog {
   method: string;
   path: string;
@@ -29,11 +32,12 @@ export interface PreviewBackendOptions {
   realFetch: typeof fetch;
   /** A write or action the page tried; the caller says "Preview: this would …". */
   onBlocked: (what: string) => void;
+  /** An RPC or table the sample does not answer (answered null / [] without being sent). Tests make it fail. */
+  onUnlisted?: (what: string) => void;
 }
 
 /** RPCs that only read. Everything else is treated as an action and never sent. */
 const READ_RPC = /^(get_|list_|fetch_|can_|is_|has_|count_|check_|search_)|_candidates$|_state$|_stats$/;
-const SCALAR_RPC = /^(can_|is_|has_|check_)/;
 const OWN_ROW_TABLES = new Set(["profiles", "user_roles"]);
 /** The admin's own feature switches: sent, so the page draws with the switches the app really has on. */
 const PASS_THROUGH_RPC = new Set(["feature_switches_for_me"]);
@@ -67,7 +71,10 @@ function eqFilter(url: URL, column: string): string | null {
   return v?.startsWith("eq.") ? decodeURIComponent(v.slice(3)) : null;
 }
 
-function tableRows(table: string, url: URL, s: PreviewSample): unknown[] {
+function tableRows(table: string, url: URL, s: PreviewSample): unknown[] | undefined {
+  // A series' visits (seriesDates.ts reads jobs by parent_job_id): their own rows, never the job itself.
+  if (table === "jobs" && url.searchParams.has("parent_job_id")) return s.tables["jobs?parent_job_id"];
+  if (Object.prototype.hasOwnProperty.call(s.tables, table)) return s.tables[table];
   const job = { ...s.job };
   switch (table) {
     case "jobs":
@@ -82,10 +89,10 @@ function tableRows(table: string, url: URL, s: PreviewSample): unknown[] {
       return s.trackingStatus ? [{ status: s.trackingStatus, job_id: s.jobId }] : [];
     case "group_job_helpers": {
       const who = eqFilter(url, "helper_id");
-      return s.crew.filter((h) => !who || h === who).map((h, i) => ({ id: `00000000-0000-4000-c000-${String(i + 1).padStart(12, "0")}`, helper_id: h, job_id: s.jobId }));
+      return s.crew.filter((h) => !who || h === who).map((h, i) => ({ id: `00000000-0000-4000-c000-${String(i + 1).padStart(12, "0")}`, helper_id: h, job_id: s.jobId, status: "accepted", helper_confirmed_at: s.job.helper_confirmed_at ?? null }));
     }
     default:
-      return [];
+      return undefined;
   }
 }
 
@@ -96,6 +103,11 @@ function rpcAnswer(name: string, body: Record<string, unknown>, s: PreviewSample
       // get_safe_profiles rows carry user_id (pickRequestedProfile reads it), not id.
       return s.profiles.filter((p) => ids.includes(p.id)).map((p) => ({ ...p, user_id: p.id }));
     }
+    case "get_public_profile_stats": {
+      const ids = Array.isArray(body.p_user_ids) ? (body.p_user_ids as string[]) : [];
+      const rows = (s.reads.get_public_profile_stats ?? []) as Array<{ user_id: string }>;
+      return rows.filter((r) => ids.includes(r.user_id));
+    }
     case "get_my_pending_direct_offers":
       return s.pendingOffer ? [s.pendingOffer] : [];
     case "get_job_offer_targets":
@@ -105,7 +117,8 @@ function rpcAnswer(name: string, body: Record<string, unknown>, s: PreviewSample
     case "get_jobs_for_my_applications":
       return !s.party && s.applications.some((a) => a.helper_id === s.userId) ? [{ ...s.job }] : [];
     default:
-      return SCALAR_RPC.test(name) ? null : [];
+      if (Object.prototype.hasOwnProperty.call(s.reads, name)) return s.reads[name];
+      return undefined;
   }
 }
 
@@ -134,13 +147,17 @@ function createPreviewFetch(o: PreviewBackendOptions): { fetch: typeof fetch; lo
         note("passed");
         return o.realFetch(input, init);
       }
-      if (READ_RPC.test(name)) {
+      const out = rpcAnswer(name, bodyJson(init), s);
+      if (out !== undefined) {
         note("sample");
-        const out = rpcAnswer(name, bodyJson(init), s);
-        return json(out, 200, Array.isArray(out) ? out.length : undefined);
+        return Array.isArray(out) ? json(out, 200, out.length) : json(out);
       }
+      // Not in the sample: answered null (never [], which drew made-up states in the Declutter preview, audit 1102c P1)
+      // and never sent. It is reported (the page test fails on one the page makes as it draws), and an action says
+      // what it would have done.
       note("blocked");
-      o.onBlocked(name.replace(/^rpc_/, "").replace(/_/g, " "));
+      o.onUnlisted?.(`rpc ${name}`);
+      if (!READ_RPC.test(name)) o.onBlocked(`run "${name}"`);
       return json(null);
     }
     const table = path.match(/^\/rest\/v1\/([^/]+)$/)?.[1];
@@ -151,7 +168,9 @@ function createPreviewFetch(o: PreviewBackendOptions): { fetch: typeof fetch; lo
         return o.realFetch(input, init);
       }
       note("sample");
-      const rows = tableRows(table, u, s);
+      const listed = tableRows(table, u, s);
+      if (listed === undefined) o.onUnlisted?.(`table ${table}`);
+      const rows = listed ?? [];
       if (method === "HEAD") return json(undefined, 200, rows.length);
       if (accept.includes("vnd.pgrst.object+json")) {
         return rows.length === 1

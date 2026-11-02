@@ -297,6 +297,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
           (/suggested_time_not_agreed/.test(String((error as { message?: unknown }).message ?? ""))
             ? "This applicant suggested a different day or time. Refresh, then hire them to agree to it."
             : null) ??
+          // Also a TRIGGER's (enforce_test_account_off_real_jobs, 20261102071213, Q1755): the App Review
+          // account may apply to a real job but is never hired, offered or put on a crew. Plain words, no reason.
+          (/test_account_real_job/.test(String((error as { message?: unknown }).message ?? ""))
+            ? "This applicant can't be hired. Pick someone else."
+            : null) ??
           "Couldn't send the offer — please try again.",
       );
     }

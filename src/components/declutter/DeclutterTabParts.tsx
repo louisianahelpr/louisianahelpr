@@ -6,6 +6,7 @@
  * component size threshold; DeclutterTradeViews re-exports all three.
  */
 import { useState, type ReactNode } from "react";
+import { useOpenProblems } from "./useOpenProblems";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { useQuery } from "@tanstack/react-query";
 import { HandCoins, PackageCheck, type LucideIcon } from "lucide-react";
@@ -51,6 +52,11 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   const todo = declutterTodo(lines, []);
   const [showDone, setShowDone] = useState(false);
   const linked = useLinkedOrder(); // BUY-30: the order a notice opened is never folded away or hidden by a chip
+  // Q2631 (audit 1102c R6): an order on hold for a problem is not "to hand over" (its card says "On hold until the
+  // problem is decided."). The same read and key the order cards make (useOpenProblems), so it adds no request.
+  const problems = useOpenProblems(lines.filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id as string), side === "seller");
+  const held = new Set(lines.filter((l) => l.status === "paid" && l.order_status === "paid" && l.handover !== "delivery" && l.order_id && problems.has(l.order_id)).map((l) => l.order_id as string)).size;
+  const toHandOver = Math.max(0, todo.salesOpen - held);
   // A3-78: a finished sale still waiting on the seller (a refund request to answer, the item back to confirm) is never
   // folded away: the seller's one deadline on the tab stays in the list.
   const awaiting = useSellerReportsToAnswer();
@@ -97,7 +103,7 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   if (allDone && !showDone && !(linked && done.has(linked))) {
     return (
       <section className="space-y-2" aria-label={sellerTitle}>
-        <SectionHeading title={sellerTitle} todo={todo.salesOpen} todoWords="to hand over" />
+        <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />
         <p className="text-sm text-muted-foreground">Nothing to hand over right now.</p>
         {doneToggle}
       </section>
@@ -114,7 +120,7 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
         ended ? <></>
         : side === "buyer"
           ? views ? <SectionHeading title="Your orders" /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
-          : <SectionHeading title={sellerTitle} todo={todo.salesOpen} todoWords="to hand over" />
+          : <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />
       }
     />
     {doneToggle}

@@ -725,7 +725,8 @@ test.describe("My Posts — card density + header", () => {
     // The More panel is a Radix popover (role=dialog too) and can still be in
     // the DOM, closing, when Edit's sheet opens: main went red on exactly that
     // ("resolved to 2 elements", 2026-10-09). The overflow panel is not the modal.
-    const modal = page.locator('[role="dialog"]:not([data-job-step-overflow-panel]), [role="alertdialog"]');
+    // Job page v2: the More options sheet ([data-row-options]) can still be in the DOM, closing, when Edit's sheet opens.
+    const modal = page.locator('[role="dialog"]:not([data-job-step-overflow-panel]):not([data-row-options]), [role="alertdialog"]');
     await expect(modal).toBeVisible();
 
     // ...and the card underneath did NOT collapse. Dismiss the modal first:

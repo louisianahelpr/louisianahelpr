@@ -15,8 +15,8 @@
  * Behaviour, every edge on a fixed clock, red with LH_PROOF_REVERT=1 (9 FAILED):
  *   node src/test/pglite/applicantNudgesAndFilledNotice.pglite.mjs   (26 PASS)
  *
- * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |     ELSIF NEW.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW.helper_id IS DISTINCT FROM job_helper |     ELSIF false AND NEW.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW.helper_id IS DISTINCT FROM job_helper
- * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |       v_link := '/jobs?tab=browse' \|\| CASE |       v_link := '/jobs?job=' \|\| NEW.job_id::text \|\| CASE
+ * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql |     ELSIF NEW.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW.helper_id IS DISTINCT FROM job_helper |     ELSIF false AND NEW.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW.helper_id IS DISTINCT FROM job_helper
+ * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | this time. Tap to see similar open jobs.';\n      v_link := '/jobs?tab=browse' \|\| CASE | this time. Tap to see similar open jobs.';\n      v_link := '/jobs?job=' \|\| NEW.job_id::text \|\| CASE
  * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |       HAVING min(a.created_at) <= v_now - interval '24 hours' |       HAVING min(a.created_at) <= v_now - interval '1 hours'
  * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |          AND min(a.created_at) > v_now - interval '72 hours' |          AND true
  * @mutate supabase/migrations/20261030150630_applicant_nudges_and_filled_notice.sql |   IF v_hour < 8 OR v_hour >= 20 THEN |   IF false THEN
@@ -58,7 +58,11 @@ describe("UX-3: the filled notice", () => {
   it("notify_on_application tells the other applicants kindly, with similar open jobs", () => {
     const b = body("notify_on_application");
     expect(b).toMatch(/ELSIF NEW\.closed_reason IS NULL AND job_helper IS NOT NULL AND NEW\.helper_id IS DISTINCT FROM job_helper AND \(NEW\.decline_reason IS NULL OR btrim\(NEW\.decline_reason\) = ''\) THEN/);
-    const branch = b.slice(b.indexOf("ELSIF NEW.closed_reason IS NULL AND job_helper IS NOT NULL"));
+    // Up to the not-picked branch: since 20261030220537 that branch sets the same browse link, and a slice to the end
+    // of the body stayed green with the filled branch's link gone (found by its @mutate line, 2026-11-01).
+    const start = b.indexOf("ELSIF NEW.closed_reason IS NULL AND job_helper IS NOT NULL");
+    const end = b.indexOf("v_title := 'Not picked this time'", start);
+    const branch = b.slice(start, end > start ? end : undefined);
     expect(branch).toMatch(/^[\s\S]*?v_title := 'This job was filled';/);
     expect(branch).toMatch(/^[\s\S]*?'Thanks for applying to "' \|\| COALESCE\(job_title, 'this job'\) \|\| '"\. They picked someone else this time\. Tap to see similar open jobs\.'/);
     expect(branch).toMatch(/^[\s\S]*?v_link := '\/jobs\?tab=browse' \|\| CASE WHEN job_cat IS NOT NULL THEN '&cat=' \|\| job_cat ELSE '' END;/);

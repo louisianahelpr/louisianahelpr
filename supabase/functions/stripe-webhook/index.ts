@@ -324,6 +324,28 @@ serve(async (req) => {
       // only; a recipient email with no account, or a real one, is not applied.
       if (event.type.startsWith("checkout.session.") && !(await testGiftIsTestToTest(supabase, eventObject))) {
         console.error(JSON.stringify({ event: "stripe_test_gift_not_test_to_test", event_id: event.id, event_type: event.type }));
+        // Q1907: create-gift-card-checkout pre-registered this gift (payment_status 'pending'). Refused, it would stay
+        // pending forever, the money-in-no-credit shape checkoutSessionExpired.ts says must be reported. It is closed
+        // as expired (never applied); a paid or already-closed row is left alone, and no pre-registered row is fine.
+        const giftSessionId = (eventObject as { id?: unknown } | null)?.id;
+        if (typeof giftSessionId === "string" && giftSessionId) {
+          const { data: closed, error: closeErr } = await supabase
+            .from("gift_cards")
+            .update({ status: "expired" })
+            .eq("stripe_session_id", giftSessionId)
+            .eq("payment_status", "pending")
+            .neq("status", "expired")
+            .select("id");
+          if (closeErr) {
+            // Not acknowledged: Stripe retries, so the pending row is never left behind silently.
+            console.error(JSON.stringify({ event: "stripe_test_gift_refused_close_failed", event_id: event.id, session_id: giftSessionId, error: closeErr.message }));
+            return new Response(JSON.stringify({ error: "test_gift_close_failed" }), {
+              headers: { "Content-Type": "application/json" },
+              status: 500,
+            });
+          }
+          console.log(JSON.stringify({ event: "stripe_test_gift_refused_closed", event_id: event.id, session_id: giftSessionId, closed: closed?.length ?? 0 }));
+        }
         await postSlackOpsAlert({
           kind: "stripe_webhook_error",
           severity: "warning",

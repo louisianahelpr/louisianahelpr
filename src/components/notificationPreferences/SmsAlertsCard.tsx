@@ -29,8 +29,11 @@ const QUERY_KEY = ["sms-consent"] as const;
  * Consent is ONLY the unticked box below, ticked by the member, for the
  * number typed here, AND the code from the one confirmation text that ticking
  * sends: the phone replies YES <code>, or the member types the code here
- * (double opt-in; Q2337). A phone
- * saved on the profile is never treated as consent and is not pre-filled.
+ * (double opt-in; Q2337). A phone saved on the profile is never treated as
+ * consent. It is pre-filled only in the "has_phone" prompt (`prefillPhone`;
+ * Q2646, account audit 1102d row 5: that prompt asks a member who already gave
+ * a phone to turn texts on, then made them retype it); the box stays unticked,
+ * so consent is unchanged.
  * The server (set_sms_consent) refuses a NEW request while the switch is off
  * for this account; turning texts off always works, so a member who is opted
  * in or pending still sees this card (with only "turn off") if the switch is
@@ -41,7 +44,7 @@ const QUERY_KEY = ["sms-consent"] as const;
  * no "Turn off" (that is Settings' job); `onAllSet` fires once texts are on,
  * with `alreadyOn` true when they were on from the first read.
  */
-export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = false }: { inPrompt?: boolean; onAllSet?: (alreadyOn: boolean) => void; atTop?: boolean } = {}) {
+export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = false, prefillPhone = null }: { inPrompt?: boolean; onAllSet?: (alreadyOn: boolean) => void; atTop?: boolean; prefillPhone?: string | null } = {}) {
   const enabled = useFeature("sms_alerts");
   const { user } = useAuthReady();
   const queryClient = useQueryClient();
@@ -63,7 +66,8 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
     refetchInterval: (q) => (smsConfirmWaitingFresh(q.state.data) ? 3000 : false),
   });
 
-  const [phone, setPhone] = useState("");
+  // The profile's number, shown the way the box formats it; only a valid US number, never half a one.
+  const [phone, setPhone] = useState(() => formatUsPhone(normalizeUsPhone(prefillPhone ?? "")));
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
   // Q2337: the code from the confirmation text, typed here. It confirms only THIS account (confirm_sms_code checks
@@ -74,6 +78,11 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
   useEffect(() => {
     if (consent?.phone_e164) setPhone(formatUsPhone(consent.phone_e164));
   }, [consent?.phone_e164]);
+  // The profile can arrive after the card mounts: fill an untouched empty box once.
+  const prefilled = formatUsPhone(normalizeUsPhone(prefillPhone ?? ""));
+  useEffect(() => {
+    if (prefilled) setPhone((cur) => cur || prefilled);
+  }, [prefilled]);
 
   const optedIn = consent?.sms_opt_in === true;
   // What the FIRST read said: on from the start means the prompt had nothing to ask.

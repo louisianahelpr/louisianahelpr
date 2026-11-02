@@ -832,12 +832,33 @@ describe("process-scheduled-payouts edge function", () => {
     });
 
     // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (pi.status !== "succeeded" && isPifFunded) { | if (false) {
-    it("counts an uncaptured card leg as zero instead of blocking the gift's share", async () => {
-      seedMixed("requires_payment_method");
+    it("counts a not-yet-captured (held) card leg as zero instead of blocking the gift's share", async () => {
+      seedMixed("requires_capture");
       scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 10000 };
       await runCron();
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
       expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
+    });
+
+    // Q1975 part 2 (lead decision 11-01: 'failed' wins): a FAILED card/bank
+    // leg is never paid from the gift alone; the job is skipped and ops told.
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (isPifFunded && (pi.status === "requires_payment_method" \|\| pi.status === "canceled")) { | if (false) {
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (isPifFunded && (pi.status === "requires_payment_method" \|\| pi.status === "canceled")) { | if (isPifFunded && pi.status === "requires_payment_method") {
+    it("never pays a gift + card job whose card or bank leg FAILED from the gift alone (Q1975)", async () => {
+      for (const status of ["requires_payment_method", "canceled"]) {
+        resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+        resetSupabaseMock();
+        resetSharedMocks();
+        seedMixed(status);
+        scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 10000 };
+        const res = await runCron();
+        const body = await json(res);
+        expect((body.results as Array<Record<string, unknown>>)[0].status, status).toBe("gift_job_card_leg_failed");
+        expect(stripeMock.transfers.create, status).not.toHaveBeenCalled();
+        expect((slackAlerts as Array<{ title?: string; kind?: string }>).some(
+          (a) => a.kind === "money_at_risk" && /card or bank payment failed/.test(a.title ?? ""),
+        ), status).toBe(true);
+      }
     });
 
     it("defers (verify_error) when the card leg cannot be read, rather than capping at the gift", async () => {

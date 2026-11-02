@@ -1399,7 +1399,25 @@ serve(async (req) => {
             // function could transfer more than was ever collected.
             const captured = resolveCapturedEscrow(pi);
 
-            if (pi.status !== "succeeded" && isPifFunded) {
+            if (isPifFunded && (pi.status === "requires_payment_method" || pi.status === "canceled")) {
+              // Q1975 part 2 (lead decision 11-01: 'failed' wins): the card or
+              // bank leg of a gift + card job FAILED. stripe-webhook flips such
+              // a job to 'failed' and gives the gift back; it is never paid from
+              // the gift alone. Reaching here means that event has not landed
+              // (or was missed): skip, and tell ops once a day.
+              console.error(`Gift job ${job.id}: its card/bank leg ${paymentIntentId} is "${pi.status}" (failed); not paid from the gift alone.`);
+              results.push({ job_id: job.id, status: "gift_job_card_leg_failed", skipped: true });
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "warning",
+                seed: job.is_seed === true,
+                title: "Payout skipped: a gift + card job's card or bank payment failed",
+                message: `Job ${job.id} was paid partly by gift card and partly by card or bank, and that payment (${paymentIntentId}) is ${pi.status}. It is not paid from the gift alone. stripe-webhook normally marks such a job failed and gives the gift back; if the job is still in payout_pending, set payment_status to 'failed' and run return_bounced_gift_card for it.`,
+                fields: { job_id: job.id, payment_intent: paymentIntentId, pi_status: pi.status },
+                oncePerDayKey: `psp-gift-job-card-leg-failed:${job.id}`,
+              });
+              continue;
+            } else if (pi.status !== "succeeded" && isPifFunded) {
               // A mixed job's card leg that never captured has no money behind
               // it: it adds nothing and the gift alone caps the payout (Q1210).
               console.warn(`Gift job ${job.id}: shortfall intent ${paymentIntentId} is "${pi.status}", so its card leg counts as 0.`);

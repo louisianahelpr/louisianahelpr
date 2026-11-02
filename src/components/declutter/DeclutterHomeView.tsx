@@ -27,8 +27,8 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
 import { soldPayoutWords } from "@/lib/declutter/soldPayout";
-import { DeclutterNotice, sellerStatusLabel } from "./declutterUi";
-import { ChevronRight, Settings } from "lucide-react";
+import { sellerStatusLabel } from "./declutterUi";
+import { ChevronRight, Settings, Tags } from "lucide-react";
 import { SellChooserEntry } from "./SellChooserEntry";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
@@ -60,6 +60,7 @@ import {
 } from "@/lib/declutter/tabs";
 import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine } from "./DeclutterHaulAway";
 import { DonationReceipts } from "./DeclutterDonate";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { report } from "@/lib/errorLogger";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 // Types only: the predicates (oneTripGroup, haulJobToDelete) come with the lazily loaded haul-away code (Q178).
@@ -260,14 +261,15 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
         {/* D3 (Cowork audit 2026-10-20): the copy said 'Tap "Sell an item"' with no
             such button on screen (only the top bar's "+"). The action is here, as
             the section's own pill, to the same path as the "+". */}
-        <DeclutterNotice title="You haven't listed anything yet.">
-          Take a few photos and set your price. Listing is free.
-          <div>
+        {/* Q2639 (audit 1102c R14): the same dashed, iconed empty card as "No offers yet" and "Nothing sold yet". */}
+        <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet." data-seller-empty=""
+          action={(
             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>
               {sectionByKey("declutter").add.label}
             </SectionActionPill>
-          </div>
-        </DeclutterNotice>
+          )}>
+          Take a few photos and set your price. Listing is free.
+        </DeclutterEmptyCard>
         {/* Q2667: a donation that took the last item still shows its receipt (HaulAwayCard, below, is not drawn here). */}
         {haulOn && <DonationReceipts />}
       </section>

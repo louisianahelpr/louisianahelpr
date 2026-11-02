@@ -1936,20 +1936,20 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
   });
   beforeEach(() => { continueState.row = null; continueCalls.length = 0; Element.prototype.scrollTo ??= () => {}; });
 
-  it("the Helpr: no 'Mark job complete' before the day; Message leads and the note says when", async () => {
+  it("the Helpr: no 'Mark it done' before the day; Message leads and the note says when", async () => {
     state.job = underWay({ customer_id: POSTER, helper_id: ME, proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"] });
     state.tracking = "working";
     state.party = true;
     const { unmount } = renderPage();
     // Without a day the same job leads with the done step (the fixture is the audit's state).
     await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
-    expect(within(document.querySelector('[data-job-row="helpr"]') as HTMLElement).getAllByRole("button").map(fullName)).toContain("Mark job complete");
+    expect(within(document.querySelector('[data-job-row="helpr"]') as HTMLElement).getAllByRole("button").map(fullName)).toContain("Mark it done");
     unmount();
     continueState.row = setDay({ proposed_by: POSTER });
     renderPage();
     await screen.findByText(/You can mark it done on/);
     const names = within(document.querySelector('[data-job-row="helpr"]') as HTMLElement).getAllByRole("button").map(fullName);
-    expect(names).not.toContain("Mark job complete");
+    expect(names).not.toContain("Mark it done");
     expect(names[names.length - 1]).toBe("Message Rhonda");
     expect(screen.getByText(/You can mark it done on \w{3} \d+\/\d+, the day you set to finish\./)).toBeTruthy();
   });

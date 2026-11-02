@@ -254,14 +254,19 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
   );
 }
 
-/** Buying: the member's open asks for free items (Q2487), "You asked for <item>", each opening its item page. */
-export function MyFreeAsks() {
+/** The member's open asks for free items (Q2487): one read for the list below and Buying's empty notice. */
+export function useMyFreeAsks() {
   const { user } = useCurrentUser();
-  const asks = useQuery({
+  return useQuery({
     queryKey: ["declutter", "my-free-requests", user?.id ?? null],
     queryFn: () => fetchMyFreeRequests(user!.id),
     enabled: !!user,
   });
+}
+
+/** Buying: the member's open asks for free items (Q2487), "You asked for <item>", each opening its item page. */
+export function MyFreeAsks() {
+  const asks = useMyFreeAsks();
   if (asks.isError) {
     return <ErrorState variant="inline" title="We couldn't load your asks for free items." body={declutterErrorMessage(asks.error)} onRetry={() => void asks.refetch()} />;
   }

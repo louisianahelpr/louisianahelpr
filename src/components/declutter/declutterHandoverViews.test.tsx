@@ -1636,6 +1636,30 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     expect(screen.getByText("Seller delivery panel")).toBeInTheDocument();
   });
 
+  // A3-71: past its hour the seller's line said "deliver it at the time below" with the past time under it, and still
+  // said it after the buyer reported it never came. Late says so; reported asks for the answer by its deadline.
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | side === "seller" && late) return | side === "seller" && false) return
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | side === "seller" && reportedBy) return | side === "seller" && false) return
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | Date.now() >= Date.parse(p.not_delivered_from) | Date.now() < Date.parse(p.not_delivered_from)
+  it("A3-71: a late seller delivery says Late, and a reported one asks for the answer by its time", async () => {
+    const base = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null };
+    state.sd = { ...base, not_delivered_from: "2026-10-31T15:00:00Z" };
+    show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
+    expect(await screen.findByText("Late: deliver it now or ask for a new time. The buyer can now say it didn't come.")).toBeInTheDocument();
+    expect(screen.queryByText("Next: deliver it at the time below")).toBeNull();
+    cleanup();
+    // Not yet past the point: the old line stands.
+    state.sd = { ...base, not_delivered_from: "2099-01-01T00:00:00Z" };
+    show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
+    expect(await screen.findByText("Next: deliver it at the time below")).toBeInTheDocument();
+    cleanup();
+    state.sd = { ...base, not_delivered_from: "2026-10-31T15:00:00Z" };
+    state.handover = { side: "seller", no_show_reported_at: "2026-11-01T10:00:00Z", no_show_answer_by: "2026-11-02T22:32:00Z" };
+    show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 2800, delivery_cents: 800 })]);
+    expect(await screen.findByText(/^Next: answer the buyer by .+\. They say it wasn't delivered\.$/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Late:/)).toBeNull();
+  });
+
   // AUD31-1: the seller who delivers is paid the items AND the delivery; the note says both, once.
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const sellerCents = itemsCents + Math.max(0, deliveryCents); |   const sellerCents = itemsCents;
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         deliveryCents={b.data.delivery_cents ?? 0} /> |         />

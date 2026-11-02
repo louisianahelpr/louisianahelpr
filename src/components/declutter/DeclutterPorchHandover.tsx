@@ -84,7 +84,15 @@ function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: s
 }
 
 /** DC-16: a seller-delivers sale, in the same words (OrderSteps: Paid -> Time booked -> Delivered -> Done). */
-function deliveryStanding(side: "buyer" | "seller", at: number, free: boolean): NextStepValue {
+const answerByWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+
+/** A3-71: the seller's line once the hour has passed (late), or once the buyer says it never came (reported). */
+export const SELLER_DELIVERY_LATE = "Late: deliver it now or ask for a new time. The buyer can now say it didn't come.";
+export const sellerDeliveryReported = (by: string) => `Answer the buyer by ${answerByWords(by)}. They say it wasn't delivered.`;
+
+function deliveryStanding(side: "buyer" | "seller", at: number, free: boolean, late = false, reportedBy: string | null = null): NextStepValue {
+  if (at === 1 && side === "seller" && reportedBy) return { who: "you", text: sellerDeliveryReported(reportedBy) };
+  if (at === 1 && side === "seller" && late) return { who: "info", text: SELLER_DELIVERY_LATE };
   if (at === 0) return side === "buyer" ? { who: "you", text: "Pick a delivery time" } : { who: "them", text: `${free ? "Claimed" : "Paid"}. Waiting on the buyer to pick a delivery time.` };
   if (at === 1) return side === "seller" ? { who: "you", text: "Deliver it at the time below" } : { who: "info", text: "Booked. The delivery time is below." };
   if (at === 2) return side === "buyer" ? { who: "you", text: "Tap I got it once you have it" } : { who: "them", text: "Delivered. Waiting on the buyer to say they have it." };
@@ -192,6 +200,8 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
   const b = useQuery({ queryKey: ["declutter", "seller-delivery-booking", orderId], queryFn: () => fetchSellerDeliveryBooking(orderId) });
   const free = itemsCents === 0;
   const totalCents = useMyPaidCents([orderId], side === "buyer" && !free)?.get(orderId) ?? null;
+  // A3-71: the buyer's "it wasn't delivered" report (and the seller's answer-by) lives on the handover row.
+  const h = useMyHandover(orderId);
   if (b.isError || !b.data) return null;
   const facts: OrderFacts = {
     handover: "seller_delivery", side, free,
@@ -207,10 +217,13 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
   const moveAskedOfMe = !done && !facts.delivered && p.proposed_start && p.proposed_by && p.proposed_by !== side
     ? `Accept the ${p.proposed_by}'s new time, ${slotLabel(p.proposed_start)}, or keep yours, below`
     : null;
+  // Late: booked, not marked delivered, and past the point the buyer may say it didn't come (as BuyingOrders reads it).
+  const late = facts.booked && !facts.delivered && !!p.not_delivered_from && Date.now() >= Date.parse(p.not_delivered_from);
+  const reportedBy = !done && !facts.delivered ? (h.data?.no_show_answer_by ?? null) : null;
   return (
     <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
-      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : moveAskedOfMe ? { who: "you", text: moveAskedOfMe } : deliveryStanding(side, at, free)} />
+      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : moveAskedOfMe ? { who: "you", text: moveAskedOfMe } : deliveryStanding(side, at, free, late, reportedBy)} />
       <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it"
         deliveryCents={b.data.delivery_cents ?? 0} />
     </div>

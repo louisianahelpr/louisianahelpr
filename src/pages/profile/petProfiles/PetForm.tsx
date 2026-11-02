@@ -165,7 +165,7 @@ export function PetForm({
     }
   };
 
-  const saveLabel = saving ? "Saving…" : initialValues ? "Save Changes" : "Add Pet";
+  const saveLabel = saving ? "Saving…" : initialValues ? "Save changes" : "Add Pet";
 
   // ── The form itself ──────────────────────────────────────────────────────
   // ONE body, rendered into two shells (the popup on mobile, the desktop

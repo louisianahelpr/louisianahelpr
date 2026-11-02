@@ -40,7 +40,7 @@ export function termsReconsentEligible(
  * gate). The dialog then does its own read and opens (it stays the one place
  * the rule and the write live). No profile yet fetches nothing: the same
  * fail-closed choice the dialog makes. Once fetched it stays mounted, so it
- * can close by itself after I Agree.
+ * can close by itself after I agree.
  *
  * Guard: src/test/chromeWaitsOnlyForItsOwnCode.test.tsx.
  */

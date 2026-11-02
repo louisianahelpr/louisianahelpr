@@ -179,7 +179,7 @@ export async function getSession(api: APIRequestContext, role: Role, fresh = fal
     // the page: e2e-journeys 37554735234 (2026-10-07, nightly-red #2436) lost
     // 4 of its 5 failures to it ("Please Take a Moment to Re-Agree" over
     // /post-job, /profile and /messages) after LATEST_TERMS_VERSION moved to
-    // "Oct 2026". Accept the current Terms as the user, exactly as "I Agree"
+    // "Oct 2026". Accept the current Terms as the user, exactly as "I agree"
     // would; the local path (scripts/test-signin-link.mjs) already does.
     await acceptCurrentTerms(SUPABASE_URL, ANON, session.access_token, session.user.id); // TERMS-CONSENT at mint
     // Q552: with the launch switch on, a shared account that is not a row in

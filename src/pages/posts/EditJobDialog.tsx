@@ -252,7 +252,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       {/* NOT `role="alertdialog"` — that is the shared Dialog kit's signal
           that every DialogPrimaryAction/DialogSecondaryAction inside auto-
           wraps in DialogPrimitive.Close (see MaybeClose in ui/dialog.tsx).
-          This is a real editable FORM, not a confirm: Save Changes must only
+          This is a real editable FORM, not a confirm: Save changes must only
           open the "Save These Changes?" confirm below, and let THAT dialog's
           own action decide. With the role on, one click did both — opened
           the confirm dialog AND self-closed via Close, which fired
@@ -416,7 +416,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             onClick={handleSaveClick}
             disabled={saving || bookedNothingToSave}
           >
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? "Saving…" : "Save changes"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
@@ -429,7 +429,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         />
         <DialogFooter>
           <DialogSecondaryAction>Cancel</DialogSecondaryAction>
-          <DialogPrimaryAction onClick={save}>Save Changes</DialogPrimaryAction>
+          <DialogPrimaryAction onClick={save}>Save changes</DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -445,7 +445,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
         />
         <DialogFooter>
           <DialogSecondaryAction>Cancel</DialogSecondaryAction>
-          <DialogPrimaryAction onClick={confirmDiscard}>Discard Changes</DialogPrimaryAction>
+          <DialogPrimaryAction onClick={confirmDiscard}>Discard changes</DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

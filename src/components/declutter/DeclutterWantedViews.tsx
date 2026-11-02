@@ -122,8 +122,11 @@ function FieldProblem({ id, text }: { id: string; text?: string }) {
 /** What the most you'd pay comes to for the buyer (audit 10-30 #10): the fee is 5% + 70 cents, money.ts's own sum. */
 function feeLine(maxPrice: string): string {
   const typed = dollarsToCents(maxPrice);
-  const cents = typed !== null && typed >= 100 && typed <= 100_000 && typed % 100 === 0 ? typed : 3000;
-  return `A ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time setup fee.`;
+  const valid = typed !== null && typed >= 100 && typed <= 100_000 && typed % 100 === 0;
+  const cents = valid ? typed : 3000;
+  // Q2578 (audit 1102a): with nothing typed the field shows a grey "30" and this line used to say "A $30 item costs...",
+  // so the empty field read as filled in. Until a price is typed the line says it is an example.
+  return `${valid ? "A" : "For example, a"} ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time setup fee.`;
 }
 
 function formatMoneyExact(cents: number): string {

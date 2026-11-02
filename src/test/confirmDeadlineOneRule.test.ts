@@ -60,6 +60,13 @@ function walk(dir: string, out: string[] = []): string[] {
 const code = (rel: string) => blankComments(read(rel));
 
 const DEADLINE_COPY = /(\$\{[^}]*\}|\d+)\s*(?:hours?|hrs?)\s+before\s+(?:it\s+)?(?:the\s+)?start(?:s|ed)?\b/gi;
+/**
+ * "N hours before the start" in a CANCEL line is the late-cancel strike window (24 h, is_late_cancellation) or how
+ * late a cancel came ("less than 3 hours before the start"), not this confirm deadline: those lines are not readers.
+ * Their clause starts at the word "cancel" in the same string, within the 80 characters before the match.
+ */
+const CANCEL_CLAUSE = /cancel[^"`'\n]{0,80}$/i;
+const confirmCopy = (c: string) => [...c.matchAll(DEADLINE_COPY)].filter((m) => !CANCEL_CLAUSE.test(c.slice(Math.max(0, (m.index ?? 0) - 80), m.index)));
 const CALLS_SHARED = /\b(confirmDeadlineMs|confirmOpensMs)\s*\(/;
 // "Confirm window passed" in jobStatusLine is the OFFER's answer clock
 // (response_deadline, owned by expire_unanswered_offers), not this one.
@@ -70,7 +77,7 @@ const readers = [...walk(join(ROOT, "src")), ...walk(join(ROOT, "supabase", "fun
   .filter((rel) => rel !== SHARED)
   .filter((rel) => {
     const c = code(rel);
-    return CALLS_SHARED.test(c) || MENTIONS_CONFIRM.test(c) || new RegExp(DEADLINE_COPY.source, "i").test(c);
+    return CALLS_SHARED.test(c) || MENTIONS_CONFIRM.test(c) || confirmCopy(c).length > 0;
   })
   .sort();
 
@@ -126,7 +133,7 @@ describe("the day-before confirm: one window, one deadline (Q1647)", () => {
       const c = code(rel);
       if (!CALLS_SHARED.test(c)) bad.push(`${rel}: reads the confirm window without confirmOpensMs/confirmDeadlineMs`);
       // A deadline typed into copy instead of interpolated from the constant.
-      for (const m of c.matchAll(DEADLINE_COPY)) {
+      for (const m of confirmCopy(c)) {
         if (/^\d+$/.test(m[1])) bad.push(`${rel}: types "${m[0]}" (interpolate CONFIRM_DEADLINE_HOURS_BEFORE_START)`);
       }
       // A window gated on "within 24 hours" instead of confirmOpensMs.

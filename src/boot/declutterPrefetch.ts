@@ -29,6 +29,7 @@ export const FIRST_SCREEN_SWITCH_KEYS = [
   "shops",
   "declutter_haul_away",
   "declutter_add_helpr",
+  "declutter_manager",
   "rentals",
   "jobs_poster_fee",
   "applicant_proof",

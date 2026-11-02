@@ -1,7 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { PHONE_IN_USE_MESSAGE, phoneInUseMessage, unwrapMutation } from "@/lib/mutationResult";
+import { PHONE_IN_USE_MESSAGE } from "@/lib/mutationResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * THE ONE WAY THE APP SAVES A MEMBER'S PHONE (Q1586(a), owner 2026-10-13).
@@ -18,6 +17,10 @@ import { isMissingRpcNamed } from "@/lib/missingRpc";
  * Resolves { ok: true } or { ok: false, message } for a refusal the member can
  * act on; throws on anything else (network, a server error), which the caller
  * reports like any other failed save.
+ *
+ * No direct-write fallback: 20261102082018 and 20261102092917 are live on prod
+ * (write-contract snapshot 11-02), so a profiles.phone UPDATE is refused there.
+ * `_userId` stays in the signature for the callers; the RPC reads auth.uid().
  */
 const PHONE_SAVE_COPY: Record<string, string> = {
   phone_in_use: PHONE_IN_USE_MESSAGE,
@@ -27,20 +30,9 @@ const PHONE_SAVE_COPY: Record<string, string> = {
 
 export type PhoneSaveResult = { ok: true } | { ok: false; reason: string; message: string };
 
-export async function saveMyPhone(userId: string, phone: string): Promise<PhoneSaveResult> {
+export async function saveMyPhone(_userId: string, phone: string): Promise<PhoneSaveResult> {
   const { data, error } = await supabase.rpc("save_my_phone", { p_phone: phone });
   if (error) {
-    // The RPC ships in the migration that revokes the direct write; until that
-    // migration is live the direct write is still the way (a new bundle ahead
-    // of db-deploy).
-    if (isMissingRpcNamed(error, "save_my_phone")) {
-      const res = await supabase.from("profiles").update({ phone: phone.trim() || null }).eq("user_id", userId).select("id");
-      // Before the RPC, the database's duplicate refusal arrives as an error.
-      const inUse = phoneInUseMessage(res.error);
-      if (inUse) return { ok: false, reason: "phone_in_use", message: inUse };
-      unwrapMutation(res, { action: "save your phone number", context: { userId } });
-      return { ok: true };
-    }
     // The RPC's own refusals, in words (a restricted account, a lost session).
     const copy = rpcErrorMessage("save_my_phone", error);
     if (copy) return { ok: false, reason: "refused", message: copy };

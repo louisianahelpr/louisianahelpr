@@ -103,8 +103,11 @@ fns as (
 ),
 -- Q1072: which migrations prod had applied when this was read, so a missing
 -- object that a later migration creates reads as pending, not missing.
+-- 'versions' is the full applied list: a file whose version is not in it is
+-- pending even when an older-numbered file landed after a newer one ran.
 applied as (
-  select jsonb_build_object('latest', max(version), 'count', count(*)) as j
+  select jsonb_build_object('latest', max(version), 'count', count(*),
+    'versions', coalesce(jsonb_agg(version order by version), '[]'::jsonb)) as j
   from supabase_migrations.schema_migrations
 )
 select jsonb_build_object('tables', (select j from tables), 'functions', (select j from fns),

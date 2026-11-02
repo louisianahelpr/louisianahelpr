@@ -102,9 +102,9 @@ afterEach(() => cleanup());
 
 describe("a cached count for one account never paints on another (owner 2026-10-01)", () => {
   it("To-do badge (Explore / sidebar): A's published counts never show for B or for nobody", () => {
-    publishNeedsYou("user-a", { total: 3, jobs: 2, shops: 1 });
+    publishNeedsYou("user-a", { total: 3, jobs: 2, shops: 1, declutter: 0 });
     const a = renderHook(() => useNeedsYouCounts("user-a"));
-    expect(a.result.current).toEqual({ total: 3, jobs: 2, shops: 1 });
+    expect(a.result.current).toEqual({ total: 3, jobs: 2, shops: 1, declutter: 0 });
     const b = renderHook(() => useNeedsYouCounts("user-b"));
     expect(b.result.current, "user B was shown user A's to-do count").toEqual(NO_TODOS);
     const none = renderHook(() => useNeedsYouCounts(undefined));

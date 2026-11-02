@@ -44,6 +44,7 @@ import { SellerAddressField } from "./SellerAddressField";
 import { AREA_ADDRESS_RE, NO_CITY_IN_ADDRESS } from "./sellForm";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
+import { bunchOthers, bunchRowStartsOpen, focusBunchFilesNextPaint, focusBunchListStep } from "./bunchFlowHelpers";
 import { BunchPileCard } from "./DeclutterBunchPile";
 import { BunchMovingSale } from "./DeclutterBunchMovingSale";
 import { BunchResults } from "./DeclutterBunchResults";
@@ -179,6 +180,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       : areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(areaLabel) ? NO_CITY_IN_ADDRESS
         : null;
   // The setup gate (SellerSetup) has them save it first; the boxes are only for a saved address that stopped reading.
+  // A3-69: a finished bunch (results shown, nothing left on the list) shows only its result until List more.
+  const allListed = !!results && items.length === 0;
   const whereFolded = !!savedSetup.pickup && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address;
   const firstStep = whereFolded ? 1 : 2;
   // While the setup fee is due only free items can go (the server asks no fee at price 0); priced ones stay on the list.
@@ -448,28 +451,22 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     saved.clearSaved();
   }
 
-  const others = (key: string) => {
-    const names = items.map((it, i) => bunchItemName(it, i));
-    return items.flatMap((it, i) => (it.key === key || it.notSorted ? [] : [{ key: it.key, name: names.filter((n) => n === names[i]).length > 1 ? `${names[i]} (${i + 1})` : names[i], photoKey: it.photoKeys[0] }]));
-  };
   const needs = bunchNeedsLine(items);
   const firstUnready = items.find((it) => bunchItemNeed(it));
   const showMove = movingOpen && (moving || !!moveDate);
   const pageTitle = moving ? "Moving out sale" : "Sell a bunch";
-  const toListing = () => {
-    const el = document.getElementById("bunch-list-step");
-    el?.focus();
-    el?.scrollIntoView?.({ block: "start" });
-  };
-  const startsOpen = (it: BunchItem) => it.flagged || !!it.failedPhoto || !!it.mergeHint;
-  const isRowOpen = (it: BunchItem) => openRows.get(it.key) ?? startsOpen(it);
+  const isRowOpen = (it: BunchItem) => openRows.get(it.key) ?? bunchRowStartsOpen(it);
 
   return (
     <AppPage title={pageTitle} backTo="/declutter?view=selling">
+      {/* A3-69: once everything is listed, the result is the page: the intro and the empty photo step come back with
+          List more (a failed item still on the list keeps them, so it can be fixed). */}
+      {!allListed && (
       <p className="text-sm text-muted-foreground">
         Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.
       </p>
-      {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); document.getElementById("bunch-files")?.focus(); }} />}
+      )}
+      {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); focusBunchFilesNextPaint(); }} />}
       <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
       <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} attested={attested} setAttested={setAttested} listStepShown={items.length > 0} onPricedOffered={setPricedDraftsOffered} />
@@ -487,7 +484,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {showMove && <BunchMovingSale userId={user.id} date={moveDate} setDate={setMoveDate} today={today} />}
 
-      {whereFolded ? null : (
+      {whereFolded || allListed ? null : (
       <BunchSection id="bunch-where" title="1. Where buyers pick up">
         {/* Q2492: the same rule and words as the one-item form; the server's rule is the same (declutter_start_checkout). */}
         <PlacesComeFirstLine />
@@ -503,6 +500,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       </BunchSection>
       )}
 
+      {!allListed && (
       <BunchSection id="bunch-photos" title={`${firstStep}. Add photos`}>
         <p className="text-xs text-muted-foreground">
           Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.
@@ -522,6 +520,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
         )}
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
       </BunchSection>
+      )}
 
       {items.length > 0 && (
         <BunchSection id="bunch-check" title={`${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>
@@ -558,7 +557,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
                   item={it}
                   offersDefault={choices.choices.acceptsOffers}
                   index={i}
-                  others={others(it.key)}
+                  others={bunchOthers(items, it.key)}
                   urls={thumbs}
                   files={files}
                   at={coords}
@@ -591,7 +590,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
         />
       )}
 
-      <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => { setItems(unreadyFirst); jumpTo(firstUnready.key); } : null} onNext={toListing} onUndo={onUndo}
+      <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => { setItems(unreadyFirst); jumpTo(firstUnready.key); } : null} onNext={focusBunchListStep} onUndo={onUndo}
         onUseOtherPrice={() => { const { intoKey, price } = undo!.otherPrice!; setItems((its) => bulkEdit(its, new Set([intoKey]), { price })); setUndo({ ...undo!, otherPrice: undefined }); }} />
     </AppPage>
   );

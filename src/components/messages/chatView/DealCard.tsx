@@ -12,6 +12,7 @@ import { useHelprTakeHome, type TakeHomeJob } from "@/components/dashboard/helpr
 import type { Conversation } from "../types";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
+import { continueDayNextStep, fetchContinueDay } from "@/lib/continueDay";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
 import { NextStep } from "@/components/ui/NextStep";
@@ -72,9 +73,9 @@ function HelprDealPrice({ job }: { job: TakeHomeJob }) {
   if (!(net > 0)) return null;
   return (
     <div className="shrink-0 text-right" data-deal-take-home="">
-      <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>${formatPriceFloor(net)}</p>
-      {/* Owner 2026-10-30: the giveaway shows its $50 with no words. */}
-      {!isGiveawayFixedPayJob(job) && <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>}
+      {/* Owner 11-01 (A3-87): "Remove you take home": the figure alone; a screen reader still hears "Your pay"
+          (the giveaway, owner 10-30, has no words at all). */}
+      <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>{!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
     </div>
   );
 }
@@ -221,6 +222,13 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
   const { data } = useDealCard(convo, userId);
   const rescheduled = useJobRescheduled(data?.job.id, data?.job.status === "accepted");
   useDealCardLive(data?.job.id, data?.job.status);
+  // Continue another day (Auditor 11, 11-01): the job page's own read (same key), so the card reads the new day.
+  const continueDay = useQuery({
+    queryKey: ["job-continue-day", data?.job.id ?? ""],
+    queryFn: () => fetchContinueDay(data!.job.id),
+    enabled: !!data && data.job.status === "in_progress",
+    staleTime: 30_000,
+  });
   if (!data) return null;
   const { job, application } = data;
   const viewerIsPoster = !!convo.viewerIsPoster;
@@ -235,12 +243,14 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
     // The Working card's progress (AppliedJobCard: helperCardLine reads helperProgress off the tracking row).
     workUnderway: helperProgress(job as unknown as Job, data.trackingStatus).workUnderway,
     tracking: data.trackingStatus ? { status: data.trackingStatus } : null,
+    continueDay: job.status === "in_progress" ? continueDay.data ?? null : null,
   });
   // Owner 11-01 (B107): the card's line is the shared next step ("Next: approve Yusef's work · 23h left"), with the
   // green action on its right, as on the job page (jobNextStep / NextStep). Guard: src/test/dealCardNextStep.test.tsx.
   const otherFirst = first === "them" ? null : first;
   const approveDue = viewerIsPoster && stage.stage === 7 && stage.waitingOnYou && !!job.helper_completed_at;
-  const step = jobNextStep(stage, {
+  // The job page's own continue-day line first (JobTracker's continueStep), else the tracker's.
+  const step = (job.status === "in_progress" ? continueDayNextStep(continueDay.data, { side: viewerIsPoster ? "poster" : "helpr", otherFirst }) : null) ?? jobNextStep(stage, {
     side: viewerIsPoster ? "poster" : "helpr",
     otherFirst,
     approveLeft: approveDue ? hoursLeft(Date.parse(job.helper_completed_at!) + hoursToMs(APPROVAL_WINDOW_HOURS)) : null,
@@ -276,9 +286,9 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
           <HelprDealPrice job={{ ...job, budget: job.budget }} />
         )}
         {typeof job.budget === "number" && job.budget > 0 && viewerIsPoster && (
-          <div className="shrink-0 text-right">
+          // Owner 11-01 (A3-87): no "held safely" line under a paid job's price, as on the job page.
+          <div className="shrink-0 text-right" data-deal-paid="">
             <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>${formatPrice(job.budget)}</p>
-            {stage.held && <p className="font-sans text-ds-11 text-muted-foreground">held safely</p>}
           </div>
         )}
       </div>

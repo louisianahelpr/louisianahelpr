@@ -33,8 +33,11 @@ import { HelperMoneyNotices } from "./appliedJobCard/HelperMoneyNotices";
 import { ClosedJobCard } from "./appliedJobCard/ClosedJobRow";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
+import { descriptionAddsToTitle, hasProofPhotos } from "@/lib/jobCardFacts";
 import { HelperSeriesRow, JobRequestRows } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
+import { useContinueDay } from "@/hooks/useContinueDays";
+import { continueDayDoneNote } from "@/lib/continueDayWords";
 import { RentalVisitHelprSlot } from "@/components/rentals/RentalVisitHelprSlot";
 
 /**
@@ -108,6 +111,9 @@ function AppliedJobCardInner({
   // read it through this narrow view rather than `as any`.
   const viewedApp = app as AppliedApp & ApplicationViewFields;
   const job = app.job;
+  // A day set to finish still ahead (Auditor 11, 11-01): the face never leads with Mark job complete then. Read
+  // before the early return (hooks run on every render); only a hired Helpr's solo job under way can have one.
+  const continueDay = useContinueDay(job?.id, !!job && job.status === "in_progress" && !job.is_group_job && job.helper_id === app.helper_id);
   const notes = useCardNotes(job, expandedJobIds.has(app.job_id), app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); // Q1461: access only for a hired Helpr until the job ends
   if (!job) {
     // An application can outlive its job row's VISIBILITY: once the job closes to another helper, the jobs SELECT
@@ -146,9 +152,7 @@ function AppliedJobCardInner({
    *  `job.customer_id` again inside a callback re-widens it. */
   const posterId = job.customer_id;
 
-  /** Is there anything behind the Photos chip? Gated on the photos EXISTING,
-   *  because the chip opens a dialog and an empty one is a dead-end tap. */
-  const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
+  const hasProof = hasProofPhotos(job);
   /** `payout_pending` counts too, and a review needs a reviewee — both rules
    *  are unchanged, just named once now that this gate decides a chip in a
    *  shared row rather than a row of its own. See the notes at the call site. */
@@ -157,19 +161,11 @@ function AppliedJobCardInner({
     // DH-003: past the 30-day window only "Reviewed" is left to show.
     (helperReviewedJobIds.has(app.job_id) || reviewWindowOpen(job));
 
-  /** Does the description say anything the TITLE hasn't already said? A job
-   *  whose description is its own title back again is one line of duplication. */
-  const showDescription =
-    !isMinimalCard &&
-    isExpanded &&
-    job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase();
+  const showDescription = !isMinimalCard && isExpanded && descriptionAddsToTitle(job);
   /** Whether the block between the meta row and the action row has ANY content.
    *  Every child of it is conditional — see the note at the block itself. */
-  /* `app.posterName` used to count towards this, because the "Posted by" band
-     lived in the body. It does not any more (the identity row sits in the meta
-     block, collapsed or not), so counting it here would reserve a padded band
-     for a child that no longer renders — the same empty-band defect
-     STATUS_RENDERS_ACTIONS exists to stop on the poster's card. */
+  /* `app.posterName` no longer counts: the identity row sits in the meta block, so counting it would reserve an
+     empty padded band (the defect STATUS_RENDERS_ACTIONS stops on the poster's card). */
   /* THE POSTER'S PROFILE TILE, and WHO CARRIES IT.
      (owner, 2026-09-19: "the helpr or posted by should be right above the
      buttons" — the third position for this tile in five days; the history and
@@ -316,8 +312,12 @@ function AppliedJobCardInner({
     manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },
     step: (isConfirmed || isActive) && !isCrewLive && !job.is_group_job ? helperFaceNextStep(job, initialTracking, cardLine.id) : null,
     doneFloorMinutes,
+    continueDayNote: continueDayDoneNote(continueDay),
   });
 
+  // The one tracker state for the face (only the hired Helpr's): its bar and (A3-16) its next-step line read it.
+  const posterFirst = (app.posterName ?? "").split(" ")[0] || null;
+  const faceProgress = job.helper_id === userId ? jobProgress(job, { viewer: "helpr", otherFirst: posterFirst, card: { line: cardLine, face: faceAction } }) : null;
   return (
     /* The card publishes its own expand state to HelperTrackerPanel, which sits
        whichever JobStepCard this state mounts, through the shared person
@@ -352,11 +352,11 @@ function AppliedJobCardInner({
             money={`$${formatPriceFloor(payout)}`}
             status={
               !isMinimalCard && !isExpanded ? (
-                <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} />
+                <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} progress={faceProgress} otherFirst={posterFirst} />
               ) : null
             }
             action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(app.job_id) : undefined}
-            progress={!isExpanded && job.helper_id === userId ? jobProgress(job, { viewer: "helpr", otherFirst: (app.posterName ?? "").split(" ")[0] || null, card: { line: cardLine, face: faceAction } }) : null} /* the 8 steps on the card (owner, 2026-10-22) */
+            progress={!isExpanded ? faceProgress : null} /* the 8 steps on the card (owner, 2026-10-22) */
           />
           {isExpanded && <MineOpenMeta jobId={job.id} meta={addressOnFace ? null : metaRow} />}
 

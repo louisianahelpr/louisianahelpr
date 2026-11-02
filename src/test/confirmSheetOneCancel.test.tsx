@@ -9,7 +9,7 @@
  * @mutate src/components/JobConfirmation.tsx | onClick={() => setShowConfirmDialog(false)}>Not now</DialogSecondaryAction> | onClick={() => setShowConfirmDialog(false)}>Cancel</DialogSecondaryAction>
  * @mutate src/components/JobConfirmation.tsx | : isOwner ? "Yes, it's still on" : "Yes, I'll be there"} | : isOwner ? "Yes, I confirm" : "Yes, I confirm"}
  * @mutate src/components/JobConfirmation.tsx | <DialogHero title={isOwner ? "Confirm the job is still on" : "Confirm you'll be there"} /> | <DialogHero title="Commit to this job?" />
- * @mutate src/components/JobConfirmation.tsx |     scheduledStart ? ` at ${ |     false ? ` at ${
+ * @mutate src/components/jobConfirmationWords.ts | const at = timeLabel && timeLabel !== FLEXIBLE_TIME_LABEL ? | const at = false && timeLabel !== FLEXIBLE_TIME_LABEL ?
  * @mutate src/components/JobConfirmation.tsx | {jobTitle?.trim() && ( | {false && (
  * @mutate src/pages/jobs/appliedJobCard/HelperTrackerPanel.tsx |       jobTitle={job.title}\n      jobId={app.job_id} |       jobId={app.job_id}
  * @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx |             jobTitle={job.title}\n            jobId={job.id}\n            isOwner={true} |             jobId={job.id}\n            isOwner={true}

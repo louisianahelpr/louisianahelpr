@@ -247,17 +247,9 @@ function PostedJobCardInner({
                 // "👥 3", right after the time — the same chip and the same
                 // slot the browse feed and the applied card now use.
                 helpersNeeded={job.is_group_job ? (job.helpers_needed ?? 2) : null}
-                // "View details" costs no row of its own any more.
-                //
-                // It used to sit below the meta row as a standalone 44px control plus a 10px stack gap — 54px of card
-                // height for a single word pair, on a card that already stacks a status stripe, a meta row, state
-                // chips, a tracker and an action row. Pinned to the right of the meta line it costs ~8px instead.
-                //
-                // The 44px TOUCH TARGET is preserved and is deliberately larger than the visible box: `py-3.5` grows
-                // the hit area to 44px and `-my-2.5` pulls the layout box back down, so the row grows by 8px rather
-                // than 28px. The overhang lands on the card's own padding and the non-interactive status stripe,
-                // never on another control — the only other interactive thing in this row is the location link at the
-                // opposite end.
+                // "View details" costs no row of its own: pinned right of the meta line (~8px, not a 54px row). Its
+                // 44px touch target is kept larger than the box (`py-3.5` grows the hit area, `-my-2.5` pulls the
+                // layout back); the overhang lands on the card's padding and the status stripe, never another control.
               >
                 {/* The applicant COUNT deliberately does not appear here.
                     An open job with applicants used to state the same number
@@ -289,6 +281,8 @@ function PostedJobCardInner({
             </>
   );
 
+  // The one tracker state for the face: its bar and (A3-15) its next-step line read the same value.
+  const faceProgress = jobProgress(job, { viewer: "poster", otherFirst: helperName.split(" ")[0], rescheduled, card: { line: cardLine, face: faceAction }, pendingApplicants: pendingApplicantCounts ? pendingApplicantCounts[job.id] ?? 0 : undefined });
   return (
         /* The Helpr's tile, published to whichever JobStepCard this status mounts (jobCardPerson.tsx). The
            provider wraps the WHOLE card, so the fallback below and the claim above it answer one question. */
@@ -319,11 +313,13 @@ function PostedJobCardInner({
                   completedMeta={completedJobMeta[job.id]}
                   showStartClock={job.status === "accepted"}
                   helperName={job.helper_id ? helperNames[job.helper_id] ?? null : null}
+                  progress={faceProgress}
+                  otherFirst={job.helper_id ? helperName.split(" ")[0] : null}
                 />
               )}
               extra={<JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} variant="card" />} // opening them releases nothing
               action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined}
-              progress={isExpanded ? null : jobProgress(job, { viewer: "poster", otherFirst: helperName.split(" ")[0], rescheduled, card: { line: cardLine, face: faceAction }, pendingApplicants: pendingApplicantCounts ? pendingApplicantCounts[job.id] ?? 0 : undefined })} /* the 8 steps on the card (owner, 2026-10-22) */
+              progress={isExpanded ? null : faceProgress} /* the 8 steps on the card (owner, 2026-10-22) */
             />
             {isExpanded && <MineOpenMeta jobId={job.id} meta={metaRow} />}
 

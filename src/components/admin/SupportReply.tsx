@@ -238,18 +238,18 @@ export function SupportReplyComposer({
             onCheckedChange={(v) => setResolve(v === true)}
             disabled={sending}
           />
-          <label htmlFor={resolveId} className="text-ds-11 text-foreground">Mark resolved when sent</label>
+          <label htmlFor={resolveId} className="flex min-h-11 flex-1 items-center text-ds-11 text-foreground">Mark resolved when sent</label>
         </div>
       )}
       <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => setOpen(false)} disabled={sending}>
+          Cancel
+        </Button>
         <Button size="sm" onClick={send} disabled={!trimmed || tooLong || sending}>
           {sending
             ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" aria-hidden="true" />
             : <Send className="w-3.5 h-3.5 mr-1" aria-hidden="true" />}
           Send reply
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setOpen(false)} disabled={sending}>
-          Cancel
         </Button>
       </div>
     </div>

@@ -23,7 +23,7 @@
  * @mutate src/components/job-card/jobStatusLine.ts |   if (beforePhotoIsThePrimary(job)) return "before_photo";\n  if (progress?.workUnderway) | if (progress?.workUnderway) return afterPhotoIsThePrimary(job) ? "after_photo" : "working";\n  if (beforePhotoIsThePrimary(job)) return "before_photo";\n  if (progress?.workUnderway)
  * @mutate src/components/PhotoProof.tsx |     if (chip && asPrimary && existingUrls.length === 0 && takePhotoCapture(jobId, type)) setOpen(true); |
  * @mutate src/components/tracker/jobStepFromWait.ts | done: [6], before_photo: [5], after_photo: [6] }; | done: [6] };
- * @mutate src/components/JobTracking.tsx |         const ctaDisabled = updating \|\| isLocked \|\| needsArrival \|\| needsBeforePhoto \|\| needsProof \|\| doneTooEarly; |         const ctaDisabled = updating \|\| isLocked \|\| needsArrival \|\| doneTooEarly;
+ * @mutate src/components/JobTracking.tsx |         const ctaDisabled = updating \|\| isLocked \|\| needsArrival \|\| needsBeforePhoto \|\| needsProof \|\| doneTooEarly \|\| doneBeforeContinueDay; |         const ctaDisabled = updating \|\| isLocked \|\| needsArrival \|\| doneTooEarly \|\| doneBeforeContinueDay;
  * @mutate src/components/JobTracking.tsx |         const photoIsPrimary = needsBeforePhoto \|\| needsProof; |         const photoIsPrimary = false;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -119,7 +119,7 @@ describe("the tracker keeps the before and after photos (owner 2026-10-23)", () 
 
   it("4. the gates are still there: Start working and Done disabled while a photo is owed; the owed photo is the primary", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../components/JobTracking.tsx"), "utf8"));
-    expect(src).toMatch(/const ctaDisabled = updating \|\| isLocked \|\| needsArrival \|\| needsBeforePhoto \|\| needsProof \|\| doneTooEarly;/);
+    expect(src).toMatch(/const ctaDisabled = updating \|\| isLocked \|\| needsArrival \|\| needsBeforePhoto \|\| needsProof \|\| doneTooEarly \|\| doneBeforeContinueDay;/);
     expect(src).toMatch(/const photoIsPrimary = needsBeforePhoto \|\| needsProof;/);
     expect(src).toMatch(/const needsBeforePhoto =/);
   });

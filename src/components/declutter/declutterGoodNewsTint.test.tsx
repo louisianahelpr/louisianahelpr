@@ -16,6 +16,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = vi.hoisted(() => ({ offers: [] as unknown[] }));
 
+// A3-49: the seller's waiting line reads the buyer's first name; the tint is what this file checks.
+vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: null, name: null, avatarUrl: null, first: null, who: "the buyer" }) }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/lib/declutter/api", () => ({
@@ -25,6 +27,8 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
 vi.mock("./BuyerTotal", () => ({ BuyerTotal: () => null }));
+// A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => [] }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyHandover: async () => ({ set_out_at: null, picked_up_at: null, confirmed_at: null, status: "paid" }),
   handoverPhotoUrl: async () => null,

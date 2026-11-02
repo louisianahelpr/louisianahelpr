@@ -181,6 +181,9 @@ export default function FindHelprs() {
                     </div>
                   </div>
                   <div className="mt-3 flex gap-2">
+                    <Button asChild variant="outline" size="sm" className="flex-1">
+                      <Link to={`/user/${h.user_id}`}>View profile</Link>
+                    </Button>
                     <Button
                       variant="primary"
                       size="sm"
@@ -190,9 +193,6 @@ export default function FindHelprs() {
                     >
                       <Send className="h-3.5 w-3.5" aria-hidden />
                       Offer a job
-                    </Button>
-                    <Button asChild variant="outline" size="sm" className="flex-1">
-                      <Link to={`/user/${h.user_id}`}>View profile</Link>
                     </Button>
                   </div>
                 </li>

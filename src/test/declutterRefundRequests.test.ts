@@ -28,6 +28,7 @@
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |      AND public.declutter_sale_final(p.order_id)\n | \n
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |                         AND rf.reason = 'refund_request_part' AND rf.status IN ('pending', 'failed')) |                         AND rf.reason = 'refund_request_part' AND rf.status IN ('failed'))
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |                            + interval '10 minutes' |                            + interval '0 minutes'
+ * @mutate supabase/migrations/20261102002217_declutter_my_refund_todos.sql |   IF NOT public.feature_enabled_for('declutter_refund_requests') THEN\n    RETURN;\n  END IF;\n | \n
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered', 'returning')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open', 'returning')) THEN false
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered', 'returning')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open', 'offered')) THEN false
  * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '72 hours'\n     WHERE id = r.id; |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '1 hours'\n     WHERE id = r.id;
@@ -40,7 +41,7 @@
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |   PERFORM public.require_feature('declutter_refund_requests');\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id | IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id
  * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |     IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN |     IF v_side <> 'buyer' THEN
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |      WHERE (x.status = 'open' AND x.answer_by <= now()) OR (x.status = 'offered' AND x.offer_answer_by <= now()) |      WHERE (x.status = 'offered' AND x.offer_answer_by <= now())
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
  * @mutate supabase/functions/declutter-money/index.ts |     admin.rpc("declutter_payouts_due", { p_limit: BATCH }), |     admin.from("declutter_payouts").select("*"),
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {true && items > 0 && (
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | then gets ${refundDollars(v.full_refund_cents)} back | then gets ${refundDollars(v.items_cents + 130)} back
@@ -127,7 +128,11 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
   it("5. every member RPC of the feature requires the switch, server side", () => {
     const rpcs = memberRefundRpcs();
     expect(rpcs.length).toBeGreaterThanOrEqual(5);
-    const missing = rpcs.filter((n) => !/PERFORM public\.require_feature\('declutter_refund_requests'\);/.test(body(n)));
+    // A Home read (declutter_my_refund_todos, A3-81) must not throw: with the switch off it returns no rows instead
+    // (IF NOT feature_enabled_for(...) THEN RETURN), still server side. Every write keeps require_feature.
+    const gated = (n: string) => /PERFORM public\.require_feature\('declutter_refund_requests'\);/.test(body(n))
+      || (n === "declutter_my_refund_todos" && /IF NOT public\.feature_enabled_for\('declutter_refund_requests'\) THEN\s+RETURN;/.test(body(n)));
+    const missing = rpcs.filter((n) => !gated(n));
     expect(missing).toEqual([]);
   });
 

@@ -50,8 +50,8 @@ function SuggestionItem({ row }: { row: CategorySuggestionRow }) {
         onChange={(e) => setNote(e.target.value)}
       />
       <div className="flex gap-2">
-        <Button onClick={() => decide.mutate(true)} disabled={decide.isPending}>Approve</Button>
         <Button variant="outline" onClick={() => decide.mutate(false)} disabled={decide.isPending}>Decline</Button>
+        <Button onClick={() => decide.mutate(true)} disabled={decide.isPending}>Approve</Button>
       </div>
     </li>
   );

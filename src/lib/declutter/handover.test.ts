@@ -12,8 +12,8 @@
  * @mutate src/lib/declutter/handover.ts |     if (msg && Object.isExtensible(e)) e.userMessage = msg; |     if (false) e.userMessage = msg;
  * @mutate src/lib/declutter/handover.ts |   if (error) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/handover.ts |   const path = `${userId}/declutter/handover/${orderId}/${nonce}.jpg`; |   const path = `${userId}/declutter/${orderId}/${nonce}.jpg`;
- * @mutate src/lib/declutter/handover.ts | select(`${cols}, attempts`).eq("seller_id", userId); | select(`${cols}, attempts`).eq("buyer_id", userId);
- * @mutate src/lib/declutter/handover.ts |   if (res.error && res.error.code === "42501" && /attempts\|permission denied/i.test(res.error.message ?? "")) { |   if (false) {
+ * @mutate src/lib/declutter/payoutReads.ts | select(`${cols}, attempts`).eq("seller_id", userId); | select(`${cols}, attempts`).eq("buyer_id", userId);
+ * @mutate src/lib/declutter/payoutReads.ts |   if (res.error && res.error.code === "42501" && /attempts\|permission denied/i.test(res.error.message ?? "")) { |   if (false) {
  * @mutate src/lib/declutter/handover.ts |       .eq("status", "open")\n      .order( |       .eq("status", "closed")\n      .order(
  * @mutate src/lib/declutter/handover.ts |   return (rows?.[0] ?? null) as |   return (rows ?? null) as
  * @mutate src/lib/declutter/handover.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_porch_note")) return "not_deployed"; |

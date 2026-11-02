@@ -27,8 +27,8 @@
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") } |             ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
  * @mutate src/pages/jobs/jobPage/PageApplySheet.tsx | posterName: formatName(poster?.name, "A neighbor"), | posterName: undefined,
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid. Louisiana Helpr holds it until the job is done.", |   escrow: "Card held, not charged.",
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const line = released ? releasedLine(job) : refundInTracker ? null : HELD_LINE[status] ?? null; | const line = released ? releasedLine(job) : status === "escrow" \|\| refundInTracker ? null : HELD_LINE[status] ?? null;
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire. |   escrow: "Paid. Louisiana Helpr holds it until the job is done.",
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx | const line = released ? releasedLine(job) : refundInTracker ? null : HELD_LINE[status] ?? null; | const line = released ? releasedLine(job) : status === "held" \|\| refundInTracker ? null : HELD_LINE[status] ?? null;
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   held: "Your card isn't charged until a Helpr accepts your offer.", |
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
@@ -49,7 +49,6 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && instantUntil && <InstantBookingCard | {instantUntil && <InstantBookingCard
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     : instantUntil\n      ? null\n |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {viewer.status && !(!isPoster && instantUntil) && | {viewer.status &&
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {(isPoster \|\| isHired) && job.status === "accepted" && <CountdownRows | {false && <CountdownRows
  */
 import { describe, expect, it, vi, beforeEach, onTestFinished } from "vitest";
@@ -164,9 +163,12 @@ vi.mock("./useJobReach", () => ({ useJobReach: () => state.reach }));
 // Continue another day (owner 2026-11-01): the job's active continue day, and the calls the page makes.
 const continueCalls = vi.hoisted(() => [] as string[]);
 const continueState = vi.hoisted(() => ({ row: null as null | Record<string, unknown> }));
+vi.mock("@/lib/continueDayReads", async (orig) => ({
+  ...(await orig<typeof import("@/lib/continueDayReads")>()),
+  fetchContinueDay: async () => continueState.row,
+}));
 vi.mock("@/lib/continueDay", async (orig) => ({
   ...(await orig<typeof import("@/lib/continueDay")>()),
-  fetchContinueDay: async () => continueState.row,
   answerContinueDay: async (id: string, accept: boolean) => { continueCalls.push(`answer:${id}:${accept}`); },
   confirmContinueDay: async (id: string) => { continueCalls.push(`confirm:${id}`); },
   proposeContinueDay: async () => { continueCalls.push("propose"); return { status: "set" }; },
@@ -204,12 +206,33 @@ vi.mock("@/lib/jobOfferTargets", () => ({
   fetchJobOfferTargets: async (ids: string[]) => { offerTargetCalls.push(ids); return new Map(ids.map((i) => [i, "33333333-3333-3333-3333-333333333333"])); },
 }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
+// JA-17: the Working list's own read (fetchAppliedActivity) and handlers (useActivityActions), recorded here; the
+// handlers' own behaviour is useActivityActions.*.test.tsx and the offer card's tests.
+const workingApps = vi.hoisted(() => ({ rows: [] as Array<Record<string, unknown>> }));
+const offerAnswers = vi.hoisted(() => [] as Array<[string, boolean]>);
+vi.mock("@/hooks/useActivityData", async (orig) => ({
+  ...(await orig<typeof import("@/hooks/useActivityData")>()),
+  fetchAppliedActivity: async () => ({ appliedApps: workingApps.rows, declinedJobIds: new Set(), helperReviewedJobIds: new Set() }),
+}));
+vi.mock("@/components/job-card/useActivityActions", () => ({
+  useActivityActions: () => ({
+    handleHelperResponse: (app: { id: string }, accept: boolean) => { offerAnswers.push([app.id, accept]); },
+    respondingHelperAppId: null, awardBlockReason: null, paymentHeldSide: null, hiredPayout: null,
+  }),
+}));
+vi.mock("@/components/job-card/ActivityOfferDialogs", () => ({ ActivityOfferDialogs: () => <div data-testid="offer-dialogs" /> }));
+vi.mock("@/hooks/useAcceptPendingJobs", () => ({ useAcceptPendingJobs: () => new Set<string>() }));
+vi.mock("@/hooks/useAwardBlockReason", async (orig) => ({
+  ...(await orig<typeof import("@/hooks/useAwardBlockReason")>()),
+  useAcceptGate: () => ({ loading: false, reason: null, missing: [] }),
+}));
 
 import JobPage from "./JobPage";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 import { pinJobClock } from "@/test/helpers/pinJobClock";
+import { jobOnContinueDay } from "@/lib/continueDay";
 
 /** A day ahead, never a literal that ages into the past (jobDayFixtureTimezone). */
 const DAY = jobLocalDateISO(11);
@@ -270,6 +293,8 @@ function renderPage(userId = ME) {
 }
 
 beforeEach(() => {
+  workingApps.rows = [];
+  offerAnswers.length = 0;
   state.onCrew = false;
   state.crewConfirmed = false;
   state.job = null;
@@ -335,8 +360,10 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     state.job = row();
     renderPage();
     // $90 - (5% of $90 + 70c) = $84.80, floored to whole dollars on the headline (owner, 2026-08-19).
-    expect(screen.getByText("You take home")).toBeTruthy();
-    expect(screen.getByText("$84")).toBeTruthy();
+    // Owner 11-01: "Remove you take home": the figure alone on screen, "Your pay" for a screen reader.
+    expect(document.body.textContent).not.toMatch(/take home/i);
+    expect(document.querySelector("[data-helpr-money] p")?.textContent).toBe("Your pay $84");
+    expect(document.querySelector("[data-helpr-money] .sr-only")?.textContent).toBe("Your pay ");
     // Owner 2026-10-25: no fee name, rate or maths beside the take-home.
     expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
     expect(screen.getByText(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`)).toBeTruthy();
@@ -378,8 +405,7 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     renderPage();
     const pct = tierFeePercent(undefined, undefined);
     expect(pct).toBeGreaterThan(0);
-    expect(screen.getByText("You take home")).toBeTruthy();
-    expect(screen.getByText(`$${Math.floor(60 - (60 * pct) / 100)}`)).toBeTruthy();
+    expect(document.querySelector("[data-helpr-money] p")?.textContent).toBe(`Your pay $${Math.floor(60 - (60 * pct) / 100)}`);
     expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
   });
 
@@ -451,8 +477,8 @@ describe("job page, poster side (boards 15, 168)", () => {
     const money = document.querySelector("[data-poster-money]") as HTMLElement;
     expect(document.querySelector("[data-job-head]")?.contains(money)).toBe(true);
     expect(money.textContent).toContain("$");
-    // JA-47: one sentence about the money, from payment_status.
-    expect(screen.getByText("Paid. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
+    // Owner 11-01: "Remove paid Louisiana Helpr holds until job is done." A paid (escrow) job prints no money line.
+    expect(document.body.textContent).not.toMatch(/holds it until the job is done/i);
     expect(document.body.textContent).not.toMatch(/Nothing is charged|take home|takes home|not charged/i);
     expect(screen.getByText("3 applicants")).toBeTruthy();
     expect(screen.getByLabelText(/^Job progress, step 1 of 8: Posted,/)).toBeTruthy();
@@ -474,12 +500,12 @@ describe("job page, poster side (boards 15, 168)", () => {
 
   // Audit 2026-10-28 F4: with card_hold_at_post on, the card is charged at the hire, so a paid job's line
   // never says "when you posted"; a job whose card is only held says it is not charged yet.
-  it("under the card hold: 'Paid. Louisiana Helpr holds it…', and a held card is not charged until the hire", () => {
+  it("under the card hold: a paid job prints no 'holds it' line (owner 11-01), and a held card is not charged until the hire", () => {
     state.cardHold = true;
     state.job = row({ customer_id: ME, helper_id: "44444444-4444-4444-4444-444444444444", status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z" });
     state.party = true;
     const { unmount } = renderPage();
-    expect(screen.getByText("Paid. Louisiana Helpr holds it until the job is done.")).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/holds it until the job is done/i);
     expect(document.body.textContent).not.toContain("when you posted");
     unmount();
     state.job = row({ customer_id: ME, payment_status: "held" });
@@ -888,6 +914,20 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
   });
 
+  // B80 / B111: after the Helpr answers, the pending-offer row is gone (offeredToMe false, so the viewer is no longer
+  // "see_offer") while the page keeps the booking card on screen (useMyInstantBooking's latch). Only !instantUntil
+  // keeps the "shared once you're offered" line from sitting beside "You're booked": the case that line guards.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
+  it("after the answer (the offer row gone, the card kept): no 'street address is shared' line beside it", () => {
+    state.job = row({ status: "open", payment_status: "held", direct_offer_status: null });
+    state.party = true;
+    state.offeredToMe = false;
+    state.instantUntil = new Date(Date.now() + 60 * 60_000).toISOString();
+    renderPage();
+    expect(document.querySelector(`[data-instant-booking="${row().id}"]`)).not.toBeNull();
+    expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
+  });
+
   it("past the 2 hours: the card says they're booked, with no buttons", () => {
     state.job = openOffer();
     state.party = true;
@@ -965,6 +1005,25 @@ describe("job page, the street address follows the Working card", () => {
     state.party = true;
     renderPage();
     expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
+  });
+
+  // Owner 11-01: "Move the category to the second line and the location, day and time to the first."
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>} |               {false && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}</p> |               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}{meta ? ` · ${meta}` : ""}</p>
+  it("the head: day, time and town on line 1, the category alone on line 2 (poster and Helpr)", () => {
+    for (const job of [row({ customer_id: ME }), row({ helper_id: ME, status: "accepted" })]) {
+      state.job = job;
+      state.party = true;
+      const { unmount } = renderPage();
+      const head = document.querySelector("[data-job-head]") as HTMLElement;
+      const lines = [...head.querySelectorAll("p")].map((p) => p.textContent);
+      const meta = `${formatJobDate(DAY)} · 9:00 AM · Delcambre`;
+      expect(lines.indexOf(meta)).toBeGreaterThanOrEqual(0);
+      const cat = head.querySelector("[data-job-category]")!;
+      expect(cat.textContent).not.toContain("9:00 AM");
+      expect(lines.indexOf(cat.textContent)).toBe(lines.indexOf(meta) + 1);
+      unmount();
+    }
   });
 });
 
@@ -1106,7 +1165,7 @@ describe("a crew member's own job page (A2-B8)", () => {
 // are `contents`, so each part's `order-N` places it in the one stack (jsdom draws no layout: the classes are read).
 // Layout V2 (owner 11-01): the order is the DOM's own now (no `order-N`), read by "job page layout V2" below.
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-details="" className="space-y-4 lg:col-span-2"> | <div data-job-details="" className="space-y-4">
-// @mutate src/pages/jobs/jobPage/JobPage.tsx | <section aria-label="Job summary" data-job-head="" | <section aria-label="Job summary" data-job-head-gone=""
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | <section aria-label={t("jobPage.summary")} data-job-head="" | <section aria-label={t("jobPage.summary")} data-job-head-gone=""
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-guarantee="" className="empty:hidden"> | <div data-job-guarantee-gone="" className="empty:hidden">
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     posterWait === "confirm_still_on" |     false
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |       backTo={isPoster ? "/posts" : "/jobs"}\n      titleActions | backTo={isPoster ? "/posts" : "/jobs"}\n      phoneHidesTitle\n      titleActions
@@ -1349,7 +1408,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
     expect(faceRequests).toEqual([]);
   });
 
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const panel = cardSteps \|\| posterWait === "approve" ? flows.panel : null; |   const panel = flows.panel;
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const panel = cardStepsAll \|\| posterWait === "approve" ? flows.panel : null; |   const panel = flows.panel;
   it("a booked job not yet under way offers only the page's own actions (no card steps)", async () => {
     state.job = booked();
     state.party = true;
@@ -1664,7 +1723,7 @@ describe("job page, an offered Helpr is not told the address comes with an offer
 describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yusef's job)", () => {
   // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open }; |
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | continueStep ?? jobNextStep( | jobNextStep(
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras)} |             {isPoster && posterActions.row(posterStep)}
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })} | posterActions.row(posterStep)}
   // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open }; |
   const underWay = (over: Partial<JobPageRow> = {}) => row({
     customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
@@ -1694,7 +1753,7 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     state.party = true;
     renderPage();
     expect(await screen.findByText("Continuing Thu 11/5 at 9 AM")).toBeTruthy();
-    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Continuing Thu 11/5 at 9 AM · waiting on Rhonda");
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Continuing Thu 11/5 at 9 AM · waiting on Rhonda to confirm");
   });
 
   it("a Helpr's ask: 'Confirm new day' leads on the right (one tap) over Approve", async () => {
@@ -1722,5 +1781,158 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "Confirm I'll be there" }));
     await waitFor(() => expect(continueCalls).toEqual(["confirm:c1"]));
+  });
+
+  // B118 follow-up (lead 11-01): with a SET day the bar read day 1 ("Late" on Arrived on a day that had passed).
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | <JobTracker job={jobOnContinueDay(job, continueDay.row)} side= | <JobTracker job={job} side=
+  // @mutate src/lib/continueDayWords.ts |   return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) }; |   return job;
+  it("a set day: the tracker bar reads the new day, never 'Late' off day 1's passed date", async () => {
+    continueState.row = setRow({ new_date: jobLocalDateISO(3), proposed_by: POSTER });
+    state.job = underWay({ customer_id: POSTER, helper_id: ME, date_needed: jobLocalDateISO(-1), helper_arrived_at: null });
+    state.party = true;
+    renderPage();
+    await screen.findByRole("button", { name: "Confirm I'll be there" });
+    const bar = document.querySelector("[data-job-tracker] [data-job-steps]") as HTMLElement;
+    expect(bar).toBeTruthy();
+    expect(bar.getAttribute("data-tone")).toBe("progress");
+    expect(within(document.querySelector("[data-job-tracker]") as HTMLElement).queryByText("Late")).toBeNull();
+  });
+
+  it("a proposed day is not agreed: day 1 stands for the bar (only a set day moves it)", () => {
+    const job = { date_needed: jobLocalDateISO(-1), start_time: "09:00" };
+    const newDay = jobLocalDateISO(4);
+    expect(jobOnContinueDay(job, setRow({ status: "proposed", new_date: newDay }) as never)).toBe(job);
+    expect(jobOnContinueDay(job, setRow({ new_date: newDay }) as never)).toEqual({ date_needed: newDay, start_time: "09:00" });
+    expect(jobOnContinueDay(job, null)).toBe(job);
+  });
+
+  // B118 follow-up (lead 11-01): "Need another day" showed after arrival, before any day-1 work had started.
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |   const offerSetDay = workStarted \|\| !!row; |   const offerSetDay = true;
+  it("arrived but not started on day 1: no 'Need another day' yet; once working, it shows", async () => {
+    state.job = underWay({ customer_id: POSTER, helper_id: ME, poster_confirmed_arrival_at: null });
+    state.tracking = "arrived";
+    state.party = true;
+    const { unmount } = renderPage();
+    await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Need another day" })).toBeNull();
+    unmount();
+    state.tracking = "working";
+    renderPage();
+    expect(await screen.findByRole("button", { name: "Need another day" })).toBeTruthy();
+  });
+});
+
+// JA-17 (lead 11-01): an offered Helpr answers on the page, through the Working card's own Accept / Decline and
+// handlers (PageOfferPanel), never by being sent off to the Working card with "See the offer".
+// @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx | onHelperResponse={actions.handleHelperResponse} | onHelperResponse={() => {}}
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && !hiredFace && !instantUntil && viewer.action.kind === "see_offer" && ( |             {false && (
+// @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx |   const app = q.data?.appliedApps.find((a) => a.job_id === jobId && !!a.job) ?? null; |   const app = q.data?.appliedApps.find((a) => !!a.job) ?? null;
+describe("JA-17: Accept and Decline on the job page", () => {
+  const offered = () => row({ helper_id: ME, status: "accepted", helper_confirmed_at: null, response_deadline: new Date(Date.now() + 20 * 3_600_000).toISOString() } as Partial<JobPageRow>);
+  const workingRow = (jobId: string, id: string) => ({
+    id, job_id: jobId, helper_id: ME, status: "pending", message: "I can do it", offer_message: null,
+    offer_message_flagged_hidden: false, created_at: "2026-10-30T12:00:00Z", updated_at: "2026-10-30T12:00:00Z",
+    job: { ...offered(), id: jobId },
+  });
+
+  it("accepts through the Working card's handler, with this job's own row", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow("44444444-4444-4444-4444-444444444444", "app-other"), workingRow(state.job.id, "app-this")];
+    renderPage();
+    // The Working card is lazy: the 1 s default timed out on a loaded CI shard (#3987, 1042 ms).
+    const accept = await screen.findByRole("button", { name: /Accept job/ }, { timeout: 5000 });
+    expect(screen.queryByRole("button", { name: "See the offer" })).toBeNull();
+    expect(screen.getByTestId("offer-dialogs")).toBeTruthy();
+    fireEvent.click(accept);
+    expect(offerAnswers).toEqual([["app-this", true]]);
+  });
+
+  it("declines after the card's own confirm", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow(state.job.id, "app-this")];
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: /^Decline$/ }));
+    expect(offerAnswers).toEqual([]);
+    fireEvent.click(await screen.findByRole("button", { name: "Decline job" }));
+    expect(offerAnswers).toEqual([["app-this", false]]);
+  });
+
+  it("a direct offer (the Working list's synthetic row) declines in one tap", async () => {
+    state.job = row({ status: "open", direct_offer_status: "pending" });
+    state.offeredToMe = true;
+    workingApps.rows = [workingRow(state.job.id, `direct-${state.job.id}`)];
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: /^Decline$/ }));
+    expect(offerAnswers).toEqual([[`direct-${state.job.id}`, false]]);
+  });
+
+  it("with no Working row for the job, the way to the offer stays (never a blank card)", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow("44444444-4444-4444-4444-444444444444", "app-other")];
+    renderPage();
+    await waitFor(() => expect(screen.getByRole("button", { name: "See the offer" })).toBeTruthy());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole("button", { name: /Accept job/ })).toBeNull();
+  });
+});
+
+/*
+ * Auditor 11 (11-01, the owner's job 7b1da54b): with a day set to finish, (2) the Helpr's row led with "Mark job
+ * complete" days before the server allows it (continue_day_ahead); (4) the poster's pair was "SOS | Message" with
+ * nobody at the job; (5) the header still read day 1.
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |     const doneLocked = continueDay.doneAhead && hiredFace.label === DONE_FACE_LABEL; |     const doneLocked = false;
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })} | continueDay.posterExtras)}
+ * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       posterExtras.push({ key: "continue-change", label: "Change day", go: open }); |       posterExtras.push();
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const continuingOn = continueDayHeader(continueDay.row); |   const continuingOn = null as string \| null;
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | <MineFaceNote note={continueDay.doneAheadNote ?? hiredFace?.note} /> | <MineFaceNote note={hiredFace?.note} />
+ */
+describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () => {
+  const ahead = jobLocalDateISO(3);
+  const underWay = (over: Partial<JobPageRow> = {}) => row({
+    customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
+    poster_confirmed_arrival_at: "2026-10-28T12:40:00Z", poster_confirmed_working_at: "2026-10-28T12:45:00Z", ...over,
+  });
+  const setDay = (over: Record<string, unknown> = {}) => ({
+    id: "c1", job_id: "x", proposed_by: ME, new_date: ahead, new_start_time: "09:00:00", note: null, status: "set",
+    helper_confirmed_at: "2026-11-01T12:00:00Z", ...over,
+  });
+  beforeEach(() => { continueState.row = null; continueCalls.length = 0; Element.prototype.scrollTo ??= () => {}; });
+
+  it("the Helpr: no 'Mark job complete' before the day; Message leads and the note says when", async () => {
+    state.job = underWay({ customer_id: POSTER, helper_id: ME, proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"] });
+    state.tracking = "working";
+    state.party = true;
+    const { unmount } = renderPage();
+    // Without a day the same job leads with the done step (the fixture is the audit's state).
+    await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
+    expect(within(document.querySelector('[data-job-row="helpr"]') as HTMLElement).getAllByRole("button").map(fullName)).toContain("Mark job complete");
+    unmount();
+    continueState.row = setDay({ proposed_by: POSTER });
+    renderPage();
+    await screen.findByText(/You can mark it done on/);
+    const names = within(document.querySelector('[data-job-row="helpr"]') as HTMLElement).getAllByRole("button").map(fullName);
+    expect(names).not.toContain("Mark job complete");
+    expect(names[names.length - 1]).toBe("Message Rhonda");
+    expect(screen.getByText(/You can mark it done on \w{3} \d+\/\d+, the day you set to finish\./)).toBeTruthy();
+  });
+
+  it("the poster: [Change day | Message], no SOS, and the header reads the continue day", async () => {
+    continueState.row = setDay();
+    state.job = underWay();
+    state.party = true;
+    state.moreCount = 1;
+    state.leadCount = 0;
+    renderPage();
+    await screen.findByRole("button", { name: "Change day" });
+    const names = within(document.querySelector('[data-job-row="poster"]') as HTMLElement).getAllByRole("button").map(fullName);
+    expect(names).toEqual(["Change day", "Message Rhonda"]);
+    expect(screen.queryByRole("button", { name: "Set a different day" })).toBeNull();
+    expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${formatJobDate(ahead)} · 9:00 AM`));
+    expect(document.querySelector("[data-next-step]")?.textContent).toMatch(/^Rhonda confirmed /);
   });
 });

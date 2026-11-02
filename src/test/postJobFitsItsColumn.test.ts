@@ -24,7 +24,7 @@
  * @mutate src/index.css | .pj-cq { container-type: inline-size; } | .pj-cq { }
  * @mutate src/index.css | .pj-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } | .pj-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
  * @mutate src/index.css | .pj-when-grid { grid-template-columns: minmax(0, 1fr); } | .pj-when-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
- * @mutate src/components/postjob/JobCategoryGroups.tsx |       <section aria-label="Category groups" className="pj-group-tiles grid gap-2.5"> |       <section aria-label="Category groups" className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+ * @mutate src/components/postjob/JobCategoryGroups.tsx |           <section aria-label={t("postJob.categoryGroups")} className="pj-group-tiles grid gap-2.5"> |           <section aria-label={t("postJob.categoryGroups")} className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
  * @mutate src/components/postjob/LogisticsSection.tsx |       <div className="pj-when-grid grid gap-5"> |       <div className="grid gap-5 md:grid-cols-2 md:items-stretch">
  * @mutate src/pages/post-job/FormStep.tsx |       <aside className="hidden xl:block sticky top-6"> |       <aside className="hidden lg:block sticky top-6">
  * @mutate src/pages/post-job/FormStep.tsx |             <div className="xl:hidden"><PostJobPreviewCard |             <div className="lg:hidden"><PostJobPreviewCard

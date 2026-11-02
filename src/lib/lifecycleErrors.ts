@@ -36,6 +36,9 @@ export const BEFORE_PHOTO_GATE_REASON =
   'Tap "Before photo" and add one before you start working — it\'s the record of how the job looked when you got there.';
 
 const LIFECYCLE_REASONS: Record<string, string> = {
+  // Continue another day (20261101231015, Auditor 11 11-01): trg_refuse_done_before_continue_day refuses "done"
+  // before the day set to finish, whichever write marks it (the date is on the page beside the toast).
+  continue_day_ahead: "You can mark it done on the day you set to finish.",
   // Board 141: a cancel, back-out or no-show report while a refund request on
   // the job waits or is being settled (trg_refuse_job_move_while_refund_requested).
   refund_request_live:
@@ -544,7 +547,7 @@ export const RPC_ERROR_COPY = {
     job_not_active: JOB_NOT_ACTIVE_STATUS,
     helper_not_confirmed: "Accept this job first, then mark yourself on the way.",
     // 20261008203441 (Q1570): the Helpr's own day-before tap, then 2 h before the start.
-    helper_not_dayof_confirmed: "Tap \"Confirm you'll be at the job\" first, then you can head out.",
+    helper_not_dayof_confirmed: "Tap Confirm first, then you can head out.",
     on_the_way_too_early: "I'm on my way turns on 2 hours before the job starts.",
   },
   nudge_confirm: {
@@ -674,6 +677,10 @@ export const RPC_ERROR_COPY = {
   },
   declutter_porch_days: {
     item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
+  // A3-76 (20261102015451): did the caller's own side already review this order.
+  declutter_i_reviewed: {
     not_authenticated: DC.not_authenticated,
   },
   // A1-B2 (20261029161237): what the buyer's card was charged, read for at most 200 of their own orders at once.
@@ -910,6 +917,10 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  // A3-81 (20261102002217): Home's read of the refund requests waiting on the member (raises only without a session).
+  declutter_my_refund_todos: {
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_ask_refund: {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,
@@ -1136,6 +1147,11 @@ export const RPC_ERROR_COPY = {
   declutter_free_requests_for_item: {
     item_not_found: DC.item_not_found,
   },
+  // B112 (20261101200349): the seller's porch days for the caller's own checkout.
+  declutter_checkout_porch_days: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_pick_free_request: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
@@ -1146,6 +1162,7 @@ export const RPC_ERROR_COPY = {
     offer_not_open: DC.offer_not_open,
     request_not_found: DC.request_not_found,
     request_not_open: DC.request_not_open,
+    request_time_passed: DC.request_time_passed,
     requester_unavailable: DC.requester_unavailable,
     under_18: DC.under_18,
   },
@@ -2424,7 +2441,8 @@ export function loadAdminRpcErrorCopy(): Promise<typeof import("@/components/adm
  * copy above, and the caller does NOT report them to Sentry (a settlement in
  * progress is the lock working, not a bug — round-4 review, LOW).
  */
-const EXPECTED_REFUSALS = ["dispute_settlement_in_progress"] as const;
+// continue_day_ahead (A3-115): "done" before the day set to finish is the trigger working, not a defect.
+const EXPECTED_REFUSALS = ["dispute_settlement_in_progress", "continue_day_ahead"] as const;
 
 export function isExpectedLifecycleRefusal(error: unknown): boolean {
   const raw =

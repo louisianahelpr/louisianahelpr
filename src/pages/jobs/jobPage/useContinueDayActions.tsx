@@ -3,10 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
 import { ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
-import { answerContinueDay, confirmContinueDay, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
+import { answerContinueDay, confirmContinueDay, continueDayAhead, continueDayDoneNote, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
 import type { NextStepValue } from "@/components/ui/NextStep";
 import type { RowAction } from "./JobPageActionRow";
 import type { PagePrimary } from "./posterPageActions";
+import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
+import type { Job } from "@/components/job-card/activityConstants";
 
 /**
  * The job page's half of "Couldn't finish: continue another day" (owner 2026-11-01, Yusef's job; src/lib/continueDay.ts):
@@ -20,12 +22,15 @@ export function useContinueDayActions({
   job,
   side,
   otherFirst,
+  trackingStatus = null,
   onChanged,
 }: {
-  job: { id: string; status: string | null; is_group_job?: boolean | null; helper_arrived_at?: string | null; helper_arrival_verified_at?: string | null; poster_confirmed_arrival_at?: string | null } | null | undefined;
+  job: { id: string; status: string | null; is_group_job?: boolean | null; helper_completed_at?: string | null; helper_arrived_at?: string | null; helper_arrival_verified_at?: string | null; poster_confirmed_arrival_at?: string | null } | null | undefined;
   /** Who is looking: the poster, the hired Helpr, or nobody on the job (null: nothing shown). */
   side: "poster" | "helpr" | null;
   otherFirst: string | null;
+  /** The job's latest job_tracking.status: with the stamps, whether day 1's work has started (helperProgress). */
+  trackingStatus?: string | null;
   onChanged: () => void;
 }): {
   row: ContinueDay | null;
@@ -37,6 +42,14 @@ export function useContinueDayActions({
   /** "Not finished? Set a day" / "Need another day": a visible text button under the row (null: none). */
   setDay: RowAction | null;
   sheet: React.ReactNode;
+  /**
+   * A SET day still ahead (Auditor 11, 11-01): the server refuses "done" until then (continue_day_ahead), so the
+   * Helpr's row never leads with "Mark job complete", and the poster's row drops the card's on-site actions (SOS):
+   * nobody is at the job.
+   */
+  doneAhead: boolean;
+  /** "You can mark it done on Thu 11/5, the day you set to finish." while doneAhead (the Helpr's side). */
+  doneAheadNote: string | null;
 } {
   // Once the Helpr is there (arrived, by any of the three stamps): before that, a new day is "Change date or time".
   const arrived = !!job && !!(job.helper_arrived_at || job.helper_arrival_verified_at || job.poster_confirmed_arrival_at);
@@ -49,7 +62,10 @@ export function useContinueDayActions({
   });
   const [sheetOpen, setSheetOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const none = { row: null, step: null, posterLead: undefined, posterExtras: [], helprLead: null, helprExtras: [], setDay: null, sheet: null };
+  // Work started on day 1 (the Working card's own rule): before that, there is no "another day" to ask for (B118
+  // follow-up, lead 11-01). An active continue day keeps its "different day" button whatever the stamps say.
+  const workStarted = !!job && helperProgress(job as unknown as Job, trackingStatus).workUnderway;
+  const none = { row: null, step: null, posterLead: undefined, posterExtras: [], helprLead: null, helprExtras: [], setDay: null, sheet: null, doneAhead: false, doneAheadNote: null };
   if (!live || !job || !side) return none;
 
   const row = q.data ?? null;
@@ -73,23 +89,32 @@ export function useContinueDayActions({
   const posterExtras: RowAction[] = [];
   let helprLead: RowAction | null = null;
   const helprExtras: RowAction[] = [];
-  let setDay: RowAction | null;
+  let setDay: RowAction | null = null;
+  const offerSetDay = workStarted || !!row;
   if (side === "poster") {
     if (row?.status === "proposed") {
       posterLead = { label: "Confirm new day", go: () => void run(() => answerContinueDay(row.id, true), `Set: continuing ${when}.`)(), disabled: busy };
       posterExtras.push({ key: "continue-decline", label: "Decline new day", go: () => void run(() => answerContinueDay(row.id, false), "Declined. Message them to agree on what's next.")(), disabled: busy });
     }
-    // A VISIBLE text button under the row, never in More options (lead 11-01: on the Approve stage this is Yusef's case).
-    setDay = { key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open };
+    if (row?.status === "set") {
+      // Auditor 11 (11-01): the pair once a day is set is [Change day | Message], never "SOS | Message".
+      posterExtras.push({ key: "continue-change", label: "Change day", go: open });
+    } else if (offerSetDay) {
+      // A VISIBLE text button under the row, never in More options (lead 11-01: on the Approve stage this is Yusef's case).
+      setDay = { key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open };
+    }
   } else {
     if (row?.status === "set" && !row.helper_confirmed_at) {
       helprLead = { key: "continue-confirm", label: "Confirm I'll be there", go: () => void run(() => confirmContinueDay(row.id), `Confirmed for ${when}.`)(), disabled: busy };
     }
-    setDay = { key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open };
+    if (offerSetDay) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open };
   }
 
+  const doneAhead = continueDayAhead(row);
   return {
     row,
+    doneAhead,
+    doneAheadNote: side === "helpr" ? continueDayDoneNote(row) : null,
     step: continueDayNextStep(row, { side, otherFirst }),
     posterLead,
     posterExtras,
@@ -97,7 +122,7 @@ export function useContinueDayActions({
     helprExtras,
     setDay,
     sheet: (
-      <ContinueDaySheet open={sheetOpen} onOpenChange={setSheetOpen} jobId={job.id} side={side} otherFirst={otherFirst} onSaved={refresh} />
+      <ContinueDaySheet open={sheetOpen} onOpenChange={setSheetOpen} jobId={job.id} side={side} otherFirst={otherFirst} onSaved={refresh} helprMarkedDone={!!job.helper_completed_at} />
     ),
   };
 }

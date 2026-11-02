@@ -29,6 +29,7 @@ import {
   guestTabPath,
 } from "@/components/mobileNav/mobileNavHelpers";
 import { phoneDockItems, type DockItem } from "@/components/mobileNav/dockItems";
+import { dockBadgeCount } from "@/components/mobileNav/dockBadgeCount";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
 import { DockCurtain } from "@/components/mobileNav/DockCurtain";
@@ -365,17 +366,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     const inStack = !isGuest && isInStack(path);
     // Guests never carry a badge (nothing to count). Messages → unread
     // chats; Explore → the To-do count (the same list Home shows).
-    const badgeCount = isGuest
-      ? 0
-      : badgeKey === "messages"
-        ? unreadCount
-        : badgeKey === "todo"
-          ? todo.total
-          : badgeKey === "todoJobs"
-            ? todo.jobs
-            : badgeKey === "todoShops"
-              ? todo.shops
-              : 0;
+    const badgeCount = isGuest ? 0 : dockBadgeCount(badgeKey, unreadCount, todo);
     const showBadge = badgeCount > 0;
 
     const handleClick = () => {

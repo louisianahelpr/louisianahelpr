@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { fetchMyPurchases, purchasesKey } from "@/lib/declutter/purchaseSpend";
 import { CreditCard, DollarSign } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +22,23 @@ const completedAtMs = (j: SpentJobRow) => {
     ? j.cancelled_at
     : j.poster_completed_at ?? j.helper_completed_at;
   return completedAt ? new Date(completedAt).getTime() : new Date(j.created_at).getTime();
+};
+
+/**
+ * A3-111 (audit 8, 11-01): a row says where its money stands: Cancelled, or, on a job not done yet, the charge is held
+ * until the poster approves the work (posterSpend's held rule). A done job needs no word.
+ */
+function spentStatusWord(r: SpentRow<SpentJobRow>): string {
+  if (!r.job) return "";
+  if (r.job.status === "completed") return "";
+  if (r.job.status === "cancelled") return " · Cancelled";
+  return r.cents > 0 ? " · Held until the job is approved" : "";
+}
+
+/** A3-111: each row opens its job (a tip on a job opens that job); a tip with no job stays text. */
+const spentRowHref = (r: SpentRow<SpentJobRow>): string | null => {
+  const id = r.job?.id ?? r.tip?.job_id ?? null;
+  return id ? `/jobs/${id}` : null;
 };
 
 /** A row's date: its job's (above), or a tip's own when it stands alone. */
@@ -45,7 +65,14 @@ export function SpentSection() {
   // "Total spent" used to be summed from the helper-side `earningsJobs` (jobs
   // the user WORKED), so it reported their clients' budgets as the user's own
   // spending — fictional money. These reads are scoped to jobs the user posted.
-  const { data, isLoading, isError, isFetching, refetch } = usePosterSpendData(user?.id);
+  const spend = usePosterSpendData(user?.id);
+  const { data } = spend;
+  // A3-112: Declutter purchases count too (purchaseSpend.ts, Receipts' rule). A failed read fails the whole figure.
+  const purchases = useQuery({ queryKey: purchasesKey(user?.id ?? ""), queryFn: () => fetchMyPurchases(user!.id), enabled: !!user?.id });
+  const isLoading = spend.isLoading || (!!user?.id && purchases.isLoading);
+  const isError = spend.isError || purchases.isError;
+  const isFetching = spend.isFetching || purchases.isFetching;
+  const refetch = () => { void spend.refetch(); void purchases.refetch(); };
   const [scope, setScope] = useState<EarningsRange>("lifetime");
 
   // Range slices — exactly PaymentTab's (Monday-start week).
@@ -64,8 +91,10 @@ export function SpentSection() {
   const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []);
   // ONE source for the total and the list (posterSpend.ts).
   const rows = since === null ? allRows : allRows.filter((r) => rowMs(r) >= since);
-  const totalSpent = spentTotalCents(rows) / 100;
+  const bought = (purchases.data ?? []).filter((p) => since === null || p.ms >= since).sort((a, b) => b.ms - a.ms);
+  const totalSpent = (spentTotalCents(rows) + bought.reduce((s, p) => s + p.cents, 0)) / 100;
   const spentCount = rows.length;
+  const boughtCount = bought.length;
   const listed = [...rows].sort((a, b) => rowMs(b) - rowMs(a));
 
   return (
@@ -83,7 +112,7 @@ export function SpentSection() {
               Spent
             </h2>
             <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              on jobs you posted
+              on jobs you posted and Declutter
             </p>
           </div>
         </div>
@@ -121,7 +150,8 @@ export function SpentSection() {
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
             />
             <p className="font-sans mt-1 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {spentCount === 0 ? "no jobs yet" : `across ${spentCount} job${spentCount === 1 ? "" : "s"}`}
+              {spentCount === 0 && boughtCount === 0 ? "no jobs yet"
+                : `${spentCount} job${spentCount === 1 ? "" : "s"}${boughtCount > 0 ? ` · ${boughtCount} purchase${boughtCount === 1 ? "" : "s"}` : ""}`}
             </p>
           </div>
         )}
@@ -132,15 +162,16 @@ export function SpentSection() {
           <h3 className="font-display font-bold leading-tight text-ds-17 pt-1" style={{ color: "hsl(var(--ink-deep))" }}>
             Jobs you paid for
           </h3>
-          {listed.map((r) => (
-            <div key={r.job?.id ?? `tip-${r.tip?.id}`} className="rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3">
+          {listed.map((r) => {
+            const href = spentRowHref(r);
+            const body = (<>
               <div className="flex-1 min-w-0">
                 <h4 className="font-display font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}>
                   {r.job ? r.job.title ?? "Job" : "Tip"}
                 </h4>
                 <p className="font-sans text-ds-12 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {formatShortDate(new Date(rowMs(r)))}
-                  {r.job?.status === "cancelled" ? " · Cancelled" : ""}
+                  {spentStatusWord(r)}
                   {refundedReceiptNote(r)}
                   {r.job && r.tipGivenCents > 0 ? ` · includes ${formatCents(r.tipGivenCents)} tip` : ""}
                   {r.job ? setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded) : ""}
@@ -149,7 +180,39 @@ export function SpentSection() {
               <p className="font-sans font-bold tabular-nums text-ds-16 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>
                 {formatCents(r.cents)}
               </p>
-            </div>
+            </>);
+            const rowClass = "rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3";
+            return href ? (
+              <Link key={r.job?.id ?? `tip-${r.tip?.id}`} to={href} data-spent-row="" className={`${rowClass} min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}>
+                {body}
+              </Link>
+            ) : (
+              <div key={`tip-${r.tip?.id}`} data-spent-row="" className={rowClass}>{body}</div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* A3-112: what the member paid for Declutter items, each opening their orders. */}
+      {!isLoading && !isError && bought.length > 0 && (
+        <div className="space-y-3" data-spent-purchases="">
+          <h3 className="font-display font-bold leading-tight text-ds-17 pt-1" style={{ color: "hsl(var(--ink-deep))" }}>
+            Declutter purchases
+          </h3>
+          {bought.map((p) => (
+            <Link key={p.id} to="/declutter?view=cart" data-spent-purchase="" className="rounded-ds-md liquid-glass p-3.5 flex items-start justify-between gap-3 min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              <div className="flex-1 min-w-0">
+                <h4 className="font-display font-bold leading-tight truncate text-ds-15" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }} title={`Bought: ${p.title}`}>
+                  Bought: {p.title}
+                </h4>
+                <p className="font-sans text-ds-12 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  {formatShortDate(new Date(p.ms))}{p.refunded ? " · Refunded" : ""}
+                </p>
+              </div>
+              <p className="font-sans font-bold tabular-nums text-ds-16 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>
+                {formatCents(p.cents)}
+              </p>
+            </Link>
           ))}
         </div>
       )}

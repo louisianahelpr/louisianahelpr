@@ -104,13 +104,13 @@ function MatchmakerBuilder() {
             <p className="mt-2 break-all text-ds-12 text-muted-foreground" data-testid="mm-link">{link}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" className="btn-grad-primary rounded-full" onClick={() => void copy()}>
-              <Copy className="mr-2 h-4 w-4" aria-hidden />
-              Copy link
-            </Button>
             <Button type="button" variant="outline" className="rounded-full" onClick={share}>
               <Share2 className="mr-2 h-4 w-4" aria-hidden />
               Share
+            </Button>
+            <Button type="button" className="btn-grad-primary rounded-full" onClick={() => void copy()}>
+              <Copy className="mr-2 h-4 w-4" aria-hidden />
+              Copy link
             </Button>
           </div>
         </div>

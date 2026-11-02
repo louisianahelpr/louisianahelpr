@@ -307,6 +307,19 @@ export async function fetchDropStates(itemIds: string[]): Promise<Map<string, Dr
 }
 
 /**
+ * A3-109: the ways each listing's seller ticked (declutter_items.handovers; null = an older item that ticked none), read
+ * only while Browse's "How you get it" filter asks for meet up or seller delivery. RLS decides; an id it hides is absent.
+ */
+export async function fetchItemWays(itemIds: string[]): Promise<Map<string, string[] | null>> {
+  const out = new Map<string, string[] | null>();
+  if (itemIds.length === 0) return out;
+  const rows = unwrap(await supabase.from("declutter_items").select("id, handovers").in("id", itemIds)) as
+    { id: string; handovers: string[] | null }[] | null;
+  for (const r of rows ?? []) out.set(r.id, r.handovers ?? null);
+  return out;
+}
+
+/**
  * BUY-52: the live listings whose price dropped from over `maxDollars` since `since` (a saved search's "N new" counts
  * them; saved_search_new_counts and this read share declutter_dropped_into_budget). Before that function is on the
  * server (PGRST202 / 42883) the answer is none, so Browse marks by live_at alone, as it did.
@@ -1276,6 +1289,29 @@ export async function fetchOpenFreeRequestCounts(userId: string): Promise<Map<st
   return out;
 }
 
+/** A3-81: one of the giver's free listings with people waiting on their pick (title, how many asked, the first ask). */
+export type FreeAskToPick = { item_id: string; title: string; asked: number; first_at: string };
+
+/**
+ * A3-81: the giver's free listings that people asked for, for Home's "Pick who gets <item>" (RLS lets the giver read
+ * the rows; the same read as fetchOpenFreeRequestCounts, with each item's title). Oldest first ask first.
+ */
+export async function fetchFreeAsksToPick(userId: string): Promise<FreeAskToPick[]> {
+  const rows = (unwrap(
+    await supabase.from("declutter_free_requests").select("item_id, created_at, declutter_items!inner(title)")
+      .eq("seller_id", userId).eq("status", "open").order("created_at", { ascending: true }),
+  ) ?? []) as unknown as { item_id: string; created_at: string; declutter_items: { title: string } | null }[];
+  const out = new Map<string, FreeAskToPick>();
+  for (const r of rows) {
+    const had = out.get(r.item_id);
+    if (had) had.asked++;
+    else out.set(r.item_id, { item_id: r.item_id, title: r.declutter_items?.title ?? "your free item", asked: 1, first_at: r.created_at });
+  }
+  return [...out.values()];
+}
+
+export { fetchMyRefundTodos } from "@/lib/declutter/refundRequests";
+
 export type FreeRequester = {
   request_id: string; requester_id: string; display_name: string; avg_rating: number | null; review_count: number | null; created_at: string;
   /** The pickup time the asker picked (20261101174857); null for an ask made before, or from an older app build. */
@@ -1368,7 +1404,9 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
     ...(handover === "seller_delivery"
       ? { slot_start: slotStart ?? null, handoff: handoff ?? null,
           ...(typeof expectedDeliveryCents === "number" ? { expected_delivery_cents: expectedDeliveryCents } : {}) }
-      : {}),
+      // B110: a porch / door / meetup pickup carries the day and time the buyer chose before paying (none: they book after).
+      : (handover === "porch" || handover === "pickup_home" || handover === "meetup") && slotStart ? { slot_start: slotStart }
+        : {}),
   });
   return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true };
 }

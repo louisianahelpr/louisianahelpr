@@ -26,6 +26,9 @@ import { FORM_PAGE_OF, screenOfFormPage, type PostJobScreen } from "@/components
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 import { useFeatureStatus } from "@/hooks/useFeature";
+import { t, useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enPostJob";
+import type { MsgKey } from "@/lib/i18n/en";
 import {
   PriceModeChoice,
   QuoteRequestSection,
@@ -45,6 +48,8 @@ interface FormStepProps {
  * The scroll-spy + jump wiring here is local view state only.
  */
 export function FormStep({ form }: FormStepProps) {
+  // Post a job in Spanish (A3-3): re-render when the language or its words arrive (t() below reads them).
+  useLanguage();
 
   const atOpenJobLimit = form.openJobCount !== null && form.openJobCount >= 5;
   // The form is "ready" once all three sections' required fields are
@@ -79,27 +84,27 @@ export function FormStep({ form }: FormStepProps) {
   // Contextual label — names the first unfinished *field* (not just the
   // section) so the poster knows exactly what's blocking the button.
   // Owner 2026-10-21 (friction 2): say what happens next; the charge happens on a secure page after review.
-  let submitLabel = "Review, then pay";
+  let submitLabel = t("postJob.reviewThenPay");
   if (!form.detailsComplete) {
     submitLabel = detailsBlock ?? submitLabel;
   } else if (!form.logisticsComplete) {
     if (!form.streetAddress.trim() || !form.city.trim() || !form.addrState.trim() || !form.zipCode.trim())
-      submitLabel = "Add the address to continue";
-    else if (!form.dateNeeded) submitLabel = "Pick a date to continue";
+      submitLabel = t("postJob.addAddress");
+    else if (!form.dateNeeded) submitLabel = t("postJob.pickDate");
     // Only ask for a time when the poster has not said they don't have one.
     // Ticking "Flexible Schedule" IS the answer to this question, so keeping
     // the label here left the CTA demanding a field the form no longer wants.
-    else if (!form.startTime && !form.isFlexibleSchedule) submitLabel = "Pick a start time to continue";
+    else if (!form.startTime && !form.isFlexibleSchedule) submitLabel = t("postJob.pickStart");
     // The schedule is filled in but has already gone by. This branch is why
     // `scheduleInPast` is surfaced separately from `logisticsComplete`: the
     // button used to read "Review & pay · $72" in exactly this state and then
     // refuse the tap with a toast the poster could not see from down here.
-    else submitLabel = "Pick a later start to continue";
+    else submitLabel = t("postJob.pickLater");
   } else if (askingQuotes) {
     // A2-C32 (lead option A): Get quotes has a Review too (7 of 7); "Ask for quotes" is on it.
-    submitLabel = "Review";
+    submitLabel = t("postJob.review");
   } else if (!form.budgetComplete) {
-    submitLabel = "Set a budget to continue";
+    submitLabel = t("postJob.setBudget");
   }
 
   // ONE QUESTION PER SCREEN (boards 23, 44, 3, 45, 46): What, Details, Price,
@@ -142,20 +147,20 @@ export function FormStep({ form }: FormStepProps) {
   }, [setPage]);
 
   const openGroup = form.categoryGroup ? JOB_CATEGORY_GROUPS.find((g) => g.id === form.categoryGroup) ?? null : null;
-  let pageLabel = "Continue";
+  let pageLabel = t("postJob.continue");
   let pageReady = true;
   // POST-H15 (lead 10-31): with only [placeholders] left, Details' Continue can be pressed. It does not move on: the
   // description then says so in red and the first placeholder gets the focus (before that, a neutral hint).
   const placeholdersOnly = page === 2 && detailsBlock === PLACEHOLDER_BLOCK;
   if (page === 1) {
     pageReady = !!form.category;
-    pageLabel = form.category ? `Continue with ${sentenceCaseLabel(jobCategoryLabel(form.category))}` : "Pick a category to continue";
+    pageLabel = form.category ? t("postJob.continueWith", { category: sentenceCaseLabel(jobCategoryLabel(form.category)) }) : t("postJob.pickToContinue");
   } else if (page === 2) {
     pageReady = detailsBlock === null;
-    pageLabel = placeholdersOnly ? "Continue" : detailsBlock ?? "Continue";
+    pageLabel = placeholdersOnly ? t("postJob.continue") : detailsBlock ?? t("postJob.continue");
   } else if (page === 3) {
     pageReady = askingQuotes || form.budgetComplete;
-    pageLabel = pageReady ? "Continue" : "Set a budget to continue";
+    pageLabel = pageReady ? t("postJob.continue") : t("postJob.setBudget");
   }
   // The open-job cap and the age gate stop the flow at screen 1, as the
   // one-page form's button did (their notices sit above every screen).
@@ -178,11 +183,11 @@ export function FormStep({ form }: FormStepProps) {
   const backTo = !lastPage
     ? null
     : !form.category
-      ? { page: 1, label: "Pick a category to continue" }
+      ? { page: 1, label: t("postJob.pickToContinue") }
       : detailsBlock
         ? { page: 2, label: detailsBlock }
         : !askingQuotes && !form.budgetComplete
-          ? { page: 3, label: "Set a budget to continue" }
+          ? { page: 3, label: t("postJob.setBudget") }
           : null;
 
   // The action bar floats over the form only while its button does something.
@@ -267,9 +272,9 @@ export function FormStep({ form }: FormStepProps) {
         {/* PAGE 1: WHAT, screens 2 and 3 of 7 (board 23) */}
         <div data-form-page="1" hidden={page !== 1} className="space-y-section">
           {openGroup ? (
-            <PostJobStepHeader screen="kind" question={groupQuestion(openGroup.id, openGroup.label)} helper="Tap one to keep going." canPick={canPickStep} onPick={pickStep} />
+            <PostJobStepHeader screen="kind" question={groupQuestion(openGroup.id)} helper={t("postJob.kindH")} canPick={canPickStep} onPick={pickStep} />
           ) : (
-            <PostJobStepHeader screen="groups" question="What do you need done?" helper="Search, or pick a category." canPick={canPickStep} onPick={pickStep} />
+            <PostJobStepHeader screen="groups" question={t("postJob.groupsQ")} helper={t("postJob.groupsH")} canPick={canPickStep} onPick={pickStep} />
           )}
           <JobCategoryGroups
             category={form.category}
@@ -287,7 +292,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 2: DETAILS, screen 4 of 7 (board 44) */}
         <div data-form-page="2" hidden={page !== 2} className="space-y-section">
-          <PostJobStepHeader screen="details" question="Tell us about it" helper="A few words and a photo help Helprs say yes." canPick={canPickStep} onPick={pickStep} />
+          <PostJobStepHeader screen="details" question={t("postJob.detailsQ")} helper={t("postJob.detailsH")} canPick={canPickStep} onPick={pickStep} />
           {/* JOBS-10: a copy was silent, and it leaves these out (useJobFormEffects' rebook load). */}
           {form.isRepost && (
             <p data-testid="repost-line" className="rounded-[20px] liquid-glass p-card text-sm">
@@ -330,7 +335,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 3: PRICE, screen 5 of 7 (board 3), or the quote window with "Get quotes" picked */}
         <div data-form-page="3" hidden={page !== 3} className="space-y-section">
-          <PostJobStepHeader screen="price" question="What will you pay?" helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : form.cardHoldOn ? "Your card isn't charged until a Helpr accepts your offer. The money is then held until the job is done." : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
+          <PostJobStepHeader screen="price" question={t("postJob.priceQ")} helper={askingQuotes ? "Choose how long Helprs near you can send quotes." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : form.cardHoldOn ? "Your card isn't charged until a Helpr accepts your offer. The money is then held until the job is done." : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
           {quotesShape && quotes.settled && (
             <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
           )}
@@ -378,7 +383,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 4: WHEN AND WHERE, screen 6 of 7 (board 45) */}
         <div data-form-page="4" hidden={page !== 4} className="space-y-section">
-          <PostJobStepHeader screen="where" question="When and where?" helper="Helprs see the area now and your street address after you hire." canPick={canPickStep} onPick={pickStep} />
+          <PostJobStepHeader screen="where" question={t("postJob.whereQ")} helper={t("postJob.whereH")} canPick={canPickStep} onPick={pickStep} />
           <LogisticsSection
             stepNumber={2}
             streetAddress={form.streetAddress}
@@ -526,9 +531,8 @@ export function FormStep({ form }: FormStepProps) {
 }
 
 /** Screen 1b's question (mock-up: "What kind of home job?"). Sentence case; "Something else" never opens 1b. */
-function groupQuestion(id: JobCategoryGroupId, label: string): string {
-  if (id === "moving_errands") return "What kind of moving or errand?";
-  if (id === "events") return "What kind of event help?";
-  if (id === "trades") return "What kind of trade job?";
-  return `What kind of ${label.toLowerCase()} job?`;
+/** Screen 1b's question, in the member's language (A3-3). Its English is the old rule word for word: "What kind of
+ *  <group> job?", with its own wording for moving and errands, events and trades. */
+function groupQuestion(id: JobCategoryGroupId): string {
+  return t(`postJob.kindQ.${id}` as MsgKey);
 }

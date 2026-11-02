@@ -3,7 +3,7 @@
  * pickup only" (and "Only items with nightly price drops"), which were square checkboxes. Owner rule: pill buttons.
  * Inventory from source: every section declutterFilterSections returns (with the drops section on), rendered. None
  * holds a checkbox; the two yes/no filters are pressed-state pill buttons that toggle the filter.
- * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Row><Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>Porch pickup only</Chip></Row> | <label><input type="checkbox" checked={filters.porchOnly} onChange={() => onChange({ ...filters, porchOnly: !filters.porchOnly })} />Porch pickup only</label>
+ * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>{HANDOVER_TITLE.porch}</Chip> | <label><input type="checkbox" checked={filters.porchOnly} onChange={() => onChange({ ...filters, porchOnly: !filters.porchOnly })} />{HANDOVER_TITLE.porch}</label>
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Row><Chip on={filters.dropsOnly} onClick={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })}>Only items with nightly price drops</Chip></Row> | <label><input type="checkbox" checked={filters.dropsOnly} onChange={() => onChange({ ...filters, dropsOnly: !filters.dropsOnly })} />Only items with nightly price drops</label>
  */
 import { describe, expect, it, vi } from "vitest";
@@ -31,8 +31,8 @@ describe("Declutter Filters: pill buttons, never a square checkbox (DA-19)", () 
     expect(screen.queryAllByRole("checkbox")).toEqual([]);
   });
 
-  it("Porch pickup only and the price-drops filter are pressed-state pills that toggle their filter", () => {
-    for (const [name, key] of [["Porch pickup only", "porchOnly"], ["Only items with nightly price drops", "dropsOnly"]] as const) {
+  it("Porch pickup and the price-drops filter are pressed-state pills that toggle their filter", () => {
+    for (const [name, key] of [["Porch pickup", "porchOnly"], ["Only items with nightly price drops", "dropsOnly"]] as const) {
       const onChange = vi.fn();
       renderSections(NO_FILTERS, onChange);
       const pill = screen.getByRole("button", { name });

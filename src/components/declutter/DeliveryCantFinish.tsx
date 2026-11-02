@@ -24,6 +24,7 @@ import {
   type TaskView,
 } from "@/lib/helprTasks/api";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { NextStep } from "@/components/ui/NextStep";
 import { invalidateTasks } from "./useTaskSteps";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
@@ -116,7 +117,13 @@ export function HelprCantFinish({ taskId, userId }: { taskId: string; userId: st
   const picked = REASONS.find((r) => r.value === reason);
   const needsWords = reason === "damaged" || reason === "other";
   if (stage === "waiting_fix") {
-    return <p className="text-sm" role="status" data-cant-finish="waiting">We asked the buyer to fix it by {v.stuck_fix_by ? when(v.stuck_fix_by) : "tomorrow"}. Hold on to the item; we'll tell you what they say.</p>;
+    // A3-23 (owner 11-01 "next step everywhere"): who it waits on, with the fix deadline, as the shared line.
+    return (
+      <div className="space-y-1" role="status" data-cant-finish="waiting">
+        <NextStep value={{ who: "them", text: "Waiting on the buyer to fix it", by: v.stuck_fix_by ? `by ${when(v.stuck_fix_by)}` : null }} className="!text-ds-15" />
+        <p className="text-sm">Hold on to the item; we'll tell you what they say.</p>
+      </div>
+    );
   }
   if (stage === "returned") {
     return <p className="text-sm" role="status" data-cant-finish="returned">You brought it back. We're waiting for the seller to confirm.</p>;
@@ -203,6 +210,7 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
   if (v.stuck_stage === "waiting_fix") {
     return (
       <div className="space-y-2 rounded-xl border border-border p-3" data-cant-finish-fix="">
+        <NextStep value={{ who: "you", text: `Tell ${who} how to finish the delivery`, by: v.stuck_fix_by ? `by ${when(v.stuck_fix_by)}` : null }} className="!text-ds-15" />
         <label htmlFor={`${id}-address`} className="block text-xs font-medium">The right address, if it changed</label>
         <AddressAutocomplete id={`${id}-address`} value={address} onChange={setAddress} onPick={(p) => setAddress([p.street, p.city, p.state, p.zipCode].filter(Boolean).join(", "))} className={input} ariaLabel="The right address" plainWithoutMapKit keepListInView />
         <label htmlFor={`${id}-note`} className="block text-xs font-medium">What the Helpr needs to know</label>
@@ -217,7 +225,13 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
   const canCollect = v.stuck_stage === "returning" || v.stuck_stage === "collecting";
   return (
     <div className="space-y-2 rounded-xl border border-border p-3" data-cant-finish-choose="">
-      {!chosen && <p className="text-sm font-semibold">What would you like to happen?</p>}
+      {/* A3-23: the buyer's step and its deadline as the shared line (B42: the buttons come with the question they answer). */}
+      {!chosen && (
+        <NextStep
+          value={{ who: "you", text: canCollect ? "Choose a full refund, another Helpr or collecting it" : "Choose a full refund or another Helpr", by: v.stuck_choice_by ? `by ${when(v.stuck_choice_by)}` : null }}
+          className="!text-ds-15"
+        />
+      )}
       {chosen === "refund" && <p className="text-sm" role="status">You chose a full refund. It's sent once the item is back with the seller.</p>}
       {chosen === "repost" && <p className="text-sm" role="status">You chose another Helpr. It's posted again once the item is back with the seller.</p>}
       <div className="flex flex-wrap gap-2">

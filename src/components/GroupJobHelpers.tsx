@@ -17,6 +17,7 @@ import { payoutDayLabel, STANDARD_PAYOUT_DAYS_AFTER_APPROVAL } from "../../supab
 import { Button } from "@/components/ui/button";
 import { hasJobStarted } from "@/lib/dateUtils";
 import { confirmConsequential } from "@/lib/toastPolicy";
+import type { GroupHelper } from "./groupHelper";
 
 /** Label for a roster slot whose helper has deleted their account.
  *
@@ -27,24 +28,6 @@ import { confirmConsequential } from "@/lib/toastPolicy";
  * it identically to a member whose profile read merely errored, which is the
  * one thing the poster must not confuse it with: one of those people can still
  * be messaged and paid, and the other cannot. */
-
-type GroupHelper = {
-  id: string;
-  /** NULL once this member deletes their account — the slot is retained, the
-      identity is severed. See FORMER_MEMBER_LABEL. */
-  helper_id: string | null;
-  status: string;
-  helperName?: string;
-  /* This member's own lifecycle stamps (Q1382). Optional: a caller that did
-     not select them gets the hire status pill and no arrival control. */
-  helper_confirmed_at?: string | null;
-  helper_on_the_way_at?: string | null;
-  helper_arrived_at?: string | null;
-  poster_confirmed_arrival_at?: string | null;
-  helper_completed_at?: string | null;
-  /** JOBS-3: the poster confirmed this member's work (rpc_poster_approve_member); they are paid on their own. */
-  poster_confirmed_completion_at?: string | null;
-};
 
 export function GroupJobHelpers({
   jobId,
@@ -393,7 +376,8 @@ export function GroupJobHelpers({
   const slotTotal = Math.max(1, Math.floor(helpersNeeded) || 1);
   const filledSlots = helpers.filter((h) => h.status === "accepted").length;
   const remaining = Math.max(0, slotTotal - filledSlots);
-  const nobodyLeft = isOwner && !!onCancelJob && crewNobodyLeft(jobStatus, helpers, rosterKnown);
+  const started = hasJobStarted(dateNeeded, startTime, new Date());
+  const nobodyLeft = isOwner && !!onCancelJob && crewNobodyLeft(jobStatus, helpers, rosterKnown, started);
 
   return (
     /* FLAT, like the poster tracker (6e3d2f7d1) and HelperTrackerPanel
@@ -515,9 +499,9 @@ export function GroupJobHelpers({
               The server keeps it booked, lets the poster refill the spot from
               their applicants before the start, and refunds the empty spot's
               share when the job pays out. */}
-          {jobStatus === "accepted"
+          {jobStatus === "accepted" && !started
             ? `${remaining} spot${remaining > 1 ? "s" : ""} open. The rest of your crew is still on: hire from your applicants before the start, or most of that share comes back to you after the job.`
-            : jobStatus === "in_progress" || jobStatus === "revision_requested"
+            : jobStatus === "accepted" || jobStatus === "in_progress" || jobStatus === "revision_requested"
               ? `${remaining} spot${remaining > 1 ? "s" : ""} open. Most of that share comes back to you after the job.`
               : `${remaining} more Helpr${remaining > 1 ? "s" : ""} needed`}
         </p>

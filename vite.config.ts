@@ -883,6 +883,17 @@ export default defineConfig(({ mode, command }) => ({
               priority: 20,
               minSize: 0,
             },
+            // Money > Spent's Declutter reads (L32, 11-01): purchaseSpend.ts and the paidCents.ts it reads. No first
+            // screen reaches them statically, so bootReach files them under signed-in-deep and declutter-first-screen,
+            // and those big chunks put ~130 KB gz and one more round on /profile?tab=earnings (critical-path budget,
+            // Q178). Same shape as pdf-documents: their own small chunk, fetched with their importers only.
+            {
+              name: "spent-reads",
+              test: /[\\/]src[\\/]lib[\\/]declutter[\\/](purchaseSpend|paidCents)\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             // Rentals S1's client and screen words (behind the hidden 'rentals'
             // switch). Its screens, the admin ownership card and Post a Job's
             // maintenance prefill share them, so signed-in-shared below would
@@ -1126,7 +1137,9 @@ export default defineConfig(({ mode, command }) => ({
             },
             {
               name: "declutter-item-pages",
-              test: (id: string) => declutterItemPages.has(id.split("?")[0].replace(/\\/g, "/")),
+              // + useMarkTalkRead (0.2 KB gz; the order and handover chats share it, and it reads talkRead.ts, already
+              // here): on its own it was one more chunk named in the entry, 5.3 KB gz, over its band (L32, 11-01).
+              test: (id: string) => declutterItemPages.has(id.split("?")[0].replace(/\\/g, "/")) || /[\\/]src[\\/]components[\\/]declutter[\\/]useMarkTalkRead\.ts$/.test(id.split("?")[0]),
               minShareCount: 2,
               priority: 15.7,
               minSize: 0,

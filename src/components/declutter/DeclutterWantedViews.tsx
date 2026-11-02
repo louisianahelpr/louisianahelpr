@@ -28,10 +28,12 @@ import { WantedNearSection } from "./DeclutterWantedReplies";
 import { DECLUTTER_OFFLINE_COPY, declutterErrorMessage } from "@/lib/declutter/errors";
 import { CONNECTION_TROUBLE_COPY } from "@/lib/networkFailure";
 import { formatPrice } from "@/lib/declutter/distance";
+import { timeLeft } from "@/lib/declutter/timeLeft";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { checkoutAmounts } from "@/lib/declutter/money";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { photoPublicUrl } from "@/lib/declutter/api";
-import { WANTED_POST_PARAM } from "@/lib/declutter/sellChooser";
+import { WANTED_CATEGORY_PARAM, WANTED_POST_PARAM, WANTED_WHAT_PARAM } from "@/lib/declutter/sellChooser";
 import {
   WANTED_PHOTO_MAX,
   WANTED_RADIUS_CHOICES,
@@ -194,13 +196,14 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
 }
 
 /** "Post what you're looking for": the form in the shared bottom sheet (a side panel on the desktop website). */
-function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string; editing?: WantedPost | null }) {
+function WantedFormSheet({ open, at, userId, onClose, where, editing = null, prefill = null }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string; editing?: WantedPost | null; prefill?: Partial<WantedForm> | null }) {
   const webDesktop = useIsWebDesktop();
   const qc = useQueryClient();
   // Audit 10-30 #9: Edit opens this form on the post's own words. An edit never touches the new-post draft.
   const [form, setForm] = useState<WantedForm>(() => editing
     ? { what: editing.what, category: editing.category, maxPrice: String(editing.max_price_cents / 100), radius: WANTED_RADIUS_CHOICES.find((m) => m === editing.radius_miles) ?? EMPTY.radius }
-    : readWantedDraft());
+    // A3-99: a search that found nothing brings its words (and category) in over the saved draft's.
+    : { ...readWantedDraft(), ...prefill });
   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]);
   const [files, setFiles] = useState<File[]>([]);
   const [problems, setProblems] = useState<WantedFormProblems>({});
@@ -266,9 +269,13 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: {
   );
 }
 
+/** "Mon 2:00 PM": a reply's answer-by and an accepted reply's pay-by (A3-77). */
+const byWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+
 /** Where one reply stands, from the poster's side (the offer card in Buying is where it is answered). */
 function replyStatus(r: WantedReply): string {
-  if (r.status === "open") return r.awaiting === "buyer" ? "Waiting for you" : "Waiting for the seller";
+  // A3-77: the seller's offer closes at respond_by; the poster's row says by when.
+  if (r.status === "open") return r.awaiting === "buyer" ? (r.respond_by ? `Answer by ${byWords(r.respond_by)}` : "Waiting for you") : "Waiting for the seller";
   return { accepted: "Accepted", declined: "Declined", expired: "Expired", withdrawn: "Withdrawn", voided: "Ended" }[r.status];
 }
 
@@ -276,6 +283,9 @@ function replyStatus(r: WantedReply): string {
 function WantedReplies({ replies }: { replies: WantedReply[] }) {
   if (replies.length === 0) return <p className="text-xs text-muted-foreground" data-wanted-replies="none">No replies from sellers yet.</p>;
   const yourTurn = replies.some((r) => r.status === "open" && r.awaiting === "buyer");
+  // A3-62: the step names the offer and its deadline (the earliest one waiting on the poster).
+  const first = replies.filter((r) => r.status === "open" && r.awaiting === "buyer" && r.respond_by)
+    .sort((a, b) => Date.parse(a.respond_by!) - Date.parse(b.respond_by!))[0];
   return (
     <div className="space-y-1" data-wanted-replies="">
       <p className="text-xs font-medium">{replies.length === 1 ? "1 reply from a seller:" : `${replies.length} replies from sellers:`}</p>
@@ -292,9 +302,33 @@ function WantedReplies({ replies }: { replies: WantedReply[] }) {
           </li>
         ))}
       </ul>
+      {first && <NextStep className="!text-ds-14" value={{ who: "you", text: `Answer ${first.seller_name}'s ${formatPrice(first.amount_cents)} offer · by ${byWords(first.respond_by!)}` }} />}
       {yourTurn && <Link to="/declutter?tab=buying" className="link-standard inline-flex min-h-11 items-center text-sm font-semibold">Answer in Buying</Link>}
     </div>
   );
+}
+
+/** "28 days left" while more than two days remain; then the hours ("19 hours left"). A Wanted post lasts 30 days. */
+function postTimeLeft(expiresAt: string, now = Date.now()): string | null {
+  const ms = Date.parse(expiresAt) - now;
+  if (Number.isNaN(ms) || ms <= 0) return null;
+  return ms > 2 * 86_400_000 ? `${Math.floor(ms / 86_400_000)} days left` : timeLeft(expiresAt, now);
+}
+
+/**
+ * The next-step line on your Wanted post (owner 2026-11-01: "people aren't told what to do next"): your move when a
+ * seller's reply waits on you (answered in Buying), when you accepted one (close the post) or when it ran out (post it
+ * again); otherwise who it waits on (sellers near you) and how long it stays up.
+ */
+function wantedNextStep(post: WantedPost, gotIt: boolean, payBy: string | null = null, now = Date.now()): NextStepValue {
+  if (post.status === "closed") return { who: "info", text: "Closed. No more alerts or answers." };
+  if (post.status === "expired") return { who: "you", text: "Post it again to keep looking" };
+  const yours = post.replies.filter((r) => r.status === "open" && r.awaiting === "buyer").length;
+  if (yours > 0) return { who: "you", text: yours === 1 ? "Answer the seller's reply in Buying" : `Answer the ${yours} sellers' replies in Buying` };
+  // A3-77: an accepted answer still in the cart is "check out by <time>", never "close this post".
+  if (payBy) return { who: "you", text: `Check out by ${byWords(payBy)}: choose pickup or delivery and pay` };
+  if (gotIt) return { who: "you", text: "Close this post if you got what you needed" };
+  return { who: "them", text: "Waiting on sellers near you to answer", by: postTimeLeft(post.expires_at, now) };
 }
 
 /** Your post's photos: each with Remove, and Add a photo while it is open and has fewer than 3. */
@@ -372,7 +406,12 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   // Audit 10-30 #16: buying from an answer doesn't close the post, so ask once one is accepted.
-  const gotIt = post.status === "open" && post.replies.some((r) => r.status === "accepted");
+  // A3-77: an accepted answer still waiting in the cart is "check out by <time>", never "close this post" (closing
+  // then could leave it unpaid and the item goes back up). Close this post shows once it is paid; a server before
+  // 20261102013814 sends no paid, and keeps the old line.
+  const accepted = post.status === "open" ? post.replies.filter((r) => r.status === "accepted") : [];
+  const payBy = accepted.find((r) => r.checkout_by && !r.paid);
+  const gotIt = !payBy && accepted.some((r) => r.paid === true || r.paid === undefined);
   const openReplies = post.replies.filter((r) => r.status === "open").length;
   const close = useMutation({
     mutationFn: () => closeWanted(post.id),
@@ -395,17 +434,23 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
           <p className="font-semibold truncate" title={post.what}>{post.what}</p>
           <p className="text-sm text-muted-foreground">
             {CATEGORY_LABEL[post.category] ?? "Other"} · up to {formatPrice(post.max_price_cents)} · within {post.radius_miles} mi
+            {/* A3-62: the post's own end date was shown nowhere on the card. */}
+            {post.status === "open" && post.expires_at && ` · Open until ${new Date(post.expires_at).toLocaleDateString([], { month: "short", day: "numeric" })}`}
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium" data-status={post.status}>
           {STATUS_WORDS[post.status]}
         </span>
       </div>
+      <NextStep value={wantedNextStep(post, gotIt, payBy?.checkout_by ?? null)} />
       {userId && <WantedPostPhotos post={post} userId={userId} />}
       <WantedReplies replies={post.replies} />
       {post.status === "open" && (
         matches.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nothing for sale matches at or under your price right now.</p>
+          // A3-62: a seller's reply under the price is a match, so the line can't say "nothing" next to it.
+          <p className="text-xs text-muted-foreground" data-wanted-no-matches="">
+            {(post.replies ?? []).length > 0 ? "No other listings match yet." : "Nothing for sale matches at or under your price right now."}
+          </p>
         ) : (
           <div className="space-y-1">
             <p className="text-xs font-medium">For sale now at or under your price:</p>
@@ -421,7 +466,9 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
           </div>
         )
       )}
-      {gotIt && <p className="text-sm font-medium" data-wanted-got-it="">You accepted an answer. Got what you needed? Close this post.</p>}
+      {payBy && (
+        <Link to="/declutter?tab=buying" className="link-standard inline-flex min-h-11 items-center text-sm font-semibold" data-wanted-pay-by="">Check out</Link>
+      )}
       {post.status === "open" ? (
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onEdit(post)}>Edit</Button>
@@ -454,11 +501,22 @@ export function WantedView() {
   // (it shows once the area is known, as the button does).
   const [params, setParams] = useSearchParams();
   const [posting, setPosting] = useState(() => params.get(WANTED_POST_PARAM) === "1");
+  // A3-99: Browse's "Ask for ..." under an empty search carries the words (and a category filter) into the form.
+  const [prefill] = useState<Partial<WantedForm> | null>(() => {
+    const what = (params.get(WANTED_WHAT_PARAM) ?? "").trim().slice(0, 60);
+    const category = params.get(WANTED_CATEGORY_PARAM) ?? "";
+    const out: Partial<WantedForm> = {};
+    if (what) out.what = what;
+    if (category && category in CATEGORY_LABEL) out.category = category;
+    return Object.keys(out).length ? out : null;
+  });
   // Audit 10-30 #13: the ask is used up once read, or Cancel, a reload or Back brings the form back.
   useEffect(() => {
-    if (!params.has(WANTED_POST_PARAM)) return;
+    if (!params.has(WANTED_POST_PARAM) && !params.has(WANTED_WHAT_PARAM) && !params.has(WANTED_CATEGORY_PARAM)) return;
     const next = new URLSearchParams(params);
     next.delete(WANTED_POST_PARAM);
+    next.delete(WANTED_WHAT_PARAM);
+    next.delete(WANTED_CATEGORY_PARAM);
     setParams(next, { replace: true });
   }, [params, setParams]);
   const [editing, setEditing] = useState<WantedPost | null>(null);
@@ -504,7 +562,7 @@ export function WantedView() {
       </section>
       {/* Q2267: other members' open posts near you that you can answer with one of your listings. */}
       {!underAge && user && at && <WantedNearSection at={at} userId={user.id} />}
-      {at && user && <WantedFormSheet key={editing?.id ?? "new"} open={posting || !!editing} editing={editing} at={at} userId={user.id} onClose={() => { setPosting(false); setEditing(null); }} where={wantedWhereWords(origin.status === "ready" ? origin.source : null)} />}
+      {at && user && <WantedFormSheet key={editing?.id ?? "new"} open={posting || !!editing} editing={editing} at={at} userId={user.id} prefill={editing ? null : prefill} onClose={() => { setPosting(false); setEditing(null); }} where={wantedWhereWords(origin.status === "ready" ? origin.source : null)} />}
     </div>
   );
 }

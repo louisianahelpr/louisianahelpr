@@ -110,6 +110,11 @@ export function helperFaceAction(s: {
   doneFloorMinutes?: number;
   /** The poster, once this Helpr is on the job: a waiting card's one button messages them. */
   message?: { name: string; onClick: () => void };
+  /**
+   * A day set to finish is still ahead (continueDayDoneNote, Auditor 11 11-01): the server refuses "done" until then,
+   * so the face never leads with Mark job complete; it messages the poster (or opens the card) with this note.
+   */
+  continueDayNote?: string | null;
 }): MineFaceAction | null {
   if (s.isMinimalCard || s.isOffered) return null;
   const posterId = s.posterId;
@@ -121,6 +126,11 @@ export function helperFaceAction(s: {
   if (s.wait === "confirm_day" && jobId) return { label: "Confirm you'll be at the job", onClick: () => { requestFaceAction(jobId, "confirm"); (s.open ?? s.manage)(); }, tone: "primary", step: "confirm" };
   if ((s.wait === "dispute" || s.wait === "dispute_escalated") && s.viewDispute) return { label: "Open the dispute", onClick: s.viewDispute, tone: "secondary" };
   const step = s.step;
+  if (step?.key === "done" && s.continueDayNote) {
+    return s.message
+      ? { label: `Message ${s.message.name}`, onClick: s.message.onClick, tone: "secondary", note: s.continueDayNote, also: { label: "Manage job", onClick: s.manage } }
+      : { label: "Manage job", onClick: s.manage, tone: "secondary", note: s.continueDayNote };
+  }
   if (step?.key === "done" && (s.doneFloorMinutes ?? 0) > 0) {
     return { label: step.label, onClick: () => {}, tone: "primary", step: step.key, disabled: true, note: doneFloorNote(s.doneFloorMinutes ?? 0) };
   }

@@ -5,6 +5,8 @@
  * real fee rule, or it is not shown (§1.5).
  */
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { setupFeeWords } from "@/lib/takeHomeFeeWords";
 import { computeNet } from "@/components/dashboard/JobPrice";
@@ -77,8 +79,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
 
 /** How the poster's money stands, from payment_status. Unlisted states print nothing rather than a guess. */
 const HELD_LINE: Partial<Record<string, string>> = {
-  // True with and without the card hold at posting (charged at post, or at the hire): never "when you posted" (F4).
-  escrow: "Paid. Louisiana Helpr holds it until the job is done.",
+  // Owner 11-01: "Remove paid Louisiana Helpr holds until job is done." A paid (escrow) job prints no line here.
   // Q2399: the card is held (or, far out, only saved) at posting and charged at the hire.
   held: "Your card isn't charged until a Helpr accepts your offer.",
   unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
@@ -133,7 +134,7 @@ export function PosterPrice({ job, labelled = false }: { job: JobPageRow; labell
 export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; total: number; loading: boolean }) {
   const released = RELEASED.has(job.payment_status ?? "");
   const status = job.payment_status ?? "";
-  // ONE sentence about the money, from payment_status alone (JA-47), "Paid. Louisiana Helpr holds it…" included.
+  // ONE sentence about the money, from payment_status alone (JA-47); a paid (escrow) job has none (owner 11-01).
   // Lead 11-01 (B107): a cancelled job's tracker line already says "... · Your payment was refunded" (JA-26,
   // jobProgressState cancelledLine), so the refund is said ONCE, there. An expired listing's line says only "No
   // Helpr was hired in time", so it keeps "Refunded to your card." here. Guard: src/test/refundSaidOnce.test.tsx.
@@ -211,9 +212,9 @@ export function HelprPrice({ job, noShow = false }: { job: JobPageRow; noShow?: 
   }
   return (
     <div data-helpr-money="" className="shrink-0 text-right">
-      <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
-      {disputed ? <p data-helpr-money-held="" className="mt-1 text-ds-12 font-semibold text-muted-foreground">On hold while we review</p>
-        : !fixedPay && <p className="mt-1 text-ds-12 font-semibold text-muted-foreground">You take home</p>}
+      {/* Owner 11-01: "Remove you take home." The figure stands alone; a screen reader still hears "Your pay". */}
+      <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>{!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
+      {disputed && <p data-helpr-money-held="" className="mt-1 text-ds-12 font-semibold text-muted-foreground">On hold while we review</p>}
     </div>
   );
 }
@@ -269,8 +270,9 @@ export function RevisionAsk({ job, side, posterFirst }: { job: JobPageRow; side:
 }
 
 export function PostedBy({ posterId }: { posterId: string }) {
+  const { t } = useLanguage();
   return (
-    <section aria-label="Posted by">
+    <section aria-label={t("jobPage.postedBy")}>
       <DeclutterSellerCard sellerId={posterId} noun="poster" />
     </section>
   );
@@ -281,8 +283,9 @@ export function PostedBy({ posterId }: { posterId: string }) {
  * sees the same person card for their Helpr; "Message <name>" is already the page's own button (posterPageActions).
  */
 export function HiredHelpr({ helprId }: { helprId: string }) {
+  const { t } = useLanguage();
   return (
-    <section aria-label="Your Helpr">
+    <section aria-label={t("jobPage.yourHelpr")}>
       <DeclutterSellerCard sellerId={helprId} noun="Helpr" />
     </section>
   );

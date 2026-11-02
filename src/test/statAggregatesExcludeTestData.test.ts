@@ -47,6 +47,8 @@ const REVIEW = "REVIEW: a displayed number that still counts test data (b62 phas
 
 // @two-way src/test/statAggregatesExcludeTestData.test.ts:Object.keys(ALLOWED).filter((n) => !inventory.has(n)
 const ALLOWED: Record<string, string> = {
+  // 20261101194608 (owner 11-01): a seller's own active meet spots, capped at 10, not a stat.
+  declutter_save_my_meetup_spot: LIMIT,
   accept_group_application: SPOTS,
   admin_reverse_violation: LADDER,
   apply_cancellation_violation_consequence: LADDER,
@@ -55,6 +57,12 @@ const ALLOWED: Record<string, string> = {
   apply_to_job: LIMIT,
   // LEAD-LIST-FOR-SELLER: counts one listing's own photos for the Helpr writing it (a draft's photo count), not a stat.
   declutter_helpr_job_listings: "counts one listing's own photos for the Helpr writing it, not a stat over members",
+  // 20261101230519 (A3-18/A3-50): count(*) - 1 over ONE order's own cart lines, for "<item> and N more" in that
+  // order's own book-by reminder; a service_role cron sweep, not a number over members.
+  declutter_book_by_reminder_sweep: "counts one order's own cart lines for the words of that order's own reminder, not a stat over members",
+  // 20261102002217 (A3-81): count(*) over ONE order's own cart lines (item_count on the caller's own refund step);
+  // every row is an order where the caller is the buyer or the seller (lh-authz-rls, lead verdict b124).
+  declutter_my_refund_todos: "counts one order's own cart lines for the caller's own refund step, not a stat over members",
   rpc_set_instant_book_floor: LIMIT, // CMP-4: at most 3 floors per Helpr
   block_user_and_settle: SPOTS,
   can_send_message_to_in_job: LIMIT,
@@ -162,6 +170,8 @@ const ALLOWED: Record<string, string> = {
   shop_active_strike_count: LADDER,
   shop_cottage_sales_cents: "logic: Louisiana cottage-food yearly sales cap for one shop",
   shop_day_count: LIMIT,
+  // 20261101200929 (owner 11-01): counts one member's own reminder sends in one Declutter chat today (2 a day), not a stat.
+  sweep_declutter_talk_reminders: LIMIT,
   // 20261101183017 (owner 11-01): counts one member's own reminder sends in one conversation today (the 2-a-day cap), not a stat.
   sweep_unread_message_reminders: LIMIT,
   shop_record_hand_refund: MONEY,

@@ -1,4 +1,6 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobCard";
 import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
@@ -21,7 +23,6 @@ import { prefetchJobDialog } from "./prefetchJobDialog";
 import { formatDistanceLabel, formatDrivingLabel } from "./jobCardDistance";
 import { JobPrice, computeNet } from "./JobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
-import type { EnrichedJob } from "./types";
 import { JobCardHeroBand } from "./JobCardHeroBand";
 import {
   JOB_CARD_BADGE_ROW,
@@ -30,62 +31,7 @@ import {
   JOB_CARD_META,
   JOB_CARD_TITLE_ROW,
 } from "@/components/job/cardGeometry";
-
-interface JobCardProps {
-  job: EnrichedJob;
-  effectiveFee: number;
-  currentUserId?: string;
-  showApply?: boolean;
-  onApply: (jobId: string) => void;
-  onReport: (jobId: string) => void;
-  onSelect: (job: EnrichedJob) => void;
-  index?: number;
-  isExpanded?: boolean;
-  onToggleExpand?: (jobId: string) => void;
-  isSaved?: boolean;
-  onToggleSave?: (jobId: string, saved: boolean) => void;
-  /**
-   * Guest/read-only variant for the public Browse page. Makes the card body
-   * inert and pins a persistent "Sign up to apply" CTA footer instead of a
-   * silent whole-card tap. Pricing still shows the helper-side net "You earn"
-   * take-home (driven by `effectiveFee`) — guests want to see what they'd
-   * pocket. The signed-in Dashboard leaves this unset (behaviour unchanged).
-   */
-  variant?: "default" | "guest";
-  /**
-   * Show the gross posted budget + neutral "Budget" label instead of the
-   * helper-side "You earn" net-pay figure — WITHOUT adopting the full
-   * `variant="guest"` treatment (which also pins a "Sign up to apply" lock
-   * footer to every card). Used by the native guest dashboard, where the
-   * "Need help, or want to earn?" framing is two-sided, so a one-sided
-   * "You earn" label misreads for a visitor who wants to post/hire.
-   */
-  guestPricing?: boolean;
-  /**
-   * Viewer's cached location (from useUserLocation, session-cached). When
-   * present + the job resolves to a parish centroid, the meta row leads
-   * with a "~X mi" distance pill. Hidden silently otherwise so a denied
-   * location prompt never makes the card look broken.
-   */
-  userLat?: number | null;
-  userLng?: number | null;
-  /**
-   * Marks this card as one of the top relevance-matched picks. When true a
-   * small, unobtrusive "Recommended" pill renders near the category label.
-   * Only the first couple of recommended cards set this — the rest of the
-   * feed leaves it false and shows no pill.
-   */
-  recommended?: boolean;
-  /**
-   * Drops the card's own outer chrome (corners, border, shadow, background, hover lift) so it can sit
-   * inside a container that already draws that shape — the map pin's callout bubble (owner, 2026-08-30:
-   * "should be 1 component not multiple": `.mk-bubble` and this card each drew a rounded rect, so the
-   * popup read as a card in a card). Everything below the wrapper is unchanged; only its paint is dropped.
-   */
-  bare?: boolean;
-  /** Board 6: the feed's first card, with the 16:10 picture band on top. */
-  hero?: boolean;
-}
+import type { JobCardProps } from "./jobCardProps";
 
 // Category colors apply ONLY to the category badge pill at the top of
 // the card. The job title itself stays in `text-foreground` (deep
@@ -94,6 +40,8 @@ interface JobCardProps {
 // gradient tints are kept for the boosted/recommended highlight strip.
 const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index: _index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false, bare = false, hero = false }: JobCardProps) => {
   const isGuest = variant === "guest";
+  // Jobs in Spanish (A3-3): the card's chips follow the member's language.
+  const { t } = useLanguage();
 
   // A tap always opens the job detail view. Saving lives behind the
   // bookmark control in the detail dialog — the card tap is reserved for
@@ -391,7 +339,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                  and the category label gives instead. */}
           {isJustIn ? (
             <span role="img"
-              aria-label="Just posted"
+              aria-label={t("jobCard.justPosted")}
               className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",
@@ -412,7 +360,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.55)",
                 }}
               />
-              <span className="font-sans uppercase tracking-[0.14em] whitespace-nowrap">Just in</span>
+              <span className="font-sans uppercase tracking-[0.14em] whitespace-nowrap">{t("jobCard.justIn")}</span>
             </span>
           ) : recommended ? (
             /* Inside the top row, bottom-aligned on the category line (owner 2026-10-28). Guard: recommendedTagSitsInTheRow. */
@@ -434,7 +382,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 strokeWidth={2}
                 style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
               />
-              <span className="font-sans font-semibold whitespace-nowrap">Recommended</span>
+              <span className="font-sans font-semibold whitespace-nowrap">{t("jobCard.recommended")}</span>
             </span>
           ) : null}
           {/* 3. Elastic gap — the ONLY thing on the rail allowed to grow or
@@ -452,7 +400,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             return (
               <span role="img"
                 className={`boosted-pulse ${corner}`}
-                aria-label="Boosted"
+                aria-label={t("jobCard.boosted")}
                 style={{
                   // --boost, not gold (P1). A --boost token already existed for
                   // exactly this chip; painting it gold made a paid promotion
@@ -466,7 +414,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 }}
               >
                 <Rocket className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
-                Boosted
+                {t("jobCard.boosted")}
               </span>
             );
           if (job.is_urgent) {
@@ -474,7 +422,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             return (
               <span role="img"
                 className={`urgent-pulse ${corner}`}
-                aria-label={bonus > 0 ? `Urgent — $${formatPrice(bonus)} bonus` : "Urgent"}
+                aria-label={bonus > 0 ? `Urgent — $${formatPrice(bonus)} bonus` : t("jobCard.urgent")}
                 style={{
                   // --accent-ink, not --accent: 9px bold label text on the
                   // accent's own 15% tint. Raw --accent measured 3.75:1 in
@@ -489,7 +437,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               >
                 <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
                 {/* Just "Urgent", not "+$10 Urgent" (owner 2026-08-30: read as on top of the budget); the bonus stays in the aria-label. */}
-                Urgent
+                {t("jobCard.urgent")}
               </span>
             );
           }

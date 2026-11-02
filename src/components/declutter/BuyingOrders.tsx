@@ -27,6 +27,7 @@ import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { useOpenProblems } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
+import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
 import { ORDER_BUCKETS, OrderSteps, gotItOpen, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
 /** One paid order on the buyer's side, as the tracker files it. */
@@ -114,8 +115,8 @@ export function buyerNextAction(f: OrderFacts): string | null {
  * "Waiting on <who> to <step>", and a state that asks nothing of anyone is said plainly. `when` is the booked time in
  * words, when there is one. A "you" step has no full stop (NextStep adds "Next: "); the others are whole sentences.
  */
-function buyerNextStep(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
-  taskStatus: string | null = null): NextStepValue {
+export function buyerNextStep(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
+  taskStatus: string | null = null, times: { chosen: string | null; by: string | null } = { chosen: null, by: null }): NextStepValue {
   const you = (text: string, by?: string | null): NextStepValue => ({ who: "you", text, by: by ?? null });
   const them = (text: string): NextStepValue => ({ who: "them", text });
   const info = (text: string): NextStepValue => ({ who: "info", text });
@@ -123,18 +124,23 @@ function buyerNextStep(f: OrderFacts, when: string | null, helprName: string | n
   if (f.problem) return f.problemAwaitsYou ? you("Add your side to the problem") : info(PROBLEM_ON_HOLD);
   if (f.done) return info("Handed over. It's yours.");
   const at = orderStepAt(f);
+  // A3-19 (lead 11-01 5:01 PM): nothing booked says "by <book_by>"; a checkout time once booked is named, no "by".
+  const { chosen, by } = times;
   switch (f.handover) {
     case "porch":
-      return at === 0 ? you("Pick a pickup time")
+      return at === 0 ? you("Pick a pickup time", by)
+        : at === 1 && chosen ? info(`Pickup ${chosen} · porch`)
         : at === 1 ? them(`The seller puts it out ${when ? `for ${when}` : "on your day"} and posts a photo.`)
           : at === 2 ? you("Pick it up from the porch, then tap I got it")
             : info("Picked up.");
     case "pickup_home":
-      if (at === 0) return you("Book a pickup time");
+      if (at === 0) return you("Book a pickup time", by);
+      if (at === 1 && chosen && !f.gotItOpen) return info(`Pickup ${chosen} · at the door`);
       if (at === 1) return f.gotItOpen ? you("Pick it up, then tap I got it", when ? `booked for ${when}` : null) : info(`Pickup booked${when ? ` for ${when}` : ""}.`);
       return info("Picked up.");
     case "meetup":
-      if (at === 0) return you("Book a time to meet at the safe spot");
+      if (at === 0) return you("Book a time to meet at the safe spot", by);
+      if (at === 1 && chosen && !f.gotItOpen) return info(`Meet ${chosen}`);
       if (at === 1) return f.gotItOpen ? you("Meet the seller, then tap I got it", when ? `booked for ${when}` : null) : info(`Meeting booked${when ? ` for ${when}` : ""}.`);
       return info("Met.");
     case "seller_delivery":
@@ -248,6 +254,10 @@ export function useBuyingTracker(): BuyingTracker {
   const problemIds = ids.filter((id) => problems.has(id));
   const problemRows = useQueries({ queries: problemIds.map((id) => ({ queryKey: ["declutter", "problem", id], queryFn: () => fetchOrderProblem(id) })) });
   const pickups = live.filter((o) => o.handover !== "delivery" && o.handover !== "seller_delivery");
+  // ONE read of the order's times (lead 11-01): book_by (the server's 7-day mark, pinned to the handover sweep) and
+  // the window chosen at checkout (pickup_slot_start / pickup_slot_end; a porch booking holds only its first 30 min).
+  const pickupIds = pickups.map((o) => o.orderId);
+  const times = useQuery({ queryKey: orderPickupTimesKey(pickupIds), queryFn: () => fetchOrderPickupTimes(pickupIds), enabled: pickupIds.length > 0 });
   const handovers = useQueries({ queries: pickups.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
   const sd = live.filter((o) => o.handover === "seller_delivery");
   const sdRows = useQueries({ queries: sd.map((o) => ({ queryKey: ["declutter", "seller-delivery-booking", o.orderId], queryFn: () => fetchSellerDeliveryBooking(o.orderId) })) });
@@ -284,6 +294,8 @@ export function useBuyingTracker(): BuyingTracker {
     const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null
       : o.handover === "delivery" ? task?.pickup_slot_start ?? null : slot;
     // A1-C2: a porch pickup is a DAY (pickup_day); its slot_start is only the day's start, so never show it as a time.
+    // B112 / A3-19: the window chosen at checkout is named by buyerNextStep's `chosen` ("Pickup Sun 11/2, 3–5 PM · porch").
+    const orderTimes = (times.data ?? []).find((t) => t.id === o.orderId);
     const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day)
       : whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
     const total = paidCents?.get(o.orderId) ?? null;
@@ -293,7 +305,8 @@ export function useBuyingTracker(): BuyingTracker {
       bucket,
       action: buyerNextAction(facts),
       next: buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
-        o.handover === "delivery" ? task?.status ?? null : null),
+        o.handover === "delivery" ? task?.status ?? null : null,
+        orderTimeWords(orderTimes, o.handover, slot)),
       // #6: a free item never reads like a paid order ("You paid $0").
       money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
     });

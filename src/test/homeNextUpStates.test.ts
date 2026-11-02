@@ -3,15 +3,16 @@
  * and status-line rules (no mocks): a stale in_progress row is overdue, not
  * live; a job waiting on someone else names who.
  *
- * @mutate src/pages/home/homeDashboard/nextUpStates.ts |   const live = (j: Job \| null \| undefined): j is Job => !!j && j.status === "in_progress" && !jobIsOverdue(j); |   const live = (j: Job \| null \| undefined): j is Job => !!j && j.status === "in_progress";
+ * @mutate src/pages/home/homeDashboard/nextUpStates.ts | j.status === "in_progress" && !submissionAwaitingPoster(j) && !jobIsOverdue(j) && !continueDayAhead( | j.status === "in_progress" && !submissionAwaitingPoster(j) && !continueDayAhead(
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       label: who ? `Waiting on ${who}` : "Waiting on a reply", |       label: "Waiting",
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |   ].sort((x, y) => (y.sort > x.sort ? 1 : y.sort < x.sort ? -1 : 0)); |   ];
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       label: j.helper_id ? `Waiting on ${firstOf(hiredName(j, helperNames)) ?? "your Helpr"}` : "Waiting on Helprs", |       label: j.helper_id ? "Waiting on your Helpr" : "Waiting on Helprs",
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       detail: posterStatusLine(j, n, new Date(), undefined, false, hiredName(j, helperNames)).detail, |       detail: posterStatusLine(j, n).detail,
- * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       detail: posterStatusLine(j, 0, new Date(), undefined, false, hiredName(j, helperNames)).detail, |       detail: posterStatusLine(j).detail,
+ * @mutate src/pages/home/homeDashboard/nextUpStates.ts |         ?? posterStatusLine(j, 0, new Date(), undefined, false, hiredName(j, helperNames)).detail, |         ?? posterStatusLine(j).detail,
  */
 import { describe, it, expect } from "vitest";
 import { deriveLiveNow, deriveWaiting } from "@/pages/home/homeDashboard/nextUpStates";
+import { deriveNeedsYouTodos, REVIEW_WORK_ACTION } from "@/pages/home/homeDashboard/needsYouTodos";
 import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressState";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
@@ -86,5 +87,22 @@ describe("the poster's Home lines name their Helpr", () => {
   it("no name known: the neutral words stay", () => {
     const w = deriveWaiting([job({ id: "p5", status: "in_progress", helper_id: "h9", helper_confirmed_at: "t", helper_on_the_way_at: "2099-01-02T08:00:00Z" })], {}, [], null, names);
     expect(w?.label).toBe("Waiting on your Helpr");
+  });
+});
+
+// A3-83 (audit 11-01): at "Yusef marked it done" Home showed the job in Live now AND Next up, both "Open job",
+// and neither said what to do. Live now steps aside once the work is submitted; Next up's button names the step.
+// @mutate src/pages/home/homeDashboard/nextUpStates.ts | j.status === "in_progress" && !submissionAwaitingPoster(j) && !jobIsOverdue(j) && !continueDayAhead( | j.status === "in_progress" && !jobIsOverdue(j) && !continueDayAhead(
+// @mutate src/pages/home/homeDashboard/needsYouTodos.ts | POSTER_REVIEW_STEPS.has(line.id) ? REVIEW_WORK_ACTION : "Open job" | "Open job"
+describe("done-approve: one row, and it says what to do (A3-83)", () => {
+  const submitted = { id: "d1", status: "in_progress", helper_id: "h", helper_confirmed_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "2026-11-01T15:00:00Z" } as const;
+  it("a job the Helpr marked done is not Live now; one sent back for a fix still is", () => {
+    expect(deriveLiveNow([job(submitted)], [])).toBeNull();
+    expect(deriveLiveNow([job({ ...submitted, revision_requested_at: "2026-11-01T16:00:00Z" })], [])?.jobId).toBe("d1");
+  });
+  it("Next up's button for the approve step is 'Review work', opening the job", () => {
+    const todos = deriveNeedsYouTodos({ postedJobs: [job(submitted)], pendingApplicantCounts: {}, appliedApps: [], shopOrders: [], backout: new Map() });
+    expect(todos.length).toBeGreaterThan(0);
+    expect(todos[0]).toMatchObject({ action: REVIEW_WORK_ACTION, to: "/jobs/d1" });
   });
 });

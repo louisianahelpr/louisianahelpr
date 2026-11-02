@@ -16,7 +16,8 @@
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |   const near = useQuery( |   const near = { isError: false, isLoading: false, data: [] as WantedNear[], error: null, refetch: () => {} }; void useQuery(
  * Owner 2026-10-30: replies on your posts, and photos on the form, your post and the near-you cards (20261030064727).
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       <WantedReplies replies={post.replies} /> |       {null}
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (r.status === "open") return r.awaiting === "buyer" ? "Waiting for you" : "Waiting for the seller"; |   if (r.status === "open") return "Waiting for the seller";
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | {(post.replies ?? []).length > 0 ? "No other listings match yet." : | {false ? "No other listings match yet." :
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (r.status === "open") return r.awaiting === "buyer" ? (r.respond_by |   if (r.status === "open") return false ? (r.respond_by
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {yourTurn && <Link | {false && <Link
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {userId && <WantedPostPhotos post={post} userId={userId} />} |       {null}
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         try { await addWantedPhoto(userId, id, f); } |         try { void f; }
@@ -36,13 +37,16 @@
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | {feeLine(form.maxPrice)} |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | placeholder="Kids bike" enterKeyHint | placeholder="Kids bike, 16 inch" enterKeyHint
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |   useEffect(() => { saveWantedDraft(form); }, [form, editing]);
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const gotIt = post.status === "open" && post.replies.some((r) => r.status === "accepted"); |   const gotIt = false;
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const gotIt = !payBy && accepted.some((r) => r.paid === true \|\| r.paid === undefined); |   const gotIt = false;
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const payBy = accepted.find((r) => r.checkout_by && !r.paid); |   const payBy = undefined as WantedReply \| undefined;
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | r.respond_by ? `Answer by ${byWords(r.respond_by)}` : "Waiting for you" | "Waiting for you"
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | {post.status === "open" && post.expires_at && ` · Open until | {false && ` · Open until
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   const matches = post.matches.filter((m) => !answered.has(m.id)); |   const matches = post.matches;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | onConfirm={() => remove.mutate()} | onConfirm={() => {}}
  * Audit 10-30 #13: the address drops post=1 once the form is open, and what was typed survives a reload.
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |     next.delete(WANTED_POST_PARAM);\n |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |       if (!editing) clearWantedDraft();\n |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |       setForm(EMPTY);\n      if (!editing) clearWantedDraft();\n |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -280,12 +284,36 @@ describe("the Wanted hub", () => {
   it("#16: once an answer is accepted, the post asks to be closed", async () => {
     mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], status: "accepted" }] }];
     open();
-    expect(await screen.findByText(/Got what you needed\? Close this post/)).toBeInTheDocument();
+    expect(await screen.findByText("Next: close this post if you got what you needed")).toBeInTheDocument();
     cleanup();
     mine.rows = [POST];
     open();
     await screen.findByText("Red bike");
-    expect(screen.queryByText(/Got what you needed/)).toBeNull();
+    expect(screen.queryByText(/got what you needed/)).toBeNull();
+  });
+
+  // A3-77 / A3-62: an open reply showed no deadline though the seller's offer closes in 48 h; an accepted one said
+  // "Close this post" though the real step is checking out (closing then left it unpaid); the post's end date was nowhere.
+  it("A3-77: a reply says answer by when, an accepted one says check out by when, and the post says open until", async () => {
+    const due = "2026-11-03T20:00:00Z";
+    const words = new Date(due).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+    mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], respond_by: due }] }];
+    open();
+    const card = (await screen.findByText("Red bike")).closest("li[data-wanted-post]") as HTMLElement;
+    expect(card.querySelector('[data-wanted-reply="o1"]')!.textContent).toBe(`Red bike · Sam G. · $25 · Answer by ${words}`);
+    expect(within(card).getByText(`Next: answer Sam G.'s $25 offer · by ${words}`)).toBeInTheDocument();
+    expect(card.textContent).toContain(`Open until ${new Date(POST.expires_at).toLocaleDateString([], { month: "short", day: "numeric" })}`);
+    cleanup();
+    mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], status: "accepted", checkout_by: due, paid: false }] }];
+    open();
+    expect(await screen.findByText(`Next: check out by ${words}: choose pickup or delivery and pay`)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Check out" })).toHaveAttribute("href", "/declutter?tab=buying");
+    expect(screen.queryByText(/Close this post/)).toBeNull();
+    cleanup();
+    mine.rows = [{ ...POST, replies: [{ ...POST.replies[0], status: "accepted", checkout_by: null, paid: true }] }];
+    open();
+    expect(await screen.findByText(/Next: close this post if you got what you needed/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Next: check out by/)).toBeNull();
   });
 
   it("#19: a reply shows its photo, and a listing that answered isn't listed again as a match", async () => {
@@ -297,10 +325,48 @@ describe("the Wanted hub", () => {
     expect(document.querySelector("[data-wanted-reply-photo]")).toHaveAttribute("src", "https://unit-test.invalid/storage/v1/object/public/job-photos/s/declutter/i1/a.jpg");
   });
 
+  // Next-step line (owner 2026-11-01: "people aren't told what to do next"): each of your posts says your move (a
+  // reply waiting on you, an accepted answer, a post that ran out) or who it waits on and how long it stays up.
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |       <NextStep value={wantedNextStep(post, gotIt, payBy?.checkout_by ?? null)} /> |
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (yours > 0) return { who: "you", |   if (yours < 0) return { who: "you",
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (post.status === "expired") return { who: "you", text: "Post it again to keep looking" }; |
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx | text: "Waiting on sellers near you to answer", by: postTimeLeft(post.expires_at, now) | text: "Waiting on sellers near you to answer"
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |   return ms > 2 * 86_400_000 ? `${Math.floor(ms / 86_400_000)} days left` : timeLeft(expiresAt, now); |   return timeLeft(expiresAt, now);
+  it("Next-step line: your move on each post, or who it waits on and the days left", async () => {
+    const line = async (rows: WantedPost[]) => {
+      cleanup();
+      mine.rows = rows;
+      open();
+      await screen.findByText(rows[0].what);
+      return document.querySelector("li[data-wanted-post] [data-next-step]") as HTMLElement;
+    };
+    let l = await line([POST]);
+    expect(l.textContent).toBe("Next: answer the seller's reply in Buying");
+    expect(l.getAttribute("data-next-step")).toBe("you");
+    const second = { ...POST.replies[0], offer_id: "o3", item_title: "Pink bike" };
+    expect((await line([{ ...POST, replies: [POST.replies[0], second] }])).textContent).toBe("Next: answer the 2 sellers' replies in Buying");
+    expect((await line([{ ...POST, status: "expired", replies: [] }])).textContent).toBe("Next: post it again to keep looking");
+    l = await line([{ ...POST, status: "closed", replies: [] }]);
+    expect(l.getAttribute("data-next-step")).toBe("info");
+    const in12 = new Date(Date.now() + 12.5 * 86_400_000).toISOString();
+    l = await line([{ ...POST, expires_at: in12, replies: [] }]);
+    expect(l.textContent).toBe("Waiting on sellers near you to answer · 12 days left");
+    expect(l.getAttribute("data-next-step")).toBe("them");
+  });
+
   it("a post with no replies says so", async () => {
     mine.rows = [{ ...POST, replies: [] }];
     open();
     expect(await screen.findByText("No replies from sellers yet.")).toBeInTheDocument();
+    expect(screen.getByText("Nothing for sale matches at or under your price right now.")).toBeInTheDocument();
+  });
+
+  it("A3-62: with a seller's reply and no other match, it says \"No other listings match yet.\", never \"Nothing for sale matches\"", async () => {
+    mine.rows = [POST];
+    open();
+    await screen.findByText("Red bike");
+    expect(screen.getByText("No other listings match yet.")).toBeInTheDocument();
+    expect(screen.queryByText(/Nothing for sale matches/)).toBeNull();
   });
 
   it("the form takes up to 3 photos and adds each to the new post after it is posted", async () => {
@@ -344,6 +410,26 @@ describe("the Wanted hub", () => {
     open("/declutter?tab=wanted&post=1");
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText("What are you looking for?")).toBeInTheDocument();
+  });
+
+  // A3-99 (audit 7, 11-01): Browse's "Ask for ..." under an empty search opens the form on the search's words.
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |     : { ...readWantedDraft(), ...prefill }); |     : readWantedDraft());
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |     if (category && category in CATEGORY_LABEL) out.category = category; |     if (category) out.category = category;
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |     next.delete(WANTED_WHAT_PARAM);\n |
+  it("A3-99: ?what= from an empty search fills 'I'm looking for', a known category too, and leaves the address", async () => {
+    const draft = () => JSON.parse(localStorage.getItem("helpr_wanted_draft") ?? "{}") as { what?: string; category?: string };
+    open("/declutter?tab=wanted&post=1&what=Treadmill&category=sports_outdoors");
+    let sheet = await screen.findByRole("dialog");
+    expect((within(sheet).getByLabelText("I'm looking for") as HTMLInputElement).value).toBe("Treadmill");
+    await waitFor(() => expect(draft().category).toBe("sports_outdoors"));
+    await waitFor(() => expect(screen.getByTestId("where").textContent).toBe("/declutter?tab=wanted"));
+    cleanup();
+    localStorage.removeItem("helpr_wanted_draft");
+    open("/declutter?tab=wanted&post=1&what=Rowing%20machine&category=bogus");
+    sheet = await screen.findByRole("dialog");
+    expect((within(sheet).getByLabelText("I'm looking for") as HTMLInputElement).value).toBe("Rowing machine");
+    await waitFor(() => expect(draft().what).toBe("Rowing machine"));
+    expect(draft().category).toBe("");
   });
 
   it("Wanted near you lists other members' posts with I have this", async () => {

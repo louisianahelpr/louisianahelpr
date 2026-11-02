@@ -36,6 +36,7 @@ import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { useFeature } from "@/hooks/useFeature";
 import { FailedPayoutLink } from "./FailedPayoutLink";
 import type { CartLine } from "@/lib/declutter/api";
+import { BookedTimeLine, usePorchWindowWords } from "./DeclutterBookedTimeLine";
 import { invalidate, liveSalesFirst, localInputToIso, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
 import {
   bookPickup,
@@ -334,14 +335,19 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
   });
   const booked = booking?.slot_start;
   const movedAlready = !!booked && ((order.side === "buyer" ? booking?.buyer_reschedules : booking?.seller_reschedules) ?? 0) >= 1;
-  if (!booked && order.side === "seller") {
-    return <p className="text-sm text-muted-foreground">Waiting for the buyer to book {order.handover === "meetup" ? "a time to meet" : "a pickup time"} (within 7 days of paying).</p>;
-  }
+  // A3-63 (lead 1:14 PM: a porch pickup is a 2-hour window the seller leaves it out for): a porch booking at the
+  // checkout window says the window from the order row (pickup_slot_start / _end, the same read the buyer's card
+  // uses), never "(30 minutes)". Door and meetup keep their exact 30-minute time.
+  const porch = order.handover === "porch";
+  const windowWords = usePorchWindowWords(order, booked);
+  const timeLine = (label: string) => <BookedTimeLine order={order} booked={booked!} label={label} windowWords={windowWords} />;
+  // A3-49: the seller's wait is said once, by the card's next-step line ("Waiting on Ann to pick a pickup time · by …").
+  if (!booked && order.side === "seller") return null;
   const id = `dcl-slot-${order.orderId}`;
-  if (frozen) return booked ? <p className="text-sm">Pickup: <span className="font-medium">{when(booked)}</span> (30 minutes)</p> : null;
+  if (frozen) return booked ? timeLine("Pickup") : null;
   return (
     <div className="space-y-2">
-      {booked && <p className="text-sm">{order.handover === "meetup" ? "Meeting" : "Pickup"}: <span className="font-medium">{when(booked)}</span> (30 minutes)</p>}
+      {booked && timeLine(order.handover === "meetup" ? "Meeting" : "Pickup")}
       {/* Q2432: the existing no-show rule (declutter_report_no_show), stated where the buyer books, plus the reminder. */}
       {order.side === "buyer" && (
         <p className="text-xs text-muted-foreground" data-testid="declutter-no-show-warning">
@@ -364,7 +370,7 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
       <>
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
       <div className="space-y-2">
-        <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} noTimes={booked ? null : noTimes}
+        <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} noTimes={booked ? null : noTimes} porch={porch}
           fallback={<DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />} />
         <div className="flex flex-wrap gap-2">
           <button type="button" className={booked ? btn : primary} disabled={book.isPending || !(slot ?? localInputToIso(value))}

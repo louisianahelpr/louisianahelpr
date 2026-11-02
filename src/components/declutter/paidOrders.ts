@@ -56,4 +56,6 @@ export function invalidate(qc: QueryClient, orderId: string) {
   void qc.invalidateQueries({ queryKey: ["declutter", "handover", orderId] });
   void qc.invalidateQueries({ queryKey: ["declutter", "payouts"] });
   void qc.invalidateQueries({ queryKey: ["declutter", "problems"] });
+  // A booking or move changes the order's chosen time (pickup_slot_start / _end, 20261102005411) the cards read.
+  void qc.invalidateQueries({ queryKey: ["declutter", "order-pickup-times"] });
 }

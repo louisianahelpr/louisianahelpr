@@ -12,7 +12,7 @@
  * @mutate supabase/migrations/20261030221255_declutter_wanted_match_and_manage.sql |     WHEN 'bikes' THEN ARRAY['outdoors', 'kids'] |     WHEN 'bikes' THEN ARRAY['kids']
  * @mutate supabase/migrations/20261030221255_declutter_wanted_match_and_manage.sql |       '/declutter?tab=wanted&answer=' \|\| w.id::text \|\| '&item=' \|\| i.id::text); |       '/declutter/item/' \|\| i.id::text);
  * @mutate supabase/migrations/20261030221255_declutter_wanted_match_and_manage.sql |   SELECT * INTO v_w FROM public.declutter_wanted WHERE id = p_wanted_id AND user_id = v_uid AND removed_at IS NULL FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'wanted_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF v_w.status <> 'open' |   SELECT * INTO v_w FROM public.declutter_wanted WHERE id = p_wanted_id AND removed_at IS NULL FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'wanted_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF v_w.status <> 'open'
- * @mutate supabase/migrations/20261030221255_declutter_wanted_match_and_manage.sql |     WHERE w.user_id = v_uid\n       AND w.removed_at IS NULL\n |     WHERE w.user_id = v_uid\n
+ * @mutate supabase/migrations/20261102013814_declutter_my_wanted_reply_deadlines.sql |     WHERE w.user_id = v_uid\n       AND w.removed_at IS NULL\n |     WHERE w.user_id = v_uid\n
  * @mutate src/lib/declutter/wanted.ts | const LETTER = "A-Za-zÀ-ÖØ-öø-ÿĀ-ſ"; | const LETTER = "A-Za-z";
  */
 import { readFileSync } from "node:fs";
@@ -27,7 +27,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 const ROOT = join(__dirname, "../..");
 const defs = effectiveDefs(join(ROOT, "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");
-const TAG: Record<string, string> = { Home: "home", Outdoors: "outdoors", Family: "family", "Hobbies and fun": "fun", Other: "misc" };
+const TAG: Record<string, string> = { Home: "home", Outdoors: "outdoors", Family: "family", "Hobbies and fun": "fun", More: "misc" }; // A3-110: the picker's "Other" group heading reads "More"
 
 describe("Wanted matching and managing a post (posting audit 10-30)", () => {
   it("#4: pairs match on any meaningful word and near categories", () => {

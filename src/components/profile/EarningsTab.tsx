@@ -41,6 +41,8 @@ import { usePayoutsCsvExport } from "@/components/profile/earningsTab/usePayouts
 import { EarningsToolsMenu } from "@/components/profile/earningsTab/EarningsToolsMenu";
 import { type EarningsRange } from "@/components/profile/earningsTab/EarningsRangeToggle";
 import { EarningsSummaryCard } from "@/components/profile/earningsTab/EarningsSummaryCard";
+import { DeclutterSalesEarned } from "@/components/profile/earningsTab/DeclutterSalesEarned";
+import { salesEarnedIn } from "@/lib/declutter/salePayouts";
 import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanner";
 import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
 import { HomeMoneyTiles } from "@/pages/home/homeDashboard/HomeMoneyTiles";
@@ -50,6 +52,7 @@ import { SpentSection } from "@/components/profile/earningsTab/SpentSection";
 import { MoneyRecordRows } from "@/components/profile/earningsTab/MoneyRecordRows";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { FeesOwedLine } from "@/components/money/FeesOwedLine";
+import { SectionRule } from "./SectionRule";
 // MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
 // "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
 // separate Profile entry points onto three screens about the same subject —
@@ -77,22 +80,6 @@ import { FeesOwedLine } from "@/components/money/FeesOwedLine";
 const PayoutCelebration = lazy(() => import("@/components/wallet/PayoutCelebration").then(m => ({ default: m.PayoutCelebration })));
 const EarningsBreakdownCharts = lazy(() => import("@/components/profile/EarningsBreakdownCharts").then(m => ({ default: m.EarningsBreakdownCharts })));
 const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
-
-/**
- * Quiet in-page section rule. Deliberately NOT a second header: the merged
- * tab has exactly one ProfileTabHeader (title + back button) at the top, and
- * three stacked panels each carrying its own header is precisely the shape
- * the owner rejected. The small-caps label that used to sit on this hairline
- * was removed at the owner's direction (2026-08-27) — the rule alone now
- * separates sections, so this takes no props.
- */
-function SectionRule() {
-  return (
-    <div className="flex items-center gap-3 pt-2">
-      <div className="flex-1 h-px" style={{ background: "hsl(var(--olivewood) / 0.12)" }} />
-    </div>
-  );
-}
 
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
@@ -134,7 +121,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     "instantPayout",
   );
 
-  const { stripeData, stripeLoading, stripeError, ledgerError, ledgerPending, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
+  const { stripeData, stripeLoading, stripeError, ledgerError, ledgerPending, payoutLedger, refreshing, handleRefresh, salePayouts, salesError, refetchSales } = useEarningsData(helperId);
   // Latched: the card advances the last-seen marker as it opens, so the gate then reads false.
   const celebrateRef = useRef(false);
   if (!celebrateRef.current && hasPayoutToCelebrate(payoutLedger)) celebrateRef.current = true;
@@ -212,6 +199,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       ? tips
       : tips.filter((t) => new Date(t.created_at).getTime() >= rangeSince);
   const rangeEarnings = earnedDollarsWithLedger(rangeJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger);
+  // A3-56: Declutter sales count in Earned too (a sale counts once its payout is sent), with their own rows.
+  const rangeSales = salesEarnedIn(salePayouts ?? [], rangeSince);
   // Tips land in full: the poster pays the card fee on top (ME-006).
   const rangeTips = sumHelperTipDollars(rangeTipRows);
 
@@ -415,12 +404,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             loading={loading}
             range={range}
             onRangeChange={setRange}
-            earnedDollars={rangeEarnings}
+            earnedDollars={rangeEarnings + rangeSales.cents / 100}
             jobCount={rangeJobs.length}
+            saleCount={rangeSales.count}
             tipsDollars={rangeTips}
             tipCount={rangeTipRows.length}
             inProgressCount={inProgressJobs.length}
           />
+
+          <DeclutterSalesEarned rows={salePayouts ?? []} failed={!!salesError} onRetry={() => refetchSales?.()} />
 
           {range === "week" && (
             <EarningsForecastCard

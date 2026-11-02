@@ -13,8 +13,8 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { CheckCircle2, CalendarClock } from "lucide-react";
-import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
-import { jobStartDateTime } from "@/lib/dateUtils";
+import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart, jobStartTimeLabel, posterConfirmClosesMs } from "@/lib/jobDate";
+import { confirmScheduledFor, confirmUrgencyText } from "./jobConfirmationWords";
 import { slotLabel } from "@/components/tracker/jobProgressState";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 import { toast } from "sonner";
@@ -32,6 +32,8 @@ import { posterConfirmWarning } from "./posterConfirmWarning";
 
 /** The Helpr's day-before step, on its button (owner, 2026-10-08). */
 const HELPER_CONFIRM_LABEL = "Confirm you'll be at the job";
+/** The poster's day-before confirm, in full: the button shows "Confirm" (owner 11-01, pairLabel.ts buttonLabel). */
+const POSTER_CONFIRM_LABEL = "Confirm it's still on";
 export { helperDayOfConfirmation };
 
 export function JobConfirmation({
@@ -343,17 +345,8 @@ export function JobConfirmation({
   const helperDayOf = helperDayOfConfirmation({ helperConfirmedAt, helperDayofConfirmedAt, dateNeeded, startTime });
   const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperDayOf);
 
-  const urgencyText = hoursUntilJob <= 0
-    ? "Job date has passed"
-    : hoursUntilJob < 24
-    ? "less than 24 hours"
-    : (() => { const h = Math.round(hoursUntilJob); return `${h} hour${h !== 1 ? "s" : ""}`; })();
-
-  // "Thursday, October 22, 2037 at 9:00 AM": the day being confirmed, and the time when the job has one.
-  const scheduledStart = startTime ? jobStartDateTime(dateNeeded, startTime) : null;
-  const scheduledFor = `${jobDate.toLocaleDateString("en-US", { timeZone: JOB_TIMEZONE, weekday: "long", month: "long", day: "numeric", year: "numeric" })}${
-    scheduledStart ? ` at ${scheduledStart.toLocaleTimeString("en-US", { timeZone: JOB_TIMEZONE, hour: "numeric", minute: "2-digit" })}` : ""
-  }`;
+  const urgencyText = confirmUrgencyText(hoursUntilJob);
+  const scheduledFor = confirmScheduledFor(jobDate, jobStartTimeLabel(startTime));
 
   /* The confirm popup, hoisted out of the card's return so BOTH variants
      render the identical flow — the "Scheduled for" date, the no-show warning,
@@ -474,10 +467,12 @@ export function JobConfirmation({
         variant="primary"
         size="sm"
         onClick={() => setShowConfirmDialog(true)}
+        aria-label={newSlot ? undefined : POSTER_CONFIRM_LABEL}
         className={confirmCtaClass}
       >
         <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-        {newSlot ? "Confirm" : "I'm still on"}
+        {/* Owner 11-01: every confirm reads just "Confirm"; the full words are its name. */}
+        Confirm
       </Button>
     ) : null
     /* Poster confirmed: no greyed "Confirm they've arrived" here either (owner, 2026-10-21); the
@@ -533,7 +528,7 @@ export function JobConfirmation({
       !myConfirmed ? (
         <JobStepPrimaryButton
           icon={CheckCircle2}
-          label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
+          label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : POSTER_CONFIRM_LABEL}
           onClick={() => setShowConfirmDialog(true)}
         />
       ) : null

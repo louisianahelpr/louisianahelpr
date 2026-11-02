@@ -16,7 +16,8 @@ export const HANDOVER_WORDS: Record<Handover, string> = {
   pickup_home: "Pick it up at the seller's door. Address after you pay.",
   seller_delivery: "The seller brings it to you at a time you pick.",
   delivery: "A local Helpr picks it up and brings it to you. Best for big items.",
-  meetup: "Meet at a public place Louisiana Helpr checked, like a police safe exchange spot. No address is shared.",
+  // A3-52: a seller's own spot is not checked; only the police safe exchange spots are.
+  meetup: "Meet at a public place: the seller's own spot, or a police safe exchange spot Louisiana Helpr checked. No home address is shared.",
 };
 // BUY-14 (Declutter buying audit 10-30): the porch choice is "Porch pickup" here, as on the item page and in every
 // notice; its line says the seller may use another safe place. "Porch or safe place" used to be its title while seller

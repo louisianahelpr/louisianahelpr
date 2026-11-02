@@ -29,12 +29,19 @@ import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { GOOD_NEWS_NOTE } from "./goodNews";
 import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { sellerPayoutRule, type SellerPayoutKind } from "@/lib/declutter/sellerPayoutRule";
+import { fetchOrderPickupTimes, orderPickupTimesKey, orderTimeWords } from "@/lib/declutter/orderPickupTimes";
+import { useOrderOtherPerson } from "./useOrderOtherPerson";
+import { refundAwaitsSeller } from "./useSellerReportsToAnswer";
+import { fetchRefundRequestView, type RefundRequestView } from "@/lib/declutter/refundRequests";
+import { bookByWords } from "@/lib/declutter/orderPickupTimes";
+import { useFeature } from "@/hooks/useFeature";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 type Pickup = "porch" | "pickup_home" | "meetup";
 
 const time = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-function useMyHandover(orderId: string) {
+export function useMyHandover(orderId: string) {
   return useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
 }
 
@@ -51,19 +58,30 @@ export function onDay(day: string): string {
   return w === "Today" || w === "Tomorrow" ? w.toLowerCase() : `on ${w}`;
 }
 
-function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: string | null, free = false): NextStepValue {
+/** A3-18 (lead 11-01 5:01 PM): the checkout time once booked ("Sat 11/2, 3–5 PM"), or "by <book_by>" while nothing is. */
+type TimeWords = { chosen: string | null; by: string | null; buyer?: string | null };
+
+export function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: string | null, free = false,
+  times: TimeWords = { chosen: null, by: null }): NextStepValue {
   // Owner 11-01 12:02 PM: the line is the shared next step. The viewer's own move reads "Next: <step>"; the other
   // side's move reads "Waiting on the buyer to …" / where it stands. #6: a free claim was never paid ("Claimed.").
   const paid = free ? "Claimed." : "Paid.";
-  const you = (text: string): NextStepValue => ({ who: "you", text });
-  const them = (text: string): NextStepValue => ({ who: "them", text });
+  const you = (text: string, by: string | null = null): NextStepValue => ({ who: "you", text, by });
+  const them = (text: string, by: string | null = null): NextStepValue => ({ who: "them", text, by });
   const info = (text: string): NextStepValue => ({ who: "info", text });
+  const { chosen, by } = times;
+  // A3-49: the seller's one waiting line names the buyer ("Waiting on Ann to …"); "the buyer" until the name is in.
+  const buyer = times.buyer || "the buyer";
+  // Nothing booked yet: the other side's line drops its full stop so " · by <date>" follows it.
+  const waiting = (what: string) => them(`${paid} Waiting on ${buyer} to ${what}${by ? "" : "."}`, by);
   // The booked day or time is the booking panel's line, right below; it is not repeated here.
   if (handover === "porch") {
     // LEAD-PLACE-TIMES: a porch pickup is booked for a time inside the place's hours (a day booked before stays a day).
-    if (at === 0) return side === "buyer" ? you("Pick a time to collect it from the porch") : them(`${paid} Waiting on the buyer to pick a pickup time.`);
+    if (at === 0) return side === "buyer" ? you("Pick a time to collect it from the porch", by) : waiting("pick a pickup time");
     if (at === 1) {
+      if (side === "seller" && chosen) return you("Put it out and post the porch photo", `Pickup ${chosen}`);
       if (side === "seller") return day ? you(`Put it out ${onDay(day)} and post the porch photo`) : you("Put it out and take one photo where the buyer will find it");
+      if (chosen) return them("Not out yet. We'll tell you when it's on the porch", `Pickup ${chosen}`);
       return them("Not out yet. We'll tell you when it's on the porch. Don't go before then.");
     }
     if (at === 2) {
@@ -74,17 +92,27 @@ function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: s
     return info("Picked up.");
   }
   if (handover === "meetup") {
-    if (at === 0) return side === "buyer" ? you("Book a time to meet") : them(`${paid} Waiting on the buyer to book a time to meet.`);
+    if (at === 0) return side === "buyer" ? you("Book a time to meet", by) : waiting("book a time to meet");
+    if (at === 1 && chosen) return side === "seller" ? you("Meet the buyer at the place below", `Meet ${chosen}`) : info(`Meet ${chosen}`);
     if (at === 1) return side === "seller" ? you("Meet the buyer at the time and place below") : info("Booked. The time and place are below.");
     return info(at === 2 ? "Met." : "Handed over.");
   }
-  if (at === 0) return side === "buyer" ? you("Book a pickup time") : them(`${paid} Waiting on the buyer to book a pickup time.`);
+  if (at === 0) return side === "buyer" ? you("Book a pickup time", by) : waiting("book a pickup time");
+  if (at === 1 && chosen) return side === "seller" ? you("Have it ready at the door", `Pickup ${chosen}`) : info(`Pickup ${chosen} · at the door`);
   if (at === 1) return side === "seller" ? you("Have it ready at the pickup time below") : info("Booked. The pickup time is below.");
   return info(at === 2 ? "Picked up." : "Handed over.");
 }
 
 /** DC-16: a seller-delivers sale, in the same words (OrderSteps: Paid -> Time booked -> Delivered -> Done). */
-function deliveryStanding(side: "buyer" | "seller", at: number, free: boolean): NextStepValue {
+const answerByWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+
+/** A3-71: the seller's line once the hour has passed (late), or once the buyer says it never came (reported). */
+const SELLER_DELIVERY_LATE = "Late: deliver it now or ask for a new time. The buyer can now say it didn't come.";
+const sellerDeliveryReported = (by: string) => `Answer the buyer by ${answerByWords(by)}. They say it wasn't delivered.`;
+
+export function deliveryStanding(side: "buyer" | "seller", at: number, free: boolean, late = false, reportedBy: string | null = null): NextStepValue {
+  if (at === 1 && side === "seller" && reportedBy) return { who: "you", text: sellerDeliveryReported(reportedBy) };
+  if (at === 1 && side === "seller" && late) return { who: "info", text: SELLER_DELIVERY_LATE };
   if (at === 0) return side === "buyer" ? { who: "you", text: "Pick a delivery time" } : { who: "them", text: `${free ? "Claimed" : "Paid"}. Waiting on the buyer to pick a delivery time.` };
   if (at === 1) return side === "seller" ? { who: "you", text: "Deliver it at the time below" } : { who: "info", text: "Booked. The delivery time is below." };
   if (at === 2) return side === "buyer" ? { who: "you", text: "Tap I got it once you have it" } : { who: "them", text: "Delivered. Waiting on the buyer to say they have it." };
@@ -120,6 +148,15 @@ export function PickupStatus({
   part?: "all" | "status" | "money";
 }) {
   const h = useMyHandover(orderId);
+  const times = useQuery({ queryKey: orderPickupTimesKey([orderId]), queryFn: () => fetchOrderPickupTimes([orderId]) });
+  // A3-49: the seller's waiting line names the buyer (the order row's buyer id, then the public first name).
+  const { user } = useCurrentUser();
+  const other = useOrderOtherPerson(orderId, user?.id ?? "", side);
+  // A3-78: a handed-over sale with a refund request waiting on the seller says so in its next-step line, with the
+  // deadline (the refund panel's own read and key).
+  const refundsOn = useFeature("declutter_refund_requests");
+  const refund = useQuery({ queryKey: ["declutter", "refund-request", orderId], queryFn: () => fetchRefundRequestView(orderId),
+    enabled: refundsOn && side === "seller" && itemsCents > 0 && h.data?.status === "handed_over" });
   // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
   const free = itemsCents === 0;
   // A1-B2: the buyer's "You paid" is the card charge (the sale plus a first purchase's setup fee), read for the buyer
@@ -140,10 +177,18 @@ export function PickupStatus({
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />
-      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing(handover, side, at, day, free)} />
+      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }
+        : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : standing(handover, side, at, day, free, { ...orderTimeWords(times.data?.[0], handover, slot), buyer: side === "seller" ? other.first : null })} />
       {part === "all" && money}
     </div>
   );
+}
+
+/** A3-78: the seller's move on a refund request: answer it, or confirm the item came back; by its deadline. */
+function sellerRefundStep(v: RefundRequestView): NextStepValue {
+  const r = v.request!;
+  if (r.status === "open") return { who: "you", text: "Answer the refund request", by: r.answer_by ? bookByWords(r.answer_by) : null };
+  return { who: "you", text: "Confirm you got the item back", by: r.return_deadline ? bookByWords(r.return_deadline) : null };
 }
 
 /** The one money note on a sale card: what the buyer paid, or what the seller gets and when (DC-16: every kind). */
@@ -192,6 +237,8 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
   const b = useQuery({ queryKey: ["declutter", "seller-delivery-booking", orderId], queryFn: () => fetchSellerDeliveryBooking(orderId) });
   const free = itemsCents === 0;
   const totalCents = useMyPaidCents([orderId], side === "buyer" && !free)?.get(orderId) ?? null;
+  // A3-71: the buyer's "it wasn't delivered" report (and the seller's answer-by) lives on the handover row.
+  const h = useMyHandover(orderId);
   if (b.isError || !b.data) return null;
   const facts: OrderFacts = {
     handover: "seller_delivery", side, free,
@@ -207,10 +254,13 @@ export function SellerDeliveryStatus({ orderId, side, itemsCents, problemOpen = 
   const moveAskedOfMe = !done && !facts.delivered && p.proposed_start && p.proposed_by && p.proposed_by !== side
     ? `Accept the ${p.proposed_by}'s new time, ${slotLabel(p.proposed_start)}, or keep yours, below`
     : null;
+  // Late: booked, not marked delivered, and past the point the buyer may say it didn't come (as BuyingOrders reads it).
+  const late = facts.booked && !facts.delivered && !!p.not_delivered_from && Date.now() >= Date.parse(p.not_delivered_from);
+  const reportedBy = !done && !facts.delivered ? (h.data?.no_show_answer_by ?? null) : null;
   return (
     <div className="space-y-2" data-pickup-status={at} data-delivery-status="">
       <OrderSteps facts={facts} />
-      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : moveAskedOfMe ? { who: "you", text: moveAskedOfMe } : deliveryStanding(side, at, free)} />
+      <NextStep className="!text-ds-14" value={refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : moveAskedOfMe ? { who: "you", text: moveAskedOfMe } : deliveryStanding(side, at, free, late, reportedBy)} />
       <MoneyNote side={side} kind="seller_delivery" free={free} done={done} problemOpen={problemOpen} itemsCents={itemsCents} totalCents={totalCents} after="have it"
         deliveryCents={b.data.delivery_cents ?? 0} />
     </div>

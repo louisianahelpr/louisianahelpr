@@ -385,7 +385,7 @@ describe("DeclutterProblemsCard: the Helpr's fault (LEAD-ADMIN-HELPR-FAULT)", ()
 // own moment. The order's steps (declutter_admin_problem_case, the read the card already makes) now pick the one that fits.
 // @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const helprNeverPickedUp = helprDelivery && (steps ? !!steps.helpr_accepted_at && !steps.helpr_picked_up_at : true); |   const helprNeverPickedUp = helprDelivery;
 // @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const helprHasIt = helprDelivery && (steps ? !!steps.helpr_picked_up_at && !steps.helpr_delivered_at : true); |   const helprHasIt = helprDelivery;
-// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" | <input type="checkbox"
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | <input type="checkbox" className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0" | <input type="checkbox"
 // @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const steps = kase.data ?? null; |   const steps = null as typeof kase.data \| null;
 describe("DeclutterProblemsCard: which Helpr decision fits (B42)", () => {
   const kase = (over: Record<string, unknown>) => ({

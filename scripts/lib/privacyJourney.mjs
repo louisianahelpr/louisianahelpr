@@ -119,8 +119,13 @@ export const EXPORT_SECTIONS = [
   "profile_handles_retired",
   "instant_book_floors",
   "instant_book_declines",
+  // Continue another day (20261101231015; exported by 20261102030000).
+  "job_continue_days",
+  "job_continue_events",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
+  // A seller's own meet spots (20261101194608; exported by 20261101210500).
+  "declutter_meetup_spots",
   "declutter_porch_places",
   "declutter_porch_place_choices",
   "declutter_order_porch_places",

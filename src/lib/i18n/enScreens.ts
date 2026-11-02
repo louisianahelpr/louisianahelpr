@@ -13,6 +13,8 @@ export const enScreens = {
   "hero.titleLead": "Louisiana’s local",
   "hero.titleAccent": "partner.",
   "hero.subhead": "Hire help or find work. One account, real neighbors.",
+  "hero.searchLabel": "Search local jobs",
+  "hero.searchButton": "Search",
 
   // Chat screens: everyday words only. Safety, rules and money wording stays English until a person translates it.
   "chat.back": "Back to conversations",
@@ -82,7 +84,7 @@ export const enScreens = {
 
   // Sign up, step 1
   "signup.title": "Create your account",
-  "signup.subtitle": "One account to hire help or find work.",
+  "signup.subtitle": "One account to hire help, find work, and buy or sell nearby.",
   "signup.firstName": "First name",
   "signup.firstNameMissing": "Add your first name",
   "signup.lastName": "Last name",
@@ -93,7 +95,7 @@ export const enScreens = {
   "signup.keepDomain": "Keep {domain}",
   "signup.capsLock": "Caps Lock is on",
   "signup.passwordMissing": "Add a password",
-  "signup.agreeLead": "I agree to the",
+  "signup.agreeLead": "I'm 18 or older and agree to the",
   "signup.terms": "Terms",
   "signup.rules": "Rules",
   "signup.and": "&",
@@ -111,6 +113,8 @@ export const enScreens = {
   "signup.photoUpload": "Upload profile photo",
   "signup.city": "City",
   "signup.zip": "ZIP",
+  // A3-102 (audit 11-01): "70801" alone read as a ZIP already filled in.
+  "signup.zipExample": "e.g. 70801",
   "signup.about": "About you",
   "signup.aboutPlaceholder": "Tell us a bit about yourself — whether you're looking for work or need help around the house…",
   "signup.aboutHelp": "The bio is optional — you can add it later from your profile.",

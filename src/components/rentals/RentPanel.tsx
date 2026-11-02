@@ -154,7 +154,7 @@ function PlanForm({ tenancyId, plan, leaseEndsOn, onDone }: { tenancyId: string;
         <div className="flex flex-wrap gap-2">
           {PAY_METHODS.map((p) => (
             <label key={p} className="flex min-h-11 items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs">
-              <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={methods.includes(p)} onChange={() => toggle(p)} />
+              <input type="checkbox" className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={methods.includes(p)} onChange={() => toggle(p)} />
               {PAY_METHOD_LABEL[p]}
             </label>
           ))}
@@ -242,11 +242,11 @@ function DecideRow({ p, tenancyId, onDone }: { p: RentPayment; tenancyId: string
         </div>
       ) : (
         <div className="flex gap-2">
-          <Button type="button" size="sm" disabled={m.isPending} onClick={() => m.mutate(true)}>
-            Rent received
-          </Button>
           <Button type="button" size="sm" variant="outline" disabled={m.isPending} onClick={() => setDeclining(true)}>
             Not received
+          </Button>
+          <Button type="button" size="sm" disabled={m.isPending} onClick={() => m.mutate(true)}>
+            Rent received
           </Button>
         </div>
       )}
@@ -280,11 +280,11 @@ function CorrectForm({ p, onDone }: { p: RentPayment; onDone: () => void }) {
       </div>
       <Input aria-label="Why it changes" placeholder="Why (your tenant sees it)" value={reason} onChange={(e) => setReason(e.target.value)} />
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" disabled={!ready} onClick={() => m.mutate("edit")}>
-          Save correction
-        </Button>
         <Button type="button" size="sm" variant="outline" disabled={!ready} onClick={() => m.mutate("reverse")}>
           Take it back
+        </Button>
+        <Button type="button" size="sm" disabled={!ready} onClick={() => m.mutate("edit")}>
+          Save correction
         </Button>
       </div>
     </div>

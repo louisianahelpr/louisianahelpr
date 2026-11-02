@@ -24,7 +24,7 @@
  * @mutate src/components/tracker/jobProgressState.ts |   const card = o.card ?? cardFaceFor(job, o, now); |   const card = cardFaceFor(job, o, now);
  * @mutate src/components/tracker/jobProgressState.ts | \|\| posterLate \|\| noApplicantsYet \|\| ((sameStep \|\| offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail, | \|\| true ? base.next : card.line.detail,
  * @mutate src/pages/posts/PostedJobCard.tsx | rescheduled, card: { line: cardLine, face: faceAction }, pendingApplicants: | rescheduled, pendingApplicants:
- * @mutate src/pages/jobs/AppliedJobCard.tsx | \|\| null, card: { line: cardLine, face: faceAction } }) : null} | \|\| null }) : null}
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | otherFirst: posterFirst, card: { line: cardLine, face: faceAction } }) : null; | otherFirst: posterFirst }) : null;
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   const started = wait ? WORK_UNDERWAY.has(wait) : tracking?.status === "working"; |   const started = tracking?.status === "working";
  * @mutate src/pages/jobs/appliedJobCard/HelperCollapsedStrip.tsx | line={withReviewed(helperCardLine(app, job, unsettledDisputeJobIds, tracking), reviewed)} | line={withReviewed(helperStatusLine(app), reviewed)}
  */
@@ -122,7 +122,7 @@ const PROBLEM_ID = /^(overdue_|stalled$|dispute$|dispute_escalated$|dispute_sett
 const BUTTON_STEP: Array<[RegExp, number[], number[]]> = [
   [/^Review \d+ applicants?$/, [0], []],
   // The day-before confirm, on the face (owner, 2026-10-23, card critique item 1).
-  [/^(I'm still on|Confirm you'll be at the job)$/, [3], []],
+  [/^(Confirm it's still on|Confirm you'll be at the job)$/, [3], []],
   [/^Confirm(ing…| they've arrived)$/, [5], []],
   [/^Approve and release$/, [7], []],
   [/^I'm on my way$/, [4], [3]],

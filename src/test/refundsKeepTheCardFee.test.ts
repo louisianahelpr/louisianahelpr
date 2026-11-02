@@ -96,7 +96,7 @@
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261101000817_declutter_admin_helpr_fault.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -335,6 +335,11 @@ const TS_MONEY_TOUCHES: string[] = [
   // BUY-2: the buyer's no-Helpr choice row TYPE names the card fee declutter_no_helpr_choice reports (read only, never written;
   // members see only "You get $X back", membersSeeNoFeeWords).
   "src/lib/declutter/noHelpr.ts: card_fee_cents: number;",
+  // A3-18/19 (20261101230519): READS the order's book_by and the window chosen at checkout (column grants), the ONE
+  // source of the cards' "by <date>" and chosen time; no money column, no write.
+  'src/lib/declutter/orderPickupTimes.ts: .from("declutter_orders").select("id, book_by, pickup_slot_start, pickup_slot_end").in("id", orderIds)',
+  // A3-112 (lead lh-money-escrow 11-01): Money > Spent READS the buyer's own paid orders (no write).
+  'src/lib/declutter/purchaseSpend.ts: .from("declutter_orders").select("id, status, total_cents, paid_at").eq("buyer_id", userId).not("paid_at", "is", null), ) ?? []) as PurchaseOrder[]',
   // Declutter reviews (Builder 3c s3): READS the order's two parties to name who is being reviewed; no money column, no write.
   'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
   // Board 177 Receipts: READS the buyer's own paid orders (total and date) to list what left their card; no fee column, no write.
@@ -354,7 +359,7 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2082 (b): the card fee a Helpr at fault is billed (bill_helpr_fault_card_fee), and its page if that fails.
   'supabase/functions/create-payment/index.ts: p_card_fee_cents: Math.max(0, Math.round(cardFeeCents ?? 0)),',
   'supabase/functions/create-payment/index.ts: fields: { job_id: jobId, helper_id: helperId, card_fee_cents: String(cardFeeCents ?? "") },',
-  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
+  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, pickup_slot_start") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   // Q2352: READS the setup fee the order froze, to put it on its own Stripe line; no refund, no write.
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("setup_fee_cents") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
@@ -569,10 +574,18 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // recorded after the sweep put the item back on sale) is refunded IN FULL as 'order_closed' (full_platform_absorbs)
       // or 'seller_out' when being out is the sole blocker, instead of the sale being brought back. No other reason,
       // amount or fee changed.
-      declutter_mark_order_paid: "20261101030040_declutter_buy_now_30_minutes.sql 58316ae073a71a78",
+      // B110 (20261101191500, for lh-money-escrow): after the order is PAID, a pickup time chosen at checkout is booked
+      // and named in the seller's "Buyer paid" line. No reason, amount, fee or refund path changed.
+      declutter_mark_order_paid: "20261101191500_declutter_checkout_pickup_time.sql 521fd16163d444dd",
       // Owner 11-01 (B103, 20261101181129; lh-money-escrow via the lead): the giver's pick turns the asked time into a
       // paid FREE order ($0, card_fee_cents = 0, no payment) with its booking; it records no refund and moves no money.
-      declutter_pick_free_request: "20261101181129_free_pick_confirms_the_asked_time.sql 0af9427699ae0747",
+      // A3-57 (20261102011547, lh-money-escrow 11-01): restated with one early refusal (request_time_passed: an ask
+      // whose own pickup time has passed can't be picked). No refund, amount or fee touched.
+      declutter_pick_free_request: "20261102011547_free_asks_close_when_their_time_passes.sql 916a12add24bc8a0",
+      // Not refund paths (lh-money-escrow 11-01): they only NAME the 'declutter_refunds' notice kind and its reminder
+      // titles (20261102002011, offer and refund deadline reminders). They map/send notices and record nothing.
+      sms_kind_for: "20261102002011_needs_you_deadline_reminders.sql 4c2a804834d2c32e",
+      sweep_needs_you_reminders: "20261102002011_needs_you_deadline_reminders.sql 4fa7776ee46055c9",
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.

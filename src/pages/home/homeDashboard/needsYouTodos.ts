@@ -6,6 +6,8 @@ import { postedActivityBucket, appliedActivityBucket, jobIsUnfundedDraft } from 
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import { backoutNoticeApplies, backoutNoticesKey, useBackoutNotices, type BackoutNotice } from "@/lib/backoutNotices";
 import type { ShopOrder } from "@/lib/shops/orders";
+import type { CartLine, FreeAskToPick, MyOffer } from "@/lib/declutter/api";
+import type { MyRefundTodo } from "@/lib/declutter/refundRequests";
 import { formatCents } from "@/lib/shops/formatCents";
 import { queryKeys } from "@/lib/queryKeys";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
@@ -13,14 +15,18 @@ import { useFeature } from "@/hooks/useFeature";
 import { posterStatusLine, helperStatusLine, type JobStatusLine } from "@/components/job-card/jobStatusLine";
 import { jobStartTarget } from "@/components/job-card/CountdownRows";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { continueDayNextStep, continueDayWords, type ContinueDay } from "@/lib/continueDayWords";
+import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
 // The import alone goes through Vite's preload wrapper; the read runs after it (Sentry JAVASCRIPT-54,
 // src/test/dynamicImportThenDoesNoWork.test.ts).
 const shopOrdersApi = () => loadModule(() => import("@/lib/shops/orders"));
+// A3-81: Declutter's own cart and offers reads (the Buying / Selling tabs' sources), loaded only when signed in.
+const declutterApi = () => loadModule(() => import("@/lib/declutter/api"));
 
 export interface TodoItem {
   id: string;
   /** Which section the to-do belongs to: the nav counts are per section. */
-  section: "jobs" | "shops";
+  section: "jobs" | "shops" | "declutter";
   /** The TASK (spec v2 §5.2: "title = the task"), never just the job's name. */
   title: string;
   /** Which side you are on, then the job or order it is about ("You hired · Mow the lawn"). */
@@ -50,6 +56,140 @@ export interface NeedsYouInputs {
   appliedApps: readonly AppliedApp[];
   shopOrders: readonly ShopOrder[];
   backout: ReadonlyMap<string, BackoutNotice>;
+  /** A3-81: the member's Declutter cart lines and offers (the Buying / Selling tabs' own reads). */
+  declutterCart?: readonly CartLine[];
+  declutterOffers?: readonly MyOffer[];
+  /** A3-81: refund requests waiting on the member (declutter_my_refund_todos) and the giver's free asks to pick from. */
+  declutterRefunds?: readonly MyRefundTodo[];
+  declutterFreeAsks?: readonly FreeAskToPick[];
+  /** The active continue days of my jobs under way, by job id (useContinueDays). */
+  continueDays?: Readonly<Record<string, ContinueDay>>;
+}
+
+/** "$30" for whole dollars (garage-sale prices), "$7.50" otherwise. */
+const dollars = (cents: number) => (cents % 100 === 0 ? `$${cents / 100}` : formatCents(cents));
+
+/** "Mon 2:00 PM" in Louisiana time: the Declutter to-do's "by" (the offer's respond_by, the cart's checkout_by). */
+function byWhen(ms: number): string {
+  const d = new Date(ms);
+  const day = d.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short" });
+  const time = d.toLocaleTimeString("en-US", { timeZone: "America/Chicago", hour: "numeric", minute: "2-digit" });
+  return `${day} ${time}`;
+}
+
+/**
+ * A3-81 (audit 11-01, High): what needs the member on Declutter, from the SAME rules as the Buying / Selling badges
+ * (src/lib/declutter/tabs.ts declutterTodo): an offer waiting on their answer (either side), a cart checkout still
+ * inside its time (one per seller: one checkout per seller), and a paid pickup order still in its handover. Each
+ * carries its deadline when it has one. A Helpr-delivered order is left out (the Helpr does the handover).
+ */
+function declutterTodos(
+  cart: readonly CartLine[],
+  offers: readonly MyOffer[],
+  now: number,
+  refunds: readonly MyRefundTodo[] = [],
+  freeAsks: readonly FreeAskToPick[] = [],
+): { item: TodoItem; due: number | null; waiting: boolean }[] {
+  const out: { item: TodoItem; due: number | null; waiting: boolean }[] = [];
+  // A3-81 (a), first: a refund request waiting on the member. The seller answers within 24 hours (answer_by), or it
+  // goes to Louisiana Helpr; a buyer answers the seller's part offer by offer_answer_by.
+  for (const r of refunds) {
+    const due = Date.parse(r.due_at);
+    if (!Number.isFinite(due) || due < now) continue;
+    const seller = r.my_side === "seller";
+    const what = r.title ? (r.item_count > 1 ? `${r.title} + ${r.item_count - 1} more` : r.title) : "your order";
+    out.push({
+      due,
+      waiting: true,
+      item: {
+        id: `dr-${r.request_id}`,
+        section: "declutter",
+        title: seller ? "Answer a refund request" : "Answer the seller's refund offer",
+        meta: `${seller ? "Selling" : "Buying"} · ${what} · by ${byWhen(due)}`,
+        to: `/declutter?tab=${seller ? "selling" : "buying"}`,
+        action: seller ? "Answer request" : "Answer offer",
+      },
+    });
+  }
+  for (const o of offers) {
+    if (o.status !== "open" || o.awaiting !== o.my_side) continue;
+    const due = Date.parse(o.respond_by);
+    const live = Number.isFinite(due) && due >= now ? due : null;
+    if (Number.isFinite(due) && due < now) continue;
+    const seller = o.my_side === "seller";
+    out.push({
+      due: live,
+      waiting: true,
+      item: {
+        id: `do-${o.offer_id}`,
+        section: "declutter",
+        // The amount is in the task itself, so no money line repeats it (Home prints money as "order total").
+        title: seller ? `Answer a ${dollars(o.amount_cents)} offer` : `Answer the seller's ${dollars(o.amount_cents)} counteroffer`,
+        meta: `${seller ? "Selling" : "Buying"} · ${o.item_title}${live ? ` · by ${byWhen(live)}` : ""}`,
+        to: `/declutter?tab=${seller ? "selling" : "buying"}`,
+        action: "Answer offer",
+      },
+    });
+  }
+  const checkouts = new Map<string, CartLine[]>();
+  for (const l of cart) {
+    if (l.my_side !== "buyer" || l.status !== "in_cart" || !(Date.parse(l.checkout_by) > now)) continue;
+    const k = l.seller_id ?? l.line_id;
+    checkouts.set(k, [...(checkouts.get(k) ?? []), l]);
+  }
+  for (const [k, lines] of checkouts) {
+    const due = Math.min(...lines.map((l) => Date.parse(l.checkout_by)));
+    out.push({
+      due,
+      waiting: true,
+      item: {
+        id: `dc-${k}`,
+        section: "declutter",
+        title: lines.length === 1 ? `Check out ${lines[0].item_title}` : `Check out ${lines.length} items`,
+        meta: `Buying · by ${byWhen(due)}`,
+        to: "/declutter?tab=buying",
+        action: "Check out",
+        money: dollars(lines.reduce((s, l) => s + l.price_cents, 0)),
+      },
+    });
+  }
+  const orders = new Map<string, CartLine>();
+  for (const l of cart) {
+    if (l.status !== "paid" || !l.order_id || l.order_status !== "paid" || l.handover === "delivery") continue;
+    if (!orders.has(l.order_id)) orders.set(l.order_id, l);
+  }
+  for (const [id, l] of orders) {
+    const seller = l.my_side === "seller";
+    out.push({
+      due: null,
+      waiting: true,
+      item: {
+        id: `dh-${id}`,
+        section: "declutter",
+        title: seller ? `Hand over ${l.item_title}` : `Pick up ${l.item_title}`,
+        meta: seller ? "Selling · sold, waiting for the handover" : "Buying · paid, waiting for the pickup",
+        to: `/declutter?tab=${seller ? "selling" : "buying"}`,
+        action: seller ? "Open sale" : "Open order",
+      },
+    });
+  }
+  // A3-81 (b): the free giver picks who gets the item (no deadline: the server sets none).
+  for (const f of freeAsks) {
+    if (f.asked < 1) continue;
+    out.push({
+      due: null,
+      waiting: true,
+      item: {
+        id: `df-${f.item_id}`,
+        section: "declutter",
+        title: `Pick who gets ${f.title}`,
+        meta: `Free · ${f.asked} asked`,
+        to: `/declutter/item/${f.item_id}`,
+        action: "Pick",
+      },
+    });
+  }
+  return out;
 }
 
 /** An open back-out notice rides on its job, as useActivityData does it (Q1575). */
@@ -68,6 +208,9 @@ function helprSide(job: Job, lineId: string): string {
   return lineId === "on_the_way" ? "You're on the way" : "You're working";
 }
 const HOUR = 3_600_000;
+/** A3-83: the poster's step when the Helpr marked it done (or fixed what was asked): its Next up button. */
+export const REVIEW_WORK_ACTION = "Review work";
+const POSTER_REVIEW_STEPS = new Set(["approve", "revision_fixed"]);
 
 /** Spec v2 §5.2 tier 2: someone is waiting on the member (applicants, an offer, an order, a finished job). */
 const POSTER_SOMEONE_WAITING = new Set(["applicants", "approve", "revision_fixed", "confirm_arrival"]);
@@ -118,8 +261,14 @@ function rank(due: number | null, waiting: boolean, date: number, now: number): 
 export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now()): TodoItem[] {
   const posted = i.postedJobs.filter((j) => !jobIsUnfundedDraft(j)).map((j) => withBackout(j, i.backout));
   const applied = i.appliedApps.map((a) => (a.job ? { ...a, job: withBackout(a.job, i.backout) } : a));
-  const postedNeeds = posted.filter((j) => postedActivityBucket(j, i.pendingApplicantCounts[j.id] ?? 0) === "needs_you");
-  const appliedNeeds = applied.filter((a) => a.job && appliedActivityBucket(a) === "needs_you");
+  // Continue another day (Auditor 11, 11-01): a job under way with a day set or asked for is a to-do only when the
+  // job page's own line is the member's move (confirm the day, confirm you'll be there), in those words; never
+  // "Mark it done" before the day the server lets it be done.
+  const cd = i.continueDays ?? {};
+  const contStep = (jobId: string, side: "poster" | "helpr", other: string | null) => continueDayNextStep(cd[jobId], { side, otherFirst: other });
+  const helprOther = (a: AppliedApp) => (a.posterName ? a.posterName.trim().split(/\s+/)[0] || null : null);
+  const postedNeeds = posted.filter((j) => (cd[j.id] ? contStep(j.id, "poster", null)?.who === "you" : postedActivityBucket(j, i.pendingApplicantCounts[j.id] ?? 0) === "needs_you"));
+  const appliedNeeds = applied.filter((a) => a.job && (cd[a.job.id] ? contStep(a.job.id, "helpr", helprOther(a))?.who === "you" : appliedActivityBucket(a) === "needs_you"));
   // Orders waiting for MY SHOP's answer, soonest deadline first: each one lapses at accept_by.
   const shopWaiting = i.shopOrders
     .filter((o) => o.status === "held")
@@ -145,6 +294,10 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       },
     });
   }
+  for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [])) {
+    const [tier, at] = rank(d.due, d.waiting, Infinity, now);
+    ranked.push({ tier, at, item: d.item });
+  }
   // The task is the job card's own status sentence (jobStatusLine), so Home and the
   // card never name a different step of one job (boards 7, 83, 165).
   for (const j of postedNeeds) {
@@ -157,12 +310,13 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       item: {
         id: `p-${j.id}`,
         section: "jobs",
-        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : line.detail,
+        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : continueDayWords(cd[j.id], { side: "poster", otherFirst: null }) ?? line.detail,
         meta: `${j.helper_id ? "You hired" : "You posted"} · ${j.title}`,
         // "Open job" opens THE job (audit #12, 2026-10-21); the applicant
         // review still lands on the Posted list where applicants are handled.
         to: n > 0 ? `/jobs?tab=posted&filter=needs_you` : `/jobs/${j.id}`,
-        action: n > 0 ? "See applicants" : "Open job",
+        // A3-83: the approve step is named on its button ("Review work", the job page's approve section).
+        action: n > 0 ? "See applicants" : POSTER_REVIEW_STEPS.has(line.id) ? REVIEW_WORK_ACTION : "Open job",
       },
     });
   }
@@ -177,11 +331,11 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         section: "jobs",
         // JA-39 (Jobs audit 11-01): on the way is not working yet. The task is the arrival tap, and the side word
         // says where they are ("You're on the way · Haul off..."), never "You're working" before they arrive.
-        title: line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail,
+        title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail),
         meta: `${helprSide(a.job!, line.id)} · ${a.job!.title}`,
         // JA-39: the button IS the arrival step ("I've arrived"), run by the Working card's tracker (not a crew: a
         // member's steps are on the roster), instead of "Open job" and a second tap on the page.
-        ...(line.id === "on_the_way" && !a.job!.is_group_job
+        ...(line.id === "on_the_way" && !a.job!.is_group_job && !cd[a.job!.id]
           ? { to: `/jobs?tab=working&job=${encodeURIComponent(a.job!.id)}&open=1`, action: ARRIVED_ACTION, helperStep: { jobId: a.job!.id, key: "arrived" as const } }
           : { to: `/jobs/${a.job!.id}`, action: "Open job" }),
       },
@@ -198,6 +352,10 @@ const EMPTY_JOBS: Job[] = [];
 const EMPTY_APPS: AppliedApp[] = [];
 const EMPTY_COUNTS: Record<string, number> = {};
 const EMPTY_ORDERS: ShopOrder[] = [];
+const EMPTY_CART: CartLine[] = [];
+const EMPTY_OFFERS: MyOffer[] = [];
+const EMPTY_REFUNDS: MyRefundTodo[] = [];
+const EMPTY_FREE_ASKS: FreeAskToPick[] = [];
 
 /**
  * The to-dos for `user`, from the SAME React Query cache entries Jobs and Home
@@ -228,6 +386,14 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
   });
   // My shop's incoming orders: the same query (key and fetch) the Shop dashboard reads.
   const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchShopOrders(uid) : untilReload())), enabled: !!uid && shopsOn });
+  // A3-81: Declutter's cart and offers, the same query keys and fetches the Buying / Selling tabs read (useDeclutterTodo).
+  const declutterOn = useFeature("declutter");
+  const dCart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyCart() : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
+  const dOffers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyOffers() : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
+  // A3-81: refund requests waiting on the member (one member-wide read) and the giver's free asks, in the same wave.
+  const refundsOn = useFeature("declutter_refund_requests");
+  const dRefunds = useQuery({ queryKey: ["declutter", "my-refund-todos"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyRefundTodos() : untilReload())), enabled: !!uid && declutterOn && refundsOn, staleTime: CORE_STALE });
+  const dFreeAsks = useQuery({ queryKey: ["declutter", "free-asks-to-pick", uid], queryFn: () => declutterApi().then((m) => (m ? m.fetchFreeAsksToPick(uid) : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
   const backout = useBackoutNotices(uid || null);
 
   const queryClient = useQueryClient();
@@ -242,6 +408,10 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
       queryClient.invalidateQueries({ queryKey: queryKeys.activity.applied(uid) });
       queryClient.invalidateQueries({ queryKey: backoutNoticesKey(uid) });
       queryClient.invalidateQueries({ queryKey: ["shops", "shop-orders", uid] });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "my-cart"] });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "my-offers"] });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "my-refund-todos"] });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "free-asks-to-pick", uid] });
     };
     const schedule = () => {
       if (hidden()) {
@@ -281,9 +451,14 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
   const pending = posted.data?.pendingApplicantCounts ?? EMPTY_COUNTS;
   const apps = applied.data?.appliedApps ?? EMPTY_APPS;
   const orders = (shopsOn ? shopOrders.data : undefined) ?? EMPTY_ORDERS;
+  const cartLines = (declutterOn ? dCart.data : undefined) ?? EMPTY_CART;
+  const offerRows = (declutterOn ? dOffers.data : undefined) ?? EMPTY_OFFERS;
+  const refundRows = (declutterOn && refundsOn ? dRefunds.data : undefined) ?? EMPTY_REFUNDS;
+  const freeAskRows = (declutterOn ? dFreeAsks.data : undefined) ?? EMPTY_FREE_ASKS;
+  const continueDays = useContinueDays(inProgressJobIds([...postedJobs, ...apps.map((a) => a.job)]));
   const todos = useMemo(
-    () => deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout }),
-    [postedJobs, pending, apps, orders, backout],
+    () => deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows, declutterRefunds: refundRows, declutterFreeAsks: freeAskRows, continueDays }),
+    [postedJobs, pending, apps, orders, backout, cartLines, offerRows, refundRows, freeAskRows, continueDays],
   );
   return { todos, loading: posted.data === undefined && applied.data === undefined };
 }

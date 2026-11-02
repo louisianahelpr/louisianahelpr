@@ -37,6 +37,13 @@ const state = {
 
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
+// B112: the open chat marks the viewer's side read (declutter_mark_talk_read).
+const marked = vi.fn(async (_kind: string, _ref: string) => undefined);
+// The chat's next-step line (OrderTalkStep, lazy) reads the cart, bookings and delivery itself; it has its own proof in
+// declutterNextStepLows.test.tsx. Left real, its lazy chunk resolved mid-run on CI and its declutter_my_cart read hit
+// the prod-network guard in a later test (L32, PR #3987 shard 5).
+vi.mock("@/components/declutter/OrderTalkStep", () => ({ default: () => null }));
+vi.mock("@/lib/declutter/talkRead", () => ({ markTalkRead: (kind: string, ref: string) => marked(kind, ref) }));
 vi.mock("@/lib/declutter/orderTalk", () => ({
   MY_ORDER_TALKS_KEY: ["declutter", "my-order-talks"],
   fetchOrderTalk: async (id: string) => ({
@@ -103,6 +110,16 @@ describe("D2-1: the paid-order chat", () => {
     const items = within(list).getAllByRole("listitem").map((li) => li.textContent ?? "");
     expect(items[0]).toMatch(/^You · .*Is Saturday ok\?$/);
     expect(items[1]).toMatch(/^The seller · .*Yes, after 9\.$/);
+  });
+
+  // B112 (B110 leftover 4): seen = read, so the 15-minute / 2-hour unread reminders stop.
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx |   useMarkTalkRead("order", orderId, talk.data ? talk.data.messages.length : null); |
+  // @mutate src/components/declutter/useMarkTalkRead.ts |     if (messageCount === null) return; |     return;
+  it("marks the chat read for the viewer once it is open (declutter_mark_talk_read)", async () => {
+    marked.mockClear();
+    renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    await screen.findByRole("list", { name: "Messages" });
+    await waitFor(() => expect(marked).toHaveBeenCalledWith("order", ORDER));
   });
 
   it("Send posts the trimmed words; a refusal shows the server's words", async () => {

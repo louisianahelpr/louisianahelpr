@@ -9,7 +9,7 @@
  * (held open while a problem or refund request is open). An ended chat keeps its history and loses the box.
  * Its own module: DeclutterHandoverViews is at the component-size limit.
  */
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useInRouterContext, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,10 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
+import { useMarkTalkRead } from "./useMarkTalkRead";
+
+// A3-27: the order card's step line, loaded only with the chat (it reads the cards' queries).
+const OrderTalkStep = lazy(() => import("./OrderTalkStep"));
 
 // AUD31-12: the weekday alone only within 6 days; older lines carry their date.
 const when = (iso: string) => talkTime(iso);
@@ -65,6 +69,8 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   const key = ["declutter", "order-talk", orderId] as const;
   // A light poll while the chat is open (the other side's new message shows within 15 seconds).
   const talk = useQuery({ queryKey: key, queryFn: () => fetchOrderTalk(orderId), refetchInterval: 15_000 });
+  // B112: seen = read, so the unread reminders stop (on open and on each new message).
+  useMarkTalkRead("order", orderId, talk.data ? talk.data.messages.length : null);
   // AUD31-13: the sheet names the item it is about, from the same list Messages -> Declutter reads (one cached read).
   const talks = useQuery({ queryKey: MY_ORDER_TALKS_KEY, queryFn: fetchMyOrderTalks });
   const itemTitle = talks.data?.find((r) => r.order_id === orderId)?.title ?? null;
@@ -95,6 +101,8 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
           <p className="mt-2 text-ds-14 text-muted-foreground">Loading…</p>
         ) : (
           <div className="mt-2 space-y-3">
+            {/* A3-27 (audit 11-01): the same next step the order card shows, with its one button. */}
+            {(t.side === "buyer" || t.side === "seller") && <Suspense fallback={null}><OrderTalkStep orderId={orderId} side={t.side} /></Suspense>}
             <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
               Only you and the {other} can read this. Keep phone numbers, emails and payment out of the chat.
               {open && t.open_until ? ` It's open until ${when(t.open_until)}.` : ""}

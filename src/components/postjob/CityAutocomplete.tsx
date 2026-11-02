@@ -22,12 +22,18 @@ interface CityAutocompleteProps {
   value: string;
   onChange: (city: string) => void;
   className?: string;
+  /**
+   * A3-100 (audit 11-01): the browser's own "Please fill out this field" stopped "Enter App" on Finish your profile,
+   * where City is labelled "(optional)" (owner 2026-10-26: City and ZIP are optional at sign-up). Off unless the form
+   * really needs a city (Post a job's address: FormStep refuses a post without one).
+   */
+  required?: boolean;
 }
 
 const titleCase = (s: string) =>
   s.trim().toLowerCase().replace(/\b\w/g, (ch) => ch.toUpperCase());
 
-export function CityAutocomplete({ id, value, onChange, className }: CityAutocompleteProps) {
+export function CityAutocomplete({ id, value, onChange, className, required = false }: CityAutocompleteProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
 
@@ -98,7 +104,7 @@ export function CityAutocomplete({ id, value, onChange, className }: CityAutocom
           if (cleaned !== value) onChange(cleaned);
           setQuery(cleaned);
         }}
-        required
+        required={required}
         maxLength={100}
         // address-level2 is the WHATWG token for the city field: it lets the
         // OS keyboard / password-manager offer the user's saved city for

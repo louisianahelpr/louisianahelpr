@@ -52,6 +52,8 @@ const state = {
   problems: [] as Record<string, unknown>[],
   /** NIGHT-BUYINGopenpr-2: declutter_order_problem per order (the other side's words included). */
   problem: {} as Record<string, Record<string, unknown>>,
+  /** declutter_orders.book_by / pickup_slot_start / pickup_slot_end per order (fetchOrderPickupTimes); absent = no row. */
+  times: {} as Record<string, { book_by?: string | null; pickup_slot_start?: string | null; pickup_slot_end?: string | null }>,
 };
 
 vi.mock("@/components/DateTimeField", () => ({
@@ -65,6 +67,12 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
 vi.mock("@/lib/declutter/paidCents", () => ({
   fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.paid).map((id) => [id, state.paid[id]])),
+}));
+// A3-18/19 (lead 11-01: ONE source): the order row's book_by and checkout window, from state.times; the real word
+// helpers. The client never computes a deadline from paid_at.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()),
+  fetchOrderPickupTimes: async (ids: string[]) => ids.filter((id) => id in state.times).map((id) => ({ id, book_by: null, pickup_slot_start: null, pickup_slot_end: null, ...state.times[id] })),
 }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
@@ -181,6 +189,7 @@ function load(cases: Case[]) {
   state.handovers = Object.fromEntries(cases.filter((c) => c.handover).map((c) => [c.id, c.handover!]));
   state.sd = Object.fromEntries(cases.filter((c) => c.sd).map((c) => [c.id, c.sd!]));
   state.tasks = Object.fromEntries(cases.filter((c) => c.task).map((c) => [`t-${c.id}`, c.task!]));
+  state.times = {};
 }
 
 const card = (id: string) => screen.getByText(`Item ${id}`).closest("article") as HTMLElement;
@@ -229,7 +238,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // AUD31-7: the headline comes from the task once it ended without a delivery; a live one keeps its step line.
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus === "unfilled") return info("No Helpr took this delivery. What you paid for delivery was refunded."); |
   // @mutate src/components/declutter/BuyingOrders.tsx |       if (taskStatus && !LIVE_TASK.has(taskStatus)) return info("This delivery was closed."); |
-  // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null), |         null),
+  // @mutate src/components/declutter/BuyingOrders.tsx |         o.handover === "delivery" ? task?.status ?? null : null, |         null,
   it("AUD31-2: a seller delivery past its time says it is late, not booked", async () => {
     load([CASES.find((c) => c.id === "sd1late")!]);
     show();
@@ -316,8 +325,8 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // whose order waits on the buyer says "Next: <step>" in the shared NextStep line, above its one button; every
   // other card says who it waits on or where it stands, never "Next:". The late seller delivery is the one Needs-you
   // card whose line says why (its button, "It wasn't delivered", is the step).
-  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time") |       return at === 0 ? info("Pick a pickup time")
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time"); |       if (at === 0) return info("Book a pickup time.");
+  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time", by) |       return at === 0 ? info("Pick a pickup time")
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time", by); |       if (at === 0) return info("Book a pickup time.");
   // @mutate src/components/declutter/BuyingOrders.tsx |       return you("Tap I got it once you have it");\n  } |       return info("Delivered.");\n  }
   // @mutate src/components/declutter/BuyingOrders.tsx | value={standing ? { who: "info", text: standing } : view.next} | value={{ who: "info", text: view.next.text }}
   it("Next-step line: every card that waits on the buyer says 'Next: …'; the rest never do", async () => {
@@ -342,8 +351,44 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(card("hd0").querySelector("[data-next-step]")!.textContent).toBe("Finding a Helpr to bring it.");
   });
 
+  // The book-by deadline (owner 11-01: the next-step line carries the deadline when there is one). A porch, door or
+  // meetup pickup with no booked time is closed and refunded at the order's book_by (the server's paid + 7 days, pinned
+  // to declutter_handover_sweep), so its "Next:" line ends "· by <book_by>". A booked order never says "by".
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time", by); |       if (at === 0) return you("Book a pickup time");
+  // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time", by) |       return at === 0 ? you("Pick a pickup time", null)
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a time to meet at the safe spot", by); |       if (at === 0) return you("Book a time to meet at the safe spot");
+  // @mutate src/lib/declutter/orderPickupTimes.ts |   return { chosen, by: !booked && t.book_by ? bookByWords(t.book_by) : null }; |   return { chosen, by: null };
+  it("book-by deadline: an unbooked pickup says 'Next: book a pickup time · by <book_by>'; booked ones never do", async () => {
+    const unbooked = CASES.filter((c) => c.id === "home0" || c.id === "porch0" || c.id === "meet0");
+    expect(unbooked.length).toBe(3);
+    const booked = CASES.filter((c) => c.slot && (c.line?.handover ?? "pickup_home") !== "delivery" && c.line?.handover !== "seller_delivery");
+    expect(booked.length).toBeGreaterThan(0);
+    load([...unbooked, ...booked]);
+    // The server's value (Sun Nov 8 2026, 3:00 PM Chicago = 21:00Z), said as it is: no client arithmetic.
+    for (const c of [...unbooked, ...booked]) state.times[c.id] = { book_by: "2026-11-08T21:00:00.000Z" };
+    show();
+    await waitFor(() => expect(card("home0").querySelector("[data-next-step]")!.textContent).toBe("Next: book a pickup time · by Sun 11/8, 3:00 PM"));
+    expect(card("porch0").querySelector("[data-next-step]")!.textContent).toBe("Next: pick a pickup time · by Sun 11/8, 3:00 PM");
+    expect(card("meet0").querySelector("[data-next-step]")!.textContent).toBe("Next: book a time to meet at the safe spot · by Sun 11/8, 3:00 PM");
+    for (const c of booked) expect(card(c.id).querySelector("[data-next-step]")!.textContent, c.id).not.toMatch(/ · by /);
+  });
+
   // A1-C2: a porch pickup is a DAY; its booking's slot_start is only that day's start, so the card never shows a time.
   // @mutate src/components/declutter/BuyingOrders.tsx |     const when = o.handover === "porch" && bookingRow?.pickup_day ? porchDayLower(bookingRow.pickup_day) |     const when = false ? "" 
+  // B112 (B110 leftover 1) / A3-19: a porch order paid with a window picked at checkout says the WINDOW, never the
+  // 30-minute booking made from its start (declutter_mark_order_paid books slot_start + 30 min).
+  // @mutate src/components/declutter/BuyingOrders.tsx |         : at === 1 && chosen ? info(`Pickup ${chosen} · porch`) |         : false ? info("")
+  // @mutate src/lib/declutter/orderPickupTimes.ts |     ? `${day(a)}, ${clock(a)}–${clock(b)} ${ampm(b)}` |     ? `${day(a)}, ${clock(a)}–${clock(new Date(a.getTime() + 1_800_000))} ${ampm(b)}`
+  it("porch window: a porch order booked at checkout reads 'Pickup Mon 11/2, 3–5 PM · porch', never the 30-minute booking", async () => {
+    // 3 PM to 5 PM Chicago (CST, UTC-6) on Mon Nov 2 2026.
+    const start = "2026-11-02T21:00:00.000Z", end = "2026-11-02T23:00:00.000Z";
+    load([{ id: "pw1", line: { handover: "porch" }, slot: start, step: 1, bucket: "upcoming", action: null }]);
+    state.times = { pw1: { pickup_slot_start: start, pickup_slot_end: end } };
+    show();
+    expect(await screen.findByText("Pickup Mon 11/2, 3–5 PM · porch")).toBeInTheDocument();
+    expect(card("pw1").textContent).not.toMatch(/3:00 PM|3:30/);
+  });
+
   it("a porch pickup day reads as the day ('for tomorrow'), never a clock time", async () => {
     load([{ id: "pd1", line: { handover: "porch" }, slot: iso(24), step: 1, bucket: "upcoming", action: null }]);
     const tomorrow = deviceLocalDateISO(1, new Date(NOW));

@@ -11,7 +11,7 @@
 // @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | public.declutter_notify(NEW.asker_id, 'declutter_questions', 'The seller answered', | public.declutter_notify(NEW.asker_id, 'declutter_offers', 'The seller answered',
 // @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | WHEN p_title IN ('New question', 'The seller answered') | WHEN p_title IN ('The seller answered')
 // @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | ('declutter_questions', 'declutter_questions', 'Declutter: | ('declutter_questions', 'declutter_offers', 'Declutter:
-// @mutate src/components/notificationPreferences/constants.tsx | { key: "declutter_questions", emailKey: "email_declutter_questions", label: "Questions", icon: <MessageCircleQuestion className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL }, |
+// @mutate src/components/notificationPreferences/constants.tsx | { key: "declutter_questions", emailKey: "email_declutter_questions", label: "Questions", description: "Questions on your listings, and sellers' answers to yours.", icon: <MessageCircleQuestion className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL }, |
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

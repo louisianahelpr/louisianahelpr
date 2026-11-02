@@ -9,10 +9,11 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 // @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx | primary={<JobStepPrimaryButton icon={MessageSquare} | primary={false && <JobStepPrimaryButton icon={MessageSquare}
 // @mutate src/components/JobConfirmation.tsx |     if (variant === "inline" && isOwner) { |     if (false) {
-// @mutate src/components/JobConfirmation.tsx |           label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"} |           label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
+// @mutate src/components/JobConfirmation.tsx |           label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : POSTER_CONFIRM_LABEL} |           label={newSlot ? "Confirm the old time" : isHelper ? HELPER_CONFIRM_LABEL : POSTER_CONFIRM_LABEL}
 // @mutate src/components/JobConfirmation.tsx |       {isOwner ? `Confirm the new time, ${newSlot}` : `Confirm you'll be there ${newSlot}`} |       {isOwner ? `Confirm the new time` : `Confirm you'll be there`}
 // @mutate src/components/JobConfirmation.tsx |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm ${newSlot}` |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm`
 // @mutate src/components/job-card/JobStepCard.tsx |           {moreChips.length > 1 ? ( |           {moreChips.length > 0 ? (
+// @mutate src/components/job-card/JobStepCard.tsx |               {moreChips} |               {moreChips.slice(1)}
 /**
  * VN-21 — EVERY BUTTON ON A STEP CARD SITS ON ONE ROW (owner, 2026-09-14).
  *
@@ -399,7 +400,7 @@ const CASES: Array<{
         />,
       ),
     minControls: 4,
-    primary: ["Confirm you'll be at the job"],
+    primary: ["Confirm"], // owner 11-01: every confirm reads just "Confirm" (named in full)
   },
   {
     // Owner, 2026-10-21: the date moved after accept, so the Helpr confirms the NEW slot.
@@ -552,7 +553,7 @@ const CASES: Array<{
     name: "Posts · Accepted, window open, poster has not confirmed (I'm still on)",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_dayof_confirmed_at: null, poster_confirmed_at: null, helper_on_the_way_at: null, helper_arrived_at: null, date_needed: STARTS_SOON.date, start_time: STARTS_SOON.time }))} />),
     minControls: 2,
-    primary: ["I'm still on"],
+    primary: ["Confirm"], // owner 11-01: just "Confirm" (named "Confirm it's still on")
     primaryDisabled: false,
   },
   {
@@ -599,13 +600,13 @@ const CASES: Array<{
     name: "Posts · Scheduled, Helpr says they arrived (Confirm they've arrived + Message · Cancel)",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", poster_confirmed_arrival_at: null }))} />),
     minControls: 3,
-    primary: ["Confirm they've arrived"],
+    primary: ["Confirm"], // owner 11-01: just "Confirm"
   },
   {
     name: "Posts · In Progress, arrived (Confirm they've arrived + SOS · Message)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: null, poster_confirmed_working_at: null }))} />),
     minControls: 3,
-    primary: ["Confirm they've arrived"],
+    primary: ["Confirm"], // owner 11-01: just "Confirm"
   },
   {
     // Owner rule 2026-10-21 (lead ruling): no greyed "Confirm they're working" before the Helpr taps Start
@@ -828,6 +829,9 @@ describe("VN-21 — a step card's buttons are ONE row", () => {
       if (moreTrigger) {
         const held = Number(/More — (\d+) more/.exec(moreTrigger.getAttribute("aria-label") ?? "")?.[1] ?? NaN);
         expect(held, "a More menu holding ONE action").toBeGreaterThanOrEqual(2);
+        // Owner 11-01 ("If More options doesn't actually have more options, it's not needed"): counted from what the
+        // opened menu really draws, not from the number it announces (a chip that renders nothing is not an option).
+        expect(moreLabels.length, `a More menu that draws fewer than 2 options: [${moreLabels.join(" | ")}]`).toBeGreaterThanOrEqual(2);
         expect(moreTrigger.nextElementSibling?.hasAttribute("data-job-step-primary"), "More sits directly left of the primary").toBe(true);
       }
       // The primary TRAILS the row on the right (owner, 2026-09-15, V2/V3:

@@ -4,6 +4,7 @@ import { report } from "@/lib/errorLogger";
 import { queryKeys } from "@/lib/queryKeys";
 import type { PayoutLedgerRow, StripePayoutData } from "./types";
 import { functionInvokeError, unwrap } from "@/lib/supabaseResult";
+import { fetchMySalePayouts, salePayoutsKey, type SalePayout } from "@/lib/declutter/salePayouts";
 
 /**
  * One warning per read and failure (B77, 2026-11-01): ProfileTabPanels starts these reads before the tab's chunk
@@ -94,6 +95,9 @@ export function useEarningsData(helperId: string) {
 
   const { data: payoutLedger = [], isError: ledgerError, isPending: ledgerPending } = useQuery<PayoutLedgerRow[]>(payoutLedgerQuery(helperId));
 
+  // A3-56: the member's Declutter sale payouts, which Earned counts beside the job payouts.
+  const sales = useQuery<SalePayout[]>({ queryKey: salePayoutsKey(helperId), queryFn: () => fetchMySalePayouts(helperId), enabled: !!helperId, staleTime: 60_000 });
+
   const refreshing = isFetching && !stripeLoading;
   const handleRefresh = () => {
     // Prefix invalidate — matches any user-scoped stripe-payouts key the
@@ -106,5 +110,8 @@ export function useEarningsData(helperId: string) {
 
   // A disabled query (no helperId) is pending forever in React Query v5; only
   // a ledger that will actually load holds the page's arrival gate.
-  return { stripeData, stripeLoading, stripeError, ledgerError, ledgerPending: !!helperId && ledgerPending, payoutLedger, refreshing, handleRefresh };
+  return {
+    stripeData, stripeLoading, stripeError, ledgerError, ledgerPending: !!helperId && ledgerPending, payoutLedger, refreshing, handleRefresh,
+    salePayouts: sales.data, salesError: sales.isError, refetchSales: () => { void sales.refetch(); },
+  };
 }

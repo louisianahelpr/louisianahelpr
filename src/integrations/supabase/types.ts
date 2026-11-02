@@ -2318,6 +2318,39 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_manager_submissions: {
+        Row: {
+          decided_at: string | null
+          grant_id: string
+          item_id: string
+          manager_id: string
+          note: string | null
+          seller_id: string
+          status: string
+          submitted_at: string
+        }
+        Insert: {
+          decided_at?: string | null
+          grant_id: string
+          item_id: string
+          manager_id: string
+          note?: string | null
+          seller_id: string
+          status?: string
+          submitted_at?: string
+        }
+        Update: {
+          decided_at?: string | null
+          grant_id?: string
+          item_id?: string
+          manager_id?: string
+          note?: string | null
+          seller_id?: string
+          status?: string
+          submitted_at?: string
+        }
+        Relationships: []
+      }
       declutter_meetup_choices: {
         Row: {
           buyer_id: string

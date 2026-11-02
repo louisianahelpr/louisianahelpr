@@ -77,6 +77,9 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
       free_over_cents: null, items_cents: null, radius_miles: null, dropoff_area: null, slot_minutes: 60, slots: [], held_slot: null }),
   };
 });
+// Manager mode (switch mocked on here): no grants, nothing waiting, no labels.
+vi.mock("@/lib/declutter/managerMode", async (orig) => ({ ...(await orig<object>()), useManagerLabels: () => ({ data: undefined }),
+  fetchWaitingDrafts: async () => [], useMyManagerGrants: () => ({ data: [] }) }));
 vi.mock("@/hooks/useFeature", () => ({
   // Every switch on except seller delivery, which this suite does not cover (its own tests do:
   // declutterTradeViews.test.tsx, src/test/declutterSellerDelivery.test.ts); porch reads "Porch pickup" either way (BUY-14).

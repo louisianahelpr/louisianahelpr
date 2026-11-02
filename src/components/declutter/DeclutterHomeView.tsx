@@ -21,6 +21,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { ListedWhatNext } from "./ListedWhatNext";
 import { ListedForYouCard } from "./ListedForYouCard";
+import { ManagerWaitingForOkGate } from "./ManagerWaitingForOkGate";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -379,6 +380,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
     <div className="space-y-6">
       <ListedWhatNext />
       <ListedForYouCard />
+      <ManagerWaitingForOkGate userId={userId} />
       {/* Audit posting 1030 #11 gave a tablet the photo screen directly and one line to the other ways; the header has its own add action on desktop. LEAD-SELLING-NO-SELL-BTN-PHONE (owner 10-31): not on a phone, where the + covers it. */}
       <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell="">
         <Button asChild className="shrink-0 rounded-full"><Link to={SELL_ONE_PATH}>Sell an item</Link></Button>

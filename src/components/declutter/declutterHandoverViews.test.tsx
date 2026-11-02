@@ -255,10 +255,32 @@ describe("Q2425: a safe-spot meetup order", () => {
     expect(await screen.findByText("Book a time to meet first.")).toBeInTheDocument();
   });
 
-  it("at the meeting time the seller gets Picked up, as at the door", async () => {
+  // Q2632 (audit 1102c R7): the tracker said "Met" and the time line "Meeting", but the seller's buttons and help said
+  // pickup ("Move the pickup", "Picked up", "from the pickup time"). A meeting reads as a meeting; the door is unchanged.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const done = meet ? "Handed over" : "Picked up"; |     const done = "Picked up";
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const from = meet ? "the meeting time" : "the pickup time"; |     const from = "the pickup time";
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const what = order.handover === "meetup" ? "meeting" : "pickup"; |   const what = "pickup";
+  // @mutate src/components/declutter/DeclutterHandoverSheets.tsx | disabled={pending}>{label}</SheetPrimaryAction> | disabled={pending}>Picked up</SheetPrimaryAction>
+  it("Q2632: at the meeting time the seller gets Handed over (the door keeps Picked up)", async () => {
     state.bookings = [slot(5)];
-    show([line({ handover: "meetup", my_side: "seller" })]);
-    expect(await screen.findByRole("button", { name: "Picked up" })).toBeInTheDocument();
+    let v = show([line({ handover: "meetup", my_side: "seller" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Handed over" }));
+    expect(screen.queryByRole("button", { name: "Picked up" })).toBeNull();
+    const sheet = await waitFor(() => { const el = document.querySelector("[data-picked-up-sheet]"); expect(el).not.toBeNull(); return el as HTMLElement; });
+    expect(within(sheet).getByRole("button", { name: "Handed over" })).toBeInTheDocument();
+    v.unmount();
+    // Before the meeting: the move and the wait say meeting.
+    state.bookings = [slot(-120)];
+    v = show([line({ handover: "meetup", my_side: "seller" })]);
+    expect(await screen.findByText('You can tap "Handed over" from the meeting time.')).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move the meeting" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move the pickup" })).toBeNull();
+    v.unmount();
+    // The door: unchanged.
+    v = show([line({ handover: "pickup_home", my_side: "seller" })]);
+    expect(await screen.findByText('You can tap "Picked up" from the pickup time.')).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move the pickup" })).toBeInTheDocument();
+    v.unmount();
   });
 
   // Audit 1030 DB-3 (live run B): the buyer's "I got it" at a meeting spot worked days before the meeting, which

@@ -97,7 +97,7 @@ describe("a ship order on the buyer's tracker is a ship order, never a pickup (B
 
   it("the buyer's line at each step: the seller ships by the day, packed, the carrier's status, delivered", () => {
     const sh = { ship_by: SHIP_BY, tracking_status: "in_transit" };
-    const line = (ship: Record<string, string | null> | null) => nextStepWords(buyerNextStep(buyerOrderFacts(order, { ship: ship as never }), null, null, null, null, null, sh));
+    const line = (ship: Record<string, string | null> | null) => nextStepWords(buyerNextStep(buyerOrderFacts(order, { ship: ship as never }), null, null, null, null, undefined, sh));
     expect(line(null)).toBe("The seller packs it and ships it by Wed, Nov 4.");
     expect(line({ packed_at: "x", accepted_at: null, delivered_at: null })).toBe("Packed. The seller drops it off by Wed, Nov 4.");
     expect(line({ packed_at: "x", accepted_at: "y", delivered_at: null })).toBe("Shipped. In transit.");

@@ -77,6 +77,11 @@ vi.mock("@/hooks/useFeature", () => ({
 }));
 // Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
+// The section prefs read (member_section_prefs, 20261102074244) is not part of these screens: the defaults, no fetch.
+vi.mock("@/components/sections/useSectionPrefs", async (orig) => {
+  const { SECTIONS } = await import("@/components/sections/sectionsConfig");
+  return { ...(await orig<object>()), useSectionPrefs: () => ({ prefs: { order: SECTIONS.map((s) => s.key), hidden: [] }, visible: SECTIONS, setHidden: vi.fn(() => true), move: vi.fn(), putFirst: vi.fn() }) };
+});
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 // The whole hook shape: Sell it for me (on Selling and Sell an item) reads explain + gatedProps too.

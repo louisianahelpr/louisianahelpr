@@ -227,7 +227,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew, offeredToMe });
   // Q2595 (Jobs audit 1102b row 9): someone never hired, on a job that is over (expired, cancelled, filled by someone
   // else), has no pay to read and no address coming: no money box, no address line, and a way on (Browse jobs).
-  const closedToMe = !isPoster && !isHired && !party && !open && !instantUntil && viewer.action.kind === "none";
+  // Q2673 (audit 1102e row 5): a Helpr who cancelled has given the job up, even though it is open again for others: no
+  // pay, no "street address is shared once you're offered the job" line.
+  const cancelledByMe = myApplication.data?.status === "rejected" && myApplication.data.closed_reason === "helper_cancelled";
+  const closedToMe = !isPoster && !isHired && !instantUntil && viewer.action.kind === "none" && ((!party && !open) || cancelledByMe);
   // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
   // is an application id), and `open=1` expands the card instead of only pulsing it.
   const highlight = `/jobs?tab=working&job=${encodeURIComponent(job.id)}&open=1`;

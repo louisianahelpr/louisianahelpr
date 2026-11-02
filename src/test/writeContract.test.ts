@@ -6,7 +6,8 @@ import { join } from "node:path";
 // unknown-column check, which is what the "each check can fail" block below
 // pins.
 // @mutate src/pages/home/useSaveJob.ts | .upsert({ user_id: userId, job_id: jobId } | .upsert({ user_id: userId, jobb_id: jobId }
-// @mutate scripts/audit/write-contract.sql | cg.privilege_type in ('INSERT', 'UPDATE', 'SELECT') | cg.privilege_type in ('INSERT', 'UPDATE')
+// @mutate scripts/audit/write-contract.sql | a.privilege_type in ('INSERT', 'UPDATE', 'SELECT') | a.privilege_type in ('INSERT', 'UPDATE')
+// @mutate scripts/audit/write-contract.sql |         cross join lateral aclexplode(att.attacl) a | cross join lateral aclexplode(c.relacl) a
 // @mutate scripts/audit/write-contract.mjs | else reject("unknown_column" | else if (false) reject("unknown_column"
 // @mutate scripts/audit/write-contract.mjs | if (by) warn("rpc_pending" | if (false) warn("rpc_pending"
 // @mutate scripts/audit/write-contract.mjs | if (by) { | if (false) {
@@ -14,6 +15,7 @@ import { join } from "node:path";
 // @mutate scripts/audit/write-contract.mjs | if (!ok) reject("no_column_grant", `${role} has no ${priv} privilege on pending column | if (false) reject("no_column_grant", `${role} has no ${priv} privilege on pending column
 // @mutate scripts/audit/write-contract.mjs | if (cols) for (const c of cols) grants.add(`${role}:${priv}:${table}.${c}`); | if (cols) for (const c of cols) grants.add(`${role}:${priv}:${table}`);
 // @mutate scripts/audit/write-contract.mjs | if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none; | if (false) return none;
+import { blankSqlComments } from "./helpers/blankNonCode";
 import { describe, it, expect } from "vitest";
 // @ts-expect-error — plain .mjs script, no type declarations
 import * as contract from "../../scripts/audit/write-contract.mjs";
@@ -294,7 +296,14 @@ describe("the snapshot records column-level SELECT grants (Q124)", () => {
     // jobs grants SELECT per column (privacy hardening). Without SELECT here,
     // every jobs write that reads back or filters its row was reported as
     // rejected although prod accepts it (22 false REJECTs on 2026-09-23).
-    expect(sql).toMatch(/cg\.privilege_type in \('INSERT', 'UPDATE', 'SELECT'\)/);
+    expect(sql).toMatch(/a\.privilege_type in \('INSERT', 'UPDATE', 'SELECT'\)/);
+    // 2026-11-02 (write-contract run 41468179033): information_schema.role_*_grants list only grants the
+    // CURRENT role can see, so the latest CLI's --read-only login read none and every write was REJECTed.
+    // Grants come from the catalog ACLs, which show every role's grants.
+    const code = blankSqlComments(sql);
+    expect(code).not.toMatch(/information_schema\.role_(table|column)_grants/);
+    expect(code).toMatch(/aclexplode\(c\.relacl\)/);
+    expect(code).toMatch(/aclexplode\(att\.attacl\)/);
     const snap = JSON.parse(readFileSync(join(__dirname, "../../scripts/audit/write-contract.snapshot.json"), "utf8"));
     expect((snap.tables.jobs.columnGrants?.authenticated?.SELECT ?? []).length).toBeGreaterThan(50); // 109 on 2026-09-23
   });

@@ -16,11 +16,12 @@ import { focusSheetItself } from "./focusSheetItself";
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 const WHO: Record<TalkSide, string> = { helpr: "The Helpr", buyer: "The buyer", seller: "The seller" };
 
-export function DeliveryTalkButton({ taskId }: { taskId: string }) {
+/** `label`: the paused live map names the Helpr ("Message Yusef"); the same delivery chat either way. */
+export function DeliveryTalkButton({ taskId, label = "Message about this delivery" }: { taskId: string; label?: string }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button type="button" variant="outline" className="rounded-full" onClick={() => setOpen(true)}>Message about this delivery</Button>
+      <Button type="button" variant="outline" className="rounded-full" onClick={() => setOpen(true)}>{label}</Button>
       {open && <DeliveryTalkSheet taskId={taskId} onClose={() => setOpen(false)} />}
     </>
   );

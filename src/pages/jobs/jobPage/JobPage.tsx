@@ -75,6 +75,8 @@ import { crewPosterStep } from "@/components/tracker/crewPosterStep";
 import { crewMemberLine } from "@/components/tracker/crewMemberLine";
 import { useCrewSlot } from "@/hooks/useCrewSlot";
 import { offerIsOut } from "./useWithdrawOffer";
+import { PageRefundRequest } from "./PageRefundRequest";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 
 /** The hired Helpr's way to this job's card on the Jobs tab, one name everywhere (Q2598). */
 const OPEN_IN_JOBS = "Open in Jobs";
@@ -433,6 +435,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
         <div data-job-main="" className="flex min-w-0 flex-col gap-4 empty:hidden lg:col-start-1">
           {(isPoster || isHired) && <RevisionAsk job={job} side={isPoster ? "poster" : "helpr"} posterFirst={posterFirst} />}
+          {/* Q2694: an open refund request, both sides (the cards' own panel; nothing while there is none). */}
+          {party && (isPoster || isHired) && (
+            <PageRefundRequest job={job} userId={userId} otherName={isPoster ? helperCard.data?.name : posterCard.data?.name}
+              feeFallbackPercent={isPoster ? null : tierFeePercent(ownProfile?.subscription_tier, ownProfile?.subscription_expires_at)} />
+          )}
           {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. Big, in
               the main column (mockup 4). */}
           {party && (isPoster || isHired) && ((job.proof_before_urls ?? []).some(Boolean) || (job.proof_after_urls ?? []).some(Boolean)) && (

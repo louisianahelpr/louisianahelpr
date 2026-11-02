@@ -26,6 +26,7 @@ export function RefundRequestPanel({
   otherName,
   feeFallbackPercent,
   expanded,
+  boxClassName,
 }: {
   job: RefundJob & { title: string };
   userId: string;
@@ -35,13 +36,15 @@ export function RefundRequestPanel({
    *  Helpr's card passes it; the poster's card never answers, so passes null. */
   feeFallbackPercent: number | null;
   expanded: boolean;
+  /** The block's own box (the job page draws it as a card, Q2694); the cards' row style when absent. */
+  boxClassName?: string;
 }) {
   const on = useRefundsOn();
   const party = job.customer_id === userId || job.helper_id === userId;
   // Nothing below runs (no read, no query cache needed) unless the switch is
   // on for this viewer and the card is open on a job with a Helpr.
   if (!on || !expanded || !party || !job.helper_id) return null;
-  return <RefundRequestPanelOpen job={job} userId={userId} otherName={otherName} feeFallbackPercent={feeFallbackPercent} />;
+  return <RefundRequestPanelOpen job={job} userId={userId} otherName={otherName} feeFallbackPercent={feeFallbackPercent} boxClassName={boxClassName} />;
 }
 
 function RefundRequestPanelOpen({
@@ -49,11 +52,13 @@ function RefundRequestPanelOpen({
   userId,
   otherName,
   feeFallbackPercent,
+  boxClassName,
 }: {
   job: RefundJob & { title: string };
   userId: string;
   otherName: string | null | undefined;
   feeFallbackPercent: number | null;
+  boxClassName?: string;
 }) {
   const { data: request } = useRefundRequest(job.id, true);
   const [answering, setAnswering] = useState(false);
@@ -170,7 +175,7 @@ function RefundRequestPanelOpen({
   const canWithdraw = asked && isWaiting(request);
 
   return (
-    <div className="px-4 py-2 border-t border-border/20 space-y-2" data-refund-request="" onClick={(e) => e.stopPropagation()}>
+    <div className={boxClassName ?? "px-4 py-2 border-t border-border/20 space-y-2"} data-refund-request="" onClick={(e) => e.stopPropagation()}>
       <NextStep value={step} className="!text-ds-13" />
       <p className="font-sans text-ds-12 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
         <HandCoins className="inline w-3.5 h-3.5 mr-1 -mt-0.5" aria-hidden style={{ color: "hsl(var(--bark))" }} />

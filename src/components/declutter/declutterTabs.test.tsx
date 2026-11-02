@@ -54,6 +54,8 @@ const state = {
   bookings: [] as unknown[],
   questions: [] as { id: string; item_id: string; question: string; created_at: string }[],
   questionReads: 0,
+  freeAsks: [] as unknown[],
+  freeCounts: new Map<string, number>(),
 };
 
 // Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
@@ -192,7 +194,8 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchHasAgreedSales: async () => false,
   // Q2487: Buying shows the free-ask pause line and your open free asks; none here.
   fetchMyFreePause: async () => null,
-  fetchMyFreeRequests: async () => [],
+  fetchMyFreeRequests: async () => state.freeAsks,
+  fetchOpenFreeRequestCounts: async () => state.freeCounts,
 }));
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
@@ -304,6 +307,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.cart = [];
     state.bookings = [];
     state.questions = [];
+    state.freeAsks = [];
+    state.freeCounts = new Map();
     state.questionReads = 0;
     where = "";
   });
@@ -582,6 +587,31 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     at("/declutter?tab=buying&status=cart");
     expect(await screen.findByText("Nothing bought yet.")).toBeInTheDocument();
     expect(screen.queryByText("Your cart is empty.")).toBeNull();
+  });
+
+  // Builder 187 (seen by Builder 185 in the stage preview; the same views run in the app): a member whose only Buying
+  // was an open free ask read "Nothing bought yet. When a seller accepts your offer..." above "Free items you asked
+  // for", and a live free listing nobody had asked for showed a "Requests (0)" button.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | && !settling.settling && freeAsks.data?.length === 0 && ( | && !settling.settling && (
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | freeAsks.data && (freeAsks.data.get(item.id) ?? 0) > 0 ? ( | freeAsks.data ? (
+  it("Q2693 Q2694: an open free ask is not 'Nothing bought yet', and a free listing shows Requests only once someone asked", async () => {
+    state.freeAsks = [{ id: "fr1", item_id: "i9", status: "open", created_at: "2026-11-01", declutter_items: { title: "Free lamp" } }];
+    const buying = at("/declutter?tab=buying");
+    const asks = await screen.findByRole("region", { name: "Free items you asked for" });
+    expect(within(asks).getByText("You asked for Free lamp")).toBeInTheDocument();
+    await new Promise((res) => setTimeout(res, 20));
+    expect(screen.queryByText("Nothing bought yet.")).toBeNull();
+    buying.unmount();
+
+    const free = [{ ...ITEM, id: "i1", title: "Free chair", price_cents: 0, current_price_cents: 0 }, { ...ITEM, id: "i2", title: "Free desk", price_cents: 0, current_price_cents: 0 }];
+    expect(free.length).toBeGreaterThan(1);
+    state.mine = free;
+    state.freeCounts = new Map([["i2", 2]]);
+    at("/declutter?tab=selling");
+    await screen.findAllByText("Free chair");
+    expect(await screen.findByRole("link", { name: "Requests (2)" })).toHaveAttribute("href", "/declutter/item/i2");
+    expect(screen.queryByRole("link", { name: /^Requests \(0\)/ })).toBeNull();
+    expect(document.querySelectorAll("[data-free-request-count]").length).toBe(1);
   });
 
   // Owner 2026-10-28: "buyers and sellers need a very organized way to keep track of all their purchases". Buying is an

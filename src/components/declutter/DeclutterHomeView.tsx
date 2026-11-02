@@ -157,6 +157,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
   const dropsTonight = useMyDropsTonight(mine.data ?? [], myDrops.data);
   // The Free change (Q2487): each live free listing shows its open asks as "Requests (n)"; read only when there is one.
+  // Builder 187: only once someone has asked; a "Requests (0)" button opened a list with nobody in it.
   const anyFreeLive = (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0);
   const freeAsks = useQuery({ queryKey: ["declutter", "free-request-counts", userId], queryFn: () => fetchOpenFreeRequestCounts(userId), enabled: anyFreeLive });
   // SE-5: a sold listing shows what it SOLD for (the paid line), never its list price; read only when one is sold.
@@ -312,7 +313,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
                   <Button type="button" size="sm" aria-label={`Finish listing ${item.title}`} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
                     Finish listing
                   </Button>
-                ) : item.status === "live" && item.current_price_cents === 0 && freeAsks.data ? (
+                ) : item.status === "live" && item.current_price_cents === 0 && freeAsks.data && (freeAsks.data.get(item.id) ?? 0) > 0 ? (
                   <Button asChild variant="outline" size="sm">
                     <Link to={`/declutter/item/${item.id}`} data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0})</Link>
                   </Button>

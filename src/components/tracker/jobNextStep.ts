@@ -24,7 +24,8 @@ export function jobNextStep(
   // Off the path (cancelled, expired, under review): where it stands, with its word.
   if (progress.stage === null) {
     if (!progress.word && !progress.next) return null;
-    return { who: "info", text: progress.next ? `${progress.word} · ${progress.next}` : progress.word };
+    const off: NextStepValue = { who: "info", text: progress.next ? `${progress.word} · ${progress.next}` : progress.word };
+    return progress.next && progress.body ? { ...off, body: progress.body } : off;
   }
   // JA-48 / JA-49: an offer or a booking out is not "waiting for Helprs to apply", nor a nameless "with them".
   // JA-49 (lead 11-01, B107): the offered Helpr by name and until when the offer stands (jobs.direct_offer_expires_at).
@@ -64,5 +65,7 @@ export function jobNextStep(
   // with the other person's name keeps it.
   const keepCase = !!other && (line === other || line.startsWith(`${other} `) || line.startsWith(`${other}'`));
   const v: NextStepValue = m ? { who, text: m[1], by: m[2] } : { who, text: line };
+  // Q2600: the line's explanation (a dispute's "who decides and when") is body text under it, never in the bold line.
+  if (progress.body) v.body = progress.body;
   return keepCase ? { ...v, keepCase } : v;
 }

@@ -17,7 +17,7 @@
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   const helpers = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1; |   const helpers = 1;
  * @mutate src/components/dashboard/GuestJobPreview.tsx | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, job) | computeNet(job.budget, GUEST_FEE_PERCENT, job.urgent_fee ?? 0, helpers, firstPayoutFee, null)
  * @mutate src/components/dashboard/GuestJobPreview.tsx |   if (net != null) facts.push({ label: isGiveawayFixedPayJob(job) ? "Pay" : "You'd take home", value: `$${formatPriceFloor(net)}` }); |   if (job.budget) facts.push({ label: "Budget", value: `$${job.budget}` });
- * @mutate src/components/dashboard/GuestJobPreview.tsx |         <DialogFooter>\n | <DialogFooter><button onClick={onClose}>Not Now</button>\n
+ * @mutate src/components/dashboard/GuestJobPreview.tsx |         <DialogFooter>\n | <DialogFooter><button onClick={onClose}>Not now</button>\n
  * @mutate src/pages/home/DashboardGuest.tsx | <GuestJobPreview job={detailJob} | <GuestJobPreview job={{ ...detailJob, title: detailJob.description ?? "" }}
  */
 import { describe, expect, it, vi } from "vitest";
@@ -74,7 +74,7 @@ describe("the guest job preview", () => {
     render(<GuestJobPreview job={JOB} onClose={onClose} onSignUp={onSignUp} />);
     const sheet = document.querySelector("[data-guest-job-preview]") as HTMLElement;
     expect(sheet.querySelector("[data-sheet-handle]")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Not Now" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^not now$/i })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Sign Up to Apply" }));
     expect(onSignUp).toHaveBeenCalledWith(JOB.id);
     fireEvent.click(screen.getByRole("button", { name: "Close" }));

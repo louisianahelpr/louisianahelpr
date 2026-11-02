@@ -336,7 +336,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
     if (outcome === "granted") {
       setPushEnabled(true);
     } else if (outcome === "refused" && pushDeclineNeedsSettingsHint(await readPushPermission())) {
-      // Never after "Not Now" in our rationale dialog ("dismissed"): they just chose it.
+      // Never after "Not now" in our rationale dialog ("dismissed"): they just chose it.
       toast.error(
         Capacitor.isNativePlatform()
           ? "Notifications are off. Turn them on in your device settings."

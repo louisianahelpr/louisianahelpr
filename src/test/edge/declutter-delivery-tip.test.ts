@@ -9,7 +9,9 @@
  *     so the Helpr receives the whole tip and the platform keeps only what covers Stripe; card and
  *     Link only; the attempt keys the page; the same payout-account / payout-hold / ban-review refusals;
  *   - stripe-webhook: only a PAID tip page reaches helpr_task_tip_paid; a page SQL cannot tie to its
- *     row, a charge that is not the tip's total, and a tip that reached a held Helpr page staff;
+ *     row and a charge that is not the tip's total page staff; a tip that reached a Helpr on a payout
+ *     hold is pulled back and recorded as a delivery tip_hold_redrives row (Q2459, re-paid by
+ *     process-scheduled-payouts, src/test/edge/process-scheduled-payouts.test.ts);
  *   - owner #3706 (option 2): a Helpr with no payout account still gets the tip: the same charge, made
  *     on the platform (no destination, no application fee), HELD; declutter-money then sends exactly the
  *     tip from the tip's own charge with the delivery pay, as one more part, recorded on the tip.
@@ -25,8 +27,10 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}` }); |    });
  * @mutate supabase/functions/declutter-checkout/index.ts |  const tipSwitchOff = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (tipSwitchOff) return tipSwitchOff;\n |
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |  if (session.payment_status !== "paid") {\n    logStep("Declutter delivery tip session completed unpaid" |  if (false) {\n    logStep("Declutter delivery tip session completed unpaid"
- * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |    if (hold.kind === "held") { |    if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |  if (answer.helpr_id && answer.held !== true) {\n    const hold = await checkPayoutHold | if (answer.result === "paid" && answer.helpr_id && answer.held !== true) {\n    const hold = await checkPayoutHold
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |    const back = await holdBackPaidTip(ctx.stripe, supabase, { |    const back = { kind: "not_held" }; void ({
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |  if (answer.helpr_id && answer.held !== true) {\n    const back | if (answer.result === "paid" && answer.helpr_id && answer.held !== true) {\n    const back
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | paymentIntentId, jobId: null, source: "delivery", | paymentIntentId, jobId: null,
+ * @mutate supabase/functions/_shared/heldTipRepay.ts |         tip_source: source, |
  * @mutate supabase/functions/declutter-checkout/index.ts | tip_id: tip.tip_id, tipper_id: user.id, held: held ? "1" : "0", tip_cents | tip_id: tip.tip_id, held: held ? "1" : "0", tip_cents
  * @mutate supabase/functions/_shared/stripeMode.ts | "declutter_raise", "declutter_delivery_tip", | "declutter_raise",
  * @mutate supabase/functions/declutter-checkout/index.ts |        ...(held ? {} : { transfer_data: { destination: account as string }, application_fee_amount: q.feeCents }), |        ...({ transfer_data: { destination: account as string }, application_fee_amount: q.feeCents }),
@@ -291,10 +295,49 @@ describe("stripe-webhook: a delivery tip page completed", () => {
     expect(titles().some((t) => /different amount than its tip/.test(t))).toBe(true);
   });
 
-  it("a tip that reached a Helpr put on a payout hold after the page opened pages staff", async () => {
-    scenario.reads.payout_holds = { rows: [{ helper_id: HELPR, reason: "review", held_at: "2026-10-27T00:00:00Z", denied_at: null }] };
+  // Q2459: pulled back and recorded, exactly as a job tip (Q1222), never only paged.
+  const HELD = { helper_id: HELPR, reason: "review", held_at: "2026-10-27T00:00:00Z", denied_at: null };
+  const pullBackReady = () => {
+    scenario.reads.payout_holds = { rows: [HELD] };
+    scenario.reads.tip_hold_redrives = { rows: [] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tip", latest_charge: { id: "ch_tip", transfer: "tr_dtip" } });
+    stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_dtip", amount: 1000 });
+    stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_dtip" });
+  };
+  const redriveWrites = (op: string) =>
+    scenario.writes.filter((w) => w.table === "tip_hold_redrives" && w.op === op).map((w) => w.payload as Record<string, unknown>);
+
+  it("Q2459: a tip that reached a Helpr put on a payout hold is pulled back and recorded as a delivery tip (no page)", async () => {
+    pullBackReady();
+    const res = await deliver({});
+    expect(res.status).toBe(200);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(stripeMock.transfers.createReversal).toHaveBeenCalledWith(
+      "tr_dtip",
+      expect.objectContaining({ metadata: expect.objectContaining({ reason: "payout_hold", tip_id: TIP }) }),
+      { idempotencyKey: `tip-hold-reverse-${TIP}` },
+    );
+    expect(redriveWrites("insert")[0]).toMatchObject({
+      tip_id: TIP, helper_id: HELPR, transfer_id: "tr_dtip", amount_cents: 1000, status: "owed", tip_source: "delivery",
+    });
+    expect(redriveWrites("update")).toContainEqual(expect.objectContaining({ status: "reversed", reversal_id: "trr_dtip" }));
+    expect(titles().some((t) => /payout hold/.test(t))).toBe(false);
+  });
+
+  it("Q2459: a Helpr with no hold keeps the tip: nothing reversed, nothing recorded", async () => {
+    pullBackReady();
+    scenario.reads.payout_holds = { rows: [] };
     await deliver({});
-    expect(titles().some((t) => /reached a Helpr on a payout hold/.test(t))).toBe(true);
+    expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
+    expect(redriveWrites("insert")).toHaveLength(0);
+  });
+
+  it("Q2459: an unreadable hold fails the delivery (Stripe redelivers); nothing is reversed", async () => {
+    pullBackReady();
+    scenario.reads.payout_holds = { rows: [], error: { message: "boom" } };
+    const res = await deliver({});
+    expect(res.status).toBeGreaterThanOrEqual(500);
+    expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
   });
 
   it("owner #3706: a held tip whose delivery pay no longer waits pages staff to pay it by hand", async () => {
@@ -313,12 +356,13 @@ describe("stripe-webhook: a delivery tip page completed", () => {
     expect(slackAlerts).toHaveLength(0);
   });
 
-  it("a replay still reads the hold: a first delivery that failed on the hold read still pages (critical)", async () => {
-    scenario.reads.payout_holds = { rows: [{ helper_id: HELPR, reason: "review", held_at: "2026-10-27T00:00:00Z", denied_at: null }] };
+  it("Q2459: a replay finishes a pull-back a failed delivery began (the 'owed' row's reversal is sent)", async () => {
+    pullBackReady();
+    scenario.reads.tip_hold_redrives = { rows: [{ tip_id: TIP, status: "owed", transfer_id: "tr_dtip", reversal_id: null }] };
     await deliver({}, { result: "already", tip_id: TIP, helpr_id: HELPR, tip_cents: 1000 });
-    const a = (slackAlerts as Array<{ title?: unknown; severity?: unknown; message?: unknown }>).find((x) => /reached a Helpr on a payout hold/.test(String(x.title)));
-    expect(a?.severity).toBe("critical");
-    expect(String(a?.message)).toMatch(/\$10\.00 delivery tip/);
+    expect(stripeMock.transfers.createReversal).toHaveBeenCalledWith("tr_dtip", expect.anything(), { idempotencyKey: `tip-hold-reverse-${TIP}` });
+    expect(redriveWrites("insert")).toHaveLength(0);
+    expect(redriveWrites("update")).toContainEqual(expect.objectContaining({ status: "reversed", reversal_id: "trr_dtip" }));
   });
 
   it("a TEST-mode tip page is routed (test accounts tip on the test key)", () => {

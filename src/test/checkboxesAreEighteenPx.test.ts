@@ -8,6 +8,7 @@
 // @mutate src/components/declutter/declutterUi.tsx | <label htmlFor={id} className="min-h-11 flex-1">{TAX_TICK_LABEL}</label> | <label htmlFor={id}>{TAX_TICK_LABEL}</label>
 // @mutate src/components/shops/ShopEditView.tsx | <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 items-center font-normal"> | <Label htmlFor="shop-quotes" className="font-normal">
 // @mutate src/components/admin/adminPayoutBatches/BatchRow.tsx | <label className="-m-[13px] flex shrink-0 cursor-pointer p-[13px]"> | <label className="flex shrink-0">
+// @mutate src/components/declutter/ManagerPanel.tsx | className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0 accent-[hsl(var(--primary))]" | className="h-5 w-5 accent-[hsl(var(--primary))]"
 /**
  * EVERY CHECKBOX DRAWS AN 18 PX BOX WITH A 12 PX TICK (owner 2026-11-01, on the manager-mode screens: "The check
  * boxes are quite large"). The tap target is the label row around the box (>= 44 px), never the box itself.

@@ -122,7 +122,7 @@ const PROBLEM_ID = /^(overdue_|stalled$|dispute$|dispute_escalated$|dispute_sett
 const BUTTON_STEP: Array<[RegExp, number[], number[]]> = [
   [/^Review \d+ applicants?$/, [0], []],
   // The day-before confirm, on the face (owner, 2026-10-23, card critique item 1).
-  [/^(I'm still on|Confirm you'll be at the job)$/, [3], []],
+  [/^(Confirm it's still on|Confirm you'll be at the job)$/, [3], []],
   [/^Confirm(ing…| they've arrived)$/, [5], []],
   [/^Approve and release$/, [7], []],
   [/^I'm on my way$/, [4], [3]],

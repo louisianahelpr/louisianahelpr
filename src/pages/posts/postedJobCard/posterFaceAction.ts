@@ -102,7 +102,8 @@ export function posterFaceAction(
        confirm is owed: the confirm itself, through the card's own dialog. Past the day: the line's own action
        (No-Show? / cancel?), secondary because it is not the job's next step. A dispute: open it. */
     case "confirm_still_on":
-      return { label: "I'm still on", onClick: h.confirm, tone: "primary" };
+      // Owner 11-01: the button reads "Confirm" (MineJobFace, buttonLabel); these full words are its name.
+      return { label: "Confirm it's still on", onClick: h.confirm, tone: "primary" };
     case "overdue_no_show":
     case "started_no_checkin":
       // started_no_checkin: the start passed with no check-in (A2-B12), the same choice, on the face, not under More.

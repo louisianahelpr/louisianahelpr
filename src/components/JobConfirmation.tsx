@@ -32,6 +32,8 @@ import { posterConfirmWarning } from "./posterConfirmWarning";
 
 /** The Helpr's day-before step, on its button (owner, 2026-10-08). */
 const HELPER_CONFIRM_LABEL = "Confirm you'll be at the job";
+/** The poster's day-before confirm, in full: the button shows "Confirm" (owner 11-01, pairLabel.ts buttonLabel). */
+const POSTER_CONFIRM_LABEL = "Confirm it's still on";
 export { helperDayOfConfirmation };
 
 export function JobConfirmation({
@@ -474,10 +476,12 @@ export function JobConfirmation({
         variant="primary"
         size="sm"
         onClick={() => setShowConfirmDialog(true)}
+        aria-label={newSlot ? undefined : POSTER_CONFIRM_LABEL}
         className={confirmCtaClass}
       >
         <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-        {newSlot ? "Confirm" : "I'm still on"}
+        {/* Owner 11-01: every confirm reads just "Confirm"; the full words are its name. */}
+        Confirm
       </Button>
     ) : null
     /* Poster confirmed: no greyed "Confirm they've arrived" here either (owner, 2026-10-21); the
@@ -533,7 +537,7 @@ export function JobConfirmation({
       !myConfirmed ? (
         <JobStepPrimaryButton
           icon={CheckCircle2}
-          label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
+          label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : POSTER_CONFIRM_LABEL}
           onClick={() => setShowConfirmDialog(true)}
         />
       ) : null

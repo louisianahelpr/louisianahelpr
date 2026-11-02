@@ -831,9 +831,9 @@ test.describe.serial("marketplace chain", () => {
            midnight, against the helper's -24), so on an evening job it has
            already closed while the helper's is still open. */
         const pc = await card(pp, "/jobs?tab=posted", scheduledTab());
-        const posterStillOn = pc.getByRole("button", { name: /I'm still on/ }).first();
+        const posterStillOn = pc.getByRole("button", { name: /Confirm it's still on/ }).first();
         if (await appears(posterStillOn, 10_000)) {
-          await press(pp, pc, /I'm still on/, "poster confirm");
+          await press(pp, pc, /Confirm it's still on/, "poster confirm");
           const py = pp.getByRole("button", { name: /Yes, it's still on/i });
           if (await appears(py, 5_000)) await py.click();
           await assertHealthy(pp, "poster day-of confirm");

@@ -12,6 +12,7 @@
  * Money: "Approve and release" opens the card and its completion sheet (the
  * sheet is the confirmation); it never calls onComplete itself.
  *
+ * @mutate src/components/job-card/MineJobFace.tsx |           {buttonLabel(action.label)} |           {action.label}
  * @mutate src/components/job-card/MineJobFace.tsx | to={`/jobs/${encodeURIComponent(jobId)}`} | to="/posts"
  * @mutate src/pages/posts/PostedJobCard.tsx | action={isExpanded ? null : faceAction} | action={faceAction}
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | openApplicants: () => a.onLoadApplications(job), | openApplicants: () => {},
@@ -139,7 +140,9 @@ describe("the Posted card face (board 14)", () => {
   it("Confirm arrival runs the poster's real arrival handler", () => {
     const h = renderCard(base);
     const [btn] = faceButtons();
-    expect(btn.textContent).toBe("Confirm they've arrived");
+    // Owner 11-01: the button reads just "Confirm"; its name keeps the full words.
+    expect(btn.textContent).toBe("Confirm");
+    expect(btn.getAttribute("aria-label")).toBe("Confirm they've arrived");
     fireEvent.click(btn);
     expect(h.onConfirmArrival).toHaveBeenCalledWith("job-1");
   });

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Star, ChevronDown, MoreHorizontal } from "lucide-react";
+import { Star, ChevronDown } from "lucide-react";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatShortDate, formatCategory } from "@/lib/format";
 import type { ProfileReview } from "./types";
@@ -265,16 +265,17 @@ export const ReviewsSection = ({
                     ReviewList.tsx, which is never mounted anywhere, so the
                     admin review-takedown queue could never receive anything.
                     Placed per-review so the report names which one. */}
-                {/* The shared compact ghost icon (44 tap, 40 wash), not a hand-made button; 16px glyph kept (B47 10-31). */}
+                {/* Owner 11-01: a ⋯ that holds ONE action is not a menu: the action is its own visible text button. */}
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="iconCompact"
+                  variant="link"
+                  size="sm"
                   aria-label="Report this review"
+                  data-review-report=""
                   onClick={() => setReportingReviewId(r.id)}
-                  className="-mr-2 -mt-2 shrink-0 rounded-full text-muted-foreground hover:text-foreground [&_svg]:size-4"
+                  className="h-auto shrink-0 px-0 text-ds-13 font-semibold text-muted-foreground"
                 >
-                  <MoreHorizontal aria-hidden />
+                  Report
                 </Button>
               </div>
               {/* Stars and the category chip on one line. `flex-wrap` rather

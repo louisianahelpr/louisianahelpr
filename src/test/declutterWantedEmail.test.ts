@@ -11,7 +11,7 @@
 // @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql | AND NOT COALESCE((SELECT r.is_seed FROM public.profiles r WHERE r.user_id = w.user_id), false)) THEN | AND false) THEN
 // @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql | 'A seller has a match', v_message, '/declutter?tab=buying', v_uid); | 'A seller has a match', v_message, '/declutter?view=offers', v_uid);
 // @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql | 'message', public.declutter_price_words(p_message) | 'message', p_message
-// @mutate src/components/notificationPreferences/constants.tsx | description: "A listing matches something you posted on Wanted.", icon: <Search className="w-3.5 h-3.5" /> }, | description: "A listing matches something you posted on Wanted.", icon: <Search className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+// @mutate src/components/notificationPreferences/constants.tsx | description: "Your Wanted posts and saved Declutter searches.", icon: <Search className="w-3.5 h-3.5" /> }, | description: "Your Wanted posts and saved Declutter searches.", icon: <Search className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

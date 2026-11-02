@@ -161,12 +161,14 @@ describe("the Declutter group", () => {
     for (const el of jobsRows) expect(after(el), el.textContent ?? "").toBe(true);
   });
 
-  it("hides Wanted matches while Wanted is off for the member", async () => {
+  // Q2464: Wanted matches also governs saved Declutter searches, so it shows even while Wanted is off.
+  // @mutate src/components/notificationPreferences/DeclutterNotificationGroup.tsx | {declutterRows.map((r) => renderRow(r))} | {declutterRows.filter((r) => r.key !== "declutter_wanted").map((r) => renderRow(r))}
+  it("shows Wanted matches while Wanted is off for the member (it governs saved Declutter searches too)", async () => {
     FEATURES = { declutter: true };
     PREFS_ROW = withDeclutterColumns();
     render(<NotificationPreferences />);
     await waitFor(() => expect(screen.getByTestId("declutter-notification-group")).toBeTruthy());
-    expect(screen.queryByLabelText("Wanted matches push")).toBeNull();
+    expect(screen.getByLabelText("Wanted matches push")).toBeTruthy();
     expect(screen.getByLabelText("Offers push")).toBeTruthy();
   });
 

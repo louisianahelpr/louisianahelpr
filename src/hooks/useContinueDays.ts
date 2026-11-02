@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { fetchContinueDays, type ContinueDay } from "@/lib/continueDay";
+import { useContext } from "react";
+import { QueryClient, QueryClientContext, useQuery } from "@tanstack/react-query";
+import { fetchContinueDay, fetchContinueDays, type ContinueDay } from "@/lib/continueDay";
 
 const NONE: Readonly<Record<string, ContinueDay>> = Object.freeze({});
 
@@ -20,4 +21,22 @@ export function useContinueDays(jobIds: readonly string[]): Readonly<Record<stri
     staleTime: 30_000,
   });
   return q.data ?? NONE;
+}
+
+/** Never fetches (every read through it is disabled): the tracker also mounts where no QueryClientProvider is set. */
+const IDLE_CLIENT = new QueryClient();
+
+/**
+ * One job's active continue day: the job page's own read (same key), for the Working card and its open tracker
+ * (JobTracking also mounts outside a QueryClientProvider: there it reads nothing and the step is unchanged).
+ */
+export function useContinueDay(jobId: string | null | undefined, enabled: boolean): ContinueDay | null {
+  const client = useContext(QueryClientContext);
+  const q = useQuery({
+    queryKey: ["job-continue-day", jobId ?? ""],
+    queryFn: () => fetchContinueDay(jobId!),
+    enabled: enabled && !!jobId && !!client,
+    staleTime: 30_000,
+  }, client ?? IDLE_CLIENT);
+  return q.data ?? null;
 }

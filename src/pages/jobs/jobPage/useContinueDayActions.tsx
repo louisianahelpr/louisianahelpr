@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
 import { ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
-import { answerContinueDay, confirmContinueDay, continueDayAhead, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
+import { answerContinueDay, confirmContinueDay, continueDayAhead, continueDayDoneNote, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
 import type { NextStepValue } from "@/components/ui/NextStep";
 import type { RowAction } from "./JobPageActionRow";
 import type { PagePrimary } from "./posterPageActions";
@@ -114,7 +114,7 @@ export function useContinueDayActions({
   return {
     row,
     doneAhead,
-    doneAheadNote: doneAhead && side === "helpr" && row ? `You can mark it done on ${when.replace(/ at .*$/, "")}, the day you set to finish.` : null,
+    doneAheadNote: side === "helpr" ? continueDayDoneNote(row) : null,
     step: continueDayNextStep(row, { side, otherFirst }),
     posterLead,
     posterExtras,

@@ -494,7 +494,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {party && (isPoster || isHired) && !!job.helper_id && !job.is_group_job && (
               <RefundsSwitchProvider>
                 <div data-job-refund="" className="-mx-4 empty:hidden lg:-mx-5">
-                  <RefundRequestPanel job={job} userId={userId} expanded
+                  <RefundRequestPanel job={{ ...job, status: job.status ?? "" }} userId={userId} expanded
                     otherName={isPoster ? helperCard.data?.name : posterCard.data?.name}
                     feeFallbackPercent={isPoster ? null : tierFeePercent(ownProfile?.subscription_tier, ownProfile?.subscription_expires_at ?? null)} />
                 </div>

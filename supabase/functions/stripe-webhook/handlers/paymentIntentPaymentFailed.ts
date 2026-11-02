@@ -50,6 +50,42 @@ async function unfundFailedEscrow(
     return;
   }
 
+  // Q1978: process-scheduled-payouts and release-payout send the transfer
+  // FIRST and flip the job to 'released' after; execute-dispute-split keeps
+  // 'escrow' under its settlement claim. A failure landing in that window
+  // used to un-escrow (or cancel) a job whose Helpr was being paid: the record
+  // said 'failed', the Helpr was told the payout is on hold (untrue) and ops
+  // got two critical pages. Any payout_transfers row but a 'failed' one (a
+  // claim in flight, a sent or reversed transfer) or a held settlement claim
+  // means money is moving: take the released branch (page, write nothing).
+  // A read error throws, so Stripe retries rather than guessing.
+  const { data: movingRows, error: movingErr } = await supabase
+    .from("payout_transfers")
+    .select("id, status")
+    .eq("job_id", job.id)
+    .neq("status", "failed")
+    .limit(1);
+  if (movingErr) throw new Error(`payout_transfers read failed for job ${job.id}: ${movingErr.message}`);
+  const { data: claimRows, error: claimErr } = await supabase
+    .from("dispute_settlement_claims")
+    .select("job_id, action")
+    .eq("job_id", job.id)
+    .limit(1);
+  if (claimErr) throw new Error(`dispute_settlement_claims read failed for job ${job.id}: ${claimErr.message}`);
+  const payoutMoving = (movingRows ?? []).length > 0 || (claimRows ?? []).length > 0;
+  if (payoutMoving && job.payment_status !== "released") {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Bank payment failed WHILE the payout was being sent",
+      message: `The poster's payment for job ${job.id} ("${job.title}") failed (PaymentIntent ${piId} is ${liveStatus}), but the Helpr's payout is already moving (${(movingRows ?? []).length > 0 ? `payout_transfers row ${String((movingRows as Array<{ status?: string }>)[0].status)}` : `settlement claim ${String((claimRows as Array<{ action?: string }>)[0].action)}`}). Nothing was written: the job was not un-escrowed and nobody was told. The Helpr is being paid from money that never arrived. Decide whether to reverse the transfer.`,
+      fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, payment_status: job.payment_status ?? null },
+      oncePerDayKey: `funded-job-payment-failed-released:${job.id}`,
+      seed: job.is_seed ?? false,
+    });
+    return;
+  }
+
   if (job.payment_status === "released") {
     // The Helpr was already paid from money that never arrived. Nothing here
     // can undo a transfer; a person must decide (reverse the transfer or

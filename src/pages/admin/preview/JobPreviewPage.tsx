@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { PREVIEW_STAGES, isPreviewStage, previewSample, type PreviewSample, type PreviewStage, type PreviewViewer } from "./jobPreviewSamples";
 import { installPreviewFetch, jobPreviewChecks } from "./previewBackend";
-import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetSharedReads, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
+import { DESKTOP_MIN_WIDTH, EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetSharedReads, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
 
 // The member's job page itself: the same module /jobs/:id lazy-loads (JobDetail.tsx).
 const JobPage = lazy(() => import("@/pages/jobs/jobPage/JobPage"));
@@ -131,7 +131,9 @@ function useOpenOnDraw(label: string | null, key: string) {
 function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
   stage: PreviewStage; viewer: PreviewViewer; onStage: (s: PreviewStage) => void; onViewer: (v: PreviewViewer) => void; onLeave: () => void;
 }) {
-  const [open, setOpen] = useState(true);
+  // Audit 1102e: open, the dock covered the bottom ~185 px of a phone's first screen (Recurring's Cancel job, the
+  // composer). Below the desktop width it starts as the small Preview button; a tap opens it.
+  const [open, setOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= DESKTOP_MIN_WIDTH);
   // Q2617: while one of the page's sheets is open the dock steps aside, so it never covers the sheet's buttons.
   const sheetOpen = usePageSheetOpen();
   const label = PREVIEW_STAGES.find((s) => s.key === stage)?.label ?? stage;
@@ -142,10 +144,12 @@ function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
   };
   if (sheetOpen) return null;
   if (!open) {
-    // Q2617: "Hide" collapses the dock to one small button in the top corner, clear of the page's buttons.
+    // Q2617: "Hide" collapses the dock to one small button in the bottom corner (audit 1102e), clear of the page's buttons.
     return createPortal(
       <div data-preview-controls="" data-preview-collapsed="" role="region" aria-label="Job page preview controls"
-        className="fixed right-2 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[60] pointer-events-auto">
+        // Audit 1102e: at the top it sat over the page title (375) and the account avatar (1440). Bottom corner, above
+        // the phone's tab bar and Post button (AppShell's 96 px reserve).
+        className="fixed right-2 bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] z-[60] pointer-events-auto lg:bottom-4 lg:right-4">
         <Button variant="outline" size="sm" className="rounded-full bg-card shadow-lg" onClick={() => setOpen(true)} aria-expanded={false}>
           <PreviewGlyph d={EYE_GLYPH} className="h-4 w-4 text-primary" />
           Preview

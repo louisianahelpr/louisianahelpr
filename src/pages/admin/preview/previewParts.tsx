@@ -132,6 +132,9 @@ export function PreviewGlyph({ d, className }: { d: string; className?: string }
   );
 }
 
+/** Tailwind's lg breakpoint: from here the dock opens by default (below it, it starts as the small Preview button). */
+export const DESKTOP_MIN_WIDTH = 1024;
+
 export const EYE_GLYPH = "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z";
 
 const INERT_CHANNEL = Symbol("preview-inert-channel");

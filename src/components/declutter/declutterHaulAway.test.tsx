@@ -57,6 +57,15 @@ describe("HaulAwayCard", () => {
     expect(screen.getByText("1 item hasn't sold")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Post a haul-away job" })).toBeTruthy();
   });
+  // Q2638 (audit 1102c R13): a full-width primary "Post a haul-away job" sat above the listing and competed with its
+  // "Drop the price?" nudge (two next steps). The haul-away button is a secondary (outline) button now.
+  // @mutate src/components/declutter/DeclutterHaulAway.tsx |       <Button asChild variant="outline" className="w-full sm:w-auto" data-haul-away-post=""> |       <Button asChild className="w-full sm:w-auto" data-haul-away-post="">
+  it("Q2638: Post a haul-away job is a secondary button, not the primary", () => {
+    wrap(<HaulAwayCard group={[row({})]} />);
+    const link = screen.getByRole("link", { name: "Post a haul-away job" });
+    expect(link.className).toMatch(/\bborder\b/);
+    expect(link.className).not.toMatch(/btn-grad-primary/);
+  });
   it("board 164: the leftovers line names the first three titles, then how many more", () => {
     const titles = ["Dresser", "Chair", "Chair", "Boxes", "Lamp"];
     wrap(<HaulAwayCard group={titles.map((title, i) => row({ item_id: `i${i}`, title }))} />);

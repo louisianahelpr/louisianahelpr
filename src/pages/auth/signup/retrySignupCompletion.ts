@@ -12,16 +12,15 @@
 // What a second send does. A FunctionsFetchError also covers a request that
 // LANDED and only lost its answer (Safari's "Load failed" when the app goes to
 // the background), so the second send can be a repeat:
-//   - with a bio saved, complete-signup answers "Profile already completed"
-//     (handled as finished, Q1643);
-//   - with NO bio (the form allows a blank one), the function runs again: the
-//     profile UPDATE writes the same values, the photo upload upserts the same
-//     key, the admin new-member notice is sent at most once per member,
-//     record_referral_signup answers an already-referred user with FALSE (so
-//     the funnel event says referral_recorded false for a referral that was
-//     recorded), and a second, identical legal_acceptances row is written.
-//     Those last two are a misreported funnel flag and a duplicate of a true
-//     event, never a false one (lh-silent-failure review of 773651052, #4).
+//   - sent with no session, complete-signup answers "Profile already
+//     completed" (handled as finished, Q1643), with or without a bio: a
+//     finished completion stamps terms_accepted_at, and the no-session path
+//     refuses any row that has it (Q1887). An overlapping send that arrives while the first still runs
+//     loses the one-shot claim (one conditional UPDATE on terms_accepted_at IS
+//     NULL, taken before the photo upload or any write) and gets the same
+//     answer, so it writes nothing: no second photo, consent row or referral.
+//     If the first then fails, it releases the claim and the member finishes
+//     through Log In.
 //
 // Only FunctionsFetchError is retried: an HTTP answer (FunctionsHttpError) is
 // the function's decision and a relay error is Supabase's; resending either

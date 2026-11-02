@@ -7,9 +7,9 @@ import { JOB_CATEGORIES } from "@/lib/jobCategories";
 import { CATEGORIES } from "@/lib/declutter/categoryIcons";
 
 /** How many saved searches the first screen lists; the rest stay in You › Settings › Saved searches. */
-export const START_SAVED_MAX = 5;
+const START_SAVED_MAX = 5;
 /** How many categories each open section offers as a chip (each section's own picker order). */
-export const START_CHIPS_PER_SECTION = 4;
+const START_CHIPS_PER_SECTION = 4;
 
 /**
  * Q2645 (account audit 1102d row 4): /search with nothing typed was an empty page with one line, although the

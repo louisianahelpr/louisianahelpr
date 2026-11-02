@@ -12,7 +12,7 @@ import { continueDayNextStep, jobOnContinueDay, type ContinueDay } from "@/lib/c
 import { nextStepWords } from "@/lib/nextStepWords";
 import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
-import { TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
+import { CREW_TODAY_LINE, TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
 import { EXPIRED_LISTING_DETAIL, autoCompleteAt, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
@@ -446,6 +446,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   const startAt = jobStartDateTime(job.date_needed, job.start_time ?? null);
   const started = status === "in_progress" || (!!startAt && now >= startAt.getTime());
   // Q2588: a no-start-time job is never "It's time" (anyTimeThatDay.ts); on its day the line says any time.
-  const helprLine = !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : "Tap I'm on my way when you leave") : started ? "It's time — tap I'm on my way" : "Tap I'm on my way when you leave";
+  const helprLine = job.is_group_job === true
+    // Q2602: a crew member sets out from the roster ("See your crew steps"), never from a button this page lacks.
+    ? (started ? CREW_TODAY_LINE : "Tap See your crew steps when you leave")
+    : !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : "Tap I'm on my way when you leave") : started ? "It's time — tap I'm on my way" : "Tap I'm on my way when you leave";
   return at(4, !poster, "On the way", poster ? (lateBy ? `${other} is ${lateBy} late and hasn't set out` : `You're both confirmed. ${other} taps On my way when they leave`) : helprLine, held);
 }

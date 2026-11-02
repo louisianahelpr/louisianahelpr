@@ -12,6 +12,7 @@ import { functionErrorBody, functionErrorMessage } from "@/lib/supabaseResult";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { userFacingError } from "@/lib/userFacingError";
+import { CONNECTION_TROUBLE_COPY, isNetworkFailure } from "@/lib/networkFailure";
 import { report } from "@/lib/errorLogger";
 import {
   closeIdentityCheck,
@@ -160,6 +161,14 @@ export function IdentityCheckHost() {
         body: { native: isNativePlatform, return_path: returnPath },
       });
       if (error) {
+        // Q2316: the request never reached stripe-idv-start (FunctionsFetchError:
+        // the 2026-10-21 13:54Z rows came in one batch with "Load failed" on
+        // every read). Connection words, and no report: it is the network, not
+        // the ID check.
+        if (isNetworkFailure(error)) {
+          toast.error(CONNECTION_TROUBLE_COPY);
+          return;
+        }
         const body = (await functionErrorBody(error)) as { inManualReview?: boolean; rejected?: boolean } | null;
         if (body?.inManualReview === true) {
           setOverride("with_team");

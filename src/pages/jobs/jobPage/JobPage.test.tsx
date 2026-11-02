@@ -41,7 +41,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew, offeredToMe }); | myApplication: myApplication.data, posterFirst, offeredToMe });
  * @mutate src/components/tracker/jobProgressState.ts | poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") | poster ? ("Pick your Helpr")
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  pendingApplicants={isPoster && applicants.data ? pending : undefined} | pendingApplicants={undefined}
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !closedToMe && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {false && ((job.proof_before_urls
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {((job.proof_before_urls
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {(isPoster \|\| isHired) && ((job.proof_before_urls
@@ -372,6 +372,26 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "View application" }));
     expect(screen.getByTestId("where").textContent).toContain("/jobs?tab=working");
+  });
+
+  // Jobs audit 1102b row 9 (Q2595): an applicant of a listing that expired read "Not paid · This job was cancelled,
+  // so there's nothing to pay out." and "The street address is shared once you're offered the job.", with no way on.
+  // @mutate src/pages/jobs/jobPage/viewerState.ts |   if (isExpiredListing(o.job)) return { action: { kind: "none" }, status: EXPIRED_BEFORE_HIRE }; |
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const helprPrice = isPoster \|\| closedToMe ? null : |   const helprPrice = isPoster ? null :
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |     : closedToMe ? null : <HelprMoneyNotes |     : <HelprMoneyNotes
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !closedToMe && !instantUntil | {!isPoster && !isHired && !instantUntil
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | ? { label: "Find other jobs", go: () => navigate("/browse") } | ? null
+  it("an applicant of an expired listing: expired before anyone was hired, no money box, no address line, Find other jobs (Q2595)", async () => {
+    state.job = row({ status: "cancelled", location: null, cancellation_reason: "Job listing expired — no helper accepted", cancelled_by: null } as Partial<JobPageRow>);
+    state.myApplication = { status: "rejected", closed_reason: "job_cancelled" };
+    renderPage();
+    expect(await screen.findByText("This job expired before anyone was hired.")).toBeTruthy();
+    expect(document.querySelector("[data-helpr-money]")).toBeNull();
+    expect(document.querySelector("[data-helpr-money-notes]")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/nothing to pay out|was cancelled/);
+    expect(screen.queryByText(/street address is shared once/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Find other jobs" }));
+    expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 
   it("shows the real take-home (no fee named), the city only, and Apply opens the apply sheet on the page", async () => {
@@ -960,7 +980,7 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
   // B80 / B111: after the Helpr answers, the pending-offer row is gone (offeredToMe false, so the viewer is no longer
   // "see_offer") while the page keeps the booking card on screen (useMyInstantBooking's latch). Only !instantUntil
   // keeps the "shared once you're offered" line from sitting beside "You're booked": the case that line guards.
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !closedToMe && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && !closedToMe && viewer.action.kind !== "see_offer" && <p
   it("after the answer (the offer row gone, the card kept): no 'street address is shared' line beside it", () => {
     state.job = row({ status: "open", payment_status: "held", direct_offer_status: null });
     state.party = true;

@@ -126,7 +126,9 @@ async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party: boole
   if (applied) {
     // Only the browse-safe columns: never the street address or coordinates.
     const safe = Object.fromEntries(BASE_COLUMNS.split(",").map((c) => c.trim()).filter((c) => c !== "location").map((c) => [c, applied[c]]));
-    return { job: toRow({ ...safe, helper_id: applied.helper_id ?? null, helper_confirmed_at: applied.helper_confirmed_at ?? null, location: null }), party: false };
+    // Q2595: the two columns that tell an expired listing from a cancelled one (isExpiredListing), already in the RPC's
+    // row: an applicant of a listing that expired reads "expired before anyone was hired", never "cancelled".
+    return { job: toRow({ ...safe, helper_id: applied.helper_id ?? null, helper_confirmed_at: applied.helper_confirmed_at ?? null, cancelled_by: applied.cancelled_by ?? null, cancellation_reason: applied.cancellation_reason ?? null, location: null }), party: false };
   }
   return null;
 }

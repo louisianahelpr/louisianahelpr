@@ -32,7 +32,7 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { heldReasonWords } from "./heldReason";
 
 export type HeldRow = {
-  kind: "declutter" | "helpr_task" | "shop" | "declutter_refund" | "delivery_refund" | "shop_refund" | "raise_refund";
+  kind: "declutter" | "helpr_task" | "shop" | "declutter_refund" | "delivery_refund" | "shop_refund" | "raise_refund" | "declutter_manager";
   id: string;
   payee_id: string | null;
   payee_account?: string | null;
@@ -54,6 +54,8 @@ const KIND_LABEL: Record<HeldRow["kind"], string> = {
   shop_refund: "Shops refund",
   // Q1931: a delivery pay-raise refund that used its 12 tries (always gave_up; settled with a re_ id only).
   raise_refund: "Delivery pay-raise refund",
+  // Manager mode (20261101234732): the manager's share of a Declutter sale, paid to the manager.
+  declutter_manager: "Declutter manager share",
 };
 
 /** Settled only for the whole amount the row owes (the SQL CHECKs it too). */

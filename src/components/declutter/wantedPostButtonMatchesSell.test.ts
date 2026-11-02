@@ -3,6 +3,7 @@
  * floating under the tabs. It is the same button as Selling's "Sell an item": the default Button with the same classes,
  * left-aligned in a row like Selling's. Measured b18 10-31 (headless Chromium, mocked Supabase): at 375 it was x=47
  * h=48 (centered BarkPillButton), now x=20 h=56 16px, the same as Sell an item (x=20 h=56 16px).
+ * Selling's row lives in TabletSellRow.tsx since L32 moved it out of DeclutterHomeView (11-02).
  *
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         <div className="flex items-center gap-3" data-wanted-post=""> |         <div className="flex justify-center" data-wanted-post="">
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |           <Button type="button" className="shrink-0 rounded-full" onClick={() => setPosting(true)}> |           <Button type="button" className="shrink-0 rounded-full px-8" onClick={() => setPosting(true)}>
@@ -16,7 +17,7 @@ const read = (f: string) => blankComments(readFileSync(join(process.cwd(), "src/
 
 describe("LEAD-WANTED-POST-BUTTON: Wanted's post button is Selling's Sell an item button", () => {
   it("same Button classes and the same left-aligned row", () => {
-    const selling = read("DeclutterHomeView.tsx").match(/<div className="([^"]*)" data-selling-sell="">\s*<Button asChild className="([^"]*)">/);
+    const selling = read("TabletSellRow.tsx").match(/<div className="([^"]*)" data-selling-sell="">\s*<Button asChild className="([^"]*)">/);
     expect(selling, "Selling's Sell an item row").toBeTruthy();
     const wanted = read("DeclutterWantedViews.tsx").match(/<div className="([^"]*)" data-wanted-post="">\s*<Button type="button" className="([^"]*)" onClick=\{\(\) => setPosting\(true\)\}>/);
     expect(wanted, "Wanted's post row").toBeTruthy();

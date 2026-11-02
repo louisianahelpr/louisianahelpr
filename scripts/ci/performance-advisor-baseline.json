@@ -232,6 +232,9 @@
     "public.helpr_card_fee_debt_deductions.helpr_card_fee_debt_deductions_debt_idx",
     "public.helpr_card_fee_debts.helpr_card_fee_debts_helper_idx",
     "public.tip_hold_redrives.tip_hold_redrives_delivery_tip_id_idx",
-    "public.tip_hold_redrives.tip_hold_redrives_job_tip_id_idx"
+    "public.tip_hold_redrives.tip_hold_redrives_job_tip_id_idx",
+    "public.declutter_manager_grants.declutter_manager_grants_manager_idx",
+    "public.declutter_manager_actions.declutter_manager_actions_grant_idx",
+    "public.declutter_manager_submissions.declutter_manager_submissions_seller_idx"
   ]
 }

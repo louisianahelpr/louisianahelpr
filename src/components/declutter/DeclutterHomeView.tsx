@@ -18,6 +18,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { ListedWhatNext } from "./ListedWhatNext";
 import { ListedForYouCard } from "./ListedForYouCard";
+import { ManagerWaitingForOkGate } from "./ManagerWaitingForOkGate";
+import { ManagerPanelGate } from "./ManagerPanelGate";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -39,7 +41,8 @@ import { OrdersUpdating } from "./OrdersUpdating";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
-import { SELL_CHOOSER_PATH, SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { TabletSellRow } from "./TabletSellRow";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import type { DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
@@ -393,11 +396,9 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
     <div className="flex flex-col gap-6">
       <ListedWhatNext />
       <ListedForYouCard />
-      {/* Audit posting 1030 #11 gave a tablet the photo screen directly and one line to the other ways; the header has its own add action on desktop. LEAD-SELLING-NO-SELL-BTN-PHONE (owner 10-31): not on a phone, where the + covers it. */}
-      <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell="">
-        <Button asChild className="shrink-0 rounded-full"><Link to={SELL_ONE_PATH}>Sell an item</Link></Button>
-        <Link to={SELL_CHOOSER_PATH} className="min-h-11 content-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Free, a bunch, or moving out?</Link>
-      </div>
+      <ManagerWaitingForOkGate userId={userId} />
+      <ManagerPanelGate />
+      <TabletSellRow />
       <Suspense fallback={<DeclutterTabBones />}><SellingDash
         todo={todo}
         userId={userId}

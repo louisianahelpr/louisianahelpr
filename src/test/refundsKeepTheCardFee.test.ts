@@ -788,11 +788,12 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // ('failed', flagged gave_up), listed as recorded (refund_cents shown, still a read).
       // Q1931 raise refunds (builder 148, 20261102054153): + a delivery pay-raise refund that used its 12 tries
       // ('refunding', refund_attempts >= 12; kind 'raise_refund', gave_up), listed with refund_cents as recorded (a read).
-      admin_payouts_held_for_review: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql 1d1e384240069d7f",
+      // Builder 187 (11-02, PR #3990): moved to 20261102150413_declutter_manager_admin_held_after_gave_up.sql: the newest train body (20261102054153) + the manager's 'declutter_manager' kind.
+      admin_payouts_held_for_review: "20261102150413_declutter_manager_admin_held_after_gave_up.sql HASH_HELD",
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
       // 20261019112103: + a held Shops refund / payout, refused while a refund made in Stripe stands (refunded_in_stripe)
       // or when the queue would not send it; a released Shops row starts its tries at 0. No amount changes.
-      admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
+      admin_payout_release: "20261101234732_declutter_manager_payout_admin_held.sql 89dda45e22ecebf0",
       // records how a held refund was settled outside the app (Stripe re_/pyr_ id or "other:") and the amount the admin
       // says moved (settled_by_hand_cents, payout_settlements, the hand-refund ledger); it sends no money and never
       // changes refund_cents, so no new fee is returned by the app (owner: hand-settled = no new money movement).
@@ -805,20 +806,26 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q1931 raise refunds (builder 148, 20261102054153): + records a gave-up raise refund sent in Stripe: a re_/pyr_ id
       // only, for EXACTLY refund_cents (settle_amount_differs), whose amount the raise CHECK _refund_amount already fixed
       // by reason (the card fee kept on delivery_cancelled_buyer); refund_cents never changed, no money sent.
-      admin_payout_settle_by_hand: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql d0136340240d2b1f",
+      // Builder 187 (11-02, PR #3990): moved to 20261102150413_declutter_manager_admin_held_after_gave_up.sql: the newest train body (20261102054153) + the manager's 'declutter_manager' kind.
+      admin_payout_settle_by_hand: "20261102150413_declutter_manager_admin_held_after_gave_up.sql HASH_SETTLE",
+      // Manager mode phase 2b (20261101233256 / 20261101234732, B120, lead PASS 266e149865): the admin tools, defer,
+      // hold-for-review, prune and the held check take the kind 'declutter_manager' (the manager's share row). The
+      // manager branches touch only declutter_manager_payouts; the declutter_refunds lines are unchanged.
+      // the manager's payout queue: reads declutter_refunds only to wait while a part refund is pending; no amount.
+      declutter_manager_payouts_due: "20261101233256_declutter_manager_payout_kind.sql c3c47f22b43097b7",
       // pushes next_attempt_at of a pending / failed row; no try used, no amount.
-      payout_defer: "20261019070737_payout_waits_for_payee_setup.sql 64f967d0b2d0c9f4",
+      payout_defer: "20261101233256_declutter_manager_payout_kind.sql 0e08cb79f90f76e5",
       // pages ops and tells the payee once per held row; writes only held_notified_at.
       // 20261019112103: + held Shops refunds on the ops ledger (the buyer is not told: refunded in Stripe already).
-      payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
+      payout_held_check: "20261101234732_declutter_manager_payout_admin_held.sql 0b96f15b3cffcc74",
       // Shops M3: the ONE refund formula for a Shops order (quote, write and CHECKs read it): keep_card_fee keeps the
       // card fee and its tax for buyer_cancelled / problem_no_fault; full otherwise (the shop is billed the fee as debt
       // for its own faults; the platform carries it only for problem_our_mistake).
       shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
       // the payout run holds a pending / failed row for review (status + reason); no amount.
-      payout_hold_for_review: "20261019070737_payout_waits_for_payee_setup.sql 744e5a8f330d8f6f",
+      payout_hold_for_review: "20261101233256_declutter_manager_payout_kind.sql a620256e1b71a72e",
       // deletes wait / send-mark bookkeeping rows of ended payouts; reads declutter_refunds status only.
-      payout_payee_waits_prune: "20261019070737_payout_waits_for_payee_setup.sql c4543482b291f2dc",
+      payout_payee_waits_prune: "20261101233256_declutter_manager_payout_kind.sql 817cd73b40cd51be",
     } as Record<string, string>,
     /**
      * Every top-level statement (outside a function body) that names declutter_refunds (table, ALTER, policy,
@@ -923,12 +930,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // /code-review of shops-m3): amounts come only from shop_refund_amounts (held by the shop_refunds CHECKs); the
     // held-for-review admin tools move status and record what moved, never change refund_cents.
     functions: {
-      admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
+      admin_payout_release: "20261101234732_declutter_manager_payout_admin_held.sql 89dda45e22ecebf0",
       // Q1931 (builder 144): restated to also settle / list gave-up Declutter delivery rows; Shops branches unchanged.
       // Q1931 raise refunds (builder 148, 20261102054153): + the 'raise_refund' kind; Shops branches unchanged.
-      admin_payout_settle_by_hand: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql d0136340240d2b1f",
-      admin_payouts_held_for_review: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql 1d1e384240069d7f",
-      payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
+      // Manager mode phase 2b (20261101234732): release and the held check take 'declutter_manager'; list and settle: 20261102150413_declutter_manager_admin_held_after_gave_up.sql (Builder 187).
+      admin_payout_settle_by_hand: "20261102150413_declutter_manager_admin_held_after_gave_up.sql HASH_SETTLE",
+      admin_payouts_held_for_review: "20261102150413_declutter_manager_admin_held_after_gave_up.sql HASH_HELD",
+      payout_held_check: "20261101234732_declutter_manager_payout_admin_held.sql 0b96f15b3cffcc74",
       shop_hand_refund_failed: "20261019071055_shops_refunds_cancels_strikes.sql ba27ff33a9f0c110",
       shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",
       shop_money_rows_seed: "20261018211820_shops_handover_payout.sql 55e7c11ee19013d2",

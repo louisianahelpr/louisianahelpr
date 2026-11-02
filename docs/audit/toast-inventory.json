@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1096,
-    "files": 305,
-    "rendering": 1015,
+    "calls": 1102,
+    "files": 306,
+    "rendering": 1021,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 32,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 196,
+      "toast": 202,
       "toast.error": 745,
       "toast.loading": 1,
       "toast.message": 1,
@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 463,
-      "template": 100,
-      "dynamic": 584,
+      "literal": 464,
+      "template": 101,
+      "dynamic": 588,
       "jsx": 0
     }
   },
@@ -6391,18 +6391,68 @@
       "renders": true
     },
     {
-      "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 79,
+      "file": "src/components/declutter/ManagerActForSeller.tsx",
+      "line": 24,
       "kind": "toast",
       "title": {
-        "form": "template",
-        "text": "Asked ${name}."
+        "form": "dynamic",
+        "text": "action === \"accept\" ? \"Offer accepted.\" : \"Offer declined.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Offer accepted."
+          },
+          {
+            "form": "literal",
+            "text": "Offer declined."
+          }
+        ]
       },
       "renders": true
     },
     {
-      "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 80,
+      "file": "src/components/declutter/ManagerActForSeller.tsx",
+      "line": 25,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't answer that offer. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerActForSeller.tsx",
+      "line": 40,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Answer sent."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerActForSeller.tsx",
+      "line": 41,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't send that answer. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerActForSeller.tsx",
+      "line": 62,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Sent to ${g.seller_first_name}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerActForSeller.tsx",
+      "line": 63,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6412,7 +6462,27 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 165,
+      "line": 83,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Asked ${name}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 84,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't send that. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/ManagerPanel.tsx",
+      "line": 168,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6422,7 +6492,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 166,
+      "line": 169,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6432,7 +6502,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 170,
+      "line": 173,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6452,7 +6522,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 171,
+      "line": 174,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6462,7 +6532,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 207,
+      "line": 210,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6482,7 +6552,7 @@
     },
     {
       "file": "src/components/declutter/ManagerPanel.tsx",
-      "line": 208,
+      "line": 211,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6492,7 +6562,7 @@
     },
     {
       "file": "src/components/declutter/ManagerWaitingForOk.tsx",
-      "line": 31,
+      "line": 32,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6502,7 +6572,7 @@
     },
     {
       "file": "src/components/declutter/ManagerWaitingForOk.tsx",
-      "line": 32,
+      "line": 33,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6512,7 +6582,7 @@
     },
     {
       "file": "src/components/declutter/ManagerWaitingForOk.tsx",
-      "line": 36,
+      "line": 37,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -6522,7 +6592,7 @@
     },
     {
       "file": "src/components/declutter/ManagerWaitingForOk.tsx",
-      "line": 37,
+      "line": 38,
       "kind": "toast",
       "title": {
         "form": "dynamic",

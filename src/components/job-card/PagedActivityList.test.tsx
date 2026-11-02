@@ -6,32 +6,29 @@
 // @mutate src/components/job-card/PagedActivityList.tsx | export const ACTIVITY_PAGE_SIZE = 50; | export const ACTIVITY_PAGE_SIZE = 5000;
 // @mutate src/components/job-card/PagedActivityList.tsx | setShown((n) => n + ACTIVITY_PAGE_SIZE) | setShown((n) => n)
 // @mutate src/components/job-card/PagedActivityList.tsx | {items.length > shown && ( | {false && (
-// @mutate src/components/job-card/ActivitySectionedView.tsx | <PagedActivityList items={bucketItems} getKey={getKey} renderItem={renderItem} onHiddenChange={reportHidden[key]} /> | <div>{bucketItems.map((i) => <div key={getKey(i)}>{renderItem(i)}</div>)}</div>
 // @mutate src/pages/posts/PostedJobsTab.tsx | <PagedActivityList items={visibleJobs} | <PagedActivityList items={visibleJobs.slice(0)}
 // @mutate src/pages/jobs/AppliedJobsTab.tsx | <PagedActivityList items={apps} | <PagedActivityList items={apps.slice(0)}
 // @mutate src/components/job-card/PagedActivityList.tsx | onHiddenChange?.(hidden); | onHiddenChange?.(0);
-// @mutate src/components/job-card/ActivitySectionedView.tsx | onHiddenChange?.(totalHidden); | onHiddenChange?.(0);
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
-import { ActivitySectionedView } from "./ActivitySectionedView";
-import { ACTIVITY_PAGE_SIZE } from "./PagedActivityList";
+import { ACTIVITY_PAGE_SIZE, PagedActivityList } from "./PagedActivityList";
 
+// The sectioned view these cases used to mount (ActivitySectionedView) had no app caller since Q2215 and was
+// removed (Q2227); the lists page through PagedActivityList directly (PostedJobsTab, AppliedJobsTab).
 type Item = { id: string; bucket: "active" | "completed" | "cancelled" };
 const make = (n: number, bucket: Item["bucket"]): Item[] =>
   Array.from({ length: n }, (_, i) => ({ id: `${bucket}-${i}`, bucket }));
 
-function setup(items: Item[]) {
-  sessionStorage.setItem("activity:sections:posted", JSON.stringify({ active: true, completed: true, cancelled: true }));
+function setup(items: Item[], onHiddenChange?: (n: number) => void) {
   return render(
-    <ActivitySectionedView<Item>
-      tab="posted"
+    <PagedActivityList<Item>
       items={items}
       getKey={(i) => i.id}
-      bucketize={(i) => i.bucket}
       renderItem={(i) => <span data-testid="card">{i.id}</span>}
+      onHiddenChange={onHiddenChange}
     />,
   );
 }
@@ -51,10 +48,12 @@ describe("Activity lists page at 50 with Show older", () => {
     expect(screen.queryByRole("button", { name: /Show older/ })).toBeNull();
   });
 
-  it("pages each section on its own and shows no button at 50 or fewer", () => {
-    setup([...make(50, "active"), ...make(51, "cancelled")]);
-    expect(screen.getAllByTestId("card")).toHaveLength(100);
-    expect(screen.getAllByRole("button", { name: /Show older/ })).toHaveLength(1);
+  it("shows no button at 50 or fewer, and says how many of how many when there are more", () => {
+    const { unmount } = setup(make(50, "active"));
+    expect(screen.getAllByTestId("card")).toHaveLength(50);
+    expect(screen.queryByRole("button", { name: /Show older/ })).toBeNull();
+    unmount();
+    setup(make(51, "cancelled"));
     expect(screen.getByRole("button", { name: /Show older/ }).textContent).toContain("(50 of 51)");
   });
 
@@ -66,21 +65,12 @@ describe("Activity lists page at 50 with Show older", () => {
     }
   });
 
-  it("reports how many cards are hidden, per list and summed across sections", () => {
+  it("reports how many cards are hidden", () => {
     const seen = vi.fn();
-    setup(make(120, "completed"));
-    const { unmount } = render(
-      <ActivitySectionedView<Item>
-        tab="posted"
-        items={[...make(70, "completed"), ...make(60, "cancelled")]}
-        getKey={(i) => i.id}
-        bucketize={(i) => i.bucket}
-        renderItem={(i) => <span>{i.id}</span>}
-        onHiddenChange={seen}
-      />,
-    );
-    expect(seen).toHaveBeenLastCalledWith(20 + 10);
-    unmount();
+    setup(make(70, "completed"), seen);
+    expect(seen).toHaveBeenLastCalledWith(20);
+    fireEvent.click(screen.getByRole("button", { name: /Show older/ }));
+    expect(seen).toHaveBeenLastCalledWith(0);
   });
 
   it("the Posted tab's end-of-list line never says \"that's everything\" (it is gone: J6, src/test/postedListNoDuplicateTail.test.tsx)", () => {

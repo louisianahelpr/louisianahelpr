@@ -62,6 +62,7 @@ import { CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
 import { Chip } from "./DeclutterFilterPanel";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { focusSheetItself } from "./focusSheetItself";
+import { EXPIRED_WORD } from "@/lib/dateUtils";
 
 const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
 const FORM_ID = "wanted-form";
@@ -272,7 +273,7 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null, pre
 /** Where one reply stands, from the poster's side (the offer card in Buying is where it is answered). */
 function replyStatus(r: WantedReply): string {
   if (r.status === "open") return r.awaiting === "buyer" ? "Waiting for you" : "Waiting for the seller";
-  return { accepted: "Accepted", declined: "Declined", expired: "Expired", withdrawn: "Withdrawn", voided: "Ended" }[r.status];
+  return { accepted: "Accepted", declined: "Declined", expired: EXPIRED_WORD, withdrawn: "Withdrawn", voided: "Ended" }[r.status];
 }
 
 /** The sellers' replies to one of your posts: which listing, which seller (First L.), what price, where it stands. */
@@ -378,7 +379,7 @@ export function wantedWhereWords(source: "device" | "profile" | "zip" | "parish"
 const STATUS_WORDS: Record<WantedPost["status"], string> = {
   open: "Open",
   closed: "Closed",
-  expired: "Expired",
+  expired: EXPIRED_WORD,
 };
 
 function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string | null; onEdit: (post: WantedPost) => void }) {

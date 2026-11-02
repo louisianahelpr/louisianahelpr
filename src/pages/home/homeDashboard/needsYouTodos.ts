@@ -6,7 +6,8 @@ import { postedActivityBucket, appliedActivityBucket, jobIsUnfundedDraft } from 
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import { backoutNoticeApplies, backoutNoticesKey, useBackoutNotices, type BackoutNotice } from "@/lib/backoutNotices";
 import type { ShopOrder } from "@/lib/shops/orders";
-import type { CartLine, MyOffer } from "@/lib/declutter/api";
+import type { CartLine, FreeAskToPick, MyOffer } from "@/lib/declutter/api";
+import type { MyRefundTodo } from "@/lib/declutter/refundRequests";
 import { formatCents } from "@/lib/shops/formatCents";
 import { queryKeys } from "@/lib/queryKeys";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
@@ -56,6 +57,9 @@ export interface NeedsYouInputs {
   /** A3-81: the member's Declutter cart lines and offers (the Buying / Selling tabs' own reads). */
   declutterCart?: readonly CartLine[];
   declutterOffers?: readonly MyOffer[];
+  /** A3-81: refund requests waiting on the member (declutter_my_refund_todos) and the giver's free asks to pick from. */
+  declutterRefunds?: readonly MyRefundTodo[];
+  declutterFreeAsks?: readonly FreeAskToPick[];
 }
 
 /** "$30" for whole dollars (garage-sale prices), "$7.50" otherwise. */
@@ -75,8 +79,34 @@ function byWhen(ms: number): string {
  * inside its time (one per seller: one checkout per seller), and a paid pickup order still in its handover. Each
  * carries its deadline when it has one. A Helpr-delivered order is left out (the Helpr does the handover).
  */
-export function declutterTodos(cart: readonly CartLine[], offers: readonly MyOffer[], now: number): { item: TodoItem; due: number | null; waiting: boolean }[] {
+export function declutterTodos(
+  cart: readonly CartLine[],
+  offers: readonly MyOffer[],
+  now: number,
+  refunds: readonly MyRefundTodo[] = [],
+  freeAsks: readonly FreeAskToPick[] = [],
+): { item: TodoItem; due: number | null; waiting: boolean }[] {
   const out: { item: TodoItem; due: number | null; waiting: boolean }[] = [];
+  // A3-81 (a), first: a refund request waiting on the member. The seller answers within 24 hours (answer_by), or it
+  // goes to Louisiana Helpr; a buyer answers the seller's part offer by offer_answer_by.
+  for (const r of refunds) {
+    const due = Date.parse(r.due_at);
+    if (!Number.isFinite(due) || due < now) continue;
+    const seller = r.my_side === "seller";
+    const what = r.title ? (r.item_count > 1 ? `${r.title} + ${r.item_count - 1} more` : r.title) : "your order";
+    out.push({
+      due,
+      waiting: true,
+      item: {
+        id: `dr-${r.request_id}`,
+        section: "declutter",
+        title: seller ? "Answer a refund request" : "Answer the seller's refund offer",
+        meta: `${seller ? "Selling" : "Buying"} · ${what} · by ${byWhen(due)}`,
+        to: `/declutter?tab=${seller ? "selling" : "buying"}`,
+        action: seller ? "Answer request" : "Answer offer",
+      },
+    });
+  }
   for (const o of offers) {
     if (o.status !== "open" || o.awaiting !== o.my_side) continue;
     const due = Date.parse(o.respond_by);
@@ -136,6 +166,22 @@ export function declutterTodos(cart: readonly CartLine[], offers: readonly MyOff
         meta: seller ? "Selling · sold, waiting for the handover" : "Buying · paid, waiting for the pickup",
         to: `/declutter?tab=${seller ? "selling" : "buying"}`,
         action: seller ? "Open sale" : "Open order",
+      },
+    });
+  }
+  // A3-81 (b): the free giver picks who gets the item (no deadline: the server sets none).
+  for (const f of freeAsks) {
+    if (f.asked < 1) continue;
+    out.push({
+      due: null,
+      waiting: true,
+      item: {
+        id: `df-${f.item_id}`,
+        section: "declutter",
+        title: `Pick who gets ${f.title}`,
+        meta: `Free · ${f.asked} asked`,
+        to: `/declutter/item/${f.item_id}`,
+        action: "Pick",
       },
     });
   }
@@ -238,7 +284,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       },
     });
   }
-  for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now)) {
+  for (const d of declutterTodos(i.declutterCart ?? [], i.declutterOffers ?? [], now, i.declutterRefunds ?? [], i.declutterFreeAsks ?? [])) {
     const [tier, at] = rank(d.due, d.waiting, Infinity, now);
     ranked.push({ tier, at, item: d.item });
   }
@@ -298,6 +344,8 @@ const EMPTY_COUNTS: Record<string, number> = {};
 const EMPTY_ORDERS: ShopOrder[] = [];
 const EMPTY_CART: CartLine[] = [];
 const EMPTY_OFFERS: MyOffer[] = [];
+const EMPTY_REFUNDS: MyRefundTodo[] = [];
+const EMPTY_FREE_ASKS: FreeAskToPick[] = [];
 
 /**
  * The to-dos for `user`, from the SAME React Query cache entries Jobs and Home
@@ -332,6 +380,10 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
   const declutterOn = useFeature("declutter");
   const dCart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyCart() : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
   const dOffers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyOffers() : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
+  // A3-81: refund requests waiting on the member (one member-wide read) and the giver's free asks, in the same wave.
+  const refundsOn = useFeature("declutter_refund_requests");
+  const dRefunds = useQuery({ queryKey: ["declutter", "my-refund-todos"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyRefundTodos() : untilReload())), enabled: !!uid && declutterOn && refundsOn, staleTime: CORE_STALE });
+  const dFreeAsks = useQuery({ queryKey: ["declutter", "free-asks-to-pick", uid], queryFn: () => declutterApi().then((m) => (m ? m.fetchFreeAsksToPick(uid) : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
   const backout = useBackoutNotices(uid || null);
 
   const queryClient = useQueryClient();
@@ -348,6 +400,8 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
       queryClient.invalidateQueries({ queryKey: ["shops", "shop-orders", uid] });
       queryClient.invalidateQueries({ queryKey: ["declutter", "my-cart"] });
       queryClient.invalidateQueries({ queryKey: ["declutter", "my-offers"] });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "my-refund-todos"] });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "free-asks-to-pick", uid] });
     };
     const schedule = () => {
       if (hidden()) {
@@ -389,9 +443,11 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
   const orders = (shopsOn ? shopOrders.data : undefined) ?? EMPTY_ORDERS;
   const cartLines = (declutterOn ? dCart.data : undefined) ?? EMPTY_CART;
   const offerRows = (declutterOn ? dOffers.data : undefined) ?? EMPTY_OFFERS;
+  const refundRows = (declutterOn && refundsOn ? dRefunds.data : undefined) ?? EMPTY_REFUNDS;
+  const freeAskRows = (declutterOn ? dFreeAsks.data : undefined) ?? EMPTY_FREE_ASKS;
   const todos = useMemo(
-    () => deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows }),
-    [postedJobs, pending, apps, orders, backout, cartLines, offerRows],
+    () => deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows, declutterRefunds: refundRows, declutterFreeAsks: freeAskRows }),
+    [postedJobs, pending, apps, orders, backout, cartLines, offerRows, refundRows, freeAskRows],
   );
   return { todos, loading: posted.data === undefined && applied.data === undefined };
 }

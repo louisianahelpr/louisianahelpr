@@ -11,6 +11,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 export type RefundReason = "not_as_described" | "damaged" | "not_received";
 type RefundRequestStatus = "open" | "offered" | "returning" | "agreed" | "declined" | "to_admin" | "withdrawn";
@@ -122,6 +123,29 @@ export type RefundTookItBack = Pick<RefundRequest, "status" | "returned_at"> & P
  */
 export function refundTookItBack(request: RefundTookItBack | null | undefined): boolean {
   return request?.status === "agreed" && !!request.returned_at;
+}
+
+/** A3-81: one refund request waiting on the member right now (declutter_my_refund_todos, 20261102002217). */
+export interface MyRefundTodo {
+  request_id: string;
+  order_id: string;
+  /** "seller": an open request to answer (by answer_by). "buyer": a part offer to answer (by offer_answer_by). */
+  my_side: "buyer" | "seller";
+  status: "open" | "offered";
+  due_at: string;
+  title: string | null;
+  item_count: number;
+}
+
+/**
+ * A3-81: every refund request that waits on the member, soonest first, for Home's Next up / To do and the badges. The
+ * server returns no rows while the switch is off for the member. Before the read is on the server (PGRST202 naming it),
+ * none: Home shows what it showed before.
+ */
+export async function fetchMyRefundTodos(): Promise<MyRefundTodo[]> {
+  const res = await supabase.rpc("declutter_my_refund_todos");
+  if (res.error && isMissingRpcNamed(res.error, "declutter_my_refund_todos")) return [];
+  return (rpcData(res, (e) => rpcErrorMessage("declutter_my_refund_todos", e)) ?? []) as unknown as MyRefundTodo[];
 }
 
 export async function fetchRefundRequestView(orderId: string): Promise<RefundRequestView> {

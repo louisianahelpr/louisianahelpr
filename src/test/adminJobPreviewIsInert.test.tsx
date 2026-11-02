@@ -8,6 +8,8 @@
  * and reads what reached the network (the window fetch underneath the preview): nothing but sign-in traffic may have.
  * It also pins the route behind the same admin gate as /admin, in its own lazy chunk.
  *
+ * @mutate src/pages/admin/preview/previewBackend.ts |         o.onAction?.(name); |         void 0;
+ * @mutate src/pages/admin/preview/previewBackend.ts |     if (fn === "create-payment" && bodyJson(init).action === "cancel_quote") { |     if (false) {
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |     draws: stage === "cancel_sheet" && viewer === "helpr" ? "helpr_working_card" : "job_page", |     draws: "job_page",
  * @mutate src/pages/admin/preview/previewParts.tsx |       else sayWouldHave(`open ${toText(to)}`); |       else outer.navigator[how](to, state);
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (sheetOpen) return null; |   if (sheetOpen) void 0;
@@ -31,6 +33,7 @@ vi.mock("sonner", async (orig) => {
   const t = Object.assign((msg: string) => { toasts.push(String(msg)); return msg; }, real.toast, {
     error: (msg: string) => { toasts.push(`error:${String(msg)}`); return msg; },
     success: (msg: string) => { toasts.push(`success:${String(msg)}`); return msg; },
+    warning: (msg: string) => { toasts.push(`warning:${String(msg)}`); return msg; },
   });
   return { ...real, toast: t };
 });
@@ -213,17 +216,34 @@ describe("admin job-page preview", () => {
     expect(leaked()).toEqual([]);
   }, 30000);
 
-  it("DBGCANCEL", async () => {
-    const fs = await import("node:fs");
-    const log = (x: unknown) => fs.appendFileSync("/Users/lexilombas/.lh-shots/b181/dbg.txt", JSON.stringify(x) + "\n");
+  // Audit 1102e (Auditor 5): the final buttons never finished ("Cancelling…"), so the owner never saw the after-state;
+  // and just opening the cancel sheet said "Preview: this would create payment." (its quote is a read).
+  it("the poster's Cancel · pay $30 finishes and the page moves to Late cancel by poster; the quote is silent and says $90 back", async () => {
     renderPreview("cancel_sheet", "poster");
-    const btn = await screen.findByRole("button", { name: /Cancel · pay/ }, { timeout: 10000 });
-    log(["before", btn.textContent, (btn as HTMLButtonElement).disabled]);
+    const btn = await screen.findByRole("button", { name: /Cancel · pay \$30/ }, { timeout: 10000 });
+    const sheet = btn.closest('[role="dialog"], [role="alertdialog"]') as HTMLElement;
+    await waitFor(() => expect(sheet.textContent ?? "").toMatch(/\$90/));
+    expect(toasts.filter((t) => /create payment/.test(t))).toEqual([]);
+    fireEvent.pointerDown(btn);
     fireEvent.click(btn);
-    for (const ms of [200, 1000, 3000]) {
-      await new Promise((r) => setTimeout(r, ms));
-      log([ms, Array.from(document.querySelectorAll('[role="dialog"],[role="alertdialog"]')).map((d) => (d.textContent ?? "").slice(0, 60)), Array.from(document.querySelectorAll("button")).map((b) => b.textContent).filter((t) => /Cancel/.test(t ?? "")), toasts.slice(-4)]);
-    }
+    await waitFor(() => expect(toasts.some((t) => /^success:Job cancelled/.test(t))).toBe(true));
+    await waitFor(() => expect(screen.getByRole("region", { name: "Job page preview controls" }).textContent ?? "").toMatch(/Preview: Late cancel by poster ·/), { timeout: 10000 });
+    expect(leaked()).toEqual([]);
+  }, 30000);
+
+  it("the Helpr's own Cancel job finishes and the page moves to Late cancel by Helpr", async () => {
+    renderPreview("cancel_sheet", "helpr");
+    const sheet = await waitFor(() => {
+      const d = screen.queryAllByRole("alertdialog").concat(screen.queryAllByRole("dialog")).find((x) => /Cancel this job\?/.test(x.textContent ?? ""));
+      expect(d).toBeTruthy();
+      return d as HTMLElement;
+    }, { timeout: 10000 });
+    const confirm = Array.from(sheet.querySelectorAll("button")).find((b) => b.textContent?.trim() === "Cancel job") as HTMLButtonElement;
+    fireEvent.pointerDown(confirm);
+    fireEvent.click(confirm);
+    await waitFor(() => expect(screen.getByRole("region", { name: "Job page preview controls" }).textContent ?? "").toMatch(/Preview: Late cancel by Helpr ·/), { timeout: 10000 });
+    expect(toasts.some((t) => /Job cancelled/.test(t)), JSON.stringify(toasts)).toBe(true);
+    expect(leaked()).toEqual([]);
   }, 30000);
 
   it("no realtime channel subscribes while the preview is open (every stage the page opens one on), and the client gets its own back after", async () => {

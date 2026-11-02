@@ -34,6 +34,8 @@ export interface PreviewBackendOptions {
   onBlocked: (what: string) => void;
   /** An RPC or table the sample does not answer (answered null / [] without being sent). Tests make it fail. */
   onUnlisted?: (what: string) => void;
+  /** A final action the sample answers (a cancel): the page shows its after-state (audit 1102e). */
+  onAction?: (name: string) => void;
 }
 
 /** RPCs that only read. Everything else is treated as an action and never sent. */
@@ -147,6 +149,14 @@ function createPreviewFetch(o: PreviewBackendOptions): { fetch: typeof fetch; lo
         note("passed");
         return o.realFetch(input, init);
       }
+      // Audit 1102e: a final action (Cancel · pay $30, the Helpr's Cancel job) gets the success shape its screen
+      // expects, so the button finishes, and the page moves to the stage after it. Still never sent, still said.
+      if (Object.prototype.hasOwnProperty.call(s.actions, name)) {
+        note("blocked");
+        o.onBlocked(`run "${name}"`);
+        o.onAction?.(name);
+        return json(s.actions[name]);
+      }
       const out = rpcAnswer(name, bodyJson(init), s);
       if (out !== undefined) {
         note("sample");
@@ -193,6 +203,12 @@ function createPreviewFetch(o: PreviewBackendOptions): { fetch: typeof fetch; lo
       return accept.includes("vnd.pgrst.object+json") ? json(row) : json([row], 200, 1);
     }
     const fn = path.match(/^\/functions\/v1\/([^/]+)/)?.[1];
+    // Audit 1102e: the poster's cancel quote is a read ("this would create payment" showed just from opening the
+    // sheet, as if it charged). It is answered from the sample, silently.
+    if (fn === "create-payment" && bodyJson(init).action === "cancel_quote") {
+      note("sample");
+      return json(s.cancelQuote);
+    }
     o.onBlocked(fn ? fn.replace(/-/g, " ") : "send a request");
     return json({});
   }) as typeof fetch;

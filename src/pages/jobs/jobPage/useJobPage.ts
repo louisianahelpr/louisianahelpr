@@ -143,10 +143,12 @@ async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party: boole
 export interface MyApplication {
   status: string;
   closed_reason: string | null;
+  /** When it last changed: a cancel's time (Q2673). */
+  updated_at?: string | null;
 }
 async function fetchMyApplication(jobId: string, userId: string): Promise<MyApplication | null> {
   const row = unwrap(
-    await supabase.from("applications").select("status, closed_reason").eq("job_id", jobId).eq("helper_id", userId).maybeSingle(),
+    await supabase.from("applications").select("status, closed_reason, updated_at").eq("job_id", jobId).eq("helper_id", userId).maybeSingle(),
   ) as MyApplication | null;
   return row ?? null;
 }

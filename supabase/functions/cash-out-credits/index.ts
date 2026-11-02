@@ -126,7 +126,7 @@ serve(async (req) => {
     }
     if (hold.kind === "held") {
       return new Response(
-        JSON.stringify({ error: "Payouts on your account are paused while we review it. Your credits are safe. Contact support if you have questions.", code: PAYOUT_HELD_CODE }),
+        JSON.stringify({ error: "Your payouts are on hold while we review your account. Your credits are safe. Contact support if you have questions.", code: PAYOUT_HELD_CODE }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 }
       );
     }

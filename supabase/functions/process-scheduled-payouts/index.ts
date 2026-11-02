@@ -23,7 +23,7 @@ import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
-import { payDelayWhyForGate, tellHelprPayIsDelayed } from "../_shared/payDelayNotice.ts";
+import { PAY_DELAY_SENDING_STATUSES, payDelayWhyForGate, tellHelprPayIsDelayed } from "../_shared/payDelayNotice.ts";
 import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewShares.ts";
 import { checkIdentityHold, checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
@@ -2326,6 +2326,21 @@ serve(async (req) => {
             });
           }
         }
+      }
+    }
+
+    // Q2497: a single-Helpr job stuck on any other exit of ours (a read, verify or
+    // claim that failed) tells its Helpr too, once it is past its promised time
+    // (tellHelprPayIsDelayed: 12 h grace, seed jobs skipped, once a day per job).
+    // The failed transfer and the account Stripe won't pay are told where they happen.
+    {
+      const told = new Set<string>();
+      for (const r of results as Array<{ job_id?: string; status?: string }>) {
+        if (!r.job_id || !r.status || told.has(r.job_id) || !PAY_DELAY_SENDING_STATUSES.has(r.status)) continue;
+        const job = payoutJobs.find((j) => j.id === r.job_id);
+        if (!job || job.is_group_job === true || !job.helper_id) continue;
+        told.add(r.job_id);
+        await tellHelprPayIsDelayed(supabaseAdmin, { helperId: job.helper_id as string, job, why: "sending", source: "process-scheduled-payouts" });
       }
     }
 

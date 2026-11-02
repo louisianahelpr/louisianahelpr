@@ -32,7 +32,7 @@ export function CancelSeriesNotice() {
  * confirm so there's no ambiguity. The dialog shows it only when a non-zero
  * fee applies (hasHelper + late).
  */
-export function CancelFeeCallout({ fee, crew, feeTier }: { fee: number; crew: boolean; feeTier: string }) {
+export function CancelFeeCallout({ fee, crew, feeTier, helperName, strike }: { fee: number; crew: boolean; feeTier: string; helperName?: string; strike: boolean }) {
   return (
     <div
       className="flex items-start gap-2.5 rounded-ds-md p-3.5"
@@ -50,12 +50,12 @@ export function CancelFeeCallout({ fee, crew, feeTier }: { fee: number; crew: bo
           className="font-sans font-bold text-ds-13"
           style={{ color: "hsl(var(--destructive-ink))", letterSpacing: "-0.01em" }}
         >
-          <span className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPrice(fee)}</span> for {crew ? "your hired Helprs'" : "your Helpr's"} time
+          <span className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPrice(fee)}</span> for {crew ? "your hired Helprs'" : `${helperName || "your Helpr"}'s`} time
         </p>
-        {/* Owner 2026-10-25: no fee names, percentages or maths to members; the dollar
-            amount for the Helpr's time, and that the rest comes back. */}
+        {/* Owner 2026-10-25: no fee names, percentages or maths to members. Q2674 (audit 1102e row 7): the ONE box
+            that says the amount for the Helpr's time and the strike; what comes back is Back to you, said once. */}
         <p className="text-ds-11 text-muted-foreground mt-0.5">
-          {feeTier} · most of the rest of your payment comes back to you
+          {feeTier}{strike ? " · counts as a strike" : ""}
         </p>
       </div>
     </div>
@@ -117,7 +117,7 @@ export function CancelBackToYou({ quote, quoteLoading, backToYouCents }: { quote
  * its start time), and the old window excluded exactly that case — the one
  * where the Helpr has already given up their day.
  */
-export function CancelHelprToldAndPaid({ helperName, fee }: { helperName?: string; fee: number }) {
+export function CancelHelprToldAndPaid({ helperName }: { helperName?: string }) {
   return (
     <div
       className="rounded-ds-md p-3"
@@ -139,7 +139,7 @@ export function CancelHelprToldAndPaid({ helperName, fee }: { helperName?: strin
         className="font-sans text-ds-12"
         style={{ color: "hsl(var(--success-ink))" }}
       >
-        {helperName || "Your Helpr"} is notified the moment you confirm, and their pay for their time comes out of the ${formatPrice(fee)} and is sent to them automatically within the hour.
+        {helperName || "Your Helpr"} is notified the moment you confirm, and their pay for their time comes out of that amount and is sent to them automatically within the hour.
       </p>
     </div>
   );

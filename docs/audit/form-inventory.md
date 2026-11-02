@@ -346,7 +346,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/profile/AvailabilityTab.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/profile/CredentialsTab.tsx` | input×3 | text, file |  | business-name · e.g. Bayou Plumbing LLC · business-name-help |
 | `src/components/profile/MonthlyGoalCard.tsx` | input×1 | number |  | Edit monthly goal · Monthly earnings goal in dollars · Save goal · Cancel |
-| `src/components/profile/ProfileEditForm.tsx` | input×4, textarea×1 | tel, text | 5 | phone · location · zipCode · bio · bio-contact-leak · skillsOther · Anything else you offer… |
+| `src/components/profile/ProfileEditForm.tsx` | input×4, textarea×1 | tel, text | 5 | phone · phone-error · location · zipCode · bio · bio-contact-leak · skillsOther · Anything else you offer… |
 | `src/components/profile/profileEditForm/PhotoNameSection.tsx` | input×2 | file, text |  |  |
 | `src/components/profile/profileEditForm/RecentWorkSection.tsx` | input×1 | file |  | Remove this photo |
 | `src/components/profile/ProfileLinkRow.tsx` | input×1 | text | 30 | profile-link-panel · profile-handle · profile-handle-hint |

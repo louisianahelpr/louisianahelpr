@@ -90,8 +90,10 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
       {orders.isError ? (
         <ErrorState variant="inline" title="We couldn't load your orders." body={shopsErrorMessage(orders.error)} onRetry={() => void orders.refetch()} />
       ) : orders.isLoading || !user ? (
+        // Q2558: the "No orders yet." card, 98px measured 2026-11-02 (both test accounts); two 144px order
+        // bones collapsed 202px into it. A list of orders grows below.
         <ul className="space-y-3" role="status" aria-label="Loading your orders">
-          {[0, 1].map((i) => <li key={i}><Skeleton className="h-36 w-full rounded-2xl" /></li>)}
+          <li><Skeleton className="h-[98px] w-full rounded-2xl" /></li>
         </ul>
       ) : (orders.data ?? []).length === 0 ? (
         <ShopsNotice title="No orders yet.">

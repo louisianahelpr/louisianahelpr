@@ -147,8 +147,13 @@ export function porchWindowDays(windows: readonly SellerWindow[], nowMs: number,
     for (const w of windows) {
       if (w.weekday !== weekday) continue;
       const wEnd = minutes(w.ends);
-      for (let m = minutes(w.starts); m + SLOT_MIN <= wEnd; m += PORCH_WINDOW_MIN) {
-        spans.set(m, Math.max(spans.get(m) ?? 0, Math.min(m + PORCH_WINDOW_MIN, wEnd)));
+      const wStart = minutes(w.starts);
+      for (let m = wStart; m + SLOT_MIN <= wEnd; m += PORCH_WINDOW_MIN) {
+        // A3-65 (audit 7, 11-01): the last window slides back to end at the close ("10 AM-12 PM", not a 1-hour
+        // "11 AM-12 PM"), so every chip is 2 hours; only hours shorter than 2 hours keep their own length. The server
+        // ends a porch window at start + 2 h cut at the close (declutter_checkout_pickup_end), so it books the same.
+        const s = m + PORCH_WINDOW_MIN > wEnd ? Math.max(wStart, wEnd - PORCH_WINDOW_MIN) : m;
+        spans.set(s, Math.max(spans.get(s) ?? 0, Math.min(s + PORCH_WINDOW_MIN, wEnd)));
       }
     }
     const slots = [...spans.entries()].sort((a, b) => a[0] - b[0])

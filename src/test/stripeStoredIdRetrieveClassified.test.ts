@@ -231,6 +231,7 @@ const EXEMPT: Record<string, string> = {
   "stripe-webhook/handlers/cardHoldCheckout.ts::stripe.setupIntents.retrieve(siId)": "the setup session's own SetupIntent, from the event, on the event's mode",
   "stripe-webhook/handlers/cardHoldCheckout.ts::stripe.paymentIntents.retrieve(piId)": "the hold session's own PaymentIntent, from the event, on the event's mode",
   "stripe-webhook/handlers/cardHoldCheckout.ts::stripe.paymentIntents.retrieve(pi.id)": "the same event's PaymentIntent, re-read after Stripe refused cancelling it as a duplicate, on the event's mode",
+  "stripe-webhook/handlers/paymentIntentSucceeded.ts::stripe.paymentIntents.retrieve(pi.id)": "the succeeded event's own PaymentIntent, re-read with latest_charge expanded to name the payment method, on the event's mode",
   // Declutter (slice 3b): ids from the webhook event itself, read on the client of the event's own mode
   // (stripe-webhook builds the test-key client for a test-endpoint event), never a stored id.
   "stripe-webhook/handlers/declutterCheckout.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "the paid session's own PaymentIntent, from the event, on the event's mode",

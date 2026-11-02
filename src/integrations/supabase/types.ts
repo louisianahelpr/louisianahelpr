@@ -13316,6 +13316,8 @@ export type Database = {
           confirm_code: string | null
           confirm_phone: string | null
           confirm_sent_at: string | null
+          confirm_tries: number
+          confirm_tries_since: string | null
           consent_text_version: string | null
           job_match_texts: boolean
           opt_in_source: string | null
@@ -13333,6 +13335,8 @@ export type Database = {
           confirm_code?: string | null
           confirm_phone?: string | null
           confirm_sent_at?: string | null
+          confirm_tries?: number
+          confirm_tries_since?: string | null
           consent_text_version?: string | null
           job_match_texts?: boolean
           opt_in_source?: string | null
@@ -13350,6 +13354,8 @@ export type Database = {
           confirm_code?: string | null
           confirm_phone?: string | null
           confirm_sent_at?: string | null
+          confirm_tries?: number
+          confirm_tries_since?: string | null
           consent_text_version?: string | null
           job_match_texts?: boolean
           opt_in_source?: string | null
@@ -15306,6 +15312,7 @@ export type Database = {
       clear_my_job_post_draft: { Args: never; Returns: undefined }
       client_compat_floor: { Args: never; Returns: number }
       close_moot_backout_notices: { Args: { p_job?: string }; Returns: number }
+      confirm_sms_code: { Args: { p_code: string }; Returns: Json }
       declutter_add_handover: {
         Args: { p_item_id: string; p_way: string }
         Returns: string[]

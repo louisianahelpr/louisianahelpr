@@ -4,21 +4,21 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { goSignedInOr } from "./goSignedInOr";
 import { heroSearchTargets } from "./heroSearch";
-import { LandingProof } from "./LandingProof";
 import { useHeroWords } from "./useHeroWords";
 
 /**
  * Hero (owner-approved landing redesign 2026-10-20; option B 2026-10-23): Bodoni
  * H1 with the rust italic "partner.", the subhead (one line from 1024px), one
- * search, then the proof row (LandingProof). ONE centered column (max 760px) at
- * every width; the proof row below it may run wider. No phone mock (owner,
+ * search. ONE centered column (max 760px) at every width. The proof row
+ * (LandingProof) is NOT here: it opens the next section, below the fold (owner,
+ * 2026-11-02: the first screen is just the headline, subhead and search). No phone mock (owner,
  * 2026-10-20), no seasonal pill and no example chips (owner, 2026-10-23: "remove
  * the storm banner and job chips"). The live jobs sit in the next section
  * (LiveJobsSection), which also carries the "Browse local jobs" link.
  *
  * Honesty rules (LANDING-APPROVED.md): the search really searches
  * (heroSearch.ts); no parish select (owner, 2026-10-20); every proof line is a
- * checked fact (LandingProof.tsx).
+ * checked fact (LandingProof.tsx, now in LiveJobsSection).
  */
 const HeroSection = () => {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ const HeroSection = () => {
   return (
     // The first screen (owner, 2026-10-27: "it just needs to be centered on the page with the stuff
     // below smaller"): the section fills the screen; the H1, subhead and search are one block centred
-    // in the space between the top bar's clearance and the proof row, which sits at the bottom.
+    // under the top bar's clearance. The proof row moved below the fold (owner, 2026-11-02).
     <section className="relative flex min-h-[100svh] flex-col px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-24 pb-8 lg:pb-10">
       <div data-testid="landing-hero-block" className="flex flex-1 flex-col justify-center">
         <div className="relative mx-auto w-full max-w-[760px]">
@@ -96,7 +96,6 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
-      <LandingProof />
     </section>
   );
 };

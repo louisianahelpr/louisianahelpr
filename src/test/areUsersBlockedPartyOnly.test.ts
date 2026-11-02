@@ -184,6 +184,10 @@ const EXPECTED_CALLERS = [
   "shops_order_terms",
   "shops_request_order",
   "submit_job_quote",
+  // Declutter chat reminders (20261101200929, read by Builder 151): a cron sweep, service_role only (EXECUTE revoked
+  // from PUBLIC, anon, authenticated), so auth.uid() is NULL and is_server_context() gives the real answer; it asks
+  // (sender, recipient) and sends nothing when they are blocked.
+  "sweep_declutter_talk_reminders",
 ];
 
 describe("Q348: are_users_blocked refuses a third-party pair", () => {

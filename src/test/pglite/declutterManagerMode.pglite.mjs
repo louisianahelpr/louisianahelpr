@@ -31,6 +31,30 @@ if (PLANT_ATTEST) {
   FIX = FIX.replace(find, "");
   console.log("PLANT=attest: the attestation restore is removed (the attestation check must FAIL)");
 }
+// Lead 11-01 6:16 PM (ban gate): approve, send_back and set_permissions refuse a banned or restricted caller;
+// declutter_manager_end stays open to them (safety). Each PLANT removes one gate (or gates end) and must FAIL its check.
+const GATE_BLOCK = "  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n";
+function fnSlice(sql, name) {
+  const i = sql.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`);
+  if (i < 0) throw new Error(`PLANT: ${name} is not in the migration`);
+  const j = sql.indexOf("$fn$;", i);
+  return [i, j];
+}
+const GATE_PLANTS = { nogate_approve: "declutter_manager_approve", nogate_send_back: "declutter_manager_send_back", nogate_perms: "declutter_manager_set_permissions" };
+if (GATE_PLANTS[process.env.PLANT]) {
+  const [i, j] = fnSlice(FIX, GATE_PLANTS[process.env.PLANT]);
+  const body = FIX.slice(i, j);
+  if (!body.includes(GATE_BLOCK)) throw new Error(`PLANT=${process.env.PLANT}: no ban gate in ${GATE_PLANTS[process.env.PLANT]}`);
+  FIX = FIX.slice(0, i) + body.replace(GATE_BLOCK, "") + FIX.slice(j);
+  console.log(`PLANT=${process.env.PLANT}: the ban gate is removed from ${GATE_PLANTS[process.env.PLANT]} (its restricted check must FAIL)`);
+}
+if (process.env.PLANT === "gate_end") {
+  const [i, j] = fnSlice(FIX, "declutter_manager_end");
+  const body = FIX.slice(i, j);
+  const at = "BEGIN\n";
+  FIX = FIX.slice(0, i) + body.replace(at, at + GATE_BLOCK) + FIX.slice(j);
+  console.log("PLANT=gate_end: declutter_manager_end refuses a restricted caller (the end-while-restricted check must FAIL)");
+}
 const SKIP = process.env.NEW_MIGRATION === "skip";
 if (SKIP) console.log("NEW_MIGRATION=skip: running without the migration (expect FAILs)");
 const { P: K, A: M, B: N, X } = USERS; // K = Kaci (seller), M = manager, N = another member, X = a buyer
@@ -328,6 +352,16 @@ const ATT = "true, true, true, true";
 check("the manager can't approve it", refused(await as(M, `select public.declutter_manager_approve('${draft}', ${ATT})`), /not_found/));
 check("a stranger can't approve it", refused(await as(N, `select public.declutter_manager_approve('${draft}', ${ATT})`), /not_found/));
 check("the manager can't send it back", refused(await as(M, `select public.declutter_manager_send_back('${draft}', 'x')`), /not_found/));
+await db.exec(`insert into public.t_banned values ('${K}')`);
+check("a restricted seller can't send a draft back (account_restricted)",
+  refused(await as(K, `select public.declutter_manager_send_back('${draft}', 'x')`), /account_restricted/));
+check("a restricted seller can't approve a draft (account_restricted)",
+  refused(await as(K, `select public.declutter_manager_approve('${draft}', ${ATT})`), /account_restricted/));
+check("a restricted seller can't change the manager's parts (account_restricted)",
+  refused(await as(K, `select public.declutter_manager_set_permissions('${g1}', true, true, true, true, true)`), /account_restricted/));
+check("...and nothing changed: still waiting",
+  (await q1(`select status from public.declutter_manager_submissions where item_id = '${draft}'`))?.status === "waiting");
+await db.exec(`delete from public.t_banned`);
 r = await as(K, `select public.declutter_manager_send_back('${draft}', '  Add a photo of the back  ') as s`);
 const sub2 = await q1(`select status, note from public.declutter_manager_submissions where item_id = '${draft}'`);
 const backNotice = await q1(`select title, body from public.notices where user_id = '${M}' order by ctid desc limit 1`);
@@ -392,9 +426,11 @@ const mine = await as(M, `select role, seller_first_name, status, can_list, can_
 check("the manager's switcher row: Managing for Kaci", mine.rows?.[0]?.seller_first_name === "Kaci" && mine.rows[0].role === "manager", JSON.stringify(mine.rows ?? mine.err));
 check("only the two people can end it", refused(await as(N, `select public.declutter_manager_end('${g1}')`), /not_your_grant/));
 await db.exec(`insert into public.t_off values ('declutter_manager')`);
+await db.exec(`insert into public.t_banned values ('${K}')`);
 r = await as(K, `select public.declutter_manager_end('${g1}') as s`);
-check("the seller ends access, even with the switch off", r.ok && r.rows[0].s === "ended", r.err ?? r.rows?.[0]?.s);
+check("the seller ends access, even with the switch off and her account restricted (safety)", r.ok && r.rows[0].s === "ended", r.err ?? r.rows?.[0]?.s);
 await db.exec(`delete from public.t_off`);
+await db.exec(`delete from public.t_banned`);
 check("after ending, the manager can do nothing", refused(await manage(M, K, "pause_listing", { item_id: item }), /not_your_seller/));
 check("the manager is told", !!(await q1(`select 1 as x from public.notices where user_id = '${M}' and title = 'Declutter managing ended'`)));
 r = await offer(K, N, "flat", 500, "false, false, false, false, true");

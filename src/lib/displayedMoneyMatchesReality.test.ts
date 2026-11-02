@@ -135,9 +135,13 @@ describe("the three fixed sites do not drift back", () => {
   });
 
   it("states the payment-success escrow amount exactly", () => {
-    const src = site("../pages/post-job/PaymentSuccess.tsx");
-    expect(src).toMatch(/formatPriceExact\(escrowAmount\)/);
-    expect(src).not.toMatch(/formatPrice\(escrowAmount\)/);
+    // Q2087 moved the sentence into PaidAmountLine; the page hands it the escrow amount.
+    const page = site("../pages/post-job/PaymentSuccess.tsx");
+    expect(page).toMatch(/<PaidAmountLine amount=\{escrowAmount\}/);
+    expect(page).not.toMatch(/formatPrice\(escrowAmount\)/);
+    const src = site("../pages/post-job/PaidAmountLine.tsx");
+    expect(src).toMatch(/formatPriceExact\(amount\)/);
+    expect(src).not.toMatch(/formatPrice\(amount\)/);
   });
 
   it("floors the Schedule row take-home and only the take-home", () => {

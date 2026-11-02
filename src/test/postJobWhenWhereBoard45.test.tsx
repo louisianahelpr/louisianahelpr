@@ -238,7 +238,7 @@ describe("board 45 WHERE: the saved address radio fills the address fields", () 
   it("the privacy line names the town only, never the street", () => {
     render(<Host saved={HOME} />);
     const line = screen.getByText(/and the distance\./).closest("p");
-    expect(line?.textContent).toBe("Helprs see Delcambre and the distance. The street address is sent only to the Helpr you offer the job to.");
+    expect(line?.textContent).toBe("Helprs see Delcambre and the distance. Your street address goes only to the Helpr you offer the job to.");
     expect(line?.textContent).not.toContain("Bayou");
   });
 

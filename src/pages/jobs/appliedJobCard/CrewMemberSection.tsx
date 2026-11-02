@@ -327,7 +327,10 @@ export function CrewMemberSection({
       : "You're working. Add before and after photos of your part, then mark it done.",
     done: job.helper_completed_at
       ? "Every part is done. The person who posted this job approves it next."
-      : "Your part is done. The job is finished once every crew member marks theirs.",
+      // A3-33 (audit 11-01): each member is confirmed and paid on their own (JOBS-3), not when the whole crew finishes.
+      : slot.poster_confirmed_completion_at
+        ? "Your work is confirmed. Your pay goes out on its own."
+        : "Your part is done. The person who posted this job confirms your work next.",
   };
 
   const actions = [

@@ -20,11 +20,10 @@ import { toast } from "sonner";
 import { Eye } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
-import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/ui/chipClasses";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
-import { cn } from "@/lib/utils";
 import { BuyingDash, SellingDash } from "@/components/declutter/DeclutterMineViews";
 import { MyListingsView } from "@/components/declutter/DeclutterHomeView";
 import { declutterTodo } from "@/lib/declutter/tabs";
@@ -166,14 +165,12 @@ function Controls({ stage, side, onStage, onSide }: {
       </div>
       <div role="radiogroup" aria-label="Side" className="flex gap-2">
         {(["buyer", "seller"] as const).map((s) => (
-          <button key={s} type="button" role="radio" aria-checked={side === s} data-preview-side={s} onClick={() => onSide(s)}
-            className={cn(CHIP, side === s ? CHIP_ON : CHIP_OFF)}>{s === "buyer" ? "Buyer" : "Seller"}</button>
+          <ChoicePill key={s} selected={side === s} data-preview-side={s} onClick={() => onSide(s)}>{s === "buyer" ? "Buyer" : "Seller"}</ChoicePill>
         ))}
       </div>
       <div role="radiogroup" aria-label="Order stage" className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
         {DECLUTTER_PREVIEW_STAGES.map((s) => (
-          <button key={s.key} type="button" role="radio" aria-checked={stage === s.key} data-preview-stage={s.key} onClick={() => onStage(s.key)}
-            className={cn(CHIP, "min-h-9 px-3 text-ds-13", stage === s.key ? CHIP_ON : CHIP_OFF)}>{s.label}</button>
+          <ChoicePill key={s.key} selected={stage === s.key} data-preview-stage={s.key} onClick={() => onStage(s.key)} className="px-3">{s.label}</ChoicePill>
         ))}
       </div>
     </div>,

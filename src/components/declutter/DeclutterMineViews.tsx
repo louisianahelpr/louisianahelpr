@@ -51,7 +51,7 @@ import { useEndedSales } from "./DeclutterEndedSales";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
 import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
-import { FreePauseLine, MyFreeAsks } from "./DeclutterFreeClaim";
+import { FreePauseLine, MyFreeAsks, useMyFreeAsks } from "./DeclutterFreeClaim";
 import { WatchingList } from "./DeclutterWatching";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 
@@ -94,6 +94,9 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   const refunded = (id: string) => !!t.views.get(id)?.facts.cancelled;
   const endedOrders = only === null || only === "cancelled" ? [...t.views.keys()].filter(refunded).length : 0;
   const nothingActive = t.ready && chips.every((c) => c.key === "cancelled") && offers.has === false && !showCart;
+  // Builder 187 (seen in the preview, the same in the app): a member whose only Buying is an open free ask read
+  // "Nothing bought yet." above "Free items you asked for". The notice waits for the asks read and needs none.
+  const freeAsks = useMyFreeAsks();
   return (
     <div className="space-y-6">
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
@@ -104,7 +107,7 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {/* Q2569 (audit 1102a): with every order in one group the row read "All · 2" "Cancelled · 2", the chip only
           repeating All; the chips show once there are two groups to choose between. */}
       {chips.length > 1 && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
-      {t.ready && !orders && offers.has === false && !settling.settling && (
+      {t.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && (
         <DeclutterNotice title="Nothing bought yet.">
           When a seller accepts your offer, or you tap Buy, the item comes here. Buy now holds it 30 minutes; an accepted offer gives you 24 hours to check out.
         </DeclutterNotice>

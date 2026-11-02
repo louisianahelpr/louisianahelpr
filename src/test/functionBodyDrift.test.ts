@@ -205,7 +205,11 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // 20261025203540 (#230) wrote in place is written in ('Payment secured', 'is safely held', 'Not picked this time',
     // 'They went with someone else', 'You haven''t been charged anything.'; read 11-02, builder 164), so those
     // in-place rewrites are superseded.
-    expect(rewritten.length).toBe(18);
+    // (2026-11-02: 16.) 20261102131745 (Q2675, a block strikes only inside 24 h) re-created block_user_and_settle and
+    // 20261102070659 (series release, neutral words) re-created series_release_dates, each from its effective body:
+    // all six in-place rewrites of 20261025203540 on block_user_and_settle (#70-#120) and #140 on series_release_dates
+    // are written in (each old pattern absent, each replacement present; read 11-02, Builder 4), so they are superseded.
+    expect(rewritten.length).toBe(16);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

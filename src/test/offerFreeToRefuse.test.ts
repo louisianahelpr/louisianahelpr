@@ -29,6 +29,7 @@
  * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |                ELSE '" and you lost your spot. No strike.' |                ELSE '" and you lost your spot.'
  * @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql | One more — backing out of a job you accepted — and | One more — declining, ignoring, or cancelling a job you committed to — and
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike." | Backing out now counts against your account."
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike.` | Backing out now counts against your account.`
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | "If you don't answer in time, the job reopens to everyone. No strike." | "No answer counts the same as declining, and the job reopens to everyone."
  * @mutate src/components/ResponseDeadlineDialog.tsx | {They} can turn this down or not answer, and it never counts against them. | {They} will face consequences for declining jobs repeatedly.
  * @mutate src/pages/info/legal/CommunitySection.tsx | <li>Declining an offer, or letting one expire, does not count. Only backing out <em>after</em> you accept does.</li> | <li>Declining multiple offers counts.</li>
@@ -152,7 +153,11 @@ describe("the app says an offer is free to refuse (Q1281)", () => {
 
   it("the Decline confirm and the countdown line promise no strike, unconditionally", () => {
     const card = src("src/pages/jobs/appliedJobCard/OfferedActions.tsx");
-    expect(card).toContain(`description="You applied for this one and the person who posted it picked you. Declining isn't a strike."`);
+    // Q2605 (3bb6ccd5f6): the confirm now names a direct offer's poster; both branches still promise no strike.
+    const description = card.match(/description=\{direct\s*\?\s*(`[^`]*`)\s*:\s*("[^"]*")\}/);
+    expect(description, "the Decline confirm's description is the direct / applied pair").not.toBeNull();
+    expect(description![1]).toBe("`The offer goes back to ${posterFirst ?? \"the person who posted it\"}. Declining isn't a strike.`");
+    expect(description![2]).toBe(`"You applied for this one and the person who posted it picked you. Declining isn't a strike."`);
     expect(card).toContain(`"If you don't answer in time, the job reopens to everyone. No strike."`);
     expect(card).not.toMatch(/RELIABILITY_LADDER_SENTENCE|counts against your account|counts the same as declining/);
   });

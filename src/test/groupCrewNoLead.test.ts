@@ -239,7 +239,7 @@ describe("a crew has no lead (Q407)", () => {
     // an entry that stops matching is stale and fails below.
     const NOT_WRITERS: Record<string, string> = {
       "src/components/JobTracking.tsx": "hands the job's proof URLs (read by its own select) to jobProgress for the card's photo line; it writes no proof column",
-      "src/pages/admin/preview/jobPreviewSamples.ts": "the admin job-page preview's SAMPLE job row (empty proof lists) that its fake backend answers reads with; the preview never sends a write (previewBackend answers every write as blocked without sending it), so it writes no proof column",
+      "src/pages/admin/preview/jobPreviewSamples.ts": "the admin job-page preview's SAMPLE job row (empty proof lists) that its fake backend answers reads with; the preview never sends a write (previewBackend answers every write as 'blocked' without sending it), so it writes no proof column",
     };
     expect(Object.keys(NOT_WRITERS).filter((f) => !writers.includes(f)), "stale NOT_WRITERS entry").toEqual([]);
     expect(writers.filter((f) => !(f in NOT_WRITERS)), "a new client writer of jobs.proof_*_urls: route a crew through rpc_group_member_set_proof").toEqual(["src/components/PhotoProof.tsx"]);

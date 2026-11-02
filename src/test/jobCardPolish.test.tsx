@@ -20,7 +20,9 @@
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return { label: "Report no-show", onClick: h.noShow, tone: "secondary" }; |       return { label: "Manage job", onClick: h.manage, tone: "secondary" };
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |     if (start && start.getTime() - Date.now() > ON_MY_WAY_LEAD_MS) return null; |
  * @mutate src/components/job-card/jobStatusLine.ts |     if (!job.date_needed \|\| Date.now() < confirmOpensMs(job.date_needed)) return `${f} accepted · confirms the day before`; |     if (true) return `${f} accepted`;
- * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return confirmDeadline(job); |     case "confirm_still_on":\n      return null;
+ * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return posterConfirmDeadline(job); |     case "confirm_still_on":\n      return null;
+ * A3-9 (audit 11-01): the poster's clock ends at the start, like the line's "by" (posterConfirmClosesMs).
+ * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return posterConfirmDeadline(job); |     case "confirm_still_on":\n      return confirmDeadline(job);
  * @mutate src/components/job-card/collapsedClocks.ts |   if (opens) return [{ ...opens.clock, farLabel: "Confirm opens" }]; |   if (opens) return [{ ...opens.clock }];
  * @mutate src/components/job-card/collapsedClocks.ts |   if (!start \|\| Date.now() - start.getTime() > PAST_START_DROP_MS) return []; |   if (!start) return [];
  * @mutate src/lib/activityBuckets.ts |   waiting: "Waiting",\n  scheduled: "Booked", |   waiting: "Applied",\n  scheduled: "Booked",
@@ -107,6 +109,8 @@ describe("job card polish (owner 2026-10-23)", () => {
     const owed = line({});
     expect(owed.id).toBe("confirm_still_on");
     expect(owed.deadline).toMatchObject({ source: "confirm_deadline", consequenceText: "left to confirm" });
+    // A3-9: the poster's confirm closes at the start (Thu 3:00 PM Louisiana), not the Helpr's 2 hours before it.
+    expect(new Date(owed.deadline!.at).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" })).toBe("Thu 3:00 PM");
     const app = { id: "a", job: job({}), helper_id: "h", status: "accepted", closed_reason: null } as unknown as AppliedApp;
     expect(helperStatusLine(app).deadline).toMatchObject({ source: "confirm_deadline" });
   });

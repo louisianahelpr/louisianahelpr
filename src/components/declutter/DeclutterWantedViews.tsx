@@ -14,7 +14,8 @@
  */
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Camera, X } from "lucide-react";
+import { Camera, Search, X } from "lucide-react";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -557,7 +558,7 @@ export function WantedView() {
         ) : mine.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading your wanted posts…</p>
         ) : (mine.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">You haven't posted anything yet. Each post lasts 30 days, and sellers near you can answer it.</p>
+          <DeclutterEmptyCard icon={Search} title="No Wanted posts yet" data-wanted-mine-empty="">Each post lasts 30 days, and sellers near you can answer it.</DeclutterEmptyCard>
         ) : (
           <ul className="space-y-3">
             {(mine.data ?? []).map((w) => <WantedRow key={w.id} post={w} userId={user?.id ?? null} onEdit={setEditing} />)}

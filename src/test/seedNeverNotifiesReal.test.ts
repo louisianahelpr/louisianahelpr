@@ -241,7 +241,6 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "ts:src/components/admin/adminusers/useAdminUserActions.ts#1": "own ban lifted (admin actor, never seed)",
   "sql:send_new_member_daily_summary#1": "an admin alert listing who joined: test and seed members are refused at the queue and checked again at send time (20261031152136)",
   "sql:notify_admins_support_ticket#1": "an admin alert about a ticket: a test or seed reporter is skipped in the function itself, and a guest has no account (fixed words)",
-  "sql:notify_reporter_report_outcome#1": "own report closed (A3-113, 20261102015348): tells the reporter only that THEIR report was resolved or dismissed, in fixed words with the kind of thing and their own case number; never names who or what was reported, so no seed subject reaches a real person; a test or seed reporter is never told",
   "sql:review_credential#1": "own credential reviewed",
   "sql:notify_reporter_report_outcome#1": "own report's outcome: the reporter hears what became of their own report (case number only, nobody named); test and seed reporters are skipped in the function itself (20261102015348, 20261102040000)",
   "sql:bill_helpr_fault_card_fee#1": "own card fee billed after a Helpr-at-fault refund (the recipient's own debt; the poster is never named, and the ruling copies the job's is_seed)",

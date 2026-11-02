@@ -162,6 +162,13 @@ import { MemoryRouter } from "react-router-dom";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import { pickupDays } from "@/lib/declutter/pickupSlots";
 
+/** Q2634 (owner 11-02): the seller's payout rule sits under the money note's "Details"; opens it and returns its words. */
+async function openPayoutRule(): Promise<string> {
+  const btn = await waitFor(() => { const el = document.querySelector("[data-payout-details]"); expect(el).not.toBeNull(); return el as HTMLElement; });
+  if (btn.getAttribute("aria-expanded") !== "true") fireEvent.click(btn);
+  return (await waitFor(() => { const el = document.querySelector("[data-payout-rule]"); expect(el).not.toBeNull(); return el as HTMLElement; })).textContent ?? "";
+}
+
 function show(cart: unknown[]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<MemoryRouter><QueryClientProvider client={qc}><PaidOrdersSection cart={cart as never} /></QueryClientProvider></MemoryRouter>);
@@ -517,7 +524,12 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.bookings = [slot(10)];
     show([line({ my_side: "seller" })]);
     // LEAD-DOOR-PAYLINE: said once, in the money note, with the owner's 10-30 rule; never "24 hours after you tap Picked up".
-    expect((await screen.findByText(/^You get/)).textContent).toBe('You get $40. You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. If neither of you says anything, the money stays held.');
+    // Q2634 (owner 11-02): one line; the rule, word for word, under Details.
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {ruleOpen && <span className="mt-1 block" data-payout-rule=""> | {true && <span className="mt-1 block" data-payout-rule="">
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {parts} after the handover.{" "} | {parts}. {sellerPayoutRule(kind)}{" "}
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | onClick={() => setRuleOpen((o) => !o)}> | onClick={() => undefined}>
+    expect((await screen.findByText(/^You get/)).textContent).toBe("You get $40 after the handover. Details");
+    expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. If neither of you says anything, the money stays held.');
     expect(document.body.textContent).not.toMatch(/24 hours after you tap|paid 24 hours after the handover/);
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     expect(screen.queryByLabelText(/code/i)).toBeNull();
@@ -537,6 +549,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByText(/Add a Helpr below/)).toBeInTheDocument();
     unmount();
     show([line({ handover: "porch", my_side: "seller" })]);
+    await openPayoutRule();
     expect(await screen.findByText(/the later of the pickup time and your porch photo/)).toBeInTheDocument();
     expect(screen.queryByText("Pickup at the door")).toBeNull();
     expect(screen.queryByRole("button", { name: "Picked up" })).toBeNull();
@@ -857,7 +870,8 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByText("Next: put it out and take one photo where the buyer will find it")).toBeInTheDocument();
     // Deep audit #31: one payout rule, the live one, never "when the buyer marks it". LEAD-DOOR-PAYLINE: the porch rule.
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {sellerPayoutRule(kind)} | You're paid when the buyer marks it picked up.
-    expect(screen.getByText(/You get/).textContent).toBe('You get $40. You\'re paid 24 hours after the buyer taps "I got it" or takes their pickup photo, unless they ask for a refund. If the buyer says nothing, you\'re paid about 48 hours after the later of the pickup time and your porch photo. With no porch photo, the money stays held until the buyer confirms.');
+    expect(screen.getByText(/You get/).textContent).toBe("You get $40 after the handover. Details");
+    expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it" or takes their pickup photo, unless they ask for a refund. If the buyer says nothing, you\'re paid about 48 hours after the later of the pickup time and your porch photo. With no porch photo, the money stays held until the buyer confirms.');
   });
 
   // Audit 1028 D1-5 (1a-s-porch-after-375): after the porch photo the seller's card still asked for it ("Take the porch
@@ -1061,7 +1075,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(document.body.textContent).not.toMatch(/once the seller posts/);
     expect(screen.queryByRole("button", { name: "Out all day" })).toBeNull();
     expect(screen.queryByLabelText("Out until")).toBeNull();
-    expect(screen.getByText(/the later of the pickup time and your porch photo/)).toBeInTheDocument();
+    expect(await openPayoutRule()).toMatch(/the later of the pickup time and your porch photo/);
   });
 
   it("owner 10-28: before the porch-day migration is live (no days read), the porch card keeps the time picker", async () => {
@@ -1770,7 +1784,8 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
       expect(el).not.toBeNull();
       return el as HTMLElement;
     });
-    expect(await screen.findByText(/^You get .*You're paid 24 hours after the buyer taps "I got it"/)).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector("[data-money-note]")?.textContent).toMatch(/^You get \$[\d.]+.* after the handover\. Details$/));
+    expect(await openPayoutRule()).toMatch(/^You're paid 24 hours after the buyer taps "I got it"/);
     return steps;
   };
 
@@ -1816,7 +1831,8 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null, delivery_cents: 1000 };
     show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 4500, delivery_cents: 1000 })]);
     const note = await screen.findByText(/^You get/);
-    expect(note.textContent).toMatch(/^You get \$55 \(\$45 for the sale and \$10 for delivering it\)\. You're paid 24 hours after the buyer taps "I got it"/);
+    expect(note.textContent).toMatch(/^You get \$55 \(\$45 for the sale and \$10 for delivering it\) after the handover\./);
+    expect(await openPayoutRule()).toMatch(/^You're paid 24 hours after the buyer taps "I got it"/);
   });
 
   // AUD31-3, the seller's side: a move the buyer asked for waits on the seller's answer, and the sentence said "Booked".

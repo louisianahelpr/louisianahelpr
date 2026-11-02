@@ -95,7 +95,7 @@
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
  * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261102040952_declutter_card_fee_prorated.sql | p_reason, o.total_cents - v_reserved,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | p_reason, o.total_cents - v_reserved,\n    0);
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
  * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
@@ -455,7 +455,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // full_seller_pays_fee and keep_card_fee, a charge that also carried the setup fee bills only the sale's share of the
     // card fee (fee * total / (total + setup fee)). Reasons, policies and the CHECKs are unchanged.
     functionMigration: "20261102061022_declutter_card_fee_setup_share.sql",
-    proofs: ["src/test/pglite/declutterCardFeeSetupShare.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
+    proofs: ["src/test/pglite/declutterCardFeeSetupShare.pglite.mjs", "src/test/pglite/declutterSellerOutAfterPayment.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
       "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
     policySources: [
@@ -547,7 +547,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q1935 (20261102040952, builder 140; lh-money-escrow + lh-authz-rls approve 11-01, ~/.lh-shots/verdicts/b140.txt): restated verbatim; only the fee it passes changes, to the
       // order's card fee prorated to what is refunded (declutter_card_fee_left: fee x (total - reserved) / total), so a
       // seller's debt or a kept fee no longer carries card cost on a delivery fee already given back or paid to the Helpr.
-      declutter_close_paid_order: "20261102040952_declutter_card_fee_prorated.sql 5bb92b283b065a37",
+      // Q1928 gap 3 (20261102063343, lead PASS pending): restated from Shipping S6 2d (label hold) with Q1935's prorated
+      // fee restored; buyer_no_show / admin_no_fault become seller_out (full_seller_pays_fee) while the seller is out.
+      declutter_close_paid_order: "20261102063343_declutter_seller_out_after_payment.sql 0dd0e2a8f5c5e2f4",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
       // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
       // #3730 (20261028235247, lh-money-escrow approved via the lead 2026-10-29): only the handover_not_offered refusal
@@ -654,7 +656,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // BUY-25 (lead 10-30): never got it is reason seller_no_show (full_seller_pays_fee: the seller owes the card fee), already pinned; verdict owed.
       // Q1935 (20261102040952, builder 140; lh-money-escrow + lh-authz-rls approve 11-01, ~/.lh-shots/verdicts/b140.txt): restated verbatim; only the fee passed to declutter_record_refund
       // is prorated to v_paid (total - reserved) by declutter_card_fee_left. Reasons, amounts and the part refund unchanged.
-      declutter_refund_after_handover: "20261102040952_declutter_card_fee_prorated.sql 2319c12797fa7813",
+      // Q1928 gap 3 (20261102063343): restated from Shipping S6 2g with Q1935's prorated fee restored; admin_no_fault
+      // becomes seller_out while the seller is out.
+      declutter_refund_after_handover: "20261102063343_declutter_seller_out_after_payment.sql 595741c2cd15bf1a",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       declutter_payouts_due: "20261026155251_declutter_refund_requests.sql a7c6262ff5abda7d",

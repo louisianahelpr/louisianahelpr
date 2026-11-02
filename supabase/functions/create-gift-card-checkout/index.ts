@@ -240,6 +240,9 @@ serve(async (req) => {
       message,
       occasion,
       design_id: designId,
+      // Q1906: a TEST-mode gift names the recipient account it was checked against here, so the webhook checks the
+      // same account (testGiftIsTestToTest), never a different one found by email.
+      ...(stripeMode === "test" && recipientUserId ? { recipient_id: recipientUserId } : {}),
     };
 
     const session = await stripe.checkout.sessions.create({

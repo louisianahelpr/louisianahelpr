@@ -19,6 +19,8 @@
  * @mutate supabase/functions/_shared/stripeMode.ts |   if (owners.length !== 1) return false; |   if (owners.length === 0) return true;
  * @mutate supabase/functions/_shared/stripeMode.ts |   return tests.has(donor) && tests.has(owners[0]); |   return tests.has(owners[0]);
  * @mutate supabase/functions/stripe-webhook/index.ts | !(await testGiftIsTestToTest(supabase, eventObject)) | false
+ * @mutate supabase/functions/_shared/stripeMode.ts |     if (!row \|\| String(row.email ?? "").trim().toLowerCase() !== email) return false; |     if (!row) return false;
+ * @mutate supabase/functions/create-gift-card-checkout/index.ts |       ...(stripeMode === "test" && recipientUserId ? { recipient_id: recipientUserId } : {}), |       ...({}),
  * @mutate supabase/functions/stripe-webhook/index.ts |             .update({ status: "expired" }) |             .update({ status: "sent" })
  * @mutate supabase/functions/stripe-webhook/index.ts |             .eq("payment_status", "pending")\n            .neq("status", "expired") |             .neq("status", "expired")
  * @mutate supabase/functions/stripe-webhook/index.ts |               status: 500,\n            });\n          }\n          console.log(JSON.stringify({ event: "stripe_test_gift_refused_closed" |               status: 200,\n            });\n          }\n          console.log(JSON.stringify({ event: "stripe_test_gift_refused_closed"
@@ -164,6 +166,9 @@ describe("Q1750: a gift card runs in the buyer mode, and test credit goes only t
       const res = await buyGift(TEST_BUYER, { recipient_id: TEST_RECIPIENT });
       expect(res.status).toBe(200);
       expect(stripeMock.__keys).toEqual([TEST_KEY]);
+      // Q1906: the session names the account the checkout checked, for the webhook to check the same one.
+      const params = stripeMock.checkout.sessions.create.mock.calls[0][0] as { metadata?: Record<string, unknown> };
+      expect(params.metadata?.recipient_id).toBe(TEST_RECIPIENT);
     });
 
     it("a test buyer gifting a REAL account is refused before Stripe, and no gift row is written", async () => {
@@ -254,12 +259,12 @@ describe("Q1750: a gift card runs in the buyer mode, and test credit goes only t
   });
 
   describe("stripe-webhook: a TEST-mode gift is applied only test-to-test", () => {
-    const deliverGift = async (donorId: string, recipientEmail: string) => {
+    const deliverGift = async (donorId: string, recipientEmail: string, extraMeta: Record<string, string> = {}) => {
       const ev = {
         id: "evt_gift",
         type: "checkout.session.completed",
         livemode: false,
-        data: { object: { id: "cs_test_gift", object: "checkout.session", mode: "payment", metadata: { kind: "gift_card_purchase", donor_id: donorId, recipient_email: recipientEmail, amount_cents: "2500" } } },
+        data: { object: { id: "cs_test_gift", object: "checkout.session", mode: "payment", metadata: { kind: "gift_card_purchase", donor_id: donorId, recipient_email: recipientEmail, amount_cents: "2500", ...extraMeta } } },
       };
       stripeMock.webhooks.constructEventAsync.mockImplementation(async (_b: string, _s: string, secret: string) => {
         if (secret === "whsec_sandbox") return ev;
@@ -306,6 +311,35 @@ describe("Q1750: a gift card runs in the buyer mode, and test credit goes only t
       enrol(TEST_BUYER);
       scenario.reads.profiles = { ...(scenario.reads.profiles ?? {}), rows: [{ user_id: REAL_RECIPIENT }] };
       const { body } = await deliverGift(TEST_BUYER, REAL_RECIPIENT_EMAIL);
+      expect(String(body.ignored)).toMatch(/^(test_event_names_real_account|test_gift_not_test_to_test)$/);
+      expect(applied()).toBe(false);
+    });
+
+    // Q1906: a session that names its recipient account is checked against THAT account's profiles.email.
+    it("a named test recipient whose profiles.email matches the gift's email is applied", async () => {
+      env();
+      enrol(TEST_BUYER, TEST_RECIPIENT);
+      scenario.reads.profiles = { ...(scenario.reads.profiles ?? {}), rows: [{ user_id: TEST_RECIPIENT, email: TEST_RECIPIENT_EMAIL }] };
+      const { body } = await deliverGift(TEST_BUYER, TEST_RECIPIENT_EMAIL, { recipient_id: TEST_RECIPIENT });
+      expect(body.ignored).not.toBe("test_gift_not_test_to_test");
+      expect(applied()).toBe(true);
+    });
+
+    it("a named test recipient whose profiles.email differs from the gift's email is NOT applied", async () => {
+      env();
+      enrol(TEST_BUYER, TEST_RECIPIENT);
+      scenario.reads.profiles = { ...(scenario.reads.profiles ?? {}), rows: [{ user_id: TEST_RECIPIENT, email: "other.address@example.com" }] };
+      const { status, body } = await deliverGift(TEST_BUYER, TEST_RECIPIENT_EMAIL, { recipient_id: TEST_RECIPIENT });
+      expect(status).toBe(200);
+      expect(body).toMatchObject({ ignored: "test_gift_not_test_to_test" });
+      expect(applied()).toBe(false);
+    });
+
+    it("a named recipient that is not a test account is NOT applied, even when the email matches", async () => {
+      env();
+      enrol(TEST_BUYER);
+      scenario.reads.profiles = { ...(scenario.reads.profiles ?? {}), rows: [{ user_id: REAL_RECIPIENT, email: TEST_RECIPIENT_EMAIL }] };
+      const { body } = await deliverGift(TEST_BUYER, TEST_RECIPIENT_EMAIL, { recipient_id: REAL_RECIPIENT });
       expect(String(body.ignored)).toMatch(/^(test_event_names_real_account|test_gift_not_test_to_test)$/);
       expect(applied()).toBe(false);
     });

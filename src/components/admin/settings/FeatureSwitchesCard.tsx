@@ -26,6 +26,7 @@ import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
 import { HomesListingsCard } from "./HomesListingsCard";
 import { FEATURE_SWITCH_PREFIX } from "@/lib/featureSwitchQuery";
 import { DonationPartnersCard } from "./DonationPartnersCard";
+import { DeclutterPreviewCard } from "./DeclutterPreviewCard";
 
 type SwitchRow = { key: string; audience: string; description: string; updated_at: string };
 type PendingChange = { key: string; from: string; to: FeatureAudience };
@@ -170,12 +171,15 @@ export function FeatureSwitchesCard() {
       />
     </AdminCard>
     {/* One "Show test listings" switch for both Declutter admin cards (audit 1028 part 2, D2-4). */}
+    {/* Q2583: the Declutter cards sit together (they were scattered among Shops,
+        Homes and SMS cards on one long page), the stage preview last. */}
     <DeclutterReviewCard showTest={declutterShowTest} onShowTestChange={setDeclutterShowTest} />
-    <ShopItemsReviewCard />
-    <CategorySuggestionsCard />
     <DeclutterProblemsCard includeTest={declutterShowTest} />
     <MeetupSpotsCard />
     <DonationPartnersCard />
+    <DeclutterPreviewCard />
+    <ShopItemsReviewCard />
+    <CategorySuggestionsCard />
     <RentalsOwnershipCard />
     <HomesListingsCard />
     </>

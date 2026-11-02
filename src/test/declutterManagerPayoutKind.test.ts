@@ -13,7 +13,7 @@
 // definitions: the payout kind 'declutter_manager' is taken by the waits and send-mark tables and by every payout
 // helper declutter-money calls for it (defer, wait seen, hold for review, prune); the manager's queue never offers a
 // banned, suspended or held manager; a refund cuts the share by the items refund only. Behaviour:
-// src/test/pglite/declutterManagerPayoutKind.pglite.mjs (15 checks; NEW_MIGRATION=skip and 6 planted defects go red).
+// src/test/pglite/declutterManagerPayoutKind.pglite.mjs (20 checks, measured 2026-11-01; NEW_MIGRATION=skip and 6 planted defects go red).
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { readFileSync } from "node:fs";

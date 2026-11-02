@@ -249,7 +249,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
                 </Button>
               </div>
               {codeError && (
-                <p id={`${codeId}-error`} role="alert" className="text-ds-13" style={{ color: "hsl(var(--destructive))" }}>
+                <p id={`${codeId}-error`} role="alert" className="text-ds-13" style={{ color: "hsl(var(--destructive-ink))" }}>
                   {codeError}
                 </p>
               )}

@@ -1717,6 +1717,21 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
     // A phone keeps the old order: the choices come before the bill and Pay.
     expect(choices.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+  // Q2633 (audit 1102c R8; owner rule: no line under the buttons): Pay is the last thing in the bill, and the seller's
+  // payout promise is neutral, never the rust warning box.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |       <p className="text-ds-13 text-muted-foreground" data-checkout-note=""> |       <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-checkout-note="">
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |           the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */} |           the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */}<p>You pay on a secure payment page.</p>
+  it("Q2633: nothing sits under Pay, and the seller's payout line is not in a warning tone", async () => {
+    state.cart = [line];
+    show(<CartView />, "/declutter?tab=buying");
+    const pay = await screen.findByRole("button", { name: /^Pay \$/ });
+    const summary = document.querySelector("[data-checkout-summary]")!;
+    const after = Array.from(summary.querySelectorAll("*")).filter((el) => pay.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !pay.contains(el));
+    expect(after.map((el) => el.textContent)).toEqual([]);
+    const note = summary.querySelector("[data-checkout-note]")!;
+    expect(note.textContent).toMatch(/The seller keeps the whole \$40/);
+    expect(note.className).not.toMatch(/sienna|destructive|warning/);
+  });
   it("each line shows its first photo (a grey square when it has none) and its title is a 44 px tap", async () => {
     cartPhotos.length = 0;
     cartPhotos.push({ id: "p2", item_id: "i1", storage_path: "s2/i1/b.jpg", position: 1 }, { id: "p1", item_id: "i1", storage_path: "s2/i1/a.jpg", position: 0 });

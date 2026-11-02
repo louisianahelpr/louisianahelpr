@@ -161,12 +161,15 @@ describe("the pickup-day card", () => {
     expect(screen.queryByRole("link", { name: "Directions" })).toBeNull();
   });
 
-  it("BUY-6: once the seller's porch photo is in, I'm on my way and Directions come back", async () => {
+  // Q2628 (audit 1102c R3): once it is out, Directions come back but never "I'm on my way" (nobody meets on a porch
+  // pickup; the order card's "I got it" is the one primary). A door pickup on the same card keeps its button.
+  // @mutate src/components/declutter/DeclutterPickupDayCard.tsx | {p.order.handover !== "porch" && <OnMyWayButton | {<OnMyWayButton
+  it("BUY-6 / Q2628: once the seller's porch photo is in, Directions come back, never I'm on my way", async () => {
     state.outAt = { p: new Date().toISOString() };
-    show([order("p", "porch")], [booked("p", { pickup_day: ymdToday() })]);
-    expect(await screen.findByRole("button", { name: "I'm on my way" })).toBeInTheDocument();
-    expect(await screen.findByRole("link", { name: "Directions" })).toBeInTheDocument();
+    show([order("p", "porch"), order("d", "pickup_home")], [booked("p", { pickup_day: ymdToday() }), booked("d")]);
+    expect(await screen.findAllByRole("link", { name: "Directions" })).toHaveLength(2);
     expect(screen.queryByText(/Not out yet/)).toBeNull();
+    expect(screen.getAllByRole("button", { name: "I'm on my way" })).toHaveLength(1);
   });
 
   it("a place that will not load says so, and I'm on my way still works", async () => {

@@ -90,7 +90,9 @@ export function PickupDayCard({ orders, bookings, held }: { orders: PickupOrderL
                 <p className="text-ds-13 text-muted-foreground" data-porch-not-out="">Not out yet. Don't go until we tell you it's on the porch.</p>
               ) : (
               <div className="flex flex-wrap items-center gap-2">
-                <OnMyWayButton orderId={p.order.orderId} sent={p.onWay} />
+                {/* Q2628 (audit 1102c R3): nobody meets on a porch pickup, so "I'm on my way" told no one anything useful and
+                    sat over the order card's "I got it" as a second primary. A porch stop keeps only Directions. */}
+                {p.order.handover !== "porch" && <OnMyWayButton orderId={p.order.orderId} sent={p.onWay} />}
                 {s.map && (
                   <a href={s.map} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold">
                     <Navigation className="h-4 w-4" aria-hidden />

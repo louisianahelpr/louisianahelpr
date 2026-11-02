@@ -112,7 +112,7 @@ const before = (a: Element, b: Element) => !!(a.compareDocumentPosition(b) & Nod
 describe("Posts, booked job: I'm still on is the row's primary beside More", () => {
   it("unconfirmed poster: the live I'm still on sits IN the row, no 'Still on for this one?' panel", () => {
     wrap(<ScheduledStep {...ctx(makeJob())} />);
-    const btn = screen.getByRole("button", { name: /I'm still on/ });
+    const btn = screen.getByRole("button", { name: /Confirm it's still on/ });
     expect(row().contains(btn)).toBe(true);
     expect((btn as HTMLButtonElement).disabled).toBe(false);
     expect(screen.queryByText(/Still on for this one\?/)).toBeNull();
@@ -133,7 +133,7 @@ describe("Posts, booked job: I'm still on is the row's primary beside More", () 
   it("more than a day out: no greyed I'm still on; the line says when confirming opens", () => {
     const far = jobClock(72);
     wrap(<ScheduledStep {...ctx(makeJob({ date_needed: far.date, start_time: far.time, helper_dayof_confirmed_at: null }))} />);
-    expect(screen.queryByRole("button", { name: /I'm still on/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Confirm it's still on/ })).toBeNull();
     expect(row().contains(screen.getByRole("button", { name: /^Message /i }))).toBe(true);
     expect(screen.getByText(/confirm the day before\. Opens /)).toBeInTheDocument();
   });
@@ -162,7 +162,7 @@ describe("on the way: no greyed arrival button, nothing above the profile", () =
   it("on the way but the card still reads accepted: no I'm still on in the row", () => {
     wrap(<ScheduledStep {...ctx(makeJob({ poster_confirmed_at: null, helper_on_the_way_at: ago(0.05) }))} />);
     expect(row()).not.toBeNull();
-    expect(screen.queryByRole("button", { name: /I'm still on/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Confirm it's still on/ })).toBeNull();
     expect(screen.queryByText(/Still on for this one\?/)).toBeNull();
   });
 });

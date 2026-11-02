@@ -16,7 +16,7 @@
  *  14 desktop: the price beside the title
  *  15 a dispute says "Dispute open · Payment on hold" and opens the dispute
  *
- * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return { label: "I'm still on", onClick: h.confirm, tone: "primary" }; |       return { label: "Manage job", onClick: h.manage, tone: "secondary" };
+ * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return { label: "Confirm it's still on", onClick: h.confirm, tone: "primary" }; |       return { label: "Manage job", onClick: h.manage, tone: "secondary" };
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return { label: "Report no-show", onClick: h.noShow, tone: "secondary" }; |       return { label: "Manage job", onClick: h.manage, tone: "secondary" };
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |     if (start && start.getTime() - Date.now() > ON_MY_WAY_LEAD_MS) return null; |
  * @mutate src/components/job-card/jobStatusLine.ts |     if (!job.date_needed \|\| Date.now() < confirmOpensMs(job.date_needed)) return `${f} accepted · confirms the day before`; |     if (true) return `${f} accepted`;
@@ -67,7 +67,7 @@ afterEach(cleanup);
 describe("job card polish (owner 2026-10-23)", () => {
   it("1: a confirm owed is the face's button, through the card's own dialog (one-shot request)", () => {
     const confirm = vi.fn();
-    expect(posterFaceAction("confirm_still_on", job({}), handlers({ confirm }))).toMatchObject({ label: "I'm still on", tone: "primary" });
+    expect(posterFaceAction("confirm_still_on", job({}), handlers({ confirm }))).toMatchObject({ label: "Confirm it's still on", tone: "primary" }); // shown as "Confirm" (owner 11-01)
     const helper = helperFaceAction({ isMinimalCard: false, isOffered: false, owesReview: false, review: noop, manage: noop, open: noop, wait: "confirm_day", jobId: "j" });
     expect(helper).toMatchObject({ label: "Confirm you'll be at the job", tone: "primary", step: "confirm" });
     helper!.onClick();

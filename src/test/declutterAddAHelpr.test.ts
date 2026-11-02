@@ -37,11 +37,11 @@
  * @mutate scripts/ci/null-arg-validators.sql | links the caller''s own open, not-yet-paid job (any category) | links the caller''s own open assembly/handyman job
  * @mutate src/integrations/supabase/types.ts |       declutter_order_jobs: {\n        Row: {\n          created_at: string\n          job_id: string\n |       declutter_order_jobs: {\n        Row: {\n          created_at: string\n
  * @mutate src/test/pglite/declutterAddAHelpr.pglite.mjs |   if (refs.length === 0 \|\| bad.length) { |   if (false) {
- * @mutate src/pages/post-job/useJobSubmit.ts |     description: why ?? "Find it under your posted jobs.", |     description: "Find it under your posted jobs.",
+ * @mutate src/pages/post-job/useJobSubmit.ts |     description: result.why ?? "Find it under your posted jobs.", |     description: "Find it under your posted jobs.",
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql | REVOKE ALL ON FUNCTION public.declutter_link_setup_job(uuid, uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_link_setup_job(uuid, uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql | VALUES ('declutter_add_helpr', 'testers', | VALUES ('declutter_add_helpr', 'off',
  * @mutate src/pages/post-job/usePostJobForm.ts |  \|\| searchParams.get("declutterOrder") \|\| |  \|\|
- * @mutate src/pages/post-job/useJobSubmit.ts |     if (!(await linkSetupJob(orderId, jobId))) linkErr |     if (false) linkErr
+ * @mutate src/pages/post-job/useJobSubmit.ts |     return linkSetupJob(orderId, jobId); |     return true;
  * @mutate src/pages/post-job/useJobSubmit.ts |       if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, attempt.jobId); |
  * @mutate src/pages/post-job/useJobSubmit.ts |       if ((!haulAwayItemIds \|\| haulAwayItemIds.length === 0) && !declutterOrderId) {\n        flushDraft(); |       if (true) {\n        flushDraft();
  * @mutate src/pages/post-job/useJobSubmit.ts |   toast.error("Your job posted, but it isn't showing on your Declutter purchase", { |   void ("Your job posted, but it isn't showing on your Declutter purchase", {
@@ -148,7 +148,9 @@ describe("Declutter Add a Helpr", () => {
     const all = [...new Set([...raised, "feature_disabled"])].sort();
     for (const c of all) expect(copy[c], c).toBeTruthy();
     expect(Object.keys(copy).sort()).toEqual(all);
-    expect(code("src/pages/post-job/useJobSubmit.ts")).toMatch(/const why = \(linkErr as \{ userMessage\?: string \} \| null\)\?\.userMessage;[\s\S]*?description: why \?\? "Find it under your posted jobs\.",/);
+    // Q1942: the refusal's words are read in setupLinkPending (shared with PaymentSuccess's retry).
+    expect(code("src/lib/declutter/setupLinkPending.ts")).toContain("const why = (err as { userMessage?: string } | null)?.userMessage;");
+    expect(code("src/pages/post-job/useJobSubmit.ts")).toContain('description: result.why ?? "Find it under your posted jobs.",');
   });
 
   it("the null-argument class check calls the link an action and says what it really links (C)", () => {
@@ -229,7 +231,7 @@ describe("Declutter Add a Helpr", () => {
     expect(code("src/pages/post-job/usePostJobForm.ts")).toMatch(/\n\s+declutterOrderId,\n/);
     expect(code("src/pages/post-job/useJobFormEffects.ts")).toMatch(/searchParams\.get\("declutterOrder"\)[\s\S]*?fetchSetupHelpr\(orderId\)[\s\S]*?buildSetupJobPrefill\(/);
     const submit = code("src/pages/post-job/useJobSubmit.ts");
-    expect(submit).toContain("if (!(await linkSetupJob(orderId, jobId))) linkErr = ");
+    expect(submit).toContain("return linkSetupJob(orderId, jobId);");
     // Loaded lazily as a BACKGROUND import: a stale chunk is a failed link the buyer is told about, never
     // a recovery reload between the job row and the checkout redirect (lh-money-escrow review of 6ef39799d #3a).
     expect(submit).toContain('const { linkSetupJob } = await backgroundImport(() => import("@/lib/declutter/setupHelpr"), "declutter-setup-helpr");');
@@ -252,7 +254,8 @@ describe("Declutter Add a Helpr", () => {
     expect(form).toContain("const saveDraft = useCallback<typeof saveAnyDraft>((d) => { if (!noDraft) saveAnyDraft(d); }, [noDraft, saveAnyDraft]);");
     expect(form).toContain("const flushDraft = useCallback(() => { if (!noDraft) flushAnyDraft(); }, [noDraft, flushAnyDraft]);");
     // A failed link is told to the buyer, not only logged (lh-silent-failure review #1).
-    expect(submit).toMatch(/if \(!linkErr\) return;[\s\S]*?toast\.error\("Your job posted, but it isn't showing on your Declutter purchase"/);
+    // Q1942: and remembered first, so PaymentSuccess tries again and tells it on a screen that stays.
+    expect(submit).toMatch(/if \(result\.ok\) \{[\s\S]*?return;\n {2}\}[\s\S]*?pending\?\.rememberPendingSetupLink\(\{ orderId, jobId \}\);[\s\S]*?toast\.error\("Your job posted, but it isn't showing on your Declutter purchase"/);
   });
 
   it("the buyer's paid order card offers the choices behind the switch, each opening Post a job", () => {

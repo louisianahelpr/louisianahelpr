@@ -904,6 +904,22 @@ serve(async (req) => {
             // The hold landed between the read above and release-payout's own
             // check. Same outcome as above: not a failed attempt, no page.
             payoutResults.push({ job_id: job.id, status: PAYOUT_HELD_CODE, detail: json.error });
+          } else if (json.code === "stripe_mode_refused") {
+            // Q2397: release-payout refused the job's Stripe mode (a job mixing
+            // a test and a real account, an unenrolled test-looking Helpr, or
+            // its own misconfiguration). Retrying cannot fix it and the give-up
+            // page's "pay it by hand" is the wrong advice: it needs the
+            // account's enrolment (or a refund / hand payout). Not a failed
+            // attempt; a run defect naming the reason, as at Step 1 above and
+            // in process-scheduled-payouts.
+            const reason = typeof json.reason === "string" ? json.reason : `HTTP ${resp.status}`;
+            payoutResults.push({ job_id: job.id, status: "stripe_mode_refused", detail: `${reason}: ${json.error ?? ""}` });
+            const modeDefect = `stripe mode ${job.id}: ${reason}: release-payout refused the payout${reason === "mixed_parties" ? " (a payee in the other Stripe mode cannot be paid from this escrow: refund the person who paid it, from Admin)" : ""}`;
+            // A test-looking account (unenrolled seed, fixture inbox) is test
+            // data: digest only, never a page to the owner, whatever the job's
+            // own is_seed says.
+            if (reason === "unenrolled_seed" || reason === "fixture_email") seedDefects.push(`${modeDefect} (test account)`);
+            else jobDefect(job.id, modeDefect);
           } else if (typeof json.code === "string" && CONNECT_HELD_CODES.has(json.code)) {
             // Lead 2026-10-23: release-payout refused before any transfer
             // because Stripe does not say the Helpr's account is payable (or

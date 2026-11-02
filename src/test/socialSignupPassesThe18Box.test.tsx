@@ -23,7 +23,7 @@
  *      below, so a second writer cannot appear without being named here.
  *
  * @mutate src/components/ProtectedRoute.tsx |   return filled(profile.age_attested_at) \|\| filled(profile.date_of_birth); |   return true;
- * @mutate src/pages/auth/CompleteProfile.tsx |       ...(ageBoxShown ? [{ label: t("profileGate.needAge"), done: ageConfirmed }] : []), |
+ * @mutate src/pages/auth/CompleteProfile.tsx |       ...(ageBoxShown ? [{ label: t("profileGate.needAge"), step: t("profileGate.stepAge"), done: ageConfirmed }] : []), |
  * @mutate src/pages/auth/CompleteProfile.tsx |         ...(ageBoxShown && !profile?.age_attested_at ? { age_attested_at: nowIso } : {}), |
  * @mutate src/pages/auth/CompleteProfile.tsx |                   {t("profileGate.ageConfirm")} <span | <span
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = false;

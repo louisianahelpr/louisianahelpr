@@ -10,6 +10,7 @@
  * @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |            {(r.sibling_refs ?? []).length > 0 && ( |            {false && (
  * @mutate src/components/admin/AdminPayoutBatches.tsx |      <HeldForReview />\n |
  * @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |  shop_refund: "Shops refund",\n |
+ * @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |  declutter_manager: "Declutter manager share",\n |
  * @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx | readOnly={WHOLE_AMOUNT_ONLY.has(r.kind)} | readOnly={false}
  * @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |       if (draft.action === "settle" && draft.row.kind === "shop_refund" && !/^\s*other:/i.test(draft.ref)) { |       if (false) {
  */
@@ -118,6 +119,15 @@ describe("Held for review (admin money page)", () => {
     fireEvent.click(screen.getByLabelText(/I checked this Stripe id/));
     fireEvent.click(screen.getByText("Mark settled").closest("button") as HTMLButtonElement);
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/already recorded on another payout or refund/)));
+  });
+
+  it("a held manager share (manager mode) is listed, and released through the same RPC with its own kind", async () => {
+    const MGR: HeldRow = { kind: "declutter_manager", id: "0000000b-0000-4000-8000-0000000000ef", payee_id: "u1", payee_account: "acct_mgr1",
+      amount_cents: 800, reason: "rejected: transfers inactive", held_at: "2026-11-01T08:00:00Z", stripe_group: "declutter_order_y", sibling_refs: [] };
+    rpcMock.mockImplementation(async (fn: string) => (fn === "admin_payouts_held_for_review" ? { data: [MGR], error: null } : { data: { result: "released" }, error: null }));
+    mount();
+    expect(await screen.findByText(/Declutter manager share/)).toBeTruthy();
+    expect(screen.getByText(/acct_mgr1/)).toBeTruthy();
   });
 
   it("a held Shops refund is listed and settled only for its whole amount (the amount is fixed)", async () => {

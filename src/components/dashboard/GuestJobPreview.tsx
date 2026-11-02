@@ -3,7 +3,7 @@
  * "Guests see shared jobs: no poster, address, coordinates").
  *
  * A guest who taps a job on the public Browse list, or opens a shared job link, sees the job's title, category,
- * parish and what they would take home, and one way forward: "Sign Up to Apply". Nothing else: no poster name, no address, no
+ * parish and what they would take home, and one way forward: "Sign up to apply". Nothing else: no poster name, no address, no
  * coordinates, no description or photos (a description is free text and can carry a street address or a phone
  * number). Before this, the Browse tap went straight to the sign-up form with no job shown first.
  *
@@ -103,7 +103,7 @@ export function GuestJobPreview({ job, onClose, onSignUp }: {
         </dl>
         {/* No "Not now": the sheet's X closes it (owner 10-31, every sheet has the X). */}
         <DialogFooter>
-          <DialogPrimaryAction onClick={() => onSignUp(job.id)}>Sign Up to Apply</DialogPrimaryAction>
+          <DialogPrimaryAction onClick={() => onSignUp(job.id)}>Sign up to apply</DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

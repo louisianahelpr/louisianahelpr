@@ -17,7 +17,7 @@
  *   3. the seed scripts that write terms_version_accepted directly pin it;
  *   4. behaviour: a confirmed, unbanned account whose accepted version is
  *      "Jun 2026" (or never set) is shown the non-dismissible dialog, and
- *      tapping I Agree pins the new version; an account on the new version is
+ *      tapping I agree pins the new version; an account on the new version is
  *      not prompted.
  *
  * Proven red 2026-09-23 on origin/main bf4007bed (all three copies "Jun 2026"):
@@ -125,11 +125,11 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
     expect(monthKey(LATEST_TERMS_VERSION)).toBeGreaterThan(monthKey("Jun 2026"));
   });
 
-  it("an account that accepted Jun 2026 is prompted, and I Agree pins the new version", async () => {
+  it("an account that accepted Jun 2026 is prompted, and I agree pins the new version", async () => {
     acceptedVersion = "Jun 2026";
     render(<MemoryRouter><TermsReconsentDialog /></MemoryRouter>);
     expect(await screen.findByText(TITLE)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "I Agree" }));
+    fireEvent.click(screen.getByRole("button", { name: "I agree" }));
     await waitFor(() => expect(updates.length).toBe(1));
     expect(updates[0].terms_version_accepted).toBe(LATEST_TERMS_VERSION);
     // OA-009: the append-only consent EVENT is written too, not just the pin.
@@ -156,7 +156,7 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
 
   it("an account that accepted NEWER Terms than this build is not prompted, and nothing is written (Q?schedule-double-modal)", async () => {
     // An older build (an iPhone not yet updated, a stale checkout) must not
-    // call a newer acceptance stale: with `!==` it prompted and its I Agree
+    // call a newer acceptance stale: with `!==` it prompted and its I agree
     // wrote its own OLDER version, putting the member's current devices back
     // behind this dialog (prod, 2026-10-17 09:13:20Z, poster-e2e).
     const k = monthKey(LATEST_TERMS_VERSION) + 1;

@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const h = vi.hoisted(() => ({ payouts: [] as unknown[], lines: [] as unknown[], calls: [] as unknown[][] }));
-vi.mock("@/lib/declutter/handover", () => ({ fetchMyPayouts: async () => h.payouts }));
+vi.mock("@/lib/declutter/payoutReads", () => ({ fetchMyPayouts: async () => h.payouts }));
 vi.mock("@/integrations/supabase/client", () => {
   const q = () => {
     const self: Record<string, unknown> = {};

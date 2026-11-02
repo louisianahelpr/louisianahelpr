@@ -16,7 +16,7 @@
  * @mutate src/lib/declutter/payoutWords.ts |   if ((p.status === "failed" \|\| p.status === "pending") && | if (p.status === "failed" &&
  * @mutate src/lib/declutter/payoutWords.ts | export const PAYOUT_TRIES = 12; | export const PAYOUT_TRIES = 13;
  * @mutate src/lib/declutter/payoutWords.ts |   if (p.status === "failed" && p.attempts === undefined) return PAYOUT_FAILED_UNKNOWN; |
- * @mutate src/lib/declutter/handover.ts |   const res = await supabase.from("declutter_payouts").select(`${cols}, attempts`).eq("seller_id", userId); |   const res = await supabase.from("declutter_payouts").select(cols).eq("seller_id", userId);
+ * @mutate src/lib/declutter/payoutReads.ts |   const res = await supabase.from("declutter_payouts").select(`${cols}, attempts`).eq("seller_id", userId); |   const res = await supabase.from("declutter_payouts").select(cols).eq("seller_id", userId);
  * @mutate supabase/migrations/20261031184338_declutter_payout_attempts_readable.sql | GRANT SELECT (attempts) ON TABLE public.declutter_payouts TO authenticated; | GRANT SELECT (status) ON TABLE public.declutter_payouts TO authenticated;
  */
 import { describe, expect, it } from "vitest";
@@ -93,7 +93,7 @@ describe("soldstates-4: a failed payout says whether we are still trying", () =>
     expect(caps).toEqual([PAYOUT_TRIES]);
     const grant = blankSqlComments(readFileSync(resolve(dir, "20261031184338_declutter_payout_attempts_readable.sql"), "utf8"));
     expect(grant).toMatch(/GRANT SELECT \(attempts\) ON TABLE public\.declutter_payouts TO authenticated;/);
-    const handover = readFileSync(resolve(process.cwd(), "src/lib/declutter/handover.ts"), "utf8");
+    const handover = readFileSync(resolve(process.cwd(), "src/lib/declutter/payoutReads.ts"), "utf8");
     expect(handover).toMatch(/from\("declutter_payouts"\)\.select\(`\$\{cols\}, attempts`\)/);
   });
 });

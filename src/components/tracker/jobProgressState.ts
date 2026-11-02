@@ -9,7 +9,7 @@
  * Guard: src/test/oneJobTracker.test.ts.
  */
 import { continueDayNextStep, jobOnContinueDay, type ContinueDay } from "@/lib/continueDayWords";
-import { nextStepWords } from "@/components/ui/NextStep";
+import { nextStepWords } from "@/lib/nextStepWords";
 import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";

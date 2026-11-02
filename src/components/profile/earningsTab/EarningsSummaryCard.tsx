@@ -45,6 +45,8 @@ interface EarningsSummaryCardProps {
   earnedDollars: number;
   /** Completed jobs inside the selected range. */
   jobCount: number;
+  /** A3-56: Declutter sales whose payout was sent inside the range (counted in earnedDollars too). */
+  saleCount?: number;
   /** Tips inside the selected range: the whole tip, which is what the Helpr receives (ME-006). */
   tipsDollars: number;
   tipCount: number;
@@ -58,6 +60,7 @@ export function EarningsSummaryCard({
   onRangeChange,
   earnedDollars,
   jobCount,
+  saleCount = 0,
   tipsDollars,
   tipCount,
   inProgressCount,
@@ -117,7 +120,7 @@ export function EarningsSummaryCard({
               {formatCents(Math.round(earnedDollars * 100))}
             </p>
             <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {earnedRangeLabel(range)} · {jobCount} job{jobCount === 1 ? "" : "s"}
+              {earnedRangeLabel(range)} · {jobCount} job{jobCount === 1 ? "" : "s"} · {saleCount} sale{saleCount === 1 ? "" : "s"}
             </p>
           </div>
           <div className="border-l border-border/40 pl-4">

@@ -41,6 +41,8 @@ import { usePayoutsCsvExport } from "@/components/profile/earningsTab/usePayouts
 import { EarningsToolsMenu } from "@/components/profile/earningsTab/EarningsToolsMenu";
 import { type EarningsRange } from "@/components/profile/earningsTab/EarningsRangeToggle";
 import { EarningsSummaryCard } from "@/components/profile/earningsTab/EarningsSummaryCard";
+import { DeclutterSalesEarned } from "@/components/profile/earningsTab/DeclutterSalesEarned";
+import { salesEarnedIn } from "@/lib/declutter/salePayouts";
 import { ThresholdBanner } from "@/components/profile/earningsTab/ThresholdBanner";
 import { WalletCard } from "@/components/profile/earningsTab/WalletCard";
 import { HomeMoneyTiles } from "@/pages/home/homeDashboard/HomeMoneyTiles";
@@ -134,7 +136,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
     "instantPayout",
   );
 
-  const { stripeData, stripeLoading, stripeError, ledgerError, ledgerPending, payoutLedger, refreshing, handleRefresh } = useEarningsData(helperId);
+  const { stripeData, stripeLoading, stripeError, ledgerError, ledgerPending, payoutLedger, refreshing, handleRefresh, salePayouts, salesError, refetchSales } = useEarningsData(helperId);
   // Latched: the card advances the last-seen marker as it opens, so the gate then reads false.
   const celebrateRef = useRef(false);
   if (!celebrateRef.current && hasPayoutToCelebrate(payoutLedger)) celebrateRef.current = true;
@@ -212,6 +214,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
       ? tips
       : tips.filter((t) => new Date(t.created_at).getTime() >= rangeSince);
   const rangeEarnings = earnedDollarsWithLedger(rangeJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger);
+  // A3-56: Declutter sales count in Earned too (a sale counts once its payout is sent), with their own rows.
+  const rangeSales = salesEarnedIn(salePayouts ?? [], rangeSince);
   // Tips land in full: the poster pays the card fee on top (ME-006).
   const rangeTips = sumHelperTipDollars(rangeTipRows);
 
@@ -415,12 +419,15 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             loading={loading}
             range={range}
             onRangeChange={setRange}
-            earnedDollars={rangeEarnings}
+            earnedDollars={rangeEarnings + rangeSales.cents / 100}
             jobCount={rangeJobs.length}
+            saleCount={rangeSales.count}
             tipsDollars={rangeTips}
             tipCount={rangeTipRows.length}
             inProgressCount={inProgressJobs.length}
           />
+
+          <DeclutterSalesEarned rows={salePayouts ?? []} failed={!!salesError} onRetry={() => refetchSales?.()} />
 
           {range === "week" && (
             <EarningsForecastCard

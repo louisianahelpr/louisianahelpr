@@ -73,7 +73,7 @@ type TrackerStep = {
   color: string;
 };
 
-const STATUSES: TrackerStep[] = [
+export const STATUSES: TrackerStep[] = [
   // Step 0 is never the TARGET of the next-step button (nextIdx is always
   // currentStatusIdx + 1 ≥ 1), so it has no action phrasing.
   { key: "assigned", label: "Offered", action: null, icon: Clock, color: "text-muted-foreground" },

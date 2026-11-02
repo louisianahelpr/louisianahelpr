@@ -745,8 +745,10 @@ describe("release-payout edge function", () => {
       };
       // The atomic claim UPDATE returns 1 row → this payout owned the deduction.
       scenario.writeSelectRows.profiles = [{ user_id: "helper-1" }];
+      // A DEFINITE refusal (no transfer exists). A timeout keeps the claim
+      // (lead 11-02; helprFaultFeeComesOutOfPayout.test.ts).
       stripeMock.transfers.create.mockRejectedValue(
-        Object.assign(new Error("insufficient funds"), { type: "StripeError" }),
+        Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }),
       );
       const fn = await load();
       const res = await fn.fetch(

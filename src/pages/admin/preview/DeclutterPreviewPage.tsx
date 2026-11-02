@@ -14,7 +14,7 @@
  */
 import { Component, lazy, Suspense, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { UNSAFE_NavigationContext, useSearchParams, type To } from "react-router-dom";
+import { UNSAFE_NavigationContext, useLocation, useSearchParams, type To } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Eye } from "lucide-react";
@@ -48,18 +48,33 @@ function toText(to: To | number): string {
   return `${to.pathname ?? ""}${to.search ?? ""}` || "another screen";
 }
 
-/** The views' navigation, kept on this screen: every move becomes a note. */
+/**
+ * Audit 1102c P4 (Q2622): true only for a move that stays on this page (a search-param change, such as the Buying and
+ * Selling status chips' ?status=). Every move to another path stays a note.
+ */
+export function isSamePageMove(to: To, here: string): boolean {
+  if (typeof to === "string") return to.startsWith("?") || to.startsWith("#") || to.split(/[?#]/)[0] === here;
+  return !to.pathname || to.pathname === here;
+}
+
+/** The views' navigation, kept on this screen: every move to another page becomes a note. */
 function InertNavigation({ children }: { children: ReactNode }) {
   const outer = useContext(UNSAFE_NavigationContext);
-  const value = useMemo(() => ({
-    ...outer,
-    navigator: {
-      ...outer.navigator,
-      push: (to: To) => sayWouldHave(`open ${toText(to)}`),
-      replace: (to: To) => sayWouldHave(`open ${toText(to)}`),
-      go: (n: number) => sayWouldHave(`go to ${toText(n)}`),
-    },
-  }), [outer]);
+  const here = useLocation().pathname;
+  const value = useMemo(() => {
+    // Audit 1102c P4 (Q2622): the status chips' search-param change on THIS page goes through (isSamePageMove).
+    const samePage = (to: To) => isSamePageMove(to, here);
+    type Opts = Parameters<typeof outer.navigator.push>;
+    return {
+      ...outer,
+      navigator: {
+        ...outer.navigator,
+        push: (...a: Opts) => (samePage(a[0]) ? outer.navigator.push(...a) : sayWouldHave(`open ${toText(a[0])}`)),
+        replace: (...a: Opts) => (samePage(a[0]) ? outer.navigator.replace(...a) : sayWouldHave(`open ${toText(a[0])}`)),
+        go: (n: number) => sayWouldHave(`go to ${toText(n)}`),
+      },
+    };
+  }, [outer, here]);
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const a = (e.target as Element | null)?.closest?.("a[href]");

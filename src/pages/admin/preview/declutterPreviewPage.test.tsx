@@ -39,7 +39,7 @@ afterEach(() => {
   declutterPreviewChecks.onUnlisted = undefined;
 });
 
-import DeclutterPreviewPage from "./DeclutterPreviewPage";
+import DeclutterPreviewPage, { isSamePageMove } from "./DeclutterPreviewPage";
 
 function open(search: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -103,6 +103,35 @@ describe("Q2585: /admin/preview/declutter", () => {
     // Let the views' last reads land on the preview layer before cleanup puts the real fetch back.
     await new Promise((res) => setTimeout(res, 50));
     expect(supabaseCalls()).toEqual([]);
+  });
+
+  // Audit 1102c P4 (Q2622): the status chips are a search-param change on this page; the inert navigation blocked them
+  // ("Preview: this would open ...&status=offers"), so no chip filter could be walked.
+  // @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx | replace: (...a: Opts) => (samePage(a[0]) ? outer.navigator.replace(...a) | replace: (...a: Opts) => (false ? outer.navigator.replace(...a)
+  it("Q2622: a status chip filters the preview's own list", async () => {
+    open("?stage=paid&side=seller");
+    const chip = await waitFor(() => { const el = document.querySelector('[data-status-box="sold"]'); expect(el).not.toBeNull(); return el as HTMLElement; });
+    expect(chip).toHaveAttribute("aria-pressed", "false");
+    chip.click();
+    await waitFor(() => expect(document.querySelector('[data-status-box="sold"]')).toHaveAttribute("aria-pressed", "true"));
+    // The stage and side stay (the chip changes only ?status=).
+    expect(document.querySelector('[data-preview-view="paid:seller"]')).not.toBeNull();
+    await new Promise((res) => setTimeout(res, 50));
+    expect(supabaseCalls()).toEqual([]);
+  });
+
+  // Q2622: only a move on this page goes through; another page (Browse, an item, Home) stays a note.
+  // @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |   return !to.pathname \|\| to.pathname === here; |   return true;
+  // @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx | to.startsWith("?") \|\| to.startsWith("#") \|\| to.split(/[?#]/)[0] === here; | true;
+  it("Q2622: only a move on this page goes through", () => {
+    const here = "/admin/preview/declutter";
+    expect(isSamePageMove("?status=sold", here)).toBe(true);
+    expect(isSamePageMove(`${here}?stage=paid&status=sold`, here)).toBe(true);
+    expect(isSamePageMove({ pathname: here, search: "?status=offers" }, here)).toBe(true);
+    expect(isSamePageMove({ search: "?status=offers" }, here)).toBe(true);
+    expect(isSamePageMove("/declutter?tab=selling&status=offers", here)).toBe(false);
+    expect(isSamePageMove({ pathname: "/declutter/item/1" }, here)).toBe(false);
+    expect(isSamePageMove("/home", here)).toBe(false);
   });
 
   it("the controls name every stage and both sides", async () => {

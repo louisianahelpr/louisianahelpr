@@ -208,3 +208,8 @@ duplicate-number check).
 ## Archived 2026-11-02 — from "QUEUE (cont.) — carried; the retired audit-bus section's table (2026-09-23) is superseded by the FEEDS mirror above"
 
 - [x] **Q2641 LOW A Hire's pending accept is left behind when its job reopens (trg_jobs_clear_accept_pending's direct-offer arm compares a NULL with =).** Found by Builder 174 in the Q2604 PGlite proof; lead 11-02 asked for the item and the fix. Done by Builder 174: 20261102110120 restates clear_job_accept_pending (prod md5 = 20261006204113's) with the direct arm null-safe (IS NOT DISTINCT FROM). Guards src/test/acceptCompletesAfterStripeSetup.test.ts + PGlite src/test/pglite/posterWithdrawsAnOffer.pglite.mjs (Q2641 checks; CLEAR_TRIGGER=before is red).
+
+
+## Archived 2026-11-02 — from "QUEUE (cont.) — carried; the retired audit-bus section's table (2026-09-23) is superseded by the FEEDS mirror above"
+
+- [x] **Q2652 MEDIUM The poster's Money page says payouts come later while the bell says to finish payout setup.** Account audit 1102d (~/.lh-shots/audit-1102d-findings.md, main 6c325f3909, 11-02) row 11: the bell says "Finish payout setup to get paid" and "Buyer paid $25 ... You get paid after the handover", and the screen it opens (/profile?tab=earnings) says "You'll set up payouts once you're hired or make your first sale" with no setup button. Fix: make them agree; a member with a sale or hire is offered the setup action. Merged into Q2659 (lead 11-02): measured, the Money page is right (payout_setup_hire_allowed false, 0 declutter_orders for that poster); the bell rows were left by the AUDIT 1a test orders, deleted without their notices.

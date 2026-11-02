@@ -190,6 +190,8 @@ export function CheckoutStep({
   // a charge Stripe will not make — the same class of defect as the invented
   // 9-11% range this row was built to kill, just pointed at gifts.
   const totalWithTax = hasGift ? totalCharge : totalCharge + (salesTax ?? 0);
+  // JA-45: a plain job (nothing added or taken off) shows its Total alone; any fee, bonus, gift or tax line brings the budget row back.
+  const budgetRowShown = hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category) && salesTax === null);
   // `giftCoversEverything` is the $0 case: nothing left to collect. The CTA
   // and the total both change wording for it, because "Continue to payment"
   // in front of a $0.00 total is the screen contradicting itself.
@@ -321,7 +323,6 @@ export function CheckoutStep({
       <HelprActivityNote activity={helprActivity} />
 
       {quoteAsk ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <>
-      {/* Payment breakdown card */}
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
@@ -329,8 +330,8 @@ export function CheckoutStep({
           </h3>
         </div>
         <div className="p-5 space-y-3">
-          {/* What the customer pays */}
-          <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
+          {/* What the customer pays. A3-96: only over lines to break down; a plain job's Total stands alone. */}
+          {budgetRowShown && <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>}
           {/* A gift id came through the URL and we could not confirm it —
               missing, not this account's, unfunded, expired, or already
               spent. The numbers below are therefore FULL PRICE, and the
@@ -361,9 +362,7 @@ export function CheckoutStep({
               Checking your gift card…
             </div>
           )}
-          {/* JA-45: a plain job (nothing added, nothing taken off) shows its Total alone, not "Job budget $40"
-              over "Total $40". Any fee, bonus, gift or tax line brings the budget row back as the sum's first term. */}
-          {(hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category) && salesTax === null)) && (
+          {budgetRowShown && (
             <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} />
           )}
           {/* Roadmap F3 (owner 2026-10-14/15): the poster pays exactly the job
@@ -710,9 +709,8 @@ export function CheckoutStep({
                 ? "Processing…"
                 : giftLoading
                   ? "Checking your gift…"
-                  : !confirmed
-                    ? "Confirm details to continue"
-                    // "Continue to payment" in front of a $0.00 total is the
+                  // A3-96: the checkbox above is the one ask; the button never repeats it ("Confirm details to continue").
+                  // "Continue to payment" in front of a $0.00 total is the
                     // screen arguing with itself — there is no payment step
                     // when the gift covers the job; create-payment returns
                     // straight to /payment-success.

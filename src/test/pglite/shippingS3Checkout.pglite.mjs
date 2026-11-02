@@ -70,7 +70,7 @@ if (!skip) {
 const acl = one(await svc(`SELECT to_regprocedure('public.declutter_start_checkout(uuid, text, timestamptz, text)') IS NULL
   AND has_function_privilege('authenticated', 'public.declutter_start_checkout(uuid, text, timestamptz, text, uuid)', 'EXECUTE')
   AND NOT has_function_privilege('anon', 'public.declutter_start_checkout(uuid, text, timestamptz, text, uuid)', 'EXECUTE')`));
-ok(acl === true, `one checkout function (5 args) for signed-in members; the 4-arg one is gone (got ${short(acl)})`);
+ok(acl === true, `one checkout function (5 args) for signed-in members; the 4-arg one is gone (got ${String(acl)})`);
 
 // BUYER and BUYER2 are testers (the world enrols every fixture user); BUYER3 is an ordinary account.
 await run(`DELETE FROM public.test_accounts WHERE user_id = '${BUYER3}'`);

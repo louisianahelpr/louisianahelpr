@@ -16,7 +16,7 @@ const DAYS = 30;
 const LAST_START_HOUR_TODAY = 22;
 
 /**
- * "Need another day" (the Helpr) / "Not finished? Set a day" (the poster): the rest of a job under way moves to a new
+ * "Not finished? Set a day" (both sides, one name since Q2593): the rest of a job under way moves to a new
  * day and time (owner 2026-11-01, Yusef's job). The Helpr's pick goes to the poster to confirm; the poster's is set at
  * once. The job stays in progress and the payment stays held; a Helpr's earlier "done" is cleared when the day is set.
  * Built on ChangeJobSheet's day strip and time wheel.
@@ -82,7 +82,7 @@ export function ContinueDaySheet({
           (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
         }}
       >
-        <SheetHero title={poster ? "Set a day to finish" : "Need another day"} />
+        <SheetHero title="Set a day to finish" />
         <p className="text-ds-13 text-muted-foreground">
           {poster
             ? `${other || "Your Helpr"} comes back to finish. The payment stays held until the work is done.`

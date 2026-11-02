@@ -11,6 +11,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
+/** Continue another day's one name, on the poster's side and the Helpr's (the owner's words; Jobs audit 1102b, Q2593). */
+export const CONTINUE_DAY_LABEL = "Not finished? Set a day";
+
 export type { ContinueDay } from "./continueDayWords";
 export { continueDayLabel, continueDayNextStep, continueDayAhead, continueDayDoneNote, continueDayHeader, jobOnContinueDay } from "./continueDayWords";
 export { fetchContinueDay } from "./continueDayReads";

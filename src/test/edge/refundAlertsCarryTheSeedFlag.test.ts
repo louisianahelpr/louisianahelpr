@@ -126,6 +126,28 @@ describe("a refund alert follows its subject", () => {
     expect(a[0].seed).toBe(false);
   });
 
+  // Q1924: a Dashboard full refund on a 'released' Declutter haul-away job leaves payment_status alone, so the relist
+  // trigger never fires; the page names the items still off sale so ops put them back by hand.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | Reconcile it by hand.${haulAway}` | Reconcile it by hand.`
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     return ` Could not check whether this is a Declutter haul-away job (${error.message}): if it is, put its items back on sale by hand.`; |     return "";
+  it("a released haul-away job's page names the items still off sale, and an unreadable link says so", async () => {
+    type Paged = { title: string; message?: string };
+    const page = () => (slackAlerts as Paged[]).find((x) => /Full refund on a job in 'released'/.test(x.title));
+    scenario.reads.jobs = released(false);
+    scenario.reads.gift_cards = { rows: [] };
+    scenario.reads.declutter_haul_aways = { rows: [{ item_id: "item-1" }, { item_id: "item-2" }] };
+    await run(FULL);
+    expect(page()?.message).toContain("This is a Declutter haul-away job: its 2 items are still off sale. Put them back on sale by hand (declutter item item-1, item-2).");
+    resetSharedMocks();
+    scenario.reads.declutter_haul_aways = { rows: [], error: { message: "db down" } };
+    await run(FULL);
+    expect(page()?.message).toContain("Could not check whether this is a Declutter haul-away job (db down)");
+    resetSharedMocks();
+    scenario.reads.declutter_haul_aways = { rows: [] };
+    await run(FULL);
+    expect(page()?.message).not.toContain("haul-away");
+  });
+
   it.each([[true], [false]])("a gift whose donor's is_seed is %s: its revocation alert says the same", async (is_seed) => {
     scenario.rpc.revoke_gift_card_for_refund = REVOKED;
     scenario.reads.jobs = { rows: [] };

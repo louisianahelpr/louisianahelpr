@@ -12,6 +12,7 @@
  * @mutate src/pages/home/homeDashboard/comingUp.ts |   const setDay = (jobId: string) => (i.continueDays?.[jobId]?.status === "set" ? i.continueDays[jobId] : null); |   const setDay = (jobId: string) => (jobId ? null : null);
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | (cd[a.job.id] ? contStep(a.job.id, "helpr", helprOther(a))?.who === "you" : appliedActivityBucket(a) === "needs_you") | appliedActivityBucket(a) === "needs_you"
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status })), |         title: (line.id === "on_the_way" ? ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status })),
+ * @mutate src/components/jobs/ContinueDaySheet.tsx | {d === todayKey ? LATER_TODAY : formatJobDate(d)} | {formatJobDate(d)}
  * @mutate src/components/jobs/ContinueDaySheet.tsx |   const offerToday = !helprMarkedDone && today.getHours() < LAST_START_HOUR_TODAY; |   const offerToday = true;
  * @mutate src/components/jobs/ContinueDaySheet.tsx |           {helprMarkedDone && ( |           {false && (
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (step?.key === "done" && s.continueDayNote) { |   if (step?.key === "done" && s.continueDayNote && false) {
@@ -118,7 +119,9 @@ describe("A3-119: the 'Set a day to finish' sheet", () => {
   });
   it("no 'done' yet: today while a start an hour out still fits, not late at night", () => {
     const { unmount } = sheet(false, 9);
-    expect(within(screen.getByRole("radiogroup", { name: "Day to finish" })).getAllByRole("radio")[0].textContent).toBe(formatJobDate("2026-11-01"));
+    // Q2606 (Jobs audit 1102b row 20): today's chip says "Later today", the next one the date.
+    const chips = within(screen.getByRole("radiogroup", { name: "Day to finish" })).getAllByRole("radio").map((b) => b.textContent);
+    expect(chips.slice(0, 2)).toEqual(["Later today", formatJobDate("2026-11-02")]);
     expect(document.querySelector("[data-continue-day-effect]")).toBeNull();
     unmount();
     sheet(false, 23);

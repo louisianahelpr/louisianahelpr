@@ -65,7 +65,7 @@ function cacheBareProfile() {
 /** Anything the old prompt rendered, or any phone / birthday ask at all. */
 function expectNoProfilePrompt() {
   expect(screen.queryByText(/Finish your profile|Add a profile photo\?/)).toBeNull();
-  expect(screen.queryByText("Not Now")).toBeNull();
+  expect(screen.queryByText(/^not now$/i)).toBeNull();
   expect(screen.queryByLabelText(/phone/i)).toBeNull();
   expect(screen.queryByLabelText(/birthday|date of birth/i)).toBeNull();
   expect(document.querySelector('input[type="tel"]')).toBeNull();

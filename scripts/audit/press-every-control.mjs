@@ -368,8 +368,8 @@ export const ignoreHostOnlyAsset = (url, base) => HOST_ONLY_ASSET_RX.test(String
  * Measured on run 35660182220 (2026-09-21): two presses failed on every route
  * that carries the bell, for the helper, incomplete and admin personas —
  *
- *   "Notifications › Turn on push notifications › Not Now"            error toast
- *   "Notifications › Turn on push notifications › Turn On Notifications"  same
+ *   "Notifications › Turn on push notifications › Not now"            error toast
+ *   "Notifications › Turn on push notifications › Turn on notifications"  same
  *   → "Notifications are off. Turn them on in your browser settings."
  *
  * That toast is the app telling the truth. A Playwright context grants no
@@ -409,7 +409,7 @@ export const PUSH_PROMPT_LABEL_RX = /^(?:turn on push notifications|not now|turn
 export function isTruthfulPermissionRefusal({ toast, chain = [], permission } = {}) {
   if (!PERMISSION_OFF_TOAST_RX.test(String(toast ?? "").trim())) return false;
   if (permission !== "denied") return false;
-  // "Not Now" in our own rationale never reaches the browser, so the app no
+  // "Not now" in our own rationale never reaches the browser, so the app no
   // longer toasts for it at all (OPEN.md pushPermissionNudge item, 2026-10-02);
   // a permission-off toast there is a regression, not the truth.
   if (/^not now$/i.test(String(chain[chain.length - 1] ?? "").trim())) return false;

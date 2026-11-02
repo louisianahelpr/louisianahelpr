@@ -1,9 +1,9 @@
 /**
- * "Not Now" in our own push rationale dialog is a choice, not a refusal.
+ * "Not now" in our own push rationale dialog is a choice, not a refusal.
  *
  * useRequestPushPermission returned a bare boolean, so NotificationPanel could
- * not tell "Not Now" from a real OS/browser refusal. With the browser already
- * "denied", tapping Not Now in the rationale still raised the error toast
+ * not tell "Not now" from a real OS/browser refusal. With the browser already
+ * "denied", tapping Not now in the rationale still raised the error toast
  * "Notifications are off. Turn them on in your browser settings." (archived
  * note, OPEN-history-2026-09 line 2141; press runs excused it in
  * pressPermissionRefusal.test.ts). The fix is the signal: the request now says
@@ -51,7 +51,7 @@ beforeEach(() => {
 });
 
 describe("useRequestPushPermissionOutcome", () => {
-  it("says dismissed when Not Now is tapped in the rationale (no browser prompt shown)", async () => {
+  it("says dismissed when Not now is tapped in the rationale (no browser prompt shown)", async () => {
     expect(await run(false)).toBe("dismissed");
     expect(webRequest).not.toHaveBeenCalled();
   });

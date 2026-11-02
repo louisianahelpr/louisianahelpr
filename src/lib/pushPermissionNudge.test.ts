@@ -109,10 +109,10 @@ describe("pushPermissionNudge — timing logic", () => {
   });
 });
 
-// press-every-control run 34744828202: "Not Now" in the push rationale dialog
+// press-every-control run 34744828202: "Not now" in the push rationale dialog
 // raised an ERROR toast telling the user to fix their browser settings.
-describe("pushDeclineNeedsSettingsHint: Not Now is a choice, not an error", () => {
-  it("says nothing while permission is still undecided (Not Now in our own dialog)", async () => {
+describe("pushDeclineNeedsSettingsHint: Not now is a choice, not an error", () => {
+  it("says nothing while permission is still undecided (Not now in our own dialog)", async () => {
     const mod = (await import("./pushPermissionNudge")) as Record<string, unknown>;
     expect(typeof mod.pushDeclineNeedsSettingsHint, "no decline classifier: every false toasts").toBe("function");
     const hint = mod.pushDeclineNeedsSettingsHint as (s: string) => boolean;
@@ -125,6 +125,6 @@ describe("pushDeclineNeedsSettingsHint: Not Now is a choice, not an error", () =
     expect(pushDeclineNeedsSettingsHint("granted")).toBe(false);
   });
 });
-// press-every-control 34744828202: "Not Now" scolded the user with an error
+// press-every-control 34744828202: "Not now" scolded the user with an error
 // toast pointing at a browser setting nobody had touched.
 // @mutate src/lib/pushPermissionNudge.ts | return state !== "prompt" && state !== "granted"; | return state !== "granted";

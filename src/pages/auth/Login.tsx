@@ -342,7 +342,7 @@ const Login = () => {
         {/* Board 37 (owner 2026-10-20): the ROUND H app icon, "Log in" and one
             welcome line head the card; email + password come first, then "or"
             and the providers. Restyle only: every handler below is unchanged.
-            Guard: src/test/loginBoard37.test.tsx. */}
+            Guard: src/test/loginBoard37.test.ts. */}
         {!mfaChallenge && (
           <div className="flex flex-col items-center text-center gap-1.5" data-testid="login-card-head">
             {/* Board 37/55: no back arrow; the round H icon is the way home. */}
@@ -354,14 +354,6 @@ const Login = () => {
             <p className="text-ds-14 text-muted-foreground">{t("login.welcome")}</p>
           </div>
         )}
-        {/* No heading inside the card. The H emblem and the in-card heading
-            are both gone: the emblem used to stack above a heading that sat
-            above the card — three separate bands of vertical space before the
-            user reached the email field. The single visible h1 is the one
-            AuthShell renders in its `title` row above the card, so the card
-            itself starts at the first input. The mark still appears in the
-            back-nav and throughout the app; an auth screen does not need to
-            re-announce the brand three times. */}
         {mfaChallenge ? (
           <div className="space-y-5">
             <div className="flex flex-col items-center text-center gap-2">
@@ -415,11 +407,8 @@ const Login = () => {
           </div>
         ) : (
         <>
-        {/* Two columns at lg+: credentials left, social right. The card is
-            1024px, and a single-line email field stretched across all of it is
-            what read as wrong. Splitting the two sign-in METHODS uses the width
-            for something real instead of inflating one field. Stacks below lg,
-            unchanged. */}
+        {/* One column at every width (board 37: AuthShell maxWidth="sm"):
+            the credentials form, then "or" and the providers below it. */}
         <div className="grid gap-6 w-full [&>*]:min-w-0">
         {/* noValidate: `required` stays on both inputs for semantics, but the
             browser's own validation bubble would intercept the submit and
@@ -533,18 +522,7 @@ const Login = () => {
               signup itself. (Owner decision 2026-08-08: drop from sign-in only.) */}
         </form>
 
-        {/* Vertical OR rule, lg+ only — the horizontal one inside the right
-            column still handles the stacked layout below lg. Its own grid
-            column so it sits between the two methods rather than inside
-            either. */}
-
-        {/* Vertically centred against the taller credentials column, so the
-            social buttons sit level with the form rather than hugging the top
-            with dead space beneath them. */}
         <div className="space-y-6">
-        {/* The OR rule only makes sense when the two methods are stacked. At
-            lg+ they sit side by side, so the columns themselves do the
-            separating. */}
         {/* The rule's colour and its two contrast measurements: OrRule.tsx. */}
         {SOCIAL_SIGN_IN_ENABLED && (
           <>

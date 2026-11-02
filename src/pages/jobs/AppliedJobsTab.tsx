@@ -515,7 +515,7 @@ export const AppliedJobsTab = ({
               aria-busy={!!withdrawingAppId}
               onClick={confirmWithdraw}
             >
-              {withdrawingAppId ? "Withdrawing…" : "Confirm Withdrawal"}
+              {withdrawingAppId ? "Withdrawing…" : "Confirm withdrawal"}
             </SheetPrimaryAction>
           </SheetFooter>
         </SheetContent>

@@ -415,7 +415,7 @@ const DashboardGuest = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // JOBS-29 (lead decision 2026-10-31, under the owner's 9-2 rule): tapping a card shows the job first, then
-  // "Sign Up to Apply". The preview is GuestJobPreview: title, category, parish and budget only (no poster, address,
+  // "Sign up to apply". The preview is GuestJobPreview: title, category, parish and budget only (no poster, address,
   // coordinates or description). This reverses the 2026-08-22 tap-straight-to-sign-up. The id rides in ?job= so a
   // back or a reload restores it (below), and Sign up carries the job as `?redirect=/jobs/<id>` (lib/jobIntent).
   const openDetailJob = useCallback((job: EnrichedJob) => {

@@ -210,7 +210,7 @@ test(j7, async ({ browser, request, journey }) => {
     await expect(crop, "choosing a photo did not open the crop dialog").toBeVisible({ timeout: 20_000 });
     await crop.getByRole("slider", { name: "Zoom" }).fill("1.5").catch(() => {});
     await journey.milestone(hp, "crop-dialog");
-    await crop.getByRole("button", { name: "Use Photo" }).click();
+    await crop.getByRole("button", { name: "Use photo" }).click();
     await expect(crop).toBeHidden({ timeout: 30_000 });
     await expect
       .poll(async () => (await readProfile(request, helper)).avatar_url, { timeout: 45_000, message: "the new photo never saved to the profile" })

@@ -1077,7 +1077,7 @@ describe("Popup grammar — footer", () => {
       // Declutter Browse filter sheet (board 39): its footer's secondary resets
       // every filter; it is an action, not a dismissal.
       "Clear all",
-      "Maybe Later",
+      "Maybe later",
       // Boards 35/36 (Job done + review): the review can still be left later
       // from the completed card, so the dismiss names that.
       "Skip for now",
@@ -1092,20 +1092,20 @@ describe("Popup grammar — footer", () => {
       "Skip",
       "No thanks",
       "Keep It On",
-      "Keep the Job",
+      "Keep the job",
       // Q446 (owner, 2026-10-05): the one-account choice's other answer is a
       // real path, not a dismissal; and removing a sign-in method's secondary
-      // names the state kept, like "Keep the Job".
+      // names the state kept, like "Keep the job".
       "I already have an account",
       // Q1550: the Application Sent pop-up's other answer goes on browsing;
       // nothing is being cancelled (the application is already sent).
       "Keep browsing",
       // Shops M3 (ShopOrderCancel): the buyer's / shop's "Cancel order?" confirm. Same grammar
-      // as "Keep the Job": "Cancel" beside "Cancel order" would read as the action itself.
+      // as "Keep the job": "Cancel" beside "Cancel order" would read as the action itself.
       "Keep the order",
       "Keep it",
       // DisputedSection's withdraw confirm ("Withdraw this dispute?"). Same
-      // grammar as "Keep the Job": the secondary names the state that is
+      // grammar as "Keep the job": the secondary names the state that is
       // KEPT, because "Cancel" beside "Withdraw" reads as cancelling the
       // dispute — the exact opposite of what the button does.
       "Keep It Open",

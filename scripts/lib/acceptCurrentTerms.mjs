@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * Bring the test account up to the current Terms, exactly as its own "I Agree"
+ * Bring the test account up to the current Terms, exactly as its own "I agree"
  * tap would (same two writes, as the user, under RLS). A Terms bump otherwise
  * puts the non-dismissible TermsReconsentDialog over every authed page, and
  * every sweep that mints here measures or presses that modal instead of the

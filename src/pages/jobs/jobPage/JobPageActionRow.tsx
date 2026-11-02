@@ -114,7 +114,9 @@ export function JobPageActionRow({
   if (cells.length === 0) return null;
   return (
     <>
-      <div data-job-row={tag} className={cells.length === 2 ? "grid grid-cols-2 gap-2" : "grid grid-cols-1"}>{cells}</div>
+      {/* A3-13 (audit 11-01): from md up each button is capped at 240px and the row sits right (step last), not ~547px
+          a button across the page at 1440. */}
+      <div data-job-row={tag} className={cells.length === 2 ? "grid grid-cols-2 gap-2 md:ml-auto md:w-full md:max-w-[488px]" : "grid grid-cols-1 md:ml-auto md:w-full md:max-w-[240px]"}>{cells}</div>
       {others > 1 && (
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent side="bottom" data-row-options={tag}>

@@ -326,6 +326,12 @@ export function subscribeWithRecovery(
       if (!DEAD_STATUSES.has(status)) return;
 
       markDown();
+      // One attempt can end in TWO dead statuses: CHANNEL_ERROR, then CLOSED as
+      // the socket goes. Sentry JAVASCRIPT-4B (2026-10-22, Q2517) reported
+      // attempts=3 with unexplained_failures=4, i.e. after ~3 s of outage, not
+      // the ~18 s REPORT_AFTER_ATTEMPTS promises. A retry already pending means
+      // this attempt was counted; the banner is up, so there is nothing to do.
+      if (timer) return;
       // Retry FIRST: scheduleRetry is what advances `attempt`, and the report
       // below is gated on it. The banner has already gone up via markDown(),
       // so the user is told immediately either way — this gate only decides

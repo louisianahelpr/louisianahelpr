@@ -11,12 +11,13 @@
  *   meetup          Paid -> Time booked -> Met -> Done
  *   seller_delivery Paid -> Time booked -> Delivered -> Done
  *   delivery        Paid -> Helpr found -> Picked up -> Delivered
+ *   ship            Paid -> Packed -> Shipped -> Delivered (B134: Shipped is the carrier's acceptance scan)
  * Every fact is read by the caller from the real rows (order status, booking, handover row, delivery
  * task); nothing here guesses a step the data does not show.
  */
 import { StepTracker } from "@/components/tracker/StepTracker";
 
-export type OrderHandover = "porch" | "pickup_home" | "meetup" | "delivery" | "seller_delivery";
+export type OrderHandover = "porch" | "pickup_home" | "meetup" | "delivery" | "seller_delivery" | "ship";
 export type OrderSide = "buyer" | "seller";
 
 export type OrderFacts = {
@@ -26,11 +27,13 @@ export type OrderFacts = {
   free?: boolean;
   /** A pickup day (porch) or time is booked; for Helpr delivery, a Helpr has taken it. */
   booked: boolean;
+  /** Ship: the seller tapped Packed (shipments.packed_at). */
+  packed?: boolean;
   /** Porch: the seller's "on the porch" photo is in. */
   out?: boolean;
   /** Door pickup or meetup: "I got it" is open (from an hour before the booked time: gotItOpen). */
   gotItOpen?: boolean;
-  /** The item has left the seller: the buyer picked it up, met, or the Helpr picked it up. */
+  /** The item has left the seller: the buyer picked it up, met, the Helpr picked it up, or (ship) the carrier scanned it. */
   pickedUp?: boolean;
   /** Helpr delivery: picked up 24 hours ago and not marked delivered (heldPastADay); the buyer may say they got it. */
   inHandLong?: boolean;
@@ -71,6 +74,7 @@ const STEPS: Record<OrderHandover, readonly [string, string, string, string]> = 
   meetup: ["Paid", "Time booked", "Met", "Done"],
   seller_delivery: ["Paid", "Time booked", "Delivered", "Done"],
   delivery: ["Paid", "Helpr found", "Picked up", "Delivered"],
+  ship: ["Paid", "Packed", "Shipped", "Delivered"],
 };
 
 /**
@@ -101,6 +105,8 @@ export function orderStepAt(f: OrderFacts): number {
       return f.delivered ? 3 : f.pickedUp ? 2 : f.booked ? 1 : 0;
     case "seller_delivery":
       return f.delivered ? 2 : f.booked ? 1 : 0;
+    case "ship":
+      return f.delivered ? 3 : f.pickedUp ? 2 : f.packed ? 1 : 0;
     default:
       return f.pickedUp ? 2 : f.booked ? 1 : 0;
   }
@@ -124,6 +130,10 @@ export function orderWaitsOnYou(f: OrderFacts): boolean {
     case "delivery":
       // Dropped off: the buyer says they have it. LEAD-GOTIT30H: so too once a Helpr has held it 24 hours undelivered.
       return buyer && (!!f.delivered || !!f.inHandLong);
+    case "ship":
+      // B134: the seller packs and drops it off (their card says so with its own Ship-by line); the buyer only waits.
+      // The sale finishes itself 24 hours after the delivered scan (declutter_ship_sweep, 20261102013630).
+      return false;
   }
 }
 

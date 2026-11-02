@@ -16,13 +16,17 @@
  * @mutate src/components/declutter/paidOrders.ts |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/DeclutterOrderBits.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
+ * B134: a shipped order is its own card (never "Pickup at the seller's home" with a pickup booking).
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "ship" ? ( |       ) : false ? (
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "ship" ? (order.side === "buyer" ? "Shipped to you" : "You ship it") : order.handover === "porch" | {order.handover === "porch"
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel
  */
 // @mutate src/components/declutter/DeclutterFoldedTime.tsx |       <DateTimeField id={id} label={fieldLabel} value={value} onChange={setValue} /> |       <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} />
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |     out: !!h.data?.set_out_at, |     out: false,
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | day={booking?.pickup_day ?? null}\n          itemsCents={items} | day={booking?.pickup_day ?? null}\n          itemsCents={order.lines[0]?.total_cents ?? 0}
 import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -148,6 +152,11 @@ vi.mock("./SellerDeliveryOrder", () => ({
     <div><p>Seller delivery panel{problemOpen ? ", problem open" : ""}</p><button type="button" onClick={onProblem}>Report a problem</button></div>
   ),
 }));
+
+// B134: a shipped order's own part (proved in shipOrderPanel.test.tsx).
+vi.mock("./ShipOrderPanel", () => ({ ShipOrderPanel: ({ side }: { side: string }) => <p>Ship panel for the {side}</p> }));
+// Add a Helpr: a stub that shows under its own switch, as the real panel does (it is null with the switch off).
+vi.mock("./DeclutterAddHelpr", () => ({ AddHelprPanel: () => (state.features.includes("declutter_add_helpr") ? <p>Add a Helpr panel</p> : null) }));
 
 import { MemoryRouter } from "react-router-dom";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
@@ -1898,4 +1907,31 @@ describe("A3-63 follow-up: moving a porch pickup offers 2-hour windows", () => {
     const src = blankComments(readFileSync("src/components/declutter/paidOrders.ts", "utf8"));
     expect(src).toContain('void qc.invalidateQueries({ queryKey: ["declutter", "order-pickup-times"] });');
   });
+});
+
+describe("B134: a shipped order (B131 found it read as a pickup)", () => {
+  beforeEach(() => {
+    state.calls = [];
+    state.bookings = [];
+    state.handover = null;
+    state.features = ["declutter_add_helpr"];
+  });
+  it("the stub Add a Helpr shows on a buyer's pickup card (so its absence below means something)", async () => {
+    show([line({ handover: "pickup_home", my_side: "buyer" })]);
+    expect(await screen.findByText("Add a Helpr panel")).toBeInTheDocument();
+  });
+  for (const side of ["seller", "buyer"] as const) {
+    it(`the ${side}'s card says how it ships and shows the ship part, never a pickup`, async () => {
+      show([line({ handover: "ship", my_side: side, price_cents: 2000, total_cents: 2905 })]);
+      await screen.findByText(`Ship panel for the ${side}`);
+      const head = document.querySelector("[data-order-head]")!;
+      expect(head.textContent).toContain(side === "buyer" ? "Shipped to you" : "You ship it · You're selling");
+      expect(head.textContent).not.toMatch(/Pickup|pickup/);
+      // No pickup booking, address, door tips or Add a Helpr on a shipped order.
+      const card = document.querySelector("article")!;
+      expect(card.textContent).not.toMatch(/Book a pickup|pickup time|Pickup address|Add a Helpr/i);
+      expect(state.calls.some((c) => String(c[0]).includes("book"))).toBe(false);
+    });
+  }
+  afterEach(() => { state.features = []; });
 });

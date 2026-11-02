@@ -23,6 +23,9 @@ import { matchesSearch, searchOrFilter } from "@/lib/declutter/searchMatch";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { likePattern, type SearchSection } from "./searchQuery";
+import { searchJobPrice, type PricedJobHit } from "./searchJobPrice";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 
 /**
  * /search?q= — one search across the sections (board 89).
@@ -40,7 +43,7 @@ const PER_SECTION = 3;
 /** A chip (or "See all") shows up to this many; beyond it, Jobs opens Browse. */
 const MAX_ROWS = 20;
 
-type JobHit = { id: string; title: string; category: string | null; budget: number | null; pricing_mode: string | null; parish: string | null; date_needed: string | null };
+type JobHit = PricedJobHit & { id: string; title: string; category: string | null; parish: string | null; date_needed: string | null };
 type ItemHit = { id: string; title: string; description: string | null; category: string | null; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
 
 function useJobHits(q: string, userId: string | null) {
@@ -56,7 +59,7 @@ function useJobHits(q: string, userId: string | null) {
       const blocked = [...(await getBlockedUserIds(userId!))];
       let query = supabase
         .from("open_jobs_browse")
-        .select("id,title,category,budget,pricing_mode,parish,date_needed", { count: "exact" })
+        .select("id,title,category,budget,pricing_mode,parish,date_needed,urgent_fee,is_group_job,helpers_needed,customer_id,helper_fee_flat_cents,helper_fee_percent", { count: "exact" })
         .ilike("title", likePattern(q));
       if (blocked.length) query = query.not("customer_id", "in", `(${blocked.join(",")})`);
       const res = await query
@@ -156,7 +159,11 @@ export default function SearchPage() {
   useEffect(() => setDraft(q), [q]);
   const [section, setSection] = useState<SearchSection>("all");
 
-  const { user } = useCurrentUser();
+  const { user, profile } = useCurrentUser();
+  // Job hits are priced like the Jobs browse card (Q2642): the viewer's tier
+  // rate (as useDashboardData) and the one-time setup fee still owed.
+  const viewerFee = tierFeePercent(profile?.subscription_tier, profile?.subscription_expires_at ?? null);
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   // A switch reads false until its answer arrives; "Coming soon" waits for
   // the settled answer so a slow read never says a section is closed.
   const declutter = useFeatureStatus("declutter");
@@ -299,7 +306,7 @@ export default function SearchPage() {
                 title={j.title}
                 thumb={<Thumb icon={getCategoryIcon(j.category)} seed={j.category} />}
                 sub={[j.parish ? `${j.parish} Parish` : null, j.date_needed ? formatJobDate(j.date_needed) : null].filter(Boolean).join(" · ") || null}
-                price={j.pricing_mode === "quote" ? "Quote" : typeof j.budget === "number" && j.budget > 0 ? `$${formatPrice(j.budget)}` : null}
+                price={searchJobPrice(j, user?.id ?? null, viewerFee, firstPayoutFee)}
               />
             ))}
           </Group>

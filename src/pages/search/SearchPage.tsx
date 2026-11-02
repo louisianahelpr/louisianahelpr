@@ -12,12 +12,12 @@ import { useFeatureStatus } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { formatPrice } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 import { SEARCH_PARAM } from "@/components/landing/heroSearch";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { firstPhotos } from "@/components/declutter/DeclutterItemCard";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
+import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
 import { matchesSearch, searchOrFilter } from "@/lib/declutter/searchMatch";
 import { getCategoryIcon } from "@/lib/categoryIcons";
@@ -128,7 +128,8 @@ function Group({ title, count, onSeeAll, children }: { title: string; count: num
         <h2 className="font-sans font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>{title}</h2>
         {onSeeAll && count > PER_SECTION && (
           <button type="button" onClick={onSeeAll} className="font-sans font-semibold text-ds-13 min-h-[44px]" style={{ color: "hsl(var(--bark))" }}>
-            {count > MAX_ROWS ? `See ${MAX_ROWS} of ${count}` : `See all ${count}`}
+            {/* Q2644: "See 20 of 59" read like a count of what is shown, not an action. */}
+            {count > MAX_ROWS ? "See more" : `See all ${count}`}
           </button>
         )}
       </div>
@@ -291,7 +292,7 @@ export default function SearchPage() {
             {items.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((it) => {
               const cents = it.current_price_cents ?? it.price_cents;
               return (
-                <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? `$${formatPrice(cents / 100)}` : null} />
+                <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? itemPriceLabel(cents) : null} />
               );
             })}
           </Group>

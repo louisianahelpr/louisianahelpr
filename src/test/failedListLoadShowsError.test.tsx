@@ -100,7 +100,7 @@ vi.mock("@/hooks/useHelprActivity", () => ({ useHelprActivity: () => ({ activity
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 
 describe("Browse feed: a failed jobs query shows the error state", () => {
-  const renderFeed = (opts: { loadError?: boolean; offline?: boolean; profileName?: string }) => {
+  const renderFeed = (opts: { loadError?: boolean; offline?: boolean; profileName?: string; signedOut?: boolean }) => {
     const filters = {
       filteredJobs: [],
       nearbyJobs: [],
@@ -124,7 +124,7 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
           view="list"
           density={"comfortable" as never}
           filters={filters as never}
-          user={{ id: "user-1" } as never}
+          user={(opts.signedOut ? null : { id: "user-1" }) as never}
           allJobs={[]}
           loadError={!!opts.loadError}
           offline={!!opts.offline}
@@ -167,6 +167,20 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
     expect(screen.queryByText("You're offline. Jobs will load when you're back online.")).not.toBeNull();
     expect(retry()).not.toBeNull();
     expect(screen.queryByText(/Nothing today|No jobs near you/)).toBeNull();
+  });
+
+  // Q2392 (lead 10-25 item 7): a signed-in member's own open jobs never show in Browse, so an empty Browse says where
+  // they are; a signed-out visitor has none and reads no such line.
+  // @mutate src/components/dashboard/BrowseTasksFeed.tsx | footnote={!filters.hasFilters && user ? ( | footnote={false ? (
+  it("an empty board tells a signed-in member their own jobs are under Posted", () => {
+    renderFeed({});
+    const note = document.querySelector("[data-browse-own-jobs-note]");
+    expect(note?.textContent).toBe("Jobs you posted aren't listed here. They're under Posted.");
+    expect(note?.querySelector('a[href="/jobs?tab=posted"]')?.textContent).toBe("Posted");
+  });
+  it("signed out, no own-jobs line", () => {
+    renderFeed({ signedOut: true });
+    expect(document.querySelector("[data-browse-own-jobs-note]")).toBeNull();
   });
 
   it("a real empty board has a plain title with no name and no em dash", () => {

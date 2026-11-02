@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { Suspense, useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { browseFilteredEmptyCopy } from "@/lib/browseEmptyCopy";
@@ -485,6 +486,13 @@ export function BrowseTasksFeed({
               <EmptyFeedActions onNotify={notifyWhenWorkLands} />
             )
           }
+          // Q2392 (lead 10-25 item 7): your own open jobs never show in Browse (open_jobs_browse leaves them out), so an
+          // empty board says where they are. Signed out there are none. Guard: src/test/failedListLoadShowsError.test.tsx.
+          footnote={!filters.hasFilters && user ? (
+            <p data-browse-own-jobs-note="" className="mt-3 text-center font-sans text-ds-13 text-muted-foreground">
+              Jobs you posted aren't listed here. They're under <Link to="/jobs?tab=posted" className="font-semibold underline underline-offset-2">Posted</Link>.
+            </p>
+          ) : undefined}
         />
       </div>
         );

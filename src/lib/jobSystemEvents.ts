@@ -83,16 +83,24 @@ export function deriveJobSystemEvents(
   job: JobTimestamps | null | undefined,
   jobId: string,
   viewerId?: string | null,
+  /** The thread's other person (A3-86): named in the step notes when they are the one who took the step. */
+  other?: { id: string | null; first: string } | null,
 ): JobSystemEvent[] {
   if (!job) return [];
   const out: JobSystemEvent[] = [];
+  // A3-86 (audit 11-01): the step notes said "Helpr marked on the way." even to the Helpr, and "The person who posted
+  // this job ..." to everyone. Now "You ..." to the one who did it, the first name to the other side.
+  const nameOf = (id: string | null, fallback: string) =>
+    (other?.first && id && other.id === id ? other.first : fallback);
+  const helpr = viewerId && viewerId === job.helper_id ? null : nameOf(job.helper_id, "Your Helpr");
+  const poster = viewerId && viewerId === job.customer_id ? null : nameOf(job.customer_id, "The person who posted it");
 
   if (job.helper_on_the_way_at) {
     out.push({
       id: `system-helper_on_the_way-${jobId}`,
       kind: "helper_on_the_way",
       at: job.helper_on_the_way_at,
-      label: "Helpr marked on the way.",
+      label: helpr ? `${helpr} is on the way.` : "You're on the way.",
     });
   }
   if (job.helper_arrived_at) {
@@ -100,7 +108,7 @@ export function deriveJobSystemEvents(
       id: `system-helper_arrived-${jobId}`,
       kind: "helper_arrived",
       at: job.helper_arrived_at,
-      label: "Helpr arrived at the location.",
+      label: helpr ? `${helpr} arrived.` : "You arrived.",
     });
   }
   if (job.helper_completed_at) {
@@ -108,7 +116,7 @@ export function deriveJobSystemEvents(
       id: `system-helper_completed-${jobId}`,
       kind: "helper_completed",
       at: job.helper_completed_at,
-      label: "Helpr marked the job complete.",
+      label: helpr ? `${helpr} marked it done.` : "You marked it done.",
     });
   }
   if (job.poster_completed_at) {
@@ -116,7 +124,7 @@ export function deriveJobSystemEvents(
       id: `system-poster_confirmed_completed-${jobId}`,
       kind: "poster_confirmed_completed",
       at: job.poster_completed_at,
-      label: "The person who posted this job confirmed it complete.",
+      label: poster ? `${poster} approved it.` : "You approved it.",
     });
   }
   if (job.revision_requested_at) {
@@ -124,7 +132,7 @@ export function deriveJobSystemEvents(
       id: `system-revision_requested-${jobId}`,
       kind: "revision_requested",
       at: job.revision_requested_at,
-      label: "The person who posted this job requested a revision.",
+      label: poster ? `${poster} asked for a fix.` : "You asked for a fix.",
     });
   }
   // An expired listing was never cancelled by anyone (owner 10-31): the poster reads that it expired, anyone else

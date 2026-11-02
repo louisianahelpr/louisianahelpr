@@ -56,8 +56,10 @@ describe("Log in matches board 37", () => {
     const order = [
       at('id="email"'),
       at('htmlFor="password"'),
-      at('t("login.forgot")'),
+      // Q2248: the link comes AFTER the password field in the DOM (Tab from Email reaches Password first); the grid
+      // below still shows it on the Password label's row.
       at('id="password"'),
+      at('t("login.forgot")'),
       at('t("login.submit")'),
       at("<OrRule />"),
       at("<SocialAuthButtons"),
@@ -67,6 +69,8 @@ describe("Log in matches board 37", () => {
     ];
     expect(src.split('t("login.createAccount")').length - 1).toBe(2);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(src).toContain('className="col-start-1 row-start-1 text-ds-13 font-sans font-medium">{t("login.password")}</Label>');
+    expect(src).toContain('className="col-start-2 row-start-1 justify-self-end min-h-[44px]');
   });
 
   it("primary Log in is a full pill; the providers read 'Continue with Apple / Google' (audit L11)", () => {

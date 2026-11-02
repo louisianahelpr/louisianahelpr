@@ -1,6 +1,7 @@
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { STREET_ADDRESS_RULE } from "@/lib/streetAddressRule";
 import { DatePickerField } from "@/components/DatePickerField";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -326,15 +327,17 @@ export function LogisticsSection({
             {/* Q2615 (Jobs audit 1102b row 29): the same - / + stepper as the budget one step earlier, around the
                 exact field (it was a plain number field alone). */}
             <div className="flex items-center gap-3">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 aria-label="One fewer Helpr"
                 disabled={crewCount <= 2}
                 onClick={() => setHelpersNeeded(String(Math.max(2, crewCount - 1)))}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+                className="w-11 shrink-0 rounded-full px-0"
               >
                 <Minus className="h-5 w-5" aria-hidden />
-              </button>
+              </Button>
               <Input
                 type="number"
                 inputMode="numeric"
@@ -345,15 +348,17 @@ export function LogisticsSection({
                 className="w-16 text-center"
                 aria-label="Number of Helprs needed"
               />
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 aria-label="One more Helpr"
                 disabled={crewCount >= 10}
                 onClick={() => setHelpersNeeded(String(Math.min(10, Math.max(2, crewCount + 1))))}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+                className="w-11 shrink-0 rounded-full px-0"
               >
                 <Plus className="h-5 w-5" aria-hidden />
-              </button>
+              </Button>
             </div>
             <p className="text-ds-11 text-muted-foreground">
               {/* The server's split (crew_slot_share_cents, largest remainder in

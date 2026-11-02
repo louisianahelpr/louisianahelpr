@@ -327,6 +327,35 @@ describe("subscribeWithRecovery", () => {
     }
   });
 
+  // Q2517: Sentry JAVASCRIPT-4B carried attempts=3, unexplained_failures=4.
+  // One attempt that ends CHANNEL_ERROR then CLOSED is one failed attempt.
+  // @mutate src/lib/realtimeRecovery.ts | if (timer) return; | if (false) return;
+  it("counts an attempt that ends CHANNEL_ERROR then CLOSED once (Q2517)", () => {
+    const sub = makeSub({ name: "activity-realtime" });
+    act(() => {
+      last().cb?.("SUBSCRIBED");
+    });
+    act(() => {
+      for (let i = 0; i < 3; i += 1) {
+        last().cb?.("CHANNEL_ERROR", new Error("transport failure"));
+        last().cb?.("CLOSED");
+        vi.advanceTimersByTime(31_000);
+      }
+    });
+    // Three failed attempts (six dead statuses): below REPORT_AFTER_ATTEMPTS.
+    expect(created.length).toBe(4);
+    expect(reportMock).not.toHaveBeenCalled();
+    act(() => {
+      last().cb?.("CHANNEL_ERROR", new Error("transport failure"));
+      last().cb?.("CLOSED");
+    });
+    expect(reportMock).toHaveBeenCalledTimes(1);
+    const tags = (reportMock.mock.calls[0][1] as { tags: Record<string, string> }).tags;
+    expect(tags.attempts).toBe("4");
+    expect(tags.unexplained_failures).toBe("4");
+    sub.close();
+  });
+
   it("exposes the live channel through `current`", () => {
     const sub = makeSub({ name: "presence-y", stableName: true });
     expect(sub.current).toBe(created[0]);

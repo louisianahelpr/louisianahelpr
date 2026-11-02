@@ -1,24 +1,24 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1096,
-    "files": 307,
-    "rendering": 1015,
+    "calls": 1098,
+    "files": 308,
+    "rendering": 1017,
     "suppressedByPolicy": 81,
     "byKind": {
-      "confirmConsequential": 32,
+      "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 188,
-      "toast.error": 753,
+      "toast.error": 754,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 467,
-      "template": 99,
+      "literal": 468,
+      "template": 100,
       "dynamic": 581,
       "jsx": 0
     }
@@ -46,7 +46,7 @@
     },
     {
       "file": "src/components/BlockUserDialog.tsx",
-      "line": 124,
+      "line": 127,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -56,7 +56,7 @@
     },
     {
       "file": "src/components/BlockUserDialog.tsx",
-      "line": 129,
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12201,6 +12201,26 @@
         "text": "Arrival confirmed."
       },
       "renders": false
+    },
+    {
+      "file": "src/pages/jobs/jobPage/usePageMarkFixDone.ts",
+      "line": 31,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't mark the fix done just now. Please try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/jobPage/usePageMarkFixDone.ts",
+      "line": 37,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "Marked done. ${posterFirst ?? \"They\"} will check the fix."
+      },
+      "renders": true
     },
     {
       "file": "src/pages/jobs/jobPage/useWithdrawOffer.tsx",

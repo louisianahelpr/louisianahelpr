@@ -90,7 +90,8 @@ export default function DeclutterSellChooser() {
               <ChoiceCard data-sell-choice="move" to={SELL_MOVE_PATH} icon={<Boxes className={ICON} />} title="Moving out sale" line="Your move date groups everything as one sale." />
             )}
             <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give it away free" line="Someone nearby picks it up for free." />
-            <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h3>
+            {/* Q2576 (audit 1102a): "Post a Wanted" (a buying action) sat under "Other ways" to sell. */}
+            <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other things</h3>
             <ChoiceCard compact data-sell-choice="helpr" onClick={() => setExplaining(true)} icon={<HandHelping className={ICON} />} title="Have a Helpr list it for me" line="A Helpr photographs and lists it." />
             {wanted && (
               <ChoiceCard compact data-sell-choice="wanted" to={WANTED_POST_PATH} icon={<Search className={ICON} />} title="Post a Wanted" line="Tell sellers what you're after." />

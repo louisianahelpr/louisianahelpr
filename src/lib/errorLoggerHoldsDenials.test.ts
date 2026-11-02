@@ -14,6 +14,7 @@
 // @mutate src/lib/permissionDenied.ts | if (holdTimer === null) holdTimer = setTimeout(releaseHeldDenials, DENIAL_HOLD_MS); | if (false) holdTimer = setTimeout(releaseHeldDenials, DENIAL_HOLD_MS);
 // @mutate src/lib/errorLogger.ts | releaseHeldDenials(); | void 0;
 // @mutate src/components/ProtectedRoute.tsx | releaseHeldDenials(); | void 0;
+// @mutate src/lib/errorLogger.ts | announcePermissionDenied(err); | void 0;
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -26,7 +27,7 @@ vi.mock("@/lib/sentry", () => ({ captureException: sentrySpy }));
 vi.mock("@/lib/posthog", () => ({ captureException: vi.fn() }));
 
 import { installGlobalErrorHandlers, report } from "./errorLogger";
-import { clearSessionLost, DENIAL_HOLD_MS, heldDenialCount, markSessionLost, releaseHeldDenials } from "./permissionDenied";
+import { clearSessionLost, DENIAL_HOLD_MS, heldDenialCount, markSessionLost, PERMISSION_DENIED_EVENT, releaseHeldDenials } from "./permissionDenied";
 
 const denied = (what: string) => ({ message: `permission denied for ${what}`, code: "42501", details: null, hint: null });
 
@@ -56,6 +57,26 @@ afterEach(() => {
 });
 
 describe("Q2295: denials wait for the session-loss check", () => {
+  it("only the LOG waits: what the user sees (the denial event that starts the session check / update path) fires at once", async () => {
+    // Lead review 11-02: nothing a person sees may wait on the hold. report()
+    // shows no toast (notifyUser is declared but read nowhere); the denial's
+    // user-facing effect is PERMISSION_DENIED_EVENT, which must not be held.
+    const seen = vi.fn();
+    window.addEventListener(PERMISSION_DENIED_EVENT, seen);
+    try {
+      report(denied("table jobs"), { tags: { source: "query" } });
+      expect(seen).toHaveBeenCalledTimes(1);
+      expect(heldDenialCount()).toBe(1);
+      await settle();
+      expect(posted().filter((m) => /permission denied/.test(m))).toEqual([]);
+      // Send it here, so its flush does not land in the next case.
+      releaseHeldDenials();
+      await settle();
+    } finally {
+      window.removeEventListener(PERMISSION_DENIED_EVENT, seen);
+    }
+  });
+
   it("the 2026-10-19 batch: denials before the loss is confirmed are dropped; only the session-lost row reports", async () => {
     report(denied("function my_schedule_clashes"), { tags: { source: "query" } });
     report(denied("function get_job_offer_targets"), { tags: { source: "query" } });

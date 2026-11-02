@@ -5,7 +5,7 @@
  *
  * @mutate src/components/admin/userDetail/DeclutterAmountsOwed.tsx | { p_debt_id: id, p_note: why } | { p_debt_id: id, p_note: "" }
  * @mutate src/components/admin/userDetail/DeclutterAmountsOwed.tsx | if (!why) { | if (false) {
- * @mutate src/components/admin/userDetail/DeclutterAmountsOwed.tsx | throw error; | return [];
+ * @mutate src/components/admin/userDetail/DeclutterAmountsOwed.tsx | return (unwrap(res) ?? []) as OwedRow[]; | return (res.data ?? []) as OwedRow[];
  * @mutate src/components/admin/userDetail/DeclutterAmountsOwed.tsx | {!r.waived_at && r.remaining_cents > 0 && clearing !== r.id ? ( | {clearing !== r.id ? (
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";

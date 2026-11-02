@@ -5,7 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
-import { report } from "@/lib/errorLogger";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { unwrap } from "@/lib/supabaseResult";
 import { userFacingError } from "@/lib/userFacingError";
 
 /**
@@ -45,14 +47,11 @@ export function DeclutterAmountsOwed({ userId }: { userId: string }) {
     key: ["admin-declutter-amounts-owed", userId],
     fallback: [],
     fetcher: async () => {
-      const { data, error } = await supabase.rpc("declutter_admin_fee_debts", { p_user: userId });
-      if (error) {
-        // PGRST202: the function is not deployed yet (the migration lands first); show nothing rather than an error.
-        if (error.code === "PGRST202") return [];
-        report(error, { tags: { source: "DeclutterAmountsOwed.load" } });
-        throw error;
-      }
-      return (data ?? []) as OwedRow[];
+      const res = await supabase.rpc("declutter_admin_fee_debts", { p_user: userId });
+      // Not deployed yet (the migration lands first): show nothing rather than an error.
+      if (isMissingRpcNamed(res.error, "declutter_admin_fee_debts")) return [];
+      // Any other error throws through unwrap; the error line below reports it (ReportErrorScreen).
+      return (unwrap(res) ?? []) as OwedRow[];
     },
   });
 
@@ -74,14 +73,19 @@ export function DeclutterAmountsOwed({ userId }: { userId: string }) {
       toast.error("Couldn't clear that amount. Try again.");
       return;
     }
-    toast.success("Cleared. The member was told.");
+    toast("Cleared. The member was told.");
     setClearing(null);
     setNote("");
     refetch();
   };
 
   if (isError) {
-    return <p className="text-ds-11 text-destructive-ink">Couldn't load what this member owes from Declutter refunds.</p>;
+    return (
+      <div>
+        <ReportErrorScreen source="DeclutterAmountsOwed" title="Couldn't load what this member owes from Declutter refunds." />
+        <p className="text-ds-11 text-destructive-ink">Couldn't load what this member owes from Declutter refunds.</p>
+      </div>
+    );
   }
   if (isInitialLoading || rows.length === 0) return null;
   return (

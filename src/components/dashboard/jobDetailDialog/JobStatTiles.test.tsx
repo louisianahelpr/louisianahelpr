@@ -34,7 +34,7 @@ function makeJob(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
     location: "1 Ryan St, Lake Charles, LA 70601",
     customer_id: "poster",
     status: "open",
-    created_at: "2026-09-19T12:00:00Z",
+    created_at: "2054-09-19T12:00:00Z",
     start_time: null,
     is_flexible_schedule: false,
     expires_at: null,
@@ -186,13 +186,14 @@ describe("JobStatTiles — a re-listed crew's tile says its open spots (Q1464)",
  * @mutate src/components/dashboard/jobDetailDialog/JobStatTiles.tsx |                 label: startsFirst ? "Starts" : "Closes", |                 label: "Closes",
  */
 describe("A3-94: the deadline tile names whichever comes first, the start or the close", () => {
-  // Sat Nov 7 2026, 4:00 PM in Louisiana; the job is Sun Nov 8 at 9:00 AM (17 hours away).
+  // Sat Nov 7 2054, 4:00 PM in Louisiana; the job is Sun Nov 8 at 9:00 AM (17 hours away).
+// Pinned 28 years out (same weekdays and DST days as 2026), so no job day here ages into the present (jobDayFixtureTimezone).
   afterEach(() => vi.useRealTimers());
-  const at = () => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-11-07T22:00:00Z")); };
+  const at = () => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2054-11-07T22:00:00Z")); };
 
   it("the listing closes days after the start: Starts · 17 hours left", () => {
     at();
-    render(<JobStatTiles job={makeJob({ date_needed: "2026-11-08", start_time: "09:00", expires_at: "2026-11-11T22:00:00Z" })} distMilesForDriving={null} drivingLabel={null} />);
+    render(<JobStatTiles job={makeJob({ date_needed: "2054-11-08", start_time: "09:00", expires_at: "2054-11-11T22:00:00Z" })} distMilesForDriving={null} drivingLabel={null} />);
     expect(screen.getByText("Starts")).toBeTruthy();
     expect(screen.queryByText("Closes")).toBeNull();
     expect(screen.getByText("17 hours left")).toBeTruthy();
@@ -200,7 +201,7 @@ describe("A3-94: the deadline tile names whichever comes first, the start or the
 
   it("the listing closes before the start: Closes, with its own time left", () => {
     at();
-    render(<JobStatTiles job={makeJob({ date_needed: "2026-11-20", start_time: "09:00", expires_at: "2026-11-08T22:00:00Z" })} distMilesForDriving={null} drivingLabel={null} />);
+    render(<JobStatTiles job={makeJob({ date_needed: "2054-11-20", start_time: "09:00", expires_at: "2054-11-08T22:00:00Z" })} distMilesForDriving={null} drivingLabel={null} />);
     expect(screen.getByText("Closes")).toBeTruthy();
     expect(screen.getByText("1 day left")).toBeTruthy();
   });

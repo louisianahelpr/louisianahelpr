@@ -157,7 +157,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterRefundReturn.tsx` | input×4, select×1, date/calendar×1 | datetime-local, file, text | 300 |  |
 | `src/components/declutter/DeclutterReviewForm.tsx` | textarea×1 |  | 1000 | Quick tags · Shown on their profile |
 | `src/components/declutter/DeclutterTradeViews.tsx` | input×1 | radio |  |  |
-| `src/components/declutter/ShipToMe.tsx` | input×4 | text, radio | 10 |  |
+| `src/components/declutter/ShipToMe.tsx` | input×3 | text | 10 |  |
 
 ## /declutter, /declutter/settings, /declutter/item/:id
 

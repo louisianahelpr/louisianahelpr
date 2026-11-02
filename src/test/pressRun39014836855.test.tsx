@@ -133,6 +133,8 @@ describe("press-every-control: a write on a job card lands on, and is remembered
     // `let target`: a TDZ throw on every gate-approved write, invisible to a
     // source match like this one). The loop itself is driven, end to end, by
     // src/test/pressDrivesTheRealPressPath.test.tsx.
-    expect(src).toMatch(/target = target\.first\(\);\n[\s\S]{0,1500}if \(entry\.mutating\) \{\n\s+const liveRowText = await target\.evaluate\(LIVE_ROW_TEXT, RECORD_ROW_SEL\)/);
+    // Q2010 (2ae51db90b) put the read's failure flag (rowReadError) first inside the branch: the read stays the
+    // branch's first await, with only declarations and comments before it.
+    expect(src).toMatch(/target = target\.first\(\);\n[\s\S]{0,1500}if \(entry\.mutating\) \{\n(?:\s*(?:\/\/[^\n]*|let \w+ = null;)\n)*\s+const liveRowText = await target\.evaluate\(LIVE_ROW_TEXT, RECORD_ROW_SEL\)/);
   });
 });

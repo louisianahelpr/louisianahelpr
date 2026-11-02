@@ -465,7 +465,9 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
     // A booking whose day has passed and which never even started.
     if (jobIsOverdue({ ...app.job, status: jobStatus })) return "needs_you";
     // The day is here and they accepted it — today is theirs to turn up for.
-    return agreedJobStage({ ...app.job, status: jobStatus }, "helper") === "scheduled" ? "scheduled" : "needs_you";
+    // A3-51 (audit 11-01): a crew owes no day-of confirm, so its confirm window is not the member's move.
+    const stage = agreedJobStage({ ...app.job, status: jobStatus }, "helper");
+    return stage === "scheduled" || (stage === "confirm_owed" && app.job?.is_group_job === true) ? "scheduled" : "needs_you";
   }
   // Applied, awaiting their decision.
   return "waiting";

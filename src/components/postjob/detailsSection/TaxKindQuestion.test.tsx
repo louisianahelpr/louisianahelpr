@@ -5,7 +5,7 @@
  * 47:301.3 items 5 and 7).
  *
  * @mutate src/components/postjob/DetailsSection.tsx |       {setTaxKind && category && !TAXABLE_CATEGORIES.has(category) && ( |       {false && (
- * @mutate src/components/postjob/detailsSection/TaxKindQuestion.tsx |                 setTaxKind(value); |                 setTaxKind(null);
+ * @mutate src/components/postjob/detailsSection/TaxKindQuestion.tsx |           setTaxKind(next === NONE ? null : (next as JobTaxKind)); |           setTaxKind(null);
  * @mutate src/components/postjob/detailsSection/TaxKindQuestion.tsx |   { value: "clothes_cleaning", label: "It washes or cleans clothes", sub: "Laundry, ironing, dry cleaning, or washing linens." },\n |
  */
 import { describe, it, expect, vi } from "vitest";

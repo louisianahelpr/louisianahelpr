@@ -25,7 +25,7 @@ import { blankComments } from "./helpers/blankNonCode";
 const linkSetupJob = vi.fn<(orderId: string, jobId: string) => Promise<boolean>>();
 const toastError = vi.fn();
 vi.mock("@/lib/declutter/setupHelpr", () => ({ linkSetupJob: (o: string, j: string) => linkSetupJob(o, j) }));
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a) } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a) }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/chunkReload", () => ({ backgroundImport: <T,>(load: () => Promise<T>) => load() }));
 

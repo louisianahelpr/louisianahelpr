@@ -54,7 +54,8 @@ function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel, note }
   return (
     <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2" role="group" aria-label="Add a card">
       {note && <p className="text-sm text-foreground" role="status" data-card-not-saved="">{note}</p>}
-      <p className="text-sm font-semibold">Add a card to finish.</p>
+      {/* Q2573 (audit 1102a): "Add a card to finish." on the first tap, before anything had started. */}
+      <p className="text-sm font-semibold" data-card-step-title="">{action === "buy" ? "To buy, add a card first." : "To send your offer, add a card first."}</p>
       <p className="text-xs text-muted-foreground">
         {/* #21 (owner chose C, 2026-10-28): two Stripe pages stay; this line says what the first one is for. */}
         We save your card now; you're only charged when you check out. {action === "buy" ? "Then checkout opens." : "Then you send your offer."}

@@ -351,7 +351,7 @@ describe("Declutter screens", () => {
     expect(screen.queryByText("You're only charged when you buy.")).toBeNull();
     await waitFor(() => expect(buyNow).toBeEnabled());
     fireEvent.click(buyNow);
-    expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();
+    expect(await screen.findByText("To buy, add a card first.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add a card" })).toBeInTheDocument();
     // Audit #47: ONE filled primary at a time; while the card is asked for, Buy now steps back to an outline.
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx |           variant={showCardStep ? "outline" : undefined} |           variant={undefined}

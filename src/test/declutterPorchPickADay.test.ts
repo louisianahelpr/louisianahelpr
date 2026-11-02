@@ -14,9 +14,9 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 // @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | AND b.slot_start IS NOT NULL AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now() | AND b.slot_start IS NOT NULL AND b.slot_start + interval '24 hours' <= now()
 // @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql |                        AND public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now()) |                        AND b.slot_start + interval '24 hours' <= now())
 // @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   v_from := CASE WHEN b.pickup_day IS NOT NULL THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day) |   v_from := CASE WHEN false THEN public.declutter_pickup_anchor(b.slot_start, b.pickup_day)
-// @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, v_start); |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, NULL);
+// @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, v_start); |     VALUES (o.id, o.buyer_id, o.seller_id, v_start, v_start + interval '30 minutes', 'all_day', p_day, NULL);
 // @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql | REVOKE ALL ON FUNCTION public.declutter_book_porch_day(uuid, date) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_book_porch_day(uuid, date) FROM PUBLIC;
-// @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   IF o.handover <> 'porch' THEN |   IF false THEN
+// @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |   IF o.handover <> 'porch' THEN |   IF false THEN
 
 const ROOT = resolve(__dirname, "..", "..");
 const DIR = join(ROOT, "supabase", "migrations");

@@ -24,6 +24,8 @@
 // @mutate src/components/profile/ProfileTabFallback.tsx | instant_book: [{ h: 122 }, | instant_book: [{ h: 101 },
 // @mutate src/components/profile/ProfileTabFallback.tsx | auto_tip: [{ h: 288 }], | auto_tip: [{ h: 527 }],
 // @mutate src/components/profile/ProfileTabFallback.tsx | analytics: [{ h: 370 }], | analytics: [{ h: 481 }],
+// @mutate src/components/profile/ProfileTabFallback.tsx |     { h: 89, media: 1 },\n    { h: 71, media: 1 },\n    { h: 86, media: 1 }, |     { h: 74, media: 1 },\n    { h: 74, media: 1 },\n    { h: 74, media: 1 },
+// @mutate src/components/profile/ProfileTabFallback.tsx |     { h: 261, media: 3 }, |     { h: 196, media: 2 },
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null }));
 import { TAB_SHAPES } from "@/components/profile/ProfileTabFallback";
@@ -41,6 +43,16 @@ const MEASURED: Partial<Record<keyof typeof TAB_SHAPES, Measured>> = {
   // One block under the header: rowH is that block; rowRect.h 355.8 and 438.2.
   auto_tip: { header: 57, rows: 2, rowH: 288, total: 355.8 },
   analytics: { header: 57, rows: 2, rowH: 370, total: 438.2 },
+  // B164: h1 at y 12, h 49.3 (the title wraps), so the header row is 61; cards' h2 landmarks 88.3, 189.6, 272.1,
+  // 370, 610.9; rows 6, rowH 86, rowRect.h 856.9. Sign-in methods is on (SOCIAL_SIGN_IN_ENABLED).
+  security: { header: 61, rows: 6, rowH: 86, total: 856.9 },
+};
+
+/** Avatar/icon circles in the loaded frame (the measurer's media count; the header draws none, as the loading
+ *  frame's count shows). The check refuses a difference of more than 1. */
+const MEDIA: Partial<Record<keyof typeof TAB_SHAPES, number>> = {
+  // B164: 6 in the loading frame (74/74/74/224/196 with 1/1/1/1/2) -> 7 loaded.
+  security: 7,
 };
 
 const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
@@ -49,6 +61,14 @@ describe("Q1695: profile tab placeholders match the last prod measurement", () =
   it("covers at least one tab (never passes on an empty table)", () => {
     expect(Object.keys(MEASURED).length).toBeGreaterThan(0);
   });
+
+  for (const [tab, n] of Object.entries(MEDIA) as [keyof typeof TAB_SHAPES, number][]) {
+    it(`${tab}: the same number of avatar/icon circles as the loaded frame (${n})`, () => {
+      const drawn = (TAB_SHAPES[tab] ?? []).reduce((a, b) => a + (b.media ?? 0), 0);
+      expect(Math.abs(drawn - n)).toBeLessThanOrEqual(1);
+      expect(drawn).toBe(n);
+    });
+  }
 
   for (const [tab, m] of Object.entries(MEASURED) as [keyof typeof TAB_SHAPES, Measured][]) {
     it(`${tab}: same row count, median row within ${ROW_BUDGET}px, same total height within ${ROW_BUDGET}px`, () => {

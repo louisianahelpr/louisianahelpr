@@ -11,7 +11,7 @@
  * Behaviour, red then green: src/test/pglite/scheduleChangeUsesBookingRule.pglite.mjs
  * (applied 3x: ALL CHECKS PASSED; NEW_MIGRATION=skip: 4 FAILED).
  *
- * @mutate supabase/migrations/20261021102943_refund_requests.sql |        AND ((o.helper_id = v_job.helper_id\n             AND o.status::text IN ('accepted', 'in_progress')\n             AND o.helper_completed_at IS NULL)\n            OR (o.status::text IN ('open', 'accepted', 'in_progress') |        AND ((o.helper_id = v_job.helper_id\n             AND o.status::text IN ('accepted', 'in_progress')\n             AND o.helper_completed_at IS NULL)\n            OR (o.status::text IN ('accepted', 'in_progress')
+ * @mutate supabase/migrations/20261102061755_schedule_change_replace_words_your_own.sql |        AND ((o.helper_id = v_job.helper_id\n             AND o.status::text IN ('accepted', 'in_progress')\n             AND o.helper_completed_at IS NULL)\n            OR (o.status::text IN ('open', 'accepted', 'in_progress') |        AND ((o.helper_id = v_job.helper_id\n             AND o.status::text IN ('accepted', 'in_progress')\n             AND o.helper_completed_at IS NULL)\n            OR (o.status::text IN ('accepted', 'in_progress')
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |                                  AND g.status = 'accepted'\n                                 AND g.helper_completed_at IS NULL))) |                                  AND g.status = 'accepted')))
  */
 import { describe, it, expect } from "vitest";

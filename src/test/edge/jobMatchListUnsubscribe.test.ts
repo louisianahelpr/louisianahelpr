@@ -178,10 +178,10 @@ describe("email-unsubscribe: the job-match link turns off job-match email only",
     const fn = await loadUnsub();
     const res = await post(fn, "ok-promotions", "promotions");
     expect(res.status).toBe(200);
-    const prefs = scenario.writes.filter((w) => w.table === "notification_preferences");
-    expect(prefs.map((w) => w.payload)).toEqual([{ user_id: "real-user-1", email_promotions: false }]);
-    // The consent flag, plus the record of what it turned off (Q2092).
-    expect(scenario.writes.filter((w) => w.table === "profiles").map((w) => Object.keys(w.payload as object)).flat().sort())
-      .toEqual(["marketing_consent", "promotions_before_unsubscribe"]);
+    // Q2159: the commercial opt-out is one call (it records what it turns off
+    // and turns both flags off in one transaction); the job-match switch is
+    // never written.
+    expect((scenario.rpcCalls ?? []).map((c) => [c.name, c.args])).toEqual([["promotions_unsubscribe", { p_user_id: "real-user-1" }]]);
+    expect(scenario.writes.filter((w) => w.table !== "signup_leads")).toEqual([]);
   });
 });

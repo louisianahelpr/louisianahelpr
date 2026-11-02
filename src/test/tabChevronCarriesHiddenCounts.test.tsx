@@ -1,13 +1,13 @@
 /**
  * A3-97 (audit 7, 11-01): on a 375 phone Declutter showed "Browse · Buying 2 ›". Selling, Deliver, Wanted and Free were
  * scrolled out of view behind a 28 px chevron, so a seller's to-do count (an offer to answer, a sale to set out) was off
- * screen. The chevrons now carry the to-do counts of the tabs they hide ("3 ›", read as "More tabs, 3 to do") and are a
+ * screen. The chevrons now carry the to-do counts of the tabs they hide ("3 ›", read as "More tabs, 3 to do"; Q2563: now "4 more tabs, 3 to do") and are a
  * 44 px target like every other control. Layout is stubbed (jsdom has none), as in sectionTabsNeverCutAWord.
  *
  * @mutate src/components/sections/SectionTabs.tsx |         if (n > 0 && t.right > box.right + 1) ahead += n; |         if (false) ahead += n;
  * @mutate src/components/sections/SectionTabs.tsx |         else if (n > 0 && t.left < box.left - 1) behind += n; |         else if (false) behind += n;
  * @mutate src/components/sections/SectionTabs.tsx |               data-tab-count={o.count && o.count > 0 ? o.count : undefined}\n |
- * @mutate src/components/sections/SectionTabs.tsx | aria-label={aheadCount > 0 ? tr("tabs.moreToDo", { n: aheadCount }) : tr("tabs.more")} | aria-label={tr("tabs.more")}
+ * @mutate src/components/sections/SectionTabs.tsx | aria-label={aheadCount > 0 ? tr("tabs.nMoreToDo", { n: aheadTabs, m: aheadCount }) : tr("tabs.nMoreTabs", { n: aheadTabs })} | aria-label={tr("tabs.nMoreTabs", { n: aheadTabs })}
  * @mutate src/components/sections/SectionTabs.tsx | {aheadCount > 0 && <span data-testid="tabs-more-count" | {false && <span data-testid="tabs-more-count"
  * @mutate src/components/sections/SectionTabs.tsx | data-tabs-more-button="" onClick={showNext}\n          className="inline-flex h-11 min-w-11 | data-tabs-more-button="" onClick={showNext}\n          className="inline-flex h-11 w-7 !min-w-0
  * @mutate src/components/sections/SectionTabs.tsx | data-tabs-less-button="" onClick={showPrevious}\n          className="inline-flex h-11 min-w-11 | data-tabs-less-button="" onClick={showPrevious}\n          className="inline-flex h-11 w-7 !min-w-0
@@ -48,7 +48,7 @@ describe("A3-97: a hidden tab's to-do count shows on the chevron", () => {
     track = 110; // Browse 0-50 and Buying 58-108 fit; Selling (116-166) is off the edge.
     layOut();
     row({ buying: 2, selling: 3 });
-    const more = screen.getByRole("button", { name: "More tabs, 3 to do" });
+    const more = screen.getByRole("button", { name: "4 more tabs, 3 to do" });
     expect(screen.getByTestId("tabs-more-count").textContent).toBe("3");
     expect(more.contains(screen.getByTestId("tabs-more-count"))).toBe(true);
   });
@@ -57,22 +57,22 @@ describe("A3-97: a hidden tab's to-do count shows on the chevron", () => {
     layOut();
     row({ selling: 2, wanted: 1, free: 4 }); // Selling shows; Wanted and Free are hidden.
     expect(screen.getByTestId("tabs-more-count").textContent).toBe("5");
-    expect(screen.getByRole("button", { name: "More tabs, 5 to do" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "3 more tabs, 5 to do" })).toBeInTheDocument();
   });
 
   it("no hidden count: a plain chevron with no badge", () => {
     layOut();
     row({ buying: 2 });
     expect(screen.queryByTestId("tabs-more-count")).toBeNull();
-    expect(screen.getByRole("button", { name: "More tabs" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "3 more tabs" })).toBeInTheDocument();
   });
 
   it("moved along, the way back carries the counts of the tabs off the start", () => {
     layOut();
     row({ buying: 2, free: 1 });
     const list = screen.getByRole("tablist");
-    fireEvent.click(screen.getByRole("button", { name: "More tabs, 1 to do" }));
-    fireEvent.click(screen.getByRole("button", { name: /More tabs/ }));
+    fireEvent.click(screen.getByRole("button", { name: "3 more tabs, 1 to do" }));
+    fireEvent.click(screen.getByRole("button", { name: /more tabs/ }));
     act(() => { list.dispatchEvent(new Event("scroll")); });
     expect(list.scrollLeft).toBeGreaterThan(58);
     expect(screen.getByRole("button", { name: "Earlier tabs, 2 to do" })).toBeInTheDocument();
@@ -83,14 +83,34 @@ describe("A3-97: a hidden tab's to-do count shows on the chevron", () => {
     layOut();
     row({ free: 1 });
     const list = screen.getByRole("tablist");
-    fireEvent.click(screen.getByRole("button", { name: /More tabs/ }));
+    fireEvent.click(screen.getByRole("button", { name: /more tabs/ }));
     act(() => { list.dispatchEvent(new Event("scroll")); });
-    const buttons = [screen.getByRole("button", { name: /More tabs/ }), screen.getByRole("button", { name: /Earlier tabs/ })];
+    const buttons = [screen.getByRole("button", { name: /more tabs/ }), screen.getByRole("button", { name: /Earlier tabs/ })];
     expect(buttons.length).toBeGreaterThan(1);
     for (const b of buttons) {
       expect(b.className).toMatch(/\bh-11\b/);
       expect(b.className).toMatch(/\bmin-w-11\b/);
       expect(b.className).not.toMatch(/\bw-7\b|!min-w-0/);
     }
+  });
+
+  // Q2563 (owner 11-02, audit 1102a): at 375 four of Declutter's six tabs hid behind a bare ">", so a buyer never saw
+  // Free or Wanted. The chevron is a labelled pill, "4 more ›", and its spoken name starts with the same words.
+  // @mutate src/components/sections/SectionTabs.tsx |         if (t.width > 0 && t.right > box.right + 1) hiddenAhead++; |         if (false) hiddenAhead++;
+  // @mutate src/components/sections/SectionTabs.tsx |             <span data-testid="tabs-more-label" aria-hidden>{tr("tabs.nMore", { n: aheadTabs })}</span>\n |
+  // @mutate src/components/sections/SectionTabs.tsx | className="inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-muted pl-2.5 | className="inline-flex h-8 items-center gap-1 whitespace-nowrap pl-2.5
+  it("Q2563: the More chevron is a pill that says how many tabs it hides", () => {
+    track = 110; // Browse and Buying fit; Selling, Deliver, Wanted and Free are off the edge.
+    layOut();
+    row({});
+    const more = screen.getByRole("button", { name: "4 more tabs" });
+    const pill = more.querySelector("[data-tabs-more-pill]") as HTMLElement;
+    expect(pill).not.toBeNull();
+    expect(pill.className).toMatch(/\brounded-full\b/);
+    expect(pill.className).toMatch(/\bbg-muted\b/);
+    expect(screen.getByTestId("tabs-more-label").textContent).toBe("4 more");
+    // Label in name (WCAG 2.5.3): what the pill shows starts what it is called.
+    expect(more.getAttribute("aria-label")!.startsWith(screen.getByTestId("tabs-more-label").textContent!)).toBe(true);
+    expect(more.className).toMatch(/\bmin-w-11\b/);
   });
 });

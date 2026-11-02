@@ -1597,9 +1597,14 @@ describe("B-1: the return from the payment page never offers Pay again for what 
     // Back from Stripe: the webhook has not landed yet, so the server still has the lamp in the cart.
     show(<CartView />, "/declutter?tab=buying&paid=1");
     expect(await screen.findByText("Payment received.")).toBeInTheDocument();
+    // Another seller's Pay comes on once the checkout's reads are in; only then is the held one judged (before that,
+    // a still-loading read also kept it off, so `held` itself was never tested).
+    await waitFor(() => expect(within(group(2)).getByRole("button", { name: /^Pay / })).toBeEnabled());
     const held = within(group(1)).getByRole("button", { name: "Confirming your payment…" });
     expect(held).toBeDisabled();
-    await waitFor(() => expect(within(group(2)).getByRole("button", { name: /^Pay / })).toBeEnabled());
+    fireEvent.click(held);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(state.opened.length).toBe(1); // only the first Pay's page; the held one opened nothing
 
     // The webhook lands: the next read (polled, no reload) shows the lamp paid, and the notice goes.
     state.cart = [{ ...lamp(), status: "paid", order_id: "ord1", order_status: "paid", handover: "porch", total_cents: 385 }, rug()];

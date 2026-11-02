@@ -231,6 +231,10 @@ describe("Declutter Add a Helpr", () => {
     // Loaded lazily as a BACKGROUND import: a stale chunk is a failed link the buyer is told about, never
     // a recovery reload between the job row and the checkout redirect (lh-money-escrow review of 6ef39799d #3a).
     expect(submit).toContain('const { linkSetupJob } = await backgroundImport(() => import("@/lib/declutter/setupHelpr"), "declutter-setup-helpr");');
+    // Q1967: the haul-away link loads the same way (it runs at the same point of the submit).
+    // @mutate src/pages/post-job/useJobSubmit.ts | const haulAwayLib = () => backgroundImport(() => import("@/lib/declutter/haulAway"), "declutter-haul-away"); | const haulAwayLib = () => import("@/lib/declutter/haulAway");
+    expect(submit).toContain('const haulAwayLib = () => backgroundImport(() => import("@/lib/declutter/haulAway"), "declutter-haul-away");');
+    expect(submit).not.toMatch(/loadModule\(\(\) => import\("@\/lib\/declutter\/haulAway"\)\)/);
     expect(submit).toContain("if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, jobData.id);");
     // The retry of a lost payment answer links again first (money review of 4f45a073f #4) ...
     expect(submit).toMatch(/if \(attempt\.jobId\) \{[\s\S]*?if \(declutterOrderId\) await linkSetupJobOrTell\(declutterOrderId, attempt\.jobId\);[\s\S]*?await startPayment\(attempt\.jobId/);

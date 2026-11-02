@@ -31,8 +31,8 @@ import { migrationFiles, parseDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { replayTablePrivileges, type Priv } from "./helpers/tablePrivilegeReplay";
 
-// @mutate src/lib/clientCompat.ts | export const CLIENT_COMPAT_EPOCH = 2; | export const CLIENT_COMPAT_EPOCH = 1;
-// @mutate supabase/migrations/20261021124810_declutter_narrow_member_reads.sql | AS $$ SELECT 2 $$; | AS $$ SELECT 1 $$;
+// @mutate src/lib/clientCompat.ts | export const CLIENT_COMPAT_EPOCH = 3; | export const CLIENT_COMPAT_EPOCH = 2;
+// @mutate supabase/migrations/20261102082018_phone_save_rpc_rate_limited.sql | AS $$ SELECT 3 $$; | AS $$ SELECT 2 $$;
 // @mutate src/test/schemaBreakBumpsClientFloor.test.ts | client_compat_floor.sql";\n | payout_holds_server_side.sql";\n
 // @mutate src/test/schemaBreakBumpsClientFloor.test.ts | "i").test(code) &&\n  !earlier.some | "i").test(code) &&\n  earlier.some
 

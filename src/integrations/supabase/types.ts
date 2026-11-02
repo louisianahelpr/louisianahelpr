@@ -9468,6 +9468,27 @@ export type Database = {
         }
         Relationships: []
       }
+      phone_save_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          save_outcome: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          save_outcome: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          save_outcome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       platform_settings: {
         Row: {
           application_cap_per_hour: number | null
@@ -19567,6 +19588,7 @@ export type Database = {
       }
       run_missed_cron_catch_up: { Args: never; Returns: Json }
       run_seed_purge: { Args: never; Returns: Json }
+      save_my_phone: { Args: { p_phone: string }; Returns: Json }
       save_weekly_availability: { Args: { p_slots: Json }; Returns: number }
       saved_search_category_matches: {
         Args: {

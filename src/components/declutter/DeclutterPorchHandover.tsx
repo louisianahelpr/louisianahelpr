@@ -17,7 +17,9 @@
  *     booking panel with no steps and no "You get $X" note. Every pickup kind uses PickupStatus now, and a
  *     seller-delivers sale uses SellerDeliveryStatus: the same three parts, its steps read from the delivery booking.
  */
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel } from "@/lib/declutter/sellerDelivery";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -205,6 +207,7 @@ function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents
   /** AUD31-1: a seller who delivers is paid this on top of the items (declutter_complete_handover's v_rate). */
   deliveryCents?: number;
 }) {
+  const [ruleOpen, setRuleOpen] = useState(false);
   const sellerCents = itemsCents + Math.max(0, deliveryCents);
   const parts = deliveryCents > 0 ? ` (${formatPrice(itemsCents)} for the sale and ${formatPrice(deliveryCents)} for delivering it)` : "";
   const money = free ? null
@@ -219,7 +222,10 @@ function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents
         // Deep audit #31: one payout rule, the live one. LEAD-DOOR-PAYLINE: said per handover kind from the owner's
         // 10-30 rule and the server it describes (sellerPayoutRule): "I got it" pays 24 hours later; the seller's own
         // step plus the buyer's silence about 48 hours; nobody speaks, the money stays held.
-        : <>You get <strong className="tabular-nums">{formatPrice(sellerCents)}</strong>{parts}. {sellerPayoutRule(kind)}</>;
+        // Q2634 (owner 11-02): one line; the 10-30 rule, word for word, opens under "Details".
+        : <>You get <strong className="tabular-nums">{formatPrice(sellerCents)}</strong>{parts} after the handover.{" "}
+          <InlineTextButton aria-expanded={ruleOpen} data-payout-details="" onClick={() => setRuleOpen((o) => !o)}>{ruleOpen ? "Hide details" : "Details"}</InlineTextButton>
+          {ruleOpen && <span className="mt-1 block" data-payout-rule="">{sellerPayoutRule(kind)}</span>}</>;
   // The seller's "You get $X once the sale is final" is good news: the sage tint, not the rust one a held payout
   // keeps (audit 1030 DC-13).
   const goodNews = side === "seller" && !problemOpen;

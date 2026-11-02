@@ -95,6 +95,10 @@ export function SectionTabs<T extends string>({
   const [more, setMore] = useState(false);
   // Moved along, the row also has a way back, so a selected tab off the start is one tap away (T12, 10-30).
   const [less, setLess] = useState(false);
+  // A3-97 (audit 7, 11-01): at 375 Declutter shows Browse and Buying only, so a seller's to-do count on Selling sat off
+  // screen behind a bare chevron. The chevrons carry the to-do counts of the tabs they hide.
+  const [aheadCount, setAheadCount] = useState(0);
+  const [behindCount, setBehindCount] = useState(0);
   const memberMoved = useRef(false);
   useLayoutEffect(() => {
     const list = listRef.current;
@@ -111,12 +115,19 @@ export function SectionTabs<T extends string>({
       setMore(list.scrollWidth - list.clientWidth - list.scrollLeft > 2);
       setLess(list.scrollLeft > 2);
       const box = list.getBoundingClientRect();
+      let ahead = 0;
+      let behind = 0;
       for (const tab of Array.from(list.children)) {
         const t = tab.getBoundingClientRect();
         const cut = t.width > 0 && (t.left < box.left - 1 || t.right > box.right + 1);
         // Wider than the row itself (nothing can make it whole), the selected tab still shows until the member moves on.
         tab.toggleAttribute("data-tab-cut", cut && (tab !== selected || memberMoved.current));
+        const n = Number(tab.getAttribute("data-tab-count")) || 0;
+        if (n > 0 && t.right > box.right + 1) ahead += n;
+        else if (n > 0 && t.left < box.left - 1) behind += n;
       }
+      setAheadCount(ahead);
+      setBehindCount(behind);
     };
     update();
     const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
@@ -176,9 +187,10 @@ export function SectionTabs<T extends string>({
           leaving the border and the icons beside it. overflow-y:hidden makes it a sideways-only scroller.
           Guard: e2e/sectionTabsStayPut.spec.ts (WebKit 375 + 1440). */}
       {less && !onlySelected && (
-        <button type="button" aria-label={tr("tabs.less")} data-tabs-less-button="" onClick={showPrevious}
-          className="inline-flex h-11 w-7 !min-w-0 shrink-0 items-center justify-center text-muted-foreground">
+        <button type="button" aria-label={behindCount > 0 ? tr("tabs.lessToDo", { n: behindCount }) : tr("tabs.less")} data-tabs-less-button="" onClick={showPrevious}
+          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-0.5 text-muted-foreground">
           <ChevronLeft className="h-4 w-4" aria-hidden />
+          {behindCount > 0 && <span data-testid="tabs-less-count" aria-hidden className="segmented-count-attention tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5 text-center">{behindCount}</span>}
         </button>
       )}
       <div ref={listRef} role="tablist" aria-label={label} onKeyDown={onKeyDown} data-tabs-more={more ? "" : undefined}
@@ -196,6 +208,7 @@ export function SectionTabs<T extends string>({
               aria-selected={active}
               tabIndex={active ? 0 : -1}
               data-section-tab={o.value}
+              data-tab-count={o.count && o.count > 0 ? o.count : undefined}
               onClick={() => { if (!active) { hapticLight(); onChange(o.value); } }}
               className={cn(
                 "section-tab relative inline-flex h-11 min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-ds-15 font-semibold data-[tab-cut]:invisible",
@@ -215,8 +228,9 @@ export function SectionTabs<T extends string>({
         })}
       </div>
       {more && !onlySelected && (
-        <button type="button" aria-label={tr("tabs.more")} data-tabs-more-button="" onClick={showNext}
-          className="inline-flex h-11 w-7 !min-w-0 shrink-0 items-center justify-center text-muted-foreground">
+        <button type="button" aria-label={aheadCount > 0 ? tr("tabs.moreToDo", { n: aheadCount }) : tr("tabs.more")} data-tabs-more-button="" onClick={showNext}
+          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-0.5 text-muted-foreground">
+          {aheadCount > 0 && <span data-testid="tabs-more-count" aria-hidden className="segmented-count-attention tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5 text-center">{aheadCount}</span>}
           <ChevronRight className="h-4 w-4" aria-hidden />
         </button>
       )}

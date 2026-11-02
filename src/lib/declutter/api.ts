@@ -307,6 +307,19 @@ export async function fetchDropStates(itemIds: string[]): Promise<Map<string, Dr
 }
 
 /**
+ * A3-109: the ways each listing's seller ticked (declutter_items.handovers; null = an older item that ticked none), read
+ * only while Browse's "How you get it" filter asks for meet up or seller delivery. RLS decides; an id it hides is absent.
+ */
+export async function fetchItemWays(itemIds: string[]): Promise<Map<string, string[] | null>> {
+  const out = new Map<string, string[] | null>();
+  if (itemIds.length === 0) return out;
+  const rows = unwrap(await supabase.from("declutter_items").select("id, handovers").in("id", itemIds)) as
+    { id: string; handovers: string[] | null }[] | null;
+  for (const r of rows ?? []) out.set(r.id, r.handovers ?? null);
+  return out;
+}
+
+/**
  * BUY-52: the live listings whose price dropped from over `maxDollars` since `since` (a saved search's "N new" counts
  * them; saved_search_new_counts and this read share declutter_dropped_into_budget). Before that function is on the
  * server (PGRST202 / 42883) the answer is none, so Browse marks by live_at alone, as it did.

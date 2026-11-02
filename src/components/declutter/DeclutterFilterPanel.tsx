@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import type { FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { DISTANCE_CHOICES } from "@/lib/declutter/distance";
 import { CATEGORY_GROUPS, CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
-import { SORT_LABEL, type DeclutterFilters, type DeclutterSort } from "@/lib/declutter/browseFilters";
+import { OTHER_WAYS, SORT_LABEL, type DeclutterFilters, type DeclutterSort, type OtherWay } from "@/lib/declutter/browseFilters";
+import { HANDOVER_TITLE } from "./handoverCopy";
 import { CONDITION_LABEL } from "./declutterUi";
 import { offerAsk, type OriginAsk } from "./DeclutterBrowseBar";
 
@@ -80,6 +81,7 @@ export function declutterFilterSections({
   onMaxMiles,
   ask,
   showDrops,
+  sellerDelivery = false,
 }: {
   filters: DeclutterFilters;
   onChange: (f: DeclutterFilters) => void;
@@ -87,7 +89,12 @@ export function declutterFilterSections({
   onMaxMiles: (m: number | null) => void;
   ask: OriginAsk;
   showDrops: boolean;
+  /** The declutter_seller_delivery switch: checkout offers "Seller delivers" only while it is on. */
+  sellerDelivery?: boolean;
 }): FilterSheetSection[] {
+  const otherWays = OTHER_WAYS.filter((w) => w !== "seller_delivery" || sellerDelivery);
+  const toggleWay = (w: OtherWay) =>
+    onChange({ ...filters, ways: filters.ways.includes(w) ? filters.ways.filter((x) => x !== w) : [...filters.ways, w] });
   const located = ask.origin.status === "ready";
   const sorts: DeclutterSort[] = located ? ["closest", "newest", "price_low"] : ["newest", "price_low"];
   const sortNow: DeclutterSort = !located && filters.sort === "closest" ? "newest" : filters.sort;
@@ -136,7 +143,13 @@ export function declutterFilterSections({
       title: "How you get it",
       content: (
         // DA-19 (audit 2026-10-30): the one square checkbox among the pills; now the same Chip as every filter.
-        <Row><Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>Porch pickup only</Chip></Row>
+        // A3-109: every way checkout offers, in its words; pick any and an item offering one of them shows.
+        <Row>
+          <Chip on={filters.porchOnly} onClick={() => onChange({ ...filters, porchOnly: !filters.porchOnly })}>{HANDOVER_TITLE.porch}</Chip>
+          {otherWays.map((w) => (
+            <Chip key={w} on={filters.ways.includes(w)} onClick={() => toggleWay(w)}>{HANDOVER_TITLE[w]}</Chip>
+          ))}
+        </Row>
       ),
     },
     {

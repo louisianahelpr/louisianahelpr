@@ -408,6 +408,8 @@ serve(async (req) => {
 
       if (cancelError) {
         console.error(`Failed to cancel expired job ${job.id}:`, cancelError);
+        // Q1890: a past-dated job (a funded one included) left open is a defect in the cron's own result, not only a log line.
+        defects.record(`past-date cancel for job ${job.id} (payment_status ${job.payment_status ?? "none"}): ${cancelError.message}`);
         continue;
       }
       if ((cancelledRows?.length ?? 0) === 0) {

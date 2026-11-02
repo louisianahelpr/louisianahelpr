@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { doneFloorStart, useDoneFloorActive } from "@/components/job-card/useDoneFloor";
+import { useContinueDay } from "@/hooks/useContinueDays";
+import { continueDayDoneNote } from "@/lib/continueDayWords";
 import { announceTransition } from "@/components/whatNext/HelperDoneWhatNext";
 import { TRANSITION_TOAST } from "@/components/job-card/trackerTransitionCopy";
 import { takeHelperStepRequest } from "@/components/job-card/helperStepRequest";
@@ -325,6 +327,9 @@ export function JobTracking({
     posterCompletedAt: initialPosterCompletedAt ?? null,
   });
   const doneFloorActive = useDoneFloorActive(doneFloorStart(posterConfirmedWorkingAt, jobStamps.arrivedAt));
+  // A day set to finish still ahead (Auditor 11, 11-01): the server refuses "done" until then
+  // (continue_day_ahead), so the Done step is greyed with the note, as on the job page and the card face.
+  const continueDayNote = continueDayDoneNote(useContinueDay(jobId, jobStatus === "in_progress"));
   const { request: requestPermission } = usePermissionRationale();
   /** Mounted inside a job step card, the next-step CTA is THAT card's primary
    *  and renders in its one action row (owner, 2026-09-14, VN-21). */
@@ -1657,6 +1662,7 @@ export function JobTracking({
          */
         // Greyed for the first 30 minutes (useDoneFloor); PayoutUnlockNote says when.
         const doneTooEarly = isDoneStep && doneFloorActive;
+        const doneBeforeContinueDay = isDoneStep && !!continueDayNote;
 
         const needsBeforePhoto =
           nextStatus.key === "working" &&
@@ -1675,7 +1681,8 @@ export function JobTracking({
               // and a Helpr who is not yet confirmed on site has nothing to
               // photograph "as it was when you got there" anyway.
               ?? (needsBeforePhoto ? BEFORE_PHOTO_GATE_REASON : null)
-              ?? (needsProof ? requiredProof({ require_photo_proof: requirePhotoProof ?? true }).reason : null);
+              ?? (needsProof ? requiredProof({ require_photo_proof: requirePhotoProof ?? true }).reason : null)
+              ?? (doneBeforeContinueDay ? continueDayNote : null);
         // Amber, like the arrival gate: both are the helper being told what
         // blocks the next step, not a neutral status. The before-photo gate is
         // amber for the same reason and not the muted grey of a wait — it is
@@ -1745,7 +1752,7 @@ export function JobTracking({
          * twice. `JobStepPrimaryButton` is that one object; nothing about the
          * gates, the busy state or the confirm dialog moves. */
         const runNext = () => { if (isDoneStep) setConfirmDoneOpen(true); else void updateStatus(nextStatus.key); };
-        const ctaDisabled = updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly;
+        const ctaDisabled = updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly || doneBeforeContinueDay;
         // Boards 62/64: the face (or an after-photo upload, afterPhotosLeadToDone) asked for THIS step; a greyed draw keeps it.
         // AUD31-79: only once the tracking row has settled; a first draw from the job row alone dropped the request.
         if (trackingSettled && !ctaDisabled && takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext);

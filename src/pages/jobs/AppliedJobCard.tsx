@@ -35,6 +35,8 @@ import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, JobRequestRows } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
+import { useContinueDay } from "@/hooks/useContinueDays";
+import { continueDayDoneNote } from "@/lib/continueDayWords";
 import { RentalVisitHelprSlot } from "@/components/rentals/RentalVisitHelprSlot";
 
 /**
@@ -108,6 +110,9 @@ function AppliedJobCardInner({
   // read it through this narrow view rather than `as any`.
   const viewedApp = app as AppliedApp & ApplicationViewFields;
   const job = app.job;
+  // A day set to finish still ahead (Auditor 11, 11-01): the face never leads with Mark job complete then. Read
+  // before the early return (hooks run on every render); only a hired Helpr's solo job under way can have one.
+  const continueDay = useContinueDay(job?.id, !!job && job.status === "in_progress" && !job.is_group_job && job.helper_id === app.helper_id);
   const notes = useCardNotes(job, expandedJobIds.has(app.job_id), app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); // Q1461: access only for a hired Helpr until the job ends
   if (!job) {
     // An application can outlive its job row's VISIBILITY: once the job closes to another helper, the jobs SELECT
@@ -313,6 +318,7 @@ function AppliedJobCardInner({
     manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },
     step: (isConfirmed || isActive) && !isCrewLive && !job.is_group_job ? helperFaceNextStep(job, initialTracking, cardLine.id) : null,
     doneFloorMinutes,
+    continueDayNote: continueDayDoneNote(continueDay),
   });
 
   // The one tracker state for the face (only the hired Helpr's): its bar and (A3-16) its next-step line read it.

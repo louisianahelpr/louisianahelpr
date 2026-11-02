@@ -81,6 +81,16 @@ export function continueDayAhead(row: ContinueDay | null | undefined, now: Date 
   return !!row && row.status === "set" && !!row.new_date && louisianaToday(now) < row.new_date;
 }
 
+/**
+ * While a SET day is ahead, the Helpr's note where "Mark job complete" would be: "You can mark it done on Thu 11/5,
+ * the day you set to finish." (null: the day has come, or there is none). The job page, the Working card face and
+ * the open card's tracker all use it.
+ */
+export function continueDayDoneNote(row: ContinueDay | null | undefined, now: Date = new Date()): string | null {
+  if (!row || !continueDayAhead(row, now)) return null;
+  return `You can mark it done on ${continueDayLabel(row.new_date, row.new_start_time).replace(/ at .*$/, "")}, the day you set to finish.`;
+}
+
 /** The job page's first line on a SET day: "Continuing Thu, Nov 5 · 9:00 AM" (null: day 1's line stands). */
 export function continueDayHeader(row: ContinueDay | null | undefined): string | null {
   if (!row || row.status !== "set" || !row.new_date) return null;

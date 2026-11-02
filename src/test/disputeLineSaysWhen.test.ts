@@ -3,6 +3,8 @@
  * problem. The money stays held": no when, and the brand cut to "Helpr". It now says when they hear back (the
  * dispute's own deadline, after which Louisiana Helpr support decides) and names the brand in full, on both sides.
  *
+ * Q2600: the sentence is now the line's body (the title is "We're looking into it").
+ *
  * @mutate src/components/tracker/jobProgressState.ts | decideMs > now ? `, with an answer by ${when(decideMs)}` : ""; | "";
  */
 import { describe, expect, it } from "vitest";
@@ -20,12 +22,12 @@ describe("JA-30: the dispute line says when they hear back", () => {
       const p = jobProgress(job as never, { viewer, otherFirst: "Dana", now: NOW });
       expect(p.label).toBe("Dispute");
       // 2032-10-23 15:00Z is Sat 10:00 AM in Louisiana.
-      expect(p.next).toMatch(/A real person at Louisiana Helpr is looking at the problem, with an answer by Sat 10:00 AM\. The money stays held/);
+      expect(p.body).toMatch(/A real person at Louisiana Helpr is looking at the problem, with an answer by Sat 10:00 AM\. The money stays held/);
     });
   }
   it("past the deadline it promises no time it can no longer keep", () => {
     const p = jobProgress({ ...job, dispute_deadline: "2032-10-19T15:00:00Z" } as never, { viewer: "poster", otherFirst: "Yusef", now: NOW });
-    expect(p.next).not.toMatch(/answer by/);
-    expect(p.next).toMatch(/Louisiana Helpr/);
+    expect(p.body).not.toMatch(/answer by/);
+    expect(p.body).toMatch(/Louisiana Helpr/);
   });
 });

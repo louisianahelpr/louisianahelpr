@@ -242,6 +242,11 @@ export function JobProgress({ progress, compact = false, barOnly = false, noLine
           )}
         </p>
       )}
+      {line && progress.body && (
+        <p data-job-progress-body="" className={`${compact ? "text-ds-12" : "text-ds-13"} text-muted-foreground`}>
+          {progress.body}
+        </p>
+      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ export function NextStep({ value, className = "" }: { value: NextStepValue | nul
     <p data-next-step={value.who} className={`text-ds-16 leading-snug ${className}`}>
       <span className="font-semibold text-foreground">{lead}</span>
       {value.by && <span className="text-muted-foreground"> · {value.by}</span>}
+      {value.body && <span data-next-step-body="" className="mt-1 block text-muted-foreground">{value.body}</span>}
     </p>
   );
 }

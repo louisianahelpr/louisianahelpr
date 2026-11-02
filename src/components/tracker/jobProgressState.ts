@@ -88,6 +88,8 @@ export type JobProgressState = {
   word: string;
   /** What happens next, in the viewer's words; "" when nothing is pending. */
   next: string;
+  /** Plain text under `next` when the line needs explaining (Q2600: the dispute's "We're looking into it"). */
+  body?: string;
   /** True only while the job's payment is held (payment_status 'escrow'). */
   held: boolean;
   /**
@@ -343,7 +345,9 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     // the brand in full. Guard: src/test/disputeLineSaysWhen.test.ts.
     const decideMs = Date.parse(job.dispute_deadline ?? "");
     const by = Number.isNaN(decideMs) ? "" : decideMs > now ? `, with an answer by ${when(decideMs)}` : "";
-    return at(null, false, "Under review", `A real person at Louisiana Helpr is looking at the problem${by}. The money stays held`, held);
+    // Q2600 (Jobs audit 1102b row 14): a short title, with the explanation as body text under it (a full sentence).
+    // Guard: src/test/disputeLineTitleAndBody.test.tsx.
+    return { ...at(null, false, "Under review", "We're looking into it", held), body: `A real person at Louisiana Helpr is looking at the problem${by}. The money stays held.` };
   }
 
   if (status === "open" && !job.helper_id) {

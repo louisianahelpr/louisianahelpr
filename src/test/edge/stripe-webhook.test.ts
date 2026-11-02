@@ -388,9 +388,9 @@ describe("stripe-webhook edge function", () => {
     // The edge mock ignores select lists, so the fee columns come ONLY through
     // a selectOverride keyed on them: a select that drops them reads the plain
     // row (no fee) and the rate goes wrong (review of the pre-flip items, #1).
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee") | .select("budget, category")
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, tax_kind, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee") | .select("budget, category, tax_kind")
     // Q1843: the urgent bonus is taxed like the labor, so its columns must be read too.
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee") | .select("budget, category, customer_fee_amount, poster_fee_flat_cents")
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, tax_kind, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee") | .select("budget, category, tax_kind, customer_fee_amount, poster_fee_flat_cents")
     // The charge's own fee (PaymentIntent metadata) wins over a re-priced row (#2).
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 } |           ? jobRow
     it.each([

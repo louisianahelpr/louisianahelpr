@@ -123,8 +123,12 @@ async function unfundFailedEscrow(
     const told = (cancelVerdict as { helpers_told?: unknown[] }).helpers_told ?? [];
     logStep("Hired job's bank payment failed — job cancelled", { jobId: job.id, piId, liveStatus, helpersTold: told.length });
     await cancelDeadBankPayment(stripe, piId, String(job.id), logStep, job.is_seed ?? false);
+    // Q2075: the DESIGNED outcome (job cancelled, no fee, no strike, everyone
+    // told) needs no one, so it is a warning of its own kind, not
+    // money_at_risk (which alertPolicy's CRITICAL_KINDS always pages). The
+    // gift left spent, below, is money at risk and still pages.
     await postSlackOpsAlert({
-      kind: "money_at_risk",
+      kind: "job_auto_cancelled",
       severity: "warning",
       title: "A hired job's bank payment failed — job cancelled",
       message: `Job ${job.id} ("${job.title}") was '${job.payment_status}' / '${job.status}' but its PaymentIntent ${piId} is ${liveStatus}. It is now cancelled (payment_status='failed'), with no fee and no strike; the poster${told.length > 0 ? ` and ${told.length} confirmed Helpr${told.length > 1 ? "s" : ""} were` : " was"} told.`,

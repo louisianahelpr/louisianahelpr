@@ -287,6 +287,17 @@ export function returnStep(r: NonNullable<RefundRequestView["request"]>, who: st
   return { who: "you", text: "Bring the item back", by: byWords };
 }
 
+/**
+ * A3-22 (audit 11-01): the seller's side of a return, in the shared line: waiting on the buyer to bring it back (by
+ * the return deadline), going for it themselves (at the picked time), then "Next: tap I got it back".
+ */
+export function sellerReturnStep(r: NonNullable<RefundRequestView["request"]>, who: string): NextStepValue {
+  const by = r.return_deadline ?? r.return_by;
+  if (r.return_way === "collect") return { who: "you", text: `Pick the item up from ${who}, then tap I got it back`, by: r.return_at ? at(r.return_at) : null };
+  if (r.return_dropped_off_at && r.return_way === "drop_off") return { who: "you", text: "Tap I got it back", by: null };
+  return { who: "them", text: `Waiting on ${who} to return it`, by: by ? at(by) : null };
+}
+
 type Answer = "full" | "part" | "decline";
 
 function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }) {
@@ -331,6 +342,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
   if (r.status === "returning") {
     return (
       <div className="space-y-2" data-refund-returning="">
+        <NextStep value={sellerReturnStep(r, who)} />
         <p className="text-sm">You agreed to a full refund. Once {who} gives the item back, tap I got it back and the refund is sent.</p>
         <DeclutterReturnSellerInfo v={v} who={who} />
         {r.return_way && <DeclutterReturnPhotoPick orderId={v.order_id} file={backPhoto} onFile={setBackPhoto} />}

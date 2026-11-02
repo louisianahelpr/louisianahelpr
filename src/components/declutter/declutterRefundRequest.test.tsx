@@ -444,3 +444,46 @@ describe("DeclutterRefundPanel", () => {
     expect((await screen.findByText(/Louisiana Helpr decided to refund the buyer\./)).textContent).toBe("Louisiana Helpr decided to refund the buyer. The buyer got $13.30 back.");
   });
 });
+
+// A3-20 (audit 11-01): the refund panel used its own sentences; now the shared NextStep line on both sides, deadline
+// after the dot. A3-79: the buyer returning an item is told to bring it back and by when (return_deadline).
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | <NextStep value={{ who: "you", text: "Answer the refund request", by: at(r.answer_by) }} /> | {null}
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | <NextStep value={{ who: "them", text: `Waiting on ${who} to answer your refund request`, by: at(r.answer_by) }} /> | {null}
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | <NextStep value={{ who: "you", text: "Take the offer or ask Louisiana Helpr to decide", by: r.offer_answer_by ? at(r.offer_answer_by) : null }} /> | {null}
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx |           <NextStep value={returnStep(r, who)} /> | {null}
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx |   if (r.return_way === "drop_off" && r.return_dropped_off_at) return | if (false) return
+describe("the refund panel says the next step in the shared line (A3-20, A3-79)", () => {
+  const atWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const line = async (who: "you" | "them") => {
+    await waitFor(() => expect(document.querySelector(`[data-next-step="${who}"]`)).not.toBeNull());
+    return document.querySelector(`[data-next-step="${who}"]`)!.textContent;
+  };
+
+  it("seller: Next: answer the refund request · by the deadline", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
+    expect(await line("you")).toBe(`Next: answer the refund request · ${atWords(REQ.answer_by)}`);
+    expect(screen.queryByText(/^Answer by/)).toBeNull();
+  });
+
+  it("buyer: waiting on the seller · by the deadline", async () => {
+    show({ ...BASE, can_ask: false, request: REQ });
+    expect(await line("them")).toBe(`Waiting on Nikki to answer your refund request · ${atWords(REQ.answer_by)}`);
+    expect(screen.queryByText(/answers by/)).toBeNull();
+  });
+
+  it("buyer, on an offer: take it or ask Louisiana Helpr · by the offer's deadline", async () => {
+    const by = "2026-10-25T18:00:00Z";
+    show({ ...BASE, can_ask: false, request: { ...REQ, status: "offered", offer_cents: 1500, offered_at: "2026-10-24T12:00:00Z", offer_answer_by: by } as never });
+    expect(await line("you")).toBe(`Next: take the offer or ask Louisiana Helpr to decide · ${atWords(by)}`);
+  });
+
+  it("buyer returning the item: bring it back by the deadline, then waiting on the seller", async () => {
+    const by = "2026-10-27T22:00:00Z";
+    const ret = { ...REQ, status: "returning" as const, return_by: by, return_deadline: by, return_way: "drop_off" as const, return_day: "2026-10-25" };
+    const first = show({ ...BASE, can_ask: false, request: ret as never });
+    expect(await line("you")).toBe(`Next: bring the item back · ${atWords(by)}`);
+    first.unmount();
+    show({ ...BASE, can_ask: false, request: { ...ret, return_dropped_off_at: "2026-10-26T15:00:00Z" } as never });
+    expect(await line("them")).toBe(`Waiting on Nikki to confirm they have it · ${atWords(by)}`);
+  });
+});

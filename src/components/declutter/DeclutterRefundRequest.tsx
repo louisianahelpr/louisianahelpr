@@ -28,6 +28,7 @@ import {
 import { acceptRefundWithReturn } from "@/lib/declutter/refundReturns";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
 import { ProblemPhotos } from "./DeclutterProblemSides";
 import { REFUND_FORM_PHOTOS_READY } from "@/lib/declutter/problemPhotos";
@@ -194,7 +195,9 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
     case "open":
       return (
         <div className="space-y-2">
-          <p className="text-sm">You asked for a refund. {cap(who)} answers by {at(r.answer_by)}, or Louisiana Helpr decides.</p>
+          {/* A3-20: the shared next-step line, deadline after the dot; what happens after it stays in words. */}
+          <NextStep value={{ who: "them", text: `Waiting on ${who} to answer your refund request`, by: at(r.answer_by) }} />
+          <p className="text-ds-12 text-muted-foreground">If {who} doesn't answer by then, Louisiana Helpr decides.</p>
           <button type="button" className={btn} disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</button>
           <ConfirmSheet
             open={confirmWithdraw}
@@ -213,6 +216,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
     case "offered":
       return (
         <div className="space-y-2" data-refund-offer="">
+          <NextStep value={{ who: "you", text: "Take the offer or ask Louisiana Helpr to decide", by: r.offer_answer_by ? at(r.offer_answer_by) : null }} />
           <p className="text-sm">{cap(who)} offered {refundDollars(r.offer_cents ?? 0)} back. You keep the item.</p>
           <div className="flex flex-wrap gap-2">
             <button type="button" className={primary} disabled={offer.isPending} onClick={() => setAnswering("take")}>
@@ -234,12 +238,13 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
               ? `${cap(who)}'s offer of ${refundDollars(r.offer_cents ?? 0)} ends, and Louisiana Helpr decides what, if anything, comes back to you.`
               : `${refundDollars(r.offer_cents ?? 0)} comes back to your card and you keep the item. This ends your refund request.`}
           </ConfirmSheet>
-          {r.offer_answer_by && <p className="text-ds-12 text-muted-foreground">Answer by {at(r.offer_answer_by)}, or Louisiana Helpr decides.</p>}
+          {r.offer_answer_by && <p className="text-ds-12 text-muted-foreground">If you don't answer by then, Louisiana Helpr decides.</p>}
         </div>
       );
     case "returning":
       return (
         <div className="space-y-2" data-refund-returning="">
+          <NextStep value={returnStep(r, who)} />
           <p className="text-sm">
             {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span>
             {r.return_way ? "" : ` Give the item back; message ${who} from your order.`} Your refund is sent as soon as {who} confirms they have it.
@@ -266,6 +271,18 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
     case "withdrawn":
       return <p className="text-sm text-muted-foreground">You took back your refund request.</p>;
   }
+}
+
+/**
+ * A3-79: the buyer's step while an agreed full refund waits for the item: bring it back by the time Louisiana Helpr
+ * takes over (return_deadline), or, once it is dropped off or the seller comes for it, who we are waiting on.
+ */
+export function returnStep(r: NonNullable<RefundRequestView["request"]>, who: string): NextStepValue | null {
+  const by = r.return_deadline ?? r.return_by;
+  const byWords = by ? at(by) : null;
+  if (r.return_way === "collect") return { who: "them", text: `Waiting on ${who} to come for it`, by: r.return_at ? at(r.return_at) : null };
+  if (r.return_way === "drop_off" && r.return_dropped_off_at) return { who: "them", text: `Waiting on ${who} to confirm they have it`, by: byWords };
+  return { who: "you", text: "Bring the item back", by: byWords };
 }
 
 type Answer = "full" | "part" | "decline";
@@ -343,6 +360,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
   return (
     <fieldset className="space-y-2 rounded-xl border border-border p-3" data-refund-answer="">
       <legend className="px-1 text-sm font-semibold">Refund request</legend>
+      <NextStep value={{ who: "you", text: "Answer the refund request", by: at(r.answer_by) }} />
       <p className="text-sm">
         <span className="font-medium">{REFUND_REASON_WORDS[r.reason]}.</span> {cap(who)} says: "{r.note}"
       </p>
@@ -390,7 +408,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
           : choice === "part" ? `${cap(who)} can take ${refundDollars(offerCents ?? 0)}, which comes out of your payout, or ask Louisiana Helpr to decide.`
           : `${cap(who)} can still ask Louisiana Helpr to decide. Your payout waits until then.`}
       </ConfirmSheet>
-      <p className="text-ds-12 text-muted-foreground">Answer by {at(r.answer_by)} or Louisiana Helpr decides. Your payout waits until then.</p>
+      <p className="text-ds-12 text-muted-foreground">If you don't answer by then, Louisiana Helpr decides. Your payout waits until then.</p>
     </fieldset>
   );
 }

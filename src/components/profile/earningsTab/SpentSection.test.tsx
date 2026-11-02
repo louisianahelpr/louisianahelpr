@@ -31,6 +31,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "user-1" }, profile: null, loading: false }),
@@ -83,7 +84,7 @@ function renderSpent() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <SpentSection />
+      <MemoryRouter><SpentSection /></MemoryRouter>
     </QueryClientProvider>,
   );
 }
@@ -149,7 +150,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     renderSpent();
     await waitFor(() => expect(text()).toMatch(/Total spent\s*\$95\.60\s*across 2 jobs/));
     expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Cancelled open", "In progress"]);
-    expect(text()).toMatch(/In progress\s*Sep 29\s*\$89\.60/);
+    expect(text()).toMatch(/In progress\s*Sep 29 · Held until the job is approved\s*\$89\.60/);
     expect(text()).toMatch(/Cancelled open\s*Sep 30 · Cancelled · \$50\.00 refunded\s*\$6\.00/);
     expect(text()).not.toMatch(/Open unfunded/);
   });
@@ -277,3 +278,32 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     expect(screen.getByText(/Payment methods are managed securely through Stripe at checkout\./)).toBeTruthy();
   });
 });
+
+// A3-111 (audit 8, 11-01): Spent rows were dead ends and an in-progress row said nothing about its held money.
+// @mutate src/components/profile/earningsTab/SpentSection.tsx |   return r.cents > 0 ? " · Held until the job is approved" : ""; |   return "";
+// @mutate src/components/profile/earningsTab/SpentSection.tsx |   if (r.job.status === "completed") return ""; |   if (r.job.status === "completed") return " · Held until the job is approved";
+// @mutate src/components/profile/earningsTab/SpentSection.tsx |   return id ? `/jobs/${id}` : null; |   return null;
+describe("A3-111: each Spent row opens its job and says where its money stands", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 4, 12, 0, 0));
+    filters = []; failRead = false; refundRows = []; giftRows = []; tipRows = []; blockFeeResult = { data: [], error: null };
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("an in-progress job reads Held until the job is approved, a done one has no word, and each row links to /jobs/<id>", async () => {
+    rows = [
+      { id: "j-done", title: "Mow the lawn", budget: 50, poster_completed_at: "2026-10-02T15:00:00Z", helper_completed_at: null, created_at: "2026-10-01T15:00:00Z", customer_fee_amount: 2 },
+      { id: "j-held", title: "Paint the fence", budget: 120, poster_completed_at: null, helper_completed_at: null, created_at: "2026-10-03T15:00:00Z", customer_fee_amount: 4, status: "in_progress", payment_status: "escrow" },
+    ];
+    renderSpent();
+    await vi.waitFor(() => expect(document.querySelectorAll("[data-spent-row]").length).toBe(2));
+    const links = [...document.querySelectorAll<HTMLAnchorElement>("a[data-spent-row]")];
+    expect(links.map((a) => a.getAttribute("href")).sort()).toEqual(["/jobs/j-done", "/jobs/j-held"]);
+    const held = links.find((a) => a.getAttribute("href") === "/jobs/j-held")!;
+    expect(held.textContent).toMatch(/Held until the job is approved/);
+    const done = links.find((a) => a.getAttribute("href") === "/jobs/j-done")!;
+    expect(done.textContent).not.toMatch(/Held/);
+  });
+});
+

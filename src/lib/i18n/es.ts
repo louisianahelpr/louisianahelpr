@@ -311,7 +311,7 @@ export const es: Record<MsgKey, string> = {
   "postJob.detailsH": "Unas palabras y una foto ayudan a que los Helprs digan que sí.",
   "postJob.priceQ": "¿Cuánto va a pagar?",
   "postJob.whereQ": "¿Cuándo y dónde?",
-  "postJob.whereH": "Los Helprs ven la zona ahora y su dirección después de que usted contrate.",
+  "postJob.whereH": "Los Helprs ven la zona ahora. Su dirección va solo al Helpr al que usted le ofrezca el trabajo.",
   "postJob.searchCategories": "Buscar categorías",
   "postJob.searchPlaceholder": "p. ej., lavar mi entrada",
   "postJob.clearSearch": "Borrar la búsqueda",

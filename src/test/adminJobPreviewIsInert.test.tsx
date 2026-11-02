@@ -10,6 +10,7 @@
  *
  * @mutate src/pages/admin/preview/previewBackend.ts |         o.onAction?.(name); |         void 0;
  * @mutate src/pages/admin/preview/previewBackend.ts |     if (fn === "create-payment" && bodyJson(init).action === "cancel_quote") { |     if (false) {
+ * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   const [open, setOpen] = useState(() => typeof window === "undefined" \|\| window.innerWidth >= DESKTOP_MIN_WIDTH); |   const [open, setOpen] = useState(true);
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |     draws: stage === "cancel_sheet" && viewer === "helpr" ? "helpr_working_card" : "job_page", |     draws: "job_page",
  * @mutate src/pages/admin/preview/previewParts.tsx |       else sayWouldHave(`open ${toText(to)}`); |       else outer.navigator[how](to, state);
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (sheetOpen) return null; |   if (sheetOpen) void 0;
@@ -244,6 +245,25 @@ describe("admin job-page preview", () => {
     await waitFor(() => expect(screen.getByRole("region", { name: "Job page preview controls" }).textContent ?? "").toMatch(/Preview: Late cancel by Helpr ·/), { timeout: 10000 });
     expect(toasts.some((t) => /Job cancelled/.test(t)), JSON.stringify(toasts)).toBe(true);
     expect(leaked()).toEqual([]);
+  }, 30000);
+
+  // Audit 1102e: on a phone the open dock covered the first screen's bottom controls, and the collapsed pill sat over
+  // the page title at the top.
+  it("on a phone the dock starts as the small Preview button, in the bottom corner", async () => {
+    const wide = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 375 });
+    try {
+      renderPreview("hired", "poster");
+      await screen.findAllByText(previewSample("hired", "poster").job.title, undefined, { timeout: 10000 });
+      const dock = screen.getByRole("region", { name: "Job page preview controls" });
+      expect(dock.hasAttribute("data-preview-collapsed")).toBe(true);
+      expect(dock.className).toMatch(/\bbottom-/);
+      expect(dock.className).not.toMatch(/\btop-/);
+      fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+      expect(screen.getByRole("radiogroup", { name: "Stage" })).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: wide });
+    }
   }, 30000);
 
   it("no realtime channel subscribes while the preview is open (every stage the page opens one on), and the client gets its own back after", async () => {

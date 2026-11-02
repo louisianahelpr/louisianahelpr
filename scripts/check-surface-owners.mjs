@@ -107,7 +107,6 @@ const OWNERS = {
   "/admin": ["lh-admin-moderation"],
   // Q2585: the admin Declutter stage preview (made-up data, inert); the views it draws are Declutter's.
   "/admin/preview/declutter": ["lh-admin-moderation", "lh-long-tail-features"],
-
   "/admin/preview/job": ["lh-admin-moderation"],
   "/admin/preview/messages": ["lh-admin-moderation"],
   // Declutter (hidden switch 'declutter', docs/specs/declutter-auctions.md).

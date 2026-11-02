@@ -1551,6 +1551,31 @@ describe("one row of buttons at every stage (B93)", () => {
     expect(document.body.textContent).not.toMatch(/to review — then Helpr support steps in/);
   });
 
+  // Jobs audit 1102b rows 7 and 8 (Q2593, Q2594): while a dispute is open the poster's lead was "Approve" (its sheet
+  // never mentions the case) and "Not finished? Set a day" was offered to both sides beside "A real person at
+  // Louisiana Helpr is looking at the problem". Now Message leads, See the case is there, and no continue day.
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       : posterWait === "approve" && !disputeOpen |       : posterWait === "approve"
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx | job.status === "in_progress" && !job.has_active_dispute && | job.status === "in_progress" &&
+  it("an open dispute on a job marked done: no Approve lead, no continue day, either side (Q2593, Q2594)", async () => {
+    state.moreCount = 0;
+    const disputed = { ...live, helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:25:00Z", helper_completed_at: new Date().toISOString(), has_active_dispute: true };
+    state.job = row(disputed);
+    state.party = true;
+    const r = renderPage();
+    await waitFor(() => expect(rowLabels()[0]).toBe("Message Rhonda"));
+    expect(rowLabels()).not.toContain("Approve and release");
+    expect(rowLabels()).not.toContain("Approve");
+    expect(document.querySelector("[data-see-the-case]")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Not finished? Set a day" })).toBeNull();
+    r.unmount();
+    // The Helpr's side of the same job.
+    state.job = row({ ...disputed, customer_id: POSTER, helper_id: ME, helper_completed_at: null });
+    state.tracking = "working";
+    renderPage();
+    await waitFor(() => expect(document.querySelector("[data-see-the-case]")).not.toBeNull());
+    expect(screen.queryByRole("button", { name: "Not finished? Set a day" })).toBeNull();
+  });
+
   it("completed (JA-10): the card's own Review leads the row; Message joins the options", async () => {
     state.leadCount = 1;
     state.moreCount = 1;
@@ -1822,10 +1847,10 @@ describe("job page, an offered Helpr is not told the address comes with an offer
 });
 
 describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yusef's job)", () => {
-  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open }; |
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       setDay = { key: "continue-set", label: row ? "Set a different day" : CONTINUE_DAY_LABEL, go: open }; |
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | continueStep ?? jobNextStep( | jobNextStep(
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })} | posterActions.row(posterStep)}
-  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open }; |
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     if (offerSetDay) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open }; |
   const underWay = (over: Partial<JobPageRow> = {}) => row({
     customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
     helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
@@ -1871,12 +1896,12 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     await waitFor(() => expect(continueCalls).toEqual(["answer:c1:true"]));
   });
 
-  it("the hired Helpr on a job under way: 'Need another day'; on a set day, 'Confirm I'll be there' leads", async () => {
+  it("the hired Helpr on a job under way: 'Not finished? Set a day' (one name, Q2593); on a set day, 'Confirm I'll be there' leads", async () => {
     state.job = underWay({ customer_id: POSTER, helper_id: ME });
     state.party = true;
     const { unmount } = renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Need another day" }));
-    expect(await screen.findByRole("dialog", { name: "Need another day" })).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Not finished? Set a day" }));
+    expect(await screen.findByRole("dialog", { name: "Set a day to finish" })).toBeTruthy();
     unmount();
     continueState.row = setRow({ proposed_by: POSTER });
     renderPage();
@@ -1909,17 +1934,17 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
 
   // B118 follow-up (lead 11-01): "Need another day" showed after arrival, before any day-1 work had started.
   // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |   const offerSetDay = workStarted \|\| !!row; |   const offerSetDay = true;
-  it("arrived but not started on day 1: no 'Need another day' yet; once working, it shows", async () => {
+  it("arrived but not started on day 1: no 'Not finished? Set a day' yet; once working, it shows", async () => {
     state.job = underWay({ customer_id: POSTER, helper_id: ME, poster_confirmed_arrival_at: null });
     state.tracking = "arrived";
     state.party = true;
     const { unmount } = renderPage();
     await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
-    expect(screen.queryByRole("button", { name: "Need another day" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Not finished? Set a day" })).toBeNull();
     unmount();
     state.tracking = "working";
     renderPage();
-    expect(await screen.findByRole("button", { name: "Need another day" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Not finished? Set a day" })).toBeTruthy();
   });
 });
 

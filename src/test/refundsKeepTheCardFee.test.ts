@@ -604,6 +604,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // most 200): sums what came back (succeeded declutter_refunds not settled by hand + live hand refunds + succeeded
       // delivery refunds) on the order's own payment. Writes nothing; decides no amount or fee.
       declutter_my_refunded_cents: "20261102033426_declutter_my_refunded_cents.sql 3cf5c4330e5afdc0",
+      // Q1928 gap 1 (20261102065446, lead PASS 067e16c1a5): the admin's read of a member's Declutter fee debts (names
+      // declutter_refunds only to label each debt's reason) and the admin waiver, which clears a debt's REMAINING
+      // amount under consume_fee_debt's lock. Neither records a refund nor decides a refund amount or fee.
+      declutter_admin_fee_debts: "20261102065446_declutter_fee_debt_waiver.sql b69b106b1c9b719e",
+      declutter_admin_waive_fee_debt: "20261102065446_declutter_fee_debt_waiver.sql 106523adcf6e41d5",
       // A3-85 (20261102002011) / 20261102034632 (read by Builder 151): the text-message queue and its kind map name
       // 'declutter_refunds' only as a NOTICE KIND (which refund-request reminders count as "needs you"). They write
       // sms_messages status/due_at only; no refund row, amount or fee.

@@ -101,6 +101,9 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_delivery_on_task_event: "tags",
   declutter_delivery_open_task: "tags",
   declutter_haul_away_job_refunded: "alerts",
+  declutter_seller_fault_sweep: "alerts", // 20261102035736: a test refund's sweep defect is logged under a -seed key (as the haul-away sweep); it moves no money
+  declutter_delivery_gave_up_check: "tags", // 20261102033730: labels the gave-up ledger row seed=true; the row, its severity and the member notice are the same either way
+  bill_helpr_card_fee_debt: "tags", // Q2245 (20261102072106): copies the series job's is_seed onto the Helpr's card-fee debt row; the bill itself is not gated on it
   declutter_haul_away_sweep: "alerts", // Q2423 haul-away sweep: a test row's defect is logged under a -seed key
   declutter_item_link_visible: "hides", // Q2426 share card: a test item is not shown to the public unless seeds are visible
   declutter_pickup_remind: "hides", // Q2432: a test account never reminds a real member (the seed actor rule, like declutter_notify)

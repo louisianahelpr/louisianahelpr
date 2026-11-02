@@ -31,7 +31,7 @@ const job = (extra: Record<string, unknown>) => ({
 }) as unknown as Job;
 
 function renderOffer(j: Job) {
-  const app = { id: "app-1", job_id: j.id, helper_id: "helper-1", status: "pending", is_direct_offer: true, job: j } as unknown as AppliedApp;
+  const app = { id: `direct-${j.id}`, job_id: j.id, helper_id: "helper-1", status: "pending", job: j } as unknown as AppliedApp;
   return render(<MemoryRouter><OfferedActions app={app} job={j} onHelperResponse={() => {}} respondingHelperAppId={null} /></MemoryRouter>);
 }
 

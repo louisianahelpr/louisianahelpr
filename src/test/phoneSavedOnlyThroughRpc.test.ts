@@ -34,6 +34,7 @@
  * @mutate src/pages/profile/Profile.tsx | = await savePhoneIfChanged(user.id, phone.trim(), profile?.phone ?? ""); | = null as null \| { ok: false; message: string }; void savePhoneIfChanged;
  * @mutate src/lib/phoneSaveIfChanged.ts |   return saveMyPhone(userId, next); |   return { ok: true }; void saveMyPhone;
  * @mutate supabase/migrations/20261102082018_phone_save_rpc_rate_limited.sql |   REVOKE UPDATE (phone) ON public.profiles FROM anon, authenticated; |   PERFORM 1;
+ * @mutate supabase/migrations/20261102092917_phone_locked_against_grant_sync.sql |     'phone'\n  ]::text[]; |     'phone_number_unused'\n  ]::text[];
  * @mutate supabase/functions/complete-signup/index.ts |     // Q1586(a): the phone is NOT saved here. |     if (phone) updateData.phone = phone;
  * @mutate supabase/migrations/20261102082018_phone_save_rpc_rate_limited.sql |   IF v_refused >= 5 OR v_tries >= 20 THEN |   IF false THEN
  * @mutate supabase/migrations/20261102082018_phone_save_rpc_rate_limited.sql |       INSERT INTO public.phone_save_attempts (user_id, save_outcome) VALUES (v_uid, v_hint); |       NULL;
@@ -138,6 +139,17 @@ describe("Q1586(a) the grants and the RPC", () => {
     const sql = blankSqlComments(readFileSync(join(MIG, d!.file), "utf8"));
     expect(sql).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.save_my_phone\(text\)\s+FROM\s+PUBLIC,\s*anon;/i);
     expect(sql).toMatch(/REVOKE\s+ALL\s+ON\s+public\.phone_save_attempts\s+FROM\s+PUBLIC,\s*anon,\s*authenticated;/i);
+  });
+
+  // Q1805 follow-up (20261102092917): the sync-profiles-update-grants cron re-grants authenticated UPDATE on
+  // every profiles column NOT in profiles_locked_update_columns(), so a REVOKE alone came back on prod
+  // (measured 2026-11-02). phone must be in the newest locked list.
+  it("phone is a locked profiles column, so the grant-sync cron never gives the direct write back", () => {
+    const d = effectiveDefs(MIG).get("profiles_locked_update_columns");
+    expect(d).toBeDefined();
+    const listed = [...blankSqlComments(d!.stmt).matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+    expect(listed.length).toBeGreaterThan(15);
+    expect(listed).toContain("phone");
   });
 
   it("the client floor moved with the revoke", () => {

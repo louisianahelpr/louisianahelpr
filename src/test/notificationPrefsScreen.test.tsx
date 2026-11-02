@@ -192,6 +192,40 @@ describe("the Declutter group", () => {
     }
   });
 
+  it("?show=declutter keeps following the group while the rows above push it down, until the member scrolls (Q2566)", async () => {
+    FEATURES = { declutter: true };
+    PREFS_ROW = withDeclutterColumns();
+    const scrolled: Element[] = [];
+    const original = Element.prototype.scrollIntoView;
+    const originalRect = Element.prototype.getBoundingClientRect;
+    // The heading's place in the page: rows above it "load" and move it from 500 to 1500 to 2000 px.
+    let headingTop = 500;
+    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this); };
+    Element.prototype.getBoundingClientRect = function (this: Element) {
+      if ((this as HTMLElement).dataset?.testid === "declutter-notification-group") return { top: headingTop, bottom: headingTop + 40, left: 0, right: 0, width: 0, height: 40, x: 0, y: headingTop, toJSON() {} } as DOMRect;
+      return originalRect.call(this);
+    };
+    try {
+      window.history.pushState({}, "", "/profile?tab=notifications&show=declutter");
+      render(<NotificationPreferences />);
+      const group = await screen.findByTestId("declutter-notification-group");
+      await waitFor(() => expect(scrolled.filter((e) => e === group).length).toBe(1));
+      headingTop = 1500;
+      await waitFor(() => expect(scrolled.filter((e) => e === group).length).toBe(2), { timeout: 2000 });
+      headingTop = 2000;
+      await waitFor(() => expect(scrolled.filter((e) => e === group).length).toBe(3), { timeout: 2000 });
+      // The member scrolls: nothing pulls the page back after that, even if the group moves again.
+      window.dispatchEvent(new Event("wheel"));
+      headingTop = 2600;
+      await new Promise((r) => setTimeout(r, 500));
+      expect(scrolled.filter((e) => e === group).length).toBe(3);
+    } finally {
+      window.history.pushState({}, "", "/");
+      Element.prototype.scrollIntoView = original;
+      Element.prototype.getBoundingClientRect = originalRect;
+    }
+  });
+
   it("is not shown to a member without Declutter", async () => {
     FEATURES = {};
     PREFS_ROW = withDeclutterColumns();
@@ -211,4 +245,7 @@ describe("the Declutter group", () => {
 
 // Proof the group test can fail: the group renders nothing.
 // @mutate src/components/notificationPreferences/DeclutterNotificationGroup.tsx |   if (!declutterOn) return null; |   return null;
-// @mutate src/components/notificationPreferences/DeclutterNotificationGroup.tsx |     heading.current?.scrollIntoView?.({ block: "start", behavior: reduce ? "auto" : "smooth" }); |     void reduce;
+// @mutate src/components/notificationPreferences/DeclutterNotificationGroup.tsx |     el.scrollIntoView?.({ block: "start", behavior: reduce ? "auto" : "smooth" }); |     void reduce;
+// Q2566: the group is followed while the rows above it push it down, and the member's own scroll stops that.
+// @mutate src/components/notificationPreferences/DeclutterNotificationGroup.tsx |       if (Math.abs(now - last) > 2) el.scrollIntoView?.({ block: "start", behavior: "auto" }); |       void now;
+// @mutate src/components/notificationPreferences/DeclutterNotificationGroup.tsx |     const userMoved = () => stop(); |     const userMoved = () => {};

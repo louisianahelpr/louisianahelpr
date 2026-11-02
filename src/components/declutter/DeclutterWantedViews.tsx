@@ -405,7 +405,10 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
       <WantedReplies replies={post.replies} />
       {post.status === "open" && (
         matches.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nothing for sale matches at or under your price right now.</p>
+          // A3-62: a seller's reply under the price is a match, so the line can't say "nothing" next to it.
+          <p className="text-xs text-muted-foreground" data-wanted-no-matches="">
+            {(post.replies ?? []).length > 0 ? "No other listings match yet." : "Nothing for sale matches at or under your price right now."}
+          </p>
         ) : (
           <div className="space-y-1">
             <p className="text-xs font-medium">For sale now at or under your price:</p>

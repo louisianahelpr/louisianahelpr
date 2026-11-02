@@ -129,6 +129,8 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
   const late = can.notDelivered && !noShowWaiting;
   const busy = delivered.isPending || gotIt.isPending || notDelivered.isPending || handoff.isPending || answer.isPending;
   const fileId = `sd-photo-${orderId}`;
+  // A3-73: while the choice shows as chips, the summary line would say the same words a second time.
+  const handoffChips = can.changeHandoff && !noShowWaiting;
   return (
     <div className="space-y-3" data-seller-delivery-order="">
       <div className="rounded-xl bg-muted/50 px-3 py-2 text-sm space-y-1">
@@ -136,7 +138,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
           {b.status === "needs_time" ? "Pick a new delivery time"
             : b.slot_start ? `Delivery ${slotLabel(b.slot_start)}` : "Delivery"}
         </p>
-        <p className="text-muted-foreground">{HANDOFF_WORDS[b.handoff].title}{b.side === "seller" ? " (the buyer's choice)" : ""}</p>
+        {!handoffChips && <p className="text-muted-foreground">{HANDOFF_WORDS[b.handoff].title}{b.side === "seller" ? " (the buyer's choice)" : ""}</p>}
         {b.side === "seller" && b.dropoff_address && <p>Deliver to: {b.dropoff_address}</p>}
         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" && b.status === "booked" && !b.delivered_at && (
           <p data-got-it-later="">You can confirm you got it from the delivery day.</p>
@@ -144,8 +146,9 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}.{problemOpen ? null : b.side === "buyer" ? " Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : " We asked the buyer to confirm. If they say nothing, you're paid in about 48 hours."}</p>}
       </div>
       {b.delivered_at && b.delivered_photo_path && <DeliveredPhoto path={b.delivered_photo_path} hand={b.handoff === "hand"} at={b.delivered_at} mine={b.side === "seller"} />}
-      {can.changeHandoff && !noShowWaiting && (
-        <div role="radiogroup" aria-label="When the seller arrives" className="flex flex-wrap gap-2">
+      {handoffChips && (
+        <div role="radiogroup" aria-labelledby={`sd-handoff-${orderId}`} className="flex flex-wrap items-center gap-2">
+          <p id={`sd-handoff-${orderId}`} className="w-full text-sm font-medium">When the seller arrives</p>
           {(["leave", "hand"] as const).map((h) => (
             <ChoicePill key={h} selected={b.handoff === h} disabled={busy} onClick={() => b.handoff !== h && handoff.mutate(h)}>{HANDOFF_WORDS[h].title}</ChoicePill>
           ))}

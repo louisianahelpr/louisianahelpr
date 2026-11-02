@@ -14,7 +14,8 @@
  * #7 (deep audit 2026-10-28): before the delivery day the buyer is told when "I got it" comes, and gets no button.
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" |         {false && b.order_status === "paid"
  * AUD31-38: after "It wasn't delivered", and once the delivery's hour has passed, the buyer is not offered Leave it at my door / Hand it to me.
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |       {can.changeHandoff && !noShowWaiting && ( |       {can.changeHandoff && (
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   const handoffChips = can.changeHandoff && !noShowWaiting; |   const handoffChips = can.changeHandoff;
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {!handoffChips && <p className="text-muted-foreground">{HANDOFF_WORDS | {true && <p className="text-muted-foreground">{HANDOFF_WORDS
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | (b.status === "needs_time" \|\| (b.status === "booked" && !slotOver)), | (b.status === "needs_time" \|\| b.status === "booked"),
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   const slotOver = booked && now >= Date.parse(b.slot_end ?? b.slot_start!); |   const slotOver = booked && now >= Date.parse(b.not_delivered_from ?? b.slot_start!) + 24 * 3_600_000;
  */
@@ -266,6 +267,15 @@ describe("DB-2: a problem is open on the delivery", () => {
 
     state.booking = { ...BASE, side: "buyer" };
     handoverRow.reported = null;
+  });
+
+  it("A3-73: with the door-or-hand chips showing, \"Leave it at my door\" is said once, under \"When the seller arrives\"", async () => {
+    state.booking = { ...BASE, side: "buyer", status: "needs_time", slot_start: null, slot_end: null };
+    handoverRow.reported = null;
+    show();
+    expect(await screen.findByRole("radiogroup", { name: "When the seller arrives" })).toBeInTheDocument();
+    expect(screen.getByText("When the seller arrives")).toBeInTheDocument();
+    expect(screen.getAllByText(/^Leave it at my door/)).toHaveLength(1);
   });
 
   it("AUD31-38: the door-or-hand choice shows for a delivery to come, and is gone once its hour passed and after It wasn't delivered", async () => {

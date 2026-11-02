@@ -16,6 +16,7 @@
  * @mutate src/components/declutter/DeclutterWantedReplies.tsx |   const near = useQuery( |   const near = { isError: false, isLoading: false, data: [] as WantedNear[], error: null, refetch: () => {} }; void useQuery(
  * Owner 2026-10-30: replies on your posts, and photos on the form, your post and the near-you cards (20261030064727).
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       <WantedReplies replies={post.replies} /> |       {null}
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx | {(post.replies ?? []).length > 0 ? "No other listings match yet." : | {false ? "No other listings match yet." :
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (r.status === "open") return r.awaiting === "buyer" ? "Waiting for you" : "Waiting for the seller"; |   if (r.status === "open") return "Waiting for the seller";
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {yourTurn && <Link | {false && <Link
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {userId && <WantedPostPhotos post={post} userId={userId} />} |       {null}
@@ -301,6 +302,15 @@ describe("the Wanted hub", () => {
     mine.rows = [{ ...POST, replies: [] }];
     open();
     expect(await screen.findByText("No replies from sellers yet.")).toBeInTheDocument();
+    expect(screen.getByText("Nothing for sale matches at or under your price right now.")).toBeInTheDocument();
+  });
+
+  it("A3-62: with a seller's reply and no other match, it says \"No other listings match yet.\", never \"Nothing for sale matches\"", async () => {
+    mine.rows = [POST];
+    open();
+    await screen.findByText("Red bike");
+    expect(screen.getByText("No other listings match yet.")).toBeInTheDocument();
+    expect(screen.queryByText(/Nothing for sale matches/)).toBeNull();
   });
 
   it("the form takes up to 3 photos and adds each to the new post after it is posted", async () => {

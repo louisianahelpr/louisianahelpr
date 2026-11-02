@@ -21,7 +21,7 @@ import { arrivalEstablished, arrivalEvidenceState, arrivalGateMessage, arrivalMa
 import { trackingProofCaption } from "./trackingProofCaption";
 import { report } from "@/lib/errorLogger";
 import { trackJobCompleted } from "@/lib/jobCompletedEvent";
-import { BEFORE_PHOTO_GATE_REASON, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { BEFORE_PHOTO_GATE_REASON, isExpectedLifecycleRefusal, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
@@ -901,7 +901,8 @@ export function JobTracking({
         // The RPC refused (a completion gate, a live-job race, authz) or errored.
         // Its custom codes get their sentence through rpcErrorMessage; a benign
         // race is not reported (matches the old zero-row path).
-        if (!isWriteRejected(doneRpcErr)) {
+        // A3-115: "done" before a day set to finish (continue_day_ahead) is the rule working, not a defect.
+        if (!isWriteRejected(doneRpcErr) && !isExpectedLifecycleRefusal(doneRpcErr)) {
           report(doneRpcErr, { tags: { source: "JobTracking.helperCompleted" } });
         }
         hapticError();

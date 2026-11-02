@@ -1141,4 +1141,42 @@ describe("on the job page, the card hands over its actions minus Message", () =>
     expect(leads.length).toBeGreaterThan(0);
     expect(leads[leads.length - 1]).toBe(0);
   });
+
+  // A3-40 (lead 11-01): on a finished job the card's Review leads the page row and its Tip is a visible TEXT button in
+  // the page's slot under the row: not the pair's second button, not in More options.
+  // @mutate src/components/job-card/JobStepCard.tsx |   const menuText = menu?.leadHost && menu.textHost ? menuPrimaries.slice(1) : []; |   const menuText: typeof menuPrimaries = [];
+  // @mutate src/components/job-card/JobStepCard.tsx | ...(menu.leadHost && !menu.textHost ? menuPrimaries.slice(1) : []) | ...(menu.leadHost ? menuPrimaries.slice(1) : [])
+  // @mutate src/components/job-card/jobStepMenu.tsx |     <Button type="button" variant="link" size="sm" data-menu-text-action | <Button type="button" variant="outline" size="sm" data-menu-text-action
+  it("A3-40: with a text slot, Tip is a text button under the row and leaves the options", async () => {
+    const { JobStepMenuContext } = await import("./jobStepMenu");
+    const { JobStepPrimaryButton } = await import("./JobActionRow");
+    const { Star, DollarSign } = await import("lucide-react");
+    const lead = document.createElement("div");
+    const text = document.createElement("div");
+    const second = document.createElement("div");
+    document.body.append(lead, text, second);
+    const counts: number[] = [];
+    try {
+      render(
+        <JobStepMenuContext.Provider value={{ secondHost: second, listHost: null, leadHost: lead, textHost: text, setCount: (n) => counts.push(n), setLeadCount: () => {} }}>
+          <JobStepCard side="poster" step="completed"
+            primary={<><JobStepPrimaryButton icon={Star} label="Review" onClick={() => {}} /><JobStepPrimaryButton icon={DollarSign} label="Tip" ariaLabel="Tip Yusef" onClick={() => {}} /></>}
+            actions={[<button key="message" type="button">Message</button>, <button key="again" type="button">Book again</button>]} />
+        </JobStepMenuContext.Provider>,
+      );
+      await act(async () => { await Promise.resolve(); });
+      expect(lead.textContent).toBe("Review");
+      const tip = text.querySelector("[data-menu-text-action]") as HTMLButtonElement;
+      expect(tip?.textContent).toBe("Tip");
+      expect(tip.getAttribute("aria-label")).toMatch(/Tip/);
+      // A text button (the link variant), not an outlined pill.
+      expect(tip.className).toMatch(/\blink-standard\b/);
+      expect(tip.className).not.toMatch(/\bborder\b/);
+      // The options hold only Book again: one action, drawn as the pair's second button.
+      expect(counts[counts.length - 1]).toBe(1);
+      expect(second.textContent).toBe("Book again");
+    } finally {
+      lead.remove(); text.remove(); second.remove();
+    }
+  });
 });

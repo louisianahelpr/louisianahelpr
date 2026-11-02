@@ -191,6 +191,7 @@ vi.mock("./usePosterPageFlows", () => ({
     ready: true, completing: false, moreCount: state.moreCount, leadCount: state.leadCount,
     setLeadHost: (el: HTMLElement | null) => { if (el) flowCalls.push("lead-host"); },
     setAskHost: () => {},
+    setTextHost: (el: HTMLElement | null) => { if (el) flowCalls.push("text-host"); },
     approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
     crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, panel: <div data-testid="card-panel" />, dialogs: null,
@@ -1491,6 +1492,24 @@ describe("one row of buttons at every stage (B93)", () => {
     // The lead slot is the row's right half; Message + the card's one other action make two, so More options.
     expect(rowEl.lastElementChild?.hasAttribute("data-card-lead")).toBe(true);
     expect(within(rowEl).getAllByRole("button").map(fullName)).toEqual(["More options"]);
+  });
+
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       {cardLead && <div ref={flows.setTextHost} data-card-text="" className="flex justify-center empty:hidden" />} |
+  // A3-40 (lead 11-01): Tip beside Review is a visible text button UNDER the row (the card draws it into this slot),
+  // never a third button in the pair and never in More options. The slot exists only while the card's primary leads.
+  it("completed (A3-40): a text slot under the row holds the card's Tip", async () => {
+    state.leadCount = 2;
+    state.moreCount = 1;
+    state.job = row({ ...live, status: "completed", payment_status: "payout_pending", helper_arrived_at: "2026-10-28T14:20:00Z",
+      helper_completed_at: "2026-10-28T15:00:00Z", poster_completed_at: "2026-10-28T15:10:00Z" });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(flowCalls).toContain("text-host"));
+    const rowEl = document.querySelector("[data-job-row]") as HTMLElement;
+    const slot = document.querySelector("[data-card-text]") as HTMLElement;
+    expect(slot).not.toBeNull();
+    expect(rowEl.contains(slot)).toBe(false);
+    expect(rowEl.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("the hired Helpr's finished job (JA-22): Leave a review leads; Message and Open in working one tap away", async () => {

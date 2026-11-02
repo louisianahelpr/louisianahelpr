@@ -100,6 +100,11 @@ import { currentSearch, profileTabTitle, type Tab } from "@/pages/profile/types"
  *     screenful) and collapsed 221px into the empty card. Once the review
  *     COUNT is known, ReviewsTab's own placeholder draws the populated shape,
  *     and only when there are reviews.
+ *     SUPERSEDED for reviews (owner, 2026-11-02, via the lead): the zero-state
+ *     card shape read as "No reviews yet" while the reviews were still loading.
+ *     Reviews now wait in ONE neutral review-row shape (ReviewRowReserve), which
+ *     says nothing about how many there are; the real list or the empty card
+ *     grows below it.
  *   - wrapped: the "No activity yet" card (333px at 375: the real card with
  *     its stats swapped for the zero-state markup, measured 2026-10-05). A
  *     year with activity is taller (419px with one stats row, 510px with two)
@@ -127,7 +132,6 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
     ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 229, media: 1 }] : []),
     { h: 261, media: 3 },
   ],
-  reviews: [{ h: 307 }],
   subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
   // + "Take the tour again" (2026-10-20, FirstRun replay).
   support: [{ h: 469 }, { h: 43 }, { h: 43 }],
@@ -193,6 +197,7 @@ export interface ProfileTabFallbackProps {
  */
 export const ProfileTabBodyReserve = ({ tab }: { tab?: Exclude<Tab, "landing"> } = {}) => {
   if (tab === "notifications") return <NotificationsReserve />;
+  if (tab === "reviews") return <ReviewRowReserve />;
   if (tab === "work_record") return <WorkRecordReserve />;
   const shape = tab ? TAB_SHAPES[tab] : undefined;
   if (shape) {
@@ -260,6 +265,26 @@ const ShapeBlock = ({ block, first }: { block: Block; first: boolean }) => {
  * and the digest row run taller, the toggles-only rows shorter).
  */
 export const NOTIFICATION_ROWS = 17;
+/**
+ * Reviews' placeholder (owner, 2026-11-02, superseding Q722 for loading): one neutral review row, the shape of a
+ * review in the list (stars, a date, two lines), not the "No reviews yet" card, so the loading frame claims
+ * neither "none" nor "some".
+ */
+export const ReviewRowReserve = () => (
+  <div data-testid="profile-tab-fallback" data-review-row-reserve="" className="rounded-ds-md liquid-glass p-card space-y-2.5" aria-hidden>
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-0.5">
+        {[0, 1, 2, 3, 4].map((s) => (
+          <Skeleton key={s} className="h-3.5 w-3.5 rounded-sm" />
+        ))}
+      </div>
+      <Skeleton className="h-3 w-20" />
+    </div>
+    <Skeleton className="h-3.5 w-full" />
+    <Skeleton className="h-3.5 w-5/6" />
+  </div>
+);
+
 const NotificationsReserve = () => (
   <div aria-hidden data-testid="profile-tab-fallback" className="rounded-2xl liquid-glass overflow-hidden">
     <div className="flex justify-end gap-4 px-card py-2">

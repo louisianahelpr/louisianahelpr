@@ -8,9 +8,9 @@
  * (A3-36, 20261102043115). Behaviour, 3x replay and the red check:
  * src/test/pglite/noticeCountsTheAfterPhotos.pglite.mjs.
  *
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | WHERE COALESCE(btrim(p.path), '') <> ''); | WHERE false);
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql |   v_helper_name := COALESCE(v_helper_name, 'Your Helpr'); |
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | '. Next: review them and approve by ' \|\| v_approve_by | '. Next: check the work and approve by ' \|\| v_approve_by
+ * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql | WHERE COALESCE(btrim(p.path), '') <> ''); | WHERE false);
+ * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql |   v_helper_name := COALESCE(v_helper_name, 'Your Helpr'); |
+ * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql | '. Next: review them and approve by ' \|\| v_approve_by | '. Next: check the work and approve by ' \|\| v_approve_by
  */
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";

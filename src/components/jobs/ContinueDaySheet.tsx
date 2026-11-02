@@ -10,6 +10,9 @@ import { ChoicePill } from "@/components/ui/ChoicePill";
 import { hapticError } from "@/lib/haptics";
 import { continueDayLabel, proposeContinueDay } from "@/lib/continueDay";
 
+/** Today's chip, when today is offered: it is "another day" only in the sense of later today (Q2606). */
+const LATER_TODAY = "Later today";
+
 /** The next 30 days from today (the server's own limit, propose_job_continue_day). */
 const DAYS = 30;
 /** Today is offered only before 10 PM: a start at least an hour out (propose_job_continue_day) must still fit in it. */
@@ -53,6 +56,7 @@ export function ContinueDaySheet({
     () => Array.from({ length: DAYS }, (_, i) => format(addDays(today, i), "yyyy-MM-dd")).slice(offerToday ? 0 : 1),
     [today, offerToday],
   );
+  const todayKey = format(today, "yyyy-MM-dd");
   const other = (otherFirst ?? "").trim();
   const poster = side === "poster";
 
@@ -93,7 +97,8 @@ export function ContinueDaySheet({
           <div role="radiogroup" aria-label="Day to finish" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
             {days.map((d) => (
               <ChoicePill key={d} selected={date === d} className="shrink-0" onClick={() => setDate(d)}>
-                {formatJobDate(d)}
+                {/* Q2606 (Jobs audit 1102b row 20): today, first in a list of "another day", reads "Later today". */}
+                {d === todayKey ? LATER_TODAY : formatJobDate(d)}
               </ChoicePill>
             ))}
           </div>

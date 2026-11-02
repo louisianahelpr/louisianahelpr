@@ -1091,6 +1091,15 @@ serve(async (req) => {
           );
           if (billProblem) {
             fail(`visit payment ${row.id}: ${billProblem}; nothing refunded, retried next run`);
+            // The poster's full refund waits on this bill: page once a day so it is never stuck in silence (lead 11-02).
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "critical",
+              title: "A lapsed Helpr's card fee could not be billed, so a poster's visit refund is waiting",
+              message: `${pi} (visit on ${row.visit_date}) is owed back to the poster IN FULL, but billing its Helpr the card fee failed: ${billProblem}. Nothing was refunded; each run retries the bill first. Fix the bill (bill_helpr_card_fee_debt, recurring_visit_payments ${row.id}), or refund the poster by hand and bill the Helpr after.`,
+              fields: { payment_intent: pi, parent_job_id: String(row.parent_job_id), visit_date: String(row.visit_date) },
+              oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`,
+            });
             continue;
           }
         }

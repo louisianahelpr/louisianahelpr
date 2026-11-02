@@ -22,6 +22,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { useNeedsYouTodos } from "./needsYouTodos";
 import { deriveLiveNow, deriveWaiting } from "./nextUpStates";
 import { deriveComingUp, type ComingUpItem } from "./comingUp";
+import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
 
 const DAY = 86_400_000;
 /** Board 7 and board 11 both show four Coming up rows. */
@@ -103,6 +104,8 @@ export function useHomeSummary(user: SupaUser | null) {
   const paidIds = [...new Set((cart.data ?? []).filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id!))];
   const bookings = useQuery({ queryKey: ["declutter", "bookings", paidIds.join(",")], queryFn: () => handoverApi().then((m) => (m ? m.fetchMyBookings(paidIds) : untilReload())), enabled: paidIds.length > 0 });
   const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchShopOrders(uid) : untilReload())), enabled: !!uid && shopsOn });
+  // Continue another day (Auditor 11, 11-01): the jobs under way that continue on another day, one shared read.
+  const continueDays = useContinueDays(inProgressJobIds([...(posted.postedJobs ?? []), ...(applied.appliedApps ?? []).map((a) => a.job)]));
   // Live "near you" counts for the Jobs and Declutter cards: head-only count reads, started after first paint.
   const settled = usePageSettled();
   const appliedIds = useMemo(() => [...new Set((applied.appliedApps ?? []).map((a) => a.job_id))].sort(), [applied.appliedApps]);
@@ -137,6 +140,7 @@ export function useHomeSummary(user: SupaUser | null) {
       bookings: bookings.data ?? [],
       myOrders: (shopsOn ? orders.data : undefined) ?? [],
       shopOrders: (shopsOn ? shopOrders.data : undefined) ?? [],
+      continueDays,
     }, now);
     const thisWeek = upcoming.filter((c) => c.at < now + 7 * DAY).length;
     // A failed read is not "nothing booked" (spec v2 §1.5): Home says it could not load instead.
@@ -147,12 +151,12 @@ export function useHomeSummary(user: SupaUser | null) {
     const props = homes.data ?? [];
 
     // Board 165: a job happening now sits above Next up. Board 83: with nothing to do, who is up (never the live job again).
-    const liveNow = deriveLiveNow(pj, aa, posted.helperNames ?? {});
+    const liveNow = deriveLiveNow(pj, aa, posted.helperNames ?? {}, continueDays);
     return {
       loading: posted.loading && applied.loading,
       todos,
       liveNow,
-      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, posted.helperNames ?? {}),
+      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, posted.helperNames ?? {}, continueDays),
       thisWeek,
       upcoming: upcoming.slice(0, COMING_UP_MAX),
       upcomingFailed,
@@ -182,5 +186,5 @@ export function useHomeSummary(user: SupaUser | null) {
         homes: countLine([[props.length, "property", "properties"]]),
       },
     };
-  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data]);
+  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays]);
 }

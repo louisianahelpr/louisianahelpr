@@ -1715,7 +1715,7 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     state.party = true;
     renderPage();
     expect(await screen.findByText("Continuing Thu 11/5 at 9 AM")).toBeTruthy();
-    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Continuing Thu 11/5 at 9 AM · waiting on Rhonda");
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Continuing Thu 11/5 at 9 AM · waiting on Rhonda to confirm");
   });
 
   it("a Helpr's ask: 'Confirm new day' leads on the right (one tap) over Approve", async () => {
@@ -1780,5 +1780,63 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     state.tracking = "working";
     renderPage();
     expect(await screen.findByRole("button", { name: "Need another day" })).toBeTruthy();
+  });
+});
+
+/*
+ * Auditor 11 (11-01, the owner's job 7b1da54b): with a day set to finish, (2) the Helpr's row led with "Mark job
+ * complete" days before the server allows it (continue_day_ahead); (4) the poster's pair was "SOS | Message" with
+ * nobody at the job; (5) the header still read day 1.
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |     const doneLocked = continueDay.doneAhead && hiredFace.label === DONE_FACE_LABEL; |     const doneLocked = false;
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })} | continueDay.posterExtras)}
+ * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       posterExtras.push({ key: "continue-change", label: "Change day", go: open }); |       posterExtras.push();
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const continuingOn = continueDayHeader(continueDay.row); |   const continuingOn = null as string \| null;
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | <MineFaceNote note={continueDay.doneAheadNote ?? hiredFace?.note} /> | <MineFaceNote note={hiredFace?.note} />
+ */
+describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () => {
+  const ahead = jobLocalDateISO(3);
+  const underWay = (over: Partial<JobPageRow> = {}) => row({
+    customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
+    poster_confirmed_arrival_at: "2026-10-28T12:40:00Z", poster_confirmed_working_at: "2026-10-28T12:45:00Z", ...over,
+  });
+  const setDay = (over: Record<string, unknown> = {}) => ({
+    id: "c1", job_id: "x", proposed_by: ME, new_date: ahead, new_start_time: "09:00:00", note: null, status: "set",
+    helper_confirmed_at: "2026-11-01T12:00:00Z", ...over,
+  });
+  beforeEach(() => { continueState.row = null; continueCalls.length = 0; Element.prototype.scrollTo ??= () => {}; });
+
+  it("the Helpr: no 'Mark job complete' before the day; Message leads and the note says when", async () => {
+    state.job = underWay({ customer_id: POSTER, helper_id: ME, proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"] });
+    state.tracking = "working";
+    state.party = true;
+    const { unmount } = renderPage();
+    // Without a day the same job leads with the done step (the fixture is the audit's state).
+    await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
+    expect(within(document.querySelector('[data-job-row="helpr"]') as HTMLElement).getAllByRole("button").map(fullName)).toContain("Mark job complete");
+    unmount();
+    continueState.row = setDay({ proposed_by: POSTER });
+    renderPage();
+    await screen.findByText(/You can mark it done on/);
+    const names = within(document.querySelector('[data-job-row="helpr"]') as HTMLElement).getAllByRole("button").map(fullName);
+    expect(names).not.toContain("Mark job complete");
+    expect(names[names.length - 1]).toBe("Message Rhonda");
+    expect(screen.getByText(/You can mark it done on \w{3} \d+\/\d+, the day you set to finish\./)).toBeTruthy();
+  });
+
+  it("the poster: [Change day | Message], no SOS, and the header reads the continue day", async () => {
+    continueState.row = setDay();
+    state.job = underWay();
+    state.party = true;
+    state.moreCount = 1;
+    state.leadCount = 0;
+    renderPage();
+    await screen.findByRole("button", { name: "Change day" });
+    const names = within(document.querySelector('[data-job-row="poster"]') as HTMLElement).getAllByRole("button").map(fullName);
+    expect(names).toEqual(["Change day", "Message Rhonda"]);
+    expect(screen.queryByRole("button", { name: "Set a different day" })).toBeNull();
+    expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${formatJobDate(ahead)} · 9:00 AM`));
+    expect(document.querySelector("[data-next-step]")?.textContent).toMatch(/^Rhonda confirmed /);
   });
 });

@@ -58,7 +58,7 @@ import { hiredHelprFace } from "./hiredHelprFace";
 import { HAS_HELPR, usePosterPageActions } from "./posterPageActions";
 import { usePosterPageFlows } from "./usePosterPageFlows";
 import { useContinueDayActions } from "./useContinueDayActions";
-import { jobOnContinueDay } from "@/lib/continueDay";
+import { continueDayHeader, jobOnContinueDay } from "@/lib/continueDay";
 import { MineFaceNote } from "@/components/job-card/MineJobFace";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
@@ -80,6 +80,8 @@ function metaLine(job: JobPageRow): string {
 }
 
 const CARD = "rounded-2xl border border-border bg-card";
+/** The hired Helpr's done step (helperFaceAction.ts, key "done"). */
+const DONE_FACE_LABEL = "Mark job complete";
 /** A crew job whose roster the poster follows on the page (JA-32): filling, booked, under way, being fixed, done. */
 const CREW_ROSTER_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress", "revision_requested", "completed", "disputed"]);
 
@@ -182,7 +184,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const eyebrow = jobEyebrow(job.category);
   // The offered or hired Helpr (helper_id is set from the offer on): the street, as on their Working card.
   // The city here; the street once, on the Address line below for the offered or hired Helpr (F7, JOBS2-39: it was printed twice in a row).
-  const meta = metaLine(job);
+  // A SET continue day (Auditor 11, 11-01): the first line is the next visit, "Continuing Thu, Nov 5 · 9:00 AM".
+  const continuingOn = continueDayHeader(continueDay.row);
+  const meta = continuingOn ? [continuingOn, job.location ? getCity(job.location) : null].filter(Boolean).join(" · ") : metaLine(job);
   const open = job.status === "open";
   const pending = applicants.data?.pending ?? 0;
   const total = applicants.data?.total ?? 0;
@@ -221,9 +225,12 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;
     const work: RowAction = { key: "working", label: "Open in working", go: openWorking };
     // JA-18: a face that opens the Working card ("See your crew steps") IS "Open in working": never both.
-    const faceIs = hiredFace.onClick === messagePoster ? "message" : hiredFace.onClick === openWorking ? "working" : "step";
+    // A continue day still ahead (Auditor 11, 11-01): the server refuses "done" until that day (continue_day_ahead),
+    // so the row never leads with Mark job complete then; Message leads and the note under it says when.
+    const doneLocked = continueDay.doneAhead && hiredFace.label === DONE_FACE_LABEL;
+    const faceIs = doneLocked ? (msg ? "message" : "working") : hiredFace.onClick === messagePoster ? "message" : hiredFace.onClick === openWorking ? "working" : "step";
     const lead: RowAction = faceIs === "message" && msg ? msg
-      : faceIs === "working" ? { ...work, label: hiredFace.label }
+      : faceIs === "working" ? { ...work, label: doneLocked ? work.label : hiredFace.label }
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
     const extras = [msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
@@ -414,7 +421,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
             {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
             {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
-            {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras)}
+            {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })}
             {continueDay.sheet}
             {isPoster && posterActions.panel}
             {hiredRow}
@@ -436,7 +443,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 {primary.label}
               </Button>
             )}
-            {!isPoster && <MineFaceNote note={hiredFace?.note} />}
+            {!isPoster && <MineFaceNote note={continueDay.doneAheadNote ?? hiredFace?.note} />}
             {/* LEAD-LIST-FOR-SELLER: the Working card's done rule, said here too (its panel lives on that card). */}
             {isHired && isSellForMeJob(job.category) && !job.helper_completed_at && hiredFace && (
               <p data-sell-for-me-done-note="" className="text-center text-ds-13 text-muted-foreground">{SELL_FOR_ME_DONE_NOTE}</p>

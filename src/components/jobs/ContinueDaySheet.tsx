@@ -12,6 +12,8 @@ import { continueDayLabel, proposeContinueDay } from "@/lib/continueDay";
 
 /** The next 30 days from today (the server's own limit, propose_job_continue_day). */
 const DAYS = 30;
+/** Today is offered only before 10 PM: a start at least an hour out (propose_job_continue_day) must still fit in it. */
+const LAST_START_HOUR_TODAY = 22;
 
 /**
  * "Need another day" (the Helpr) / "Not finished? Set a day" (the poster): the rest of a job under way moves to a new
@@ -26,6 +28,7 @@ export function ContinueDaySheet({
   side,
   otherFirst,
   onSaved,
+  helprMarkedDone = false,
   today = new Date(),
 }: {
   open: boolean;
@@ -34,6 +37,8 @@ export function ContinueDaySheet({
   side: "poster" | "helpr";
   otherFirst: string | null;
   onSaved: () => void;
+  /** The Helpr already marked it done: the day is to come back, so today is not offered (A3-119). */
+  helprMarkedDone?: boolean;
   /** For tests: the first day of the strip. */
   today?: Date;
 }) {
@@ -41,7 +46,13 @@ export function ContinueDaySheet({
   const [time, setTime] = useState("09:00");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  const days = useMemo(() => Array.from({ length: DAYS }, (_, i) => format(addDays(today, i), "yyyy-MM-dd")), [today]);
+  // A3-119 (Auditor 11, 11-01): today only while a start an hour out still fits in it (the server's own 1-hour rule),
+  // and never once the Helpr marked it done (they come back another day: tomorrow onward).
+  const offerToday = !helprMarkedDone && today.getHours() < LAST_START_HOUR_TODAY;
+  const days = useMemo(
+    () => Array.from({ length: DAYS }, (_, i) => format(addDays(today, i), "yyyy-MM-dd")).slice(offerToday ? 0 : 1),
+    [today, offerToday],
+  );
   const other = (otherFirst ?? "").trim();
   const { chipBase, chipActive, chipIdle } = chipStyles;
   const dayChip = chipBase.replace("min-h-10", "min-h-11");
@@ -89,6 +100,14 @@ export function ContinueDaySheet({
             ))}
           </div>
           <TimePickerWheel value={time} onChange={setTime} ariaLabel="Start time" />
+          {/* A3-119: what setting a day does to a "done" already sent (the server clears it; the payment stays held). */}
+          {helprMarkedDone && (
+            <p data-continue-day-effect="" className="text-ds-13 text-muted-foreground">
+              {poster
+                ? `${other || "Your Helpr"}'s "done" is cleared and the payment waits until the work is finished.`
+                : `Your "done" is cleared and your payment waits until the work is finished.`}
+            </p>
+          )}
           <label className="block space-y-1">
             <span className="text-ds-14 font-semibold">Note (optional)</span>
             <Textarea value={note} maxLength={300} rows={2} onChange={(e) => setNote(e.target.value)}

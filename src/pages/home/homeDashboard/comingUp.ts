@@ -5,6 +5,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import type { CartLine } from "@/lib/declutter/api";
 import type { MyBooking } from "@/lib/declutter/handover";
 import type { ShopOrder } from "@/lib/shops/orders";
+import { jobOnContinueDay, type ContinueDay } from "@/lib/continueDayWords";
 
 /** Which side of which section a Coming up row is on (spec v2 §5.4: the role caption). */
 export type ComingUpRole = "posted" | "working" | "buying" | "selling" | "ordered" | "shop";
@@ -45,6 +46,8 @@ interface ComingUpInputs {
   myOrders: readonly ShopOrder[];
   /** Orders to my shop (fetchShopOrders). */
   shopOrders: readonly ShopOrder[];
+  /** The active continue days of my jobs under way, by job id (useContinueDays): a SET day is the job's next visit. */
+  continueDays?: Readonly<Record<string, ContinueDay>>;
 }
 
 const timeOf = (d: Date) => d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
@@ -89,14 +92,20 @@ function jobRow(job: Job, role: "posted" | "working", id: string, now: number): 
  */
 export function deriveComingUp(i: ComingUpInputs, now: number = Date.now()): ComingUpItem[] {
   const rows: ComingUpItem[] = [];
+  // Continue another day (Auditor 11, 11-01): a job under way with a SET day comes back on that day, so it is on
+  // the agenda at the new day and time (it was missing, and Home said "Nothing else booked").
+  const setDay = (jobId: string) => (i.continueDays?.[jobId]?.status === "set" ? i.continueDays[jobId] : null);
   for (const job of i.postedJobs) {
-    if (postedActivityBucket(job, 0) !== "scheduled") continue;
-    const r = jobRow(job, "posted", `p-${job.id}`, now);
+    const day = job.status === "in_progress" ? setDay(job.id) : null;
+    if (!day && postedActivityBucket(job, 0) !== "scheduled") continue;
+    const r = jobRow(jobOnContinueDay(job, day), "posted", `p-${job.id}`, now);
     if (r) rows.push(r);
   }
   for (const a of i.appliedApps) {
-    if (!a.job || appliedActivityBucket(a) !== "scheduled") continue;
-    const r = jobRow(a.job, "working", `a-${a.id}`, now);
+    if (!a.job) continue;
+    const day = a.job.status === "in_progress" && a.job.helper_id === a.helper_id ? setDay(a.job.id) : null;
+    if (!day && appliedActivityBucket(a) !== "scheduled") continue;
+    const r = jobRow(jobOnContinueDay(a.job, day), "working", `a-${a.id}`, now);
     if (r) rows.push(r);
   }
 

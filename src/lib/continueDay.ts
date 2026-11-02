@@ -10,68 +10,11 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import type { NextStepValue } from "@/components/ui/NextStep";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
-export type ContinueDay = {
-  id: string;
-  job_id: string;
-  proposed_by: string | null;
-  new_date: string;
-  new_start_time: string;
-  note: string | null;
-  status: "proposed" | "set";
-  helper_confirmed_at: string | null;
-};
-
-const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
-
-/** "Thu 11/5 at 9 AM" / "Thu 11/5 at 1:30 PM": the server's continue_day_label, the same words in every notice. */
-export function continueDayLabel(date: string, time: string): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const [hh, mm] = time.split(":").map(Number);
-  if (!y || !m || !d || Number.isNaN(hh)) return "";
-  const weekday = WEEKDAY[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
-  const h12 = hh % 12 === 0 ? 12 : hh % 12;
-  const clock = mm ? `${h12}:${String(mm).padStart(2, "0")}` : `${h12}`;
-  return `${weekday} ${m}/${d} at ${clock} ${hh < 12 ? "AM" : "PM"}`;
-}
-
-/**
- * The job's next-step line while it continues on another day, for the job's two people. Null when there is no
- * active continue day (the tracker's own line stands).
- */
-export function continueDayNextStep(
-  row: ContinueDay | null | undefined,
-  o: { side: "poster" | "helpr"; otherFirst?: string | null },
-): NextStepValue | null {
-  if (!row) return null;
-  const when = continueDayLabel(row.new_date, row.new_start_time);
-  const other = (o.otherFirst ?? "").trim();
-  if (row.status === "proposed") {
-    return o.side === "poster"
-      ? { who: "you", text: `Confirm ${other ? `${other}'s` : "your Helpr's"} new day`, by: when }
-      : { who: "them", text: `You asked to finish ${when}`, by: `waiting on ${other || "the person who posted it"}` };
-  }
-  if (o.side === "poster") {
-    return { who: "them", text: `Continuing ${when}`, by: `waiting on ${other || "your Helpr"}` };
-  }
-  return row.helper_confirmed_at
-    ? { who: "info", text: `Continuing ${when}`, by: "mark it done when you finish" }
-    : { who: "you", text: "Confirm you'll be there", by: `continuing ${when}` };
-}
-
-/**
- * The job as its tracker should read it while it continues on a SET day (B118 follow-up, lead 11-01): the new day
- * and start time stand in for day 1's, so the bar and its "late" checks measure the next visit, never the first
- * day that has passed (the bar read "Late" on Arrived with a day set). A proposed day is not agreed yet: day 1 stands.
- */
-export function jobOnContinueDay<J extends { date_needed?: string | null; start_time?: string | null }>(
-  job: J,
-  row: ContinueDay | null | undefined,
-): J {
-  if (!row || row.status !== "set" || !row.new_date) return job;
-  return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) };
-}
+export type { ContinueDay } from "./continueDayWords";
+export { continueDayLabel, continueDayNextStep, continueDayWords, continueDayAhead, continueDayHeader, jobOnContinueDay } from "./continueDayWords";
+import type { ContinueDay } from "./continueDayWords";
 
 /** The job's active continue day, or null. */
 export async function fetchContinueDay(jobId: string): Promise<ContinueDay | null> {
@@ -86,29 +29,15 @@ export async function fetchContinueDay(jobId: string): Promise<ContinueDay | nul
   return rows?.[0] ?? null;
 }
 
-/** What each refusal says, in plain words. */
-const REFUSAL: Record<string, string> = {
-  continue_day_not_in_progress: "Another day can be set only while the job is under way.",
-  continue_day_too_soon: "Pick a time at least an hour from now.",
-  continue_day_too_far: "Pick a day within the next 30 days.",
-  continue_day_invalid: "Pick a day and a time.",
-  continue_day_note_too_long: "Keep the note under 300 characters.",
-  continue_day_in_past: "That time has passed. Pick a new day.",
-  continue_day_not_set: "There's no day set to confirm. Refresh and check.",
-  users_blocked: "This can't be changed between you two.",
-  account_restricted: "Your account can't make changes right now.",
-  not_authorized: "Only the two people on this job can do that.",
-};
+type ContinueRpc = "propose_job_continue_day" | "answer_job_continue_day" | "confirm_job_continue_day";
 
-/** A refusal in plain words (never a raw code), else null. */
-export function continueDayError(error: unknown): string | null {
-  const msg = String((error as { message?: string } | null)?.message ?? "");
-  const code = Object.keys(REFUSAL).find((c) => new RegExp(`\\b${c}\\b`).test(msg));
-  return code ? REFUSAL[code] : null;
+/** A refusal in plain words (never a raw code), from the shared RPC_ERROR_COPY table, else null. */
+export function continueDayError(error: unknown, rpc: ContinueRpc = "propose_job_continue_day"): string | null {
+  return rpcErrorMessage(rpc, error);
 }
 
-function fail(error: unknown): never {
-  throw new Error(continueDayError(error) ?? "Couldn't save that. Check your connection and try again.");
+function fail(rpc: ContinueRpc, error: unknown): never {
+  throw new Error(continueDayError(error, rpc) ?? "Couldn't save that. Check your connection and try again.");
 }
 
 /** The Helpr asks for another day, or the poster sets it (the server decides which from who calls). */
@@ -119,18 +48,34 @@ export async function proposeContinueDay(jobId: string, date: string, time: stri
     p_start_time: time.length === 5 ? `${time}:00` : time,
     p_note: note.trim() || undefined,
   });
-  if (error) fail(error);
+  if (error) fail("propose_job_continue_day", error);
   return { status: ((data as { status?: string } | null)?.status === "set" ? "set" : "proposed") };
 }
 
 /** The poster confirms the Helpr's day (one tap) or declines it. */
 export async function answerContinueDay(continueId: string, accept: boolean): Promise<void> {
   const { error } = await supabase.rpc("answer_job_continue_day", { p_continue_id: continueId, p_accept: accept });
-  if (error) fail(error);
+  if (error) fail("answer_job_continue_day", error);
 }
 
 /** The Helpr confirms they'll be there on the new day. */
 export async function confirmContinueDay(continueId: string): Promise<void> {
   const { error } = await supabase.rpc("confirm_job_continue_day", { p_continue_id: continueId });
-  if (error) fail(error);
+  if (error) fail("confirm_job_continue_day", error);
+}
+
+/**
+ * The active continue days of several jobs, by job id (Home, the to-do list): one read, the same columns and
+ * party-only policy as fetchContinueDay.
+ */
+export async function fetchContinueDays(jobIds: readonly string[]): Promise<Record<string, ContinueDay>> {
+  if (!jobIds.length) return {};
+  const rows = unwrap(
+    await supabase
+      .from("job_continue_days")
+      .select("id, job_id, proposed_by, new_date, new_start_time, note, status, helper_confirmed_at")
+      .in("job_id", [...jobIds])
+      .in("status", ["proposed", "set"]),
+  ) as ContinueDay[] | null;
+  return Object.fromEntries((rows ?? []).map((r) => [r.job_id, r]));
 }

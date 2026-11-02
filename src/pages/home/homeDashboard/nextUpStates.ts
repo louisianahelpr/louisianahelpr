@@ -2,6 +2,10 @@ import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { postedActivityBucket, appliedActivityBucket, jobIsOverdue, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { posterStatusLine, helperStatusLine } from "@/components/job-card/jobStatusLine";
 import { jobProgress, type JobProgressState } from "@/components/tracker/jobProgressState";
+import { continueDayAhead, continueDayNextStep, continueDayWords, type ContinueDay } from "@/lib/continueDayWords";
+
+/** The active continue days of the member's jobs under way, by job id (useContinueDays). */
+export type ContinueDays = Readonly<Record<string, ContinueDay>>;
 
 /**
  * The two Home states around Next up (boards 83 and 165, spec v2 §5.1 + §9.22 +
@@ -37,8 +41,9 @@ function hiredName(j: Job, helperNames: Readonly<Record<string, string>>): strin
 const firstOf = (n: string | null) => (n ? n.trim().split(/\s+/)[0] || null : null);
 
 /** JA-38 (audit 11-01): the poster's lines name their Helpr ("Yusef is on the way"), as the job page and card do. */
-export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly AppliedApp[], helperNames: Readonly<Record<string, string>> = {}): LiveNow | null {
-  const live = (j: Job | null | undefined): j is Job => !!j && j.status === "in_progress" && !jobIsOverdue(j);
+export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly AppliedApp[], helperNames: Readonly<Record<string, string>> = {}, continueDays: ContinueDays = {}): LiveNow | null {
+  // A job continuing on a day still ahead is not happening now (Auditor 11, 11-01): Waiting / Coming up name it.
+  const live = (j: Job | null | undefined): j is Job => !!j && j.status === "in_progress" && !jobIsOverdue(j) && !continueDayAhead(continueDays[j.id]);
   const started = (j: Job) => j.helper_arrived_at ?? j.helper_on_the_way_at ?? j.updated_at ?? "";
   const candidates: LiveNow[] = [
     ...postedJobs.filter(live).map((j) => ({
@@ -46,9 +51,10 @@ export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly 
       jobId: j.id,
       title: j.title,
       side: "You hired",
-      detail: posterStatusLine(j, 0, new Date(), undefined, false, hiredName(j, helperNames)).detail,
+      detail: continueDayWords(continueDays[j.id], { side: "poster", otherFirst: firstOf(hiredName(j, helperNames)) })
+        ?? posterStatusLine(j, 0, new Date(), undefined, false, hiredName(j, helperNames)).detail,
       startedAt: j.helper_arrived_at ?? null,
-      progress: jobProgress(j, { viewer: "poster", otherFirst: firstOf(hiredName(j, helperNames)) }),
+      progress: jobProgress(j, { viewer: "poster", otherFirst: firstOf(hiredName(j, helperNames)), continueDay: continueDays[j.id] }),
       sort: started(j),
     })),
     ...appliedApps
@@ -58,9 +64,9 @@ export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly 
         jobId: a.job!.id,
         title: a.job!.title,
         side: "You're working",
-        detail: helperStatusLine(a).detail,
+        detail: continueDayWords(continueDays[a.job!.id], { side: "helpr", otherFirst: firstOf(a.posterName ?? null) }) ?? helperStatusLine(a).detail,
         startedAt: a.job!.helper_arrived_at ?? null,
-        progress: jobProgress(a.job!, { viewer: "helpr", otherFirst: (a.posterName ?? "").split(" ")[0] || null }),
+        progress: jobProgress(a.job!, { viewer: "helpr", otherFirst: (a.posterName ?? "").split(" ")[0] || null, continueDay: continueDays[a.job!.id] }),
         sort: started(a.job!),
       })),
   ].sort((x, y) => (y.sort > x.sort ? 1 : y.sort < x.sort ? -1 : 0));
@@ -93,10 +99,25 @@ export function deriveWaiting(
    */
   liveJobId: string | null = null,
   helperNames: Readonly<Record<string, string>> = {},
+  continueDays: ContinueDays = {},
 ): Waiting | null {
   const firstName = (n?: string | null) => (n ? n.trim().split(/\s+/)[0] : null);
+  // Continue another day (Auditor 11, 11-01): a job under way with a day set or asked for waits on that day, in the
+  // job page's own words, never "waiting for them to mark it done". The viewer's own move is a to-do instead.
+  const continuing = (jobId: string, side: "poster" | "helpr", other: string | null, title: string, id: string): Waiting | null => {
+    const step = continueDayNextStep(continueDays[jobId], { side, otherFirst: other });
+    if (!step || step.who === "you") return null;
+    return { id, jobId, label: step.who === "them" ? `Waiting on ${other ?? (side === "poster" ? "your Helpr" : "a reply")}` : "Continuing another day",
+      title, detail: continueDayWords(continueDays[jobId], { side, otherFirst: other })! };
+  };
   for (const a of appliedApps) {
-    if (!a.job || a.job.id === liveJobId || appliedActivityBucket(a) !== "waiting") continue;
+    if (!a.job || a.job.id === liveJobId) continue;
+    if (continueDays[a.job.id]) {
+      const w = continuing(a.job.id, "helpr", firstName(a.posterName), a.job.title, `wa-${a.id}`);
+      if (w) return w;
+      continue;
+    }
+    if (appliedActivityBucket(a) !== "waiting") continue;
     const who = firstName(a.posterName);
     return {
       id: `wa-${a.id}`,
@@ -109,7 +130,13 @@ export function deriveWaiting(
   for (const j of postedJobs) {
     if (jobIsUnfundedDraft(j)) continue;
     const n = pendingApplicantCounts[j.id] ?? 0;
-    if (j.id === liveJobId || postedActivityBucket(j, n) !== "waiting") continue;
+    if (j.id === liveJobId) continue;
+    if (continueDays[j.id]) {
+      const w = continuing(j.id, "poster", firstOf(hiredName(j, helperNames)), j.title, `wp-${j.id}`);
+      if (w) return w;
+      continue;
+    }
+    if (postedActivityBucket(j, n) !== "waiting") continue;
     return {
       id: `wp-${j.id}`,
       jobId: j.id,

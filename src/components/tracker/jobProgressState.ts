@@ -8,6 +8,8 @@
  * the card's primary follows (the day-before confirm window and its deadline, on the way, arrived, marked done).
  * Guard: src/test/oneJobTracker.test.ts.
  */
+import { continueDayNextStep, jobOnContinueDay, type ContinueDay } from "@/lib/continueDayWords";
+import { nextStepWords } from "@/components/ui/NextStep";
 import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
@@ -152,6 +154,12 @@ type ProgressOpts = {
      *  its bar is read from exactly what it shows. Elsewhere (chat, job page, Home) they are derived here with
      *  the same functions. */
     card?: CardFace;
+    /**
+     * The job's active continue day (job_continue_days, owner 2026-11-01): while a job under way continues on another
+     * day, the line is the job page's own continueDayNextStep, and a SET day stands in for day 1's date, on Home,
+     * the chat's job card and every card that passes it.
+     */
+    continueDay?: ContinueDay | null;
 };
 
 /**
@@ -174,6 +182,11 @@ function stepStamps(j: ProgressJob): readonly (string | null)[] {
 }
 
 export function jobProgress(job: ProgressJob, o: ProgressOpts): JobProgressState {
+  if (o.continueDay && job.status === "in_progress") {
+    const step = continueDayNextStep(o.continueDay, { side: o.viewer, otherFirst: o.otherFirst });
+    const base = jobProgress(jobOnContinueDay(job, o.continueDay), { ...o, continueDay: null });
+    if (step) return { ...base, next: nextStepWords(step), waitingOnYou: step.who === "you" };
+  }
   const base = { ...lineRules(job, o), stamps: stepStamps(job) };
   // Chat-only thread states the card never shows: another Helpr was hired, or this one was not picked.
   if (base.word === "Filled" || base.word === "Not picked") return base;

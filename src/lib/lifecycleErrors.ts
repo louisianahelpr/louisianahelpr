@@ -188,6 +188,18 @@ const ACCEPT_REASONS = {
  * src/test/rpcErrorCopyCoverage.test.ts holds both tables to the same rules and
  * fails if an admin-gated RPC's copy is put back here.
  */
+/**
+ * Continue another day (20261101231015, owner 2026-11-01): the three calls' refusals, in plain words. Read through
+ * rpcErrorMessage by src/lib/continueDay.ts.
+ */
+const CONTINUE_DAY_COMMON = {
+  not_authenticated: "Sign in again, then try once more.",
+  not_authorized: "Only the two people on this job can do that.",
+  account_restricted: "Your account can't make changes right now.",
+} as const;
+/** "Done" before the day set to finish (refuse_done_before_continue_day): the date is on the page beside it. */
+export const CONTINUE_DAY_AHEAD_COPY = "You can mark it done on the day you set to finish.";
+
 export const RPC_ERROR_COPY = {
   // useOfferHandlers — accepting an applicant (single and group).
   accept_application: {
@@ -544,6 +556,30 @@ export const RPC_ERROR_COPY = {
     completion_min_work_time: "You can mark it done 30 minutes after you arrived.",
     // LEAD-LIST-FOR-SELLER (20261101034159): a Have a Helpr list it job is done once its listings are sent.
     completion_requires_listings_sent: "Send the listings to the seller for approval first, then mark the job done.",
+    // Continue another day (20261101231015): the trigger refuses "done" before the day set to finish.
+    continue_day_ahead: CONTINUE_DAY_AHEAD_COPY,
+  },
+  // Continue another day (20261101231015): the Helpr asks / the poster sets a day, the poster answers, the Helpr confirms.
+  propose_job_continue_day: {
+    ...CONTINUE_DAY_COMMON,
+    job_not_found: JOB_GONE,
+    users_blocked: "This can't be changed between you two.",
+    continue_day_not_in_progress: "Another day can be set only while the job is under way.",
+    continue_day_too_soon: "Pick a time at least an hour from now.",
+    continue_day_too_far: "Pick a day within the next 30 days.",
+    continue_day_invalid: "Pick a day and a time.",
+    continue_day_note_too_long: "Keep the note under 300 characters.",
+  },
+  answer_job_continue_day: {
+    ...CONTINUE_DAY_COMMON,
+    users_blocked: "This can't be changed between you two.",
+    continue_day_not_found: "That day was changed or withdrawn. Refresh and check.",
+    continue_day_in_past: "That time has passed. Pick a new day.",
+  },
+  confirm_job_continue_day: {
+    ...CONTINUE_DAY_COMMON,
+    continue_day_not_found: "That day was changed or withdrawn. Refresh and check.",
+    continue_day_not_set: "There's no day set to confirm. Refresh and check.",
   },
   // userBlocks — block and settle shared jobs.
   block_user_and_settle: {

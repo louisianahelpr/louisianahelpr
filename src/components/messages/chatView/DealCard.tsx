@@ -12,6 +12,7 @@ import { useHelprTakeHome, type TakeHomeJob } from "@/components/dashboard/helpr
 import type { Conversation } from "../types";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
+import { continueDayNextStep, fetchContinueDay } from "@/lib/continueDay";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
 import { NextStep } from "@/components/ui/NextStep";
@@ -221,6 +222,13 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
   const { data } = useDealCard(convo, userId);
   const rescheduled = useJobRescheduled(data?.job.id, data?.job.status === "accepted");
   useDealCardLive(data?.job.id, data?.job.status);
+  // Continue another day (Auditor 11, 11-01): the job page's own read (same key), so the card reads the new day.
+  const continueDay = useQuery({
+    queryKey: ["job-continue-day", data?.job.id ?? ""],
+    queryFn: () => fetchContinueDay(data!.job.id),
+    enabled: !!data && data.job.status === "in_progress",
+    staleTime: 30_000,
+  });
   if (!data) return null;
   const { job, application } = data;
   const viewerIsPoster = !!convo.viewerIsPoster;
@@ -235,12 +243,14 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
     // The Working card's progress (AppliedJobCard: helperCardLine reads helperProgress off the tracking row).
     workUnderway: helperProgress(job as unknown as Job, data.trackingStatus).workUnderway,
     tracking: data.trackingStatus ? { status: data.trackingStatus } : null,
+    continueDay: job.status === "in_progress" ? continueDay.data ?? null : null,
   });
   // Owner 11-01 (B107): the card's line is the shared next step ("Next: approve Yusef's work · 23h left"), with the
   // green action on its right, as on the job page (jobNextStep / NextStep). Guard: src/test/dealCardNextStep.test.tsx.
   const otherFirst = first === "them" ? null : first;
   const approveDue = viewerIsPoster && stage.stage === 7 && stage.waitingOnYou && !!job.helper_completed_at;
-  const step = jobNextStep(stage, {
+  // The job page's own continue-day line first (JobTracker's continueStep), else the tracker's.
+  const step = (job.status === "in_progress" ? continueDayNextStep(continueDay.data, { side: viewerIsPoster ? "poster" : "helpr", otherFirst }) : null) ?? jobNextStep(stage, {
     side: viewerIsPoster ? "poster" : "helpr",
     otherFirst,
     approveLeft: approveDue ? hoursLeft(Date.parse(job.helper_completed_at!) + hoursToMs(APPROVAL_WINDOW_HOURS)) : null,

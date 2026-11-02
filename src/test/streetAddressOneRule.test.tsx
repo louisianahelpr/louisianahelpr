@@ -1,5 +1,5 @@
 /**
- * Q2614 (Jobs audit 1102b row 28): Post a job's step 5 gave two rules for when the street address is shared: the
+ * Q2614 (Jobs audit 1102b row 28): until 2026-11-02 Post a job's step 5 gave two rules for when the street address is shared: the
  * header said "your street address after you hire", the Location help said "sent only to the Helpr you offer the job
  * to". The job page shows it to an offered Helpr before they accept, so the offer is the moment. Both lines now say the
  * one rule (STREET_ADDRESS_RULE), and no Post a job source says "after you hire" about the address.

@@ -39,7 +39,6 @@ import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes,
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
 import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { mapsSearchUrl } from "@/lib/mapsLink";
@@ -152,8 +151,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const [caseOpen, setCaseOpen] = useState(false);
   const seriesState = useJobSeriesState(isPoster ? null : q.data?.job);
   const [leaveOpen, setLeaveOpen] = useState(false);
-  // Computer (the `lg` grid): the price sits in the side card; a phone shows it beside the title (mockups 4 and 5).
-  const wide = useIsWebDesktop();
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
   // Q2668: the hired Helpr's "Mark it done" on a job sent back for a fix (the Working card's own resolve_revision).
   const fixDone = usePageMarkFixDone(isPoster ? null : id, posterFirst, () => void q.refetch());
@@ -339,9 +336,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // On a phone the details read two lines with "Show more" (mockup 5); a short one has nothing more to show.
   const detailsLong = posterDetails.length > 90 || posterDetails.includes("\n");
   const helprPrice = isPoster || closedToMe ? null : <HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} />;
-  const price = isPoster ? <PosterPrice job={job} labelled={wide} /> : wide
-    ? <div className="flex items-start justify-between gap-3"><p className="text-ds-16 font-semibold">Your pay</p>{helprPrice}</div>
-    : helprPrice;
+  // Q2599 (owner 11-02, mockup 4 overruled here): the price is in the header row at EVERY width, beside the title
+  // block as on a phone; never a separate "Job price" / "Your pay" box in the side card at computer size.
+  const price = isPoster ? <PosterPrice job={job} /> : helprPrice;
   const moneyNotes = isPoster
     ? <PosterMoneyNotes job={job} total={total} loading={applicants.isLoading} />
     : closedToMe ? null : <HelprMoneyNotes job={job} hired={isHired} noShow={myApplication.data?.closed_reason === "no_show"} />;
@@ -382,9 +379,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 </p>
               )}
             </div>
-            {!wide && price}
+            {price}
           </div>
-          {!wide && moneyNotes}
+          {moneyNotes}
         </section>
 
         {(posterDetails || hasVideo) && (
@@ -474,8 +471,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             tracker at full content width, from 1024 up. */}
         <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
           <section data-job-card="" className={`${CARD} space-y-4 p-4 empty:hidden lg:p-5`}>
-            {wide && price}
-            {wide && moneyNotes}
             {/* CMP-4: the booked Helpr's card, the same one the Working offer card shows (InstantBookingCard). */}
             {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} />}
             {viewer.status && !(!isPoster && instantUntil) && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}

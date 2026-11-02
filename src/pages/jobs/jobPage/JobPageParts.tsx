@@ -115,20 +115,12 @@ function releasedLine(job: JobPageRow): string {
 }
 
 /**
- * The poster's amount. Phone: on the RIGHT of the title block (mockup 5). Computer: "Job price" on the left of the
- * side card, the amount on its right (mockup 4). The paid or held words are ONE sentence under it (PosterMoneyNotes),
+ * The poster's amount, on the RIGHT of the title block at every width (mockup 5; Q2599, owner 11-02: mockup 4's
+ * "Job price" side box is overruled). The paid or held words are ONE sentence under it (PosterMoneyNotes),
  * from payment_status alone (JA-47: "Paid · held" beside "card held, not charged" said two things about one payment).
  */
-export function PosterPrice({ job, labelled = false }: { job: JobPageRow; labelled?: boolean }) {
+export function PosterPrice({ job }: { job: JobPageRow }) {
   const amount = <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>;
-  if (labelled) {
-    return (
-      <div data-poster-money="" className="flex items-baseline justify-between gap-3">
-        <p className="text-ds-16 font-semibold">Job price</p>
-        {amount}
-      </div>
-    );
-  }
   return <div data-poster-money="" className="shrink-0 text-right">{amount}</div>;
 }
 

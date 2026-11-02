@@ -102,7 +102,7 @@ export const rows: Row[] = [
   // NotificationPreferences.tsx) — it is a delivery mode FOR this category,
   // and it greys out when this switch is off.
   { key: "job_matches", emailKey: "email_job_matches", label: "New matches", icon: <Sparkles className="w-3.5 h-3.5" /> },
-  { key: "messages", emailKey: "email_messages", label: "Messages", icon: <MessageSquare className="w-3.5 h-3.5" /> },
+  { key: "messages", emailKey: "email_messages", label: "Messages", description: "New messages, plus a reminder at 15 min and 2 h if a job message is still unread. Texts follow Text alerts.", icon: <MessageSquare className="w-3.5 h-3.5" /> },
   { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", icon: <Navigation className="w-3.5 h-3.5" /> },
   { key: "work_status", emailKey: "email_work_status", label: "Work status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
   { key: "payments", emailKey: "email_payments", label: "Job payments", description: "Finished jobs, refunds and saved cards.", icon: <Receipt className="w-3.5 h-3.5" /> },
@@ -123,13 +123,18 @@ export const rows: Row[] = [
 // "You sold" and "Your payout is on its way", _shared/declutterSellerEmail.ts; the Sales dash says so,
 // NIGHT-SET-Declutterse-3.)
 const NO_EMAIL = "In the app only, no email for this";
+// A3-103 (audit 11-01): each row says what it sends, read from the senders' titles (migrations and functions). The
+// buyer's "Reserved for you: check out within 30 minutes / 24 hours" is a declutter_sales notice
+// (20261101030040), so that row is named for both sides ("Buying & selling", was "Sales"): a buyer no longer turns it
+// off thinking it is the seller's. No buyer-only category exists; splitting one out would be a new preference column
+// (SQL), not done here.
 export const declutterRows: Row[] = [
-  { key: "declutter_listings", emailKey: "email_declutter_listings", label: "Listings", icon: <Tag className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
-  { key: "declutter_offers", emailKey: "email_declutter_offers", label: "Offers", icon: <HandCoins className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
-  { key: "declutter_questions", emailKey: "email_declutter_questions", label: "Questions", icon: <MessageCircleQuestion className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
-  { key: "declutter_sales", emailKey: "email_declutter_sales", label: "Sales", icon: <ShoppingBag className="w-3.5 h-3.5" />, noEmailSwitch: "Sale and payout receipts are always emailed" },
-  { key: "declutter_pickups", emailKey: "email_declutter_pickups", label: "Pickups", icon: <CalendarClock className="w-3.5 h-3.5" /> },
-  { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", icon: <Undo2 className="w-3.5 h-3.5" />, noEmailSwitch: "Refund receipts are always emailed" },
-  { key: "declutter_price_drops", emailKey: "email_declutter_price_drops", label: "Price drops", icon: <TrendingDown className="w-3.5 h-3.5" /> },
-  { key: "declutter_wanted", emailKey: "email_declutter_wanted", label: "Wanted matches", icon: <Search className="w-3.5 h-3.5" /> },
+  { key: "declutter_listings", emailKey: "email_declutter_listings", label: "Listings", description: "When a listing waits for a check or is taken down.", icon: <Tag className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "declutter_offers", emailKey: "email_declutter_offers", label: "Offers", description: "Offers and counteroffers, asks for your free items, and changes to items you offered on.", icon: <HandCoins className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "declutter_questions", emailKey: "email_declutter_questions", label: "Questions", description: "Questions on your listings, and sellers' answers to yours.", icon: <MessageCircleQuestion className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "declutter_sales", emailKey: "email_declutter_sales", label: "Buying & selling", description: "Both sides: checkout deadlines when you buy, items sold and order messages.", icon: <ShoppingBag className="w-3.5 h-3.5" />, noEmailSwitch: "Sale and payout receipts are always emailed" },
+  { key: "declutter_pickups", emailKey: "email_declutter_pickups", label: "Pickups", description: "Pickup and delivery times, reminders and updates.", icon: <CalendarClock className="w-3.5 h-3.5" /> },
+  { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", description: "Refund requests, reported problems and strikes.", icon: <Undo2 className="w-3.5 h-3.5" />, noEmailSwitch: "Refund receipts are always emailed" },
+  { key: "declutter_price_drops", emailKey: "email_declutter_price_drops", label: "Price drops", description: "An item you watch got cheaper or free.", icon: <TrendingDown className="w-3.5 h-3.5" /> },
+  { key: "declutter_wanted", emailKey: "email_declutter_wanted", label: "Wanted matches", description: "A listing matches something you posted on Wanted.", icon: <Search className="w-3.5 h-3.5" /> },
 ];

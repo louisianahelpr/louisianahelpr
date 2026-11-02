@@ -184,6 +184,17 @@ const STRIPE_READ_CONCURRENCY = 10;
  * after, both measured well under 1 s.
  */
 const STRIPE_PHASE_BUDGET_MS = 20_000;
+/**
+ * Q1974: the funded-jobs phase (escrow / payout_pending vs Stripe) has its own
+ * cap and budget, so a slow settled phase never starves it and it never eats
+ * the settled phase's time. Hitting either is a scan cap (a defect), never a
+ * quiet sample. Funded jobs are few (they leave escrow within days), so 300
+ * reads at concurrency 10 is roughly 1 s by the 2026-09-23 measurement above.
+ */
+const MAX_FUNDED_STRIPE_READS = 300;
+const FUNDED_STRIPE_PHASE_BUDGET_MS = 8_000;
+/** Stripe PaymentIntent states that mean no money is held or arriving. */
+const FAILED_PI_STATUSES = new Set(["requires_payment_method", "canceled"]);
 
 type Severity = "critical" | "warning" | "info";
 
@@ -448,6 +459,16 @@ serve(async (req) => {
         "stripe_money_live_on_settled_job",
         "critical",
         "The DB says this job's payment is settled (payment_status 'cancelled'/'refunded'), but Stripe's PaymentIntent is still requires_capture (a live card hold) or processing (money still arriving). Nothing will release or refund it: the settlement paths only select jobs still in 'escrow'.",
+      ),
+      // Q1974: the other direction. The DB says the job is FUNDED, and Stripe
+      // says the payment failed or was voided. The webhook that flips such a
+      // job to 'failed' (payment_intent.payment_failed / canceled) can be
+      // missed, and then nothing else looks: every payout path trusts
+      // payment_status.
+      stripeFundedPiFailed: new Check(
+        "stripe_payment_failed_on_funded_job",
+        "critical",
+        "The DB says this job is funded (payment_status 'escrow' or 'payout_pending'), but Stripe's PaymentIntent is requires_payment_method (the payment failed, e.g. a bounced bank debit or a declined capture) or canceled (the card hold expired or was voided). The webhook that should have marked it failed was missed. A payout from this job would pay the Helpr money the platform never collected. Hold the payout, look at the PaymentIntent in Stripe, then set payment_status to 'failed' by hand (the poster must pay again) or re-collect.",
       ),
       stripeUnderRefunded: new Check(
         "stripe_charge_not_refunded_on_cancelled_job",
@@ -1947,6 +1968,92 @@ serve(async (req) => {
       }
     }
 
+    // ── Funded jobs vs Stripe (docs/OPEN.md Q1974) ───────────────────────────
+    // The settled phase above only asks Stripe about jobs the DB says are
+    // settled, and returns early on a PaymentIntent that is not succeeded. A
+    // job still in escrow / payout_pending whose PaymentIntent FAILED (a bank
+    // debit that bounced, a capture refused, a hold that expired) is flipped
+    // to 'failed' only by the webhook; if that event is missed the job stays
+    // "funded" and a payout run would pay the Helpr from money never collected.
+    //
+    // seed-policy: follows the run's seed scope (`jobRows` is is_seed = false unless
+    // ?include_seed=1). READ-ONLY: paymentIntents.retrieve and nothing else.
+    const fundedWithPi = jobRows
+      .filter((j) =>
+        (j.payment_status === "escrow" || j.payment_status === "payout_pending") &&
+        typeof j.stripe_payment_intent_id === "string" && j.stripe_payment_intent_id !== ""
+      )
+      .map((j) => ({ job: j, at: ts(j.updated_at) ?? 0 }))
+      .sort((a, b) => b.at - a.at)
+      .map((x) => x.job);
+    let fundedStripeReads = 0;
+    if (fundedWithPi.length) {
+      const fundedKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!fundedKey) {
+        notes.push(`funded-job stripe check skipped: STRIPE_SECRET_KEY not set (${fundedWithPi.length} funded job(s) unchecked)`);
+      } else {
+        if (fundedWithPi.length > MAX_FUNDED_STRIPE_READS) {
+          caps.push(`funded-job stripe check: ${fundedWithPi.length} funded jobs, only the newest ${MAX_FUNDED_STRIPE_READS} checked`);
+        }
+        const fundedBatch = fundedWithPi.slice(0, MAX_FUNDED_STRIPE_READS);
+        const fundedStripe = new Stripe(fundedKey, { apiVersion: "2025-08-27.basil" });
+        const fundedFailures: string[] = [];
+        const inspectFunded = async (job: Record<string, unknown>) => {
+          const piId = job.stripe_payment_intent_id as string;
+          let pi: Stripe.PaymentIntent;
+          try {
+            pi = await fundedStripe.paymentIntents.retrieve(piId);
+            fundedStripeReads++;
+          } catch (e) {
+            const err = e as { statusCode?: number; code?: string; message?: string };
+            // BEFORE the 404 test, as in the settled phase.
+            if (isTestObjectUnderLiveKey(e)) {
+              logTestObjectUnderLiveKey("money-reconciliation", { job_id: job.id, object: "payment_intent", id: piId, phase: "funded" });
+              if (job.is_seed !== true) checks.stripeTestObjectOnRealJob.add({ job_id: job.id, payment_intent: piId, phase: "funded" });
+              return;
+            }
+            if (err?.statusCode === 404 || err?.code === "resource_missing") {
+              checks.stripePiMissing.add({ job_id: job.id, payment_intent: piId, phase: "funded" });
+            } else {
+              fundedFailures.push(`${job.id}: ${err?.message ?? String(e)}`);
+            }
+            return;
+          }
+          const piStatus = (pi as { status?: unknown } | null)?.status;
+          if (typeof piStatus !== "string") {
+            // An answer with no status is unverified, never "not failed".
+            fundedFailures.push(`${job.id}: PaymentIntent ${piId} came back with no status`);
+            return;
+          }
+          if (FAILED_PI_STATUSES.has(piStatus)) {
+            checks.stripeFundedPiFailed.add({
+              job_id: job.id,
+              payment_intent: piId,
+              db_payment_status: job.payment_status,
+              stripe_status: piStatus,
+              amount: pi.amount,
+            });
+          }
+        };
+        const fundedStartedMs = Date.now();
+        let fundedReached = 0;
+        for (let i = 0; i < fundedBatch.length; i += STRIPE_READ_CONCURRENCY) {
+          if (Date.now() - fundedStartedMs > FUNDED_STRIPE_PHASE_BUDGET_MS) {
+            caps.push(
+              `funded-job stripe check stopped at its ${Math.round(FUNDED_STRIPE_PHASE_BUDGET_MS / 1000)}s budget: ${fundedReached} of ${fundedBatch.length} checked`,
+            );
+            break;
+          }
+          const slice = fundedBatch.slice(i, i + STRIPE_READ_CONCURRENCY);
+          await Promise.all(slice.map(inspectFunded));
+          fundedReached += slice.length;
+        }
+        if (fundedFailures.length) {
+          notes.push(`funded-job stripe check incomplete: ${fundedFailures.length} of ${fundedBatch.length} read(s) failed (${fundedFailures.slice(0, 3).join(" | ")})`);
+        }
+      }
+    }
+
     // ── Cancellation-fee transfers, two-way against Stripe (LOW-2) ──────────
     // Stripe is the other side of the fee ledger: every transfer
     // void-cancelled-payments sent with metadata.type = "cancellation_fee" must
@@ -2246,6 +2353,7 @@ serve(async (req) => {
         // the settled-job count so "no Stripe findings" can be read against how
         // many were really asked about.
         stripe_payment_intents: stripeReads,
+        stripe_funded_payment_intents: fundedStripeReads,
         settled_jobs_with_payment_intent: settledWithPi.length,
       },
       checks_run: Object.values(checks).map((c) => c.name),

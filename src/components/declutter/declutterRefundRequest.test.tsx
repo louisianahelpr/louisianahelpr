@@ -452,6 +452,9 @@ describe("DeclutterRefundPanel", () => {
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx | <NextStep value={{ who: "you", text: "Take the offer or ask Louisiana Helpr to decide", by: r.offer_answer_by ? at(r.offer_answer_by) : null }} /> | {null}
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |           <NextStep value={returnStep(r, who)} /> | {null}
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |   if (r.return_way === "drop_off" && r.return_dropped_off_at) return | if (false) return
+// A3-22 (audit 11-01): the seller's side of a return in the shared line too.
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx |         <NextStep value={sellerReturnStep(r, who)} /> |
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx |   if (r.return_dropped_off_at && r.return_way === "drop_off") return | if (false) return
 describe("the refund panel says the next step in the shared line (A3-20, A3-79)", () => {
   const atWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
   const line = async (who: "you" | "them") => {
@@ -485,5 +488,15 @@ describe("the refund panel says the next step in the shared line (A3-20, A3-79)"
     first.unmount();
     show({ ...BASE, can_ask: false, request: { ...ret, return_dropped_off_at: "2026-10-26T15:00:00Z" } as never });
     expect(await line("them")).toBe(`Waiting on Nikki to confirm they have it · ${atWords(by)}`);
+  });
+
+  it("A3-22 seller during a return: waiting on the buyer by the deadline, then Next: tap I got it back", async () => {
+    const by = "2026-10-27T22:00:00Z";
+    const ret = { ...REQ, status: "returning" as const, return_by: by, return_deadline: by, return_way: "drop_off" as const, return_day: "2026-10-25" };
+    const first = show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: ret as never });
+    expect(await line("them")).toMatch(new RegExp(`^Waiting on \\S+ to return it · ${atWords(by)}$`));
+    first.unmount();
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...ret, return_dropped_off_at: "2026-10-26T15:00:00Z" } as never });
+    expect(await line("you")).toBe("Next: tap I got it back");
   });
 });

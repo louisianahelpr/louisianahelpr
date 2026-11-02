@@ -213,6 +213,7 @@ export function usePosterPageActions({
       {flows.dialogs}
     </>
   );
-  const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null;
+  // Q2694 (lead 11-02): one path at a time: not while a refund request waits; back once it is withdrawn or answered.
+  const notRight = posterWait === "approve" && flows.ready && !refundOpen ? flows.notRight : null;
   return { primary: primaryOrMessage, row, panel, dialogs, edit: flows.edit, notRight };
 }

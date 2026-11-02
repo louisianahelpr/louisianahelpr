@@ -8,7 +8,7 @@
  * window gets its fetch back only when the route unmounts.
  *
  * @mutate src/pages/admin/preview/messagesPreviewBackend.ts | const QUIET_WRITES = new Set(["PATCH notifications", "PATCH messages"]); | const QUIET_WRITES = new Set<string>([]);
- * @mutate src/pages/admin/preview/previewParts.tsx |   static getDerivedStateFromError(error: Error) { return { error }; } |   static getDerivedStateFromError(error: Error): { error: Error } { throw error; }
+ * @mutate src/pages/admin/preview/previewParts.tsx |   static getDerivedStateFromError(error: Error) { return { error, recovering: isRecoveryReloadInFlight() }; } |   static getDerivedStateFromError(error: Error): { error: Error } { throw error; }
  * @mutate src/pages/admin/preview/previewParts.tsx |     if (!this.state.error) return this.props.children; |     if (!this.state.error) return this.props.children;\n    throw this.state.error;
  * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |     if (!base \|\| !url.startsWith(base)) return o.realFetch(input, init); |     if (base) return o.realFetch(input, init);
  * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |       o.onUnlisted?.(`rpc ${name}`); |       void name;

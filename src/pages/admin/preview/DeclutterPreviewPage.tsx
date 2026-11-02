@@ -12,7 +12,7 @@
  * directly; "Phone window" opens the same address in a 375-wide window.
  * Admin-gated by the route (ProtectedRoute + AdminRoute, the same as /admin). Guard: src/test/adminDeclutterPreviewIsInert.test.ts.
  */
-import { Component, lazy, Suspense, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { lazy, Suspense, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { UNSAFE_NavigationContext, useLocation, useSearchParams, type To } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -37,6 +37,8 @@ import {
 } from "./declutterPreviewSamples";
 import { declutterPreviewChecks, installDeclutterPreviewFetch } from "./declutterPreviewBackend";
 import { previewBlockedWords } from "./declutterPreviewReads";
+// Audit 1102c P2: a crash inside the views stays INSIDE the backend and the inert navigation (the shared preview boundary).
+import { PreviewErrorBoundary } from "./previewParts";
 
 const PHONE_WINDOW = "lh-declutter-preview-phone";
 
@@ -125,35 +127,6 @@ function PreviewBackend({ sample, children }: { sample: DeclutterPreviewSample; 
   return ready ? <>{children}</> : null;
 }
 
-/**
- * Audit 1102c P2: a crash inside the views must never reach the route's error boundary. That one unmounted
- * PreviewBackend, which put the window's own fetch back, so the page read PROD, and its "Go Home" navigated for real.
- * This boundary sits INSIDE the backend and the inert navigation, so the fetch layer stays in place and the
- * fallback has no link or navigation of its own. A new stage or side (resetKey) draws again.
- */
-class PreviewErrorBoundary extends Component<{ resetKey: string; children: ReactNode }, { error: Error | null; key: string }> {
-  state: { error: Error | null; key: string } = { error: null, key: this.props.resetKey };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  static getDerivedStateFromProps(props: { resetKey: string }, state: { error: Error | null; key: string }) {
-    return props.resetKey === state.key ? null : { error: null, key: props.resetKey };
-  }
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    // Shown on screen below; the console keeps the stack for whoever fixes the view.
-    console.error("Declutter preview: a view crashed", error, info.componentStack);
-  }
-  render() {
-    if (!this.state.error) return this.props.children;
-    return (
-      <div role="alert" data-preview-crashed="" className="space-y-3 rounded-2xl border border-border bg-card p-4 pb-56">
-        <p className="text-ds-15 font-semibold">This stage hit a problem in the preview.</p>
-        <p className="break-words text-ds-13 text-muted-foreground">{this.state.error.message || String(this.state.error)}</p>
-        <p className="text-ds-13 text-muted-foreground">Nothing was sent. Pick another stage or side below, or draw it again.</p>
-        <Button type="button" variant="outline" className="rounded-full" onClick={() => this.setState({ error: null })}>Draw it again</Button>
-      </div>
-    );
-  }
-}
-
 function Controls({ stage, side, onStage, onSide }: {
   stage: DeclutterPreviewStage; side: DeclutterPreviewSide; onStage: (s: DeclutterPreviewStage) => void; onSide: (s: DeclutterPreviewSide) => void;
 }) {
@@ -165,7 +138,7 @@ function Controls({ stage, side, onStage, onSide }: {
   };
   return createPortal(
     <div data-preview-controls="" role="region" aria-label="Declutter preview controls"
-      className="pointer-events-auto fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-[60] mx-auto max-w-2xl space-y-2 rounded-2xl border border-border bg-card p-3 shadow-lg lg:bottom-4">
+      className="preview-dock pointer-events-auto fixed inset-x-2 bottom-safe-nav z-[60] mx-auto max-w-2xl space-y-2 rounded-2xl border border-border bg-card p-3 shadow-lg lg:bottom-4">
       <div className="flex items-center gap-2">
         <Eye className="h-4 w-4 shrink-0 text-primary" aria-hidden />
         <p className="min-w-0 flex-1 text-ds-14 font-semibold">Declutter preview · made-up data, nothing is saved</p>

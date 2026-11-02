@@ -222,12 +222,12 @@ export function useAdminPendingCounts(enabled: boolean): { data: PendingCounts; 
     ...opts,
     queryKey: supportQueueKey("pending"),
     // A prevented preload resolves the import undefined (loadModule.ts): wait for the reload, never read off it.
-    queryFn: () => loadModule(() => import("@/components/admin/AdminSupport").then((m) => m?.fetchSupportTickets)).then((fetch) => (fetch ? fetch("pending") : untilReload())),
+    queryFn: () => loadModule(() => import("@/components/admin/AdminSupport")).then((m) => (m ? m.fetchSupportTickets("pending") : untilReload())),
   });
   const reports = useQuery({
     ...opts,
     queryKey: reportsQueueKey("pending"),
-    queryFn: () => loadModule(() => import("@/components/admin/AdminReports").then((m) => m?.fetchReports)).then((fetch) => (fetch ? fetch("pending") : untilReload())),
+    queryFn: () => loadModule(() => import("@/components/admin/AdminReports")).then((m) => (m ? m.fetchReports("pending") : untilReload())),
   });
   const disputes = useQuery({ ...opts, queryKey: ["admin-disputes", "open-count"], queryFn: fetchOpenDisputeCount });
   const supportN = support.data?.length;

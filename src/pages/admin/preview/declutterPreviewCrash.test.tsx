@@ -10,7 +10,7 @@
  *  - the fetch layer is put back only when the route unmounts.
  *
  * @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |           <PreviewErrorBoundary resetKey={`${stage}:${side}`}>\n            <Views key={`${stage}:${side}`} sample={sample} />\n          </PreviewErrorBoundary> |           <Views key={`${stage}:${side}`} sample={sample} />
- * @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |     if (!this.state.error) return this.props.children; |     if (!this.state.error) return this.props.children;\n    throw this.state.error;
+ * @mutate src/pages/admin/preview/previewParts.tsx |     if (!this.state.error) return this.props.children; |     if (!this.state.error) return this.props.children;\n    throw this.state.error;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

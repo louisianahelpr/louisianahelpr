@@ -118,7 +118,7 @@ function GrantSetup() {
               <ul className="mt-2 divide-y divide-border rounded-xl border border-border" aria-label="Members">
                 {hits.data.map((m) => (
                   <li key={m.user_id}>
-                    <Button type="button" variant="ghost" className="w-full justify-start rounded-none px-3 text-left text-ds-15 font-normal" onClick={() => setPicked(m)} data-member-hit={m.user_id}>
+                    <Button type="button" variant="ghost" className="w-full justify-start px-3 text-left text-ds-15 font-normal" onClick={() => setPicked(m)} data-member-hit={m.user_id}>
                       {formatName(m.full_name, "A member")}
                     </Button>
                   </li>

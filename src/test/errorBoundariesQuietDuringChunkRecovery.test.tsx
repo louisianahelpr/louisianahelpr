@@ -20,6 +20,8 @@
 // @mutate src/components/SectionBoundary.tsx | if (this.state.recovering) return <ChunkRecoveringState compact />; | if (false) return <ChunkRecoveringState compact />;
 // @mutate src/components/SectionBoundary.tsx | return { hasError: true, error, recovering: isRecoveryReloadInFlight() }; | return { hasError: true, error };
 // @mutate src/components/ErrorBoundary.tsx | return { hasError: true, error, recovering: isRecoveryReloadInFlight() }; | return { hasError: true, error };
+// @mutate src/pages/admin/preview/previewParts.tsx |     if (this.state.recovering) return <ChunkRecoveringState compact />; |     if (false) return <ChunkRecoveringState compact />;
+// @mutate src/pages/admin/preview/previewParts.tsx | return { error, recovering: isRecoveryReloadInFlight() }; | return { error };
 // @mutate src/lib/chunkReload.ts | /undefined is not an object \(evaluating '[\w$.]*\.default'\)/i.test(msg) \|\| | /never-matches-webkit/i.test(msg) \|\|
 // @mutate src/lib/chunkReload.ts | /Cannot read propert(y\|ies) of undefined \(reading 'default'\)/i.test(msg) \|\| | /never-matches-v8/i.test(msg) \|\|
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -41,6 +43,7 @@ vi.mock("@/lib/errorLogger", () => ({
 import ErrorBoundary from "@/components/ErrorBoundary";
 import SectionBoundary from "@/components/SectionBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
+import { PreviewErrorBoundary } from "@/pages/admin/preview/previewParts";
 import {
   __resetChunkReloadForTests,
   cancelPendingChunkRetry,
@@ -56,7 +59,9 @@ const PreventedPreloadLazy = (): never => {
   throw new TypeError("undefined is not an object (evaluating 'e._result.default')");
 };
 
-type Boundary = { file: string; card: RegExp; wrap: (child: ReactNode) => ReactElement };
+/** `reports: false`: the boundary shows its card but never reports (the admin previews: a report is a backend call the
+ *  inert preview must never make; errorSurfacesReport PREVIEW_BOUNDARIES lists it with that reason). */
+type Boundary = { file: string; card: RegExp; wrap: (child: ReactNode) => ReactElement; reports?: false };
 const BOUNDARIES: Boundary[] = [
   {
     file: "src/components/ErrorBoundary.tsx",
@@ -78,6 +83,12 @@ const BOUNDARIES: Boundary[] = [
         </Routes>
       </MemoryRouter>
     ),
+  },
+  {
+    file: "src/pages/admin/preview/previewParts.tsx",
+    card: /This stage hit a problem in the preview/,
+    wrap: (c) => <PreviewErrorBoundary resetKey="t">{c}</PreviewErrorBoundary>,
+    reports: false,
   },
 ];
 
@@ -155,12 +166,12 @@ describe.each(BOUNDARIES)("$file during stale-chunk recovery", (b) => {
     expect(report).not.toHaveBeenCalled();
   });
 
-  it("control: offline, recovery declines — the honest card and a report", () => {
+  it("control: offline, recovery declines — the honest card and a report (none from a boundary that never reports)", () => {
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     render(b.wrap(<ChunkFail />));
     expect(screen.getByText(b.card)).toBeTruthy();
     expect(screen.queryByTestId("chunk-recovering")).toBeNull();
-    expect(report).toHaveBeenCalledTimes(1);
+    expect(report).toHaveBeenCalledTimes(b.reports === false ? 0 : 1);
   });
 });
 

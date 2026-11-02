@@ -205,7 +205,7 @@ export function BlockUserDialog({
                 />
               </div>
               {onReportAndBlock && (
-                <label htmlFor={reportId} className="flex items-start gap-3 cursor-pointer">
+                <label htmlFor={reportId} className="flex min-h-11 items-start gap-3 cursor-pointer">
                   <Checkbox
                     id={reportId}
                     checked={alsoReport}

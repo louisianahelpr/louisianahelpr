@@ -2088,6 +2088,13 @@ body[data-scroll-locked] .offline-banner {
   z-index: 49;
 }
 
+/* Q303 for the admin stage previews' docks (Job, Messages, Declutter; z-[60]): while one of the previewed page's own
+   sheets or dialogs holds the scroll lock, the dock dims under its backdrop like the rest of the page (Q2617: at 375
+   it covered each sheet's second button). It comes back on top when the sheet closes. */
+body[data-scroll-locked] .preview-dock {
+  z-index: 49;
+}
+
 /* ── PAGE-SHELL RHYTHM (Q176, owner 2026-09-23) ─────────────────────────────
    "Too much space above and below for phone width … make the page shells for
    public and authed all consistent." ONE phone gap, read by every shell:

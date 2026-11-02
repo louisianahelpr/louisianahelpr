@@ -120,8 +120,8 @@ export function JobPageActionRow({
   return (
     <>
       {/* A3-13 (audit 11-01): from md up each button is capped at 240px and the row sits right (step last), not ~547px
-          a button across the page at 1440. */}
-      <div data-job-row={tag} className={cells.length === 2 ? "grid grid-cols-2 gap-2 md:ml-auto md:w-full md:max-w-[488px]" : "grid grid-cols-1 md:ml-auto md:w-full md:max-w-[240px]"}>{cells}</div>
+          a button across the page at 1440. The pair caps its columns, not the row, so no page measure (onePageColumn). */}
+      <div data-job-row={tag} className={cells.length === 2 ? "grid grid-cols-2 gap-2 md:grid-cols-[repeat(2,minmax(0,240px))] md:justify-end" : "grid grid-cols-1 md:ml-auto md:w-full md:max-w-[240px]"}>{cells}</div>
       {(others > 1 || menuOnly) && (
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent side="bottom" data-row-options={tag}>

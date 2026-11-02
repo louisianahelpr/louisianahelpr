@@ -340,8 +340,7 @@ function errorCopyLines(src: string): number[] {
  * show the crash on screen and log the stack to the console instead.
  */
 const PREVIEW_BOUNDARIES: Record<string, string> = {
-  "pages/admin/preview/DeclutterPreviewPage.tsx": "the Declutter stage preview's per-view boundary (admin only, inert backend)",
-  "pages/admin/preview/previewParts.tsx": "the job and Messages previews' shared boundary (admin only, inert backend)",
+  "pages/admin/preview/previewParts.tsx": "the job, Messages and Declutter previews' one shared boundary (admin only, inert backend)",
 };
 
 const EXCUSED_INLINE: Record<string, string> = {

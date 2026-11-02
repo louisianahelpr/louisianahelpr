@@ -7,7 +7,7 @@
  * the error, every Supabase request made afterwards (a read and a write) reaches the real fetch ZERO times, and the
  * window gets its fetch back only when the route unmounts.
  *
- * @mutate src/pages/admin/preview/previewParts.tsx |   static getDerivedStateFromError(error: Error) { return { error }; } |   static getDerivedStateFromError(error: Error): { error: Error } { throw error; }
+ * @mutate src/pages/admin/preview/previewParts.tsx |   static getDerivedStateFromError(error: Error) { return { error, recovering: isRecoveryReloadInFlight() }; } |   static getDerivedStateFromError(error: Error): { error: Error } { throw error; }
  * @mutate src/pages/admin/preview/previewParts.tsx |     if (!this.state.error) return this.props.children; |     if (!this.state.error) return this.props.children;\n    throw this.state.error;
  * @mutate src/pages/admin/preview/previewBackend.ts | if (!base \|\| !url.startsWith(base)) return o.realFetch(input, init); | if (base) return o.realFetch(input, init);
  * @mutate src/pages/admin/preview/previewBackend.ts |      o.onUnlisted?.(`rpc ${name}`); |      void name;

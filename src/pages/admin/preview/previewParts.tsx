@@ -1,7 +1,8 @@
 /**
  * Pieces every admin stage preview shares (the job preview, the Messages preview): the inert navigation, the crash
  * boundary that sits INSIDE the preview backend, the note a blocked tap shows, and the dock that gets out of the
- * way. The Declutter preview (DeclutterPreviewPage.tsx) carries its own copies of the first three (B172).
+ * way. The Declutter preview (DeclutterPreviewPage.tsx) carries its own copies of the inert navigation and note (B172)
+ * and uses this crash boundary.
  */
 import { Component, useContext, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { UNSAFE_NavigationContext, type To } from "react-router-dom";
@@ -10,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { forgetAllBlockReads } from "@/lib/userBlocks";
 import { forgetActivityCoresRead } from "@/lib/activityCores";
+import { isChunkLoadError, isRecoveryReloadInFlight, recoverFromChunkError } from "@/lib/chunkReload";
+import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
 
 /**
  * The reads app modules share outside React Query (userBlocks' 2-second block read, activityCores' in-flight read),
@@ -75,26 +78,39 @@ export function InertNavigation({ children, rewrite }: { children: ReactNode; re
  * A crash inside the previewed page must never reach the route's error boundary: that one unmounts the preview
  * backend, which puts the window's own fetch back, so the page would read PROD and its "Go Home" would navigate for
  * real (Declutter audit 1102c P2). This sits INSIDE the backend and the inert navigation; its fallback has no link.
- * A new stage or side (resetKey) draws again.
+ * A new stage or side (resetKey) draws again. All three previews (job, Messages, Declutter) use this one boundary.
  */
-export class PreviewErrorBoundary extends Component<{ resetKey: string; children: ReactNode }, { error: Error | null; key: string }> {
-  state: { error: Error | null; key: string } = { error: null, key: this.props.resetKey };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  static getDerivedStateFromProps(props: { resetKey: string }, state: { error: Error | null; key: string }) {
-    return props.resetKey === state.key ? null : { error: null, key: props.resetKey };
+type PreviewBoundaryState = { error: Error | null; key: string; recovering: boolean };
+export class PreviewErrorBoundary extends Component<{ resetKey: string; children: ReactNode }, PreviewBoundaryState> {
+  state: PreviewBoundaryState = { error: null, key: this.props.resetKey, recovering: false };
+  static getDerivedStateFromError(error: Error) { return { error, recovering: isRecoveryReloadInFlight() }; }
+  static getDerivedStateFromProps(props: { resetKey: string }, state: PreviewBoundaryState) {
+    return props.resetKey === state.key ? null : { error: null, key: props.resetKey, recovering: false };
   }
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Shown on screen below; the console keeps the stack for whoever fixes the page.
+    // Q286: a stale chunk mid-deploy is not a crash of the page. While the app's recovery reload is starting or
+    // scheduled, this shows the same quiet reloading state as every other boundary, never the crash card.
+    if (isRecoveryReloadInFlight()) {
+      if (!this.state.recovering) this.setState({ recovering: true });
+      return;
+    }
+    if (isChunkLoadError(error) && recoverFromChunkError()) {
+      this.setState({ recovering: true });
+      return;
+    }
+    // Shown on screen below; the console keeps the stack for whoever fixes the page. No report: a report is a
+    // backend call the inert preview must never make (errorSurfacesReport PREVIEW_BOUNDARIES).
     console.error("Admin preview: the page crashed", error, info.componentStack);
   }
   render() {
     if (!this.state.error) return this.props.children;
+    if (this.state.recovering) return <ChunkRecoveringState compact />;
     return (
       <div role="alert" data-preview-crashed="" className="space-y-3 rounded-2xl border border-border bg-card p-4 pb-56">
         <p className="text-ds-15 font-semibold">This stage hit a problem in the preview.</p>
         <p className="break-words text-ds-13 text-muted-foreground">{this.state.error.message || String(this.state.error)}</p>
         <p className="text-ds-13 text-muted-foreground">Nothing was sent. Pick another stage or side, or draw it again.</p>
-        <Button type="button" variant="outline" className="rounded-full" onClick={() => this.setState({ error: null })}>Draw it again</Button>
+        <Button type="button" variant="outline" className="rounded-full" onClick={() => this.setState({ error: null, recovering: false })}>Draw it again</Button>
       </div>
     );
   }

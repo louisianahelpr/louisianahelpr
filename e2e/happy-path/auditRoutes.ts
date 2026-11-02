@@ -475,6 +475,8 @@ export const ADMIN_SCREENS: ScreenSpec[] = [
     url: `/admin?view=${view}`,
     rules: adminRules(),
   })),
+  // Q2585: the Declutter stage preview (made-up data, every request answered locally).
+  { name: "admin-preview-declutter", url: "/admin/preview/declutter?stage=paid&side=buyer", rules: adminRules() },
 ];
 
 /**

@@ -51,7 +51,7 @@ const STATE_CODES: Record<string, string> = {
  * sends in its ops alert: a fetch error's message can quote the request URL, whose query string is the buyer's typed
  * address (Q2493).
  */
-export function thrownName(e: unknown): string {
+function thrownName(e: unknown): string {
   const name = e instanceof Error ? e.name : typeof e;
   return /^[A-Za-z][A-Za-z0-9_]{0,40}$/.test(name) ? `threw ${name}` : "threw an error";
 }

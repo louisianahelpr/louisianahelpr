@@ -40,7 +40,7 @@ export function LandingProof() {
   return (
     <ul
       data-testid="landing-proof"
-      className="mt-8 w-full max-w-[1040px] mx-auto border-t pt-5 lg:pt-6 grid gap-3 lg:grid-cols-3 lg:gap-10 text-left"
+      className="w-full border-b pb-5 lg:pb-6 grid gap-3 lg:grid-cols-3 lg:gap-10 text-left"
       style={{ borderColor: "var(--lp-line)" }}
     >
       <li className="flex items-center justify-center lg:justify-start gap-3 lg:gap-4 min-w-0">

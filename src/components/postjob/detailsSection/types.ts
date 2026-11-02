@@ -20,6 +20,10 @@ export interface DetailsSectionProps {
    *  Only shown for CREDENTIAL_TIER_CATEGORIES; all others stay at 0. */
   credentialTier: number;
   setCredentialTier: (tier: number) => void;
+  /** jobs.tax_kind, asked outside the two movable-repair categories (Q2083,
+   *  owner Option 1). Absent = the question is not shown. */
+  taxKind?: "item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations" | null;
+  setTaxKind?: (next: "item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations" | null) => void;
   /** Does the helper have to upload before AND after photos before they can
    *  mark this job complete? Pre-set from the category in usePostJobForm and
    *  overridable here; persisted to jobs.require_photo_proof and read by the

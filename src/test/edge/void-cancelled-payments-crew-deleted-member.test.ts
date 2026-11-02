@@ -125,10 +125,12 @@ function seedGift(shares = SHARES_ONE_DELETED()) {
     .selectOverrides[0].result.rows[0].stripe_payment_intent_id = null;
   scenario.reads.gift_cards = { rows: [{ payment_status: "paid" }] };
   scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
-    const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number };
+    const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number; p_restore_cents?: number };
     if (a.p_dry_run) return { outcome: "would_restore", credit_id: "gift-1", applied_cents: APPLIED, restore_cents: APPLIED };
     const bps = a.p_share_bps ?? 10000;
-    return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: APPLIED, restore_cents: Math.floor((APPLIED * bps) / 10000) };
+    // Q1914: exact cents when given (capped to the gift), else the basis-point share.
+    const cents = a.p_restore_cents !== undefined ? Math.min(Math.max(a.p_restore_cents, 0), APPLIED) : Math.floor((APPLIED * bps) / 10000);
+    return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: APPLIED, restore_cents: cents };
   };
 }
 const giftRestoredCents = () => {
@@ -136,7 +138,9 @@ const giftRestoredCents = () => {
     .filter((c) => c.name === "restore_gift_card_for_job")
     .map((c) => c.args as Record<string, unknown>)
     .find((c) => !c.p_dry_run);
-  return m ? Math.floor((APPLIED * Number(m.p_share_bps ?? 10000)) / 10000) : null;
+  if (!m) return null;
+  if (m.p_restore_cents !== undefined) return Math.min(Math.max(Number(m.p_restore_cents), 0), APPLIED);
+  return Math.floor((APPLIED * Number(m.p_share_bps ?? 10000)) / 10000);
 };
 
 describe("crewCancellationFee: only a VOID share leaves the poster's fee (Q1915)", () => {

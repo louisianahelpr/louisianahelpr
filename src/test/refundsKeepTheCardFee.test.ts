@@ -977,12 +977,15 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     // the card fee is kept out of the refund here.
     "flatCardFeeKeptCents = isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0 ? Math.min(unfilledCents, Math.floor((crewStripeFeeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents)) : 0",
     "feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents })",
-    "taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0",
+    // Q2148 (1) (owner 'J3', Builder 151): the tax on the card fee this refund keeps is kept too (taxOnKeptCents
+    // inside crewTaxKeptAt); the card fee itself is kept exactly as before.
+    "taxReturnCents = taxShareCents - crewTaxKeptCents",
     "unpaidBudgetCents = Math.max(0, budgetCents - paidBudget)",
     "urgentCents = Math.round(Number(job.urgent_fee ?? 0) * 100)",
     "budgetCents = Math.round(Number(job.budget ?? 0) * 100)",
     "crewStripeFeeCents = a.stripeFeeCents ?? stripeProcessingCostCents(a.capturedCents)",
-    "taxCents = Math.max(0, Math.round(Number(job.sales_tax_amount ?? 0) * 100))",
+    "taxShareCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0",
+    "crewTaxKeptCents = Math.min(taxShareCents, crewTaxKeptAt(crewStripeFeeCents))",
   ],
   "cancel-refund-": [
     "refundAmount",
@@ -1003,7 +1006,9 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   "createRefundOnce#0": [
     "owedCents",
     "owedCents = withholdFee ? lessFeeCents : amountCents",
-    "lessFeeCents = Number.isFinite(amountCents) ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: Number(row.amount_cents ?? 0) - Number(row.fee_cents ?? 0), actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents : Number.NaN",
+    // Q2148 (5) (Builder 151): the tax base is sweepTaxBaseCents (the whole charge on a poster-fee series, else labor + tax);
+    // the card fee is still kept by refundToPayerCents, only the tax on it changes.
+    "lessFeeCents = Number.isFinite(amountCents) ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: sweepTaxBaseCents, actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents : Number.NaN",
     "amountCents = Number(row.amount_cents)",
   ],
   "createRefundOnce#2": [

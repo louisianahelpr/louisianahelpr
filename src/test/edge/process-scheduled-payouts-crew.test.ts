@@ -151,6 +151,25 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     );
   });
 
+  // Q2148 (1) (owner 'J3'): on a TAXED flat crew the kept card-fee share keeps its tax too. $109 charged ($9 tax):
+  // fee 2.9% + 30c = 346c, kept floor(346 * 3333 / 10000) = 115c; tax share floor(900 * 3333 / 10000) = 299c, of which
+  // ceil(115 * 900 / (10900 - 900)) = 11c is kept: 3333 - 115 + 299 - 11 = 3506c.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | ? Math.min(unfilledCents, Math.floor((stripeFee * (unpaidBudgetCents - blockFeeCents)) / budgetCents))\n          : 0);\n      const crewTaxKeptAt | ? 0\n          : 0);\n      const crewTaxKeptAt
+  it("Q2148 (1): a TAXED flat crew keeps the tax on the kept card-fee share (3506c, not 3517c)", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    const rows = (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows;
+    rows[0] = { ...rows[0], helper_fee_flat_cents: 70, helper_fee_percent: 5, platform_fee_amount: 5.7, customer_fee_amount: 0, sales_tax_amount: 9 };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount: 10900, amount_received: 10900,
+    });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3506, currency: "usd" });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3506 }),
+      { idempotencyKey: "crew-unfilled-refund-job-crew" },
+    );
+  });
+
   it("control: the same crew on the LEGACY model (no stamp) refunds the whole unfilled share", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     stripeMock.paymentIntents.retrieve.mockResolvedValue({
@@ -461,13 +480,15 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   // unfilled share gets the budget and tax back but none of the fee, and the
   // poster is told why.
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
-  it("owner 2026-10-14: 2 of 3 filled on a no-service-fee job: 3333 + 0 of the $3.55 card fee + 299 tax = 3632c", async () => {
+  // Q2148 (1) (owner 'J3'): the 118c of the fee share kept also keeps its tax, ceil(118 * 900 / (11200 - 900)) = 11c.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const taxReturnCents = taxShareCents - crewTaxKeptCents; | const taxReturnCents = taxShareCents;
+  it("owner 2026-10-14: 2 of 3 filled on a no-service-fee job: 3333 + 0 of the $3.55 card fee + 299 tax - 11c tax on the kept 118c = 3621c", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     setJob({ customer_fee_amount: 3.55, sales_tax_amount: 9, platform_fee_percent: 0 });
-    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3632, currency: "usd" });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3621, currency: "usd" });
     await run();
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      expect.objectContaining({ payment_intent: "pi_1", amount: 3632 }),
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3621 }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     expect(shortPages()).toBe(0);
@@ -553,11 +574,13 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |               stripeFeeActual = actualStripeFeeCents(pi) !== null; |               stripeFeeActual = false;
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |         const owedThen = stampHonoured ? Math.max(0, owedAtFee(stamped as number) - giftRestoredCents) : cardOwedCents; |         const owedThen = cardOwedCents;
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |         - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? stripeFee : 0, proRataCents: feeProRataCents }) |         - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents }) + 1
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | + crewTaxKeptCents - Math.min(taxShareCents, crewTaxKeptAt(stripeFee)); | + 0;
   // @mutate supabase/functions/process-scheduled-payouts/index.ts | const stampHonoured = stampMeta?.stripe_fee_source === "actual"\n          && typeof stamped | const stampHonoured = typeof stamped
   // @mutate supabase/functions/process-scheduled-payouts/index.ts |  && stamped >= 0 && stamped <= a.capturedCents; |  && stamped >= 0;
   it("Q1827: a refund priced at Stripe's ACTUAL fee is honoured on a re-run that can only estimate the fee (no page); no stamp, an estimate label or a stamp above the charge is compared at today's fee", async () => {
     // Run 1 reads the real fee, $10.00, on a legacy $12-fee job: only $2.00 of
-    // the 399c fee share comes back, 3333 + min(399, 1200-1000) + 299 = 3832c.
+    // the 399c fee share comes back, 3333 + min(399, 1200-1000) + 299 = 3832c, less
+    // the tax on the 199c kept (Q2148 (1)): ceil(199 * 900 / 10300) = 18c, so 3814c.
     const job = { customer_fee_amount: 12, sales_tax_amount: 9 };
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     setJob(job);
@@ -565,35 +588,36 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
       id: "pi_1", status: "succeeded", amount: 11200, amount_received: 11200,
       latest_charge: { id: "ch_1", balance_transaction: { fee: 1000 } },
     });
-    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3832, currency: "usd" });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3814, currency: "usd" });
     await run();
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 3832 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 3814 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
     expect(stampOf()).toEqual({ stripe_fee_cents: 1000, stripe_fee_source: "actual" });
 
     // Run 2 cannot read the balance transaction: the 355c estimate would owe
-    // 3333 + 399 + 299 = 4031c and page the 3832c refund as short.
-    expect(await rerunWithPrior(job, { amount_cents: 3832, metadata: { stripe_fee_cents: 1000, stripe_fee_source: "actual" } }, null)).toBe(0);
-    expect(await rerunWithPrior(job, { amount_cents: 3832 }, null)).toBe(1);
-    expect(await rerunWithPrior(job, { amount_cents: 3832, metadata: { stripe_fee_cents: 1000, stripe_fee_source: "estimate" } }, null)).toBe(1);
-    expect(await rerunWithPrior(job, { amount_cents: 3832, metadata: { stripe_fee_cents: 20000, stripe_fee_source: "actual" } }, null)).toBe(1);
+    // 3333 + 399 + 299 = 4031c (nothing kept, so no tax kept) and page the 3814c refund as short.
+    expect(await rerunWithPrior(job, { amount_cents: 3814, metadata: { stripe_fee_cents: 1000, stripe_fee_source: "actual" } }, null)).toBe(0);
+    expect(await rerunWithPrior(job, { amount_cents: 3814 }, null)).toBe(1);
+    expect(await rerunWithPrior(job, { amount_cents: 3814, metadata: { stripe_fee_cents: 1000, stripe_fee_source: "estimate" } }, null)).toBe(1);
+    expect(await rerunWithPrior(job, { amount_cents: 3814, metadata: { stripe_fee_cents: 20000, stripe_fee_source: "actual" } }, null)).toBe(1);
   });
 
   // @mutate supabase/functions/process-scheduled-payouts/index.ts | const crewStripeFeeSource: "actual" \| "estimate" = a.stripeFeeCents != null && a.stripeFeeActual === true ? "actual" : "estimate"; | const crewStripeFeeSource: "actual" \| "estimate" = "actual";
   it("Q1827: a refund priced at the ESTIMATE is stamped so, and pages when the real fee read later is lower (25c really is owed back)", async () => {
     // Run 1 cannot read the balance transaction: on a no-service-fee flat job
-    // the 355c estimate keeps all of the $3.55 fee, 3632c.
+    // the 355c estimate keeps all of the 118c fee share and 11c of tax on it, 3621c.
     const job = { customer_fee_amount: 3.55, sales_tax_amount: 9, platform_fee_percent: 0 };
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     setJob(job);
-    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3632, currency: "usd" });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3621, currency: "usd" });
     await run();
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 3632 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_1", amount: 3621 }), { idempotencyKey: "crew-unfilled-refund-job-crew" });
     expect(stampOf()).toEqual({ stripe_fee_cents: 355, stripe_fee_source: "estimate" });
 
-    // Run 2 reads Stripe's real fee, 330c: 25c of the fee is owed back (3657c).
-    expect(await rerunWithPrior(job, { amount_cents: 3632, metadata: { stripe_fee_cents: 355, stripe_fee_source: "estimate" } }, 330)).toBe(1);
+    // Run 2 reads Stripe's real fee, 330c: 25c of the fee is owed back, and the tax kept drops to
+    // ceil(93 * 900 / 10300) = 9c, so 3333 + 25 + 299 - 9 = 3648c.
+    expect(await rerunWithPrior(job, { amount_cents: 3621, metadata: { stripe_fee_cents: 355, stripe_fee_source: "estimate" } }, 330)).toBe(1);
     // The same refund at the real fee read now does not page.
-    expect(await rerunWithPrior(job, { amount_cents: 3657, metadata: { stripe_fee_cents: 355, stripe_fee_source: "estimate" } }, 330)).toBe(0);
+    expect(await rerunWithPrior(job, { amount_cents: 3648, metadata: { stripe_fee_cents: 355, stripe_fee_source: "estimate" } }, 330)).toBe(0);
   });
 
   // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (a.isPifFunded) { | if (false) {

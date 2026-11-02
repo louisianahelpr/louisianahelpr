@@ -184,6 +184,20 @@ describe("every refundToPayerCents call that prices a refund passes the charge's
     expect(missing).toEqual(NO_TAX_NEEDED);
   });
 
+  // Q2148 (1): the crew unfilled-spot refund prices with crewFeeShareReturnCents, not refundToPayerCents, so the
+  // inventory above cannot see it. Every file that prices a fee share with it must also keep the tax on what it keeps.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts | const crewTaxKeptAt = (stripeFee: number) => taxOnKeptCents({ keptCents: crewCardFeeKeptAt(stripeFee), taxCents, capturedCents: a.capturedCents }); | const crewTaxKeptAt = (stripeFee: number) => 0 * stripeFee;
+  it("every crewFeeShareReturnCents caller keeps the tax on the kept part (taxOnKeptCents)", () => {
+    const root = join(__dirname, "..", "..");
+    const files = walk(join(root, "supabase", "functions")).filter((f) => !f.includes("/_shared/refundAmount.ts"));
+    const callers = files.filter((f) => blankComments(readFileSync(f, "utf8")).includes("crewFeeShareReturnCents("));
+    expect(callers.length).toBeGreaterThan(0);
+    const without = callers
+      .filter((f) => !/\btaxOnKeptCents\(\{\s*keptCents:/.test(blankComments(readFileSync(f, "utf8"))))
+      .map((f) => f.slice(root.length + 1));
+    expect(without).toEqual([]);
+  });
+
   // Boards 66/172 slice 2: the sweep's captured refund and the poster's cancel quote reach
   // refundToPayerCents through posterCancelSplit (checked above), so each caller must feed it the
   // charge's real tax: the sweep with chargeTaxCentsFor, the quote with checkoutChargeTaxCents.

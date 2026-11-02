@@ -9,7 +9,7 @@ import { readHelperFeePercentStrict, jobHelprCommissionDollars, DEFAULT_TIER_FEE
 import { flatFeePercentOf, isFlatFeeJob, isGiveawayFixedPayJob } from "../_shared/helprFlatFee.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
-import { crewFeeShareReturnCents } from "../_shared/refundAmount.ts";
+import { crewFeeShareReturnCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
@@ -702,7 +702,19 @@ serve(async (req) => {
       const flatCardFeeKeptCents = isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
         ? Math.min(unfilledCents, Math.floor((crewStripeFeeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
         : 0;
-      const taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
+      // Q2148 (1) (owner 'J3', Q2082 (a)): the tax on what this refund KEEPS of the card fee is kept too, as
+      // refundToPayerCents does on every other path. Kept at a given Stripe fee: the flat job's share of the card fee
+      // (flatCardFeeKeptCents), plus on a fee-holds-card-fee job the part of the fee share the cap holds back. Stripe
+      // Tax reverses a refund's tax in proportion to what it returns, so keeping K also keeps K x tax / (captured - tax).
+      const crewCardFeeKeptAt = (stripeFee: number) =>
+        (feeHoldsCardFee ? feeProRataCents - crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: stripeFee, proRataCents: feeProRataCents }) : 0)
+        + (isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
+          ? Math.min(unfilledCents, Math.floor((stripeFee * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
+          : 0);
+      const crewTaxKeptAt = (stripeFee: number) => taxOnKeptCents({ keptCents: crewCardFeeKeptAt(stripeFee), taxCents, capturedCents: a.capturedCents });
+      const taxShareCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
+      const crewTaxKeptCents = Math.min(taxShareCents, crewTaxKeptAt(crewStripeFeeCents));
+      const taxReturnCents = taxShareCents - crewTaxKeptCents;
       const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents;
       /**
        * Q1827: what the unfilled share owes at another Stripe fee, by moving
@@ -715,7 +727,9 @@ serve(async (req) => {
         - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? stripeFee : 0, proRataCents: feeProRataCents })
         + flatCardFeeKeptCents - (isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
           ? Math.min(unfilledCents, Math.floor((stripeFee * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
-          : 0);
+          : 0)
+        // Q2148 (1): and the tax kept on that card fee, at that fee.
+        + crewTaxKeptCents - Math.min(taxShareCents, crewTaxKeptAt(stripeFee));
       if (owedCents <= 0) return { ok: true, refundCents: 0 };
 
       const source = decision ? "crew_dispute_refund" : "crew_unfilled_refund";

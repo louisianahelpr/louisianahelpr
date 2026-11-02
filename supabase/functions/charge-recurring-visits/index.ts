@@ -925,7 +925,7 @@ serve(async (req) => {
       // (owner, 2026-10-14; Q415 (e)).
       // Unread, the cause is unknown: refund nothing this run, retry next.
       const [causeParent, causeHold] = await Promise.all([
-        supabase.from("jobs").select("id, series_ended_on, status").eq("id", row.parent_job_id).maybeSingle(),
+        supabase.from("jobs").select("id, series_ended_on, status, poster_fee_flat_cents").eq("id", row.parent_job_id).maybeSingle(),
         supabase
           .from("series_visit_holds")
           .select("id, helper_id")
@@ -942,7 +942,7 @@ serve(async (req) => {
       // Q1246 (3): a CANCELLED parent is a series that is over, the same as an
       // ended one (Q808: the card fee is withheld), whether or not the cancel
       // stamped series_ended_on.
-      const causeParentRow = causeParent.data as { series_ended_on: string | null; status?: string | null } | null;
+      const causeParentRow = causeParent.data as { series_ended_on: string | null; status?: string | null; poster_fee_flat_cents?: number | string | null } | null;
       const seriesEndedCause = Boolean(causeParentRow?.series_ended_on) || causeParentRow?.status === "cancelled";
       const nowHolder = ((causeHold.data ?? []) as Array<{ helper_id: string | null }>)[0];
       const dateUnheldCause = !nowHolder || (row.helper_id != null && nowHolder.helper_id !== row.helper_id);
@@ -1050,9 +1050,15 @@ serve(async (req) => {
         // Owner, 2026-10-14: an end by the platform (an admin) withholds the
         // card fee like every other ended series (no Q1735 exception).
         const withholdFee = piObj?.metadata?.refund_withhold_fee === "true" || seriesEndedCause || dateUnheldCause;
+        // Q2148 (5) (delta review of 2e397597d #1): the part of the charge its tax transaction covers, tax included.
+        // A POSTER-FEE series' fee line is inside it (the mid-run path passes budget + fee + tax), so the card fee
+        // kept carries its tax; a legacy visit's card-cost fee is not (labor + its tax only).
+        const sweepTaxBaseCents = isPosterFeeJob(causeParentRow)
+          ? Number(row.amount_cents ?? 0)
+          : Number(row.amount_cents ?? 0) - Number(row.fee_cents ?? 0);
         // THE refund amount: _shared/refundAmount.ts.
         const lessFeeCents = Number.isFinite(amountCents)
-          ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: Number(row.amount_cents ?? 0) - Number(row.fee_cents ?? 0), actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents
+          ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: sweepTaxBaseCents, actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents
           : Number.NaN;
         const owedCents = withholdFee ? lessFeeCents : amountCents;
         // Set before any other Stripe call, so a failure below alerts with

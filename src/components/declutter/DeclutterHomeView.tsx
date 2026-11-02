@@ -28,7 +28,8 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
 import { soldPayoutWords } from "@/lib/declutter/soldPayout";
 import { DeclutterNotice, sellerStatusLabel } from "./declutterUi";
-import { ChevronRight, Settings, Tags } from "lucide-react";
+import { ChevronRight, Settings } from "lucide-react";
+import { SellChooserEntry } from "./SellChooserEntry";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
 import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
@@ -439,25 +440,6 @@ function SellingSettingsEntry() {
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">Declutter settings</span>
         <span className="block text-xs text-muted-foreground">Listing defaults, pickup places, pickup times, delivery, bundle discount, notifications</span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-    </Link>
-  );
-}
-
-/** "More ways to sell" (owner 2026-10-30): one row to the sell chooser, its line naming what is in it for this viewer. */
-function SellChooserEntry({ movingOutOn }: { movingOutOn: boolean }) {
-  const ways = movingOutOn ? "A bunch at once, a moving out sale, free, or a Helpr lists it" : "A bunch at once, free, or a Helpr lists it";
-  return (
-    <Link
-      to={SELL_CHOOSER_PATH}
-      data-sell-chooser-entry=""
-      className="flex min-h-14 items-center gap-3 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-    >
-      <Tags className="h-5 w-5 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">More ways to sell</span>
-        <span className="block text-xs text-muted-foreground">{ways}</span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
     </Link>

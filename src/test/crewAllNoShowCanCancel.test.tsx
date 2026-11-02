@@ -18,8 +18,8 @@
  * poster's strike) is is_late_cancellation(v_committed, ...), false when nobody is committed. Each no-show already
  * got their strike when reported (crewMemberNoShow.test.tsx / crewMemberNoShow.pglite.mjs).
  *
- * @mutate src/lib/crewLifecycle.ts |   return rosterKnown && underWay && !roster.some((m) => m.helper_id != null); |   return underWay && !roster.some((m) => m.helper_id != null);
- * @mutate src/lib/crewLifecycle.ts |   return rosterKnown && underWay && !roster.some((m) => m.helper_id != null); |   return rosterKnown && underWay;
+ * @mutate src/lib/crewNobodyLeft.ts |   return rosterKnown && underWay && !roster.some((m) => m.helper_id != null); |   return underWay && !roster.some((m) => m.helper_id != null);
+ * @mutate src/lib/crewNobodyLeft.ts |   return rosterKnown && underWay && !roster.some((m) => m.helper_id != null); |   return rosterKnown && underWay;
  * @mutate src/components/GroupJobHelpers.tsx |       {nobodyLeft && ( |       {false && (
  * @mutate src/components/GroupJobHelpers.tsx |           <Button variant="outline" size="lg" className="w-full rounded-full text-ds-15 text-destructive-ink" onClick={onCancelJob}> |           <Button variant="outline" size="lg" className="w-full rounded-full text-ds-15 text-destructive-ink">
  * @mutate src/pages/posts/PostedJobCard.tsx |  onCancelJob={() => onCancel(job)} /> |  />

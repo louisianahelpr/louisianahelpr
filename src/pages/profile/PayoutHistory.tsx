@@ -82,7 +82,7 @@ export function payoutNextStep(p: Pick<StripePayout, "status" | "arrival_date">)
     case "failed":
       return { step: { who: "you", text: "Check your payout account", by: "we try again once it's right" }, action: { label: "Payout settings", to: "/profile?tab=payment" } };
     case "canceled":
-      return { step: { who: "you", text: "Message Support" }, action: { label: "Message Support", to: "/support?topic=message" } };
+      return { step: { who: "you", text: "Message Support" }, action: { label: "Message support", to: "/support?topic=message" } };
     case "pending":
     case "in_transit":
       return { step: { who: "them", text: "Waiting on the bank", by: `arrives about ${payoutDay(p.arrival_date)}` }, action: null };

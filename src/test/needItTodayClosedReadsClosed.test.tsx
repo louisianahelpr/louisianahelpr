@@ -22,6 +22,7 @@ import { useState } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { blankComments } from "./helpers/blankNonCode";
+import { enPostJob } from "@/lib/i18n/enPostJob";
 
 const clock = vi.hoisted(() => ({ start: null as string | null }));
 vi.mock("@/lib/sameDayJob", async (importOriginal) => ({
@@ -150,7 +151,10 @@ describe("F19: once today is closed, step 6 says so everywhere", () => {
 
   it("the submit label asks for a later start; it no longer claims the time has passed", () => {
     const src = blankComments(readFileSync(join(__dirname, "../pages/post-job/FormStep.tsx"), "utf8"));
-    expect(src).toContain('else submitLabel = "Pick a later start to continue";');
+    // A3-3 part 2 (Post a job in Spanish): the label is a t("postJob.…") key, read through the English dictionary.
+    expect(src).toContain('else submitLabel = t("postJob.pickLater");');
+    expect(enPostJob["postJob.pickLater"]).toBe("Pick a later start to continue");
     expect(src).not.toContain("That start time has passed");
+    expect(Object.values(enPostJob)).not.toContain("That start time has passed");
   });
 });

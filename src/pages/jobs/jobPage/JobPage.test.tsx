@@ -1796,9 +1796,10 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
   });
 
   it("a proposed day is not agreed: day 1 stands for the bar (only a set day moves it)", () => {
-    const job = { date_needed: "2026-10-31", start_time: "09:00" };
-    expect(jobOnContinueDay(job, setRow({ status: "proposed" }) as never)).toBe(job);
-    expect(jobOnContinueDay(job, setRow() as never)).toEqual({ date_needed: "2026-11-05", start_time: "09:00" });
+    const job = { date_needed: jobLocalDateISO(-1), start_time: "09:00" };
+    const newDay = jobLocalDateISO(4);
+    expect(jobOnContinueDay(job, setRow({ status: "proposed", new_date: newDay }) as never)).toBe(job);
+    expect(jobOnContinueDay(job, setRow({ new_date: newDay }) as never)).toEqual({ date_needed: newDay, start_time: "09:00" });
     expect(jobOnContinueDay(job, null)).toBe(job);
   });
 

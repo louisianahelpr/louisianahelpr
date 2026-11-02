@@ -42,6 +42,9 @@ import { HANDOFF_WORDS } from "./SellerDeliveryChoice";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { FallbackImg } from "./FallbackImg";
+import { useDeliveryBookBy } from "./DeclutterPorchHandover";
+import { bookByWords } from "@/lib/declutter/orderPickupTimes";
+import { OrderTalkButton } from "./DeclutterOrderTalk";
 
 // min-h-11: the 44px tap floor (they were 36px; Declutter audit 2026-10-28).
 const btn = "min-h-11 rounded-full border border-border px-4 py-2 text-sm font-semibold";
@@ -93,6 +96,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
   // Review of 7496d29c8b #2: during "It wasn't delivered"'s 24 hours the time stands (the server refuses a move: no_show_waiting).
   const handoverRow = useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
   const noShowWaiting = !!handoverRow.data?.no_show_reported_at;
+  const bookBy = useDeliveryBookBy(orderId, booking.data?.status === "needs_time");
   const [moving, setMoving] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
   // The money moments ask in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
@@ -138,6 +142,12 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
           {b.status === "needs_time" ? "Pick a new delivery time"
             : b.slot_start ? `Delivery ${slotLabel(b.slot_start)}` : "Delivery"}
         </p>
+        {/* A3-72 (lead 11-01 5:34 PM + 9:05 PM): what happens at book_by, on both sides. */}
+        {b.status === "needs_time" && bookBy && b.order_status === "paid" && (
+          <p data-delivery-book-by="">{b.side === "buyer"
+            ? `If no time is picked ${bookByWords(bookBy)}, the order is cancelled and your full payment is refunded.`
+            : `If the buyer picks no time ${bookByWords(bookBy)}, the order is cancelled and they get a full refund.`}</p>
+        )}
         {!handoffChips && <p className="text-muted-foreground">{HANDOFF_WORDS[b.handoff].title}{b.side === "seller" ? " (the buyer's choice)" : ""}</p>}
         {b.side === "seller" && b.dropoff_address && <p>Deliver to: {b.dropoff_address}</p>}
         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" && b.status === "booked" && !b.delivered_at && (
@@ -230,6 +240,15 @@ function NewTimePicker({ orderId, current, onDone }: { orderId: string; current:
   });
   if (times.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading open times…</p>;
   if (times.isError) return <ErrorState variant="inline" title="We couldn't load the open times." body={sellerDeliveryErrorMessage(times.error)} onRetry={() => void times.refetch()} />;
+  // A3-72: a buyer who must pick a time and finds none is told what to do (Report a problem stays on the panel).
+  if (!shown && current.status === "needs_time" && current.side === "buyer") {
+    return (
+      <div className="space-y-2" role="status" data-no-open-times="">
+        <p className="text-sm">The seller has no open delivery times right now. Message them to ask for one, or report a problem.</p>
+        <OrderTalkButton orderId={orderId} side="buyer" />
+      </div>
+    );
+  }
   if (!shown) return <p className="text-sm text-muted-foreground" role="status">No other delivery times are open in the next two weeks.</p>;
   return (
     <div className="space-y-2 rounded-xl border border-border p-3">

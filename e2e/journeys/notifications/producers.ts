@@ -191,6 +191,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered:
       "Board 141 refund answer (20261021102943): needs an open refund request on an escrow-funded hired job (a paid live Stripe checkout, which the journeys never make). The poster's 'Refund agreed' and 'Offer to come back and finish' notices are proven in src/test/pglite/refundRequests.pglite.mjs (AG9, FN2).",
   },
+  "sql:rpc_poster_withdraw_offer": {
+    uncovered:
+      "Q2604 (20261102103429): needs an unanswered offer, a Hire's offer or a direct offer, on a job that is listed, which on prod means a paid live Stripe checkout or a held card (Stripe is LIVE and the journeys never pay). The Helpr's 'Offer withdrawn' notice is proven in src/test/pglite/posterWithdrawsAnOffer.pglite.mjs (W4: the Helpr is told; W1: the poster is told nothing about their own act).",
+  },
   "sql:rpc_withdraw_refund_request": {
     uncovered:
       "Board 141 withdraw (20261021102943): needs an open refund request on an escrow-funded hired job (a paid live Stripe checkout, which the journeys never make). The Helpr's 'Refund request withdrawn' notice is proven in src/test/pglite/refundRequests.pglite.mjs (W2).",

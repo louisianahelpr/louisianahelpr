@@ -115,7 +115,7 @@ export const tierConfig: TierDisplay[] = [
     id: "basic",
     name: TIER_PERKS.basic.name,
     iconName: "star",
-    forWhom: "For testing the marketplace.",
+    forWhom: "For trying the extras.",
     ...formatTierPrices("basic"),
     feePercent: TIER_PERKS.basic.platformFeePercent,
     features: [...TIER_PERKS.basic.featureBullets],

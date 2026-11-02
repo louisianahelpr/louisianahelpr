@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1119,
+    "calls": 1120,
     "files": 313,
-    "rendering": 1038,
+    "rendering": 1039,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 208,
-      "toast.error": 755,
+      "toast.error": 756,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 472,
       "template": 104,
-      "dynamic": 594,
+      "dynamic": 595,
       "jsx": 0
     }
   },
@@ -2626,7 +2626,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 89,
+      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2636,7 +2636,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 120,
+      "line": 121,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2646,7 +2646,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 124,
+      "line": 125,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2656,7 +2656,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 139,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2666,7 +2666,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 141,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2676,7 +2676,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 157,
+      "line": 158,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2696,7 +2696,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 184,
+      "line": 185,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2706,7 +2706,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 201,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2716,7 +2716,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 203,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2726,7 +2726,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 218,
+      "line": 219,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2736,7 +2736,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 228,
+      "line": 229,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2746,7 +2746,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 243,
+      "line": 244,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2756,7 +2756,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 259,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2766,7 +2766,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 302,
+      "line": 304,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2776,7 +2776,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 338,
+      "line": 340,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2786,7 +2786,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 350,
+      "line": 352,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2796,7 +2796,7 @@
     },
     {
       "file": "src/components/admin/AdminSettings.tsx",
-      "line": 384,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7305,7 +7305,17 @@
     },
     {
       "file": "src/components/identity/IdentityCheckSheet.tsx",
-      "line": 192,
+      "line": 170,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "CONNECTION_TROUBLE_COPY"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/identity/IdentityCheckSheet.tsx",
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

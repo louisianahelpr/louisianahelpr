@@ -51,7 +51,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {viewer.status && !(!isPoster && instantUntil) && | {viewer.status &&
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {(isPoster \|\| isHired) && job.status === "accepted" && <CountdownRows | {false && <CountdownRows
  */
-import { describe, expect, it, vi, beforeEach, onTestFinished } from "vitest";
+import { describe, expect, it, vi, beforeAll, beforeEach, onTestFinished } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -1839,6 +1839,9 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && !hiredFace && !instantUntil && viewer.action.kind === "see_offer" && ( |             {false && (
 // @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx |   const app = q.data?.appliedApps.find((a) => a.job_id === jobId && !!a.job) ?? null; |   const app = q.data?.appliedApps.find((a) => !!a.job) ?? null;
 describe("JA-17: Accept and Decline on the job page", () => {
+  // The panel is a lazy chunk (JobsSection). Its first import took over findBy's 1 s, so whichever test ran first
+  // saw only the "See the offer" fallback. Load it once up front; each test then checks the page, not import speed.
+  beforeAll(async () => { await import("../JobsSection"); }, 60_000);
   const offered = () => row({ helper_id: ME, status: "accepted", helper_confirmed_at: null, response_deadline: new Date(Date.now() + 20 * 3_600_000).toISOString() } as Partial<JobPageRow>);
   const workingRow = (jobId: string, id: string) => ({
     id, job_id: jobId, helper_id: ME, status: "pending", message: "I can do it", offer_message: null,

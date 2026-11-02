@@ -135,7 +135,9 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   credentials: [{ h: 92 }, { h: 152 }, { h: 169 }, { h: 70 }],
   accessibility: [{ h: 99 }, { h: 76 }],
   pets: [{ h: 216, media: 2 }],
-  home_history: [{ h: 384, media: 1 }],
+  // Q1695: helper-e2e's empty record measured 375px (rowRect.h 443.4) in the 2026-11-02 01:07Z refresh, against 384.
+  // poster-e2e's long record grows below (its jump is the 09-19 screenful ruling, byDesign).
+  home_history: [{ h: 375, media: 1 }],
   str_settings: [{ h: 508, media: 1 }],
   // Q1695: 288px in the 2026-11-02 01:07Z refresh (both test accounts; Instant Release copy changed 10-30).
   auto_tip: [{ h: 288 }],

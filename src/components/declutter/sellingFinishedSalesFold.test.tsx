@@ -19,11 +19,13 @@ const state = vi.hoisted(() => ({
   cart: [] as Record<string, unknown>[],
   /** A3-78: each order's refund request view (declutter_refund_request_view); none unless a test sets it. */
   refunds: {} as Record<string, { request: Record<string, unknown> | null }>,
+  /** Q2631: the open problems (declutter_problems_open); none unless a test sets them. */
+  problems: [] as { id: string; order_id: string; reporter_side: string; reason: string }[],
 }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<object>()),
-  fetchOpenProblems: async () => [],
+  fetchOpenProblems: async () => state.problems,
   fetchOrderProblem: async () => null,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null }),
 }));
@@ -53,7 +55,26 @@ function show(onlyShow?: (id: string) => boolean, url = "/declutter?tab=selling"
 }
 
 describe("soldstates-2: Selling folds finished sales", () => {
-  beforeEach(() => { state.cart = []; state.refunds = {}; });
+  beforeEach(() => { state.cart = []; state.refunds = {}; state.problems = []; });
+
+  // Q2631 (audit 1102c R6): an order on hold for a problem still counted in "Sold: pickup and payout · 1 to hand over"
+  // while its card said "On hold until the problem is decided." Held orders are left out of the count.
+  // @mutate src/components/declutter/DeclutterTabParts.tsx |   const toHandOver = Math.max(0, todo.salesOpen - held); |   const toHandOver = todo.salesOpen;
+  // @mutate src/components/declutter/DeclutterTabParts.tsx | l.order_status === "paid" && l.handover !== "delivery" && l.order_id && problems.has(l.order_id) | l.order_status === "paid" && l.handover !== "delivery" && l.order_id
+  it("Q2631: an order on hold for a problem is not counted to hand over", async () => {
+    state.cart = [line(1, "paid"), line(2, "paid")];
+    state.problems = [{ id: "p1", order_id: line(2, "x").order_id, reporter_side: "buyer", reason: "not_as_described" }];
+    show();
+    const heading = await screen.findByRole("heading", { name: /Sold: pickup and payout/ });
+    await vi.waitFor(() => expect(heading.textContent).toBe("Sold: pickup and payout · 1 to hand over"));
+    // Both on hold: no count at all.
+    state.problems = [...state.problems, { id: "p2", order_id: line(1, "x").order_id, reporter_side: "buyer", reason: "damaged" }];
+    document.body.innerHTML = "";
+    show();
+    const again = await screen.findByRole("heading", { name: /Sold: pickup and payout/ });
+    await vi.waitFor(() => expect(again.textContent).toBe("Sold: pickup and payout"));
+    expect(screen.getByText("Sale 1 paid")).toBeInTheDocument();
+  });
 
   // A3-78 (audit 11-01): a finished sale whose refund request waits on the seller (open, or the item dropped back
   // and not confirmed) stays in the list, never under "Show 1 finished sale".

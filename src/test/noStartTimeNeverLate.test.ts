@@ -6,14 +6,13 @@
  * never late and never "It's time" on its day; the face's I'm on my way from 8:00 AM, never the night before.
  *
  * @mutate src/components/tracker/jobProgressState.ts |   if (!hasStartTime(job)) return null; |   if (false) return null;
- * @mutate src/components/tracker/jobProgressState.ts |     : !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : "Tap I'm on my way when you leave") : started |     : started
+ * @mutate src/components/tracker/jobProgressState.ts |   const helprLine = !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : "Tap I'm on my way when you leave") : started | const helprLine = started
  * @mutate src/components/job-card/jobStatusLine.ts |         if (!hasStartTime(job)) return "confirmed"; |         if (false) return "confirmed";
  * @mutate src/components/job-card/jobStatusLine.ts | id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : | false ? TODAY_ANY_TIME_LINE :
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |       if (from && Date.now() < from.getTime()) return null; |       if (false) return null;
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |     if (!job.start_time) { |     if (false) {
  * @mutate src/components/job-card/collapsedClocks.ts |   if (job.helper_on_the_way_at) return []; |   if (false) return [];
  * @mutate src/components/job-card/collapsedClocks.ts |   if (!job.start_time && Date.now() >= jobDayStart(job.date_needed).getTime()) return []; |   if (false) return [];
- * @mutate src/components/tracker/jobProgressState.ts |   const helprLine = job.is_group_job === true | const helprLine = false
  * @mutate src/components/job-card/jobStatusLine.ts | id === "today" && app.job?.is_group_job === true ? CREW_TODAY_LINE : | false ? CREW_TODAY_LINE :
  * @mutate src/lib/anyTimeThatDay.ts | export const ANY_TIME_FACE_FROM = "08:00"; | export const ANY_TIME_FACE_FROM = "00:00";
  */

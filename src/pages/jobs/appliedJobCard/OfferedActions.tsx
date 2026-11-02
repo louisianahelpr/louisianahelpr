@@ -13,6 +13,7 @@ import { DEFAULT_RESPONSE_WINDOW_HOURS, isDirectOffer, offerClock } from "../../
 import { seriesSummary } from "@/lib/format";
 import { InstantBookingCard } from "@/components/jobs/InstantBookingCard";
 import { useFeature } from "@/hooks/useFeature";
+import { declineUntilClock } from "@/lib/instantBook";
 
 interface OfferedActionsProps {
   app: AppliedApp;
@@ -101,6 +102,9 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
   const { hardDeadline, derivedDeadline, isExpired } = offerClock(app, job);
   const deadline = isExpired ? null : (hardDeadline ?? derivedDeadline);
   const seriesLine = seriesSummary(job); // JOBS-18: accepting a Repeats job takes on every visit.
+  // Q2591 (Jobs audit 1102b row 5): an instant booking that reaches this card (the switch is off) is answered by its
+  // own 2-hour decline window (instant_decline_until), never the 24-hour offer rule: the Helpr is already booked.
+  const instantUntil = job.instant_decline_until ?? null;
   return (
     <div
       className="px-4 py-3 space-y-2.5"
@@ -156,7 +160,16 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
           state the 24-hour rule in words rather than inventing a countdown from
           a timestamp we don't have, because a fabricated deadline is worse than
           none — the helper would plan around it. */}
-      {deadline ? (
+      {instantUntil ? (
+        <CountdownRows
+          variant="box"
+          clocks={[
+            { id: "decline", at: instantUntil, text: "left to decline", expiredText: "You're booked" },
+            startClock,
+          ]}
+          note={`You're booked. Can't make it? Decline by ${declineUntilClock(instantUntil)}. No strike, and nothing is charged.`}
+        />
+      ) : deadline ? (
         /* WHAT SILENCE DOES IS STATED: when the answer-by passes,
            `expire_unanswered_offers` gives the job back to everyone. It files
            no strike (owner, 2026-10-05, Q1281), and the line says so, so

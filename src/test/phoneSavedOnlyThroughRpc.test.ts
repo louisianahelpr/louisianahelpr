@@ -13,8 +13,8 @@
  *   1. CLIENT (and EDGE: complete-signup wrote it with the service role, no
  *      limit; lh-authz-rls review of d1d6337b0): no non-test source puts a `phone` key in a profiles
  *      insert/update/upsert payload (inventory: every `.from("profiles")`
- *      write in src/), except the one PGRST202 fallback in src/lib/phoneSave.ts
- *      (the RPC not deployed yet). Every screen with a member phone field
+ *      write in src/), no exception (the pre-RPC PGRST202 fallback in
+ *      src/lib/phoneSave.ts went once the RPC was live, 11-02). Every screen with a member phone field
  *      (an input with autoComplete="tel") saves through saveMyPhone.
  *   2. GRANTS, replayed from the migrations: authenticated and anon hold no
  *      UPDATE and no INSERT on profiles.phone (table- or column-level).
@@ -67,9 +67,6 @@ function profileWrites(code: string): string[] {
   return out;
 }
 
-/** The PGRST202 fallback: the RPC is not deployed yet, the direct write still is. */
-const FALLBACK = "src/lib/phoneSave.ts";
-
 describe("Q1586(a) a member's phone is saved only through save_my_phone", () => {
   const writers = sources.map((f) => ({ ...f, writes: profileWrites(f.code) })).filter((f) => f.writes.length > 0);
 
@@ -77,9 +74,8 @@ describe("Q1586(a) a member's phone is saved only through save_my_phone", () => 
     expect(writers.length).toBeGreaterThan(3);
   });
 
-  it("no client profiles write carries a phone key (except the PGRST202 fallback)", () => {
+  it("no client profiles write carries a phone key", () => {
     const offenders = writers
-      .filter((f) => f.rel !== FALLBACK)
       .filter((f) => f.writes.some((w) => /\bphone\s*[:,}]/.test(w)))
       .map((f) => f.rel);
     expect(offenders).toEqual([]);

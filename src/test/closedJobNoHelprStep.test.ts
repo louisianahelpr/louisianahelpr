@@ -7,7 +7,7 @@
  * @mutate src/pages/jobs/jobPage/hiredHelprFace.ts |   const step = job.is_group_job \|\| ended ? null : |   const step = job.is_group_job ? null :
  * @mutate src/pages/jobs/jobPage/hiredHelprFace.ts | const ENDED_JOB_STATUSES = new Set(["cancelled", "expired"]); | const ENDED_JOB_STATUSES = new Set(["expired"]);
  * @mutate src/pages/jobs/jobPage/hiredHelprFace.ts |   const ended = ENDED_JOB_STATUSES.has(job.status ?? "") \|\| !!app?.closed_reason \|\| | const ended = ENDED_JOB_STATUSES.has(job.status ?? "") \|\|
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | review: () => setReviewOpen(true), application: myApplication.data }) | review: () => setReviewOpen(true) })
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data }) | review: () => setReviewOpen(true), crewSlot: crewSlot.data })
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

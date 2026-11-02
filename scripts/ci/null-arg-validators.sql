@@ -190,7 +190,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('job_photos_shareable',          'classify', 'labels a job whose before/after photos Helpr may use in marketing: the poster and every booked Helpr left share_job_photos on (admin only; app access never depends on it; 20261021001940)'),
   ('declutter_search_matches',      'classify', 'labels a Declutter item as matching a saved search''s words (DA-1, 20261030071817); NULL query = no search words, matches like an empty Browse search; no access decision'),
   ('cancel_fee_payee_frozen',       'classify', 'labels a hired Helpr as banned or under open ban review, so the poster''s late-cancel fee is waived (Q1415e, 20261102074317); NULL user = false'),
-  ('declutter_seller_can_ship',     'classify', 'display read: whether checkout offers Ship it to me for a seller with no open shipping debt (S6 2e, 20261102054848); the BEFORE INSERT trigger is the gate'),
+  ('declutter_seller_can_ship',     'classify', 'display read: whether checkout offers Ship it to me for a seller with no open shipping debt (S6 2e, 20261102054848; a NULL seller answers FALSE since 20261102095838, PGlite shippingSellerCanShipNull.pglite.mjs); the BEFORE INSERT trigger is the gate'),
   ('section_keys_ok',               'classify', 'CHECK helper: the member''s section list is known keys, no NULL, no repeats, within max_len (20261102074244); NULL keys = false'),
   ('is_caller_banned',              'noarg',    'reads auth.uid() only'),
   ('is_server_context',             'noarg',    'reads the session only'),

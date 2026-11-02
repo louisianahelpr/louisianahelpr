@@ -349,6 +349,9 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2171 (b94-fee-debt-blocks-delete): the .or() filter findFeeDebtOwed READS job_helpr_fault_rulings with (select id) to block
   // self-delete while a fault ruling's card fee is unpriced or unpaid; no write, refund or fee change.
   'supabase/functions/_shared/accountPurge.ts: export const FEE_DEBT_RULING_FILTER = "card_fee_cents.is.null,card_fee_remaining_cents.gt.0";',
+  // Q2245 (owner MASTER-LIST 10-21): the card fee a lapsed series Helpr owes for a visit refunded to the poster
+  // IN FULL (bill_helpr_card_fee_debt, once per visit payment); a Helpr debt, never a refund amount or fee change.
+  'supabase/functions/_shared/helprFaultFee.ts: p_card_fee_cents: cents,',
   // Shops M1: the card fee Stripe kept at capture, recorded on the order (no refund here).
   'supabase/functions/_shared/shopHolds.ts: const { error } = await admin.rpc("shop_order_captured", { p_order_id: orderId, p_card_fee_cents: fee });',
   // Q2170: admin_bill_helpr_fault READS the ruling's card fee (already billed?) and audits what it billed; the

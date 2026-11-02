@@ -863,8 +863,8 @@ serve(async (req) => {
         });
         return { ok: true, refundId, refundCents: sentCents + giftRestoredCents, manual: true };
       };
-      if ((prior ?? []).length > 0) {
-        const row = (prior as Array<{ stripe_refund_id: string | null; amount_cents: number | null; metadata?: unknown }>)[0];
+      /** An earlier crew refund (ledger row, or a stamped Stripe refund, Q1992): never sent again; compared with what is owed. */
+      const fromPrior = (row: { stripe_refund_id: string | null; amount_cents: number | null; metadata?: unknown }) => {
         const priorCents = Number(row.amount_cents ?? 0);
         // Q1827: owed at the Stripe fee the refund was priced with, but ONLY
         // when its row says that fee was Stripe's ACTUAL one (and no more than
@@ -886,6 +886,9 @@ serve(async (req) => {
           console.warn(`[process-scheduled-payouts] crew ${source} ${job.id}: the earlier refund ${row.stripe_refund_id} returned ${priorCents}c, ${priorCents - owedThen}c more than owed at today's Stripe fee (stamp source ${String(stampMeta?.stripe_fee_source ?? "none")}).`);
         }
         return { ok: true, refundId: row.stripe_refund_id, refundCents: priorCents + giftRestoredCents };
+      };
+      if ((prior ?? []).length > 0) {
+        return fromPrior((prior as Array<{ stripe_refund_id: string | null; amount_cents: number | null; metadata?: unknown }>)[0]);
       }
 
       // A card leg the main loop found in Stripe TEST mode (Q891, read there
@@ -928,39 +931,100 @@ serve(async (req) => {
       const chargeLeftCents = a.isPifFunded
         ? Math.min(capturedCents, Math.max(0, capturedCents + a.giftAppliedCents - a.paidCents - giftRestoredCents - blockFeeCents))
         : Math.max(0, a.capturedCents - a.paidCents - blockFeeCents);
+      const refundReason = decision
+        ? "crew dispute: the refunded members' shares (and any unfilled slots), with that share of the service fee and tax"
+        : "under-filled crew: the unfilled slots' shares, with that share of the service fee and tax";
+      /**
+       * Writes the crew refund's payment_refunds row, then claims a row only charge.refunded wrote (it labels every
+       * refund 'stripe_dashboard', and it can reach the row first: both upsert with ignoreDuplicates). Without the
+       * claim the job_id + source dedupe above never sees it (Q1992 (a)), as recordRefund does (Q1261 (6)). ZERO ROWS
+       * IS LEGITIMATE (the zero-row-write rule's named exception): the upsert inserted the row, or another path owns it.
+       */
+      const ledgerCrewRefund = async (refundId: string, amountCents: number, currency: string, feeStamp: Record<string, unknown>) => {
+        const { error: ledgerErr } = await supabaseAdmin.from("payment_refunds").upsert({
+          job_id: job.id,
+          customer_id: job.customer_id,
+          stripe_refund_id: refundId,
+          stripe_payment_intent_id: a.paymentIntentId,
+          amount_cents: amountCents,
+          currency,
+          is_partial: true,
+          reason: refundReason,
+          source,
+          initiated_by_user_id: null,
+          metadata: feeStamp,
+        }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
+        if (ledgerErr) return ledgerErr.message;
+        const { error: relabelErr } = await supabaseAdmin.from("payment_refunds").update({
+          source,
+          is_partial: true,
+          reason: refundReason,
+          metadata: feeStamp,
+        }).eq("stripe_refund_id", refundId).eq("source", "stripe_dashboard").select("id");
+        return relabelErr ? relabelErr.message : null;
+      };
+      // ── Q1992: a crew refund the ledger lost or holds under another label ──
+      // The read above finds only a row under this crew source. One the webhook booked first (stripe_dashboard) or
+      // one whose run died after refunds.create has none, and after Stripe's 24-hour idempotency window the same key
+      // would send a SECOND real refund. Every crew refund is stamped { job_id, crew_source } (below), so a live one on
+      // this charge is this job's: book it under the crew source and never refund again. A read that fails, or a charge
+      // with more refunds than one page, refunds nothing this run (fail closed). Prod 2026-11-02: 0 crew refunds, so
+      // there is no unstamped crew refund this could miss.
+      {
+        let listed: { data: Stripe.Refund[]; has_more: boolean } | null = null;
+        let listErr: string | null = null;
+        try {
+          listed = await stripe.refunds.list({ payment_intent: a.paymentIntentId, limit: 100 }) as unknown as { data: Stripe.Refund[]; has_more: boolean };
+        } catch (e) {
+          listErr = (e as Error).message;
+        }
+        if (listErr || !listed || listed.has_more) {
+          jobDefect(job.id, `crew ${source} dedupe ${job.id}: the charge's refunds could not be read whole (${listErr ?? "more than 100"}); no refund this run`);
+          return { ok: false };
+        }
+        const mine = listed.data.find((r) =>
+          r.metadata?.job_id === job.id && r.metadata?.crew_source === source
+          && r.status !== "failed" && r.status !== "canceled");
+        if (mine) {
+          const meta = mine.metadata ?? {};
+          const feeStamp: Record<string, unknown> = {};
+          const fee = Number(meta.stripe_fee_cents);
+          if (meta.stripe_fee_cents != null && Number.isInteger(fee)) feeStamp.stripe_fee_cents = fee;
+          if (typeof meta.stripe_fee_source === "string") feeStamp.stripe_fee_source = meta.stripe_fee_source;
+          const amountCents = Math.round(Number(mine.amount ?? 0));
+          const problem = await ledgerCrewRefund(mine.id, amountCents, mine.currency ?? "usd", feeStamp);
+          // Booking failed: the refund still stands in Stripe, so it is never sent again; the next run books it.
+          if (problem) jobDefect(job.id, `crew ${source} ledger ${job.id} (recovered ${mine.id}): ${problem}`);
+          return fromPrior({ stripe_refund_id: mine.id, amount_cents: amountCents, metadata: feeStamp });
+        }
+      }
       const refundCents = Math.min(cardOwedCents, chargeLeftCents);
       if (refundCents <= 0) return shortRefund(null, 0);
       try {
         const refund = await stripe.refunds.create(
-          { payment_intent: a.paymentIntentId, amount: refundCents },
+          {
+            payment_intent: a.paymentIntentId,
+            amount: refundCents,
+            // Q1992: the stamp the dedupe above finds when the ledger lost the row or holds it under another label;
+            // the fee it was priced with rides along so a recovered row is compared as the original would be (Q1827).
+            metadata: { job_id: job.id, crew_source: source, stripe_fee_cents: String(crewStripeFeeCents), stripe_fee_source: crewStripeFeeSource },
+          },
           { idempotencyKey: decision ? `crew-dispute-refund-${decision.disputeId}` : `crew-unfilled-refund-${job.id}` },
         );
-        const { error: ledgerErr } = await supabaseAdmin.from("payment_refunds").upsert({
-          job_id: job.id,
-          customer_id: job.customer_id,
-          stripe_refund_id: refund.id,
-          stripe_payment_intent_id: a.paymentIntentId,
-          amount_cents: Math.round(Number(refund.amount ?? refundCents)),
-          currency: refund.currency ?? "usd",
-          is_partial: true,
-          reason: decision
-            ? "crew dispute: the refunded members' shares (and any unfilled slots), with that share of the service fee and tax"
-            : "under-filled crew: the unfilled slots' shares, with that share of the service fee and tax",
-          source,
-          initiated_by_user_id: null,
-          // Q1827: the Stripe fee this refund was priced with, and whether it
-          // was Stripe's actual fee or the estimate: a re-run honours only an
-          // actual one, so a fee read differently later never pages it short.
-          metadata: { stripe_fee_cents: crewStripeFeeCents, stripe_fee_source: crewStripeFeeSource },
-        }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
-        if (ledgerErr) {
+        // Q1827: the Stripe fee this refund was priced with, and whether it
+        // was Stripe's actual fee or the estimate: a re-run honours only an
+        // actual one, so a fee read differently later never pages it short.
+        const ledgerProblem = await ledgerCrewRefund(refund.id, Math.round(Number(refund.amount ?? refundCents)), refund.currency ?? "usd",
+          { stripe_fee_cents: crewStripeFeeCents, stripe_fee_source: crewStripeFeeSource });
+        if (ledgerProblem) {
+          const ledgerErr = { message: ledgerProblem };
           jobDefect(job.id, `crew ${source} ledger ${job.id}: ${ledgerErr.message}`);
           await postSlackOpsAlert({
             kind: "money_at_risk",
             seed: seedJobIds.has(job.id),
             severity: "critical",
             title: "Crew share refund sent but not recorded",
-            message: `Refund ${refund.id} (${refundCents}c) for crew job ${job.id} went out, but its payment_refunds row was not written. The Stripe key stops a second refund for ~24h; record the row by hand.`,
+            message: `Refund ${refund.id} (${refundCents}c) for crew job ${job.id} went out, but its payment_refunds row was not written or labelled. The refund is stamped with the job, so the next run finds it on the charge and sends no second one; check the row is booked under the crew source.`,
             fields: { job_id: job.id, refund_id: refund.id, db_error: ledgerErr.message.slice(0, 200) },
           });
         }

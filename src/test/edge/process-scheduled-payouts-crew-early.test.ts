@@ -143,7 +143,7 @@ describe("process-scheduled-payouts: a crew member the poster confirmed is paid 
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 3333 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3333, metadata: expect.objectContaining({ job_id: "job-crew", crew_source: "crew_unfilled_refund" }) }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     expect(scenario.writes.filter((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toHaveLength(1);

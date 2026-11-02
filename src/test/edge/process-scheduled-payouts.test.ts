@@ -325,7 +325,8 @@ describe("process-scheduled-payouts edge function", () => {
       seedPayableJob(scenario, {
         job: { budget: 60, platform_fee_amount: 10, helper_fee_percent: 5, helper_fee_flat_cents: 700 },
       });
-      stripeMock.transfers.create.mockRejectedValueOnce(new Error("stripe down"));
+      // A DEFINITE refusal: a timeout keeps the claim (lead 11-02).
+      stripeMock.transfers.create.mockRejectedValueOnce(Object.assign(new Error("stripe refused"), { type: "StripeInvalidRequestError" }));
       const fn = await load();
       await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
       const updates = profileUpdates();
@@ -399,8 +400,9 @@ describe("process-scheduled-payouts edge function", () => {
 
     it("rolls back the claim when the transfer fails so the retry re-collects the fee", async () => {
       seedPayableJob(scenario);
+      // A DEFINITE refusal: a timeout keeps the claim (lead 11-02).
       stripeMock.transfers.create.mockRejectedValue(
-        Object.assign(new Error("insufficient funds"), { type: "StripeError" }),
+        Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }),
       );
       const fn = await load();
       const res = await fn.fetch(

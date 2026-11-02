@@ -12,7 +12,8 @@ import { report } from "@/lib/errorLogger";
  * step is evidence, not a fourth guess.
  *
  * This records every write this hook performs and, once a caller crosses
- * WRITE_BURST inside WINDOW_MS, reports ONCE per mount with the actual loop
+ * WRITE_BURST inside WINDOW_MS while landing on one URL LOOP_REPEATS times
+ * (a loop, not a slider drag; see below), reports ONCE per mount with the actual loop
  * participants: which keys changed, the before/after query strings, and the
  * most recent adopt() decisions. That is precisely what has been missing —
  * every previous fix was reasoned from reading the code.
@@ -23,6 +24,19 @@ import { report } from "@/lib/errorLogger";
  */
 const WINDOW_MS = 10_000;
 const WRITE_BURST = 25;
+
+/**
+ * A burst is only reported as a LOOP when one query string comes round again
+ * and again inside the window (Q2506). Every loop this hook has had revisits
+ * the same URLs: the ~200-replaceState loop rewrote one URL, and the Q1476
+ * ping-pong alternated two. A person dragging the budget slider does not:
+ * Sentry JAVASCRIPT-25 on 2026-10-24 (/jobs, iPhone) was 25 writes in 10 s
+ * whose trail was `max=220 -> max=225 -> ... -> max=250`, one step each, and
+ * it was reported as "runaway writes" with nothing wrong. A drag back and
+ * forth crosses a value two or three times; a loop of 25 writes lands on its
+ * URLs a dozen times each.
+ */
+const LOOP_REPEATS = 5;
 
 /**
  * Circuit breaker. Past this many writes inside WINDOW_MS the hook stops
@@ -106,7 +120,7 @@ export function useSearchParamMirror(
 
   // Instrumentation state. Refs, so none of it can trigger a render and become
   // part of the very loop it is measuring.
-  const writeTimesRef = useRef<number[]>([]);
+  const writeTimesRef = useRef<{ t: number; to: string }[]>([]);
   const writeTrailRef = useRef<string[]>([]);
   const reportedRef = useRef(false);
   // What adopt() decided, most recent last. The write effect quotes this in its
@@ -185,11 +199,19 @@ export function useSearchParamMirror(
     // ── instrumentation ────────────────────────────────────────────────────
     // Record BEFORE writing, so a burst that ends in a crash is still counted.
     const now = Date.now();
-    const times = writeTimesRef.current.filter((t) => now - t < WINDOW_MS);
-    times.push(now);
+    const nextSearch = next.toString();
+    const times = writeTimesRef.current.filter((w) => now - w.t < WINDOW_MS);
+    times.push({ t: now, to: nextSearch });
     writeTimesRef.current = times;
+    const seen = new Map<string, number>();
+    let mostRepeats = 0;
+    for (const w of times) {
+      const n = (seen.get(w.to) ?? 0) + 1;
+      seen.set(w.to, n);
+      if (n > mostRepeats) mostRepeats = n;
+    }
     const trail = writeTrailRef.current;
-    trail.push(`${search || "(empty)"} -> ${next.toString() || "(empty)"}`);
+    trail.push(`${search || "(empty)"} -> ${nextSearch || "(empty)"}`);
     if (trail.length > 6) trail.shift();
 
     // Breaker: refuse the write rather than let the burst reach WebKit's
@@ -198,7 +220,7 @@ export function useSearchParamMirror(
     // attempted when it tripped.
     const tripped = times.length > WRITE_HARD_STOP;
 
-    if (times.length >= WRITE_BURST && !reportedRef.current) {
+    if (times.length >= WRITE_BURST && mostRepeats >= LOOP_REPEATS && !reportedRef.current) {
       reportedRef.current = true;
       report(new Error("useSearchParamMirror runaway writes"), {
         severity: "error",
@@ -207,6 +229,7 @@ export function useSearchParamMirror(
           mirror: label,
           writesInWindow: times.length,
           windowMs: WINDOW_MS,
+          mostRepeats,
           desired: JSON.stringify(desired).slice(0, 300),
           trail: trail.join(" | ").slice(0, 900),
           adoptTrail: adoptTrailRef.current.join(" | ").slice(0, 500),
@@ -222,7 +245,7 @@ export function useSearchParamMirror(
     // Q1476: the write is now IN FLIGHT. The URL will read `next` on a later
     // render, but the adopt effect below runs in THIS commit and still sees
     // `search`; it must not take that pre-write URL for an outside change.
-    inFlightRef.current = { from: search, to: next.toString() };
+    inFlightRef.current = { from: search, to: nextSearch };
     setSearchParamsRef.current(next, { replace: true });
     // Both deps are strings: once the write lands, `search` matches `desired`,
     // this re-runs once more, finds nothing changed, and stops.

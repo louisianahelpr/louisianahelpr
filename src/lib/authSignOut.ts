@@ -4,6 +4,7 @@ import { clearRememberedRoute } from "@/lib/lastRoute";
 import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
 import { clearSavedBunch, clearSavedSellOne } from "@/lib/declutter/bunchSaved";
+import { clearPendingSetupLink } from "@/lib/declutter/setupLinkPending";
 import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { markIntentionalSignOut } from "@/lib/unexpectedSignOut";
 import { clearNativeSessionMirror } from "@/integrations/supabase/keychainStorageAdapter";
@@ -153,6 +154,8 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // No data leaks (ProtectedRoute and RLS still gate it), yet it plainly
   // isn't B's app. Cheap to clear, so clear it.
   clearRememberedRoute();
+  // Q1942: an Add a Helpr order link left for PaymentSuccess to retry (ids only) is this account's, never the next.
+  clearPendingSetupLink();
   // ── THE FLOOR UNDER A FAILED SIGN-OUT ────────────────────────────────────
   // Owner, 2026-09-11: "i had to click log out twice to actually log out."
   //

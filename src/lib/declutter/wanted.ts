@@ -51,6 +51,12 @@ export interface WantedReply {
   created_at: string;
   /** Audit 10-30 #19: the listing's first photo, or null; absent before the migration is on prod. */
   photo_path?: string | null;
+  /** A3-77: when the seller's offer closes (absent before 20261102013814 is on prod). */
+  respond_by?: string | null;
+  /** A3-77: once accepted, the cart line's pay-by while it waits in the cart; null once paid or missed. */
+  checkout_by?: string | null;
+  /** A3-77: the accepted offer's order is paid (Close this post waits for it). */
+  paid?: boolean;
 }
 
 /** Q2267: a public Wanted post near the reader. Never a user id or coordinates (declutter_wanted_browse). */

@@ -26,6 +26,7 @@
 // @mutate src/components/profile/ProfileTabFallback.tsx | analytics: [{ h: 370 }], | analytics: [{ h: 481 }],
 // @mutate src/components/profile/ProfileTabFallback.tsx |     { h: 89, media: 1 },\n    { h: 71, media: 1 },\n    { h: 86, media: 1 }, |     { h: 74, media: 1 },\n    { h: 74, media: 1 },\n    { h: 74, media: 1 },
 // @mutate src/components/profile/ProfileTabFallback.tsx |     { h: 261, media: 3 }, |     { h: 196, media: 2 },
+// @mutate src/components/profile/ProfileTabFallback.tsx |   home_history: [{ h: 375, media: 1 }], |   home_history: [{ h: 384, media: 1 }],
 import { describe, expect, it, vi } from "vitest";
 vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null }));
 import { TAB_SHAPES } from "@/components/profile/ProfileTabFallback";
@@ -46,6 +47,9 @@ const MEASURED: Partial<Record<keyof typeof TAB_SHAPES, Measured>> = {
   // B164: h1 at y 12, h 49.3 (the title wraps), so the header row is 61; cards' h2 landmarks 88.3, 189.6, 272.1,
   // 370, 610.9; rows 6, rowH 86, rowRect.h 856.9. Sign-in methods is on (SOCIAL_SIGN_IN_ENABLED).
   security: { header: 61, rows: 6, rowH: 86, total: 856.9 },
+  // B164: helper-e2e (no record): one block under the header; rows 2, rowH 375, rowRect.h 443.4. poster-e2e's
+  // record is a long list that grows below (byDesign, the 09-19 screenful ruling).
+  home_history: { header: 57, rows: 2, rowH: 375, total: 443.4 },
 };
 
 /** Avatar/icon circles in the loaded frame (the measurer's media count; the header draws none, as the loading

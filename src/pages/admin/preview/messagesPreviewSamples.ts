@@ -73,8 +73,9 @@ export function messagesPreviewSample(stage: MessagesPreviewStage, side: Message
     read, read_at: read ? ago(minAgo - 1) : null, created_at: ago(minAgo), edited_at: null, attachment_url: null, attachment_mime: null,
     attachment_size: null, attachment_duration: null, reply_to_id: null, is_system: false, flagged_hidden: false, team_thread_user_id: null,
   });
+  // Audit 1102e: the thread said "Saturday morning" about a job on another day; it names only the time both agree on.
   const messages = stage === "empty" ? [] : [
-    msg(MP_JOB_RAKE, poster ? MP_ELI : me, poster ? me : MP_ELI, "Hi! I can do Saturday morning. Are the bags in the shed?", 180),
+    msg(MP_JOB_RAKE, poster ? MP_ELI : me, poster ? me : MP_ELI, "Hi! I can be there at 9 on the day. Are the bags in the shed?", 180),
     msg(MP_JOB_RAKE, poster ? me : MP_ELI, poster ? MP_ELI : me, "Yes, by the driveway. The gate code is on the job page.", 170),
     msg(MP_JOB_RAKE, poster ? MP_ELI : me, poster ? me : MP_ELI, "Great, see you at 9.", 20, false),
     msg(MP_JOB_MOVE, MP_MAYA, me, "I'm here, which door should I use?", 65, false),

@@ -132,13 +132,25 @@
       { "version": "20261031170803", "run_id": "41232537511" },
       { "version": "20261031171727", "run_id": "41232537511" },
       { "version": "20261031180550", "run_id": "41232537511" },
-      { "version": "20261031184552", "run_id": "41232537511" }
+      { "version": "20261031184552", "run_id": "41232537511" },
+      { "version": "20261031181404", "run_id": "41239476214" },
+      { "version": "20261031182255", "run_id": "41239476214" },
+      { "version": "20261031183416", "run_id": "41239476214" },
+      { "version": "20261031183631", "run_id": "41239476214" },
+      { "version": "20261031184338", "run_id": "41239476214" },
+      { "version": "20261031184929", "run_id": "41244020956" },
+      { "version": "20261031200034", "run_id": "41244020956" },
+      { "version": "20261031201036", "run_id": "41247712229" },
+      { "version": "20261031202929", "run_id": "41247712229" },
+      { "version": "20261031204932", "run_id": "41247712229" },
+      { "version": "20261031205315", "run_id": "41250398918" },
+      { "version": "20261031220326", "run_id": "41250398918" }
     ]
   },
   "acknowledged": [
     {
       "version": "20260923104534",
-      "why": "Q120. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T10:53:46Z 'Applying migration... file=20260923104534_blank_credential_url_is_absent.sql' after 'Cloning git repo... git_ref=main' at 10:53:39Z (push of 6e6af2a8a at ~10:53:00Z); 0 rows in migration_deploy_ledger at 10:53:57Z."
+      "why": "Q120. Applied by the Supabase GitHub integration (Q121), not db-deploy: prod workflow_run_logs 2026-09-23T10:53:46Z 'Applying migration... file=20260923104534_blank_credential_url_is_absent.sql' after 'Cloning git repo... git_ref=main' at 10:53:39Z (push of 6e6af2a8a at ~10:53:00Z); 0 rows in migration_deploy_ledger at 10:53:57Z. Added 2026-11-02 5:30 PM (L42, lead approve): 12 more pairs (runs 41239476214 x5, 41244020956 x2, 41247712229 x3, 41250398918 x2), recorded 2026-10-31 20:47Z..23:09Z. These were not deleted by hand: they expired on the repo's old 2-day Actions retention (Q2498; the lead raised it to 30 days at about 22:50Z on 11-02, and runs created before then keep the 2-day clock). L42 measured GET actions/runs/<id> 404 for all 4 at 23:25Z on 11-02 while checking every receipt run recorded since 2026-10-19 12:00Z that is not already listed (100 runs; only these 4 and five 10-19 runs, already past minAgeDays, are gone). db-deploy run 41541740234 on main e932bc15b6 listed exactly these 12; its Push step applied nothing and its receipts and post-deploy steps succeeded."
     },
     {
       "version": "20260923105333",

@@ -33,7 +33,7 @@ vi.mock("@/lib/sentry", () => ({ captureException: sentrySpy }));
 vi.mock("@/lib/posthog", () => ({ captureException: vi.fn() }));
 
 import { report } from "./errorLogger";
-import { clearSessionLost, markSignedOut, SIGNED_OUT_NOISE_MS } from "./permissionDenied";
+import { clearSessionLost, markSignedOut, releaseHeldDenials, SIGNED_OUT_NOISE_MS } from "./permissionDenied";
 
 const denied = (what: string) => ({ message: `permission denied for ${what}`, code: "42501", details: null, hint: null });
 
@@ -70,6 +70,7 @@ describe("Q2507/Q2515: denials of reads in flight at sign-out are not reported",
   it("once the window has passed, a guest page's denial reports again", async () => {
     markSignedOut(Date.now() - SIGNED_OUT_NOISE_MS - 1);
     report(denied("table jobs"), { tags: { source: "QueryCache" } });
+    releaseHeldDenials(); // Q2295: a denial outside the window is held until the session-loss check says "not lost"
     const msgs = await loggedMessages();
     expect(msgs.some((m) => m.startsWith("permission denied for table jobs"))).toBe(true);
     expect(sentToSentry()).toContain("permission denied for table jobs");
@@ -86,6 +87,7 @@ describe("Q2507/Q2515: denials of reads in flight at sign-out are not reported",
     markSignedOut();
     clearSessionLost();
     report(denied("table jobs"), { tags: { source: "QueryCache" } });
+    releaseHeldDenials(); // Q2295 hold, released by the "not lost" answer
     const msgs = await loggedMessages();
     expect(msgs.some((m) => m.startsWith("permission denied for table jobs"))).toBe(true);
   });

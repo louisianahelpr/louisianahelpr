@@ -56,7 +56,7 @@ describe("a Helpr can suggest another day/time; hiring them agrees to it (owner 
     // The note renders whenever the applicant suggested a time (not behind any other condition).
     expect(dlg).toMatch(/\{suggestedTime && \(when \|\| suggestedLabel\) && \(\s*<div[\s\S]{0,400}?data-hire-agrees-to-suggestion=""[\s\S]{0,200}?you&rsquo;re also agreeing to their suggested time/);
     expect(dlg).toMatch(/It keeps the new time even if they don&rsquo;t accept\./);
-    expect(dlg).toMatch(/suggestedTime \? "Agree and send offer" : "Send offer"/);
+    expect(dlg).toMatch(/suggestedTime \? `Agree and hire \$\{them\}` : `Hire \$\{them\}`/);
     const mount = read("src/components/job-card/ActivityDialogs.tsx");
     expect(mount).toMatch(/suggestedTime=\{\s*props\.deadlineDialogApp\.suggested_date/);
   });

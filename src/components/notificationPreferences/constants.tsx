@@ -114,7 +114,7 @@ export const rows: Row[] = [
 
 // ── The "Declutter" group (owner 2026-10-28, via the lead: "Yes, build them") ──
 // One row per declutter_* notification type (20261028162048). Shown only while
-// Declutter is on for the member; Wanted matches only while Wanted is.
+// Declutter is on for the member; Wanted matches too, as it also governs saved Declutter searches (Q2464).
 // Labels are one or two short words, inside the 375px budget described above.
 // Pickups, price drops and Wanted matches are the only kinds that send a notice
 // email, so the other rows show a dash in the Email column rather than a switch that does
@@ -136,5 +136,5 @@ export const declutterRows: Row[] = [
   { key: "declutter_pickups", emailKey: "email_declutter_pickups", label: "Pickups", description: "Pickup and delivery times, reminders and updates.", icon: <CalendarClock className="w-3.5 h-3.5" /> },
   { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", description: "Refund requests, reported problems and strikes.", icon: <Undo2 className="w-3.5 h-3.5" />, noEmailSwitch: "Refund receipts are always emailed" },
   { key: "declutter_price_drops", emailKey: "email_declutter_price_drops", label: "Price drops", description: "An item you watch got cheaper or free.", icon: <TrendingDown className="w-3.5 h-3.5" /> },
-  { key: "declutter_wanted", emailKey: "email_declutter_wanted", label: "Wanted matches", description: "A listing matches something you posted on Wanted.", icon: <Search className="w-3.5 h-3.5" /> },
+  { key: "declutter_wanted", emailKey: "email_declutter_wanted", label: "Wanted matches", description: "Your Wanted posts and saved Declutter searches.", icon: <Search className="w-3.5 h-3.5" /> },
 ];

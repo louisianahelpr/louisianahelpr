@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-02T01:44Z",
+  "measured_at": "2026-11-02T01:55Z",
   "issues": {
     "readable": true,
     "open": [
@@ -139,7 +139,7 @@
         "number": 3967,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41373506163",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41374830330",
         "runTruncated": false
       }
     ]
@@ -361,6 +361,14 @@
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load jobs.",
+        "issue": null
+      },
+      {
+        "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
+        "source_kind": "workflow",
+        "source": "uptime",
+        "status": "open",
+        "title": "guest marketplace is empty: no funded jobs (pre-launch)",
         "issue": null
       },
       {
@@ -1076,6 +1084,7 @@
     "ledger 0bebf0385b3e": "Q1615",
     "ledger 0d3beba829ae": "Q2500",
     "ledger 0d4554b4c366": "Q2548",
+    "ledger 0e88968519a2": "Q2554",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 104294997a13": "Q2293",
     "ledger 11d7173a8901": "Q1816",

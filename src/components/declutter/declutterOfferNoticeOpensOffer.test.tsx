@@ -10,7 +10,6 @@
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>\n      ) | <OfferRow key={o.offer_id} o={o} />)}</ul>\n      )
  * @mutate src/components/declutter/DeclutterOffersSection.tsx |   const closedOpen = showClosed ?? (linkedOffer !== null && closed.some((o) => o.offer_id === linkedOffer)); |   const closedOpen = showClosed ?? false;
  * @mutate src/components/declutter/DeclutterOffersSection.tsx |   const closedOpen = showClosed ?? (linkedOffer !== null && closed.some((o) => o.offer_id === linkedOffer)); |   const closedOpen = !!showClosed \|\| (linkedOffer !== null && closed.some((o) => o.offer_id === linkedOffer));
- * @mutate src/components/declutter/useLinkedOrder.ts |   return id && UUID.test(id) ? id : null;\n} |   return id;\n}
  * @mutate supabase/migrations/20261102124421_declutter_offer_notices_open_the_offer.sql |       RETURN p_link \|\| '&offer=' \|\| v_offer; |       RETURN p_link;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";

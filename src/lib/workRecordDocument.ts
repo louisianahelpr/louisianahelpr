@@ -179,6 +179,12 @@ export interface WorkRecordJobDates {
   date_needed: string | null;
   /** `jobs.created_at` — when the job was POSTED. NOT NULL, always. */
   created_at: string;
+  /**
+   * `jobs.completed_at` — when the job was completed (an instant). Q1999: a job finished BEFORE its
+   * `date_needed` was worked on the day it was finished, so the earlier of the two counts. Optional so the
+   * older callers and fixtures that carry only the two columns above still type.
+   */
+  completed_at?: string | null;
 }
 
 /**
@@ -236,7 +242,17 @@ function workDayOf(job: WorkRecordJobDates): string | null {
   // but a future view or RPC that widens it to a timestamp would otherwise
   // fail the regex and drop the row to the fallback for no reason.
   const needed = job.date_needed?.slice(0, 10);
-  if (needed && ISO_DAY.test(needed)) return needed;
+  if (needed && ISO_DAY.test(needed)) {
+    // Q1999: completed early (helper-e2e's record read "October 2026 - November 2026" on Oct 17 for a job done
+    // Oct 17 but needed Nov 8): the Chicago day it was completed, when that is earlier. Never a later day: a job
+    // approved after its day was still worked on its day.
+    const done = job.completed_at ? new Date(job.completed_at) : null;
+    if (done && !Number.isNaN(done.getTime())) {
+      const doneDay = done.toLocaleDateString("en-CA", { timeZone: PLATFORM_TIME_ZONE });
+      if (ISO_DAY.test(doneDay) && doneDay < needed) return doneDay;
+    }
+    return needed;
+  }
   const posted = new Date(job.created_at);
   if (Number.isNaN(posted.getTime())) return null;
   // `en-CA` formats as YYYY-MM-DD; the zone is pinned for the same reason

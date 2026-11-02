@@ -183,6 +183,34 @@ describe("active period reads the day worked, not the day posted", () => {
    * silently reports a shorter career than the helper actually has, with
    * nothing on the page telling the reader anything was left out.
    */
+  // @mutate src/lib/workRecordDocument.ts | if (ISO_DAY.test(doneDay) && doneDay < needed) return doneDay; | if (ISO_DAY.test(doneDay) && doneDay > needed) return doneDay;
+  // Q1999 (sec-b, 2026-10-17): helper-e2e's record, generated Oct 17, read "October 2026 - November 2026" because
+  // a job completed 2026-10-17 carried date_needed 2026-11-08. A job finished early was worked on the day it was
+  // finished, so the record names the earlier of the two days, never a month that has not happened.
+  it("a job completed before its date_needed counts on the day it was completed (Chicago)", () => {
+    const range = resolveWorkDayRange([
+      { created_at: "2026-10-10T12:00:00Z", date_needed: "2026-11-08", completed_at: "2026-10-17T20:00:00Z" },
+    ]);
+    expect(range).toEqual({ first: "2026-10-17", last: "2026-10-17" });
+    // 03:30 UTC on 1 Nov is still 31 Oct in Louisiana.
+    const late = resolveWorkDayRange([
+      { created_at: "2026-10-10T12:00:00Z", date_needed: "2026-11-08", completed_at: "2026-11-01T03:30:00Z" },
+    ]);
+    expect(late).toEqual({ first: "2026-10-31", last: "2026-10-31" });
+    // Completed AFTER the day needed (approved late): still the day needed.
+    const after = resolveWorkDayRange([
+      { created_at: "2026-10-01T12:00:00Z", date_needed: "2026-10-05", completed_at: "2026-10-09T15:00:00Z" },
+    ]);
+    expect(after).toEqual({ first: "2026-10-05", last: "2026-10-05" });
+    // No completed_at, or an unparseable one: date_needed alone, as before.
+    expect(
+      resolveWorkDayRange([{ created_at: "2026-10-01T12:00:00Z", date_needed: "2026-10-05", completed_at: null }]),
+    ).toEqual({ first: "2026-10-05", last: "2026-10-05" });
+    expect(
+      resolveWorkDayRange([{ created_at: "2026-10-01T12:00:00Z", date_needed: "2026-10-05", completed_at: "nope" }]),
+    ).toEqual({ first: "2026-10-05", last: "2026-10-05" });
+  });
+
   it("a null date_needed falls back to that row's created_at, never dropping it", () => {
     const range = resolveWorkDayRange([
       { created_at: "2026-03-10T12:00:00Z", date_needed: null },

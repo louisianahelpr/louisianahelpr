@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { formatName } from "@/lib/utils";
 import { NextStep } from "@/components/ui/NextStep";
@@ -111,9 +112,9 @@ function GrantSetup() {
           </div>
         ) : (
           <div>
-            <label htmlFor="manager-search" className="block text-ds-13 font-medium">Member's name</label>
-            <Input id="manager-search" type="search" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)}
-              className="mt-1" placeholder="Search by name" />
+            {/* The shared search row (its ✕ clears the box; searchFieldsAllChecked presses it), named for this picker. */}
+            <p className="mb-1 block text-ds-13 font-medium" aria-hidden>Member's name</p>
+            <SectionSearchRow value={query} onChange={setQuery} placeholder="Search by name" searchLabel="Member's name" />
             {hits.data && hits.data.length > 0 && (
               <ul className="mt-2 divide-y divide-border rounded-xl border border-border" aria-label="Members">
                 {hits.data.map((m) => (

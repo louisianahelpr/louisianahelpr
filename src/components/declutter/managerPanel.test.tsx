@@ -101,7 +101,7 @@ describe("the seller's grant setup", () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: "Ask someone" }));
     expect(screen.getByText("Next: pick who helps you")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Member's name"), { target: { value: "Da" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search by name" }), { target: { value: "Da" } });
     fireEvent.click(await screen.findByRole("button", { name: "Dana R." }));
     expect(screen.getByText("$40 sale · $8 to Dana · $32 to you")).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "$ per item" }));
@@ -116,7 +116,7 @@ describe("the seller's grant setup", () => {
   it("no part on: Send offer stays off", async () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: "Ask someone" }));
-    fireEvent.change(screen.getByLabelText("Member's name"), { target: { value: "Da" } });
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search by name" }), { target: { value: "Da" } });
     fireEvent.click(await screen.findByRole("button", { name: "Dana R." }));
     const boxes = screen.getAllByRole("checkbox");
     expect(boxes.length).toBe(5);

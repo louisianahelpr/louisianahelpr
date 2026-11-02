@@ -24,14 +24,23 @@ function DeclutterSettings() {
   return (
     <AppPage title="Declutter settings" backTo="/declutter?tab=selling">
       <div className="space-y-section pb-6" data-testid="declutter-settings">
-        <SellPorchPlaces card />
-        {/* B110 (owner 11-01): the seller's own public meet spots, for buyers choosing Meet up. */}
-        <SellMeetupSpots />
-        {/* Lead's call 2026-10-31: the usual times are only for meetups, so they show only when a meetup is offered. */}
-        <MeetupTimesCard userId={user.id} />
-        <section className="space-y-2" aria-label="Listing defaults">
-          <SectionHeading title="Listing defaults" />
-          <ListingDefaultsCard userId={user.id} />
+        {/* Q2574 (audit 1102a): Browse's gear opens this page, and a buyer met only seller setup (places, meet spots,
+            listing defaults) with Notifications, the one part for them, below a long scroll. The seller block says it
+            is for selling; places still come first in it (sellers couldn't find how to add a second address). */}
+        <section className="space-y-2" aria-label="Selling" data-settings-selling="">
+          <SectionHeading title="Selling" />
+          <p className="text-ds-13 text-muted-foreground">Notifications for buying and selling are at the end.</p>
+          <div className="space-y-section">
+            <SellPorchPlaces card />
+            {/* B110 (owner 11-01): the seller's own public meet spots, for buyers choosing Meet up. */}
+            <SellMeetupSpots />
+            {/* Lead's call 2026-10-31: the usual times are only for meetups, so they show only when a meetup is offered. */}
+            <MeetupTimesCard userId={user.id} />
+            <section className="space-y-2" aria-label="Listing defaults">
+              <SectionHeading title="Listing defaults" />
+              <ListingDefaultsCard userId={user.id} />
+            </section>
+          </div>
         </section>
         {/* LEAD-BUNDLE-DROPDOWN / LEAD-DELIVER-TWICE (owner 2026-10-31): the bundle discount is a row in Listing defaults
             under the free-after row, and delivery's price and times open under its "I'll deliver" tick, so the old

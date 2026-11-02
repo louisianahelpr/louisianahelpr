@@ -39,6 +39,7 @@ export const REQUIRED_ACTIVE = [
   "db-restore-drill.yml",
   "dependabot-auto-merge.yml",
   "e2e-abuse-notifications.yml",
+  "e2e-journeys-light.yml",
   "e2e-journeys.yml",
   "e2e-real-backend.yml",
   "edge-function-smoke.yml",

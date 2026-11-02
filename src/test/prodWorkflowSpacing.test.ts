@@ -103,6 +103,11 @@ export const EXEMPT: Record<string, string> = {
     "A monitor, not a suite: its only prod touch is CJ-011's cron-detectors-alive.mjs, one read-only " +
     "Management API query of cron.job / cron.job_run_details for four jobs, once a day. The rest " +
     "of the workflow reads the GitHub API. Nothing it does loads prod the way a suite does.",
+  "quota-monitor.yml":
+    "A monitor, not a suite (OPS-2, lead option A 2026-11-01): one read-only Management API SQL statement per " +
+    "check (quota, analytics freshness) plus one Management API logs query, a Stripe TEST balance GET and " +
+    "ledger items, once a day at 23:17. No browser, no journey, no member data written. Exempting it gave " +
+    "e2e-journeys-light.yml the 23:17 slot on Sun/Mon/Wed, the only nights the full live run skips.",
   "feature-switch-audience.yml":
     "A monitor, not a suite (hidden feature switches, 20261012031120): one service-role read of " +
     "feature_switches (a handful of rows), one auth user lookup for its probe account, three " +
@@ -707,7 +712,34 @@ describe("prod-hitting workflow schedules", () => {
     // 07:17 and Thu 11:17; open-done-when moved Sun/Thu 05:17 -> Tue/Fri 07:17 so
     // vacuity could start at Sun 05:17 and db-drift-detect got its Sunday back.
     // 2026-11-01 (OPS-2, B65): e2e-real-backend took Thu 05:17 (4 runs a week).
-    expect(free).toEqual(["Thu 11:17"]);
+    // 2026-11-01 (OPS-2, lead option A): quota-monitor became an EXEMPT monitor, so
+    // 23:17 is free on the four days e2e-journeys-light.yml (Sun/Mon/Wed 23:17) does not take.
+    expect(free).toEqual(["Tue 23:17", "Thu 11:17", "Thu 23:17", "Fri 23:17", "Sat 23:17"]);
+  });
+
+  // OPS-2 (owner 2026-11-01: the nightly live test EVERY night; lead option A):
+  // every UTC day of the week carries a scheduled live run of the journeys,
+  // the full ones (e2e-real-backend, e2e-journeys) or the light one, and the
+  // light one stays light (<= 20 min of browser time, chromium, three specs).
+  // @mutate .github/workflows/e2e-journeys-light.yml | - cron: "17 23 * * 0,1,3" | - cron: "17 23 * * 0,1"
+  // @mutate .github/workflows/e2e-journeys-light.yml | timeout-minutes: 20 | timeout-minutes: 48
+  // @mutate .github/workflows/e2e-journeys-light.yml | e2e/journeys/01-browse.spec.ts e2e/journeys/02-marketplace.spec.ts e2e/journeys/03-account.spec.ts |
+  it("OPS-2: a live journeys run is scheduled on every day of the week, and the light run stays light", () => {
+    const live = ["e2e-real-backend.yml", "e2e-journeys.yml", "e2e-journeys-light.yml"];
+    const days = new Set<number>();
+    for (const file of live) {
+      const w = wfs.find((x) => x.file === file);
+      expect(w, file).toBeDefined();
+      for (const c of w!.crons) for (const at of fireMinutes(c)) days.add(Math.floor(at / 1440));
+    }
+    expect([...days].sort()).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    const light = wfs.find((x) => x.file === "e2e-journeys-light.yml")!;
+    const doc = parseYaml(light.src) as { jobs: Record<string, { steps?: { run?: string; "timeout-minutes"?: number }[] }> };
+    const runs = Object.values(doc.jobs).flatMap((j) => j.steps ?? []).filter((st) => /npx playwright test/.test(st.run ?? ""));
+    expect(runs.length).toBe(1);
+    expect(runs[0]["timeout-minutes"]).toBeLessThanOrEqual(20);
+    expect(runs[0].run).toMatch(/--project=journeys /);
+    expect(runs[0].run).toMatch(/e2e\/journeys\/01-browse\.spec\.ts e2e\/journeys\/02-marketplace\.spec\.ts e2e\/journeys\/03-account\.spec\.ts$/);
   });
 
   it("rule 5 can fail: the Q318 shape (press 03:17 with two waves, drift 05:17, backup 07:17) is red", () => {

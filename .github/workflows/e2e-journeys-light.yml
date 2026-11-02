@@ -1,0 +1,287 @@
+name: E2E user journeys (light)
+
+# OPS-2 (owner 2026-11-01 8:13 PM: "the nightly live test every night"; lead
+# decision 9:27 PM and option A at ~9:40 PM). The full live runs keep their
+# nights: e2e-real-backend Tue/Thu/Fri/Sat and e2e-journeys Tue/Thu/Fri (both
+# chromium + webkit). On the three UTC days with no full live run (Sun, Mon,
+# Wed) this LIGHT run drives the core journeys once: browse, the marketplace
+# loop and the account journey (e2e/journeys/01-03), chromium only, at most 20
+# minutes of browser time.
+#
+# WHY 23:17 UTC (6:17 PM Central, 5:17 PM in winter): measured with
+# prodWorkflowSpacing.test.ts's own helpers, no other :17 slot on Sun/Mon/Wed
+# clears the prod-load rules. 13:17-01:17 already holds a daily fire every
+# day, Sun 03:17-11:17 sits inside prod-audit (232 min) then vacuity (402),
+# and Mon/Wed 05:17-11:17 inside press-every-control (357) then
+# a11y-webkit-prod (167). Option A (lead): quota-monitor, a read-only monitor
+# that also fires at 23:17, became an EXEMPT monitor (not a suite), so this
+# run takes 23:17 alone. Its worst case (prod-load-turn queue + 2 + 30 + 5)
+# ends long before Mon/Tue/Thu 01:17 (rule 5).
+#
+# Same safety as e2e-journeys.yml, copied from it: only the shared E2E test
+# accounts and per-run throwaway accounts, a local build of this commit (never
+# the deployed site, noTestTrafficOnVercel), the stranded-row sweep before and
+# the unwind after, Stripe payment legs SKIP on a live key, the shared-account
+# lock, and the prod-load queue. The journeys fixture blocks service workers
+# (e2e/journeys/fixtures.ts), so no write leaves through a worker. Its result
+# goes to its OWN nightly-red issue (e2e-journeys-light), so a green light run
+# never closes a red the full run opened.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "17 23 * * 0,1,3"
+  workflow_dispatch:
+
+# A scheduled run is ordered by the prod-load-turn job below (Q1161); this
+# group is per run, so GitHub has nothing to cancel, and a dispatch never sits
+# in a shared group (prodWorkflowSpacing rule 4).
+concurrency:
+  group: ${{ format('e2e-journeys-light-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  # Q1161 (2026-10-04): THE PROD-LOAD QUEUE. A scheduled run waits here until no
+  # OLDER scheduled prod-load run is still in flight, then every other job runs
+  # (they all `needs:` this one). Replaces the shared workflow-level
+  # `prod-load` group: GitHub keeps one pending run per group and cancelled the
+  # third arrival, and crons arrive 127-501 min late, so they bunch.
+  # scripts/ci/wait-prod-load.mjs; src/test/prodLoadQueue.test.ts.
+  prod-load-turn:
+    name: Wait for the prod-load queue (first in, first served)
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/ci/wait-prod-load.mjs
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until no older scheduled prod-load run is in flight
+        run: node scripts/ci/wait-prod-load.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+  preflight:
+    needs: prod-load-turn
+    name: What can run
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      have_accounts: ${{ steps.check.outputs.have_accounts }}
+    steps:
+      - id: check
+        env:
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+        run: |
+          if [ -n "$POSTER_EMAIL" ] && [ -n "$POSTER_PASSWORD" ] && [ -n "$HELPER_EMAIL" ] && [ -n "$HELPER_PASSWORD" ]; then
+            echo "have_accounts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have_accounts=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Journeys NOT run::PLAYWRIGHT_POSTER_EMAIL/_PASSWORD and PLAYWRIGHT_HELPER_EMAIL/_PASSWORD are not set."
+            echo "- **User journeys: NOT COVERED** — the shared E2E account secrets are missing." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  wait-accounts:
+    # Q743: the job-level lock below is NOT a queue. GitHub keeps ONE pending job
+    # per concurrency group and CANCELS it when a third arrives (press 36297157445,
+    # e2e-journeys 36215839785 / 36215921402 / 36217255758). This lock-free job
+    # waits its turn first and joins the group only when that bumps nobody
+    # (scripts/e2e/wait-shared-accounts.mjs; src/test/sharedAccountLockQueues.test.ts).
+    name: Wait for the shared accounts (queue)
+    needs: preflight
+    if: needs.preflight.outputs.have_accounts == 'true'
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs; a single holder takes at most 60 (sharedAccountLockJobsAreShort.test.ts; prod-audit was the 180-minute one until Q889).
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  journeys:
+    name: Light journeys (core, chromium)
+    needs: [preflight, wait-accounts]
+    if: needs.preflight.outputs.have_accounts == 'true'
+    runs-on: ubuntu-latest
+    # Locked jobs hold the shared accounts <= 60 min (sharedAccountLockJobsAreShort.test.ts).
+    # Measured 2026-09-30: journeys max 30.3 min over 44 runs, journeys-webkit max
+    # 24.3 min among completed runs. 2026-10-12 (60 runs, 09-28..10-12): journeys
+    # max 16.5 min, journeys-webkit max 43.1 (run 37818197264). 56, not 60, so the
+    # run's worst case (2 + 56 + 56 + 5 = 119) ends inside one 120-min :17 slot and
+    # open-done-when can take Tue/Fri 07:17 (Q1721, prodWorkflowSpacing rule 5).
+    # Light: the three core journey specs only. Measured 2026-10-12 (60 runs):
+    # the WHOLE chromium journeys set took at most 16.5 min; the run step is
+    # capped at 20 min of browser time (lead, 11-01), the job at 30 with the
+    # install, build, sweep and unwind around it.
+    timeout-minutes: 30 # light journeys leg (chromium)
+    # Workflow-level group is prod-load now; this job-level lock keeps the
+    # shared-account serialisation with e2e-real-backend's push-triggered
+    # prod-lifecycle job, which holds the same group.
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+      PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+      PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+      # trailing-icon's /complete-profile leg signs this seed account in
+      # (optionalSession); without it that leg skipped UNJUSTIFIED (#1719).
+      PLAYWRIGHT_INCOMPLETE_EMAIL: ${{ secrets.PLAYWRIGHT_INCOMPLETE_EMAIL }}
+      PLAYWRIGHT_INCOMPLETE_PASSWORD: ${{ secrets.PLAYWRIGHT_INCOMPLETE_PASSWORD }}
+      # J8 presses Log Out, which today signs the account out on every device
+      # (docs/OPEN.md). Allowed here only: this job holds the shared-accounts
+      # concurrency group, and each run mints fresh sessions by password.
+      JOURNEY_GLOBAL_SIGNOUT_OK: "1"
+      # Three specs, not the suite: metered under their own label
+      # (e2e/request-budgets.json "journeys-light"), so the suite's measured
+      # per-test budget is never judged against a slice of it (Q104, Q1175).
+      REQUEST_BUDGET_LABEL: journeys-light
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: bash scripts/ci/playwright-install.sh chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+
+      - name: Provide the service-role key to the journeys (throwaway accounts, Q226/Q253)
+        # 04-admin-safety.spec.ts bans a THROWAWAY account and hires one for the
+        # no-show journey, so it creates and deletes per-run @mailinator users
+        # with the service role, as privacy-journey.yml does. Set AFTER the
+        # build above, so it can never reach the bundle.
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+        run: |
+          set -euo pipefail
+          KEY=$(npx --yes supabase@2 projects api-keys --project-ref "$PROJECT_REF" --reveal -o json \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const k=JSON.parse(s).find(x=>x.name==="service_role");if(!k){process.exit(3)}process.stdout.write(k.api_key)})')
+          echo "::add-mask::$KEY"
+          test -n "$KEY"
+          # An env var, NOT a .env file: a .env in the checkout switches other
+          # journeys (trailing-icon's incomplete-e2e mint) into local mode.
+          echo "SUPABASE_SERVICE_ROLE_KEY=$KEY" >> "$GITHUB_ENV"
+      - name: The shared test accounts hold no Stripe account (nightly-red #2436)
+        # A seat with a Stripe account is not a ready Helpr (accept_job_offer:
+        # pending_setup). The sweeps below fail on it by name; a dispatch with
+        # restore_seat_stripe unlinks it first, printing each row before/after.
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+        run: node scripts/e2e/seatStripeAccounts.mjs
+      - name: Sweep anything a previous run stranded
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: pre
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a poster token"; exit 1; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            bash scripts/e2e/sweep-both-seats.sh
+
+      - name: Run the core journeys (light)
+        timeout-minutes: 20
+        run: npx playwright test --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts e2e/journeys/01-browse.spec.ts e2e/journeys/02-marketplace.spec.ts e2e/journeys/03-account.spec.ts
+
+      - name: Backend request budget (Q104)
+        # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
+        # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label journeys-light
+      - name: Keep milestones, failure screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: journeys-light-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Unwind this run's rows even on failure
+        if: always()
+        env:
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+          POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+          POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+          HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+          HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+          SWEEP_PHASE: teardown
+          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}
+          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }}
+        run: |
+          set -euo pipefail
+          URL="${SUPABASE_URL:-https://fncmgoasalhdgfwzhsqa.supabase.co}"
+          KEY="${SUPABASE_ANON_KEY:-sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP}"
+          TOKEN=$(bash scripts/e2e/mint-poster-token.sh) || { echo "::error::could not mint a token for teardown (Q52: an unwind that did not run is not green)"; exit 1; }
+          SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
+            bash scripts/e2e/sweep-both-seats.sh
+
+  # Its own nightly-red issue (.github/actions/nightly-issue-sync): a light run
+  # proves three specs on chromium, so it must never close e2e-journeys' issue.
+  notify:
+    name: Report nightly result
+    needs: [preflight, journeys]
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' && (github.event_name == 'schedule'
+      || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: write
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: e2e-journeys-light
+          status: ${{ (needs.preflight.result == 'success' && needs.journeys.result == 'success') && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

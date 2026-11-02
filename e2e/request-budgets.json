@@ -25,6 +25,7 @@
       "perTest": 51.9,
       "signIns": 0
     },
+    "journeys-light": {},
     "prod-audit": {
       "perTest": 138.2,
       "signIns": 12

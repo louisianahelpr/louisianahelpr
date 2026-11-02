@@ -44,7 +44,7 @@
 // @mutate supabase/functions/email-unsubscribe/index.ts |       console.error('[email-unsubscribe] consent read failed; opting out without a record:', readError.message) |       throw new Error(readError.message)
 // @mutate supabase/functions/email-unsubscribe/index.ts |   const untouched = profile.marketing_consent === false && (await readEmailPromotions(supabase, userId)) === false |   const untouched = true
 // @mutate supabase/functions/email-unsubscribe/index.ts |           .is('promotions_before_unsubscribe', null) |
-// @mutate supabase/migrations/20261019010447_promotions_before_unsubscribe.sql |     'promotions_before_unsubscribe'\n  ]::text[]; |     'auto_suspended_until_x'\n  ]::text[];
+// @mutate supabase/migrations/20261102092917_phone_locked_against_grant_sync.sql |     'promotions_before_unsubscribe',\n    -- ADDED 20261102092917 |     'auto_suspended_until_x',\n    -- ADDED 20261102092917
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";

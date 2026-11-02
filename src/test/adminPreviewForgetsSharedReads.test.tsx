@@ -13,12 +13,14 @@
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |       undoRealtime();\n      forgetSharedReads(); |       undoRealtime();
  * @mutate src/pages/admin/preview/previewParts.tsx |   forgetAllBlockReads();\n  forgetActivityCoresRead(); |   forgetAllBlockReads();
  * @mutate src/pages/admin/preview/previewParts.tsx |   forgetAllBlockReads();\n  forgetActivityCoresRead(); |   forgetActivityCoresRead();
+ * @mutate src/pages/admin/preview/MessagesPreviewPage.tsx |   useLayoutEffect(() => {\n    forgetSharedReads();\n  }, [sample]); |   useLayoutEffect(() => {\n  }, [sample]);
+ * @mutate src/pages/admin/preview/MessagesPreviewPage.tsx | onLeave={() => navigate("/admin?view=reports")} | onLeave={() => navigate("/admin?tab=settings")}
  * @mutate src/lib/userBlocks.ts | export function forgetAllBlockReads(): void {\n  blockReads.clear(); | export function forgetAllBlockReads(): void {\n  void blockReads;
  * @mutate src/lib/activityCores.ts | export function forgetActivityCoresRead(): void {\n  inFlight = null; | export function forgetActivityCoresRead(): void {\n  void inFlight;
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { cleanup, render, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const ADMIN_ID = "11111111-1111-4111-8111-111111111111";
@@ -54,12 +56,20 @@ afterEach(() => {
   globalThis.fetch = realFetch;
 });
 
+let where = "";
+function Where() {
+  const l = useLocation();
+  where = `${l.pathname}${l.search}`;
+  return null;
+}
+
 function renderAt(url: string, el: JSX.Element, route: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[url]}>
-        <Routes><Route path={route} element={el} /></Routes>
+        <Where />
+        <Routes><Route path={route} element={el} /><Route path="/admin" element={<p>ADMIN</p>} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -110,5 +120,27 @@ describe("the admin previews drop the app's shared reads when they open and clos
     view.unmount();
     expect(readUserBlockRows(ADMIN_ID)).not.toBe(inside);
     expect(fetchActivityCores(ADMIN_ID)).not.toBe(coresInside);
+  }, 30000);
+
+  // Audit 1102e: "After a block" opened from another stage kept Eli in the inbox: the inbox stage's block read (no
+  // blocks) was still held (2 s) and reused. A new stage drops it, so the blocked stage reads its own sample's block.
+  it("Messages preview: switching to After a block reads that stage's block, not the last stage's", async () => {
+    const view = renderAt("/admin/preview/messages?stage=inbox&side=poster", <MessagesPreviewPage />, "/admin/preview/messages");
+    await drawn();
+    const inboxRead = readUserBlockRows(ADMIN_ID);
+    expect(await blockedIds(inboxRead)).toEqual([]);
+    fireEvent.click(screen.getByRole("radio", { name: "After a block" }));
+    await waitFor(() => expect(document.querySelector('[data-preview-view="blocked:poster"]')).not.toBeNull());
+    const blockedRead = readUserBlockRows(ADMIN_ID);
+    expect(blockedRead).not.toBe(inboxRead);
+    expect((await blockedIds(blockedRead)).length).toBe(1);
+    view.unmount();
+  }, 30000);
+
+  it("Messages preview: Leave goes back to Admin > Reports, where it is opened from", async () => {
+    openMessages();
+    await drawn();
+    fireEvent.click(screen.getByRole("button", { name: "Leave" }));
+    await waitFor(() => expect(where).toBe("/admin?view=reports"));
   }, 30000);
 });

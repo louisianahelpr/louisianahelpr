@@ -1,14 +1,11 @@
 /**
- * /declutter — Declutter's own tab (spec rows 1, 2). Section dashboard
- * (owner, 2026-10-19): the shared top bar and Browse | Buying | Selling, Browse
- * leftmost and the default; Wanted and Deliver are sub-views at ?view=.
- * Tabs (src/lib/declutter/tabs.ts): Browse (nearest first, a distance
- * filter in the slide-up sheet, area + miles only: rows 5, 27) · Buying (cart, your offers,
- * purchases) · Selling (your listings with every status in plain words, incl.
- * waiting for a review: row 33; offers on your items; sales waiting to be paid;
- * paid sales and payouts) · Deliver · Wanted · Free (the live free items nearby, OWN-FREE). Old links (?view=mine|offers|cart)
- * open the tab that now holds them. Hidden unless the 'declutter' switch is on
- * for the member (DeclutterGate).
+ * /declutter — Declutter's own tab (spec rows 1, 2). Section dashboard (owner, 2026-10-19): the shared top bar and
+ * Browse | Buying | Selling, Browse leftmost and the default; Wanted and Deliver are sub-views at ?view=.
+ * Tabs (src/lib/declutter/tabs.ts): Browse (nearest first, a distance filter in the slide-up sheet, area + miles only:
+ * rows 5, 27) · Buying (cart, your offers, purchases) · Selling (your listings with every status in plain words, incl.
+ * waiting for a review: row 33; offers on your items; sales waiting to be paid; paid sales and payouts) · Deliver ·
+ * Wanted · Free (the live free items nearby, OWN-FREE). Old links (?view=mine|offers|cart) open the tab that now holds
+ * them. Hidden unless the 'declutter' switch is on for the member (DeclutterGate).
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -190,13 +187,11 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
     },
   });
   const haulById = useMemo(() => new Map<string, HaulAwayRow>((haul.data?.rows ?? []).map((r) => [r.item_id, r])), [haul.data]);
-  // An unpaid haul-away's job is deleted first (its checkout can then never
-  // be opened again), then the item is put back or booked on a new job.
-  // Only a 'job_open' job is deleted (never a cancelled one, whose photos and
-  // record stay). A declined card's job ('job_stuck') can't be deleted by its
-  // poster, so it is never tried: reported, and the seller is told it can't be
-  // removed from here; a delete the policy refuses anyway is reported inside
-  // deleteNeverPaidHaulJob (unwrapMutation) and told the same way.
+  // An unpaid haul-away's job is deleted first (its checkout can then never be opened again), then the item is put back
+  // or booked on a new job. Only a 'job_open' job is deleted (never a cancelled one, whose photos and record stay). A
+  // declined card's job ('job_stuck') can't be deleted by its poster, so it is never tried: reported, and the seller is
+  // told it can't be removed from here; a delete the policy refuses anyway is reported inside deleteNeverPaidHaulJob
+  // (unwrapMutation) and told the same way.
   // `lib` is loaded by the caller BEFORE anything is deleted: work that has written must never wait on a reload.
   const releaseJob = async (row: HaulAwayRow, lib: HaulLib) => {
     // Its words ride on userMessage (declutterErrorMessage shows them): the
@@ -263,11 +258,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
             the section's own pill, to the same path as the "+". */}
         {/* Q2639 (audit 1102c R14): the same dashed, iconed empty card as "No offers yet" and "Nothing sold yet". */}
         <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet." data-seller-empty=""
-          action={(
-            <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>
-              {sectionByKey("declutter").add.label}
-            </SectionActionPill>
-          )}>
+          action={<SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>{sectionByKey("declutter").add.label}</SectionActionPill>}>
           Take a few photos and set your price. Listing is free.
         </DeclutterEmptyCard>
         {/* Q2667: a donation that took the last item still shows its receipt (HaulAwayCard, below, is not drawn here). */}

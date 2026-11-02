@@ -11,11 +11,17 @@
  * @mutate supabase/functions/_shared/shipLabelVoid.ts |       await p.recordVoid(s.id, "void_rejected");\n      await p.page( |       await p.recordVoid(s.id, "void_rejected");\n      void (
  * @mutate supabase/functions/_shared/shipLabelVoid.ts |     await p.recordVoidError(s.id, `void ${asked.status}`);\n    return "void_retry"; |     await p.recordVoid(s.id, "void_rejected");\n    return "void_rejected";
  * @mutate supabase/functions/_shared/shipLabelVoid.ts |     if (state === "voided") { |     if (state === "void_requested") {
- * @mutate supabase/functions/_shared/shipLabelWorker.ts |       `The card hold lapsed or was cancelled after the label was bought. ${voidLine(await p.requestVoid(s.id))} Close the order by hand.`,\n        { Order: s.declutter_order_id, Shipment: s.provider_shipment_id, PaymentIntent: pi });\n      return "capture_lost"; |       "The card hold lapsed.",\n        { Order: s.declutter_order_id, Shipment: s.provider_shipment_id, PaymentIntent: pi });\n      return "capture_lost";
+ * @mutate supabase/functions/_shared/shipLabelWorker.ts |       `The card hold lapsed or was cancelled after the label was bought. ${voidLine(await p.requestVoid(s.id))}`,\n        { Order: s.declutter_order_id, Shipment: s.provider_shipment_id, PaymentIntent: pi });\n      return "capture_lost"; |       "The card hold lapsed.",\n        { Order: s.declutter_order_id, Shipment: s.provider_shipment_id, PaymentIntent: pi });\n      return "capture_lost";
  * @mutate supabase/functions/_shared/shipLabelRun.ts |   await runVoids(admin, record, counts); |
  * @mutate supabase/functions/_shared/shipLabelRun.ts |       .eq("id", shipmentId).eq("label_state", "bought").is("accepted_at", null) |       .eq("id", shipmentId).eq("label_state", "bought")
  * @mutate supabase/functions/_shared/shipLabelRun.ts |       .or("tracking_status.is.null,tracking_status.eq.pre_transit").select("id"); |       .select("id");
  * @mutate supabase/functions/_shared/shipLabelRun.ts |         refundShipment: (_m, id) => call(`${EASYPOST}/${id}/refund`, { method: "POST" }), |         refundShipment: (_m, id) => call(`${EASYPOST}/${id}/buy`, { method: "POST" }),
+ * B134: a settled void closes the order (declutter_ship_hold_released, 20261102030530; PGlite shippingVoidedOrderCloses).
+ * @mutate supabase/functions/_shared/shipLabelVoid.ts |       await p.recordVoid(s.id, "voided");\n      await close(); |       await p.recordVoid(s.id, "voided");
+ * @mutate supabase/functions/_shared/shipLabelVoid.ts |         { Order: s.declutter_order_id, Shipment: s.provider_shipment_id });\n      await close();\n      return "void_rejected"; |         { Order: s.declutter_order_id, Shipment: s.provider_shipment_id });\n      return "void_rejected";
+ * @mutate supabase/functions/_shared/shipLabelVoid.ts | const CLOSE_FINE = new Set(["closed", "already", "not_held"]); | const CLOSE_FINE = new Set(["closed", "already", "not_held", "label_bought"]);
+ * @mutate supabase/functions/_shared/shipLabelVoid.ts |       answer = `error: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200); |       throw e;
+ * @mutate supabase/functions/_shared/shipLabelRun.ts |           const { data, error: e } = await admin.rpc("declutter_ship_hold_released", { p_order_id: orderId });\n          if (e) throw new Error(`closing the voided order failed | const { data, error: e } = await admin.rpc("declutter_ship_hold_refund_released", { p_order_id: orderId });\n          if (e) throw new Error(`closing the voided order failed
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -38,6 +44,7 @@ function ports(readBody: unknown, refundBody: unknown, over: Partial<VoidPorts> 
     recordVoid: async (_id, st) => { calls.push(`record:${st}`); },
     recordVoidError: async (_id, why) => { calls.push(`error:${why}`); },
     page: async () => { calls.push("page"); },
+    closeOrder: async (id) => { calls.push(`close:${id}`); return "closed"; },
     ...over,
   };
   return { p, calls };
@@ -54,10 +61,10 @@ describe("runShipVoid: a 'void_requested' label", () => {
     expect(await runShipVoid(row(), p)).toBe("void_wait");
     expect(calls).toEqual(["get"]);
   });
-  it("refunded (now or on read-back): recorded voided, no page", async () => {
+  it("refunded (now or on read-back): recorded voided, the order closed (B134), no page", async () => {
     for (const [read, ask, want] of [
-      [shipment(null), shipment("refunded"), ["get", "refund", "record:voided"]],
-      [shipment("refunded"), null, ["get", "record:voided"]],
+      [shipment(null), shipment("refunded"), ["get", "refund", "record:voided", "close:o1"]],
+      [shipment("refunded"), null, ["get", "record:voided", "close:o1"]],
     ] as const) {
       const { p, calls } = ports(read, ask);
       expect(await runShipVoid(row(), p)).toBe("voided");
@@ -67,7 +74,25 @@ describe("runShipVoid: a 'void_requested' label", () => {
   it("rejected: recorded void_rejected and ops is paged (spent postage)", async () => {
     const { p, calls } = ports(shipment(null), shipment("rejected"));
     expect(await runShipVoid(row(), p)).toBe("void_rejected");
-    expect(calls).toEqual(["get", "refund", "record:void_rejected", "page"]);
+    expect(calls).toEqual(["get", "refund", "record:void_rejected", "page", "close:o1"]);
+  });
+  it("B134: the close answers already / not_held (money taken: never closed this way): nobody is paged", async () => {
+    for (const answer of ["already", "not_held"]) {
+      const { p, calls } = ports(shipment("refunded"), null, { closeOrder: async () => answer });
+      expect(await runShipVoid(row(), p)).toBe("voided");
+      expect(calls).toEqual(["get", "record:voided"]);
+    }
+  });
+  it("B134: a close that answers something else, or fails, pages ops to close it by hand and is never thrown", async () => {
+    const pages: string[] = [];
+    for (const over of [{ closeOrder: async () => "label_bought" }, { closeOrder: async () => { throw new Error("db down"); } }]) {
+      const { p, calls } = ports(shipment("refunded"), null, { ...over, page: async (_t, m) => { calls.push("page"); pages.push(m); } });
+      expect(await runShipVoid(row(), p)).toBe("voided");
+      expect(calls).toEqual(["get", "record:voided", "page"]);
+    }
+    expect(pages[0]).toContain('"label_bought"');
+    expect(pages[1]).toContain("db down");
+    expect(pages.every((m) => m.includes("Close the order by hand."))).toBe(true);
   });
   it("a provider error or an unreadable answer is kept on the row and retried, never recorded as settled", async () => {
     for (const [over, want] of [
@@ -138,5 +163,9 @@ describe("the hold is lost after the label was bought: the void is requested", (
     expect(run).toContain("/refund`, { method: \"POST\" }");
     expect(run).toContain(`.eq("id", shipmentId).eq("label_state", "bought").is("accepted_at", null)`);
     expect(run).toContain(`.or("tracking_status.is.null,tracking_status.eq.pre_transit")`);
+    // B134: the label worker's released-hold close and the void pass's close both call the one SQL close.
+    expect((run.match(/admin\.rpc\("declutter_ship_hold_released"/g) ?? []).length).toBe(2);
+    const voids = run.slice(run.indexOf("async function runVoids("));
+    expect(voids.slice(0, voids.indexOf("\n}\n"))).toContain("closeOrder: async (orderId) =>");
   });
 });

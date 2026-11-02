@@ -6,7 +6,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
 import { confirmSessionLost } from "@/lib/sessionLoss";
 import { authDiagnostics } from "@/lib/authDiagnostics";
-import { PERMISSION_DENIED_EVENT, markSessionLost } from "@/lib/permissionDenied";
+import { PERMISSION_DENIED_EVENT, markSessionLost, releaseHeldDenials } from "@/lib/permissionDenied";
 import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
 import { hasPreload } from "@/lib/lazyWithPreload";
@@ -208,7 +208,13 @@ const ProtectedRoute = ({
     const onDenied = () => {
       if (fired) return;
       void confirmSessionLost().then((lost) => {
-        if (cancelled || fired || !lost) return;
+        // Q2295: the session is still here, so the denials report() held
+        // while this check ran are real; send them now.
+        if (!lost) {
+          releaseHeldDenials();
+          return;
+        }
+        if (cancelled || fired) return;
         fired = true;
         // Q1596: the denials still in flight from this screen are this loss;
         // report() stops logging them from here (src/lib/permissionDenied.ts).

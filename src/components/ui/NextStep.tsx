@@ -10,13 +10,19 @@
 import { lowerFirst, type NextStepValue } from "@/lib/nextStepWords";
 export { nextStepWords, type NextStepValue } from "@/lib/nextStepWords";
 
-export function NextStep({ value, className = "" }: { value: NextStepValue | null; className?: string }) {
+export function NextStep({ value, className = "", compact = false }: {
+  value: NextStepValue | null;
+  className?: string;
+  /** Q2681 (audit 1102e row 18): a small card (the chat's job card) sets the line in body size and weight, never a
+   *  3-line bold heading at 375. */
+  compact?: boolean;
+}) {
   if (!value || !value.text.trim()) return null;
   // Q2590 (Jobs audit 1102b row 4): a line that starts with a name keeps its capital ("Next: Lexi offered you this job").
   const lead = value.who === "you" ? `Next: ${value.keepCase ? value.text : lowerFirst(value.text)}` : value.text;
   return (
-    <p data-next-step={value.who} className={`text-ds-16 leading-snug ${className}`}>
-      <span className="font-semibold text-foreground">{lead}</span>
+    <p data-next-step={value.who} className={`${compact ? "text-ds-14" : "text-ds-16"} leading-snug ${className}`}>
+      <span className={`${compact ? "font-normal" : "font-semibold"} text-foreground`}>{lead}</span>
       {value.by && <span className="text-muted-foreground"> · {value.by}</span>}
       {value.body && <span data-next-step-body="" className="mt-1 block text-muted-foreground">{value.body}</span>}
     </p>

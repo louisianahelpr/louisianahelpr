@@ -7,9 +7,9 @@
  * and no Back. Profile.tsx now swaps that entry for Settings once the switch answers off (replace, so
  * Back never walks into it again), and leaves the tab alone while the switch is on or still loading.
  */
-// @mutate src/pages/profile/Profile.tsx |     if (tab !== "instant_book" \|\| !instantBookOff) return; |     if (tab !== "instant_book" \|\| !instantBookOff \|\| tab) return;
-// @mutate src/pages/profile/Profile.tsx | next.set("tab", "settings"); return next; }, { replace: true }); | next.set("tab", "settings"); return next; }, { replace: false });
-// @mutate src/pages/profile/Profile.tsx |   const instantBookOff = instantBookSwitch.settled && !instantBookSwitch.on; |   const instantBookOff = !instantBookSwitch.on;
+// @mutate src/pages/profile/useInstantBookTabRedirect.ts |     if (tab !== "instant_book" \|\| !instantBookOff) return; |     if (tab !== "instant_book" \|\| !instantBookOff \|\| tab) return;
+// @mutate src/pages/profile/useInstantBookTabRedirect.ts | next.set("tab", "settings"); return next; }, { replace: true }); | next.set("tab", "settings"); return next; }, { replace: false });
+// @mutate src/pages/profile/useInstantBookTabRedirect.ts |   const instantBookOff = instantBookSwitch.settled && !instantBookSwitch.on; |   const instantBookOff = !instantBookSwitch.on;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { MailCheck } from "lucide-react";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useQuery } from "@tanstack/react-query";
@@ -125,6 +126,11 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     empty = { icon: def.icon, title: `No ${copy.noun} messages yet`, body: copy.body, action: { label: copy.browse, to: def.path } };
     // D2-1: Declutter lists the member's order chats above its threads, in place of this empty state when it has any.
     if (section === "declutter") empty.Lead = DeclutterOrderTalkRows;
+  }
+  // Q2663 (account audit 1102d row 23): Unread with nothing unread said "No messages yet", even beside a full
+  // All tab. It says what is true and goes back to All.
+  if (section === "unread" && shown.length === 0) {
+    empty = { icon: MailCheck, title: "No unread messages", body: "You're all caught up. New messages show up here.", action: { label: "See all messages", to: "/messages" } };
   }
 
   return {

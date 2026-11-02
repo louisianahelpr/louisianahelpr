@@ -39,6 +39,8 @@
  * @mutate src/pages/messages/useMessageSections.tsx |     if (section === "declutter") empty.Lead = DeclutterOrderTalkRows; |     void DeclutterOrderTalkRows;
  * @mutate src/pages/messages/useMessageSections.tsx |   const hasOrderTalks = (orderTalks.data?.length ?? 0) > 0; |   const hasOrderTalks = false;
  * @mutate src/components/messages/SectionInboxEmpty.tsx |   return empty.Lead ? <empty.Lead empty={box} /> : box; |   return box;
+ * Q2663: Unread with nothing unread has its own empty line, not "No messages yet".
+ * @mutate src/pages/messages/useMessageSections.tsx |   if (section === "unread" && shown.length === 0) { |   if (section === "unread" && shown.length < 0) {
  * @mutate src/components/messages/ConversationList.tsx | <div className="space-y-2">{sectionEmpty?.Lead && !searchQuery.trim() && !selectMode && <sectionEmpty.Lead empty={null} />} | <div className="space-y-2">{null}
  */
 import { readFileSync } from "node:fs";
@@ -208,6 +210,18 @@ describe("the hook", () => {
     const { result } = renderHook(() => useMessageSections([TEAM], [TEAM]), { wrapper: wrap("/messages") });
     render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
     expect(screen.getByRole("button", { name: "Unread" })).toBeInTheDocument();
+  });
+
+  // Q2663 (account audit 1102d row 23): Unread with nothing unread said "No messages yet", even with threads on All.
+  it("Unread with nothing unread says so and goes back to All; with unread threads it has no empty state", () => {
+    const none = renderHook(() => useMessageSections([TEAM], [TEAM]), { wrapper: wrap("/messages?section=unread") });
+    expect(none.result.current.conversations).toEqual([]);
+    expect(none.result.current.sectionEmpty).toMatchObject({ title: "No unread messages", action: { label: "See all messages", to: "/messages" } });
+    const empty = renderHook(() => useMessageSections([], []), { wrapper: wrap("/messages?section=unread") });
+    expect(empty.result.current.sectionEmpty?.title).toBe("No unread messages");
+    const some = renderHook(() => useMessageSections([JOB, TEAM], [JOB, TEAM]), { wrapper: wrap("/messages?section=unread") });
+    expect(some.result.current.conversations).toEqual([JOB]);
+    expect(some.result.current.sectionEmpty).toBeNull();
   });
 
   it("an open section with no threads says so and offers Browse; a switched-off one has no chip at all", () => {

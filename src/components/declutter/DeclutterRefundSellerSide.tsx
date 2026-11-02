@@ -5,10 +5,9 @@
  * - SellerSideShown: the buyer reads what the seller said, with the photos.
  * The time frame on both sides is decidesBy (src/lib/declutter/decideBy.ts).
  */
+import { Textarea } from "@/components/ui/textarea";
 import { ProblemPhotoPicker } from "./DeclutterProblemPhotos";
 import { ProblemPhotos } from "./DeclutterProblemSides";
-
-const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
 export function SellerSideFields({ id, note, onNote, photos, onPhotos, disabled }: {
   id: string;
@@ -21,7 +20,7 @@ export function SellerSideFields({ id, note, onNote, photos, onPhotos, disabled 
   return (
     <div className="space-y-2" data-refund-seller-side="">
       <label htmlFor={`${id}-why`} className="block text-xs font-medium">Why? (optional)</label>
-      <textarea id={`${id}-why`} className={input} maxLength={1000} rows={3} value={note} disabled={disabled} onChange={(e) => onNote(e.target.value)} />
+      <Textarea id={`${id}-why`} maxLength={1000} rows={3} value={note} disabled={disabled} onChange={(e) => onNote(e.target.value)} />
       <ProblemPhotoPicker files={photos} onChange={onPhotos} disabled={disabled} />
       <p className="text-ds-12 text-muted-foreground">If it goes to Louisiana Helpr, this is your side.</p>
     </div>

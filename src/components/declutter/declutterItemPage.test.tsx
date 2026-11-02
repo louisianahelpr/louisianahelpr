@@ -542,7 +542,7 @@ describe("the photo-first Declutter item page", () => {
 
   it("DA-9: the real AppPage's stickyHeader pins the row (back + actions + the scrolled title) and turns off the title-only bar", async () => {
     const { default: RealAppPage } = await vi.importActual<typeof import("@/components/AppPage")>("@/components/AppPage");
-    const actions = <button type="button" aria-label="Watch this item">h</button>;
+    const actions = <button type="button" aria-label="Save this item">h</button>;
     const { container, unmount } = render(<MemoryRouter><RealAppPage title="Blue mug" phoneHidesTitle stickyHeader titleActions={actions}><p>body</p></RealAppPage></MemoryRouter>);
     const scroller = container.querySelector("[data-app-page-scroll]");
     expect(scroller).toHaveAttribute("data-own-title-row");
@@ -552,7 +552,7 @@ describe("the photo-first Declutter item page", () => {
     // The row's parent is the page body (everything below), so the row can stick past the header.
     expect(row?.parentElement?.contains(screen.getByText("body"))).toBe(true);
     expect(within(row as HTMLElement).getByRole("button", { name: "Go back" })).toBeInTheDocument();
-    expect(within(row as HTMLElement).getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByRole("button", { name: "Save this item" })).toBeInTheDocument();
     const name = row?.querySelector(".sticky-title-row-name");
     expect(name?.textContent).toBe("Blue mug");
     expect(name).toHaveAttribute("aria-hidden", "true");
@@ -754,7 +754,7 @@ describe("the photo-first Declutter item page", () => {
     expect(within(join).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", `/signup?redirect=${back}`);
     expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
     expect(screen.queryByRole("button", { name: /Buy now/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Watch this item" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Save this item" })).toBeNull();
     // AUD31-67: the guest has the brand and a way to the rest of Louisiana Helpr.
     expect(within(join).getByRole("link", { name: "Helpr home" })).toHaveAttribute("href", "/");
     // The seller's first name only (declutter_guest_seller_first_name), never the member card's "Dana R." or its link.

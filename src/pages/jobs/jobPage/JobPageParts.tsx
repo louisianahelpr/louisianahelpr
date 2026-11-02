@@ -44,7 +44,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   offerUntil?: string | null;
   /** JA-27: the day a no-show put this job back up ("Sat, Nov 1"), for the poster's line. */
   noShowRepostedOn?: string | null;
-  /** Q2669: the hired Helpr cancelled and the job is open again: who and when, for the poster's line. */
+  /** Q2693: the hired Helpr cancelled and the job is open again: who and when, for the poster's line. */
   helprCancelled?: { name: string | null; at: string } | null;
   /** The poster's review window in words ("23h 52m left, then Helpr support steps in"), in the line itself. */
   approveLeft?: string | null;
@@ -164,7 +164,7 @@ function helprNoPayWords(job: JobPageRow, noShow = false): { title: string; line
   if (job.status !== "cancelled") return null;
   const fee = Number(job.cancellation_fee ?? 0);
   if (fee > 0 && !!job.cancelled_by && job.cancelled_by === job.customer_id) {
-    // Q2672 (audit 1102e row 4): when, and the dollars, never "a share of the late-cancel fee" (owner 10-25: no fee
+    // Q2696 (audit 1102e row 4): when, and the dollars, never "a share of the late-cancel fee" (owner 10-25: no fee
     // words). The amount is the cancel dialog's own quote of what void-cancelled-payments sends (cancellationHelperShare:
     // the flat job's exact whole dollars; a legacy job's floor, "at least"). Guard: src/test/lateCancelByPosterSaysTheMoney.test.tsx.
     const share = cancellationHelperShare(fee, job);

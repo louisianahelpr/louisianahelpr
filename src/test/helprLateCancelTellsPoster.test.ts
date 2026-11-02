@@ -1,5 +1,5 @@
 /**
- * Q2669 (audit 1102e row 2, HIGH): after the hired Helpr cancelled (helper_cancel_booking: the job goes back to open,
+ * Q2693 (audit 1102e row 2, HIGH): after the hired Helpr cancelled (helper_cancel_booking: the job goes back to open,
  * helper_id NULL, and their application becomes status 'rejected' with closed_reason 'helper_cancelled'), the poster's
  * page was a plain open listing: "1 applicant" (the Helpr who cancelled, counted as an applicant), "Waiting for Helprs
  * to apply". Nothing said who cancelled, when, or that the job is open again. Now the step line says it, with the
@@ -24,7 +24,7 @@ import { applicantCounts } from "@/pages/jobs/jobPage/useJobPage";
 const AT = "2037-10-19T11:00:00Z"; // Mon 6:00 AM in Louisiana
 const posted: JobProgressState = { stage: 0, waitingOnYou: false, tone: "progress", word: "Posted", next: "Waiting for Helprs to apply", held: true };
 
-describe("a late cancel by the hired Helpr is told to the poster (Q2669)", () => {
+describe("a late cancel by the hired Helpr is told to the poster (Q2693)", () => {
   it("the Helpr who cancelled is no applicant, and the page knows who and when", () => {
     const c = applicantCounts([
       { status: "rejected", closed_reason: "helper_cancelled", updated_at: AT, helper_id: "eli" },

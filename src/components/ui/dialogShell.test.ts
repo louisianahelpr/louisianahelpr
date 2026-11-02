@@ -445,16 +445,12 @@ describe("Popup grammar — body voice", () => {
 });
 
 describe("Popup grammar — footer", () => {
-  /** The one three-action footer in the app, and why it is allowed to be. */
-  const THREE_ACTION_EXCEPTIONS: Record<string, string> = {
-    "src/components/BlockUserDialog.tsx":
-      "'Just Block' and 'Block and Report' are two different writes; neither may be dropped to fit the pattern. Only one renders as the red commit.",
-  };
+  /** Three-action footers and why each is allowed to be. None since Q2682 (BlockUserDialog's "Just block" became an Also report box). */
+  const THREE_ACTION_EXCEPTIONS: Record<string, string> = {};
   /** Footers whose commit is chosen at render time between two components. */
   const BRANCHED_COMMITS: Record<string, string> = {
     "src/pages/profile/SavedSearchesTab.tsx": "Delete search asks once in the sheet: \"Delete search\" or, after it, \"Yes, delete it\": exactly one renders (asking ? confirm : delete)",
     "src/components/admin/BanDialog.tsx": "warning commits glossy, ban commits red — exactly one renders",
-    "src/components/BlockUserDialog.tsx": "see THREE_ACTION_EXCEPTIONS",
     "src/components/declutter/DeclutterManageListing.tsx": "board 158's confirm step: \"Mark sold\" (view sold) or \"Delete listing\" (view delete) — exactly one renders (view === \"sold\" ? primary : destructive)",
     "src/components/rentals/LeasePanel.tsx": "the lease editor's last step: \"Save and next\" until the landlord reads it, then \"Sign and send\" — exactly one renders (reviewing ? send : save)",
   };

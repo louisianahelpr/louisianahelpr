@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 // A plain Dialog, NOT a confirm — no `role="alertdialog"`. A confirm's
 // buttons auto-close it (see MaybeClose in dialog.tsx); this one collects a
 // free-text reason first, so its Cancel is wrapped in <DialogClose> and its
@@ -17,6 +17,7 @@ import {
   DialogDestructiveAction,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +52,10 @@ export function BlockUserDialog({
   onReportAndBlock,
 }: BlockUserDialogProps) {
   const [reason, setReason] = useState("");
+  // Q2682 (audit 1102e row 35): reporting is a choice in the body, not a third footer button. "Just block" sat beside
+  // Cancel in the same grey and read as a second Cancel; now the footer is the app's one shape, Cancel | the red commit.
+  const [alsoReport, setAlsoReport] = useState(false);
+  const reportId = useId();
   const [submitting, setSubmitting] = useState(false);
   const [activeJobCount, setActiveJobCount] = useState<number | null>(null);
   // Estimated total late-cancellation fee across the live shared jobs, and
@@ -120,7 +125,7 @@ export function BlockUserDialog({
     };
   }, [open, blockedUserId]);
 
-  // Resolves `true` only when the block landed — "Block and Report" keys
+  // Resolves `true` only when the block landed — "Block and report" keys
   // off this so a failed block never proceeds into the report flow.
   const handleBlock = async (): Promise<boolean> => {
     setSubmitting(true);
@@ -143,6 +148,7 @@ export function BlockUserDialog({
       onBlocked?.(result.cancelledJobIds);
       onClose();
       setReason("");
+      setAlsoReport(false);
       return true;
     } finally {
       setSubmitting(false);
@@ -198,11 +204,21 @@ export function BlockUserDialog({
                   className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14"
                 />
               </div>
+              {onReportAndBlock && (
+                <label htmlFor={reportId} className="flex items-start gap-3 cursor-pointer">
+                  <Checkbox
+                    id={reportId}
+                    checked={alsoReport}
+                    onCheckedChange={(v) => setAlsoReport(v === true)}
+                    disabled={submitting}
+                    className="mt-0.5"
+                  />
+                  <span className="text-ds-14 font-sans text-foreground">
+                    Also report {blockedUserName} to our team
+                  </span>
+                </label>
+              )}
             </div>
-        {/* Force normal (top-down) column order — shadcn's footer defaults to
-            flex-col-reverse on mobile, which would float Cancel to the top.
-            We want the action stack to read Just block → Block and report →
-            Cancel, with Cancel anchored at the bottom. */}
         {/* THE SHARED FOOTER, with the canonical DOM order.
             `DialogFooter` is `flex-col-reverse` on phones and a right-aligned
             `flex-row` from `sm` up, so DOM order [dismiss … primary] renders
@@ -213,85 +229,35 @@ export function BlockUserDialog({
             being `flex-col` rather than `-reverse`, left the primary in the
             MIDDLE of the stack.
 
-            All three buttons are shared variants now. Blocking is punitive and
-            the blocker cannot undo it from this screen, so it takes the same
-            `destructive` red as "Confirm No-Show" and "Delete User"; when a
-            report path is offered, "Block and Report" is the primary and
-            "Just Block" steps back to `outline`. The three hand-written sienna
-            style objects (a 16%-tint secondary and two solid fills) were a
-            fourth and fifth destructive treatment on top of the two already in
-            the app. */}
+            Both buttons are shared variants (Q2682 dropped the third, "Just
+            block", for the "Also report" box above). */}
         <DialogFooter>
           <DialogClose asChild>
             <DialogSecondaryAction disabled={submitting}>Cancel</DialogSecondaryAction>
           </DialogClose>
-          {/* THE ONLY THREE-ACTION FOOTER IN THE APP, and the one documented
-              exception in dialogShell.test.ts. It is not decoration: "Just
-              Block" and "Block and Report" are two different writes, and the
-              brief for this pass was explicit that no dialog loses an action
-              to fit the pattern.
-              The demotion the old `outline` expressed is kept, said in the
-              canonical vocabulary: when a report path is offered, "Block and
-              Report" is the one red commit and "Just Block" steps back to the
-              app's demoted treatment (ghost) rather than to a bordered
-              `outline` button no other popup uses. With no report path there
-              is nothing to demote against, so blocking IS the commit and takes
-              the red. Two reds side by side would be the hierarchy defect this
-              avoids. */}
-          {onReportAndBlock ? (
-            <DialogSecondaryAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleBlock();
-              }}
-              disabled={submitting}
-            >
+          {/* ONE COMMIT (Q2682). Blocking is punitive and the blocker cannot undo it from this screen, so it takes the
+              same `destructive` red as "Confirm No-Show". With "Also report" ticked the same button blocks, then opens
+              the report (a failed block never proceeds into the report flow). */}
+          <DialogDestructiveAction
+            onClick={async (e) => {
+              e.preventDefault();
+              const report = alsoReport && !!onReportAndBlock;
+              const blocked = await handleBlock();
+              if (blocked && report) onReportAndBlock();
+            }}
+            disabled={submitting}
+          >
             {submitting ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Blocking…
               </>
+            ) : alsoReport && onReportAndBlock ? (
+              "Block and report"
             ) : (
-              "Just block"
+              "Block"
             )}
-            </DialogSecondaryAction>
-          ) : (
-            <DialogDestructiveAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleBlock();
-              }}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Blocking…
-                </>
-              ) : (
-                "Block"
-              )}
-            </DialogDestructiveAction>
-          )}
-          {onReportAndBlock && (
-            <DialogDestructiveAction
-              onClick={async (e) => {
-                e.preventDefault();
-                const blocked = await handleBlock();
-                if (blocked) onReportAndBlock();
-              }}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Working…
-                </>
-              ) : (
-                "Block and report"
-              )}
-            </DialogDestructiveAction>
-          )}
+          </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

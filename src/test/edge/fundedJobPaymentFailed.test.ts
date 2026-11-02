@@ -176,6 +176,25 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
       expect(jobUpdates()).toHaveLength(0);
     });
 
+    // The same check inside the RPC, under the job's row lock (20261102055222): its 'payout_moving' answer is the
+    // released branch too, never the unknown-outcome throw.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome === "payout_moving") { | } else if (false) {
+    it("the RPC answers payout_moving (a payout appeared after the read): nothing written, ops paged, acked", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.dispute_settlement_claims = { rows: [] };
+      cancelAnswers("payout_moving", { payment_status: "payout_pending" });
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBe(200);
+      expect(cancelCalls()).toHaveLength(1);
+      expect(jobUpdates()).toHaveLength(0);
+      expect(notices()).toHaveLength(0);
+      expect(slackAlerts.some((a) => /WHILE the payout was being sent/.test(String((a as { title?: string }).title)))).toBe(true);
+    });
+
     it("control: no payout row and no claim: the job is taken out of escrow as before", async () => {
       const fn = await loadConfigured();
       failedEvent();

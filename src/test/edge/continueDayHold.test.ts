@@ -76,6 +76,27 @@ describe("auto-release-payment: an active continue day stops the approval clock"
     expect(JSON.stringify(body)).toContain("continuing");
   });
 
+  // Q2606 (owner 11-02, 20261102102402): the POSTER's day is a proposal now, and the Helpr's earlier "done" clears
+  // only when the Helpr accepts it. Until then the done stamp is on and the row is 'proposed': the clock must still
+  // stop. loadContinuingJobs reads (job_id, status) only, never who proposed, so either side's ask holds the job.
+  it("a day the POSTER proposed, done stamp still on until the Helpr accepts (Q2606): not escalated", async () => {
+    seedDoneJob(false);
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "proposed", proposed_by: POSTER }] };
+    const body = await json(await autoRelease());
+    expect(escalations()).toHaveLength(0);
+    expect(toPayoutPending()).toHaveLength(0);
+    expect(JSON.stringify(body)).toContain("continuing");
+  });
+
+  it("a day the POSTER proposed (Q2606): the instant release waits too", async () => {
+    seedDoneJob(false);
+    (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows[0].helper_completed_at = new Date(Date.now() - 3600e3).toISOString();
+    scenario.reads.profiles = { rows: [{ user_id: POSTER }] };
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "proposed", proposed_by: POSTER }] };
+    await autoRelease();
+    expect(toPayoutPending()).toHaveLength(0);
+  });
+
   it("no continue day: the unanswered job is escalated as before (inventory floor)", async () => {
     seedDoneJob(false);
     scenario.reads.job_continue_days = { rows: [] };

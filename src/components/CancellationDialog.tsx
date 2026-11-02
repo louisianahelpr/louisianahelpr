@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, ShieldAlert, CheckCircle, ArrowRight } from "lucide-react";
-import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeriesNotice, cancelDialogTitle, cancelSeriesScope, type CancelSeriesScope } from "@/components/cancellationDialog/CancelDialogNotices";
+import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeriesNotice, cancelSeriesScope, visitDayLabel, type CancelSeriesScope } from "@/components/cancellationDialog/CancelDialogNotices";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { type FlatFeeStamp } from "@/lib/helprFlatFee";
@@ -137,6 +137,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
     return () => { alive = false; };
   }, [open, jobId, passedScope]);
   const seriesScope = passedScope !== undefined ? passedScope : readScope;
+  const visitDay = visitDayLabel(jobDate);
 
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -412,7 +413,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          title={cancelDialogTitle(seriesScope, jobTitle, jobDate)}
+          // Q2677: the title says what this cancel reaches (one visit, the whole series, or the job).
+          title={seriesScope === "visit" && visitDay ? `Cancel only the ${visitDay} visit?` : seriesScope === "visit" ? "Cancel only this visit?" : seriesScope === "series" ? `Cancel the whole "${jobTitle}" series?` : `Cancel "${jobTitle}"?`}
         />
         <div className="space-y-4">
 

@@ -10,7 +10,7 @@
  */
 // @mutate src/components/cancellationDialog/CancelDialogNotices.tsx |   if (row.parent_job_id) return "visit"; |   if (row.parent_job_id) return null;
 // @mutate src/components/cancellationDialog/CancelDialogNotices.tsx | The rest of the series goes on as planned. | Every future visit stops.
-// @mutate src/components/cancellationDialog/CancelDialogNotices.tsx |   if (scope === "series") return `Cancel the whole "${jobTitle}" series?`; |   if (scope === "series") return `Cancel "${jobTitle}"?`;
+// @mutate src/components/CancellationDialog.tsx | seriesScope === "series" ? `Cancel the whole "${jobTitle}" series?` | seriesScope === "series" ? `Cancel "${jobTitle}"?`
 // @mutate src/components/CancellationDialog.tsx |           {seriesScope && <CancelSeriesNotice scope={seriesScope} jobDate={jobDate} />} |           {seriesScope === "series" && <CancelSeriesNotice scope={seriesScope} jobDate={jobDate} />}
 // @mutate src/components/CancellationDialog.tsx |   const seriesScope = passedScope !== undefined ? passedScope : readScope; |   const seriesScope = readScope;
 // @mutate src/components/job-card/ActivityDialogs.tsx |           parentJobId={props.cancelDialogJob.parent_job_id} |           parentJobId={undefined}

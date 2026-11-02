@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
-import { CONTINUE_DAY_SHEET_TITLE, ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
+import { ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
 import { CONTINUE_DAY_LABEL, answerContinueDay, confirmContinueDay, continueDayAhead, continueDayDoneNote, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
 import type { NextStepValue } from "@/components/ui/NextStep";
 import type { RowAction } from "./JobPageActionRow";
@@ -93,7 +93,8 @@ export function useContinueDayActions({
   let setDay: RowAction | null = null;
   const offerSetDay = workStarted || !!row;
   if (side === "poster") {
-    if (row?.status === "proposed") {
+    // Q2606 (owner): the poster answers only the Helpr's ask; their own ask waits on the Helpr.
+    if (row?.status === "proposed" && row.proposer !== "poster") {
       posterLead = { label: "Confirm new day", go: () => void run(() => answerContinueDay(row.id, true), `Set: continuing ${when}.`)(), disabled: busy };
       posterExtras.push({ key: "continue-decline", label: "Decline new day", go: () => void run(() => answerContinueDay(row.id, false), "Declined. Message them to agree on what's next.")(), disabled: busy });
     }
@@ -105,6 +106,11 @@ export function useContinueDayActions({
       setDay = { key: "continue-set", label: row ? "Set a different day" : CONTINUE_DAY_LABEL, go: open };
     }
   } else {
+    // Q2606 (owner): the poster's new day is the Helpr's to accept or decline (answer_job_continue_day, 20261102102402).
+    if (row?.status === "proposed" && row.proposer === "poster") {
+      helprLead = { key: "continue-accept", label: "Accept new day", go: () => void run(() => answerContinueDay(row.id, true), `Set: continuing ${when}.`)(), disabled: busy };
+      helprExtras.push({ key: "continue-decline", label: "Decline new day", go: () => void run(() => answerContinueDay(row.id, false), "Declined. Message them to agree on what's next.")(), disabled: busy });
+    }
     if (row?.status === "set" && !row.helper_confirmed_at) {
       helprLead = { key: "continue-confirm", label: "Confirm I'll be there", go: () => void run(() => confirmContinueDay(row.id), `Confirmed for ${when}.`)(), disabled: busy };
     }
@@ -114,8 +120,9 @@ export function useContinueDayActions({
   }
 
   // Q2679 (audit 1102e row 16): the sheet carries the name of the button that opened it.
+  // No day yet: undefined, the sheet's own "Set a day to finish".
   const sheetTitle = !row
-    ? CONTINUE_DAY_SHEET_TITLE
+    ? undefined
     : side === "helpr"
       ? "Ask for a different day"
       : row.status === "set" ? "Change day" : "Set a different day";

@@ -47,12 +47,12 @@ function buyerSteps(handover: CartLine["handover"], booked: boolean): WhatNextSt
         : [book("Pick a pickup time", "In Buying, inside the pickup place's hours"), go("Pick it up from the porch", "Once the seller posts the porch photo", false)];
     case "meetup":
       return booked
-        ? [go("Meet at the safe spot", "At the time you booked", true)]
-        : [book("Book a time to meet", "In Buying, from the seller's times"), go("Meet at the safe spot", "At the time you booked", false)];
+        ? [go("Meet at the safe spot", "At the time you picked", true)]
+        : [book("Pick a time to meet", "In Buying, from the seller's times"), go("Meet at the safe spot", "At the time you picked", false)];
     default:
       return booked
-        ? [go("Pick it up", "At the time you booked", true)]
-        : [book("Book a pickup time", "In Buying, from the seller's times"), go("Pick it up", "At the time you booked", false)];
+        ? [go("Pick it up", "At the time you picked", true)]
+        : [book("Pick a pickup time", "In Buying, from the seller's times"), go("Pick it up", "At the time you picked", false)];
   }
 }
 
@@ -92,7 +92,7 @@ export function BoughtWhatNext() {
   const close = () => { params.delete("paid"); params.delete("order"); navigate({ pathname: location.pathname, search: params.toString() }, { replace: true }); };
   const first = order[0];
   const total = orderId ? paidCents?.get(orderId) ?? null : null;
-  // Audit 1028 D1-3: the buyer's real next step comes first ("Pick a pickup day", "Book a time to meet"), never
+  // Audit 1028 D1-3: the buyer's real next step comes first ("Pick a pickup day", "Pick a time to meet"), never
   // "Pick it up · Now" before a day or time is booked.
   const handoverSteps = buyerSteps(first.handover, sellerDelivery
     ? sdBooking.data?.status === "booked" && !!sdBooking.data.slot_start

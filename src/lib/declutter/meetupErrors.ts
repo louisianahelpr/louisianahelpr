@@ -42,7 +42,7 @@ export const MEETUP_RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_a_meetup: M.not_a_meetup,
     not_authenticated: DC.not_authenticated,
-    not_booked_yet: "Book a time to meet first.",
+    not_booked_yet: "Pick a time to meet first.",
     too_early_to_check_in: M.too_early_to_check_in,
   },
 } satisfies Record<string, Record<string, string>>;

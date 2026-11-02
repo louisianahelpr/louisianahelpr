@@ -229,15 +229,15 @@ describe("Q2425: a safe-spot meetup order", () => {
   });
 
   // Audit 1028 D1-13: before a time is booked, only the buyer is told to book one; the seller waits to be told.
-  // @mutate src/components/declutter/DeclutterMeetup.tsx | : side === "buyer" ? "Book a time to meet first." : "The buyer books the time; we'll tell you."} | : "Book a time to meet first."}
+  // @mutate src/components/declutter/DeclutterMeetup.tsx | : side === "buyer" ? "Pick a time to meet first." : "The buyer picks the time; we'll tell you."} | : "Pick a time to meet first."}
   it("no time booked yet: the buyer is told to book one, the seller that the buyer books it (D1-13)", async () => {
     state.bookings = [];
     const { unmount } = show([line({ handover: "meetup", my_side: "seller" })]);
-    expect(await screen.findByText("The buyer books the time; we'll tell you.")).toBeInTheDocument();
-    expect(screen.queryByText("Book a time to meet first.")).toBeNull();
+    expect(await screen.findByText("The buyer picks the time; we'll tell you.")).toBeInTheDocument();
+    expect(screen.queryByText("Pick a time to meet first.")).toBeNull();
     unmount();
     show([line({ handover: "meetup" })]);
-    expect(await screen.findByText("Book a time to meet first.")).toBeInTheDocument();
+    expect(await screen.findByText("Pick a time to meet first.")).toBeInTheDocument();
   });
 
   it("at the meeting time the seller gets Picked up, as at the door", async () => {
@@ -322,23 +322,23 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(warn).toHaveTextContent("a second miss cancels the sale with a strike");
     expect(warn.textContent).not.toMatch(/\$|fee|refund/i);
     fireEvent.change(screen.getByLabelText("Pick a pickup time"), { target: { value: "2026-10-20T12:00" } });
-    fireEvent.click(screen.getByRole("button", { name: "Book" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pick this time" }));
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("book"));
     unmount();
     show([line({ my_side: "seller" })]);
     // DB-LOW wording (Buying walk 11-01, seller side): the wait is said ONCE (the step line); the panel adds the deadline.
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-book-deadline="">The buyer has 7 days from paying to book.</p> | data-book-deadline="">Waiting for the buyer to book a pickup time (within 7 days of paying).</p>
-    expect(await screen.findByText("The buyer has 7 days from paying to book.")).toBeInTheDocument();
-    expect(screen.getAllByText(/Waiting (on|for) the buyer to book/)).toHaveLength(1);
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-book-deadline="">The buyer has 7 days from paying to pick a time.</p> | data-book-deadline="">Waiting for the buyer to book a pickup time (within 7 days of paying).</p>
+    expect(await screen.findByText("The buyer has 7 days from paying to pick a time.")).toBeInTheDocument();
+    expect(screen.getAllByText(/Waiting (on|for) the buyer to pick/)).toHaveLength(1);
     expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
   });
 
   // B48 live check 2026-10-29: a safe-spot meetup's seller card said "book a pickup time". The panel line no longer names
   // the booking at all (DB-LOW); the step line says "book a time to meet".
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-book-deadline="">The buyer has 7 days from paying to book.</p> | data-book-deadline="">The buyer has 7 days from paying to book a pickup time.</p>
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-book-deadline="">The buyer has 7 days from paying to pick a time.</p> | data-book-deadline="">The buyer has 7 days from paying to book a pickup time.</p>
   it("meetup: the seller waits for the buyer to book a time to meet", async () => {
     show([line({ my_side: "seller", handover: "meetup" })]);
-    expect(await screen.findByText("The buyer has 7 days from paying to book.")).toBeInTheDocument();
+    expect(await screen.findByText("The buyer has 7 days from paying to pick a time.")).toBeInTheDocument();
     expect(screen.queryByText(/book a pickup time/)).toBeNull();
   });
 
@@ -809,11 +809,11 @@ describe("Declutter slice 4: paid-order cards", () => {
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : you("Put it out and take one photo where the buyer will find it"); | : info("Put it out and take one photo where the buyer will find it.");
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | you("Have it ready at the pickup time below") | info("Have it ready at the pickup time below.")
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | { who: "you", text: "Deliver it at the time below" } | { who: "info", text: "Booked. The delivery time is below." }
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | them(`${paid} Waiting on the buyer to book a time to meet.`) | them(`${paid} The buyer books a time to meet.`)
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | them(`${paid} Waiting on the buyer to pick a time to meet.`) | them(`${paid} The buyer books a time to meet.`)
   // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | them(`${paid} Waiting on the buyer to book a pickup time.`); | them(`${paid} · waiting on the buyer to book a pickup time.`);
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | you("Pick a pickup time") : them(`${paid} Waiting on the buyer to pick a pickup time.`); | you("Pick a pickup time") : them(`${paid} · waiting on the buyer to book a pickup time.`);
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
   // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"
@@ -894,7 +894,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     const first = show([line({ handover: "porch", porch_ok: true })]);
     expect(await screen.findByText("Next: pick a time to collect it from the porch")).toBeInTheDocument();
     expect(await screen.findByLabelText("Pick a pickup time")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Book this day" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pick this day" })).toBeNull();
     expect(screen.getByRole("list", { name: "Step 1 of 4: Paid" })).toBeInTheDocument();
     first.unmount();
 
@@ -950,7 +950,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.porchDays = null;
     show([line({ handover: "porch", porch_ok: true })]);
     expect(await screen.findByLabelText("Pick a pickup time")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Book this day" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pick this day" })).toBeNull();
   });
 
   it("a handed-over pickup reads Done on the tracker", async () => {
@@ -979,7 +979,7 @@ describe("Declutter slice 4: paid-order cards", () => {
  * Boards 159 + 160 (Builder 3c): the handover moments are sheets.
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (f) { if (order.side === "seller") setPreview(f); else setShot(f); } | if (f) photo.mutate({ file: f });
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onProblem={() => { setAsking(false); onProblem(); }} |         onProblem={() => setAsking(false)}
- * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li> | <li>{who} gets one more day.</li>
+ * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The first missed pickup: {who} can pick one new time before the 7-day pickup deadline.</li> | <li>{who} gets one more day.</li>
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | : "If they don't, the sale is cancelled and you get everything back."}</li> | : "The sale is cancelled."}</li>
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | onClick={() => file && onSend(file, note.trim())} | onClick={() => file && onSend(file, "")}
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {h.data.set_out_note && <p | {false && <p
@@ -1044,7 +1044,7 @@ describe("boards 159 + 160: handover sheets", () => {
     fireEvent.click(await screen.findByRole("button", { name: "They didn't show" }));
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText("Dana didn't pick up?")).toBeInTheDocument();
-    expect(within(sheet).getByText(/Dana can book one new time before the 7-day pickup deadline/)).toBeInTheDocument();
+    expect(within(sheet).getByText(/Dana can pick one new time before the 7-day pickup deadline/)).toBeInTheDocument();
     expect(within(sheet).getByText(/item price back, and your item goes back on sale/)).toBeInTheDocument();
     expect(sheet.textContent).not.toMatch(/\b(he|she|him|her)\b/);
     fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
@@ -1181,7 +1181,7 @@ describe("#2: the buyer books from the seller's pickup times", () => {
     const days = pickupDays(windows, Date.now(), Date.parse(latestPickupAt));
     const dayChips = within(screen.getByRole("group", { name: "Pickup day" })).getAllByRole("button");
     expect(dayChips.map((b) => b.textContent)).toEqual(days.map((d) => d.label));
-    const book = screen.getByRole("button", { name: "Book" });
+    const book = screen.getByRole("button", { name: "Pick this time" });
     expect(book).toBeDisabled();
     fireEvent.click(dayChips[1]);
     const times = within(screen.getByRole("group", { name: `Pickup time on ${days[1].label}` })).getAllByRole("button");
@@ -1196,7 +1196,7 @@ describe("#2: the buyer books from the seller's pickup times", () => {
     state.windows = { windows, latestPickupAt: new Date(Date.now() + 60_000).toISOString() };
     show([line()]);
     expect(await screen.findByTestId("declutter-no-pickup-slots")).toHaveTextContent("Message the seller to agree a time.");
-    expect(screen.getByRole("button", { name: "Book" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Pick this time" })).toBeDisabled();
   });
 
   it("the seller's one move keeps the folded free picker (the server checks only the deadline for the seller)", async () => {
@@ -1383,7 +1383,7 @@ describe("D2-2: an open problem shows on both cards", () => {
   it("the buyer: told a problem is open with its reason, and offered no booking and no second report", async () => {
     // Before: the same card books and reports.
     const before = show([line({ handover: "pickup_home" })]);
-    expect(await screen.findByRole("button", { name: "Book" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Pick this time" })).toBeInTheDocument();
     expect(screen.queryByText("Problem reported: Louisiana Helpr is looking.")).toBeNull();
     before.unmount();
     state.problems = [damaged];
@@ -1396,7 +1396,7 @@ describe("D2-2: an open problem shows on both cards", () => {
     // above "Nobody is paid until they decide."
     expect((await screen.findByText(/You paid/)).textContent).toBe("You paid $44.70.");
     expect(screen.queryByText(/The seller is paid after you/)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Book" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pick this time" })).toBeNull();
     expect(screen.queryByLabelText("Pick a pickup time")).toBeNull();
     expect(screen.queryByRole("button", { name: "Report a problem" })).toBeNull();
   });
@@ -1679,7 +1679,7 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     show([line({ handover: "meetup", my_side: "seller" })]);
     const steps = await parts("meetup");
     expect(within(steps).getByText("Met")).toBeInTheDocument();
-    expect(screen.getByText("Paid. Waiting on the buyer to book a time to meet.")).toBeInTheDocument();
+    expect(screen.getByText("Paid. Waiting on the buyer to pick a time to meet.")).toBeInTheDocument();
   });
 
   it("porch and door pickup keep theirs (the kinds that had it)", async () => {
@@ -1763,7 +1763,7 @@ describe("DB-LOW wording (Buying walk 11-01): the order card names the handover 
 
   // The cart's "How you'll get it" just above calls the door handover "Meet at the seller's home" (HANDOVER_TITLE, as
   // on the item page); the paid order card under it said "Pickup at the seller's home" for the same choice.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |             {handoverTitle(order.handover)}{order.side | {order.handover === "porch" ? "Porch pickup" : "Pickup at the seller's home"}{order.side
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |             {handoverTitle(order.handover, order.side)}{order.side | {order.handover === "porch" ? "Porch pickup" : "Pickup at the seller's home"}{order.side
   it("every handover on a paid order card reads exactly its checkout title", async () => {
     const heads: string[] = [];
     for (const h of ["pickup_home", "porch", "delivery", "seller_delivery", "meetup"] as const) {
@@ -1774,6 +1774,24 @@ describe("DB-LOW wording (Buying walk 11-01): the order card names the handover 
     }
     expect(heads).toEqual(["pickup_home", "porch", "delivery", "seller_delivery", "meetup"].map((h) => HANDOVER_TITLE[h as keyof typeof HANDOVER_TITLE]));
     expect(heads[0]).toBe("Meet at the seller's home");
+    expect(heads.length).toBeGreaterThan(4);
+  });
+
+  // DB-LOW follow-up (lead 11-01): the seller's own door-pickup card said "Meet at the seller's home · You're selling";
+  // the seller's home is theirs, so it says "your home". Every other handover keeps its checkout title.
+  // @mutate src/components/declutter/handoverCopy.ts |   return side === "seller" && title === HANDOVER_TITLE.pickup_home ? "Meet at your home" : title; |   return title;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {handoverTitle(order.handover, order.side)}{order.side | {handoverTitle(order.handover)}{order.side
+  it("the seller's own door-pickup card says \"your home\"; the other handovers keep their titles", async () => {
+    const heads: string[] = [];
+    for (const h of ["pickup_home", "porch", "delivery", "seller_delivery", "meetup"] as const) {
+      const { unmount } = show([line({ handover: h, my_side: "seller" })]);
+      await screen.findByText("Oak chair");
+      heads.push(document.querySelector("[data-order-head] p + p")?.textContent ?? "");
+      unmount();
+    }
+    expect(heads[0]).toBe("Meet at your home · You're selling");
+    expect(heads.slice(1)).toEqual(["porch", "delivery", "seller_delivery", "meetup"].map((h) => `${HANDOVER_TITLE[h as keyof typeof HANDOVER_TITLE]} · You're selling`));
+    expect(heads.join(" ")).not.toContain("the seller's home");
     expect(heads.length).toBeGreaterThan(4);
   });
 });

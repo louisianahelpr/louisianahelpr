@@ -99,7 +99,7 @@ export function MeetupPanel({ orderId, side, slotStart }: { orderId: string; sid
           </button>
         ) : (
           // Audit 1028 D1-13: only the buyer books the meeting time, so the seller is never told to book it.
-          <p className="text-ds-13 text-muted-foreground">{slotStart ? "You can tap \"I'm here\" from an hour before the meeting time." : side === "buyer" ? "Book a time to meet first." : "The buyer books the time; we'll tell you."}</p>
+          <p className="text-ds-13 text-muted-foreground">{slotStart ? "You can tap \"I'm here\" from an hour before the meeting time." : side === "buyer" ? "Pick a time to meet first." : "The buyer picks the time; we'll tell you."}</p>
         )
       )}
     </section>

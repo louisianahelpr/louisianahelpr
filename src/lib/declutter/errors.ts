@@ -177,7 +177,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   no_show_waiting: "A no-show report on this order is waiting for an answer, so the time can't move.",
   no_show_answer_late: "The 24 hours to answer are over.",
   // BUY-2 (20261031133938): the buyer's cancel after no Helpr took the delivery.
-  pickup_booked: "You booked a pickup time, so this sale goes ahead. If something is wrong, report a problem.",
+  pickup_booked: "You picked a pickup time, so this sale goes ahead. If something is wrong, report a problem.",
   not_a_no_helpr_order: "This sale can't be cancelled here.",
   // soldstates-5 (20261031134217): the seller's "The Helpr didn't come" and the Helpr's answer.
   not_a_helpr_delivery: "This sale isn't a Helpr delivery.",

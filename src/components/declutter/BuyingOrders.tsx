@@ -27,6 +27,7 @@ import { REFUNDED_IN_FULL } from "@/lib/declutter/refundRequests";
 import { useOpenProblems } from "./useOpenProblems";
 import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
+import { Button } from "@/components/ui/button";
 import { ORDER_BUCKETS, OrderSteps, gotItOpen, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
 /** One paid order on the buyer's side, as the tracker files it. */
@@ -99,8 +100,8 @@ export function buyerNextAction(f: OrderFacts): string | null {
   if (f.problem && f.problemAwaitsYou && !f.cancelled) return "Add your side";
   if (!orderWaitsOnYou(f)) return null;
   if (f.handover === "porch") return f.booked ? "I got it" : "Pick a pickup time";
-  if (f.handover === "pickup_home") return f.booked ? "I got it" : "Book a pickup time";
-  if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet";
+  if (f.handover === "pickup_home") return f.booked ? "I got it" : "Pick a pickup time";
+  if (f.handover === "meetup") return f.booked ? "I got it" : "Pick a time to meet";
   // AUD31-3: the seller-delivery panel's own button words.
   if (f.handover === "seller_delivery" && !f.delivered) {
     return f.needsTime ? "Pick a time" : f.moveAsked ? "Accept the new time" : f.late ? "It wasn't delivered" : "I got it";
@@ -130,11 +131,11 @@ function buyerNextStep(f: OrderFacts, when: string | null, helprName: string | n
           : at === 2 ? you("Pick it up from the porch, then tap I got it")
             : info("Picked up.");
     case "pickup_home":
-      if (at === 0) return you("Book a pickup time");
+      if (at === 0) return you("Pick a pickup time");
       if (at === 1) return f.gotItOpen ? you("Pick it up, then tap I got it", when ? `booked for ${when}` : null) : info(`Pickup booked${when ? ` for ${when}` : ""}.`);
       return info("Picked up.");
     case "meetup":
-      if (at === 0) return you("Book a time to meet at the safe spot");
+      if (at === 0) return you("Pick a time to meet at the safe spot");
       if (at === 1) return f.gotItOpen ? you("Meet the seller, then tap I got it", when ? `booked for ${when}` : null) : info(`Meeting booked${when ? ` for ${when}` : ""}.`);
       return info("Met.");
     case "seller_delivery":
@@ -343,13 +344,14 @@ export function BuyerOrderHead({ view, standing, open, onOpen, onClose, onAction
       {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
       <div className="flex flex-wrap items-center gap-3">
         {view.action && !open && (
-          <button type="button" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-5 text-sm font-semibold" onClick={onAction} data-next-action="">
+          <Button type="button" size="sm" onClick={onAction} data-next-action="">
             {view.action}
-          </button>
+          </Button>
         )}
-        <button type="button" className="min-h-11 text-sm font-semibold underline underline-offset-2" aria-expanded={open} onClick={open ? onClose : onOpen}>
+        {/* DB-LOW follow-up (lead 11-01): the shared Button, not hand-built controls. */}
+        <Button type="button" variant="link" size="sm" className="px-1" aria-expanded={open} onClick={open ? onClose : onOpen} data-details-toggle="">
           {open ? "Hide details" : "Details"}
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -273,7 +273,7 @@ export function NoShowSheet({
         <SheetHero title={side === "seller" ? `${who === "the buyer" ? "The buyer" : who} didn't pick up?` : `${who === "the seller" ? "The seller" : who} didn't show?`} />
         {side === "seller" ? (
           <ul className="space-y-2 text-ds-14" data-no-show-rules="seller">
-            <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li>
+            <li>The first missed pickup: {who} can pick one new time before the 7-day pickup deadline.</li>
             <li>{free ? "A second miss cancels the claim, and your item goes back on sale." : <>A second miss cancels the sale. {who === "the buyer" ? "The buyer" : who} gets the item price back, and your item goes back on sale.</>}</li>
             <li className="text-ds-13 text-muted-foreground">Missed pickups count against the buyer, not you.</li>
           </ul>

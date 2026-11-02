@@ -27,6 +27,8 @@ export const HANDOVER_WORDS: Record<Handover, string> = {
  * choice never reads "Meet at the seller's home" in the cart and "Pickup at the seller's home" on the order under it.
  * An unknown value reads as the door pickup, as the card's old fallback did.
  */
-export function handoverTitle(handover: string | null): string {
-  return (HANDOVER_TITLE as Record<string, string>)[handover ?? ""] ?? HANDOVER_TITLE.pickup_home;
+export function handoverTitle(handover: string | null, side: "buyer" | "seller" = "buyer"): string {
+  const title = (HANDOVER_TITLE as Record<string, string>)[handover ?? ""] ?? HANDOVER_TITLE.pickup_home;
+  // DB-LOW follow-up (lead 11-01): on the seller's own card the door pickup is at THEIR home, so it says "your home".
+  return side === "seller" && title === HANDOVER_TITLE.pickup_home ? "Meet at your home" : title;
 }

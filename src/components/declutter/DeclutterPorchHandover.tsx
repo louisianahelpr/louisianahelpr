@@ -74,11 +74,11 @@ function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: s
     return info("Picked up.");
   }
   if (handover === "meetup") {
-    if (at === 0) return side === "buyer" ? you("Book a time to meet") : them(`${paid} Waiting on the buyer to book a time to meet.`);
+    if (at === 0) return side === "buyer" ? you("Pick a time to meet") : them(`${paid} Waiting on the buyer to pick a time to meet.`);
     if (at === 1) return side === "seller" ? you("Meet the buyer at the time and place below") : info("Booked. The time and place are below.");
     return info(at === 2 ? "Met." : "Handed over.");
   }
-  if (at === 0) return side === "buyer" ? you("Book a pickup time") : them(`${paid} Waiting on the buyer to book a pickup time.`);
+  if (at === 0) return side === "buyer" ? you("Pick a pickup time") : them(`${paid} Waiting on the buyer to pick a pickup time.`);
   if (at === 1) return side === "seller" ? you("Have it ready at the pickup time below") : info("Booked. The pickup time is below.");
   return info(at === 2 ? "Picked up." : "Handed over.");
 }

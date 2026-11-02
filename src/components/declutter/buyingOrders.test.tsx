@@ -26,7 +26,7 @@
  * @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 1 && f.late) return | if (at === 1 && false) return
  * BUY-7 (buying audit 10-30 #7): from an hour before a door pickup or meetup, "I got it" is the card's action (Needs you).
  * @mutate src/components/declutter/OrderSteps.tsx |      return buyer && (!f.booked \|\| (!!f.gotItOpen && !f.pickedUp)); |      return buyer && !f.booked;
- * @mutate src/components/declutter/BuyingOrders.tsx |   if (f.handover === "meetup") return f.booked ? "I got it" : "Book a time to meet"; |   if (f.handover === "meetup") return "Book a time to meet";
+ * @mutate src/components/declutter/BuyingOrders.tsx |   if (f.handover === "meetup") return f.booked ? "I got it" : "Pick a time to meet"; |   if (f.handover === "meetup") return "Pick a time to meet";
  * @mutate src/components/declutter/OrderSteps.tsx |   return Number.isFinite(t) && now >= t - GOT_IT_OPENS_MINUTES_BEFORE * 60_000; |   return Number.isFinite(t) && now >= t;
  * @mutate src/components/declutter/BuyingOrders.tsx |       money: facts.free ? "Free." : total != null |       money: total != null
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const body = !view \|\| open; |   const body = true;
@@ -143,10 +143,10 @@ const CASES: Case[] = [
   { id: "porch1", line: { handover: "porch" }, slot: iso(24), step: 1, bucket: "upcoming", action: null },
   { id: "porch2", line: { handover: "porch" }, slot: iso(2), handover: { set_out_at: iso(-1) }, step: 2, bucket: "needs_you", action: "I got it" },
   { id: "porch3", line: { handover: "porch" }, slot: iso(-1), handover: { set_out_at: iso(-3), picked_up_at: iso(-1) }, step: 3, bucket: "waiting", action: null },
-  { id: "home0", line: {}, step: 0, bucket: "needs_you", action: "Book a pickup time" },
+  { id: "home0", line: {}, step: 0, bucket: "needs_you", action: "Pick a pickup time" },
   { id: "home1", line: {}, slot: iso(5), step: 1, bucket: "upcoming", action: null },
   { id: "home2", line: {}, slot: iso(-1), handover: { confirmed_at: iso(-0.5) }, step: 2, bucket: "waiting", action: null },
-  { id: "meet0", line: { handover: "meetup" }, step: 0, bucket: "needs_you", action: "Book a time to meet" },
+  { id: "meet0", line: { handover: "meetup" }, step: 0, bucket: "needs_you", action: "Pick a time to meet" },
   { id: "meet1", line: { handover: "meetup" }, slot: iso(5), step: 1, bucket: "upcoming", action: null },
   // BUY-7: within the hour before (and after) the booked time, "I got it" is on the card.
   { id: "home1near", line: {}, slot: iso(0.5), step: 1, bucket: "needs_you", action: "I got it" },
@@ -317,7 +317,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // other card says who it waits on or where it stands, never "Next:". The late seller delivery is the one Needs-you
   // card whose line says why (its button, "It wasn't delivered", is the step).
   // @mutate src/components/declutter/BuyingOrders.tsx |       return at === 0 ? you("Pick a pickup time") |       return at === 0 ? info("Pick a pickup time")
-  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Book a pickup time"); |       if (at === 0) return info("Book a pickup time.");
+  // @mutate src/components/declutter/BuyingOrders.tsx |       if (at === 0) return you("Pick a pickup time"); |       if (at === 0) return info("Pick a pickup time.");
   // @mutate src/components/declutter/BuyingOrders.tsx |       return you("Tap I got it once you have it");\n  } |       return info("Delivered.");\n  }
   // @mutate src/components/declutter/BuyingOrders.tsx | value={standing ? { who: "info", text: standing } : view.next} | value={{ who: "info", text: view.next.text }}
   it("Next-step line: every card that waits on the buyer says 'Next: …'; the rest never do", async () => {
@@ -336,7 +336,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
       else expect(line!.textContent, c.id).not.toMatch(/^Next:/);
     }
     expect(yours).toBeGreaterThan(10);
-    expect(card("home0").querySelector("[data-next-step]")!.textContent).toBe("Next: book a pickup time");
+    expect(card("home0").querySelector("[data-next-step]")!.textContent).toBe("Next: pick a pickup time");
     expect(card("porch0").querySelector("[data-next-step]")!.textContent).toBe("Next: pick a pickup time");
     expect(card("hd3").querySelector("[data-next-step]")!.textContent).toBe("Next: tap I got it once you have it");
     expect(card("hd0").querySelector("[data-next-step]")!.textContent).toBe("Finding a Helpr to bring it.");
@@ -356,11 +356,11 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   it("the next action opens the card at that action, and the head button gives way to the real control", async () => {
     load(CASES.filter((c) => c.id === "home0"));
     show();
-    fireEvent.click(await screen.findByRole("button", { name: "Book a pickup time" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Pick a pickup time" }));
     const el = card("home0");
     expect(el.querySelector("[data-order-body]")).not.toBeNull();
-    expect(within(el).queryByRole("button", { name: "Book a pickup time" })).toBeNull();
-    expect(within(el).getByRole("button", { name: "Book" })).toBeInTheDocument();
+    expect(within(el).queryByRole("button", { name: "Pick a pickup time" })).toBeNull();
+    expect(within(el).getByRole("button", { name: "Pick this time" })).toBeInTheDocument();
     expect(within(el).getByRole("button", { name: "Hide details" })).toHaveAttribute("aria-expanded", "true");
     // One tracker on the card: the head's, never the old pickup bar beside it.
     expect(el.querySelectorAll('ol[aria-label^="Step "]').length).toBe(1);
@@ -381,7 +381,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(within(el).queryByRole("button", { name: "Pick a pickup time" })).toBeNull();
     expect(el.textContent).not.toContain("Pick the day you'll come for it");
     // The other order is untouched.
-    expect(within(card("home0")).getByRole("button", { name: "Book a pickup time" })).toBeInTheDocument();
+    expect(within(card("home0")).getByRole("button", { name: "Pick a pickup time" })).toBeInTheDocument();
     state.problems = [];
   });
 

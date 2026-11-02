@@ -237,7 +237,7 @@ function NewTimePicker({ orderId, current, onDone }: { orderId: string; current:
         {shown.slots.map((s) => <ChoicePill key={s} selected={sameSlot(s, slot)} onClick={() => setSlot(s)}>{slotTimeLabel(s, times.data?.slot_minutes)}</ChoicePill>)}
       </div>
       <button type="button" className={primary} disabled={!slot || propose.isPending} onClick={() => propose.mutate()}>
-        {current.status === "needs_time" && current.side === "buyer" ? "Book this time" : "Ask for this time"}
+        {current.status === "needs_time" && current.side === "buyer" ? "Pick this time" : "Ask for this time"}
       </button>
     </div>
   );

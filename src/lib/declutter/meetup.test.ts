@@ -195,7 +195,7 @@ describe("adminSaveMeetupSpot", () => {
 
 describe("meetup words", () => {
   it("a code matches as a whole word, inside a longer message too", () => {
-    expect(rpcErrorMessage("declutter_meetup_here", "not_booked_yet")).toBe("Book a time to meet first.");
+    expect(rpcErrorMessage("declutter_meetup_here", "not_booked_yet")).toBe("Pick a time to meet first.");
     expect(rpcErrorMessage("declutter_meetup_here", { message: "ERROR: not_a_meetup (P0001)" })).toBe(MEETUP_ERROR_COPY.not_a_meetup);
     expect(rpcErrorMessage("declutter_meetup_here", "was_not_a_meetup_at_all")).toBeNull();
   });

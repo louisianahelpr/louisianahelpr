@@ -201,7 +201,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
         <div className="min-w-0">
           <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
           <p className="text-ds-13 text-muted-foreground">
-            {handoverTitle(order.handover)}{order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
+            {handoverTitle(order.handover, order.side)}{order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
           </p>
         </div>
         <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--accent-ink))]">{itemPriceLabel(items)}</span>
@@ -338,7 +338,7 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
   if (!booked && order.side === "seller") {
     // DB-LOW wording (Buying walk 11-01, seller side): the step line above already says "Waiting on the buyer to book
     // ..."; this line said it again in other words. It now adds only the deadline.
-    return <p className="text-sm text-muted-foreground" data-book-deadline="">The buyer has 7 days from paying to book.</p>;
+    return <p className="text-sm text-muted-foreground" data-book-deadline="">The buyer has 7 days from paying to pick a time.</p>;
   }
   const id = `dcl-slot-${order.orderId}`;
   if (frozen) return booked ? <p className="text-sm">Pickup: <span className="font-medium">{when(booked)}</span> (30 minutes)</p> : null;
@@ -371,7 +371,7 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
           fallback={<DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />} />
         <div className="flex flex-wrap gap-2">
           <button type="button" className={booked ? btn : primary} disabled={book.isPending || !(slot ?? localInputToIso(value))}
-            onClick={() => { const iso = slot ?? localInputToIso(value); if (iso) book.mutate(iso); }}>{booked ? "Move" : "Book"}</button>
+            onClick={() => { const iso = slot ?? localInputToIso(value); if (iso) book.mutate(iso); }}>{booked ? "Move" : "Pick this time"}</button>
           {booked && <button type="button" className={btn} onClick={() => { setMoving(false); setSlot(null); }}>Cancel</button>}
         </div>
       </div>

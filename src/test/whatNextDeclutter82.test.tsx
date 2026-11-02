@@ -20,7 +20,7 @@
  * DB-7 (audit 1030): a seller delivery booked at checkout says "The seller brings it · Now", not "Pick a delivery time".
  * @mutate src/components/declutter/BoughtWhatNext.tsx |     ? sdBooking.data?.status === "booked" && !!sdBooking.data.slot_start | ? false
  * @mutate src/components/declutter/BoughtWhatNext.tsx |       return booked\n        ? [go("The seller brings it", "At the time you picked", true)] |       return false\n        ? [go("The seller brings it", "At the time you picked", true)]
- * @mutate src/components/declutter/BoughtWhatNext.tsx | : [book("Book a time to meet", "In Buying, from the seller's times"), | : [book("Pick it up", "In Buying, from the seller's times"),
+ * @mutate src/components/declutter/BoughtWhatNext.tsx | : [book("Pick a time to meet", "In Buying, from the seller's times"), | : [book("Pick it up", "In Buying, from the seller's times"),
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -80,8 +80,8 @@ describe("board 82: after buying", () => {
     };
     const cases: [string, boolean, string][] = [
       ["porch", false, "Pick a pickup time"],
-      ["meetup", false, "Book a time to meet"],
-      ["pickup_home", false, "Book a pickup time"],
+      ["meetup", false, "Pick a time to meet"],
+      ["pickup_home", false, "Pick a pickup time"],
       ["seller_delivery", false, "Pick a new delivery time"],
       ["seller_delivery", true, "The seller brings it"],
       ["delivery", false, "A local Helpr brings it"],

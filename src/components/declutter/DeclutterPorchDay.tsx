@@ -144,7 +144,7 @@ export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-5 text-sm font-semibold"
               disabled={!pick || book.isPending} onClick={() => { if (pick) book.mutate(pick); }}>
-              {book.isPending ? "Saving…" : booked ? "Move to this day" : "Book this day"}
+              {book.isPending ? "Saving…" : booked ? "Move to this day" : "Pick this day"}
             </button>
             {moving && <button type="button" className="min-h-11 text-sm font-semibold underline underline-offset-2" onClick={() => { setMoving(false); setPick(null); }}>Keep {porchDayWords(booked ?? "")}</button>}
           </div>

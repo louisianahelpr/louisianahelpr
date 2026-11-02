@@ -91,6 +91,8 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   rentals_visit_for_job: "Rentals S3: reads the visit for the single confirmed Helpr or the poster; a crew member gets no rows, never another member's access",
   rpc_answer_refund_request: "Board 141 (20261021102943): reads helper_id only to check the request's Helpr is still the job's Helpr; refund requests refuse a crew job outright (refund_request_assert_job_open: refund_request_crew_job), so a crew member is never granted anything",
   get_closed_application_job_labels: "JOBS-12 (20261031021424): keys on applications.helper_id, the caller's OWN application, never jobs.helper_id; returns only the title and date of a job the caller applied to, so a crew member reads their own applications and is granted nothing else",
+  propose_job_continue_day: "continue another day (20261101231015): refuses a group job outright (continue_day_not_in_progress on is_group_job), so a crew member is never granted anything",
+  confirm_job_continue_day: "continue another day (20261101231015): only a day set on a one-Helpr job exists (propose refuses a crew), so helper_id is the one Helpr",
   accept_job_offer: "the single Helpr's Accept (Q1180); it refuses a group job outright (group_job_not_supported), a crew confirms through rpc_group_member_confirm",
   claim_series_dates: "a recurring series is never a group job (20260831200113 constraint); each date has one Helpr",
   can_review_job: "legacy, service_role only; the review gates are enforce_review_validity + the INSERT policy, both roster-aware",

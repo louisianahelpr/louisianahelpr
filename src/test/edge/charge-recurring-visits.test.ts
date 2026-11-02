@@ -2969,6 +2969,108 @@ describe("charge-recurring-visits edge function", () => {
     expect(b.errors).toBe(0);
   });
 
+  // ── Q2245 (owner MASTER-LIST 2026-10-21): the date's own Helpr lapsed ──
+  // A date still held by the Helpr it was paid for, unbooked because that
+  // Helpr's setup lapsed after the payment was parked: the poster is refunded
+  // IN FULL and the lapsed Helpr owes the charge's card fee (from their next
+  // payout), billed BEFORE the refund, once per visit payment.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         lapsedHolder = visitNotReady != null; |         lapsedHolder = false;
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!withholdFee && lapsedHolder) { |         if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             fail(`visit payment ${row.id}: ${billProblem}; nothing refunded, retried next run`);\n            continue; |             fail(`visit payment ${row.id}: ${billProblem}; nothing refunded, retried next run`);
+  // @mutate supabase/functions/_shared/helprFaultFee.ts |     p_card_fee_cents: cents, |     p_card_fee_cents: 0,
+  const billCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "bill_helpr_card_fee_debt");
+  const lapsedSetup = (fee: unknown = "helper_payout_setup_incomplete") => {
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] } });
+    wireHolds([{ id: "hold-same", visit_date: "2026-09-01", helper_id: HELPER_ID }]);
+    wireVisitPayments({ sweep: { rows: [{ ...orphan, helper_id: HELPER_ID }] } });
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    otherPiRetrieve.mockResolvedValue(untaggedIntent);
+    scenario.rpc.helper_accept_block_reason = fee;
+  };
+
+  it("Q2245: a paid visit whose own Helpr is not ready is refunded IN FULL and that Helpr is billed the card fee first", async () => {
+    const fn = await loadConfigured();
+    lapsedSetup();
+    scenario.rpc.bill_helpr_card_fee_debt = 320;
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    let billedBeforeRefund = false;
+    stripeMock.refunds.create.mockImplementation(async () => {
+      billedBeforeRefund = billCalls().length === 1;
+      return { id: "re_full", status: "succeeded", amount: 10000 };
+    });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan" });
+    expect(billCalls().map((c) => c.args)).toEqual([{ p_visit_payment_id: "vp-orphan", p_card_fee_cents: 320, p_refund_ref: "pi_orphan" }]);
+    expect(billedBeforeRefund).toBe(true);
+    expect((scenario.rpcCalls ?? []).find((c) => c.name === "helper_accept_block_reason")?.args).toEqual({ p_user_id: HELPER_ID });
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q2245: a failed bill refunds nothing this run and settles nothing (the next run bills, then refunds)", async () => {
+    const fn = await loadConfigured();
+    lapsedSetup();
+    scenario.rpcErrors = { bill_helpr_card_fee_debt: { message: "connection reset", code: "08006" } };
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update")).toEqual([]);
+    expect(reasons(b)).toContain("billing the lapsed Helpr the 320-cent card fee failed");
+    expect(b.errors).toBe(1);
+  });
+
+  it("Q2245: a refund an earlier run already made in full is billed before it is settled", async () => {
+    const fn = await loadConfigured();
+    lapsedSetup();
+    scenario.rpc.bill_helpr_card_fee_debt = 0; // already billed by that run: a replay bills nothing
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_full", status: "succeeded", amount: 10000 }] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(billCalls()).toHaveLength(1);
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q2245: an unread readiness refunds nothing this run", async () => {
+    const fn = await loadConfigured();
+    lapsedSetup();
+    scenario.rpcErrors = { helper_accept_block_reason: { message: "connection reset", code: "08006" } };
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(billCalls()).toEqual([]);
+    expect(reasons(b)).toContain("could not read whether its Helpr is ready");
+  });
+
+  it("Q2245 control: a READY Helpr's unbooked visit is refunded in full with no bill", async () => {
+    const fn = await loadConfigured();
+    lapsedSetup(null);
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    expect((await body(await runOn(fn, "2026-09-01"))).errors).toBe(0);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan" });
+    expect(billCalls()).toEqual([]);
+  });
+
+  it("Q2245 control: an ended series' visit (fee withheld from the poster) is never billed to the Helpr", async () => {
+    const fn = await loadConfigured();
+    lapsedSetup();
+    wireJobsReads({ series: { rows: [] }, live: { rows: [{ id: PARENT_ID, series_ended_on: "2026-08-30" }] } });
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    await body(await runOn(fn, "2026-09-01"));
+    expect(billCalls()).toEqual([]);
+    expect((scenario.rpcCalls ?? []).filter((c) => c.name === "helper_accept_block_reason")).toEqual([]);
+  });
+
   // Owner pop-up 2026-10-14 ~3 PM CT: that full refund is our own mistake's,
   // so a hand refund that kept the card fee does NOT settle it (lh-money-escrow
   // review of 79e9a6bb5, #4): ops are paged for the rest.

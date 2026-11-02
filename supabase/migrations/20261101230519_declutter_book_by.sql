@@ -198,7 +198,7 @@ BEGIN
       -- buyer no-show and refunds the item price (20261031181404 loop (b)), so the reminder says so.
       format('%s for %s by %s, or the order is cancelled and the item price refunded. Open your order in Buying.',
              upper(left(v_step, 1)) || substr(v_step, 2), v_what, v_by),
-      '/declutter?view=cart', r.seller_id);
+      '/declutter?tab=buying', r.seller_id);
     v_sent := v_sent + 1;
    EXCEPTION WHEN OTHERS THEN
     -- This order's claim rolls back with the block's savepoint, so the next run tries it again; the others go on.

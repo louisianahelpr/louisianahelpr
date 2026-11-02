@@ -23,7 +23,7 @@
  * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return posterConfirmDeadline(job); |     case "confirm_still_on":\n      return null;
  * A3-9 (audit 11-01): the poster's clock ends at the start, like the line's "by" (posterConfirmClosesMs).
  * @mutate src/components/job-card/jobStatusLine.ts |     case "confirm_still_on":\n      return posterConfirmDeadline(job); |     case "confirm_still_on":\n      return confirmDeadline(job);
- * @mutate src/components/job-card/collapsedClocks.ts |   if (opens) return [{ ...opens.clock, farLabel: "Confirm opens" }]; |   if (opens) return [{ ...opens.clock }];
+ * @mutate src/components/job-card/collapsedClocks.ts |   if (opens) return [{ ...opens.clock, farLabel: "Confirm from" }]; |   if (opens) return [{ ...opens.clock }];
  * @mutate src/components/job-card/collapsedClocks.ts |   if (!start \|\| Date.now() - start.getTime() > PAST_START_DROP_MS) return []; |   if (!start) return [];
  * @mutate src/lib/activityBuckets.ts |   waiting: "Waiting",\n  scheduled: "Booked", |   waiting: "Applied",\n  scheduled: "Booked",
  * @mutate src/components/job-card/activityFilters.ts |     if (app.job?.helper_arrived_at && !arrivalEstablished(app.job) && !beforePhotoIsThePrimary(app.job)) return "waiting"; |
@@ -118,7 +118,9 @@ describe("job card polish (owner 2026-10-23)", () => {
   it("7: one clock, the next one, as a date when more than 2 days out; 8: none days after the start", () => {
     const far = collapsedClocks({ date_needed: "2037-11-12", start_time: "15:00:00", status: "accepted", helper_confirmed_at: T }, true);
     expect(far).toHaveLength(1);
-    expect(far[0]).toMatchObject({ farLabel: "Confirm opens" });
+    // Q2597 (Jobs audit 1102b row 11): plain words, never "until confirmation opens".
+    // @mutate src/components/job-card/confirmationOpensClock.ts | export const CONFIRM_OPENS_TEXT = "until you can confirm"; | export const CONFIRM_OPENS_TEXT = "until confirmation opens";
+    expect(far[0]).toMatchObject({ farLabel: "Confirm from", text: "until you can confirm", expiredText: "You can confirm now" });
     const soon = collapsedClocks({ date_needed: "2037-10-22", start_time: "15:00:00", status: "accepted", helper_confirmed_at: T }, true);
     expect(soon.map((c) => c.id)).toEqual(["start"]);
     expect(collapsedClocks({ date_needed: "2037-10-12", start_time: "15:00:00", status: "accepted", helper_confirmed_at: T }, true)).toEqual([]);

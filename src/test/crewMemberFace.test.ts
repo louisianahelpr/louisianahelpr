@@ -13,7 +13,7 @@
  * @mutate src/pages/jobs/jobPage/crewMemberFace.ts |     crewMinutesUntilDone(slot, nowMs) === 0 |     true
  * @mutate src/pages/jobs/jobPage/crewMemberFace.ts |       requestFaceAction(jobId, request); |       void request;
  * @mutate src/pages/jobs/appliedJobCard/CrewMemberSection.tsx |     else if (taken === "crew_done") void onDone(); |     else if (taken === "crew_done") void onArrive();
- * @mutate src/pages/jobs/appliedJobCard/CrewMemberSection.tsx |     const taken = takeCrewFaceRequest(app.job_id, slot, job); |     const taken = null as string | null;
+ * @mutate src/pages/jobs/appliedJobCard/CrewMemberSection.tsx |     const taken = takeCrewFaceRequest(app.job_id, slot, job); |     const taken = takeCrewFaceRequest(app.job_id, null, job);
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";

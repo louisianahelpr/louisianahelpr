@@ -13,6 +13,7 @@
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (!open) { |   if (open === null) {
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |     opens: stage === "cancel_sheet" && viewer === "poster" ? "Cancel job" : null, |     opens: null,
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |       job_guarantee_claims: [],\n |
+ * @mutate src/pages/admin/preview/JobPreviewPage.tsx |     const undoRealtime = installInertRealtime(); |     const undoRealtime = () => undefined;
  * @mutate src/App.tsx | <ProtectedRoute><AdminRoute><AdminJobPreview /></AdminRoute></ProtectedRoute> | <ProtectedRoute><AdminJobPreview /></ProtectedRoute>
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
@@ -39,6 +40,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 import JobPreviewPage from "@/pages/admin/preview/JobPreviewPage";
 import { PREVIEW_STAGES, previewSample } from "@/pages/admin/preview/jobPreviewSamples";
 import { jobPreviewChecks } from "@/pages/admin/preview/previewBackend";
+import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE = String(import.meta.env.VITE_SUPABASE_URL);
 let sent: Array<{ url: string; method: string }> = [];
@@ -191,6 +193,31 @@ describe("admin job-page preview", () => {
     await waitFor(() => expect(document.querySelector("[data-preview-controls]")).toBeNull());
     expect(leaked()).toEqual([]);
   }, 30000);
+
+  it("no realtime channel subscribes while the preview is open (every stage the page opens one on), and the client gets its own back after", async () => {
+    const client = supabase as unknown as { channel: (...a: unknown[]) => unknown };
+    const realChannel = client.channel;
+    const subscribed: string[] = [];
+    // Underneath the preview: any channel the real client would make, and whether it subscribes.
+    client.channel = (name: unknown) => {
+      const ch = { on: () => ch, subscribe: () => { subscribed.push(String(name)); return ch; }, unsubscribe: async () => "ok", send: async () => "ok", track: async () => "ok", untrack: async () => "ok", presenceState: () => ({}), teardown: () => undefined, topic: String(name) };
+      return ch;
+    };
+    try {
+      for (const [stage, viewer] of [["working", "poster"], ["working", "helpr"], ["posted", "poster"], ["crew", "helpr"]] as const) {
+        const r = renderPreview(stage, viewer);
+        await screen.findAllByText(previewSample(stage, viewer).job.title, undefined, { timeout: 10000 });
+        // A probe the page could make: answered by the inert channel, never the client's own.
+        (supabase.channel(`probe-${stage}`) as unknown as { subscribe: () => unknown }).subscribe();
+        await new Promise((res) => setTimeout(res, 50));
+        r.unmount();
+      }
+      expect(subscribed).toEqual([]);
+      expect(client.channel).not.toBe(realChannel);
+    } finally {
+      client.channel = realChannel;
+    }
+  }, 60000);
 
   it("is behind the same admin gate as /admin, in its own lazy chunk", () => {
     const app = blankComments(readFileSync(path.join(process.cwd(), "src/App.tsx"), "utf8"));

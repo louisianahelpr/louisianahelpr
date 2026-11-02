@@ -33,28 +33,43 @@ pols as (
   from pg_policies p where p.schemaname = 'public' group by p.tablename
 ),
 grants as (
-  select table_name as relname, jsonb_object_agg(grantee, privs) as grants from (
-    select table_name, grantee, jsonb_agg(privilege_type order by privilege_type) as privs
-    from information_schema.role_table_grants
-    where table_schema = 'public' and grantee in ('anon', 'authenticated')
-    group by table_name, grantee) g group by table_name
+  -- Read from pg_class.relacl / pg_attribute.attacl, NOT information_schema.role_*_grants: those
+  -- views list only grants the CURRENT role can see (it must hold or have granted them), so the
+  -- latest Supabase CLI's --read-only login saw none and every write read as rejected
+  -- (write-contract run 41468179033, 2026-11-02). aclexplode shows every grant to any role.
+  select relname, jsonb_object_agg(grantee, privs) as grants from (
+    select relname, grantee, jsonb_agg(privilege_type order by privilege_type) as privs from (
+      select distinct c.relname, gr.rolname as grantee, a.privilege_type
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+      cross join lateral aclexplode(c.relacl) a
+      join pg_roles gr on gr.oid = a.grantee
+      where c.relkind in ('r', 'v', 'm', 'f', 'p') and gr.rolname in ('anon', 'authenticated')
+        -- information_schema never listed PG17's MAINTAIN; leaving it out keeps the snapshot as before.
+        and a.privilege_type <> 'MAINTAIN') d
+    group by relname, grantee) g group by relname
 ),
 colgrants as (
   -- Column-level INSERT/UPDATE/SELECT grants, only where the role lacks the
   -- table-level privilege (e.g. profiles: UPDATE granted on 92 of 103 columns;
   -- jobs: SELECT per column since the privacy hardening). SELECT was missing
   -- until 2026-09-23 (Q124), so every jobs write that reads back or filters its
-  -- row was reported as rejected although prod accepts it.
+  -- row was reported as rejected although prod accepts it. Same catalog source
+  -- as `grants` (pg_attribute.attacl), for the same reason.
   select relname, jsonb_object_agg(grantee, privs) as colgrants from (
     select relname, grantee, jsonb_object_agg(privilege_type, cols) as privs from (
-      select cg.table_name as relname, cg.grantee, cg.privilege_type,
-        jsonb_agg(cg.column_name order by cg.column_name) as cols
-      from information_schema.role_column_grants cg
-      where cg.table_schema = 'public' and cg.grantee in ('anon', 'authenticated')
-        and cg.privilege_type in ('INSERT', 'UPDATE', 'SELECT')
-        and not exists (select 1 from information_schema.role_table_grants tg
-          where tg.table_schema = 'public' and tg.table_name = cg.table_name
-            and tg.grantee = cg.grantee and tg.privilege_type = cg.privilege_type)
+      select relname, grantee, privilege_type, jsonb_agg(column_name order by column_name) as cols from (
+        select distinct c.relname, gr.rolname as grantee, a.privilege_type, att.attname::text as column_name
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+        join pg_attribute att on att.attrelid = c.oid and att.attnum > 0 and not att.attisdropped
+        cross join lateral aclexplode(att.attacl) a
+        join pg_roles gr on gr.oid = a.grantee
+        where c.relkind in ('r', 'v', 'm', 'f', 'p') and gr.rolname in ('anon', 'authenticated')
+          and a.privilege_type in ('INSERT', 'UPDATE', 'SELECT')
+          and not exists (
+            select 1 from aclexplode(c.relacl) t
+            where t.grantee = a.grantee and t.privilege_type = a.privilege_type)) d
       group by 1, 2, 3) x group by 1, 2) y group by 1
 ),
 trig as (

@@ -9,7 +9,6 @@
  * the one the preview gets, and a read made inside the preview is not the one the app gets after it closes.
  *
  * @mutate src/pages/admin/preview/MessagesPreviewPage.tsx |       undoRealtime();\n      forgetSharedReads(); |       undoRealtime();
- * @mutate src/pages/admin/preview/MessagesPreviewPage.tsx |     const undoRealtime = installInertRealtime();\n    forgetSharedReads(); |     const undoRealtime = installInertRealtime();
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |       undoRealtime();\n      forgetSharedReads(); |       undoRealtime();
  * @mutate src/pages/admin/preview/previewParts.tsx |   forgetAllBlockReads();\n  forgetActivityCoresRead(); |   forgetAllBlockReads();
  * @mutate src/pages/admin/preview/previewParts.tsx |   forgetAllBlockReads();\n  forgetActivityCoresRead(); |   forgetActivityCoresRead();

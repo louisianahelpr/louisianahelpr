@@ -20,6 +20,7 @@
  * EasyPost and the service-role database.
  */
 import { labelStateAfterVoid } from "./easypostLabels.ts";
+import { caughtMessage } from "./caughtMessage.ts";
 
 export type VoidableShipment = {
   id: string;
@@ -89,7 +90,7 @@ export async function runShipVoid(s: VoidableShipment, p: VoidPorts): Promise<Vo
       answer = await p.closeOrder(s.declutter_order_id);
     } catch (e) {
       // Not silent: the error becomes this void's answer, which the caller records and pages on.
-      answer = `error: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200);
+      answer = `error: ${caughtMessage(e)}`.slice(0, 200);
     }
     if (!CLOSE_FINE.has(answer)) {
       await p.page("Shipped order: label voided but the order did not close",

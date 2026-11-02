@@ -104,7 +104,8 @@ describe("Q2352 the setup fee is charged once per account", () => {
     const start = body("declutter_start_checkout");
     expect(start).toContain("v_setup := public.declutter_setup_fee_due_cents(v_uid);");
     expect(start).toContain("AND v_existing.setup_fee_cents = v_setup AND v_existing.items_cents = v_items AND (p_handover <> 'seller_delivery'");
-    expect(start).toMatch(/delivery_cents, total_cents, setup_fee_cents, bundle_discount_cents\) VALUES \(v_uid, p_seller_id, p_handover, v_items, v_premium, 0, v_delivery, v_items \+ v_premium \+ v_delivery, v_setup, v_bundle_off\)/);
+    // Shipping S3 (20261101201500): the total adds the shipping the buyer pays; the setup fee stays its own column.
+    expect(start).toMatch(/delivery_cents,\s+total_cents,\s+setup_fee_cents,\s+bundle_discount_cents,\s+shipping_cents,\s+shipping_quote_id\)\s+VALUES \(v_uid, p_seller_id, p_handover, v_items, v_premium, 0, v_delivery, v_items \+ v_premium \+ v_delivery \+ v_shipping,\s+v_setup, v_bundle_off, v_shipping, p_quote_id\)/);
     const due = body("declutter_setup_fee_due_cents");
     expect(due).toContain("WHEN COALESCE((SELECT p.onboarding_fee_paid FROM public.profiles p WHERE p.user_id = p_user), false) THEN 0");
     // The sale's total never names the fee (so every refund computed from it keeps the fee).

@@ -6,7 +6,7 @@
 import { isExpiredListing } from "@/lib/expiredListing";
 
 /** What an applicant (or anyone not on the job) reads on a listing that expired with nobody hired (Q2595). */
-export const EXPIRED_BEFORE_HIRE = "This job expired before anyone was hired.";
+const EXPIRED_BEFORE_HIRE = "This job expired before anyone was hired.";
 
 export type ViewerAction =
   | { kind: "apply" }

@@ -119,7 +119,7 @@ describe("job card polish (owner 2026-10-23)", () => {
     const far = collapsedClocks({ date_needed: "2037-11-12", start_time: "15:00:00", status: "accepted", helper_confirmed_at: T }, true);
     expect(far).toHaveLength(1);
     // Q2597 (Jobs audit 1102b row 11): plain words, never "until confirmation opens".
-    // @mutate src/components/job-card/confirmationOpensClock.ts | export const CONFIRM_OPENS_TEXT = "until you can confirm"; | export const CONFIRM_OPENS_TEXT = "until confirmation opens";
+    // @mutate src/components/job-card/confirmationOpensClock.ts | const CONFIRM_OPENS_TEXT = "until you can confirm"; | const CONFIRM_OPENS_TEXT = "until confirmation opens";
     expect(far[0]).toMatchObject({ farLabel: "Confirm from", text: "until you can confirm", expiredText: "You can confirm now" });
     const soon = collapsedClocks({ date_needed: "2037-10-22", start_time: "15:00:00", status: "accepted", helper_confirmed_at: T }, true);
     expect(soon.map((c) => c.id)).toEqual(["start"]);

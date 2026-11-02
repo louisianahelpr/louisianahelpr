@@ -16450,6 +16450,7 @@ export type Database = {
         Args: { p_link: string; p_other: string; p_user: string }
         Returns: string
       }
+      declutter_notice_ref: { Args: { p_ref: string }; Returns: undefined }
       declutter_notice_type: {
         Args: { p_link: string; p_title: string; p_type: string }
         Returns: string

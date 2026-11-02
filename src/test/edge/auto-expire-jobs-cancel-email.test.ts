@@ -217,6 +217,9 @@ function walk(dir: string): string[] {
  * a notifications write (insertNotifications or .from("notifications")) rather
  * than a Slack alert: the nearest preceding call within 12 lines decides.
  */
+// Q1917: the write is matched by the const's name, not by being within 16 lines of the title (the old reading still
+// called this a notice when the row written was something else).
+// @mutate supabase/functions/auto-expire-jobs/index.ts | const noticeLanded = await insertNotifications(supabase, autoCancelNotice); | const noticeLanded = await insertNotifications(supabase, []);
 function cancelTitles(): Array<{ file: string; title: string; isNotice: boolean }> {
   const found: Array<{ file: string; title: string; isNotice: boolean }> = [];
   for (const path of walk(FN_DIR)) {
@@ -229,13 +232,14 @@ function cancelTitles(): Array<{ file: string; title: string; isNotice: boolean 
       const notice = before.lastIndexOf("insertNotifications(");
       const table = before.lastIndexOf('from("notifications")');
       const slack = before.lastIndexOf("postSlackOpsAlert(");
-      // A row built as a const first and written a few lines later
-      // (`const x = { title, ... }; insertNotifications(supabase, x)`).
-      const after = lines.slice(i, i + 16).join("\n");
-      const laterNotice = after.indexOf("insertNotifications(");
-      const laterSlack = after.indexOf("postSlackOpsAlert(");
-      const builtThenWritten = /^\s*const\s+\w+\s*=\s*\{\s*$/.test(lines.slice(Math.max(0, i - 4), i).find((l) => /=\s*\{\s*$/.test(l)) ?? "") &&
-        laterNotice >= 0 && (laterSlack < 0 || laterNotice < laterSlack);
+      // A row built as a const first and written later (`const x = { title, ... }; insertNotifications(supabase, x)`).
+      // Q1917 (lh-silent-failure review of a94132b78 #4): matched by the const's NAME, so lines or a comment between
+      // the const and its write cannot reclassify it; a const handed to postSlackOpsAlert is not a notice.
+      const opener = lines.slice(Math.max(0, i - 4), i).reverse().map((l) => /^\s*const\s+(\w+)\s*(?::[^=]+)?=\s*\{\s*$/.exec(l)).find(Boolean);
+      const rest = lines.slice(i).join("\n");
+      const builtThenWritten = !!opener &&
+        new RegExp(`insertNotifications\\([^;]*?\\b${opener[1]}\\b`).test(rest) &&
+        !new RegExp(`postSlackOpsAlert\\([^;]*?\\b${opener[1]}\\b`).test(rest);
       found.push({
         file: path.slice(FN_DIR.length + 1),
         title: m[1],

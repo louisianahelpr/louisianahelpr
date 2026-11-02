@@ -373,6 +373,26 @@ describe("stalled-completion-reminder", () => {
     assertNoMoneyMoved();
   });
 
+  // Q1917: a 200 whose body says the email was neither queued nor sent is a lost reminder, not a clean run.
+  // @mutate supabase/functions/stalled-completion-reminder/index.ts |         if (sent?.success === false) { |         if (false) {
+  it("a 200 {success:false} from send-notification-email is a defect; skipped:true is not", async () => {
+    const fn = await load();
+    seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ success: false, reason: "queue_and_direct_failed" }), { status: 200 })));
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).not.toBe(200);
+    expect(await res.text()).toMatch(/not sent \(queue_and_direct_failed\)/);
+
+    resetSupabaseMock();
+    resetSharedMocks();
+    const fn2 = await load();
+    seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ skipped: true, reason: "opted_out" }), { status: 200 })));
+    const res2 = await fn2.fetch(cronRequest(fn2));
+    expect(res2.status).toBe(200);
+    assertNoMoneyMoved();
+  });
+
   it("a zero-row insert the boundary did NOT drop is still a defect", async () => {
     const fn = await load();
     seedStalled(STALLED_FIRST_AFTER_HOURS + 1, null);

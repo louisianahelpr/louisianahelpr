@@ -152,6 +152,13 @@ serve(async (req) => {
         defects.record(
           `email ${userId}: HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`,
         );
+      } else {
+        // Q1917: send-notification-email answers 200 with success:false when the queue AND the direct send both
+        // failed, so the status alone does not mean it went out. skipped:true (opted out, seed boundary) is fine.
+        const sent = await res.json().catch(() => null) as { success?: boolean; reason?: string; error?: string } | null;
+        if (sent?.success === false) {
+          defects.record(`email ${userId}: not sent (${sent.reason ?? sent.error ?? "no reason"})`);
+        }
       }
     } catch (e) {
       defects.record(`email ${userId}: ${(e as Error).message}`);

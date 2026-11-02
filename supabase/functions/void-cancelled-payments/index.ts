@@ -2887,7 +2887,7 @@ serve(async (req) => {
                   : ""),
               fields: {
                 job_id: job.id, payment_intent: paymentIntentId, refunded_cents: chargeRefundedCents, refundable_cents: voidSplit.ceilingCents,
-                ...(sellerFault ? { seller_fault: true, seller_fee_cents: unbilledSellerFeeCents } : {}),
+                ...(sellerFault ? { seller_fault: "yes", seller_fee_cents: unbilledSellerFeeCents } : {}),
               },
               oncePerDayKey: `void-refunded-past-kept:${job.id}`,
             });

@@ -16,7 +16,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
 import { onModuleUnavailable } from "@/lib/loadModule";
 import { isAutomatedBrowser } from "@/lib/automatedBrowser";
-import { announcePermissionDenied, isSessionLossNoise } from "@/lib/permissionDenied";
+import { announcePermissionDenied, isSessionLossNoise, isSignedOutNoise } from "@/lib/permissionDenied";
 import { redactInviteToken } from "@/lib/redactInviteToken";
 
 // ── Tunables ─────────────────────────────────────────────────────────
@@ -365,6 +365,8 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   // Q1596: a denial after a confirmed session loss is that loss, which
   // ProtectedRoute already reported once; not queued, not sent to Sentry.
   if (isSessionLossNoise(err)) return;
+  // Q2507/Q2515: the denials of reads in flight at a sign-out, for a few seconds.
+  if (isSignedOutNoise(err)) return;
   const isError = err instanceof Error;
   const rawMessage = describeUnknownError(err);
   const rawStack = isError ? err.stack : null;

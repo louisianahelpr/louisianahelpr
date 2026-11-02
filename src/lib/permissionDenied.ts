@@ -51,6 +51,29 @@ export function announcePermissionDenied(err: unknown): void {
  */
 let sessionLostMarked = false;
 
+/**
+ * SIGN-OUT NOISE (Q2507/Q2515, 2026-11-02). A sign-out the session-lost net
+ * never sees (the refresh token was refused, another tab signed out): reads
+ * the screen already had in flight go out with the anon key and come back
+ * "permission denied" just as ProtectedRoute sends the person to Log In.
+ * Measured: Sentry JAVASCRIPT-2T + JAVASCRIPT-49, one iPhone, 2026-10-22
+ * 16:34:47Z, four 401s in 100-150 ms and a plain /login?redirect= (no
+ * session-lost note). For SIGNED_OUT_NOISE_MS after SIGNED_OUT those denials
+ * are dropped; after it, a guest page's denial reports again. Guard:
+ * src/lib/errorLoggerSignedOutNoise.test.ts.
+ */
+export const SIGNED_OUT_NOISE_MS = 5_000;
+let signedOutAt = Number.NEGATIVE_INFINITY;
+
+/** The client calls this on SIGNED_OUT. */
+export function markSignedOut(now: number = Date.now()): void {
+  signedOutAt = now;
+}
+
+/** True for a permission-denied error inside the window after a sign-out. */
+export const isSignedOutNoise = (err: unknown, now: number = Date.now()): boolean =>
+  now - signedOutAt < SIGNED_OUT_NOISE_MS && isPermissionDenied(err);
+
 /** ProtectedRoute calls this when it reports a confirmed session loss. */
 export function markSessionLost(): void {
   sessionLostMarked = true;
@@ -59,6 +82,7 @@ export function markSessionLost(): void {
 /** A new session (SIGNED_IN): denials report again. */
 export function clearSessionLost(): void {
   sessionLostMarked = false;
+  signedOutAt = -Infinity;
 }
 
 /** True for a permission-denied error that follows a confirmed session loss. */

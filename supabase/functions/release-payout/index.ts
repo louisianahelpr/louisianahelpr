@@ -1005,11 +1005,13 @@ serve(async (req) => {
    */
   // Q2082 (b): what this payout withheld for a Helpr-fault card fee (below).
   let helprFaultFeeCents = 0;
-  const rollBackOnboardingFeeClaim = async (opts: { keepHelprFaultFee?: boolean } = {}) => {
+  const rollBackOnboardingFeeClaim = async (opts: { transferMayExist?: boolean } = {}) => {
     // The Helpr-fault card fee taken below goes back on the same exits, except a transfer error that may have
     // moved money (Q2204, the transfer catch).
-    if (helprFaultFeeCents > 0 && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
-    if (onboardingFeeDeductedCents <= 0) return;
+    if (helprFaultFeeCents > 0 && !opts.transferMayExist) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
+    // Lead 11-02: the one-time setup fee too stays claimed when the transfer may exist (a timeout may have
+    // sent it with the fee held back; un-claimed, the next payout would take the fee again).
+    if (onboardingFeeDeductedCents <= 0 || opts.transferMayExist) return;
     const { error: unclaimErr } = await supabaseAdmin
       .from("profiles")
       .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
@@ -1277,12 +1279,11 @@ serve(async (req) => {
         `CRITICAL: [release-payout] transfer failed for job ${job.id} AND the claim row could not be marked failed (${failed.message}); the payout will resume against the same idempotency key on the next run.`,
       );
     }
-    // Un-claim the onboarding fee if THIS invocation claimed it — the transfer
-    // failed, so no money moved and the fee was never actually collected.
-    // Q2204: the Helpr-fault deduction goes back ONLY on a definite Stripe
+    // Un-claim the onboarding fee if THIS invocation claimed it, and
+    // Q2204: the Helpr-fault deduction too, ONLY on a definite Stripe
     // refusal (no transfer exists), as transferToHelper and
     // execute-dispute-split do; a timeout may have sent the transfer with it held back.
-    await rollBackOnboardingFeeClaim({ keepHelprFaultFee: !isDefiniteStripeRefusal(err) });
+    await rollBackOnboardingFeeClaim({ transferMayExist: !isDefiniteStripeRefusal(err) });
     return jsonResponse({ error: `stripe.transfers.create failed: ${err.message}` }, 502);
   }
 

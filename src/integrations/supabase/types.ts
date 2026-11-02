@@ -7540,6 +7540,7 @@ export type Database = {
           status: Database["public"]["Enums"]["job_status"]
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
+          tax_kind: string | null
           title: string
           updated_at: string
           urgent_fee: number | null
@@ -7666,6 +7667,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["job_status"]
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
+          tax_kind?: string | null
           title: string
           updated_at?: string
           urgent_fee?: number | null
@@ -7792,6 +7794,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["job_status"]
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
+          tax_kind?: string | null
           title?: string
           updated_at?: string
           urgent_fee?: number | null
@@ -17844,6 +17847,7 @@ export type Database = {
           status: Database["public"]["Enums"]["job_status"]
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
+          tax_kind: string | null
           title: string
           updated_at: string
           urgent_fee: number | null
@@ -18002,6 +18006,7 @@ export type Database = {
           status: Database["public"]["Enums"]["job_status"]
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
+          tax_kind: string | null
           title: string
           updated_at: string
           urgent_fee: number | null
@@ -18486,6 +18491,13 @@ export type Database = {
         Returns: boolean
       }
       is_fixture_email: { Args: { p_email: string }; Returns: boolean }
+      is_job_labor_taxable: {
+        Args: {
+          _category: Database["public"]["Enums"]["job_category"]
+          _tax_kind: string
+        }
+        Returns: boolean
+      }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_identity_verified: { Args: { p_user_id: string }; Returns: boolean }
       identity_check_exempt: { Args: { p_user_id: string }; Returns: boolean }

@@ -551,7 +551,7 @@ serve(async (req) => {
       // Pay in 4 only where a provider takes the whole charge (fee, $2 setup
       // and the tax ceiling included, so Checkout can never exceed it).
       const payInFourMethods = payInFour
-        ? payInFourMethodsFor(jobPriceCents + posterFeeCents + 200 + salesTaxCeilingCents(jobPriceCents + posterFeeCents, job.category))
+        ? payInFourMethodsFor(jobPriceCents + posterFeeCents + 200 + salesTaxCeilingCents(jobPriceCents + posterFeeCents, job.category, job.tax_kind))
         : [];
       if (payInFour && payInFourMethods.length === 0) {
         throw new PublicError("Pay in 4 isn't available for this amount. Choose card or bank instead.");
@@ -795,6 +795,8 @@ serve(async (req) => {
         // taxed and untaxed categories; before that, this pin does (review of
         // 91927c016, #6).
         pinned = job.category == null ? pinned.is("category", null) : pinned.eq("category", job.category);
+        // The poster's taxed-kind answer picks it too (Q2083, owner Option 1).
+        pinned = job.tax_kind == null ? pinned.is("tax_kind", null) : pinned.eq("tax_kind", job.tax_kind);
         return pinned;
       };
 
@@ -1216,7 +1218,8 @@ serve(async (req) => {
       // everything", which overstated the total by ~10% on every exempt
       // category — i.e. nearly every job. See that module for the LA R.S.
       // 47:301(14) reasoning.
-      const laborTaxable = isLaborTaxable(job.category);
+      // A taxed category, or the poster's taxed-kind answer (Q2083, owner Option 1).
+      const laborTaxable = isLaborTaxable(job.category, job.tax_kind);
 
       const lineItems: any[] = [
         {
@@ -1230,7 +1233,7 @@ serve(async (req) => {
               description: "Held safely and paid to your Helpr once you both confirm the job is done.",
               // Assembly/installation of tangible personal property: LA repair/install code.
               // All other categories: pass-through (no LA state tax on the labor).
-              tax_code: laborTaxCode(job.category),
+              tax_code: laborTaxCode(job.category, job.tax_kind),
             },
             unit_amount: Math.round(job.budget * 100),
           },
@@ -1255,7 +1258,7 @@ serve(async (req) => {
             product_data: {
               name: "Urgent bonus",
               description: "Urgent bonus, part of the job price",
-              tax_code: laborTaxCode(job.category), // Q1843: taxed exactly like the labor line
+              tax_code: laborTaxCode(job.category, job.tax_kind), // Q1843: taxed exactly like the labor line
             },
             unit_amount: urgentFeeCents,
           },
@@ -1276,7 +1279,7 @@ serve(async (req) => {
               description: payInFour
                 ? `${posterFeePercent}% + $0.70 for Pay in 4, covers payment processing`
                 : POSTER_JOB_FEE_DESCRIPTION,
-              tax_code: laborTaxable ? laborTaxCode(job.category) : NONTAXABLE_TAX_CODE,
+              tax_code: laborTaxable ? laborTaxCode(job.category, job.tax_kind) : NONTAXABLE_TAX_CODE,
             },
             unit_amount: posterFeeCents,
           },
@@ -1353,7 +1356,7 @@ serve(async (req) => {
       // and 3D Secure as today (lh-money-escrow review #2: a saved card that
       // can never be charged off-session left the job unhireable).
       const plannedHold = cardHold ? holdPlanFor(job.date_needed, job.start_time) : null;
-      const holdPlan = plannedHold?.kind === "schedule" && !offSessionAllowed(lineItemsCents, job.category).ok
+      const holdPlan = plannedHold?.kind === "schedule" && !offSessionAllowed(lineItemsCents, job.category, job.tax_kind).ok
         ? { kind: "hold_now" as const }
         : plannedHold;
       const successUrl = buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative);
@@ -1418,8 +1421,8 @@ serve(async (req) => {
       // labor's sales tax (Q1658). No card options on a Pay-in-4 session (no
       // card can be used there). A taxable job's service fee is taxed too.
       const threeDSCents = payInFour ? 0 : lineItemsCents
-        + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category) : 0)
-        + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category);
+        + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category, job.tax_kind) : 0)
+        + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category, job.tax_kind);
       const session = await stripe.checkout.sessions.create({
         customer: await payerWalletCustomer(),
         customer_update: { address: 'auto' },

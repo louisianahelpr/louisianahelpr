@@ -31,7 +31,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC;
 // @mutate supabase/migrations/20261102040000_declutter_review_report.sql | JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n      AND j.is_seed | JOIN public.jobs j ON j.id = g.job_id AND false\n      AND j.is_seed
 // @mutate supabase/migrations/20261102040000_declutter_review_report.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
-// @mutate supabase/migrations/20261019015304_helpr_fault_earnings_export.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id\n |       WHERE false\n
+// @mutate supabase/migrations/20261102152453_q2083_job_tax_kind.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id\n |       WHERE false\n
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
 // @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
@@ -56,8 +56,9 @@ const CREW_COUNTS = "20261005171601_crew_counts_exports_and_ban_alert.sql";
 // Q2093 (2026-10-18, 20261018050953) restated the ban settlement (offer notices wait for the money).
 /** Q1979 (2026-11-02) restates the ban settlement again (the late-cancel notice in whole dollars; roster reads unchanged). */
 const Q1979 = "20261102070622_late_cancel_notice_whole_dollars.sql";
-/** Q2082 (b) (2026-10-19) restates the export (the Helpr-fault fee added back; roster reads unchanged). */
-const Q2082B = "20261019015304_helpr_fault_earnings_export.sql";
+/** Q2082 (b) (2026-10-19) restated the export (the Helpr-fault fee added back), and Q2083 part 2
+ *  (2026-11-02) again (only the Taxable/Exempt column reads the poster's tax answer; roster reads unchanged). */
+const Q2082B = "20261102152453_q2083_job_tax_kind.sql";
 /** Q729 + Q1282 (2026-10-05): a block, and an unanswered spot, reach a crew member. */
 const CREW_BLOCK = "20261005172453_crew_block_and_unanswered_spot.sql";
 const EFFECTIVE = effectiveDefs(MIGRATIONS);

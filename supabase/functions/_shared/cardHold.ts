@@ -92,6 +92,8 @@ export type HoldJob = {
   payment_status: string | null;
   helper_id: string | null;
   category: string | null;
+  /** The poster's taxed-kind answer (Q2083): a taxed kind is held on a Checkout page. */
+  tax_kind?: string | null;
   is_seed: boolean | null;
   stripe_payment_intent_id?: string | null;
   /** CMP-4: a capture for one Helpr's offer re-reads these after its claim (captureCardHold offerTo). */
@@ -102,7 +104,7 @@ export type HoldJob = {
 export async function readJob(db: Db, jobId: string): Promise<HoldJob | null> {
   const { data, error } = await db
     .from("jobs")
-    .select("id, customer_id, title, status, payment_status, helper_id, category, is_seed, stripe_payment_intent_id, offered_to_helper_id, direct_offer_status")
+    .select("id, customer_id, title, status, payment_status, helper_id, category, is_seed, stripe_payment_intent_id, offered_to_helper_id, direct_offer_status, tax_kind")
     .eq("id", jobId)
     .maybeSingle();
   if (error) throw new Error(`job read failed for card hold ${jobId}: ${error.message}`);
@@ -465,7 +467,7 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
     }
   } else {
     // A SAVED card (a job far out whose hold is not placed yet): one charge now.
-    const allowed = offSessionAllowed(amountCents, job.category);
+    const allowed = offSessionAllowed(amountCents, job.category, job.tax_kind);
     if (!allowed.ok) {
       failState = "needs_action";
       failCode = allowed.why === "large" ? "on_session_required" : "taxed_on_session";

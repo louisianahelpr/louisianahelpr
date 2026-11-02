@@ -934,12 +934,12 @@ describe("create-payment edge function", () => {
     // ME-043: every line carries a tax code and tax behaviour; the labor code
     // follows the category rule in _shared/salesTax.ts, both ways.
     it("gives every escrow line a tax_code and tax_behavior, labor coded by category", async () => {
-      const codeFor = async (category: string) => {
+      const codeFor = async (category: string, taxKind: string | null = null) => {
         resetSupabaseMock();
         stripeMock.checkout.sessions.create.mockClear();
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {
-          rows: [{ id: "job-tc", customer_id: POSTER.id, budget: 80, category, title: "T", payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
+          rows: [{ id: "job-tc", customer_id: POSTER.id, budget: 80, category, tax_kind: taxKind, title: "T", payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
         };
         scenario.reads.platform_settings = {
           rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 0 }],
@@ -969,12 +969,24 @@ describe("create-payment edge function", () => {
       // Q2083: a house repair is real property, not taxed.
       expect(await codeFor("handyman")).toBe("txcd_00000000");
       expect(await codeFor("yard_work")).toBe("txcd_00000000");
+      // Q2083 part 2 (owner Option 1): the poster's answer taxes an otherwise
+      // untaxed category, each kind with its own code.
+      // @mutate supabase/functions/create-payment/index.ts | (no LA state tax on the labor).\n              tax_code: laborTaxCode(job.category, job.tax_kind), | (no LA state tax on the labor).\n              tax_code: laborTaxCode(job.category),
+      expect(await codeFor("cleaning", "fabric_cleaning")).toBe("txcd_20010003");
+      expect(await codeFor("other", "clothing_alterations")).toBe("txcd_20090002");
+      expect(await codeFor("other", "item_repair")).toBe("txcd_20080005");
+      expect(await codeFor("cleaning", null)).toBe("txcd_00000000");
+      expect(await codeFor("cleaning", "clothes_cleaning")).toBe("txcd_20090004");
+      // A movable repair posted as handyman (a chair, not a wall) is taxed.
+      expect(await codeFor("handyman", "item_repair")).toBe("txcd_20080005");
+      // A taxed category keeps its own code whatever the answer.
+      expect(await codeFor("auto_repair", "fabric_cleaning")).toBe("txcd_20080005");
     });
 
     // Q1658: the $300 3D Secure line counts a ceiling on the labor's sales
     // tax, so a taxable checkout just under $300 before tax asks for 3DS and
     // an exempt one at the same price does not.
-    // @mutate supabase/functions/create-payment/index.ts |         + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category); |         + 0;
+    // @mutate supabase/functions/create-payment/index.ts |         + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category, job.tax_kind); |         + 0;
     it("asks for 3D Secure when a taxable checkout's tax can carry it past $300 (Q1658)", async () => {
       const optionsFor = async (category: string) => {
         resetSupabaseMock();

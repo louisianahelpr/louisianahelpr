@@ -10,6 +10,7 @@
  * that class of failure. Red first: ten scripts called the CLI directly.
  */
 // @mutate scripts/lib/supabaseDbQuery.mjs |       if (attempt < tries && isTransient(text)) { |       if (false) {
+// @mutate scripts/lib/supabaseDbQuery.mjs |       if (NEEDS_READ_ONLY.test(text) && !args.includes("--read-only")) { |       if (false) {
 // @mutate scripts/lib/supabaseDbQuery.mjs |   /failed to connect as temp role/i, |   /never-matches-anything-q1176/i,
 // @mutate scripts/audit/function-body-drift.mjs |   const raw = supabaseDbQuery(["--linked", "-o", "json", LIVE_SQL], { |   const raw = execFileSync("supabase", ["db", "query", "--linked", "-o", "json", LIVE_SQL], {
 import { describe, it, expect } from "vitest";
@@ -77,6 +78,24 @@ describe("live reads retry the CLI's transient login failure, and only that (Q11
     const { run, calls } = runner([LOGIN_FAIL, LOGIN_FAIL, LOGIN_FAIL]);
     expect(() => supabaseDbQuery(["--linked"], {}, { ...quiet, run })).toThrow();
     expect(calls).toHaveLength(3);
+  });
+
+  // 2026-11-02 (write-contract run 41457216199): the latest CLI refuses a production db query without
+  // --read-only; the 2.122 CLI does not know the flag. Repeated once with --read-only, only on that refusal.
+  const NEEDS_RO = "Confirmation required: Run a SQL statement (target: project Louisiana Helpr (x) · production). This run can't ask because it writes machine-readable -o json output. Nothing was changed.\nRe-run with --yes to confirm. For a read-only statement, pass --read-only instead.";
+  it("the CLI's production confirmation refusal is repeated once with --read-only (never --yes)", () => {
+    const { run, calls } = runner([NEEDS_RO, null]);
+    expect(supabaseDbQuery(["--linked", "-o", "json", "-f", "q.sql"], {}, { ...quiet, run })).toBe('{"rows":[]}');
+    expect(calls).toEqual([
+      ["db", "query", "--linked", "-o", "json", "-f", "q.sql"],
+      ["db", "query", "--linked", "-o", "json", "-f", "q.sql", "--read-only"],
+    ]);
+    expect(calls.flat()).not.toContain("--yes");
+  });
+  it("a refusal that persists with --read-only throws, without looping", () => {
+    const { run, calls } = runner([NEEDS_RO, NEEDS_RO]);
+    expect(() => supabaseDbQuery(["--linked"], {}, { ...quiet, run })).toThrow();
+    expect(calls).toHaveLength(2);
   });
 
   it("global flags (--workdir) go before the subcommand", () => {

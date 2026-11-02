@@ -277,7 +277,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
       <div className="space-y-2">
         <div className="flex items-start gap-2">
           <Checkbox id="item-ready" checked={d.readyNow} onCheckedChange={(v) => set("readyNow", v === true)} />
-          <Label htmlFor="item-ready" className="font-normal leading-snug">I have some ready now</Label>
+          <Label htmlFor="item-ready" className="block min-h-11 flex-1 font-normal leading-snug">I have some ready now</Label>
         </div>
         {d.readyNow && (
           <div className="space-y-1.5">
@@ -360,7 +360,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
                 checked={ticked.includes(k)}
                 onCheckedChange={(v) => setTicked((t) => (v === true ? [...t, k] : t.filter((x) => x !== k)))}
               />
-              <Label htmlFor={`stmt-${k}`} className="font-normal leading-snug">{SHOP_ITEM_STATEMENTS[k]}</Label>
+              <Label htmlFor={`stmt-${k}`} className="block min-h-11 flex-1 font-normal leading-snug">{SHOP_ITEM_STATEMENTS[k]}</Label>
             </div>
           ))}
           {d.kind === "home_food" && cottage.data?.warn && !cottage.data.reached && (
@@ -385,7 +385,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
           {cottageNeedsTick && (
             <div className="flex items-start gap-2">
               <Checkbox id="stmt-cottage" checked={underCap} onCheckedChange={(v) => setUnderCap(v === true)} />
-              <Label htmlFor="stmt-cottage" className="font-normal leading-snug">
+              <Label htmlFor="stmt-cottage" className="block min-h-11 flex-1 font-normal leading-snug">
                 {`My home-kitchen food sales this year, in the app and outside it, are under ${dollars(cottage.data?.cap_cents ?? 0)} (the Louisiana limit).`}
               </Label>
             </div>

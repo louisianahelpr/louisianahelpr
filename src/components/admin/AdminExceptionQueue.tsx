@@ -296,7 +296,7 @@ const ExceptionQueueInner = () => {
                 <label className="-my-0.5 -ml-3.5 flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--primary))]"
+                    className="h-[18px] w-[18px] min-h-0 min-w-0 accent-[hsl(var(--primary))]"
                     checked={checkedIds.has(r.id)}
                     onChange={() => toggleChecked(r.id)}
                     disabled={bulkRunning}

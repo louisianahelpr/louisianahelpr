@@ -305,7 +305,7 @@ const AdminCredentialQueue = () => {
                       <label className="flex min-h-11 items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 min-h-0 min-w-0 shrink-0 accent-[hsl(var(--bark))] disabled:opacity-40"
+                          className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0 accent-[hsl(var(--bark))] disabled:opacity-40"
                           checked={selected.has(`${r.user_id}:license`)}
                           disabled={!hasExpiry(`${r.user_id}:license`)}
                           onChange={() => toggleSelected(`${r.user_id}:license`)}
@@ -355,7 +355,7 @@ const AdminCredentialQueue = () => {
                       <label className="flex min-h-11 items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 min-h-0 min-w-0 shrink-0 accent-[hsl(var(--bark))] disabled:opacity-40"
+                          className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0 accent-[hsl(var(--bark))] disabled:opacity-40"
                           checked={selected.has(`${r.user_id}:insurance`)}
                           disabled={!hasExpiry(`${r.user_id}:insurance`)}
                           onChange={() => toggleSelected(`${r.user_id}:insurance`)}

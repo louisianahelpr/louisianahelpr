@@ -50,6 +50,16 @@ export interface ShipLabelPorts {
    *  given back to the account, both sides told (20261101220810). */
   closeReleased(orderId: string): Promise<string>;
   page(title: string, message: string, fields: Record<string, string>): Promise<void>;
+  /** Shipping S6: the label will never be used, so ask for its void (bought + before pickup -> void_requested, a
+   *  compare-and-set; the void pass in shipLabelVoid.ts asks EasyPost). False when the row was not voidable. */
+  requestVoid(shipmentId: string): Promise<boolean>;
+}
+
+/** The ops line for a label that will never be used. */
+export function voidLine(requested: boolean): string {
+  return requested
+    ? "The label void was requested (its postage returns to the EasyPost balance once refunded)."
+    : "The label could NOT be marked for void (already scanned or not bought): check it in EasyPost.";
 }
 
 export type LabelOutcome =
@@ -105,7 +115,7 @@ export async function runShipLabel(s: ClaimedShipment, order: ShipOrder | null, 
     const captured = await p.capture(pi, s.declutter_order_id, amount);
     if (captured === "hold_lost") {
       await p.page("Shipped order: label bought but the hold could not be captured",
-        "The card hold lapsed or was cancelled after the label was bought. Void the label (Shipping S6) and close the order by hand.",
+        `The card hold lapsed or was cancelled after the label was bought. ${voidLine(await p.requestVoid(s.id))} Close the order by hand.`,
         { Order: s.declutter_order_id, Shipment: s.provider_shipment_id, PaymentIntent: pi });
       return "capture_lost";
     }
@@ -147,7 +157,7 @@ export async function runShipLabel(s: ClaimedShipment, order: ShipOrder | null, 
  *   - 'succeeded' (captured before the crash): mark the order 'captured'; nothing is captured again;
  *   - 'requires_capture' (the crash came before the capture): capture with the SAME amount and per-order idempotency
  *     key the worker uses, then mark it; a hold that cannot be captured pages ops, as in the worker;
- *   - 'canceled' (the hold lapsed after the label was bought): page ops (void the label, S6) and leave the order;
+ *   - 'canceled' (the hold lapsed after the label was bought): request the label's void (S6), page ops, leave the order;
  *   - anything else (processing): left for the next run.
  * Test mode only, like the worker. Idempotent: every write is a compare-and-set on 'held'.
  */
@@ -160,6 +170,7 @@ export interface ReconcilePorts {
   capture: ShipLabelPorts["capture"];
   setCapture: ShipLabelPorts["setCapture"];
   page: ShipLabelPorts["page"];
+  requestVoid: ShipLabelPorts["requestVoid"];
 }
 
 export async function reconcileShipCapture(
@@ -172,7 +183,7 @@ export async function reconcileShipCapture(
   const pi = order.stripe_payment_intent_id;
   const lost = async (): Promise<ReconcileOutcome> => {
     await p.page("Shipped order: label bought but the hold could not be captured",
-      "The card hold lapsed or was cancelled after the label was bought. Void the label (Shipping S6) and close the order by hand.",
+      `The card hold lapsed or was cancelled after the label was bought. ${voidLine(await p.requestVoid(s.id))} Close the order by hand.`,
       { Order: s.declutter_order_id, Shipment: s.provider_shipment_id, PaymentIntent: pi });
     return "capture_lost";
   };

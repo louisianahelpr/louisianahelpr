@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-02T16:11:19.460Z",
-  "guards": 3257,
-  "registered": 3257,
+  "generated": "2026-11-02T20:04:30.680Z",
+  "guards": 3347,
+  "registered": 3347,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
@@ -118,24 +118,6 @@
       ]
     },
     {
-      "module": "src/components/declutter/DeclutterPickupDayCard.tsx",
-      "tests": [
-        "src/components/declutter/declutterPickupDayCard.test.tsx"
-      ],
-      "parents": [
-        "src/components/declutter/DeclutterMineViews.tsx"
-      ]
-    },
-    {
-      "module": "src/components/declutter/DeclutterWatching.tsx",
-      "tests": [
-        "src/components/declutter/declutterWatching.test.tsx"
-      ],
-      "parents": [
-        "src/components/declutter/DeclutterMineViews.tsx"
-      ]
-    },
-    {
       "module": "src/components/GuestBrowseSkeleton.tsx",
       "tests": [
         "src/test/dataAwareSkeletons.test.tsx"
@@ -157,7 +139,8 @@
     {
       "module": "src/components/jobs/ContinueDaySheet.tsx",
       "tests": [
-        "src/test/continueDayEverywhere.test.tsx"
+        "src/test/continueDayEverywhere.test.tsx",
+        "src/test/posterContinueDayAsksTheHelpr.test.tsx"
       ],
       "parents": [
         "src/pages/jobs/jobPage/useContinueDayActions.tsx"
@@ -196,7 +179,8 @@
     {
       "module": "src/components/notificationPreferences/SmsAlertsCard.tsx",
       "tests": [
-        "src/components/notificationPreferences/smsAlertsNoSilentOptOut.test.tsx"
+        "src/components/notificationPreferences/smsAlertsNoSilentOptOut.test.tsx",
+        "src/components/notificationPreferences/smsConfirmCodeInApp.test.tsx"
       ],
       "parents": [
         "src/components/notificationPreferences/SmsPhonePromptDialog.tsx"

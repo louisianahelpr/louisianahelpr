@@ -6,7 +6,7 @@ Items for areas that have not launched (Homes / Rentals, Quotes, Shops) live in 
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 459** (377 to do, 82 fixed with protection pending; 1686 done). Feeds mirrored in: 77 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 18 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 443** (301 to do, 142 fixed with protection pending; 1767 done). Feeds mirrored in: 77 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 18 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 14 red, 16 stale, 2 unknown, 46 green of 78 — [SCOREBOARD](SCOREBOARD.md). _(2026-11-02T01:10Z)_
@@ -92,7 +92,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2142 items — 1632 done, 74 partly done (fixed, protection pending), 436 open.**
+**Queue: 2210 items — 1767 done, 142 partly done (fixed, protection pending), 301 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.

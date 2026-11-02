@@ -124,6 +124,7 @@ const AdminDeclutterPreview = lazy(() => import("./pages/admin/preview/Declutter
 
 // The job page at every stage, made-up data, admin only (owner 2026-11-01). Its own chunk: nothing in boot or Home.
 const AdminJobPreview = lazy(() => import("./pages/admin/preview/JobPreviewPage"));
+const AdminMessagesPreview = lazy(() => import("./pages/admin/preview/MessagesPreviewPage"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
 // A redirect (to the last or first open section): no screen of its own.
 const ExploreRedirect = lazyWithPreload(() => import("./pages/explore/Explore"));
@@ -283,6 +284,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/admin/preview/declutter" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminDeclutterPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
 
       <Route path="/admin/preview/job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminJobPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/admin/preview/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminMessagesPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

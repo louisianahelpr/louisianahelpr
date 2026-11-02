@@ -9,7 +9,7 @@
  * It also pins the route behind the same admin gate as /admin, in its own lazy chunk.
  *
  * @mutate src/pages/admin/preview/previewBackend.ts | if (!base \|\| !url.startsWith(base)) return o.realFetch(input, init); | if (base) return o.realFetch(input, init);
- * @mutate src/pages/admin/preview/JobPreviewPage.tsx | push: (to: To) => sayWouldHave(`open ${toText(to)}`), | push: outer.navigator.push,
+ * @mutate src/pages/admin/preview/previewParts.tsx |       else sayWouldHave(`open ${toText(to)}`); |       else outer.navigator[how](to, state);
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (sheetOpen) return null; |   if (sheetOpen) void 0;
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (!open) { |   if (open === null) {
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |     opens: stage === "cancel_sheet" && viewer === "poster" ? "Cancel job" : null, |     opens: null,

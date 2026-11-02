@@ -22,7 +22,7 @@ import { CUTOFF, violationsFor } from "../../scripts/check-migration-relation-gr
 // pg_class/information_schema.role_table_grants, so a privilege granted on prod
 // outside a migration (dashboard, psql, a default privilege) is invisible to it.
 // @mutate scripts/check-migration-relation-grants.mjs | if (c === "-" && n === "-") { | if (false) {
-// @mutate scripts/check-migration-relation-grants.mjs | if (!grant.test(after)) { | if (false) {
+// @mutate scripts/check-migration-relation-grants.mjs | if (!grantsAfter(after, c, inPublic)) { | if (false) {
 // @mutate scripts/check-migration-relation-grants.mjs | if (!rls.test(after)) out.push | if (false) out.push
 // @mutate scripts/check-migration-relation-grants.mjs | for (const rel of list.split(",")) { | for (const rel of list.split(",").slice(0, 1)) {
 // @mutate scripts/check-migration-relation-grants.mjs | if (inPublic(qm[1]) && qm[2].toLowerCase() === c.name) return true; | if (inPublic(qm[1]) && qm[2].toLowerCase().startsWith(c.name)) return true;

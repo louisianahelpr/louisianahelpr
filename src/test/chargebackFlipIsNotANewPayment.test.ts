@@ -27,9 +27,9 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  *
  * (The 20261003184911 predicates are restated by 20261005064123, the newest
  * definition, so the mutations target that file.)
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | AND NEW.helper_id IS NOT NULL\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND NEW.helper_id IS NOT NULL\n
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | AND OLD.payment_status IS DISTINCT FROM 'released'\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND OLD.payment_status IS DISTINCT FROM 'released'\n
+ * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | IF NEW.payment_status = 'escrow' AND (OLD.payment_status IS DISTINCT FROM 'escrow')\n
+ * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | AND NEW.helper_id IS NOT NULL\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND NEW.helper_id IS NOT NULL\n
+ * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | AND OLD.payment_status IS DISTINCT FROM 'released'\n     AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n | AND OLD.payment_status IS DISTINCT FROM 'released'\n
  */
 
 const REPO = resolve(__dirname, "../..");

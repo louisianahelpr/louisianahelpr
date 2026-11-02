@@ -9,6 +9,34 @@ import {
 } from "@/lib/instantPayoutFee";
 import type { StripePayoutData } from "./types";
 
+/**
+ * A3-89 (lead 11-01): with no instant cash-out the Wallet said "$40.00 ready to pay out" with no button and no date.
+ * Connected accounts are on Stripe's DAILY automatic schedule (stripe-connect/index.ts sets
+ * payouts.schedule.interval "daily"), so an available balance goes to the bank on its own. The line says when:
+ *   - a payout already on its way (Stripe's own pending / in_transit payout): its arrival date, exactly;
+ *   - otherwise: "usually by" two business days from today (Stripe's standard US arrival for a daily payout).
+ * "ready to pay out" stays only where something can be tapped (the instant tile is drawn).
+ */
+const dayWords = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+export function twoBusinessDaysFrom(now: Date): Date {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let left = 2;
+  while (left > 0) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) left--;
+  }
+  return d;
+}
+export function availableLine(stripeData: StripePayoutData, instantTileShown: boolean, now: Date = new Date()): string {
+  if (instantTileShown) return "ready to pay out";
+  if (!stripeData.payouts_enabled) return "goes to your bank once payout setup is done";
+  const onWay = stripeData.payouts
+    .filter((p) => p.status === "pending" || p.status === "in_transit")
+    .sort((a, b) => a.arrival_date - b.arrival_date)[0];
+  if (onWay) return `on its way · reaches your bank ${dayWords(new Date(onWay.arrival_date * 1000))}`;
+  return `goes to your bank on its own · usually by ${dayWords(twoBusinessDaysFrom(now))}`;
+}
+
 // EarningsTab only mounts this card once Stripe is connected and loaded —
 // it owns the loading skeleton, and the disconnected state renders the
 // Payout & payments connect card instead. So this component has exactly one
@@ -41,6 +69,9 @@ export function WalletCard({
   onCashOut,
   onUpgrade,
 }: WalletCardProps) {
+  // The instant tile below draws only with memberships on and an instant balance; the Available line says what
+  // happens without it (A3-89).
+  const instantTileShown = instantOffered && (stripeData.instant_available ?? []).reduce((t, b) => t + b.amount, 0) > 0;
   return (
     <div className="rounded-2xl liquid-glass p-card">
       <div className="flex items-center justify-between mb-3">
@@ -52,7 +83,6 @@ export function WalletCard({
             <h2 className="font-display font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
               Wallet
             </h2>
-            <span className="text-ds-9 font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary" style={{ letterSpacing: "0.05em" }}>LIVE</span>
           </div>
         </div>
         <button
@@ -91,8 +121,8 @@ export function WalletCard({
               payout&apos;s fee — it comes out of your next payment
             </p>
           ) : (
-            <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              ready to pay out
+            <p className="font-sans mt-1 text-ds-12" data-testid="wallet-available-line" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              {availableLine(stripeData, instantTileShown)}
             </p>
           )}
         </div>

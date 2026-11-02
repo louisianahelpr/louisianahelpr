@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, ShieldAlert, CheckCircle, ArrowRight } from "lucide-react";
-import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeriesNotice } from "@/components/cancellationDialog/CancelDialogNotices";
+import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeriesNotice, cancelDialogTitle, cancelSeriesScope, type CancelSeriesScope } from "@/components/cancellationDialog/CancelDialogNotices";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { type FlatFeeStamp } from "@/lib/helprFlatFee";
@@ -90,23 +90,30 @@ type CancellationDialogProps = {
    *  customer_fee_amount). On a poster-fee job a gift pays the 5% + 70c first
    *  too, so it is part of the cost the toast compares the gift with (Q2082 (d)). */
   posterFee?: { poster_fee_flat_cents?: number | string | null; customer_fee_amount?: number | string | null } | null;
+  /** Q2677: the job's own series fields (jobs.parent_job_id, recurrence_days). Passed by the page, so the
+   *  scope line never waits on (or is lost to) a second read; undefined falls back to that read. */
+  parentJobId?: string | null;
+  recurrenceDays?: number[] | null;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, cardHeld, helperId: _helperId, helperName, crew, nobodyLeft = false, setupFeeKept, feeStamp, posterFee, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, cardHeld, helperId: _helperId, helperName, crew, nobodyLeft = false, setupFeeKept, feeStamp, posterFee, parentJobId, recurrenceDays, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Q1674: the sentence both the policy text and the toast add for a first job.
   const keptFee = wasFunded && typeof setupFeeKept === "number" && setupFeeKept > 0 ? setupFeeKept : 0;
   const keptFeeSentence = keptFee > 0
     ? ` The one-time $${keptFee.toFixed(2)} account setup fee is kept: it is paid once and never refunded.`
     : "";
-  // Is this a recurring PARENT? Fetched on open so the dialog can say the
-  // one thing the card no longer says (owner: card = less hectic; the
-  // cancel-scope warning belongs at the moment of cancelling).
-  const [isSeriesParent, setIsSeriesParent] = useState(false);
+  // Q2677: a series, one visit of it, or neither: the line that says what this cancel reaches.
+  // Fetched on open only when the page did not pass the job's own fields (owner: card = less hectic;
+  // the cancel-scope warning belongs at the moment of cancelling).
+  const passedScope = parentJobId !== undefined && recurrenceDays !== undefined
+    ? cancelSeriesScope({ parent_job_id: parentJobId, recurrence_days: recurrenceDays })
+    : undefined;
+  const [readScope, setReadScope] = useState<CancelSeriesScope>(null);
   useEffect(() => {
-    if (!open) return;
+    if (!open || passedScope !== undefined) return;
     let alive = true;
     void supabase
       .from("jobs")
@@ -115,10 +122,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       .maybeSingle()
       .then(({ data, error }) => {
         // A dropped error here is user-visible, not cosmetic: on failure this
-        // falls back to isSeriesParent=false and silently hides the
-        // whole-series cancellation warning, so someone cancelling a
-        // recurring parent is shown single-occurrence copy. Keep the safe
-        // fallback, but make the failure observable instead of invisible.
+        // falls back to no scope line and silently hides the whole-series or
+        // this-visit-only line. Keep the safe fallback, but make the failure
+        // observable instead of invisible.
         if (error) {
           report(error, {
             severity: "warning",
@@ -126,10 +132,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             context: { job_id: jobId },
           });
         }
-        if (alive) setIsSeriesParent(!!data && !data.parent_job_id && (data.recurrence_days?.length ?? 0) > 0);
+        if (alive) setReadScope(cancelSeriesScope(data));
       });
     return () => { alive = false; };
-  }, [open, jobId]);
+  }, [open, jobId, passedScope]);
+  const seriesScope = passedScope !== undefined ? passedScope : readScope;
 
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -405,9 +412,12 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          title={`Cancel "${jobTitle}"?`}
+          title={cancelDialogTitle(seriesScope, jobTitle, jobDate)}
         />
         <div className="space-y-4">
+
+          {/* Series scope — stated at the decision (owner, 2026-08-24), first, before any money (Q2677). */}
+          {seriesScope && <CancelSeriesNotice scope={seriesScope} jobDate={jobDate} />}
 
           {nobodyLeft && (
             <div className="rounded-ds-md border border-primary/30 bg-primary/10 p-4 space-y-1.5" data-testid="cancel-nobody-left">
@@ -508,8 +518,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           )}
           </>)}
 
-          {/* Series scope — stated at the decision (owner, 2026-08-24). */}
-          {isSeriesParent && <CancelSeriesNotice />}
 
           {/* Fee summary callout: only when a non-zero fee applies (hasHelper + late). */}
           {hasHelper && cancellationFee > 0 && (

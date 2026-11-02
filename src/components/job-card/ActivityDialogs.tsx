@@ -201,6 +201,8 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
         <CancellationDialog
           jobId={props.cancelDialogJob.id} jobTitle={props.cancelDialogJob.title}
           jobDate={props.cancelDialogJob.date_needed}
+          parentJobId={props.cancelDialogJob.parent_job_id}
+          recurrenceDays={props.cancelDialogJob.recurrence_days}
           jobStartTime={props.cancelDialogJob.start_time ?? null}
           jobBudget={props.cancelDialogJob.budget}
           jobUrgentFee={props.cancelDialogJob.urgent_fee}

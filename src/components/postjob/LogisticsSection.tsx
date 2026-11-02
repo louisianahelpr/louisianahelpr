@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PetPicker } from "@/components/postjob/PetPicker";
 import { Switch } from "@/components/ui/switch";
-import { MapPin, Shield, Users, Wrench, Zap } from "lucide-react";
+import { MapPin, Minus, Plus, Shield, Users, Wrench, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AddressBlock } from "@/components/postjob/AddressBlock";
 import { RecurringSchedulePicker } from "@/components/postjob/RecurringSchedulePicker";
@@ -207,6 +207,8 @@ export function LogisticsSection({
     setIsFlexibleSchedule(flexible);
     if (isToday && strip[1]) pickDay(strip[1].iso);
   };
+  // The crew stepper reads the field's number (2..10, the field's own min/max); a blank or odd value starts at 2.
+  const crewCount = Number.parseInt(helpersNeeded, 10) || 2;
   const needItToday = () => {
     if (!sameDayStart) return;
     setIsFlexibleSchedule(false);
@@ -321,16 +323,38 @@ export function LogisticsSection({
               <span className="text-ds-13 font-semibold text-foreground">Group job</span>
             </div>
             <Label>How many Helprs needed?</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min="2"
-              max="10"
-              value={helpersNeeded}
-              onChange={(e) => setHelpersNeeded(e.target.value)}
-              className="w-24"
-              aria-label="Number of Helprs needed"
-            />
+            {/* Q2615 (Jobs audit 1102b row 29): the same - / + stepper as the budget one step earlier, around the
+                exact field (it was a plain number field alone). */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                aria-label="One fewer Helpr"
+                disabled={crewCount <= 2}
+                onClick={() => setHelpersNeeded(String(Math.max(2, crewCount - 1)))}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+              >
+                <Minus className="h-5 w-5" aria-hidden />
+              </button>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min="2"
+                max="10"
+                value={helpersNeeded}
+                onChange={(e) => setHelpersNeeded(e.target.value)}
+                className="w-16 text-center"
+                aria-label="Number of Helprs needed"
+              />
+              <button
+                type="button"
+                aria-label="One more Helpr"
+                disabled={crewCount >= 10}
+                onClick={() => setHelpersNeeded(String(Math.min(10, Math.max(2, crewCount + 1))))}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+              >
+                <Plus className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
             <p className="text-ds-11 text-muted-foreground">
               {/* The server's split (crew_slot_share_cents, largest remainder in
                   cents): the smallest share, so no Helpr gets less than shown. */}

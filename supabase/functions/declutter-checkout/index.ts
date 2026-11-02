@@ -140,11 +140,17 @@ async function expirePage(stripe: Stripe, sessionId: string): Promise<void> {
   }
 }
 
+/** B110: the pickups whose day and time the buyer may choose at checkout. */
+const PICKUP_TIMED = ["porch", "pickup_home", "meetup"];
+
 async function startCheckout(asBuyer: Db, sellerId: string, handover: string, slotStart: string | null, handoff: string | null): Promise<{ row?: OrderRow; refusal?: Response }> {
-  // p_slot_start and p_handoff only for a seller delivery: every other call is the same call as before.
+  // p_slot_start and p_handoff for a seller delivery; p_slot_start alone for a pickup whose time the buyer chose at
+  // checkout (B110, 20261101191500). Every other call is the same call as before.
   const args = handover === "seller_delivery"
     ? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart, p_handoff: handoff }
-    : { p_seller_id: sellerId, p_handover: handover };
+    : slotStart && PICKUP_TIMED.includes(handover)
+      ? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart }
+      : { p_seller_id: sellerId, p_handover: handover };
   const { data, error } = await asBuyer.rpc("declutter_start_checkout", args);
   if (error) return { refusal: rpcRefusal(error) };
   const row = (Array.isArray(data) ? data[0] : data) as OrderRow | undefined;
@@ -160,6 +166,30 @@ async function startCheckout(asBuyer: Db, sellerId: string, handover: string, sl
  * default #1). The RPC stays the protection; this is only the order of steps.
  * null = could not tell (the caller answers "try again").
  */
+/**
+ * B112 (B110 leftover 3): a changed pickup time is checked BEFORE the buyer's open page is closed, by the rule
+ * declutter_start_checkout applies (20261101191500): ahead, inside the 7-day pickup deadline, and inside the order's
+ * hours (declutter_checkout_pickup_end, read on the open order and its frozen place). Before this, the page was closed
+ * first and the RPC then refused the new time, so an invalid pick cost the buyer that page. The RPC stays the
+ * protection; this only keeps the page open when it would refuse. Null: the time passes.
+ */
+async function pickupTimeRefused(admin: Db, orderId: string, sellerId: string, handover: string, slotStart: string): Promise<Response | null> {
+  const t = Date.parse(slotStart);
+  const now = Date.now();
+  if (!(t > now) || t + 30 * 60_000 > now + 7 * 86_400_000) {
+    return json({ error: "invalid_slot", hint: "Pick a pickup time in the future, within the next 7 days." }, 400);
+  }
+  const { data: end, error } = await admin.rpc("declutter_checkout_pickup_end", {
+    p_order_id: orderId, p_seller: sellerId, p_handover: handover, p_start: slotStart,
+  });
+  if (error) {
+    console.error(`[declutter-checkout] pickup time pre-check failed: ${error.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  if (!end) return json({ error: "invalid_slot", hint: "Pick a time inside the seller's pickup times." }, 400);
+  return null;
+}
+
 async function porchRefused(admin: Db, buyerId: string, sellerId: string): Promise<boolean | null> {
   const { data: lines, error: linesErr } = await admin.from("declutter_cart_items").select("item_id")
     .eq("buyer_id", buyerId).eq("seller_id", sellerId).eq("status", "in_cart");
@@ -228,7 +258,9 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   const handover = typeof body.handover === "string" ? body.handover : "";
   if (!UUID_RE.test(sellerId)) return json({ error: "item_not_found" }, 404);
   // Seller delivery: the chosen slot, an ISO time; the RPC checks it is one of the open ones.
-  const slotStart = handover === "seller_delivery" ? isoTime(body.slot_start) : null;
+  // B110: a porch / door / meetup pickup may carry the time the buyer chose (optional: an older app sends none);
+  // the RPC checks it is ahead, within 7 days and inside the seller's hours.
+  const slotStart = handover === "seller_delivery" || PICKUP_TIMED.includes(handover) ? isoTime(body.slot_start) : null;
   if (handover === "seller_delivery" && !slotStart) return json({ error: "slot_unavailable" }, 400);
   // The buyer's door choice (owner 2026-10-22): "leave" it at the door, or "hand" it to me.
   const handoff = handover === "seller_delivery" && (body.handoff === "leave" || body.handoff === "hand") ? body.handoff : null;
@@ -254,14 +286,14 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // can never be paid next to the new one. A page that cannot be closed
   // stays the buyer's page.
   const { data: openOrder, error: openErr } = await admin.from("declutter_orders")
-    .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, setup_fee_cents")
+    .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, setup_fee_cents, pickup_slot_start")
     .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle();
   if (openErr) {
     console.error(`[declutter-checkout] open order read failed: ${openErr.message}`);
     return json({ error: TRY_AGAIN }, 503);
   }
   const open = openOrder as { id: string; handover: string; stripe_checkout_session_id: string | null; delivery_cents?: number | null;
-    bundle_discount_cents?: number | null; setup_fee_cents?: number | null } | null;
+    bundle_discount_cents?: number | null; setup_fee_cents?: number | null; pickup_slot_start?: string | null } | null;
   // lh-money-escrow review #4: a seller delivery whose TIME changed replaces the open order
   // too, so its page is closed first exactly as for a changed handover.
   let slotChanged = false;
@@ -294,6 +326,9 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     const pickedSpot = (picked.data as { spot_id?: string | null } | null)?.spot_id ?? null;
     spotChanged = frozenSpot !== pickedSpot;
   }
+  // B110: a pickup whose chosen TIME changed replaces the open order too, so its page is closed first.
+  const pickupChanged = !!open && PICKUP_TIMED.includes(handover) && open.handover === handover
+    && (open.pickup_slot_start ? Date.parse(open.pickup_slot_start) : null) !== (slotStart ? Date.parse(slotStart) : null);
   if (open?.stripe_checkout_session_id) {
     const page = await stripeOf(open.stripe_checkout_session_id).checkout.sessions.retrieve(open.stripe_checkout_session_id);
     if (page.status === "complete") return json({ paid: true, order_id: open.id });
@@ -327,12 +362,16 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       }
       feeChanged = Number(due ?? 0) !== Number(open.setup_fee_cents ?? 0);
     }
-    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || feeChanged)) {
+    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged || feeChanged)) {
       // Owner 2026-10-28: a way the seller did not tick must not cost the buyer their open page either
       // (declutter_start_checkout refuses it: handover_not_offered; the RPC stays the protection).
       const notOffered = await handoverNotOffered(admin, user.id, sellerId, handover);
       if (notOffered === null) return json({ error: TRY_AGAIN }, 503);
       if (notOffered) return json({ error: "handover_not_offered" }, 400);
+      if (pickupChanged && slotStart) {
+        const refused = await pickupTimeRefused(admin, open.id, sellerId, handover, slotStart);
+        if (refused) return refused;
+      }
       if (handover === "porch") {
         const refused = await porchRefused(admin, user.id, sellerId);
         if (refused === null) return json({ error: TRY_AGAIN }, 503);

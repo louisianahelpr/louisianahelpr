@@ -43,11 +43,12 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { mapsSearchUrl } from "@/lib/mapsLink";
-import { HiredSeriesSection } from "./HiredSeriesSection";
+import { canLeaveSeries, HiredSeriesSection, useJobSeriesState, withLeaveSeries } from "./HiredSeriesSection";
 import { NoApplicantsYet } from "./NoApplicantsYet";
 import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
 import { jobPageViewerState } from "./viewerState";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/queryKeys";
 import { lazy, Suspense, useState } from "react";
 import { fetchSellerCard } from "@/lib/declutter/api";
 import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
@@ -62,12 +63,17 @@ import { MineFaceNote } from "@/components/job-card/MineJobFace";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
 import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
 
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
+// JA-17: the Working card's Accept / Decline on this page; loaded only for a Helpr with an offer.
+// From the Jobs section's chunk (it holds useActivityActions already), never a chunk of its own: see JobsSection.tsx.
+const PageOfferPanel = lazy(() => import("../JobsSection").then((m) => ({ default: m.PageOfferPanel })));
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow): string {
@@ -84,6 +90,9 @@ const CREW_ROSTER_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "
 
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  // Jobs in Spanish (A3-3): the page's headings, states and links follow the member's language.
+  const { t } = useLanguage();
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew, crewConfirmed } = useJobPage(id, userId);
   const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
   // CMP-4: the booked Helpr's instant booking (Confirm / Decline, the 2-hour countdown), the Working offer card's own.
@@ -122,11 +131,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const [reviewOpen, setReviewOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [caseOpen, setCaseOpen] = useState(false);
+  const seriesState = useJobSeriesState(isPoster ? null : q.data?.job);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   // Computer (the `lg` grid): the price sits in the side card; a phone shows it beside the title (mockups 4 and 5).
   const wide = useIsWebDesktop();
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
-  // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
+  // The Working card's own 30 minutes: Mark it done is greyed here too (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
   // The Posted card's own approve, cancel, edit and step flows, on this page (LEAD-JOBPAGE-LAYOUT, money half).
   const posterFlows = usePosterPageFlows({ jobId: id, enabled: isPoster, trackingStatus, onChanged: () => void q.refetch() });
@@ -146,27 +157,27 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
   if (q.isPending) {
     return (
-      <AppPage title="Job" backTo="/jobs">
-        <div role="status" aria-busy="true" aria-label="Loading job"><JobCardSkeleton /></div>
+      <AppPage title={t("jobPage.title")} backTo="/jobs">
+        <div role="status" aria-busy="true" aria-label={t("jobPage.loading")}><JobCardSkeleton /></div>
       </AppPage>
     );
   }
   if (q.isError) {
     return (
-      <AppPage title="Job" backTo="/jobs">
-        <ErrorState variant="inline" title="We couldn't load this job." body="Check your connection and try again." onRetry={() => void q.refetch()} />
+      <AppPage title={t("jobPage.title")} backTo="/jobs">
+        <ErrorState variant="inline" title={t("jobPage.loadFailed")} body={t("jobPage.checkConnection")} onRetry={() => void q.refetch()} />
       </AppPage>
     );
   }
   if (!q.data) {
     return (
-      <AppPage title="Job" backTo="/jobs">
+      <AppPage title={t("jobPage.title")} backTo="/jobs">
         <EmptyState
           variant="inline"
           icon={Briefcase}
-          title="This job isn't available."
-          body="It may have been filled, expired or taken down."
-          action={<Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate("/jobs")}>Browse jobs</Button>}
+          title={t("jobPage.unavailable")}
+          body={t("jobPage.unavailableBody")}
+          action={<Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate("/jobs")}>{t("jobPage.browseJobs")}</Button>}
         />
       </AppPage>
     );
@@ -214,8 +225,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // The hired Helpr's row (owner 2026-11-01, the same rules as the poster's, JobPageActionRow.tsx): the Working card's
   // step leads on the right, with Message and "Open in working" beside it (one, or More options); when the face's
   // button IS Message or Open in working, it leads and the other sits beside it.
-  const hiredRow = (() => {
-    if (!hiredFace) return null;
+  const { row: hiredRow, leaveInMenu } = (() => {
+    if (!hiredFace) return { row: null, leaveInMenu: false };
     const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;
     const work: RowAction = { key: "working", label: "Open in working", go: openWorking };
     // JA-18: a face that opens the Working card ("See your crew steps") IS "Open in working": never both.
@@ -225,13 +236,28 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
     const extras = [msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
+    // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
+    const leave = (all: RowAction[]) => withLeaveSeries(all, canLeaveSeries(job, userId, seriesState.data?.series_ended_on ?? null, isPoster),
+      { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true });
     // Continue another day: a set day the Helpr has not confirmed leads; "Need another day" sits with the others.
     if (continueDay.helprLead) {
-      return <JobPageActionRow tag="helpr" lead={continueDay.helprLead} leadIsStep extras={[...(faceIs === "step" ? [] : [lead]), ...extras, ...continueDay.helprExtras]} />;
+      const withLeave = leave([...(faceIs === "step" ? [] : [lead]), ...extras, ...continueDay.helprExtras]);
+      return { row: <JobPageActionRow tag="helpr" lead={continueDay.helprLead} leadIsStep extras={withLeave.extras} />, leaveInMenu: withLeave.inMenu };
     }
-    return <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={[...extras, ...continueDay.helprExtras]} />;
+    const withLeave = leave([...extras, ...continueDay.helprExtras]);
+    return { row: <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={withLeave.extras} />, leaveInMenu: withLeave.inMenu };
   })();
-  // Everyone else's one button: Apply, See the offer, View application, Open in working.
+  // JA-17: after an answer on the page, re-read the job, my application and the pending-offer row (useOfferedToMe).
+  const refetchPage = () => {
+    void q.refetch();
+    void myApplication.refetch();
+    void queryClient.invalidateQueries({ queryKey: [...queryKeys.jobs.all, "page-offered-to-me", job.id] });
+  };
+  // Shown only while the Working row is read, or if it has none for this job: the old way to the offer.
+  const seeOffer = (
+    <Button variant="primary" size="lg" className="w-full rounded-full text-ds-16" onClick={() => navigate(highlight)}>See the offer</Button>
+  );
+  // Everyone else's one button: Apply, View application, Open in working.
   const primary = isPoster || hiredFace
     ? null
       // CMP-4: an instant booking is answered on its card below, never "See the offer" (or Apply after a decline).
@@ -239,8 +265,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       ? null
     : viewer.action.kind === "open_working"
       ? { label: "Open in working", go: openWorking }
+      // JA-17: an offer is answered on this page (PageOfferPanel below), never by leaving it for the Working card.
       : viewer.action.kind === "see_offer"
-        ? { label: "See the offer", go: () => navigate(highlight) }
+        ? null
         : viewer.action.kind === "view_application"
           ? { label: "View application", go: () => navigate(highlight) }
           : viewer.action.kind === "apply" && canApply
@@ -294,7 +321,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       titleActions={share ?? undefined}
     >
       <div data-job-page="" data-layout="v2" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-6 lg:gap-y-5">
-        <section aria-label="Job summary" data-job-head="" className="space-y-2 lg:col-span-2">
+        <section aria-label={t("jobPage.summary")} data-job-head="" className="space-y-2 lg:col-span-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               {/* The category, then the day, time and town on one line (mockup 4: "Yard work · Sun, Nov 1 · 9 AM · …"). */}
@@ -302,8 +329,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 <span className="font-semibold text-primary">{eyebrow}</span>
                 {meta && <>{" · "}<span data-job-meta="">{meta}</span></>}
               </p>
-              {/* JOBS-18: every visit, before they apply or answer; a hired Helpr reads it in HiredSeriesSection. */}
-              {!isHired && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
+              {/* JOBS-18: every visit, before they apply or answer; the hired Helpr and the poster read it in HiredSeriesSection (A3-44). */}
+              {!isHired && !isPoster && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
               {/* JA-20: the hired Helpr's street opens Maps; JA-25: not once the job is cancelled. */}
               {isHired && job.location && job.status !== "cancelled" && (
                 <p data-job-address="" className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
@@ -325,7 +352,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {hasVideo && <ScopeVideo url={job.scope_video_url} />}
             {posterDetails && (
               <section aria-labelledby="job-page-details" className={`${CARD} p-4 lg:p-5`}>
-                <h2 id="job-page-details" className="text-ds-16 font-semibold">Details</h2>
+                <h2 id="job-page-details" className="text-ds-16 font-semibold">{t("jobPage.details")}</h2>
                 <p data-details-text="" data-clamped={detailsLong && !detailsOpen ? "" : undefined}
                   className={`mt-1.5 whitespace-pre-line text-ds-15 leading-relaxed [overflow-wrap:anywhere] ${detailsLong && !detailsOpen ? "line-clamp-2 lg:line-clamp-none" : ""}`}>
                   {posterDetails}
@@ -333,7 +360,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 {detailsLong && (
                   <Button type="button" variant="link" data-details-more="" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((v) => !v)}
                     size="sm" className="mt-1 px-0 text-ds-15 font-semibold lg:hidden">
-                    {detailsOpen ? "Show less" : "Show more"}
+                    {detailsOpen ? t("jobPage.showLess") : t("jobPage.showMore")}
                   </Button>
                 )}
               </section>
@@ -341,7 +368,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
         )}
 
-        <section aria-label="Where the job is" data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-span-2 lg:p-5`}>
+        <section aria-label={t("jobPage.where")} data-job-steps="" className={`${CARD} space-y-4 p-4 empty:hidden lg:col-span-2 lg:p-5`}>
           {/* Owner 2026-11-01: "Yusef is on the way · since 8:51 AM" and where he is, ABOVE the tracker. */}
           {/* A continue day replaces the first day's "arrived" line: the next visit is what matters now. */}
           {isPoster && !continueDay.row && <OnTheWayNow job={job} helperFirst={helperFirst} trackingStatus={trackingStatus} />}
@@ -357,7 +384,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {party && (isPoster || isHired) && (job.status === "disputed" || !!job.has_active_dispute) && (
             <Button type="button" variant="link" size="sm" data-see-the-case="" onClick={() => setCaseOpen(true)}
               className="h-auto px-0 text-ds-15 font-semibold">
-              See the case
+              {t("jobPage.seeCase")}
             </Button>
           )}
           {(isPoster || isHired) && job.status === "accepted" && <CountdownRows variant="bare" clocks={collapsedClocks({ ...job, status: job.status }, isPoster)} />}
@@ -368,15 +395,16 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. Big, in
               the main column (mockup 4). */}
           {party && (isPoster || isHired) && ((job.proof_before_urls ?? []).some(Boolean) || (job.proof_after_urls ?? []).some(Boolean)) && (
-            <section aria-label="Photos from the job" className={`${CARD} p-4 lg:p-5`}>
+            <section aria-label={t("jobPage.photos")} className={`${CARD} p-4 lg:p-5`}>
               <JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} />
             </section>
           )}
           {/* JA-32 (audit 11-01): a crew's roster on the page itself. */}
           {isPoster && job.is_group_job && posterFlows.ready && CREW_ROSTER_STATUSES.has(job.status ?? "") && (
-            <section aria-label="Your crew" data-job-crew="" className={`${CARD} p-4`}>
+            <section aria-label={t("jobPage.crew")} data-job-crew="" className={`${CARD} p-4`}>
               <GroupJobHelpers jobId={job.id} helpersNeeded={job.helpers_needed || 2} isOwner jobStatus={job.status}
                 initialHelpers={posterFlows.crewRoster ?? []} dateNeeded={job.date_needed} startTime={job.start_time}
+                onCancelJob={posterFlows.cancel}
                 onMessage={(helprId) => navigate(helprId ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${helprId}` : "/messages")} />
             </section>
           )}
@@ -386,7 +414,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               <DeclutterGallery urls={job.photos ?? []} category={job.category} title={job.title} icon={job.category === "other" ? Briefcase : getCategoryIcon(job.category)} shape="banner" />
             </div>
           )}
-          {isHired && <HiredSeriesSection job={job} userId={userId} />}
+          {(isHired || isPoster) && <HiredSeriesSection job={job} userId={userId} isPoster={isPoster && !isHired}
+            leaveInMenu={leaveInMenu} leaveOpen={leaveOpen} onLeaveOpenChange={setLeaveOpen} />}
           {/* CMP-4: the poster's top 3 with Book now, or who is booked and until when. Nothing when nobody qualifies. */}
           {instantBookOn && isPoster && !job.is_group_job && job.status === "open" && <InstantBookPanel jobId={job.id} />}
           {/* Board 57: the poster's open, paid job that nobody has applied to yet; never while an offer or booking is
@@ -400,7 +429,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         {/* Lead 11-01 (B107): a stage with nothing in the main column (no photos, crew or fix: Done, Cancelled) left an
             EMPTY left column beside the card at 1440. The card (and the Guarantee under it) then sits right under the
             tracker at full content width, from 1024 up. */}
-        <aside aria-label="Price and actions" data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
+        <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
           <section data-job-card="" className={`${CARD} space-y-4 p-4 empty:hidden lg:p-5`}>
             {wide && price}
             {wide && moneyNotes}
@@ -437,6 +466,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               >
                 {primary.label}
               </Button>
+            )}
+            {!isPoster && !hiredFace && !instantUntil && viewer.action.kind === "see_offer" && (
+              <Suspense fallback={seeOffer}>
+                <PageOfferPanel jobId={job.id} onChanged={refetchPage} fallback={seeOffer} />
+              </Suspense>
             )}
             {!isPoster && <MineFaceNote note={hiredFace?.note} />}
             {/* LEAD-LIST-FOR-SELLER: the Working card's done rule, said here too (its panel lives on that card). */}

@@ -117,6 +117,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   sweep_job_post_drafts: "alerts", // 20261030223154: a test or seed member never gets the draft reminder
   declutter_free_still_available_sweep: "alerts", // 20261030232231: a test listing or seller is never asked
   declutter_move_reminder_sweep: "alerts", // 20261030221156: a test listing or seller never gets the reminder
+  sweep_needs_you_reminders: "alerts", // A3-85 (20261102002011): a test offer or refund request never gets a deadline reminder
   declutter_answer_no_show: "alerts", // 20261031004529: a test sale's answer reaches no admin; the answer itself still works
   declutter_helpr_answer_no_show: "alerts", // 20261031134217 (soldstates-5): a test sale's or test Helpr's answer reaches no admin; the answer itself still works
   declutter_handover_sweep: "alerts", // 20261031004529: a test sale gets no nudge and no 60-day problem; every other step of the sweep still runs on it
@@ -205,6 +206,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   notify_helpers_on_job_post: "hides",
   notify_helpr_of_booking_clash: "alerts",
   notify_ops_dispute_filed: "alerts",
+  notify_reporter_report_outcome: "hides", // A3-113 (20261102015348): a test or seed reporter never gets the report-outcome notice
   notify_saved_searches_on_new_job: "hides",
   ops_alert_condition: "alerts",
   payout_held_check: "alerts",
@@ -244,6 +246,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   sms_claim_confirmation: "hides",
   sms_claim_due: "hides",
   sweep_daily_job_digest: "hides",
+  sweep_declutter_free_asks: "hides", // 20261102011547: a test (is_seed) item's free asks close without a notice
   sweep_disputes_closed_without_payment: "alerts",
   sweep_idv_review_waiting: "alerts",
   sweep_job_match_queue: "alerts",

@@ -20,6 +20,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
+import { useMarkTalkRead } from "./useMarkTalkRead";
 
 // AUD31-12: the weekday alone only within 6 days; older lines carry their date.
 const when = (iso: string) => talkTime(iso);
@@ -65,6 +66,8 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   const key = ["declutter", "order-talk", orderId] as const;
   // A light poll while the chat is open (the other side's new message shows within 15 seconds).
   const talk = useQuery({ queryKey: key, queryFn: () => fetchOrderTalk(orderId), refetchInterval: 15_000 });
+  // B112: seen = read, so the unread reminders stop (on open and on each new message).
+  useMarkTalkRead("order", orderId, talk.data ? talk.data.messages.length : null);
   // AUD31-13: the sheet names the item it is about, from the same list Messages -> Declutter reads (one cached read).
   const talks = useQuery({ queryKey: MY_ORDER_TALKS_KEY, queryFn: fetchMyOrderTalks });
   const itemTitle = talks.data?.find((r) => r.order_id === orderId)?.title ?? null;

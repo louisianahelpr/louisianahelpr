@@ -292,6 +292,41 @@ describe("stripe-webhook edge function", () => {
       expect(Number(p.sales_tax_rate)).toBeLessThanOrEqual(1);
     });
 
+    // Q2152 (lh-money-escrow review of 461a6b724 #2): the pinned API (2025-08-27.basil) returns no
+    // amount_details.tax on a PaymentIntent, so the job kept the insert-time estimate. The Checkout Session's own
+    // total_details.amount_tax is Stripe's figure; a gift difference session (non-taxable on purpose) is not.
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const taxCents = typeof sessionTaxForJob === "number" ? sessionTaxForJob : piTaxCents; | const taxCents = piTaxCents;
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : session.total_details?.amount_tax; | const sessionTaxForJob = session.total_details?.amount_tax;
+    it("Q2152: a basil PaymentIntent (no amount_details.tax) records the SESSION's tax, 1105c -> 11.05; a gift difference session's $0 does not overwrite the estimate", async () => {
+      const deliver = async (metadata: Record<string, string>, amountTax: number) => {
+        const fn = await loadConfigured();
+        scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "assembly", is_seed: false }] };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax", amount_details: { tip: {} } });
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: `evt_q2152_${amountTax}`,
+          type: "checkout.session.completed",
+          data: {
+            object: {
+              id: "cs_q2152", mode: "payment", payment_status: "paid", customer_email: "poster@test.com",
+              customer_details: { address: { state: "LA" } }, total_details: { amount_tax: amountTax },
+              payment_intent: "pi_tax", metadata: { job_id: "job-tax", ...metadata },
+            },
+          },
+        });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const w = scenario.writes.find((x) => x.table === "jobs" && x.op === "update" && (x.payload as Record<string, unknown>).stripe_payment_intent_id === "pi_tax");
+        return w?.payload as Record<string, unknown> | undefined;
+      };
+      const p = await deliver({}, 1105);
+      expect(p?.sales_tax_amount).toBe(11.05);
+      expect(p?.sales_tax_rate).toBe(0.1105);
+      resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+      const g = await deliver({ gift_card_id: "gc-1" }, 0);
+      expect(g).toBeTruthy();
+      expect(g).not.toHaveProperty("sales_tax_amount");
+    });
+
     // Q1996 (lh-money-escrow review of slice 3a, #5): on a poster-fee job in a
     // taxable category the "Service fee" line is taxed with the labor, so the
     // rate is tax over budget + fee. Dividing by the budget alone stored
@@ -951,7 +986,9 @@ describe("stripe-webhook edge function", () => {
       });
     });
 
-    it("marks a tip as paid and notifies the helper on a tip checkout", async () => {
+    // Q2329: the webhook no longer writes its own "You received a tip!"; the
+    // tips trigger (notify_helper_on_tip) tells the Helpr once, from the paid flip.
+    it("marks a tip as paid on a tip checkout and writes no notice of its own (Q2329: the trigger tells the Helpr)", async () => {
       const fn = await loadConfigured();
       // The tip UPDATE is gated on `payment_status='pending'` and returns the
       // flipped row via `.select("id")`; the helper is notified ONLY when a row
@@ -981,10 +1018,7 @@ describe("stripe-webhook edge function", () => {
       expect((tipWrite?.payload as Record<string, unknown>).payment_status).toBe(
         "paid",
       );
-      const notif = scenario.writes.find((w) => w.table === "notifications");
-      expect((notif?.payload as Record<string, unknown>).user_id).toBe(
-        "helper-1",
-      );
+      expect(scenario.writes.filter((w) => w.table === "notifications")).toEqual([]);
     });
 
     // Q1344: a manual tip's PaymentIntent is stamped when its checkout
@@ -1081,7 +1115,7 @@ describe("stripe-webhook edge function", () => {
         expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
       });
 
-      it("a Helpr NOT on hold: no reversal, the Helpr is told as before", async () => {
+      it("a Helpr NOT on hold: no reversal, and no webhook notice (Q2329: the tips trigger tells them)", async () => {
         const fn = await loadConfigured();
         scenario.reads.payout_holds = { rows: [] };
         scenario.reads.tips = { rows: [{ id: "tip-1" }] };
@@ -1090,7 +1124,7 @@ describe("stripe-webhook edge function", () => {
         heldTipEvent("evt_tip_clear");
         await fn.fetch(webhookRequest(fn, "{}"));
         expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
-        expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(true);
+        expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(false);
       });
 
       // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (isTransient(err)) throw err;\n    const why = message(err); |     const why = message(err);

@@ -29,6 +29,9 @@ interface JobStepMenu {
   leadHost: HTMLElement | null;
   /** Above the page's row: the card's `ask` (the finished job's crew tip rows, or why a Tip can't be sent yet). */
   askHost?: HTMLElement | null;
+  /** Under the page's row (A3-40, lead 11-01): the card's other primaries (Tip beside Review) as visible text buttons,
+   *  never a third button in the pair and never in a menu. Only used while the card's first primary leads the row. */
+  textHost?: HTMLElement | null;
   /** How many actions the card holds (the page picks its row from it). */
   setCount: (n: number) => void;
   /** How many primaries the card holds (the page mounts `leadHost` when it has none of its own). */
@@ -49,6 +52,19 @@ export function primaryButtons(primary: ReactNode): ReactElement[] {
   }
   if (primary.type !== JobStepPrimaryButton) return [];
   return (primary as ReactElement<{ tone?: string }>).props.tone === "done" ? [] : [primary as ReactElement];
+}
+
+/** A3-40: a card primary drawn as a text button under the page's row ("Tip"), with its own words and tap. */
+export function MenuTextAction({ chip }: { chip: ReactElement }) {
+  const p = (chip as ReactElement<ChipProps>).props;
+  // The page's text-button size (JobPage's "See the case"), not the card row's 11px chips: it sits under the page row.
+  const textCls = "h-auto px-0 text-ds-15 font-semibold";
+  return (
+    <Button type="button" variant="link" size="sm" data-menu-text-action={p.label} className={textCls}
+      disabled={p.disabled} aria-label={composeAccessibleName(p.label, p.ariaLabel)} onClick={p.onClick}>
+      {p.label}
+    </Button>
+  );
 }
 
 /** A JobActionChip drawn as a full-size Button (its own label, tone and onClick); any other chip as itself. */

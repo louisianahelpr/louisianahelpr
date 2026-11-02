@@ -96,7 +96,7 @@
  * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -335,6 +335,12 @@ const TS_MONEY_TOUCHES: string[] = [
   // BUY-2: the buyer's no-Helpr choice row TYPE names the card fee declutter_no_helpr_choice reports (read only, never written;
   // members see only "You get $X back", membersSeeNoFeeWords).
   "src/lib/declutter/noHelpr.ts: card_fee_cents: number;",
+  // A3-18/19 (20261101230519): READS the order's book_by and the window chosen at checkout (column grants), the ONE
+  // source of the cards' "by <date>" and chosen time; no money column, no write.
+  'src/lib/declutter/orderPickupTimes.ts: .from("declutter_orders").select("id, book_by, pickup_slot_start, pickup_slot_end").in("id", orderIds)',
+  // A3-112 Money > Spent (Builder 151 read it): READS the buyer's own paid orders' id, status, total and date (the
+  // Receipts rule); no fee column, no write.
+  'src/lib/declutter/purchaseSpend.ts: .from("declutter_orders").select("id, status, total_cents, paid_at").eq("buyer_id", userId).not("paid_at", "is", null), ) ?? []) as PurchaseOrder[]',
   // Declutter reviews (Builder 3c s3): READS the order's two parties to name who is being reviewed; no money column, no write.
   'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
   // Board 177 Receipts: READS the buyer's own paid orders (total and date) to list what left their card; no fee column, no write.
@@ -355,7 +361,7 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/create-payment/index.ts: p_card_fee_cents: Math.max(0, Math.round(cardFeeCents ?? 0)),',
   'supabase/functions/create-payment/index.ts: fields: { job_id: jobId, helper_id: helperId, card_fee_cents: String(cardFeeCents ?? "") },',
   // Q2403 (builder 144): READS the open order's frozen setup fee too, to close its page first when the fee changed; no write.
-  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, setup_fee_cents") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
+  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents, setup_fee_cents, pickup_slot_start") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   // Q2352: READS the setup fee the order froze, to put it on its own Stripe line; no refund, no write.
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("setup_fee_cents") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
@@ -585,10 +591,28 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // recorded after the sweep put the item back on sale) is refunded IN FULL as 'order_closed' (full_platform_absorbs)
       // or 'seller_out' when being out is the sole blocker, instead of the sale being brought back. No other reason,
       // amount or fee changed.
-      declutter_mark_order_paid: "20261101030040_declutter_buy_now_30_minutes.sql 58316ae073a71a78",
+      // B110 (20261101191500, for lh-money-escrow): after the order is PAID, a pickup time chosen at checkout is booked
+      // and named in the seller's "Buyer paid" line. No reason, amount, fee or refund path changed.
+      declutter_mark_order_paid: "20261101191500_declutter_checkout_pickup_time.sql 521fd16163d444dd",
       // Owner 11-01 (B103, 20261101181129; lh-money-escrow via the lead): the giver's pick turns the asked time into a
       // paid FREE order ($0, card_fee_cents = 0, no payment) with its booking; it records no refund and moves no money.
-      declutter_pick_free_request: "20261101181129_free_pick_confirms_the_asked_time.sql 0af9427699ae0747",
+      // A3-57 (20261102011547, Builder 125; re-pinned by Builder 151 after a line diff against 20261101181129): ONE
+      // refusal added before any write (request_time_passed when the ask's own pickup time has passed); the free order,
+      // its $0 amounts and card_fee_cents 0 are verbatim. Still records no refund and moves no money.
+      declutter_pick_free_request: "20261102011547_free_asks_close_when_their_time_passes.sql 916a12add24bc8a0",
+      // A3-112 (20261102033426, read by Builder 151): STABLE read of the CALLER's own orders (buyer_id = auth.uid(), at
+      // most 200): sums what came back (succeeded declutter_refunds not settled by hand + live hand refunds + succeeded
+      // delivery refunds) on the order's own payment. Writes nothing; decides no amount or fee.
+      declutter_my_refunded_cents: "20261102033426_declutter_my_refunded_cents.sql 3cf5c4330e5afdc0",
+      // A3-85 (20261102002011) / 20261102034632 (read by Builder 151): the text-message queue and its kind map name
+      // 'declutter_refunds' only as a NOTICE KIND (which refund-request reminders count as "needs you"). They write
+      // sms_messages status/due_at only; no refund row, amount or fee.
+      sms_claim_due: "20261102034632_sms_needs_you_step_done.sql c1a41f8e65f5dc47",
+      sms_kind_for: "20261102002011_needs_you_deadline_reminders.sql 4c2a804834d2c32e",
+      // A3-85 (20261102002011, read by Builder 151): deadline reminders for an open offer or refund request; reads the
+      // request's answer-by times, writes needs_you_reminder_sends and sends a notice of kind 'declutter_refunds'. No
+      // refund row, amount or fee is read or written.
+      sweep_needs_you_reminders: "20261102002011_needs_you_deadline_reminders.sql 4fa7776ee46055c9",
       // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
       // the touches() test matches it. It maps a notice title to a push switch and records nothing.
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.
@@ -953,12 +977,15 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     // the card fee is kept out of the refund here.
     "flatCardFeeKeptCents = isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0 ? Math.min(unfilledCents, Math.floor((crewStripeFeeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents)) : 0",
     "feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents })",
-    "taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0",
+    // Q2148 (1) (owner 'J3', Builder 151): the tax on the card fee this refund keeps is kept too (taxOnKeptCents
+    // inside crewTaxKeptAt); the card fee itself is kept exactly as before.
+    "taxReturnCents = taxShareCents - crewTaxKeptCents",
     "unpaidBudgetCents = Math.max(0, budgetCents - paidBudget)",
     "urgentCents = Math.round(Number(job.urgent_fee ?? 0) * 100)",
     "budgetCents = Math.round(Number(job.budget ?? 0) * 100)",
     "crewStripeFeeCents = a.stripeFeeCents ?? stripeProcessingCostCents(a.capturedCents)",
-    "taxCents = Math.max(0, Math.round(Number(job.sales_tax_amount ?? 0) * 100))",
+    "taxShareCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0",
+    "crewTaxKeptCents = Math.min(taxShareCents, crewTaxKeptAt(crewStripeFeeCents))",
   ],
   "cancel-refund-": [
     "refundAmount",
@@ -979,7 +1006,9 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   "createRefundOnce#0": [
     "owedCents",
     "owedCents = withholdFee ? lessFeeCents : amountCents",
-    "lessFeeCents = Number.isFinite(amountCents) ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: Number(row.amount_cents ?? 0) - Number(row.fee_cents ?? 0), actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents : Number.NaN",
+    // Q2148 (5) (Builder 151): the tax base is sweepTaxBaseCents (the whole charge on a poster-fee series, else labor + tax);
+    // the card fee is still kept by refundToPayerCents, only the tax on it changes.
+    "lessFeeCents = Number.isFinite(amountCents) ? refundToPayerCents({ capturedCents: amountCents, taxCents: chargeTaxCents(piObj, Number(row.tax_cents ?? 0)), taxBaseCents: sweepTaxBaseCents, actualFeeCents: actualOrEstimatedFeeCents(piObj, amountCents) }).refundCents : Number.NaN",
     "amountCents = Number(row.amount_cents)",
   ],
   "createRefundOnce#2": [

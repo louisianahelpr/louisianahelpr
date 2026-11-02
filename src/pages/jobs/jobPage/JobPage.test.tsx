@@ -49,10 +49,9 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && instantUntil && <InstantBookingCard | {instantUntil && <InstantBookingCard
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |     : instantUntil\n      ? null\n |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {viewer.status && !(!isPoster && instantUntil) && | {viewer.status &&
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {(isPoster \|\| isHired) && job.status === "accepted" && <CountdownRows | {false && <CountdownRows
  */
-import { describe, expect, it, vi, beforeEach, onTestFinished } from "vitest";
+import { describe, expect, it, vi, beforeAll, beforeEach, onTestFinished } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -189,6 +188,7 @@ vi.mock("./usePosterPageFlows", () => ({
     ready: true, completing: false, moreCount: state.moreCount, leadCount: state.leadCount,
     setLeadHost: (el: HTMLElement | null) => { if (el) flowCalls.push("lead-host"); },
     setAskHost: () => {},
+    setTextHost: (el: HTMLElement | null) => { if (el) flowCalls.push("text-host"); },
     approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
     crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, panel: <div data-testid="card-panel" />, dialogs: null,
@@ -204,8 +204,39 @@ vi.mock("@/lib/jobOfferTargets", () => ({
   fetchJobOfferTargets: async (ids: string[]) => { offerTargetCalls.push(ids); return new Map(ids.map((i) => [i, "33333333-3333-3333-3333-333333333333"])); },
 }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
+// JA-17: the Working list's own read (fetchAppliedActivity) and handlers (useActivityActions), recorded here; the
+// handlers' own behaviour is useActivityActions.*.test.tsx and the offer card's tests.
+const workingApps = vi.hoisted(() => ({ rows: [] as Array<Record<string, unknown>> }));
+const offerAnswers = vi.hoisted(() => [] as Array<[string, boolean]>);
+vi.mock("@/hooks/useActivityData", async (orig) => ({
+  ...(await orig<typeof import("@/hooks/useActivityData")>()),
+  fetchAppliedActivity: async () => ({ appliedApps: workingApps.rows, declinedJobIds: new Set(), helperReviewedJobIds: new Set() }),
+}));
+vi.mock("@/components/job-card/useActivityActions", () => ({
+  useActivityActions: () => ({
+    handleHelperResponse: (app: { id: string }, accept: boolean) => { offerAnswers.push([app.id, accept]); },
+    respondingHelperAppId: null, awardBlockReason: null, paymentHeldSide: null, hiredPayout: null,
+  }),
+}));
+vi.mock("@/components/job-card/ActivityOfferDialogs", () => ({ ActivityOfferDialogs: () => <div data-testid="offer-dialogs" /> }));
+vi.mock("@/hooks/useAcceptPendingJobs", () => ({ useAcceptPendingJobs: () => new Set<string>() }));
+vi.mock("@/hooks/useAwardBlockReason", async (orig) => ({
+  ...(await orig<typeof import("@/hooks/useAwardBlockReason")>()),
+  useAcceptGate: () => ({ loading: false, reason: null, missing: [] }),
+}));
+
+// A3-44: the series state read (ended / split) and the dates panel; their own behaviour is the series tests.
+const seriesRead = vi.hoisted(() => ({ endedOn: null as string | null }));
+vi.mock("@/lib/jobSeriesState", () => ({
+  fetchJobSeriesState: async (ids: string[]) => new Map(ids.map((i) => [i, { series_ended_on: seriesRead.endedOn, series_split_ok: true }])),
+}));
+vi.mock("@/components/series/JobSeriesCardControls", async (orig) => ({
+  ...(await orig<typeof import("@/components/series/JobSeriesCardControls")>()),
+  SeriesDatesForJob: () => null,
+}));
 
 import JobPage from "./JobPage";
+import { withLeaveSeries } from "./HiredSeriesSection";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
@@ -270,6 +301,8 @@ function renderPage(userId = ME) {
 }
 
 beforeEach(() => {
+  workingApps.rows = [];
+  offerAnswers.length = 0;
   state.onCrew = false;
   state.crewConfirmed = false;
   state.job = null;
@@ -774,7 +807,7 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByTestId("where").textContent).toBe(`/messages?jobId=${row().id}&userId=${POSTER}`);
   });
 
-  it("reads the photos and the tracking row like the Working card: both photos and started = Mark job complete", () => {
+  it("reads the photos and the tracking row like the Working card: both photos and started = Mark it done", () => {
     state.job = row({
       helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
       poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
@@ -785,10 +818,10 @@ describe("job page, the hired Helpr", () => {
     state.tracking = "working";
     renderPage();
     expect(document.body.textContent).not.toMatch(/before photo/i);
-    expect(screen.getByRole("button", { name: "Mark job complete" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Mark it done" })).toBeTruthy();
   });
 
-  it("a Have a Helpr list it job says when it is done (sent for approval) beside Mark job complete; other jobs don't", () => {
+  it("a Have a Helpr list it job says when it is done (sent for approval) beside Mark it done; other jobs don't", () => {
     const working = {
       helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
       poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
@@ -799,7 +832,7 @@ describe("job page, the hired Helpr", () => {
     state.party = true;
     state.tracking = "working";
     const { unmount } = renderPage();
-    expect(screen.getByRole("button", { name: "Mark job complete" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Mark it done" })).toBeTruthy();
     expect(screen.getByText("Mark it done once you've sent the listings to the seller for approval.")).toBeTruthy();
     unmount();
     state.job = row({ ...working, category: "yard_work" });
@@ -807,7 +840,7 @@ describe("job page, the hired Helpr", () => {
     expect(document.querySelector("[data-sell-for-me-done-note]")).toBeNull();
   });
 
-  it("10 minutes after arriving, Mark job complete is greyed with the Working card's sentence; at 30 it is live", () => {
+  it("10 minutes after arriving, Mark it done is greyed with the Working card's sentence; at 30 it is live", () => {
     const stamps = {
       helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
       poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", poster_confirmed_arrival_at: "2026-10-28T12:30:00Z",
@@ -817,13 +850,13 @@ describe("job page, the hired Helpr", () => {
     state.party = true;
     state.tracking = "working";
     const { unmount } = renderPage();
-    expect((screen.getByRole("button", { name: "Mark job complete" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Mark it done" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Available in 20 min — 30 minutes after you arrived, to ensure quality.")).toBeTruthy();
     unmount();
 
     state.job = row({ ...stamps, helper_arrived_at: new Date(Date.now() - 31 * 60_000).toISOString() });
     renderPage();
-    expect((screen.getByRole("button", { name: "Mark job complete" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Mark it done" }) as HTMLButtonElement).disabled).toBe(false);
     expect(screen.queryByText(/^Available in/)).toBeNull();
   });
 
@@ -839,7 +872,7 @@ describe("job page, the hired Helpr", () => {
     const tracker = document.querySelector("[data-job-tracker]")?.textContent ?? "";
     // Without the tracking row the line guessed "working" and said to mark it done.
     expect(tracker).not.toMatch(/mark it done/i);
-    expect(screen.queryByRole("button", { name: "Mark job complete" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark it done" })).toBeNull();
   });
 
   it("still asks for the before photo while it is owed", () => {
@@ -885,6 +918,20 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
     expect(screen.queryByRole("button", { name: "See the offer" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
     expect(document.querySelector("[data-viewer-status]")).toBeNull();
+    expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
+  });
+
+  // B80 / B111: after the Helpr answers, the pending-offer row is gone (offeredToMe false, so the viewer is no longer
+  // "see_offer") while the page keeps the booking card on screen (useMyInstantBooking's latch). Only !instantUntil
+  // keeps the "shared once you're offered" line from sitting beside "You're booked": the case that line guards.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
+  it("after the answer (the offer row gone, the card kept): no 'street address is shared' line beside it", () => {
+    state.job = row({ status: "open", payment_status: "held", direct_offer_status: null });
+    state.party = true;
+    state.offeredToMe = false;
+    state.instantUntil = new Date(Date.now() + 60 * 60_000).toISOString();
+    renderPage();
+    expect(document.querySelector(`[data-instant-booking="${row().id}"]`)).not.toBeNull();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
   });
 
@@ -1106,7 +1153,7 @@ describe("a crew member's own job page (A2-B8)", () => {
 // are `contents`, so each part's `order-N` places it in the one stack (jsdom draws no layout: the classes are read).
 // Layout V2 (owner 11-01): the order is the DOM's own now (no `order-N`), read by "job page layout V2" below.
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-details="" className="space-y-4 lg:col-span-2"> | <div data-job-details="" className="space-y-4">
-// @mutate src/pages/jobs/jobPage/JobPage.tsx | <section aria-label="Job summary" data-job-head="" | <section aria-label="Job summary" data-job-head-gone=""
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | <section aria-label={t("jobPage.summary")} data-job-head="" | <section aria-label={t("jobPage.summary")} data-job-head-gone=""
 // @mutate src/pages/jobs/jobPage/JobPage.tsx | <div data-job-guarantee="" className="empty:hidden"> | <div data-job-guarantee-gone="" className="empty:hidden">
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     posterWait === "confirm_still_on" |     false
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |       backTo={isPoster ? "/posts" : "/jobs"}\n      titleActions | backTo={isPoster ? "/posts" : "/jobs"}\n      phoneHidesTitle\n      titleActions
@@ -1423,6 +1470,24 @@ describe("one row of buttons at every stage (B93)", () => {
     expect(within(rowEl).getAllByRole("button").map(fullName)).toEqual(["More options"]);
   });
 
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       {cardLead && <div ref={flows.setTextHost} data-card-text="" className="flex justify-center empty:hidden" />} |
+  // A3-40 (lead 11-01): Tip beside Review is a visible text button UNDER the row (the card draws it into this slot),
+  // never a third button in the pair and never in More options. The slot exists only while the card's primary leads.
+  it("completed (A3-40): a text slot under the row holds the card's Tip", async () => {
+    state.leadCount = 2;
+    state.moreCount = 1;
+    state.job = row({ ...live, status: "completed", payment_status: "payout_pending", helper_arrived_at: "2026-10-28T14:20:00Z",
+      helper_completed_at: "2026-10-28T15:00:00Z", poster_completed_at: "2026-10-28T15:10:00Z" });
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(flowCalls).toContain("text-host"));
+    const rowEl = document.querySelector("[data-job-row]") as HTMLElement;
+    const slot = document.querySelector("[data-card-text]") as HTMLElement;
+    expect(slot).not.toBeNull();
+    expect(rowEl.contains(slot)).toBe(false);
+    expect(rowEl.compareDocumentPosition(slot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("the hired Helpr's finished job (JA-22): Leave a review leads; Message and Open in working one tap away", async () => {
     state.owesReview = true;
     state.job = row({ helper_id: ME, status: "completed", payment_status: "payout_pending", helper_completed_at: "2026-10-28T15:00:00Z",
@@ -1722,5 +1787,116 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "Confirm I'll be there" }));
     await waitFor(() => expect(continueCalls).toEqual(["confirm:c1"]));
+  });
+});
+
+// JA-17 (lead 11-01): an offered Helpr answers on the page, through the Working card's own Accept / Decline and
+// handlers (PageOfferPanel), never by being sent off to the Working card with "See the offer".
+// @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx | onHelperResponse={actions.handleHelperResponse} | onHelperResponse={() => {}}
+// @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && !hiredFace && !instantUntil && viewer.action.kind === "see_offer" && ( |             {false && (
+// @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx |   const app = q.data?.appliedApps.find((a) => a.job_id === jobId && !!a.job) ?? null; |   const app = q.data?.appliedApps.find((a) => !!a.job) ?? null;
+describe("JA-17: Accept and Decline on the job page", () => {
+  // The panel is a lazy chunk (JobsSection). Its first import took over findBy's 1 s, so whichever test ran first
+  // saw only the "See the offer" fallback. Load it once up front; each test then checks the page, not import speed.
+  beforeAll(async () => { await import("../JobsSection"); }, 60_000);
+  const offered = () => row({ helper_id: ME, status: "accepted", helper_confirmed_at: null, response_deadline: new Date(Date.now() + 20 * 3_600_000).toISOString() } as Partial<JobPageRow>);
+  const workingRow = (jobId: string, id: string) => ({
+    id, job_id: jobId, helper_id: ME, status: "pending", message: "I can do it", offer_message: null,
+    offer_message_flagged_hidden: false, created_at: "2026-10-30T12:00:00Z", updated_at: "2026-10-30T12:00:00Z",
+    job: { ...offered(), id: jobId },
+  });
+
+  it("accepts through the Working card's handler, with this job's own row", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow("44444444-4444-4444-4444-444444444444", "app-other"), workingRow(state.job.id, "app-this")];
+    renderPage();
+    const accept = await screen.findByRole("button", { name: /Accept job/ });
+    expect(screen.queryByRole("button", { name: "See the offer" })).toBeNull();
+    expect(screen.getByTestId("offer-dialogs")).toBeTruthy();
+    fireEvent.click(accept);
+    expect(offerAnswers).toEqual([["app-this", true]]);
+  });
+
+  it("declines after the card's own confirm", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow(state.job.id, "app-this")];
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: /^Decline$/ }));
+    expect(offerAnswers).toEqual([]);
+    fireEvent.click(await screen.findByRole("button", { name: "Decline job" }));
+    expect(offerAnswers).toEqual([["app-this", false]]);
+  });
+
+  it("a direct offer (the Working list's synthetic row) declines in one tap", async () => {
+    state.job = row({ status: "open", direct_offer_status: "pending" });
+    state.offeredToMe = true;
+    workingApps.rows = [workingRow(state.job.id, `direct-${state.job.id}`)];
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: /^Decline$/ }));
+    expect(offerAnswers).toEqual([[`direct-${state.job.id}`, false]]);
+  });
+
+  it("with no Working row for the job, the way to the offer stays (never a blank card)", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow("44444444-4444-4444-4444-444444444444", "app-other")];
+    renderPage();
+    await waitFor(() => expect(screen.getByRole("button", { name: "See the offer" })).toBeTruthy());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByRole("button", { name: /Accept job/ })).toBeNull();
+  });
+});
+
+// A3-44 rest (audit 2026-11-01, B137): the standing Helpr's "Leave series" is one more item in the row's More options
+// (owner 2026-11-01 5:42 PM: a menu only when it holds 2+ items), with its confirm; never a second link beside the series line.
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | extras={withLeave.extras} /> | extras={extras} />
+// @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |               trigger={!leaveInMenu} |               trigger
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | go: () => setLeaveOpen(true), danger: true | go: () => {}, danger: true
+// @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |   const inMenu = canLeave && extras.length >= 1; |   const inMenu = canLeave;
+describe("A3-44: Leave series sits in the hired Helpr's More options", () => {
+  const TOMORROW = jobLocalDateISO(1);
+  const series = (over: Partial<JobPageRow> = {}) => row({
+    helper_id: ME, status: "accepted", helper_confirmed_at: "2026-10-27T12:00:00Z", date_needed: TOMORROW, start_time: "09:00",
+    parent_job_id: null, recurrence_interval: "weekly", recurrence_days: [6], recurrence_weeks: 4, recurring_helper_id: ME, ...over,
+  } as Partial<JobPageRow>);
+  beforeEach(() => { seriesRead.endedOn = null; state.party = true; });
+
+  it("the standing Helpr: More options lists Leave series and opens its confirm; no link beside the series line", async () => {
+    state.job = series();
+    renderPage();
+    await screen.findByRole("button", { name: "Confirm you'll be at the job" });
+    // Open the list once and wait for the series read (never a click inside waitFor: it loops on its own mutations).
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    const sheet = document.querySelector("[data-row-options]") as HTMLElement;
+    await within(sheet).findByRole("button", { name: "Leave series" });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Close" }));
+    expect(pageActions()).toEqual(expect.arrayContaining(["Message Rhonda", "Open in working", "Leave series"]));
+    expect(within(document.querySelector("[data-job-series]") as HTMLElement).queryByRole("button", { name: "Leave series" })).toBeNull();
+    pressAction("Leave series");
+    expect(await screen.findByRole("alertdialog", { name: /Leave "Pressure wash driveway"\?/ })).toBeTruthy();
+  });
+
+  it("with no other extra, Leave series is never a lone menu item: it stays the link (withLeaveSeries)", () => {
+    const leave = { key: "leave-series" };
+    expect(withLeaveSeries([], true, leave)).toEqual({ extras: [], inMenu: false });
+    expect(withLeaveSeries([{ key: "message" }], true, leave)).toEqual({ extras: [{ key: "message" }, leave], inMenu: true });
+    expect(withLeaveSeries([{ key: "message" }], false, leave)).toEqual({ extras: [{ key: "message" }], inMenu: false });
+  });
+
+  it("a Helpr who is not the standing Helpr, or an ended series: no Leave series anywhere", async () => {
+    state.job = series({ recurring_helper_id: POSTER } as Partial<JobPageRow>);
+    const { unmount } = renderPage();
+    await screen.findByRole("button", { name: "Confirm you'll be at the job" });
+    expect(pageActions()).not.toContain("Leave series");
+    expect(screen.queryByRole("button", { name: "Leave series" })).toBeNull();
+    unmount();
+    seriesRead.endedOn = "2026-11-20";
+    state.job = series();
+    renderPage();
+    await screen.findByText(/ · ended /);
+    expect(pageActions()).not.toContain("Leave series");
+    expect(screen.queryByRole("button", { name: "Leave series" })).toBeNull();
   });
 });

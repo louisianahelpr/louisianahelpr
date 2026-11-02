@@ -8,8 +8,11 @@
  */
 import { enCore } from "./enCore";
 import { enScreens } from "./enScreens";
+import { enPostJob } from "./enPostJob";
+import { enJobs } from "./enJobs";
+import { enJobCard } from "./enJobCard";
 
 /** The whole dictionary (boot words + screen words). Tests and es.ts's type read it; app code calls t(). */
-export const en = { ...enCore, ...enScreens } as const;
+export const en = { ...enCore, ...enScreens, ...enPostJob, ...enJobs, ...enJobCard } as const;
 
 export type MsgKey = keyof typeof en;

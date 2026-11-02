@@ -13,12 +13,12 @@
  * `formatDistance*(` call and no hand-written "Expired" literal. Comments are
  * stripped first so prose about the old bug does not trip it.
  *
- * PROVEN ABLE TO FAIL 2026-09-21 (guard burn-down): giving dashboard/JobCard
- * back its own `expiresAt <= now ? "Expired" : formatTimeLeft(…)` — the owner's
+ * PROVEN ABLE TO FAIL 2026-09-21 (guard burn-down): giving dashboard/JobCard (its chip now
+ * in src/lib/listingDeadline.ts, A3-94) back its own `expiresAt <= now ? "Expired" : formatTimeLeft(…)` — the owner's
  * 2026-09-12 bug verbatim, a second rule for one fact — reds "no surface spells
  * expiry its own way".
  */
-// @mutate src/components/dashboard/JobCard.tsx | const expiryText = !showExpiry \|\| !expiresAt ? null : formatTimeLeft(expiresAt, expiryNow); | const expiryText = !showExpiry \|\| !expiresAt ? null : expiresAt.getTime() <= expiryNow ? "Expired" : formatTimeLeft(expiresAt, expiryNow);
+// @mutate src/lib/listingDeadline.ts |   const text = formatTimeLeft(at, now); |   const text = expired ? "Expired" : formatTimeLeft(at, now);
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";

@@ -1,4 +1,4 @@
-// JobTracking "Mark job complete" — synchronous in-flight guard + the
+// JobTracking "Mark it done" — synchronous in-flight guard + the
 // server-owned completion RPC.
 //
 // `updating` is React state, so two clicks on the confirm dialog's primary
@@ -138,8 +138,8 @@ describe("JobTracking Done — one request per decision", () => {
 
   it("two same-frame clicks on 'Yes, I'm Done' call rpc_helper_mark_done once", async () => {
     renderWorking();
-    fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
-    const confirm = within(await screen.findByRole("alertdialog")).getByRole("button", { name: /mark job complete/i });
+    fireEvent.click(await screen.findByRole("button", { name: /mark it done/i }));
+    const confirm = within(await screen.findByRole("alertdialog")).getByRole("button", { name: /mark it done/i });
     act(() => {
       confirm.click();
       confirm.click();
@@ -154,8 +154,8 @@ describe("JobTracking Done — one request per decision", () => {
 
   it("Done goes through the RPC with the job id, and does not release when the poster hasn't confirmed", async () => {
     renderWorking();
-    fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
-    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: /mark job complete/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /mark it done/i }));
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: /mark it done/i }));
     await waitFor(() => expect(doneRpcCalls()).toHaveLength(1));
     expect(doneRpcCalls()[0][1]).toEqual({ _job_id: "job-1" });
     expect(directStamps()).toHaveLength(0);
@@ -165,8 +165,8 @@ describe("JobTracking Done — one request per decision", () => {
   it("when the RPC reports the poster already confirmed, Done finishes the release through create-payment", async () => {
     stampRow = { id: "job-1", poster_completed_at: AGO(0.1) };
     renderWorking();
-    fireEvent.click(await screen.findByRole("button", { name: /mark job complete/i }));
-    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: /mark job complete/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /mark it done/i }));
+    fireEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: /mark it done/i }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalledTimes(1));
     expect(invokeMock).toHaveBeenCalledWith("create-payment", { body: { action: "release", jobId: "job-1" } });
   });

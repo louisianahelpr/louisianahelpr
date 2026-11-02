@@ -101,7 +101,7 @@ function AppliedJobCardInner({
   /* The person slot, opened BEFORE the `if (!job)` early return below (rules
      of hooks). The tile is built once the card knows the poster. */
   const { claim: personClaim, stepCarriesTile } = useJobCardPersonSlot();
-  // The face's Mark job complete is greyed for the same 30 minutes as the Working card's (useDoneFloor).
+  // The face's Mark it done is greyed for the same 30 minutes as the Working card's (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(app.job?.poster_confirmed_working_at, app.job?.helper_arrived_at));
 
   // `poster_viewed_at` isn't in the generated types yet (migration lag);
@@ -318,6 +318,9 @@ function AppliedJobCardInner({
     doneFloorMinutes,
   });
 
+  // The one tracker state for the face (only the hired Helpr's): its bar and (A3-16) its next-step line read it.
+  const posterFirst = (app.posterName ?? "").split(" ")[0] || null;
+  const faceProgress = job.helper_id === userId ? jobProgress(job, { viewer: "helpr", otherFirst: posterFirst, card: { line: cardLine, face: faceAction } }) : null;
   return (
     /* The card publishes its own expand state to HelperTrackerPanel, which sits
        whichever JobStepCard this state mounts, through the shared person
@@ -352,11 +355,11 @@ function AppliedJobCardInner({
             money={`$${formatPriceFloor(payout)}`}
             status={
               !isMinimalCard && !isExpanded ? (
-                <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} />
+                <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} progress={faceProgress} otherFirst={posterFirst} />
               ) : null
             }
             action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(app.job_id) : undefined}
-            progress={!isExpanded && job.helper_id === userId ? jobProgress(job, { viewer: "helpr", otherFirst: (app.posterName ?? "").split(" ")[0] || null, card: { line: cardLine, face: faceAction } }) : null} /* the 8 steps on the card (owner, 2026-10-22) */
+            progress={!isExpanded ? faceProgress : null} /* the 8 steps on the card (owner, 2026-10-22) */
           />
           {isExpanded && <MineOpenMeta jobId={job.id} meta={addressOnFace ? null : metaRow} />}
 

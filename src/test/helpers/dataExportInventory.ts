@@ -131,6 +131,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_seller_defaults: { by: ["member_id"] },
   // Porch days (20261029161347; exported by 20261029223949): the seller's own picked porch weekdays.
   declutter_seller_porch_days: { by: ["seller_id"] },
+  // A seller's own meet spots (20261101194608; exported by 20261101210500).
+  declutter_meetup_spots: { by: ["seller_id"] },
   declutter_questions: { by: ["asker_id"] },
   declutter_watchlist: { by: ["user_id"] },
   declutter_tax_attestations: { by: ["seller_id"] },
@@ -664,6 +666,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "job_continue_days.proposed_by": { reason: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY" },
   "job_continue_days.decided_by": { reason: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY" },
   "job_continue_events.actor_id": { reason: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY" },
+  "declutter_talk_reminder_sends.user_id": { reason: "owner 11-01 (20261101200929): which unread Declutter chat message got the 15-minute or 2-hour reminder for which member and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },
   "unread_message_reminder_sends.user_id": { reason: "owner 11-01 (20261101183017): which unread message got the 15-minute or 2-hour reminder for which member and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },
   "helpr_start_reminder_sends.user_id": { reason: "owner 2026-10-29 (Q2483): which start reminder (2 hours, 8 AM, head out) went to the Helpr for which job and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },
   "payout_setup_reminders.helper_id": { reason: "owner 2026-10-25: which payout setup reminder (hired, day 1/3/7, money waiting) went to the Helpr and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },

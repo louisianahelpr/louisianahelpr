@@ -34,6 +34,33 @@ export function payDelayMessage(jobTitle: string, why: PayDelayWhy): string {
     : `Your pay for "${jobTitle}" is delayed because we couldn't send it. You don't need to do anything. We're trying again and will tell you when it's sent.`;
 }
 
+/**
+ * Q2497: the per-job exits of process-scheduled-payouts that leave a single-Helpr
+ * job payout_pending on OUR side (a read, verify or claim that failed, or money the
+ * cron would not move without a person). Past the grace, each tells the Helpr
+ * "we couldn't send it". Every status the cron writes is either here or a reasoned
+ * exemption in src/test/payDelayOtherExits.test.ts (two-way).
+ */
+export const PAY_DELAY_SENDING_STATUSES: ReadonlySet<string> = new Set([
+  "dispute_check_error",
+  "reversal_check_error",
+  "payout_hold_check_error",
+  "helper_fee_read_error",
+  "helper_profile_read_error",
+  "gift_card_check_error",
+  "gift_valuation_failed",
+  "gift_amount_unusable",
+  "verify_error",
+  "escrow_amount_unverifiable",
+  "exceeds_captured_escrow",
+  "ledger_read_error",
+  "onboarding_fee_claim_error",
+  "helpr_fault_fee_error",
+  "transfer_check_error",
+  "unrecorded_transfer_at_stripe",
+  "claim_error",
+]);
+
 /** Past the promised time by more than the grace. No readable time means it is not known to be late. */
 export function payIsOverdue(payoutScheduledAt: string | null | undefined, now = Date.now()): boolean {
   const at = payoutScheduledAt ? Date.parse(payoutScheduledAt) : Number.NaN;

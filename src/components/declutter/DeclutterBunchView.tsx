@@ -179,6 +179,8 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       : areaLabel.trim().length < 2 || AREA_ADDRESS_RE.test(areaLabel) ? NO_CITY_IN_ADDRESS
         : null;
   // The setup gate (SellerSetup) has them save it first; the boxes are only for a saved address that stopped reading.
+  // A3-69: a finished bunch (results shown, nothing left on the list) shows only its result until List more.
+  const allListed = !!results && items.length === 0;
   const whereFolded = !!savedSetup.pickup && !placeProblem && pickupAddress.trim() === savedSetup.pickup.address;
   const firstStep = whereFolded ? 1 : 2;
   // While the setup fee is due only free items can go (the server asks no fee at price 0); priced ones stay on the list.
@@ -466,10 +468,18 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
   return (
     <AppPage title={pageTitle} backTo="/declutter?view=selling">
+      {/* A3-69: once everything is listed, the result is the page: the intro and the empty photo step come back with
+          List more (a failed item still on the list keeps them, so it can be fixed). */}
+      {!allListed && (
       <p className="text-sm text-muted-foreground">
         Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.
       </p>
-      {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); document.getElementById("bunch-files")?.focus(); }} />}
+      )}
+      {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => {
+        setResults(null);
+        // The photo step renders again on the next paint; focus it then.
+        requestAnimationFrame(() => document.getElementById("bunch-files")?.focus());
+      }} />}
       <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
       <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} attested={attested} setAttested={setAttested} listStepShown={items.length > 0} onPricedOffered={setPricedDraftsOffered} />
@@ -487,7 +497,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
 
       {showMove && <BunchMovingSale userId={user.id} date={moveDate} setDate={setMoveDate} today={today} />}
 
-      {whereFolded ? null : (
+      {whereFolded || allListed ? null : (
       <BunchSection id="bunch-where" title="1. Where buyers pick up">
         {/* Q2492: the same rule and words as the one-item form; the server's rule is the same (declutter_start_checkout). */}
         <PlacesComeFirstLine />
@@ -503,6 +513,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
       </BunchSection>
       )}
 
+      {!allListed && (
       <BunchSection id="bunch-photos" title={`${firstStep}. Add photos`}>
         <p className="text-xs text-muted-foreground">
           Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.
@@ -522,6 +533,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
         )}
         {sortNote && <p className="text-sm text-foreground" role="alert" data-bunch-note="">{sortNote}</p>}
       </BunchSection>
+      )}
 
       {items.length > 0 && (
         <BunchSection id="bunch-check" title={`${firstStep + 1}. Check each item (${ready.length + heldForFee} of ${items.length} ready)`}>

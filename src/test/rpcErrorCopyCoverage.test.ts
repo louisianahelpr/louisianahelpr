@@ -72,6 +72,13 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // B112 (20261101200929): markTalkRead (src/lib/declutter/talkRead.ts) runs in the background when a Declutter chat
+  // opens; any error is console.warn()ed and no message exists at that site.
+  declutter_mark_talk_read: {
+    invalid_kind: { reason: "no message exists at this site: markTalkRead sends a fixed kind ('order' or 'handover') and only warns on error" },
+    item_not_found: { reason: "no message exists at this site: markTalkRead only warns on error (a chat the caller is not party to)" },
+    not_authenticated: { reason: "no message exists at this site: the chat that calls markTalkRead is open only signed in, and it only warns" },
+  },
   // Owner 11-01 (20261101181129): declutter_pick_free_request raises free_pick_time_unusable inside its own
   // BEGIN ... EXCEPTION WHEN SQLSTATE 'LHFP1' block, which undoes the confirmed-time order and runs the old path.
   declutter_pick_free_request: {

@@ -32,7 +32,7 @@ export function BuyerTotal({
   pendingClassName?: string;
   /**
    * Audit BUY-3: cents added on top of the checkout total, carrying no buyer fee of their own: the least a Helpr
-   * delivery can cost (deliveryPriceCents at one road mile, fromDeliveredCents' own floor) on an item the seller
+   * delivery can cost (deliveryPriceCents at one road mile) on an item the seller
    * offers only delivered. 0 everywhere else.
    */
   addCents?: number;

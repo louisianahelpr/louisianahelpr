@@ -46,6 +46,7 @@ const REASON: Record<string, string> = {
   notification_missing: "alert deleted",
   seen_in_app: "seen in the app first",
   stale: "too old to send",
+  step_done: "step already done",
   account_restricted: "account restricted",
   job_match_texts_off: "nearby-job texts off",
   job_match_texts_retired: "nearby-job texts retired (owner 2026-10-23)",

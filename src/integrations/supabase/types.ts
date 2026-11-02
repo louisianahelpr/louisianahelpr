@@ -1852,6 +1852,7 @@ export type Database = {
         Row: {
           buyer_id: string
           buyer_notified_at: string | null
+          buyer_read_at: string | null
           closed_at: string | null
           expires_at: string
           id: string
@@ -1859,10 +1860,12 @@ export type Database = {
           opened_by: string
           seller_id: string
           seller_notified_at: string | null
+          seller_read_at: string | null
         }
         Insert: {
           buyer_id: string
           buyer_notified_at?: string | null
+          buyer_read_at?: string | null
           closed_at?: string | null
           expires_at: string
           id?: string
@@ -1870,10 +1873,12 @@ export type Database = {
           opened_by: string
           seller_id: string
           seller_notified_at?: string | null
+          seller_read_at?: string | null
         }
         Update: {
           buyer_id?: string
           buyer_notified_at?: string | null
+          buyer_read_at?: string | null
           closed_at?: string | null
           expires_at?: string
           id?: string
@@ -1881,6 +1886,7 @@ export type Database = {
           opened_by?: string
           seller_id?: string
           seller_notified_at?: string | null
+          seller_read_at?: string | null
         }
         Relationships: []
       }
@@ -2358,7 +2364,9 @@ export type Database = {
           name: string
           note: string | null
           parish: string
+          seller_id: string | null
           updated_at: string
+          windows: Json | null
         }
         Insert: {
           active?: boolean
@@ -2372,7 +2380,9 @@ export type Database = {
           name: string
           note?: string | null
           parish: string
+          seller_id?: string | null
           updated_at?: string
+          windows?: Json | null
         }
         Update: {
           active?: boolean
@@ -2386,7 +2396,9 @@ export type Database = {
           name?: string
           note?: string | null
           parish?: string
+          seller_id?: string | null
           updated_at?: string
+          windows?: Json | null
         }
         Relationships: []
       }
@@ -2690,6 +2702,33 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_talk_reminder_sends: {
+        Row: {
+          conversation: string
+          kind: string
+          message_id: string
+          rung: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation: string
+          kind: string
+          message_id: string
+          rung: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation?: string
+          kind?: string
+          message_id?: string
+          rung?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       helpr_task_talk_messages: {
         Row: {
           body: string
@@ -2747,29 +2786,38 @@ export type Database = {
       declutter_order_talks: {
         Row: {
           buyer_notified_at: string | null
+          buyer_read_at: string | null
           created_at: string
           id: string
           order_id: string
           seller_notified_at: string | null
+          seller_read_at: string | null
         }
         Insert: {
           buyer_notified_at?: string | null
+          buyer_read_at?: string | null
           created_at?: string
           id?: string
           order_id: string
           seller_notified_at?: string | null
+          seller_read_at?: string | null
         }
         Update: {
           buyer_notified_at?: string | null
+          buyer_read_at?: string | null
           created_at?: string
           id?: string
           order_id?: string
           seller_notified_at?: string | null
+          seller_read_at?: string | null
         }
         Relationships: []
       }
       declutter_orders: {
         Row: {
+          book_by: string | null
+          book_by_reminded_24_at: string | null
+          book_by_reminded_2_at: string | null
           bundle_discount_cents: number
           delivery_cents: number
           shipping_cents: number
@@ -2786,6 +2834,8 @@ export type Database = {
           items_cents: number
           paid_at: string | null
           paid_with: string
+          pickup_slot_end: string | null
+          pickup_slot_start: string | null
           premium_cents: number
           setup_fee_cents: number
           setup_fee_refund_id: string | null
@@ -2799,6 +2849,9 @@ export type Database = {
           total_cents: number
         }
         Insert: {
+          book_by?: string | null
+          book_by_reminded_24_at?: string | null
+          book_by_reminded_2_at?: string | null
           bundle_discount_cents?: number
           delivery_cents?: number
           shipping_cents?: number
@@ -2828,6 +2881,9 @@ export type Database = {
           total_cents: number
         }
         Update: {
+          book_by?: string | null
+          book_by_reminded_24_at?: string | null
+          book_by_reminded_2_at?: string | null
           bundle_discount_cents?: number
           delivery_cents?: number
           shipping_cents?: number
@@ -4042,6 +4098,7 @@ export type Database = {
         Row: {
           closed_at: string | null
           created_at: string
+          giver_reminded_at: string | null
           id: string
           item_id: string
           pickup_at: string | null
@@ -4052,6 +4109,7 @@ export type Database = {
         Insert: {
           closed_at?: string | null
           created_at?: string
+          giver_reminded_at?: string | null
           id?: string
           item_id: string
           pickup_at?: string | null
@@ -4062,6 +4120,7 @@ export type Database = {
         Update: {
           closed_at?: string | null
           created_at?: string
+          giver_reminded_at?: string | null
           id?: string
           item_id?: string
           pickup_at?: string | null
@@ -8270,6 +8329,33 @@ export type Database = {
           run_attempt?: number
           run_id?: number
           version?: string
+        }
+        Relationships: []
+      }
+      needs_you_reminder_sends: {
+        Row: {
+          deadline: string
+          ref_id: string
+          rung: number
+          sent_at: string
+          step: string
+          user_id: string
+        }
+        Insert: {
+          deadline: string
+          ref_id: string
+          rung: number
+          sent_at?: string
+          step: string
+          user_id: string
+        }
+        Update: {
+          deadline?: string
+          ref_id?: string
+          rung?: number
+          sent_at?: string
+          step?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -15060,6 +15146,7 @@ export type Database = {
         }
         Returns: Json
       }
+      declutter_book_by_reminder_sweep: { Args: { p_now?: string }; Returns: number }
       declutter_decline_listed_for_me: {
         Args: {
           p_item_id: string
@@ -15193,6 +15280,7 @@ export type Database = {
       }
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
+      declutter_pickup_when: { Args: { p_order_id: string }; Returns: string }
       helpr_task_talk_view: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_send_message: {
         Args: { p_task_id: string; p_body: string }
@@ -15504,6 +15592,18 @@ export type Database = {
         Args: { p_task_id: string }
         Returns: boolean
       }
+      needs_you_reminder_quiet: { Args: { p_at: string }; Returns: boolean }
+      sweep_chat_unread_reminders: {
+        Args: { p_now?: string }
+        Returns: Json
+      }
+      sweep_deadline_reminders: { Args: { p_now?: string }; Returns: Json }
+      sweep_declutter_free_asks: { Args: { p_now?: string }; Returns: number }
+      sweep_declutter_talk_reminders: {
+        Args: { p_now?: string }
+        Returns: number
+      }
+      sweep_needs_you_reminders: { Args: { p_now?: string }; Returns: number }
       sweep_unread_message_reminders: {
         Args: { p_now?: string }
         Returns: number
@@ -16014,6 +16114,13 @@ export type Database = {
           paid_cents: number
         }[]
       }
+      declutter_my_refunded_cents: {
+        Args: { p_order_ids: string[] }
+        Returns: {
+          order_id: string
+          refunded_cents: number
+        }[]
+      }
       declutter_my_porch_days: { Args: never; Returns: number[] }
       declutter_my_porch_places: {
         Args: never
@@ -16442,6 +16549,34 @@ export type Database = {
         Args: { p_seller_id: string; p_spot_id: string }
         Returns: string
       }
+      declutter_my_meetup_spots: {
+        Args: never
+        Returns: { id: string; name: string; address: string; area: string; lat: number; lng: number; windows: Json | null }[]
+      }
+      declutter_save_my_meetup_spot: {
+        Args: { p_id: string | null; p_name: string; p_address: string; p_area: string; p_lat: number; p_lng: number; p_windows?: Json | null }
+        Returns: string
+      }
+      declutter_remove_my_meetup_spot: {
+        Args: { p_id: string }
+        Returns: boolean
+      }
+      declutter_chosen_meetup_hours: {
+        Args: { p_seller_id: string }
+        Returns: Json
+      }
+      declutter_checkout_porch_days: {
+        Args: { p_seller_id: string }
+        Returns: number[]
+      }
+      declutter_mark_talk_read: {
+        Args: { p_kind: string; p_ref: string }
+        Returns: undefined
+      }
+      declutter_meetup_spot_suggestions: {
+        Args: never
+        Returns: { id: string; name: string; address: string; area: string; lat: number; lng: number }[]
+      }
       declutter_set_move_out_date: {
         Args: { p_move_out_on: string | null }
         Returns: number
@@ -16502,6 +16637,18 @@ export type Database = {
       declutter_setup_job_fee_debt: {
         Args: { p_card_fee_cents: number; p_job_id: string }
         Returns: number
+      }
+      declutter_checkout_pickup_end: {
+        Args: { p_handover: string; p_order_id: string; p_seller: string; p_start: string }
+        Returns: string
+      }
+      declutter_meetup_windows_ok: {
+        Args: { p_windows: Json }
+        Returns: boolean
+      }
+      declutter_pickup_time_words: {
+        Args: { p_order_id: string }
+        Returns: string
       }
       declutter_seller_slot_open: {
         Args: { p_seller: string; p_start: string }

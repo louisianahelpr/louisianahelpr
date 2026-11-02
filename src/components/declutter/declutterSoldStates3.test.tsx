@@ -32,6 +32,8 @@ vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/refundRequests")>()),
   fetchRefundRequestView: async (orderId: string) => ({ order_id: orderId, side: "buyer", handed_over: true, full_refund_cents: 4084, request: state.refund }),
 }));
+// A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => [] }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => [],

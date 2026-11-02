@@ -6,7 +6,7 @@
  *  - A Helpr delivery's seller card said nothing of the money before the drop-off.
  *
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const fullRefund = refundedInFull(refund.data); |   const fullRefund = false;
- * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing( | {problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing(
+ * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller" | {problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller"
  * @mutate src/components/declutter/BuyingOrders.tsx |     case "agreed": return inFull ? REFUNDED_IN_FULL.buyer : null; |     case "agreed": return null;
  * @mutate src/lib/declutter/refundRequests.ts | r.refund_cents >= v.full_refund_cents; | r.refund_cents > 0;
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |       <OrderSteps facts={facts} />\n      <p className="text-ds-14">{refunded ? REFUNDED_IN_FULL.seller | <p className="text-ds-14">{refunded ? REFUNDED_IN_FULL.seller
@@ -32,6 +32,8 @@ vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/refundRequests")>()),
   fetchRefundRequestView: async (orderId: string) => ({ order_id: orderId, side: "buyer", handed_over: true, full_refund_cents: 4084, request: state.refund }),
 }));
+// A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => [] }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => [],
   fetchMyPayouts: async () => [],

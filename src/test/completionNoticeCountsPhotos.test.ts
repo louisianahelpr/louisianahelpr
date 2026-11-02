@@ -4,12 +4,13 @@
  *
  * The newest definition of notify_poster_on_status_change (the trigger that writes the poster's bell row when the
  * Helpr marks the job done) counts jobs.proof_after_urls and says 'finished "<job>" and added N after photo(s).
- * Review them and confirm.'; with none it keeps the old sentence. Behaviour, 3x replay and the red check:
+ * Next: review them and approve by <deadline> ...'; with none it says 'has finished "<job>". Next: check the work ...'
+ * (A3-36, 20261102043115). Behaviour, 3x replay and the red check:
  * src/test/pglite/noticeCountsTheAfterPhotos.pglite.mjs.
  *
- * @mutate supabase/migrations/20261029160717_autostart_notice_never_claims_arrival.sql | WHERE COALESCE(btrim(p.path), '') <> ''); | WHERE false);
- * @mutate supabase/migrations/20261029160717_autostart_notice_never_claims_arrival.sql |   v_helper_name := COALESCE(v_helper_name, 'Your Helpr'); |
- * @mutate supabase/migrations/20261029160717_autostart_notice_never_claims_arrival.sql | '. Review them and confirm.'; | '. Please review and confirm.';
+ * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | WHERE COALESCE(btrim(p.path), '') <> ''); | WHERE false);
+ * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql |   v_helper_name := COALESCE(v_helper_name, 'Your Helpr'); |
+ * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | '. Next: review them and approve by ' \|\| v_approve_by | '. Next: check the work and approve by ' \|\| v_approve_by
  */
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";
@@ -27,15 +28,15 @@ describe("the completion notice counts the after photos (Q2361)", () => {
   it("counts proof_after_urls on the completed branch and names the count", () => {
     expect(fn).toMatch(/v_after := \(SELECT count\(\*\) FROM unnest\(COALESCE\(NEW\.proof_after_urls, '\{\}'::text\[\]\)\) AS p\(path\) WHERE COALESCE\(btrim\(p\.path\), ''\) <> ''\);/);
     expect(fn).toMatch(/IF v_after > 0 THEN\s+v_msg := v_helper_name \|\| ' finished "' \|\| NEW\.title \|\| '" and added ' \|\| v_after::text/);
-    expect(fn).toMatch(/' after photo' ELSE ' after photos' END \|\| '\. Review them and confirm\.';/);
+    expect(fn).toMatch(/' after photo' ELSE ' after photos' END\s+\|\| '\. Next: review them and approve by ' \|\| v_approve_by/);
   });
 
   it("a Helpr with no profiles row never makes the sentence NULL (it would roll the completion back)", () => {
     expect(fn).toMatch(/v_helper_name := COALESCE\(v_helper_name, 'Your Helpr'\);/);
   });
 
-  it("keeps the old sentence when there are no after photos, and the old title", () => {
-    expect(fn).toMatch(/v_msg := v_helper_name \|\| ' has finished "' \|\| NEW\.title \|\| '"\. Please review and confirm\.';/);
+  it("with no after photos it asks to check the work, and keeps the old title", () => {
+    expect(fn).toMatch(/v_msg := v_helper_name \|\| ' has finished "' \|\| NEW\.title \|\| '"\. Next: check the work and approve by '/);
     expect(fn).toMatch(/v_title := v_helper_name \|\| ' marked the job complete';/);
   });
 });

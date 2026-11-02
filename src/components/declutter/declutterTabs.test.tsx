@@ -21,9 +21,9 @@
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[],
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[{ value: "wanted" as const, label: "Wanted" }],
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |             footnote={<WantedLink />} |             footnote={null}
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |             footnote={<WantedLink query={query} category={filters.category} />} |             footnote={null}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   if (!on) return null; |   if (on === undefined) return null;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink />\n              </div> |                 {null}\n              </div>
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink query={query} category={filters.category} />\n              </div> |                 {null}\n              </div>
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |             title={q ? "Nothing matches that search." : |             title={others.length === 0 ? "Opens soon" : q ? "Nothing matches that search." :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {searched && ( |                 {false && (
  * Owner 2026-10-30: nothing for sale at all is a real empty state (Sell something, Post what you're looking for).
@@ -133,6 +133,10 @@ vi.mock("@/lib/declutter/handoverTalk", () => ({ fetchMyOpenHandoverTalks: async
 // A1-B2 (b28): "You paid" reads the card charge per order (declutter_my_paid_cents); which tab an order lands on is
 // what this file checks, so no figure is answered here.
 vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
+// A3-53: checkout's delivery size read (none here; its own test: declutterTradeViews "A3-53").
+vi.mock("@/lib/declutter/checkoutSize", async (orig) => ({ ...(await orig<object>()), fetchCheckoutSize: async () => null }));
+// Checkout's porch days (none here).
+vi.mock("@/lib/declutter/porchDays", async (orig) => ({ ...(await orig<object>()), fetchCheckoutPorchDays: async () => null }));
 // One marker per paid order: which tab it lands on is what this file checks.
 vi.mock("./DeclutterHandoverViews", () => ({
   PaidOrdersSection: ({ cart, heading, show }: { cart: { status: string; order_id: string | null; my_side: string }[]; heading?: React.ReactNode; show?: (id: string) => boolean }) => (
@@ -143,12 +147,16 @@ vi.mock("./DeclutterHandoverViews", () => ({
   ),
 }));
 // Buying's tracker (BuyingOrders.tsx) reads each paid order's booking and handover row: none booked, nothing handed over.
+// A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => [] }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchMyBookings: async () => state.bookings,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null }),
   // Audit 1b D2-2: no open problem on these orders (the cards' problem note has its own tests).
   fetchOpenProblems: async () => [],
+  // B110: the checkout's pickup-time chips read the seller's times; none here (their own tests: checkoutPickupTime).
+  fetchItemPickupWindows: async () => [],
 }));
 // Q2425: no safe meetup spot near these carts (its own tests: declutterTradeViews, declutterHandoverViews).
 vi.mock("@/lib/declutter/meetup", () => ({ fetchMeetupSpotsNear: async () => [], fetchOrderMeetup: async () => null }));
@@ -402,6 +410,18 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     fireEvent.click(clear);
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-clear-search")).toBeNull();
+  });
+
+  // A3-99 (audit 7, 11-01): the link under an empty search carries the words into the open Wanted form.
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx |         to={what \|\| category ? wantedAskHref(what, category) : "/declutter?tab=wanted"} |         to="/declutter?tab=wanted"
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx | {what ? `Ask for “${what}”` : "Post what you're looking for"} | Post what you're looking for
+  // @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink query={query} category={filters.category} />\n |                 <WantedLink />\n
+  it("A3-99: under a search that found nothing, the link reads Ask for “treadmill” and opens the form with the words", async () => {
+    at("/declutter?q=Treadmill");
+    expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
+    const link = screen.getByTestId("declutter-wanted-link");
+    expect(link).toHaveTextContent("Can't find it? Ask for “Treadmill”");
+    expect(link).toHaveAttribute("href", "/declutter?tab=wanted&post=1&what=Treadmill");
   });
 
   it("owner 10-28: Browse's \"Can't find it? Post what you're looking for\" opens the Wanted tab, under the list and in the no-results state", async () => {

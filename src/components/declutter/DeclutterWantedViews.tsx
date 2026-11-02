@@ -28,10 +28,12 @@ import { WantedNearSection } from "./DeclutterWantedReplies";
 import { DECLUTTER_OFFLINE_COPY, declutterErrorMessage } from "@/lib/declutter/errors";
 import { CONNECTION_TROUBLE_COPY } from "@/lib/networkFailure";
 import { formatPrice } from "@/lib/declutter/distance";
+import { timeLeft } from "@/lib/declutter/timeLeft";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { checkoutAmounts } from "@/lib/declutter/money";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { photoPublicUrl } from "@/lib/declutter/api";
-import { WANTED_POST_PARAM } from "@/lib/declutter/sellChooser";
+import { WANTED_CATEGORY_PARAM, WANTED_POST_PARAM, WANTED_WHAT_PARAM } from "@/lib/declutter/sellChooser";
 import {
   WANTED_PHOTO_MAX,
   WANTED_RADIUS_CHOICES,
@@ -60,6 +62,7 @@ import { CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
 import { Chip } from "./DeclutterFilterPanel";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { focusSheetItself } from "./focusSheetItself";
+import { EXPIRED_WORD } from "@/lib/dateUtils";
 
 const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
 const FORM_ID = "wanted-form";
@@ -194,13 +197,14 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
 }
 
 /** "Post what you're looking for": the form in the shared bottom sheet (a side panel on the desktop website). */
-function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string; editing?: WantedPost | null }) {
+function WantedFormSheet({ open, at, userId, onClose, where, editing = null, prefill = null }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string; editing?: WantedPost | null; prefill?: Partial<WantedForm> | null }) {
   const webDesktop = useIsWebDesktop();
   const qc = useQueryClient();
   // Audit 10-30 #9: Edit opens this form on the post's own words. An edit never touches the new-post draft.
   const [form, setForm] = useState<WantedForm>(() => editing
     ? { what: editing.what, category: editing.category, maxPrice: String(editing.max_price_cents / 100), radius: WANTED_RADIUS_CHOICES.find((m) => m === editing.radius_miles) ?? EMPTY.radius }
-    : readWantedDraft());
+    // A3-99: a search that found nothing brings its words (and category) in over the saved draft's.
+    : { ...readWantedDraft(), ...prefill });
   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]);
   const [files, setFiles] = useState<File[]>([]);
   const [problems, setProblems] = useState<WantedFormProblems>({});
@@ -269,7 +273,7 @@ function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: {
 /** Where one reply stands, from the poster's side (the offer card in Buying is where it is answered). */
 function replyStatus(r: WantedReply): string {
   if (r.status === "open") return r.awaiting === "buyer" ? "Waiting for you" : "Waiting for the seller";
-  return { accepted: "Accepted", declined: "Declined", expired: "Expired", withdrawn: "Withdrawn", voided: "Ended" }[r.status];
+  return { accepted: "Accepted", declined: "Declined", expired: EXPIRED_WORD, withdrawn: "Withdrawn", voided: "Ended" }[r.status];
 }
 
 /** The sellers' replies to one of your posts: which listing, which seller (First L.), what price, where it stands. */
@@ -295,6 +299,27 @@ function WantedReplies({ replies }: { replies: WantedReply[] }) {
       {yourTurn && <Link to="/declutter?tab=buying" className="link-standard inline-flex min-h-11 items-center text-sm font-semibold">Answer in Buying</Link>}
     </div>
   );
+}
+
+/** "28 days left" while more than two days remain; then the hours ("19 hours left"). A Wanted post lasts 30 days. */
+function postTimeLeft(expiresAt: string, now = Date.now()): string | null {
+  const ms = Date.parse(expiresAt) - now;
+  if (Number.isNaN(ms) || ms <= 0) return null;
+  return ms > 2 * 86_400_000 ? `${Math.floor(ms / 86_400_000)} days left` : timeLeft(expiresAt, now);
+}
+
+/**
+ * The next-step line on your Wanted post (owner 2026-11-01: "people aren't told what to do next"): your move when a
+ * seller's reply waits on you (answered in Buying), when you accepted one (close the post) or when it ran out (post it
+ * again); otherwise who it waits on (sellers near you) and how long it stays up.
+ */
+function wantedNextStep(post: WantedPost, gotIt: boolean, now = Date.now()): NextStepValue {
+  if (post.status === "closed") return { who: "info", text: "Closed. No more alerts or answers." };
+  if (post.status === "expired") return { who: "you", text: "Post it again to keep looking" };
+  const yours = post.replies.filter((r) => r.status === "open" && r.awaiting === "buyer").length;
+  if (yours > 0) return { who: "you", text: yours === 1 ? "Answer the seller's reply in Buying" : `Answer the ${yours} sellers' replies in Buying` };
+  if (gotIt) return { who: "you", text: "Close this post if you got what you needed" };
+  return { who: "them", text: "Waiting on sellers near you to answer", by: postTimeLeft(post.expires_at, now) };
 }
 
 /** Your post's photos: each with Remove, and Add a photo while it is open and has fewer than 3. */
@@ -354,7 +379,7 @@ export function wantedWhereWords(source: "device" | "profile" | "zip" | "parish"
 const STATUS_WORDS: Record<WantedPost["status"], string> = {
   open: "Open",
   closed: "Closed",
-  expired: "Expired",
+  expired: EXPIRED_WORD,
 };
 
 function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string | null; onEdit: (post: WantedPost) => void }) {
@@ -401,6 +426,7 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
           {STATUS_WORDS[post.status]}
         </span>
       </div>
+      <NextStep value={wantedNextStep(post, gotIt)} />
       {userId && <WantedPostPhotos post={post} userId={userId} />}
       <WantedReplies replies={post.replies} />
       {post.status === "open" && (
@@ -421,7 +447,6 @@ function WantedRow({ post, userId, onEdit }: { post: WantedPost; userId: string 
           </div>
         )
       )}
-      {gotIt && <p className="text-sm font-medium" data-wanted-got-it="">You accepted an answer. Got what you needed? Close this post.</p>}
       {post.status === "open" ? (
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onEdit(post)}>Edit</Button>
@@ -454,11 +479,22 @@ export function WantedView() {
   // (it shows once the area is known, as the button does).
   const [params, setParams] = useSearchParams();
   const [posting, setPosting] = useState(() => params.get(WANTED_POST_PARAM) === "1");
+  // A3-99: Browse's "Ask for ..." under an empty search carries the words (and a category filter) into the form.
+  const [prefill] = useState<Partial<WantedForm> | null>(() => {
+    const what = (params.get(WANTED_WHAT_PARAM) ?? "").trim().slice(0, 60);
+    const category = params.get(WANTED_CATEGORY_PARAM) ?? "";
+    const out: Partial<WantedForm> = {};
+    if (what) out.what = what;
+    if (category && category in CATEGORY_LABEL) out.category = category;
+    return Object.keys(out).length ? out : null;
+  });
   // Audit 10-30 #13: the ask is used up once read, or Cancel, a reload or Back brings the form back.
   useEffect(() => {
-    if (!params.has(WANTED_POST_PARAM)) return;
+    if (!params.has(WANTED_POST_PARAM) && !params.has(WANTED_WHAT_PARAM) && !params.has(WANTED_CATEGORY_PARAM)) return;
     const next = new URLSearchParams(params);
     next.delete(WANTED_POST_PARAM);
+    next.delete(WANTED_WHAT_PARAM);
+    next.delete(WANTED_CATEGORY_PARAM);
     setParams(next, { replace: true });
   }, [params, setParams]);
   const [editing, setEditing] = useState<WantedPost | null>(null);
@@ -504,7 +540,7 @@ export function WantedView() {
       </section>
       {/* Q2267: other members' open posts near you that you can answer with one of your listings. */}
       {!underAge && user && at && <WantedNearSection at={at} userId={user.id} />}
-      {at && user && <WantedFormSheet key={editing?.id ?? "new"} open={posting || !!editing} editing={editing} at={at} userId={user.id} onClose={() => { setPosting(false); setEditing(null); }} where={wantedWhereWords(origin.status === "ready" ? origin.source : null)} />}
+      {at && user && <WantedFormSheet key={editing?.id ?? "new"} open={posting || !!editing} editing={editing} at={at} userId={user.id} prefill={editing ? null : prefill} onClose={() => { setPosting(false); setEditing(null); }} where={wantedWhereWords(origin.status === "ready" ? origin.source : null)} />}
     </div>
   );
 }

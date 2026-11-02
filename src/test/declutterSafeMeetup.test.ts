@@ -9,10 +9,10 @@
  * bodies, 7 md5-checked; RED with it absent (39 FAIL), with the address exclusion planted out (2), the miles check
  * planted out, Picked up door-only (2), and the admin check planted out).
  *
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |           AND public.declutter_miles_between(i.area_lat, i.area_lng, s.lat, s.lng)\n              > (public.declutter_meetup_rules() ->> 'max_miles')::numeric); |           AND false);
+ * @mutate supabase/migrations/20261101194608_declutter_seller_meetup_spots.sql |           AND public.declutter_miles_between(i.area_lat, i.area_lng, s.lat, s.lng)\n              > (public.declutter_meetup_rules() ->> 'max_miles')::numeric); |           AND false);
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF v_uid IS NULL OR NOT COALESCE(public.has_role(v_uid, 'admin'::public.app_role), false) THEN\n    RAISE EXCEPTION 'admin_only' |   IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'admin_only'
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF now() < v_slot - make_interval(mins => (public.declutter_meetup_rules() ->> 'here_from_minutes_before')::integer) THEN |   IF false THEN
- * @mutate supabase/migrations/20261101032626_declutter_checkout_page_inside_hold.sql |     AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) THEN |     THEN
+ * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |     AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) |     AND true
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (!chosen) return json({ error: "meetup_spot_needed" }, 400); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     spotChanged = frozenSpot !== pickedSpot; |     spotChanged = false; void pickedSpot;
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <MeetupSpotsCard />\n |
@@ -37,7 +37,8 @@ describe("Q2425 safe meetup spots: the server", () => {
     // declutter_seller_picked_up: restated by anti-lying #1 (20261028235709, its photo taken at the spot) with the
     // meetup lines kept (asserted below).
     for (const n of names) {
-      if (n === "declutter_seller_picked_up") expect(newestFunction(n).file >= FILE, n).toBe(true);
+      // declutter_meetup_spot_near_lines: restated by B110 (20261101194608, a seller's own spots) with the distance rule kept for admin spots.
+      if (n === "declutter_seller_picked_up" || n === "declutter_meetup_spot_near_lines") expect(newestFunction(n).file >= FILE, n).toBe(true);
       else expect(newestFunction(n).file, n).toContain(FILE);
     }
     expect(names.length).toBeGreaterThan(5);
@@ -55,7 +56,7 @@ describe("Q2425 safe meetup spots: the server", () => {
     const sc = code("declutter_start_checkout");
     expect(sc).toContain("IF p_handover = 'meetup' THEN PERFORM public.require_feature('declutter'); END IF;");
     expect(sc).toContain("AND public.declutter_meetup_spot_near_lines(s.id, v_lines); IF v_spot.id IS NULL THEN RAISE EXCEPTION 'meetup_spot_needed'");
-    expect(sc).toContain("AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) THEN");
+    expect(sc).toContain("AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id)");
     expect(sc).toContain("INSERT INTO public.declutter_order_meetups (order_id, spot_id, spot_name, spot_address, spot_lat, spot_lng) VALUES (v_order, v_spot.id, v_spot.name, v_spot.address, v_spot.lat, v_spot.lng);");
   });
 
@@ -95,7 +96,7 @@ describe("Q2425 safe meetup spots: the edge function and the admin screen", () =
   it("a changed spot closes the old payment page before the order is replaced (lh-authz-rls review #2)", () => {
     const s = read("supabase/functions/declutter-checkout/index.ts");
     expect(s).toContain("spotChanged = frozenSpot !== pickedSpot;");
-    expect(s).toContain('if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged)) {');
+    expect(s).toContain('if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged)) {');
   });
 
   it("Admin settings shows the meetup spots card", () => {

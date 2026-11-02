@@ -20,7 +20,7 @@
  *           current step's bar (a span, never a control: finishedJobDoesNotPulse)
  *   rule    Confirmed lit only on BOTH confirms (job_confirmed = the mutual stamp) -> jobStepFromWait `booked`
  *   actions the step buttons: I've accepted · Confirm this job · I'm on my way · I've arrived · Start working ·
- *           Mark job complete -> unchanged in JobTracking STATUSES, the open card's one primary button
+ *           Mark it done -> unchanged in JobTracking STATUSES, the open card's one primary button
  *
  * @mutate src/components/tracker/JobProgress.tsx | export const JOB_STEP_ICONS: readonly LucideIcon[] = [FileText, Clock, CheckCircle2, CalendarCheck, Truck, MapPin, Wrench, PartyPopper]; | export const JOB_STEP_ICONS: readonly LucideIcon[] = [FileText, Clock, CheckCircle2, CheckCircle2, Truck, MapPin, Wrench, PartyPopper];
  * @mutate src/components/tracker/JobProgress.tsx |             {detailed && ( |             {false && (
@@ -78,7 +78,7 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
   });
 
   it("every step action the old rail's button offered is still a step action", () => {
-    expect(oldRail().map((s) => s.action).filter(Boolean)).toEqual(["I've accepted", "Confirm this job", "I'm on my way", "I've arrived", "Start working", "Mark job complete"]);
+    expect(oldRail().map((s) => s.action).filter(Boolean)).toEqual(["I've accepted", "Confirm this job", "I'm on my way", "I've arrived", "Start working", "Mark it done"]);
     expect(code("src/components/JobTracking.tsx")).toContain('label={arrivalRefusedHere ? "Try my location again" : (nextStatus.action ?? nextStatus.label)}');
   });
 

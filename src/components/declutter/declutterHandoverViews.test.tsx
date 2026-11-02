@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />} |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") { |   if (false) {
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") return null; |   if (false) return null;
  * @mutate src/components/declutter/paidOrders.ts |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
  * @mutate src/components/declutter/DeclutterOrderBits.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
@@ -27,6 +27,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
+  /** A3-78: the refund request on a handed-over card (null: none). */
+  refundRequest: null as Record<string, unknown> | null,
   bookings: [] as unknown[],
   payouts: [] as unknown[],
   calls: [] as unknown[][],
@@ -49,6 +51,8 @@ const state = {
   sd: null as Record<string, unknown> | null,
   /** DB-12: the order's newest problem as declutter_order_problem returns it (decision once decided). */
   orderProblem: null as Record<string, unknown> | null,
+  /** A3-63: the order row's checkout window (fetchOrderPickupTimes); none by default. */
+  pickupTimes: [] as { id: string; book_by: string | null; pickup_slot_start: string | null; pickup_slot_end: string | null }[],
 };
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
@@ -68,7 +72,7 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => state.featur
 // NIGHT-SELL-soldstates-7: a handed-over card reads the refund request (refundedInFull) on both sides.
 vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/refundRequests")>()),
-  fetchRefundRequestView: async (orderId: string) => ({ order_id: orderId, side: "seller", handed_over: true, full_refund_cents: 0, request: null }),
+  fetchRefundRequestView: async (orderId: string) => ({ order_id: orderId, side: "seller", handed_over: true, full_refund_cents: 0, request: state.refundRequest }),
 }));
 vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: ({ problemForm }: { problemForm: import("react").ReactNode }) => <div><p>Refund panel</p>{problemForm}</div> }));
 
@@ -85,6 +89,8 @@ vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat
 vi.mock("@/lib/declutter/paidCents", () => ({
   fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in state.paid).map((id) => [id, state.paid[id]])),
 }));
+// A3-18/19: the order row's pickup times (book_by, the checkout time); none here, so the old words stand.
+vi.mock("@/lib/declutter/orderPickupTimes", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/orderPickupTimes")>()), fetchOrderPickupTimes: async () => state.pickupTimes }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => state.payouts,
@@ -165,6 +171,7 @@ describe("the seller's order card, I'm on my way (D-NEW11)", () => {
   const bookingShown = () => screen.findByText(/You can tap "I'm here" from an hour before the meeting time/);
   const said = () => document.querySelector("[data-buyer-on-way]");
   beforeEach(() => {
+    state.refundRequest = null;
     state.calls = [];
     state.payouts = [];
     state.handover = null;
@@ -325,16 +332,47 @@ describe("Declutter slice 4: paid-order cards", () => {
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("book"));
     unmount();
     show([line({ my_side: "seller" })]);
-    expect(await screen.findByText(/Waiting for the buyer to book a pickup time/)).toBeInTheDocument();
+    expect(await screen.findByText("Paid. Waiting on Dana to book a pickup time.")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
   });
 
+  // A3-49 (audit 11-01): the seller's unbooked sale says "waiting on the buyer" ONCE, naming the buyer.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") return null; |   if (!booked && order.side === "seller") return <p>Waiting for the buyer to book a pickup time (within 7 days of paying).</p>;
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const buyer = times.buyer \|\| "the buyer"; |   const buyer = "the buyer";
+  it("the seller's unbooked sale says the wait once, with the buyer's first name (A3-49)", async () => {
+    for (const handover of ["porch", "pickup_home", "meetup"]) {
+      const { unmount } = show([line({ my_side: "seller", handover })]);
+      await screen.findByText(/^Paid\. Waiting on Dana to /);
+      expect(screen.getAllByText(/waiting (on|for) (the buyer|Dana)/i)).toHaveLength(1);
+      expect(screen.queryByText(/within 7 days of paying/)).toBeNull();
+      // The buyer books; the seller's card never offers the booking form.
+      expect(screen.queryByRole("button", { name: "Book" })).toBeNull();
+      unmount();
+    }
+  });
+
   // B48 live check 2026-10-29: a safe-spot meetup's seller card said "book a pickup time".
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "meetup" ? "a time to meet" : "a pickup time"} | a pickup time
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : waiting("book a time to meet") | : waiting("book a pickup time")
   it("meetup: the seller waits for the buyer to book a time to meet", async () => {
     show([line({ my_side: "seller", handover: "meetup" })]);
-    expect(await screen.findByText(/Waiting for the buyer to book a time to meet/)).toBeInTheDocument();
+    expect(await screen.findByText("Paid. Waiting on Dana to book a time to meet.")).toBeInTheDocument();
     expect(screen.queryByText(/book a pickup time/)).toBeNull();
+  });
+
+  // A3-78 (audit 11-01): a handed-over sale whose refund request waits on the seller says so in its next-step line,
+  // with the deadline, instead of "Handed over."
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : side === "seller" && refundAwaitsSeller(refund.data) ? sellerRefundStep(refund.data!) : standing( |         : standing(
+  it("A3-78: the seller's handed-over card says 'Next: answer the refund request · by …'", async () => {
+    state.features = ["declutter_refund_requests"];
+    state.handover = { status: "handed_over", side: "seller", confirmed_at: "2026-10-31T15:00:00Z" };
+    state.refundRequest = { id: "rr1", status: "open", answer_by: "2026-11-02T19:46:00Z" };
+    try {
+      const { container } = show([line({ my_side: "seller", handover: "porch", order_status: "handed_over" })]);
+      await waitFor(() => expect([...container.querySelectorAll("[data-next-step]")].map((e) => e.textContent)).toContain("Next: answer the refund request · by Mon 11/2, 1:46 PM"));
+    } finally {
+      state.features = [];
+      state.refundRequest = null;
+    }
   });
 
   // Deep audit #25: each side moves a booked time once; after that the Move control is gone and the card says so.
@@ -804,11 +842,11 @@ describe("Declutter slice 4: paid-order cards", () => {
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | : you("Put it out and take one photo where the buyer will find it"); | : info("Put it out and take one photo where the buyer will find it.");
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | you("Have it ready at the pickup time below") | info("Have it ready at the pickup time below.")
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx | { who: "you", text: "Deliver it at the time below" } | { who: "info", text: "Booked. The delivery time is below." }
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | them(`${paid} Waiting on the buyer to book a time to meet.`) | them(`${paid} The buyer books a time to meet.`)
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a time to meet") | them(`${paid} The buyer books a time to meet.`)
   // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
   // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
   // pickup kind, for both sides, read from the rendered card.
-  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | them(`${paid} Waiting on the buyer to book a pickup time.`); | them(`${paid} · waiting on the buyer to book a pickup time.`);
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | waiting("book a pickup time"); | them(`${paid} · waiting on the buyer to book a pickup time.`);
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") : ""} | (items === 0 ? " · You're giving" : " · You're selling") : " · You're buying"}
   // DA-3 (Declutter audit 2026-10-30, shot da-seller-booked-mid-wk375): a giver's free order said "You're selling".
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (items === 0 ? " · You're giving" : " · You're selling") | " · You're selling"
@@ -1357,7 +1395,7 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {payoutLine(payout, !!problem)} | {payoutLine(payout, false)}
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const problems = useOpenProblems(ids); |   const problems = new Map<string, OpenProblem>();
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |         : problemOpen\n | : false\n
-// @mutate src/components/declutter/DeclutterPorchHandover.tsx | : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing( | : false ? { who: "info", text: PROBLEM_ON_HOLD } : standing(
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx | : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller" | : false ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller"
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemOpen={!!problem}\n          refunded={fullRefund}\n          part= | refunded={fullRefund}\n          part=
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (problem_open).\n    if (anyProblem) return null;\n | (problem_open).\n
 
@@ -1674,7 +1712,7 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     show([line({ handover: "meetup", my_side: "seller" })]);
     const steps = await parts("meetup");
     expect(within(steps).getByText("Met")).toBeInTheDocument();
-    expect(screen.getByText("Paid. Waiting on the buyer to book a time to meet.")).toBeInTheDocument();
+    expect(screen.getByText("Paid. Waiting on Dana to book a time to meet.")).toBeInTheDocument();
   });
 
   it("porch and door pickup keep theirs (the kinds that had it)", async () => {
@@ -1745,5 +1783,95 @@ describe("BUY-30: a notice's ?order= opens that order's card", () => {
     expect(await screen.findByText("Sale A")).toBeInTheDocument();
     expect(screen.queryByText("Sale B")).toBeNull();
     expect(document.querySelector("[data-linked-order]")).toBeNull();
+  });
+});
+
+// A3-63 (lead 1:14 PM: porch = a 2-hour window the seller leaves it out for): the seller's card said a porch booking as
+// "5:14 PM (30 minutes)". With the checkout window on the order row it says the window; door and meetup keep their time.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const windowWords = porch && booked | const windowWords = false && booked
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.side === "seller" ? "Leave it out" : "Pickup"} | {"Pickup"}
+describe("A3-63: a porch booking says its 2-hour window, not (30 minutes)", () => {
+  beforeEach(() => {
+    state.refundRequest = null;
+    state.handover = null;
+    state.porchDays = null;
+    state.meetup = null;
+  });
+  const start = new Date(Date.now() + 26 * 3600e3);
+  start.setUTCMinutes(0, 0, 0);
+  const end = new Date(start.getTime() + 2 * 3600e3);
+  const book = () => {
+    state.bookings = [{ order_id: "o1", slot_start: start.toISOString(), slot_end: new Date(start.getTime() + 30 * 60_000).toISOString(),
+      porch_mode: null, porch_until: null, buyer_reschedules: 0, seller_reschedules: 0 }];
+    state.pickupTimes = [{ id: "o1", book_by: null, pickup_slot_start: start.toISOString(), pickup_slot_end: end.toISOString() }];
+  };
+
+  it("seller: 'Leave it out: <day>, <start>-<end>' and no '(30 minutes)'", async () => {
+    book();
+    show([line({ handover: "porch", my_side: "seller" })]);
+    const row = await screen.findByTestId("declutter-porch-window");
+    const { pickupWhenWords } = await import("@/lib/declutter/orderPickupTimes");
+    expect(row.textContent).toBe(`Leave it out: ${pickupWhenWords(start.toISOString(), end.toISOString(), true)}`);
+    expect(row.textContent).toMatch(/–/);
+    expect(document.body.textContent).not.toMatch(/\(30 minutes\)/);
+    state.pickupTimes = [];
+  });
+
+  it("buyer: 'Pickup: <window>'", async () => {
+    book();
+    show([line({ handover: "porch", my_side: "buyer" })]);
+    expect((await screen.findByTestId("declutter-porch-window")).textContent).toMatch(/^Pickup: .*–/);
+    state.pickupTimes = [];
+  });
+
+  it("door pickup keeps its exact time and (30 minutes)", async () => {
+    book();
+    show([line({ handover: "pickup_home", my_side: "seller" })]);
+    expect(await screen.findByText(/\(30 minutes\)/)).toBeInTheDocument();
+    expect(screen.queryByTestId("declutter-porch-window")).toBeNull();
+    state.pickupTimes = [];
+  });
+});
+
+// A3-63 follow-up (lead 11-01): "Move the pickup" on a porch order offers 2-hour windows, as checkout does; a door
+// order keeps its 30-minute times.
+// @mutate src/components/declutter/DeclutterPickupWindows.tsx |     () => (q.data ? (porch ? porchWindowDays : pickupDays)( |     () => (q.data ? (pickupDays)(
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | noTimes={booked ? null : noTimes} porch={porch} | noTimes={booked ? null : noTimes}
+// @mutate src/components/declutter/paidOrders.ts |   void qc.invalidateQueries({ queryKey: ["declutter", "order-pickup-times"] }); |
+describe("A3-63 follow-up: moving a porch pickup offers 2-hour windows", () => {
+  const windows = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "09:00:00", ends: "13:00:00" }));
+  beforeEach(() => {
+    state.refundRequest = null;
+    state.handover = null;
+    state.porchDays = null;
+    state.meetup = null;
+    state.calls = [];
+    state.pickupTimes = [];
+    state.windows = { windows, latestPickupAt: new Date(Date.now() + 7 * 86_400_000).toISOString() };
+    state.bookings = [{ order_id: "o1", slot_start: new Date(Date.now() + 26 * 3600e3).toISOString(), slot_end: null,
+      porch_mode: null, porch_until: null, buyer_reschedules: 0, seller_reschedules: 0 }];
+  });
+  const chipsAfterMove = async () => {
+    fireEvent.click(await screen.findByRole("button", { name: "Move the pickup" }));
+    const day = within(screen.getByRole("group", { name: "Pickup day" })).getAllByRole("button")[1];
+    fireEvent.click(day);
+    return within(screen.getByRole("group", { name: `Pickup time on ${day.textContent}` })).getAllByRole("button").map((b) => b.textContent);
+  };
+
+  it("porch, buyer: the move's chips are windows, 9–11 AM and 11 AM–1 PM", async () => {
+    show([line({ handover: "porch", my_side: "buyer" })]);
+    expect(await chipsAfterMove()).toEqual(["9–11 AM", "11 AM–1 PM"]);
+  });
+
+  it("door pickup: the move keeps 30-minute times", async () => {
+    show([line({ handover: "pickup_home", my_side: "buyer" })]);
+    const chips = await chipsAfterMove();
+    expect(chips[0]).toBe("9:00 AM");
+    expect(chips).toHaveLength(8); // 9:00 AM to 12:30 PM
+  });
+
+  it("a booking or move refreshes the order's chosen time the card reads", async () => {
+    const src = blankComments(readFileSync("src/components/declutter/paidOrders.ts", "utf8"));
+    expect(src).toContain('void qc.invalidateQueries({ queryKey: ["declutter", "order-pickup-times"] });');
   });
 });

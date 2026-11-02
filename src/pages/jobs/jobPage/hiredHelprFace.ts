@@ -10,7 +10,7 @@ import type { JobPageRow } from "./useJobPage";
  * The hired Helpr's job page button (audit 2026-10-28 F26: the page had no next action, only "Open in working").
  * It is the Working card's own face button, from the same functions (helperStatusLine with the tracking row's
  * progress, helperFaceNextStep, helperFaceAction), so the page and the card can never offer different steps:
- * "Confirm you'll be at the job", "I'm on my way", "Take the before photo", "Mark job complete", or, while it is the
+ * "Confirm you'll be at the job", "I'm on my way", "Take the before photo", "Mark it done", or, while it is the
  * poster's move, "Message <them>". A step opens the job's Working card and asks its tracker to take it there
  * (helperStepRequest / photoCaptureRequest / faceActionRequest), so every gate (GPS, photos, the done floor,
  * Done's confirmation) still decides.

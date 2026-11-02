@@ -59,6 +59,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const reopenSpy = vi.hoisted(() => vi.fn(async (_id: string) => "draft"));
 const withdrawSpy = vi.hoisted(() => vi.fn(async (_id: string) => undefined));
 const state = {
+  /** A3-78: declutter_my_handover per order (a no-show report's answer-by), and the refund request views. */
+  handovers: {} as Record<string, Record<string, unknown>>,
+  refunds: {} as Record<string, { request: Record<string, unknown> | null }>,
   mine: [] as unknown[],
   offers: [] as unknown[],
   cart: [] as unknown[],
@@ -75,6 +78,11 @@ vi.mock("@/lib/declutter/handover", async (orig) => ({
   fetchMyPayouts: async () => state.payouts,
   fetchOpenProblems: async () => state.problems,
   fetchOrderProblem: async (id: string) => state.problemRows[id] ?? null,
+  fetchMyHandover: async (id: string) => state.handovers[id] ?? { order_id: id, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null },
+}));
+vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
+  ...(await orig<object>()),
+  fetchRefundRequestView: async (id: string) => state.refunds[id] ?? { order_id: id, side: "seller", handed_over: true, can_ask: false, can_report: false, items_cents: 0, full_refund_cents: 0, delivery_kept_cents: 0, window_ends_at: null, request: null },
 }));
 // Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
@@ -297,6 +305,31 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     await screen.findByText("Old radio");
     const lines = Array.from(container.querySelectorAll("[data-listing-status]")).map((e) => e.textContent);
     expect(lines).toEqual(["For sale · Porch pickup · Meet at a safe spot", "For sale · Porch pickup"]);
+  });
+
+  // Next-step line (owner 2026-11-01: "people aren't told what to do next"): a row that waits on the seller (a draft,
+  // a rejected listing) says "Next: …" in the shared NextStep words; a live, paused or checked one says where it stands.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |   rejected: "Open it to see why it wasn't approved", |
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | : next.who === "you" ? "font-medium text-foreground" : "text-muted-foreground" | : "text-muted-foreground"
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | const statusLine = drop ? "May drop tonight" : nextStepWords(next); | const statusLine = drop ? "May drop tonight" : next.text;
+  it("Next-step line: a row that waits on the seller says 'Next: …'; the rest say where they stand", async () => {
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByText("Mirror");
+    const line = (title: string) => {
+      const row = Array.from(container.querySelectorAll("[data-listing-row]")).find((r) => r.textContent!.includes(title))!;
+      return row.querySelector("[data-listing-status]") as HTMLElement;
+    };
+    expect(line("Desk").textContent).toBe("Next: finish it to sell it");
+    expect(line("Mirror").textContent).toBe("Next: open it to see why it wasn't approved");
+    for (const t of ["Desk", "Mirror"]) {
+      expect(line(t).getAttribute("data-next-step"), t).toBe("you");
+      expect(line(t).className, t).toMatch(/text-foreground/);
+    }
+    for (const t of ["Lamp", "Rug", ITEM.title]) {
+      expect(line(t).getAttribute("data-next-step"), t).not.toBe("you");
+      expect(line(t).textContent, t).not.toMatch(/^Next:/);
+    }
+    expect(line("Rug").textContent).toBe("Paused. Hidden from buyers.");
   });
 
   it("every listing row: a thumbnail, ONE status line, the actions in one group", async () => {
@@ -735,7 +768,7 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
 
   // Audit 1b D2-2 (1b-s-order-afterprob-p1-1440): the row said "Sold · Paid 24 hours after the handover" while a
   // problem held the money. The row reads the order's open problem by the sale's order id.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id)) | listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id))
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id), problemOn(item.id)) | listingNextStep(item, sales.data?.get(item.id)?.cents, payoutOf(item.id))
   it("an open problem: the sold row says the money is held; another sale's row is unchanged (D2-2)", async () => {
     state.mine = [{ ...ITEM, id: "a3", status: "sold", title: "Floor lamp" }, { ...ITEM, id: "a6", status: "sold", title: "Side table" }];
     state.sales = new Map([["a3", { cents: 2000, orderId: "o3" }], ["a6", { cents: 2500, orderId: "o6" }]]);
@@ -775,6 +808,30 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
       state.cart = [];
       state.problems = [];
       state.problemRows = {};
+    }
+  });
+
+  // A3-78 (audit 11-01): a no-show report the seller must answer, and a refund request on a handed-over sale, count
+  // under "To answer" too (the chip never counts what it hides, and never hides what waits on the seller).
+  // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   open.forEach((id, i) => { if (noShowAwaitsSeller(handovers[i]?.data)) out.add(id); }); |
+  // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   (refundsOn ? handed : []).forEach((id, i) => { if (refundAwaitsSeller(refunds[i]?.data)) out.add(id); }); |
+  it("A3-78: a no-show report and a refund request waiting on the seller count under To answer", async () => {
+    const sale = (id: string, order_status: string) => ({ line_id: `l-${id}`, item_id: `i-${id}`, item_title: `Sale ${id}`, my_side: "seller", seller_id: "u1", price_cents: 3000,
+      status: "paid", checkout_by: "2026-10-27T12:00:00Z", order_id: id, order_status, handover: "porch", premium_cents: 0, total_cents: 3000, porch_ok: true });
+    state.mine = [ITEM];
+    state.payouts = [];
+    // n1: a no-show report to answer. n2: none. r1: a refund request open. r2: a refund request with Louisiana Helpr.
+    state.cart = [sale("n1", "paid"), sale("n2", "paid"), sale("r1", "handed_over"), sale("r2", "handed_over")];
+    state.handovers = { n1: { order_id: "n1", status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null, no_show_reported_at: "2026-11-01T15:00:00Z", no_show_answer_by: "2026-11-02T15:00:00Z" } };
+    state.refunds = { r1: { request: { status: "open", answer_by: "2026-11-02T19:46:00Z" } }, r2: { request: { status: "to_admin" } } };
+    try {
+      const { container } = at("/declutter?tab=selling");
+      const chip = () => container.querySelector('[data-status-box="offers"]') as HTMLElement;
+      await waitFor(() => expect(chip().textContent).toBe("To answer · 2"));
+    } finally {
+      state.cart = [];
+      state.handovers = {};
+      state.refunds = {};
     }
   });
 

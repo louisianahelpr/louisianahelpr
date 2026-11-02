@@ -16,7 +16,7 @@ import type { HelperStepProps } from "./stepContract";
  * The ask is the AFTER photo, not the before one: see HelperPhotoAsk.
  *
  * ONE ROW (owner, 2026-09-14, VN-21): the photo ask stays above; the row is
- * the tracker's "Mark job complete" (the primary) with Message and Report a
+ * the tracker's "Mark it done" (the primary) with Message and Report a
  * Problem beside it. PayoutPrimary — the same label — renders only when the
  * tracker offers no CTA, so the card never shows the pair twice.
  */

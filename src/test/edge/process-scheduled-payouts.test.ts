@@ -325,7 +325,8 @@ describe("process-scheduled-payouts edge function", () => {
       seedPayableJob(scenario, {
         job: { budget: 60, platform_fee_amount: 10, helper_fee_percent: 5, helper_fee_flat_cents: 700 },
       });
-      stripeMock.transfers.create.mockRejectedValueOnce(new Error("stripe down"));
+      // A DEFINITE refusal: a timeout keeps the claim (lead 11-02).
+      stripeMock.transfers.create.mockRejectedValueOnce(Object.assign(new Error("stripe refused"), { type: "StripeInvalidRequestError" }));
       const fn = await load();
       await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
       const updates = profileUpdates();
@@ -399,8 +400,9 @@ describe("process-scheduled-payouts edge function", () => {
 
     it("rolls back the claim when the transfer fails so the retry re-collects the fee", async () => {
       seedPayableJob(scenario);
+      // A DEFINITE refusal: a timeout keeps the claim (lead 11-02).
       stripeMock.transfers.create.mockRejectedValue(
-        Object.assign(new Error("insufficient funds"), { type: "StripeError" }),
+        Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }),
       );
       const fn = await load();
       const res = await fn.fetch(
@@ -832,12 +834,33 @@ describe("process-scheduled-payouts edge function", () => {
     });
 
     // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (pi.status !== "succeeded" && isPifFunded) { | if (false) {
-    it("counts an uncaptured card leg as zero instead of blocking the gift's share", async () => {
-      seedMixed("requires_payment_method");
+    it("counts a not-yet-captured (held) card leg as zero instead of blocking the gift's share", async () => {
+      seedMixed("requires_capture");
       scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 10000 };
       await runCron();
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
       expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
+    });
+
+    // Q1975 part 2 (lead decision 11-01: 'failed' wins): a FAILED card/bank
+    // leg is never paid from the gift alone; the job is skipped and ops told.
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (isPifFunded && (pi.status === "requires_payment_method" \|\| pi.status === "canceled")) { | if (false) {
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (isPifFunded && (pi.status === "requires_payment_method" \|\| pi.status === "canceled")) { | if (isPifFunded && pi.status === "requires_payment_method") {
+    it("never pays a gift + card job whose card or bank leg FAILED from the gift alone (Q1975)", async () => {
+      for (const status of ["requires_payment_method", "canceled"]) {
+        resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+        resetSupabaseMock();
+        resetSharedMocks();
+        seedMixed(status);
+        scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 10000 };
+        const res = await runCron();
+        const body = await json(res);
+        expect((body.results as Array<Record<string, unknown>>)[0].status, status).toBe("gift_job_card_leg_failed");
+        expect(stripeMock.transfers.create, status).not.toHaveBeenCalled();
+        expect((slackAlerts as Array<{ title?: string; kind?: string }>).some(
+          (a) => a.kind === "money_at_risk" && /card or bank payment failed/.test(a.title ?? ""),
+        ), status).toBe(true);
+      }
     });
 
     it("defers (verify_error) when the card leg cannot be read, rather than capping at the gift", async () => {
@@ -1592,6 +1615,26 @@ describe("process-scheduled-payouts: a payout past its day tells the Helpr", () 
     expect(delayNotices()).toHaveLength(1);
     expect(delayNotices()[0]).toMatchObject({ link: "/profile?tab=payment" });
     expect(String(delayNotices()[0].message)).toMatch(/payout account can't receive money/);
+  });
+
+  // Q2497: every other exit of ours that leaves the job payout_pending tells the Helpr too.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |        if (!r.job_id \|\| !r.status \|\| told.has(r.job_id) \|\| !PAY_DELAY_SENDING_STATUSES.has(r.status)) continue; |        continue;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |        if (!job \|\| job.is_group_job === true \|\| !job.helper_id) continue; |        if (!job \|\| !job.is_group_job) continue;
+  it("a ledger the cron cannot read (or any other exit of ours): told once, the same words (Q2497)", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(13) } });
+    scenario.reads.payout_transfers = { rows: [], error: { message: "connection reset" } };
+    await runCron();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(delayNotices()).toHaveLength(1);
+    expect(delayNotices()[0]).toMatchObject({ user_id: "helper-1", job_id: "job-1", link: "/jobs?job=job-1" });
+    expect(String(delayNotices()[0].message)).toMatch(/couldn't send it\. You don't need to do anything/);
+  });
+
+  it("an exit of ours inside the grace says nothing yet (Q2497)", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(2) } });
+    scenario.reads.payout_transfers = { rows: [], error: { message: "connection reset" } };
+    await runCron();
+    expect(delayNotices()).toEqual([]);
   });
 
   it("a blip the next run can fix says nothing yet", async () => {

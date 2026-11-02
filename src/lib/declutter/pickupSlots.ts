@@ -94,7 +94,7 @@ function chicagoDay(utcMs: number): { ymd: string; weekday: number } {
 }
 
 type PickupSlot = { iso: string; label: string };
-type PickupDay = { ymd: string; label: string; slots: PickupSlot[] };
+export type PickupDay = { ymd: string; label: string; slots: PickupSlot[] };
 
 /**
  * Every bookable 30-minute slot from now to the deadline, by Chicago day: inside a window on that weekday
@@ -126,3 +126,79 @@ export function pickupDays(windows: readonly SellerWindow[], nowMs: number, dead
   return out;
 }
 
+
+/** The porch window a checkout books (lead 11-01: a porch pickup is a 2-hour window the seller leaves it out for). */
+const PORCH_WINDOW_MIN = 120;
+
+/**
+ * B110: the porch pickup WINDOWS from now to the deadline, by Chicago day: from each window's start in 2-hour steps,
+ * each cut at the window's end (at least 30 minutes; the server's declutter_checkout_pickup_end, 20261101191500).
+ * The chip reads "3–5 PM"; its ISO is the window's start (what checkout sends).
+ */
+export function porchWindowDays(windows: readonly SellerWindow[], nowMs: number, deadlineMs: number | null): PickupDay[] {
+  const end = deadlineMs ?? nowMs + 7 * 86_400_000;
+  const out: PickupDay[] = [];
+  const seen = new Set<string>();
+  for (let t = nowMs; t <= end + 86_400_000; t += 86_400_000) {
+    const { ymd, weekday } = chicagoDay(t);
+    if (seen.has(ymd)) continue;
+    seen.add(ymd);
+    const spans = new Map<number, number>();
+    for (const w of windows) {
+      if (w.weekday !== weekday) continue;
+      const wEnd = minutes(w.ends);
+      const wStart = minutes(w.starts);
+      for (let m = wStart; m + SLOT_MIN <= wEnd; m += PORCH_WINDOW_MIN) {
+        // A3-65 (audit 7, 11-01): the last window slides back to end at the close ("10 AM-12 PM", not a 1-hour
+        // "11 AM-12 PM"), so every chip is 2 hours; only hours shorter than 2 hours keep their own length. The server
+        // ends a porch window at start + 2 h cut at the close (declutter_checkout_pickup_end), so it books the same.
+        const s = m + PORCH_WINDOW_MIN > wEnd ? Math.max(wStart, wEnd - PORCH_WINDOW_MIN) : m;
+        spans.set(s, Math.max(spans.get(s) ?? 0, Math.min(s + PORCH_WINDOW_MIN, wEnd)));
+      }
+    }
+    const slots = [...spans.entries()].sort((a, b) => a[0] - b[0])
+      .map(([m, e]) => ({ m, e, at: chicagoInstant(ymd, m) }))
+      .filter(({ at }) => at > nowMs && at + SLOT_MIN * 60_000 <= end)
+      .map(({ m, e, at }) => ({ iso: new Date(at).toISOString(), label: rangeLabel(hhmm(m), hhmm(e)) }));
+    if (slots.length === 0) continue;
+    const date = new Date(chicagoInstant(ymd, 12 * 60));
+    const label = new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short", month: "short", day: "numeric" }).format(date);
+    out.push({ ymd, label, slots });
+  }
+  return out;
+}
+
+const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+/** Today's weekday in Louisiana (0 = Sun). */
+export function chicagoWeekday(now: Date = new Date()): number {
+  return DAY.indexOf(new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short" }).format(now));
+}
+
+/**
+ * A3-47: one way's hours on the item page, in ONE time format ("Sat 9 AM–12 PM"). Days that all share one range read
+ * as a run ("Mon–Fri 5–8 PM", "Every day 7 AM–9 PM"); otherwise each day says its own hours, in week order starting
+ * today ("Sun 1–5 PM, Sat 9 AM–12 PM" on a Sunday). With no hours, only the days ("Sat, Sun"); "" when nothing is set.
+ */
+export function weekHoursLine(windows: readonly SellerWindow[] | null | undefined, weekdays: readonly number[] | null | undefined = null,
+  today: number = chicagoWeekday()): string {
+  const ws = (windows ?? []).filter((w) => w && typeof w.starts === "string" && typeof w.ends === "string");
+  const fromToday = (d: number) => (d - today + 7) % 7;
+  if (ws.length === 0) {
+    const days = [...new Set(weekdays ?? [])];
+    return days.length === 7 ? "Every day" : days.sort((a, b) => fromToday(a) - fromToday(b)).map((d) => DAY[d]).join(", ");
+  }
+  const key = (w: SellerWindow) => `${w.starts.slice(0, 5)}|${w.ends.slice(0, 5)}`;
+  const ranges = new Set(ws.map(key));
+  if (ranges.size === 1) {
+    const days = [...new Set(ws.map((w) => w.weekday))];
+    return `${days.length === 7 ? "Every day" : dayRuns(days)} ${rangeLabel(ws[0].starts.slice(0, 5), ws[0].ends.slice(0, 5))}`;
+  }
+  const byDay = new Map<number, SellerWindow[]>();
+  for (const w of [...ws].sort((x, y) => fromToday(x.weekday) - fromToday(y.weekday) || minutes(x.starts) - minutes(y.starts))) {
+    byDay.set(w.weekday, [...(byDay.get(w.weekday) ?? []), w]);
+  }
+  return [...byDay.entries()]
+    .map(([d, list]) => `${DAY[d]} ${list.map((w) => rangeLabel(w.starts.slice(0, 5), w.ends.slice(0, 5))).join(" and ")}`)
+    .join(", ");
+}

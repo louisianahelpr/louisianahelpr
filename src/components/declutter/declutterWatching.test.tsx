@@ -3,6 +3,12 @@
  * item page), and a new heart's toast says where it went, with a way there.
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       <WatchingList /> |       {null}
+ * A3-98 (audit 7, 11-01): one word, "Save", for keeping something for later in both sections (Jobs' "Save job").
+ * @mutate src/components/declutter/DeclutterWatching.tsx | <h2 className="text-base font-semibold">Saved</h2> | <h2 className="text-base font-semibold">Watching</h2>
+ * @mutate src/components/declutter/DeclutterWatching.tsx | aria-label="Saved" data-watching="" | aria-label="Watching" data-watching=""
+ * @mutate src/components/declutter/declutterLightActions.ts | Find it under Buying, in Saved. | Find it under Buying, in Watching.
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | : `Save ${item.title}`} | : `Watch ${item.title}`}
+ * @mutate src/components/declutter/DeclutterItemView.tsx | : "Save this item"} | : "Watch this item"}
  * @mutate src/components/declutter/DeclutterWatching.tsx |   if (item.status === "reserved") return "On hold for another buyer"; |   if (item.status === "reserved") return "No longer for sale";
  * @mutate src/components/declutter/DeclutterWatching.tsx |   const gone = goneLine(list.length - rows.length); |   const gone = null;
  * @mutate src/components/declutter/DeclutterItemView.tsx |       if (!isWatching) toastWatching(navigate); |       if (isWatching) toastWatching(navigate);
@@ -43,14 +49,15 @@ beforeEach(() => {
 describe("Watching under Buying (SS-5)", () => {
   it("lists every hearted item, live first, each opening its item page, and counts the ones no longer listed", async () => {
     show();
-    const section = await screen.findByRole("region", { name: "Watching" });
+    const section = await screen.findByRole("region", { name: "Saved" });
+    expect(within(section).getByRole("heading", { name: "Saved" })).toBeInTheDocument();
     const rows = within(section).getAllByRole("link");
     expect(rows.length).toBeGreaterThan(2);
     expect(rows.map((r) => r.getAttribute("href"))).toEqual(["/declutter/item/a", "/declutter/item/c", "/declutter/item/b"]);
     expect(rows[0]).toHaveTextContent("Blue lamp$19.99");
     expect(rows[1]).toHaveTextContent("Free crib" + "Free");
     expect(rows[2]).toHaveTextContent("Oak dresserOn hold for another buyer");
-    expect(within(section).getByText("1 item you watched is no longer listed.")).toBeInTheDocument();
+    expect(within(section).getByText("1 item you saved is no longer listed.")).toBeInTheDocument();
   });
 
   it("shows nothing with no hearts", async () => {
@@ -63,13 +70,13 @@ describe("Watching under Buying (SS-5)", () => {
   it("row words and the gone line", () => {
     expect(watchedLine({ status: "sold", current_price_cents: 500 })).toBe("No longer for sale");
     expect(goneLine(0)).toBeNull();
-    expect(goneLine(2)).toBe("2 items you watched are no longer listed.");
+    expect(goneLine(2)).toBe("2 items you saved are no longer listed.");
   });
 
   it("the toast says where the item went and opens Buying", () => {
     const go = vi.fn();
     toastWatching(go);
-    expect(state.toasts[0][0]).toBe("Saved. Find it under Buying, in Watching.");
+    expect(state.toasts[0][0]).toBe("Saved. Find it under Buying, in Saved.");
     const opts = state.toasts[0][1] as { action: { label: string; onClick: () => void } };
     expect(opts.action.label).toBe("See it");
     opts.action.onClick();

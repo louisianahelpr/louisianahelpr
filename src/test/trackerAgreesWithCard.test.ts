@@ -24,7 +24,7 @@
  * @mutate src/components/tracker/jobProgressState.ts |   const card = o.card ?? cardFaceFor(job, o, now); |   const card = cardFaceFor(job, o, now);
  * @mutate src/components/tracker/jobProgressState.ts | \|\| posterLate \|\| noApplicantsYet \|\| ((sameStep \|\| offPath) && !HELPR_NOT_STARTED.has(card.line.id)) ? base.next : card.line.detail, | \|\| true ? base.next : card.line.detail,
  * @mutate src/pages/posts/PostedJobCard.tsx | rescheduled, card: { line: cardLine, face: faceAction }, pendingApplicants: | rescheduled, pendingApplicants:
- * @mutate src/pages/jobs/AppliedJobCard.tsx | \|\| null, card: { line: cardLine, face: faceAction } }) : null} | \|\| null }) : null}
+ * @mutate src/pages/jobs/AppliedJobCard.tsx | otherFirst: posterFirst, card: { line: cardLine, face: faceAction } }) : null; | otherFirst: posterFirst }) : null;
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   const started = wait ? WORK_UNDERWAY.has(wait) : tracking?.status === "working"; |   const started = tracking?.status === "working";
  * @mutate src/pages/jobs/appliedJobCard/HelperCollapsedStrip.tsx | line={withReviewed(helperCardLine(app, job, unsettledDisputeJobIds, tracking), reviewed)} | line={withReviewed(helperStatusLine(app), reviewed)}
  */
@@ -129,7 +129,7 @@ const BUTTON_STEP: Array<[RegExp, number[], number[]]> = [
   // En route (step in play: On the way) or past the day stuck before Arrived: the tap completes Arrived.
   [/^I've arrived$/, [4, 5], []],
   [/^Start working$/, [5, 6], []],
-  [/^Mark job complete$/, [6], []],
+  [/^Mark it done$/, [6], []],
   // An owed photo is the face's button (owner 2026-10-23; trackerKeepsThePhotos): before on Arrived, after on Working.
   [/^Take the before photo$/, [5], []],
   [/^Take the after photo$/, [6], []],
@@ -174,7 +174,7 @@ function helprCard(s: State) {
  *  under "Finish and mark it done"). */
 const HELPR_BUTTON_LINES: Record<string, RegExp> = {
   "Start working": /^(overdue_)?(start_working|before_photo)$/,
-  "Mark job complete": /^(working|after_photo|overdue_unfinished|overdue_after_photo)$/,
+  "Mark it done": /^(working|after_photo|overdue_unfinished|overdue_after_photo)$/,
 };
 
 function agree(side: string, name: string, c: { line: { id: string; tone: string }; face: { label: string; tone: string } | null; bar: JobProgressState }) {

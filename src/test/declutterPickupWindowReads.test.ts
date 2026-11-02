@@ -14,7 +14,7 @@
 // LEAD-PLACE-TIMES money review 2026-10-31 #2: a porch order with no frozen place keeps to the seller's porch days, in the
 // times shown and the time accepted. Behaviour: src/test/pglite/declutterDoorPickupUsesPlaces.pglite.mjs section 6.
 // @mutate supabase/migrations/20261031171727_declutter_porch_days_without_places.sql | AND (o.handover IS DISTINCT FROM 'porch' OR public.declutter_order_is_porch_day(o.id, w.weekday)) | AND true
-// @mutate supabase/migrations/20261031171727_declutter_porch_days_without_places.sql | AND NOT public.declutter_order_is_porch_day(p_order_id, extract(dow FROM v_local)::smallint) THEN | AND false THEN
+// @mutate supabase/migrations/20261101194608_declutter_seller_meetup_spots.sql | AND NOT public.declutter_order_is_porch_day(p_order_id, extract(dow FROM v_local)::smallint) THEN | AND false THEN
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

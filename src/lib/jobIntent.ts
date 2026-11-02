@@ -64,14 +64,22 @@ function takeJobIntent(): string | null {
  * `postLoginDest` comment requires ("log in → home"); the job rides in as a
  * param rather than replacing the destination.
  */
-export function postAuthDestination(fallback = "/home"): string {
+/** Q2496: the pending job intent, NOT cleared (Signup puts it in the confirm link). */
+export function peekJobIntent(): string | null {
+  return safeStorage.getItem(KEY) || null;
+}
+
+export function postAuthDestination(fallback = "/home", linkJobId: string | null = null): string {
   // A full destination path (`?redirect=`) is more specific than a bare job
   // id, so it wins. Both reads are destructive, so a session only ever spends
   // one of them and neither can fire again on an unrelated later sign-in.
   const path = takeSignupRedirect();
   const id = takeJobIntent();
   if (path) return path;
-  return id ? `/home?quickApply=${encodeURIComponent(id)}` : fallback;
+  // Q2496: no intent in THIS browser (the email opened elsewhere): the job the
+  // confirm link carried.
+  const job = id ?? linkJobId;
+  return job ? `/home?quickApply=${encodeURIComponent(job)}` : fallback;
 }
 
 /**

@@ -1,11 +1,73 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { settleOnboardingFee } from "./settleOnboardingFee.ts";
+
+/**
+ * Q1975: the setup fee on a bank (ACH) checkout is settled HERE, when the
+ * debit lands, never at checkout.session.completed (which defers it on an
+ * "unpaid" session). Runs only on the write that moved the job to escrow, so
+ * a redelivery (job already escrow) never settles twice; and only when the
+ * charge really is a bank debit, so a card retry on the same checkout (which
+ * checkout.session.completed settles itself) is never settled a second time,
+ * which would refund the real fee as a "duplicate".
+ *
+ * Never throws: the job is already funded by the time this runs. A fee it
+ * cannot settle is paged so a person sets it by hand.
+ */
+async function settleDeferredSetupFee(pi: Stripe.PaymentIntent, ctx: WebhookContext, jobId: string, isSeed: boolean): Promise<void> {
+  const { stripe, logStep } = ctx;
+  if ((pi.metadata as { onboarding_fee_charged?: string } | null)?.onboarding_fee_charged !== "true") return;
+  const page = async (why: string) => {
+    logStep("ERROR settling the deferred setup fee", { piId: pi.id, jobId, why });
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Bank payment settled but its setup fee was not recorded: set it by hand",
+      message: `A bank (ACH) payment that carried the one-time setup fee settled, but the fee could not be recorded (${why}). Set profiles.onboarding_fee_paid for the poster by hand, and jobs.onboarding_fee_amount on the job, or they may be asked to pay it again.`,
+      fields: { job_id: jobId, payment_intent: pi.id },
+      oncePerDayKey: `deferred-setup-fee:${pi.id}`,
+      seed: isSeed,
+    });
+  };
+  let session: Stripe.Checkout.Session | undefined;
+  try {
+    const listed = await stripe.checkout.sessions.list({
+      payment_intent: pi.id,
+      limit: 1,
+      expand: ["data.payment_intent.latest_charge"],
+    });
+    session = listed?.data?.[0];
+  } catch (e) {
+    await page(`checkout session read failed: ${(e as { message?: string })?.message ?? String(e)}`);
+    return;
+  }
+  if (!session) {
+    await page("no checkout session found for this payment");
+    return;
+  }
+  const expandedPi = session.payment_intent as Stripe.PaymentIntent | string | null;
+  const charge = expandedPi && typeof expandedPi === "object" ? expandedPi.latest_charge : null;
+  const methodType = charge && typeof charge === "object" ? charge.payment_method_details?.type : undefined;
+  if (methodType === undefined) {
+    await page("the payment's charge could not be read");
+    return;
+  }
+  // A card (or Link) payment completed its checkout "paid", and
+  // checkout.session.completed settled its fee already.
+  if (methodType !== "us_bank_account") return;
+  try {
+    await settleOnboardingFee(session, pi.id, ctx);
+  } catch (e) {
+    await page(`settling failed: ${(e as { message?: string })?.message ?? String(e)}`);
+  }
+}
 
 export async function handlePaymentIntentSucceeded(
   event: Stripe.Event,
-  { supabase, logStep }: WebhookContext,
+  ctx: WebhookContext,
 ): Promise<void> {
+  const { supabase, logStep } = ctx;
   const pi = event.data.object as Stripe.PaymentIntent;
   logStep("Payment intent succeeded", { id: pi.id, amount: pi.amount });
 
@@ -117,6 +179,7 @@ export async function handlePaymentIntentSucceeded(
       }
       if (escrowRow) {
         logStep("ACH payment settled — job moved to escrow", { jobId: taxJob.id, piId: pi.id });
+        await settleDeferredSetupFee(pi, ctx, taxJob.id, taxJob.is_seed ?? false);
         // Trigger helper match now that the job is actually funded.
         // Best-effort: a failure costs reach, not correctness (same contract as
         // the match call in checkoutSessionCompleted).

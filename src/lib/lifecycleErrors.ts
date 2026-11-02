@@ -683,6 +683,12 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     too_many_orders: "There are too many orders to total at once. Open an order to see what you paid for it.",
   },
+  // A3-112 follow-up (20261102033426): what was sent back to the buyer's card, for at most 200 of their own orders.
+  declutter_my_refunded_cents: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    too_many_orders: "There are too many orders to total at once. Open an order to see what was refunded on it.",
+  },
   declutter_confirm_handover: {
     account_restricted: DC.account_restricted,
     delivery_not_done: DC.delivery_not_done,
@@ -1137,6 +1143,11 @@ export const RPC_ERROR_COPY = {
   declutter_free_requests_for_item: {
     item_not_found: DC.item_not_found,
   },
+  // B112 (20261101200349): the seller's porch days for the caller's own checkout.
+  declutter_checkout_porch_days: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_pick_free_request: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
@@ -1147,6 +1158,7 @@ export const RPC_ERROR_COPY = {
     offer_not_open: DC.offer_not_open,
     request_not_found: DC.request_not_found,
     request_not_open: DC.request_not_open,
+    request_time_passed: DC.request_time_passed,
     requester_unavailable: DC.requester_unavailable,
     under_18: DC.under_18,
   },

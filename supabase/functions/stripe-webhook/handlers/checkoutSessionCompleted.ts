@@ -22,7 +22,6 @@ import {
   subscriptionLinkage,
 } from "../../_shared/subscriptionLinkage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
-import { memberDisplayNameOf } from "../../_shared/memberDisplayName.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { effectiveSalesTaxRate, jobEscrowTaxableBaseCents, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
@@ -354,21 +353,9 @@ async function settleCheckoutSession(
       if (heldBack) {
         // The Helpr is told when the re-pay lands, not now.
       } else if (flippedTip && flippedTip.length > 0) {
+        // Q2329: the Helpr's notice is trg_notify_helper_tip's ("<Name> tipped you $X"), written by the flip above;
+        // this handler used to add a second one. One producer per event.
         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
-        // Notify the helper — only on the delivery that actually captured the tip.
-        if (tipHelperId) {
-          // Owner 2026-10-21: say who, as "First L." (the tipper is known: it is their session).
-          const tipperName = await memberDisplayNameOf(supabase, String(tipperId), String(tipHelperId), "Someone");
-          await insertNotifications(supabase, {
-            user_id: tipHelperId,
-            job_id: tipJobId,
-            title: "You received a tip!",
-            message: `${tipperName} tipped you for a completed job. Thanks for the great work!`,
-            // NOID-15: tips are "Payments and tips" (financial_alerts), not "Job payments".
-            type: "financial_alerts",
-            link: "/profile?tab=earnings",
-          });
-        }
       } else {
         logStep("Tip already paid (duplicate delivery) — skipping notify", { jobId: tipJobId, tipper: tipperId });
       }
@@ -1151,12 +1138,29 @@ async function settleCheckoutSession(
     // hiccup only delays tax recording until payment_intent.succeeded fires (if it
     // fires after this event, which is the common case).
     try {
-      const taxPi = await stripe.paymentIntents.retrieve(piId);
+      // Q2152 (lh-money-escrow review of 461a6b724 #2): the PaymentIntent's
+      // amount_details.tax is not returned by the pinned API version
+      // (2025-08-27.basil: AmountDetails has only `tip`, stripe@18.5.0's types;
+      // it went GA in 2025-10-29.clover), so this used to write nothing and the
+      // insert-time ESTIMATE stood. The Checkout Session in hand carries the tax
+      // the page charged (total_details.amount_tax): that is Stripe's figure.
+      // The PI field stays a fallback for a newer API version. A gift
+      // difference session prices its one line non-taxable on purpose
+      // (create-payment; docs/OPEN.md Q441), so its $0 is not the job's tax and
+      // the estimate stays, as before.
+      let taxPi: Stripe.PaymentIntent | null = null;
+      try {
+        taxPi = await stripe.paymentIntents.retrieve(piId);
+      } catch (piErr) {
+        logStep("WARN: PI retrieve failed in checkout handler — tax read from the session only", { piId, error: String(piErr) });
+      }
+      const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : session.total_details?.amount_tax;
+      const piTaxCents = (taxPi?.amount_details as any)?.tax?.total_tax_amount;
       // `> 0` here would never let a genuine $0 clear the estimate written at
       // insert time — and $0 is the normal outcome, since only assembly labor
       // is taxable. Write whenever Stripe HAS a number; skip only when the
       // field is absent, which means "no information", not "zero".
-      const taxCents = (taxPi.amount_details as any)?.tax?.total_tax_amount;
+      const taxCents = typeof sessionTaxForJob === "number" ? sessionTaxForJob : piTaxCents;
       if (typeof taxCents === "number") {
         updateData.sales_tax_amount = taxCents / 100;
 
@@ -1187,7 +1191,7 @@ async function settleCheckoutSession(
         // written by create-payment) wins over the row's, which a re-mint at
         // another price may have changed since (lh-money-escrow review of the
         // pre-flip items, #2). A PaymentIntent without it reads the row.
-        const piFeeRaw = String((taxPi.metadata as Record<string, string> | undefined)?.service_fee_cents ?? "");
+        const piFeeRaw = String((taxPi?.metadata as Record<string, string> | undefined)?.service_fee_cents ?? "");
         const taxedRow = jobRow && /^\d+$/.test(piFeeRaw)
           ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 }
           : jobRow;
@@ -1200,7 +1204,7 @@ async function settleCheckoutSession(
         }
       }
     } catch (taxErr) {
-      logStep("WARN: PI retrieve failed in checkout handler — payment_intent.succeeded will record tax", {
+      logStep("WARN: tax recording failed in checkout handler — payment_intent.succeeded will record tax", {
         piId,
         error: String(taxErr),
       });
@@ -1479,8 +1483,17 @@ async function settleCheckoutSession(
     // Claim-or-refund lives in settleOnboardingFee so the standalone
     // `pay-onboarding-fee` checkout shares one implementation of the
     // "never charged twice" guarantee rather than a second copy of it.
+    // Q1975: a bank (ACH) checkout completes "unpaid": the debit has only
+    // started and can still bounce days later. Marking the setup fee paid now
+    // left it marked paid after a failed debit, so the member was never asked
+    // again. paymentIntentSucceeded settles it when the debit actually lands
+    // (settleDeferredSetupFee). Only an explicit "unpaid" defers.
     if ((session.metadata as any)?.onboarding_fee_charged === "true") {
-      await settleOnboardingFee(session, piId, { stripe, supabase, logStep });
+      if (session.payment_status === "unpaid") {
+        logStep("Setup fee deferred until the bank payment settles", { sessionId: session.id, jobId });
+      } else {
+        await settleOnboardingFee(session, piId, { stripe, supabase, logStep });
+      }
     }
   } else if (jobId) {
     logStep("WARNING: checkout completed for job but no payment_intent on session", { jobId });

@@ -48,7 +48,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-const CATEGORY_GROUP_HEADINGS = ["Home", "Outdoors", "Family", "Hobbies and fun", "Other"] as const;
+// A3-110: the last heading is "More", so "Other" shows once (as the chip), not as a heading over its own chip.
+const CATEGORY_GROUP_HEADINGS = ["Home", "Outdoors", "Family", "Hobbies and fun", "More"] as const;
 export type CategoryGroupHeading = (typeof CATEGORY_GROUP_HEADINGS)[number];
 
 interface CategoryEntry {
@@ -89,8 +90,8 @@ export const CATEGORIES: readonly CategoryEntry[] = [
   { key: "holiday_seasonal", label: "Holiday and seasonal", icon: Gift, group: "Hobbies and fun" },
   { key: "tailgating_game_day", label: "Tailgating and game day", icon: Flag, group: "Hobbies and fun" },
   { key: "party_events", label: "Party and events", icon: PartyPopper, group: "Hobbies and fun" },
-  { key: "moving_supplies", label: "Moving boxes and supplies", icon: PackageOpen, group: "Other" },
-  { key: "other", label: "Other", icon: Package, group: "Other" },
+  { key: "moving_supplies", label: "Moving boxes and supplies", icon: PackageOpen, group: "More" },
+  { key: "other", label: "Other", icon: Package, group: "More" },
 ];
 
 export const CATEGORY_ICON: Record<string, LucideIcon> = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.icon]));

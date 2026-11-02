@@ -25,7 +25,7 @@ import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useFeature } from "@/hooks/useFeature";
 import { safeStorage } from "@/lib/safeStorage";
-import { fetchDropStates, fetchDroppedIntoBudget, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
+import { fetchDropStates, fetchDroppedIntoBudget, fetchItemWays, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, droppedQueryFromParams, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
@@ -47,7 +47,7 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterFirstRowCount } from "./DeclutterSkeletons";
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
-import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
+import { SELL_CHOOSER_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
 import { toastWatching } from "./declutterLightActions";
 
@@ -98,18 +98,20 @@ function useFillHeight() {
  * quiet row under the list and inside the no-results state, to the Wanted tab. Only while 'declutter_wanted' is on
  * for the viewer, so it is never a link to a view that is not there. Guard: src/components/declutter/declutterTabs.test.tsx.
  */
-function WantedLink() {
+function WantedLink({ query = "", category = null }: { query?: string; category?: string | null }) {
   const on = useFeature("declutter_wanted");
   if (!on) return null;
+  // A3-99: the search words go with it, into the open form (wantedAskHref).
+  const what = query.trim();
   return (
     <p className="flex min-h-11 items-center justify-center text-center">
       {/* One run of text (it wraps as a sentence at 320); link-standard's ::before gives it the 44px tap height. */}
       <Link
-        to="/declutter?tab=wanted"
+        to={what || category ? wantedAskHref(what, category) : "/declutter?tab=wanted"}
         data-testid="declutter-wanted-link"
         className="link-standard text-ds-15 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
       >
-        <span className="font-normal text-muted-foreground">Can't find it?</span> Post what you're looking for
+        <span className="font-normal text-muted-foreground">Can't find it?</span> {what ? `Ask for “${what}”` : "Post what you're looking for"}
       </Link>
     </p>
   );
@@ -162,6 +164,8 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const [maxMiles, setMaxMiles] = useState<number | null>(start.maxMiles);
   const [query, setQuery] = useState(start.query);
   const [filters, setFilters] = useState<DeclutterFilters>(start.filters);
+  // Checkout offers "Seller delivers" only while its switch is on (DeclutterTradeViews); the filter follows it.
+  const sellerDeliveryOn = useFeature("declutter_seller_delivery");
   // BUY-13: what Save this search keeps beyond words, category, price and distance.
   const saveExtras = useMemo(() => ({ freeOnly: filters.freeOnly, porchOnly: filters.porchOnly, dropsOnly: filters.dropsOnly, conditions: filters.conditions }),
     [filters.freeOnly, filters.porchOnly, filters.dropsOnly, filters.conditions]);
@@ -237,6 +241,15 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
     enabled: others.length > 0,
     placeholderData: keepPreviousData,
   });
+  // A3-109: the sellers' ticks, only while the filter asks for meet up or seller delivery (porch and Helpr delivery
+  // read columns Browse already has).
+  const needWays = filters.ways.some((w) => w !== "delivery");
+  const itemWays = useQuery({
+    queryKey: ["declutter", "item-ways", others.map((i) => i.id).join(",")],
+    queryFn: () => fetchItemWays(others.map((i) => i.id)),
+    enabled: needWays && others.length > 0,
+    placeholderData: keepPreviousData,
+  });
   // D-NEW12: the sellers on this page with a bundle discount on (one read; no chip until it is deployed).
   const sellerIds = useMemo(() => [...new Set(others.map((i) => i.seller_id))].sort(), [others]);
   const bundles = useQuery({ queryKey: ["declutter", "bundle-sellers", sellerIds.join(",")], queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, placeholderData: keepPreviousData });
@@ -260,7 +273,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const now = new Date();
   const outlook = new Map(others.map((i) => [i.id, dropOutlook(i, drops.data?.get(i.id), now)]));
   const showDrops = [...outlook.values()].some((o) => o.planned);
-  const rows = applyBrowseFilters(nearestFirst(others, from, from ? maxMiles : null), filters, query, drops.data, now);
+  const rows = applyBrowseFilters(nearestFirst(others, from, from ? maxMiles : null), filters, query, drops.data, now, itemWays.data);
   const q = query.trim().toLowerCase();
   const filterCount = activeFilterCount(filters, from ? maxMiles : null);
   const clearAll = () => {
@@ -307,7 +320,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
       open={filtersOpen}
       onOpenChange={setFiltersOpen}
       anchorRef={filtersButtonRef}
-      sections={declutterFilterSections({ filters, onChange: setFilters, maxMiles, onMaxMiles: setMaxMiles, ask, showDrops })}
+      sections={declutterFilterSections({ filters, onChange: setFilters, maxMiles, onMaxMiles: setMaxMiles, ask, showDrops, sellerDelivery: sellerDeliveryOn })}
       filterCount={filterCount}
       shown={rows.length}
       onClearAll={clearAll}
@@ -384,7 +397,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
                     Show all items
                   </Button>
                 )}
-                <WantedLink />
+                <WantedLink query={query} category={filters.category} />
               </div>
             }
           />
@@ -412,7 +425,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
             // 2026-10-19).
             onWiden={from && maxMiles !== null ? () => setMaxMiles(widerMiles(maxMiles)) : undefined}
             widenLabel={from && maxMiles !== null ? (widerMiles(maxMiles) === null ? "Any distance" : `Widen to ${widerMiles(maxMiles)} mi`) : undefined}
-            footnote={<WantedLink />}
+            footnote={<WantedLink query={query} category={filters.category} />}
           />
         )}
       </div>

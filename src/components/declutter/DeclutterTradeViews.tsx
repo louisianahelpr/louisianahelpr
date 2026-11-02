@@ -48,7 +48,7 @@ import { DeliveryPriceList } from "./DeliveryPriceList";
 import { DropoffAddressField } from "./DropoffAddressField";
 import { PorchPlacePicker, useSellerPorchPlaces } from "./DeclutterPorchPlaces";
 import { HANDOVER_TITLE, HANDOVER_WORDS } from "./handoverCopy";
-import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
+import { fetchChosenMeetupHours, fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
 import { CartHold } from "./DeclutterReserveSheet";
@@ -60,6 +60,11 @@ import { invalidateTrades } from "./declutterLightActions";
 import { cartSectionWords, CheckoutCardHead } from "./DeclutterCartWords";
 import { firstPhotos } from "./DeclutterItemCard";
 import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
+import { fetchItemPickupWindows } from "@/lib/declutter/handover";
+import { pickupDays, porchWindowDays } from "@/lib/declutter/pickupSlots";
+import { CheckoutPickupTime } from "./CheckoutPickupTime";
+import { fetchCheckoutPorchDays, onPorchDays } from "@/lib/declutter/porchDays";
+import { fetchCheckoutSize } from "@/lib/declutter/checkoutSize";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
@@ -72,7 +77,8 @@ export { StrikeCount } from "./DeclutterTabHeads";
 function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void; held: boolean }) {
   const b = useBundleDiscount(sellerId, lines);
   return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} held={held}
-    ways={waysEveryLineAllows(lines)} />;
+    ways={waysEveryLineAllows(lines)} itemId={lines.find((l) => l.item_id)?.item_id ?? null}
+    itemIds={lines.map((l) => l.item_id).filter((id): id is string => !!id)} />;
 }
 
 /**
@@ -84,7 +90,7 @@ function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: s
  * the drop-off address, the SERVER geocodes it and prices the trip ($6 + $1.50 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null }: {
+function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null, itemId = null, itemIds = [] }: {
   sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
   /** B-1: this checkout was just paid and the cart has not caught up: Pay stays off. */
   held?: boolean;
@@ -92,6 +98,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   ways?: Handover[] | null;
   /** Q2427: the bundle discount on the paid items (0 when none); totalCents is already after it. */
   discountCents?: number;
+  /** B110: an item of this checkout, to read the seller's pickup times (declutter_item_pickup_windows). */
+  itemId?: string | null;
+  /** A3-53: every item of this checkout, to mark the size the delivery is priced at before any quote. */
+  itemIds?: string[];
   /** Board 161: how many items this one checkout covers. The bill shows the items and what the buyer pays, never a fee line (owner 2026-10-25, issue #3672). */
   itemCount?: number;
 }) {
@@ -126,6 +136,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const [opening, setOpening] = useState(false);
   const [address, setAddress] = useState("");
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
+  const sizeIds = [...itemIds].sort();
+  const checkoutSize = useQuery({ queryKey: ["declutter", "checkout-size", sizeIds.join(",")], queryFn: () => fetchCheckoutSize(sizeIds), enabled: sizeIds.length > 0 });
   // The quote is for the cart as it was priced: a changed cart total asks again.
   const [quotedFor, setQuotedFor] = useState<number | null>(null);
   const priceIt = useMutation({
@@ -170,6 +182,31 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   }, [addressTouched, lastDropoff.data, address]);
   const meetingUp = chosen === "meetup";
   const meetupReady = !meetingUp || spotsNear.some((s) => s.chosen);
+  // B110 (owner 11-01): a porch, door or meetup pickup picks its day and time HERE, before paying, from the chosen
+  // place's own hours, else the seller's usual times. Porch: a 2-hour window; door and meetup: a 30-minute time.
+  // declutter_start_checkout checks it again and freezes it on the order; payment books it and tells the seller.
+  const timedPickup = chosen === "porch" || chosen === "pickup_home" || meetingUp;
+  const sellerTimes = useQuery({ queryKey: ["declutter", "item-pickup-windows", itemId], queryFn: () => fetchItemPickupWindows(itemId ?? ""),
+    enabled: !!itemId && timedPickup, staleTime: 60_000 });
+  // B110: a seller's own meet spot has its own days and times (the server keeps the meetup to them).
+  const chosenSpotId = meetingUp ? spotsNear.find((s) => s.chosen)?.id ?? null : null;
+  const spotHours = useQuery({ queryKey: ["declutter", "chosen-meetup-hours", sellerId, chosenSpotId], queryFn: () => fetchChosenMeetupHours(sellerId),
+    enabled: !!chosenSpotId && spotsNear.some((s) => s.id === chosenSpotId && s.kind === "seller") });
+  const placeHours = chosen !== "meetup" ? porchPlaces.places.find((p) => p.chosen)?.windows : spotHours.data;
+  // B112 (B110 leftover 2): a porch pickup with no place of its own keeps to the seller's porch days (the server's rule).
+  const porchNoPlace = chosen === "porch" && !(placeHours && placeHours.length > 0);
+  const porchDays = useQuery({ queryKey: ["declutter", "checkout-porch-days", sellerId], queryFn: () => fetchCheckoutPorchDays(sellerId), enabled: porchNoPlace });
+  const hours = useMemo(() => (placeHours && placeHours.length > 0 ? placeHours
+    : porchNoPlace ? onPorchDays(sellerTimes.data ?? [], porchDays.data) : (sellerTimes.data ?? [])), [placeHours, sellerTimes.data, porchNoPlace, porchDays.data]);
+  const pickupChoices = useMemo(
+    () => (!timedPickup ? [] : chosen === "porch" ? porchWindowDays(hours, Date.now(), null) : pickupDays(hours, Date.now(), null)),
+    [timedPickup, chosen, hours],
+  );
+  const [pickupPick, setPickupPick] = useState<{ way: Handover; iso: string } | null>(null);
+  const pickupStart = pickupPick && pickupPick.way === chosen
+    && pickupChoices.some((d) => d.slots.some((x) => x.iso === pickupPick.iso)) ? pickupPick.iso : null;
+  // A time is asked for whenever the seller has one open; a seller with none: the buyer books after paying, as before.
+  const pickupTimeReady = !timedPickup || pickupChoices.length === 0 || pickupStart !== null;
   const sdRate = sellerDelivering && sdOffer.data?.available ? sdOffer.data.rate_cents : null;
   // The seller's rate counts in the buyer's premium (the server's rule), folded into "You pay" before checkout; a free
   // seller delivery (rate 0, or the order is over the seller's free-delivery amount) adds nothing. The bill never
@@ -190,7 +227,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       : delivering && !liveQuote ? "Get the delivery price above to pay."
         : sellerDelivering && sdState === "pick" && !sdReady ? "Finish the delivery choices above to pay."
           : !meetupReady ? "Choose a meeting spot above to pay."
-            : null;
+            : !pickupTimeReady ? (chosen === "porch" ? "Choose a pickup day and time above to pay." : meetingUp ? "Choose when you'll meet above to pay." : "Choose a pickup day and time above to pay.")
+              : null;
   const addressId = `dcl-dropoff-${sellerId}`;
   return (
     // BUY-15 (audit 10-30): at 1440 this was one stretched column (Pay 1110 px wide, far down the page). From lg the
@@ -221,10 +259,40 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           </label>
           {/* Owner 2026-11-01: the seller's pickup places sit UNDER the way that uses them (porch pickup, the default,
               or a door pickup or Helpr delivery from that place), shown while it is the one chosen. */}
-          {chosen === h && needsPlace && (
-            <div className="pl-4" data-places-under={h}>
-              <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} refused={porchPlaces.refused} loadError={porchPlaces.query.error}
-                onRetry={() => void porchPlaces.reread()} onChosen={() => setQuote(null)} />
+          {/* Owner 2026-11-01 (1:02 PM): each way's details sit INSIDE it, shown while it is the one chosen: the seller's
+              pickup places, the meeting spot, the day and time, the delivery address and price. */}
+          {chosen === h && (needsPlace || meetingUp || timedPickup || h === "seller_delivery" || h === "delivery") && (
+            <div className="space-y-3 pl-4" data-places-under={needsPlace ? h : undefined} data-details-under={h}>
+              {needsPlace && (
+                <PorchPlacePicker sellerId={sellerId} cartKey={itemsTotalCents} places={porchPlaces.places} refused={porchPlaces.refused} loadError={porchPlaces.query.error}
+                  forDelivery={h === "delivery"} onRetry={() => void porchPlaces.reread()} onChosen={() => { setQuote(null); setPickupPick(null); }} />
+              )}
+              {h === "meetup" && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
+              {timedPickup && placeReady && (!meetingUp || meetupReady) && (
+                <CheckoutPickupTime days={pickupChoices} porch={h === "porch"} meetup={h === "meetup"} value={pickupStart}
+                  loading={(sellerTimes.isLoading && !(placeHours && placeHours.length > 0)) || (porchNoPlace && porchDays.isLoading)}
+                  onPick={(iso) => setPickupPick(iso ? { way: h, iso } : null)} />
+              )}
+              {h === "seller_delivery" && (
+                <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
+                  handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
+                  typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}
+                  onOffer={(o: SellerDeliveryOffer) => { setSdTyped(true); setQuote(null); qc.setQueryData(sdKey, o); }} />
+              )}
+              {h === "delivery" && (
+                <div className="space-y-2 rounded-xl border border-border p-3">
+                  <DropoffAddressField id={addressId} value={address}
+                    onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}
+                    onPicked={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); if (placeReady) priceIt.mutate(a); }} />
+                  <Button type="button" variant="outline" size="sm" className="rounded-full"
+                    disabled={priceIt.isPending || address.trim().length < 5 || !placeReady} onClick={() => priceIt.mutate(undefined)}>
+                    {priceIt.isPending ? "Pricing…" : "Get price"}
+                  </Button>
+                  {/* Owner 2026-11-01: the price by size up front, this checkout's size marked, then the total once priced. */}
+                  <DeliveryPriceList quote={liveQuote} size={checkoutSize.data ?? null} />
+                  <p className="text-xs text-muted-foreground">If no Helpr takes it within 48 hours, what you paid for delivery comes back. Then you pick it up instead, or cancel for a refund.</p>
+                </div>
+              )}
             </div>
           )}
           </div>
@@ -234,27 +302,6 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         )}
         {offered.length === 0 && <NoWayWorks sellerId={sellerId} />}
       </fieldset>
-      {meetingUp && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
-      {sellerDelivering && (
-        <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
-          handoff={handoff} onHandoff={setHandoff} checked={sdChecked} onChecked={setSdChecked}
-          typed={address} onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}
-          onOffer={(o: SellerDeliveryOffer) => { setSdTyped(true); setQuote(null); qc.setQueryData(sdKey, o); }} />
-      )}
-      {delivering && (
-        <div className="space-y-2 rounded-xl border border-border p-3">
-          <DropoffAddressField id={addressId} value={address}
-            onTyped={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); }}
-            onPicked={(a) => { setAddressTouched(true); setAddress(a); setQuote(null); if (placeReady) priceIt.mutate(a); }} />
-          <Button type="button" variant="outline" size="sm" className="rounded-full"
-            disabled={priceIt.isPending || address.trim().length < 5 || !placeReady} onClick={() => priceIt.mutate(undefined)}>
-            {priceIt.isPending ? "Pricing…" : "Get price"}
-          </Button>
-          {/* Owner 2026-11-01: the price by size up front, this checkout's size marked, then the total once priced. */}
-          <DeliveryPriceList quote={liveQuote} />
-          <p className="text-xs text-muted-foreground">If no Helpr takes it within 48 hours, what you paid for delivery comes back. Then you pick it up instead, or cancel for a refund.</p>
-        </div>
-      )}
     </div>
     <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
       {/* BUY-34: the notes sit beside the <dl>; a <p> inside one fails axe's definition-list rule. */}
@@ -306,13 +353,13 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         type="button"
         aria-describedby={!held && !opening && payWaitsOn ? `${addressId}-pay-waits` : undefined}
         className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
-        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady}
+        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady || !pickupTimeReady}
         onClick={async () => {
           setOpening(true);
           rememberPaying(sellerId);
           try {
             await porchPlaces.whenPicked();
-            const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,
+            const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,
               sellerDelivering ? sdRate : null);
             if (res.paid || !res.url) {
               toast("This order is already paid.");
@@ -331,6 +378,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               void qc.invalidateQueries({ queryKey: sdKey });
             } else {
               toast.error(meetingUp ? meetupErrorMessage(err) : declutterErrorMessage(err));
+              // B110: a pickup time no longer open (or outside the hours): show the times again, ask for a new pick.
+              if ((err as { message?: string } | null)?.message === "invalid_slot") setPickupPick(null);
             }
             // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
             if (needsPlace) void porchPlaces.reread(err);

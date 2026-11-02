@@ -29,7 +29,7 @@ export interface MineFaceAction {
   /** A waiting card's quiet second control, drawn as a small text link ("Manage job"). */
   also?: { label: string; onClick: () => void };
   disabled?: boolean;
-  /** Why a greyed button is greyed, on the line under it (the 30-minute wait on Mark job complete). */
+  /** Why a greyed button is greyed, on the line under it (the 30-minute wait on Mark it done). */
   note?: string;
 }
 

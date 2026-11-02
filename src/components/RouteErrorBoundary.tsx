@@ -206,18 +206,18 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button
-            variant="primary"
-            onClick={this.handleReset}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try again
-          </Button>
-          <Button
             variant="outline"
             onClick={this.props.onGoHome}
           >
             <Home className="h-4 w-4 mr-2" />
             Go Home
+          </Button>
+          <Button
+            variant="primary"
+            onClick={this.handleReset}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try again
           </Button>
         </div>
       </div>

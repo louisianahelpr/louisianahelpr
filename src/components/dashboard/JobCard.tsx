@@ -1,12 +1,14 @@
 import { memo, useCallback, type KeyboardEvent } from "react";
+import { useLanguage } from "@/lib/i18n/language";
+import "@/lib/i18n/enJobCard";
 import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
-import { differenceInHours } from "date-fns";
 
 import { JobHelprsChip } from "@/components/job-card/JobHelprsChip";
 import { JobTodayChip } from "@/components/job-card/JobTodayChip";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
-import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
+import { formatJobDate } from "@/lib/dateUtils";
+import { listingChip, listingDeadline } from "@/lib/listingDeadline";
 import { isTodayJob } from "@/lib/sameDayJob";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { formatPrice, formatPriceFloor, formatRecurrenceInterval, seriesSummary } from "@/lib/format";
@@ -94,6 +96,8 @@ interface JobCardProps {
 // gradient tints are kept for the boosted/recommended highlight strip.
 const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: _showApply = true, onSelect, index: _index = 0, isExpanded: _isExpanded = false, onToggleExpand: _onToggleExpand, isSaved: _isSaved = false, onToggleSave: _onToggleSave, variant = "default", guestPricing = false, userLat = null, userLng = null, recommended = false, bare = false, hero = false }: JobCardProps) => {
   const isGuest = variant === "guest";
+  // Jobs in Spanish (A3-3): the card's chips follow the member's language.
+  const { t } = useLanguage();
 
   // A tap always opens the job detail view. Saving lives behind the
   // bookmark control in the detail dialog — the card tap is reserved for
@@ -214,23 +218,11 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // while every seeded job had a NULL `start_time` and the row looked empty;
   // that was solving the symptom. Duration still has a home on the job detail
   // (JobStatTiles' "Estimated" tile) — the card answers "when", not "how long".
-  // Expiry — an URGENCY signal, not a permanent meta line.
-  //
-  // Every job is created with the same 14-day window, so an unconditional
-  // countdown printed the identical string ("14 days left") on literally
-  // every card in the feed: zero decision value, and it consumed the one
-  // no-wrap meta slot a browsing helpr actually reads. It only becomes
-  // information once the window is genuinely closing — so it now renders
-  // inside a 48h horizon (or once expired) and stays silent before that.
-  // Under 24h it also goes destructive-red, the same tier as before.
-  const expiryNow = useExpiryClock([job.expires_at]);
-  const expiresAt = job.expires_at ? new Date(job.expires_at) : null;
-  const hoursToExpiry = expiresAt ? differenceInHours(expiresAt, expiryNow) : null;
-  const isExpired = !!expiresAt && expiresAt <= expiryNow;
-  const showExpiry = !!expiresAt && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 48));
-  // formatTimeLeft owns "Expired" too — one rule for when a listing has closed.
-  const expiryText = !showExpiry || !expiresAt ? null : formatTimeLeft(expiresAt, expiryNow);
-  const isExpiringSoon = showExpiry && (isExpired || (hoursToExpiry !== null && hoursToExpiry < 24));
+  // Expiry: an urgency chip inside 48 h, counting to the start when that comes first (listingChip, A3-94).
+  const expiryNow = useExpiryClock([job.expires_at, listingDeadline(job)?.at.toISOString()]);
+  const chip = listingChip(job, expiryNow);
+  const expiryText = chip?.text ?? null;
+  const isExpiringSoon = !!chip?.soon;
 
   // WHEN the job starts, resolved ONCE by the one rule every surface shares:
   // a clock time, the word "Flexible" if the poster ticked the flag, or null
@@ -391,7 +383,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                  and the category label gives instead. */}
           {isJustIn ? (
             <span role="img"
-              aria-label="Just posted"
+              aria-label={t("jobCard.justPosted")}
               className="inline-flex items-center gap-1.5 shrink-0 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",
@@ -412,7 +404,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                   boxShadow: "0 0 6px hsl(var(--burnt-sienna) / 0.55)",
                 }}
               />
-              <span className="font-sans uppercase tracking-[0.14em] whitespace-nowrap">Just in</span>
+              <span className="font-sans uppercase tracking-[0.14em] whitespace-nowrap">{t("jobCard.justIn")}</span>
             </span>
           ) : recommended ? (
             /* Inside the top row, bottom-aligned on the category line (owner 2026-10-28). Guard: recommendedTagSitsInTheRow. */
@@ -434,7 +426,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 strokeWidth={2}
                 style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
               />
-              <span className="font-sans font-semibold whitespace-nowrap">Recommended</span>
+              <span className="font-sans font-semibold whitespace-nowrap">{t("jobCard.recommended")}</span>
             </span>
           ) : null}
           {/* 3. Elastic gap — the ONLY thing on the rail allowed to grow or
@@ -452,7 +444,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             return (
               <span role="img"
                 className={`boosted-pulse ${corner}`}
-                aria-label="Boosted"
+                aria-label={t("jobCard.boosted")}
                 style={{
                   // --boost, not gold (P1). A --boost token already existed for
                   // exactly this chip; painting it gold made a paid promotion
@@ -466,7 +458,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 }}
               >
                 <Rocket className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
-                Boosted
+                {t("jobCard.boosted")}
               </span>
             );
           if (job.is_urgent) {
@@ -474,7 +466,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             return (
               <span role="img"
                 className={`urgent-pulse ${corner}`}
-                aria-label={bonus > 0 ? `Urgent — $${formatPrice(bonus)} bonus` : "Urgent"}
+                aria-label={bonus > 0 ? `Urgent — $${formatPrice(bonus)} bonus` : t("jobCard.urgent")}
                 style={{
                   // --accent-ink, not --accent: 9px bold label text on the
                   // accent's own 15% tint. Raw --accent measured 3.75:1 in
@@ -489,7 +481,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               >
                 <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
                 {/* Just "Urgent", not "+$10 Urgent" (owner 2026-08-30: read as on top of the budget); the bonus stays in the aria-label. */}
-                Urgent
+                {t("jobCard.urgent")}
               </span>
             );
           }

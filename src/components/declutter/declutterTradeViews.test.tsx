@@ -56,6 +56,8 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
 
 const state = {
+  /** A3-53: each item's delivery_size (fetchCheckoutSize's read); none unless a test sets them. */
+  sizes: {} as Record<string, string>,
   /** B110: the seller's pickup times for the checkout chips (none unless a test sets them). */
   pickupWindows: [] as { weekday: number; starts: string; ends: string }[],
   /** B112: declutter_checkout_porch_days for this checkout (null: not on the server). */
@@ -178,6 +180,10 @@ vi.mock("@/lib/declutter/api", () => ({
 // Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
 // The cart reads the seller's porch places (D-NEW14); these sellers have none. Places are proved in porchPlacesUi.test.tsx.
+vi.mock("@/lib/declutter/checkoutSize", async (orig) => {
+  const real = await orig<typeof import("@/lib/declutter/checkoutSize")>();
+  return { ...real, fetchCheckoutSize: async (ids: string[]) => real.largestDeliverySize(ids.map((id) => state.sizes[id])) };
+});
 vi.mock("@/lib/declutter/porchDays", async (orig) => ({ ...(await orig<object>()), fetchCheckoutPorchDays: async () => state.porchDays }));
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchSellerPorchPlaces: async () => state.sellerPlaces }));
 vi.mock("@/lib/declutter/handoverTalk", () => ({
@@ -235,6 +241,7 @@ const OFFER = {
 
 describe("Declutter slice 3 screens", () => {
   beforeEach(() => {
+    state.sizes = {};
     state.pickupWindows = [];
     state.porchDays = null;
     state.sellerPlaces = [];
@@ -1074,6 +1081,24 @@ describe("Declutter slice 3 screens", () => {
     const home = document.querySelector('[data-handover-option="pickup_home"]') as HTMLElement;
     await waitFor(() => expect(within(home).getByRole("group", { name: "Pickup day" })).toBeInTheDocument());
     expect(within(within(home).getByRole("group", { name: "Pickup day" })).getAllByRole("button").length).toBeGreaterThan(3);
+  });
+
+  // A3-53 (audit 11-01): the delivery price list marks the size this checkout is priced at BEFORE any quote: the
+  // largest of its items, as the server prices it (xl, else large, else small).
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |                   <DeliveryPriceList quote={liveQuote} size={checkoutSize.data ?? null} /> |                   <DeliveryPriceList quote={liveQuote} />
+  // @mutate src/lib/declutter/checkoutSize.ts |   if (sizes.includes("xl")) return "xl"; |   if (false) return "xl";
+  it("A3-53: before any quote, the delivery list marks the checkout's largest size", async () => {
+    state.deliveryOn = true;
+    const at = new Date(Date.now() + 20 * 3_600_000).toISOString();
+    const base = { my_side: "buyer", seller_id: "s2", status: "in_cart", checkout_by: at, order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [{ ...base, line_id: "l1", item_id: "i1", item_title: "Lamp", price_cents: 300 }, { ...base, line_id: "l2", item_id: "i2", item_title: "Wardrobe", price_cents: 900 }];
+    state.sizes = { i1: "small", i2: "xl" };
+    show(<CartView />);
+    fireEvent.click(await screen.findByLabelText(/Helpr delivery/));
+    await waitFor(() => expect(document.querySelector("[data-delivery-size][aria-current='true']")?.getAttribute("data-delivery-size")).toBe("xl"));
+    expect(document.querySelectorAll("[data-delivery-size][aria-current='true']").length).toBe(1);
+    expect(document.querySelector("[data-delivery-total]")).toBeNull();
+    state.deliveryOn = false;
   });
 
   it("slice 5: Helpr delivery is offered, priced by the server for the typed address, and Pay carries the delivery fee", async () => {

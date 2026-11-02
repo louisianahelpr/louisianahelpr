@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { endSentence } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { CheckCircle2, XCircle, Timer } from "lucide-react";
@@ -326,7 +327,7 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
         onOpenChange={setConfirmOpen}
         title={direct ? (posterFirst ? `Decline ${posterFirst}’s offer?` : "Decline this offer?") : "Decline this job?"}
         description={direct
-          ? `The offer goes back to ${posterFirst ?? "the person who posted it"}. Declining isn't a strike.`
+          ? `${endSentence(`The offer goes back to ${posterFirst ?? "the person who posted it"}`)} Declining isn't a strike.`
           : "You applied for this one and the person who posted it picked you. Declining isn't a strike."}
         callout={{
           // decline_job_offer / respond_to_direct_offer file no strike (Q1281, 20261012184444).

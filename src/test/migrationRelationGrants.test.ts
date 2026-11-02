@@ -24,6 +24,8 @@ import { CUTOFF, violationsFor } from "../../scripts/check-migration-relation-gr
 // @mutate scripts/check-migration-relation-grants.mjs | if (c === "-" && n === "-") { | if (false) {
 // @mutate scripts/check-migration-relation-grants.mjs | if (!grant.test(after)) { | if (false) {
 // @mutate scripts/check-migration-relation-grants.mjs | if (!rls.test(after)) out.push | if (false) out.push
+// @mutate scripts/check-migration-relation-grants.mjs | for (const rel of list.split(",")) { | for (const rel of list.split(",").slice(0, 1)) {
+// @mutate scripts/check-migration-relation-grants.mjs | if (inPublic(qm[1]) && qm[2].toLowerCase() === c.name) return true; | if (inPublic(qm[1]) && qm[2].toLowerCase().startsWith(c.name)) return true;
 const SCRIPT = resolve(__dirname, "../../scripts/check-migration-relation-grants.mjs");
 const REPO = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(REPO, "supabase/migrations");
@@ -67,6 +69,12 @@ describe("check-migration-relation-grants — red", () => {
     ["grant on a different relation with a shared prefix does not count",
       "CREATE TABLE public.t3 (id int);\nALTER TABLE public.t3 ENABLE ROW LEVEL SECURITY;\nGRANT SELECT ON public.t3_archive TO authenticated;",
       /table public\.t3: no GRANT/],
+    ["a list GRANT that omits one table still fails for that table (Q2066)",
+      "CREATE TABLE public.l1 (id int);\nALTER TABLE public.l1 ENABLE ROW LEVEL SECURITY;\nCREATE TABLE public.l2 (id int);\nALTER TABLE public.l2 ENABLE ROW LEVEL SECURITY;\nCREATE TABLE public.l3 (id int);\nALTER TABLE public.l3 ENABLE ROW LEVEL SECURITY;\nGRANT SELECT ON TABLE public.l1, public.l3 TO authenticated;",
+      /table public\.l2: no GRANT/],
+    ["a list GRANT naming a shared-prefix table does not count (Q2066)",
+      "CREATE TABLE public.l4 (id int);\nALTER TABLE public.l4 ENABLE ROW LEVEL SECURITY;\nGRANT SELECT ON public.l1, public.l4_archive TO authenticated;",
+      /table public\.l4: no GRANT/],
     ["grant written BEFORE the create does not count",
       "GRANT SELECT ON public.t4 TO authenticated;\nCREATE TABLE public.t4 (id int);\nALTER TABLE public.t4 ENABLE ROW LEVEL SECURITY;",
       /table public\.t4: no GRANT/],
@@ -94,6 +102,16 @@ describe("check-migration-relation-grants — green", () => {
         "GRANT ALL ON public.server_log3 TO service_role;",
       ].join("\n"),
     );
+    expect(r.code, r.out).toBe(0);
+  });
+
+  // Q2066: a list GRANT covers every relation it names, not only the first.
+  it("passes when one list GRANT covers every table it names (Q2066)", () => {
+    const tables = ["r1", "r2", "r3", "r4", "r5"];
+    const r = run([
+      ...tables.flatMap((t) => [`CREATE TABLE public.${t} (id int);`, `ALTER TABLE public.${t} ENABLE ROW LEVEL SECURITY;`]),
+      'GRANT SELECT, INSERT ON TABLE public.r1, r2 , "public"."r3",\n  public.r4, public."r5" TO authenticated;',
+    ].join("\n"));
     expect(r.code, r.out).toBe(0);
   });
 

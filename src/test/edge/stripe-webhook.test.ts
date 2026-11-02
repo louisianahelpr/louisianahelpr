@@ -4043,8 +4043,14 @@ describe("stripe-webhook edge function", () => {
  * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   else if (seriesOver) refundReason | else if (false) refundReason
  * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts | seriesOver = !parent \|\| Boolean(parent.series_ended_on) \|\| parent.status === "cancelled"; | seriesOver = !parent \|\| Boolean(parent.series_ended_on);
  * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts | seriesOver = !parent \|\| Boolean(parent.series_ended_on) \|\| parent.status === "cancelled"; | seriesOver = !parent \|\| parent.status === "cancelled";
- * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     if (seriesOver) {\n      const { error: expErr } |     if (false) {\n      const { error: expErr }
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     if (seriesOver \|\| dateUnheld) {\n      const { error: expErr } |     if (false) {\n      const { error: expErr }
  * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     if (parentErr) throw | if (false) throw
+ * Q2071: a payment for a date nobody holds any more (released) is refunded in full and the row expired.
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |   else if (dateUnheld) refundReason | else if (false) refundReason
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     dateUnheld = (holds ?? []).length === 0; |     dateUnheld = false;
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     if (seriesOver \|\| dateUnheld) { |     if (seriesOver) {
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     if (holdErr) throw | if (false) throw
+ * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |       .eq("visit_date", row.visit_date)\n      .limit(1); |       .limit(1);
  * Q750 (3): a retried refund Stripe answers "already refunded" is done, not a page.
  * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     const maybeDone = err?.code === "charge_already_refunded" \|\| | const maybeDone =
  * @mutate supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts |     if (!live) throw e; |     if (!live) return { alreadyRefunded: true, refund: { id: null, amount: null } };
@@ -4057,6 +4063,8 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     resetSharedMocks();
     // The series the row belongs to: live unless a test says otherwise.
     scenario.reads.jobs = { rows: [{ id: "parent-1", series_ended_on: null, status: "in_progress" }] };
+    // Q2071: the date is still held by a Helpr unless a test says otherwise.
+    scenario.reads.series_visit_holds = { rows: [{ id: "hold-1" }] };
     // Q1714: Stripe answers a refund with its id; the payer's notice is claimed on it.
     stripeMock.refunds.create.mockResolvedValue({ id: "re_rv", amount: 31500, status: "succeeded" });
   });
@@ -4218,6 +4226,46 @@ describe("stripe-webhook: recurring_visit Checkout (Q210b)", () => {
     await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(statusWrites()).toEqual(["expired"]);
+  });
+
+  // ── Q2071: a RELEASED date (no Helpr holds it) leaves its Checkout open ──
+  // A payment that still lands is refunded IN FULL at once and the row expired;
+  // on main it was marked paid, and the visit-date sweep returned it less the
+  // card fee (a fee lost to a release the payer did not make).
+  it("Q2071: a payment for a date nobody holds any more is refunded in full and its row expired, never marked paid", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.reads.series_visit_holds = { rows: [] };
+    scenario.writeSelectRows.recurring_visit_payments = [{ id: "rvp-1" }];
+    const kick = vi.fn(async (_url: unknown, _init?: unknown) => new Response("{}"));
+    vi.stubGlobal("fetch", kick);
+    try {
+      const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+      expect(res.status).toBe(200);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      { payment_intent: "pi_rv" },
+      { idempotencyKey: "recurring-visit-refund:pi_rv" },
+    );
+    expect(statusWrites()).toEqual(["expired"]);
+    expect(flips()[0].filters).toEqual(expect.arrayContaining([expect.objectContaining({ column: "status", value: "pending" })]));
+    // The hold was asked for this row's own series and date.
+    const holdRead = scenario.readQueries.find((r) => r.table === "series_visit_holds");
+    expect(holdRead?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ column: "parent_job_id", value: "parent-1" }),
+      expect.objectContaining({ column: "visit_date", value: "2026-10-01" }),
+    ]));
+    expect(kick.mock.calls.filter((c) => String(c[0]).includes("charge-recurring-visits"))).toHaveLength(0);
+  });
+
+  it("Q2071: an unreadable hold is retried by Stripe (500), neither marked paid nor refunded", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.reads.series_visit_holds = { error: { message: "boom", code: "XX000" } };
+    const res = await deliver({ recurring_visit_payment_id: "rvp-1", payer_id: "poster-1" });
+    expect(res.status).toBe(500);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(flips()).toHaveLength(0);
   });
 
   it("Q750 (4): an unreadable series is retried by Stripe (500), neither marked paid nor refunded", async () => {

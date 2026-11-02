@@ -6415,6 +6415,8 @@ describe("create-payment: recurring_visit (Q210b)", () => {
       rows: [{ id: "parent-1", title: "Weekly clean", status: "in_progress", series_ended_on: null, customer_id: POSTER.id }],
     };
     scenario.writeSelectRows.recurring_visit_payments = [{ id: PAYMENT_ID }];
+    // Q2071: the visit's date is held by a Helpr unless a test says otherwise.
+    scenario.reads.series_visit_holds = { rows: [{ id: "hold-1" }] };
     stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_new", url: "https://checkout.stripe.test/cs_new" });
   });
   afterEach(() => {
@@ -6436,6 +6438,42 @@ describe("create-payment: recurring_visit (Q210b)", () => {
     expect(lines.reduce((a, l) => a + l.price_data.unit_amount, 0)).toBe(31500);
     expect(params.payment_method_options).toEqual({ card: { request_three_d_secure: "any" } });
     expect((params.metadata as Record<string, string>).payer_id).toBe(POSTER.id);
+  });
+
+  /**
+   * Q2071: a date a Helpr gave up has no holder; no Checkout is opened for it.
+   * @mutate supabase/functions/create-payment/index.ts |       if ((holds ?? []).length === 0) {\n        throw new PublicError("No Helpr is booked | if (false) {\n        throw new PublicError("No Helpr is booked
+   * @mutate supabase/functions/create-payment/index.ts |       if (holdErr) {\n        console.error("[create-payment] recurring_visit — hold read failed:", holdErr); |       if (false) {\n        console.error("[create-payment] recurring_visit — hold read failed:", holdErr);
+   * @mutate supabase/functions/create-payment/index.ts |         .eq("visit_date", row.visit_date)\n        .limit(1);\n      if (holdErr) { |         .limit(1);\n      if (holdErr) {
+   */
+  it("Q2071: refuses a visit whose date nobody holds any more (a Helpr gave it up)", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.reads.series_visit_holds = { rows: [] };
+    const res = await pay();
+    expect(res.status).not.toBe(200);
+    expect(JSON.stringify(await json(res))).toContain("No Helpr is booked for this visit any more");
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("Q2071: an unreadable hold opens no Checkout", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    scenario.reads.series_visit_holds = { error: { message: "boom", code: "XX000" } };
+    const res = await pay();
+    expect(res.status).not.toBe(200);
+    // Said as a retry, never as "no Helpr" (an unread hold is not a released date).
+    expect(JSON.stringify(await json(res))).toContain("Could not load this visit");
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  it("Q2071: asks for the hold of this row's own series and date", async () => {
+    scenario.reads.recurring_visit_payments = { rows: [ROW] };
+    const res = await pay();
+    expect(res.status).toBe(200);
+    const holdRead = scenario.readQueries.find((r) => r.table === "series_visit_holds");
+    expect(holdRead?.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ column: "parent_job_id", value: "parent-1" }),
+      expect.objectContaining({ column: "visit_date", value: "2026-10-02" }),
+    ]));
   });
 
   it("refuses another payer's visit", async () => {

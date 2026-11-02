@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { WhatNextSheet, type WhatNextStep } from "@/components/whatNext/WhatNextSheet";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -87,7 +88,7 @@ export function BoughtWhatNext() {
   const sellerDelivery = order?.[0]?.handover === "seller_delivery";
   const sdBooking = useQuery({
     queryKey: ["declutter", "seller-delivery-booking", orderId ?? ""],
-    queryFn: async () => (await import("@/lib/declutter/sellerDelivery")).fetchSellerDeliveryBooking(orderId as string),
+    queryFn: () => loadModule(() => import("@/lib/declutter/sellerDelivery")).then((m) => (m ? m.fetchSellerDeliveryBooking(orderId as string) : untilReload())),
     enabled: !!orderId && sellerDelivery,
   });
   // Wait for the booking answer; a failed read counts as not booked (a just-paid order has no day or time yet).

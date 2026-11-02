@@ -8,6 +8,7 @@
  */
 import { del, delMany, get, keys, set } from "idb-keyval";
 import type { BunchItem, BunchPhoto } from "@/lib/declutter/bunch";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 const MAX_AGE_MS = 7 * 24 * 3_600_000;
 
@@ -94,7 +95,7 @@ export async function savedSellWork(
   userId: string,
   now = Date.now(),
   /** The server's status of each id (fetchItemStatuses), loaded only when there are ids to ask about. */
-  itemStatuses: (ids: string[]) => Promise<Map<string, string>> = async (ids) => (await import("@/lib/declutter/api")).fetchItemStatuses(ids),
+  itemStatuses: (ids: string[]) => Promise<Map<string, string>> = (ids) => loadModule(() => import("@/lib/declutter/api")).then((m) => (m ? m.fetchItemStatuses(ids) : untilReload())),
 ): Promise<{ bunch: boolean; moving: boolean; one: boolean }> {
   const mine = (s: SavedPhotos | undefined): boolean => !!s && s.userId === userId && now - s.savedAt <= MAX_AGE_MS;
   try {

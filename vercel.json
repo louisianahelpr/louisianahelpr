@@ -555,5 +555,6 @@
   "ignoreCommand": "bash scripts/vercel-ignore.sh",
   "git": {
     "deploymentEnabled": false
-  }
+  },
+  "trailingSlash": false
 }

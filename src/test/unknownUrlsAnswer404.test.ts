@@ -34,7 +34,7 @@ function sourceRe(source: string): RegExp {
     .replace(/:(\w+)\*/g, "(?<$1>.*)")
     .replace(/:(\w+)(\([^)]*\))/g, "(?<$1>$2)")
     .replace(/:(\w+)/g, "(?<$1>[^/]+)");
-  return new RegExp(`^${body}/?$`);
+  return new RegExp(`^${body}$`);
 }
 /** The first rewrite Vercel applies to a path (no query conditions). */
 function destFor(path: string): string | null {

@@ -65,7 +65,7 @@ function sourceToRegExp(source: string): RegExp {
     .replace(/:(\w+)\*/g, ".*")
     .replace(/:(\w+)(\([^)]*\))/g, "$2")
     .replace(/:(\w+)/g, "[^/]+");
-  return new RegExp(`^${body}/?$`);
+  return new RegExp(`^${body}$`);
 }
 
 describe("an immutable path never falls through to the SPA page (Q1663)", () => {

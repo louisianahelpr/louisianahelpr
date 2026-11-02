@@ -19490,7 +19490,7 @@ export type Database = {
         Returns: undefined
       }
       restore_gift_card_for_job: {
-        Args: { p_dry_run?: boolean; p_job_id: string; p_share_bps?: number }
+        Args: { p_dry_run?: boolean; p_job_id: string; p_restore_cents?: number; p_share_bps?: number }
         Returns: Json
       }
       restore_helpr_fault_fee: {

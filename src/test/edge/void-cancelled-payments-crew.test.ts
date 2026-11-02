@@ -657,10 +657,12 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
     // Copies: the fee payer marks its rows in place (paid, void).
     scenario.reads.crew_block_fees = { rows: blockRows.map((r) => ({ ...r })) };
     scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
-      const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number };
+      const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number; p_restore_cents?: number };
       if (a.p_dry_run) return { outcome: "would_restore", credit_id: "gift-1", applied_cents: 30000, restore_cents: 30000 };
       const bps = a.p_share_bps ?? 10000;
-      return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: 30000, restore_cents: Math.floor((30000 * bps) / 10000) };
+      // Q1914: exact cents when given (capped to the gift), else the basis-point share.
+      const cents = a.p_restore_cents !== undefined ? Math.min(Math.max(a.p_restore_cents, 0), 30000) : Math.floor((30000 * bps) / 10000);
+      return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: 30000, restore_cents: cents };
     };
   };
   const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job").map((c) => c.args as Record<string, unknown>);
@@ -675,9 +677,8 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
     const calls = restoreCalls();
     expect(calls[0]).toEqual({ p_job_id: "job-crew", p_dry_run: true });
     const mint = calls.find((c) => !c.p_dry_run)!;
-    const restored = Math.floor((30000 * Number(mint.p_share_bps)) / 10000);
-    expect(restored).toBeLessThanOrEqual(30000 - 2500);
-    expect(restored).toBeGreaterThan(30000 - 2500 - 5);
+    // Q1914: exactly the gift less the block fee.
+    expect(mint.p_restore_cents).toBe(30000 - 2500);
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelled")).toBe(true);
   });

@@ -51,6 +51,8 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act, fireEvent, render, screen, waitFor, within, waitForElementToBeRemoved } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
@@ -1747,6 +1749,28 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
       for (const el of title) expect(el.className).not.toMatch(/\btruncate\b/);
       expect(title.some((el) => /\bline-clamp-2\b/.test(el.className))).toBe(true);
     }
+  });
+  // Q2637 (audit 1102c R12, measured 11-02 at 1440): the bill box showed no top edge. Not a clip (every clipping parent
+  // starts above it): it was bg-card, and index.css's T2 rule (`:where(.bg-card)`, border-color transparent !important)
+  // left a white box on the white checkout card with only a soft shadow; the chosen way's 2px primary border was
+  // transparent the same way. Both keep the card colour without the bg-card class, so their borders draw.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | rounded-[20px] border border-border bg-[hsl(var(--card))] p-4 text-ds-14" data-checkout-breakdown | rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | items-start gap-3 rounded-[20px] border bg-[hsl(var(--card))] px-4 py-3.5 | items-start gap-3 rounded-[20px] border bg-card px-4 py-3.5
+  it("Q2637: the bill box and the ways to get it are not bg-card, so their borders draw", async () => {
+    state.cart = [line];
+    show(<CartView />, "/declutter?tab=buying");
+    await screen.findByRole("button", { name: /^Pay \$/ });
+    // The premise: T2 still blanks every .bg-card border.
+    const css = readFileSync(resolve(__dirname, "../../index.css"), "utf8");
+    expect(css).toMatch(/:where\(\.bg-card\)[^{]*\{[^}]*border-color:\s*transparent\s*!important/);
+    const bill = document.querySelector("[data-checkout-breakdown]") as HTMLElement;
+    const ways = Array.from(document.querySelectorAll("[data-handover-option] > label")) as HTMLElement[];
+    expect(ways.length).toBeGreaterThan(0);
+    for (const el of [bill, ...ways]) {
+      expect(el.classList.contains("bg-card"), el.className).toBe(false);
+      expect(el.className).toMatch(/\bborder-(border|primary)\b/);
+    }
+    expect(ways.some((el) => el.classList.contains("border-primary"))).toBe(true);
   });
   it("each line shows its first photo (a grey square when it has none) and its title is a 44 px tap", async () => {
     cartPhotos.length = 0;

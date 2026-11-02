@@ -76,6 +76,16 @@ DROP POLICY IF EXISTS declutter_manager_payouts_read ON public.declutter_manager
 CREATE POLICY declutter_manager_payouts_read ON public.declutter_manager_payouts FOR SELECT TO authenticated
   USING (seller_id = (SELECT auth.uid()) OR manager_id = (SELECT auth.uid()));
 
+-- Q807: every new public table gets the unconfirmed-email write gate in the migration that creates it. Neither table
+-- is client-writable (SELECT only), so this is belt and braces, as for the grants table in 20261101181005.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
 -- 3. The seller's row records the share taken off it.
 ALTER TABLE public.declutter_payouts ADD COLUMN IF NOT EXISTS manager_share_cents integer NOT NULL DEFAULT 0;
 DO $do$
@@ -233,7 +243,8 @@ BEGIN
         public.declutter_manager_first_name(v_ms.manager_id),
         CASE WHEN v_ms.share_type = 'percent' THEN ' (' || v_ms.share_pct::text || '%)' ELSE '' END,
         to_char((o.items_cents + v_rate - v_share) / 100.0, 'FM999990.00'));
-      PERFORM public.declutter_notify(v_ms.manager_id, 'payment', 'You earned a share',
+      -- declutter_sales, by choice (declutterNoticeKinds): the manager's share is a sale notice, under the Declutter switch.
+      PERFORM public.declutter_notify(v_ms.manager_id, 'declutter_sales', 'You earned a share',
         format('You earned $%s from %s''s sale of %s. ', to_char(v_share / 100.0, 'FM999990.00'),
                public.declutter_manager_first_name(o.seller_id), public.declutter_order_items_named(o.id)) ||
         CASE

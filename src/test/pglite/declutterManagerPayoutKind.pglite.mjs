@@ -165,6 +165,7 @@ const WORLD = `
   alter table public.declutter_payouts add column review_reason text, add column held_notified_at timestamptz;
   ${real("declutter_consume_fee_debt")}
   ${real("declutter_order_items_named")}
+  ${real("member_display_name")}
   ${real("declutter_manager_first_name")}
 `;
 const db = new PGlite();

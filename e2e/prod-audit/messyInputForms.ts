@@ -832,6 +832,10 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Manager mode (owner 11-01; B162 11-02): neither card opens for the sweep's accounts, which hold no manager grant.
+  // Their server checks are proven in src/test/pglite/declutterManagerMode.pglite.mjs (92 checks, gate plants).
+  "src/components/declutter/ManagerPanel.tsx": "opens only with a manager grant, which no sweep account holds; typed text is a member-name search (search_profiles_by_name, rate-limited) and a share number the client refuses outside 1-100 % (or under $0.01) and declutter_manager_offer refuses outside 0-100 % or over $10,000 per item.",
+  "src/components/declutter/ManagerWaitingForOk.tsx": "opens only for a seller with a manager's draft waiting, which no sweep account has; its one typed field is a send-back note (maxLength 500) that declutter_manager_send_back trims and cuts to 500 characters (the column CHECK is length <= 500).",
   // LEAD-LIST-FOR-SELLER (20261101034159): not swept yet (new 11-01); its server checks are proven in
   // src/test/pglite/declutterListForSeller.pglite.mjs.
   "src/components/declutter/ListedForYouCard.tsx": "no typed text: Approve, Not this one and one checkbox; each approval goes through the normal publish path's checks.",

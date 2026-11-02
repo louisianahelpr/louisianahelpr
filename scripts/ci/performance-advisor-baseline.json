@@ -224,6 +224,9 @@
     "public.declutter_listed_for_seller.declutter_listed_for_seller_seller_idx",
     "public.declutter_listed_for_seller.declutter_listed_for_seller_helpr_idx",
     "public.declutter_photo_purge_queue.declutter_photo_purge_queue_seller_idx",
-    "public.profile_handles_retired.profile_handles_retired_user_idx"
+    "public.profile_handles_retired.profile_handles_retired_user_idx",
+    "public.declutter_manager_grants.declutter_manager_grants_manager_idx",
+    "public.declutter_manager_actions.declutter_manager_actions_grant_idx",
+    "public.declutter_manager_submissions.declutter_manager_submissions_seller_idx"
   ]
 }

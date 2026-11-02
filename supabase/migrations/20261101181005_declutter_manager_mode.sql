@@ -147,7 +147,9 @@ STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT COALESCE(NULLIF(split_part(btrim((SELECT p.full_name FROM public.profiles p WHERE p.user_id = p_user)), ' ', 1), ''),
+  -- The first word of member_display_name ("Ann S." -> "Ann"), as the other first-name readers do; the raw
+  -- full_name never leaves except through the masking helper (memberNamesMaskedInResponses).
+  SELECT COALESCE(NULLIF(split_part(public.member_display_name((SELECT p.full_name FROM public.profiles p WHERE p.user_id = p_user), NULL), ' ', 1), ''),
                   'Someone');
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_manager_first_name(uuid) FROM PUBLIC, anon, authenticated;

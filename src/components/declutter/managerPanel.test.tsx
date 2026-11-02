@@ -94,7 +94,7 @@ describe("the seller's grant setup", () => {
     fireEvent.click(screen.getByRole("button", { name: "Ask someone" }));
     expect(screen.getByText("Next: pick who helps you")).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Member's name"), { target: { value: "Da" } });
-    fireEvent.click(await screen.findByRole("button", { name: "Dana Rivers" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Dana R." }));
     expect(screen.getByText("$40 sale · $8 to Dana · $32 to you")).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "$ per item" }));
     fireEvent.change(screen.getByLabelText("Dollars per item"), { target: { value: "5" } });
@@ -109,10 +109,10 @@ describe("the seller's grant setup", () => {
     mount();
     fireEvent.click(screen.getByRole("button", { name: "Ask someone" }));
     fireEvent.change(screen.getByLabelText("Member's name"), { target: { value: "Da" } });
-    fireEvent.click(await screen.findByRole("button", { name: "Dana Rivers" }));
-    const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    fireEvent.click(await screen.findByRole("button", { name: "Dana R." }));
+    const boxes = screen.getAllByRole("checkbox");
     expect(boxes.length).toBe(5);
-    for (const b of boxes) if (b.checked) fireEvent.click(b);
+    for (const b of boxes) if (b.getAttribute("aria-checked") === "true") fireEvent.click(b);
     expect((screen.getByRole("button", { name: "Send offer" }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

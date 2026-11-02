@@ -14,6 +14,10 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { formatName } from "@/lib/utils";
 import { NextStep } from "@/components/ui/NextStep";
 import { formatPrice } from "@/lib/declutter/distance";
 import { userFacingError } from "@/lib/userFacingError";
@@ -44,8 +48,7 @@ function PartsPicker({ id, value, onChange }: { id: string; value: ManagerParts;
       <legend className="text-ds-13 font-medium">What they handle</legend>
       {PARTS.map((p) => (
         <label key={p} className="flex min-h-11 items-center gap-3 text-ds-15">
-          <input type="checkbox" className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0 accent-[hsl(var(--primary))]" checked={value[p]}
-            onChange={(e) => onChange({ ...value, [p]: e.target.checked })} />
+          <Checkbox checked={value[p]} onCheckedChange={(c) => onChange({ ...value, [p]: c === true })} />
           {MANAGER_PART_LABELS[p]}
         </label>
       ))}
@@ -101,21 +104,21 @@ function GrantSetup() {
       <form className="mt-3 space-y-4" onSubmit={(e) => { e.preventDefault(); if (picked && anyPart && valueOk) send.mutate(); }}>
         {picked ? (
           <div className="flex items-center gap-3" data-manager-picked={picked.user_id}>
-            <p className="flex-1 text-ds-15 font-medium">{picked.full_name}</p>
+            <p className="flex-1 text-ds-15 font-medium">{formatName(picked.full_name, "A member")}</p>
             <Button type="button" variant="outline" className="rounded-full" onClick={() => setPicked(null)}>Change</Button>
           </div>
         ) : (
           <div>
             <label htmlFor="manager-search" className="block text-ds-13 font-medium">Member's name</label>
-            <input id="manager-search" type="search" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)}
-              className="mt-1 h-11 w-full rounded-xl border border-input bg-background px-3 text-ds-15" placeholder="Search by name" />
+            <Input id="manager-search" type="search" autoComplete="off" value={query} onChange={(e) => setQuery(e.target.value)}
+              className="mt-1" placeholder="Search by name" />
             {hits.data && hits.data.length > 0 && (
               <ul className="mt-2 divide-y divide-border rounded-xl border border-border" aria-label="Members">
                 {hits.data.map((m) => (
                   <li key={m.user_id}>
-                    <button type="button" className="min-h-11 w-full px-3 text-left text-ds-15" onClick={() => setPicked(m)} data-member-hit={m.user_id}>
-                      {m.full_name}
-                    </button>
+                    <Button type="button" variant="ghost" className="w-full justify-start rounded-none px-3 text-left text-ds-15 font-normal" onClick={() => setPicked(m)} data-member-hit={m.user_id}>
+                      {formatName(m.full_name, "A member")}
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -138,8 +141,7 @@ function GrantSetup() {
               </Button>
             ))}
             <label htmlFor="manager-share" className="sr-only">{type === "percent" ? "Percent" : "Dollars per item"}</label>
-            <input id="manager-share" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)}
-              className="h-11 w-24 rounded-xl border border-input bg-background px-3 text-ds-15" />
+            <Input id="manager-share" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} className="w-24" />
           </div>
           {/* The preview: what one $40 sale pays each person. */}
           <p className="mt-2 text-ds-14" data-manager-split-preview="">{splitWords(EXAMPLE_CENTS, split.manager, picked ? name : "them")}</p>
@@ -276,15 +278,8 @@ function Managing({ g }: { g: ManagerGrant }) {
   return (
     <section className={card} aria-labelledby={`managing-${g.id}`} data-manager-managing={g.seller_id}>
       <h2 id={`managing-${g.id}`} className="text-base font-semibold">Managing</h2>
-      <div className="mt-2 inline-flex rounded-full border border-border p-1" role="tablist" aria-label="Whose Selling">
-        {(["mine", "theirs"] as const).map((v) => (
-          <button key={v} type="button" role="tab" aria-selected={view === v}
-            className={`min-h-11 rounded-full px-4 text-ds-14 font-medium ${view === v ? "bg-primary text-primary-foreground" : ""}`}
-            onClick={() => setView(v)}>
-            {v === "mine" ? "Mine" : `${g.seller_first_name}'s`}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl className="mt-2" semantics="tab" ariaLabel="Whose Selling" value={view} onChange={setView}
+        options={[{ value: "mine", label: "Mine" }, { value: "theirs", label: `${g.seller_first_name}'s` }]} />
       {view === "mine" ? (
         <MyShares g={g} />
       ) : !o ? (

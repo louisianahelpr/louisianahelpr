@@ -175,7 +175,8 @@ const WORLD = `
     return 'saved';
   end $f$;
 `;
-const REAL = ["declutter_answer_question", "declutter_send_order_message"].map((n) => newestFunctionSql(n, VERSION));
+// member_display_name: declutter_manager_first_name takes its first word (memberNamesMaskedInResponses, B162 11-02).
+const REAL = ["member_display_name", "declutter_answer_question", "declutter_send_order_message"].map((n) => newestFunctionSql(n, VERSION));
 
 const db = new PGlite();
 await db.exec(WORLD + REAL.map((r) => r.sql).join("\n"));

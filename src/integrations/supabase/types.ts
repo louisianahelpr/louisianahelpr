@@ -2324,6 +2324,123 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_manager_actions: {
+        Row: {
+          action: string
+          created_at: string
+          grant_id: string
+          id: number
+          manager_id: string
+          seller_id: string
+          target_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          grant_id: string
+          id?: number
+          manager_id: string
+          seller_id: string
+          target_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          grant_id?: string
+          id?: number
+          manager_id?: string
+          seller_id?: string
+          target_id?: string | null
+        }
+        Relationships: []
+      }
+      declutter_manager_grants: {
+        Row: {
+          can_list: boolean
+          can_messages: boolean
+          can_offers: boolean
+          can_pickups: boolean
+          can_prices: boolean
+          created_at: string
+          ended_at: string | null
+          ended_by: string | null
+          id: string
+          manager_id: string
+          responded_at: string | null
+          seller_id: string
+          share_cents: number | null
+          share_pct: number | null
+          share_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          can_list?: boolean
+          can_messages?: boolean
+          can_offers?: boolean
+          can_pickups?: boolean
+          can_prices?: boolean
+          created_at?: string
+          ended_at?: string | null
+          ended_by?: string | null
+          id?: string
+          manager_id: string
+          responded_at?: string | null
+          seller_id: string
+          share_cents?: number | null
+          share_pct?: number | null
+          share_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          can_list?: boolean
+          can_messages?: boolean
+          can_offers?: boolean
+          can_pickups?: boolean
+          can_prices?: boolean
+          created_at?: string
+          ended_at?: string | null
+          ended_by?: string | null
+          id?: string
+          manager_id?: string
+          responded_at?: string | null
+          seller_id?: string
+          share_cents?: number | null
+          share_pct?: number | null
+          share_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      declutter_manager_messages: {
+        Row: {
+          created_at: string
+          grant_id: string
+          kind: string
+          manager_id: string
+          message_id: string
+          seller_id: string
+        }
+        Insert: {
+          created_at?: string
+          grant_id: string
+          kind: string
+          manager_id: string
+          message_id: string
+          seller_id: string
+        }
+        Update: {
+          created_at?: string
+          grant_id?: string
+          kind?: string
+          manager_id?: string
+          message_id?: string
+          seller_id?: string
+        }
+        Relationships: []
+      }
       declutter_manager_payouts: {
         Row: {
           amount_cents: number
@@ -3027,6 +3144,7 @@ export type Database = {
           attempts: number
           created_at: string
           debt_cents: number
+          manager_share_cents: number
           executed_at: string | null
           held_notified_at: string | null
           id: string
@@ -3053,6 +3171,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           debt_cents: number
+          manager_share_cents?: number
           executed_at?: string | null
           held_notified_at?: string | null
           id?: string
@@ -3079,6 +3198,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           debt_cents?: number
+          manager_share_cents?: number
           executed_at?: string | null
           held_notified_at?: string | null
           id?: string

@@ -35,6 +35,8 @@ const PLANTS = {
   no_cut: ["       SET amount_cents = v_share, status = CASE WHEN v_share = 0", "       SET amount_cents = amount_cents, status = CASE WHEN amount_cents = 0"],
   // the manager row is offered while the seller's row is held for review
   ignore_hold: ["AND sp.review_held_at IS NULL", ""],
+  // the manager's share notice goes back to the generic 'payment' kind (a Jobs switch would gate it)
+  kind_payment: ["PERFORM public.declutter_notify(v_ms.manager_id, 'declutter_sales', 'You earned a share',", "PERFORM public.declutter_notify(v_ms.manager_id, 'payment', 'You earned a share',"],
 };
 let FIX = readFileSync(DIR + FILE, "utf8");
 if (PLANT) {
@@ -99,9 +101,9 @@ const WORLD = `
   -- The delivery branch's types (never reached: pickup orders only).
   create table public.helpr_tasks (id uuid primary key, status text, stuck_stage text);
   create table public.declutter_order_deliveries (order_id uuid, task_id uuid);
-  create table public.notices (user_id uuid, title text, body text);
+  create table public.notices (user_id uuid, title text, body text, kind text);
   create function public.declutter_notify(p_user uuid, p_kind text, p_title text, p_body text, p_link text, p_actor uuid default null)
-    returns void language sql as $f$ insert into public.notices values (p_user, p_title, p_body) $f$;
+    returns void language sql as $f$ insert into public.notices values (p_user, p_title, p_body, p_kind) $f$;
   create function public.declutter_new_handover_code() returns text language sql as $f$ select '1234' $f$;
   create function public.declutter_setup_fee_from_payout_cents(uuid) returns integer language sql as $f$ select 0 $f$;
   create function public.declutter_delivery_tip_open(uuid) returns boolean language sql as $f$ select false $f$;
@@ -111,6 +113,7 @@ const WORLD = `
   create function public.has_role(uuid, text) returns boolean language sql as $f$ select false $f$;
   ${real("declutter_consume_fee_debt")}
   ${real("declutter_order_items_named")}
+  ${real("member_display_name")}
   ${real("declutter_manager_first_name")}
 `;
 const db = new PGlite();
@@ -179,7 +182,7 @@ const handover = async (o) => {
 };
 const sellerRow = (o) => one(`select amount_cents, manager_share_cents, debt_cents, status from public.declutter_payouts where order_id = '${o}'`);
 const mgrRow = (o) => one(`select amount_cents, share_cents, status, manager_id from public.declutter_manager_payouts where order_id = '${o}'`);
-const lastNotice = (u) => one(`select title, body from public.notices where user_id = '${u}' order by ctid desc limit 1`);
+const lastNotice = (u) => one(`select title, body, kind from public.notices where user_id = '${u}' order by ctid desc limit 1`);
 
 // S1: 20% of a $40 sale.
 await grantRow("percent", 20);
@@ -193,6 +196,8 @@ check("S1b the seller's notice shows the split and ends with the next step",
   /\$40\.00 sale · \$8\.00 to Dana \(20%\) · \$32\.00 to you\./.test(ns?.body ?? "") && /once the sale is final/.test(ns?.body ?? ""), ns?.body);
 check("S1c the manager is told \"You earned $8 from Kaci's sale\" with the next step",
   /^You earned \$8\.00 from Kaci's sale of "Lamp"\. We send it once the sale is final/.test(nm?.body ?? ""), nm?.body);
+check("S1d the manager's notice is a Declutter sale notice (declutter_sales, under the Declutter switch)",
+  nm?.title === "You earned a share" && nm?.kind === "declutter_sales", JSON.stringify(nm && { title: nm.title, kind: nm.kind }));
 
 // S2: flat $5 per item on a 3-item order, and a flat share above the sale price.
 await grantRow("flat", 500);

@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { formatPrice } from "@/lib/declutter/distance";
 import { userFacingError } from "@/lib/userFacingError";
 import { approveManagerDraft, fetchWaitingDrafts, sendManagerDraftBack, useMyManagerGrants } from "@/lib/declutter/managerMode";
@@ -66,7 +67,7 @@ export default function ManagerWaitingForOk({ userId }: { userId: string }) {
             {noteFor === r.item_id && (
               <form className="mt-2 space-y-2" onSubmit={(e) => { e.preventDefault(); if (note.trim()) sendBack.mutate({ id: r.item_id, note: note.trim() }); }}>
                 <label htmlFor={`send-back-${r.item_id}`} className="block text-ds-13 font-medium">Note for {manager}</label>
-                <textarea id={`send-back-${r.item_id}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
+                <Textarea id={`send-back-${r.item_id}`} className="min-h-20"
                   maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder="What to change" />
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" className="rounded-full" onClick={() => setNoteFor(null)}>Cancel</Button>

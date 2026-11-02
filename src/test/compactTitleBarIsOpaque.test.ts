@@ -6,6 +6,7 @@
  * its hairline. And ONE line with an ellipsis (audit A1-L1, 2026-10-29).
  *
  * @mutate src/index.css |   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;\n  padding-left: 3.5rem; padding-right: 3.5rem; |   padding-left: 3.5rem; padding-right: 3.5rem;
+ * @mutate src/index.css |   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;\n  padding-left: 3.5rem; padding-right: 3.5rem; |   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
  * @mutate src/index.css |   display: block; text-align: center;\n  white-space: nowrap; |   display: flex; align-items: center; justify-content: center;\n  white-space: nowrap;
  * @mutate src/index.css |   background: hsl(var(--background));\n  border-bottom: 0.5px solid hsl(var(--border));\n  opacity: 0; pointer-events: none; |   background: hsl(var(--background) / 0.88);\n  border-bottom: 0.5px solid hsl(var(--border));\n  opacity: 0; pointer-events: none;
  */
@@ -38,5 +39,7 @@ describe("the compact title bar is opaque", () => {
     expect(block).toMatch(/text-align: center;/);
     expect(block).toMatch(/display: block;/);
     expect(block).not.toMatch(/display: flex/);
+    // Q2236: the side padding keeps the cut title clear of the page's back button and its two icon buttons.
+    expect(block).toMatch(/padding-left: 3\.5rem; padding-right: 3\.5rem;/);
   });
 });

@@ -8,7 +8,8 @@ type ParsedRoute = { path: string; redirect: boolean; protected: boolean; admin:
 type DerivedRow = { url: string; base: string; personas: string[]; redirect: boolean };
 const deriveRouteSet = harness.deriveRouteSet as (o: { seedJobId: string; jobIds?: string[]; helperId: string; customerId: string; adminViews: string[] }) => DerivedRow[];
 const parseAdminViews = harness.parseAdminViews as () => string[];
-const parseAppRoutes = harness.parseAppRoutes as (appSrc?: string) => ParsedRoute[];
+const parseAppRoutes = harness.parseAppRoutes as (appSrc?: string, readComponent?: (name: string, appSrc: string) => string | null) => ParsedRoute[];
+const moduleIsPureRedirect = harness.moduleIsPureRedirect as (src: string | null) => boolean;
 const parseProfileTabs = harness.parseProfileTabs as () => string[];
 const DOCUMENTED_SKIPS = harness.DOCUMENTED_SKIPS as Set<string>;
 
@@ -33,7 +34,8 @@ const derived = deriveRouteSet({
   adminViews: ["analytics"],
 });
 
-// @mutate scripts/audit/press-every-control.mjs | /^<\w*Redirect\s*\/>$/.test(page) | /^<\w*Redirect\s*\/>$/.test(el)
+// @mutate scripts/audit/press-every-control.mjs | (only !== null && moduleIsPureRedirect(readComponent(only[1], appSrc))) | (only !== null && /Redirect$/.test(only[1]))
+// @mutate scripts/audit/press-every-control.mjs |   return returns.every((r) => /^\(?\s*<Navigate\b/.test(r) \|\| navConsts.has(r)); |   return returns.some((r) => /^\(?\s*<Navigate\b/.test(r) \|\| navConsts.has(r));
 // @mutate scripts/audit/press-every-control.mjs | for (const v of adminViews) push(`${url}?view=${v}`, r, ["admin"]); |
 describe("press-every-control route derivation", () => {
   it("maps every <Route path> in App.tsx to at least one derived row", () => {
@@ -48,13 +50,32 @@ describe("press-every-control route derivation", () => {
     // A redirect page inside the route wrappers (error boundary, routeEl, sign-in gate) is a
     // redirect too (2026-10-20): /explore opens the last section, /quotes forwards to Jobs.
     expect(byPath["/explore"].redirect).toBe(true);
-    expect(byPath["/quotes"].redirect).toBe(true);
+    // Q2258: /quotes' module shows a loading and an error page on some paths, so it is a page
+    // (pressed), whatever its component is called.
+    expect(byPath["/quotes"].redirect).toBe(false);
     const synthetic = parseAppRoutes(`<Route path="/old" element={<Navigate to="/profile" replace />} />`);
     expect(synthetic).toEqual([expect.objectContaining({ path: "/old", redirect: true })]);
     expect(byPath["/home"].redirect).toBe(false);
     // A wrapper that contains a page (MarketingRedirect around <Index />) is a
     // page, not a redirect.
     expect(byPath["/"].redirect).toBe(false);
+  });
+
+  // Q2258 (code-review@0d8b26a13#10): a redirect is what the module RENDERS, never its variable name.
+  it("judges a redirect by what its module renders, not by its name", () => {
+    const pure = `import { Navigate } from "react-router-dom";\n/** a note: return the page */\nexport default function Go() {\n  const to = pick();\n  return <Navigate replace to={to} />;\n}`;
+    const viaConst = `export default function Go() {\n  const fallback = <Navigate to="/a" replace />;\n  if (x) return fallback;\n  return <Navigate to="/b" replace />;\n}`;
+    const page = `export default function Go() {\n  if (x) return <Navigate to="/a" />;\n  return (\n    <AppPage title="T"><p>hi</p></AppPage>\n  );\n}`;
+    expect(moduleIsPureRedirect(pure)).toBe(true);
+    expect(moduleIsPureRedirect(viaConst)).toBe(true);
+    expect(moduleIsPureRedirect(page)).toBe(false);
+    expect(moduleIsPureRedirect(null)).toBe(false);
+    const app = `<Route path="/named" element={routeEl(<SomethingRedirect />)} />\n<Route path="/plain" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Plain /></ProtectedRoute>)}</RouteErrorBoundary>} />`;
+    const modules: Record<string, string> = { SomethingRedirect: page, Plain: pure };
+    const parsed = parseAppRoutes(app, (name) => modules[name] ?? null);
+    // A real page whose variable is named *Redirect is walked; a plainly named pure redirect is not.
+    expect(parsed.map((r) => `${r.path} ${r.redirect}`)).toEqual(["/named false", "/plain true"]);
+    expect(parsed.length).toBeGreaterThan(1);
   });
 
   it("walks every Profile tab and every admin view as its own row", () => {

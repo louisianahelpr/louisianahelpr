@@ -39,9 +39,15 @@ export function NoSellerOffers() {
  * Paid orders on one side (slice 4: book the pickup, hand over, porch photos,
  * no-shows, problems, payout, reviews): Purchases on Buying, the paid sales on Selling.
  */
-export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; views?: Map<string, BuyerOrderView>; show?: (orderId: string) => boolean }) {
+export function PaidOrders({ side, views, show, scope, ended = false }: {
+  side: "buyer" | "seller"; views?: Map<string, BuyerOrderView>; show?: (orderId: string) => boolean;
+  /** Q2630: the only orders this list may draw, before the chip and the linked order (Buying's Your orders vs Ended). */
+  scope?: (orderId: string) => boolean;
+  /** Q2630: drawn inside Buying's Ended section, under its heading: no heading or empty card of its own. */
+  ended?: boolean;
+}) {
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
-  const lines = (cart.data ?? []).filter((l) => l.my_side === side);
+  const lines = (cart.data ?? []).filter((l) => l.my_side === side && (!scope || !l.order_id || scope(l.order_id)));
   const todo = declutterTodo(lines, []);
   const [showDone, setShowDone] = useState(false);
   const linked = useLinkedOrder(); // BUY-30: the order a notice opened is never folded away or hidden by a chip
@@ -53,6 +59,7 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   // Buying's tracker says "Nothing bought yet." once for the whole tab, and a chip shows only its own orders.
   if (views && !lines.some((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id) || l.order_id === linked))) return null;
   if (!lines.some((l) => l.status === "paid" && l.order_id)) {
+    if (ended) return null;
     const buyer = side === "buyer";
     // Q2629 (audit 1102c R4): a sale waiting for the buyer to pay (SalesWaiting, right above) read "Sold, waiting for the
     // buyer to pay" over "Nothing sold yet". While one waits, the empty card is left out.
@@ -102,9 +109,10 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
       cart={lines}
       views={views}
       show={done.size > 0 && !showDone ? (id) => !done.has(id) || id === linked : show}
-      label={side === "buyer" ? "Purchases" : sellerTitle}
+      label={ended ? "Ended orders" : side === "buyer" ? "Purchases" : sellerTitle}
       heading={
-        side === "buyer"
+        ended ? <></>
+        : side === "buyer"
           ? views ? <SectionHeading title="Your orders" /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
           : <SectionHeading title={sellerTitle} todo={todo.salesOpen} todoWords="to hand over" />
       }

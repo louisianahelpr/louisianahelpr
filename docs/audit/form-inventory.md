@@ -146,7 +146,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterFilterPanel.tsx` | input×1 | text |  |  |
 | `src/components/declutter/DeclutterFoldedTime.tsx` | input×1, date/calendar×1 | datetime-local |  |  |
 | `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
-| `src/components/declutter/DeclutterHandoverViews.tsx` | input×1 | file |  | declutter-porch-window · declutter-no-show-warning · declutter-move-used |
+| `src/components/declutter/DeclutterHandoverViews.tsx` | input×1 | file |  | declutter-no-show-warning · declutter-move-used |
 | `src/components/declutter/DeclutterMeetup.tsx` | input×1 | radio |  | Meeting spot |
 | `src/components/declutter/DeclutterNoShowAnswer.tsx` | textarea×1 |  | 1000 |  |
 | `src/components/declutter/DeclutterOffersSection.tsx` | input×1 | text |  |  |
@@ -204,7 +204,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/BundleDiscountCard.tsx` | select×1 |  |  |  |
 | `src/components/declutter/DeclutterListingDefaults.tsx` | checkbox/switch/radio×3 |  |  | defaults-ways |
 | `src/components/declutter/SellerDeliverySettings.tsx` | input×3, checkbox/switch/radio×3, date/calendar×1 | text, date |  | Your delivery · Your delivery price and times · sd-enabled · sd-price-label · sd-rate · Delivery price in dollars · sd-rate-help · sd-free-over-on |
-| `src/components/declutter/SellMeetupSpots.tsx` | input×1 | text | 80 | e.g. Walmart parking lot · Days and times you · sell-meetup-spots · meet-spots-title |
+| `src/components/declutter/SellMeetupSpots.tsx` | input×1 | text | 80 | e.g. the bank parking lot on Main St · Days and times you · sell-meetup-spots · meet-spots-title |
 | `src/components/declutter/SellPorchPlaces.tsx` | input×1 | text | 40 | e.g. Home, Mom · Days and hours at this place · Pickup places |
 
 ## /forgot-password

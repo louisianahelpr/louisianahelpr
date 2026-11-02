@@ -27,8 +27,9 @@ const QUERY_KEY = ["sms-consent"] as const;
  * Text alerts (owner, 2026-10-20), behind the `sms_alerts` switch.
  *
  * Consent is ONLY the unticked box below, ticked by the member, for the
- * number typed here, AND a YES the phone itself sends back (double opt-in:
- * ticking sends one confirmation text; alerts start on the reply). A phone
+ * number typed here, AND the code from the one confirmation text that ticking
+ * sends: the phone replies YES <code>, or the member types the code here
+ * (double opt-in; Q2337). A phone
  * saved on the profile is never treated as consent and is not pre-filled.
  * The server (set_sms_consent) refuses a NEW request while the switch is off
  * for this account; turning texts off always works, so a member who is opted
@@ -46,6 +47,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
   const queryClient = useQueryClient();
   const phoneId = useId();
   const consentId = useId();
+  const codeId = useId();
 
   const { data: consent, isPending, isError, error: loadError, refetch } = useQuery({
     queryKey: [...QUERY_KEY, user?.id],
@@ -64,6 +66,10 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
   const [phone, setPhone] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Q2337: the code from the confirmation text, typed here. It confirms only THIS account (confirm_sms_code checks
+  // it for auth.uid()), so a phone that got two look-alike confirmation texts can never turn on someone else's.
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (consent?.phone_e164) setPhone(formatUsPhone(consent.phone_e164));
@@ -139,6 +145,34 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
     }
   };
 
+  const confirmCode = async () => {
+    setSaving(true);
+    setCodeError(null);
+    try {
+      const res = await supabase.rpc("confirm_sms_code", { p_code: code.trim() });
+      if (res.error) {
+        setCodeError(rpcErrorMessage("confirm_sms_code", res.error) ?? "We couldn't check that code. Try again, or reply YES and the code to our text.");
+        return;
+      }
+      const answer = (res.data ?? {}) as { status?: string; consent?: unknown };
+      if (answer.status === "confirmed") {
+        // The RPC returns the stored state; "On" is shown only when it says so (else re-read).
+        const next = parseSmsConsent(answer.consent);
+        if (next.sms_opt_in) queryClient.setQueryData([...QUERY_KEY, user.id], next);
+        else void refetch();
+        setCode("");
+        return;
+      }
+      setCodeError(
+        answer.status === "too_many_tries" ? "Too many tries. Wait a day, then try again."
+          : answer.status === "phone_in_use" ? "This number already gets text alerts on another account."
+          : "That code didn't work. Check the newest text from us and try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <section
       aria-labelledby={`${consentId}-title`}
@@ -184,10 +218,35 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
           <>
             <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
               We texted <span className="font-semibold whitespace-nowrap">{formatUsPhone(pendingPhone)}</span>.
-              Reply <span className="font-semibold">YES</span> and the 4-digit code in that text (like YES 1234) to turn on alerts.
+              Reply <span className="font-semibold">YES</span> and the 4-digit code in that text (like YES 1234), or type the code here, to turn on alerts.
             </p>
+            <div className="space-y-1.5">
+              <Label htmlFor={codeId} className="text-ds-13 font-semibold">Code from the text</Label>
+              <div className="flex gap-2">
+                <Input
+                  id={codeId}
+                  className="flex-1"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={4}
+                  placeholder="1234"
+                  value={code}
+                  onChange={(e) => { setCode(e.target.value.replace(/\D/g, "").slice(0, 4)); setCodeError(null); }}
+                  aria-invalid={codeError !== null}
+                  aria-describedby={codeError ? `${codeId}-error` : undefined}
+                />
+                <Button variant="primary" disabled={saving || code.length !== 4} onClick={() => { void confirmCode(); }}>
+                  Confirm
+                </Button>
+              </div>
+              {codeError && (
+                <p id={`${codeId}-error`} role="alert" className="text-ds-13" style={{ color: "hsl(var(--destructive))" }}>
+                  {codeError}
+                </p>
+              )}
+            </div>
             <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep) / 0.7)" }}>
-              Nothing else is sent to this number until it replies with the code. No text after a few minutes? Check the number and try again.
+              Nothing else is sent to this number until the code is confirmed. No text after a few minutes? Check the number and try again.
             </p>
             <Button variant="outline" className="w-full" disabled={saving} onClick={() => { void save(false); }}>
               Cancel this request

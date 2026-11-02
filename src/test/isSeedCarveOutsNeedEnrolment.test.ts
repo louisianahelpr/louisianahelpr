@@ -66,6 +66,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   instant_book_real_jobs_done: "hides", // CMP-4 (20261101063725): seed jobs and test posters never count toward the 3 real jobs
   admin_queue_still_pending: "hides",
   admin_rule_helpr_fault: "tags",
+  bill_helpr_card_fee_debt: "tags", // Q2245 (20261102072106): the lapsed Helpr's debt copies its series job's is_seed
   admin_section_funnel: "hides",
   admin_signup_source_report: "hides", // OPS-5 (20261031220447): seed profiles and test accounts never count in the sign-up sources
   owner_daily_summary_stats: "hides", // OPS-1 review (20261031224638): the owner's daily counts leave out seed rows and test subjects

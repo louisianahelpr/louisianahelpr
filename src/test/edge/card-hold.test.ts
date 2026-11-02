@@ -87,6 +87,7 @@ import { CARD_HOLD_COPY } from "../../../supabase/functions/_shared/cardHoldCopy
 import { holdPlanFor, offSessionAllowed, PLACE_BEFORE_START_MS } from "../../../supabase/functions/_shared/cardHoldPlan";
 import { jobLocalStartMs } from "../../../supabase/functions/_shared/cancellationFee";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { blankComments } from "../helpers/blankNonCode";
 
 const AUTH = { Authorization: "Bearer test-jwt" };
@@ -146,6 +147,18 @@ describe("card hold at posting (Q2399)", () => {
       expect(offSessionAllowed(29_999, "yard_work")).toEqual({ ok: true });
       expect(offSessionAllowed(30_000, "yard_work")).toEqual({ ok: false, why: "large" });
       expect(offSessionAllowed(5_000, "auto_repair")).toEqual({ ok: false, why: "taxed" });
+    });
+    // Q2083 part 2: a job taxed by the poster's answer (an untaxed category) is
+    // taxed too, so it is held on a Checkout page like a taxed category.
+    // @mutate supabase/functions/_shared/cardHoldPlan.ts |   if (isLaborTaxable(category ?? null, taxKind ?? null)) return { ok: false, why: "taxed" }; |   if (isLaborTaxable(category ?? null)) return { ok: false, why: "taxed" };
+    // @mutate supabase/functions/_shared/cardHold.ts | offSessionAllowed(amountCents, job.category, job.tax_kind) | offSessionAllowed(amountCents, job.category)
+    it("a job taxed by the poster's answer is never held off-session (Q2083)", () => {
+      expect(offSessionAllowed(5_000, "cleaning", "clothes_cleaning")).toEqual({ ok: false, why: "taxed" });
+      expect(offSessionAllowed(5_000, "handyman", "item_repair")).toEqual({ ok: false, why: "taxed" });
+      expect(offSessionAllowed(5_000, "cleaning", null)).toEqual({ ok: true });
+      const src = readFileSync(resolve(process.cwd(), "supabase/functions/_shared/cardHold.ts"), "utf8");
+      expect(src).toMatch(/offSessionAllowed\(amountCents, job\.category, job\.tax_kind\)/);
+      expect(src).toMatch(/\.select\("[^"]*\btax_kind\b[^"]*"\)/);
     });
   });
 

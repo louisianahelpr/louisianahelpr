@@ -18,8 +18,8 @@
  * Red before: on origin/main 7f5f1ae900 the bonus line shipped
  * NONTAXABLE_TAX_CODE on every category.
  *
- * @mutate supabase/functions/create-payment/index.ts |               tax_code: laborTaxCode(job.category), // Q1843: taxed exactly like the labor line |               tax_code: NONTAXABLE_TAX_CODE,
- * @mutate supabase/functions/create-payment/index.ts |         + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category); |         + salesTaxCeilingCents(Math.round(job.budget * 100), job.category);
+ * @mutate supabase/functions/create-payment/index.ts |               tax_code: laborTaxCode(job.category, job.tax_kind), // Q1843: taxed exactly like the labor line |               tax_code: NONTAXABLE_TAX_CODE,
+ * @mutate supabase/functions/create-payment/index.ts |         + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category, job.tax_kind); |         + salesTaxCeilingCents(Math.round(job.budget * 100), job.category, job.tax_kind);
  * @mutate supabase/functions/_shared/salesTax.ts |   const taxedLaborCents = laborCents + urgentBonusChargedCents(job); |   const taxedLaborCents = laborCents;
  * @mutate supabase/functions/_shared/salesTax.ts |   return Math.min(Math.max(safe, URGENT_BONUS_FLOOR_CENTS), MAX_URGENT_FEE_DOLLARS * 100); |   return safe;
  */

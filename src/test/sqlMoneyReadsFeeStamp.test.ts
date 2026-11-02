@@ -23,7 +23,7 @@
 //
 // @mutate supabase/migrations/20261102074317_cancel_fee_waived_payee_under_review.sql |          j.status, j.helper_fee_percent, j.helper_fee_flat_cents, j.helper_confirmed_at, |          j.status, j.helper_fee_percent, j.helper_confirmed_at,
 // @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |           v_cut := CASE WHEN v_job.helper_fee_flat_cents IS NOT NULL |           v_cut := CASE WHEN false
-// @mutate supabase/migrations/20261019015304_helpr_fault_earnings_export.sql |              public.helpr_flat_fee_cents(g0.gross_cents, j.helper_fee_percent, j.helper_fee_flat_cents) AS fee_cents |              0::bigint AS fee_cents
+// @mutate supabase/migrations/20261102152453_q2083_job_tax_kind.sql |              public.helpr_flat_fee_cents(g0.gross_cents, j.helper_fee_percent, j.helper_fee_flat_cents) AS fee_cents |              0::bigint AS fee_cents
 // @mutate supabase/migrations/20261017104746_sql_notices_exports_flat_fee.sql | + GREATEST(0, round(COALESCE(p_flat_cents, 70)))) | + GREATEST(0, round(COALESCE(p_flat_cents, 60))))
 // @mutate supabase/migrations/20261017104746_sql_notices_exports_flat_fee.sql | ON FUNCTION public.helpr_flat_fee_cents(numeric, numeric, numeric) FROM PUBLIC, anon, authenticated; | ON FUNCTION public.helpr_flat_fee_cents(numeric, numeric, numeric) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261017104746_sql_notices_exports_flat_fee.sql |             'helper_fee_flat_cents', e->'helper_fee_flat_cents', |             'urgent_fee_again',      e->'urgent_fee',

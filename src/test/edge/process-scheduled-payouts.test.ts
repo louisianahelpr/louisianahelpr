@@ -1617,6 +1617,26 @@ describe("process-scheduled-payouts: a payout past its day tells the Helpr", () 
     expect(String(delayNotices()[0].message)).toMatch(/payout account can't receive money/);
   });
 
+  // Q2497: every other exit of ours that leaves the job payout_pending tells the Helpr too.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |        if (!r.job_id \|\| !r.status \|\| told.has(r.job_id) \|\| !PAY_DELAY_SENDING_STATUSES.has(r.status)) continue; |        continue;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |        if (!job \|\| job.is_group_job === true \|\| !job.helper_id) continue; |        if (!job \|\| !job.is_group_job) continue;
+  it("a ledger the cron cannot read (or any other exit of ours): told once, the same words (Q2497)", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(13) } });
+    scenario.reads.payout_transfers = { rows: [], error: { message: "connection reset" } };
+    await runCron();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(delayNotices()).toHaveLength(1);
+    expect(delayNotices()[0]).toMatchObject({ user_id: "helper-1", job_id: "job-1", link: "/jobs?job=job-1" });
+    expect(String(delayNotices()[0].message)).toMatch(/couldn't send it\. You don't need to do anything/);
+  });
+
+  it("an exit of ours inside the grace says nothing yet (Q2497)", async () => {
+    seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(2) } });
+    scenario.reads.payout_transfers = { rows: [], error: { message: "connection reset" } };
+    await runCron();
+    expect(delayNotices()).toEqual([]);
+  });
+
   it("a blip the next run can fix says nothing yet", async () => {
     seedPayableJob(scenario, { job: { payout_scheduled_at: hoursAgo(2) } });
     transferFails();

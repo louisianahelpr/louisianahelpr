@@ -24,6 +24,9 @@
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
+    "declutter_admin_fee_debts(uuid)": "reviewed 2026-11-02 (Q14): Q1928 gap 1 (20261102065446, lead PASS 067e16c1a5): raises admin_only unless has_role(auth.uid(), 'admin'); read-only list of one member's Declutter fee debts for Admin -> user -> Actions.",
+    "declutter_admin_waive_fee_debt(uuid, text)": "reviewed 2026-11-02 (Q14): Q1928 gap 1 (20261102065446, lead PASS 067e16c1a5): raises admin_only unless has_role(auth.uid(), 'admin'); clears one debt's remaining amount with an audit row and one notice, idempotent.",
+    "declutter_my_block_partners()": "reviewed 2026-11-02 (Q14): Q1888 (20261102022901): no argument; returns only the ids in a block with auth.uid() (either direction), empty for none; read inside the declutter items / map pins read policies.",
     "accept_application_at_suggested_time(uuid, timestamp with time zone, text)": "client",
     "accept_group_application(uuid, timestamp with time zone, text)": "client",
     "accept_job_offer(uuid)": "client",

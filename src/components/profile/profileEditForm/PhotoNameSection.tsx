@@ -19,12 +19,16 @@ import { formatName } from "@/lib/utils";
  * member staring at a coloured square where their face should be, which reads
  * as though the square IS their photo.
  */
-export function avatarCaption(rejection: AvatarPhotoRejection | null): string {
+export function avatarCaption(rejection: AvatarPhotoRejection | null, uploadedThisVisit = false): string {
   switch (rejection) {
     case "no-photo":
       return "Add a photo so people know who they're hiring.";
     case "blank-bitmap":
     case "placeholder-url":
+      // Q2655 (account audit 1102d row 15): a STORED photo that renders blank showed this upload-error line as a
+      // standing message on every visit, though nothing was uploaded. Only right after an upload in this visit is
+      // it news; otherwise the initials show with the plain first-photo hint.
+      if (!uploadedThisVisit) return "Add a photo so people know who they're hiring.";
       // Deliberately not "your photo is blank" — the member chose a file and
       // it uploaded, so blaming the photo without saying what to do next
       // leaves them with no move. Naming the outcome ("came through blank")
@@ -62,6 +66,8 @@ export function PhotoNameSection({
   // default: promising a photo we then remove is better than accusing a
   // member of having a blank one that turns out to be fine.
   const [photoRejection, setPhotoRejection] = useState<AvatarPhotoRejection | null>(null);
+  // Whether the member picked a file on this visit: only then is "came through blank" about something they did.
+  const [uploadedThisVisit, setUploadedThisVisit] = useState(false);
 
   return (
     <div className="rounded-2xl liquid-glass p-card space-y-4">
@@ -126,7 +132,7 @@ export function PhotoNameSection({
                 A <label> names the control it wraps, so an sr-only child names
                 the file input properly and works everywhere. */}
             <span className="sr-only focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]">Change profile photo</span>
-            <input type="file" accept="image/*" className="sr-only" onChange={onAvatarUpload} disabled={avatarUploading} />
+            <input type="file" accept="image/*" className="sr-only" onChange={(e) => { setUploadedThisVisit(true); onAvatarUpload(e); }} disabled={avatarUploading} />
           </label>
         </div>
         <div className="min-w-0 flex-1">
@@ -150,7 +156,7 @@ export function PhotoNameSection({
             className="font-sans mt-1 leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
-            {avatarCaption(photoRejection)}
+            {avatarCaption(photoRejection, uploadedThisVisit)}
           </p>
           {/* ── THE PUBLIC-VISIBILITY NOTICE (2026-08-31) ──────────────────
               Added after a member uploaded a photograph of their driver's

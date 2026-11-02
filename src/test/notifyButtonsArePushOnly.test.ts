@@ -69,6 +69,13 @@ describe("Notify me when work lands is push only (Q1313)", () => {
       const m = LABEL.exec(code);
       if (!m) continue;
       const before = code.slice(0, m.index);
+      // An EmptyStateActions action (owner 11-02, one empty-Browse layout): { label: "<Notify label>", onClick: <handler> }.
+      const asAction = /label:\s*["'`][^"'`]*["'`],\s*onClick:\s*([^\n]*)/.exec(code.slice(Math.max(0, m.index - 20), m.index + 120));
+      if (asAction) {
+        expect(asAction[1], `${f}: Notify action handler`).toMatch(/^(?:notifyWhenWorkLands|onNotify)\b|NOTIFY_SIGNUP_URL/);
+        checked++;
+        continue;
+      }
       const start = Math.max(before.lastIndexOf("<Button"), before.lastIndexOf("<button"));
       if (start === -1 || before.slice(start).includes("emptyStateCta")) continue; // object-literal CTA: checked below
       const opening = code.slice(start, m.index);

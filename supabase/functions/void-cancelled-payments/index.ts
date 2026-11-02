@@ -85,6 +85,17 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
+    // Q1939: a Declutter seller-fault setup job the refund's trigger could not cancel (lock timeout, a refused write)
+    // is re-applied here, BEFORE any cancelled job is priced, so it settles with no fee and the card fee billed to the
+    // seller (A10) instead of the normal cancel rules (20261102035736). Not deployed yet (PGRST202) or failed: one
+    // defect, never a stop for the rest of the run.
+    {
+      const { error: faultSweepErr } = await supabaseAdmin.rpc("declutter_seller_fault_sweep", {});
+      if (faultSweepErr && (faultSweepErr as { code?: string }).code !== "PGRST202") {
+        defects.record(`declutter_seller_fault_sweep failed: ${faultSweepErr.message}`.slice(0, 200));
+      }
+    }
+
     // Stripe mode (owner 2026-10-12): every job is settled on the key of its own
     // mode (test accounts on the test key); a job mixing test and real
     // accounts, or one whose mode cannot be read, is skipped as a defect.

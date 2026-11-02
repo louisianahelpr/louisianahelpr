@@ -185,7 +185,7 @@ async function check(plant) {
   if (byAge.length) {
     console.log(
       `${byAge.length} receipt(s) name a run GitHub no longer has (runs ${[...new Set(byAge.map((x) => x.run_id))].join(", ")}); ` +
-        `each is over ${CONFIG.expiredRun.minAgeDays} days old and its head_sha is on main carrying the migration, so it is judged by the receipt: ${byAge.map((x) => x.version).join(", ")}.`,
+        `each is over ${CONFIG.expiredRun.minAgeDays} days old (${CONFIG.expiredRun.shortRetention?.minAgeDays ?? CONFIG.expiredRun.minAgeDays} if recorded before ${CONFIG.expiredRun.shortRetention?.until ?? "-"}, the old 2-day retention) and its head_sha is on main carrying the migration, so it is judged by the receipt: ${byAge.map((x) => x.version).join(", ")}.`,
     );
   }
   if (listed.length) {

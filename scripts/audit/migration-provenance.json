@@ -3,6 +3,11 @@
   "cutoff": "20260923103737",
   "expiredRun": {
     "minAgeDays": 14,
+    "shortRetention": {
+      "until": "2026-11-02T22:50:00Z",
+      "minAgeDays": 2,
+      "reason": "Actions retention was 2 days until 2026-11-02 22:50Z; Q2498. A run created before then expires 2 days after it ran (measured: runs of 2026-10-31 404 at about 48 h), so a receipt recorded before until whose run answers 404 needs only 2 days of age; its head_sha must still be a commit on main carrying the migration. Receipts recorded at or after until keep minAgeDays 14. Lead lexilombas-25 approved 2026-11-02 (option B). Once the newest pre-until receipt is 14 days old (2026-11-16) this entry does nothing and can go."
+    },
     "_why": "A receipt whose GitHub run now 404s is judged by the receipt itself (scripts/lib/migrationProvenance.mjs expiredRunVerdict) once it is at least minAgeDays old: its head_sha must be a commit on main that carries the version's migration file. Measured 2026-10-17: every run of every workflow created 2026-10-01 01:40Z..2026-10-03 15:54Z answers 404 (actions/runs?created=2026-10-02 total_count 0; 2026-09-30 has 1685; the 2026-09-23 receipt runs still exist), and the 14 receipts from that window turned db-deploy red on every merge (runs 39017276439 and the 05:07Z one). A run missing sooner than minAgeDays is still a forgery: in that time the receipt was judged against its live run by every db-deploy and the nightly db-drift-detect. 14 = the repo's Actions artifact-and-log retention (repos/.../actions/permissions/artifact-and-log-retention, 2026-10-17)."
   },
   "lostRuns": {

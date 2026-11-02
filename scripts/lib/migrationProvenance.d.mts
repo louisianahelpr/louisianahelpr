@@ -28,7 +28,7 @@ export function provenanceFindings(args: {
   cutoff: string;
   acknowledged: { version: string }[];
   runs: Map<string, { path: string; head_branch: string } | null>;
-  expiredRun?: { minAgeDays: number };
+  expiredRun?: { minAgeDays: number; shortRetention?: ShortRetention };
   shaEvidence?: Map<string, ShaEvidence>;
   lostRuns?: { version: string; run_id: string }[];
   now?: Date;
@@ -36,5 +36,8 @@ export function provenanceFindings(args: {
 export function expiredRunVerdict(
   receipt: LedgerRow,
   evidence: ShaEvidence | undefined,
-  opts: { now: Date; minAgeDays: number | undefined; lostRuns?: { version: string; run_id: string }[] },
+  opts: { now: Date; minAgeDays: number | undefined; lostRuns?: { version: string; run_id: string }[]; shortRetention?: ShortRetention },
 ): string | null;
+
+export interface ShortRetention { until: string; minAgeDays: number; reason?: string }
+export function shortRetentionMinAge(receiptAt: number, minAgeDays: number, shortRetention: ShortRetention | undefined): number;

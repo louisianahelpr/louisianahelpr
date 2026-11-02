@@ -58,14 +58,47 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-const isInvoke = (e: ts.Expression | undefined, sf: ts.SourceFile): boolean => {
+/**
+ * Q2372: a call to a WRAPPER that hands back the invoke's own `{ data, error }` is an invoke too. Post a Job's
+ * payment moved into requestEscrowCheckout (src/lib/escrowCheckout.ts: `return supabase.functions.invoke(...)`),
+ * and the scan, which knew only `functions.invoke` itself, stopped seeing useJobSubmit's `paymentError` (its mutation
+ * survived). Wrappers are found from source: a function or arrow whose body is, or returns, the invoke.
+ */
+function invokeWrappers(files: { file: string; src: string }[]): Set<string> {
+  const out = new Set<string>();
+  for (const { file, src } of files) {
+    if (!src.includes("functions.invoke")) continue;
+    const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const isBareInvoke = (e: ts.Expression | undefined) => {
+      const x = e && ts.isAwaitExpression(e) ? e.expression : e;
+      return !!x && ts.isCallExpression(x) && /\.functions\.invoke$/.test(x.expression.getText(sf));
+    };
+    const returnsInvoke = (body: ts.ConciseBody | undefined) => {
+      if (!body) return false;
+      if (!ts.isBlock(body)) return isBareInvoke(body as ts.Expression);
+      return body.statements.some((st) => ts.isReturnStatement(st) && isBareInvoke(st.expression));
+    };
+    const v = (n: ts.Node) => {
+      if (ts.isFunctionDeclaration(n) && n.name && returnsInvoke(n.body)) out.add(n.name.text);
+      if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer
+        && (ts.isArrowFunction(n.initializer) || ts.isFunctionExpression(n.initializer)) && returnsInvoke(n.initializer.body)) out.add(n.name.text);
+      ts.forEachChild(n, v);
+    };
+    v(sf);
+  }
+  return out;
+}
+
+const isInvoke = (e: ts.Expression | undefined, sf: ts.SourceFile, wrappers: ReadonlySet<string> = new Set()): boolean => {
   if (!e) return false;
   const x = ts.isAwaitExpression(e) ? e.expression : e;
-  return ts.isCallExpression(x) && /\.functions\.invoke$/.test(x.expression.getText(sf));
+  if (!ts.isCallExpression(x)) return false;
+  const callee = x.expression.getText(sf);
+  return /\.functions\.invoke$/.test(callee) || wrappers.has(callee);
 };
 
-function findRawFunctionErrors(file: string, src: string): string[] {
-  if (!src.includes("functions.invoke")) return [];
+function findRawFunctionErrors(file: string, src: string, wrappers: ReadonlySet<string> = new Set()): string[] {
+  if (!src.includes("functions.invoke") && ![...wrappers].some((w) => src.includes(`${w}(`))) return [];
   const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const out: string[] = [];
   const at = (n: ts.Node, what: string) =>
@@ -80,7 +113,7 @@ function findRawFunctionErrors(file: string, src: string): string[] {
   const invokeErrorNames = (scope: ts.Node): Set<string> => {
     const names = new Set<string>();
     own(scope, (n) => {
-      if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && isInvoke(n.initializer, sf)) {
+      if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && isInvoke(n.initializer, sf, wrappers)) {
         for (const el of n.name.elements) if ((el.propertyName ?? el.name).getText(sf) === "error") names.add(el.name.getText(sf));
       }
     });
@@ -108,7 +141,7 @@ function findRawFunctionErrors(file: string, src: string): string[] {
     if (ts.isTryStatement(n) && n.catchClause?.variableDeclaration) {
       const names = new Set<string>();
       own(n.tryBlock, (x) => {
-        if (ts.isVariableDeclaration(x) && ts.isObjectBindingPattern(x.name) && isInvoke(x.initializer, sf)) {
+        if (ts.isVariableDeclaration(x) && ts.isObjectBindingPattern(x.name) && isInvoke(x.initializer, sf, wrappers)) {
           for (const el of x.name.elements) if ((el.propertyName ?? el.name).getText(sf) === "error") names.add(el.name.getText(sf));
         }
       });
@@ -141,7 +174,7 @@ function findRawFunctionErrors(file: string, src: string): string[] {
   // binding at all (it deliberately discards the error). A raw throw with no
   // enclosing try escapes to an unknown caller and is a finding too.
   const visitC = (n: ts.Node, names: Set<string>) => {
-    if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && isInvoke(n.initializer, sf)) {
+    if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && isInvoke(n.initializer, sf, wrappers)) {
       for (const el of n.name.elements) if ((el.propertyName ?? el.name).getText(sf) === "error") names.add(el.name.getText(sf));
     }
     if (ts.isThrowStatement(n) && n.expression && ts.isIdentifier(n.expression) && names.has(n.expression.text)) {
@@ -183,6 +216,19 @@ describe("an edge function's refusal reaches the user in its own words (run 3581
     expect(findRawFunctionErrors("c.ts", fixed)).toHaveLength(0);
   });
 
+  it("Q2372: an invoke behind a wrapper that returns it is still read", () => {
+    const lib = `export function startPay(id: string) { return supabase.functions.invoke("create-payment", { body: { id } }); }
+      export const arrowPay = (id: string) => supabase.functions.invoke("x", {});
+      export async function notAWrapper() { const r = await supabase.functions.invoke("y", {}); return r.data; }`;
+    const wrappers = invokeWrappers([{ file: "lib.ts", src: lib }]);
+    expect([...wrappers].sort()).toEqual(["arrowPay", "startPay"]);
+    const raw = `async function p() { const { data, error: payErr } = await startPay("j"); toast.error(payErr?.message ?? "x"); }`;
+    expect(findRawFunctionErrors("p.ts", raw, wrappers)).toHaveLength(1);
+    expect(findRawFunctionErrors("p.ts", raw)).toHaveLength(0);
+    const fixed = `async function q() { const { error: payErr } = await arrowPay("j"); toast.error(payErr ? await functionErrorMessage(payErr, "x") : "x"); }`;
+    expect(findRawFunctionErrors("q.ts", fixed, wrappers)).toHaveLength(0);
+  });
+
   it("shape C (Q631): a raw throw is caught unless the catch reads the body", () => {
     const raw = `async function d() { try { const { error } = await supabase.functions.invoke("admin-delete-user", {}); if (error) throw error; } catch (err) { toast.error(userFacingError(err, "Couldn't delete")); } }`;
     expect(findRawFunctionErrors("d.ts", raw)).toHaveLength(1);
@@ -204,7 +250,11 @@ describe("an edge function's refusal reaches the user in its own words (run 3581
     // Floor: 50 files call functions.invoke on 2026-09-22. If the scan stops
     // finding them it is checking nothing.
     expect(files.filter((f) => fs.readFileSync(f, "utf8").includes("functions.invoke")).length).toBeGreaterThan(40);
-    const hits = files.flatMap((f) => findRawFunctionErrors(f, fs.readFileSync(f, "utf8")));
+    const sources = files.map((f) => ({ file: f, src: fs.readFileSync(f, "utf8") }));
+    const wrappers = invokeWrappers(sources);
+    // Q2372: the scan follows the wrappers too; requestEscrowCheckout is one (Post a Job's payment).
+    expect(wrappers.has("requestEscrowCheckout")).toBe(true);
+    const hits = sources.flatMap(({ file, src }) => findRawFunctionErrors(file, src, wrappers));
     expect(hits).toEqual([]);
   });
 });

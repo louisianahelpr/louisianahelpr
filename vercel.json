@@ -183,8 +183,232 @@
       "destination": "/api/share?_og=noindex&_id=unsubscribe"
     },
     {
-      "source": "/((?!api/|_vercel/|assets/|fonts/).*)",
+      "source": "/",
       "destination": "/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/signup",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/signup-pending",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/complete-profile",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/account-banned",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/forgot-password",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/reset-password",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/unsubscribe",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/home",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/profile",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/post-job",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/jobs",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/explore",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/posts",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/payment-success",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/user/:userId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/messages",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/declutter",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/declutter/sell",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/declutter/move",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/declutter/settings",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/declutter/item/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/quotes",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/quotes/request/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/tips/:tipId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/quotes/send/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/shops",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/shops/mine",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/shops/orders",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/shops/dashboard",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/shops/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/book/:userId",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/u/:handle",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/rentals",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/rentals/invite/:token",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/rentals/requests/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/rentals/listings/new",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/rentals/listings/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/rentals/listings/:id/edit",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/support",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/legal",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/terms/full",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/privacy/full",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/search",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/helprs",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/jobs/settings",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/jobs/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/browse",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/rules",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/help",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/hire/:service/:town",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sms-opt-in",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/((?!api/|_vercel/|assets/|fonts/).*)",
+      "destination": "/api/share?_og=notfound"
     }
   ],
   "images": {

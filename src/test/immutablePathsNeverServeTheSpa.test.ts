@@ -55,10 +55,17 @@ const immutableSources = (cfg.headers ?? [])
 
 const spaRewrites = (cfg.rewrites ?? []).filter((r) => r.destination === "/index.html");
 
-/** A Vercel source in the regex-group form this file uses, as a RegExp. */
+/**
+ * A Vercel source as a RegExp: the regex-group form, plus named parameters
+ * (`:name`, `:name(re)`, `:name*`), since Q2393 gave every App.tsx route its
+ * own rewrite to the shell.
+ */
 function sourceToRegExp(source: string): RegExp {
-  if (/:[A-Za-z]/.test(source)) throw new Error(`named-parameter source not handled by this guard: ${source}`);
-  return new RegExp(`^${source}$`);
+  const body = source
+    .replace(/:(\w+)\*/g, ".*")
+    .replace(/:(\w+)(\([^)]*\))/g, "$2")
+    .replace(/:(\w+)/g, "[^/]+");
+  return new RegExp(`^${body}/?$`);
 }
 
 describe("an immutable path never falls through to the SPA page (Q1663)", () => {
@@ -79,9 +86,10 @@ describe("an immutable path never falls through to the SPA page (Q1663)", () => 
   });
 
   it("ordinary app routes still reach the SPA", () => {
-    const re = sourceToRegExp(spaRewrites[spaRewrites.length - 1].source);
-    for (const route of ["/home", "/jobs", "/messages/abc", "/profile/settings"]) expect(re.test(route), route).toBe(true);
-    for (const route of ["/api/share", "/_vercel/insights/script.js"]) expect(re.test(route), route).toBe(false);
+    // Q2393: each App.tsx route has its own rewrite to the shell (unknown paths 404 through api/share).
+    const reaches = (route: string) => spaRewrites.some((r) => sourceToRegExp(r.source).test(route));
+    for (const route of ["/home", "/jobs", "/messages", "/profile", "/jobs/settings"]) expect(reaches(route), route).toBe(true);
+    for (const route of ["/api/share", "/_vercel/insights/script.js"]) expect(reaches(route), route).toBe(false);
   });
 });
 

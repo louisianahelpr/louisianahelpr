@@ -1210,10 +1210,13 @@ function isBrowsePage(url: URL): boolean {
   return !!route && route.kind === "page" && route.id === "browse";
 }
 
-function respond(html: string, cdnCache: string = "public, s-maxage=300, stale-while-revalidate=86400"): Response {
+function respond(html: string, cdnCache: string = "public, s-maxage=300, stale-while-revalidate=86400", status = 200): Response {
   return new Response(html, {
-    status: 200,
+    status,
     headers: {
+      // Q2393: an unknown URL is the same shell (the app renders its Not Found
+      // page) but answers 404 and is never indexed.
+      ...(status === 404 ? { "X-Robots-Tag": "noindex" } : {}),
       "Content-Type": "text/html; charset=utf-8",
       // Browser caching is left to the site-wide `Cache-Control` rule in
       // vercel.json so this response behaves exactly like the static shell.
@@ -1232,6 +1235,9 @@ export default {
     // case of this feature is the status quo, never a broken page.
     try {
       const url = new URL(request.url);
+      // Q2393: vercel.json sends every path App.tsx does not declare here. The
+      // SPA still renders its Not Found page; crawlers see a real 404.
+      if (url.searchParams.get("_og") === "notfound") return respond(absolutiseIconLinks(SHELL_HTML), undefined, 404);
       const meta = await resolveMeta(url);
       const shell = absolutiseIconLinks(SHELL_HTML);
       if (!meta) return respond(shell);
@@ -1255,7 +1261,12 @@ export default {
       // src/test/shareIconLinks.test.ts never looked at this path. The
       // rewrite is pure and idempotent, so degrading still costs a reader
       // nothing but the job-specific preview.
-      return respond(absolutiseIconLinks(SHELL_HTML));
+      return respond(absolutiseIconLinks(SHELL_HTML), undefined, isNotFoundRequest(request) ? 404 : 200);
     }
   },
 };
+
+/** Q2393: the catch-all's rewrite, read without throwing (the catch above uses it). */
+function isNotFoundRequest(request: Request): boolean {
+  return /[?&]_og=notfound(?:&|$)/.test(request.url);
+}

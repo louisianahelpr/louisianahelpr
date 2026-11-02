@@ -5124,6 +5124,38 @@ export type Database = {
           },
         ]
       }
+      helpr_card_fee_debt_deductions: {
+        Row: {
+          created_at: string
+          debt_id: string
+          deducted_cents: number
+          id: string
+          payout_ref: string
+        }
+        Insert: {
+          created_at?: string
+          debt_id: string
+          deducted_cents: number
+          id?: string
+          payout_ref: string
+        }
+        Update: {
+          created_at?: string
+          debt_id?: string
+          deducted_cents?: number
+          id?: string
+          payout_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpr_card_fee_debt_deductions_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "helpr_card_fee_debts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpr_card_fee_debts: {
         Row: {
           card_fee_cents: number
@@ -5161,7 +5193,22 @@ export type Database = {
           remaining_cents?: number
           source?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "helpr_card_fee_debts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpr_card_fee_debts_recurring_visit_payment_id_fkey"
+            columns: ["recurring_visit_payment_id"]
+            isOneToOne: true
+            referencedRelation: "recurring_visit_payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       helpr_delivery_online: {
         Row: {

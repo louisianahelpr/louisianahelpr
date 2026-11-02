@@ -73,7 +73,7 @@ export function shipByWords(iso: string | null | undefined): string | null {
 }
 
 /** Where a shipped order stands, from either read: 0 paid, 1 packed, 2 shipped (accepted scan), 3 delivered. */
-export function shipStep(s: Pick<ShipLabel, "packed_at" | "accepted_at" | "delivered_at"> | null | undefined): number {
+function shipStep(s: Pick<ShipLabel, "packed_at" | "accepted_at" | "delivered_at"> | null | undefined): number {
   if (!s) return 0;
   if (s.delivered_at) return 3;
   if (s.accepted_at) return 2;

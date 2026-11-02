@@ -14,7 +14,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { isLouisianaZip } from "@/lib/shipping/policy";
 
-export const SHIP_SERVICE_NAME: Record<ShipQuote["service"], string> = {
+const SHIP_SERVICE_NAME: Record<ShipQuote["service"], string> = {
   usps_ground_advantage: "USPS Ground Advantage",
   usps_priority: "USPS Priority Mail",
   ups_ground: "UPS Ground",
@@ -31,14 +31,14 @@ const SHIP_RATES_COPY: Record<string, string> = {
   nothing_to_ship: "Nothing from this seller is waiting for checkout.",
 };
 
-export function shipRatesMessage(err: unknown): string {
+function shipRatesMessage(err: unknown): string {
   const m = err instanceof Error ? err.message : "";
   if (Object.prototype.hasOwnProperty.call(SHIP_RATES_COPY, m)) return SHIP_RATES_COPY[m];
   if (/\s/.test(m) && m.endsWith(".")) return m;
   return declutterErrorMessage(err);
 }
 
-export function daysWords(d: number | null): string | null {
+function daysWords(d: number | null): string | null {
   if (d === null || d <= 0) return null;
   return d === 1 ? "about 1 day" : `about ${d} days`;
 }

@@ -17,6 +17,10 @@
  *     (src/test/sectionLoadingHeaderIsSettled.test.tsx);
  *   - ONE h1 while pending.
  *
+ * Q1695 (loading-states refresh 2026-11-02 01:07Z: /posts row 623 -> 641, +18px, both test accounts): the status
+ * row's bones are the loaded chips' row (JOBS_TOOLBAR_ROW, 44px chips), not the old 64px tiles.
+ * @mutate src/components/JobsSectionSkeleton.tsx | <Skeleton key={i} data-status-chip-bone="" className={`h-11 ${w} shrink-0 rounded-full`} /> | <Skeleton key={i} data-status-chip-bone="" className={`h-16 ${w} shrink-0 rounded-2xl`} />
+ * @mutate src/components/JobsSectionSkeleton.tsx |     <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW} aria-hidden> |     <div data-jobs-toolbar="" className="grid gap-2 grid-cols-4" aria-hidden>
  * @mutate src/components/JobsSectionSkeleton.tsx |   if (window.location.pathname.startsWith("/posts")) return "posted"; |
  * @mutate src/components/JobsSectionSkeleton.tsx |       {header}\n      <StatusBoxBones />\n | {header}\n
  * @mutate src/components/JobsSectionSkeleton.tsx |       titleCard={header} | titleCard={<div className="flex flex-col gap-4">{header}<Skeleton className="h-10 w-full rounded-full" aria-hidden /></div>}
@@ -29,6 +33,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 
+import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
+import { CHIP } from "@/components/ui/chipClasses";
 import JobsSectionSkeleton from "@/components/JobsSectionSkeleton";
 
 afterEach(() => {
@@ -47,8 +53,8 @@ function at(url: string) {
   );
 }
 
-/** The four status-box bones (StatusBoxBones: a 4-column grid of h-16 bones). */
-const statusBoxes = (c: HTMLElement) => c.querySelectorAll(".grid.grid-cols-4 > .h-16").length;
+/** The status-chip bones (StatusBoxBones, Q1695: one 46px row of four 44px chip bones, the loaded chips' row). */
+const statusBoxes = (c: HTMLElement) => c.querySelectorAll("[data-jobs-toolbar] [data-status-chip-bone].h-11").length;
 /** The old phone "Search jobs" row's h-10 pill (gone since owner 2026-10-28): no frame draws it. */
 const searchRow = (c: HTMLElement) => c.querySelectorAll(".h-10.w-full.rounded-full").length;
 
@@ -81,5 +87,19 @@ describe("the placeholder's header is the loaded header's shape", () => {
     expect(bar!.querySelectorAll(":scope > span"), "the bell and the photo").toHaveLength(2);
     expect(container.querySelectorAll(".h-11.w-full"), "the 44px tabs row").toHaveLength(1);
     expect(container.querySelectorAll("h1")).toHaveLength(1);
+  });
+});
+
+describe("Q1695: the status row's bones are the loaded chips' row", () => {
+  it("one JOBS_TOOLBAR_ROW row of 44px chip bones, the height the loaded StatusBoxes chips take (CHIP min-h-11)", () => {
+    const { container } = at("/posts");
+    const row = container.querySelector("[data-jobs-toolbar]");
+    expect(row).not.toBeNull();
+    expect(row!.className).toBe(`${JOBS_TOOLBAR_ROW}`);
+    const bones = [...row!.querySelectorAll("[data-status-chip-bone]")];
+    expect(bones.length).toBe(4);
+    for (const b of bones) expect(b.className.split(/\s+/)).toContain("h-11");
+    expect(CHIP.split(/\s+/)).toContain("min-h-11");
+    expect(container.querySelectorAll(".h-16").length).toBe(0);
   });
 });

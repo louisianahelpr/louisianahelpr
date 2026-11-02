@@ -820,7 +820,18 @@ export async function releaseCardHold(deps: HoldDeps, jobId: string): Promise<Re
   // missed "not charged" notice is retried by the next sweep (the cancel above
   // is idempotent).
   if (!(await notifyPosterOnce(db, job, hold, "released"))) return "released_untold";
-  await updateHold(db, jobId, { state: "released" }, [hold.state]);
+  try {
+    await updateHold(db, jobId, { state: "released" }, [hold.state]);
+  } catch (e) {
+    // Q2531: the poster's cancel_escrow and card-hold-sweep release the same
+    // hold at once (both read it 'authorized'; the Stripe cancel is keyed, so
+    // one authorization is cancelled once). The loser's pinned update matches
+    // 0 rows. A hold that now reads 'released' is the other run's finished
+    // work, not a defect; anything else still throws.
+    const after = await readHold(db, jobId);
+    if (after?.state === "released") return "already_gone";
+    throw e;
+  }
   return "released";
 }
 

@@ -55,6 +55,7 @@ import { useKeepUp } from "./KeepUpRow";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS } from "./DeclutterSellPhotos";
 import { coverFirst, useSellAiDraft, withCoverFile } from "./SellAiDraft";
+import { moveTo } from "./heldPhotoReorder";
 import { useLastListingSetup } from "./SellLastSetup";
 import { useSavedPickup } from "./useSavedPickup";
 import { FULL_LISTING_COPY } from "@/lib/declutter/photoRules";
@@ -141,6 +142,12 @@ export function useSellFlowState(urlItemId: string | null) {
     coverChosen.current = true;
     setCoverUndo(null);
     setHeld((h) => coverFirst(h, h[i]));
+  }, []);
+  // POST-S9: the seller dragged a photo to a new place: their order stands, as a Make cover does.
+  const reorderHeld = useCallback((from: number, to: number) => {
+    coverChosen.current = true;
+    setCoverUndo(null);
+    setHeld((h) => moveTo(h, from, to));
   }, []);
   const undoCover = () => {
     coverChosen.current = true;
@@ -571,7 +578,7 @@ export function useSellFlowState(urlItemId: string | null) {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, place, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
     aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, offersWanted, setOffersWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
-    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, coverUndo, undoCover,
+    floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, reorderHeld, coverUndo, undoCover,
   };
 }
 

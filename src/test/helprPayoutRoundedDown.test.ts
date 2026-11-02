@@ -73,14 +73,14 @@ const NOT_A_JOB_PAYOUT: Record<string, string> = {
   "supabase/functions/_shared/heldTipRepay.ts":
     "re-pays exactly the tip cents a payout hold reversed (Q1222); a tip goes to the Helpr in full, never rounded",
   "supabase/functions/declutter-money/index.ts":
-    "a Declutter SELLER's item price minus their card-fee debt (row 93, B53; exact cents, sellers are not rounded), and (slice 5) a Helpr's DELIVERY pay, sent as its SQL payout row's own amount_cents (helpr_task_payouts), which SQL already rounds DOWN to the whole dollar through helpr_payout_round_down_cents (owner 2026-10-21; src/test/helprDeliveryPayoutRoundedDown.test.ts); neither is a job payout",
+    "a Declutter SELLER's item price minus their card-fee debt (row 93, B53; exact cents, sellers are not rounded), and (slice 5) a Helpr's DELIVERY pay, sent as its SQL payout row's own amount_cents (helpr_task_payouts), which SQL already rounds DOWN to the whole dollar through helpr_payout_round_down_cents (owner 2026-10-21; src/test/helprDeliveryPayoutRoundedDown.test.ts); and (manager mode, 20261101230509) a seller's MANAGER's share, sent as declutter_manager_payouts.amount_cents (exact cents, split off the seller's item money; the manager is not a Helpr); none is a job payout",
 };
 
 /** EXACT per-file count of `transfers.create(` (comments blanked). */
 const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
   "supabase/functions/cash-out-credits/index.ts": 1,
   "supabase/functions/create-payment/index.ts": 1,
-  "supabase/functions/declutter-money/index.ts": 3, // + Shops M2 shop payouts (20261018211820)
+  "supabase/functions/declutter-money/index.ts": 4, // + Shops M2 shop payouts (20261018211820); + the Declutter manager's share (20261101230509, owner 11-01 manager mode)
   "supabase/functions/execute-dispute-split/index.ts": 1,
   "supabase/functions/instant-payout/index.ts": 1,
   "supabase/functions/process-scheduled-payouts/index.ts": 1,
@@ -123,7 +123,7 @@ describe("Helpr payouts are whole dollars, rounded down (Q236)", () => {
       if (n > 0) found[f] = n;
     }
     expect(found).toEqual(EXPECTED_TRANSFER_CALLS);
-    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(14);
+    expect(Object.values(found).reduce((a, b) => a + b, 0)).toBe(15); // 15: + the Declutter manager's share (20261101230509)
     // Every file is classified exactly once.
     for (const f of Object.keys(found)) {
       const classes = [f in HELPR_PAYOUT_SITES, f in NOT_A_JOB_PAYOUT].filter(Boolean).length;

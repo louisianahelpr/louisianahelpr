@@ -66,6 +66,11 @@ const migGated = [...(MIG.match(/FOREACH v_pair IN ARRAY ARRAY\[([\s\S]*?)\]/)?.
 // @mutate scripts/ci/ban-gate-coverage.sql |   ('rpc_settle_dispute_without_payment', 'admin-only (body checks has_role admin)'),\n |
 // @mutate supabase/migrations/20260923185224_ban_enforcement_everywhere.sql | NEW.user_id::text, true); | NEW.user_id::text, false);
 // @mutate scripts/ci/ban-gate-coverage.sql | ('helpr_set_vehicle', 'Declutter vehicle match | ('helpr_set_vehicle_x', 'Declutter vehicle match
+// Lead 11-01 6:16 PM: the manager approve / send back / set parts RPCs are gated; end is exempt for safety.
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | approve a draft (lead 11-01 ban gate).\n  IF public.is_caller_banned() THEN | approve a draft (lead 11-01 ban gate).\n  IF false THEN
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | send a draft back (lead 11-01 ban gate).\n  IF public.is_caller_banned() THEN | send a draft back (lead 11-01 ban gate).\n  IF false THEN
+// @mutate supabase/migrations/20261101181005_declutter_manager_mode.sql | (ending access stays open: _end).\n  IF public.is_caller_banned() THEN | (ending access stays open: _end).\n  IF false THEN
+// @mutate scripts/ci/ban-gate-coverage.sql | ('declutter_manager_end', 'ending | ('declutter_manager_end_x', 'ending
 
 // RPCs a migration NEWER than the snapshot grants to authenticated, whose
 // latest body does not call is_caller_banned(). The snapshot alone could not

@@ -175,6 +175,9 @@ const NARROWED_PARTY_CALLS = [
   'declutter-money/index.ts: const resolved = mode ? { mode, stripe: modes.clientFor(mode) } : await modes.clientForParties([p.buyer_id, p.seller_id], "payout", [p.seller_id]);',
   'declutter-money/index.ts: const { stripe, mode } = await modes.clientForParties([p.buyer_id, p.seller_id], "payout", [p.seller_id]);',
   'declutter-money/index.ts: const { stripe, mode } = await modes.clientForParties([h.customer_id, h.pickup_contact_id, h.helpr_id], "payout", [h.helpr_id]);',
+  // Manager mode (20261101230509): the manager's share is paid to the MANAGER, so the payee is the manager, as the
+  // seller's payout above names the seller.
+  'declutter-money/index.ts: const { stripe, mode } = await modes.clientForParties([p.buyer_id, p.seller_id, p.manager_id], "payout", [p.manager_id]);',
 ];
 const NARROW_CALL = /\b(?:modeForParties|clientForParties)\(\s*\[[^\]]*\]\s*,\s*[^,()]+,\s*([^)]*)\)|\bmustBeEnrolled\s*:\s*([^,}]+)/g;
 const narrowedCalls: string[] = [];

@@ -19,6 +19,11 @@
  * @mutate src/lib/seriesDates.ts |       if (!holder && bookedTo && input.viewer && bookedTo === input.viewer) { |       if (false) {
  * @mutate src/lib/seriesDates.ts |     .map((v) => ({ date: v.date_needed as string, helper_id: (v.helper_id as string \| null) ?? null })); |     .map((v) => ({ date: v.date_needed as string, helper_id: null }));
  * @mutate src/components/series/SeriesDatesPanel.tsx |               <ul>{mine.map((d) => row(d, !d.booked))}</ul> |               <ul>{mine.map((d) => row(d, true))}</ul>
+ * @mutate src/components/series/SeriesDatesPanel.tsx |     {step && <NextStep value={step} className="!text-ds-14 mb-1" />} |
+ * @mutate src/components/series/SeriesDatesPanel.tsx |   const step: NextStepValue \| null = !nextStep |   const step: NextStepValue \| null = true
+ * A3-44 (audit 11-01): on the job page (nextStep), the open dates are a next step: the Helpr "Next: pick the dates
+ * you'll take · 2 open", the poster "Next: find a Helpr for the open visits · 2 still need a Helpr". Never on a card,
+ * which has its own next-step line.
  * @mutate src/components/series/SeriesDatesPanel.tsx |       : `${mine.length} yours${takeable.length ? ` · ${takeable.length} open` : ""}`; |       : `${mine.length} upcoming dates are yours${takeable.length ? ` · ${takeable.length} open` : ""}`;
  *
  * A3-43 (audit 11-01): the standing Helpr's own BOOKED visit (its own job row, helper_id = the viewer, no hold row)
@@ -181,6 +186,34 @@ describe("SeriesDatesPanel", () => {
     expect(screen.getByText("Yours · booked")).toBeTruthy();
     expect(screen.queryByRole("checkbox", { name: "Wed, Sep 9" })).toBeNull();
     expect(screen.getByRole("checkbox", { name: "Wed, Sep 16" })).toBeTruthy();
+  });
+
+  it("A3-44: on the job page, the Helpr's next step is picking the open dates; never on a card", async () => {
+    tables.value = {
+      series_visit_holds: { data: [], error: null },
+      recurring_visit_releases: { data: [], error: null },
+      series_date_offers: { data: [], error: null },
+      jobs: { data: [{ date_needed: "2026-09-09", status: "accepted", helper_id: ME }], error: null },
+    };
+    const first = renderPanel({ firstHelpr: ME, nextStep: true });
+    await screen.findByRole("button", { name: /^Visit dates · 1 yours · 2 open$/ });
+    expect(document.querySelector('[data-next-step="you"]')?.textContent).toBe("Next: pick the dates you'll take · 2 open");
+    first.unmount();
+    renderPanel({ firstHelpr: ME });
+    await screen.findByRole("button", { name: /^Visit dates · 1 yours · 2 open$/ });
+    expect(document.querySelector("[data-next-step]")).toBeNull();
+  });
+
+  it("A3-44: on the job page, the poster's next step is finding a Helpr for the open visits", async () => {
+    tables.value = {
+      series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: OTHER }], error: null },
+      recurring_visit_releases: { data: [], error: null },
+      series_date_offers: { data: [], error: null },
+      jobs: { data: [], error: null },
+    };
+    renderPanel({ isPoster: true, userId: "poster-1", nextStep: true });
+    await screen.findByRole("button", { name: /1 of 3 upcoming dates have a Helpr · 2 open/ });
+    expect(document.querySelector('[data-next-step="you"]')?.textContent).toBe("Next: find a Helpr for the open visits · 2 still need a Helpr");
   });
 
   it("never offers a Helpr the date they gave up themselves", async () => {

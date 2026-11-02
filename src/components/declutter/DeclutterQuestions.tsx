@@ -18,6 +18,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { answerQuestion, askQuestion, fetchMyQuestionIds, fetchQuestions, fetchSellerCard, type DeclutterQuestion } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { useManagerLabels } from "@/lib/declutter/managerMode";
 import { DeclutterSuggestedReply } from "./DeclutterSuggestedReply";
 
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
@@ -49,6 +50,7 @@ const field =
 function QuestionCard({
   q,
   sellerName,
+  managerLabel = null,
   onAnswer,
   mine,
   canReport,
@@ -56,6 +58,8 @@ function QuestionCard({
 }: {
   q: DeclutterQuestion;
   sellerName: string | null;
+  /** Manager mode: "Dana (helping Kaci)" when the seller's manager wrote the answer. */
+  managerLabel?: string | null;
   onAnswer: (() => void) | null;
   /** AUD31-15: the viewer asked it (declutter_my_question_ids); only the asker is ever told. */
   mine: boolean;
@@ -79,7 +83,8 @@ function QuestionCard({
           <p className="text-ds-13 text-muted-foreground">{mine ? "Your question" : "Asked by a neighbor"} · {asked}</p>
           <p className="mt-1 border-l-2 border-[hsl(var(--primary)/0.4)] pl-3 text-ds-15 [overflow-wrap:anywhere]" data-answer="">
             {q.answer}
-            {sellerName ? <span className="text-muted-foreground"> — {sellerName}</span> : null}
+            {managerLabel ? <span className="text-muted-foreground" data-manager-label=""> — {managerLabel}</span>
+              : sellerName ? <span className="text-muted-foreground"> — {sellerName}</span> : null}
           </p>
         </>
       ) : (
@@ -220,6 +225,7 @@ export function DeclutterQuestions({
   });
   const askError = ask.isError ? declutterErrorMessage(ask.error) : null;
   const list = questions.data ?? [];
+  const labels = useManagerLabels("answer", list.filter((x) => x.answer).map((x) => x.id));
   // AUD31-28: Selling's "Questions to answer" links here with #declutter-questions; once the questions are in, the
   // page scrolls to them (the item page opened at its top, the question ~2 screens down at 375).
   const loaded = questions.isSuccess;
@@ -242,7 +248,7 @@ export function DeclutterQuestions({
       ) : (
         <ul className="space-y-2">
           {list.map((q) => (
-            <QuestionCard key={q.id} q={q} sellerName={sellerName} onAnswer={isSeller ? () => setAnswering(q) : null} mine={!!myIds.data?.has(q.id)} canReport={!!user} isSeller={isSeller} />
+            <QuestionCard key={q.id} q={q} sellerName={sellerName} managerLabel={labels.data?.get(q.id) ?? null} onAnswer={isSeller ? () => setAnswering(q) : null} mine={!!myIds.data?.has(q.id)} canReport={!!user} isSeller={isSeller} />
           ))}
         </ul>
       )}

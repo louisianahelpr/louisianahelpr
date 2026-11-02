@@ -148,6 +148,22 @@ export async function fetchManagerLabels(kind: "answer" | "order_talk", ids: str
   return new Map(((data ?? []) as { message_id: string; label: string }[]).map((r) => [r.message_id, r.label]));
 }
 
+/**
+ * "Dana (helping Kaci)" for each of these answers (question ids) or order-chat messages a manager wrote, read only
+ * while the switch is on for the viewer (no request otherwise). A failed read leaves the labels off: the message
+ * still shows, under the seller's name as before.
+ */
+export function useManagerLabels(kind: "answer" | "order_talk", ids: string[]) {
+  const on = useFeature("declutter_manager");
+  const sorted = [...ids].sort();
+  return useQuery({
+    queryKey: ["declutter-manager-labels", kind, sorted],
+    queryFn: () => fetchManagerLabels(kind, sorted),
+    enabled: on && sorted.length > 0,
+    staleTime: 60_000,
+  });
+}
+
 /** What the manager sees of the seller (only the parts she turned on are filled). */
 export interface ManagedOverview {
   grant_id: string;

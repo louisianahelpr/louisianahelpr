@@ -8,10 +8,13 @@
  *   2. ?order_talk=<order id> opens it; the history shows oldest first as "You" and "The seller", never a name.
  *   3. Send posts the trimmed words; a refused message shows the server's own words.
  *   4. An ended chat keeps its history and has no message box and no Send.
+ *   5. Manager mode: a message the seller's manager wrote says "Dana (helping Kaci)", to the buyer and to the seller.
  *
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const orderId = params.get("order_talk"); |   const orderId = params.get("talk");
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {side === "buyer" ? "Message the seller" : "Message the buyer"} | {"Message the seller"}
- * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {m.mine ? "You" : `The ${other}`} | {m.mine ? `The ${other}` : "You"}
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx | (m.mine ? "You" : `The ${other}`) | (m.mine ? `The ${other}` : "You")
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx | {labels.data?.get(m.id) ?? (m.mine ? "You" | {(m.mine ? "You"
+ * @mutate src/components/declutter/DeclutterOrderTalk.tsx |   const labels = useManagerLabels("order_talk", (talk.data?.messages ?? []).map((m) => m.id)); |   const labels = useManagerLabels("order_talk", []);
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     mutationFn: () => sendOrderMessage(orderId, draft.trim()), |     mutationFn: () => sendOrderMessage(orderId, draft),
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |     onError: (err) => setRefusal(declutterErrorMessage(err)), |     onError: () => setRefusal("Something went wrong."),
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |             {open && (\n              <form |             {(\n              <form
@@ -37,6 +40,15 @@ const state = {
 
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
+// Manager labels: the real hook is gated on the switch and reads declutter_manager_message_labels; here, the ids it
+// was asked for and the answer it gives.
+const labelState = vi.hoisted(() => ({ asked: [] as string[], map: new Map<string, string>() }));
+vi.mock("@/lib/declutter/managerMode", () => ({
+  useManagerLabels: (_kind: string, ids: string[]) => {
+    labelState.asked = ids;
+    return { data: new Map([...labelState.map].filter(([k]) => ids.includes(k))) };
+  },
+}));
 vi.mock("@/lib/declutter/orderTalk", () => ({
   MY_ORDER_TALKS_KEY: ["declutter", "my-order-talks"],
   fetchOrderTalk: async (id: string) => ({
@@ -75,6 +87,8 @@ function renderAt(path: string, ui: React.ReactNode) {
 }
 
 beforeEach(() => {
+  labelState.asked = [];
+  labelState.map = new Map();
   state.side = "buyer";
   state.open = true;
   state.sent = [];
@@ -103,6 +117,16 @@ describe("D2-1: the paid-order chat", () => {
     const items = within(list).getAllByRole("listitem").map((li) => li.textContent ?? "");
     expect(items[0]).toMatch(/^You · .*Is Saturday ok\?$/);
     expect(items[1]).toMatch(/^The seller · .*Yes, after 9\.$/);
+  });
+
+  it("manager mode: a message the manager wrote says who wrote it, to the buyer and to the seller (never You)", async () => {
+    labelState.map = new Map([["m2", "Dana (helping Kaci)"], ["m1", "Dana (helping Kaci)"]]);
+    renderAt(`/declutter?order_talk=${ORDER}`, <OrderTalkFromLink />);
+    const list = await screen.findByRole("list", { name: "Messages" });
+    const items = within(list).getAllByRole("listitem").map((li) => li.textContent ?? "");
+    expect(labelState.asked).toEqual(["m1", "m2"]);
+    expect(items[0]).toMatch(/^Dana \(helping Kaci\) · .*Is Saturday ok\?$/);
+    expect(items[1]).toMatch(/^Dana \(helping Kaci\) · .*Yes, after 9\.$/);
   });
 
   it("Send posts the trimmed words; a refusal shows the server's words", async () => {

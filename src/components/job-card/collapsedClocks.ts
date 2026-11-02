@@ -1,5 +1,6 @@
 import { confirmationOpensClock } from "./confirmationOpensClock";
 import { jobStartTarget, type CountdownClock } from "./CountdownRows";
+import { jobDayStart } from "@/lib/jobDate";
 
 /**
  * The clocks a COLLAPSED booked card draws under its status line, beside the
@@ -16,13 +17,19 @@ import { jobStartTarget, type CountdownClock } from "./CountdownRows";
  */
 const PAST_START_DROP_MS = 12 * 60 * 60 * 1000;
 export function collapsedClocks(
-  job: { date_needed: string | null; start_time: string | null; status: string; helper_confirmed_at?: string | null },
+  job: { date_needed: string | null; start_time: string | null; status: string; helper_confirmed_at?: string | null; helper_on_the_way_at?: string | null },
   isOwner: boolean,
 ): CountdownClock[] {
   if (!job.date_needed) return [];
+  // Q2589 (Jobs audit 1102b row 3): once the Helpr has set out, "21h 0m until the job starts" under "Eli is on the
+  // way" says the job starts tomorrow-ish. No start clock then.
+  if (job.helper_on_the_way_at) return [];
   const opens = job.helper_confirmed_at ? confirmationOpensClock(job.date_needed, job.status, isOwner, undefined, job.start_time ?? null) : null;
   if (opens) return [{ ...opens.clock, farLabel: "Confirm opens" }];
   const start = jobStartTarget(job.date_needed, job.start_time);
+  // Q2588/Q2589: a no-start-time job is "any time that day" (anyTimeThatDay.ts): on its day there is nothing to count
+  // down to (the clock ran to midnight, "20h 57m until the job starts" at 3 AM); the tracker line says "any time".
+  if (!job.start_time && Date.now() >= jobDayStart(job.date_needed).getTime()) return [];
   if (!start || Date.now() - start.getTime() > PAST_START_DROP_MS) return [];
   return [{ id: "start", at: start, text: "until the job starts", expiredText: "Job time has arrived", farLabel: "Starts" }];
 }

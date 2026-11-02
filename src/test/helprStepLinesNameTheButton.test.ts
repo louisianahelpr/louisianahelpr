@@ -14,7 +14,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
-import { STATUSES } from "@/components/job-card/trackerSteps";
+import { STATUSES } from "@/components/JobTracking";
 import { pairLabel } from "@/components/ui/pairLabel";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";

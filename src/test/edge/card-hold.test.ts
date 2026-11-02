@@ -654,6 +654,26 @@ describe("card hold at posting (Q2399)", () => {
       expect(updates("profiles").some((w) => (w.payload as Record<string, unknown>).onboarding_fee_paid === true)).toBe(false);
     });
 
+    // Q2083 (lead review 11-02): a held job taxed by its answer stores the rate over labor + the taxed bonus.
+    // @mutate supabase/functions/stripe-webhook/handlers/cardHoldCheckout.ts | .select("id, budget, category, tax_kind, customer_fee_amount, | .select("id, budget, category, customer_fee_amount,
+    it("Q2083: a held job taxed by its answer (cleaning + item_repair, $100 + $50 bonus) stores 1568 / 15000", async () => {
+      const job = { id: JOB, budget: 100, category: "cleaning", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 50,
+        title: "Fix the mower", customer_id: POSTER.id, helper_id: null, helper_confirmed_at: null };
+      // The answer arrives only for a select that names tax_kind.
+      scenario.reads.jobs = { rows: [job], selectOverrides: [{ includes: "tax_kind", result: { rows: [{ ...job, tax_kind: "item_repair" }] } }] };
+      scenario.reads.job_card_holds = { rows: [holdRow({ notified_state: null, amount_cents: 16_768, onboarding_fee_cents: 0 })] };
+      scenario.writeSelectRows = { jobs: [{ id: JOB, customer_id: POSTER.id, title: "Fix the mower", helper_id: null, helper_confirmed_at: null }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_hold", status: "requires_capture", amount: 16_768, customer: "cus_1", payment_method: "pm_1", metadata: { job_id: JOB },
+        latest_charge: { payment_method_details: { card: { capture_before: Math.floor(Date.now() / 1000) + 6 * 86_400 } } },
+      });
+      const res = await deliver(session({ total_details: { amount_tax: 1568 } }));
+      expect(res.status).toBe(200);
+      const held = updates("jobs").find((w) => (w.payload as Record<string, unknown>).payment_status === "held")?.payload as Record<string, unknown>;
+      expect(held?.sales_tax_amount).toBe(15.68);
+      expect(Number(held?.sales_tax_rate)).toBeCloseTo(0.1045, 3);
+    });
+
     it("a bank payment on the hold checkout (captured, not held) takes today's path", async () => {
       scenario.reads.jobs = { rows: [{ id: JOB, budget: 40, category: "yard_work", is_seed: false }] };
       scenario.writeSelectRows = { jobs: [{ id: JOB }] };

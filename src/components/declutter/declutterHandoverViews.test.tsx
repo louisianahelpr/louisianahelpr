@@ -146,6 +146,7 @@ vi.mock("./SellerDeliveryOrder", () => ({
 import { MemoryRouter } from "react-router-dom";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import { pickupDays } from "@/lib/declutter/pickupSlots";
+import { HANDOVER_TITLE } from "./handoverCopy";
 
 function show(cart: unknown[]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -325,15 +326,19 @@ describe("Declutter slice 4: paid-order cards", () => {
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("book"));
     unmount();
     show([line({ my_side: "seller" })]);
-    expect(await screen.findByText(/Waiting for the buyer to book a pickup time/)).toBeInTheDocument();
+    // DB-LOW wording (Buying walk 11-01, seller side): the wait is said ONCE (the step line); the panel adds the deadline.
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-book-deadline="">The buyer has 7 days from paying to book.</p> | data-book-deadline="">Waiting for the buyer to book a pickup time (within 7 days of paying).</p>
+    expect(await screen.findByText("The buyer has 7 days from paying to book.")).toBeInTheDocument();
+    expect(screen.getAllByText(/Waiting (on|for) the buyer to book/)).toHaveLength(1);
     expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
   });
 
-  // B48 live check 2026-10-29: a safe-spot meetup's seller card said "book a pickup time".
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "meetup" ? "a time to meet" : "a pickup time"} | a pickup time
+  // B48 live check 2026-10-29: a safe-spot meetup's seller card said "book a pickup time". The panel line no longer names
+  // the booking at all (DB-LOW); the step line says "book a time to meet".
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | data-book-deadline="">The buyer has 7 days from paying to book.</p> | data-book-deadline="">The buyer has 7 days from paying to book a pickup time.</p>
   it("meetup: the seller waits for the buyer to book a time to meet", async () => {
     show([line({ my_side: "seller", handover: "meetup" })]);
-    expect(await screen.findByText(/Waiting for the buyer to book a time to meet/)).toBeInTheDocument();
+    expect(await screen.findByText("The buyer has 7 days from paying to book.")).toBeInTheDocument();
     expect(screen.queryByText(/book a pickup time/)).toBeNull();
   });
 
@@ -1745,5 +1750,30 @@ describe("BUY-30: a notice's ?order= opens that order's card", () => {
     expect(await screen.findByText("Sale A")).toBeInTheDocument();
     expect(screen.queryByText("Sale B")).toBeNull();
     expect(document.querySelector("[data-linked-order]")).toBeNull();
+  });
+});
+
+describe("DB-LOW wording (Buying walk 11-01): the order card names the handover as checkout does", () => {
+  beforeEach(() => {
+    state.calls = [];
+    state.payouts = [];
+    state.handover = null;
+    state.bookings = [];
+  });
+
+  // The cart's "How you'll get it" just above calls the door handover "Meet at the seller's home" (HANDOVER_TITLE, as
+  // on the item page); the paid order card under it said "Pickup at the seller's home" for the same choice.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |             {handoverTitle(order.handover)}{order.side | {order.handover === "porch" ? "Porch pickup" : "Pickup at the seller's home"}{order.side
+  it("every handover on a paid order card reads exactly its checkout title", async () => {
+    const heads: string[] = [];
+    for (const h of ["pickup_home", "porch", "delivery", "seller_delivery", "meetup"] as const) {
+      const { unmount } = show([line({ handover: h })]);
+      await screen.findByText("Oak chair");
+      heads.push(document.querySelector("[data-order-head] p + p")?.textContent ?? "");
+      unmount();
+    }
+    expect(heads).toEqual(["pickup_home", "porch", "delivery", "seller_delivery", "meetup"].map((h) => HANDOVER_TITLE[h as keyof typeof HANDOVER_TITLE]));
+    expect(heads[0]).toBe("Meet at the seller's home");
+    expect(heads.length).toBeGreaterThan(4);
   });
 });

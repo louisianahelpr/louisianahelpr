@@ -21,3 +21,12 @@ export const HANDOVER_WORDS: Record<Handover, string> = {
 // BUY-14 (Declutter buying audit 10-30): the porch choice is "Porch pickup" here, as on the item page and in every
 // notice; its line says the seller may use another safe place. "Porch or safe place" used to be its title while seller
 // delivery was open. Guard: declutterTradeViews.test.tsx "seller delivery (20261027153244)".
+
+/**
+ * DB-LOW wording (Buying walk 11-01): a paid order card names its handover with the checkout's own title, so the same
+ * choice never reads "Meet at the seller's home" in the cart and "Pickup at the seller's home" on the order under it.
+ * An unknown value reads as the door pickup, as the card's old fallback did.
+ */
+export function handoverTitle(handover: string | null): string {
+  return (HANDOVER_TITLE as Record<string, string>)[handover ?? ""] ?? HANDOVER_TITLE.pickup_home;
+}

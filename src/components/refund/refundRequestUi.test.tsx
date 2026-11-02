@@ -14,6 +14,11 @@
  * @mutate src/lib/refundRequests/index.ts |     p_amount_cents: (scope === "all" ? null : amountCents) as number, |     p_amount_cents: amountCents as number,
  * @mutate src/components/refund/RefundAnswerDialog.tsx |     ...(finishOffered |     ...(true
  * @mutate src/components/refund/RefundsSwitch.tsx | const RefundsOnContext = createContext(false); | const RefundsOnContext = createContext(true);
+ *
+ * A3-21 (audit 11-01): the panel used only its own sentence. Now the shared next-step line leads it: the asked side
+ * "Next: answer Lexi L.'s refund request · by <answer_by>", the asker "Waiting on Jolie T. to answer · by <answer_by>".
+ * @mutate src/components/refund/RefundRequestPanel.tsx |       <NextStep value={step} className="!text-ds-13" /> |
+ * @mutate src/components/refund/RefundRequestPanel.tsx |       ? { who: "them", text: `Waiting on ${named ?? "your Helpr"} to answer`, by } |       ? null
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
@@ -175,6 +180,9 @@ describe("the panel on the job card", () => {
       </RefundsSwitchProvider>,
     );
     expect(await screen.findByText(/Lexi L\. asked for/)).toBeTruthy();
+    const step = document.querySelector("[data-next-step]");
+    expect(step?.getAttribute("data-next-step")).toBe("you");
+    expect(step?.textContent).toMatch(/^Next: answer Lexi L\.'s refund request · by \w{3}, /);
     expect(screen.getByText("$20").className).toContain("burnt-sienna");
     expect(screen.getByRole("button", { name: "Answer" })).toBeTruthy();
   });
@@ -188,6 +196,9 @@ describe("the panel on the job card", () => {
       </RefundsOnContext.Provider>,
     );
     expect(await screen.findByText(/You asked Jolie T\. for/)).toBeTruthy();
+    const step = document.querySelector("[data-next-step]");
+    expect(step?.getAttribute("data-next-step")).toBe("them");
+    expect(step?.textContent).toMatch(/^Waiting on Jolie T\. to answer · by \w{3}, /);
     expect(screen.queryByRole("button", { name: "Answer" })).toBeNull();
     // The poster can take a waiting request back.
     rpc.mockResolvedValue({ data: { status: "closed" }, error: null });

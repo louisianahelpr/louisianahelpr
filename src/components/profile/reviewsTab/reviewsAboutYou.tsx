@@ -5,6 +5,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ReviewStars } from "@/components/profile/reviewCard";
+import { Button } from "@/components/ui/button";
 import { formatTimestamp } from "@/lib/format";
 import { reviewTagLabel } from "@/lib/declutter/reviewTags";
 import type { ProfileReview } from "@/hooks/useProfileTabData";
@@ -199,9 +200,9 @@ export function AboutYouRowCard({ row }: { row: AboutYouRow }) {
       )}
       {row.declutterReviewId && (
         <div className="flex justify-end">
-          <button type="button" className="min-h-11 pl-4 font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }} onClick={() => setReporting(true)} data-report="declutter_review">
+          <Button type="button" variant="ghost" size="sm" className="pl-4 pr-0 font-sans text-ds-13 font-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }} onClick={() => setReporting(true)} data-report="declutter_review">
             Report
-          </button>
+          </Button>
         </div>
       )}
       {reporting && row.declutterReviewId && (

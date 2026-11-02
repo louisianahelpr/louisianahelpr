@@ -9,7 +9,12 @@
  * defect. A transport failure now gets the connection line and no report; a
  * real server refusal still reports.
  *
+ * Lead review 11-02: the transport failure is still COUNTED, as a localOnly
+ * error_logs row (report() then skips Sentry and PostHog, proven by
+ * src/lib/heldSignedInRequestStaysLocal.test.ts), so no alert-ledger item.
+ *
  * @mutate src/components/identity/IdentityCheckSheet.tsx |         if (isNetworkFailure(error)) { |         if (false) {
+ * @mutate src/components/identity/IdentityCheckSheet.tsx |             localOnly: true, |             localOnly: false,
  */
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -101,13 +106,18 @@ describe("Q2316: a dropped connection while starting the ID check is not reporte
     toastError.mockClear();
   });
 
-  it("FunctionsFetchError: the connection line, no report, nothing opened", async () => {
+  it("FunctionsFetchError: the connection line, one localOnly count (never Sentry), nothing opened", async () => {
     state.invoke = vi.fn(async () => fetchFailure());
     await openSheet();
     await act(async () => { fireEvent.click(screen.getByTestId("identity-check-primary")); });
     expect(state.invoke).toHaveBeenCalledTimes(1);
     expect(toastError).toHaveBeenCalledWith(CONNECTION_TROUBLE_COPY);
-    expect(reportSpy).not.toHaveBeenCalled();
+    expect(reportSpy).toHaveBeenCalledTimes(1);
+    const [err, opts] = reportSpy.mock.calls[0] as [Error, { localOnly?: boolean; severity?: string; tags?: Record<string, unknown> }];
+    expect(err.name).toBe("FunctionsFetchError");
+    expect(opts.localOnly).toBe(true);
+    expect(opts.severity).toBe("warning");
+    expect(opts.tags?.source).toBe("IdentityCheckSheet.startNetworkFailure");
     expect(state.opened).toEqual([]);
   });
 
@@ -117,6 +127,8 @@ describe("Q2316: a dropped connection while starting the ID check is not reporte
     await act(async () => { fireEvent.click(screen.getByTestId("identity-check-primary")); });
     expect(reportSpy).toHaveBeenCalledTimes(1);
     expect(String((reportSpy.mock.calls[0][0] as Error).message)).toBe("We couldn't start the ID check");
+    // A server failure is a real defect: it goes to Sentry (not localOnly).
+    expect((reportSpy.mock.calls[0][1] as { localOnly?: boolean } | undefined)?.localOnly).not.toBe(true);
     expect(toastError).toHaveBeenCalledTimes(1);
   });
 });

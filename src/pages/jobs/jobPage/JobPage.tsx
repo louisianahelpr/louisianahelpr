@@ -135,7 +135,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const helperId = isPoster ? q.data?.job.helper_id ?? (offerPending ? offerTarget.data ?? null : null) : null;
   const helperCard = useQuery({ queryKey: ["declutter", "seller-card", helperId], queryFn: () => fetchSellerCard(helperId!), enabled: !!helperId });
   const helperFirst = (helperCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
-  // Q2669: the Helpr who cancelled (their closed application), named as the page names people ("Eli cancelled ...").
+  // Q2693: the Helpr who cancelled (their closed application), named as the page names people ("Eli cancelled ...").
   const cancelledHelprId = isPoster && q.data?.job.status === "open" ? applicants.data?.helprCancelled?.helperId ?? null : null;
   const cancelledHelprCard = useQuery({ queryKey: ["declutter", "seller-card", cancelledHelprId], queryFn: () => fetchSellerCard(cancelledHelprId!), enabled: !!cancelledHelprId });
   const cancelledHelprFirst = (cancelledHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
@@ -324,7 +324,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // JA-27: a no-show put this job back up (the closed application's time); null when there was none.
   const noShowAt = isPoster && open ? applicants.data?.noShowAt ?? null : null;
   const noShowRepostedOn = noShowAt === null ? null : noShowAt ? formatJobDate(noShowAt.slice(0, 10)) : "";
-  // Q2669 (audit 1102e row 2): the hired Helpr cancelled and the job went back up: the poster's line says who and when.
+  // Q2693 (audit 1102e row 2): the hired Helpr cancelled and the job went back up: the poster's line says who and when.
   const cancelledRow = isPoster && open && !job.helper_id ? applicants.data?.helprCancelled ?? null : null;
   const helprCancelled = cancelledRow ? { name: cancelledHelprFirst, at: cancelledRow.at } : null;
   // The review window, IN the next-step line (owner 11-01: "Next: approve Yusef's work · 23h 52m left, then Helpr

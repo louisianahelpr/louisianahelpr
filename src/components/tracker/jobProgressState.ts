@@ -65,7 +65,7 @@ export type ProgressJob = {
   /** Who posted it and when it was cancelled: the cancelled line says who and when (JA-26). */
   customer_id?: string | null;
   cancelled_at?: string | null;
-  /** What a poster's late cancel kept for the Helpr's time (poster_cancel_job), in dollars: the poster's line says it (Q2671). */
+  /** What a poster's late cancel kept for the Helpr's time (poster_cancel_job), in dollars: the poster's line says it (Q2695). */
   cancellation_fee?: number | null;
   /** A crew job: its helper_id is null (the members are on group_job_helpers), so "hired" is read from the status. */
   is_group_job?: boolean | null;
@@ -357,7 +357,7 @@ function cancelledLine(job: ProgressJob, poster: boolean, other: string): string
     : helprDid ? (poster ? `${other} cancelled${stamp}` : `You cancelled${stamp}`)
     : "This job was cancelled";
   const reason = sanitizeCancellationReason(job.cancellation_reason);
-  // Q2671 (audit 1102e row 3): a late cancel kept part of the payment for the Helpr's time (the cancel sheet's amount),
+  // Q2695 (audit 1102e row 3): a late cancel kept part of the payment for the Helpr's time (the cancel sheet's amount),
   // so the line never reads like a full refund. Guard: src/test/lateCancelByPosterSaysTheMoney.test.tsx.
   const fee = Number(job.cancellation_fee ?? 0);
   const kept = poster && posterDid && fee > 0 ? `$${formatPrice(fee)} was kept for ${other}'s time` : null;

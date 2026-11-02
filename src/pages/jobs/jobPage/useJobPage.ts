@@ -176,7 +176,7 @@ type ApplicantRow = { status: string; closed_reason?: string | null; updated_at?
 export type ApplicantCounts = { total: number; pending: number; noShowAt: string | null; helprCancelled: { at: string; helperId: string | null } | null };
 
 /**
- * Q2669 (audit 1102e row 2): the hired Helpr's cancel (helper_cancel_booking) closes their application (status
+ * Q2693 (audit 1102e row 2): the hired Helpr's cancel (helper_cancel_booking) closes their application (status
  * 'rejected', closed_reason 'helper_cancelled') and puts the job back up. That row is no applicant ("1 applicant" was the
  * Helpr who cancelled), and the latest one says who cancelled and when, for the poster's line.
  */

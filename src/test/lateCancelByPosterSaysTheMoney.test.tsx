@@ -1,5 +1,5 @@
 /**
- * Q2671 + Q2672 (audit 1102e rows 3 and 4): a poster's late cancel (poster_cancel_job: cancellation_fee > 0).
+ * Q2695 + Q2696 (audit 1102e rows 3 and 4): a poster's late cancel (poster_cancel_job: cancellation_fee > 0).
  *  - The poster's line read "You cancelled ... · Plans changed · Your payment was refunded", a full refund, against the
  *    cancel sheet they had just confirmed ("$30 for your Helpr's time"). It now says what was kept for the Helpr's time
  *    and that the rest came back: "... · $30 was kept for Eli's time · The rest was refunded".
@@ -34,7 +34,7 @@ const job = {
 
 afterEach(cleanup);
 
-describe("a poster's late cancel says the money on both sides (Q2671, Q2672)", () => {
+describe("a poster's late cancel says the money on both sides (Q2695, Q2696)", () => {
   beforeAll(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(NOW); });
   afterAll(() => { vi.useRealTimers(); });
 

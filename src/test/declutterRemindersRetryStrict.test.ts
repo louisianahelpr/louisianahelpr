@@ -10,6 +10,14 @@
  * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |     PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Check out within 24 hours',\n      CASE WHEN r.title IS NULL THEN 'You have an item waiting in your cart. |     PERFORM public.declutter_notify(r.buyer_id, 'payment', 'Check out within 24 hours',\n      CASE WHEN r.title IS NULL THEN 'You have an item waiting in your cart.
  * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |         PERFORM public.declutter_notify_strict(r.seller_id, 'payment', 'Delivery coming up', |         PERFORM public.declutter_notify(r.seller_id, 'payment', 'Delivery coming up',
  * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |         PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Delivery coming up', |         PERFORM public.declutter_notify(r.buyer_id, 'payment', 'Delivery coming up',
+ * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |   PERFORM public.declutter_notify_strict(p_user, 'declutter_pickups', p_title, p_message, p_link, p_other); |   PERFORM public.declutter_notify(p_user, 'declutter_pickups', p_title, p_message, p_link, p_other);
+ * @mutate supabase/migrations/20261031014011_helpr_delivery_still_in_hand_nudge.sql |       RETURN public.declutter_delivery_still_in_hand(t.source_id, t.id); |       BEGIN PERFORM public.declutter_delivery_still_in_hand(t.source_id, t.id); EXCEPTION WHEN OTHERS THEN NULL; END; RETURN NULL;
+ *
+ * Re-read 2026-11-01 (builder 140, the item's other sweep lines): the held-sale nudge in declutter_handover_sweep and
+ * helpr_task_sweep's still-in-hand nudge (BUY-37) send through declutter_pickup_remind, which is strict, inside the
+ * row's own BEGIN/EXCEPTION block after the claim (held_nudged_at / in_hand_nudged_at), and nothing between swallows
+ * the error, so a failed reminder rolls its claim back and is retried. Every other send left best-effort in these
+ * sweeps reports a step that already happened (expired, cancelled, closed, held for an admin, stuck), not a reminder.
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -55,5 +63,27 @@ describe("reminders that cannot be written are retried, not marked sent", () => 
     expect(buyer).toBeGreaterThan(seller);
     expect(handover).not.toContain("declutter_notify(r.seller_id, 'payment', 'Delivery coming up'");
     expect(handover.indexOf("EXCEPTION WHEN OTHERS THEN", buyer)).toBeGreaterThan(buyer);
+  });
+
+  it("the held-sale and still-in-hand nudges are strict after their claim, and nothing swallows the error", () => {
+    expect(body("declutter_pickup_remind")).toContain("PERFORM public.declutter_notify_strict(p_user, 'declutter_pickups', p_title, p_message, p_link, p_other);");
+    const claim = handover.indexOf("UPDATE public.declutter_handovers SET held_nudged_at = now() WHERE order_id = o.id;");
+    const nudge = handover.indexOf("PERFORM public.declutter_pickup_remind(o.buyer_id,", claim);
+    expect(claim).toBeGreaterThan(0);
+    expect(nudge).toBeGreaterThan(claim);
+    expect(handover.slice(claim, nudge)).not.toMatch(/EXCEPTION\s+WHEN/);
+    expect(handover.indexOf("EXCEPTION WHEN OTHERS THEN", nudge)).toBeGreaterThan(nudge);
+    const sweep = body("helpr_task_sweep");
+    const inHand = sweep.indexOf("UPDATE public.helpr_tasks SET in_hand_nudged_at = now() WHERE id = t.id;");
+    const event = sweep.indexOf("PERFORM public.helpr_task_source_event(t.id, 'still_in_hand', NULL);", inHand);
+    expect(inHand).toBeGreaterThan(0);
+    expect(event).toBeGreaterThan(inHand);
+    expect(sweep.indexOf("EXCEPTION WHEN OTHERS THEN", event)).toBeGreaterThan(event);
+    const source = body("helpr_task_source_event");
+    expect(source).toContain("RETURN public.declutter_delivery_still_in_hand(t.source_id, t.id);");
+    expect(source).not.toMatch(/EXCEPTION\s+WHEN/);
+    const still = body("declutter_delivery_still_in_hand");
+    expect(still.match(/PERFORM public\.declutter_pickup_remind\(/g)?.length).toBe(3);
+    expect(still).not.toMatch(/EXCEPTION\s+WHEN/);
   });
 });

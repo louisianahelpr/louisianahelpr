@@ -28,13 +28,15 @@ const MUTANT = process.env.MUTANT ?? "";
 const MUTANTS = {
   // The check runs AFTER the order lock.
   lockFirst: [
-    "  -- Q1945: a member who is no party to a task that is not open takes no lock.\n  IF v_uid IS NOT NULL",
-    "  IF t.source_kind = 'declutter_delivery' THEN\n    PERFORM public.declutter_lock_order(t.source_id);\n  END IF;\n  IF v_uid IS NOT NULL",
+    "  IF NOT public.is_server_context() AND t.status",
+    "  IF t.source_kind = 'declutter_delivery' THEN\n    PERFORM public.declutter_lock_order(t.source_id);\n  END IF;\n  IF NOT public.is_server_context() AND t.status",
   ],
   // The seller is treated as a stranger.
   noSeller: ["     AND v_uid IS DISTINCT FROM t.pickup_contact_id\n", ""],
   // An open task is refused to strangers too (nobody could take a delivery).
-  noOpen: ["IF v_uid IS NOT NULL AND t.status IS DISTINCT FROM 'open'", "IF v_uid IS NOT NULL"],
+  noOpen: ["IF NOT public.is_server_context() AND t.status IS DISTINCT FROM 'open'", "IF NOT public.is_server_context()"],
+  // The check trusts a bare NULL uid (CI null-uid-trust smoke): anon would skip it.
+  nullUid: ["IF NOT public.is_server_context() AND t.status", "IF v_uid IS NOT NULL AND t.status"],
   // Admins are refused.
   noAdmin: ["     AND NOT public.has_role(v_uid, 'admin') THEN", "     THEN"],
 };
@@ -62,6 +64,7 @@ GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.role', true), '') $$;
 CREATE TABLE public.user_roles (user_id uuid, role text);
 CREATE FUNCTION public.has_role(_user_id uuid, _role text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
   AS $$ SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role) $$;
@@ -75,6 +78,13 @@ await q(`INSERT INTO public.user_roles VALUES ($1, 'admin')`, [ADMIN]);
 await q(`INSERT INTO public.helpr_tasks VALUES ($1, 'declutter_delivery', $3, 'accepted', $4, $5, $6),
   ($2, 'declutter_delivery', $3, 'open', NULL, $5, $6)`, [TASK, OPEN_TASK, ORDER, HELPR, BUYER, SELLER]);
 
+// The real public.is_server_context (20260915101102): NULL uid AND neither anon nor authenticated.
+{
+  const sc = readFileSync(MIG_DIR + "20260915101102_null_uid_is_not_server.sql", "utf8");
+  const a = sc.indexOf("CREATE OR REPLACE FUNCTION public.is_server_context()");
+  const b = sc.indexOf("$function$;", sc.indexOf("$function$", a) + 10) + "$function$;".length;
+  await db.exec(sc.slice(a, b));
+}
 await db.exec(before());
 if (!skip) {
   let mig = readFileSync(MIG_DIR + THIS, "utf8");
@@ -90,8 +100,8 @@ if (!skip) {
 
 const locks = async () => Number((await q(`SELECT last_value, is_called FROM public.order_locks`)).map((r) => (r.is_called ? r.last_value : 0))[0]);
 /** Call helpr_task_lock with auth.uid() = uid (null: a service caller), as the definer RPCs do. */
-const lockAs = async (uid, task) => {
-  await db.exec(`SELECT set_config('request.jwt.claim.sub', '${uid ?? ""}', false)`);
+const lockAs = async (uid, task, role = uid ? "authenticated" : "service_role") => {
+  await db.exec(`SELECT set_config('request.jwt.claim.sub', '${uid ?? ""}', false), set_config('request.jwt.claim.role', '${role}', false)`);
   const n0 = await locks();
   let err = null;
   try { await q(`SELECT (public.helpr_task_lock($1)).id`, [task]); } catch (e) { err = e.message; }
@@ -105,6 +115,8 @@ for (const [who, uid] of [["the Helpr", HELPR], ["the buyer", BUYER], ["the sell
   const r = await lockAs(uid, TASK);
   check(!r.err && r.locked, `${who} still locks the task and its order (${r.err ?? "ok"})`);
 }
+const anonCall = await lockAs(null, TASK, "anon");
+check(/task_not_found/.test(anonCall.err ?? "") && !anonCall.locked, `[fix] an anon caller (NULL uid, not the server) is refused before any lock (${anonCall.err ?? "allowed"})`);
 const open = await lockAs(STRANGER, OPEN_TASK);
 check(!open.err && open.locked, `any member still locks an OPEN task (taking a delivery) (${open.err ?? "ok"})`);
 const missing = await lockAs(STRANGER, U(99));

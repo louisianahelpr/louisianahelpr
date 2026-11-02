@@ -11,7 +11,7 @@
 -- not an admin, is refused 'task_not_found' (P0002, the same answer each RPC gives a stranger) while the task
 -- is not open. An OPEN task is still locked for any member: taking an open delivery (helpr_task_accept) is
 -- how a Helpr becomes its party, and accept re-checks the status under the lock. Service-role callers (the
--- sweeps, the webhooks: auth.uid() is NULL) are unchanged. Each RPC still re-checks its own party rule on the
+-- sweeps, the webhooks: public.is_server_context()) are unchanged. Each RPC still re-checks its own party rule on the
 -- locked row, so a party that changed between the read and the lock is still refused there.
 --
 -- Restated from 20261017055505 (the newest definition), changes marked Q1945.
@@ -32,8 +32,9 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
   END IF;
-  -- Q1945: a member who is no party to a task that is not open takes no lock.
-  IF v_uid IS NOT NULL AND t.status IS DISTINCT FROM 'open'
+  -- Q1945: a member who is no party to a task that is not open takes no lock. is_server_context(), not
+  -- v_uid IS NOT NULL: anon has a NULL uid too (20260915101102); only the service role skips the check.
+  IF NOT public.is_server_context() AND t.status IS DISTINCT FROM 'open'
      AND v_uid IS DISTINCT FROM t.helpr_id AND v_uid IS DISTINCT FROM t.customer_id
      AND v_uid IS DISTINCT FROM t.pickup_contact_id
      AND NOT public.has_role(v_uid, 'admin') THEN

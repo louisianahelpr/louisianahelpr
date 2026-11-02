@@ -683,7 +683,7 @@ const CompleteProfile = () => {
                     inputMode="numeric"
                     autoComplete="postal-code"
                     maxLength={5}
-                    placeholder="70801"
+                    placeholder={t("signup.zipExample")}
                     className={`rounded-ds-md text-ellipsis ${zipValid ? "pr-8" : ""}`}
                   />
                   {zipValid && (

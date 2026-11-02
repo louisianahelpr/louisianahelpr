@@ -2779,6 +2779,9 @@ export type Database = {
       }
       declutter_orders: {
         Row: {
+          book_by: string | null
+          book_by_reminded_24_at: string | null
+          book_by_reminded_2_at: string | null
           bundle_discount_cents: number
           delivery_cents: number
           shipping_cents: number
@@ -2810,6 +2813,9 @@ export type Database = {
           total_cents: number
         }
         Insert: {
+          book_by?: string | null
+          book_by_reminded_24_at?: string | null
+          book_by_reminded_2_at?: string | null
           bundle_discount_cents?: number
           delivery_cents?: number
           shipping_cents?: number
@@ -2839,6 +2845,9 @@ export type Database = {
           total_cents: number
         }
         Update: {
+          book_by?: string | null
+          book_by_reminded_24_at?: string | null
+          book_by_reminded_2_at?: string | null
           bundle_discount_cents?: number
           delivery_cents?: number
           shipping_cents?: number
@@ -4038,6 +4047,7 @@ export type Database = {
         Row: {
           closed_at: string | null
           created_at: string
+          giver_reminded_at: string | null
           id: string
           item_id: string
           pickup_at: string | null
@@ -4048,6 +4058,7 @@ export type Database = {
         Insert: {
           closed_at?: string | null
           created_at?: string
+          giver_reminded_at?: string | null
           id?: string
           item_id: string
           pickup_at?: string | null
@@ -4058,6 +4069,7 @@ export type Database = {
         Update: {
           closed_at?: string | null
           created_at?: string
+          giver_reminded_at?: string | null
           id?: string
           item_id?: string
           pickup_at?: string | null
@@ -8136,6 +8148,33 @@ export type Database = {
           run_attempt?: number
           run_id?: number
           version?: string
+        }
+        Relationships: []
+      }
+      needs_you_reminder_sends: {
+        Row: {
+          deadline: string
+          ref_id: string
+          rung: number
+          sent_at: string
+          step: string
+          user_id: string
+        }
+        Insert: {
+          deadline: string
+          ref_id: string
+          rung: number
+          sent_at?: string
+          step: string
+          user_id: string
+        }
+        Update: {
+          deadline?: string
+          ref_id?: string
+          rung?: number
+          sent_at?: string
+          step?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -14910,6 +14949,7 @@ export type Database = {
         }
         Returns: Json
       }
+      declutter_book_by_reminder_sweep: { Args: { p_now?: string }; Returns: number }
       declutter_decline_listed_for_me: {
         Args: {
           p_item_id: string
@@ -15043,6 +15083,7 @@ export type Database = {
       }
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
+      declutter_pickup_when: { Args: { p_order_id: string }; Returns: string }
       helpr_task_talk_view: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_send_message: {
         Args: { p_task_id: string; p_body: string }
@@ -15338,14 +15379,18 @@ export type Database = {
         Args: { p_task_id: string }
         Returns: boolean
       }
+      needs_you_reminder_quiet: { Args: { p_at: string }; Returns: boolean }
       sweep_chat_unread_reminders: {
         Args: { p_now?: string }
         Returns: Json
       }
+      sweep_deadline_reminders: { Args: { p_now?: string }; Returns: Json }
+      sweep_declutter_free_asks: { Args: { p_now?: string }; Returns: number }
       sweep_declutter_talk_reminders: {
         Args: { p_now?: string }
         Returns: number
       }
+      sweep_needs_you_reminders: { Args: { p_now?: string }; Returns: number }
       sweep_unread_message_reminders: {
         Args: { p_now?: string }
         Returns: number

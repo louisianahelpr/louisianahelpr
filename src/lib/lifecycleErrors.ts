@@ -1123,6 +1123,7 @@ export const RPC_ERROR_COPY = {
     offer_not_open: DC.offer_not_open,
     request_not_found: DC.request_not_found,
     request_not_open: DC.request_not_open,
+    request_time_passed: DC.request_time_passed,
     requester_unavailable: DC.requester_unavailable,
     under_18: DC.under_18,
   },

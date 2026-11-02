@@ -30,7 +30,7 @@ import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { DeclutterNotice } from "./declutterUi";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
-import { formatName } from "@/lib/utils";
+import { cn, formatName } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 
 // Owner 11-01 (Mockup 3): the "Ask for it" sheet loads when the button is pressed, never with the item page.
@@ -197,21 +197,32 @@ export function FreeRequestsForGiver({ item }: { item: DeclutterItem }) {
       )}
       {rows.length === 0 ? null : (
         <ul className="space-y-2">
-          {rows.map((r) => (
-            <li key={r.request_id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3">
+          {rows.map((r) => {
+            // A3-57: an ask whose time has passed can't be picked (the server refuses it, request_time_passed) and
+            // closes at the next sweep with a notice to the asker; until then it says so instead of offering Pick.
+            const passed = !!r.pickup_at && new Date(r.pickup_at).getTime() <= Date.now();
+            return (
+            <li key={r.request_id} className="flex items-center justify-between gap-3 rounded-xl border border-border p-3" data-free-ask-passed={passed ? "" : undefined}>
               <span className="min-w-0">
                 <span className="block font-semibold truncate">{r.display_name}</span>
                 {/* Owner 11-01: each asker's chosen pickup time (null for an ask made before times were asked). */}
-                {r.pickup_at && <span className="block text-ds-13 font-semibold text-foreground" data-free-ask-time="">Pickup {pickedTimeLabel(r.pickup_at)}</span>}
+                {r.pickup_at && (
+                  <span className={cn("block text-ds-13 font-semibold", passed ? "text-muted-foreground" : "text-foreground")} data-free-ask-time="">
+                    Pickup {pickedTimeLabel(r.pickup_at)}{passed ? " · time passed" : ""}
+                  </span>
+                )}
                 <span className="block text-xs text-muted-foreground">
                   {r.review_count ? `${Number(r.avg_rating ?? 0).toFixed(1)} stars, ${r.review_count} ${r.review_count === 1 ? "review" : "reviews"}` : "No reviews yet"}
                 </span>
               </span>
-              <Button type="button" size="sm" className="shrink-0 rounded-full" disabled={pick.isPending} onClick={() => pick.mutate(r.request_id)}>
-                Pick
-              </Button>
+              {passed ? null : (
+                <Button type="button" size="sm" className="shrink-0 rounded-full" disabled={pick.isPending} onClick={() => pick.mutate(r.request_id)}>
+                  Pick
+                </Button>
+              )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </section>

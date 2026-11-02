@@ -123,8 +123,10 @@ const distinctive = distinctiveColumns(schema);
 // non-row objects, so they never identify a row on their own. `state`
 // (job_card_holds, Q2399 20261027185146) is Playwright's waitFor({ state:
 // "visible" }) and every RPC answer `{ state: "accepted" }`; a hold row is
-// still attributed by its own columns (capturing_from, notified_state, ...).
-const NOT_A_ROW_MARKER = ["state"];
+// still attributed by its own columns (capturing_from, notified_state, ...). `step` (needs_you_reminder_sends,
+// A3-85 20261102002011, typed 11-01) is every wizard's and job card's `{ step: "confirm" }`; a reminder-send row is
+// attributed by its own columns (ref_id, rung, deadline).
+const NOT_A_ROW_MARKER = ["state", "step"];
 for (const k of NOT_A_ROW_MARKER) distinctive.delete(k);
 
 // ---------------------------------------------------------------------------

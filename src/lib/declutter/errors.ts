@@ -27,6 +27,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   pickup_time_unavailable: "That pickup time isn't open any more. Pick one of the giver's pickup times in the next week.",
   request_not_found: "That ask isn't open any more.",
   request_not_open: "That person took back their ask. Pick someone else.",
+  request_time_passed: "Their pickup time has passed. Pick someone else.",
   requester_unavailable: "That person can't take items right now. Pick someone else.",
   free_order: "These items are free. Choose a pickup and tap Confirm and pick a time.",
   not_free_order: "Some of these items have a price. Check out to pay for them.",

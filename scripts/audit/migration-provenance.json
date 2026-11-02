@@ -9,7 +9,7 @@
     "_what": "Exact version + run id pairs whose run we deleted ourselves. A listed pair skips ONLY expiredRun's age test (expiredRunVerdict); its head_sha must still be a commit on main carrying the migration. Any other missing run, or a listed version with another run id, is still forged. A pair that no receipt carries, or whose run is live, fails the check as stale. Pinned by src/test/migrationProvenance.test.ts. Once a receipt is minAgeDays old the age test passes by itself; the newest was recorded 2026-10-28, so all are past it by 2026-11-12.",
     "date": "2026-10-30",
     "reason": "The lead deleted completed GitHub Actions runs created before about 2026-10-28T18:03Z to clear space (4549 runs, stopped 19:12Z, not to be repeated), so these receipts lost their runs while under 14 days old and db-deploy run 41111832091 went red.",
-    "evidence": "Measured about 19:14Z on 2026-10-30: GET actions/runs/<id> answers 404 for all 17 run ids; for all 47 pairs compare/<sha>...main shows main not behind head_sha and contents/supabase/migrations/<file>?ref=<sha> answers 200, and git merge-base --is-ancestor and git cat-file agree. 44 pairs are the errors in run 41111832091's log (its lookups ran 19:07:36Z..19:09:48Z). The 3 on run 40564500215 are absent from that log and 404 now, so that run was deleted after its lookup. All 107 other runs of receipts from the last 15 days are live db-deploy runs on main. Added 2026-11-01 (L29, lead approve 5:55 PM): 22 more pairs from the same 10-30 deletion (runs 41111832091, 41115469385, 41139273387, 41128285951), measured 404 by the lead at 5:55 PM on 11-01; head_sha on main is checked by the check itself (db-deploy run 41362419307 listed them).",
+    "evidence": "Measured about 19:14Z on 2026-10-30: GET actions/runs/<id> answers 404 for all 17 run ids; for all 47 pairs compare/<sha>...main shows main not behind head_sha and contents/supabase/migrations/<file>?ref=<sha> answers 200, and git merge-base --is-ancestor and git cat-file agree. 44 pairs are the errors in run 41111832091's log (its lookups ran 19:07:36Z..19:09:48Z). The 3 on run 40564500215 are absent from that log and 404 now, so that run was deleted after its lookup. All 107 other runs of receipts from the last 15 days are live db-deploy runs on main. Added 2026-11-01 (L29, lead approve 5:55 PM): 22 more pairs from the same 10-30 deletion (runs 41111832091, 41115469385, 41139273387, 41128285951), measured 404 by the lead at 5:55 PM on 11-01; head_sha on main is checked by the check itself (db-deploy run 41362419307 listed them). Added 2026-11-01 7:37 PM (L29): 9 more pairs (runs 41147292640, 41152862549), same 10-30 deletion; L29 checked every receipt run of the last 14 days against GET actions/runs/<id>: exactly these 23 run ids answer 404 (db-deploy run 41371592369 listed the 9).",
     "pairs": [
       { "version": "20261026155251", "run_id": "40574724847" },
       { "version": "20261026155252", "run_id": "40574724847" },
@@ -79,7 +79,16 @@
       { "version": "20261030165438", "run_id": "41139273387" },
       { "version": "20261030170443", "run_id": "41111832091" },
       { "version": "20261030171747", "run_id": "41128285951" },
-      { "version": "20261030174314", "run_id": "41128285951" }
+      { "version": "20261030174314", "run_id": "41128285951" },
+      { "version": "20261030212051", "run_id": "41147292640" },
+      { "version": "20261030212558", "run_id": "41147292640" },
+      { "version": "20261030215251", "run_id": "41147292640" },
+      { "version": "20261030220537", "run_id": "41147292640" },
+      { "version": "20261030221156", "run_id": "41147292640" },
+      { "version": "20261030221255", "run_id": "41152862549" },
+      { "version": "20261030221720", "run_id": "41147292640" },
+      { "version": "20261030223154", "run_id": "41152862549" },
+      { "version": "20261030224733", "run_id": "41147292640" }
     ]
   },
   "acknowledged": [

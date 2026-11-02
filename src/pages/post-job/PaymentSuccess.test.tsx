@@ -361,13 +361,25 @@ describe("PaymentSuccess", () => {
       expect(screen.getByRole("button", { name: /^share job$/i })).toBeInTheDocument();
     });
 
-    it("accepts payout_pending — the money is still in escrow", async () => {
+    it("accepts payout_pending as a confirmed payment", async () => {
       jobsLookup = {
         data: { budget: 80, category: "cleaning", payment_status: "payout_pending", customer_id: POSTER, status: "open" },
         error: null,
       };
       renderAt();
       await screen.findByRole("heading", { level: 1, name: /your job is live/i });
+    });
+
+    // Q2087 (lh-money-escrow@11679ed9a#3): a completed job paying out was told its money is "held securely — released
+    // when you confirm the work is done", though both sides had confirmed.
+    it("payout_pending on a completed job: the money is on its way to the Helpr, never 'held until you confirm'", async () => {
+      jobsLookup = {
+        data: { budget: 80, category: "cleaning", payment_status: "payout_pending", customer_id: POSTER, status: "completed" },
+        error: null,
+      };
+      renderAt();
+      expect(await screen.findByText(/was paid\. The work is confirmed, and the money is on its way to your Helpr\./)).toBeInTheDocument();
+      expect(screen.queryByText(/held securely/i)).not.toBeInTheDocument();
     });
 
     it("claims success for an ALREADY-RELEASED job, but with corrected copy (not the escrow sentence)", async () => {
@@ -479,6 +491,7 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
 // "we do not know" (unpaid: webhook not landed) and "taken then given back"
 // (refunded) makes the page print "Payment authorized / held securely" over
 // both — the exact claim this file exists to forbid.
+// @mutate src/pages/post-job/PaymentSuccess.tsx |           if (status === "payout_pending") setPayingOut(true); |
 // @mutate src/pages/post-job/PaymentSuccess.tsx | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released"]); | const HELD_STATUSES = new Set(["escrow", "payout_pending", "released", "unpaid", "refunded"]);
 // @mutate src/components/postjob/PaymentLifecycleSteps.tsx |   const at = Math.min(3, Math.max(0, current)); |   const at = 0;
 // @mutate src/pages/post-job/PaymentSuccess.tsx |                 {lifecycleStep === 0 ? "View applicants" : "View job"} |                 View applicants

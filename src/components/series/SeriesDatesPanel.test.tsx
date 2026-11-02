@@ -16,6 +16,15 @@
  * @mutate src/components/series/SeriesDatesPanel.tsx |   const allDates = view.dates.length + (firstAhead ? 1 : 0); |   const allDates = view.dates.length;
  * @mutate src/components/series/SeriesDatesPanel.tsx |   const allHeld = held + (firstAhead && firstVisitHasHelpr ? 1 : 0); |   const allHeld = held;
  * @mutate src/components/series/JobSeriesCardControls.tsx |       firstVisitHasHelpr={!!job.helper_id} |       firstVisitHasHelpr={false}
+ * @mutate src/lib/seriesDates.ts |       if (!holder && bookedTo && input.viewer && bookedTo === input.viewer) { |       if (false) {
+ * @mutate src/lib/seriesDates.ts |     .map((v) => ({ date: v.date_needed as string, helper_id: (v.helper_id as string \| null) ?? null })); |     .map((v) => ({ date: v.date_needed as string, helper_id: null }));
+ * @mutate src/components/series/SeriesDatesPanel.tsx |               <ul>{mine.map((d) => row(d, !d.booked))}</ul> |               <ul>{mine.map((d) => row(d, true))}</ul>
+ * @mutate src/components/series/SeriesDatesPanel.tsx |       : `${mine.length} yours${takeable.length ? ` · ${takeable.length} open` : ""}`; |       : `${mine.length} upcoming dates are yours${takeable.length ? ` · ${takeable.length} open` : ""}`;
+ *
+ * A3-43 (audit 11-01): the standing Helpr's own BOOKED visit (its own job row, helper_id = the viewer, no hold row)
+ * counted as "taken" by someone, so the panel read "0 upcoming dates are yours · 6 op…" (cut off at 375). It is now
+ * "mine" (listed under Your dates, not pickable to give up: a booked visit is cancelled from its own card), and the
+ * summary is the short "1 yours · 6 open".
  */
 // @mutate src/components/series/SeriesDatesPanel.tsx |               <h4 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Visits</h4> |
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -102,6 +111,15 @@ describe("foldSeriesDates", () => {
     const out = foldSeriesDates({ ...base, today: "2026-08-30", holds: [], releases: [] });
     expect(out.map((d) => d.date)).toEqual(["2026-09-09", "2026-09-16", "2026-09-23"]);
   });
+  it("A3-43: the viewer's own booked visit is mine (booked); someone else's is taken", () => {
+    const out = foldSeriesDates({
+      ...base, holds: [], releases: [],
+      bookedDates: [{ date: "2026-09-09", helper_id: ME }, { date: "2026-09-16", helper_id: OTHER }],
+    });
+    expect(out.find((d) => d.date === "2026-09-09")).toMatchObject({ state: "mine", booked: true });
+    expect(out.find((d) => d.date === "2026-09-16")?.state).toBe("taken");
+    expect(out.find((d) => d.date === "2026-09-23")?.state).toBe("open");
+  });
   it("a booked visit nobody holds is taken, not open", () => {
     const out = foldSeriesDates({ ...base, holds: [], releases: [], bookedDates: ["2026-09-09"] });
     expect(out.find((d) => d.date === "2026-09-09")?.state).toBe("taken");
@@ -151,6 +169,20 @@ describe("SeriesDatesPanel", () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
+  it("A3-43: the standing Helpr's own booked visit reads as theirs ('1 yours · 2 open'), listed but not pickable to give up", async () => {
+    tables.value = {
+      series_visit_holds: { data: [], error: null },
+      recurring_visit_releases: { data: [], error: null },
+      series_date_offers: { data: [], error: null },
+      jobs: { data: [{ date_needed: "2026-09-09", status: "accepted", helper_id: ME }], error: null },
+    };
+    renderPanel({ firstHelpr: ME });
+    fireEvent.click(await screen.findByRole("button", { name: /^Visit dates · 1 yours · 2 open$/ }));
+    expect(screen.getByText("Yours · booked")).toBeTruthy();
+    expect(screen.queryByRole("checkbox", { name: "Wed, Sep 9" })).toBeNull();
+    expect(screen.getByRole("checkbox", { name: "Wed, Sep 16" })).toBeTruthy();
+  });
+
   it("never offers a Helpr the date they gave up themselves", async () => {
     tables.value = {
       series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: ME }], error: null },
@@ -159,7 +191,7 @@ describe("SeriesDatesPanel", () => {
       jobs: { data: [], error: null },
     };
     renderPanel();
-    fireEvent.click(await screen.findByRole("button", { name: /1 upcoming date are yours/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Visit dates · 1 yours$/ }));
     expect(screen.queryByRole("checkbox", { name: "Wed, Sep 16" })).toBeNull();
     expect(screen.queryByText(/pick it up/)).toBeNull();
   });
@@ -173,7 +205,7 @@ describe("SeriesDatesPanel", () => {
     };
     rpc.mockResolvedValue({ data: { released: ["2026-09-09"], strike: false }, error: null });
     renderPanel();
-    fireEvent.click(await screen.findByRole("button", { name: /1 upcoming date are yours/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Visit dates · 1 yours$/ }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 9" }));
     fireEvent.click(screen.getByRole("button", { name: /Give up 1 date/ }));
     expect(await screen.findByText(/within 24 hours counts as a reliability strike/)).toBeTruthy();
@@ -240,7 +272,7 @@ describe("SeriesDatesPanel", () => {
     };
     rpc.mockResolvedValue({ data: { claimed: ["2026-09-16"], taken: [], refused: [] }, error: null });
     renderPanel();
-    fireEvent.click(await screen.findByRole("button", { name: /are yours/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Visit dates · 1 yours/ }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 9" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 16" }));
     fireEvent.click(screen.getByRole("button", { name: /Pick 1 date/ }));

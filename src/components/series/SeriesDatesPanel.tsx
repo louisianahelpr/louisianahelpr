@@ -147,12 +147,13 @@ export function SeriesDatesPanel({
     ? `${allHeld} of ${allDates} upcoming date${allDates === 1 ? "" : "s"} have a Helpr${allOpen ? ` · ${allOpen} open` : ""}`
     : pickUpCount > 0
       ? "A date opened up — pick it up"
-      : `${mine.length} upcoming date${mine.length === 1 ? "" : "s"} are yours${takeable.length ? ` · ${takeable.length} open` : ""}`;
+      // A3-43: short enough for 375 ("6 op…" was cut off), and the viewer's own booked visit counts as theirs.
+      : `${mine.length} yours${takeable.length ? ` · ${takeable.length} open` : ""}`;
 
   // Board 118 (restyle only, owner 2026-10-21): each visit is a row, the day in bold and its real state
   // under it, in sentence case. Only the states the series read has (no "Done · paid", no Skip/Pause).
   const stateWords = (d: SeriesDate) =>
-    d.state === "mine" ? "Yours" : d.state === "taken" ? "Has a Helpr" : d.state === "released" ? "Opened up" : "Open";
+    d.state === "mine" ? (d.booked ? "Yours · booked" : "Yours") : d.state === "taken" ? "Has a Helpr" : d.state === "released" ? "Opened up" : "Open";
   const row = (d: SeriesDate, selectable: boolean) => (
     <li key={d.date} className="flex items-center gap-2 min-h-[52px] border-b border-border last:border-b-0">
       {selectable ? (
@@ -206,7 +207,8 @@ export function SeriesDatesPanel({
           {!isPoster && mine.length > 0 && (
             <section className="space-y-1">
               <h4 className="text-ds-12 font-semibold text-foreground">Your dates</h4>
-              <ul>{mine.map((d) => row(d, true))}</ul>
+              {/* A booked visit is cancelled from its own card, so it is listed but not picked here. */}
+              <ul>{mine.map((d) => row(d, !d.booked))}</ul>
               <button
                 type="button"
                 disabled={busy || pickedMine.length === 0}

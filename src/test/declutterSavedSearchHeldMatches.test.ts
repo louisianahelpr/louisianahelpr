@@ -8,11 +8,11 @@
  * Reads the NEWEST definitions (effectiveDefs replays every migration, any dollar-quote tag).
  * Backend proof: src/test/pglite/declutterSavedSearchHeldMatches.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
- * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql |   IF v_retry IS NOT NULL THEN |   IF false THEN
- * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql | AND (NOT v_rerun OR NOT EXISTS | AND (true OR NOT EXISTS
+ * @mutate supabase/migrations/20261102025235_declutter_saved_search_alerts_wanted_matches.sql |   IF v_retry IS NOT NULL THEN |   IF false THEN
+ * @mutate supabase/migrations/20261102025235_declutter_saved_search_alerts_wanted_matches.sql | AND (NOT v_rerun OR NOT EXISTS | AND (true OR NOT EXISTS
  * @mutate supabase/migrations/20261031091529_declutter_saved_search_held_matches.sql |   DELETE FROM public.saved_search_item_matches WHERE item_id = NEW.id;\n |
- * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql | miles_between(COALESCE(s.origin_lat, p.latitude), COALESCE(s.origin_lng, p.longitude), v_item.area_lat | miles_between(p.latitude, p.longitude, v_item.area_lat
- * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql | CASE WHEN v_more > 0 THEN ', and ' \|\| v_more \|\| ' more' ELSE '' END | ''
+ * @mutate supabase/migrations/20261102025235_declutter_saved_search_alerts_wanted_matches.sql | miles_between(COALESCE(s.origin_lat, p.latitude), COALESCE(s.origin_lng, p.longitude), v_item.area_lat | miles_between(p.latitude, p.longitude, v_item.area_lat
+ * @mutate supabase/migrations/20261102025235_declutter_saved_search_alerts_wanted_matches.sql | CASE WHEN v_more > 0 THEN ', and ' \|\| v_more \|\| ' more' ELSE '' END | ''
  */
 import { describe, expect, it } from "vitest";
 import { join, resolve } from "node:path";
@@ -47,7 +47,7 @@ describe("A saved-search match inside the hour is held, not dropped (BUY-50)", (
     expect(fn).toMatch(/SELECT v_item\.id, x, false, now\(\) FROM unnest\(r\.all_ids\) x ON CONFLICT \(item_id, search_id\) DO UPDATE SET held = false/);
     expect(fn).toMatch(/CASE WHEN v_more > 0 THEN ', and ' \|\| v_more \|\| ' more' ELSE '' END/);
     // The same words go to the bell and the email.
-    expect(fn.indexOf("'message', v_message")).toBeGreaterThan(fn.indexOf("declutter_notify(r.user_id, 'job_match', v_title, v_message"));
+    expect(fn.indexOf("'message', v_message")).toBeGreaterThan(fn.indexOf("declutter_notify(r.user_id, 'declutter_wanted', v_title, v_message"));
   });
 
   // Restated from 20261031023451 (BUY-49): the distance still measures from where the search was saved.

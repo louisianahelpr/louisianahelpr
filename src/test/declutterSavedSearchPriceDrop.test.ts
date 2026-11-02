@@ -11,7 +11,7 @@
  *
  * @mutate supabase/migrations/20261031220326_saved_search_price_drop_alerts.sql |   WHEN (NEW.status = 'live' AND OLD.status = 'live' AND NEW.current_price_cents < OLD.current_price_cents) |   WHEN (NEW.status = 'live' AND OLD.status IS DISTINCT FROM 'live')
  * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |   INSERT INTO public.saved_search_item_queue (item_id) VALUES (NEW.id)\n  ON CONFLICT (item_id) DO UPDATE SET attempts = 0, retry_after = NULL, queued_at = now();\n  RETURN NULL;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.saved_search_on_item_price_drop() |   RETURN NULL;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.saved_search_on_item_price_drop()
- * @mutate supabase/migrations/20261031222115_saved_search_keeps_declutter_filters.sql | AND m.search_id = s.id AND NOT m.held)) | AND m.search_id = s.id AND m.held))
+ * @mutate supabase/migrations/20261102025235_declutter_saved_search_alerts_wanted_matches.sql | AND m.search_id = s.id AND NOT m.held)) | AND m.search_id = s.id AND m.held))
  * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |                 OR i.id IN (SELECT public.declutter_dropped_into_budget(COALESCE(s.last_seen_at, s.created_at), s.max_budget))) |                 OR false)
  * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |      AND d.from_cents > p_max_budget * 100 |      AND d.from_cents > 0
  * @mutate supabase/migrations/20261031224850_saved_search_price_drop_counts.sql |   INSERT INTO public.declutter_item_price_drops (item_id, from_cents, to_cents)\n  VALUES (NEW.id, OLD.current_price_cents, NEW.current_price_cents);\n | 

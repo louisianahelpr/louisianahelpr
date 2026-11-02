@@ -34,8 +34,8 @@
  * registered mutation below re-plants one of them.
  *
  * @mutate src/components/ProtectedRoute.tsx | return <Navigate to="/signup-pending" replace />; | return <Navigate to="/account-pending" replace />;
- * @mutate src/lib/authRedirects.ts | => `${getPublicOrigin()}/signup-pending`; | => `${getPublicOrigin()}/account-pending`;
- * @mutate src/pages/auth/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(), | emailRedirectTo: `${window.location.origin}/signup-pending`,
+ * @mutate src/lib/authRedirects.ts |   `${getPublicOrigin()}/signup-pending${ |   `${getPublicOrigin()}/account-pending${
+ * @mutate src/pages/auth/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(peekJobIntent()), | emailRedirectTo: `${window.location.origin}/signup-pending`,
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | idv_failure_reason: "Identity matched a previously removed account.", | idv_failure_reason: "Identity matched a previously removed account.", approval_status: "denied",
  *   (Q288: the mutation that re-admitted 'denied' to 20260923153703's CHECK
  *   is retired; 20260923205943 drops the column, so that CHECK no longer
@@ -120,12 +120,13 @@ describe("Q193: the pending and denied account screens stay deleted", () => {
 
   it("the signup email link and both resends land on /signup-pending through one helper", () => {
     expect(code("src/lib/authRedirects.ts")).toMatch(
-      /export const getSignupConfirmRedirect = \(\): string => `\$\{getPublicOrigin\(\)\}\/signup-pending`;/,
+      // Q2496: the job a guest came for may ride along as ?job=, on the same page.
+      /export const getSignupConfirmRedirect = \(jobId: string \| null = null\): string =>\s*`\$\{getPublicOrigin\(\)\}\/signup-pending\$\{jobId \? `\?job=\$\{encodeURIComponent\(jobId\)\}` : ""\}`;/,
     );
     const signup = code("src/pages/auth/Signup.tsx");
-    expect(signup).toMatch(/emailRedirectTo:\s*getSignupConfirmRedirect\(\)/);
+    expect(signup).toMatch(/emailRedirectTo:\s*getSignupConfirmRedirect\(/);
     const pending = code("src/pages/auth/SignupPending.tsx");
-    expect(pending).toMatch(/emailRedirectTo:\s*getSignupConfirmRedirect\(\)/);
+    expect(pending).toMatch(/emailRedirectTo:\s*getSignupConfirmRedirect\(/);
     // Every signup-confirmation emailRedirectTo in the client (any file that
     // calls auth.signUp or auth.resend) goes through the helper, so a third
     // resend path cannot quietly point somewhere else. (auth.updateUser's
@@ -137,7 +138,7 @@ describe("Q193: the pending and denied account screens stay deleted", () => {
     expect(senders).toEqual(expect.arrayContaining(["src/pages/auth/Signup.tsx", "src/pages/auth/SignupPending.tsx"]));
     for (const f of senders) {
       code(f).split("\n").forEach((line, i) => {
-        if (/emailRedirectTo:/.test(line) && !/getSignupConfirmRedirect\(\)/.test(line)) stray.push(`${f}:${i + 1}`);
+        if (/emailRedirectTo:/.test(line) && !/getSignupConfirmRedirect\(/.test(line)) stray.push(`${f}:${i + 1}`);
       });
     }
     expect(stray).toEqual([]);

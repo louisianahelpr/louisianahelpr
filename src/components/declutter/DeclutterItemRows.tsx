@@ -21,7 +21,10 @@ function Row({ id, title, items, cover, from }: { id?: string; title: string; it
   return (
     <section id={id} className="scroll-mt-20 space-y-2" aria-label={title} data-item-row="">
       <h2 className="text-base font-semibold">{title}</h2>
-      <ul className="-mx-3 flex snap-x gap-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {/* Q2572 (audit 1102a): the cards snap to their start, and a snap point is measured from the scroller's edge
+          less its scroll-padding, not its padding, so with px-3 alone the first card snapped 12px off the page
+          gutter (x 8 at 375). scroll-px-3 makes the snap line the gutter the heading sits on. */}
+      <ul className="-mx-3 flex snap-x scroll-px-3 gap-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-item-row-scroller="">
         {items.map((it) => (
           <li key={it.id} className={ROW_CARD}>
             <ItemCard

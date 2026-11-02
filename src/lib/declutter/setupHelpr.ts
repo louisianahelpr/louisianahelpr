@@ -158,8 +158,9 @@ export async function fetchSetupHelpr(orderId: string): Promise<SetupHelprInfo> 
     try {
       unwrap(result);
     } catch (thrown) {
-      const e = thrown as Error & { userMessage?: string };
-      if (msg && Object.isExtensible(e)) e.userMessage = msg;
+      const e = thrown as Error & { userMessage?: string; designedRefusal?: boolean };
+      // A code with words is a designed refusal (order not theirs, not paid, ...): shown, not logged (Q1943).
+      if (msg && Object.isExtensible(e)) Object.assign(e, { userMessage: msg, designedRefusal: true });
       throw e;
     }
   }

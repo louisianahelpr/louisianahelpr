@@ -61,6 +61,8 @@
  * @mutate scripts/toast-inventory.mjs | return [...fallback, ...own]; | return fallback;
  * @mutate src/lib/mutationResult.ts | Sign in to that account instead. | Log in to that account instead.
  * @mutate src/lib/cancelRefundCopy.ts | Job cancelled. Most of your payment comes back | Job cancelled! Most of your payment comes back
+ * @mutate src/lib/declutter/errors.ts | const GENERIC = "Couldn't do that just now. Check your connection and try again."; | const GENERIC = "Something went wrong. Please try again.";
+ * @mutate src/lib/shops/errors.ts | const GENERIC = "Couldn't do that just now. Check your connection and try again."; | const GENERIC = "Something went wrong. Please try again.";
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -118,12 +120,8 @@ const FAILURE_KINDS = new Set(["toast.error", "toast.warning", "errorToast"]);
  * An entry that no longer reproduces fails below.
  */
 // @two-way src/test/toastCopy.test.ts:stale VAGUE_MAPPER_FALLBACK_KNOWN entry
-const VAGUE_MAPPER_FALLBACK_KNOWN = new Set([
-  "src/lib/declutter/errors.ts: Something went wrong. Please try again.",
-  "src/lib/quotes/errors.ts: Something went wrong. Please try again.",
-  "src/lib/categorySuggestions.ts: Something went wrong. Please try again.",
-  "src/lib/shops/errors.ts: Something went wrong. Please try again.",
-]);
+// Q1988 (11-01): all four fallbacks now say what to do next, so the list is empty; it stays two-way.
+const VAGUE_MAPPER_FALLBACK_KNOWN = new Set<string>([]);
 
 /**
  * Error text the app WROTE, shown through `.message` on purpose. Keyed by

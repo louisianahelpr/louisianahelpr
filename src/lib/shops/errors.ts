@@ -171,7 +171,7 @@ const SHOP_ITEM_AI_COPY: Record<string, string> = {
   ai_busy: "Photo suggestions are busy. Try again in a minute.",
 };
 
-const GENERIC = "Something went wrong. Please try again.";
+const GENERIC = "Couldn't do that just now. Check your connection and try again.";
 
 /** The plain-words message for any error a Shops call threw or returned. */
 export function shopsErrorMessage(err: unknown): string {

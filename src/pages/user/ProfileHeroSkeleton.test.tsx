@@ -14,6 +14,7 @@
  * wears the exported constant); the pixels are measured on prod by
  * scripts/audit/measure-loading-states.mjs.
  *
+ * @mutate src/pages/user/ProfileHeroSkeleton.tsx | {["w-full"].map((w) => ( | {["w-full", "w-2/3"].map((w) => (
  * @mutate src/pages/user/ProfileHeroSkeleton.tsx | <div className={AT_A_GLANCE_GRID}> | <div className="grid grid-cols-2 gap-2">
  * @mutate src/pages/user/ProfileHeroSkeleton.tsx | <div key={i} className={METRIC_CELL_FRAME} | <div key={i} className="rounded-ds-md p-3 space-y-2"
  * @mutate src/pages/user/AtAGlanceCard.tsx | <div className={AT_A_GLANCE_GRID}> | <div className="grid grid-cols-2 gap-2">
@@ -98,5 +99,15 @@ describe("UserProfile's loading branch", () => {
     const actions = src.slice(src.indexOf("titleActions={\n          !isOwnProfile"), src.indexOf("</DropdownMenuTrigger>"));
     expect(actions).toMatch(/<SaveHelperButton /);
     expect(actions.match(/<Button /g)).toHaveLength(1);
+  });
+});
+
+describe("Q1695: the identity column reserves one bio line", () => {
+  // loading-states refresh 2026-11-02 01:07Z (bot PR #3963): /user/<id> #0 row 144px -> 122px on both test
+  // profiles, whose bios are one line. Two reserved lines collapsed by one 22.5px line box.
+  it("draws exactly one bio bone", () => {
+    render(<ProfileHeroSkeleton />);
+    const bio = screen.getByTestId("profile-hero-bio-bones");
+    expect(bio.children.length).toBe(1);
   });
 });

@@ -36,7 +36,7 @@ export function ProfileHeroSkeleton() {
               ProfileHeaderCard puts between them): the name, then
               place / "Since …" / last active — stacked below `sm`
               and one row from `sm`, exactly as that card lays them
-              out — then two lines of bio (capped at the bio's own 62ch measure). It was three bars in a
+              out — then one line of bio (capped at the bio's own 62ch measure). It was three bars in a
               72px column standing in for a 147–183px one, so the
               record strip below it opened ~130px too high and was
               pushed down when the profile landed (loading-states-
@@ -55,8 +55,12 @@ export function ProfileHeroSkeleton() {
                 </div>
               ))}
             </div>
-            <div className="mt-2.5 max-w-[62ch]">
-              {["w-full", "w-2/3"].map((w) => (
+            {/* Q1695: ONE bio line. The 2026-11-02 01:07Z loading-states
+                refresh measured this column 144px -> 122px on both test
+                profiles (one-line bios): two reserved lines collapsed by one
+                line box. A longer bio grows the card below, never collapses. */}
+            <div className="mt-2.5 max-w-[62ch]" data-testid="profile-hero-bio-bones">
+              {["w-full"].map((w) => (
                 <div key={w} className="flex items-center h-[22.5px]">
                   <div className={`h-4 ${w} bg-muted motion-safe:animate-pulse rounded`} />
                 </div>

@@ -5,8 +5,8 @@
  * Run 35660182220 (2026-09-21) failed two presses on every route carrying the
  * bell, for three of four personas:
  *
- *   "Notifications › Turn on push notifications › Not Now"                → error toast
- *   "Notifications › Turn on push notifications › Turn On Notifications"  → error toast
+ *   "Notifications › Turn on push notifications › Not now"                → error toast
+ *   "Notifications › Turn on push notifications › Turn on notifications"  → error toast
  *   → "Notifications are off. Turn them on in your browser settings."
  *
  * A Playwright context grants no notification permission, so the toast is TRUE.
@@ -44,8 +44,8 @@ const panelSrc = readFileSync(resolve(repoRoot, "src/components/NotificationPane
 const appCopy = [...panelSrc.matchAll(/"(Notifications are off\.[^"]*)"/g)].map((m) => m[1]);
 
 /** The chain press-every-control builds for the two buttons inside the prompt. */
-const NOT_NOW_CHAIN = ["Notifications", "Turn on push notifications", "Not Now"];
-const TURN_ON_CHAIN = ["Notifications", "Turn on push notifications", "Turn On Notifications"];
+const NOT_NOW_CHAIN = ["Notifications", "Turn on push notifications", "Not now"];
+const TURN_ON_CHAIN = ["Notifications", "Turn on push notifications", "Turn on notifications"];
 const ROW_CHAIN = ["Notifications", "Turn on push notifications"];
 
 describe("press-every-control: a truthful permission refusal is not a failed press", () => {
@@ -64,7 +64,7 @@ describe("press-every-control: a truthful permission refusal is not a failed pre
     }
   });
 
-  it("FAILS the toast after Not Now even when denied: dismissing our own rationale never toasts (2026-10-02)", () => {
+  it("FAILS the toast after Not now even when denied: dismissing our own rationale never toasts (2026-10-02)", () => {
     for (const copy of appCopy) {
       expect(isTruthfulPermissionRefusal({ toast: copy, chain: NOT_NOW_CHAIN, permission: "denied" })).toBe(false);
     }

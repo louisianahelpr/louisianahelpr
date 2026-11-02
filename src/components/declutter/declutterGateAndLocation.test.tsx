@@ -284,7 +284,7 @@ describe("Declutter location ask", () => {
 
     fireEvent.click(again);
     expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
-    // (Not answered "Share Location" here: a fix would fill the module cache
+    // (Not answered "Share location" here: a fix would fill the module cache
     // that the later tests in this file land on.)
     expect(getCurrentPosition).not.toHaveBeenCalled();
   });

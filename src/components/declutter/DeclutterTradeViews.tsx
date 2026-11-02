@@ -488,9 +488,10 @@ export function CartView() {
                     <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />
                     {l.item_id ? (
                       // NIGHT-BUYINGpresse-3: the title link was 20 px tall on a phone; it is now a 44 px tap.
-                      <Link to={`/declutter/item/${l.item_id}`} className="flex min-h-11 min-w-0 items-center truncate" title={l.item_title}><span className="truncate">{l.item_title}</span></Link>
+                      // Q2636: the title wraps to two lines instead of a one-line cut ("Oak rocking cha…").
+                      <Link to={`/declutter/item/${l.item_id}`} className="flex min-h-11 min-w-0 items-center" title={l.item_title}><span className="line-clamp-2 break-words">{l.item_title}</span></Link>
                     ) : (
-                      <span className="truncate" title={l.item_title}>{l.item_title}</span>
+                      <span className="line-clamp-2 min-w-0 break-words" title={l.item_title}>{l.item_title}</span>
                     )}
                     <span className="ml-auto shrink-0 font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{itemPriceLabel(l.price_cents)}</span>
                     <RemoveFromCart line={l} />

@@ -57,9 +57,9 @@ describe("the open card's tracker line (JOBS3-48)", () => {
       helper_confirmed_at: "2032-10-20T00:00:00Z", helper_dayof_confirmed_at: "2032-10-29T00:00:00Z", poster_confirmed_at: "2032-10-29T00:00:00Z",
       helper_on_the_way_at: "2032-10-30T14:00:00Z", helper_arrived_at: "2032-10-30T14:30:00Z", helper_arrival_verified_at: "2032-10-30T14:30:00Z",
     };
-    const line = { id: "start_working", detail: "Tap Start working" };
+    const line = { id: "start_working", detail: "Tap Start when you begin" };
     const p = jobProgress(job as never, { viewer: "helpr", now: new Date("2032-10-30T18:00:00Z"), card: { line, face: { tone: "primary", step: "working" } } as never });
-    expect(p.next).toBe("Tap Start working");
+    expect(p.next).toBe("Tap Start when you begin");
   });
 });
 

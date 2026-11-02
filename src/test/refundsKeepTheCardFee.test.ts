@@ -514,11 +514,18 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // fault = everything back, delivery included, and the card fee Stripe kept is a declutter_seller_fee_debts row
       // on the HELPR (declutter_record_refund: v_seller := the task's helpr_id), taken from their next payout.
       helpr_fault: "full_seller_pays_fee",
+      // A3-72 (lead 11-01 5:34 PM + 9:05 PM): a seller delivery that lost its time when the payment landed (the slot went
+      // to another buyer meanwhile) and has none 7 days on: the order is closed and the buyer's FULL payment refunded;
+      // the platform absorbs the card fee (no seller debt, no strike): neither side set a time, our checkout let the
+      // slot go while the payment was in flight.
+      delivery_never_booked: "full_platform_absorbs",
     } as Record<string, "full_platform_absorbs" | "full_seller_pays_fee" | "keep_card_fee" | "keep_buyer_fee" | "agreed_part">,
     /** Our own mistakes, the only reasons the platform refunds the fee on (owner, 2026-10-14). EXACT. */
     ownMistakes: ["superseded", "order_closed", "amount_mismatch", "duplicate_payment", "order_missing", "sold_elsewhere",
       // Row 43: the platform absorbs damage in a delivery it arranged (owner decision, not a guess).
-      "delivery_damage"],
+      "delivery_damage",
+      // A3-72 (lead decision 11-01 9:05 PM, not a guess): the slot was sold while the payment was in flight.
+      "delivery_never_booked"],
     constraints: [
       {
         name: "declutter_refunds_fee_policy_check",
@@ -823,6 +830,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Board 141: the reason, fee policy, policy and amount CHECKs swapped in one DO block (agreed_part added, every
       // other arm unchanged), and declutter_refund_requests.refund_id referencing a refund row (no amount).
       // BUY-36: the reason CHECK and the reason -> policy CHECK swapped to add 'helpr_fault' (full_seller_pays_fee).
+      // A3-72: the reason CHECK adds 'delivery_never_booked'; the policy CHECK statements hash the same as 20261031231150's.
+      "declutter_refunds 20261102031000_declutter_seller_delivery_book_by.sql": ["1192c0e245b11665", "ee6fde0ace2bcc93", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261031231150_helpr_delivery_cant_finish.sql": ["1192c0e245b11665", "dafbb2cea83bdc81", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261026155251_declutter_refund_requests.sql": ["1192c0e245b11665", "7b90a5dbd6a21681", "4cf2e4567f6437bd", "2c0ac85e85bd01e6", "afb94a44f9fb4011", "7af5606b0b938d68", "9eb0bd77676aa5f0", "d2e483aa293ef495"],
       "declutter_refunds 20261014224914_declutter_slice3b_payments.sql": ["4bff57b818038dfb", "501086bd450ecad3", "3dac3faed7ee24b1", "f5f2155930f94544"],

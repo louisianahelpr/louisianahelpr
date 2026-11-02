@@ -11,7 +11,7 @@
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |       if (Object.prototype.hasOwnProperty.call(s.reads, name)) { |       if (false) {
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
@@ -163,6 +163,30 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(await screen.findByText(/, reported by the seller\./)).toBeInTheDocument();
     await new Promise((res) => setTimeout(res, 50));
     r.unmount();
+    expect(supabaseCalls()).toEqual([]);
+  });
+
+  // Audit 1102c P7 (Q2625): the controls covered ~40% of a 375 screen and the stage box showed 4 of the stages.
+  // They fold to the title row, and a phone picks the stage from one dropdown (chips from sm up).
+  // @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |       {open && (\n        <div id="declutter-preview-controls-body" | {true && (\n        <div id="declutter-preview-controls-body"
+  // @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx | <SelectTrigger aria-label="Order stage"> | <SelectTrigger aria-label="Stage">
+  // @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx | className="hidden max-h-28 flex-wrap gap-1.5 overflow-y-auto sm:flex" | className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto"
+  it("Q2625: the controls fold away, and at 375 the stage is one dropdown", async () => {
+    open("?stage=booked&side=seller");
+    const panel = await screen.findByRole("region", { name: "Declutter preview controls" });
+    const select = panel.querySelector("[data-preview-stage-select]") as HTMLElement;
+    expect(select.className).toContain("sm:hidden");
+    expect(within(select).getByRole("combobox", { name: "Order stage" })).toHaveTextContent("Pickup booked");
+    expect(within(panel).getByRole("radiogroup", { name: "Order stage" }).className).toMatch(/(^| )hidden( |$).*sm:flex/);
+    const fold = within(panel).getByRole("button", { name: "Hide" });
+    expect(fold).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(fold);
+    expect(panel.querySelector("[data-preview-side]")).toBeNull();
+    expect(panel.querySelector("[data-preview-stage-select]")).toBeNull();
+    expect(within(panel).getByRole("button", { name: "Show" })).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(within(panel).getByRole("button", { name: "Show" }));
+    expect(panel.querySelector('[data-preview-side="seller"]')).toHaveAttribute("aria-checked", "true");
+    await new Promise((res) => setTimeout(res, 50));
     expect(supabaseCalls()).toEqual([]);
   });
 

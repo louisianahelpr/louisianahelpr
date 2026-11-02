@@ -57,6 +57,7 @@ export function EmbeddedActivityHeader({
   onSearch: (next: string) => void;
 }) {
   const labels = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_GROUP_LABEL;
+  const noRows = !search.trim() && Object.values(counts).every((n) => !n);
   // While the search field is open on a phone the TABS row keeps only its selected tab and the field takes the rest
   // (Browse's rule, Dashboard's phoneBrowseEnd; audit F20 was the same squeeze in the old chip-row place). Desktop has room.
   const desktop = useIsWebDesktop();
@@ -76,8 +77,10 @@ export function EmbeddedActivityHeader({
   return (
     <div className="flex flex-col gap-4">
       {typeof header === "function" ? header({ end: searchEnd, onlySelected: searchOpen && !desktop }) : header}
-      {/* The same row box as Browse's "N jobs" row (jobsToolbar.ts, owner 2026-10-27). */}
-      <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>
+      {/* The same row box as Browse's "N jobs" row (jobsToolbar.ts, owner 2026-10-27).
+          Q2610: no chips over a tab with nothing in any bucket (the empty card says what to do); they cut off at
+          375 ("Upcomi") over an empty list. */}
+      {!noRows && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>
         <div className="min-w-0 flex-1">
           <StatusBoxes
             boxes={BOX_BUCKETS.map((k) => ({ key: k, label: labels[k], count: counts[k] ?? 0, hot: k === "needs_you" }))}
@@ -91,7 +94,7 @@ export function EmbeddedActivityHeader({
             fade
           />
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

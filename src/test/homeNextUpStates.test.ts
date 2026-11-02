@@ -3,7 +3,7 @@
  * and status-line rules (no mocks): a stale in_progress row is overdue, not
  * live; a job waiting on someone else names who.
  *
- * @mutate src/pages/home/homeDashboard/nextUpStates.ts |   const live = (j: Job \| null \| undefined): j is Job => !!j && j.status === "in_progress" && !jobIsOverdue(j); |   const live = (j: Job \| null \| undefined): j is Job => !!j && j.status === "in_progress";
+ * @mutate src/pages/home/homeDashboard/nextUpStates.ts | j.status === "in_progress" && !submissionAwaitingPoster(j) && !jobIsOverdue(j); | j.status === "in_progress" && !submissionAwaitingPoster(j);
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       label: who ? `Waiting on ${who}` : "Waiting on a reply", |       label: "Waiting",
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |   ].sort((x, y) => (y.sort > x.sort ? 1 : y.sort < x.sort ? -1 : 0)); |   ];
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |       label: j.helper_id ? `Waiting on ${firstOf(hiredName(j, helperNames)) ?? "your Helpr"}` : "Waiting on Helprs", |       label: j.helper_id ? "Waiting on your Helpr" : "Waiting on Helprs",

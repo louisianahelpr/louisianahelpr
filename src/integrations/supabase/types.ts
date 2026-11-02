@@ -5972,14 +5972,17 @@ export type Database = {
         Row: {
           created_at: string
           job_id: string
+          reason: string
         }
         Insert: {
           created_at?: string
           job_id: string
+          reason?: string
         }
         Update: {
           created_at?: string
           job_id?: string
+          reason?: string
         }
         Relationships: [
           {

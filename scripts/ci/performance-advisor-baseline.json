@@ -225,6 +225,12 @@
     "public.declutter_listed_for_seller.declutter_listed_for_seller_helpr_idx",
     "public.declutter_photo_purge_queue.declutter_photo_purge_queue_seller_idx",
     "public.profile_handles_retired.profile_handles_retired_user_idx",
-    "public.phone_save_attempts.phone_save_attempts_user_created_idx"
+    "public.phone_save_attempts.phone_save_attempts_user_created_idx",
+    "public.declutter_orders.declutter_orders_shipping_quote_idx",
+    "public.declutter_retained_strikes.declutter_retained_strikes_identity_idx",
+    "public.helpr_card_fee_debt_deductions.helpr_card_fee_debt_deductions_debt_idx",
+    "public.helpr_card_fee_debts.helpr_card_fee_debts_helper_idx",
+    "public.tip_hold_redrives.tip_hold_redrives_delivery_tip_id_idx",
+    "public.tip_hold_redrives.tip_hold_redrives_job_tip_id_idx"
   ]
 }

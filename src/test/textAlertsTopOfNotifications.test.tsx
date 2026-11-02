@@ -2,7 +2,7 @@
  * Owner 2026-11-01 (screenshot of Settings -> Notifications on desktop): the Text alerts card sat at the very
  * bottom, under the long list of per-type switches, so people missed it. It now comes FIRST on the page (phone and
  * computer, one panel). And with no phone or browser registered for push, the panel's top says how to get alerts
- * ("Get alerts on your phone: allow notifications for Louisiana Helpr."), not only the "Send a test" row at the bottom.
+ * (A3-90: "Get alerts on your phone." with a "Turn on phone notifications" button), not only the "Send a test" row at the bottom.
  *
  * @mutate src/pages/profile/ProfileTabPanels.tsx |             <SmsAlertsCard atTop />\n            <NotificationPreferences /> |             <NotificationPreferences />\n            <SmsAlertsCard atTop />
  * @mutate src/components/NotificationPreferences.tsx |       {!loadFailed && pushTokenCount === 0 && <PushDeviceHint />} |       {false && <PushDeviceHint />}
@@ -52,7 +52,8 @@ describe("Notifications: text alerts first, and how to get push when no device i
   it("no registered device: the hint sits at the top of the panel, above the first switch and the Send a test row", async () => {
     render(<NotificationPreferences />);
     const hint = await screen.findByTestId("push-device-hint");
-    expect(hint.textContent).toBe("Get alerts on your phone: allow notifications for Louisiana Helpr.");
+    // A3-90: the hint carries its action.
+    expect(hint.textContent).toBe("Get alerts on your phone.Turn on phone notifications");
     const firstSwitch = screen.getAllByRole("switch")[0];
     expect(hint.compareDocumentPosition(firstSwitch) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(hint.compareDocumentPosition(screen.getByText("Send a test")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

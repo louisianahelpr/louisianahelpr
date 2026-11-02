@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1083,
-    "files": 303,
-    "rendering": 1002,
-    "suppressedByPolicy": 81,
+    "calls": 1087,
+    "files": 304,
+    "rendering": 1005,
+    "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 32,
       "errorToast": 6,
       "successToast": 2,
       "toast": 183,
-      "toast.error": 745,
+      "toast.error": 748,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 88,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 460,
+      "literal": 463,
       "template": 98,
-      "dynamic": 576,
+      "dynamic": 577,
       "jsx": 0
     }
   },
@@ -4297,6 +4297,46 @@
         "text": "shopsErrorMessage(err)"
       },
       "renders": true
+    },
+    {
+      "file": "src/components/admin/userDetail/DeclutterAmountsOwed.tsx",
+      "line": 62,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Say why you're clearing it."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/userDetail/DeclutterAmountsOwed.tsx",
+      "line": 69,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't clear that amount. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/userDetail/DeclutterAmountsOwed.tsx",
+      "line": 74,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't clear that amount. Try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/userDetail/DeclutterAmountsOwed.tsx",
+      "line": 77,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Cleared. The member was told."
+      },
+      "renders": false
     },
     {
       "file": "src/components/admin/userDetail/DocumentsTab.tsx",

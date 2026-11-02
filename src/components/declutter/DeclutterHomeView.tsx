@@ -393,7 +393,10 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
 // Board 80: opens once after a publish (router state from DeclutterSellView).
 function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null }) {
   return (
-    <div className="space-y-6">
+    // Q2562: a flex gap, not space-y-6. The Sell an item row below is display:none on a phone and on desktop, and
+    // space-y still gave the NEXT child its 24px top margin, so Selling started 24px lower than every other tab.
+    // A display:none child is no flex item, so it takes no gap.
+    <div className="flex flex-col gap-6">
       <ListedWhatNext />
       <ListedForYouCard />
       {/* Audit posting 1030 #11 gave a tablet the photo screen directly and one line to the other ways; the header has its own add action on desktop. LEAD-SELLING-NO-SELL-BTN-PHONE (owner 10-31): not on a phone, where the + covers it. */}
@@ -584,6 +587,11 @@ function DeclutterMemberHome() {
     // Jobs (this replaces the 2026-10-28 call that left it off a member's own lists). Guard:
     // src/components/declutter/sellingDash.test.tsx.
     <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}>
+      {/* Q2562 (lead 11-02: every Declutter tab uses Browse's gap under the tab row): Browse's first row (Miles from,
+          DeclutterMilesFrom) is a 44px row whose 19px line sits ~12px into it, so its first ink is 12px lower than
+          the column top; pt-3 puts every other tab's first box at that same line. flex-1 keeps a tab's empty state
+          filling the column as before. Guard: src/components/declutter/declutterTabs.test.tsx "Q2562". */}
+      <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3">
       <StrikeCount userId={user.id} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       <Suspense fallback={<TabSkeleton />}>
@@ -593,6 +601,7 @@ function DeclutterMemberHome() {
               : view === "free" ? <FreeView userId={user.id} />
                 : <WantedView />}
       </Suspense>
+      </div>
     </SectionScreen>
   );
 }

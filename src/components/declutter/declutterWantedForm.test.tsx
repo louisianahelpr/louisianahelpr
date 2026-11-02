@@ -43,7 +43,7 @@
  * Audit 10-30 #13: the address drops post=1 once the form is open, and what was typed survives a reload.
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |     next.delete(WANTED_POST_PARAM);\n |
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]); |
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |       if (!editing) clearWantedDraft();\n |
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |       setForm(EMPTY);\n      if (!editing) clearWantedDraft();\n |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";

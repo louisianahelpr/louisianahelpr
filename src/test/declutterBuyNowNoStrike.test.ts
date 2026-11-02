@@ -6,9 +6,9 @@
  * (source 'offer') keeps its strike. The behaviour runs in src/test/pglite/declutterBuyNowNoStrike.pglite.mjs
  * (migration applied 3x; red with NEW_MIGRATION=skip); the screens in declutterTradeViews.test.tsx.
  *
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |       ELSIF v_line.source = 'buy' THEN |       ELSIF false THEN
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify(r.buyer_id, 'payment', 'Check out within 24 hours', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify(r.buyer_id, 'payment', 'Check out within 24 hours',
- * @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify(r.buyer_id, 'payment', '2 hours left to check out', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify(r.buyer_id, 'payment', '2 hours left to check out',
+ * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |       ELSIF v_line.source = 'buy' THEN |       ELSIF false THEN
+ * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Check out within 24 hours', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Check out within 24 hours',
+ * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out',
  * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |   ELSIF p_source = 'buy' THEN |   ELSIF false THEN
  * @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql |          c.source  -- DB-5 |          NULL::text  -- DB-5
  * @mutate src/components/declutter/DeclutterReserveSheet.tsx | If you don't, it goes back up for sale. No strike.` | If you don't, you get a strike.`
@@ -52,7 +52,8 @@ describe("Buy now gives no strike for not paying (DB-5)", () => {
       expect(offerText).toMatch(/you get a strike/);
     }
     // The reminders read the line's source.
-    expect(sweep.match(/RETURNING c\.buyer_id, c\.price_cents, c\.source,/g)?.length).toBe(2);
+    // (Q2465, 20261102031228: the line's id comes first, for the claim a failed reminder clears.)
+    expect(sweep.match(/RETURNING c\.id, c\.buyer_id, c\.price_cents, c\.source,/g)?.length).toBe(2);
   });
 
   it("the take notice tells a Buy now buyer there is no strike; an accepted offer's still warns", () => {

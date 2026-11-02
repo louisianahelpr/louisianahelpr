@@ -310,7 +310,7 @@ serve(async (req) => {
     payouts_sent: 0, payouts_reconciled: 0, payouts_failed: 0,
     helpr_payouts_sent: 0, helpr_payouts_reconciled: 0, helpr_payouts_failed: 0, held_tips_stranded: 0,
     delivery_refunds_sent: 0, delivery_refunds_reconciled: 0, delivery_refunds_failed: 0,
-    raise_refunds_sent: 0, raise_refunds_reconciled: 0, raise_refunds_failed: 0,
+    raise_refunds_sent: 0, raise_refunds_reconciled: 0, raise_refunds_failed: 0, delivery_gave_up: 0,
     held: 0, ban_review: 0, no_payout_account: 0, payout_account_not_ready: 0, payout_account_unreadable: 0,
     payee_setup_paged: 0, payee_banned: 0, payout_retry_later: 0, mixed_parties: 0,
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
@@ -1517,6 +1517,17 @@ serve(async (req) => {
       out.raise_refunds_failed++;
       defects.record(`raise refund ${x.raise_id}${x.attempts + 1 >= 12 ? " (LAST TRY: refund it by hand)" : ""}: ${msg}`.slice(0, 200));
     }
+  }
+
+  // Q1931: delivery money that used its 12 tries (Helpr delivery pay, delivery-fee refunds, pay-raise
+  // refunds; the queues above no longer offer it). Run AFTER the queues, so a row that gave up on this
+  // run is raised now: one ops-ledger row per row per day while it is stuck, and the person owed the
+  // money is told once that our team is sending it (20261102033730). A function not deployed yet
+  // (PGRST202) or a failed check is a defect, never a stop.
+  {
+    const deliveryGaveUp = await admin.rpc("declutter_delivery_gave_up_check", {});
+    if (deliveryGaveUp.error) defects.record(`declutter_delivery_gave_up_check failed: ${deliveryGaveUp.error.message}`);
+    else out.delivery_gave_up = Number(deliveryGaveUp.data ?? 0);
   }
 
   return cronResult(FN, out, defects.defects);

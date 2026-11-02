@@ -41,11 +41,11 @@ export function EmptyStateActions({ primary, secondary, secondaryIcon: Secondary
       )}
       {secondary && (
         secondary.to ? (
-          <Button asChild variant="ghost" size="wrap" className="font-sans font-medium max-w-full" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-empty-secondary="">
+          <Button asChild variant="ghost" size="wrap" className="font-sans font-medium max-w-full px-3 [text-wrap:balance] max-[359px]:px-0 max-[359px]:text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-empty-secondary="">
             <Link to={secondary.to}>{quiet}{secondary.label}</Link>
           </Button>
         ) : (
-          <Button variant="ghost" size="wrap" onClick={secondary.onClick} className="font-sans font-medium max-w-full" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-empty-secondary="" {...secondary.buttonProps}>
+          <Button variant="ghost" size="wrap" onClick={secondary.onClick} className="font-sans font-medium max-w-full px-3 [text-wrap:balance] max-[359px]:px-0 max-[359px]:text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-empty-secondary="" {...secondary.buttonProps}>
             {quiet}{secondary.label}
           </Button>
         )

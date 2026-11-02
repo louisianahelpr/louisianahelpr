@@ -6,7 +6,7 @@
  * THE RULE. A section's nothing-at-all Browse draws its two ways out through ONE layout, EmptyStateActions: one green
  * pill with a leading "+", then one quiet text link with a leading icon. Headlines and sublines are parallel:
  * "No jobs near you yet." / "Nothing for sale near you yet."; "New jobs show up here as people post them." / "New
- * items show up here as neighbors list them."
+ * items show up here as people list them."
  *
  * Inventory: every file that draws a launched section's empty Browse (BrowseEmptyState in Jobs and Declutter Browse),
  * read from source; each one's nothing-at-all action goes through EmptyStateActions, and its action component holds no
@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |       <EmptyStateActions\n        primary={guest |       <BarkPillButtonList\n        primary={guest
  * @mutate src/components/ui/EmptyStateActions.tsx |   const plus = <Plus className="w-4 h-4 mr-1 shrink-0" strokeWidth={2.25} aria-hidden />; |   const plus = null;
  * @mutate src/components/ui/EmptyStateActions.tsx |   const quiet = <SecondaryIcon className="w-4 h-4 mr-1 shrink-0" strokeWidth={2.25} aria-hidden />; |   const quiet = null;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | : others.length === 0 ? "New items show up here as neighbors list them." | : others.length === 0 ? "Be the first to sell something."
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | : others.length === 0 ? "New items show up here as people list them." | : others.length === 0 ? "Be the first to sell something."
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -36,7 +36,7 @@ const src = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"))
 /** The launched sections' Browse files and the component that draws each one's nothing-at-all actions. */
 const SECTIONS: Record<string, { actions: string; file: string; title: string; body: string }> = {
   jobs: { file: "src/components/dashboard/BrowseTasksFeed.tsx", actions: "src/components/dashboard/EmptyFeedActions.tsx", title: "No jobs near you yet.", body: "New jobs show up here as people post them." },
-  declutter: { file: "src/components/declutter/DeclutterBrowseView.tsx", actions: "src/components/declutter/DeclutterBrowseView.tsx", title: "Nothing for sale near you yet.", body: "New items show up here as neighbors list them." },
+  declutter: { file: "src/components/declutter/DeclutterBrowseView.tsx", actions: "src/components/declutter/DeclutterBrowseView.tsx", title: "Nothing for sale near you yet.", body: "New items show up here as people list them." },
 };
 
 /** The body of the function that draws the actions (EmptyFeedActions / NothingForSaleActions). */

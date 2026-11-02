@@ -429,7 +429,7 @@ export function BrowseTasksFeed({
               ? filters.boostedOnly
                 ? "No boosted jobs right now. Clear the filter to see all open work."
                 : filtered.body
-              // Owner 11-02 (1.0.4): one line, the same shape as Declutter's ("New items show up here as neighbors list
+              // Owner 11-02 (1.0.4): one line, the same shape as Declutter's ("New items show up here as people list
               // them."); the parish count left this screen (it stays on checkout, HelprActivityNote).
               : "New jobs show up here as people post them."
           }

@@ -135,7 +135,7 @@ describe("BUY-16: guests browse Declutter", () => {
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign up to sell" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/declutter/sell?mode=choose")}`);
     // No Wanted for a guest, so no "Post what you're looking for" link under the pill.
-    expect(screen.getByText("New items show up here as neighbors list them.")).toBeInTheDocument();
+    expect(screen.getByText("New items show up here as people list them.")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Post what you're looking for" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Sell something" })).toBeNull();
     g.unmount();

@@ -140,7 +140,7 @@ describe("a cash-out to an account Stripe rejected moves nothing and gives the c
   // Q2406 (lh-silent-failure review of the live gate, #5): the gate's
   // `defect` (here the cached-gate close on profiles failing) was dropped to
   // console.warn. It is now an ops alert naming it.
-  // @mutate supabase/functions/cash-out-credits/index.ts |     if (live.defect) await reportLiveGateDefect( |     if (false) await reportLiveGateDefect(
+  // @mutate supabase/functions/cash-out-credits/index.ts |     if (live.held && live.defect) await reportLiveGateDefect( |     if (false) await reportLiveGateDefect(
   it("a failed cached-gate close is reported to ops, not dropped", async () => {
     stageClaim([{ id: "cA", amount: 5 }]);
     // Rejected: the hold closes the cached gate on profiles, and that write fails.

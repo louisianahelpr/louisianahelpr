@@ -6372,7 +6372,7 @@ async function transferToHelper(
     seed: (helperProfile as { is_seed?: boolean | null }).is_seed === true,
   });
   // Q2406: the gate's defect reaches ops, never only console.warn.
-  if (live.defect) await reportLiveGateDefect({ fn: "create-payment", helperId, defect: live.defect, fields: { job_id: jobId }, seed: (helperProfile as { is_seed?: boolean | null }).is_seed === true });
+  if (live.held && live.defect) await reportLiveGateDefect({ fn: "create-payment", helperId, defect: live.defect, fields: { job_id: jobId }, seed: (helperProfile as { is_seed?: boolean | null }).is_seed === true });
   if (live.held) {
     throw new PublicError(live.kind === "platform_rejected" || live.kind === "cannot_verify"
       ? "Stripe could not confirm the Helpr's payout account right now, so no money was moved. Try again later."

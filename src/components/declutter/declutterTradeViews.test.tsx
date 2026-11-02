@@ -1732,6 +1732,22 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
     expect(note.textContent).toMatch(/The seller keeps the whole \$40/);
     expect(note.className).not.toMatch(/sienna|destructive|warning/);
   });
+  // Q2636 (audit 1102c R11): the row cut the title to "Oak rocking cha…" on one line to fit "$40 Remove", though it has
+  // room for two. The title now wraps to two lines (line-clamp-2), never a one-line cut.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | className="flex min-h-11 min-w-0 items-center" title={l.item_title}><span className="line-clamp-2 break-words"> | className="flex min-h-11 min-w-0 items-center truncate" title={l.item_title}><span className="truncate">
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |                       <span className="line-clamp-2 min-w-0 break-words" title={l.item_title}>{l.item_title}</span> |                       <span className="truncate" title={l.item_title}>{l.item_title}</span>
+  it("Q2636: a cart line's title wraps to two lines, never cut to one", async () => {
+    const long = "Solid oak rocking chair with the original cane seat";
+    state.cart = [{ ...line, item_title: long }, { ...line, line_id: "l2", item_id: null, item_title: `${long} (gone)` }];
+    show(<CartView />, "/declutter?tab=buying");
+    await waitFor(() => expect(document.querySelectorAll("[data-cart-line]")).toHaveLength(2));
+    for (const row of Array.from(document.querySelectorAll("[data-cart-line]"))) {
+      const title = Array.from(row.querySelectorAll("a, span")).filter((el) => el.textContent?.startsWith(long));
+      expect(title.length).toBeGreaterThan(0);
+      for (const el of title) expect(el.className).not.toMatch(/\btruncate\b/);
+      expect(title.some((el) => /\bline-clamp-2\b/.test(el.className))).toBe(true);
+    }
+  });
   it("each line shows its first photo (a grey square when it has none) and its title is a 44 px tap", async () => {
     cartPhotos.length = 0;
     cartPhotos.push({ id: "p2", item_id: "i1", storage_path: "s2/i1/b.jpg", position: 1 }, { id: "p1", item_id: "i1", storage_path: "s2/i1/a.jpg", position: 0 });

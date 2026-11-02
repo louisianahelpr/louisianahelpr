@@ -27,7 +27,7 @@ import { readdirSync } from "./helpers/trackedFiles";
  *
  * Out of scope on purpose: the compact feed density (CompactFeedCard), whose
  * 48px rows are a divided list with no gap between them, and the gap BETWEEN
- * collapsible sections in ActivitySectionedView (a section gap, not a pitch).
+ * collapsible sections (a section gap, not a pitch).
  */
 
 const ROOT = process.cwd();

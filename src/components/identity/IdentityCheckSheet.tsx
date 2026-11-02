@@ -163,10 +163,16 @@ export function IdentityCheckHost() {
       if (error) {
         // Q2316: the request never reached stripe-idv-start (FunctionsFetchError:
         // the 2026-10-21 13:54Z rows came in one batch with "Load failed" on
-        // every read). Connection words, and no report: it is the network, not
-        // the ID check.
+        // every read). Connection words, and no Sentry report: it is the network, not
+        // the ID check. Lead review 11-02: still COUNTED, in error_logs only
+        // (localOnly: never Sentry, so no alert-ledger item).
         if (isNetworkFailure(error)) {
           toast.error(CONNECTION_TROUBLE_COPY);
+          report(error, {
+            severity: "warning",
+            localOnly: true,
+            tags: { source: "IdentityCheckSheet.startNetworkFailure" },
+          });
           return;
         }
         const body = (await functionErrorBody(error)) as { inManualReview?: boolean; rejected?: boolean } | null;

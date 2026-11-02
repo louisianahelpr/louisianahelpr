@@ -257,7 +257,7 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"data_defect\", \"no Stripe mode\");",
         "amount: d.refund_cents,",
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 15, \"record_failed\", `refund ${dRefund.id} not recorded`);",
-        "message: `Stripe answered ${dRefund.status} for delivery refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
+        "message: `Stripe answered ${dRefund.status} for ${part} refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
         "await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents);",
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"mixed_parties\", partyWhy(e, \"the order\"));",
         // Q1929, step 4b: a raise refund's page text, the mode resolver's input, the amount it sends (the raise row's

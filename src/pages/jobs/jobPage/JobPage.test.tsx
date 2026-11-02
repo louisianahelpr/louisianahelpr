@@ -83,6 +83,7 @@ const state = {
   crewNobodyLeft: false,
   /** usePosterPageFlows' crewRoster (JA-32: the page draws the crew). */
   crewRoster: undefined as Array<Record<string, unknown>> | undefined,
+  crewNames: undefined as Record<string, string> | undefined,
   /** CMP-4: the viewer's instant booking's decline-by (useMyInstantBooking), or null. */
   instantUntil: null as string | null,
   /** useOfferedToMe: a pending direct offer to the viewer (an instant booking is one). */
@@ -195,7 +196,7 @@ vi.mock("./usePosterPageFlows", () => ({
     approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     approve: () => flowCalls.push("approve"), notRight: () => flowCalls.push("not-right"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
-    crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, panel: <div data-testid="card-panel" />, dialogs: null,
+    crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, crewNames: state.crewNames, panel: <div data-testid="card-panel" />, dialogs: null,
   }),
 }));
 // JA-30: the case dialog the page opens (the cards' own DisputeTimelineDialog), recorded rather than reading Supabase.
@@ -322,6 +323,7 @@ beforeEach(() => {
   state.cardHold = false;
   state.crewNobodyLeft = false;
   state.crewRoster = undefined;
+  state.crewNames = undefined;
   state.instantUntil = null;
   state.offeredToMe = false;
   state.moreCount = 2;
@@ -1361,6 +1363,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   // @mutate src/components/GroupJobHelpers.tsx |               {onMessage && h.helper_id && h.status === "accepted" && ( |               {false && (
   // @mutate src/components/tracker/jobProgressState.ts |   if (poster && crewBookedOnRow(job)) return at(2 | if (false) return at(2
   // @mutate src/components/tracker/jobProgressState.ts | if (o.viewer === "poster" && crewBookedOnRow(job) && base.word === "Hired") return base; | if (false) return base;
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep( | continueStep={continueDay.step ?? (false ? crewPosterStep(
   it("a crew job: the roster on the page, with each member's step, Message and Confirm work", () => {
     const m = (id: string, name: string, over: Record<string, unknown>) => ({
       id: `slot-${id}`, helper_id: id, status: "accepted", helperName: name, helper_confirmed_at: "2026-10-27T12:00:00Z",
@@ -1373,12 +1376,15 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
       m("44444444-4444-4444-4444-444444444444", "Ann B.", { helper_arrived_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "t" }),
       m("55555555-5555-5555-5555-555555555555", "Marcus T.", {}),
     ];
+    state.crewNames = { "44444444-4444-4444-4444-444444444444": "Ann B.", "55555555-5555-5555-5555-555555555555": "Marcus T." };
     renderPage();
     const crew = document.querySelector("[data-job-crew]") as HTMLElement;
     expect(crew).toBeTruthy();
     expect(crew.textContent).toContain("Your crew · 2 of 2 hired");
     expect(crew.querySelectorAll("[data-crew-member]").length).toBe(2);
     expect(screen.getByRole("button", { name: /Confirm Ann B\.'s work/ })).toBeTruthy();
+    // A3-32 (audit 11-01): the line names the poster's step from the roster, never "Waiting on your crew to finish".
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Next: confirm Ann's work");
     fireEvent.click(screen.getByRole("button", { name: /Message Marcus T\./ }));
     expect(screen.getByTestId("where").textContent).toBe(`/messages?jobId=${encodeURIComponent(row().id)}&userId=55555555-5555-5555-5555-555555555555`);
   });

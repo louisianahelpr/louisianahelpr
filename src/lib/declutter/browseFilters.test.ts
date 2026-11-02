@@ -1,7 +1,7 @@
 /**
  * Declutter Browse filters (boards 25 + 39): every filter reads a real column,
  * and "may drop tonight" comes from the real nightly rule (priceDrop.ts).
- * @mutate src/lib/declutter/browseFilters.ts |     if (f.porchOnly && !item.porch_ok) return false; |
+ * @mutate src/lib/declutter/browseFilters.ts |   if (way === "porch") return item.porch_ok; |   if (way === "porch") return true;
  * @mutate src/lib/declutter/browseFilters.ts |     if (maxC !== null && item.current_price_cents > maxC) return false; |
  * @mutate src/lib/declutter/browseFilters.ts |   return { planned: true, tonight: chicagoDay(next.at) === chicagoDay(now) }; |   return { planned: true, tonight: true };
  */

@@ -74,7 +74,7 @@ export function DeclutterAmountsOwed({ userId }: { userId: string }) {
       toast.error("Couldn't clear that amount. Try again.");
       return;
     }
-    toast.success("Cleared. The member was told.");
+    toast("Cleared. The member was told.");
     setClearing(null);
     setNote("");
     refetch();

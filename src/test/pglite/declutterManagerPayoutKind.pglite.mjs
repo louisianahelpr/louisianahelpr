@@ -30,6 +30,8 @@ const DIR = fileURLToPath(new URL("../../../supabase/migrations/", import.meta.u
 const SPLIT = readdirSync(DIR).find((f) => f.endsWith("_declutter_manager_share_split.sql"));
 const FILE = readdirSync(DIR).find((f) => f.endsWith("_declutter_manager_payout_kind.sql"));
 const FILE2 = readdirSync(DIR).find((f) => f.endsWith("_declutter_manager_payout_admin_held.sql"));
+// Builder 187 (11-02, PR #3990): the manager's list and settle moved here, after the trains' gave-up hand settle.
+const FILE3 = readdirSync(DIR).find((f) => f.endsWith("_declutter_manager_admin_held_after_gave_up.sql"));
 const SKIP = process.env.NEW_MIGRATION === "skip";
 // ADMIN_MIGRATION=skip: everything but the admin-held migration (the A checks FAIL).
 const SKIP2 = SKIP || process.env.ADMIN_MIGRATION === "skip";
@@ -58,11 +60,13 @@ const PLANTS = {
 };
 let FIX = readFileSync(DIR + FILE, "utf8");
 let FIX2 = readFileSync(DIR + FILE2, "utf8");
+let FIX3 = readFileSync(DIR + FILE3, "utf8");
 if (PLANT) {
   const [find, repl] = PLANTS[PLANT] ?? [];
-  if (!find || !(FIX.includes(find) || FIX2.includes(find))) throw new Error(`PLANT=${PLANT}: not found in the migrations`);
+  if (!find || !(FIX.includes(find) || FIX2.includes(find) || FIX3.includes(find))) throw new Error(`PLANT=${PLANT}: not found in the migrations`);
   if (FIX.includes(find)) FIX = FIX.replace(find, repl);
-  else FIX2 = FIX2.replace(find, repl);
+  else if (FIX2.includes(find)) FIX2 = FIX2.replace(find, repl);
+  else FIX3 = FIX3.replace(find, repl);
   console.log(`PLANT=${PLANT}: planted`);
 }
 if (SKIP) console.log("NEW_MIGRATION=skip: the newest bodies before this migration (expect FAILs)");
@@ -163,6 +167,11 @@ const WORLD = `
     add column review_reason text, add column review_held_at timestamptz, add column held_notified_at timestamptz, add column is_seed boolean;
   alter table public.declutter_orders add column is_seed boolean default false;
   alter table public.declutter_payouts add column review_reason text, add column held_notified_at timestamptz;
+  -- The trains' gave-up rows (20261102043754, 20261102054153) the restated list also reads (FILE3): none here.
+  alter table public.helpr_task_payouts add column last_error text, add column created_at timestamptz default now();
+  alter table public.declutter_delivery_refunds add column last_error text, add column created_at timestamptz default now();
+  create table public.declutter_delivery_raises (id uuid primary key, order_id uuid, refund_cents int, stripe_payment_intent_id text,
+    status text, refund_attempts int default 0, refund_last_error text, created_at timestamptz default now());
   ${real("declutter_consume_fee_debt")}
   ${real("declutter_order_items_named")}
   ${real("member_display_name")}
@@ -181,7 +190,8 @@ if (!SKIP) {
 }
 if (!SKIP2) {
   for (let i = 0; i < 3; i++) await db.exec(FIX2);
-  console.log(`applied ${FILE2} 3x`);
+  for (let i = 0; i < 3; i++) await db.exec(FIX3);
+  console.log(`applied ${FILE2} 3x, then ${FILE3} 3x`);
 }
 const one = async (sql) => {
   try {

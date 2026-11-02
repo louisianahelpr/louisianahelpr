@@ -661,7 +661,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 359,
+      "line": 289,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -671,7 +671,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 696,
+      "line": 626,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -681,7 +681,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 706,
+      "line": 636,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -756,7 +756,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 721,
+      "line": 651,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -766,7 +766,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 775,
+      "line": 705,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -857,7 +857,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 780,
+      "line": 710,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -877,7 +877,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 800,
+      "line": 730,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -887,7 +887,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 814,
+      "line": 744,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -992,7 +992,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 885,
+      "line": 815,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1002,7 +1002,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 899,
+      "line": 829,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1012,7 +1012,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 926,
+      "line": 856,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1022,7 +1022,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 977,
+      "line": 907,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1032,7 +1032,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1021,
+      "line": 951,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1042,7 +1042,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1080,
+      "line": 1010,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1052,7 +1052,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1139,
+      "line": 1069,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1102,7 +1102,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 254,
+      "line": 233,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1112,7 +1112,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 277,
+      "line": 256,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1122,7 +1122,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 372,
+      "line": 351,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -1132,7 +1132,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 408,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1142,7 +1142,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 410,
+      "line": 389,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -1152,7 +1152,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 412,
+      "line": 391,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1162,7 +1162,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 419,
+      "line": 398,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4918,7 +4918,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 221,
+      "line": 219,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4938,7 +4938,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 224,
+      "line": 222,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4948,7 +4948,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 229,
+      "line": 227,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4958,7 +4958,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 244,
+      "line": 242,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4968,7 +4968,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 247,
+      "line": 245,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -262,7 +262,9 @@ describe("the app: the thank-you pop-up asks only for what is missing (Q1180)", 
     // Q1281: decline_job_offer files no strike for anyone, so the confirm says
     // so unconditionally (src/test/offerFreeToRefuse.test.ts pins the rest).
     expect(card).toContain("const gate = useAcceptGate();");
-    expect(card).toContain(`description="You applied for this one and the person who posted it picked you. Declining isn't a strike."`);
+    // Q2605 (c24fc7d513): one confirm for both kinds; each description still says no strike.
+    expect(card).toContain(`: "You applied for this one and the person who posted it picked you. Declining isn't a strike."}`);
+    expect(card).toContain("Declining isn't a strike.`");
     expect(card).not.toMatch(/setupUnfinished|noStrike/);
   });
 

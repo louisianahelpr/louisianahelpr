@@ -13,7 +13,7 @@
  * @mutate src/lib/declutter/delivery.ts |   return roundPayoutDownCents(pay - Math.min(pay, Math.round((pay * 5) / 100) + 70)); |   return roundPayoutDownCents(pay - Math.round((pay * 5) / 100));
  * @mutate src/lib/declutter/delivery.ts |   return roundPayoutDownCents(pay - Math.min(pay, Math.round((pay * 5) / 100) + 70)); |   return pay - Math.min(pay, Math.round((pay * 5) / 100) + 70);
  * @mutate src/lib/helprTasks/api.ts |   if (!result.error) return result.data as T; |   return result.data as T;
- * @mutate src/lib/helprTasks/api.ts |     if (msg && Object.isExtensible(e)) e.userMessage = msg; |     void msg;
+ * @mutate src/lib/helprTasks/api.ts |     if (msg && Object.isExtensible(e)) Object.assign(e, { userMessage: msg, designedRefusal: true }); |     void msg;
  * @mutate src/lib/helprTasks/api.ts | `${userId}/task/${taskId}/${nonce()}.jpg` | `${userId}/${taskId}/${nonce()}.jpg`
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

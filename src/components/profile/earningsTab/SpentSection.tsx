@@ -206,7 +206,7 @@ export function SpentSection() {
                   Bought: {p.title}
                 </h4>
                 <p className="font-sans text-ds-12 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {formatShortDate(new Date(p.ms))}{p.refunded ? " · Refunded" : ""}
+                  {formatShortDate(new Date(p.ms))}{p.note}
                 </p>
               </div>
               <p className="font-sans font-bold tabular-nums text-ds-16 shrink-0" style={{ color: "hsl(var(--ink-deep))" }}>

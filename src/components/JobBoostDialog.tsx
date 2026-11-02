@@ -242,7 +242,7 @@ export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDial
             {boosting
               ? "Boosting…"
               : hasFreeProBoost && !price.free
-                ? "Boost — Free This Month"
+                ? "Boost — Free this month"
                 : isSubscriber
                   ? "Boost — Included"
                   : `Boost for ${BOOST_PRICE}`}

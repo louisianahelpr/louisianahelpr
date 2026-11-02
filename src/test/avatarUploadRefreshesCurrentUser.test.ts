@@ -1,7 +1,7 @@
 /**
  * A new profile photo shows everywhere at once (Q1001). Seen on prod
  * 2026-10-12 at 375 (Eli, a test account, Supabase writes refused except the
- * upload and the row): after "Use Photo" in Edit Profile, the page's own card
+ * upload and the row): after "Use photo" in Edit Profile, the page's own card
  * showed the new photo but the dock's Profile tab still read "EH", because
  * Profile.tsx updated only its local state and every other avatar reads
  * useCurrentUser's cache.

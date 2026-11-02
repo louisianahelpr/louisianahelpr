@@ -37,7 +37,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
   // NIGHT-JOBSRE4-4: the quote failed to load (no word from the server), so asking again may work.
   const [quoteRetry, setQuoteRetry] = useState(false);
   // Jobs audit 54a: a failed cash-out replaces the offer. The old screen kept
-  // "You receive $77.60" and a live Cash Out under a toast that faded.
+  // "You receive $77.60" and a live Cash out under a toast that faded.
   const [failure, setFailure] = useState<{ message: string; canRetry: boolean } | null>(null);
 
   const loadQuote = useCallback(async () => {
@@ -231,7 +231,7 @@ const InstantPayoutDialog = ({ open, onOpenChange, onSuccess }: Props) => {
               </>
             ) : (
               <>
-                <Zap className="w-4 h-4" /> Cash Out {quote ? fmt(quote.net_cents) : ""}
+                <Zap className="w-4 h-4" /> Cash out {quote ? fmt(quote.net_cents) : ""}
               </>
             )}
           </DialogPrimaryAction>

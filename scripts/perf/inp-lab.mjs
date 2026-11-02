@@ -201,7 +201,7 @@ export const SCENARIOS = {
       { upload: "#avatar" },
       { wait: 1500 },
       { type: "[role=dialog] input[aria-label='Zoom']", keys: ["ArrowRight", "ArrowRight", "ArrowRight"] },
-      { tap: "[role=dialog] button:has-text('Use Photo')" , now: true },
+      { tap: "[role=dialog] button:has-text('Use photo')" , now: true },
       { tap: "#bio", now: true },
       { tap: "#firstName", now: true },
       { wait: 2000 },

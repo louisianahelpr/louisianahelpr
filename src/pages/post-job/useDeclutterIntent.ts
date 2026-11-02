@@ -19,7 +19,7 @@ export interface DeclutterIntent {
   noDraft: boolean;
 }
 
-export function readDeclutterIntent(searchParams: URLSearchParams): DeclutterIntent {
+function readDeclutterIntent(searchParams: URLSearchParams): DeclutterIntent {
   const declutterOrderId = searchParams.get("declutterOrder") || null;
   return { declutterOrderId, noDraft: !!(declutterOrderId || searchParams.get("haulAway")) };
 }

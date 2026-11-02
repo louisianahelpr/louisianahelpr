@@ -509,8 +509,11 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     seed(cancelledJob({ cancelled_at: new Date(Date.now() - 40 * DAY).toISOString(), updated_at: new Date(Date.now() - 40 * DAY).toISOString() }));
     scenario.reads.jobs!.rows!.push(cancelledJob({ id: "job-e", payment_status: "escrow", cancelled_at: new Date(Date.now() - 600_000).toISOString() }));
     const { b } = await run(fn);
-    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    // Neither is a settled-phase read. The escrow job IS read once, by the
+    // funded-job phase (Q1974, money-reconciliation-funded.test.ts).
+    expect(b.scanned.stripe_payment_intents).toBe(0);
     expect(b.scanned.settled_jobs_with_payment_intent).toBe(0);
+    expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledTimes(1);
   });
 
   describe("time budget", () => {

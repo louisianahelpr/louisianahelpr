@@ -41,6 +41,8 @@ vi.mock("./AdminUserNotes", () => ({
 vi.mock("./UserVerificationHistory", () => ({
   default: () => <div data-testid="user-verification-history" />,
 }));
+// Q1928 gap 1: the Actions tab's Declutter amounts owed card reads through react-query (its own test covers it).
+vi.mock("./userDetail/DeclutterAmountsOwed", () => ({ DeclutterAmountsOwed: () => <div data-testid="declutter-amounts-owed" /> }));
 
 const pendingProfile = {
   id: "profile-1",

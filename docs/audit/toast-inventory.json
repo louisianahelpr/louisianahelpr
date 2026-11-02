@@ -11146,7 +11146,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 180,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11156,7 +11156,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 272,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11166,7 +11166,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 376,
+      "line": 377,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11176,7 +11176,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 432,
+      "line": 433,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

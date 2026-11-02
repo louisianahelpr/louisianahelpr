@@ -17,12 +17,15 @@ export const HIRED_PAYOUT_BODY =
 export const HIRED_PAYOUT_PAUSED_TITLE = "You're hired.";
 export const HIRED_PAYOUT_PAUSED_BODY = "The job is yours. Your pay for this job is held safely until your payout account is ready.";
 export const FINISH_PAYOUT_SETUP_LABEL = "Finish payout setup";
-export const JOB_PAYOUT_SETUP_HEADLINE = "Finish payout setup to get paid.";
 
-/** The job's line: "Your $X for this job is held until your payout account is ready." */
-export function jobPayoutHeldLine(amountLabel: string | null): string {
-  return `Your ${amountLabel ?? "pay"} for this job is held until your payout account is ready.`;
+/**
+ * A3-29 (audit 11-01): the job card's next step, on the shared next-step line: "Next: finish payout setup · your $40 is
+ * held until then". No deadline: the money waits. Its one button is SET_UP_PAYOUTS_LABEL.
+ */
+export function jobPayoutNextStep(amountLabel: string | null): { who: "you"; text: string; by: string } {
+  return { who: "you", text: "Finish payout setup", by: `your ${amountLabel ?? "pay"} is held until then` };
 }
+export const SET_UP_PAYOUTS_LABEL = "Set up payouts";
 
 /** Is this profile's payout account ready (Stripe answered payouts on)? The same test the payout paths use. */
 export function payoutAccountReady(profile: { stripe_account_id?: string | null; stripe_payouts_enabled?: boolean | null } | null | undefined): boolean {

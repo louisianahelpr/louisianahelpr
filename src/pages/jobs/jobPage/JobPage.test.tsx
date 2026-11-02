@@ -638,8 +638,8 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
 
   // A3-8 (audit 11-01): at the approve step the poster's complaint is a visible text button under the pair (Message |
   // Approve stays, owner 12:49 PM), opening the approve sheet at the fix form; at other steps it is not there.
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null; |   const notRight = null;
-  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null; |   const notRight = flows.ready ? flows.notRight : null;
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready && !refundOpen ? flows.notRight : null; |   const notRight = null;
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready && !refundOpen ? flows.notRight : null; |   const notRight = flows.ready && !refundOpen ? flows.notRight : null;
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | data-not-right-open="" onClick={posterActions.notRight} | data-not-right-open="" onClick={posterActions.edit}
   it("A3-8: 'Something's not right' sits under Message | Approve and opens the fix form; not before the Helpr marks it done", async () => {
     state.job = { ...arrived(), poster_confirmed_arrival_at: "2026-10-28T12:40:00Z", helper_completed_at: "2026-10-28T15:00:00Z" };

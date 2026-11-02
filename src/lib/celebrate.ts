@@ -9,6 +9,7 @@
  * elsewhere in the flow.
  */
 import { safeStorage } from "@/lib/safeStorage";
+import { loadModule } from "@/lib/loadModule";
 
 export function getBrandColors(): string[] {
   if (typeof window === "undefined")
@@ -38,7 +39,10 @@ export function getBrandColors(): string[] {
  * confetti call in the app goes through this.
  */
 export async function fireConfetti(options: Record<string, unknown>): Promise<void> {
-  const confetti = (await import("canvas-confetti")).default;
+  // A prevented preload resolves the import undefined (loadModule.ts): decoration only, so nothing fires.
+  const m = await loadModule(() => import("canvas-confetti"));
+  if (!m) return;
+  const confetti = m.default;
   const canvas = document.createElement("canvas");
   canvas.setAttribute("aria-hidden", "true");
   canvas.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:100";

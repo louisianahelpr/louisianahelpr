@@ -43,6 +43,9 @@
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |   const canPart = row.detail?.order_status === "handed_over"; |   const canPart = true;
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | adminDecideProblem(...args, partCents) : | adminDecideProblem(...args, null) :
  * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       {row.detail?.other_side_note ? ( |       {false ? (
+ * A3-74 (lead 11-01): each problem shows its decide-by, and an overdue one says so (withDecideBy sorts them first).
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |     queryFn: async () => withDecideBy(await fetchOpenProblemsWithDetail(includeTest)), |     queryFn: async () => fetchOpenProblemsWithDetail(includeTest),
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | {new Date(row.decide_by).getTime() < Date.now() ? "Overdue · " : ""}Decide by | Decide by
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -59,7 +62,10 @@ vi.mock("@/lib/declutter/handover", () => ({
   adminDecideProblem: async (...a: unknown[]) => { state.calls.push(["decide", ...a]); return {}; },
   adminDecideDeliveryDamage: async (...a: unknown[]) => { state.calls.push(["damage", ...a]); return {}; },
   adminDecideStuckDelivery: async (...a: unknown[]) => { state.calls.push(["stuck", ...a]); return {}; },
+  // A3-74: the real one reads declutter_problems.decide_by (src/lib/declutter/decideBy.test.ts); here it stamps a time.
+  withDecideBy: async (rows: { id: string }[]) => rows.map((r) => ({ ...r, decide_by: DECIDE_BY })),
 }));
+const DECIDE_BY = "2020-01-02T03:00:00Z";
 
 vi.mock("@/lib/declutter/adminProblemCase", () => ({
   fetchProblemTalk: async () => { state.talkAsked += 1; if (state.talkError) throw new Error("not_admin"); return state.talk; },
@@ -96,7 +102,7 @@ beforeEach(() => {
 });
 
 // Audit 1028 part 2, D2-4: with "Show test listings" on, the card asks the server for test accounts' problems too.
-// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |     queryFn: () => fetchOpenProblemsWithDetail(includeTest), |     queryFn: () => fetchOpenProblemsWithDetail(),
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | withDecideBy(await fetchOpenProblemsWithDetail(includeTest)), | withDecideBy(await fetchOpenProblemsWithDetail()),
 describe("DeclutterProblemsCard: test accounts' problems (D2-4)", () => {
   it("off by default; on, the read asks for them and the card says so", async () => {
     const off = show();
@@ -460,5 +466,12 @@ describe("DeclutterProblemsCard: a Helpr already struck for this delivery (B48)"
     fireEvent.change(fault, { target: { value: choice } });
     if (warned) expect(await screen.findByText(WARNING)).toBeInTheDocument();
     else expect(screen.queryByText(WARNING)).toBeNull();
+  });
+
+  it("A3-74: a problem shows when Louisiana Helpr should decide, and an overdue one says so", async () => {
+    state.rows = [row("damaged")];
+    show();
+    const due = await screen.findByText(/Decide by/);
+    expect(due.textContent).toBe("Overdue · Decide by Wed 1/1, 9 PM");
   });
 });

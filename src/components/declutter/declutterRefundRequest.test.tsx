@@ -12,7 +12,16 @@
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}.
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{fullRefundWhy(v.delivery_kept_cents)}</span> | {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span>
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   const [amount, setAmount] = useState(""); |   const [amount, setAmount] = useState("10");
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       return answerRefund(r?.id ?? "", choice ?? "decline", choice === "part" ? offerCents : null); |       return answerRefund(r?.id ?? "", choice ?? "decline", offerCents);
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       return answerRefund(r?.id ?? "", choice ?? "decline", choice === "part" ? offerCents : null, choice === "full" ? "" : sideNote, paths); |       return answerRefund(r?.id ?? "", choice ?? "decline", offerCents, choice === "full" ? "" : sideNote, paths);
+ * A3-74 (audit 11-01; lead 11-01 48 h): the seller's optional words on a part offer or a no; the buyer reads them; both
+ * sides are told when Louisiana Helpr usually decides. Server: src/test/pglite/declutterRefundSellerSide.pglite.mjs.
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | choice === "part" ? offerCents : null, choice === "full" ? "" : sideNote, paths); | choice === "part" ? offerCents : null, "", paths);
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       {(choice === "part" \|\| choice === "decline") && ( |       {false && (
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | We decide and tell you both.{decidesBy(r.decide_by)}</p>; | We decide and tell you both.</p>;
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | Your payout waits until we decide.{decidesBy(r.decide_by)}</p>; | Your payout waits until we decide.</p>;
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | You keep the item.</p>\n          <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} /> | You keep the item.</p>
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | Louisiana Helpr decides.` : ""}\n          </p>\n          <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} /> | Louisiana Helpr decides.` : ""}\n          </p>
+ * @mutate src/lib/declutter/decideBy.ts | Louisiana Helpr usually decides within 2 days (by ${decideByWords(decideBy)}). | Louisiana Helpr decides soon.
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           {v.can_report && problemForm} |           {problemForm}
  * D2-5 (audit 1b #5): a request Louisiana Helpr decided says so on both sides, never "is looking" or "said no".
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       if (r.admin_decided) return <p | if (false) return <p
@@ -273,7 +282,7 @@ describe("DeclutterRefundPanel", () => {
     const sheet = await screen.findByRole("dialog");
     expect(sheet.textContent).toMatch(/\$41\.20 back to .* now, and you get no payout/);
     fireEvent.click(within(sheet).getByRole("button", { name: "Send answer" }));
-    await waitFor(() => expect(state.answered).toEqual([["r1", "full", null]]));
+    await waitFor(() => expect(state.answered).toEqual([["r1", "full", null, "", []]]));
     expect(state.accepted).toEqual([]);
   });
 
@@ -300,7 +309,7 @@ describe("DeclutterRefundPanel", () => {
     fireEvent.change(box, { target: { value: "12.50" } });
     expect(send.disabled).toBe(false);
     await sendAnswer();
-    await waitFor(() => expect(state.answered).toEqual([["r1", "part", 1250]]));
+    await waitFor(() => expect(state.answered).toEqual([["r1", "part", 1250, "", []]]));
   });
 
   it("seller: Refund in full sends no amount (the server decides it), even after typing an offer", async () => {
@@ -321,7 +330,7 @@ describe("DeclutterRefundPanel", () => {
     fireEvent.change(screen.getByLabelText(/How much back\?/), { target: { value: "12.50" } });
     fireEvent.click(screen.getByText("I don't agree"));
     await sendAnswer();
-    await waitFor(() => expect(state.answered).toEqual([["r1", "decline", null]]));
+    await waitFor(() => expect(state.answered).toEqual([["r1", "decline", null, "", []]]));
     expect(state.accepted).toEqual([]);
   });
 
@@ -498,5 +507,33 @@ describe("the refund panel says the next step in the shared line (A3-20, A3-79)"
     first.unmount();
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...ret, return_dropped_off_at: "2026-10-26T15:00:00Z" } as never });
     expect(await line("you")).toBe("Next: tap I got it back");
+  });
+
+  it("A3-74: the seller's optional words go with a no, and with a part offer; Refund in full shows no Why box", async () => {
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
+    fireEvent.click(await screen.findByText("Refund in full"));
+    expect(screen.queryByLabelText("Why? (optional)")).toBeNull();
+    fireEvent.click(screen.getByText("I don't agree"));
+    fireEvent.change(screen.getByLabelText("Why? (optional)"), { target: { value: "It worked at pickup." } });
+    await sendAnswer();
+    await waitFor(() => expect(state.answered).toEqual([["r1", "decline", null, "It worked at pickup.", []]]));
+  });
+
+  it("A3-74: the buyer reads the seller's words on a no and on an offer", async () => {
+    const said = { seller_note: "It worked at pickup.", seller_photo_paths: [] };
+    const first = show({ ...BASE, can_ask: false, request: { ...REQ, status: "declined", declined_at: "2026-10-23T19:00:00Z", report_until: "2026-10-24T19:00:00Z", ...said } });
+    expect(await screen.findByText(/Nikki says: .It worked at pickup../)).toBeInTheDocument();
+    first.unmount();
+    show({ ...BASE, can_ask: false, request: { ...REQ, status: "offered", offer_cents: 500, offer_answer_by: "2026-10-24T19:00:00Z", ...said } });
+    expect(await screen.findByText(/Nikki says: .It worked at pickup../)).toBeInTheDocument();
+  });
+
+  it("A3-74: at Louisiana Helpr, both sides read when it usually decides", async () => {
+    const toAdmin = { ...REQ, status: "to_admin" as const, decide_by: "2026-11-04T03:00:00Z" };
+    const first = show({ ...BASE, can_ask: false, request: toAdmin });
+    expect(await screen.findByText(/Louisiana Helpr usually decides within 2 days \(by Tue 11\/3, 9 PM\)\./)).toBeInTheDocument();
+    first.unmount();
+    show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: toAdmin });
+    expect(await screen.findByText(/Your payout waits until we decide\. Louisiana Helpr usually decides within 2 days \(by Tue 11\/3, 9 PM\)\./)).toBeInTheDocument();
   });
 });

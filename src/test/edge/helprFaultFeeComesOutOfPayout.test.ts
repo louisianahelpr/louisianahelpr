@@ -14,7 +14,7 @@
  *
  * @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents) - helprFaultFeeCents; |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents);
  * @mutate supabase/functions/release-payout/index.ts |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents) - helprFaultFeeCents; |       payoutCents = roundPayoutDownCents(unroundedPayoutCents - onboardingFeeDeductedCents - helprFaultFeeCents);
- * @mutate supabase/functions/release-payout/index.ts |    if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout"); |    if (helprFaultFeeCents < 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
+ * @mutate supabase/functions/release-payout/index.ts | if (helprFaultFeeCents > 0 && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout"); | if (helprFaultFeeCents < 0 && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
  * @mutate supabase/functions/release-payout/index.ts |      return jsonResponse({ error: "could not read the Helpr's card-fee debt — retry. Nothing was moved." }, 500); |      console.error("ignored");
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0));
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents; |      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0) - helprFaultFeeCents);
@@ -144,14 +144,26 @@ describe("Q2082 (b): a Helpr-fault card fee comes out of the next payout", () =>
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
-    it("a failed transfer gives the withheld debt back", async () => {
+    // Q2204: only a DEFINITE refusal (Stripe answered, no transfer exists) gives the debt back. A timeout may have
+    // created the transfer with the fee held back; restored, the next payout would take the debt again.
+    // @mutate supabase/functions/release-payout/index.ts | await rollBackOnboardingFeeClaim({ keepHelprFaultFee: !isDefiniteStripeRefusal(err) }); | await rollBackOnboardingFeeClaim();
+    it("a transfer Stripe REFUSED gives the withheld debt back; a timed-out one keeps it (Q2204)", async () => {
       seedRelease(scenario);
       scenario.rpc.take_helpr_fault_fee = 369;
-      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("insufficient funds"), { type: "StripeError" }));
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("insufficient funds"), { type: "StripeInvalidRequestError" }));
       const res = await run();
       expect(res.status).toBe(502);
       expect(restoreCalls()).toHaveLength(1);
       expect(restoreCalls()[0].args).toEqual({ p_helper_id: "helper-1", p_job_id: "job-1" });
+
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+      resetSupabaseMock(); scenario.rpcCalls = [];
+      seedRelease(scenario);
+      scenario.rpc.take_helpr_fault_fee = 369;
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Request timed out"), { type: "StripeConnectionError" }));
+      const res2 = await run();
+      expect(res2.status).toBe(502);
+      expect(restoreCalls()).toHaveLength(0);
     });
   });
 
@@ -196,6 +208,24 @@ describe("Q2082 (b): a Helpr-fault card fee comes out of the next payout", () =>
       scenario.rpcErrors = { take_helpr_fault_fee: { message: "connection reset" } };
       await run();
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | await rollBackOnboardingFeeClaim({ keepHelprFaultFee: !isDefiniteStripeRefusal(e) }); | await rollBackOnboardingFeeClaim();
+    it("a transfer Stripe REFUSED gives the withheld debt back; a timed-out one keeps it (Q2204)", async () => {
+      seedScheduled(scenario);
+      scenario.rpc.take_helpr_fault_fee = 369;
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("No such destination"), { type: "StripeInvalidRequestError" }));
+      await run();
+      expect(restoreCalls()).toHaveLength(1);
+
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+      resetSupabaseMock(); scenario.rpcCalls = [];
+      seedScheduled(scenario);
+      scenario.rpc.take_helpr_fault_fee = 369;
+      stripeMock.transfers.create.mockRejectedValue(Object.assign(new Error("Request timed out"), { type: "StripeConnectionError" }));
+      await run();
+      expect(stripeMock.transfers.create).toHaveBeenCalled();
+      expect(restoreCalls()).toHaveLength(0);
     });
   });
 

@@ -11,7 +11,7 @@ import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { crewFeeShareReturnCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { formatExactDollars, formatPayoutDollars, isDefiniteStripeRefusal, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
@@ -1757,9 +1757,10 @@ serve(async (req) => {
       // the flag as already-paid and the $2 is silently lost forever.
       // Q2082 (b): what this payout withheld for a Helpr-fault card fee (below).
       let helprFaultFeeCents = 0;
-      const rollBackOnboardingFeeClaim = async () => {
-        // The Helpr-fault card fee taken below goes back on the same exits.
-        if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, helperId, job.id, "process-scheduled-payouts");
+      const rollBackOnboardingFeeClaim = async (opts: { keepHelprFaultFee?: boolean } = {}) => {
+        // The Helpr-fault card fee taken below goes back on the same exits, except a transfer error that may have
+        // moved money (Q2204, below).
+        if (helprFaultFeeCents > 0 && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, helperId, job.id, "process-scheduled-payouts");
         if (!owesOnboardingFee) return;
         const { error: unclaimErr } = await supabaseAdmin
           .from("profiles")
@@ -2281,7 +2282,12 @@ serve(async (req) => {
 
         // Un-claim the onboarding fee if THIS job claimed it — no money moved,
         // so the fee was never collected and the flag must not say it was.
-        await rollBackOnboardingFeeClaim();
+        // Q2204: the Helpr-fault deduction goes back ONLY on a definite Stripe
+        // refusal (no transfer exists), as transferToHelper and
+        // execute-dispute-split do. A timeout or 5xx may have created the
+        // transfer with the fee held back: restored, the debt would read unpaid
+        // and the next payout would take it again.
+        await rollBackOnboardingFeeClaim({ keepHelprFaultFee: !isDefiniteStripeRefusal(e) });
 
         await tellHelprPayIsDelayed(supabaseAdmin, { helperId, job, why: "sending", source: "process-scheduled-payouts" });
 

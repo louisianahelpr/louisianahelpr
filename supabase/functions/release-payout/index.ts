@@ -62,7 +62,7 @@ import { flipJobToReleased } from "../_shared/releaseFlip.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
-import { payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { isDefiniteStripeRefusal, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { checkIdentityHold, checkPayoutHold, checkJobPayoutHold, IDENTITY_HOLD_MESSAGE, isPayoutHeldRefusal, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { jobMoneyMode, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
@@ -1005,9 +1005,10 @@ serve(async (req) => {
    */
   // Q2082 (b): what this payout withheld for a Helpr-fault card fee (below).
   let helprFaultFeeCents = 0;
-  const rollBackOnboardingFeeClaim = async () => {
-    // The Helpr-fault card fee taken below goes back on the same exits.
-    if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
+  const rollBackOnboardingFeeClaim = async (opts: { keepHelprFaultFee?: boolean } = {}) => {
+    // The Helpr-fault card fee taken below goes back on the same exits, except a transfer error that may have
+    // moved money (Q2204, the transfer catch).
+    if (helprFaultFeeCents > 0 && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "release-payout");
     if (onboardingFeeDeductedCents <= 0) return;
     const { error: unclaimErr } = await supabaseAdmin
       .from("profiles")
@@ -1278,7 +1279,10 @@ serve(async (req) => {
     }
     // Un-claim the onboarding fee if THIS invocation claimed it — the transfer
     // failed, so no money moved and the fee was never actually collected.
-    await rollBackOnboardingFeeClaim();
+    // Q2204: the Helpr-fault deduction goes back ONLY on a definite Stripe
+    // refusal (no transfer exists), as transferToHelper and
+    // execute-dispute-split do; a timeout may have sent the transfer with it held back.
+    await rollBackOnboardingFeeClaim({ keepHelprFaultFee: !isDefiniteStripeRefusal(err) });
     return jsonResponse({ error: `stripe.transfers.create failed: ${err.message}` }, 502);
   }
 

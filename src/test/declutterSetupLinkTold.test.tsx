@@ -7,6 +7,14 @@
  * @mutate src/lib/declutter/setupLinkPending.ts |       if (why) return last; |       if (why) continue;
  * @mutate src/lib/declutter/setupLinkPending.ts |   for (let attempt = 0; attempt < 2; attempt += 1) { |   for (let attempt = 0; attempt < 1; attempt += 1) {
  * @mutate src/pages/post-job/PaymentSuccess.tsx |   useTellPendingSetupLink(resolvedJobId); |   void resolvedJobId;
+ * @mutate src/lib/authSignOut.ts |   clearPendingSetupLink();\n |   void 0;\n
+ * @mutate src/pages/post-job/useJobSubmit.ts |     pending?.clearPendingSetupLink(); |     void pending;
+ * @mutate src/lib/declutter/setupLinkPending.ts |   safeStorage.setItem(SETUP_LINK_PENDING_KEY, JSON.stringify(p)); |   safeStorage.setItem(SETUP_LINK_PENDING_KEY, JSON.stringify({ ...p, at: Date.now() }));
+ *
+ * The link itself is idempotent (lead's condition for the retry, 11-02): declutter_link_setup_job answers yes at once
+ * for the caller's job already linked to the caller's order, inserts ON CONFLICT (job_id) DO NOTHING, moves no money
+ * and sends no notice, and no trigger sits on declutter_order_jobs. Proven in src/test/pglite/declutterAddAHelpr.pglite.mjs
+ * H5 (a second link leaves one row and the job's status and payment_status unchanged).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -82,6 +90,21 @@ describe("the pending link is taken once, for its own job", () => {
     localStorage.setItem(SETUP_LINK_PENDING_KEY, "{not json");
     expect(takePendingSetupLink(JOB)).toBeNull();
     expect(localStorage.getItem(SETUP_LINK_PENDING_KEY)).toBeNull();
+  });
+});
+
+describe("the record holds two ids and nothing else, and is cleared on success and on sign-out", () => {
+  it("stores only orderId and jobId (no amount, card or payment data)", () => {
+    rememberPendingSetupLink({ orderId: ORDER, jobId: JOB });
+    expect(Object.keys(JSON.parse(localStorage.getItem(SETUP_LINK_PENDING_KEY)!)).sort()).toEqual(["jobId", "orderId"]);
+  });
+
+  it("Post a job clears it when the link lands, and sign-out clears it for the next member", () => {
+    const read = (rel: string) => blankComments(readFileSync(join(__dirname, "..", rel), "utf8"));
+    expect(read("pages/post-job/useJobSubmit.ts")).toMatch(/if \(result\.ok\) \{\n\s*pending\?\.clearPendingSetupLink\(\);\n\s*return;/);
+    const signOut = read("lib/authSignOut.ts");
+    expect(signOut).toContain('import { clearPendingSetupLink } from "@/lib/declutter/setupLinkPending";');
+    expect(signOut).toMatch(/\n {2}clearPendingSetupLink\(\);\n/);
   });
 });
 

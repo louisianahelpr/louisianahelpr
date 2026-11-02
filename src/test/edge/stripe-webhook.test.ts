@@ -2381,7 +2381,7 @@ describe("stripe-webhook edge function", () => {
     // 2026-10-15: tax stays paid on fees we keep). The visit below: $100
     // labor + $10 tax + $3.50 card fee = $113.50 charged; $110 is taxed.
     describe("recurring-visit sales tax reversal per refund (Q1655, Q1782 (2))", () => {
-      // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, logStep }); |     void reverseVisitTaxForRefund;
+      // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, supabase, logStep }); |     void reverseVisitTaxForRefund;
       const visitRefund = (id: string) => ({
         id,
         type: "charge.refunded",
@@ -2421,6 +2421,61 @@ describe("stripe-webhook edge function", () => {
           opts: { idempotencyKey: "visit-tax-reversal:re_full" },
         }]);
         expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith("pi_visit", { metadata: { tax_rev_re_full: "taxrev_refund:re_full" } });
+      });
+
+      // Q1997: a refund that returned money on a transaction listing no lines
+      // (or only zero amounts) reverses nothing, so a person is paged.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!(txTotalCents > 0)) { |   if (false) {
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts | logStep("Recurring-visit tax transaction records nothing to reverse; paged", { txId, chargeId: charge.id }); | logStep("Recurring-visit tax transaction records nothing to reverse; paged", { txId, chargeId: charge.id }); return "none";
+      for (const [label, lines] of [["no lines", []], ["only zero amounts", [{ id: "tax_li_0", amount: 0, amount_tax: 0, reference: "labor" }]]] as const) {
+        it(`a refund on a tax transaction with ${label} pages once and reverses nothing (Q1997)`, async () => {
+          stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: lines, has_more: false });
+          piMeta();
+          refundsAre([{ id: "re_empty", amount: 11000, created: 100 }]);
+          const res = await run(`evt_tax_empty_${label.length}`);
+          expect(res.status).toBe(200);
+          expect(reversals()).toEqual([]);
+          const pages = (slackAlerts as Array<{ kind?: string; title?: string; fields?: Record<string, unknown> }>).filter((a) => /lists nothing to reverse/.test(a.title ?? ""));
+          expect(pages).toHaveLength(1);
+          expect(pages[0].kind).toBe("money_at_risk");
+          expect(pages[0].fields).toMatchObject({ "Tax transaction": "tax_txn_9", Charge: "ch_visit", "Payment Intent": "pi_visit" });
+        });
+      }
+
+      // Q1997 (lead): test data never pages the owner. The page carries seed:
+      // the visit's series job is_seed, or its payer/Helpr is a test subject;
+      // a visit row that cannot be read pages as real.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |       seed: await visitIsSeed(supabase, piId, logStep), |       seed: false,
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   return job?.is_seed === true \|\| await anyIsTestSubject(supabase, [visit.payer_id, visit.helper_id], logStep); |   return job?.is_seed === true;
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (error \|\| !visit) { |   if (error) {
+      for (const [label, setup, seed] of [
+        ["a seed series job", () => { scenario.reads.jobs = { rows: [{ id: "job-v", is_seed: true }] }; }, true],
+        ["a test-account payer", () => { scenario.reads.jobs = { rows: [{ id: "job-v", is_seed: false }] }; scenario.rpc.is_test_subject = true; }, true],
+        ["a real visit", () => { scenario.reads.jobs = { rows: [{ id: "job-v", is_seed: false }] }; scenario.rpc.is_test_subject = false; }, false],
+      ] as const) {
+        it(`the empty-transaction page is seed=${seed} for ${label} (Q1997)`, async () => {
+          stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [], has_more: false });
+          piMeta();
+          refundsAre([{ id: "re_empty", amount: 11000, created: 100 }]);
+          scenario.reads.recurring_visit_payments = { rows: [{ parent_job_id: "job-v", payer_id: "poster-1", helper_id: "helpr-1" }] };
+          setup();
+          await run(`evt_tax_empty_seed_${label.length}`);
+          const pages = (slackAlerts as Array<{ title?: string; seed?: boolean }>).filter((a) => /lists nothing to reverse/.test(a.title ?? ""));
+          expect(pages).toHaveLength(1);
+          expect(pages[0].seed).toBe(seed);
+        });
+      }
+
+      it("the empty-transaction page counts as real when the visit row is missing (Q1997)", async () => {
+        stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [], has_more: false });
+        piMeta();
+        refundsAre([{ id: "re_empty", amount: 11000, created: 100 }]);
+        scenario.reads.recurring_visit_payments = { rows: [] };
+        scenario.reads.jobs = { rows: [{ id: "job-v", is_seed: true }] };
+        await run("evt_tax_empty_novisit");
+        const pages = (slackAlerts as Array<{ title?: string; seed?: boolean }>).filter((a) => /lists nothing to reverse/.test(a.title ?? ""));
+        expect(pages).toHaveLength(1);
+        expect(pages[0].seed).toBe(false);
       });
 
       // Q1828: an inclusive line's amount already holds its tax.

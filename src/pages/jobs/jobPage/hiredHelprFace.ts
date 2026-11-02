@@ -8,6 +8,11 @@ import type { JobPageRow } from "./useJobPage";
 import type { CrewSlot } from "@/lib/crewLifecycle";
 import { crewMemberFace } from "./crewMemberFace";
 
+/** A job in one of these has no step left for its Helpr (a no-show report and an expired listing are 'cancelled'). */
+const ENDED_JOB_STATUSES = new Set(["cancelled", "expired"]);
+/** An application in one of these is off the job, whatever the job row still says. */
+const CLOSED_APPLICATION_STATUSES = new Set(["rejected", "withdrawn", "cancelled", "closed"]);
+
 /**
  * The hired Helpr's job page button (audit 2026-10-28 F26: the page had no next action, only "Open in working").
  * It is the Working card's own face button, from the same functions (helperStatusLine with the tracking row's
@@ -25,18 +30,26 @@ export function hiredHelprFace(
     owesReview?: boolean; review?: () => void;
     /** A3-33: a crew member's own roster row (useCrewSlot): their step is the page's button. */
     crewSlot?: CrewSlot | null;
+    /** This Helpr's own application row (useJobPage myApplication), or null/undefined when not read yet. */
+    application?: { status: string; closed_reason: string | null } | null;
   },
 ): MineFaceAction | null {
   const row = job as unknown as Job;
+  // Audit 1102b row 1 (Q2587): a job that ended (cancelled, which a no-show report and an expired listing also are)
+  // or an application that closed (no_show, not picked, withdrawn) has no tracker step left. The line was built
+  // with the application hard-coded accepted, so a job cancelled on its day after the Helpr confirmed offered a
+  // primary "I'm on my way" under "This job was cancelled".
+  const app = o.application ?? null;
+  const ended = ENDED_JOB_STATUSES.has(job.status ?? "") || !!app?.closed_reason || (!!app && CLOSED_APPLICATION_STATUSES.has(app.status));
   const workUnderway = helperProgress(row, o.trackingStatus).workUnderway;
   const line = helperStatusLine(
-    { id: `page-${job.id}`, job: row, job_id: job.id, helper_id: o.userId, status: "accepted", closed_reason: null, posterName: o.posterFirst } as unknown as AppliedApp,
+    { id: `page-${job.id}`, job: row, job_id: job.id, helper_id: o.userId, status: app?.status ?? "accepted", closed_reason: app?.closed_reason ?? null, posterName: o.posterFirst } as unknown as AppliedApp,
     false,
     { workUnderway },
   );
   const tracking = o.trackingStatus ? ({ status: o.trackingStatus } as TrackingData) : null;
   // A crew's steps are per member, on the roster (AppliedJobCard: no face step for a group job).
-  const step = job.is_group_job ? null : helperFaceNextStep({ ...row, id: job.id }, tracking, line.id);
+  const step = job.is_group_job || ended ? null : helperFaceNextStep({ ...row, id: job.id }, tracking, line.id);
   const face = helperFaceAction({
     isMinimalCard: false,
     isOffered: false,

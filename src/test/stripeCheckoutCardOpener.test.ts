@@ -21,7 +21,8 @@
 // @mutate e2e/prod-audit/fundedOpenJob.ts |     await openCardFields(page); |     if (!(await card.isVisible().catch(() => false))) await radio.click({ force: true });
 // @mutate e2e/stripeCheckoutCard.ts |     if ((await cardButton.count().catch(() => 0)) > 0) { |     if (false) {
 // @mutate e2e/journeys/fixtures.ts |   const paymentField = stripePaymentMethodControl(page); |   const paymentField = page.locator("#cardNumber").or(page.getByRole("radio").first());
-// @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |       await card.or(cardButton).or(radio).first() |       await card.or(radio).first()
+// @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |         for (const l of [card, cardButton, cardItem, radio, submit]) { |         for (const l of [card, cardButton, radio]) {
+// @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |       const drawnBy = Date.now() + 60_000; |       await card.or(cardButton).or(radio).first().waitFor({ state: "visible", timeout: 60_000 }); const drawnBy = 0;
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -103,22 +104,27 @@ describe("no driver waits on a payment-method radio alone (Stripe's button accor
   /*
    * NAMING the button is not WAITING on it (vacuity run 39033154991, main
    * 970fc02a1: mint-funded-seed-jobs.prod.mjs's wait cut back to
-   * `card.or(radio)` stayed green above, because `cardButton` was still
-   * declared on the line before). The wait itself is what sat 60s on Stripe's
-   * button accordion, so every wait whose locator names a radio must also
-   * wait on the Card method button, by its variable or its test id.
+   * `card.or(radio)` stayed green, because `cardButton` was still declared on
+   * the line before). Nor is `.or(...).first().waitFor(visible)` enough
+   * (Q2238): `.first()` is the first match in DOM order, and with the Card item
+   * already open that is the card-accordion-item-button OVERLAY, a zero-size
+   * click area that never reads visible (Declutter payout proof run
+   * 39342447913 sat 60 s on a drawn card form). So no driver waits on a radio
+   * or on an `.or(...).first()` chain; the .mjs copies that cannot import the
+   * helper poll until ANY of card field / Card item / radio / Pay is visible.
    */
-  it("every wait that includes a radio also waits on the Card method button", () => {
-    const waits = files.flatMap((f) => {
-      const buttonVars = [...f.code.matchAll(/(?:const|let)\s+(\w+)\s*=\s*[^;\n]*card-accordion-item-button/g)].map((m) => m[1]);
-      return [...f.code.matchAll(/await\s+([^;\n]*)\.waitFor\(/g)]
-        .map((m) => m[1])
-        .filter((expr) => /\bradio\b|getByRole\(["']radio["']\)/.test(expr))
-        .map((expr) => ({ rel: f.rel, expr, ok: expr.includes("card-accordion-item-button") || buttonVars.some((v) => new RegExp(`\\b${v}\\b`).test(expr)) }));
-    });
-    // Floor: the probe's own wait is one of them.
-    expect(waits.filter((w) => w.rel === "scripts/probes/mint-funded-seed-jobs.prod.mjs").length).toBeGreaterThan(0);
-    expect(waits.filter((w) => !w.ok).map((w) => `${w.rel}: ${w.expr}`)).toEqual([]);
+  it("no driver waits on a radio or an .or(...).first() chain; the probe polls until any control is visible", () => {
+    const waits = files.flatMap((f) =>
+      [...f.code.matchAll(/await\s+([^;\n]*)\.waitFor\(/g)].map((m) => ({ rel: f.rel, expr: m[1] })),
+    );
+    // Floor: the scan reads real waits (the drivers wait on #cardNumber and more).
+    expect(waits.length).toBeGreaterThan(2);
+    const bad = waits.filter((w) => /\bradio\b|getByRole\(["']radio["']\)/.test(w.expr) || /\.or\([\s\S]*\.first\(\)\s*$/.test(w.expr));
+    expect(bad.map((w) => `${w.rel}: ${w.expr}`)).toEqual([]);
+    const probe = files.find((f) => f.rel === "scripts/probes/mint-funded-seed-jobs.prod.mjs");
+    expect(probe, "the probe is in the inventory").toBeTruthy();
+    expect(probe!.code).toContain('getByTestId("card-accordion-item")');
+    expect(probe!.code).toMatch(/for \(const l of \[[^\]]*\bcardItem\b[^\]]*\bsubmit\b[^\]]*\]\)/);
   });
 });
 

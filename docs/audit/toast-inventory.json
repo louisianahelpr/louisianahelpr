@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1085,
-    "files": 303,
-    "rendering": 1004,
+    "calls": 1087,
+    "files": 304,
+    "rendering": 1006,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 32,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 184,
-      "toast.error": 746,
+      "toast": 185,
+      "toast.error": 747,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 461,
+      "literal": 462,
       "template": 98,
-      "dynamic": 577,
+      "dynamic": 578,
       "jsx": 0
     }
   },
@@ -12131,6 +12131,36 @@
         "text": "Arrival confirmed."
       },
       "renders": false
+    },
+    {
+      "file": "src/pages/jobs/jobPage/useWithdrawOffer.tsx",
+      "line": 51,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "isMissingRpcNamed(error, \"rpc_poster_withdraw_offer\") ? \"Withdrawing an offer isn't ready yet. Your offer is still out; you can cancel the job instead.\" : rpcErrorMessage(\"rpc_poster_withdraw_offer\", error) ?? \"Your offer wasn't withdrawn. Try again.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Withdrawing an offer isn't ready yet. Your offer is still out; you can cancel the job instead."
+          },
+          {
+            "form": "dynamic",
+            "text": "rpcErrorMessage(\"rpc_poster_withdraw_offer\", error) ?? \"Your offer wasn't withdrawn. Try again.\""
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/jobPage/useWithdrawOffer.tsx",
+      "line": 57,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Offer withdrawn. Your job is open to other Helprs again."
+      },
+      "renders": true
     },
     {
       "file": "src/pages/messages/Messages.tsx",

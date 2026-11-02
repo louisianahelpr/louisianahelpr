@@ -1749,14 +1749,14 @@ describe("charge-recurring-visits edge function", () => {
     expect(String(toHolder[0].message)).not.toMatch(/\d{4}-\d{2}-\d{2}/);
   });
 
-  it("ID once: a due date with an OPEN visit payment is never released (its Checkout could still take money); it stays unbooked and the holder is told", async () => {
+  it("ID once: a due date with a PAID visit payment is never released; it stays unbooked and the holder is told", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
     scenario.reads.recurring_visit_payments = {
       rows: [],
       selectOverrides: [{
         includes: "budget_cents",
-        result: { rows: [{ id: "vp-1", visit_date: VISIT_DATE, status: "pending", budget_cents: 30000, fee_cents: 1500, tax_cents: 0, amount_cents: 31500, fee_percent: 5, tax_calculation_id: null, stripe_payment_intent_id: null }] },
+        result: { rows: [{ id: "vp-1", visit_date: VISIT_DATE, status: "paid", budget_cents: 30000, fee_cents: 1500, tax_cents: 0, amount_cents: 31500, fee_percent: 5, tax_calculation_id: null, stripe_payment_intent_id: "pi_paid", stripe_session_id: "cs_live_paid", payer_id: POSTER_ID }] },
       }],
     };
     scenario.rpc.helper_accept_block_reason = "helper_identity_unverified";
@@ -1780,6 +1780,85 @@ describe("charge-recurring-visits edge function", () => {
       .filter((n) => (n as Record<string, unknown>).user_id === POSTER_ID) as Array<Record<string, unknown>>;
     expect(toPoster).toHaveLength(1);
     expect(String(toPoster[0].message)).toMatch(/still has to finish their account setup/);
+  });
+
+  // Q2245 (c) (owner MASTER-LIST 2026-10-21): a lapsed holder's due date whose
+  // Checkout is still OPEN has it closed first (the sweep's way), its row
+  // expired, and the date released; a Checkout paid meanwhile keeps the date.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             if (closeProblem === null) visitPayments.delete(d); |             if (false) visitPayments.delete(d);
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (cs?.status === "complete") return "completed"; |           if (false) return "completed";
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |     if (!exp \|\| exp.length === 0) return "completed"; |     if (false) return "completed";
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!closed) return `visit payment ${vp.id}: Checkout | if (false) return `visit payment ${vp.id}: Checkout
+  const lapsedPending = (extra: Record<string, unknown> = {}) => {
+    seedHappyPath();
+    scenario.reads.recurring_visit_payments = {
+      rows: [],
+      selectOverrides: [{
+        includes: "budget_cents",
+        result: { rows: [{ id: "vp-open", visit_date: VISIT_DATE, status: "pending", budget_cents: 30000, fee_cents: 1500, tax_cents: 0, amount_cents: 31500, fee_percent: 5, tax_calculation_id: null, stripe_payment_intent_id: null, stripe_session_id: "cs_live_open", payer_id: POSTER_ID, ...extra }] },
+      }],
+    };
+    scenario.rpc.helper_accept_block_reason = "helper_payout_setup_incomplete";
+    scenario.rpc.series_release_dates = [VISIT_DATE];
+  };
+
+  it("Q2245 (c): a lapsed holder's still-open Checkout is closed BEFORE its row is expired, then the date is released", async () => {
+    const fn = await loadConfigured();
+    lapsedPending();
+    scenario.writeSelectRows.recurring_visit_payments = [{ id: "vp-open" }];
+    let rowWritesAtClose = -1;
+    stripeMock.checkout.sessions.expire.mockImplementation(async () => {
+      rowWritesAtClose = visitPaymentWrites("update").length;
+      return { status: "expired" };
+    });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_live_open");
+    expect(rowWritesAtClose).toBe(0);
+    expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["expired"]);
+    expect(releaseCalls()).toHaveLength(1);
+    expect(releaseCalls()[0].args).toMatchObject({ p_dates: [VISIT_DATE], p_helper: HELPER_ID });
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q2245 (c): a Checkout paid meanwhile keeps the date (no expiry, no release, no defect)", async () => {
+    const fn = await loadConfigured();
+    lapsedPending();
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("Only Checkout Sessions with a status in [\"open\"] can be expired."));
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_live_open", status: "complete" });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(releaseCalls()).toHaveLength(0);
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q2245 (c): a row the webhook marked paid as it was expired (zero rows) keeps the date", async () => {
+    const fn = await loadConfigured();
+    lapsedPending();
+    scenario.writeSelectRows.recurring_visit_payments = [];
+    stripeMock.checkout.sessions.expire.mockResolvedValue({ status: "expired" });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(releaseCalls()).toHaveLength(0);
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q2245 (c): a Checkout that cannot be closed and still reads open keeps the date this run, and says so", async () => {
+    const fn = await loadConfigured();
+    lapsedPending();
+    stripeMock.checkout.sessions.expire.mockRejectedValue(new Error("stripe 503"));
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue({ id: "cs_live_open", status: "open" });
+
+    const b = await body(await runOn(fn, "2026-09-01"));
+
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(releaseCalls()).toHaveLength(0);
+    expect(reasons(b)).toContain("of a Helpr who is not ready could not be closed");
   });
 
   it("ID once: a ready holder is still funded, and nothing is released", async () => {
@@ -2976,7 +3055,7 @@ describe("charge-recurring-visits edge function", () => {
   // payout), billed BEFORE the refund, once per visit payment.
   // @mutate supabase/functions/charge-recurring-visits/index.ts |         lapsedHolder = visitNotReady != null; |         lapsedHolder = false;
   // @mutate supabase/functions/charge-recurring-visits/index.ts |         if (!withholdFee && lapsedHolder) { |         if (false) {
-  // @mutate supabase/functions/charge-recurring-visits/index.ts |             fail(`visit payment ${row.id}: ${billProblem}; nothing refunded, retried next run`);\n            continue; |             fail(`visit payment ${row.id}: ${billProblem}; nothing refunded, retried next run`);
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |               oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`,\n            });\n            continue; |               oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`,\n            });
   // @mutate supabase/functions/_shared/helprFaultFee.ts |     p_card_fee_cents: cents, |     p_card_fee_cents: 0,
   // @mutate supabase/functions/charge-recurring-visits/index.ts |               oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`, |               oncePerDayKey: undefined,
   const billCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "bill_helpr_card_fee_debt");
@@ -3547,7 +3626,7 @@ describe("charge-recurring-visits edge function", () => {
    * CLOSED for a visit whose own session does not decide the key (a defect,
    * no refund), and never holds back one whose cs_live_ session does.
    *
-   * @mutate supabase/functions/charge-recurring-visits/index.ts |       const mode = stored === "live"\n        ? "live"\n        : | const mode = stored === "nope"\n        ? "live"\n        :
+   * @mutate supabase/functions/charge-recurring-visits/index.ts |     const mode = stored === "live"\n      ? "live"\n      : | const mode = stored === "nope"\n      ? "live"\n      :
    */
   const runWithTestAccountReadFailing = async (sessionId: string) => {
     setEnv({

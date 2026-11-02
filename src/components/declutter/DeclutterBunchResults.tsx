@@ -10,6 +10,10 @@ import { getPublicOrigin } from "@/lib/authRedirects";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import type { BunchOutcome } from "@/lib/declutter/bunch";
 import { shareNative } from "@/lib/nativeShare";
+import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
+
+/** A3-70: the Home screen's words for a listing the auto-check held (DeclutterHomeView). */
+export const BEING_CHECKED = "We'll send you a notice when it's done.";
 
 type Listed = Extract<BunchOutcome, { status: string }>;
 type Failed = Extract<BunchOutcome, { error: unknown }>;
@@ -34,6 +38,9 @@ export function BunchResults({ results, userId, inSale, onFix, onListMore }: {
   const keepUpFailed = listed.filter((r) => r.keepUpFailed).length;
   const offersFailed = listed.filter((r) => r.offersFailed).length;
   const shareable = live > 0;
+  const next: NextStepValue | null = live > 0
+    ? { who: "you", text: "Wait for buyers. We tell you when someone buys or makes an offer." }
+    : review > 0 ? { who: "info", text: `Being checked. ${BEING_CHECKED}` } : null;
   return (
     <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-labelledby="bunch-done" data-bunch-results="">
       <h2 id="bunch-done" ref={heading} tabIndex={-1} className="text-base font-semibold focus:outline-none">What happened</h2>
@@ -55,13 +62,14 @@ export function BunchResults({ results, userId, inSale, onFix, onListMore }: {
       {listed.length > 0 && (
         <>
           <p className="text-sm" data-bunch-listed="">
-            {[live > 0 ? `${live} for sale` : null, review > 0 ? `${review} waiting for a review` : null].filter(Boolean).join(", ")}.
+            {[live > 0 ? `${live} for sale` : null, review > 0 ? `${review} being checked` : null].filter(Boolean).join(", ")}.
+            {review > 0 ? ` ${BEING_CHECKED}` : ""}
           </p>
           <ul className="space-y-1 text-sm" data-bunch-listed-items="">
             {listed.map((r) => (
               <li key={r.key} className="break-words">
                 {r.id ? <Link className="underline" to={`/declutter/item/${r.id}`}>{r.title}</Link> : r.title}
-                {r.status === "pending_review" ? " (waiting for a review)" : ""}
+                {r.status === "pending_review" ? " (being checked)" : ""}
               </li>
             ))}
           </ul>
@@ -77,19 +85,21 @@ export function BunchResults({ results, userId, inSale, onFix, onListMore }: {
           Offers are still on for {offersFailed} {offersFailed === 1 ? "item" : "items"}. You can turn them off from Manage listing.
         </p>
       )}
-      <div className="flex flex-wrap gap-2">
-        {listed.length > 0 && (
-          <Button asChild variant="outline" size="sm" className="rounded-full">
-            {inSale ? <Link to={`/user/${userId}`}>See your sale</Link> : <Link to="/declutter?view=selling">See your listings</Link>}
-          </Button>
-        )}
+      {/* A3-69: what comes next, and ONE green primary on the right (owner rule), the others outline. */}
+      <NextStep value={next} />
+      <div className="flex flex-wrap justify-end gap-2" data-bunch-actions="">
+        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onListMore}>List more</Button>
         {shareable && (
           <Button type="button" variant="outline" size="sm" className="rounded-full" data-bunch-share=""
             onClick={() => void shareNative({ title: inSale ? "My moving sale" : "My listings", text: inSale ? "My moving sale on Louisiana Helpr" : "My listings on Louisiana Helpr", url: `${getPublicOrigin()}/user/${userId}` })}>
             {inSale ? "Share your sale" : "Share your listings"}
           </Button>
         )}
-        <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onListMore}>List more</Button>
+        {listed.length > 0 && (
+          <Button asChild variant="primary" size="sm" className="rounded-full">
+            {inSale ? <Link to={`/user/${userId}`}>See your sale</Link> : <Link to="/declutter?view=selling">See your listings</Link>}
+          </Button>
+        )}
       </div>
     </section>
   );

@@ -136,3 +136,57 @@ export async function runShipLabel(s: ClaimedShipment, order: ShipOrder | null, 
   if (!label.ok) return retry(`buy answer ${label.reason}`);
   return captureAfter(label.label, "bought_captured");
 }
+
+/**
+ * The crash reconcile (B114/B113 known gap; Q2259): the worker records the label, captures the hold, then marks the
+ * order 'captured'. A crash (or a failed write) after the label is recorded leaves the shipment 'bought' and the order
+ * still 'held', and runShipLabel never sees that row again (it reads only 'claimed' rows), so the order would never be
+ * 'captured' and the delivered-scan sweep (S5, ship_capture = 'captured') would never pay the seller.
+ * This pass, over a 'bought' shipment whose paid order is still 'held', asks Stripe where the hold stands and finishes
+ * exactly the step that was missed, never another:
+ *   - 'succeeded' (captured before the crash): mark the order 'captured'; nothing is captured again;
+ *   - 'requires_capture' (the crash came before the capture): capture with the SAME amount and per-order idempotency
+ *     key the worker uses, then mark it; a hold that cannot be captured pages ops, as in the worker;
+ *   - 'canceled' (the hold lapsed after the label was bought): page ops (void the label, S6) and leave the order;
+ *   - anything else (processing): left for the next run.
+ * Test mode only, like the worker. Idempotent: every write is a compare-and-set on 'held'.
+ */
+export type ReconcileOutcome = "reconciled_captured" | "captured_late" | "capture_lost" | "reconcile_wait" | "skipped_live" | "skipped_not_held";
+
+export interface ReconcilePorts {
+  /** paymentIntents.retrieve(pi).status (test mode). */
+  intentStatus(paymentIntentId: string): Promise<string>;
+  captureAmount: ShipLabelPorts["captureAmount"];
+  capture: ShipLabelPorts["capture"];
+  setCapture: ShipLabelPorts["setCapture"];
+  page: ShipLabelPorts["page"];
+}
+
+export async function reconcileShipCapture(
+  s: Pick<ClaimedShipment, "id" | "declutter_order_id" | "label_mode" | "provider_shipment_id">, order: ShipOrder | null, p: ReconcilePorts,
+): Promise<ReconcileOutcome> {
+  if (s.label_mode !== "test") {
+    return "skipped_live";
+  }
+  if (!order || order.status !== "paid" || order.ship_capture !== "held" || !order.stripe_payment_intent_id) return "skipped_not_held";
+  const pi = order.stripe_payment_intent_id;
+  const lost = async (): Promise<ReconcileOutcome> => {
+    await p.page("Shipped order: label bought but the hold could not be captured",
+      "The card hold lapsed or was cancelled after the label was bought. Void the label (Shipping S6) and close the order by hand.",
+      { Order: s.declutter_order_id, Shipment: s.provider_shipment_id, PaymentIntent: pi });
+    return "capture_lost";
+  };
+  const status = await p.intentStatus(pi);
+  if (status === "succeeded") {
+    await p.setCapture(s.declutter_order_id, "captured");
+    return "reconciled_captured";
+  }
+  if (status === "requires_capture") {
+    const amount = await p.captureAmount(s.declutter_order_id);
+    if ((await p.capture(pi, s.declutter_order_id, amount)) === "hold_lost") return lost();
+    await p.setCapture(s.declutter_order_id, "captured");
+    return "captured_late";
+  }
+  if (status === "canceled") return lost();
+  return "reconcile_wait";
+}

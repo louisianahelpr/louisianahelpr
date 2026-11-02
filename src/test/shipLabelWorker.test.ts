@@ -19,12 +19,18 @@
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     const closed = await closeReleasedHoldRefund(supabase, paymentIntentId); |     const closed = "left";
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |       await closeReleasedHoldRefund(supabase, paymentIntentId);\n      logStep("Declutter ship hold already released" |       logStep("Declutter ship hold already released"
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |       seed: event.livemode !== true, |
- * @mutate supabase/functions/_shared/shipLabelRun.ts |           seed: s.label_mode === "test", |
+ * @mutate supabase/functions/_shared/shipLabelRun.ts |     seed: labelMode === "test", |
  * @mutate supabase/functions/_shared/shipLabelRun.ts | testStripe.paymentIntents.capture(pi, { amount_to_capture: amountCents }, | testStripe.paymentIntents.capture(pi, {},
+ * @mutate supabase/functions/_shared/shipLabelWorker.ts |   if (status === "succeeded") {\n    await p.setCapture(s.declutter_order_id, "captured"); |   if (status === "succeeded") {\n    await p.capture(pi, s.declutter_order_id, 1);
+ * @mutate supabase/functions/_shared/shipLabelWorker.ts |   if (status === "canceled") return lost(); |
+ * @mutate supabase/functions/_shared/shipLabelWorker.ts |     if ((await p.capture(pi, s.declutter_order_id, amount)) === "hold_lost") return lost(); |     await p.capture(pi, s.declutter_order_id, amount);
+ * @mutate supabase/functions/_shared/shipLabelWorker.ts |   if (!order \|\| order.status !== "paid" \|\| order.ship_capture !== "held" \|\| !order.stripe_payment_intent_id) return "skipped_not_held"; |   if (!order \|\| !order.stripe_payment_intent_id) return "skipped_not_held";
+ * @mutate supabase/functions/_shared/shipLabelRun.ts |   await reconcileCaptures(admin, testStripeOf, record, counts); |
+ * @mutate supabase/functions/_shared/shipLabelRun.ts |     .eq("label_state", "bought").in("declutter_order_id", [...byId.keys()]).limit(10); |     .eq("label_state", "claimed").in("declutter_order_id", [...byId.keys()]).limit(10);
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { runShipLabel, type ClaimedShipment, type ShipLabelPorts, type ShipOrder } from "../../supabase/functions/_shared/shipLabelWorker";
+import { reconcileShipCapture, runShipLabel, type ClaimedShipment, type ReconcilePorts, type ShipLabelPorts, type ShipOrder } from "../../supabase/functions/_shared/shipLabelWorker";
 import { blankComments } from "./helpers/blankNonCode";
 
 const SHP = "shp_abc";
@@ -139,6 +145,72 @@ describe("the shipped order's page is a test-mode card hold", () => {
   it("test-mode shipping alerts are digest-only (test data never pages the owner)", () => {
     expect(hook).toContain("seed: event.livemode !== true,");
     const run = blankComments(readFileSync("supabase/functions/_shared/shipLabelRun.ts", "utf8"));
-    expect(run).toContain(`seed: s.label_mode === "test",`);
+    expect(run).toContain(`seed: labelMode === "test",`);
+    expect((run.match(/page: pageWith\(s\.id, s\.label_mode\)/g) ?? []).length).toBe(2);
+  });
+});
+
+// The crash reconcile (Q2259; the B113/B114 known gap): a crash after the label is recorded left the shipment
+// 'bought' and the order 'held', which runShipLabel never reads again, so the order never became 'captured'.
+describe("reconcileShipCapture: a 'bought' label whose order is still 'held'", () => {
+  const row = { id: "s1", declutter_order_id: "o1", label_mode: "test" as const, provider_shipment_id: SHP };
+  function rports(status: string, over: Partial<ReconcilePorts> = {}) {
+    const calls: string[] = [];
+    const p: ReconcilePorts = {
+      intentStatus: async () => { calls.push("status"); return status; },
+      captureAmount: async () => { calls.push("amount"); return 2485; },
+      capture: async (_pi, o, cents) => { calls.push(`capture:${o}:${cents}`); return "captured"; },
+      setCapture: async (_o, st) => { calls.push(`set:${st}`); },
+      page: async () => { calls.push("page"); },
+      ...over,
+    };
+    return { p, calls };
+  }
+  it("captured before the crash: marks the order captured and never captures again", async () => {
+    const { p, calls } = rports("succeeded");
+    expect(await reconcileShipCapture(row, held, p)).toBe("reconciled_captured");
+    expect(calls).toEqual(["status", "set:captured"]);
+  });
+  it("crashed before the capture: captures the database's amount once (same order key), then marks it", async () => {
+    const { p, calls } = rports("requires_capture");
+    expect(await reconcileShipCapture(row, held, p)).toBe("captured_late");
+    expect(calls).toEqual(["status", "amount", "capture:o1:2485", "set:captured"]);
+  });
+  it("a hold that cannot be captured pages ops and leaves the order held", async () => {
+    const { p, calls } = rports("requires_capture", { capture: async () => "hold_lost" });
+    expect(await reconcileShipCapture(row, held, p)).toBe("capture_lost");
+    expect(calls).toContain("page");
+    expect(calls.some((c) => c.startsWith("set:"))).toBe(false);
+  });
+  it("a cancelled hold pages ops; nothing captured, nothing marked", async () => {
+    const { p, calls } = rports("canceled");
+    expect(await reconcileShipCapture(row, held, p)).toBe("capture_lost");
+    expect(calls).toEqual(["status", "page"]);
+  });
+  it("a payment still processing waits for the next run", async () => {
+    const { p, calls } = rports("processing");
+    expect(await reconcileShipCapture(row, held, p)).toBe("reconcile_wait");
+    expect(calls).toEqual(["status"]);
+  });
+  it("never touches a live label, an order already captured or released, or one not paid", async () => {
+    for (const [r, o, want] of [
+      [{ ...row, label_mode: "live" as const }, held, "skipped_live"],
+      [row, { ...held, ship_capture: "captured" }, "skipped_not_held"],
+      [row, { ...held, ship_capture: "released" }, "skipped_not_held"],
+      [row, { ...held, status: "expired" }, "skipped_not_held"],
+      [row, null, "skipped_not_held"],
+    ] as const) {
+      const { p, calls } = rports("succeeded");
+      expect(await reconcileShipCapture(r, o, p)).toBe(want);
+      expect(calls).toEqual([]);
+    }
+  });
+  it("the run reconciles after the label pass, over 'bought' rows of held paid ship orders, with the worker's capture", () => {
+    const run = blankComments(readFileSync("supabase/functions/_shared/shipLabelRun.ts", "utf8"));
+    expect(run.indexOf("await runClaimedLabels(")).toBeLessThan(run.indexOf("await reconcileCaptures("));
+    expect(run).toContain(`.eq("status", "paid").eq("handover", "ship").eq("ship_capture", "held")`);
+    expect(run).toContain(`.eq("label_state", "bought").in("declutter_order_id", [...byId.keys()])`);
+    expect((run.match(/capture: captureWith\(testStripe\)/g) ?? []).length).toBe(2);
+    expect(run).toContain("idempotencyKey: `declutter-ship-capture-${orderId}`");
   });
 });

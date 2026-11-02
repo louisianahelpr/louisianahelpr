@@ -90,28 +90,29 @@ export async function restoreHelprFaultFee(supabaseAdmin: Db, helperId: string, 
  * payment's own Helpr once (bill_helpr_card_fee_debt is idempotent on the
  * visit payment, so a re-run bills nothing).
  *
- * Returns null when billed (or nothing to bill: an unreadable or zero fee),
- * else the problem. Fails CLOSED: the caller refunds nothing this run on a
- * problem, so a refund never goes out with the debt unrecorded. A database
- * without the function yet (PGRST202) is a problem too: the row waits a run.
+ * Returns the cents billed by THIS call (0 for a replay or nothing to bill:
+ * an unreadable or zero fee) with problem null, else the problem. Fails
+ * CLOSED: the caller refunds nothing this run on a problem, so a refund never
+ * goes out with the debt unrecorded. A database without the function yet
+ * (PGRST202) is a problem too: the row waits a run.
  */
 export async function billLapsedHelprCardFee(
   supabaseAdmin: Db,
   visitPaymentId: string,
   cardFeeCents: number,
   refundRef: string,
-): Promise<string | null> {
+): Promise<{ problem: string | null; billedCents: number }> {
   const cents = Math.round(Number(cardFeeCents));
-  if (!Number.isFinite(cents) || cents <= 0) return null;
+  if (!Number.isFinite(cents) || cents <= 0) return { problem: null, billedCents: 0 };
   const { data, error } = await supabaseAdmin.rpc("bill_helpr_card_fee_debt", {
     p_visit_payment_id: visitPaymentId,
     p_card_fee_cents: cents,
     p_refund_ref: refundRef,
   });
-  if (error) return `billing the lapsed Helpr the ${cents}-cent card fee failed (${error.message ?? String(error)})`;
+  if (error) return { problem: `billing the lapsed Helpr ${cents} cents failed (${error.message ?? String(error)})`, billedCents: 0 };
   const billed = Number(data ?? 0);
   if (!Number.isFinite(billed) || billed < 0 || billed > cents) {
-    return `bill_helpr_card_fee_debt returned ${String(data)} for a ${cents}-cent card fee`;
+    return { problem: `bill_helpr_card_fee_debt returned ${String(data)} for ${cents} cents`, billedCents: 0 };
   }
-  return null;
+  return { problem: null, billedCents: billed };
 }

@@ -301,7 +301,7 @@ serve(async (req) => {
       helprFaultDeductionNotWithheld: new Check(
         "helpr_fault_deduction_not_withheld",
         "warning",
-        `A Helpr-fault card-fee deduction (job_helpr_fault_fee_deductions, payout_ref job_payout_<job>) is more than ${SETTLE_WINDOW_HOURS}h old, but no settled payout_transfers row for that job carries helpr_fault_fee_cents > 0: the debt reads collected while nothing was withheld. Check the job's transfer at Stripe; if none went out (or it was reversed), run restore_helpr_fault_fee(the Helpr's id, the job id) as the service role, or put the cents back on the ruling by hand.`,
+        `A Helpr card-fee deduction (job_helpr_fault_fee_deductions for an at-fault ruling, or helpr_card_fee_debt_deductions for a lapsed series visit, Q2245; payout_ref job_payout_<job>) is more than ${SETTLE_WINDOW_HOURS}h old, but no settled payout_transfers row for that job carries helpr_fault_fee_cents > 0: the debt reads collected while nothing was withheld. Check the job's transfer at Stripe; if none went out (or it was reversed), run restore_helpr_fault_fee(the Helpr's id, the job id) as the service role (it gives back both kinds), or put the cents back on the ruling or debt by hand.`,
       ),
       // ── Gift-card credit ──────────────────────────────────────────────
       // This file used to say gift_cards needed no reconciliation because it
@@ -1064,18 +1064,20 @@ serve(async (req) => {
 
     // Q2173: a deduction no settled payout withheld. Job-scoped (seed policy follows
     // `jobById`); skipped on a truncated ledger, which would manufacture hits.
-    {
+    // Q2245 (d): take_helpr_fault_fee books a lapsed series visit's card-fee debt
+    // in helpr_card_fee_debt_deductions under the same payout_ref, read the same way.
+    for (const dedTable of ["job_helpr_fault_fee_deductions", "helpr_card_fee_debt_deductions"] as const) {
       const dedScan = await scanAll<{ id: string; payout_ref: string; deducted_cents: number; created_at: string }>(
-        "job_helpr_fault_fee_deductions",
+        dedTable,
         (countOpt) =>
           admin
-            .from("job_helpr_fault_fee_deductions")
+            .from(dedTable)
             .select("id, payout_ref, deducted_cents, created_at", countOpt)
             .order("id", { ascending: true }),
       );
-      const dedCap = scanDefect("job_helpr_fault_fee_deductions", dedScan);
+      const dedCap = scanDefect(dedTable, dedScan);
       if (dedCap || transferCap) {
-        notes.push(`Helpr-fault deduction check skipped: ${dedCap ?? transferCap}`);
+        notes.push(`Helpr-fault deduction check skipped (${dedTable}): ${dedCap ?? transferCap}`);
       } else {
         const withheldJobs = new Set(
           transfers
@@ -1088,7 +1090,7 @@ serve(async (req) => {
           if (!jobById.has(jobId) || withheldJobs.has(jobId)) continue;
           const at = ts(d.created_at);
           if (at !== null && at > settledBefore) continue;
-          checks.helprFaultDeductionNotWithheld.add({ job_id: jobId, deduction_id: d.id, deducted_cents: d.deducted_cents });
+          checks.helprFaultDeductionNotWithheld.add({ job_id: jobId, deduction_id: d.id, deducted_cents: d.deducted_cents, deduction_table: dedTable });
         }
       }
     }

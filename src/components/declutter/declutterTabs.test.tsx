@@ -21,9 +21,9 @@
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[],
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[{ value: "wanted" as const, label: "Wanted" }],
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |             footnote={<WantedLink />} |             footnote={null}
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |             footnote={<WantedLink query={query} category={filters.category} />} |             footnote={null}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   if (!on) return null; |   if (on === undefined) return null;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink />\n              </div> |                 {null}\n              </div>
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink query={query} category={filters.category} />\n              </div> |                 {null}\n              </div>
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |             title={q ? "Nothing matches that search." : |             title={others.length === 0 ? "Opens soon" : q ? "Nothing matches that search." :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {searched && ( |                 {false && (
  * Owner 2026-10-30: nothing for sale at all is a real empty state (Sell something, Post what you're looking for).

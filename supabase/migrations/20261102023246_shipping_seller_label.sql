@@ -46,6 +46,7 @@ GRANT EXECUTE ON FUNCTION public.declutter_ship_by(timestamptz) TO authenticated
 CREATE OR REPLACE FUNCTION public.declutter_my_ship_label(p_order_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
+STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
@@ -97,6 +98,11 @@ DECLARE
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  -- Q281 ban gate (train 1 fix, lead 11-02): a write; a banned caller is refused, as the porch photo and the other
+  -- handover writes are (declutter_porch_photo, declutter_set_porch_time).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
   END IF;
   PERFORM public.require_feature('declutter_shipping');
   SELECT d.id, d.seller_id, d.handover, d.status, d.ship_capture INTO o

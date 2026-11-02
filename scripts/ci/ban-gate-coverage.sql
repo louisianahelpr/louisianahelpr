@@ -176,6 +176,7 @@ rpc_exempt(fn, why) AS (
   -- Admin-only: the body refuses anyone without has_role admin.
   ('admin_delete_review', 'admin-only (body checks has_role admin)'),
   ('admin_declutter_save_meetup_spot', 'admin-only (body checks has_role admin; Q2425 meetup spots, 20261027204500)'),
+  ('declutter_admin_waive_fee_debt', 'admin-only (body checks has_role admin; Q1928 gap 1 amounts owed, 20261102065446)'),
   ('admin_declutter_save_donation_partner', 'admin-only (body checks has_role admin; Q2428 partner charities, 20261027222743)'),
   ('admin_review_category_suggestion', 'admin-only (body checks has_role admin; trades suggest-a-category)'),
   ('admin_set_payout_hold', 'admin-only (body checks has_role admin; Q764)'),

@@ -51,7 +51,7 @@ BEGIN
     PERFORM public.declutter_notify(v_seller, 'info', 'Shipping label added to what you owe',
       format('The shipping label for %s could not be cancelled after the sale was called off, so its $%s comes out of your next Declutter payout.',
              COALESCE('"' || v_title || '"', 'your sale'), to_char(NEW.label_cost_cents / 100.0, 'FM999999990.00')),
-      '/declutter?view=mine');
+      '/declutter?tab=selling');
   END IF;
   RETURN NEW;
 END;

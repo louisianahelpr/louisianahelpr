@@ -9,6 +9,7 @@ import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { unwrap } from "@/lib/supabaseResult";
 import { userFacingError } from "@/lib/userFacingError";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 
 /**
  * Q1928 gap 1: what this member still owes from Declutter refunds (a card cost billed to a seller who was out, at
@@ -50,8 +51,15 @@ export function DeclutterAmountsOwed({ userId }: { userId: string }) {
       const res = await supabase.rpc("declutter_admin_fee_debts", { p_user: userId });
       // Not deployed yet (the migration lands first): show nothing rather than an error.
       if (isMissingRpcNamed(res.error, "declutter_admin_fee_debts")) return [];
-      // Any other error throws through unwrap; the error line below reports it (ReportErrorScreen).
-      return (unwrap(res) ?? []) as OwedRow[];
+      // Any other error throws through unwrap, in words where the RPC has them; the error line below reports it
+      // (ReportErrorScreen).
+      try {
+        return (unwrap(res) ?? []) as OwedRow[];
+      } catch (thrown) {
+        const words = rpcErrorMessage("declutter_admin_fee_debts", thrown);
+        if (words && thrown instanceof Error && Object.isExtensible(thrown)) Object.assign(thrown, { userMessage: words });
+        throw thrown;
+      }
     },
   });
 
@@ -65,7 +73,7 @@ export function DeclutterAmountsOwed({ userId }: { userId: string }) {
     const { data, error } = await supabase.rpc("declutter_admin_waive_fee_debt", { p_debt_id: id, p_note: why });
     setSaving(false);
     if (error) {
-      toast.error(userFacingError(error, "Couldn't clear that amount. Try again."));
+      toast.error(rpcErrorMessage("declutter_admin_waive_fee_debt", error) ?? userFacingError(error, "Couldn't clear that amount. Try again."));
       return;
     }
     const answer = data as { result?: string } | null;

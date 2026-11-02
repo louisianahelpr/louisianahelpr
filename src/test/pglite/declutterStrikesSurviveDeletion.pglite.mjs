@@ -73,6 +73,8 @@ CREATE TABLE public.declutter_strikes (id uuid PRIMARY KEY DEFAULT gen_random_uu
   given_at timestamptz NOT NULL DEFAULT now(), expires_at timestamptz NOT NULL, removed_at timestamptz,
   CONSTRAINT declutter_strikes_expiry CHECK (expires_at > given_at));
 CREATE TABLE public.defects (fn text, ref text, msg text);
+-- The unconfirmed-email gate (Q807) is attached by the migration; its body is proven in its own proof.
+CREATE FUNCTION public.attach_unconfirmed_email_gate() RETURNS void LANGUAGE sql AS $$ SELECT $$;
 CREATE FUNCTION public.log_cron_defect(p_fn text, p_ref text, p_msg text, p_ctx jsonb DEFAULT NULL) RETURNS void LANGUAGE sql AS $$
   INSERT INTO public.defects VALUES (p_fn, p_ref, p_msg) $$;
 `);

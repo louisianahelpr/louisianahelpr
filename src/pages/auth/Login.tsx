@@ -369,12 +369,7 @@ const Login = () => {
                 <ShieldCheck className="w-5 h-5 text-primary" strokeWidth={1.75} />
               </div>
               {/* Q2250: the card head (and its h1) is hidden on this step, so the step's own title is the page's h1. */}
-              <h1
-                className="font-display font-bold leading-tight"
-                style={{ fontSize: "clamp(1.2rem, 2vw + 0.4rem, 1.5rem)", color: "hsl(var(--ink-deep))", letterSpacing: "-0.025em" }}
-              >
-                {t("login.mfaTitle")}
-              </h1>
+              <h1 className="text-page-title text-foreground">{t("login.mfaTitle")}</h1>
               <p
                 className="font-sans text-ds-14"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}

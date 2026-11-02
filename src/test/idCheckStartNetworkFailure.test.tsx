@@ -54,7 +54,7 @@ vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: false }));
 const reportSpy = vi.hoisted(() => vi.fn());
 const toastError = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/errorLogger", () => ({ report: reportSpy }));
-vi.mock("sonner", () => ({ toast: { error: toastError, success: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: toastError, success: vi.fn(), info: vi.fn() }) }));
 
 import { IdentityCheckHost } from "@/components/identity/IdentityCheckSheet";
 import { closeIdentityCheck, openIdentityCheck } from "@/lib/identityCheck";

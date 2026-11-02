@@ -388,6 +388,45 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(within(receipts).getByText(/Your Helpr took it to St\. Vincent de Paul, 220 St Vincent St/)).toBeInTheDocument();
   });
 
+  // Q2639 (audit 1102c R14): with no listing left, "Your listings" was a solid card with a primary button and no icon,
+  // beside the dashed, iconed "No offers yet" and "Nothing sold yet". It is the same DeclutterEmptyCard now, its one
+  // action still the sell path; and a Selling history title wraps instead of being cut ("Oak rocking chair (sa…").
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet." data-seller-empty="" | <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet."
+  // @mutate src/components/declutter/DeclutterEmptyCard.tsx |         {action} |
+  // @mutate src/components/declutter/DeclutterTakenDown.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={item.title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={item.title}>
+  // @mutate src/components/declutter/DeclutterEndedSales.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={l.item_title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={l.item_title}>
+  it("Q2639: an empty Your listings is the same empty card as the others, with the sell action", async () => {
+    const long = "Oak rocking chair (sample) with the original cane seat";
+    state.mine = [{ ...ITEM, status: "withdrawn", title: long }];
+    state.cart = [{ line_id: "l-x1", item_id: "i-x1", item_title: `${long}, ran out`, my_side: "seller", seller_id: "u1", price_cents: 4000, status: "missed",
+      checkout_by: new Date(Date.now() - 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: 0, total_cents: null, closed_at: new Date().toISOString() }];
+    at("/declutter?tab=selling");
+    const listings = await screen.findByRole("region", { name: "Your listings" });
+    const card = listings.querySelector("[data-empty-card]") as HTMLElement;
+    expect(card).not.toBeNull();
+    expect(card.hasAttribute("data-seller-empty")).toBe(true);
+    expect(card.className).toContain("border-dashed");
+    expect(card.querySelector("svg")).not.toBeNull();
+    expect(within(card).getByText("You haven't listed anything yet.")).toBeInTheDocument();
+    fireEvent.click(within(card).getByRole("button", { name: /Sell an item|List an item|Sell/ }));
+    expect(await screen.findByText("Sell page")).toBeInTheDocument();
+  });
+
+  it("Q2639: Selling history titles wrap to two lines, never a one-line cut", async () => {
+    const long = "Oak rocking chair (sample) with the original cane seat";
+    state.mine = [ITEM, { ...ITEM, id: "i9", status: "withdrawn", title: long }];
+    state.cart = [{ line_id: "l-x1", item_id: "i-x1", item_title: `${long}, ran out`, my_side: "seller", seller_id: "u1", price_cents: 4000, status: "missed",
+      checkout_by: new Date(Date.now() - 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: 0, total_cents: null, closed_at: new Date().toISOString() }];
+    at("/declutter?tab=selling");
+    const history = await screen.findByRole("region", { name: "Selling history" });
+    const titles = Array.from(history.querySelectorAll("p")).filter((p) => p.textContent?.startsWith(long));
+    expect(titles.length).toBe(2);
+    for (const t of titles) {
+      expect(t.className).not.toMatch(/\btruncate\b/);
+      expect(t.className).toMatch(/\bline-clamp-2\b/);
+    }
+  });
+
   // Q2629 (audit 1102c R4): a sale waiting for the buyer to pay never sits over "Nothing sold yet".
   // @mutate src/components/declutter/DeclutterTabParts.tsx |     if (!buyer && lines.some((l) => l.status === "in_cart")) return null; |
   it("Q2629: a sale waiting for payment hides the Nothing sold yet card", async () => {

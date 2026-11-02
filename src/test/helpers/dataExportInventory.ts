@@ -349,6 +349,8 @@ export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stri
 export const POSTER_SIDE_EXEMPT: Record<string, string> = {
   job_checkins: "a check-in is the Helpr's own location event, exported to them by user_id; never the poster's data",
   job_tracking: "the Helpr's live location trail, exported to them by helper_id; never the poster's data",
+  job_continue_days: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY",
+  job_continue_events: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY",
 };
 
 /**
@@ -659,6 +661,9 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "job_match_queue.send_email": { reason: "a boolean (send the parish email or not), not a person: matched by name only" },
   "saved_searches.notify_email": { reason: "a boolean (Q2275: the saved search's email channel on or off), not a person: matched by name only" },
   "application_nudge_sends.user_id": { reason: "owner 2026-10-29 (UX-3, Q2484): which job's poster was sent the one 24-hour \"Your applicants are waiting\" nudge and when, service role only; the nudge itself is exported as the member's notifications, and the rows are deleted with the account" },
+  "job_continue_days.proposed_by": { reason: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY" },
+  "job_continue_days.decided_by": { reason: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY" },
+  "job_continue_events.actor_id": { reason: "continue-day rows export in the next export_my_data restate (after the meet-spots restate lands); tracked as LEAD-EXPORT-CONTINUE-DAY" },
   "unread_message_reminder_sends.user_id": { reason: "owner 11-01 (20261101183017): which unread message got the 15-minute or 2-hour reminder for which member and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },
   "helpr_start_reminder_sends.user_id": { reason: "owner 2026-10-29 (Q2483): which start reminder (2 hours, 8 AM, head out) went to the Helpr for which job and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },
   "payout_setup_reminders.helper_id": { reason: "owner 2026-10-25: which payout setup reminder (hired, day 1/3/7, money waiting) went to the Helpr and when, service role only; the reminder itself is exported as the member's notifications, and the rows are deleted with the account" },

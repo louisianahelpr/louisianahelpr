@@ -412,6 +412,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
             {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
             {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
+            {/* The note sent with a new day is shown here to the two parties only, never in a notice (Q223). */}
+            {continueDay.row?.note && (
+              <p data-continue-day-note="" className="text-ds-14 text-muted-foreground break-words">Note with the new day: {continueDay.row.note}</p>
+            )}
             {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras)}
             {continueDay.sheet}
             {isPoster && posterActions.panel}

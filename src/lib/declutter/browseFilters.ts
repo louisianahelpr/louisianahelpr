@@ -15,6 +15,15 @@ import { matchesSearch } from "@/lib/declutter/searchMatch";
 
 export type DeclutterSort = "closest" | "newest" | "price_low";
 
+/**
+ * A3-109: the ways besides porch pickup a buyer can narrow to, in checkout's words (handoverCopy HANDOVER_TITLE). Porch
+ * stays `porchOnly` (saved searches keep it as porch_only); these ride in the URL as `ways=`.
+ */
+export const OTHER_WAYS = ["meetup", "seller_delivery", "delivery"] as const;
+export type OtherWay = (typeof OTHER_WAYS)[number];
+/** The ways an item's seller ticked (declutter_items.handovers), by id; read only while a way filter is on. */
+export type ItemWays = Map<string, string[] | null>;
+
 export interface DeclutterFilters {
   sort: DeclutterSort;
   /** Whole dollars; null = no bound. */
@@ -24,6 +33,8 @@ export interface DeclutterFilters {
   conditions: number[];
   category: string | null;
   porchOnly: boolean;
+  /** A3-109: meet up, seller delivers, Helpr delivery. With porchOnly these are one group: an item offering ANY passes. */
+  ways: OtherWay[];
   dropsOnly: boolean;
   /** The Free section (20261027170717): only items given away free (current_price_cents = 0). */
   freeOnly: boolean;
@@ -36,6 +47,7 @@ export const NO_FILTERS: DeclutterFilters = {
   conditions: [],
   category: null,
   porchOnly: false,
+  ways: [],
   dropsOnly: false,
   freeOnly: false,
 };
@@ -98,6 +110,7 @@ export function browseStateFromParams(p: URLSearchParams): BrowseState {
     query: p.get("q") ?? "",
     filters: { ...NO_FILTERS, category: p.get("cat") || null, minDollars: positive(p.get("min")), maxDollars: positive(p.get("max")),
       freeOnly: p.get("free") === "1", porchOnly: p.get("porch") === "1", dropsOnly: p.get("drops") === "1",
+      ways: OTHER_WAYS.filter((w) => (p.get("ways") ?? "").split(",").includes(w)),
       sort: sort && SORTS.includes(sort) ? sort : NO_FILTERS.sort,
       conditions: (p.get("cond") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 5) },
     maxMiles: positive(p.get("mi")),
@@ -151,6 +164,7 @@ export function browseStateInParams(current: URLSearchParams, s: BrowseState): U
   put("mi", s.maxMiles);
   put("free", s.filters.freeOnly ? "1" : null);
   put("porch", s.filters.porchOnly ? "1" : null);
+  put("ways", s.filters.ways.length ? s.filters.ways.join(",") : null);
   put("drops", s.filters.dropsOnly ? "1" : null);
   put("sort", s.filters.sort === NO_FILTERS.sort ? null : s.filters.sort);
   put("cond", s.filters.conditions.length ? s.filters.conditions.join(",") : null);
@@ -164,10 +178,30 @@ export function activeFilterCount(f: DeclutterFilters, maxMiles: number | null):
     + (f.minDollars !== null || f.maxDollars !== null ? 1 : 0)
     + (f.conditions.length > 0 ? 1 : 0)
     + (f.category ? 1 : 0)
-    + (f.porchOnly ? 1 : 0)
+    + (f.porchOnly || f.ways.length > 0 ? 1 : 0)
     + (f.dropsOnly ? 1 : 0)
     + (f.freeOnly ? 1 : 0)
   );
+}
+
+/**
+ * A3-109: whether a buyer can get this item that way, the checkout's rule (handovers.ts wayAllowed): porch reads
+ * porch_ok (declutter_set_handovers keeps it in step); Helpr delivery is open on every PAID item whatever the seller
+ * ticked (DC-4), never on a free claim; meet up and seller delivers need the seller's tick, and an older item that
+ * recorded no ticks allows every way. Ticks not read yet (undefined) count as not offered, never as a guess.
+ */
+export function offersWay(item: BrowseItem, way: "porch" | OtherWay, ticks: string[] | null | undefined): boolean {
+  if (way === "porch") return item.porch_ok;
+  if (way === "delivery") return item.current_price_cents > 0;
+  if (ticks === undefined) return false;
+  return ticks === null || ticks.includes(way);
+}
+
+/** Whether the "How you get it" group is on and this item offers none of the ways picked. */
+function failsWays(item: BrowseItem & { id: string }, f: DeclutterFilters, ways: ItemWays | undefined): boolean {
+  const picked: ("porch" | OtherWay)[] = [...(f.porchOnly ? (["porch"] as const) : []), ...f.ways];
+  if (picked.length === 0) return false;
+  return !picked.some((w) => offersWay(item, w, ways?.get(item.id)));
 }
 
 /**
@@ -181,6 +215,7 @@ export function applyBrowseFilters<T extends BrowseItem & { id: string; title: s
   query: string,
   drops: Map<string, DropState> | undefined,
   now: Date = new Date(),
+  ways?: ItemWays,
 ): { item: T; miles: number | null }[] {
   const minC = f.minDollars !== null ? f.minDollars * 100 : null;
   const maxC = f.maxDollars !== null ? f.maxDollars * 100 : null;
@@ -191,7 +226,7 @@ export function applyBrowseFilters<T extends BrowseItem & { id: string; title: s
     if (minC !== null && item.current_price_cents < minC) return false;
     if (maxC !== null && item.current_price_cents > maxC) return false;
     if (f.conditions.length > 0 && !f.conditions.includes(item.condition_stars)) return false;
-    if (f.porchOnly && !item.porch_ok) return false;
+    if (failsWays(item, f, ways)) return false;
     if (f.freeOnly && item.current_price_cents !== 0) return false;
     if (f.dropsOnly && !dropOutlook(item, drops?.get(item.id), now).planned) return false;
     return true;

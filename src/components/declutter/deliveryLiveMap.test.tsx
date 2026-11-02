@@ -11,6 +11,9 @@
  * @mutate src/components/declutter/DeliveryLiveMap.tsx |   const p = pos.data ?? last; |   const p = pos.data;
  * @mutate src/components/declutter/DeliveryLiveMap.tsx |   const paused = !pos.data; |   const paused = false;
  * @mutate src/components/declutter/DeliveryRouteMap.tsx |  they stop seeing you while you're in Apple Maps. |
+ * Paused (lead 11-01): "Message <Helpr>" opens the delivery's own chat.
+ * @mutate src/components/declutter/DeliveryLiveMap.tsx |       {paused && <DeliveryTalkButton taskId={taskId} label={`Message ${who}`} />} |
+ * @mutate src/components/declutter/DeliveryTalk.tsx | onClick={() => setOpen(true)}>{label}</Button> | onClick={() => setOpen(false)}>{label}</Button>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -33,6 +36,11 @@ vi.mock("@/lib/helprTasks/api", () => ({
   fetchLivePosition: async (id: string) => { state.fetched.push(id); return state.pos; },
   shareMyPosition: async (lat: number, lng: number) => { state.shared.push([lat, lng]); return 1; },
   stopSharingPosition: async () => { state.stopped++; },
+}));
+
+vi.mock("@/lib/helprTasks/talk", () => ({
+  fetchDeliveryTalk: async () => ({ messages: [], can_send: true }),
+  sendDeliveryMessage: async () => ({}),
 }));
 
 import { DeliveryLiveMap, etaWords } from "./DeliveryLiveMap";
@@ -80,6 +88,14 @@ describe("the seller's and the buyer's live map", () => {
     expect(await screen.findByText(/^Yusef's location paused · last seen [34] min ago$/)).toBeTruthy();
     expect(screen.getByText("When last seen, about 12 min away. It comes back when Yusef opens Louisiana Helpr again.")).toBeTruthy();
     expect(screen.getByTestId("tracking-map").textContent).toBe("30.05->30.07");
+    // Lead 11-01: paused, the viewer can message the Helpr in the delivery's chat.
+    fireEvent.click(screen.getByRole("button", { name: "Message Yusef" }));
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+  });
+  it("live (not paused): no extra Message button on the map", async () => {
+    wrap(<DeliveryLiveMap taskId="t1" side="buyer" status="picked_up" who="Yusef" />);
+    expect(await screen.findByText("Yusef is on the way with your item, about 12 min away.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Message Yusef" })).toBeNull();
   });
   it("A3-61: the Helpr is told viewers stop seeing them in Apple Maps", () => {
     const src = readFileSync("src/components/declutter/DeliveryRouteMap.tsx", "utf8");

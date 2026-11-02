@@ -3708,6 +3708,10 @@ export type Database = {
           remaining_cents: number
           seller_id: string
           shop_refund_id: string | null
+          waive_note: string | null
+          waived_at: string | null
+          waived_by: string | null
+          waived_cents: number | null
         }
         Insert: {
           amount_cents: number
@@ -3720,6 +3724,10 @@ export type Database = {
           remaining_cents: number
           seller_id: string
           shop_refund_id?: string | null
+          waive_note?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waived_cents?: number | null
         }
         Update: {
           amount_cents?: number
@@ -3732,6 +3740,10 @@ export type Database = {
           remaining_cents?: number
           seller_id?: string
           shop_refund_id?: string | null
+          waive_note?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waived_cents?: number | null
         }
         Relationships: [
           {
@@ -15371,6 +15383,21 @@ export type Database = {
         Returns: number
       }
       declutter_admin_decide_delivery_damage: { Args: { p_note: string; p_problem_id: string }; Returns: Json }
+      declutter_admin_fee_debts: {
+        Args: { p_user: string }
+        Returns: {
+          amount_cents: number
+          created_at: string
+          fee_estimated: boolean
+          id: string
+          items: string
+          reason: string
+          remaining_cents: number
+          waive_note: string
+          waived_at: string
+          waived_cents: number
+        }[]
+      }
       declutter_admin_problem_case: {
         Args: { p_problem_id: string }
         Returns: {
@@ -15402,6 +15429,7 @@ export type Database = {
           side: string
         }[]
       }
+      declutter_admin_waive_fee_debt: { Args: { p_debt_id: string; p_note: string }; Returns: Json }
       declutter_admin_open_problems: {
         Args: { p_include_test?: boolean }
         Returns: {

@@ -46,6 +46,7 @@
 // that actually moves money to a helper resolves the tier from the helper's
 // live profile at payout time.
 
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { type FlatFeeStamp, helprFlatFeeCents, isFlatFeeJob } from "./helprFlatFee.ts";
 
 /** Tier id (lowercased `profiles.subscription_tier`) → platform fee percent. */
@@ -99,19 +100,14 @@ export function feePercentForTier(
   return TIER_FEE_PERCENT[tier] ?? DEFAULT_TIER_FEE_PERCENT;
 }
 
-/** Minimal shape of the service-role Supabase client this helper needs. */
-interface FeeAdminClient {
-  from: (table: string) => {
-    select: (cols: string) => {
-      eq: (col: string, val: string) => {
-        single: () => Promise<{
-          data: { subscription_tier: string | null; subscription_expires_at: string | null } | null;
-          error: unknown;
-        }>;
-      };
-    };
-  };
-}
+/**
+ * The service-role client this helper reads with. Typed as the real client
+ * (as chargebackClawback.ts does): the hand-rolled shape it replaced declared
+ * `single()` as a Promise, which no real PostgrestBuilder satisfies, so every
+ * caller failed the edge type check (TS2345, or TS2589 when the structural
+ * compare ran too deep) and scripts/typecheck-edge.mjs had to allowlist them.
+ */
+type FeeAdminClient = SupabaseClient;
 
 /**
  * Resolve the helper-fee percent for one helper from their live subscription
@@ -163,15 +159,7 @@ export async function getHelperFeePercent(
 export type StrictFeeRead = { ok: true; percent: number } | { ok: false; error: string };
 
 export async function readHelperFeePercentStrict(
-  admin: {
-    from: (table: string) => {
-      select: (cols: string) => {
-        eq: (col: string, val: string) => {
-          maybeSingle: () => PromiseLike<{ data: unknown; error: unknown }>;
-        };
-      };
-    };
-  },
+  admin: FeeAdminClient,
   helperId: string | null | undefined,
   fallbackPercent: number,
 ): Promise<StrictFeeRead> {

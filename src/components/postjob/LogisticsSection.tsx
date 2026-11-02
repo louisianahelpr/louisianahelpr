@@ -327,7 +327,12 @@ export function LogisticsSection({
             <p className="text-ds-11 text-muted-foreground">
               {/* The server's split (crew_slot_share_cents, largest remainder in
                   cents): the smallest share, so no Helpr gets less than shown. */}
-              Budget of ${formatPriceExact(budgetNum)} will be split: ~${formatPriceExact(crewSmallestShare(budgetNum, parseInt(helpersNeeded) || 2))}/Helpr
+              Budget of ${formatPriceExact(budgetNum)} will be split: at least ${formatPriceExact(crewSmallestShare(budgetNum, parseInt(helpersNeeded) || 2))} per Helpr.
+            </p>
+            {/* A3-60: what a short crew means, from the server's rule (process-scheduled-payouts: every roster
+                member is paid their share; refundUnfilledCrewShares returns the unfilled shares to the poster). */}
+            <p data-crew-short="" className="text-ds-11 text-muted-foreground">
+              If fewer Helprs sign up, the ones hired still do the job, and you get the unfilled shares back when they're paid.
             </p>
           </div>
         )}

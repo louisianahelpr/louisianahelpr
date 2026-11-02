@@ -6,7 +6,7 @@
  *  - A Helpr delivery's seller card said nothing of the money before the drop-off.
  *
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const fullRefund = refundedInFull(refund.data); |   const fullRefund = false;
- * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing( | {problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD } : standing(
+ * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {refunded && done ? { who: "info", text: REFUNDED_IN_FULL[side] } : problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller" | {problemOpen && !done ? { who: "info", text: PROBLEM_ON_HOLD }\n        : side === "seller"
  * @mutate src/components/declutter/BuyingOrders.tsx |     case "agreed": return inFull ? REFUNDED_IN_FULL.buyer : null; |     case "agreed": return null;
  * @mutate src/lib/declutter/refundRequests.ts | r.refund_cents >= v.full_refund_cents; | r.refund_cents > 0;
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |       <OrderSteps facts={facts} />\n      <p className="text-ds-14">{refunded ? REFUNDED_IN_FULL.seller | <p className="text-ds-14">{refunded ? REFUNDED_IN_FULL.seller

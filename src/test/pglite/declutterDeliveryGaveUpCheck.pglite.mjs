@@ -8,6 +8,10 @@
  *   node src/test/pglite/declutterDeliveryGaveUpCheck.pglite.mjs                    # applied 3x: all PASS
  *   NEW_MIGRATION=skip node src/test/pglite/declutterDeliveryGaveUpCheck.pglite.mjs # RED: nothing raises a gave-up row
  *   MUTANT=<name> node src/test/pglite/declutterDeliveryGaveUpCheck.pglite.mjs      # a planted defect: must FAIL
+ *   FOLLOW=skip node src/test/pglite/declutterDeliveryGaveUpCheck.pglite.mjs        # RED: the buyer's link is ?view=cart
+ *
+ * Then 20261102064215_declutter_gave_up_notice_opens_buying (DC-17 link format) is applied on top (3x): the buyer's
+ * notice opens ?tab=buying; everything else is unchanged. FOLLOW_MUTANT=keepCart plants the old link back.
  *
  * Stubbed, said so: auth.users, declutter_orders, helpr_task_payouts, declutter_delivery_refunds and
  * declutter_delivery_raises reduced to the columns this reads (same status values); error_logs (severity, message, tags,
@@ -39,6 +43,9 @@ const MUTANTS = {
   openGrant: ["REVOKE ALL ON FUNCTION public.declutter_delivery_gave_up_check() FROM PUBLIC, anon, authenticated;", ""],
 };
 const skip = process.env.NEW_MIGRATION === "skip";
+const FOLLOW = "20261102064215_declutter_gave_up_notice_opens_buying.sql";
+const followSkip = process.env.FOLLOW === "skip";
+const FOLLOW_MUTANTS = { keepCart: ["'/declutter?tab=buying');", "'/declutter?view=cart');"] };
 
 let failures = 0;
 const check = (ok, name) => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}`); if (!ok) failures++; };
@@ -97,12 +104,24 @@ if (!skip) {
   for (let k = 1; k <= 3; k++) {
     try { await db.exec(mig); check(true, `the migration applies (run ${k})`); } catch (e) { check(false, `the migration applies (run ${k}): ${e.message}`); }
   }
+  if (!followSkip) {
+    let next = readFileSync(MIG_DIR + FOLLOW, "utf8");
+    const fm = process.env.FOLLOW_MUTANT;
+    if (fm) {
+      const m = FOLLOW_MUTANTS[fm];
+      if (!m || !next.includes(m[0])) throw new Error(`follow mutant ${fm} did not apply`);
+      next = next.replace(m[0], m[1]);
+    }
+    for (let k = 1; k <= 3; k++) {
+      try { await db.exec(next); check(true, `${FOLLOW} applies (run ${k})`); } catch (e) { check(false, `${FOLLOW} applies (run ${k}): ${e.message}`); }
+    }
+  }
 }
 
 const run = () => tryQ(`SELECT public.declutter_delivery_gave_up_check() AS n`);
 const ledger = async (id) => (await q(`SELECT count(*)::int n FROM public.error_logs
   WHERE tags ->> 'source' = 'declutter-delivery-gave-up' AND tags ->> 'row_id' = $1`, [id]))[0].n;
-const notices = async (user) => (await q(`SELECT title, message FROM public.notices WHERE user_id = $1`, [user]));
+const notices = async (user) => (await q(`SELECT title, message, link FROM public.notices WHERE user_id = $1`, [user]));
 
 const first = await run();
 check(!first.error && first[0].n === 4, `[fix] the check finds the 4 gave-up rows (${JSON.stringify(first)})`);
@@ -120,6 +139,9 @@ check(h.length === 1 && h[0].message.includes("$18.00 delivery pay"), `[fix] the
 const b1 = await notices(BUYER), b2 = await notices(BUYER2);
 check(b1.length === 1 && b1[0].message.includes("$7.99 delivery fee"), `[fix] the buyer is told the delivery fee is being sent by hand (${b1.length})`);
 check(b2.length === 1 && b2[0].message.includes("$3.12 delivery pay raise"), `[fix] the raise buyer is told too (${b2.length})`);
+// DC-17 format (20261102064215): the buyer's notice opens their side, the Helpr's stays on earnings.
+check(b1[0]?.link === "/declutter?tab=buying" && b2[0]?.link === "/declutter?tab=buying", `[fix] the buyer's notice opens ?tab=buying (${b1[0]?.link}, ${b2[0]?.link})`);
+check(h[0]?.link === "/profile?tab=earnings", `the Helpr's notice still opens earnings (${h[0]?.link})`);
 
 // Same day again: nothing new.
 const second = await run();

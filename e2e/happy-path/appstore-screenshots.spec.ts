@@ -205,7 +205,6 @@ function rules(): MockRule[] {
     mockTable("declutter_item_photos", PHOTOS, { honorFilters: true }),
     // Every made-up person, whichever ids were asked for (the client keys by id, so extras are harmless).
     mockRpc("get_safe_profiles", PROFILES),
-    mockTable("profiles_public", PROFILES, { honorFilters: true }),
     // Sample threads with recent times (the shared seed's are dated 2026-08-14).
     mockTable("messages", MESSAGES, { honorFilters: true }),
     // No gift card banner on Post a job: the shared seed gives this member two.

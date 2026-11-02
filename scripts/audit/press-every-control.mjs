@@ -1941,7 +1941,19 @@ async function main() {
            * src/test/pressDrivesTheRealPressPath.test.tsx runs this loop).
            */
           if (entry.mutating) {
-            const liveRowText = await target.evaluate(LIVE_ROW_TEXT, RECORD_ROW_SEL).catch(() => null);
+            // Q2010: LIVE_ROW_TEXT never returns null (it returns ""), so a failed read means it THREW. A
+            // write whose record cannot be confirmed is never pressed: it FAILS, like the "gone" branch.
+            let rowReadError = null;
+            const liveRowText = await target.evaluate(LIVE_ROW_TEXT, RECORD_ROW_SEL).catch((e) => {
+              rowReadError = String(e?.message ?? e).slice(0, 120);
+              return null;
+            });
+            if (rowReadError !== null) {
+              entry.result = "FAIL"; entry.why = `its record could not be read before the press (${rowReadError}), so it was not pressed`;
+              rec.failed++; failedPresses++;
+              entry.shot = await shoot(`record-unreadable-${slug(label)}`);
+              continue;
+            }
             if (liveRowText !== null) {
               const now = await enumerate(item.step.scope);
               const placed = pressTargetRecord({ liveRowText, meta, now });

@@ -1002,7 +1002,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 908,
+      "line": 909,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1012,7 +1012,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 935,
+      "line": 936,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1022,7 +1022,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 986,
+      "line": 987,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1032,7 +1032,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1030,
+      "line": 1031,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1042,7 +1042,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1089,
+      "line": 1090,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1052,7 +1052,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1148,
+      "line": 1149,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -7592,7 +7592,7 @@
     },
     {
       "file": "src/components/jobs/ContinueDaySheet.tsx",
-      "line": 55,
+      "line": 66,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -7612,7 +7612,7 @@
     },
     {
       "file": "src/components/jobs/ContinueDaySheet.tsx",
-      "line": 60,
+      "line": 71,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12059,7 +12059,7 @@
     },
     {
       "file": "src/pages/jobs/jobPage/useContinueDayActions.tsx",
-      "line": 69,
+      "line": 77,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -12069,7 +12069,7 @@
     },
     {
       "file": "src/pages/jobs/jobPage/useContinueDayActions.tsx",
-      "line": 72,
+      "line": 80,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

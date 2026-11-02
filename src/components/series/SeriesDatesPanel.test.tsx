@@ -78,7 +78,7 @@ function renderPanel(props: Partial<React.ComponentProps<typeof SeriesDatesPanel
       <SeriesDatesPanel
         jobId="p1"
         jobTitle="Dog walks"
-        dateNeeded="2026-09-02"
+        dateNeeded="2054-09-02"
         recurrenceDays={[3]}
         recurrenceWeeks={4}
         userId={ME}
@@ -94,48 +94,49 @@ function renderPanel(props: Partial<React.ComponentProps<typeof SeriesDatesPanel
 
 describe("foldSeriesDates", () => {
   const base = {
-    schedule: ["2026-09-02", "2026-09-09", "2026-09-16", "2026-09-23"],
-    firstVisit: "2026-09-02",
-    today: "2026-09-05",
+    schedule: ["2054-09-02", "2054-09-09", "2054-09-16", "2054-09-23"],
+    firstVisit: "2054-09-02",
+    today: "2054-09-05",
     viewer: ME,
     bookedDates: [] as string[],
   };
   it("never lists visit one or a past date, and classifies each future date", () => {
     const out = foldSeriesDates({
       ...base,
-      holds: [{ visit_date: "2026-09-09", helper_id: ME }, { visit_date: "2026-09-16", helper_id: OTHER }],
-      releases: [{ visit_date: "2026-09-23", helper_id: OTHER }],
+      holds: [{ visit_date: "2054-09-09", helper_id: ME }, { visit_date: "2054-09-16", helper_id: OTHER }],
+      releases: [{ visit_date: "2054-09-23", helper_id: OTHER }],
     });
     expect(out.map((d) => [d.date, d.state])).toEqual([
-      ["2026-09-09", "mine"],
-      ["2026-09-16", "taken"],
-      ["2026-09-23", "released"],
+      ["2054-09-09", "mine"],
+      ["2054-09-16", "taken"],
+      ["2054-09-23", "released"],
     ]);
   });
   it("booking ahead (today before visit one): visit one is still never listed", () => {
-    const out = foldSeriesDates({ ...base, today: "2026-08-30", holds: [], releases: [] });
-    expect(out.map((d) => d.date)).toEqual(["2026-09-09", "2026-09-16", "2026-09-23"]);
+    const out = foldSeriesDates({ ...base, today: "2054-08-30", holds: [], releases: [] });
+    expect(out.map((d) => d.date)).toEqual(["2054-09-09", "2054-09-16", "2054-09-23"]);
   });
   it("A3-43: the viewer's own booked visit is mine (booked); someone else's is taken", () => {
     const out = foldSeriesDates({
       ...base, holds: [], releases: [],
-      bookedDates: [{ date: "2026-09-09", helper_id: ME }, { date: "2026-09-16", helper_id: OTHER }],
+      bookedDates: [{ date: "2054-09-09", helper_id: ME }, { date: "2054-09-16", helper_id: OTHER }],
     });
-    expect(out.find((d) => d.date === "2026-09-09")).toMatchObject({ state: "mine", booked: true });
-    expect(out.find((d) => d.date === "2026-09-16")?.state).toBe("taken");
-    expect(out.find((d) => d.date === "2026-09-23")?.state).toBe("open");
+    expect(out.find((d) => d.date === "2054-09-09")).toMatchObject({ state: "mine", booked: true });
+    expect(out.find((d) => d.date === "2054-09-16")?.state).toBe("taken");
+    expect(out.find((d) => d.date === "2054-09-23")?.state).toBe("open");
   });
   it("a booked visit nobody holds is taken, not open", () => {
-    const out = foldSeriesDates({ ...base, holds: [], releases: [], bookedDates: ["2026-09-09"] });
-    expect(out.find((d) => d.date === "2026-09-09")?.state).toBe("taken");
-    expect(out.find((d) => d.date === "2026-09-16")?.state).toBe("open");
+    const out = foldSeriesDates({ ...base, holds: [], releases: [], bookedDates: ["2054-09-09"] });
+    expect(out.find((d) => d.date === "2054-09-09")?.state).toBe("taken");
+    expect(out.find((d) => d.date === "2054-09-16")?.state).toBe("open");
   });
 });
 
 describe("SeriesDatesPanel", () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-09-05T17:00:00Z"));
+    // Pinned 28 years out (same weekdays and DST days as 2026), so no job day here ages into the present (jobDayFixtureTimezone).
+    vi.setSystemTime(new Date("2054-09-05T17:00:00Z"));
     rpc.mockReset();
     tables.value = {};
   });
@@ -143,29 +144,29 @@ describe("SeriesDatesPanel", () => {
 
   it("a Helpr on the series sees a date someone else gave up: 'A date opened up — pick it up', and picking calls claim_series_dates", async () => {
     tables.value = {
-      series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: ME }], error: null },
-      recurring_visit_releases: { data: [{ visit_date: "2026-09-16", helper_id: OTHER }], error: null },
+      series_visit_holds: { data: [{ visit_date: "2054-09-09", helper_id: ME }], error: null },
+      recurring_visit_releases: { data: [{ visit_date: "2054-09-16", helper_id: OTHER }], error: null },
       series_date_offers: { data: [], error: null },
       jobs: { data: [], error: null },
     };
-    rpc.mockResolvedValue({ data: { claimed: ["2026-09-16"], taken: [], refused: [] }, error: null });
+    rpc.mockResolvedValue({ data: { claimed: ["2054-09-16"], taken: [], refused: [] }, error: null });
     renderPanel();
     const toggle = await screen.findByRole("button", { name: /A date opened up — pick it up/ });
     fireEvent.click(toggle);
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 16" }));
     fireEvent.click(screen.getByRole("button", { name: /Pick 1 date/ }));
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith("claim_series_dates", { p_job_id: "p1", p_dates: ["2026-09-16"] }));
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("claim_series_dates", { p_job_id: "p1", p_dates: ["2054-09-16"] }));
   });
 
   it("LOW-6: a double tap on your own date says it is already yours, not that it was taken", async () => {
     const { toast } = await import("sonner");
     tables.value = {
-      series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: ME }], error: null },
-      recurring_visit_releases: { data: [{ visit_date: "2026-09-16", helper_id: OTHER }], error: null },
+      series_visit_holds: { data: [{ visit_date: "2054-09-09", helper_id: ME }], error: null },
+      recurring_visit_releases: { data: [{ visit_date: "2054-09-16", helper_id: OTHER }], error: null },
       series_date_offers: { data: [], error: null },
       jobs: { data: [], error: null },
     };
-    rpc.mockResolvedValue({ data: { claimed: [], taken: [], refused: [], already_yours: ["2026-09-16"] }, error: null });
+    rpc.mockResolvedValue({ data: { claimed: [], taken: [], refused: [], already_yours: ["2054-09-16"] }, error: null });
     renderPanel();
     fireEvent.click(await screen.findByRole("button", { name: /A date opened up — pick it up/ }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 16" }));
@@ -179,7 +180,7 @@ describe("SeriesDatesPanel", () => {
       series_visit_holds: { data: [], error: null },
       recurring_visit_releases: { data: [], error: null },
       series_date_offers: { data: [], error: null },
-      jobs: { data: [{ date_needed: "2026-09-09", status: "accepted", helper_id: ME }], error: null },
+      jobs: { data: [{ date_needed: "2054-09-09", status: "accepted", helper_id: ME }], error: null },
     };
     renderPanel({ firstHelpr: ME });
     fireEvent.click(await screen.findByRole("button", { name: /^Visit dates · 1 yours · 2 open$/ }));
@@ -193,7 +194,7 @@ describe("SeriesDatesPanel", () => {
       series_visit_holds: { data: [], error: null },
       recurring_visit_releases: { data: [], error: null },
       series_date_offers: { data: [], error: null },
-      jobs: { data: [{ date_needed: "2026-09-09", status: "accepted", helper_id: ME }], error: null },
+      jobs: { data: [{ date_needed: "2054-09-09", status: "accepted", helper_id: ME }], error: null },
     };
     const first = renderPanel({ firstHelpr: ME, nextStep: true });
     await screen.findByRole("button", { name: /^Visit dates · 1 yours · 2 open$/ });
@@ -206,7 +207,7 @@ describe("SeriesDatesPanel", () => {
 
   it("A3-44: on the job page, the poster's next step is finding a Helpr for the open visits", async () => {
     tables.value = {
-      series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: OTHER }], error: null },
+      series_visit_holds: { data: [{ visit_date: "2054-09-09", helper_id: OTHER }], error: null },
       recurring_visit_releases: { data: [], error: null },
       series_date_offers: { data: [], error: null },
       jobs: { data: [], error: null },
@@ -218,8 +219,8 @@ describe("SeriesDatesPanel", () => {
 
   it("never offers a Helpr the date they gave up themselves", async () => {
     tables.value = {
-      series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: ME }], error: null },
-      recurring_visit_releases: { data: [{ visit_date: "2026-09-16", helper_id: ME }], error: null },
+      series_visit_holds: { data: [{ visit_date: "2054-09-09", helper_id: ME }], error: null },
+      recurring_visit_releases: { data: [{ visit_date: "2054-09-16", helper_id: ME }], error: null },
       series_date_offers: { data: [], error: null },
       jobs: { data: [], error: null },
     };
@@ -231,24 +232,24 @@ describe("SeriesDatesPanel", () => {
 
   it("giving dates up confirms first (24-hour strike named) and calls give_up_series_dates", async () => {
     tables.value = {
-      series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: ME }], error: null },
+      series_visit_holds: { data: [{ visit_date: "2054-09-09", helper_id: ME }], error: null },
       recurring_visit_releases: { data: [], error: null },
       series_date_offers: { data: [], error: null },
       jobs: { data: [], error: null },
     };
-    rpc.mockResolvedValue({ data: { released: ["2026-09-09"], strike: false }, error: null });
+    rpc.mockResolvedValue({ data: { released: ["2054-09-09"], strike: false }, error: null });
     renderPanel();
     fireEvent.click(await screen.findByRole("button", { name: /Visit dates · 1 yours$/ }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 9" }));
     fireEvent.click(screen.getByRole("button", { name: /Give up 1 date/ }));
     expect(await screen.findByText(/within 24 hours counts as a reliability strike/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Give up" }));
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith("give_up_series_dates", { p_job_id: "p1", p_dates: ["2026-09-09"] }));
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("give_up_series_dates", { p_job_id: "p1", p_dates: ["2054-09-09"] }));
   });
 
   it("the person who posted it offers the open dates to someone who applied", async () => {
     tables.value = {
-      series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: OTHER }], error: null },
+      series_visit_holds: { data: [{ visit_date: "2054-09-09", helper_id: OTHER }], error: null },
       recurring_visit_releases: { data: [], error: null },
       series_date_offers: { data: [], error: null },
       jobs: { data: [], error: null },
@@ -283,10 +284,10 @@ describe("SeriesDatesPanel", () => {
       series_date_offers: { data: [], error: null },
       jobs: { data: [], error: null },
     };
-    const first = renderPanel({ isPoster: true, userId: "poster-1", dateNeeded: "2026-09-09" });
+    const first = renderPanel({ isPoster: true, userId: "poster-1", dateNeeded: "2054-09-09" });
     expect(await screen.findByRole("button", { name: /0 of 4 upcoming dates have a Helpr · 4 open/ })).toBeInTheDocument();
     first.unmount();
-    renderPanel({ isPoster: true, userId: "poster-1", dateNeeded: "2026-09-09", firstVisitHasHelpr: true });
+    renderPanel({ isPoster: true, userId: "poster-1", dateNeeded: "2054-09-09", firstVisitHasHelpr: true });
     expect(await screen.findByRole("button", { name: /1 of 4 upcoming dates have a Helpr · 3 open/ })).toBeInTheDocument();
     // The card hands the panel whether the first visit has its Helpr (the series' own job row's helper_id).
     const { readFileSync } = await import("node:fs");
@@ -298,22 +299,22 @@ describe("SeriesDatesPanel", () => {
 
   it("picking sends only the open dates ticked, never one of the viewer's own", async () => {
     tables.value = {
-      series_visit_holds: { data: [{ visit_date: "2026-09-09", helper_id: ME }], error: null },
+      series_visit_holds: { data: [{ visit_date: "2054-09-09", helper_id: ME }], error: null },
       recurring_visit_releases: { data: [], error: null },
       series_date_offers: { data: [{ helper_id: ME }], error: null },
       jobs: { data: [], error: null },
     };
-    rpc.mockResolvedValue({ data: { claimed: ["2026-09-16"], taken: [], refused: [] }, error: null });
+    rpc.mockResolvedValue({ data: { claimed: ["2054-09-16"], taken: [], refused: [] }, error: null });
     renderPanel();
     fireEvent.click(await screen.findByRole("button", { name: /Visit dates · 1 yours/ }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 9" }));
     fireEvent.click(screen.getByRole("checkbox", { name: "Wed, Sep 16" }));
     fireEvent.click(screen.getByRole("button", { name: /Pick 1 date/ }));
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith("claim_series_dates", { p_job_id: "p1", p_dates: ["2026-09-16"] }));
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith("claim_series_dates", { p_job_id: "p1", p_dates: ["2054-09-16"] }));
   });
 
   it("the read treats a missing table as 'not deployed yet' (null), any other failure as an error", async () => {
-    const args = { jobId: "p1", dateNeeded: "2026-09-02", recurrenceDays: [3], recurrenceWeeks: 4, viewer: ME, firstHelpr: null };
+    const args = { jobId: "p1", dateNeeded: "2054-09-02", recurrenceDays: [3], recurrenceWeeks: 4, viewer: ME, firstHelpr: null };
     tables.value = { series_visit_holds: { data: null, error: { code: "42P01", message: "relation does not exist" } } };
     await expect(fetchSeriesDates(args)).resolves.toBeNull();
     tables.value = { series_visit_holds: { data: null, error: { code: "08006", message: "connection reset" } } };

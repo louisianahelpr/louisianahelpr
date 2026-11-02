@@ -21,17 +21,18 @@ import JobCard from "@/components/dashboard/JobCard";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { listingChip, listingDeadline } from "@/lib/listingDeadline";
 
-// Sun Nov 1 2026, 1:00 PM in Louisiana (CST, UTC-6). The job starts at 6:00 PM that day (5 hours on).
-const NOW = new Date("2026-11-01T19:00:00Z");
-const START_ISO = "2026-11-02T00:00:00.000Z";
-const job = (over: Record<string, unknown> = {}) => ({ date_needed: "2026-11-01", start_time: "18:00", expires_at: "2026-11-05T19:00:00Z", ...over });
+// Sun Nov 1 2054, 1:00 PM in Louisiana (CST, UTC-6). The job starts at 6:00 PM that day (5 hours on).
+// Pinned 28 years out (same weekdays and DST days as 2026), so no job day here ages into the present (jobDayFixtureTimezone).
+const NOW = new Date("2054-11-01T19:00:00Z");
+const START_ISO = "2054-11-02T00:00:00.000Z";
+const job = (over: Record<string, unknown> = {}) => ({ date_needed: "2054-11-01", start_time: "18:00", expires_at: "2054-11-05T19:00:00Z", ...over });
 
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 describe("listingDeadline: the start or the close, whichever is first", () => {
   it("names the start when it comes first, the close otherwise, nothing with no close", () => {
     expect(listingDeadline(job())).toEqual({ at: new Date(START_ISO), startsFirst: true });
-    expect(listingDeadline(job({ expires_at: "2026-11-01T20:00:00Z" }))).toEqual({ at: new Date("2026-11-01T20:00:00Z"), startsFirst: false });
+    expect(listingDeadline(job({ expires_at: "2054-11-01T20:00:00Z" }))).toEqual({ at: new Date("2054-11-01T20:00:00Z"), startsFirst: false });
     expect(listingDeadline(job({ date_needed: null }))?.startsFirst).toBe(false);
     expect(listingDeadline(job({ expires_at: null }))).toBeNull();
   });
@@ -43,12 +44,12 @@ describe("listingChip: the browse card's countdown", () => {
   });
 
   it("the close first: the close's own words; past 48 hours: no chip", () => {
-    expect(listingChip(job({ date_needed: "2026-11-10", expires_at: "2026-11-02T07:00:00Z" }), NOW)).toEqual({ text: "12 hours left", soon: true });
-    expect(listingChip(job({ date_needed: "2026-11-10", expires_at: "2026-11-05T19:00:00Z" }), NOW)).toBeNull();
+    expect(listingChip(job({ date_needed: "2054-11-10", expires_at: "2054-11-02T07:00:00Z" }), NOW)).toEqual({ text: "12 hours left", soon: true });
+    expect(listingChip(job({ date_needed: "2054-11-10", expires_at: "2054-11-05T19:00:00Z" }), NOW)).toBeNull();
   });
 
   it("the start passed, the listing still open: the close again (never 'Starts · Expired')", () => {
-    const later = new Date("2026-11-04T19:00:00Z");
+    const later = new Date("2054-11-04T19:00:00Z");
     expect(listingChip(job(), later)).toEqual({ text: "1 day left", soon: false });
   });
 });
@@ -59,7 +60,7 @@ describe("the browse card draws it", () => {
     vi.setSystemTime(NOW);
     const card = {
       id: "j1", title: "Haul off a couch", description: "", category: "moving", budget: 60, location: "Lafayette, LA",
-      created_at: "2026-10-30T12:00:00Z", customer_id: "p1", is_urgent: false, urgent_fee: 0, is_group_job: false,
+      created_at: "2054-10-30T12:00:00Z", customer_id: "p1", is_urgent: false, urgent_fee: 0, is_group_job: false,
       helpers_needed: 1, is_recurring: false, ...job(),
     } as unknown as EnrichedJob;
     render(<JobCard job={card} effectiveFee={0.15} onApply={vi.fn()} onReport={vi.fn()} onSelect={vi.fn()} userLat={null} userLng={null} />);

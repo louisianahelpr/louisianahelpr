@@ -20,6 +20,12 @@
  * @mutate src/components/declutter/SellItForMe.tsx |               {!hideUnopenedInApp() && ( |               {true && (
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+// The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
+// (no row yet, saves accepted); the device copy and the hook's own rules stay real.
+vi.mock("@/lib/sectionPrefsRow", () => ({
+  fetchSectionPrefsRow: async () => ({ data: null, error: null }),
+  saveSectionPrefsRow: async () => ({ error: null }),
+}));
 import { render, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

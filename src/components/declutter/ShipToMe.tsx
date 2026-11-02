@@ -85,12 +85,12 @@ export function ShipToMe({ sellerId, picked, onPick }: {
           <Input id={`${id}-zip`} inputMode="numeric" autoComplete="postal-code" maxLength={10} value={zip} onChange={typed(setZip)} />
         </div>
       </div>
-      {zip.trim().length >= 5 && !zipOk && <p className="text-ds-12 text-destructive">Shipping is for Louisiana addresses only.</p>}
+      {zip.trim().length >= 5 && !zipOk && <p className="text-ds-12 text-destructive-ink">Shipping is for Louisiana addresses only.</p>}
       <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={!ready || getRates.isPending}
         onClick={() => getRates.mutate()}>
         {getRates.isPending ? "Getting prices…" : "Get prices"}
       </Button>
-      {error && <p role="alert" className="text-ds-13 text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-ds-13 text-destructive-ink">{error}</p>}
       {quotes.length > 0 && (
         <div className="space-y-2" data-ship-quotes="">
           <p className="text-ds-12 font-semibold text-muted-foreground">Shipping</p>

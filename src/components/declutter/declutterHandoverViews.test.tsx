@@ -528,7 +528,10 @@ describe("Declutter slice 4: paid-order cards", () => {
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {ruleOpen && <span className="mt-1 block" data-payout-rule=""> | {true && <span className="mt-1 block" data-payout-rule="">
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {parts} after the handover.{" "} | {parts}. {sellerPayoutRule(kind)}{" "}
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | onClick={() => setRuleOpen((o) => !o)}> | onClick={() => undefined}>
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | <InlineTextButton className="font-semibold underline underline-offset-2" aria-expanded={ruleOpen} | <InlineTextButton aria-expanded={ruleOpen}
     expect((await screen.findByText(/^You get/)).textContent).toBe("You get $40 after the handover. Details");
+    // It reads as a control: underlined, as the other in-line text links on Declutter cards ("How it works").
+    expect(document.querySelector("[data-payout-details]")!.className).toMatch(/\bunderline\b/);
     expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. If neither of you says anything, the money stays held.');
     expect(document.body.textContent).not.toMatch(/24 hours after you tap|paid 24 hours after the handover/);
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();

@@ -1,4 +1,4 @@
-// JobTracking "Mark job complete" — synchronous in-flight guard + the
+// JobTracking "Mark it done" — synchronous in-flight guard + the
 // server-owned completion RPC.
 //
 // `updating` is React state, so two clicks on the confirm dialog's primary
@@ -114,25 +114,25 @@ function renderWorkingAt(arrivedMinAgo: number, workingMinAgo: number | null = n
   );
 }
 
-describe("Mark job complete is greyed for the first 30 minutes", () => {
+describe("Mark it done is greyed for the first 30 minutes", () => {
   it("10 minutes after arrival: disabled", async () => {
     renderWorkingAt(10);
-    const btn = await screen.findByRole("button", { name: /mark job complete/i });
+    const btn = await screen.findByRole("button", { name: /mark it done/i });
     expect((btn as HTMLButtonElement).disabled).toBe(true);
   });
   it("45 minutes after arrival: live", async () => {
     renderWorkingAt(45);
-    const btn = await screen.findByRole("button", { name: /mark job complete/i });
+    const btn = await screen.findByRole("button", { name: /mark it done/i });
     expect((btn as HTMLButtonElement).disabled).toBe(false);
   });
   it("the poster's later 'working' tap does NOT restart the floor: it counts from the arrival, as the server does", async () => {
     renderWorkingAt(45, 5);
-    const btn = await screen.findByRole("button", { name: /mark job complete/i });
+    const btn = await screen.findByRole("button", { name: /mark it done/i });
     expect((btn as HTMLButtonElement).disabled).toBe(false);
   });
   it("10 minutes after arrival, with the poster's tap 5 minutes ago: still disabled", async () => {
     renderWorkingAt(10, 5);
-    const btn = await screen.findByRole("button", { name: /mark job complete/i });
+    const btn = await screen.findByRole("button", { name: /mark it done/i });
     expect((btn as HTMLButtonElement).disabled).toBe(true);
   });
 });

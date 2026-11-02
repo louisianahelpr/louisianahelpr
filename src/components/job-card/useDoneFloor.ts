@@ -8,7 +8,7 @@ const DONE_FLOOR_MS = 30 * 60_000;
 
 
 /**
- * Is Mark job complete still inside its first 30 minutes? Re-renders the
+ * Is Mark it done still inside its first 30 minutes? Re-renders the
  * moment the floor ends, so the greyed button turns on by itself (owner,
  * 2026-10-08: "mark job complete should be greyed out until its available in
  * the 30 min"; "if it's greyed then no toast is needed").

@@ -15,7 +15,7 @@
  *   CountdownRows        OfferedActions and the collapsed status strip
  *   JobCountdown         the "job starts in" pill
  *   useExpiryClock       the expiry chip and its Activity bucket
- *   useDoneFloorActive   Mark job complete's 30-minute floor
+ *   useDoneFloorActive   Mark it done's 30-minute floor
  *
  * Each case mounts 1 ms before the instant (not expired), then lets the
  * component's own timer run (expired within its tick), and mounts at the
@@ -143,7 +143,7 @@ describe("useExpiryClock (the expiry chip and its Activity bucket)", () => {
   });
 });
 
-describe("useDoneFloorActive (Mark job complete's 30-minute floor)", () => {
+describe("useDoneFloorActive (Mark it done's 30-minute floor)", () => {
   it("active until 30 min after the work started, inactive by itself within a second of it", () => {
     const start = DEADLINE - 30 * MIN;
     at(DEADLINE - 1);

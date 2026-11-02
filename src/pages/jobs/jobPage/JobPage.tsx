@@ -70,6 +70,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
 import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
+import { crewPosterStep } from "@/components/tracker/crewPosterStep";
 
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
@@ -387,7 +388,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             otherFirst={isPoster ? helperFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
             offerOut={offerOut} offerUntil={job.direct_offer_expires_at ?? null} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
-            crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} continueStep={continueDay.step} />
+            crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined}
+            continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job) : null)} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
           {/* JA-30 (Jobs audit 11-01): the dispute line says when they hear back; "See the case" opens the case itself
               (the Working and Posted cards' own DisputeTimelineDialog: the reason, both sides' evidence, the decision). */}

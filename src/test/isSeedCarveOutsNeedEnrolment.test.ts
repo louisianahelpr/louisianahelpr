@@ -211,7 +211,6 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   notify_helpr_of_booking_clash: "alerts",
   notify_ops_dispute_filed: "alerts",
   notify_reporter_report_outcome: "hides", // A3-113 (20261102015348): a test or seed reporter never gets the report-outcome notice
-  sweep_declutter_free_asks: "alerts", // A3-57 (20261102011547): a test (is_seed) item's free asks close without a notice
   notify_saved_searches_on_new_job: "hides",
   ops_alert_condition: "alerts",
   payout_held_check: "alerts",
@@ -291,6 +290,7 @@ const EDGE_READERS: Record<string, Kind> = {
   "stripe-connect/index.ts": "alerts",
   // SEED-ALERTS: a test job's, order's or gift donor's refund alert goes to the digest; both files only route alerts and an admin notice.
   "stripe-webhook/handlers/_giftCardRefund.ts": "alerts",
+  "stripe-webhook/handlers/_visitTaxReversal.ts": "alerts", // Q1997 (6166e4e4a8): a zero-line visit tax reversal pages ops unless the job is is_seed or its people are test subjects
   "stripe-webhook/handlers/chargeRefunded.ts": "alerts",
   "stripe-webhook/handlers/checkoutSessionCompleted.ts": "alerts",
   "stripe-webhook/handlers/paymentIntentPaymentFailed.ts": "alerts",

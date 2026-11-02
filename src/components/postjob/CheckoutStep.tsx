@@ -183,12 +183,9 @@ export function CheckoutStep({
   // (not the typed start) and ends on its last, so "When"/"Repeats" show those.
   const whenDate = seriesDates[0] ?? dateNeeded;
   const seriesEndDate = seriesDates[seriesDates.length - 1] ?? recurrenceEndDate;
-  // A gift-funded post is never taxed: the fully-covered branch of
-  // create-payment settles from the platform balance and never reaches
-  // Stripe, and the shortfall branch prices its one line `txcd_00000000`
-  // (non-taxable). Adding `salesTax` on top of `totalCharge` here would quote
-  // a charge Stripe will not make — the same class of defect as the invented
-  // 9-11% range this row was built to kill, just pointed at gifts.
+  // A gift-funded post is never taxed: the fully-covered branch of create-payment settles from the platform balance
+  // and never reaches Stripe, and the shortfall branch prices its one line `txcd_00000000` (non-taxable). Adding
+  // `salesTax` on top of `totalCharge` here would quote a charge Stripe will not make (the invented 9-11% range's class).
   const totalWithTax = hasGift ? totalCharge : totalCharge + (salesTax ?? 0);
   // JA-45: a plain job (nothing added or taken off) shows its Total alone; any fee, bonus, gift or tax line brings the budget row back.
   const budgetRowShown = hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category) && salesTax === null);
@@ -608,11 +605,8 @@ export function CheckoutStep({
           committed, and "here's what this kind of job usually needs" is
           genuinely useful prep rather than a distraction from checkout. */}
 
-
-      {/* "Save card for next time": opt-in to create-payment, sticky in localStorage. A3-108: a Repeats job always saves
-          the card (useJobSubmit sends `|| isRecurring`), so it says so instead of a switch that does nothing.
-          Q2143: the saved card is the ONE wallet card (owner 2026-10-18), also used by any automatic charge the member
-          turned on (auto-tip); the switch's lines say so. */}
+      {/* "Save card for next time": opt-in to create-payment, sticky in localStorage. A3-108: a Repeats job always saves the card
+          (useJobSubmit sends `|| isRecurring`), so it says so. Q2143: it is the ONE wallet card (owner 2026-10-18), also used by auto-tip. */}
       {setSaveCardForFuture && isRecurring ? (
         <p data-save-card-fixed className="rounded-ds-md liquid-glass p-card text-ds-13 text-foreground leading-snug">Your card is saved to pay for each later visit, about 3 days before it.</p>
       ) : setSaveCardForFuture && (

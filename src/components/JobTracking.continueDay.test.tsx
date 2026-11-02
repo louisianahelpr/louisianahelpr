@@ -103,7 +103,7 @@ describe("the open card's Mark it done before a day set to finish", () => {
   it("no day: enabled (the fixture is the done step)", async () => {
     day.row = null;
     renderDoneStep();
-    const btn = await screen.findByRole("button", { name: /mark job complete/i });
+    const btn = await screen.findByRole("button", { name: /mark it done/i });
     expect((btn as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -111,6 +111,6 @@ describe("the open card's Mark it done before a day set to finish", () => {
     day.row = { id: "c1", job_id: "job-1", proposed_by: "poster", new_date: ahead, new_start_time: "09:00:00", note: null, status: "set", helper_confirmed_at: AGO_MIN(30) };
     renderDoneStep();
     expect(await screen.findByText(/You can mark it done on \w{3} \d+\/\d+, the day you set to finish\./)).toBeTruthy();
-    expect((screen.getByRole("button", { name: /mark job complete/i }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: /mark it done/i }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

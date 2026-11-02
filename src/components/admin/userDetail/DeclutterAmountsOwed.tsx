@@ -34,7 +34,7 @@ const REASON_WORDS: Record<string, string> = {
   not_as_described: "Item not as described",
   helpr_fault: "Helpr's fault on a delivery",
 };
-export const owedReasonWords = (reason: string) => REASON_WORDS[reason] ?? "Refund";
+const owedReasonWords = (reason: string) => REASON_WORDS[reason] ?? "Refund";
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
 export function DeclutterAmountsOwed({ userId }: { userId: string }) {
@@ -74,7 +74,7 @@ export function DeclutterAmountsOwed({ userId }: { userId: string }) {
       toast.error("Couldn't clear that amount. Try again.");
       return;
     }
-    toast.success("Cleared. The member was told.");
+    toast("Cleared. The member was told.");
     setClearing(null);
     setNote("");
     refetch();

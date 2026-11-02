@@ -132,7 +132,10 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
     // (IF NOT feature_enabled_for(...) THEN RETURN), still server side. Every write keeps require_feature.
     const gated = (n: string) => /PERFORM public\.require_feature\('declutter_refund_requests'\);/.test(body(n))
       || (n === "declutter_my_refund_todos" && /IF NOT public\.feature_enabled_for\('declutter_refund_requests'\) THEN\s+RETURN;/.test(body(n)));
-    const missing = rpcs.filter((n) => !gated(n));
+    // Not a refund-request RPC: declutter_my_refunded_cents (A3-112, 20261102033426) is Money > Spent's read of the
+    // caller's own refunded cents, gated on the Declutter switch itself (require_feature('declutter')).
+    const notThisFeature = (n: string) => n === "declutter_my_refunded_cents" && /PERFORM public\.require_feature\('declutter'\);/.test(body(n));
+    const missing = rpcs.filter((n) => !gated(n) && !notThisFeature(n));
     expect(missing).toEqual([]);
   });
 

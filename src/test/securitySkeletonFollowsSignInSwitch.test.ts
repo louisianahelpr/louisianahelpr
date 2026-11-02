@@ -1,4 +1,4 @@
-// @mutate src/components/profile/ProfileTabFallback.tsx |     ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 224, media: 1 }] : []), |     { h: 224, media: 1 },
+// @mutate src/components/profile/ProfileTabFallback.tsx |     ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 229, media: 1 }] : []), |     { h: 229, media: 1 },
 /*
  * The Account Security skeleton draws one bone per card the tab renders. The
  * sign-in methods card renders only while SOCIAL_SIGN_IN_ENABLED (off for
@@ -22,6 +22,6 @@ describe("the Security skeleton follows the sign-in switch", () => {
     const security = TAB_SHAPES.security ?? [];
     // email, password, two-factor, [sign-in methods], active sessions
     expect(security).toHaveLength(SOCIAL_SIGN_IN_ENABLED ? 5 : 4);
-    expect(security.some((b) => b.h === 224)).toBe(SOCIAL_SIGN_IN_ENABLED);
+    expect(security.some((b) => b.h === 229)).toBe(SOCIAL_SIGN_IN_ENABLED);
   });
 });

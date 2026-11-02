@@ -18,7 +18,7 @@
  * @mutate src/components/ui/ChoiceCard.tsx | data-compact={compact ? "" : undefined} {...rest}>\n        {body}\n      </Link> | {...rest}>\n        {body}\n      </Link>
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | line="Your move date groups everything as one sale." | line="Add photos of everything, and your move date groups them as one sale."
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />\n |
- * @mutate src/components/declutter/DeclutterSellChooser.tsx | <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h3> |
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other things</h3> |
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {movingOut && ( |             {true && (
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {wanted && ( |             {true && (
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | to={SELL_FREE_PATH} | to={SELL_ONE_PATH}

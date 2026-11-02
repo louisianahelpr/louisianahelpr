@@ -230,7 +230,11 @@ async function wholeCharge(stripe: Stripe, paymentIntentId: string | null, refun
   return ch.id;
 }
 
-/** Best-effort money email (row 44). Never throws: the money already moved. */
+/**
+ * Best-effort money email (row 44). Never throws: the money already moved.
+ * A receipt, so it always goes: no notification switch gates it (Q2466, lead 2026-11-01). Settings' Declutter Refunds
+ * row shows "Refund receipts are always emailed" instead of an Email switch, and the Terms say the same.
+ */
 async function tellBuyerRefunded(admin: Db, buyerId: string | null, cents: number): Promise<void> {
   if (!buyerId) return;
   try {

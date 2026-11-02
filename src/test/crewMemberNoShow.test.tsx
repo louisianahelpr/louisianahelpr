@@ -11,11 +11,11 @@
  * src/test/pglite/crewMemberNoShow.pglite.mjs (--before red 7/7). This file pins the newest definition's load-bearing
  * clauses, so a later restatement that drops one is red here, and the poster's "Didn't show" chip on the crew roster.
  *
- * @mutate supabase/migrations/20261101031804_crew_member_no_show.sql | IF v_job.customer_id IS DISTINCT FROM v_uid THEN | IF false THEN
- * @mutate supabase/migrations/20261101031804_crew_member_no_show.sql | WHERE job_id = _job_id AND violation_type = 'no_show' AND user_id = _member_id | WHERE false
- * @mutate supabase/migrations/20261101031804_crew_member_no_show.sql |   DELETE FROM public.group_job_helpers WHERE id = v_slot.id; |   PERFORM 1;
- * @mutate supabase/migrations/20261101031804_crew_member_no_show.sql | IF v_remaining = 0 AND v_done >= 1 | IF false AND v_remaining = 0 AND v_done >= 1
- * @mutate supabase/migrations/20261101031804_crew_member_no_show.sql | REVOKE ALL ON FUNCTION public.rpc_poster_report_member_no_show(uuid, uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.rpc_poster_report_member_no_show(uuid, uuid) FROM PUBLIC;
+ * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | IF v_job.customer_id IS DISTINCT FROM v_uid THEN | IF false THEN
+ * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | WHERE job_id = _job_id AND violation_type = 'no_show' AND user_id = _member_id | WHERE false
+ * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |   DELETE FROM public.group_job_helpers WHERE id = v_slot.id; |   PERFORM 1;
+ * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | IF v_remaining = 0 AND v_done >= 1 | IF false AND v_remaining = 0 AND v_done >= 1
+ * @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | REVOKE ALL ON FUNCTION public.rpc_poster_report_member_no_show(uuid, uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.rpc_poster_report_member_no_show(uuid, uuid) FROM PUBLIC;
  * @mutate src/components/GroupJobHelpers.tsx |     hasJobStarted(dateNeeded, startTime); |     true;
  * @mutate src/components/GroupJobHelpers.tsx |     !!h.helper_confirmed_at && |     true &&
  * @mutate src/components/GroupJobHelpers.tsx |               {noShowReportable(h) && ( |               {false && (

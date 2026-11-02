@@ -37,7 +37,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |          AND a.helper_id = ANY (COALESCE(v_gone, '{}'::uuid[])) |          AND a.helper_id IS NOT NULL
 // @mutate src/pages/posts/postedJobCard/crewRefill.ts |   return job.status === "open" \|\| crewSpotRefillable(job, roster, now, closedSpots); |   return job.status === "open";
 // @mutate src/pages/posts/postedJobCard/PostedJobApplicants.tsx |   if (!takesApplicants(job, crewRoster, undefined, closedSpots)) return null; |   if (job.status !== "open") return null;
-// @mutate supabase/migrations/20261101031804_crew_member_no_show.sql | RAISE EXCEPTION 'job_not_started' | RAISE EXCEPTION 'job_not_begun'
+// @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | IF v_starts_at IS NULL OR v_now < v_starts_at THEN\n    RAISE EXCEPTION 'job_not_started' | IF v_starts_at IS NULL OR v_now < v_starts_at THEN\n    RAISE EXCEPTION 'job_not_begun'
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");

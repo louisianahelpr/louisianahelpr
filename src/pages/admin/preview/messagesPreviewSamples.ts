@@ -138,6 +138,8 @@ export function messagesPreviewSample(stage: MessagesPreviewStage, side: Message
       thread_pins: [],
       tips: [],
       gift_cards: [],
+      // The nav's Customize row (Q2199): none, so the nav keeps its default order and nothing is read from prod.
+      member_section_prefs: [],
     },
   };
 }

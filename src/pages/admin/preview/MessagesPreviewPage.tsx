@@ -18,9 +18,8 @@ import { useNavigate, useSearchParams, type To } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/ui/chipClasses";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { cn } from "@/lib/utils";
 import {
   MESSAGES_PREVIEW_STAGES, isMessagesPreviewStage, messagesPreviewSample,
   type MessagesPreviewSample, type MessagesPreviewSide, type MessagesPreviewStage,
@@ -83,22 +82,27 @@ function useOpenOnDraw(labels: string[] | null, key: string) {
   useEffect(() => {
     if (!labels?.length) return;
     let step = 0;
-    let tries = 0;
-    const t = window.setInterval(() => {
-      tries++;
+    // Waits for the DOM to change (the page drawing, a menu opening), not on a timer: one press per change.
+    const tryPress = () => {
       const name = labels[step];
       const b = Array.from(document.querySelectorAll<HTMLElement>("button, [role='menuitem']"))
         .find((x) => !x.closest("[data-preview-controls]") && (x.getAttribute("aria-label") === name || x.textContent?.trim() === name));
-      if (b) {
-        // Radix menus open on pointerdown; plain buttons on click.
-        b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }));
-        b.click();
-        step++;
-        if (step >= labels.length) window.clearInterval(t);
-      }
-      if (tries > 60) window.clearInterval(t);
-    }, 150);
-    return () => window.clearInterval(t);
+      if (!b) return;
+      step++;
+      if (step >= labels.length) stop();
+      // Radix menus open on pointerdown; plain buttons on click.
+      b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" }));
+      b.click();
+    };
+    const observer = new MutationObserver(tryPress);
+    const giveUp = window.setTimeout(() => stop(), 9000);
+    function stop() {
+      observer.disconnect();
+      window.clearTimeout(giveUp);
+    }
+    observer.observe(document.body, { childList: true, subtree: true });
+    tryPress();
+    return stop;
   }, [labels, key]);
 }
 
@@ -148,16 +152,9 @@ function Controls({ stage, side, onStage, onSide, onLeave }: {
         </p>
         <div role="radiogroup" aria-label="Stage" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:flex-wrap lg:overflow-visible">
           {MESSAGES_PREVIEW_STAGES.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              role="radio"
-              aria-checked={s.key === stage}
-              className={cn(CHIP, "min-h-9 shrink-0 px-3", s.key === stage ? CHIP_ON : CHIP_OFF)}
-              onClick={() => onStage(s.key)}
-            >
+            <ChoicePill key={s.key} selected={s.key === stage} className="shrink-0" onClick={() => onStage(s.key)}>
               {s.label}
-            </button>
+            </ChoicePill>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">

@@ -270,9 +270,10 @@ export const es: Record<MsgKey, string> = {
   // Jobs browse (the section tabs)
   "tabs.browse": "Ver todo",
   "tabs.less": "Pestañas anteriores",
-  "tabs.more": "Más pestañas",
-  "tabs.moreToDo": "Más pestañas, {n} pendientes",
   "tabs.lessToDo": "Pestañas anteriores, {n} pendientes",
+  "tabs.nMore": "{n} más",
+  "tabs.nMoreTabs": "{n} pestañas más",
+  "tabs.nMoreToDo": "{n} pestañas más, {m} pendientes",
   "jobs.tabPosted": "Publicados",
   "jobs.tabWorking": "Trabajando",
   "jobs.tabsLabel": "Trabajos y publicaciones",

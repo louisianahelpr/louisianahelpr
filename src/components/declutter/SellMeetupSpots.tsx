@@ -132,7 +132,7 @@ export function SellMeetupSpots() {
               <div className="flex flex-wrap gap-2">
                 {suggestions.map((s) => (
                   <Button key={s.id} type="button" variant="outline" size="sm" onClick={() => setDraft(fromSuggestion(s))}
-                    className="px-3 text-left text-ds-13">
+                    className="h-auto max-w-full justify-start whitespace-normal px-3 py-2 text-left text-ds-13 leading-snug">
                     + {s.name}
                   </Button>
                 ))}

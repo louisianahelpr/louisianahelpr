@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
-import { ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
+import { CONTINUE_DAY_SHEET_TITLE, ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
 import { CONTINUE_DAY_LABEL, answerContinueDay, confirmContinueDay, continueDayAhead, continueDayDoneNote, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
 import type { NextStepValue } from "@/components/ui/NextStep";
 import type { RowAction } from "./JobPageActionRow";
@@ -109,9 +109,16 @@ export function useContinueDayActions({
       helprLead = { key: "continue-confirm", label: "Confirm I'll be there", go: () => void run(() => confirmContinueDay(row.id), `Confirmed for ${when}.`)(), disabled: busy };
     }
     // Q2593: one name on both sides, the owner's "Not finished? Set a day" (it was "Need another day" here).
-    if (offerSetDay) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open };
+    // Q2678 (audit 1102e row 14): never once the Helpr marked it done; one tap would clear their own Done (they can Message).
+    if (offerSetDay && !job.helper_completed_at) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open };
   }
 
+  // Q2679 (audit 1102e row 16): the sheet carries the name of the button that opened it.
+  const sheetTitle = !row
+    ? CONTINUE_DAY_SHEET_TITLE
+    : side === "helpr"
+      ? "Ask for a different day"
+      : row.status === "set" ? "Change day" : "Set a different day";
   const doneAhead = continueDayAhead(row);
   return {
     row,
@@ -124,7 +131,7 @@ export function useContinueDayActions({
     helprExtras,
     setDay,
     sheet: (
-      <ContinueDaySheet open={sheetOpen} onOpenChange={setSheetOpen} jobId={job.id} side={side} otherFirst={otherFirst} onSaved={refresh} helprMarkedDone={!!job.helper_completed_at} />
+      <ContinueDaySheet open={sheetOpen} onOpenChange={setSheetOpen} jobId={job.id} side={side} otherFirst={otherFirst} onSaved={refresh} helprMarkedDone={!!job.helper_completed_at} title={sheetTitle} />
     ),
   };
 }

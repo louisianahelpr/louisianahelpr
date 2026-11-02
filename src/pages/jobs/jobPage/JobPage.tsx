@@ -213,7 +213,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const eyebrow = jobEyebrow(job.category);
   // The offered or hired Helpr (helper_id is set from the offer on): the street, as on their Working card.
   // The city here; the street once, on the Address line below for the offered or hired Helpr (F7, JOBS2-39: it was printed twice in a row).
-  // A SET continue day (Auditor 11, 11-01): the first line is the next visit, "Continuing Thu, Nov 5 · 9:00 AM".
+  // A SET continue day (Auditor 11, 11-01): the first line is the next visit, "Continuing Thu 11/5 at 9 AM" (Q2680).
   const continuingOn = continueDayHeader(continueDay.row);
   const meta = continuingOn ? [continuingOn, job.location ? getCity(job.location) : null].filter(Boolean).join(" · ") : metaLine(job);
   const open = job.status === "open";

@@ -632,7 +632,8 @@ serve(async (req) => {
     // Owner 2026-10-30: poster_cancel_job records $0, not late, when the hired Helpr had not verified
     // their ID, and writes job_cancel_id_waivers in the same transaction. That row is the only thing that
     // explains a 0 below the ladder: the Helpr may verify later, and any other 0 is still a real mismatch.
-    // A crew needs none: its shares carry their own committed flag.
+    // A crew needs none: its shares carry their own committed flag. Q1415 (e): the same row (reason 'payee_frozen')
+    // explains a 0 for a confirmed Helpr who was banned or under an open ban review at the cancel.
     const waiverCandidates = jobRows
       .filter((j) => j.status === "cancelled" && j.is_group_job !== true && !!j.helper_id && money(j.cancellation_fee) <= EPSILON)
       .map((j) => j.id as string);

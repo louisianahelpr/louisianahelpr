@@ -89,6 +89,10 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   const orders = chips.length > 0;
   const showCart = t.ready && (only === null || only === "needs_you") && (t.checkouts > 0 || settling.settling);
   const ended = only === null || only === "cancelled" ? t.ended : [];
+  // Q2630 (audit 1102c R5): a paid order refunded in full did not go ahead, so it is filed under Ended (like a checkout
+  // that ran out), not under Your orders. Its card keeps the amount and day ("Cancelled. $42.70 was refunded ...").
+  const refunded = (id: string) => !!t.views.get(id)?.facts.cancelled;
+  const endedOrders = only === null || only === "cancelled" ? [...t.views.keys()].filter(refunded).length : 0;
   const nothingActive = t.ready && chips.every((c) => c.key === "cancelled") && offers.has === false && !showCart;
   return (
     <div className="space-y-6">
@@ -107,12 +111,13 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       )}
       {showCart && <CartView />}
       {offers.has && offers.toAnswer && <OffersSection side="buyer" />}
-      <PaidOrders side="buyer" views={t.views} show={(id) => only === null || t.views.get(id)?.bucket === only} />
-      {ended.length > 0 && (
+      <PaidOrders side="buyer" views={t.views} scope={(id) => !refunded(id)} show={(id) => only === null || t.views.get(id)?.bucket === only} />
+      {(ended.length > 0 || endedOrders > 0) && (
         <section className="space-y-2" aria-label="Ended">
           {/* "Ended", not "Ended before paying": an order cancelled after it was paid or claimed is kept here too (A2-4). */}
           <SectionHeading title="Ended" />
-          <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>
+          {endedOrders > 0 && <PaidOrders side="buyer" views={t.views} scope={refunded} ended />}
+          {ended.length > 0 && <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>}
           {/* Q2569: only ended orders, nothing on the way and no offer out: a way back to shopping. */}
           {nothingActive && (
             <Link to="/declutter" data-ended-browse="" className="inline-flex min-h-11 items-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">

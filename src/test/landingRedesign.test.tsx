@@ -7,7 +7,8 @@
  *     the words reach the Jobs feed's own `q` filter, the public board when
  *     signed out and Jobs > Browse when signed in (Jobs is the only section
  *     open to everyone today);
- *   - the hero's only price is the proof row's dated, checked $20 tip (LandingProof);
+ *   - the landing's only price is the proof row's dated, checked $20 tip (LandingProof; below the
+ *     fold since owner 2026-11-02, at the top of Open jobs near you), and the hero shows no price;
  *   - the hero has NO phone mock and is one centered column (owner, 2026-10-20,
  *     after seeing the mock live; it once had to "leave Marie off the phone");
  *   - the money band's hours are the cron's own number, never typed;
@@ -23,7 +24,7 @@
  * @mutate src/components/landing/LandingAppleButton.tsx |   if (!SOCIAL_SIGN_IN_ENABLED) return null; |
  * @mutate src/components/Navbar.tsx |         {!user && ( |         {landing && <Link to="/signup?redirect=%2Fdeclutter">Declutter</Link>}\n        {!user && (
  * @mutate src/components/landing/HeroSection.tsx | className="flex flex-col items-center text-center min-w-0" | className="flex flex-col items-start min-w-0"
- * @mutate src/components/landing/HeroSection.tsx |       <LandingProof />\n | \n
+ * @mutate src/components/landing/LiveJobsSection.tsx |         <LandingProof />\n | \n
  * @mutate src/components/landing/LiveJobsSection.tsx |           .from("open_jobs_browse") |           .from("jobs")
  * @mutate src/components/landing/LiveJobsSection.tsx |   if (j.pricing_mode === "quotes") return "Get quotes"; |
  * @mutate src/components/landing/HeroSection.tsx | <div className="relative mx-auto w-full max-w-[760px]"> | <div className="relative mx-auto w-full max-w-6xl">
@@ -66,9 +67,9 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(hero).not.toMatch(/items, shops and homes/);
   });
 
-  it("the hero shows the proof row, and its only price is the checked tip", () => {
+  it("the landing shows the proof row (under the hero), and its only price is the checked tip", () => {
     const hero = read("src/components/landing/HeroSection.tsx");
-    expect(hero).toMatch(/<LandingProof \/>/);
+    expect(read("src/components/landing/LiveJobsSection.tsx")).toMatch(/<LandingProof \/>/);
     expect(hero).not.toMatch(/\$\d|Typical prices/);
     const proof = read("src/components/landing/LandingProof.tsx");
     expect(proof.match(/\$\d+/g)).toEqual(["$20"]);

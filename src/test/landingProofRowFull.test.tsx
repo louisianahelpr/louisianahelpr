@@ -11,7 +11,7 @@
  * missing again, or a column count that is not the item count, fails here.
  *
  * The first screen: the section fills the screen (100svh) and the H1, subhead and search are one
- * block centred in it above the proof row; the H1 keeps its sizes and stays at least 3x the subhead;
+ * block centred in it (the proof row moved below the fold, owner 2026-11-02: landingProofBelowTheFold); the H1 keeps its sizes and stays at least 3x the subhead;
  * the subhead is at most 20px, the search field at most 52px tall, and the proof row's text at most
  * 16px with a photo at most 72px. Before/after screenshots and measurements at 375, 768 and 1440:
  * ~/.lh-shots/landing-tighten-1027/.
@@ -89,14 +89,13 @@ describe("the hero block is centred in the first screen, the H1 stays dominant, 
     for (const c of [h1, sub, field, section, block]) expect(c.length).toBeGreaterThan(10);
   });
 
-  it("the section fills the first screen and the block is centred in it, above the proof row", () => {
+  it("the section fills the first screen and the block is centred in it", () => {
     expect(section.split(/\s+/)).toEqual(expect.arrayContaining(["flex", "flex-col", "min-h-[100svh]"]));
     expect(block.split(/\s+/)).toEqual(expect.arrayContaining(["flex", "flex-1", "flex-col", "justify-center"]));
-    // The H1, subhead and search are inside the block; the proof row follows it.
+    // The H1, subhead and search are inside the block (the proof row is no longer in the hero).
     const at = (t: string) => hero.indexOf(t);
     expect(at('data-testid="landing-hero-block"')).toBeLessThan(at("<h1"));
     expect(at("<h1")).toBeLessThan(at('role="search"'));
-    expect(at('role="search"')).toBeLessThan(at("<LandingProof />"));
   });
 
   it("the H1 keeps its size (owner: 'the size is fine') and is at least 3x the subhead at every breakpoint", () => {

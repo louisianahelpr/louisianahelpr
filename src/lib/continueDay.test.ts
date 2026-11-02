@@ -3,9 +3,10 @@
  * both sides read while a job continues ("Continuing Thu 11/5 at 9 AM · waiting on Yusef"). The server's own words
  * (continue_day_label, migration 20261101231015) are proven in src/test/pglite/jobContinueDay.pglite.mjs.
  *
- * @mutate src/lib/continueDay.ts |     return { who: "them", text: `Continuing ${when}`, by: `waiting on ${other \|\| "your Helpr"}` }; |     return null;
- * @mutate src/lib/continueDay.ts |   const clock = mm ? `${h12}:${String(mm).padStart(2, "0")}` : `${h12}`; |   const clock = `${h12}:${String(mm).padStart(2, "0")}`;
- * @mutate src/lib/continueDay.ts |       ? { who: "you", text: `Confirm ${other ? `${other}'s` : "your Helpr's"} new day`, by: when } |       ? null
+ * @mutate src/lib/continueDayWords.ts |       : { who: "them", text: `Continuing ${when}`, by: `waiting on ${other \|\| "your Helpr"} to confirm` }; |       : null;
+ * @mutate src/lib/continueDayWords.ts |   const clock = mm ? `${h12}:${String(mm).padStart(2, "0")}` : `${h12}`; |   const clock = `${h12}:${String(mm).padStart(2, "0")}`;
+ * @mutate src/lib/continueDayWords.ts |       ? { who: "you", text: `Confirm ${other ? `${other}'s` : "your Helpr's"} new day`, by: when } |       ? null
+ * @mutate src/lib/continueDayWords.ts |       ? { who: "info", text: `${other \|\| "Your Helpr"} confirmed ${when}` } |       ? { who: "them", text: `Continuing ${when}`, by: `waiting on ${other \|\| "your Helpr"} to confirm` }
  */
 import { describe, it, expect } from "vitest";
 import { continueDayError, continueDayLabel, continueDayNextStep, type ContinueDay } from "./continueDay";
@@ -27,10 +28,12 @@ describe("continueDayLabel", () => {
 
 describe("continueDayNextStep", () => {
   it("both sides see the set day; the poster waits on the Helpr by name", () => {
-    expect(nextStepWords(continueDayNextStep(row(), { side: "poster", otherFirst: "Yusef" })!)).toBe("Continuing Thu 11/5 at 9 AM · waiting on Yusef");
+    expect(nextStepWords(continueDayNextStep(row(), { side: "poster", otherFirst: "Yusef" })!)).toBe("Continuing Thu 11/5 at 9 AM · waiting on Yusef to confirm");
+    // Auditor 11 (11-01): once the Helpr confirms, the poster's line says so.
+    expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-02T12:00:00Z" }), { side: "poster", otherFirst: "Yusef" })!)).toBe("Yusef confirmed Thu 11/5 at 9 AM");
     expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", otherFirst: "Dana" })!)).toBe("Next: confirm you'll be there · continuing Thu 11/5 at 9 AM");
     expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-05T12:00:00Z" }), { side: "helpr", otherFirst: "Dana" })!))
-      .toBe("Continuing Thu 11/5 at 9 AM · mark it done when you finish");
+      .toBe("You're set for Thu 11/5 at 9 AM · mark it done when you finish");
   });
 
   it("a Helpr's ask is the poster's move (one tap), and the Helpr waits on them", () => {

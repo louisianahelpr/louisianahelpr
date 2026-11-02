@@ -62,7 +62,7 @@ export function usePosterPageActions({
   /** The step due now, or Message when none is (the page's lead without an override). */
   primary: PagePrimary | null;
   /** The one row of buttons; `override` is the page's own step (Confirm they've arrived), null for none. */
-  row: (override?: PagePrimary | null, moreExtras?: RowAction[]) => React.ReactNode;
+  row: (override?: PagePrimary | null, moreExtras?: RowAction[], opts?: { noCardSteps?: boolean }) => React.ReactNode;
   /** The hidden card (its flows and dialogs). */
   panel: React.ReactNode;
   dialogs: React.ReactNode;
@@ -97,7 +97,7 @@ export function usePosterPageActions({
   // (poster_cancel_job prices no share for an empty roster), so it gets Cancel too.
   const canCancel = !draft && ((CANCELLABLE.has(status) && !job.helper_on_the_way_at && !job.helper_arrived_at) || flows.crewNobodyLeft);
   // The card's other steps (report a no-show, the dispute, a fix asked for, tip and review): "More options" opens it.
-  const cardSteps = MORE_ON_CARD.has(status) || (posterWait?.startsWith("overdue_") ?? false);
+  const cardStepsAll = MORE_ON_CARD.has(status) || (posterWait?.startsWith("overdue_") ?? false);
   // An open job's details (a crew's change only through a request once a member is hired: the card's own rule).
   // JA-48 / JA-49: not while an offer or a booking is out to a Helpr (they are answering the job as it stands).
   const canEdit = !draft && status === "open" && !job.is_group_job && job.direct_offer_status !== "pending";
@@ -124,8 +124,11 @@ export function usePosterPageActions({
     canChange && { key: "change", label: "Change date or time", go: () => setChangeOpen(true) },
     canCancel && { key: "cancel", label: "Cancel job", go: flows.cancel, disabled: !flows.ready, danger: true },
   ].filter(Boolean) as RowAction[];
-  const cardCount = cardSteps ? flows.moreCount : 0;
-  const row = (override: PagePrimary | null | undefined, moreExtras: RowAction[] = []) => {
+  const row = (override: PagePrimary | null | undefined, moreExtras: RowAction[] = [], opts: { noCardSteps?: boolean } = {}) => {
+    // A continue day still ahead (Auditor 11, 11-01): nobody is at the job, so the card's on-site actions (SOS) are
+    // not on the row; they return on the day. Approve and "Something's not right" come once the Helpr marks it done.
+    const cardSteps = cardStepsAll && !opts.noCardSteps;
+    const cardCount = cardSteps ? flows.moreCount : 0;
     const step = override !== undefined ? override : primaryOrMessage === message ? null : primaryOrMessage;
     const msg: RowAction | null = message ? { key: "message", label: message.label, go: message.go } : null;
     // No step of the page's own, and the card has one (Review, Tip on a finished job): the card's leads.
@@ -143,7 +146,7 @@ export function usePosterPageActions({
   };
   // The card's own step controls, mounted (hidden) whenever the row is read, so "Approve and release" opens the
   // card's CompletionChoiceSheet and each card action keeps its own confirm step.
-  const panel = cardSteps || posterWait === "approve" ? flows.panel : null;
+  const panel = cardStepsAll || posterWait === "approve" ? flows.panel : null;
 
   const dialogs = (
     <>

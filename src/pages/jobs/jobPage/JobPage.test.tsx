@@ -196,7 +196,6 @@ vi.mock("./usePosterPageFlows", () => ({
     setLeadHost: (el: HTMLElement | null) => { if (el) flowCalls.push("lead-host"); },
     setAskHost: () => {},
     setTextHost: (el: HTMLElement | null) => { if (el) flowCalls.push("text-host"); },
-    approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     approve: () => flowCalls.push("approve"), notRight: () => flowCalls.push("not-right"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
     crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, crewNames: state.crewNames, panel: <div data-testid="card-panel" />, dialogs: null,

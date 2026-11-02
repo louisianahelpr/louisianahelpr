@@ -3,13 +3,14 @@
  * button under it.
  *   - On the way: "Next: you're on the way" over "I've arrived". Now "Tap I've arrived when you get there".
  *   - Arrived, not started: "Next: tap Start working" over the pair's "Start". Now "Tap Start when you begin".
- *   - Working: "Next: mark it done when you finish" over the pair's "Complete job". Now "Complete the job when you
- *     finish" (the button reads "Complete job" in the pair and "Mark job complete" alone; both say complete).
+ *   - Working: "Next: mark it done when you finish" over the pair's "Complete job". A3-10 made it "Complete the job";
+ *     JA-56 (later, 11-01) then named the button "Mark it done" on every surface, so the line is "Mark it done when you
+ *     finish" again and button and line agree (merge of the A3 stack, builder 166).
  * The button words are read from the real step list (job-card/trackerSteps.ts) and pairLabel, not retyped.
  *
  * @mutate src/components/tracker/jobProgressState.ts | : "Tap I've arrived when you get there", held); | : "You're on the way", held);
  * @mutate src/components/job-card/jobStatusLine.ts | start_working: { detail: "Tap Start when you begin", | start_working: { detail: "Tap Start working",
- * @mutate src/components/tracker/jobProgressState.ts | : "Complete the job when you finish", held); | : "Mark it done when you finish", held);
+ * @mutate src/components/tracker/jobProgressState.ts | : "Mark it done when you finish", held); | : "Complete the job when you finish", held);
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
@@ -63,14 +64,14 @@ describe("A3-10 / A3-11: the Helpr's next-step line names the button under it", 
     expect(p.next).toBe(`Tap ${pairLabel(action("working"))} when you begin`);
   });
 
-  it("working: the line says complete, like both forms of the button, never mark it done", () => {
+  it("working: the line says Mark it done, the button's one label (JA-56)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2024-10-30T20:00:00Z"));
     const p = page(row({ helper_on_the_way_at: "2024-10-30T19:00:00Z", helper_arrived_at: "2024-10-30T19:10:00Z", helper_arrival_verified_at: "2024-10-30T19:10:00Z", poster_confirmed_working_at: "2024-10-30T19:20:00Z" }), "working");
     const done = action("done");
-    expect(done).toMatch(/complete/i);
-    expect(pairLabel(done)).toMatch(/complete/i);
-    expect(p.next).toMatch(/^Complete the job/);
-    expect(p.next).not.toMatch(/mark it done/i);
+    expect(done).toBe("Mark it done");
+    expect(pairLabel(done)).toBe("Mark it done");
+    expect(p.next).toBe("Mark it done when you finish");
+    expect(p.next).not.toMatch(/complete/i);
   });
 });

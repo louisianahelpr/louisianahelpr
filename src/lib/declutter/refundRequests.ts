@@ -54,6 +54,12 @@ interface RefundRequest {
   drop_off_address?: string | null;
   return_lat?: number | null;
   return_lng?: number | null;
+  /** A3-74 (20261102041000): the seller's side on a "no" or a part offer, and the problem Louisiana Helpr decides. */
+  seller_note?: string | null;
+  seller_photo_paths?: string[];
+  problem_id?: string | null;
+  /** While Louisiana Helpr has it: when it usually decides (display only). */
+  decide_by?: string | null;
 }
 
 export interface RefundRequestView {
@@ -169,14 +175,21 @@ export async function askRefund(orderId: string, reason: RefundReason, note: str
   ) as unknown as { result: string };
 }
 
-/** The seller answers: refund in full, offer part (cents), or say no. */
+/**
+ * The seller answers: refund in full, offer part (cents), or say no. A3-74: on a part offer or a no, the seller's optional
+ * words and photo paths (problem folder) go too, only when there are some (20261102041000).
+ */
 export async function answerRefund(
   requestId: string,
   answer: "full" | "part" | "decline",
   offerCents: number | null,
+  note = "",
+  photoPaths: readonly string[] = [],
 ): Promise<{ result: string; refund_cents?: number }> {
+  const base = { p_request_id: requestId, p_answer: answer, p_offer_cents: offerCents as number };
+  const side = answer !== "full" && (note.trim() || photoPaths.length) ? { p_note: note.trim(), p_photo_paths: [...photoPaths] } : {};
   return rpcData(
-    await supabase.rpc("declutter_answer_refund", { p_request_id: requestId, p_answer: answer, p_offer_cents: offerCents as number }),
+    await supabase.rpc("declutter_answer_refund", { ...base, ...side }),
     (e) => rpcErrorMessage("declutter_answer_refund", e),
   ) as unknown as { result: string; refund_cents?: number };
 }

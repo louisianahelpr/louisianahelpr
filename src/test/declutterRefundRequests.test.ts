@@ -31,7 +31,7 @@
  * @mutate supabase/migrations/20261102002217_declutter_my_refund_todos.sql |   IF NOT public.feature_enabled_for('declutter_refund_requests') THEN\n    RETURN;\n  END IF;\n | \n
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered', 'returning')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open', 'returning')) THEN false
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered', 'returning')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open', 'offered')) THEN false
- * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '72 hours'\n     WHERE id = r.id; |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '1 hours'\n     WHERE id = r.id;
+ * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '72 hours'\n     WHERE id = r.id; |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '1 hours'\n     WHERE id = r.id;
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |   IF r.status <> 'returning' THEN | IF false THEN
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |         OR (x.status = 'returning' AND x.return_by <= now() AND public.declutter_return_backstop_at(x) <= now()) | 
  * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |   PERFORM public.declutter_rebook_payout(o.id, v_refunded);\n | \n

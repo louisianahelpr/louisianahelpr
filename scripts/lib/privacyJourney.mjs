@@ -128,6 +128,13 @@ export const EXPORT_SECTIONS = [
   "declutter_donations",
   "helpr_card_fee_debts",
   "member_section_prefs",
+  // Declutter manager mode (exported by 20261102161715).
+  "declutter_manager_grants",
+  "declutter_manager_actions",
+  "declutter_manager_messages",
+  "declutter_manager_submissions",
+  "declutter_order_manager_shares",
+  "declutter_manager_payouts",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   // A seller's own meet spots (20261101194608; exported by 20261101210500).

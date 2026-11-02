@@ -118,6 +118,79 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
     resetSharedMocks();
   });
 
+  // Q1978: a failure that lands while the Helpr's payout is already moving
+  // (transfer sent, job not yet flipped 'released'; or a dispute split under
+  // its settlement claim) writes nothing and tells nobody; ops is paged once.
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (payoutMoving && job.payment_status !== "released") { | if (false) {
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   const payoutMoving = (movingRows ?? []).length > 0 \|\| (claimRows ?? []).length > 0; |   const payoutMoving = (movingRows ?? []).length > 0;
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     .neq("status", "failed")\n    .limit(1); |     .limit(1);
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   if (movingErr) throw new Error(`payout_transfers read failed for job ${job.id}: ${movingErr.message}`); |
+  describe("Q1978 the payout is already moving", () => {
+    const hiredDone = () => fundedJob({ status: "completed", payment_status: "payout_pending", helper_confirmed_at: "2026-10-16T18:40:55Z" });
+    const assertNothingWritten = () => {
+      expect(cancelCalls()).toHaveLength(0);
+      expect(jobUpdates()).toHaveLength(0);
+      expect(notices()).toHaveLength(0);
+      expect(slackAlerts.some((a) => /WHILE the payout was being sent/.test(String((a as { title?: string }).title)))).toBe(true);
+      expect(slackAlerts.some((a) => /taken out of escrow/.test(String((a as { title?: string }).title)))).toBe(false);
+    };
+
+    it("a payout_transfers row (transfer sent, job not yet released): nothing is written, nobody is told, ops paged", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { rows: [{ id: "pt-1", status: "pending" }] };
+      cancelAnswers("not_cancellable");
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBe(200);
+      assertNothingWritten();
+      // A 'failed' row (money never left) does not count as moving.
+      const q = (scenario.readQueries ?? []).find((r) => r.table === "payout_transfers");
+      expect(q?.filters).toContainEqual({ op: "neq", column: "status", value: "failed" });
+    });
+
+    it("a held dispute settlement claim (a split in progress): nothing is written, ops paged", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.dispute_settlement_claims = { rows: [{ job_id: "job-ach", action: "split" }] };
+      cancelAnswers("not_cancellable");
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBe(200);
+      assertNothingWritten();
+    });
+
+    it("a read that fails throws (500, Stripe retries), nothing written", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { error: { message: "timeout" } } as never;
+      cancelAnswers("not_cancellable");
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBeGreaterThanOrEqual(500);
+      expect(cancelCalls()).toHaveLength(0);
+      expect(jobUpdates()).toHaveLength(0);
+    });
+
+    it("control: no payout row and no claim: the job is taken out of escrow as before", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.dispute_settlement_claims = { rows: [] };
+      cancelAnswers("not_cancellable");
+      scenario.writeSelectRows.jobs = [{ id: "job-ach" }];
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      await fn.fetch(webhookRequest(fn));
+      expect(cancelCalls()).toHaveLength(1);
+      expect(jobUpdates().map((w) => w.payload)).toEqual([{ payment_status: "failed", stripe_session_id: null }]);
+    });
+  });
+
   it("replays 7440a72d (hired, unconfirmed): the job is CANCELLED through the sanctioned RPC, pinned to its own PI", async () => {
     const fn = await loadConfigured();
     failedEvent();

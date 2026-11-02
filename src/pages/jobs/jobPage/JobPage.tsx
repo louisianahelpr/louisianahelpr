@@ -56,6 +56,7 @@ import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
+
 import { HAS_HELPR, usePosterPageActions } from "./posterPageActions";
 import { usePosterPageFlows } from "./usePosterPageFlows";
 import { useContinueDayActions } from "./useContinueDayActions";
@@ -73,6 +74,9 @@ import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
 import { crewPosterStep } from "@/components/tracker/crewPosterStep";
 import { crewMemberLine } from "@/components/tracker/crewMemberLine";
 import { useCrewSlot } from "@/hooks/useCrewSlot";
+
+/** The hired Helpr's way to this job's card on the Jobs tab, one name everywhere (Q2598). */
+const OPEN_IN_JOBS = "Open in Jobs";
 
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
@@ -214,7 +218,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // Every viewer state, one table (viewerState.ts): applied, offered, hired, declined, closed, own job.
   const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew, offeredToMe });
   // Q2595 (Jobs audit 1102b row 9): someone never hired, on a job that is over (expired, cancelled, filled by someone
-  // else), has no pay to read and no address coming: no money box, no address line, and a way on (Find other jobs).
+  // else), has no pay to read and no address coming: no money box, no address line, and a way on (Browse jobs).
   const closedToMe = !isPoster && !isHired && !party && !open && !instantUntil && viewer.action.kind === "none";
   // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
   // is an application id), and `open=1` expands the card instead of only pulsing it.
@@ -243,7 +247,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const { row: hiredRow, leaveInMenu } = (() => {
     if (!hiredFace) return { row: null, leaveInMenu: false };
     const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;
-    const work: RowAction = { key: "working", label: "Open in working", go: openWorking };
+    // Q2598 (Jobs audit 1102b row 12, JA-18 / A3-12): ONE name for this menu, "Open in Jobs", alone or in a pair
+    // (it read "Open in Jobs" in a pair and "Open in working" in More options).
+    const work: RowAction = { key: "working", label: OPEN_IN_JOBS, go: openWorking };
     // JA-18: a face that opens the Working card ("See your crew steps") IS "Open in working": never both.
     // A continue day still ahead (Auditor 11, 11-01): the server refuses "done" until that day (continue_day_ahead),
     // so the row never leads with Mark job complete then; Message leads and the note under it says when.
@@ -282,7 +288,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     : instantUntil
       ? null
     : viewer.action.kind === "open_working"
-      ? { label: "Open in working", go: openWorking }
+      ? { label: OPEN_IN_JOBS, go: openWorking }
       // JA-17: an offer is answered on this page (PageOfferPanel below), never by leaving it for the Working card.
       : viewer.action.kind === "see_offer"
         ? null
@@ -292,7 +298,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             // The apply sheet opens over THIS page (F9), the flow Home runs (PageApplySheet).
             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") }
             : closedToMe
-              ? { label: "Find other jobs", go: () => navigate("/browse") }
+              ? { label: "Browse jobs", go: () => navigate("/browse") }
               : null;
 
   const share = open ? (

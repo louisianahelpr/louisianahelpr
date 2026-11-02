@@ -380,8 +380,8 @@ describe("job page, Helpr side (boards 42, 169)", () => {
   // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const helprPrice = isPoster \|\| closedToMe ? null : |   const helprPrice = isPoster ? null :
   // @mutate src/pages/jobs/jobPage/JobPage.tsx |     : closedToMe ? null : <HelprMoneyNotes |     : <HelprMoneyNotes
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !closedToMe && !instantUntil | {!isPoster && !isHired && !instantUntil
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | ? { label: "Find other jobs", go: () => navigate("/browse") } | ? null
-  it("an applicant of an expired listing: expired before anyone was hired, no money box, no address line, Find other jobs (Q2595)", async () => {
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | ? { label: "Browse jobs", go: () => navigate("/browse") } | ? null
+  it("an applicant of an expired listing: expired before anyone was hired, no money box, no address line, Browse jobs (Q2595)", async () => {
     state.job = row({ status: "cancelled", location: null, cancellation_reason: "Job listing expired — no helper accepted", cancelled_by: null } as Partial<JobPageRow>);
     state.myApplication = { status: "rejected", closed_reason: "job_cancelled" };
     renderPage();
@@ -390,7 +390,7 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(document.querySelector("[data-helpr-money-notes]")).toBeNull();
     expect(document.body.textContent).not.toMatch(/nothing to pay out|was cancelled/);
     expect(screen.queryByText(/street address is shared once/)).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Find other jobs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Browse jobs" }));
     expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 
@@ -816,7 +816,7 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByLabelText(/^Job progress, step 7 of 8: Working, waiting on you\./)).toBeTruthy();
     expect(screen.getByText("Next: mark it done when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open in Jobs" }));
     // F10: Working's own card for THIS job, in its bucket and opened (`?job=`; `?highlight=` there is an application id).
     expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
   });
@@ -1172,7 +1172,7 @@ describe("a crew member's own job page (A2-B8)", () => {
     renderPage();
     // JA-18: "See your crew steps" opens the Working card, so no "Open in working" beside it (two buttons, one place).
     expect(await screen.findByRole("button", { name: "See your crew steps" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open in Jobs" })).toBeNull();
     expect(screen.queryByText("This job is no longer available")).toBeNull();
     expect(document.querySelector("[data-job-address]")?.textContent).toContain("4412 Highland Rd");
     expect(screen.queryByText(/street address is shared once/)).toBeNull();
@@ -1254,7 +1254,7 @@ describe("a crew member's own job page (A2-B8)", () => {
     state.myApplication = { status: "rejected", closed_reason: null };
     renderPage();
     expect(await screen.findByText("Not selected this time")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open in Jobs" })).toBeNull();
   });
 });
 
@@ -1636,6 +1636,12 @@ describe("one row of buttons at every stage (B93)", () => {
     renderPage();
     await waitFor(() => expect(rowLabels()).toEqual(["More options", "Leave a review"]));
     expect(document.querySelector("[data-helpr-paid]")?.textContent).toMatch(/^Approved\. Your pay goes out /);
+    // Q2598 (Jobs audit 1102b row 12): the same name alone in More options as in a pair, never "Open in working".
+    // @mutate src/pages/jobs/jobPage/JobPage.tsx | const OPEN_IN_JOBS = "Open in Jobs"; | const OPEN_IN_JOBS = "Open in working";
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    const list = within(document.querySelector("[data-row-options]") as HTMLElement);
+    expect(await list.findByRole("button", { name: "Open in Jobs" })).toBeTruthy();
+    expect(list.queryByText("Open in working")).toBeNull();
   });
 });
 
@@ -1739,7 +1745,7 @@ describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
     state.job = row({ helper_id: ME, status: "cancelled", helper_confirmed_at: "2026-10-27T12:00:00Z", cancelled_by: POSTER, cancelled_at: "2026-10-28T12:00:00Z" });
     state.party = true;
     renderPage();
-    expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open in Jobs" })).toBeNull();
   });
 });
 

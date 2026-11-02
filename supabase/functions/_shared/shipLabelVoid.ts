@@ -88,6 +88,7 @@ export async function runShipVoid(s: VoidableShipment, p: VoidPorts): Promise<Vo
     try {
       answer = await p.closeOrder(s.declutter_order_id);
     } catch (e) {
+      // Not silent: the error becomes this void's answer, which the caller records and pages on.
       answer = `error: ${e instanceof Error ? e.message : String(e)}`.slice(0, 200);
     }
     if (!CLOSE_FINE.has(answer)) {

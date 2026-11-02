@@ -37,7 +37,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     if (!fromView \|\| !tabsReady) return; |     return;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { declutterTodo, oldDeclutterView } from "@/lib/declutter/tabs";
@@ -850,6 +850,46 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     for (const m of (region.textContent ?? "").matchAll(/Tap "([^"]+)"/g)) {
       expect(within(region).getByRole("button", { name: m[1] })).toBeInTheDocument();
     }
+  });
+
+  // Q2562 (Auditor 1 audit 1102a; lead 11-02: every Declutter tab uses Browse's gap under the tab row). Selling started
+  // 24px lower than Buying/Wanted/Deliver: its root was space-y-6 and its first rendered child (the Sell an item row)
+  // is display:none on a phone and on desktop, which still gave the next child its top margin. And Buying/Wanted
+  // started 4px under the rule while Browse's first line sits 12px into its 44px Miles from row. jsdom draws no
+  // layout, so the guard reads the two causes: (1) every tab but Browse sits in the one tab body that carries pt-3;
+  // (2) nowhere in a tab does a space-y parent start with a base-hidden child (the stray margin).
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |     <div className="flex flex-col gap-6">\n      <ListedWhatNext /> |     <div className="space-y-6">\n      <ListedWhatNext />
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3"> | <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-1">
+  it("Q2562: every tab but Browse starts at Browse's line under the tabs, and no hidden first child pushes one lower", async () => {
+    state.mine = [ITEM];
+    const ready: Record<string, () => Promise<unknown>> = {
+      buying: () => screen.findByText("Nothing bought yet."),
+      selling: () => screen.findByRole("heading", { name: /^Your listings/ }),
+      wanted: () => waitFor(() => expect(document.querySelector("[data-wanted-hub]")).not.toBeNull()),
+      free: () => screen.findByText("Nothing free right now."),
+    };
+    let checked = 0;
+    for (const [tab, settle] of Object.entries(ready)) {
+      const r = at(`/declutter?tab=${tab}`);
+      await settle();
+      const body = document.querySelector<HTMLElement>("[data-declutter-tab-body]");
+      expect(body, tab).not.toBeNull();
+      expect(body!.className.split(/\s+/), tab).toEqual(expect.arrayContaining(["pt-3", "flex-1"]));
+      for (const el of [body!, ...Array.from(body!.querySelectorAll<HTMLElement>("*"))]) {
+        if (!/(^|\s)space-y-\d/.test(el.getAttribute("class") ?? "")) continue;
+        checked++;
+        const first = el.firstElementChild;
+        expect(first && (first.getAttribute("class") ?? "").split(/\s+/).includes("hidden"), `${tab}: a space-y parent starts with a hidden child`).toBeFalsy();
+      }
+      r.unmount();
+    }
+    // Inventory floor: the walk really read space-y parents (Selling alone has several).
+    expect(checked).toBeGreaterThan(3);
+    // Browse draws its own section screen (its first row carries the 12px), so it has no tab body.
+    const b = at("/declutter");
+    await screen.findByRole("tablist", { name: "Declutter view" });
+    expect(document.querySelector("[data-declutter-tab-body]")).toBeNull();
+    b.unmount();
   });
 
   it("every old view value maps to one of the new tabs (none falls back to Browse)", () => {

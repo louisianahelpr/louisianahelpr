@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1604,
-  "latest": "20261102030000"
+  "count": 1606,
+  "latest": "20261102092917"
  },
  "functions": {
   "accept_application": [
@@ -14441,6 +14441,17 @@
     "anon": false,
     "args": [
      "p_draft"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "save_my_phone": [
+   {
+    "anon": false,
+    "args": [
+     "p_phone"
     ],
     "authenticated": true,
     "nargdefaults": 0,
@@ -39130,6 +39141,49 @@
     "before:update"
    ]
   },
+  "phone_save_attempts": {
+   "checks": [
+    "CHECK ((save_outcome = ANY (ARRAY['saved'::text, 'phone_in_use'::text, 'phone_invalid'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "bigint"
+    },
+    "save_outcome": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "platform_settings": {
    "checks": [
     "CHECK ((homes_sale_listing_fee_cents >= 0))",
@@ -39618,7 +39672,6 @@
       "onboarding_tour_completed_at",
       "parish",
       "parish_source",
-      "phone",
       "portfolio_urls",
       "preferred_helper_id",
       "saved_helper_seen",
@@ -40409,13 +40462,11 @@
    "grants": {
     "anon": [
      "DELETE",
-     "INSERT",
      "REFERENCES",
      "SELECT"
     ],
     "authenticated": [
      "DELETE",
-     "INSERT",
      "REFERENCES",
      "SELECT"
     ]

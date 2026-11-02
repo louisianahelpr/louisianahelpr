@@ -52,6 +52,12 @@ export function jobNextStep(
   }
   const line = progress.next.trim();
   if (!line) return null;
+  // Q2601 (Jobs audit 1102b row 15): "Next: Lexi offered you this job" is news, not a step. The step is the answer,
+  // with who offered it and the offer's own clock when the page has it.
+  if (o.side === "helpr" && progress.waitingOnYou && / offered you this job$/.test(line)) {
+    const untilMs = Date.parse(o.offerUntil ?? "");
+    return { who: "you", text: `Accept or decline ${other ? `${other}'s` : "the"} offer`, by: Number.isNaN(untilMs) || untilMs <= Date.now() ? null : `by ${laTime(untilMs)}` };
+  }
   const m = BY_DAY.exec(line);
   const who = progress.waitingOnYou ? "you" : "them";
   // Q2590 (Jobs audit 1102b row 4): "Next: lexi offered you this job" lost the name's capital; a line that starts

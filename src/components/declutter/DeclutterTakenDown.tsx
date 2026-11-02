@@ -29,7 +29,7 @@ export function TakenDownSection({ items, ended = [] }: { items: DeclutterItem[]
               {/* Its photos were deleted at take-down: the category icon stands in. */}
               <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-16 w-16 shrink-0 rounded-2xl" iconClassName="h-6 w-6" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={item.title}>{item.title}</p>
+                <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={item.title}>{item.title}</p>
                 <p className="line-clamp-2 text-ds-13 text-muted-foreground">
                   {item.status === "sold_elsewhere" ? "Sold elsewhere." : "Taken down. Buyers can't see it."}
                 </p>

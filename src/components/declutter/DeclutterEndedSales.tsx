@@ -54,7 +54,7 @@ export function EndedSaleRows({ lines }: { lines: CartLine[] }) {
             <PackageX className="h-6 w-6" strokeWidth={1.75} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={l.item_title}>{l.item_title}</p>
+            <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={l.item_title}>{l.item_title}</p>
             <p className="text-ds-13 text-muted-foreground">{endedOnPrefix(l.closed_at)}{endedSaleWords(l)}</p>
           </div>
           <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{itemPriceLabel(l.price_cents)}</span>

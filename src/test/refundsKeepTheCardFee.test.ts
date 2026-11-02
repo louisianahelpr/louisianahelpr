@@ -384,6 +384,9 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("id, setup_fee_cents").eq("stripe_payment_intent_id", paymentIntentId).eq("setup_fee_state", "refund_due").maybeSingle()',
   // A10: the card fee Stripe kept on a seller-fault setup job's charge, billed to the seller after the full refund.
   "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
+  // Q1940 (b) (builder 140, verdict owed): the same bill on the "already been refunded" catch, before settling; the
+  // card fee Stripe kept (from the retrieved PaymentIntent) goes to the seller's debt, never into a refund amount.
+  "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
 ];
 
 /**
@@ -671,6 +674,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_refund_cancels_setup_jobs: "20261017073146_declutter_add_a_helpr.sql ac0eabd46005cf1d",
       // A10: the trigger's (and the admin hand tool's) body: reads the refund row, cancels and marks setup jobs.
       declutter_apply_seller_fault: "20261017073146_declutter_add_a_helpr.sql 943675e46fc54277",
+      // Q1939 (20261102035736, builder 140, verdict owed): reads seller-fault refund rows (fee_policy, reason, order) to
+      // re-run the unchanged declutter_apply_seller_fault on setup jobs the trigger missed; records no refund, no amount.
+      declutter_seller_fault_sweep: "20261102035736_declutter_seller_fault_sweep.sql 229723c76c70ea79",
       // A10: adds the setup job's card fee to the seller's debt for that refund, once; never a refund amount.
       // Q1937 (20261027174633): capped at the order total across the order's linked jobs; still no refund amount.
       // + 20261027172503 (hide-fees) rewrites its notice literals only (lander re-pin, both reviewed).

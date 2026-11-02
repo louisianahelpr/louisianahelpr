@@ -53,9 +53,15 @@ describe("CheckoutPickupTime", () => {
     fireEvent.click(screen.getByRole("button", { name: "3–5 PM" }));
     expect(onPick).toHaveBeenCalledWith("2026-10-28T20:00:00.000Z");
   });
-  it("draws nothing when the seller has no time open (the buyer books after paying)", () => {
+  // A3-54 (audit 11-01): with no time open the picker no longer vanishes; the buyer is told they book after paying,
+  // within the 7 days, or the order is cancelled and refunded (Pay stays open: pickupTimeReady above).
+  // @mutate src/components/declutter/CheckoutPickupTime.tsx |   if (days.length === 0) { |   if (days.length === 0) { return null;
+  it("says what happens when the seller has no time open (the buyer books after paying, within 7 days)", () => {
     const { container } = render(<CheckoutPickupTime days={[]} porch value={null} onPick={() => {}} />);
-    expect(container.innerHTML).toBe("");
+    expect(container.querySelector("[data-checkout-no-times]")?.textContent).toBe(
+      "The seller has no open pickup times this week. After you pay, you have 7 days to book one with them, or the order is cancelled and refunded.");
+    const meet = render(<CheckoutPickupTime days={[]} porch={false} meetup value={null} onPick={() => {}} />);
+    expect(meet.container.textContent).toMatch(/no open meeting times/);
   });
 });
 

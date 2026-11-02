@@ -19,7 +19,15 @@ export function CheckoutPickupTime({ days, porch, meetup = false, value, onPick,
 }) {
   const [dayPick, setDayPick] = useState<string | null>(null);
   if (loading) return <p className="text-ds-13 text-muted-foreground" role="status">Loading the seller's pickup times…</p>;
-  if (days.length === 0) return null;
+  // A3-54 (audit 11-01): no open time in the next 7 days. Pay stays open (the order's book_by and the 7-day close,
+  // declutter_handover_sweep), so the buyer is told what happens after paying instead of the picker vanishing.
+  if (days.length === 0) {
+    return (
+      <p className="text-ds-13 text-muted-foreground" role="status" data-checkout-no-times="">
+        The seller has no open {meetup ? "meeting" : "pickup"} times this week. After you pay, you have 7 days to book one with them, or the order is cancelled and refunded.
+      </p>
+    );
+  }
   const chosenDay = days.find((d) => d.ymd === dayPick) ?? days.find((d) => d.slots.some((s) => s.iso === value)) ?? days[0];
   const what = meetup ? "meet" : "pick it up";
   return (

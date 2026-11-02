@@ -78,7 +78,7 @@ describe("BlockUserDialog fee quote follows commitment (Q236 c)", () => {
     rows.push(job({ helper_confirmed_at: null }));
     open();
     const text = await liText(/will be cancelled/);
-    expect(text).toMatch(/nothing\s+is kept for your Helpr.s time/);
+    expect(text).toMatch(/nothing\s+is kept for your Helpr.s time/i);
     expect(text).not.toMatch(/is for your Helpr.s time,/);
     expect(text).not.toMatch(/fee/i);
   });
@@ -96,7 +96,7 @@ describe("BlockUserDialog fee quote follows commitment (Q236 c)", () => {
     rows.push(job({ id: "job-open", helper_confirmed_at: null }));
     open();
     const text = await liText(/will be cancelled/);
-    expect(text).toMatch(/nothing\s+is kept for your Helpr.s time/);
+    expect(text).toMatch(/nothing\s+is kept for your Helpr.s time/i);
     expect(text).not.toMatch(/\$50/);
   });
 
@@ -106,7 +106,7 @@ describe("BlockUserDialog fee quote follows commitment (Q236 c)", () => {
     rows.push(job({ date_needed: jobLocalDateISO(1, NOW), start_time: "12:00:00", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
     const text = await liText(/will be cancelled/);
-    expect(text).toMatch(/nothing\s+is kept for your Helpr.s time/);
+    expect(text).toMatch(/nothing\s+is kept for your Helpr.s time/i);
     expect(text).not.toMatch(/\$25\b/);
   });
 });

@@ -18,6 +18,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Component, type ReactNode } from "react";
+import { appSchemaNames } from "@/test/helpers/appSchemaNames";
 
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "11111111-1111-4111-8111-111111111111" }, profile: {}, isLoading: false, isAdmin: true }) }));
 vi.mock("@/pages/messages/Messages", () => ({
@@ -111,5 +112,30 @@ describe("admin Messages preview backend: a read the sample does not answer", ()
     }
     expect(unlisted).toEqual(["rpc get_something_new", "table some_new_table"]);
     expect(supabaseCalls()).toHaveLength(0);
+  });
+});
+
+describe("admin Messages preview backend: every app RPC and table, read and written, reaches the network zero times", () => {
+  it("sends none of them (only feature_switches_for_me, a read of which switches are on, passes)", async () => {
+    const { rpcs, tables } = appSchemaNames();
+    // Inventory floors (counted 11-02 on main 6c325f3909: hundreds of each).
+    expect(rpcs.length).toBeGreaterThan(400);
+    expect(tables.length).toBeGreaterThan(150);
+    const { uninstall } = installMessagesPreviewFetch({
+      supabaseUrl: SUPABASE, sample: () => messagesPreviewSample("thread", "poster", "11111111-1111-4111-8111-111111111111"), ownUserId: () => null, onBlocked: () => {},
+    });
+    try {
+      for (const name of rpcs) await fetch(`${SUPABASE}/rest/v1/rpc/${name}`, { method: "POST", body: "{}" });
+      for (const t of tables) {
+        await fetch(`${SUPABASE}/rest/v1/${t}?select=*`);
+        for (const method of ["POST", "PATCH", "DELETE"]) await fetch(`${SUPABASE}/rest/v1/${t}?id=eq.x`, { method, body: "{}" });
+      }
+      await fetch(`${SUPABASE}/functions/v1/create-payment`, { method: "POST", body: "{}" });
+      await fetch(`${SUPABASE}/storage/v1/object/job-photos/x.jpg`, { method: "POST", body: "x" });
+    } finally {
+      uninstall();
+    }
+    const reached = supabaseCalls().map(([u]) => new URL(String(u instanceof Request ? u.url : u)).pathname);
+    expect(reached).toEqual(rpcs.includes("feature_switches_for_me") ? ["/rest/v1/rpc/feature_switches_for_me"] : []);
   });
 });

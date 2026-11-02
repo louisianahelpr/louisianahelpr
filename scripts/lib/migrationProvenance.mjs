@@ -69,7 +69,7 @@ export function provenanceFindings({ prodVersions, ledger, cutoff, acknowledged,
     }
     const run = runs.get(String(r.run_id));
     if (!run) {
-      const why = expiredRunVerdict(r, shaEvidence?.get(v), { now, minAgeDays: expiredRun?.minAgeDays, lostRuns });
+      const why = expiredRunVerdict(r, shaEvidence?.get(v), { now, minAgeDays: expiredRun?.minAgeDays, lostRuns, shortRetention: expiredRun?.shortRetention });
       if (why === null) expired.push({ version: v, run_id: String(r.run_id), ...(isListedLoss(r, lostRuns) ? { listedLoss: true } : {}) });
       else forged.push({ version: v, why: `run ${r.run_id} does not exist in this repository (${why})` });
     }
@@ -113,15 +113,31 @@ function isListedLoss(receipt, lostRuns) {
  * lostRuns (migration-provenance.json) names the exact version + run id pairs
  * whose run we deleted ourselves on 2026-10-30, so their young age says nothing.
  * A listed pair skips ONLY the age test; everything else still applies.
+ *
+ * shortRetention (expiredRun.shortRetention in migration-provenance.json):
+ * Actions retention was 2 days until 2026-11-02 22:50Z (Q2498), so a run
+ * created before then vanishes at 2 days whatever we do. A receipt RECORDED
+ * before shortRetention.until (its own recorded_at; a 404 run's created_at
+ * cannot be read) needs only shortRetention.minAgeDays. A receipt recorded at
+ * or after it keeps minAgeDays. The head_sha tests below apply to both.
  */
-export function expiredRunVerdict(receipt, evidence, { now, minAgeDays, lostRuns }) {
+export function shortRetentionMinAge(receiptAt, minAgeDays, shortRetention) {
+  if (!shortRetention) return minAgeDays;
+  const until = Date.parse(String(shortRetention.until ?? ""));
+  const short = shortRetention.minAgeDays;
+  if (!Number.isFinite(until) || !Number.isFinite(short) || short < 1 || short >= minAgeDays) return minAgeDays;
+  return receiptAt < until ? short : minAgeDays;
+}
+
+export function expiredRunVerdict(receipt, evidence, { now, minAgeDays, lostRuns, shortRetention }) {
   if (!Number.isFinite(minAgeDays) || minAgeDays < 1) return "no expired-run rule configured";
   const at = Date.parse(String(receipt.recorded_at ?? ""));
   if (!Number.isFinite(at)) return "the receipt has no recorded_at";
   const ageDays = (now.getTime() - at) / 86_400_000;
   const listedLoss = isListedLoss(receipt, lostRuns);
+  const minAge = shortRetentionMinAge(at, minAgeDays, shortRetention);
   if (!listedLoss) {
-    if (ageDays < minAgeDays) return `the receipt is ${Math.floor(ageDays)} day(s) old; a run missing within ${minAgeDays} days is not taken as lost`;
+    if (ageDays < minAge) return `the receipt is ${Math.floor(ageDays)} day(s) old; a run missing within ${minAge} days is not taken as lost`;
   }
   if (!evidence) return "no commit evidence was read for it";
   if (!evidence.onMain) return `head_sha ${receipt.head_sha} is not a commit on main`;

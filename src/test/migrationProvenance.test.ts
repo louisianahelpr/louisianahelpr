@@ -6,7 +6,10 @@
 // @mutate .github/workflows/db-deploy.yml |         run: node scripts/check-migration-provenance.mjs check |         run: echo skipped
 // @mutate .github/workflows/db-drift-detect.yml | MIGRATION_PROVENANCE: ${{ steps.migration_provenance.outcome }} | MIGRATION_PROVENANCE: success
 // @mutate scripts/lib/migrationProvenance.mjs |       if (why === null) expired.push( |       if (true) expired.push(
-// @mutate scripts/lib/migrationProvenance.mjs |   if (ageDays < minAgeDays) return | if (false) return
+// @mutate scripts/lib/migrationProvenance.mjs |     if (ageDays < minAge) return | if (false) return
+// @mutate scripts/lib/migrationProvenance.mjs |   return receiptAt < until ? short : minAgeDays; |   return short;
+// @mutate scripts/lib/migrationProvenance.mjs |   const minAge = shortRetentionMinAge(at, minAgeDays, shortRetention); |   const minAge = minAgeDays;
+// @mutate scripts/lib/migrationProvenance.mjs | minAgeDays: expiredRun?.minAgeDays, lostRuns, shortRetention: expiredRun?.shortRetention }); | minAgeDays: expiredRun?.minAgeDays, lostRuns, shortRetention: { until: "2099-01-01T00:00:00Z", minAgeDays: 2 } });
 // @mutate scripts/lib/migrationProvenance.mjs |   if (!evidence.onMain) return | if (false) return
 // @mutate scripts/lib/migrationProvenance.mjs |   if (!evidence.fileAtSha) return | if (false) return
 // @mutate scripts/check-migration-provenance.mjs |     expiredRun: CONFIG.expiredRun, |     expiredRun: undefined,
@@ -427,5 +430,73 @@ describe("the ledger", () => {
       (f) => f !== LEDGER_MIGRATION && /migration_deploy_ledger/i.test(readFileSync(join(MIG, f), "utf8").replace(/--[^\n]*/g, "")),
     );
     expect(touching).toEqual([]);
+  });
+});
+
+/**
+ * Actions retention was 2 days until 2026-11-02 22:50Z (Q2498): runs created
+ * before then expire at 2 days, and db-deploy 41541740234 went red on 12 such
+ * receipts. expiredRun.shortRetention lets a receipt RECORDED before the
+ * cutoff, whose run 404s, pass at 2 days; every other test still applies.
+ * Lead lexilombas-25 approved 2026-11-02 (option B).
+ */
+describe("receipts recorded before the 2-day retention ended (db-deploy 41541740234 red)", () => {
+  const cutoff = "20260923103737";
+  const now = new Date("2026-11-04T12:00:00Z");
+  const sha = "5401dc443e5401dc443e5401dc443e5401dc443e";
+  const shortRetention = { until: "2026-11-02T22:50:00Z", minAgeDays: 2 };
+  const one = (recordedAt: string, ev: { onMain: boolean; fileAtSha: boolean }, rule: { minAgeDays: number; shortRetention?: typeof shortRetention } = { minAgeDays: 14, shortRetention }) =>
+    provenanceFindings({
+      prodVersions: [cutoff, "20261101003000"],
+      ledger: [{ version: "20261101003000", run_id: 41257318445, head_sha: sha, recorded_at: recordedAt }],
+      cutoff,
+      acknowledged: [],
+      runs: new Map<string, { path: string; head_branch: string } | null>([["41257318445", null]]),
+      expiredRun: rule,
+      shaEvidence: new Map([["20261101003000", ev]]),
+      lostRuns: [],
+      now,
+    });
+
+  it("a pre-cutoff receipt whose run 404s passes at 2 days when its head_sha is on main and carries the migration", () => {
+    const f = one("2026-11-01T00:40:00Z", { onMain: true, fileAtSha: true });
+    expect(f.forged).toEqual([]);
+    expect(f.expired).toEqual([{ version: "20261101003000", run_id: "41257318445" }]);
+    // the same receipt without the rule is still young under 14 days
+    expect(one("2026-11-01T00:40:00Z", { onMain: true, fileAtSha: true }, { minAgeDays: 14 }).forged).toHaveLength(1);
+  });
+
+  it("a pre-cutoff receipt younger than 2 days still fails", () => {
+    const f = one("2026-11-02T22:49:00Z", { onMain: true, fileAtSha: true });
+    expect(f.forged).toHaveLength(1);
+    expect(f.forged[0].why).toMatch(/within 2 days/);
+  });
+
+  it("a post-cutoff receipt whose run 404s keeps the 14-day rule and FAILS", () => {
+    const f = one("2026-11-02T22:50:00Z", { onMain: true, fileAtSha: true });
+    expect(f.expired).toEqual([]);
+    expect(f.forged).toHaveLength(1);
+    expect(f.forged[0].why).toMatch(/within 14 days/);
+  });
+
+  it("a pre-cutoff receipt whose head_sha is not on main, or does not carry the migration, still FAILS", () => {
+    const off = one("2026-11-01T00:40:00Z", { onMain: false, fileAtSha: true });
+    expect(off.forged).toHaveLength(1);
+    expect(off.forged[0].why).toMatch(/not a commit on main/);
+    const noFile = one("2026-11-01T00:40:00Z", { onMain: true, fileAtSha: false });
+    expect(noFile.forged[0].why).toMatch(/does not carry migration/);
+  });
+
+  it("the checked-in rule is the fixed 2-day cutoff with its reason, and never widens the 14-day rule", () => {
+    const cfg = JSON.parse(read("scripts/audit/migration-provenance.json"));
+    expect(cfg.expiredRun.minAgeDays).toBe(14);
+    expect(cfg.expiredRun.shortRetention.until).toBe("2026-11-02T22:50:00Z");
+    expect(cfg.expiredRun.shortRetention.minAgeDays).toBe(2);
+    expect(cfg.expiredRun.shortRetention.reason).toContain("Actions retention was 2 days until 2026-11-02 22:50Z; Q2498");
+    // a malformed or wider rule falls back to 14
+    const bad = one("2026-11-01T00:40:00Z", { onMain: true, fileAtSha: true }, { minAgeDays: 14, shortRetention: { until: "soon", minAgeDays: 2 } });
+    expect(bad.forged).toHaveLength(1);
+    const wide = one("2026-11-01T00:40:00Z", { onMain: true, fileAtSha: true }, { minAgeDays: 14, shortRetention: { ...shortRetention, minAgeDays: 20 } });
+    expect(wide.forged).toHaveLength(1);
   });
 });

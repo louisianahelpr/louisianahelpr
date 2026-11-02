@@ -101,7 +101,7 @@ export function JobRemindersGroup({
           Job reminders
         </h3>
         <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-          Reminders about jobs you're booked on. The ones a job can't work without are always on.
+          Reminders about jobs you're booked on. Each switch covers app, email and text. The ones a job can't work without are always on.
         </p>
       </div>
       {state === "failed" ? (
@@ -142,7 +142,9 @@ export function JobRemindersGroup({
                   </p>
                 </div>
               </div>
-              <div className="shrink-0 ml-1.5 min-[360px]:ml-2 flex justify-end">
+              {/* A3-104 (audit 11-01): one switch per reminder, for every channel, so it sits centred across the App and
+                  Email columns (51 + gap + 51 px, CategoryRow's widths), never under Email alone. */}
+              <div className="shrink-0 ml-1.5 min-[360px]:ml-2 flex justify-center w-[114px] min-[360px]:w-[126px]" data-reminder-switch-cell="">
                 {key ? (
                   <SwitchSlot
                     loaded={loaded}

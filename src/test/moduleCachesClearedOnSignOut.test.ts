@@ -28,6 +28,7 @@ type Kind =
 const CLASSIFIED: Record<string, Kind> = {
   "src/components/declutter/firstRowPhotoGate.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the per-page 'first row of photos is in' gate (B77, 2026-11-01); a yes or no about loading, nothing about the account" },
   "src/components/profile/earningsTab/useEarningsData.ts:lastReported": { kind: "not-user-data", why: "the last payout-read warning sent per read name (error text + time, B77 2026-11-01), so one failure is reported once a minute; holds no rows, amounts or ids" },
+  "src/components/sections/useSectionPrefs.ts:pulled": { kind: "not-user-data", why: "which account ids already read their Customize row this app run (Q2199), so each account reads its own once; holds no choice or other data" },
   "src/lib/proofPhotoStorage.ts:signed": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/proofPhotoStorage.ts:inFlight": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/proofPhotoStorage.ts:pending": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },

@@ -5124,6 +5124,45 @@ export type Database = {
           },
         ]
       }
+      helpr_card_fee_debts: {
+        Row: {
+          card_fee_cents: number
+          created_at: string
+          helper_id: string | null
+          id: string
+          is_seed: boolean
+          job_id: string | null
+          recurring_visit_payment_id: string | null
+          refund_ref: string | null
+          remaining_cents: number
+          source: string
+        }
+        Insert: {
+          card_fee_cents: number
+          created_at?: string
+          helper_id?: string | null
+          id?: string
+          is_seed?: boolean
+          job_id?: string | null
+          recurring_visit_payment_id?: string | null
+          refund_ref?: string | null
+          remaining_cents: number
+          source: string
+        }
+        Update: {
+          card_fee_cents?: number
+          created_at?: string
+          helper_id?: string | null
+          id?: string
+          is_seed?: boolean
+          job_id?: string | null
+          recurring_visit_payment_id?: string | null
+          refund_ref?: string | null
+          remaining_cents?: number
+          source?: string
+        }
+        Relationships: []
+      }
       helpr_delivery_online: {
         Row: {
           near_lat: number | null
@@ -8138,6 +8177,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      member_section_prefs: {
+        Row: {
+          section_order: string[]
+          sections_hidden: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          section_order?: string[]
+          sections_hidden?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          section_order?: string[]
+          sections_hidden?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       member_signup_sources: {
         Row: {

@@ -5,6 +5,8 @@
  * @mutate src/components/declutter/ManagerWaitingForOk.tsx | disabled={busy \|\| !ticked} onClick={() => approve.mutate(r.item_id)} | disabled={busy} onClick={() => approve.mutate(r.item_id)}
  * @mutate src/components/declutter/ManagerWaitingForOk.tsx | sendBack.mutate({ id: r.item_id, note: note.trim() }) | sendBack.mutate({ id: r.item_id, note: "" })
  * @mutate src/components/declutter/ManagerWaitingForOk.tsx |   if (rows.length === 0) return null; |
+ * @mutate src/components/declutter/ManagerWaitingForOk.tsx | approve to put {rows.length === 1 ? "it" : "each"} on sale | approve to put it on sale
+ * @mutate src/components/declutter/ManagerWaitingForOk.tsx | flex flex-wrap items-center justify-end gap-x-3 | flex flex-wrap items-center gap-x-3
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       <ManagerWaitingForOkGate userId={userId} />\n |
  * @mutate src/components/declutter/ManagerWaitingForOkGate.tsx |   if (!on) return null;\n  return <Suspense | return <Suspense
  */
@@ -61,6 +63,16 @@ describe("manager mode: Waiting for your OK", () => {
     fireEvent.change(screen.getByLabelText("Note for Dana"), { target: { value: "  Lower the price to $30  " } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(st.sentBack).toEqual([["i1", "Lower the price to $30"]]));
+  });
+
+  it("two drafts: the plural next step; the buttons sit on the right, Approve last", async () => {
+    st.rows = [...st.rows, { item_id: "i2", title: "Brass table lamp", price_cents: 1500, submitted_at: "2026-11-01T10:05:00Z" }];
+    mount();
+    expect(await screen.findByText(/Dana wrote these 2 listings for you\. Next: approve to put each on sale, or send it back with a note\./)).toBeTruthy();
+    const row = document.querySelector('[data-waiting-draft="i1"] > div')!;
+    expect(row.className.split(" ")).toContain("justify-end");
+    const labels = [...row.querySelectorAll("button")].map((b) => b.textContent);
+    expect(labels).toEqual(["Send back", "Approve"]);
   });
 
   it("nothing waiting: nothing shows", async () => {

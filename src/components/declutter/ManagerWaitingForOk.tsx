@@ -45,12 +45,13 @@ export default function ManagerWaitingForOk({ userId }: { userId: string }) {
       <h2 id="manager-waiting-title" className="text-base font-semibold">Waiting for your OK</h2>
       {/* NextStep: what the seller does now. */}
       <p className="mt-1 text-ds-13 text-muted-foreground" data-next-step="">
-        {manager} wrote {rows.length === 1 ? "this listing" : `these ${rows.length} listings`} for you. Next: approve to put it on sale, or send it back with a note.
+        {manager} wrote {rows.length === 1 ? "this listing" : `these ${rows.length} listings`} for you. Next: approve to put {rows.length === 1 ? "it" : "each"} on sale, or send it back with a note.
       </p>
       <ul className="mt-3 divide-y divide-border">
         {rows.map((r) => (
           <li key={r.item_id} className="py-3" data-waiting-draft={r.item_id}>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            {/* Green primary on the right (lead 11-01): at 375 the buttons wrap under the title, right-aligned. */}
+            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2">
               <div className="min-w-[12rem] flex-1">
                 <p className="truncate text-ds-15 font-medium">{r.title}</p>
                 <p className="text-ds-13 text-muted-foreground">{r.price_cents === 0 ? "Free" : formatPrice(r.price_cents)}</p>

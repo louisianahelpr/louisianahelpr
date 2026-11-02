@@ -171,7 +171,7 @@ export function porchWindowDays(windows: readonly SellerWindow[], nowMs: number,
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
 
 /** Today's weekday in Louisiana (0 = Sun). */
-export function chicagoWeekday(now: Date = new Date()): number {
+function chicagoWeekday(now: Date = new Date()): number {
   return DAY.indexOf(new Intl.DateTimeFormat("en-US", { timeZone: ZONE, weekday: "short" }).format(now));
 }
 

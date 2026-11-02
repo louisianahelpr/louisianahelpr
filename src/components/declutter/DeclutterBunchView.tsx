@@ -44,6 +44,7 @@ import { SellerAddressField } from "./SellerAddressField";
 import { AREA_ADDRESS_RE, NO_CITY_IN_ADDRESS } from "./sellForm";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { BunchCard, bunchItemName } from "./DeclutterBunchCard";
+import { bunchOthers, bunchRowStartsOpen, focusBunchFilesNextPaint, focusBunchListStep } from "./bunchFlowHelpers";
 import { BunchPileCard } from "./DeclutterBunchPile";
 import { BunchMovingSale } from "./DeclutterBunchMovingSale";
 import { BunchResults } from "./DeclutterBunchResults";
@@ -450,21 +451,11 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
     saved.clearSaved();
   }
 
-  const others = (key: string) => {
-    const names = items.map((it, i) => bunchItemName(it, i));
-    return items.flatMap((it, i) => (it.key === key || it.notSorted ? [] : [{ key: it.key, name: names.filter((n) => n === names[i]).length > 1 ? `${names[i]} (${i + 1})` : names[i], photoKey: it.photoKeys[0] }]));
-  };
   const needs = bunchNeedsLine(items);
   const firstUnready = items.find((it) => bunchItemNeed(it));
   const showMove = movingOpen && (moving || !!moveDate);
   const pageTitle = moving ? "Moving out sale" : "Sell a bunch";
-  const toListing = () => {
-    const el = document.getElementById("bunch-list-step");
-    el?.focus();
-    el?.scrollIntoView?.({ block: "start" });
-  };
-  const startsOpen = (it: BunchItem) => it.flagged || !!it.failedPhoto || !!it.mergeHint;
-  const isRowOpen = (it: BunchItem) => openRows.get(it.key) ?? startsOpen(it);
+  const isRowOpen = (it: BunchItem) => openRows.get(it.key) ?? bunchRowStartsOpen(it);
 
   return (
     <AppPage title={pageTitle} backTo="/declutter?view=selling">
@@ -475,11 +466,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
         Add photos of everything you want to sell. We sort them into items and write each listing. You check them all, then list them together.
       </p>
       )}
-      {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => {
-        setResults(null);
-        // The photo step renders again on the next paint; focus it then.
-        requestAnimationFrame(() => document.getElementById("bunch-files")?.focus());
-      }} />}
+      {results && <BunchResults results={results} userId={user.id} inSale={!!moveDate} onFix={jumpTo} onListMore={() => { setResults(null); focusBunchFilesNextPaint(); }} />}
       <SellerPayoutPrompt />
       {feeDue != null && <BunchFeeGate cents={feeDue} />}
       <BunchDraftsSection userId={user.id} exclude={draftsOnTheList} busy={busy} feeDue={feeDue != null} onBusy={setListingDrafts} attested={attested} setAttested={setAttested} listStepShown={items.length > 0} onPricedOffered={setPricedDraftsOffered} />
@@ -570,7 +557,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
                   item={it}
                   offersDefault={choices.choices.acceptsOffers}
                   index={i}
-                  others={others(it.key)}
+                  others={bunchOthers(items, it.key)}
                   urls={thumbs}
                   files={files}
                   at={coords}
@@ -603,7 +590,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
         />
       )}
 
-      <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => { setItems(unreadyFirst); jumpTo(firstUnready.key); } : null} onNext={toListing} onUndo={onUndo}
+      <BunchBar sorting={sorting} found={found} listing={listing} runNames={runNames.current} undo={undo} itemCount={items.length} readyCount={ready.length} needs={needs} onNeeds={firstUnready ? () => { setItems(unreadyFirst); jumpTo(firstUnready.key); } : null} onNext={focusBunchListStep} onUndo={onUndo}
         onUseOtherPrice={() => { const { intoKey, price } = undo!.otherPrice!; setItems((its) => bulkEdit(its, new Set([intoKey]), { price })); setUndo({ ...undo!, otherPrice: undefined }); }} />
     </AppPage>
   );

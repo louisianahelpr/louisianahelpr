@@ -26,6 +26,7 @@ vi.mock("@/hooks/useMapKitJs", async (importOriginal) => ({
 
 import { useJobDerived } from "@/pages/post-job/useJobDerived";
 import { FormStep } from "@/pages/post-job/FormStep";
+import { enPostJob } from "@/lib/i18n/enPostJob";
 import { buildJobInsertPayload } from "@/pages/post-job/jobSubmitHelpers";
 import type { usePostJobForm } from "@/pages/post-job/usePostJobForm";
 
@@ -71,7 +72,8 @@ const FORM_STEP_SRC = readFileSync(join(REPO, "src/pages/post-job/FormStep.tsx")
  * source. "Review, then pay" is the ready state; everything else is a refusal that
  * names a field the poster still has to fill.
  */
-const ALL_CTA_LABELS = [...FORM_STEP_SRC.matchAll(/submitLabel = "([^"]+)"/g)].map((m) => m[1]);
+// A3-3 part 2 (Post a job in Spanish): the labels are t("postJob.…") keys, read through the English dictionary.
+const ALL_CTA_LABELS = [...FORM_STEP_SRC.matchAll(/submitLabel = (?:"([^"]+)"|t\("([^"]+)"\))/g)].map((m) => m[1] ?? (enPostJob as Record<string, string>)[m[2]]);
 // "Review" is Get quotes' ready state (A2-C32: it opens Review, then "Ask for quotes"), not a refusal.
 const BLOCKING_CTA_LABELS = ALL_CTA_LABELS.filter((l) => l !== "Review, then pay" && l !== "Review");
 

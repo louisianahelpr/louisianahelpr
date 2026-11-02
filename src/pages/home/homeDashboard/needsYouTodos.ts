@@ -79,7 +79,7 @@ function byWhen(ms: number): string {
  * inside its time (one per seller: one checkout per seller), and a paid pickup order still in its handover. Each
  * carries its deadline when it has one. A Helpr-delivered order is left out (the Helpr does the handover).
  */
-export function declutterTodos(
+function declutterTodos(
   cart: readonly CartLine[],
   offers: readonly MyOffer[],
   now: number,

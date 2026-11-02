@@ -313,7 +313,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/auth/Login.tsx` | input×3 | text, email | 6 | login-card-head · mfa-login-code · email · login-email-error · password · login-password-error |
+| `src/pages/auth/Login.tsx` | input×3 | text, email | 6 | login-card-head · mfa-login-code · email · login-email-error · login-password-block · password · login-password-error |
 
 ## /login, /signup, /signup-pending, /complete-profile, /forgot-password, /payment-success, /admin, /messages, /quotes, /book/:userId, /u/:handle, /support, /legal, /terms, /privacy, /browse, /rules, *
 

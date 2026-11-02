@@ -20,6 +20,8 @@
  * @mutate src/pages/auth/Login.tsx |             className="w-full rounded-full"\n            size="lg" |             className="w-full rounded-ds-md"\n            size="lg"
  * @mutate src/pages/auth/Login.tsx | <div className="grid gap-6 w-full [&>*]:min-w-0"> | <div className="grid gap-6 w-full">
  * @mutate src/components/auth/OrRule.tsx |     <div className="flex items-center gap-3"> |     <div className="flex items-center gap-3 lg:hidden">
+ * @mutate src/pages/auth/Login.tsx |                 {t("login.mfaTitle")}\n              </h1> |                 {t("login.mfaTitle")}\n              </h2>
+ * @mutate src/pages/auth/Login.tsx |             <Label htmlFor="password" className="row-start-1 col-start-1 text-ds-13 font-sans font-medium">{t("login.password")}</Label> |             <Label htmlFor="password" className="row-start-1 col-start-1 text-ds-13 font-sans font-medium">{t("login.password")}</Label><Link to="/forgot-password">{t("login.forgot")}</Link>
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -56,8 +58,10 @@ describe("Log in matches board 37", () => {
     const order = [
       at('id="email"'),
       at('htmlFor="password"'),
-      at('t("login.forgot")'),
+      // Q2248: the link comes AFTER the password field in the DOM (Tab from Email reaches Password first); the grid
+      // draws it on the label's row (next case).
       at('id="password"'),
+      at('t("login.forgot")'),
       at('t("login.submit")'),
       at("<OrRule />"),
       at("<SocialAuthButtons"),
@@ -67,6 +71,28 @@ describe("Log in matches board 37", () => {
     ];
     expect(src.split('t("login.createAccount")').length - 1).toBe(2);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it("Q2248: Forgot password? is drawn on the Password label's row but follows the field in Tab order", () => {
+    const block = src.slice(at('<div className="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-2" data-testid="login-password-block">'), at("<TurnstileField"));
+    expect(block).toMatch(/htmlFor="password" className="row-start-1 col-start-1 /);
+    expect(block).toMatch(/className="row-start-1 col-start-2 [^"]*"[\s\S]*\{t\("login\.forgot"\)\}/);
+    // DOM order inside the block: label, field, then the link.
+    expect(block.indexOf('id="password"')).toBeLessThan(block.indexOf('t("login.forgot")'));
+    expect(block.indexOf('htmlFor="password"')).toBeLessThan(block.indexOf('id="password"'));
+  });
+
+  it("Q2250: every Log in state has exactly one h1 (the two-step code screen hides the card head)", () => {
+    const mfaAt = at("{mfaChallenge ? (");
+    const mfaEnd = at('t("login.differentAccount")');
+    const headAt = at("{!mfaChallenge && (");
+    const head = src.slice(headAt, mfaAt);
+    const mfa = src.slice(mfaAt, mfaEnd);
+    const rest = src.slice(0, headAt) + src.slice(mfaEnd);
+    expect((head.match(/<h1\b/g) ?? []).length).toBe(1);
+    expect((mfa.match(/<h1\b/g) ?? []).length).toBe(1);
+    expect(mfa).toMatch(/<h1[^>]*>\s*\{t\("login\.mfaTitle"\)\}\s*<\/h1>/);
+    expect((rest.match(/<h1\b/g) ?? []).length).toBe(0);
   });
 
   it("primary Log in is a full pill; the providers read 'Continue with Apple / Google' (audit L11)", () => {

@@ -18,7 +18,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, waitFor, renderHook, act } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -39,6 +39,9 @@ import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
 import type { Job } from "@/components/job-card/activityConstants";
 
 afterEach(cleanup);
+function LocationProbe() {
+  return <div data-testid="where">{useLocation().pathname}</div>;
+}
 
 const job = { id: "j", status: "in_progress", helper_id: "h", customer_id: "p", helper_completed_at: "2037-10-21T15:00:00Z" } as unknown as Job;
 const noop = () => {};
@@ -64,18 +67,18 @@ describe("A3-8: Something's not right beside Approve", () => {
     expect(posterFaceAction("on_the_way", job, handlers({ notRight })).under).toBeUndefined();
   });
 
-  it("the card face draws it under the button, and a tap runs it (not the face's open)", () => {
+  it("the card face draws it under the button, and a tap runs it without opening the job", () => {
     const notRight = vi.fn();
-    const onOpen = vi.fn();
     render(
-      <MemoryRouter>
-        <MineJobFace jobId="j" title="Mow two lawns" onOpen={onOpen}
+      <MemoryRouter initialEntries={["/posts"]}>
+        <MineJobFace jobId="j" title="Mow two lawns" category={null} photo={null} when="" status={null} money={null}
           action={{ label: "Approve and release", onClick: noop, tone: "primary", under: { label: NOT_RIGHT_LABEL, onClick: notRight } }} />
+        <Routes><Route path="*" element={<LocationProbe />} /></Routes>
       </MemoryRouter>,
     );
     fireEvent.click(screen.getByRole("button", { name: NOT_RIGHT_LABEL }));
     expect(notRight).toHaveBeenCalledTimes(1);
-    expect(onOpen).not.toHaveBeenCalled();
+    expect(screen.getByTestId("where").textContent).toBe("/posts");
   });
 
   it("the face's tap asks the card for the sheet at the fix form (revisionRequest), never the Approve request", () => {

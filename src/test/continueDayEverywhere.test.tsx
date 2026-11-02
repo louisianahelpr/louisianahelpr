@@ -11,7 +11,7 @@
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |     if (!step \|\| step.who === "you") return null; |     return null;
  * @mutate src/pages/home/homeDashboard/comingUp.ts |   const setDay = (jobId: string) => (i.continueDays?.[jobId]?.status === "set" ? i.continueDays[jobId] : null); |   const setDay = (jobId: string) => (jobId ? null : null);
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | (cd[a.job.id] ? contStep(a.job.id, "helpr", helprOther(a))?.who === "you" : appliedActivityBucket(a) === "needs_you") | appliedActivityBucket(a) === "needs_you"
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail), |         title: (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail),
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : withTodoBy(line.detail, line, now)), |         title: (line.id === "on_the_way" ? ON_THE_WAY_TASK : withTodoBy(line.detail, line, now)),
  * @mutate src/components/jobs/ContinueDaySheet.tsx |   const offerToday = !helprMarkedDone && today.getHours() < LAST_START_HOUR_TODAY; |   const offerToday = true;
  * @mutate src/components/jobs/ContinueDaySheet.tsx |           {helprMarkedDone && ( |           {false && (
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (step?.key === "done" && s.continueDayNote) { |   if (step?.key === "done" && s.continueDayNote && false) {

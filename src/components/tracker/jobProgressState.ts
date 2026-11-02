@@ -13,7 +13,7 @@ import { nextStepWords } from "@/lib/nextStepWords";
 import { confirmDeadlineMs, confirmOpensMs, jobDayStart, posterConfirmClosesMs } from "@/lib/jobDate";
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 import { TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
-import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
+import { jobIsUnfundedDraft, workIsBackWithHelper } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
 import { EXPIRED_LISTING_DETAIL, autoCompleteAt, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
@@ -71,6 +71,12 @@ export type ProgressJob = {
   require_photo_proof?: boolean | null;
   proof_before_urls?: string[] | null;
   proof_after_urls?: string[] | null;
+  /** A fix asked for (Q2668): when it was asked, the server's fix deadline (set_revision_deadline), when the Helpr
+   *  marked the fix done (resolve_revision) and until when the poster then has to check it. */
+  revision_requested_at?: string | null;
+  revision_deadline?: string | null;
+  revision_completed_at?: string | null;
+  revision_acceptance_deadline?: string | null;
 };
 
 export type JobProgressState = {
@@ -310,6 +316,26 @@ function cardFaceFor(job: ProgressJob, o: ProgressOpts, now: Date): CardFace | n
 }
 
 /**
+ * A FIX ASKED FOR (Q2668, audit 1102e row 1): the step line, the What to fix box (RevisionAsk) and the Helpr's page
+ * button agree, with ONE deadline from the server. While the fix is owed (no revision_completed_at, workIsBackWithHelper)
+ * it is the Helpr's move until revision_deadline (set_revision_deadline: the ask + 72 h); once they mark it done
+ * (create-payment resolve_revision) it is the poster's, until revision_acceptance_deadline. Never "You marked it done.
+ * <Poster> has until ..." (the review window off helper_completed_at) while the poster is waiting on the fix.
+ * Guard: src/test/fixAskedForStepAgrees.test.tsx.
+ */
+function revisionLine(job: ProgressJob, poster: boolean, other: string, held: boolean): JobProgressState {
+  if (workIsBackWithHelper(job)) {
+    const dueMs = Date.parse(job.revision_deadline ?? "");
+    const due = Number.isNaN(dueMs) ? null : dueMs;
+    if (poster) return at(6, false, "Working", due === null ? `Waiting on ${other}'s fix` : `Waiting on ${other}'s fix by ${when(due)}`, held);
+    return at(6, true, "Working", due === null ? "Fix it and mark it done" : `Fix it and mark it done by ${when(dueMs)}`, held);
+  }
+  const checkMs = Date.parse(job.revision_acceptance_deadline ?? "");
+  if (poster) return at(7, true, "Done", `${other} sent the fix. Check it and approve`, held);
+  return at(7, false, "Done", Number.isNaN(checkMs) ? `You sent the fix. Waiting on ${other} to check it` : `You sent the fix. ${other} has until ${when(checkMs)} to check it`, held);
+}
+
+/**
  * JA-26 (audit 11-01): a cancelled job says who cancelled, when, why, and (to the poster) that the money came back:
  * "You cancelled Sat 9:00 AM · Plans changed · Your payment was refunded". Who is read from cancelled_by against the
  * job's two parties; anyone else (an admin, the system) is not named. The reason is the card's own sanitized one.
@@ -380,6 +406,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     return at(1, !poster, "Offered", poster ? `Waiting on ${otherLow} to accept the offer` : `${other} offered you this job`, held);
   }
 
+  if (status === "revision_requested") return revisionLine(job, poster, other, held);
   // Marked done: the last step waits on the poster to check the work.
   if (job.helper_completed_at) {
     // JA-21 (audit 11-01): the Helpr is told until when the poster has to check (the card's own auto_complete clock).

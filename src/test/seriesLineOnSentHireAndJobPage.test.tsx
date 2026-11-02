@@ -11,7 +11,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {(isHired \|\| isPoster) && <HiredSeriesSection job={job} userId={userId} isPoster={isPoster && !isHired} | {false && <HiredSeriesSection job={job} userId={userId} isPoster={isPoster && !isHired}
  * @mutate src/components/series/JobSeriesCardControls.tsx |       nextStep={nextStep} |
  * @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx | isPoster={isPoster} inset={false} nextStep /> | isPoster={isPoster} inset={false} />
- * @mutate src/pages/jobs/jobPage/useJobPage.ts | payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude"; | payout_scheduled_at, direct_offer_status, latitude, longitude";
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts | payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude, | payout_scheduled_at, direct_offer_status, latitude, longitude,
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";

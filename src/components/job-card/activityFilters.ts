@@ -229,10 +229,14 @@ export function agreedJobStage(
 export function workIsBackWithHelper(j: {
   helper_completed_at?: string | null;
   revision_requested_at?: string | null;
+  /** create-payment resolve_revision's stamp ("Mark it done" on the fix); set_revision_deadline clears it on a new ask. */
+  revision_completed_at?: string | null;
 }): boolean {
   if (!j.revision_requested_at) return false;
   const sentBack = Date.parse(j.revision_requested_at);
   if (Number.isNaN(sentBack)) return false;
+  // Q2668: the fix marked done (resolve_revision stamps revision_completed_at, never helper_completed_at) is with the poster.
+  if (j.revision_completed_at && Date.parse(j.revision_completed_at) >= sentBack) return false;
   const submitted = j.helper_completed_at ? Date.parse(j.helper_completed_at) : NaN;
   // No resubmission, or one that predates the send-back, means it is still out.
   return Number.isNaN(submitted) || submitted <= sentBack;

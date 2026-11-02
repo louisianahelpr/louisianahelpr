@@ -276,6 +276,8 @@ export function urgentBonusChargedCents(job: {
 export function jobEscrowTaxableBaseCents(job: {
   budget?: number | string | null;
   category?: string | null;
+  /** The poster's taxed-kind answer (Q2083): taxes the job like a taxed category. */
+  tax_kind?: string | null;
   customer_fee_amount?: number | string | null;
   poster_fee_flat_cents?: number | string | null;
   is_urgent?: boolean | null;
@@ -283,7 +285,9 @@ export function jobEscrowTaxableBaseCents(job: {
 } | null | undefined): number {
   const budgetCents = Math.round(Number(job?.budget ?? 0) * 100);
   const laborCents = Number.isFinite(budgetCents) && budgetCents > 0 ? budgetCents : 0;
-  if (!isLaborTaxable(job?.category)) return laborCents;
+  // Q2083: a job taxed by the poster's answer prices its bonus and fee lines
+  // with the labor's code too (create-payment), so they are in the base.
+  if (!isLaborTaxable(job?.category, job?.tax_kind)) return laborCents;
   const taxedLaborCents = laborCents + urgentBonusChargedCents(job);
   if (!isPosterFeeJob(job)) return taxedLaborCents;
   const feeCents = Math.round(Number(job?.customer_fee_amount ?? 0) * 100);

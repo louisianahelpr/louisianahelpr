@@ -56,6 +56,7 @@ import { buyerOnWayToday } from "@/lib/declutter/pickupDay";
 import { ProblemOpenNote } from "./DeclutterProblemOpen";
 import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
 import { payoutLine } from "./declutterPayoutWords";
+import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
 import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
@@ -240,6 +241,8 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {/* BUY-31: said once. The buyer's head line says it, and SellerDeliveryStatus says it to the seller. */}
           {/* NIGHT-SELL-soldstates-7: the seller's finished delivery shows the tracker at its end too. */}
           {order.handover === "delivery" && !view && <DeliveryDoneStatus free={items === 0} refunded={fullRefund} />}
+          {/* Manager mode: "$40 sale · $8 to Dana · $32 to you" when a manager shares this sale. */}
+          {order.side === "seller" && items > 0 && <ManagerSaleShareGate orderId={order.orderId} itemsCents={items} itemCount={order.lines.length} />}
           {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}
             {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (

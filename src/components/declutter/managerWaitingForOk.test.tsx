@@ -48,6 +48,7 @@ describe("manager mode: Waiting for your OK", () => {
     expect((approve as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(approve);
     expect(st.approved).toHaveLength(0);
+    expect(screen.getAllByRole("checkbox").length).toBeGreaterThan(0);
     for (const box of screen.getAllByRole("checkbox")) fireEvent.click(box);
     await waitFor(() => expect((screen.getByRole("button", { name: "Approve" }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));

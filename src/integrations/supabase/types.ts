@@ -2318,6 +2318,81 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_manager_payouts: {
+        Row: {
+          amount_cents: number
+          attempts: number
+          created_at: string
+          executed_at: string | null
+          grant_id: string | null
+          held_notified_at: string | null
+          id: string
+          is_seed: boolean
+          last_error: string | null
+          manager_id: string | null
+          next_attempt_at: string
+          order_id: string
+          review_held_at: string | null
+          review_reason: string | null
+          seller_id: string | null
+          seller_payout_id: string
+          settled_by_hand_cents: number | null
+          settled_by_hand_note: string | null
+          settled_by_hand_ref: string | null
+          share_cents: number
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          grant_id?: string | null
+          held_notified_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          manager_id?: string | null
+          next_attempt_at?: string
+          order_id: string
+          review_held_at?: string | null
+          review_reason?: string | null
+          seller_id?: string | null
+          seller_payout_id: string
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
+          share_cents: number
+          status: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          grant_id?: string | null
+          held_notified_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          manager_id?: string | null
+          next_attempt_at?: string
+          order_id?: string
+          review_held_at?: string | null
+          review_reason?: string | null
+          seller_id?: string | null
+          seller_payout_id?: string
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
+          share_cents?: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: []
+      }
       declutter_manager_submissions: {
         Row: {
           decided_at: string | null
@@ -2608,6 +2683,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      declutter_order_manager_shares: {
+        Row: {
+          grant_id: string | null
+          locked_at: string
+          manager_id: string | null
+          order_id: string
+          seller_id: string | null
+          share_cents: number | null
+          share_pct: number | null
+          share_type: string
+        }
+        Insert: {
+          grant_id?: string | null
+          locked_at?: string
+          manager_id?: string | null
+          order_id: string
+          seller_id?: string | null
+          share_cents?: number | null
+          share_pct?: number | null
+          share_type: string
+        }
+        Update: {
+          grant_id?: string | null
+          locked_at?: string
+          manager_id?: string | null
+          order_id?: string
+          seller_id?: string | null
+          share_cents?: number | null
+          share_pct?: number | null
+          share_type?: string
+        }
+        Relationships: []
       }
       declutter_order_meetups: {
         Row: {

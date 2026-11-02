@@ -17,6 +17,7 @@ import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FIL
 
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const NEW_FILE = "20261102022901_declutter_items_hidden_from_blocked.sql";
+const PINS_FILE = "20261102023411_declutter_map_pins_hide_blocked.sql";
 const WINDOWS_FILE = "20261028195840_declutter_pickup_window_reads.sql";
 const CHAIN_AFTER = [
   "20261021181118_helpr_delivery_payout_round_down.sql",
@@ -121,8 +122,11 @@ await db.exec(readFileSync(`${MIG_DIR}${WINDOWS_FILE}`, "utf8"));
 await db.exec(readFileSync(`${MIG_DIR}20261030080020_declutter_buyer_reads_own_item.sql`, "utf8"));
 // Supabase grants EXECUTE on every new public function to anon by default; emulate it so a missing REVOKE shows.
 await db.exec(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated`);
+// The map pins read as prod has it (20261028151144), so its restate below has its salt table and grants.
+await db.exec(readFileSync(`${MIG_DIR}20261028151144_declutter_map_pins.sql`, "utf8"));
 if (!skip) {
-  const sql = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}${NEW_FILE}`, "utf8");
+  const pins = readFileSync(process.env.PINS_MIGRATION_PATH ?? `${MIG_DIR}${PINS_FILE}`, "utf8");
+  const sql = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}${NEW_FILE}`, "utf8") + "\n" + pins;
   for (let i = 0; i < 3; i++) {
     const r = await run(sql);
     ok(!r?.error, `the migration applies (run ${i + 1} of 3)${r?.error ? `: ${r.error}` : ""}`);
@@ -174,6 +178,22 @@ const acl = await svc(`SELECT has_function_privilege('anon', p.oid, 'EXECUTE') A
   FROM pg_proc p WHERE p.proname = 'declutter_my_block_partners'`);
 ok(Array.isArray(acl) && acl.length === 1 && acl[0].a === false && acl[0].m === true && acl[0].v === "s" && acl[0].d === true && /search_path=/.test(acl[0].cfg),
   `helper: anon revoked, members granted, STABLE SECURITY DEFINER, search_path pinned (${JSON.stringify(acl)})`);
+// E. The map pins (a definer read the policy does not reach): a blocked partner's live item is not a pin.
+const pins = async (uid) => {
+  const r = await me(uid, `SELECT item_id FROM public.declutter_map_pins()`);
+  return Array.isArray(r) ? r.map((x) => x.item_id) : `error: ${r?.error}`;
+};
+const pB = await pins(BUYER);
+ok(Array.isArray(pB) && !pB.includes(I(1)) && pB.includes(I(2)), `map pins: the seller who blocked BUYER has no pin for BUYER; others do (${JSON.stringify(pB)})`);
+const pB2 = await pins(BUYER2);
+ok(Array.isArray(pB2) && !pB2.includes(I(2)) && pB2.includes(I(1)), `  BUYER2 (who blocked SELLER2) sees no SELLER2 pin (${JSON.stringify(pB2)})`);
+const pS2 = await pins(SELLER2);
+ok(Array.isArray(pS2) && !pS2.includes(I(3)), `  and SELLER2 sees no pin for BUYER2's item (${JSON.stringify(pS2)})`);
+const p3 = await pins(BUYER3);
+ok(Array.isArray(p3) && [I(1), I(2), I(3)].every((x) => p3.includes(x)), `  a member with no blocks sees every pin (${JSON.stringify(p3)})`);
+const pacl = await svc(`SELECT has_function_privilege('anon', 'public.declutter_map_pins()'::regprocedure, 'EXECUTE') AS a`);
+ok(Array.isArray(pacl) && pacl[0].a === false, `  map pins: anon still revoked (${JSON.stringify(pacl)})`);
+
 const pols = await svc(`SELECT count(*)::int AS n FROM pg_policies WHERE tablename = 'declutter_items' AND cmd = 'SELECT'`);
 ok(one(pols) === 1, `declutter_items keeps exactly one member read policy (${one(pols)})`);
 

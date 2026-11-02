@@ -6,6 +6,7 @@
  * the migration; RED with the REVOKE dropped, the block clause dropped, or only one block direction).
  * @mutate supabase/migrations/20261102022901_declutter_items_hidden_from_blocked.sql |         AND NOT (seller_id = ANY (coalesce((SELECT public.declutter_my_block_partners()), '{}'::uuid[])))) |         )
  * @mutate supabase/migrations/20261102022901_declutter_items_hidden_from_blocked.sql |      AND (b.blocker_id = (SELECT auth.uid()) OR b.blocked_id = (SELECT auth.uid())); |      AND (b.blocker_id = (SELECT auth.uid()));
+ * @mutate supabase/migrations/20261102023411_declutter_map_pins_hide_blocked.sql |          AND NOT (i.seller_id = ANY (coalesce((SELECT public.declutter_my_block_partners()), '{}'::uuid[]))) |          AND true
  * @mutate supabase/migrations/20261102022901_declutter_items_hidden_from_blocked.sql | REVOKE ALL ON FUNCTION public.declutter_my_block_partners() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_my_block_partners() FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
@@ -23,6 +24,7 @@ const flat = (s: string) => s.replace(/\s+/g, " ");
 const body = flat(blankSqlComments(readFileSync(join(MIG, newest), "utf8")));
 const policy = body.slice(body.indexOf(POLICY), body.indexOf(";", body.indexOf(POLICY)));
 const HELPER = flat(blankSqlComments(effectiveDefs(MIG).get("declutter_my_block_partners")?.stmt ?? ""));
+const PINS = flat(blankSqlComments(effectiveDefs(MIG).get("declutter_map_pins")?.stmt ?? ""));
 const newestHelperFile = files.filter((f) => /FUNCTION public\.declutter_my_block_partners\(/.test(blankSqlComments(readFileSync(join(MIG, f), "utf8")))).pop() ?? "";
 const helperFileBody = flat(blankSqlComments(readFileSync(join(MIG, newestHelperFile || files[0]), "utf8")));
 
@@ -42,5 +44,10 @@ describe("a blocked pair does not read each other's Declutter listings (Q1888)",
     expect(HELPER).toContain("SECURITY DEFINER");
     expect(HELPER).toContain("(b.blocker_id = (SELECT auth.uid()) OR b.blocked_id = (SELECT auth.uid()))");
     expect(helperFileBody).toContain("REVOKE ALL ON FUNCTION public.declutter_my_block_partners() FROM PUBLIC, anon;");
+  });
+
+  it("the map pins (a definer read the policy does not reach) drop a block partner's items too", () => {
+    expect(PINS.length).toBeGreaterThan(1500);
+    expect(PINS).toContain("AND i.seller_id <> v_uid AND NOT (i.seller_id = ANY (coalesce((SELECT public.declutter_my_block_partners()), '{}'::uuid[]))) ORDER BY i.live_at DESC NULLS LAST LIMIT 500");
   });
 });

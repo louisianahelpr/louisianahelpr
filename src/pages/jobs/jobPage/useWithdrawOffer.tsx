@@ -77,7 +77,7 @@ export function useWithdrawOffer(job: WithdrawableJob | null | undefined, helprF
           e.preventDefault();
           void withdraw();
         }}
-        secondaryLabel="Keep offer"
+        secondaryLabel="Cancel"
       />
     ),
   };

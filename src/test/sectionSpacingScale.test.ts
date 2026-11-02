@@ -37,6 +37,7 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 // @mutate src/components/profile/ProfileTabBody.tsx | export const PROFILE_TAB_BODY_CLASS = "space-y-section"; | export const PROFILE_TAB_BODY_CLASS = "space-y-4";
 // @mutate src/index.css | --section-gap: 0.75rem; | --section-gap: 1.25rem;
 // @mutate tailwind.config.ts | section: "var(--section-gap)", | section: "1.25rem",
+// @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx | className="flex flex-col gap-4 pb-56"> | className="space-y-6 pb-56">
 
 function tsxUnder(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(join(ROOT, dir))) {

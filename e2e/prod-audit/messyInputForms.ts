@@ -1081,6 +1081,9 @@ export const GAPS: Record<string, string> = {
   "src/components/postjob/SellForMeBlanks.tsx": "POST-H15: its one box (max 40, line breaks dropped) only writes a line of the job description (fillSellForMeBlank, sellForMeBlanks.test.tsx), which the post-job sweep's DescriptionField covers; it sends nothing itself",
   "src/components/postjob/JobCategoryGroups.tsx": "category search only: filters the chips in the browser; the text is never stored or sent (board 23)",
   "src/components/postjob/detailsSection/PhotoProofToggle.tsx": "switch only",
+  // Q2615 split it out of LogisticsSection (credited by the post-job explore through its address fields). Its note box
+  // renders only after the "I'll provide materials" switch is on, and the explore driver never flips a switch.
+  "src/components/postjob/MaterialsToggle.tsx": "the materials note shows only once its switch is on, which the post-job explore never presses; capped at 500 by maxLength and by the jobs CHECK char_length(materials_note) <= 500 (20261006204113); FORMS sweep owed",
   "src/components/TimePickerWheel.tsx": "wheel picker — constrained options",
   "src/components/DatePickerField.tsx": "calendar/wheel picker — its only typed text is TypedDateInput (below), inside the wheel",
   "src/components/TypedDateInput.tsx": "typed DOB box inside the DateWheelPicker popover, digits only (non-digits stripped) — parse + both bounds asserted in DateWheelPicker.typed.test.tsx",

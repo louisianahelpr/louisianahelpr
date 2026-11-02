@@ -1058,6 +1058,7 @@ describe("Popup grammar — footer", () => {
    * real distinction and it belongs in the open, per `popupFooter.ts`'s own
    * note that read-only and opt-out surfaces carry different weight.
    */
+  // @mutate src/pages/jobs/jobPage/useWithdrawOffer.tsx | secondaryLabel="Cancel" | secondaryLabel="Keep offer"
   it("a confirm dismiss says Cancel, and every exception is declared", () => {
     // Opt-out prompts, not confirms. Adding a name here is a deliberate
     // statement that the surface is an invitation being declined.

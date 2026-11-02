@@ -860,7 +860,7 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* Past the day, at the job, and the before photo is still the primary. */
   overdue_before_photo: { detail: "Day passed — take the before photo" },
   /* Past the day, at the job, work not started (tracking row): the next step is Start working. */
-  overdue_start_working: { detail: "Day passed — tap Start working" },
+  overdue_start_working: { detail: "Day passed — tap Start" }, // A3-11: the pair's word, as start_working says it
   /* Shorter than its on-the-day twin: the 320 line has room for no name here. */
   overdue_arrival_unconfirmed: { detail: "Day passed — arrival not confirmed" },
   overdue_after_photo: { detail: "Day passed — take the after photo" },

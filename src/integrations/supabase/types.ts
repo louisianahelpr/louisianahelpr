@@ -3644,6 +3644,7 @@ export type Database = {
         Row: {
           amount_cents: number
           created_at: string
+          fee_estimated: boolean
           id: string
           is_seed: boolean
           refund_id: string | null
@@ -3655,6 +3656,7 @@ export type Database = {
         Insert: {
           amount_cents: number
           created_at?: string
+          fee_estimated?: boolean
           id?: string
           is_seed?: boolean
           refund_id?: string | null
@@ -3666,6 +3668,7 @@ export type Database = {
         Update: {
           amount_cents?: number
           created_at?: string
+          fee_estimated?: boolean
           id?: string
           is_seed?: boolean
           refund_id?: string | null

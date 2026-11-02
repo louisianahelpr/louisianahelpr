@@ -93,9 +93,13 @@ export function AdminFrame({
             <main id="main-content">, and a second one nested inside it
             failed axe's landmark-main-is-top-level / -no-duplicate-main /
             -unique on all 26 admin screens (Q211). This is only the admin
-            scroll container. Guarded by src/test/oneMainLandmark.test.ts. */}
+            scroll container. Guarded by src/test/oneMainLandmark.test.ts.
+            Q2583: from lg up the right padding is 72px, not 32px, so the
+            floating scroll-to-top button (ScrollToTop: right-4, 44px wide)
+            sits in the gutter instead of on a card's Edit button. Guard:
+            src/test/adminScrollTopClearsCards.test.ts. */}
         <div data-admin-scroll
-          className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
+          className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 lg:pr-[4.5rem] pb-[calc(2rem_+_var(--safe-area-bottom,0px))]"
         >
           {/* Mounted once, inside admin only: the shortcut should not exist
               on the rest of the app, where there are no sections to jump

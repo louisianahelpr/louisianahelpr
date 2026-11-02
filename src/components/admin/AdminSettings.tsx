@@ -32,7 +32,6 @@ import {
   type AbuseLimitKey,
 } from "./abuseLimits";
 import { userFacingError } from "@/lib/userFacingError";
-import { DeclutterPreviewCard } from "./settings/DeclutterPreviewCard";
 
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -449,9 +448,9 @@ const AdminSettings = () => {
       {/* Min Supported Build */}
       <MinSupportedBuildCard minBuild={minBuild} setMinBuild={setMinBuild} saveMinBuild={saveMinBuild} savingMinBuild={savingMinBuild} />
 
+      {/* Also renders the Declutter cards, the Declutter stage preview (Q2585)
+          among them, grouped (Q2583). */}
       <FeatureSwitchesCard />
-      {/* Q2585: the Declutter stage preview, after the Declutter cards. */}
-      <DeclutterPreviewCard />
 
       <SmsStatusCard />
       {/* Admin Management */}

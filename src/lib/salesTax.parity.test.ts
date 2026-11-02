@@ -43,27 +43,41 @@ describe("sales-tax classification parity (UI ↔ edge)", () => {
 
 describe("LA taxability rules", () => {
   /**
-   * The taxable list is assembly, handyman and the twelve trades; all but
-   * assembly are judgement calls.
-   *
-   * LA R.S. 47:301.3 enumerates ten taxable services; the one this app falls
-   * under is "repairs and maintenance of tangible personal property", which
-   * turns on MOVABLE vs IMMOVABLE. `assembly` is unambiguously movable.
-   * `handyman` is both — repairing a lamp is taxable, replacing a kitchen
-   * faucet is real property and is not — and the owner chose to collect on all
-   * of it rather than miss the movable half (2026-08-23). The twelve trades
-   * are taxed like handyman (owner decision 2026-10-17, Q1831).
+   * Q2083 (owner Option 1, 2026-10-25): the taxable list is the tax memo's
+   * set (its Q4 table is carried in docs/OPEN.md Q2083). La. R.S. 47:301.3
+   * enumerates the taxable services; the one this app falls under is item 7,
+   * "repairs and maintenance of tangible personal property", which turns on
+   * MOVABLE vs IMMOVABLE: item 7(a) names automobiles and vehicles, item 7(b)
+   * appliances, machinery and equipment, and work on a building or its
+   * component parts (Civil Code art. 466) is outside it. So by category only
+   * auto and appliance repair are taxed; house repairs and the real-property
+   * trades are not (this reverses the 2026-08-23 handyman and 2026-10-17
+   * Q1831 "covered either way" lists). The movable jobs inside handyman,
+   * welding and assembly wait on the per-job posting answer (rest of Q2083).
    *
    * Pinned as an exact list on purpose: adding a category here silently
    * changes what every poster in it is CHARGED, so it should never be possible
    * to do by accident. If this assertion fails, that is the point — confirm the
    * statutory basis before updating it.
    */
-  const TAXABLE = [
-    "assembly", "handyman",
-    "electrical", "plumbing", "hvac", "roofing", "welding", "carpentry",
-    "auto_repair", "appliance_repair", "flooring", "concrete_masonry", "fencing", "pressure_washing",
+  const TAXABLE = ["auto_repair", "appliance_repair"];
+
+  // The memo's NOT-taxable column (Q2083): real property, plus assembly
+  // (probably not, MEDIUM) and welding (depends on the job).
+  const MEMO_NOT_TAXABLE = [
+    "handyman", "electrical", "plumbing", "hvac", "roofing", "carpentry", "flooring",
+    "concrete_masonry", "fencing", "pressure_washing", "assembly", "welding",
   ];
+
+  it("Q2083: house repairs, the real-property trades, assembly and welding are not taxed by category", () => {
+    for (const c of MEMO_NOT_TAXABLE) {
+      expect(ALL_CATEGORIES, c).toContain(c);
+      expect(uiIsLaborTaxable(c), `${c} (client)`).toBe(false);
+      expect(edgeIsLaborTaxable(c), `${c} (edge)`).toBe(false);
+      expect(edgeHasTaxableLine(c), `${c} (edge line)`).toBe(false);
+    }
+    expect(MEMO_NOT_TAXABLE.length).toBeGreaterThan(11);
+  });
 
   it("taxes exactly the enumerated categories — the create-payment tax_code list", () => {
     expect([...uiTaxableCategories]).toEqual(TAXABLE);
@@ -88,11 +102,11 @@ describe("LA taxability rules", () => {
 
   it("taxes ONLY the labor line for a taxable category — never the fees", () => {
     // $200 budget at 10% = $20, regardless of the service fee riding alongside.
-    expect(estimatedSalesTax(200, "assembly", 10)).toBe(20);
+    expect(estimatedSalesTax(200, "auto_repair", 10)).toBe(20);
   });
 
   it("returns null for a taxable category whose parish rate isn't known yet", () => {
-    expect(estimatedSalesTax(200, "assembly", null)).toBeNull();
+    expect(estimatedSalesTax(200, "appliance_repair", null)).toBeNull();
   });
 });
 
@@ -100,11 +114,15 @@ describe("LA taxability rules", () => {
 // line's Stripe `tax_code`, so dropping a category here changes what real
 // posters in real parishes are charged. The mutation is the exact shape that
 // hid for 16 days elsewhere: a member quietly missing from a pinned list.
-// @mutate supabase/functions/_shared/salesTax.ts |   "assembly",\n  "handyman",\n  "electrical", |   "assembly",\n  "electrical",
-// @mutate supabase/functions/_shared/salesTax.ts |   "pressure_washing",\n]); | ]);
-// @mutate supabase/migrations/20261017055441_trades_taxed_like_handyman.sql | 'fencing', 'pressure_washing']), false) | 'fencing']), false)
-// @mutate supabase/migrations/20261017055441_trades_taxed_like_handyman.sql | (COALESCE(OLD.category::text, '') | (COALESCE(OLD.category, '')
-// @mutate supabase/migrations/20261017055441_trades_taxed_like_handyman.sql | 'handyman', 'electrical', 'plumbing', 'hvac', 'roofing', 'welding', 'carpentry', 'auto_repair', 'appliance_repair', 'flooring', 'concrete_masonry', 'fencing', 'pressure_washing'];\nBEGIN | 'handyman'];\nBEGIN
+// Q2083: re-pointed at the memo's list and its newest migration. Red on a dropped
+// member, on a house trade taxed again (the reversed Q1831 shape) and on either
+// SQL list going stale.
+// @mutate supabase/functions/_shared/salesTax.ts |   "auto_repair",\n  "appliance_repair",\n]); |   "auto_repair",\n]);
+// @mutate supabase/functions/_shared/salesTax.ts |   "auto_repair",\n  "appliance_repair",\n]); |   "auto_repair",\n  "appliance_repair",\n  "handyman",\n]);
+// @mutate src/lib/salesTax.ts |   "auto_repair",\n  "appliance_repair",\n]); |   "auto_repair",\n  "appliance_repair",\n  "plumbing",\n]);
+// @mutate supabase/migrations/20261102033237_q2083_tax_movable_repairs_only.sql | ARRAY['auto_repair', 'appliance_repair']), false) | ARRAY['auto_repair', 'appliance_repair', 'handyman']), false)
+// @mutate supabase/migrations/20261102033237_q2083_tax_movable_repairs_only.sql | (COALESCE(OLD.category::text, '') | (COALESCE(OLD.category, '')
+// @mutate supabase/migrations/20261102033237_q2083_tax_movable_repairs_only.sql | ARRAY['auto_repair', 'appliance_repair'];\nBEGIN | ARRAY['auto_repair'];\nBEGIN
 
 // Q1831/Q1833: the database holds the same list twice. enforce_funded_category_tax_class
 // refuses a paid job crossing the taxed line, and is_category_taxable is the "Taxable"
@@ -118,14 +136,14 @@ describe("the database's taxable lists are TAXABLE_CATEGORIES (Q1831, Q1833)", (
   it("enforce_funded_category_tax_class names exactly TAXABLE_CATEGORIES", () => {
     const body = defs.get("enforce_funded_category_tax_class")?.body ?? "";
     const arr = body.match(/taxable\s+CONSTANT\s+text\[\]\s*:=\s*ARRAY\[([^\]]*)\]/i)?.[1] ?? "";
-    expect(quoted(arr).length).toBeGreaterThan(13);
+    expect(quoted(arr).length).toBeGreaterThan(1);
     expect(quoted(arr)).toEqual([...edgeTaxableCategories].sort());
   });
 
   it("is_category_taxable names exactly TAXABLE_CATEGORIES", () => {
     const body = defs.get("is_category_taxable")?.body ?? "";
     const arr = body.match(/ARRAY\[([^\]]*)\]/i)?.[1] ?? "";
-    expect(quoted(arr).length).toBeGreaterThan(13);
+    expect(quoted(arr).length).toBeGreaterThan(1);
     expect(quoted(arr)).toEqual([...edgeTaxableCategories].sort());
     // The export column reads only this function: no IN-list of enum literals left over.
     expect(body).not.toMatch(/::public\.job_category/);

@@ -213,20 +213,20 @@ describe("Stripe tax codes (ME-043)", () => {
 
   it("the pre-Checkout tax ceiling covers the measured Louisiana rate and is 0 on exempt labor (Q1658)", () => {
     // 11.25%: Delcambre, live Stripe Tax 2026-10-12 (taxcalc_1UPcYUKp2H4b7tECOt3PgfHe).
-    expect(salesTaxCeilingCents(10_000, "assembly")).toBeGreaterThanOrEqual(1_125);
-    expect(salesTaxCeilingCents(26_000, "handyman")).toBe(3_900);
+    expect(salesTaxCeilingCents(10_000, "auto_repair")).toBeGreaterThanOrEqual(1_125);
+    expect(salesTaxCeilingCents(26_000, "appliance_repair")).toBe(3_900);
     expect(salesTaxCeilingCents(26_000, "yard_work")).toBe(0);
-    expect(salesTaxCeilingCents(0, "assembly")).toBe(0);
+    expect(salesTaxCeilingCents(0, "auto_repair")).toBe(0);
   });
 
   it("flags $0 tax on taxable labor billed to Louisiana, and nothing else", () => {
-    expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "assembly", "LA")).toBe(true);
-    expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "handyman", " la ")).toBe(true);
-    expect(taxedZeroOnTaxableLouisianaLabor(1_000, 10_000, "assembly", "LA")).toBe(false);
+    expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "auto_repair", "LA")).toBe(true);
+    expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "appliance_repair", " la ")).toBe(true);
+    expect(taxedZeroOnTaxableLouisianaLabor(1_000, 10_000, "auto_repair", "LA")).toBe(false);
     expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "yard_work", "LA")).toBe(false);
-    expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "assembly", "TX")).toBe(false);
-    expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "assembly", null)).toBe(false);
-    expect(taxedZeroOnTaxableLouisianaLabor(0, 0, "assembly", "LA")).toBe(false);
+    expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "auto_repair", "TX")).toBe(false);
+    expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "auto_repair", null)).toBe(false);
+    expect(taxedZeroOnTaxableLouisianaLabor(0, 0, "auto_repair", "LA")).toBe(false);
     const webhook = sources.find((s) => s.file === "supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts");
     expect(webhook?.src).toMatch(/if \(taxedZeroOnTaxableLouisianaLabor\(sessionTaxCents,/);
     expect(webhook?.src).toMatch(/const sessionTaxCents = session\.total_details\?\.amount_tax;/);

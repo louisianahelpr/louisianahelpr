@@ -895,7 +895,7 @@ describe("create-payment edge function", () => {
     });
     // @mutate supabase/functions/create-payment/index.ts | onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents), | onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents + 1),
 
-    it("flags an assembly job as LA-taxable labor (tax_code txcd_20080005, Repair of Tangible Personal Property)", async () => {
+    it("flags an auto repair job as LA-taxable labor (tax_code txcd_20080005, Repair of Tangible Personal Property)", async () => {
       seedAuth(scenario, POSTER);
       scenario.reads.jobs = {
         rows: [
@@ -903,7 +903,7 @@ describe("create-payment edge function", () => {
             id: "job-asm",
             customer_id: POSTER.id,
             budget: 80,
-            category: "assembly",
+            category: "auto_repair",
             title: "Build IKEA desk",
             payment_status: "unpaid",
           },
@@ -965,7 +965,9 @@ describe("create-payment edge function", () => {
         }
         return args.line_items[0].price_data.product_data.tax_code;
       };
-      expect(await codeFor("handyman")).toBe("txcd_20080005");
+      expect(await codeFor("appliance_repair")).toBe("txcd_20080005");
+      // Q2083: a house repair is real property, not taxed.
+      expect(await codeFor("handyman")).toBe("txcd_00000000");
       expect(await codeFor("yard_work")).toBe("txcd_00000000");
     });
 
@@ -997,7 +999,7 @@ describe("create-payment edge function", () => {
       const exempt = await optionsFor("yard_work");
       expect(exempt.preTax).toBeLessThan(30000);
       expect(exempt.options).toBeUndefined();
-      const taxable = await optionsFor("assembly");
+      const taxable = await optionsFor("auto_repair");
       expect(taxable.preTax).toBe(exempt.preTax);
       expect(taxable.options).toEqual({ card: { request_three_d_secure: "any" } });
     });

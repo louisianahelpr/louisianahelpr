@@ -56,11 +56,11 @@ describe("a paid job cannot cross the sales-tax line by category (ME-010)", () =
   });
 
   it("the server trigger's taxable list is salesTax.ts's", () => {
-    // The NEWEST definition (20261017055441 added the twelve trades, Q1831).
+    // The NEWEST definition (Q2083 narrowed it to auto and appliance repair).
     const sql = latestFunctionDefs(resolve(__dirname, "../../../supabase/migrations")).get("enforce_funded_category_tax_class")?.body ?? "";
     const arr = sql.match(/taxable CONSTANT text\[\] := ARRAY\[([^\]]*)\]/)?.[1] ?? "";
     const list = [...arr.matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
-    expect(list.length).toBeGreaterThan(13); // assembly + handyman + 12 trades on 2026-10-17
+    expect(list.length).toBeGreaterThan(1); // auto_repair + appliance_repair (Q2083)
     expect(list).toEqual([...TAXABLE_CATEGORIES].sort());
   });
 });

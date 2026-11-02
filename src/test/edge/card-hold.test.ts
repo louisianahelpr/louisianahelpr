@@ -145,7 +145,7 @@ describe("card hold at posting (Q2399)", () => {
     it("a saved card is held off-session only under $300 and on an untaxed category (Q210b, tax)", () => {
       expect(offSessionAllowed(29_999, "yard_work")).toEqual({ ok: true });
       expect(offSessionAllowed(30_000, "yard_work")).toEqual({ ok: false, why: "large" });
-      expect(offSessionAllowed(5_000, "assembly")).toEqual({ ok: false, why: "taxed" });
+      expect(offSessionAllowed(5_000, "auto_repair")).toEqual({ ok: false, why: "taxed" });
     });
   });
 

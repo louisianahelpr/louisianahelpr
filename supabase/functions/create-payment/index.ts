@@ -2469,6 +2469,22 @@ serve(async (req) => {
       if (!parent || parent.customer_id !== user.id || parent.series_ended_on || parent.status === "cancelled") {
         throw new PublicError("This series has ended");
       }
+      // Q2071: a date a Helpr gave up (its series_visit_holds row is gone) has
+      // nothing to book on: never open a Checkout for it. The daily run asks
+      // for a new payment if another Helpr picks the date up.
+      const { data: holds, error: holdErr } = await supabaseAdmin
+        .from("series_visit_holds")
+        .select("id")
+        .eq("parent_job_id", row.parent_job_id)
+        .eq("visit_date", row.visit_date)
+        .limit(1);
+      if (holdErr) {
+        console.error("[create-payment] recurring_visit — hold read failed:", holdErr);
+        throw new PublicError("Could not load this visit — please try again");
+      }
+      if ((holds ?? []).length === 0) {
+        throw new PublicError("No Helpr is booked for this visit any more, so there's nothing to pay");
+      }
 
       // Reuse the open session so a double tap or a return visit never opens a
       // second Checkout for the same visit. A prior session that is not reused

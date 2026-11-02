@@ -224,7 +224,7 @@ function MoneyNote({ side, kind, free, done, problemOpen, itemsCents, totalCents
         // step plus the buyer's silence about 48 hours; nobody speaks, the money stays held.
         // Q2634 (owner 11-02): one line; the 10-30 rule, word for word, opens under "Details".
         : <>You get <strong className="tabular-nums">{formatPrice(sellerCents)}</strong>{parts} after the handover.{" "}
-          <InlineTextButton aria-expanded={ruleOpen} data-payout-details="" onClick={() => setRuleOpen((o) => !o)}>{ruleOpen ? "Hide details" : "Details"}</InlineTextButton>
+          <InlineTextButton className="font-semibold underline underline-offset-2" aria-expanded={ruleOpen} data-payout-details="" onClick={() => setRuleOpen((o) => !o)}>{ruleOpen ? "Hide details" : "Details"}</InlineTextButton>
           {ruleOpen && <span className="mt-1 block" data-payout-rule="">{sellerPayoutRule(kind)}</span>}</>;
   // The seller's "You get $X once the sale is final" is good news: the sage tint, not the rust one a held payout
   // keeps (audit 1030 DC-13).

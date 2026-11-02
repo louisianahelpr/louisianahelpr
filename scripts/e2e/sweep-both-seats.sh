@@ -19,8 +19,9 @@
 # degrades to the poster-only deferral and says so, so it never blocks the
 # suite; the same job's teardown runs `if: always()` and fails instead.
 #
-# E2E_STRIPE_MODE (from the repo variable, passed through untouched): the
-# sweeper settles forward only when it is "test" (see the sweeper's header).
+# E2E_STRIPE_MODE (from the repo variable) is passed through untouched; the
+# sweeper no longer reads it (Q1754, see the sweeper's header): it settles only
+# rows funded through a cs_test_ Checkout Session.
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 : "${POSTER_ACCESS_TOKEN:?POSTER_ACCESS_TOKEN is not set — mint the poster token first}"

@@ -1,6 +1,6 @@
 /**
  * Lead's product call on the LEAD-PLACE-TIMES review (2026-10-31): the seller's usual times stay only for meetups,
- * shown in Declutter settings as "Meetup times", and only when the seller offers a safe meetup.
+ * shown in Declutter settings as "Police spot meetup times" (A3-64), and only when the seller offers a safe meetup.
  *
  * @mutate src/components/declutter/MeetupTimesCard.tsx |   if (!defaults.data?.handovers.includes("meetup")) return null; |   if (!defaults.data) return null;
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |         <MeetupTimesCard userId={user.id} />\n |
@@ -33,10 +33,10 @@ beforeEach(() => { h.handovers = ["meetup"]; h.saves.length = 0; });
 describe("Meetup times in Declutter settings", () => {
   it("shows as Meetup times when a meetup is offered, and saves the times", async () => {
     wrap();
-    const open = await screen.findByRole("button", { name: /Meetup times/ });
-    expect(open.textContent).toContain("Sat 9:00 AM–12:00 PM");
+    const open = await screen.findByRole("button", { name: /Police spot meetup times/ });
+    expect(open.textContent).toContain("Sat 9 AM–12 PM"); // A3-64: the item page's hours format
     fireEvent.click(open);
-    fireEvent.click(screen.getByRole("button", { name: "Save meetup times" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save times" }));
     await waitFor(() => expect(h.saves).toHaveLength(1));
     expect(h.saves[0]).toEqual([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
   });

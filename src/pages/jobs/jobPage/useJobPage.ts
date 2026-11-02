@@ -170,12 +170,31 @@ async function fetchOnCrew(jobId: string, userId: string): Promise<{ on: boolean
  * JA-27: a no-show report closes that Helpr's application (closed_reason 'no_show', report_helper_no_show) and puts
  * the job back up; that row is no applicant any more, and its close time is when the job was reposted.
  */
-async function fetchApplicantCounts(jobId: string): Promise<{ total: number; pending: number; noShowAt: string | null }> {
-  const rows = (unwrap(await supabase.from("applications").select("status, closed_reason, updated_at").eq("job_id", jobId)) ?? []) as { status: string; closed_reason?: string | null; updated_at?: string | null }[];
+type ApplicantRow = { status: string; closed_reason?: string | null; updated_at?: string | null; helper_id?: string | null };
+export type ApplicantCounts = { total: number; pending: number; noShowAt: string | null; helprCancelled: { at: string; helperId: string | null } | null };
+
+/**
+ * Q2669 (audit 1102e row 2): the hired Helpr's cancel (helper_cancel_booking) closes their application (status
+ * 'rejected', closed_reason 'helper_cancelled') and puts the job back up. That row is no applicant ("1 applicant" was the
+ * Helpr who cancelled), and the latest one says who cancelled and when, for the poster's line.
+ */
+export function applicantCounts(rows: ApplicantRow[]): ApplicantCounts {
   const noShows = rows.filter((r) => r.closed_reason === "no_show");
   const noShowAt = noShows.map((r) => r.updated_at ?? "").filter(Boolean).sort().pop() ?? (noShows.length ? "" : null);
-  const live = rows.filter((r) => r.closed_reason !== "no_show");
-  return { total: live.length, pending: live.filter((r) => r.status === "pending").length, noShowAt };
+  const cancels = rows.filter((r) => r.closed_reason === "helper_cancelled" && r.status !== "pending");
+  const last = [...cancels].sort((a, b) => (a.updated_at ?? "").localeCompare(b.updated_at ?? "")).pop() ?? null;
+  const live = rows.filter((r) => r.closed_reason !== "no_show" && !cancels.includes(r));
+  return {
+    total: live.length,
+    pending: live.filter((r) => r.status === "pending").length,
+    noShowAt,
+    helprCancelled: last ? { at: last.updated_at ?? "", helperId: last.helper_id ?? null } : null,
+  };
+}
+
+async function fetchApplicantCounts(jobId: string): Promise<ApplicantCounts> {
+  const rows = (unwrap(await supabase.from("applications").select("status, closed_reason, updated_at, helper_id").eq("job_id", jobId)) ?? []) as ApplicantRow[];
+  return applicantCounts(rows);
 }
 
 /** The job's latest tracking status (Start working lives there, not on the jobs row), or null. RLS: the parties. */

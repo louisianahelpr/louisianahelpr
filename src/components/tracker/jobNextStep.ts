@@ -18,7 +18,9 @@ function laTime(ms: number): string {
 
 export function jobNextStep(
   progress: JobProgressState,
-  o: { side: "poster" | "helpr"; otherFirst?: string | null; pendingApplicants?: number; offerOut?: boolean; offerUntil?: string | null; noShowRepostedOn?: string | null; approveLeft?: string | null; crew?: boolean },
+  o: { side: "poster" | "helpr"; otherFirst?: string | null; pendingApplicants?: number; offerOut?: boolean; offerUntil?: string | null; noShowRepostedOn?: string | null; approveLeft?: string | null; crew?: boolean;
+    /** Q2669: the hired Helpr cancelled and the job went back up (their closed application): who, and when. */
+    helprCancelled?: { name: string | null; at: string } | null },
 ): NextStepValue | null {
   const other = (o.otherFirst ?? "").trim();
   // Off the path (cancelled, expired, under review): where it stands, with its word.
@@ -36,7 +38,10 @@ export function jobNextStep(
   }
   if (o.side === "poster" && progress.stage === 0) {
     const n = o.pendingApplicants ?? 0;
-    if (n > 0) return { who: "you", text: "Choose a Helpr", by: `${n} applied` };
+    // Q2669 (audit 1102e row 2): the page looked like a plain open listing after the hired Helpr cancelled.
+    const gone = o.helprCancelled ? helprCancelledWords(o.helprCancelled) : null;
+    if (gone && n === 0) return { who: "info", text: gone.text, body: gone.next };
+    if (n > 0) return { who: "you", text: "Choose a Helpr", by: `${n} applied`, ...(gone ? { body: gone.body } : {}) };
     // JA-27: a no-show put the job back up; the line says so (the reposted day), never only "Waiting for Helprs".
     if (o.noShowRepostedOn != null) return { who: "info", text: `No-show reported · reposted${o.noShowRepostedOn ? ` ${o.noShowRepostedOn}` : ""}`, by: "waiting for Helprs to apply" };
   }
@@ -68,4 +73,12 @@ export function jobNextStep(
   // Q2600: the line's explanation (a dispute's "who decides and when") is body text under it, never in the bold line.
   if (progress.body) v.body = progress.body;
   return keepCase ? { ...v, keepCase } : v;
+}
+
+/** "Eli cancelled Mon 6:00 AM" and the next step: the job is open again (helper_cancel_booking reopens it). */
+function helprCancelledWords(c: { name: string | null; at: string }): { text: string; next: string; body: string } {
+  const atMs = Date.parse(c.at);
+  const text = `${(c.name ?? "").trim() || "Your Helpr"} cancelled${Number.isNaN(atMs) ? "" : ` ${laTime(atMs)}`}`;
+  const next = "Your job is open again, so other Helprs can apply.";
+  return { text, next, body: `${text}. ${next}` };
 }

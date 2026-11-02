@@ -609,14 +609,8 @@ export function CheckoutStep({
           genuinely useful prep rather than a distraction from checkout. */}
 
 
-      {/* "Save card for next time" — optional opt-in passed through to
-          the create-payment edge function. Default off, sticky in
-          localStorage so a returning poster who turned it on once
-          doesn't have to re-tap it every post.
-          Q2143: the saved card is the ONE wallet card (owner 2026-10-18), so it is also the card any automatic
-          charge the member turned on uses (auto-tip). Both lines say so, in Declutter's words. A repeating job
-          FORCES the save (useJobSubmit: saveCardForFuture || isRecurring), because every later visit is charged to
-          it, so the switch shows on and locked there instead of an off switch that is ignored. */}
+      {/* "Save card for next time": opt-in to create-payment, sticky in localStorage. Q2143: it is the ONE wallet card
+          (owner 2026-10-18), also used by automatic charges; a repeating job forces the save (useJobSubmit), so on+locked. */}
       {setSaveCardForFuture && (
         <label
           htmlFor="save-card"
@@ -643,22 +637,8 @@ export function CheckoutStep({
       {/* Preferred helper shortcut — shown when the poster has a trusted
           repeat helper. Lets them route this job to that helper first
           before broadcasting to all. Preference stored in job metadata. */}
-      {/* This row used to use a RAW `<input type="checkbox">` with an
-          `accent-` colour, inside a plain `<div>`. That made three different
-          control types on one checkout screen — a Switch above, a native
-          checkbox here, the design-system Checkbox below — for choices that
-          are all just "on or off".
-
-          It was also the only one that wasn't accessible: 20×20px with no
-          wrapping label, so the tap target was the box itself. The
-          confirmation card immediately below already solved exactly this
-          (its comment explains the full-card `<label>` trick for WCAG 2.5.5)
-          — this row simply never got the same treatment.
-
-          Now a `<label>` + the shared Checkbox, matching that card. Two
-          control types remain, and the split is meaningful rather than
-          accidental: Switch for a sticky account PREFERENCE ("save card for
-          next time"), Checkbox for a per-job CHOICE or consent. */}
+      {/* A label + the shared Checkbox (was a raw 20 px checkbox: one more control type, no tap target; WCAG 2.5.5).
+          Switch is for a sticky account PREFERENCE (save card), Checkbox for a per-job CHOICE or consent. */}
 
       {/* Confirmation Checkbox — the full card is a <label> so tapping
           anywhere on it toggles the checkbox. This makes the tap target

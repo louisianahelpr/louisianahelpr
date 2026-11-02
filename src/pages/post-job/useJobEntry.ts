@@ -218,7 +218,8 @@ export function useJobEntry(params: UseJobEntryParams) {
    * Pre-fills the form from a sample-job template, so a template picked on
    * the entry screen lands the user on an identical pre-filled form.
    */
-  const applyTemplateFields = (sample: SampleJob) => {
+  // A seasonal template (src/data/seasonalJobs.ts, Q2016) has no price field at all; every template is read the same.
+  const applyTemplateFields = (sample: Pick<SampleJob, "id" | "category" | "title" | "description" | "typical_duration_minutes">) => {
     // Owner, 2026-10-21: a template starts a NEW job. Everything from an earlier job or draft goes
     // first (title, description, category, photos, price, urgent, crew, schedule, offer); only the
     // poster's address stays. Then the template's own fields.

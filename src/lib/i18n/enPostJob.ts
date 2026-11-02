@@ -82,6 +82,7 @@ export const enPostJob = {
   "postJob.aiH": "In your own words. AI fills in the form, and you check it.",
   "postJob.repostH": "The quickest way to ask for the same help again.",
   "postJob.showFewer": "Show fewer",
+  "postJob.inSeason": "In season",
   "postJob.showAllTemplates": "Show all {count} templates",
   "postJob.noRecent": "No recent jobs to repost yet.",
   "postJob.draftTitle": "Pick up your draft",

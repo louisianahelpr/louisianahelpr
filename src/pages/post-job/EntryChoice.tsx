@@ -8,6 +8,7 @@ import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
 import { sampleJobs } from "@/data/sampleJobs";
+import { inSeasonJobs } from "@/data/seasonalJobs";
 import { usePostedBefore, useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
@@ -136,9 +137,14 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // four by default and reveal the rest on "Show all" — the full set now
   // lives entirely on this entry step (the in-form template picker was
   // removed), so there's no longer a link that pushed into an empty form.
-  const quickTemplates = sampleJobs.slice(0, 4);
+  // Q2016 Louisiana seasons: the in-season templates (storm prep, crawfish boils, ...) come first, marked
+  // "In season". They carry no price (La. R.S. 29:732; src/data/seasonalJobs.ts).
+  const inSeason = inSeasonJobs();
+  const seasonalIds = new Set(inSeason.map((j) => j.id));
+  const allTemplates = [...inSeason, ...sampleJobs];
+  const quickTemplates = allTemplates.slice(0, 4);
   const [showAllTemplates, setShowAllTemplates] = useState(false);
-  const visibleTemplates = showAllTemplates ? sampleJobs : quickTemplates;
+  const visibleTemplates = showAllTemplates ? allTemplates : quickTemplates;
 
   // Last 3 jobs this poster has created — shown as "Repost" tiles so a
   // returning user can spin up a near-duplicate request in one tap. The
@@ -315,17 +321,20 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                     {sample.icon}
                   </span>
                   <p className="font-sans text-ds-14 font-semibold leading-tight text-foreground">{sample.title}</p>
+                  {seasonalIds.has(sample.id) && (
+                    <p className="mt-1 font-sans text-ds-12 font-semibold text-[hsl(var(--bark))]">{t("postJob.inSeason")}</p>
+                  )}
                 </button>
               ))}
             </div>
-            {sampleJobs.length > quickTemplates.length && (
+            {allTemplates.length > quickTemplates.length && (
               <button
                 type="button"
                 onClick={() => setShowAllTemplates((v) => !v)}
                 aria-expanded={showAllTemplates}
                 className="min-h-[44px] font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]"
               >
-                {showAllTemplates ? t("postJob.showFewer") : t("postJob.showAllTemplates", { count: sampleJobs.length })}
+                {showAllTemplates ? t("postJob.showFewer") : t("postJob.showAllTemplates", { count: allTemplates.length })}
               </button>
             )}
           </>

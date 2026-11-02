@@ -24,6 +24,7 @@ export interface SampleJob {
     | "delivery"
     | "pet_care"
     | "assembly"
+    | "events"
     | "other";
   /** Short emoji label rendered on the chip. */
   icon: string;

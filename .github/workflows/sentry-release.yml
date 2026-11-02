@@ -142,7 +142,7 @@ jobs:
 
       - name: Create Sentry release and upload source maps
         if: steps.check-secrets.outputs.configured == 'true'
-        uses: getsentry/action-release@6fb9aeade7061441cf3864e34fbe11a1457ad7dc # v3.7.1
+        uses: getsentry/action-release@e6703d0b00208e0b3687ba660d18ab5af7892821 # v3.7.2
         with:
           # Use the commit SHA as the release name so it's unique per build
           # and matches what Sentry sees from the running client at runtime.

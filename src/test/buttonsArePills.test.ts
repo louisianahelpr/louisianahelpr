@@ -26,7 +26,7 @@
  * Cards, inputs, sheets, chips and avatars are not buttons and are not read.
  *
  * @mutate src/components/ui/button.tsx | whitespace-nowrap rounded-full text-ds-15 | whitespace-nowrap rounded-ds-md text-ds-15
- * @mutate src/components/dashboard/EmptyFeedActions.tsx | <Button onClick={gate("post", () => navigate("/post-job"))} {...gatedProps("post")}> | <Button onClick={gate("post", () => navigate("/post-job"))} {...gatedProps("post")} className="rounded-ds-md">
+ * @mutate src/components/ui/EmptyStateActions.tsx | <Button variant="ghost" size="wrap" onClick={secondary.onClick} className="font-sans font-medium max-w-full" | <Button variant="ghost" size="wrap" onClick={secondary.onClick} className="font-sans font-medium max-w-full rounded-ds-md"
  * @mutate src/components/sections/AppTopBar.tsx | "h-10 w-10 shrink-0 self-center btn-press | "h-10 w-10 shrink-0 self-center rounded-ds-md btn-press
  * @mutate src/components/series/SeriesDatesPanel.tsx | btn-grad-primary min-h-[44px] px-4 rounded-full text-ds-12 | btn-grad-primary min-h-[44px] px-4 rounded-ds-md text-ds-12
  * @mutate src/components/series/SeriesDatesPanel.tsx | "min-h-[44px] px-3 rounded-full text-ds-11 font-semibold border border-border disabled:opacity-40" | "min-h-[44px] px-3 rounded-ds-md text-ds-11 font-semibold border border-border disabled:opacity-40"

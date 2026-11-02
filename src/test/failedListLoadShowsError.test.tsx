@@ -173,7 +173,7 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
 
   it("a real empty board has a plain title with no name and no em dash", () => {
     renderFeed({});
-    expect(screen.queryByText("No jobs near you right now.")).not.toBeNull();
+    expect(screen.queryByText("No jobs near you yet.")).not.toBeNull();
     expect(screen.queryByText("New jobs show up here as people post them.")).not.toBeNull();
     expect(document.body.textContent).not.toMatch(/Nothing today|neighbor\.|\u2014/);
   });
@@ -204,4 +204,4 @@ describe("Browse feed: a failed jobs query shows the error state", () => {
 // @mutate src/pages/home/Dashboard.tsx | count: wantsQuotes \|\| feedShowingLoadError ? undefined : headerCount | count: wantsQuotes ? undefined : headerCount
 // @mutate src/pages/home/Dashboard.tsx |                     offline={feedOfflineEmpty} |
 // @mutate src/components/BrowseMap.tsx |   if ((loadError \|\| !online) && visibleJobs.length === 0) { |   if (loadError && visibleJobs.length === 0) {
-// @mutate src/components/dashboard/BrowseTasksFeed.tsx |               : "No jobs near you right now." |               : "Nothing today, neighbor."
+// @mutate src/components/dashboard/BrowseTasksFeed.tsx |               : "No jobs near you yet." |               : "Nothing today, neighbor."

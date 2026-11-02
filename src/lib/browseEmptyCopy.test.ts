@@ -10,7 +10,7 @@
  * presume a history the person may not have.
  *
  * @mutate src/lib/browseEmptyCopy.ts |   const searchOnly = !!q && i.activeFilterCount <= 1; |   const searchOnly = false;
- * @mutate src/components/dashboard/EmptyFeedActions.tsx | strokeWidth={2.25} />\n        Post a job | strokeWidth={2.25} />\n        Post Your First Job
+ * @mutate src/components/dashboard/EmptyFeedActions.tsx | label: "Post a job" | label: "Post Your First Job"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -50,7 +50,7 @@ describe("J10: a search miss is named as a search", () => {
 describe("J8: the empty feed's buttons presume nothing", () => {
   it("'Post a job', sentence case, never 'your first'", () => {
     const src = blankComments(readFileSync(resolve(ROOT, "src/components/dashboard/EmptyFeedActions.tsx"), "utf8"));
-    expect(src).toMatch(/>\s*Post a job\s*</);
+    expect(src).toMatch(/label: "Post a job"/);
     expect(src).toMatch(/Notify me when one lands/);
     expect(src).not.toMatch(/[Yy]our [Ff]irst/);
   });

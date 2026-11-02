@@ -29,7 +29,7 @@
  * Owner 2026-10-30: nothing for sale at all is a real empty state (Sell something, Post what you're looking for).
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | others.length === 0 ? "Nothing for sale near you yet." | others.length === 0 ? "Opens soon"
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |               !searched && others.length === 0 ? <NothingForSaleActions guest={!member} /> : |               false ? <NothingForSaleActions guest={!member} /> :
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |       {wanted && ( |       {true && (
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |         secondary={wanted ? { |         secondary={true ? {
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side && (!scope \|\| !l.order_id \|\| scope(l.order_id))); |   const lines = (cart.data ?? []).filter((l) => !scope \|\| !l.order_id \|\| scope(l.order_id));
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine" \|\| view === "sales") return "selling"; |   if (view === "mine" \|\| view === "sales") return "buying";
  * @mutate src/lib/declutter/tabs.ts |   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying"; |   return "buying";
@@ -440,8 +440,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const empty = at("/declutter");
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.queryByText("Opens soon")).toBeNull();
-    // With Wanted on, the line names both ways (b29: it says only "Be the first to sell something." without it).
-    expect(screen.getByText("Be the first to sell something, or say what you're looking for.")).toBeInTheDocument();
+    // Owner 11-02 (1.0.4): one line, the same shape as Jobs' ("New jobs show up here as people post them.").
+    expect(screen.getByText("New items show up here as neighbors list them.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Post what you're looking for" })).toHaveAttribute("href", "/declutter?tab=wanted");
     expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
     empty.unmount();

@@ -16,8 +16,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import { compareJobsBySortMode } from "@/lib/smartSort";
-import { useProfile } from "@/hooks/useProfile";
-import { useHelprActivity } from "@/hooks/useHelprActivity";
 import { useNotifyWhenWorkLands } from "@/hooks/useNotifyWhenWorkLands";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
@@ -152,17 +150,6 @@ export function BrowseTasksFeed({
   // the generic "neighbor" the guest screen uses. Falls back to "neighbor"
   // when we don't yet have a name (unauthed OR still-loading profile) so
   // the copy never reads as broken.
-  const { data: myProfile } = useProfile(user?.id ?? null);
-  // Supply-side proof for the EMPTY feed (audit F1/L7). This exact signal was
-  // already built and shown on checkout — where it preaches to someone who has
-  // already decided to pay. Here it is the difference between "this
-  // marketplace is dead" and "this marketplace is waiting for you".
-  //
-  // Same RPC, same restraint rule: the hook returns null below 3 helprs, so a
-  // genuinely thin parish shows nothing rather than a discouraging number.
-  const { activity: helprActivity } = useHelprActivity(
-    (myProfile as { parish?: string | null } | null)?.parish ?? null,
-  );
   // Lift the viewer's cached coords out of filters.userLoc — or fall back
   // to the module-level cache populated by any prior useUserLocation()
   // call elsewhere (the BrowseMap, the "nearby" filter, JobTracking) so
@@ -435,22 +422,16 @@ export function BrowseTasksFeed({
           title={
             filters.hasFilters
               ? filtered.title
-              : "No jobs near you right now."
+              : "No jobs near you yet."
           }
           body={
             filters.hasFilters
               ? filters.boostedOnly
                 ? "No boosted jobs right now. Clear the filter to see all open work."
                 : filtered.body
-              // Supply-side proof when we have an honest number for it. An
-              // empty feed reads as "this marketplace is dead"; the parish
-              // count reframes it as "waiting for a job", which is what is
-              // actually true. Same sentence the checkout uses, so the claim
-              // stays identical on both screens — and it simply falls back to
-              // the original copy when the hook withholds a thin count.
-              : helprActivity
-                ? `${helprActivity.count} Helprs have worked jobs in ${helprActivity.parish}. New jobs show up here as people post them.`
-                : "New jobs show up here as people post them."
+              // Owner 11-02 (1.0.4): one line, the same shape as Declutter's ("New items show up here as neighbors list
+              // them."); the parish count left this screen (it stays on checkout, HelprActivityNote).
+              : "New jobs show up here as people post them."
           }
           footnote={filters.hasFilters ? undefined : <OwnOpenJobsNote userId={user?.id} />}
           action={

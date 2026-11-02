@@ -15,7 +15,8 @@ import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRe
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sofa } from "lucide-react";
+import { Search, Sofa } from "lucide-react";
+import { EmptyStateActions } from "@/components/ui/EmptyStateActions";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
@@ -34,7 +35,6 @@ import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { SectionScreen } from "@/components/sections/SectionScreen";
-import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { hasExtras } from "@/lib/savedSearches";
 import { FiltersIconButton } from "@/components/dashboard/browseTasksToolbar/FiltersIconButton";
@@ -125,19 +125,17 @@ function WantedLink({ query = "", category = null }: { query?: string; category?
  */
 function NothingForSaleActions({ guest }: { guest: boolean }) {
   const wanted = useFeature("declutter_wanted");
+  // Owner 11-02 (1.0.4): the same layout as Jobs' empty Browse (EmptyStateActions): "+ Sell something", then the quiet
+  // "Post what you're looking for" link. A guest can't sell yet (lead 10-31): Sign up to sell, back to the chooser after.
   return (
-    <div className="flex flex-col items-center gap-2" data-nothing-for-sale="">
-      {/* A guest can't sell yet (lead 10-31): Sign up to sell, coming back to the sell chooser after. */}
-      {guest ? (
-        <BarkPillButton asChild><Link to={`/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}`}>Sign up to sell</Link></BarkPillButton>
-      ) : (
-        <BarkPillButton asChild><Link to={SELL_CHOOSER_PATH}>Sell something</Link></BarkPillButton>
-      )}
-      {wanted && (
-        <Button asChild variant="outline" className="rounded-full">
-          <Link to="/declutter?tab=wanted">Post what you're looking for</Link>
-        </Button>
-      )}
+    <div data-nothing-for-sale="">
+      <EmptyStateActions
+        primary={guest
+          ? { label: "Sign up to sell", to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` }
+          : { label: "Sell something", to: SELL_CHOOSER_PATH }}
+        secondary={wanted ? { label: "Post what you're looking for", to: "/declutter?tab=wanted" } : null}
+        secondaryIcon={Search}
+      />
     </div>
   );
 }
@@ -153,8 +151,6 @@ const BROWSE_URL_WAIT_MS = 300;
 export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; tabs: (browse: DeclutterBrowseHeader) => ReactNode; top?: ReactNode }) {
   const desktop = useIsWebDesktop();
   const member = userId !== null;
-  // The empty state offers "say what you're looking for" only with the Wanted pill beside it (guests never have it).
-  const wantedOn = useFeature("declutter_wanted") && member;
   const [params, setParams] = useSearchParams();
   const [start] = useState(() => browseStateFromParams(params));
   // BUY-53: from a saved search, the listings its "N new" counted wear the New tag.
@@ -385,7 +381,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
             title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? "Nothing for sale near you yet." : "Nothing for sale this close."}
             // The category line no longer says "tap it again": the category chips left Browse for the filter sheet
             // (owner 2026-10-21); the Clear button below is the way back to everything.
-            body={q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? (wantedOn ? "Be the first to sell something, or say what you're looking for." : "Be the first to sell something.") : "Try a bigger distance."}
+            body={q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "New items show up here as neighbors list them." : "Try a bigger distance."}
             action={
               // Owner 2026-10-30 (via the lead): nothing for sale at all is a real empty state for everyone who has
               // Declutter, never "Opens soon": Sell something, and Post what you're looking for (NothingForSaleActions).

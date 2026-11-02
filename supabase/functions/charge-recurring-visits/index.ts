@@ -549,6 +549,72 @@ serve(async (req) => {
   // visit row's own session prefix, else its payer (Q1759, visitMoneyClient).
   const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
 
+  // Q1759 (lh-money-escrow review of the test-mode branch): closing a visit's
+  // open Checkout or refunding a PAID visit moves money ALREADY taken, so it
+  // runs where that money sits: the row's own Checkout Session (cs_test_ /
+  // cs_live_), else its payer alone (a refund needs only the payer). It used
+  // to be decided as NEW money from every party on the series plus the
+  // visit's Helpr, so a real payer's series with a test Helpr on a visit was
+  // skipped as a mix instead of refunded, every run. Sandbox money of a real
+  // payer stays on the live key (the payer alone decides that here, where
+  // jobMoneyMode would count every party on a job; a deleted payer counts as
+  // live): only sandbox money can land on the wrong key, and it is then
+  // skipped as a test object under the live key, never moved.
+  const visitMoneyClient = async (row: Record<string, unknown>) => {
+    const stored = sessionIdMode(row.stripe_session_id as string | null);
+    // A cs_live_ session is real money whoever the payer is: no lookup, so a
+    // failed test-account read never holds back a live refund or expiry.
+    const mode = stored === "live"
+      ? "live"
+      : (await stripes.modeForParties([row.payer_id as string | null], "refund")) === "live" ? "live" : stored ?? "test";
+    return { mode, stripe: stripes.clientFor(mode) };
+  };
+
+  /**
+   * Q2245 (c): closes a lapsed holder's still-open visit Checkout and expires
+   * its row, the visit-date sweep's way (Q1247 (c)): the Checkout is closed
+   * BEFORE the row, and a session Stripe will not expire is read back.
+   * null = closed and expired; "completed" = it was paid meanwhile (the
+   * webhook marks the row paid; the date stays); otherwise the problem (the
+   * Checkout may still take money, so the date stays this run).
+   */
+  const closeLapsedVisitCheckout = async (vp: VisitPaymentRow): Promise<string | null> => {
+    const sessionId = vp.stripe_session_id ? String(vp.stripe_session_id) : null;
+    if (sessionId) {
+      let stripe: Stripe;
+      try {
+        ({ stripe } = await visitMoneyClient(vp as unknown as Record<string, unknown>));
+      } catch (modeErr) {
+        if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
+        return `visit payment ${vp.id}: stripe mode ${modeErr.reason}: ${modeErr.message}; its Checkout was not closed`;
+      }
+      try {
+        await stripe.checkout.sessions.expire(sessionId);
+      } catch (e) {
+        let closed = false;
+        try {
+          const cs = await stripe.checkout.sessions.retrieve(sessionId);
+          if (cs?.status === "complete") return "completed";
+          closed = cs?.status === "expired";
+        } catch (readErr) {
+          closed = isTestObjectUnderLiveKey(readErr);
+          if (closed) logTestObjectUnderLiveKey("charge-recurring-visits", { visit_payment_id: vp.id, object: "checkout_session", id: sessionId });
+        }
+        if (!closed) return `visit payment ${vp.id}: Checkout ${sessionId} of a Helpr who is not ready could not be closed (${caughtMessage(e)}); the date stays this run`;
+      }
+    }
+    const { data: exp, error: expErr } = await supabase
+      .from("recurring_visit_payments")
+      .update({ status: "expired", updated_at: new Date().toISOString() })
+      .eq("id", vp.id)
+      .eq("status", "pending")
+      .select("id");
+    if (expErr) return `visit payment ${vp.id}: its closed Checkout's row could not be expired (${expErr.message}); the date stays this run`;
+    // Zero rows: the webhook marked it paid a moment ago; the date stays.
+    if (!exp || exp.length === 0) return "completed";
+    return null;
+  };
+
   const today = louisianaToday();
   const horizon = addDays(today, FUND_LEAD_DAYS);
 
@@ -777,26 +843,6 @@ serve(async (req) => {
       }
     }
     const overIds = new Set(seriesOverRows.map((r) => String(r.id)));
-    // Q1759 (lh-money-escrow review of the test-mode branch): closing a visit's
-    // open Checkout or refunding a PAID visit moves money ALREADY taken, so it
-    // runs where that money sits: the row's own Checkout Session (cs_test_ /
-    // cs_live_), else its payer alone (a refund needs only the payer). It used
-    // to be decided as NEW money from every party on the series plus the
-    // visit's Helpr, so a real payer's series with a test Helpr on a visit was
-    // skipped as a mix instead of refunded, every run. Sandbox money of a real
-    // payer stays on the live key (the payer alone decides that here, where
-    // jobMoneyMode would count every party on a job; a deleted payer counts as
-    // live): only sandbox money can land on the wrong key, and it is then
-    // skipped as a test object under the live key, never moved.
-    const visitMoneyClient = async (row: Record<string, unknown>) => {
-      const stored = sessionIdMode(row.stripe_session_id as string | null);
-      // A cs_live_ session is real money whoever the payer is: no lookup, so a
-      // failed test-account read never holds back a live refund or expiry.
-      const mode = stored === "live"
-        ? "live"
-        : (await stripes.modeForParties([row.payer_id as string | null], "refund")) === "live" ? "live" : stored ?? "test";
-      return { mode, stripe: stripes.clientFor(mode) };
-    };
     for (const row of [...(stale ?? []), ...seriesOverRows]) {
       let stripe: Stripe;
       try {
@@ -1095,7 +1141,7 @@ serve(async (req) => {
             await postSlackOpsAlert({
               kind: "custom",
               severity: "critical",
-              title: "A lapsed Helpr's card fee could not be billed, so a poster's visit refund is waiting",
+              title: "Lapsed Helpr bill failed",
               message: `${pi} (visit on ${row.visit_date}) is owed back to the poster IN FULL, but billing its Helpr the card fee failed: ${billProblem}. Nothing was refunded; each run retries the bill first. Fix the bill (bill_helpr_card_fee_debt, recurring_visit_payments ${row.id}), or refund the poster by hand and bill the Helpr after.`,
               fields: { payment_intent: pi, parent_job_id: String(row.parent_job_id), visit_date: String(row.visit_date) },
               oncePerDayKey: `visit-sweep-lapsed-bill:${row.id}`,
@@ -1350,7 +1396,7 @@ serve(async (req) => {
           .in("visit_date", due),
         supabase
           .from("recurring_visit_payments")
-          .select("id, visit_date, status, budget_cents, fee_cents, tax_cents, amount_cents, fee_percent, tax_calculation_id, stripe_payment_intent_id")
+          .select("id, visit_date, status, budget_cents, fee_cents, tax_cents, amount_cents, fee_percent, tax_calculation_id, stripe_payment_intent_id, stripe_session_id, payer_id")
           .eq("parent_job_id", parent.id)
           .in("visit_date", due)
           .in("status", ["pending", "paid"]),
@@ -1494,10 +1540,10 @@ serve(async (req) => {
       // path (the poster is told the date is open again) and the holder is
       // told why, never a silent skip; their later dates stay theirs, so
       // finishing setup before those come due still books them. A due date
-      // with an OPEN visit payment (pending Checkout or paid) is never
-      // released (lh-authz-rls review 2026-10-20, finding 2: a released date's
-      // Checkout stayed payable, and a payment on a date nobody holds is
-      // refunded less the card fee); it stays held and unbooked, the holder is
+      // with a PAID visit payment is never released (lh-authz-rls review
+      // 2026-10-20, finding 2: a payment on a date nobody holds is refunded
+      // less the card fee); one with a still-open Checkout has it closed first
+      // and is then released (Q2245 (c)). A paid date stays held and unbooked, the holder is
       // told, and the visit-date sweep settles the payment as an unbooked visit
       // whose hold still stands (a full refund). The stored reason names
       // nothing about the Helpr (series parties can read it), as Q1802's does.
@@ -1520,6 +1566,21 @@ serve(async (req) => {
         for (const [helperId, why] of notReadyHolders) {
           const dates = dueNow.filter((d) => !alreadyThere.has(d) && holders.get(d)?.helper_id === helperId).sort();
           if (dates.length === 0) continue;
+          // Q2245 (c) (owner MASTER-LIST 2026-10-21): a due date whose visit
+          // Checkout is still OPEN is closed first, as the visit-date sweep
+          // closes one, so no poster pays for a visit whose Helpr is not ready.
+          // Closed (and its row expired), the date holds no open payment and is
+          // released like any other; a Checkout that completed meanwhile, or
+          // one that could not be closed, keeps the date (a paid one is
+          // refunded in full by the sweep, and the lapsed Helpr billed the
+          // card fee, Q2245 (b)).
+          for (const d of dates) {
+            const vp = visitPayments.get(d);
+            if (vp?.status !== "pending") continue;
+            const closeProblem = await closeLapsedVisitCheckout(vp);
+            if (closeProblem === null) visitPayments.delete(d);
+            else if (closeProblem !== "completed") fail(`series ${parent.id}: ${closeProblem}`);
+          }
           const kept = dates.filter((d) => visitPayments.has(d));
           const toRelease = dates.filter((d) => !visitPayments.has(d));
           let gone: string[] = [];
@@ -1568,8 +1629,8 @@ serve(async (req) => {
           }
           // A kept date (open visit payment) is not booked either: the poster
           // hears it now, never only on the visit date (lh-authz-rls re-review
-          // 2026-10-20 #1c). Who bears the card fee if it is never booked, and
-          // closing a still-open Checkout here, are Q2245 (owner + money review).
+          // 2026-10-20 #1c). A still-open Checkout was closed above (Q2245 (c));
+          // a paid kept date is refunded in full and its lapsed Helpr billed (Q2245 (b)).
           if (kept.length > 0 && parent.customer_id) {
             const posterLink = `/posts?job=${parent.id}`;
             const { data: pn, error: pnErr } = await supabase.from("notifications").insert({
@@ -2959,6 +3020,8 @@ type VisitPaymentRow = {
   fee_percent: number | string;
   tax_calculation_id: string | null;
   stripe_payment_intent_id: string | null;
+  stripe_session_id?: string | null;
+  payer_id?: string | null;
 };
 
 /** paid -> funded/refunded. Conditional on 'paid' so two runs cannot both settle. */

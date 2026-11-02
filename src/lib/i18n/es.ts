@@ -134,7 +134,7 @@ export const es: Record<MsgKey, string> = {
   "signup.zipExample": "p. ej. 70801",
   "signup.about": "Sobre usted",
   "signup.aboutPlaceholder": "Cuéntenos un poco sobre usted: si busca trabajo o necesita ayuda en la casa…",
-  "signup.aboutHelp": "La descripción es opcional; puede agregarla después desde su perfil.",
+  "signup.aboutHelp": "Puede agregarla después desde su perfil.",
   "signup.creating": "Creando la cuenta…",
   "signup.create": "Crear cuenta",
   "signup.skip": "Omitir y crear cuenta",
@@ -144,7 +144,7 @@ export const es: Record<MsgKey, string> = {
   "signup.referralHelp": "¿Un amigo le dio un código? Escríbalo y los dos recibirán $5 cuando usted termine su primer trabajo.",
 
   // Sign up (the page: step titles, checks, messages)
-  "signup.aboutTitle": "Sobre usted",
+  "signup.aboutTitle": "Un poco sobre usted",
   "signup.zipInvalid": "Escriba un código postal de 5 dígitos",
   "signup.bioShort": "Escriba al menos 20 caracteres, o déjelo en blanco por ahora",
   "signup.firstNameToast": "Escriba su nombre.",

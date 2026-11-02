@@ -87,9 +87,11 @@ export const HELPER_QUICK_TAGS = [
   "Would hire again",
 ];
 
+// A3-58 (audit 11-01): "Paid fast" rated the poster on OUR timing (the poster pays at booking; the Helpr is paid
+// after approval, at payout_scheduled_at). "Approved quickly" is the step the poster controls.
 export const POSTER_QUICK_TAGS = [
   "Clear about the job",
-  "Paid fast",
+  "Approved quickly",
   "Friendly",
   "Would work again",
 ];
@@ -107,10 +109,11 @@ export const RETIRED_QUICK_TAGS = [
   "Friendly & helpful",
   "Clear instructions",
   "Job as described",
-  "Approved quickly",
   "Respectful",
   "Easy to work with",
   "Would work with again",
+  // A3-58 (11-01): offered to Helprs rating a poster until then; stored rows keep it.
+  "Paid fast",
 ];
 
 export const quickTagsFor = (role: RevieweeRole): string[] =>

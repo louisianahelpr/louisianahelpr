@@ -42,7 +42,6 @@ import { endSentence } from "@/lib/endSentence";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import { DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
 import { LISTED_PAYMENT_STATUSES } from "../../../supabase/functions/_shared/listedPaymentStatus";
-import { loadModule } from "@/lib/loadModule";
 
 /** Q1922: a haul-away's items some of which could not be put back on sale after a failed booking. */
 export const HAUL_AWAY_NOT_BACK_COPY = "Some items are still off sale. Put them back from Selling in Declutter.";
@@ -50,7 +49,9 @@ export const HAUL_AWAY_NOT_BACK_COPY = "Some items are still off sale. Put them 
 const stillOffSaleMessage = (notBack: number) => (notBack > 0 ? ` ${HAUL_AWAY_NOT_BACK_COPY}` : "");
 
 // Declutter haul-away: loaded only for a haul-away post (off the critical path, Q178).
-const haulAwayLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
+// Q1967: as a BACKGROUND import (as the Add a Helpr link): a stale chunk across a deploy is a failed load the
+// callers below already handle, never a recovery reload between the job row and the checkout redirect.
+const haulAwayLib = () => backgroundImport(() => import("@/lib/declutter/haulAway"), "declutter-haul-away");
 // The relink sites below run inside try/catch blocks that report and keep the job: a load that came back empty
 // during a recovery reload goes the same way as a failed one, never a TypeError.
 const haulAwayLibLoaded = async () => {

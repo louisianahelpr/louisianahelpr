@@ -393,7 +393,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // they are doing (the Helpr's Start working is not on the job row; the card's line says when it comes).
   // "is working" exactly when the bar's Working step has begun (workHasBegun, the same rule as JobProgressState.begun
   // and the poster's card line), so the line and the step colour can never disagree.
-  if (working) return at(6, !poster, "Working", poster ? (workHasBegun(job, { workUnderway: o.workUnderway }) ? `${other} is working` : `${other} is at the job`) : "Complete the job when you finish", held);
+  if (working) return at(6, !poster, "Working", poster ? (workHasBegun(job, { workUnderway: o.workUnderway }) ? `${other} is working` : `${other} is at the job`) : "Mark it done when you finish", held);
   if (job.helper_arrived_at) {
     return at(5, poster, "Arrived", poster ? `${other} arrived. Confirm they've arrived` : `You've arrived. Waiting on ${otherLow} to confirm`, held);
   }

@@ -33,7 +33,7 @@ describe("continueDayNextStep", () => {
     expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-02T12:00:00Z" }), { side: "poster", otherFirst: "Yusef" })!)).toBe("Yusef confirmed Thu 11/5 at 9 AM");
     expect(nextStepWords(continueDayNextStep(row(), { side: "helpr", otherFirst: "Dana" })!)).toBe("Next: confirm you'll be there · continuing Thu 11/5 at 9 AM");
     expect(nextStepWords(continueDayNextStep(row({ helper_confirmed_at: "2026-11-05T12:00:00Z" }), { side: "helpr", otherFirst: "Dana" })!))
-      .toBe("You're set for Thu 11/5 at 9 AM · complete the job when you finish");
+      .toBe("You're set for Thu 11/5 at 9 AM · mark it done when you finish");
   });
 
   it("a Helpr's ask is the poster's move (one tap), and the Helpr waits on them", () => {

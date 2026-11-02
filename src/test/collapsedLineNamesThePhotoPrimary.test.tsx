@@ -214,7 +214,8 @@ describe("the collapsed strip names the tracker's next step (Start working)", ()
       const unlocked = arrivalEstablished(job);
       const where = `expanded step "${step}", primary "${photo ?? `tracker (Start working ${unlocked ? "unlocked" : "locked on the arrival rule"})`}", collapsed strip "${text}"`;
       expect(/after photo/i.test(text), where).toBe(photo === "Take after photo");
-      expect(text.includes(START), where).toBe(step === "on_site" && unlocked);
+      // Case aside: a "Day passed — tap Start" line names the same button.
+      expect(text.toLowerCase().includes(START.toLowerCase()), where).toBe(step === "on_site" && unlocked);
       expect(/confirm you arrived|arrival not confirmed/i.test(text), where).toBe(step === "on_site" && !unlocked);
       expect(/finish and mark it done/i.test(text), where).toBe(step === "working" && photo === null);
     });

@@ -8,6 +8,9 @@
  */
 import type { JobPageRow } from "@/pages/jobs/jobPage/useJobPage";
 
+/** The sample-table key for a series' visits (the jobs the page reads by parent_job_id). A key, not a request path. */
+export const SERIES_VISITS_KEY = "series_visits";
+
 export const PREVIEW_STAGES = [
   // The tracker's eight steps, in its order (jobProgressState.ts JOB_PROGRESS_STEPS).
   { key: "posted", label: "Posted" },
@@ -302,7 +305,7 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       applications = [accepted];
       // The series' visits (the jobs read by parent_job_id): this one, and the next three, all with the same Helpr.
       extraTables = {
-        "jobs?parent_job_id": [3, 5, 10, 12].map((d) => ({ date_needed: isoDate(now + d * DAY), status: "accepted", helper_id: PREVIEW_HELPR_ID })),
+        [SERIES_VISITS_KEY]: [3, 5, 10, 12].map((d) => ({ date_needed: isoDate(now + d * DAY), status: "accepted", helper_id: PREVIEW_HELPR_ID })),
       };
       break;
     case "late_cancel_poster":

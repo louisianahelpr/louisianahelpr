@@ -24,9 +24,11 @@ export const DECLUTTER_PREVIEW_STAGES = [
   { key: "handed_over", label: "Handed over" },
   { key: "refund", label: "Refunded" },
   { key: "problem", label: "Problem reported" },
+  { key: "problem_seller", label: "Problem reported by the seller" },
   { key: "cancelled", label: "Ran out (cancelled)" },
   { key: "haul_away", label: "Haul-away" },
-  { key: "donation", label: "Donation" },
+  { key: "donation", label: "Donation (charity chosen)" },
+  { key: "donated", label: "Donated (receipt)" },
 ] as const;
 
 export type DeclutterPreviewStage = (typeof DECLUTTER_PREVIEW_STAGES)[number]["key"];
@@ -191,20 +193,39 @@ export function declutterPreviewSample(stage: DeclutterPreviewStage, side: Declu
       // Q2630: a refunded order says how much came back (declutter_my_refunded_cents): here the whole $42.70.
       return withReads({ ...base, cart: [paid("pickup_home", { order_status: "refunded", closed_at: hoursFrom(now, -5) })], handovers: { [ORDER_ID]: handover(side) } },
         { declutter_my_refunded_cents: [{ order_id: ORDER_ID, refunded_cents: 4270 }] });
+    case "problem_seller":
+      // Audit 1102c P5 (Q2623): a problem the SELLER reported (the old sample always said the buyer did).
+      return withReads({ ...base, cart: [paid("pickup_home")], handovers: { [ORDER_ID]: handover(side) },
+        problems: [{ id: PROBLEM_ID, order_id: ORDER_ID, reporter_side: "seller", reason: "other" }] }, {
+        declutter_order_problem: { id: PROBLEM_ID, reporter_side: "seller", reason: "other", note: "The buyer asked me to bring it to them instead (sample).", photo_paths: [], status: "open", created_at: hoursFrom(now, -2), other_side_note: null, other_side_photo_paths: [], other_side_at: null },
+      });
     case "problem":
       return withReads({ ...base, cart: [paid("pickup_home")], handovers: { [ORDER_ID]: handover(side) },
         problems: [{ id: PROBLEM_ID, order_id: ORDER_ID, reporter_side: "buyer", reason: "not_as_described" }] }, {
         declutter_order_problem: { id: PROBLEM_ID, reporter_side: "buyer", reason: "not_as_described", note: "The back leg is cracked (sample).", photo_paths: [], status: "open", created_at: hoursFrom(now, -2), other_side_note: null, other_side_photo_paths: [], other_side_at: null },
       });
     case "cancelled":
-      return { ...base, cart: [line({ status: "missed", order_id: null, order_status: null, handover: null, total_cents: null, closed_at: hoursFrom(now, -6) })], items: [], paidCents: [] };
+      // Audit 1102c P5 (Q2623): the checkout ran out, so the item goes back up for sale: it stays live for the seller.
+      return { ...base, cart: [line({ status: "missed", order_id: null, order_status: null, handover: null, total_cents: null, closed_at: hoursFrom(now, -6) })],
+        items: side === "seller" ? [item(sellerId, now)] : [], paidCents: [] };
     case "haul_away":
       return { ...base, cart: [], paidCents: [], items: side === "seller" ? [item(sellerId, now, { delivery_size: "large" })] : [],
         haulAway: side === "seller" ? [{ item_id: ITEM_ID, title: "Oak rocking chair (sample)", description: "Solid oak.", delivery_size: "large", item_status: "live",
           state: "eligible", eligible_at: hoursFrom(now, -24), job_id: null, pickup_group: "g1", photo_paths: [], job_hold: null }] : [] };
     case "donation":
+      // Audit 1102c P5 (Q2623): a charity is chosen while the item is live (20261027222743 refuses other states), on
+      // the haul-away card; the old sample had the item withdrawn and no haul-away row, so nothing about it drew.
+      return withReads({ ...base, cart: [], paidCents: [], items: side === "seller" ? [item(sellerId, now, { delivery_size: "large" })] : [],
+        haulAway: side === "seller" ? [{ item_id: ITEM_ID, title: "Oak rocking chair (sample)", description: "Solid oak.", delivery_size: "large", item_status: "live",
+          state: "eligible", eligible_at: hoursFrom(now, -24), job_id: null, pickup_group: "g1", photo_paths: [], job_hold: null }] : [],
+        donations: side === "seller" ? [{ item_id: ITEM_ID, item_title: "Oak rocking chair (sample)", partner_name: "St. Vincent de Paul (sample)",
+          partner_address: "220 St Vincent St, Baton Rouge", chosen_at: hoursFrom(now, -30), donated_at: null, receipt: false }] : [] }, {
+        declutter_donation_partners_near: [{ id: "00000000-0000-4000-d000-000000000062", name: "St. Vincent de Paul (sample)", address: "220 St Vincent St, Baton Rouge", parish: "East Baton Rouge", takes: "Furniture, housewares", miles: 3.4, chosen: true }],
+      });
+    case "donated":
+      // The donation job is done: the receipt (the item, the date, the charity; never a value).
       return { ...base, cart: [], paidCents: [], items: side === "seller" ? [item(sellerId, now, { status: "withdrawn" })] : [],
         donations: side === "seller" ? [{ item_id: ITEM_ID, item_title: "Oak rocking chair (sample)", partner_name: "St. Vincent de Paul (sample)",
-          partner_address: "220 St Vincent St, Baton Rouge", chosen_at: hoursFrom(now, -30), donated_at: null, receipt: false }] : [] };
+          partner_address: "220 St Vincent St, Baton Rouge", chosen_at: hoursFrom(now, -72), donated_at: hoursFrom(now, -20), receipt: true }] : [] };
   }
 }

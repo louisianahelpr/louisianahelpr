@@ -75,6 +75,24 @@ export async function settleRecurringVisitCheckout(
     if (parentErr) throw new Error(`series read failed for recurring visit payment ${rowId}: ${parentErr.message}`);
     seriesOver = !parent || Boolean(parent.series_ended_on) || parent.status === "cancelled";
   }
+  // Q2071: a released date (series_release_dates, give_up_series_dates,
+  // helper_cancel_booking: each deletes the date's series_visit_holds row) does
+  // not close the Checkout already open for it either. Nobody holds the date,
+  // so nothing can be booked on this payment, and holding it until the visit
+  // date would return it less the card fee: a fee lost to a release the payer
+  // did not make. It comes back in full now and the row is expired. If another
+  // Helpr picks the date up, the next daily run asks for a new payment.
+  let dateUnheld = false;
+  if (row && row.status === "pending" && !seriesOver) {
+    const { data: holds, error: holdErr } = await supabase
+      .from("series_visit_holds")
+      .select("id")
+      .eq("parent_job_id", row.parent_job_id)
+      .eq("visit_date", row.visit_date)
+      .limit(1);
+    if (holdErr) throw new Error(`visit hold read failed for recurring visit payment ${rowId}: ${holdErr.message}`);
+    dateUnheld = (holds ?? []).length === 0;
+  }
 
   // Q843 (verified 2026-10-03, not a defect): amount_cents is budget + fee +
   // tax (DB CHECK recurring_visit_payments_amount_adds_up), and create-payment
@@ -87,6 +105,7 @@ export async function settleRecurringVisitCheckout(
   else if (!row) refundReason = "payment row not found";
   else if (row.status !== "pending") refundReason = `payment row is '${row.status}', not pending`;
   else if (seriesOver) refundReason = "the series ended (or its parent was cancelled) before this visit was paid";
+  else if (dateUnheld) refundReason = "no Helpr holds this visit date any more (it was given up) before it was paid";
   else if (session.amount_total !== row.amount_cents) {
     refundReason = `amount paid ${session.amount_total} != amount owed ${row.amount_cents}`;
   } else if ((session.currency ?? "").toLowerCase() !== "usd") {
@@ -151,7 +170,7 @@ export async function settleRecurringVisitCheckout(
       // second payment for it, and the notice says so.
       duplicate: rowIsPayers && row!.status === "paid",
     });
-    // The row of a series that is over stops asking to be paid: the payer's
+    // The row of a series that is over (or of a released date, Q2071) stops asking to be paid: the payer's
     // "Pay" card goes, and the cron's sweep never tells them "you weren't
     // charged" about a visit they paid for and got back. A failed write throws
     // so Stripe retries; the refund above then counts as already done.
@@ -159,7 +178,7 @@ export async function settleRecurringVisitCheckout(
     // exception): the conditional `.eq("status", "pending")` matches nothing
     // when the cron's sweep already expired this row between the read above
     // and this write, which is the same end state, so it is not checked.
-    if (seriesOver) {
+    if (seriesOver || dateUnheld) {
       const { error: expErr } = await supabase
         .from("recurring_visit_payments")
         .update({ status: "expired", updated_at: new Date().toISOString() })

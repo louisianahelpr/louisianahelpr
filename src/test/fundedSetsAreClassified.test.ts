@@ -24,6 +24,7 @@
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | IF NOT public.job_payment_is_listed(v_payment_status) THEN | IF NOT public.job_payment_is_funded(v_payment_status) THEN
  * @mutate supabase/functions/_shared/accountPurge.ts |   "payment_status.in.(escrow,payout_pending,held)"; |   "payment_status.in.(escrow,payout_pending)";
  * @mutate supabase/functions/instant-job-match/index.ts |     const FUNDED_PAYMENT_STATUSES = [...LISTED_PAYMENT_STATUSES]; |     const FUNDED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released"];
+ * @mutate supabase/migrations/20261102103429_poster_withdraws_an_offer.sql |   v_listed := public.job_payment_is_listed(v_job.payment_status); |   v_listed := v_job.payment_status = 'escrow';
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -53,6 +54,9 @@ const LISTED = [
   "accept_job_offer", "respond_to_direct_offer", "enforce_job_funded_before_award",
   // Profile link (20261101041833): the member's open jobs on /u, the same funded set as open_jobs_browse (read only).
   "public_profile_by_handle",
+  // Q2604 (20261102103429): the poster withdraws an unanswered offer on a listed job, a held card included (its
+  // job_payment_is_listed decides whether a direct-offer Helpr is told); no money moves, the hold stays with the job.
+  "rpc_poster_withdraw_offer",
   // the predicates themselves
   "job_payment_is_listed",
 ] as const;
@@ -86,6 +90,7 @@ const TS_CLASSIFIED: Record<string, "listed" | "captured" | "exhaustive"> = {
   "supabase/functions/_shared/cardHold.ts": "captured", // captureCardHold: already funded = nothing to capture
   "supabase/functions/card-hold-sweep/index.ts": "captured", // instant pass: a job with no hold already funded = nothing to capture
   "supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts": "captured", // un-funds failed escrow
+  "supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts": "captured", // Q1994: a PI on a job not already holding captured money ('held' included) is a closed job's; a bank one pages ops to refund
   "src/lib/capturedPayment.ts": "captured",
   "src/lib/posterSpend.ts": "captured", // charged money: a held card was not charged
   "src/lib/quotes/api.ts": "captured", // a quote job is charged when paid, never held

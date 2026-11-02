@@ -81,9 +81,9 @@
  * in the table CHECK; the keep-card-fee amount refunding the fee; (b) a new reason added unclassified; the sites
  * sending something other than the row's refund_cents.
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     fee_policy = CASE WHEN reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN |     fee_policy = CASE WHEN reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     IF p_reason = 'helpr_fault' THEN |     IF p_reason = 'helpr_fault_x' THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
+ * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN
+ * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |     IF p_reason = 'helpr_fault' THEN |     IF p_reason = 'helpr_fault_x' THEN
+ * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' | WHEN reason IN ('buyer_no_show') THEN 'keep_buyer_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents | WHEN fee_policy = 'keep_card_fee' THEN paid_cents
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     'refund_request_full', 'refund_request_part'));   -- 141d |     'refund_request_full', 'refund_request_part', 'buyer_changed_mind'));   -- 141d
@@ -93,8 +93,8 @@
  * (M1 fee zeroed for one reason, M8 kept fee shrunk, M4 a caller passing no fee, M9 a caller recording our-mistake,
  * M5 the fee estimate, note 1 the reader projection); table statements (M2 an UPDATE, M6 a trigger, an order
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
+ * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
+ * @mutate supabase/migrations/20261102061022_declutter_card_fee_setup_share.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261102040952_declutter_card_fee_prorated.sql | p_reason, o.total_cents - v_reserved,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | p_reason, o.total_cents - v_reserved,\n    0);
  * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
@@ -451,7 +451,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // finish): everything goes back and the card fee becomes a debt on the at-fault Helpr, not the seller. Nothing
     // else in them changed (record_refund three-way merged from 20261031105148).
     migration: "20261031231150_helpr_delivery_cant_finish.sql",
-    proofs: ["src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
+    // Q2404 (20261102061022): declutter_record_refund restated verbatim from 20261031231150 plus one block: for
+    // full_seller_pays_fee and keep_card_fee, a charge that also carried the setup fee bills only the sale's share of the
+    // card fee (fee * total / (total + setup fee)). Reasons, policies and the CHECKs are unchanged.
+    functionMigration: "20261102061022_declutter_card_fee_setup_share.sql",
+    proofs: ["src/test/pglite/declutterCardFeeSetupShare.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
       "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
     policySources: [
@@ -613,7 +617,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // D2-6 (20261029232103, lh-money-escrow approve 2026-10-29): restated verbatim from 20261026155251 plus one seller notice when a NEW debt row is inserted; reasons, policies, amounts and the debt row unchanged.
       // BUY-30 (20261031105148): restated verbatim from 20261029232103; only the debt notice names the item and links ?tab=selling. Reasons, policies, amounts and the debt row unchanged.
       // BUY-36 (20261031231150): + helpr_fault (full_seller_pays_fee), whose debt row is on the task's Helpr.
-      declutter_record_refund: "20261031231150_helpr_delivery_cant_finish.sql 1739f61d673db0b3",
+      // Q2404 (20261102061022): verbatim + the setup-fee share of the card fee for the two policies that bill someone;
+      // Q1928 gap 2: the debt row says when its fee was estimated (fee_estimated). Amounts and policies otherwise unchanged.
+      // Based on Shipping S6 2d (20261102051521, wip/b126-ship): its keep_buyer_fee shipping hunks are kept; lands after it.
+      declutter_record_refund: "20261102061022_declutter_card_fee_setup_share.sql 4365f3e72dbec24f",
       // B100 (20261030134109): take back a problem report. Records no refund: it only marks the problem and the buyer's own
       // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
       // T9 (20261031004529): taking back the buyer's no-show report also clears it, so the sweep can't refund on it; verdict owed.
@@ -777,7 +784,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       "v_kept := v_order.premium_cents;",
       "CASE WHEN v_policy = 'keep_card_fee' THEN p_paid_cents - v_fee WHEN v_policy = 'keep_buyer_fee' THEN p_paid_cents - v_kept ELSE p_paid_cents END",
       "IF v_policy = 'full_seller_pays_fee' AND v_fee > 0 THEN",
-      "INSERT INTO public.declutter_seller_fee_debts (seller_id, refund_id, amount_cents, remaining_cents) VALUES (v_seller, v_id, v_fee, v_fee)",
+      // Q2404: the sale's share of a charge that also carried the setup fee.
+      "v_fee := round(v_fee::numeric * v_order.total_cents / (v_order.total_cents + v_order.setup_fee_cents))::integer;",
+      "INSERT INTO public.declutter_seller_fee_debts (seller_id, refund_id, amount_cents, remaining_cents, fee_estimated) VALUES (v_seller, v_id, v_fee, v_fee, p_card_fee_cents IS NULL)",
     ] },
   },
   /**

@@ -330,6 +330,42 @@ describe("auto-release-payment edge function", () => {
      * transfers the helper money the platform never collected. The preview
      * parity block below pins the FIGURE; this pins whether money moves at all.
      */
+    // Q2397 (lead 11-02): the release step's own Stripe-mode read ("read"
+    // kind) refuses only a real mix, a failed read or a missing test key, never
+    // a test-looking account alone (jobMoneyMode refuses unenrolled parties
+    // only for "new" and "payout"): a half-enrolled test Helpr is released as
+    // usual, and a real mix (an enrolled tester with a real poster) stays a
+    // counted defect. Both routes go through modeRefusalDefect, whose test-
+    // account branch is shown red in payoutHold.test.ts.
+    it("a Stripe-mode refusal at release: a real mix stays a counted defect; a half-enrolled Helpr alone is not refused", async () => {
+      const runWith = async (enrolled: string[]) => {
+        resetSupabaseMock();
+        seedDueJob(scenario);
+        scenario.reads.test_accounts = { rows: enrolled.map((user_id) => ({ user_id })) };
+        scenario.reads.profiles = {
+          rows: [],
+          selectOverrides: [
+            FEE_ALREADY_PAID,
+            { includes: "user_id, is_seed, email", result: { rows: [
+              { user_id: POSTER_ID, is_seed: false, email: "real.poster@example.com" },
+              { user_id: HELPER_ID, is_seed: true, email: "helpr-x@example.com" },
+            ] } },
+          ],
+        };
+        const fn = await load();
+        const res = await fn.fetch(cronRequest(fn));
+        const out = await json(res);
+        const row = (out.results as Array<{ job_id: string; status: string }>).find((r) => r.job_id === "job-1");
+        return { res, out, row };
+      };
+      const mixed = await runWith([HELPER_ID]);
+      expect(mixed.row?.status).toBe("stripe_mode_refused");
+      expect((mixed.out.seedDefects as string[]).length).toBe(0);
+      expect(mixed.res.status).toBe(500);
+      const half = await runWith([]);
+      expect(half.row?.status).toBe("released");
+    });
+
     it("does NOT release a job whose charge was never captured", async () => {
       seedDueJob(scenario);
       seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());

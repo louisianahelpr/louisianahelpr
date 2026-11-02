@@ -112,7 +112,7 @@ export function SellMeetupSpots() {
   return (
     <section className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="meet-spots-title" data-testid="sell-meetup-spots">
       <div className="space-y-1">
-        <h2 id="meet-spots-title" className="text-ds-16 font-bold text-foreground">Meet spots</h2>
+        <h2 id="meet-spots-title" className="text-base font-semibold text-foreground">Meet spots</h2>
         <p className="text-ds-13 text-muted-foreground">
           Public places where you'll meet a buyer, with the days and times. Buyers choosing Meet up pick one and a time.
         </p>

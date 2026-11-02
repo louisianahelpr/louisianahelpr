@@ -905,6 +905,71 @@ describe("stripe-webhook edge function", () => {
         expect(giftWrites).toHaveLength(1);
         expect(titles).toContain("Gift card difference payment — job underfunded");
       });
+
+      // Q1981 (lh-money-escrow review of 4ec0dea84, #3): a DUPLICATE checkout's
+      // first delivery consumed the gift, was refunded, put the gift back to
+      // 'sent', then failed its ledger write. Its redelivery must not re-spend
+      // the gift (a spurious Q1417 page) nor page a false CRITICAL and hold a
+      // job another PaymentIntent funded: the payment is refunded again (keyed)
+      // and the gift is left 'sent'.
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |            sessionIsJobs = !fundedElsewhere && jr?.stripe_session_id === session.id; |            sessionIsJobs = jr?.stripe_session_id === session.id;
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |        } else if (fundedElsewhere) { |        } else if (false) {
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |            jr.stripe_payment_intent_id !== thisPi && | false &&
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |            jr.payment_status != null && !["unpaid", "failed", "abandoned"].includes(jr.payment_status); |            jr.payment_status != null;
+      async function redeliverDuplicate(jobRow: Record<string, unknown>, escrowRows: Array<{ id: string }> = []) {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_q1981",
+          type: "checkout.session.completed",
+          data: { object: { id: "cs_d2", mode: "payment", payment_status: "paid", customer_email: "poster@test.com", payment_intent: "pi_d2", metadata: { job_id: "job-1", gift_card_id: "gc-1" } } },
+        });
+        scenario.writeOverrides = [
+          { table: "gift_cards", op: "update", when: isFirstConsume, rows: [] },
+          { table: "gift_cards", op: "update", when: (p) => p.status === "redeemed" && p.job_id === "job-1", rows: [{ id: "gc-1" }] },
+        ];
+        scenario.writeSelectRows.jobs = escrowRows;
+        scenario.reads.gift_cards = { rows: [{ id: "gc-1", status: "sent", job_id: null, payment_status: "paid" }] };
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", status: "open", ...jobRow }] };
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_q1981", status: "succeeded", amount: 2000, currency: "usd" });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        const giftWrites = scenario.writes.filter((x) => x.table === "gift_cards" && x.op === "update");
+        const titles = (slackAlerts as Array<{ title: string }>).map((a) => a.title);
+        const holds = scenario.writes.filter((w) => w.table === "job_payout_holds");
+        return { res, giftWrites, titles, holds };
+      }
+
+      it.each([
+        ["is the job's stamped one", "cs_d2"],
+        ["is not the job's stamped one", "cs_other"],
+      ] as const)("Q1981: a duplicate's redelivery whose session %s leaves the gift 'sent', pages no Q1417/underfunded alert, holds nothing", async (_l, stamped) => {
+        const { res, giftWrites, titles, holds } = await redeliverDuplicate({ stripe_session_id: stamped, payment_status: "escrow", stripe_payment_intent_id: "pi_card" });
+        expect(res.status).toBe(200);
+        // Only the first (zero-row) consume: no re-claim, no second restore.
+        expect(giftWrites).toHaveLength(1);
+        expect(titles.some((t) => /re-claimed|underfunded/.test(t))).toBe(false);
+        expect(holds).toEqual([]);
+        // Still refunded (keyed) and ledgered by the duplicate-funding branch.
+        expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+          { payment_intent: "pi_d2", metadata: { source: "duplicate_funding" } },
+          { idempotencyKey: "duplicate-funding-refund:pi_d2" },
+        );
+        expect(titles).toContain("Escrow funding — a second payment on an already-funded job was refunded");
+      });
+
+      it("Q1981: a job on an unpaid or failed payment is not 'funded elsewhere' (the Q1417 re-claim still runs)", async () => {
+        const { giftWrites, titles } = await redeliverDuplicate({ stripe_session_id: "cs_d2", payment_status: "failed", stripe_payment_intent_id: "pi_card" }, [{ id: "job-1" }]);
+        expect(giftWrites).toHaveLength(2);
+        expect(titles.some((t) => /re-claimed/.test(t))).toBe(true);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |      if (giftSkippedFundedElsewhere) { |      if (false) {
+      it("Q1981: if the escrow write funds the job after all (its other payment failed in between), the underfunded hold and page still run", async () => {
+        const { res, titles, holds } = await redeliverDuplicate({ stripe_session_id: "cs_other", payment_status: "escrow", stripe_payment_intent_id: "pi_card" }, [{ id: "job-1" }]);
+        expect(res.status).toBe(200);
+        expect(holds).toHaveLength(1);
+        expect(holds[0].payload).toMatchObject({ job_id: "job-1" });
+        expect(titles).toContain("Gift card difference payment — job underfunded");
+      });
     });
 
     // Q1876 follow-up (lh-money-escrow re-review of 2cd90f553, #1): bank checkout D1's

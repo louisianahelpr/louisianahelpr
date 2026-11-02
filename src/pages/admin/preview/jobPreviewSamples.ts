@@ -40,6 +40,8 @@ export const PREVIEW_STAGES = [
   { key: "late_cancel_helpr", label: "Late cancel by Helpr" },
   { key: "cancel_sheet", label: "Cancel sheet" },
   { key: "continue_day", label: "Another day set" },
+  // Q2616 (audit 1102b row 30): the Helpr has applied and waits on the poster.
+  { key: "applied", label: "Applied" },
 ] as const;
 
 export type PreviewStage = (typeof PREVIEW_STAGES)[number]["key"];
@@ -162,6 +164,17 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       applications = [
         { status: "pending", closed_reason: null, helper_id: PREVIEW_CREWMATE_ID },
         { status: "pending", closed_reason: null, helper_id: "00000000-0000-4000-a000-000000000004" },
+      ];
+      candidates = [
+        { helper_id: PREVIEW_HELPR_ID, display_name: "Eli R.", avatar_url: null, jobs_done: 14, rating: 4.9, review_count: 11 },
+        { helper_id: PREVIEW_CREWMATE_ID, display_name: "Maya T.", avatar_url: null, jobs_done: 6, rating: 4.8, review_count: 5 },
+      ];
+      break;
+    case "applied":
+      // Q2616: the open listing after the Helpr viewing applied: their own application waits beside another one.
+      applications = [
+        { status: "pending", closed_reason: null, helper_id: PREVIEW_HELPR_ID },
+        { status: "pending", closed_reason: null, helper_id: PREVIEW_CREWMATE_ID },
       ];
       candidates = [
         { helper_id: PREVIEW_HELPR_ID, display_name: "Eli R.", avatar_url: null, jobs_done: 14, rating: 4.9, review_count: 11 },

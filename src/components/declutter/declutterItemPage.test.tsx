@@ -509,6 +509,14 @@ describe("the photo-first Declutter item page", () => {
     const more = await screen.findByRole("region", { name: "More from this seller" });
     expect(within(more).getAllByRole("link")).toHaveLength(2);
     expect(more.querySelectorAll("[data-item-card]")).toHaveLength(2);
+    // Q2572 (audit 1102a): the cards snap to their start, so the scroller's snap line (scroll-padding) must equal its
+    // padding, or the first card snaps off the page gutter (x 8 at 375). jsdom draws no layout: the two classes are read.
+    // @mutate src/components/declutter/DeclutterItemRows.tsx | flex snap-x scroll-px-3 gap-3 | flex snap-x gap-3
+    for (const scroller of document.querySelectorAll("[data-item-row-scroller]")) {
+      const cls = scroller.className.split(/\s+/);
+      if (cls.includes("snap-x")) expect(cls).toEqual(expect.arrayContaining(["px-3", "scroll-px-3"]));
+    }
+    expect(document.querySelectorAll("[data-item-row-scroller]").length).toBeGreaterThan(1);
     const similar = screen.getByRole("region", { name: "Similar items" });
     expect(within(similar).getByText("Thing 3")).toBeInTheDocument();
     expect(screen.queryByText("My own lamp")).toBeNull();

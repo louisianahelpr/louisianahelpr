@@ -24,7 +24,7 @@ export function TakenDownSection({ items, ended = [] }: { items: DeclutterItem[]
       <SectionHeading title="Selling history" />
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
         {items.map((item) => (
-          <li key={item.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center" data-taken-down-row="">
+          <li key={item.id} className="px-4 py-3" data-taken-down-row="">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               {/* Its photos were deleted at take-down: the category icon stands in. */}
               <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-16 w-16 shrink-0 rounded-2xl" iconClassName="h-6 w-6" />
@@ -34,13 +34,13 @@ export function TakenDownSection({ items, ended = [] }: { items: DeclutterItem[]
                   {item.status === "sold_elsewhere" ? "Sold elsewhere." : "Taken down. Buyers can't see it."}
                 </p>
               </div>
-              <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{itemPriceLabel(item.current_price_cents)}</span>
-            </div>
-            {item.status === "withdrawn" && (
-              <div className="flex sm:shrink-0 sm:justify-end">
-                <ReopenListingButton itemId={item.id} />
+              {/* Q2580 (audit 1102a): seven taken-down rows stacked seven full olive Relist buttons, each on its own line
+                  at 375, outweighing the live work above. Relist is a quiet outline button beside the price. */}
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <span className="text-ds-15 font-bold tabular-nums text-muted-foreground">{itemPriceLabel(item.current_price_cents)}</span>
+                {item.status === "withdrawn" && <ReopenListingButton itemId={item.id} quiet />}
               </div>
-            )}
+            </div>
           </li>
         ))}
         <EndedSaleRows lines={ended} />

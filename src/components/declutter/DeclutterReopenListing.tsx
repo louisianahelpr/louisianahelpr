@@ -24,10 +24,11 @@ function useReopenListing() {
   });
 }
 
-export function ReopenListingButton({ itemId }: { itemId: string }) {
+/** `quiet`: an outline button, for a list where every row carries one (Selling history, Q2580). */
+export function ReopenListingButton({ itemId, quiet = false }: { itemId: string; quiet?: boolean }) {
   const reopen = useReopenListing();
   return (
-    <Button type="button" size="sm" disabled={reopen.isPending} onClick={() => reopen.mutate(itemId)}>
+    <Button type="button" size="sm" variant={quiet ? "outline" : undefined} className={quiet ? "rounded-full" : undefined} disabled={reopen.isPending} onClick={() => reopen.mutate(itemId)}>
       {reopen.isPending ? "Relisting…" : "Relist"}
     </Button>
   );

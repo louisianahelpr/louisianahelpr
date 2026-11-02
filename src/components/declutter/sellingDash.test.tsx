@@ -457,7 +457,13 @@ describe("Selling tab: Taken down, with Relist", () => {
     const chip = container.querySelector('[data-status-box="taken"]') as HTMLElement;
     expect(chip).not.toBeNull();
     expect(chip.textContent).toContain("1");
-    fireEvent.click(within(group).getByRole("button", { name: "Relist" }));
+    // Q2580 (audit 1102a): a quiet outline Relist beside the price, never a full primary on its own line per row.
+    // @mutate src/components/declutter/DeclutterTakenDown.tsx | {item.status === "withdrawn" && <ReopenListingButton itemId={item.id} quiet />} | {item.status === "withdrawn" && <ReopenListingButton itemId={item.id} />}
+    const relist = within(group).getByRole("button", { name: "Relist" });
+    expect(relist.className).not.toMatch(/btn-grad-primary/);
+    expect(relist.closest("[data-taken-down-row]")!.querySelectorAll("button").length).toBe(1);
+    expect(relist.parentElement!.textContent).toContain("$35");
+    fireEvent.click(relist);
     await waitFor(() => expect(reopenSpy).toHaveBeenCalledWith("i9"));
     expect(await screen.findByText("Sell page")).toBeInTheDocument();
   });

@@ -96,7 +96,7 @@ function applyFilters(rows: unknown[], url: URL): unknown[] {
 }
 
 /** A fetch that answers Supabase from the sample. `log` records every Supabase request it saw. */
-export function createMessagesPreviewFetch(o: MessagesPreviewFetchOptions): { fetch: typeof fetch; log: MessagesPreviewLog[] } {
+function createMessagesPreviewFetch(o: MessagesPreviewFetchOptions): { fetch: typeof fetch; log: MessagesPreviewLog[] } {
   const base = o.supabaseUrl.replace(/\/+$/, "");
   const log: MessagesPreviewLog[] = [];
   const previewFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {

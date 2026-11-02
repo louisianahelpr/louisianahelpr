@@ -42,6 +42,7 @@
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { readdirSync } from "./trackedFiles";
+import { blankComments } from "./blankNonCode";
 
 const REPO = resolve(__dirname, "../../..");
 const MIGRATIONS = join(REPO, "supabase/migrations");
@@ -359,12 +360,22 @@ export function distinctiveColumns(schema = schemaTables()): Map<string, string>
   return out;
 }
 
-/** Every `{ … }` literal in a source file, nested ones included. */
+/**
+ * Every `{ … }` literal in a source file, nested ones included, read with its comments blanked (Q1920): `balanced`
+ * respects quotes, so an apostrophe in a comment ("the job's") opened a string and an unbalanced brace in an
+ * @mutate comment shifted every literal after it (one 9,537-character "row" in chargeRefundUpdated.test.ts,
+ * 2026-10-15). Blanking keeps every offset, so a literal's text is the same code with its comments as spaces.
+ */
 export function objectLiterals(src: string): string[] {
+  const code = blankComments(src);
   const out: string[] = [];
-  for (let i = 0; i < src.length; i++) {
-    if (src[i] !== "{") continue;
-    const lit = balanced(src, i, "{", "}");
+  for (let i = 0; i < code.length; i++) {
+    if (code[i] !== "{") continue;
+    // A block, not an object: a function or arrow body (`) {`, `=> {`) or an else/try/finally/do block. With comments
+    // blanked these balance, and a whole test body naming one table's marker key was graded as one "row".
+    const before = code.slice(Math.max(0, i - 12), i).trimEnd();
+    if (/(?:\)|=>|\belse|\btry|\bfinally|\bdo)$/.test(before)) continue;
+    const lit = balanced(code, i, "{", "}");
     if (lit !== null) out.push(`{${lit}}`);
   }
   return out;

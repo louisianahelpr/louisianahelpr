@@ -232,7 +232,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/CancellationDialog.tsx` | textarea×1 |  |  | cancel-nobody-left · cancel-reason |
 | `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · apply-message-help · save-default-pitch |
-| `src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx` | input×2, date/calendar×2 | date, time |  | apply-time-question · apply-time-yes · apply-time-suggest · apply-time-date · apply-time-time |
+| `src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx` | input×2, date/calendar×2 | date, time |  | apply-time-question · apply-time-yes · apply-time-suggest · Suggest another time · apply-time-date · apply-time-time |
 | `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |
 | `src/components/DisputeDialog.tsx` | input×1, textarea×1 | file | 1000 | dispute-details · dispute-details-requirement · Remove file |
 | `src/components/feedback/NpsPrompt.tsx` | textarea×1 |  | 500 | Rate your experience, 1 to 5 · nps-comment |

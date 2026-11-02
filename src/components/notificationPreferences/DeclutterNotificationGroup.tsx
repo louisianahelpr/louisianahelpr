@@ -12,8 +12,8 @@ import type { Row } from "./types";
  * so the switch reads happen only where the group can show.
  */
 /** How long, and how often, the ?show=declutter scroll follows the group while the rows above it load (Q2566). */
-export const FOLLOW_MS = 6000;
-export const FOLLOW_EVERY_MS = 150;
+const FOLLOW_MS = 6000;
+const FOLLOW_EVERY_MS = 150;
 
 /** The element's distance from the top of its scrolling page: unchanged by scrolling, changed by content above it. */
 function pagePosition(el: HTMLElement): number {

@@ -4,7 +4,7 @@
  * show, and with no saved card either one asks for a card and comes back to
  * itself; DA-11: an offer asks at Send, after the amount is typed). Moved out of DeclutterTradeViews.tsx unchanged (component size limit).
  */
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +28,7 @@ import { checkoutLinkFor } from "@/lib/declutter/buyNowHold";
 import { HoldChecking, myHoldOn, myOpenOfferOn, ReservedForYou, YourOfferBox } from "./DeclutterYourOffer";
 import { dollarsInputToCents } from "@/lib/declutter/money";
 import { invalidateTrades } from "./declutterLightActions";
+import { useOffScreen } from "./useOffScreen";
 
 /**
  * Row 36, as the step INSIDE a buy or an offer (owner, 2026-10-19): a buyer
@@ -84,41 +85,6 @@ function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel, note }
       </div>
     </div>
   );
-}
-
-/**
- * How much of the screen's bottom edge the dock (MobileNav's `.mobile-nav-frame`) covers, in px; 0 where there is
- * none (desktop hides it). Measured, because `--bottom-nav-h` is only ever zeroed, never set. The dock keeps its box
- * while it yields (`visibility: hidden`), so the answer does not change when the bar takes its place.
- */
-function dockCoverPx(): number {
-  const dock = document.querySelector<HTMLElement>(".mobile-nav-frame");
-  if (!dock) return 0;
-  const r = dock.getBoundingClientRect();
-  return r.height > 0 ? Math.max(0, Math.round(window.innerHeight - r.top)) : 0;
-}
-
-/**
- * True until `el` is fully in view ABOVE the dock (IntersectionObserver). False where the observer does not exist,
- * so the in-page buttons are then the only ones.
- *
- * Audit 1030 DB-14: the observer used to count the strip behind the dock as on screen. At 375 the in-page Buy now
- * sat in that strip on a short-titled item, so it was hidden under the dock while the bar stayed away. The strip is
- * now cut off the observed screen (rootMargin), and a group only partly clear of the dock still gets the bar.
- */
-function useOffScreen(el: RefObject<HTMLElement>): boolean {
-  const [off, setOff] = useState(false);
-  useEffect(() => {
-    const node = el.current;
-    if (!node || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      ([entry]) => setOff(!entry.isIntersecting || (entry.intersectionRatio ?? 1) < 0.99),
-      { rootMargin: `0px 0px -${dockCoverPx()}px 0px`, threshold: [0, 0.99] },
-    );
-    io.observe(node);
-    return () => io.disconnect();
-  }, [el]);
-  return off;
 }
 
 /** Back from saving a card: how long to wait for Stripe's webhook to file it, and how often to look. */

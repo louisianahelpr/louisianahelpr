@@ -19,7 +19,7 @@
  *
  * @mutate supabase/migrations/20261102072106_helpr_card_fee_debts.sql |       FROM public.helpr_card_fee_debts c\n     WHERE c.helper_id = p_helper_id AND c.remaining_cents > 0\n     ORDER BY |       FROM public.helpr_card_fee_debts c\n     WHERE false\n     ORDER BY
  * @mutate supabase/migrations/20261102072106_helpr_card_fee_debts.sql |      OR EXISTS (SELECT 1 FROM public.helpr_card_fee_debt_deductions x |      OR false AND EXISTS (SELECT 1 FROM public.helpr_card_fee_debt_deductions x
- * @mutate supabase/migrations/20261102072106_helpr_card_fee_debts.sql |     DELETE FROM public.helpr_card_fee_debt_deductions d |     DELETE FROM public.helpr_card_fee_debt_deductions_x d
+ * @mutate supabase/migrations/20261102080407_helpr_fault_fee_clamp_and_reversed_restore.sql |     DELETE FROM public.helpr_card_fee_debt_deductions d |     DELETE FROM public.helpr_card_fee_debt_deductions_x d
  * @mutate supabase/migrations/20261102072106_helpr_card_fee_debts.sql |   ON CONFLICT (recurring_visit_payment_id) DO NOTHING\n |
  * @mutate supabase/migrations/20261102072106_helpr_card_fee_debts.sql |   v_cents := least(p_card_fee_cents, v_row.amount_cents); |   v_cents := p_card_fee_cents;
  * @mutate supabase/migrations/20261102072106_helpr_card_fee_debts.sql | REVOKE ALL ON FUNCTION public.bill_helpr_card_fee_debt(uuid, integer, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.bill_helpr_card_fee_debt(uuid, integer, text) FROM PUBLIC;

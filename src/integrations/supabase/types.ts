@@ -16151,6 +16151,13 @@ export type Database = {
           paid_cents: number
         }[]
       }
+      declutter_my_refunded_cents: {
+        Args: { p_order_ids: string[] }
+        Returns: {
+          order_id: string
+          refunded_cents: number
+        }[]
+      }
       declutter_my_porch_days: { Args: never; Returns: number[] }
       declutter_my_porch_places: {
         Args: never

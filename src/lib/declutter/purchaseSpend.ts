@@ -5,25 +5,31 @@
  * src/test/declutterPurchasesSpent.test.tsx): a paid / handed-over / refunded order with paid_at; what the card was
  * charged (declutter_my_paid_cents, else total_cents); a refunded order counts $0 and says "Refunded".
  * Reads, all the buyer's own rows (RLS): declutter_orders, the order's cart lines (item_title; not declutter_my_cart,
- * which stops at 30 days), and declutter_my_paid_cents. No writes.
+ * which stops at 30 days), declutter_my_paid_cents and declutter_my_refunded_cents (a part refund is netted). No writes.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { fetchMyPaidCents } from "@/lib/declutter/paidCents";
+import { fetchMyRefundedCents, netOfRefund } from "@/lib/declutter/refundedCents";
 
 export interface PurchaseOrder { id: string; status: string; total_cents: number; paid_at: string | null }
-export interface PurchaseRow { id: string; title: string; ms: number; cents: number; refunded: boolean }
+export interface PurchaseRow { id: string; title: string; ms: number; cents: number; refunded: boolean; /** "· $15.00 refunded" for a part refund (Receipts' words). */ note: string }
 
 const COUNTED = ["paid", "handed_over", "refunded"];
 
-export function purchaseRows(orders: readonly PurchaseOrder[], titles: ReadonlyMap<string, string[]>, paid: ReadonlyMap<string, number> | null): PurchaseRow[] {
+export function purchaseRows(
+  orders: readonly PurchaseOrder[], titles: ReadonlyMap<string, string[]>, paid: ReadonlyMap<string, number> | null,
+  /** What came back per order (declutter_my_refunded_cents); a part refund is netted. Null: not deployed. */
+  refundedBack: ReadonlyMap<string, number> | null = null,
+): PurchaseRow[] {
   return orders
     .filter((o) => o.paid_at && COUNTED.includes(o.status))
     .map((o) => {
       const t = titles.get(o.id) ?? [];
       const title = t.length === 0 ? "Declutter purchase" : t.length === 1 ? t[0] : `${t[0]} and ${t.length - 1} more`;
       const refunded = o.status === "refunded";
-      return { id: o.id, title, ms: Date.parse(o.paid_at!), cents: refunded ? 0 : paid?.get(o.id) ?? o.total_cents, refunded };
+      const net = netOfRefund(paid?.get(o.id) ?? o.total_cents, refundedBack?.get(o.id));
+      return { id: o.id, title, ms: Date.parse(o.paid_at!), cents: refunded ? 0 : net.cents, refunded, note: refunded ? " · Refunded" : net.note };
     });
 }
 
@@ -43,8 +49,8 @@ export async function fetchMyPurchases(userId: string): Promise<PurchaseRow[]> {
     titles.set(l.order_id, [...(titles.get(l.order_id) ?? []), (l.item_title ?? "").trim() || "Declutter item"]);
   }
   // A failed charge read throws (a failed load), never a row $2 under what Stripe charged; null = not deployed.
-  const paid = await fetchMyPaidCents([...ids].sort());
-  return purchaseRows(orders, titles, paid);
+  const [paid, back] = await Promise.all([fetchMyPaidCents([...ids].sort()), fetchMyRefundedCents([...ids].sort())]);
+  return purchaseRows(orders, titles, paid, back);
 }
 
 export const purchasesKey = (userId: string) => ["declutter", "my-purchases", userId] as const;

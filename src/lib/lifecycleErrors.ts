@@ -696,6 +696,12 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     too_many_orders: "There are too many orders to total at once. Open an order to see what you paid for it.",
   },
+  // A3-112 follow-up (20261102033426): what was sent back to the buyer's card, for at most 200 of their own orders.
+  declutter_my_refunded_cents: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    too_many_orders: "There are too many orders to total at once. Open an order to see what was refunded on it.",
+  },
   declutter_confirm_handover: {
     account_restricted: DC.account_restricted,
     delivery_not_done: DC.delivery_not_done,

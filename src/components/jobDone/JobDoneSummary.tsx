@@ -216,6 +216,7 @@ export function JobDoneSummary({
         <HelprPayNote
           transfers={transfers}
           held={job.dispute_status === "reversal_hold"}
+          scheduledAt={job.payout_scheduled_at}
           viewerId={viewerId}
           posterFirstName={firstName}
         />
@@ -224,8 +225,10 @@ export function JobDoneSummary({
   );
 }
 
-function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
+function HelprPayNote({ transfers, held, scheduledAt, viewerId, posterFirstName }: {
   transfers: readonly TransferRow[];
+  /** jobs.payout_scheduled_at: before a transfer exists, the headline names the day (A3-59). */
+  scheduledAt: string | null;
   /** A clawed-back transfer frozen for review (transferReversed). */
   held: boolean;
   viewerId: string;
@@ -272,9 +275,7 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
       style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}
     >
       <p className="font-sans font-bold text-ds-24 leading-tight tabular-nums" style={{ color: cents > 0 ? MONEY : "hsl(var(--ink-deep))" }}>
-        {cents > 0
-          ? `$${formatPriceExact(cents / 100)} ${sent ? "was sent" : "is on its way"}`
-          : "Your pay is being prepared"}
+        {helprPayHeadline(cents, sent, scheduledAt)}
       </p>
       {needsPayoutSetup && setupPaused && (
         <>
@@ -317,6 +318,21 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
       </p>
     </div>
   );
+}
+
+/**
+ * The Helpr's Job done headline (A3-59, audit 11-01). The transfer's amount once one exists. Before that, the day the
+ * page already names ("Approved · your pay goes out Tue, Nov 3", payout_scheduled_at in Louisiana time), never an
+ * amount: account-level deductions can make the transfer differ from the take-home (lh-money-escrow review, findings
+ * 2, 5, 7). No future day: "Your pay is being prepared".
+ */
+export function helprPayHeadline(cents: number, sent: boolean, scheduledAt: string | null, now: Date = new Date()): string {
+  if (cents > 0) return `$${formatPriceExact(cents / 100)} ${sent ? "was sent" : "is on its way"}`;
+  const at = scheduledAt ? new Date(scheduledAt) : null;
+  if (at && !Number.isNaN(at.getTime()) && at.getTime() > now.getTime()) {
+    return `Approved · your pay goes out ${at.toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" })}`;
+  }
+  return "Your pay is being prepared";
 }
 
 /** "Tue, Oct 21 at 3:00 PM" in the viewer's zone. */

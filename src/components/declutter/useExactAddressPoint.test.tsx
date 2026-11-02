@@ -3,8 +3,8 @@
  * would fail the 200 m handover checks after the sale (lead 2026-10-30). Made-up places only.
  *
  * @mutate src/components/declutter/useExactAddressPoint.ts |       if (metresBetween(here, inexact.near) > SHARED_LOCATION_MAX_METRES) { |       if (false) {
- * @mutate src/components/declutter/useExactAddressPoint.ts |       throw new Error("address_not_exact"); |       return { lat: found.lat, lng: found.lng, address };
- * @mutate src/components/declutter/useExactAddressPoint.ts |     throw new Error(found.status === "unavailable" ? "address_lookup_unavailable" : notFoundCode); |     throw new Error(notFoundCode);
+ * @mutate src/components/declutter/useExactAddressPoint.ts |       throw refused("address_not_exact"); |       return { lat: found.lat, lng: found.lng, address };
+ * @mutate src/components/declutter/useExactAddressPoint.ts |     throw found.status === "unavailable" ? new Error("address_lookup_unavailable") : refused(notFoundCode); |     throw refused(notFoundCode);
  * @mutate src/components/declutter/useSellFlowState.ts |       const c = await place.locate(form.pickupAddress); |       const c = { lat: 0, lng: 0 };
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       const c = await place.locate(pickupAddress);\n      // Only a change is saved |       const c = { lat: 0, lng: 0 };\n      // Only a change is saved
  * @mutate src/components/declutter/DeclutterRefundReturn.tsx |       const g = await place.locate(address, { allowApproximate: true }); |       const g = await place.locate(address);

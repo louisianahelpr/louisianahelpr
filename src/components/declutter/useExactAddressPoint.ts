@@ -16,6 +16,15 @@ const SHARED_LOCATION_MAX_METRES = 40_000;
 /** The form asks for the address's area point only while it is showing this note. */
 export interface InexactAddress { address: string; near: { lat: number; lng: number } }
 
+/**
+ * Q2552: an address we cannot place is the member's to fix, and the form shows plain words for it, so the
+ * QueryCache/MutationCache hooks skip it like any designed refusal (Sentry JAVASCRIPT-57 was this, from the return
+ * address form). A lookup that could not answer at all is an outage and stays a plain, reported Error.
+ */
+function refused(code: string): Error {
+  return Object.assign(new Error(code), { designedRefusal: true });
+}
+
 export function useExactAddressPoint(notFoundCode: "invalid_location" | "address_not_found" = "invalid_location") {
   const [point, setPoint] = useState<AddressPoint | null>(null);
   const [inexact, setInexact] = useState<InexactAddress | null>(null);
@@ -37,10 +46,10 @@ export function useExactAddressPoint(notFoundCode: "invalid_location" | "address
     if (found.status === "approximate" && opts?.allowApproximate) return { lat: found.lat, lng: found.lng, address, approximate: true };
     if (found.status === "approximate") {
       setInexact({ address, near: { lat: found.lat, lng: found.lng } });
-      throw new Error("address_not_exact");
+      throw refused("address_not_exact");
     }
     setInexact(null);
-    throw new Error(found.status === "unavailable" ? "address_lookup_unavailable" : notFoundCode);
+    throw found.status === "unavailable" ? new Error("address_lookup_unavailable") : refused(notFoundCode);
   }, [point, notFoundCode]);
 
   /** A pick from the address list that Apple placed at the house: the point comes with it, so no lookup is made. */
@@ -51,14 +60,14 @@ export function useExactAddressPoint(notFoundCode: "invalid_location" | "address
 
   /** "I'm at this address": stores where the member is, once it is plausibly near the area we found. */
   const shareMyLocation = useCallback(async (): Promise<AddressPoint> => {
-    if (!inexact) throw new Error(notFoundCode);
+    if (!inexact) throw refused(notFoundCode);
     setLocating(true);
     try {
       const { currentPosition } = await import("@/lib/declutter/position");
       const here = await currentPosition();
       if (metresBetween(here, inexact.near) > SHARED_LOCATION_MAX_METRES) {
         track("address_location_refused", { reason: "too_far" });
-        throw new Error("location_far_from_address");
+        throw refused("location_far_from_address");
       }
       const p = { lat: here.lat, lng: here.lng, address: inexact.address };
       setPoint(p);

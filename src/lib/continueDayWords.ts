@@ -4,7 +4,7 @@
  * The calls live in src/lib/continueDay.ts, which re-exports all of this.
  * Guards: src/lib/continueDay.test.ts, src/test/continueDayEverywhere.test.tsx.
  */
-import { nextStepWords, type NextStepValue } from "@/components/ui/NextStep";
+import { nextStepWords, type NextStepValue } from "@/lib/nextStepWords";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 

@@ -5,28 +5,10 @@
  * that does the step. Shared: any page with a step to take can draw it (the job page first).
  * Guard: src/components/ui/NextStep.test.tsx.
  */
-export type NextStepValue = {
-  /** "you": the viewer's move; "them": waiting on someone else; "info": where things stand, nobody owes a move. */
-  who: "you" | "them" | "info";
-  /** The step, in plain words, without the "Next:" prefix ("confirm the job's still on"). */
-  text: string;
-  /** The deadline, already in words ("Sat 9:00 AM", "2 days left"); omitted when there is none. */
-  by?: string | null;
-};
-
-/** "confirm it" from "Confirm it": the line reads "Next: confirm it", one sentence. Names stay capitalised. */
-function lowerFirst(s: string): string {
-  const [first, ...rest] = s.split(" ");
-  // "I'm on my way" keeps its capital I; a one-letter word or a proper name (two capitals) is left alone.
-  if (!first || first === "I" || first.startsWith("I'") || /^[A-Z][a-z]*[A-Z]/.test(first)) return s;
-  return [first.charAt(0).toLowerCase() + first.slice(1), ...rest].join(" ");
-}
-
-/** The words the line prints, for a test or a screen reader label. */
-export function nextStepWords(v: NextStepValue): string {
-  const lead = v.who === "you" ? `Next: ${lowerFirst(v.text)}` : v.text;
-  return v.by ? `${lead} · ${v.by}` : lead;
-}
+// The words live in src/lib/nextStepWords.ts (pure, no component), so app-shared code (continueDayWords) can build
+// them without importing a component (libImportsNoPages).
+import { lowerFirst, type NextStepValue } from "@/lib/nextStepWords";
+export { nextStepWords, type NextStepValue } from "@/lib/nextStepWords";
 
 export function NextStep({ value, className = "" }: { value: NextStepValue | null; className?: string }) {
   if (!value || !value.text.trim()) return null;

@@ -87,7 +87,7 @@ function metaLine(job: JobPageRow): string {
 
 const CARD = "rounded-2xl border border-border bg-card";
 /** The hired Helpr's done step (helperFaceAction.ts, key "done"). */
-const DONE_FACE_LABEL = "Mark job complete";
+const DONE_FACE_LABEL = "Mark it done"; // helperFaceAction's done label (JA-56)
 /** A crew job whose roster the poster follows on the page (JA-32): filling, booked, under way, being fixed, done. */
 const CREW_ROSTER_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress", "revision_requested", "completed", "disputed"]);
 

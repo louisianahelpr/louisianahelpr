@@ -610,11 +610,11 @@ export function CheckoutStep({
           genuinely useful prep rather than a distraction from checkout. */}
 
 
-      {/* "Save card for next time" — optional opt-in passed through to
-          the create-payment edge function. Default off, sticky in
-          localStorage so a returning poster who turned it on once
-          doesn't have to re-tap it every post. */}
-      {setSaveCardForFuture && (
+      {/* "Save card for next time": opt-in to create-payment, sticky in localStorage. A3-108: a Repeats job always saves
+          the card (useJobSubmit sends `|| isRecurring`), so it says so instead of a switch that does nothing. */}
+      {setSaveCardForFuture && isRecurring ? (
+        <p data-save-card-fixed className="rounded-ds-md liquid-glass p-card text-ds-13 text-foreground leading-snug">Your card is saved to pay for each later visit, about 3 days before it.</p>
+      ) : setSaveCardForFuture && (
         <label
           htmlFor="save-card"
           className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-card cursor-pointer"

@@ -951,7 +951,9 @@ describe("stripe-webhook edge function", () => {
       });
     });
 
-    it("marks a tip as paid and notifies the helper on a tip checkout", async () => {
+    // Q2329: the webhook no longer writes its own "You received a tip!"; the
+    // tips trigger (notify_helper_on_tip) tells the Helpr once, from the paid flip.
+    it("marks a tip as paid on a tip checkout and writes no notice of its own (Q2329: the trigger tells the Helpr)", async () => {
       const fn = await loadConfigured();
       // The tip UPDATE is gated on `payment_status='pending'` and returns the
       // flipped row via `.select("id")`; the helper is notified ONLY when a row
@@ -981,10 +983,7 @@ describe("stripe-webhook edge function", () => {
       expect((tipWrite?.payload as Record<string, unknown>).payment_status).toBe(
         "paid",
       );
-      const notif = scenario.writes.find((w) => w.table === "notifications");
-      expect((notif?.payload as Record<string, unknown>).user_id).toBe(
-        "helper-1",
-      );
+      expect(scenario.writes.filter((w) => w.table === "notifications")).toEqual([]);
     });
 
     // Q1344: a manual tip's PaymentIntent is stamped when its checkout
@@ -1081,7 +1080,7 @@ describe("stripe-webhook edge function", () => {
         expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
       });
 
-      it("a Helpr NOT on hold: no reversal, the Helpr is told as before", async () => {
+      it("a Helpr NOT on hold: no reversal, and no webhook notice (Q2329: the tips trigger tells them)", async () => {
         const fn = await loadConfigured();
         scenario.reads.payout_holds = { rows: [] };
         scenario.reads.tips = { rows: [{ id: "tip-1" }] };
@@ -1090,7 +1089,7 @@ describe("stripe-webhook edge function", () => {
         heldTipEvent("evt_tip_clear");
         await fn.fetch(webhookRequest(fn, "{}"));
         expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
-        expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(true);
+        expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(false);
       });
 
       // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (isTransient(err)) throw err;\n    const why = message(err); |     const why = message(err);

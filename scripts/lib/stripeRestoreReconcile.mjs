@@ -82,6 +82,9 @@ export const DB_ID_COLUMNS = {
     { table: "tip_hold_redrives", column: "repay_transfer_id", orderBy: "tip_id" },
     { table: "declutter_payouts", column: "stripe_transfer_id" },
     { table: "helpr_task_payouts", column: "stripe_transfer_id" },
+    // Declutter manager mode (20261101230509, CHECK '^tr_'): the manager's share of a sale,
+    // a platform transfer to the MANAGER's account (declutter-money, declutter_manager_payouts_due).
+    { table: "declutter_manager_payouts", column: "stripe_transfer_id" },
     // Q1929: the raise part of a Helpr payout, sent from the raise's own charge.
     { table: "declutter_delivery_raises", column: "payout_transfer_id" },
     // Q2453 (owner #3706): a HELD delivery tip's own transfer, sent with the Helpr's delivery pay (CHECK '^tr_').
@@ -170,6 +173,7 @@ export const NOT_MATCHED = {
   "declutter_seller_fee_debts.refund_id": "our own declutter_refunds row id, not a Stripe id",
   "declutter_refund_requests.refund_id": "our own declutter_refunds row id (the refund a settled Declutter refund request wrote, 20261026155251), not a Stripe id",
   "payout_payee_waits.payout_id": "our own payout / refund row id (uuid) whose transfer waits for the payee's Stripe setup (payout readiness, 20261019070737), not a Stripe id",
+  "declutter_manager_payouts.seller_payout_id": "our own declutter_payouts row id (uuid, FK) the manager's share was split from (20261101230509), not a Stripe id; the share's transfer is declutter_manager_payouts.stripe_transfer_id, matched above",
   "payout_send_marks.payout_id": "our own payout / refund row id (uuid) marked as sending (payout readiness, 20261019070737), not a Stripe id",
   "payout_settlements.off_stripe_note": "free text saying how money was paid outside Stripe ('other: ...'), not a Stripe id",
   "declutter_delivery_refunds.refund_cents": "an amount, not a Stripe id",

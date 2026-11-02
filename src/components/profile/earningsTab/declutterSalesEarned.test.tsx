@@ -1,5 +1,5 @@
 /**
- * A3-56: Money > Earned showed "total earned $0.00 · 0 jobs" to a seller with a $40 sale paid out. The Earned figure
+ * A3-56 (audit 2026-11-01): Money > Earned showed "total earned $0.00 · 0 jobs" to a seller with a $40 sale paid out. The Earned figure
  * now adds the range's sent sale payouts, the caption says "N jobs · M sales", and a "Declutter sales" card lists every
  * sale payout. The read and the range rule: src/lib/declutter/salePayouts.test.ts.
  *

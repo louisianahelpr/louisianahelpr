@@ -1,5 +1,5 @@
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
-import { postedActivityBucket, appliedActivityBucket, jobIsOverdue, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
+import { postedActivityBucket, appliedActivityBucket, jobIsOverdue, jobIsUnfundedDraft, submissionAwaitingPoster } from "@/components/job-card/activityFilters";
 import { posterStatusLine, helperStatusLine } from "@/components/job-card/jobStatusLine";
 import { jobProgress, type JobProgressState } from "@/components/tracker/jobProgressState";
 
@@ -38,7 +38,10 @@ const firstOf = (n: string | null) => (n ? n.trim().split(/\s+/)[0] || null : nu
 
 /** JA-38 (audit 11-01): the poster's lines name their Helpr ("Yusef is on the way"), as the job page and card do. */
 export function deriveLiveNow(postedJobs: readonly Job[], appliedApps: readonly AppliedApp[], helperNames: Readonly<Record<string, string>> = {}): LiveNow | null {
-  const live = (j: Job | null | undefined): j is Job => !!j && j.status === "in_progress" && !jobIsOverdue(j);
+  // A3-83 (audit 11-01): once the Helpr marked it done (and no fix was asked since: helper_completed_at stays set
+  // through a revision) the work is no longer happening: Next up carries the approve step, so Live now steps aside
+  // (it repeated the same job with a second "Open job").
+  const live = (j: Job | null | undefined): j is Job => !!j && j.status === "in_progress" && !submissionAwaitingPoster(j) && !jobIsOverdue(j);
   const started = (j: Job) => j.helper_arrived_at ?? j.helper_on_the_way_at ?? j.updated_at ?? "";
   const candidates: LiveNow[] = [
     ...postedJobs.filter(live).map((j) => ({

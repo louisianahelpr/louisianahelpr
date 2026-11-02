@@ -155,6 +155,9 @@ function helprSide(job: Job, lineId: string): string {
   return lineId === "on_the_way" ? "You're on the way" : "You're working";
 }
 const HOUR = 3_600_000;
+/** A3-83: the poster's step when the Helpr marked it done (or fixed what was asked): its Next up button. */
+export const REVIEW_WORK_ACTION = "Review work";
+const POSTER_REVIEW_STEPS = new Set(["approve", "revision_fixed"]);
 
 /** Spec v2 §5.2 tier 2: someone is waiting on the member (applicants, an offer, an order, a finished job). */
 const POSTER_SOMEONE_WAITING = new Set(["applicants", "approve", "revision_fixed", "confirm_arrival"]);
@@ -253,7 +256,8 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         // "Open job" opens THE job (audit #12, 2026-10-21); the applicant
         // review still lands on the Posted list where applicants are handled.
         to: n > 0 ? `/jobs?tab=posted&filter=needs_you` : `/jobs/${j.id}`,
-        action: n > 0 ? "See applicants" : "Open job",
+        // A3-83: the approve step is named on its button ("Review work", the job page's approve section).
+        action: n > 0 ? "See applicants" : POSTER_REVIEW_STEPS.has(line.id) ? REVIEW_WORK_ACTION : "Open job",
       },
     });
   }

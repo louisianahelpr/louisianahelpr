@@ -407,6 +407,16 @@ export async function fetchOpenProblems(orderIds: string[]): Promise<OpenProblem
  * reaches prod a call WITH tags finds no 4-argument function (PGRST202): the review is sent without them, and
  * `tagsDropped` says so, so the sheet can tell the member (lh-authz-rls review #3).
  */
+/**
+ * A3-76: has the caller's own side of this order left its review (declutter_i_reviewed, 20261102015451)? Never the
+ * other side's (the blind rule). Null while that migration has not reached prod: the device's own mark still works.
+ */
+export async function fetchIReviewed(orderId: string): Promise<boolean | null> {
+  const res = await supabase.rpc("declutter_i_reviewed", { p_order_id: orderId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_i_reviewed")) return null;
+  return rpcData(res, (e) => rpcErrorMessage("declutter_i_reviewed", e)) === true;
+}
+
 export async function leaveReview(
   orderId: string,
   stars: number,

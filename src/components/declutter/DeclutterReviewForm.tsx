@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import UserAvatar from "@/components/UserAvatar";
-import { leaveReview } from "@/lib/declutter/handover";
+import { fetchIReviewed, leaveReview } from "@/lib/declutter/handover";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
@@ -86,6 +86,11 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
   const [comment, setComment] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [sent, setSent] = useState(() => rememberedReviewed(orderId, side));
+  // A3-76: the server's answer, so a second device does not offer the form again and fail only after it is filled.
+  const mine = useQuery({ queryKey: ["declutter", "i-reviewed", orderId], queryFn: () => fetchIReviewed(orderId), enabled: !sent });
+  useEffect(() => {
+    if (mine.data === true) { rememberReviewed(orderId, side); setSent(true); setOpen(false); }
+  }, [mine.data, orderId, side]);
   const { otherId, name, avatarUrl, who } = useOrderOtherPerson(orderId, userId, side);
   const send = useMutation({
     mutationFn: (args: { stars: number; comment: string | null; tags: string[] }) => leaveReview(orderId, args.stars, args.comment, args.tags),

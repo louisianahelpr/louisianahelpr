@@ -203,3 +203,77 @@ export async function fetchManagedOverview(sellerId: string): Promise<ManagedOve
   return rpcData(await supabase.rpc("declutter_managed_overview", { p_seller: sellerId }),
     (e) => rpcErrorMessage("declutter_managed_overview", e)) as unknown as ManagedOverview;
 }
+
+/** One member the seller can ask (search_profiles_by_name: signed in, rate-limited, banned and hidden test accounts left out). */
+export interface MemberHit {
+  user_id: string;
+  full_name: string;
+  avatar_url: string | null;
+}
+
+/** Members by name for the seller's grant setup. Under 2 letters asks nothing. */
+export async function searchMembers(query: string): Promise<MemberHit[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const rows = rpcData(await supabase.rpc("search_profiles_by_name", { query: q }),
+    (e) => rpcErrorMessage("search_profiles_by_name", e));
+  return (rows ?? []) as MemberHit[];
+}
+
+/**
+ * The split of one sale, exactly as the server locks it at paid (20261101230509): a percent share is rounded DOWN
+ * to the cent; a flat share is capped at the item money. The seller keeps the rest.
+ */
+export function splitOf(itemsCents: number, share: { type: ShareType; value: number }): { manager: number; seller: number } {
+  const items = Math.max(0, Math.floor(itemsCents));
+  const raw = share.type === "percent" ? Math.floor((items * Math.max(0, Math.min(100, share.value))) / 100) : Math.max(0, share.value);
+  const manager = Math.min(raw, items);
+  return { manager, seller: items - manager };
+}
+
+/** "$40 sale · $8 to Dana · $32 to you". */
+export function splitWords(itemsCents: number, managerCents: number, managerName: string): string {
+  const d = (c: number) => (c % 100 === 0 ? `$${c / 100}` : `$${(c / 100).toFixed(2)}`);
+  return `${d(itemsCents)} sale · ${d(managerCents)} to ${managerName} · ${d(itemsCents - managerCents)} to you`;
+}
+
+/** One sale's manager share, from either side (RLS: the seller and the manager read). */
+export interface OrderManagerShare {
+  order_id: string;
+  seller_id: string | null;
+  manager_id: string | null;
+  share_type: ShareType;
+  share_pct: number | null;
+  share_cents: number | null;
+  /** The manager's payout row, once the sale is paid out: what was actually sent (after any refund). */
+  paid_cents: number | null;
+  payout_status: "pending" | "succeeded" | "failed" | "nothing_due" | null;
+}
+
+/** Every sale share the caller is a party to: the terms locked at paid, plus the manager payout once it exists. */
+export async function fetchOrderManagerShares(): Promise<OrderManagerShare[]> {
+  const shares = await supabase.from("declutter_order_manager_shares")
+    .select("order_id, seller_id, manager_id, share_type, share_pct, share_cents");
+  if (shares.error) throw shares.error;
+  const pays = await supabase.from("declutter_manager_payouts").select("order_id, amount_cents, status");
+  if (pays.error) throw pays.error;
+  const byOrder = new Map(((pays.data ?? []) as { order_id: string; amount_cents: number; status: OrderManagerShare["payout_status"] }[])
+    .map((p) => [p.order_id, p]));
+  return ((shares.data ?? []) as Omit<OrderManagerShare, "paid_cents" | "payout_status">[]).map((s) => {
+    const p = byOrder.get(s.order_id);
+    return { ...s, paid_cents: p ? p.amount_cents : null, payout_status: p ? p.status : null };
+  });
+}
+
+/** The caller's sale shares; no request while the switch is off. */
+export function useOrderManagerShares() {
+  const on = useFeature("declutter_manager");
+  return useQuery({ queryKey: ["declutter-manager-shares"], queryFn: fetchOrderManagerShares, enabled: on, staleTime: 60_000 });
+}
+
+/** The manager's cents of one sale: the payout once it exists, else the locked terms over these items. */
+export function shareCentsOf(s: OrderManagerShare, itemsCents: number, itemCount: number): number {
+  if (s.paid_cents != null) return s.paid_cents;
+  if (s.share_type === "percent") return splitOf(itemsCents, { type: "percent", value: s.share_pct ?? 0 }).manager;
+  return splitOf(itemsCents, { type: "flat", value: (s.share_cents ?? 0) * Math.max(1, itemCount) }).manager;
+}

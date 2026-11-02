@@ -1,29 +1,23 @@
 /**
- * The screens of Declutter slice 4 (docs/specs/declutter-auctions.md rows 14-15,
- * 18-19, 25-28, 45, 52, 93-99; B49-B58): what happens after the buyer paid.
- * One card per paid order, for both sides:
+ * The screens of Declutter slice 4 (docs/specs/declutter-auctions.md rows 14-15, 18-19, 25-28, 45, 52, 93-99;
+ * B49-B58): what happens after the buyer paid. One card per paid order, for both sides:
  *   - the exact pickup address (the paid buyer, row 98),
- *   - book / move the 30-minute pickup (buyer books first; each side may move
- *     it once; 7-day deadline),
- *   - the buyer's "I got it" (both pickups), which pays the seller; at the
- *     door (big items), the seller's "Picked up" (photo optional) does too;
- *     with neither, the 24 h auto-pay, which on a porch pickup needs the
- *     "Left on porch" photo (rows 25, 28, 93; owner 2026-10-18),
+ *   - book / move the 30-minute pickup (buyer books first; each side may move it once; 7-day deadline),
+ *   - the buyer's "I got it" (both pickups), which pays the seller; at the door (big items), the seller's "Picked up"
+ *     (photo optional) does too; with neither, the 24 h auto-pay, which on a porch pickup needs the "Left on porch"
+ *     photo (rows 25, 28, 93; owner 2026-10-18),
  *   - at the door: short safety tips for both sides, and "Add a Helpr" to carry it,
- *   - porch: the seller's "out all day / out until" and "Set out" photo; the
- *     buyer's "Picked up" photo, taken at the address, which pays the seller
- *     right away (rows 26, 97, 99),
+ *   - porch: the seller's "out all day / out until" and "Set out" photo; the buyer's "Picked up" photo, taken at the
+ *     address, which pays the seller right away (rows 26, 97, 99),
  *   - "They didn't show" from 15 minutes after the booked time (row 94),
  *   - "Report a problem" once the booked pickup is over or the item is handed over, until the seller is paid
  *     (rows 15, 67, 96; owner 2026-10-29: never while the order waits for pickup),
- *   - the seller's payout status (row 93) and, after handover, a review both
- *     ways (row 45).
- * Every rule is enforced by the server (20261015042253); these screens only
- * explain it. Plain words come from declutterErrorMessage.
+ *   - the seller's payout status (row 93) and, after handover, a review both ways (row 45).
+ * Every rule is enforced by the server (20261015042253); these screens only explain it. Plain words come from
+ * declutterErrorMessage.
  *
- * No QR code and no 4-digit code (owner 2026-10-17 + 2026-10-18: porch pickup,
- * buyer and seller never meet): the "Set out" photo, "I got it", the "Picked up"
- * photo and the 24 h auto-pay are the whole handover (20261018183715).
+ * No QR code and no 4-digit code (owner 2026-10-17 + 2026-10-18: porch pickup, buyer and seller never meet): the
+ * "Set out" photo, "I got it", the "Picked up" photo and the 24 h auto-pay are the whole handover (20261018183715).
  */
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import { lazy, Suspense, useState, type ReactNode, useEffect, useRef } from "react";
@@ -72,9 +66,8 @@ import { DoorPickupTips, PickupAddresses, SellerAfterActions } from "./Declutter
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
-// The delivery screens load on their own (Q178, 2026-10-17): imported statically
-// from two Declutter screens, the shared Helpr task module rode in
-// signed-in-shared and put /posts over its critical-path budget.
+// The delivery screens load on their own (Q178, 2026-10-17): imported statically from two Declutter screens, the shared
+// Helpr task module rode in signed-in-shared and put /posts over its critical-path budget.
 import { DeliveryDoneStatus, onDay, PickupStatus, PorchOutPhoto, SellerDeliveryMoney, SellerDeliveryStatus } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
 import { gotItOpen } from "./OrderSteps";
@@ -99,10 +92,8 @@ const DeclutterProblemDecided = lazy(() => import("./DeclutterProblemSides").the
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 
-/**
- * Every paid order in `cart` (the cart's paid lines). The Buying and Selling
- * tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews).
- */
+/** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own
+ *  heading (PaidOrders in DeclutterTradeViews). */
 export function PaidOrdersSection({ cart, heading, label, views, show }: {
   cart: CartLine[]; heading?: ReactNode; label?: string;
   /** Buying's tracker (BuyingOrders.tsx): each buyer order's steps, chip and one next action. */
@@ -350,15 +341,14 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
   if (!booked && order.side === "seller") return null;
   const id = `dcl-slot-${order.orderId}`;
   if (frozen) return booked ? timeLine("Pickup") : null;
+  // Q2432: the no-show rule (declutter_report_no_show) where the buyer books, plus the reminder. Q2635 (audit 1102c
+  // R10): before a time is booked the picker comes first, and the rule follows it once a time is chosen.
+  const noShowRule = order.side === "buyer" && <p className="text-xs text-muted-foreground" data-testid="declutter-no-show-warning">
+    We'll remind you 1 hour before. If you miss it, the seller can report a no-show: you get one new time, and a second miss cancels the sale with a strike.</p>;
   return (
     <div className="space-y-2">
       {booked && timeLine(order.handover === "meetup" ? "Meeting" : "Pickup")}
-      {/* Q2432: the existing no-show rule (declutter_report_no_show), stated where the buyer books, plus the reminder. */}
-      {order.side === "buyer" && (
-        <p className="text-xs text-muted-foreground" data-testid="declutter-no-show-warning">
-          We'll remind you 1 hour before. If you miss it, the seller can report a no-show: you get one new time, and a second miss cancels the sale with a strike.
-        </p>
-      )}
+      {booked && noShowRule}
       {/* Each side moves a booked time once (deep audit #25: "Move it" was still offered after the move was used). */}
       {movedAlready ? (
         <p className="text-xs text-muted-foreground" data-testid="declutter-move-used">{`You've already moved this ${what} once. Message the other side if the time doesn't work.`}</p>
@@ -382,6 +372,7 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
             onClick={() => { const iso = slot ?? localInputToIso(value); if (iso) book.mutate(iso); }}>{booked ? "Move" : "Book"}</button>
           {booked && <button type="button" className={btn} onClick={() => { setMoving(false); setSlot(null); }}>Cancel</button>}
         </div>
+        {!booked && !!(slot ?? localInputToIso(value)) && noShowRule}
       </div>
       </>
       )}

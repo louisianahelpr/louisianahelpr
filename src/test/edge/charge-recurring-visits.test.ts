@@ -3742,6 +3742,89 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_ahead");
   });
 
+  // ── Q2071: a PENDING future visit of a RELEASED date (nobody holds it) ────
+  // On main it kept a payable Checkout open until its date (the sweep left a
+  // "date nobody holds yet" alone), and a payment then came back less the card
+  // fee on the visit date. Now its Checkout is closed and the row expired, the
+  // payer told; a date still held, or holds that could not be read, are left.
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |     for (const row of [...(stale ?? []), ...seriesOverRows, ...releasedRows]) { |     for (const row of [...(stale ?? []), ...seriesOverRows]) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             .filter((r) => r.status === "pending" && !overIds.has(String(r.id)))\n            .filter((r) => !held.has(`${r.parent_job_id}\|${r.visit_date}`)) |             .filter((r) => r.status === "pending" && !overIds.has(String(r.id)))\n            .filter((r) => r !== null)
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |       if (holdDefect) {\n        fail( |       if (false) {\n        fail(
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             .filter((r) => r.status === "pending" && !overIds.has(String(r.id))) |             .filter((r) => !overIds.has(String(r.id)))
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |               : releasedIds.has(String(row.id))\n              ? | : false\n              ?
+  const LIVE_PARENT = { id: PARENT_ID, status: "accepted", series_ended_on: null };
+  const pendingOpen = { rows: [{ parent_job_id: PARENT_ID, visit_date: VISIT_DATE, status: "pending" }] };
+  const releasedWorld = async (holds: Parameters<typeof wireHolds>[0]) => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [LIVE_PARENT] } });
+    wireVisitPayments({ ahead: { rows: [aheadPending] }, openParents: pendingOpen });
+    wireHolds(holds);
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    return body(await runOn(fn, "2026-09-01"));
+  };
+
+  it("Q2071: a PENDING future visit whose date nobody holds is expired and its Checkout closed, the payer told", async () => {
+    const b = await releasedWorld([]);
+    const expired = visitPaymentWrites("update");
+    expect(expired.map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["expired"]);
+    expect(expired[0].filters).toEqual(expect.arrayContaining([expect.objectContaining({ column: "status", value: "pending" })]));
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_ahead");
+    const told = JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"));
+    expect(told).toContain("The Helpr gave up the visit on 2026-09-04");
+    expect(told).not.toContain("The series ended");
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(b.errors).toBe(0);
+    // Holds were read for that series only, from tomorrow on.
+    const holdRead = scenario.readQueries.find((r) => r.table === "series_visit_holds" && r.cols === "parent_job_id, visit_date");
+    expect(holdRead?.filters).toEqual(expect.arrayContaining([expect.objectContaining({ column: "visit_date", value: "2026-09-01" })]));
+  });
+
+  it("Q2071: a PENDING future visit whose date is still held is left alone", async () => {
+    const b = await releasedWorld([{ id: HOLD_ID, visit_date: VISIT_DATE, helper_id: HELPER_ID, parent_job_id: PARENT_ID } as never]);
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(b.errors).toBe(0);
+  });
+
+  it("Q2071: of one series, only the date nobody holds is closed; the held date keeps its Checkout", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [LIVE_PARENT] } });
+    const heldPending = { ...aheadPending, id: "vp-held", visit_date: "2026-09-11", stripe_session_id: "cs_held" };
+    wireVisitPayments({
+      ahead: { rows: [aheadPending, heldPending] },
+      openParents: { rows: [...pendingOpen.rows, { parent_job_id: PARENT_ID, visit_date: "2026-09-11", status: "pending" }] },
+    });
+    wireHolds([{ id: HOLD_ID, visit_date: "2026-09-11", helper_id: HELPER_ID, parent_job_id: PARENT_ID } as never]);
+    scenario.writeSelectRows.notifications = [{ id: "n1" }];
+    await body(await runOn(fn, "2026-09-01"));
+    expect(stripeMock.checkout.sessions.expire.mock.calls.map((c) => c[0])).toEqual(["cs_ahead"]);
+    expect(visitPaymentWrites("update").map((w) => w.filters)).toEqual([
+      expect.arrayContaining([expect.objectContaining({ column: "id", value: "vp-ahead-pending" })]),
+    ]);
+  });
+
+  it("Q2071: a PAID future visit of a released date is left to the visit-date sweep (no refund now)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wireJobsReads({ series: { rows: [] }, over: { rows: [LIVE_PARENT] } });
+    wireVisitPayments({ ahead: { rows: [aheadPaid] }, openParents: { rows: [{ parent_job_id: PARENT_ID, visit_date: VISIT_DATE, status: "paid" }] } });
+    wireHolds([]);
+    otherPiRetrieve.mockResolvedValue({ id: "pi_ahead", amount: 10000, metadata: {}, latest_charge: { balance_transaction: { fee: 320 } } });
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    await body(await runOn(fn, "2026-09-01"));
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+  });
+
+  it("Q2071: holds that cannot be read close nothing and are reported", async () => {
+    const b = await releasedWorld({ error: { message: "boom", code: "XX000" } });
+    expect(visitPaymentWrites("update")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+    expect(reasons(b)).toMatch(/released dates/);
+  });
+
   // ── Q1247 (c): the Checkout closes BEFORE the row is expired ──────────────
   // On main the row was flipped to expired first and its Checkout closed
   // after: a Checkout completed in between was refunded in full by the
@@ -3784,7 +3867,7 @@ describe("charge-recurring-visits edge function", () => {
   });
 
   it("Q1247 (c) review: a visit-date row whose Checkout was paid but never settled pages (money captured, nothing booked)", async () => {
-    // @mutate supabase/functions/charge-recurring-visits/index.ts |                 if (!overIds.has(String(row.id))) { |                 if (false) {
+    // @mutate supabase/functions/charge-recurring-visits/index.ts |                 if (!overIds.has(String(row.id)) && !releasedIds.has(String(row.id))) { |                 if (false) {
     const fn = await loadConfigured();
     seedHappyPath();
     wireJobsReads({ series: { rows: [] } });
@@ -3937,7 +4020,7 @@ describe("charge-recurring-visits edge function", () => {
   // Review of Q750 (lh-money-escrow, 2026-10-03): the 500 cap used to count
   // EVERY open future row, so a busy day of live series crowded out the rows
   // of a series that had ended. Now only the over parents' rows are read.
-  // @mutate supabase/functions/charge-recurring-visits/index.ts |             .in("parent_job_id", chunk) |             .in("parent_job_id", parentIds)
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |               countOpt,\n            )\n            .in("parent_job_id", chunk) |               countOpt,\n            )\n            .in("parent_job_id", parentIds)
   // @mutate supabase/functions/charge-recurring-visits/index.ts |       .filter((p) => Boolean(p.series_ended_on) \|\| p.status === "cancelled") |       .filter(() => true)
   // Each half of "over" on its own (re-review 2026-10-04): an ended series that
   // is not cancelled (this test), and a cancelled one (the test above).
@@ -4003,7 +4086,7 @@ describe("charge-recurring-visits edge function", () => {
     const b = await body(await runOn(fn, "2026-09-01"));
 
     expect(reasons(b)).toContain("visit-payment sweep of future visits: open future visit payments read failed: boom");
-    const q = scenario.readQueries.find((r) => r.table === "recurring_visit_payments" && r.cols === "parent_job_id");
+    const q = scenario.readQueries.find((r) => r.table === "recurring_visit_payments" && r.cols === "parent_job_id, visit_date, status");
     expect(q?.filters).toEqual(expect.arrayContaining([
       expect.objectContaining({ op: "gt", column: "visit_date", value: "2026-09-01" }),
       expect.objectContaining({ op: "in", column: "status", value: ["pending", "paid"] }),

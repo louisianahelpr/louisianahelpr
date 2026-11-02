@@ -47,6 +47,15 @@ function isPayload(v: unknown): v is ActivityCoresPayload {
   return !!v && typeof v === "object" && !Array.isArray(v) && KEYS.every((k) => Array.isArray((v as Record<string, unknown>)[k]));
 }
 
+/**
+ * Forget the in-flight read, so the next caller asks afresh. The admin previews call it when they open and when they
+ * close (previewParts.ts forgetSharedReads): a read the preview answered from its sample is never joined by the real
+ * app, and a real one never by the preview.
+ */
+export function forgetActivityCoresRead(): void {
+  inFlight = null;
+}
+
 /** Both cores for `userId`, or null (the caller then sends its old reads). Never rejects. */
 export function fetchActivityCores(userId: string): Promise<ActivityCoresPayload | null> {
   if (inFlight?.userId === userId) return inFlight.p;

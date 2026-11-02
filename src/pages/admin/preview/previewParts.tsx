@@ -8,6 +8,18 @@ import { UNSAFE_NavigationContext, type To } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { forgetAllBlockReads } from "@/lib/userBlocks";
+import { forgetActivityCoresRead } from "@/lib/activityCores";
+
+/**
+ * The reads app modules share outside React Query (userBlocks' 2-second block read, activityCores' in-flight read),
+ * dropped. Called when a preview's backend goes in and again when it comes out (b177 handoff, lead 11-02): nothing a
+ * preview answered from its sample carries into the real app, and nothing real is drawn inside the preview.
+ */
+export function forgetSharedReads(): void {
+  forgetAllBlockReads();
+  forgetActivityCoresRead();
+}
 
 function toText(to: To | number): string {
   if (typeof to === "number") return to < 0 ? "the previous screen" : "the next screen";

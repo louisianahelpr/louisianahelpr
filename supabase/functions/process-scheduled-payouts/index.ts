@@ -12,7 +12,7 @@ import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, s
 import { crewFeeShareReturnCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, isDefiniteStripeRefusal, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
-import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
+import { helprFaultFeeCapCents, releaseClaimAndRestoreFaultFee, restoreHelprFaultFee, resumedClaimHelprFaultFee, stampClaimHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
@@ -1799,35 +1799,11 @@ serve(async (req) => {
       //
       // The gift leg counts toward the cap: it is real value leaving the
       // platform, denominated in credit rather than dollars.
-      // Q2082 (b), owner 2026-10-18 ("J4"): the card cost of a full refund this
-      // Helpr was ruled at fault for comes out of this payout (what keeps it at
-      // $1 or more; the rest waits for the next one). Taken once per job,
-      // shared with release-payout (_shared/helprFaultFee.ts). Fails closed.
-      // Owner 2026-10-30: the giveaway sends exactly $50, so a debt waits for the next payout.
-      if (!isGiveawayFixedPayJob(job)) {
-        const take = await takeHelprFaultFee(
-          supabaseAdmin, helperId, job.id,
-          helprFaultFeeCapCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)),
-        );
-        if (take.error !== undefined) {
-          console.error(`[process-scheduled-payouts] Helpr-fault card fee read failed for job ${job.id}: ${take.error}`);
-          await rollBackOnboardingFeeClaim();
-          results.push({ job_id: job.id, status: "helpr_fault_fee_error", error: take.error });
-          jobDefect(job.id, `helpr-fault fee ${job.id}: ${take.error}`);
-          continue;
-        }
-        if (take.cents > 0) {
-          helprFaultFeeCents = take.cents;
-          // Q2165 (owner 2026-10-19): whole dollars first, then the debt off
-          // in exact cents, so what is withheld is exactly what is booked.
-          helperPayout = (roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents) / 100;
-        }
-      }
-
       const escrowValueCents = capturedCents + giftAppliedCents;
       // The transfer: whole dollars after the onboarding fee, less the exact
       // Helpr-fault debt (Q2165), the same figure helperPayout holds.
-      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents;
+      // Q2172 (c): the Helpr-fault debt comes off after the claim (below).
+      let payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0));
       if (payoutCents > escrowValueCents) {
         console.error(
           `[process-scheduled-payouts] REFUSING: payout ${payoutCents}c exceeds escrow ${escrowValueCents}c ` +
@@ -1981,6 +1957,60 @@ serve(async (req) => {
         await rollBackOnboardingFeeClaim();
         results.push({ job_id: job.id, status: "already_claimed", detail: "claim changed while verifying prior transfers" });
         continue;
+      }
+
+      // Q2082 (b), owner 2026-10-18 ("J4"): the card cost of a full refund this
+      // Helpr was ruled at fault for (and Q2245's lapsed-visit card fee) comes
+      // out of this payout (what keeps it at $1 or more; the rest waits for the
+      // next one). Taken once per job, shared with release-payout
+      // (_shared/helprFaultFee.ts). Fails closed.
+      // Q2172 (c), lead 11-02 (C1): taken only AFTER this run holds the claim; a
+      // resumed or adopted claim never takes again, it reads what that claim
+      // recorded and clamps the booking to it.
+      // Owner 2026-10-30: the giveaway sends exactly $50, so a debt waits for the next payout.
+      if (!isGiveawayFixedPayJob(job)) {
+        const take = claim.resumed
+          ? await resumedClaimHelprFaultFee(supabaseAdmin, helperId, job.id, claim.claimId)
+          : await takeHelprFaultFee(
+            supabaseAdmin, helperId, job.id,
+            helprFaultFeeCapCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)),
+          );
+        if (take.error !== undefined) {
+          console.error(`[process-scheduled-payouts] Helpr-fault card fee read failed for job ${job.id}: ${take.error}`);
+          // Nothing was sent: a fresh claim is released and anything a capped retry booked goes back.
+          if (!claim.resumed) {
+            await releaseClaimAndRestoreFaultFee(supabaseAdmin, claim.claimId, helperId, job.id, `helpr-fault fee: ${take.error}`, "process-scheduled-payouts");
+          }
+          await rollBackOnboardingFeeClaim();
+          results.push({ job_id: job.id, status: "helpr_fault_fee_error", error: take.error });
+          jobDefect(job.id, `helpr-fault fee ${job.id}: ${take.error}`);
+          continue;
+        }
+        if (take.cents > 0) {
+          helprFaultFeeCents = take.cents;
+          // Q2165 (owner 2026-10-19): whole dollars first, then the debt off
+          // in exact cents, so what is withheld is exactly what is booked.
+          helperPayout = (roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents) / 100;
+          payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents;
+        }
+        if (!claim.resumed && take.cents > 0) {
+          const stamped = await stampClaimHelprFaultFee(supabaseAdmin, claim.claimId, {
+            amountCents: payoutCents,
+            metadata: {
+              source: "scheduled_payout",
+              ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, payoutCents, take.cents),
+            },
+          });
+          if (!stamped.ok) {
+            console.error(`[process-scheduled-payouts] could not record the Helpr-fault fee on claim ${claim.claimId} for job ${job.id}: ${stamped.message}`);
+            await releaseClaimAndRestoreFaultFee(supabaseAdmin, claim.claimId, helperId, job.id, `helpr-fault fee stamp: ${stamped.message}`, "process-scheduled-payouts");
+            helprFaultFeeCents = 0;
+            await rollBackOnboardingFeeClaim();
+            results.push({ job_id: job.id, status: "helpr_fault_fee_error", error: stamped.message });
+            jobDefect(job.id, `helpr-fault fee stamp ${job.id}: ${stamped.message}`);
+            continue;
+          }
+        }
       }
 
       // ── Step 5: Transfer to helper (charge is confirmed captured) ──

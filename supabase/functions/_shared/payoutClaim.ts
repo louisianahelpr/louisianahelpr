@@ -277,14 +277,19 @@ async function jobPaymentState(
   return { kind: "moved", status: row.payment_status ?? "null" };
 }
 
-/** Release a claim this run took and never sent on. */
-async function releaseUnsentClaim(
+/**
+ * Release a claim this run took and never sent on ('canceled' is outside the
+ * live-row index and does not salt the next key). Also used by the payout
+ * paths when the Helpr-fault fee step after the claim fails (Q2172 c).
+ */
+export async function releaseUnsentClaim(
   supabaseAdmin: { from: (t: string) => any },
   claimId: string,
+  reason = "job left payout_pending before the transfer (Q1211)",
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const { data, error } = await supabaseAdmin
     .from("payout_transfers")
-    .update({ status: "canceled", failure_reason: "job left payout_pending before the transfer (Q1211)" })
+    .update({ status: "canceled", failure_reason: reason.slice(0, 500) })
     .eq("id", claimId)
     .eq("status", "pending")
     .is("stripe_transfer_id", null)

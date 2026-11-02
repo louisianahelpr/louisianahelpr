@@ -59,9 +59,9 @@ export function ListingChoiceFields({ draft, change, idPrefix = "defaults" }: { 
         <Switch id={`${idPrefix}-drops`} checked={draft.drops} onCheckedChange={(v) => change({ drops: v === true })} />
       </div>
       {draft.drops && (<>
-        <ChipGroup label="How much each evening" options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(draft.dropPct)} onChange={(v) => change({ dropPct: Number(v) })} />
+        <ChipGroup label="How much each evening" options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(draft.dropPct)} onChange={(v) => change({ dropPct: Number(v) })} compact />
         <div className="space-y-2">
-          <ChipGroup label="Lowest you'll take" options={floorOptions(draft.floorPct)} value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} />
+          <ChipGroup label="Lowest you'll take" options={floorOptions(draft.floorPct)} value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} compact />
           <p className="text-ds-13 text-muted-foreground">Starts at {draft.floorPct}% of your asking price. Only you see this. The drops stop here.</p>
         </div>
       </>)}

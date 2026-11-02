@@ -21,8 +21,13 @@ export function StepHead({ title, sub }: { title: string; sub?: string }) {
  * One choice from a row of chips. `groups` (the ~32 Declutter categories, owner 2026-10-30) shows the same chips
  * under small headings, still one radio group, so a long list stays easy to scan.
  */
-export function ChipGroup({ label, options, value, onChange, groups }: {
+export function ChipGroup({ label, options, value, onChange, groups, compact = false }: {
   label: string;
+  /**
+   * Q2571 (audit 1102a): short chips (percentages) set 12px apart inside, so five fit one row of a 375 card (at 16px
+   * the fifth, "75%", wrapped alone onto a second row).
+   */
+  compact?: boolean;
   options: { value: string; label: string }[];
   value: string;
   onChange: (v: string) => void;
@@ -31,7 +36,8 @@ export function ChipGroup({ label, options, value, onChange, groups }: {
   const chip = (o: { value: string; label: string }) => (
     <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
       // The selected look inline, with its declared ink, so the gradInkContrast resolver can rebuild it.
-      className={`flex min-h-10 items-center rounded-full px-4 text-ds-13 font-semibold ${value === o.value ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
+      data-chip-compact={compact ? "" : undefined}
+      className={`flex min-h-10 items-center rounded-full ${compact ? "px-3" : "px-4"} text-ds-13 font-semibold ${value === o.value ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
       {o.label}
     </button>
   );

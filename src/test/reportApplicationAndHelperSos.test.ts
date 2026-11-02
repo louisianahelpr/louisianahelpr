@@ -17,7 +17,7 @@
 // @mutate src/pages/jobs/appliedJobCard/steps/WorkingStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/pages/jobs/appliedJobCard/steps/RevisionStep.tsx | actions={[reportChip, sosChip, | actions={[reportChip,
 // @mutate src/pages/posts/postedJobCard/steps/InProgressStep.tsx | const showSos = sosOffered(job); | const showSos = !!job.helper_arrived_at;
-// @mutate src/components/reportDialog/reportReasons.ts | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application" \| "declutter_item" \| "declutter_wanted" \| "declutter_question" \| "declutter_answer"; | type ReportedType = "job" \| "message" \| "user" \| "review" \| "declutter_item" \| "declutter_wanted" \| "declutter_question" \| "declutter_answer";
+// @mutate src/components/reportDialog/reportReasons.ts | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application" \| "declutter_item" \| "declutter_wanted" \| "declutter_question" \| "declutter_answer" \| "declutter_review"; | type ReportedType = "job" \| "message" \| "user" \| "review" \| "declutter_item" \| "declutter_wanted" \| "declutter_question" \| "declutter_answer" \| "declutter_review";
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | reportedType="application" | reportedType="user"
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | blockedUserId={blockApp.helper_id} | blockedUserId={blockApp.id}
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | onClick={() => { hapticLight(); setBlockApp(app); }} | onClick={() => { hapticLight(); }}
@@ -61,7 +61,7 @@ describe("Q366: report or block an applicant", () => {
   it("ReportDialog knows the application subject", () => {
     // The reason tables moved out of ReportDialog.tsx (Q806).
     const src = read("src/components/reportDialog/reportReasons.ts");
-    expect(src).toContain('export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer";');
+    expect(src).toContain('export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review";');
     expect(src).toContain(`application: "What's wrong with this application?"`);
   });
 

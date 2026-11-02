@@ -9,7 +9,7 @@
  *
  * The body is read as the migrations leave it (effectiveDefs: the newest CREATE, any dollar-quote tag).
  *
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql |     IF NEW.helper_arrived_at IS NULL AND NEW.poster_confirmed_arrival_at IS NULL THEN |     IF false THEN
+ * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql |     IF NEW.helper_arrived_at IS NULL AND NEW.poster_confirmed_arrival_at IS NULL THEN |     IF false THEN
  */
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -31,11 +31,15 @@ describe("the auto-start notice never claims the Helpr arrived (A2-B12)", () => 
     const branch = sql.slice(at, sql.indexOf("ELSIF", at + 10));
     const guard = branch.indexOf("IF NEW.helper_arrived_at IS NULL AND NEW.poster_confirmed_arrival_at IS NULL THEN");
     expect(guard).toBeGreaterThan(0);
-    const noArrival = branch.slice(guard, branch.indexOf("ELSE", guard));
+    // Q2640 (20261102235342): the no-arrival case now holds a nested IF (no start time: "Job day ended"; timed:
+    // "Start time passed"), so it runs to the outer ELSE just before "Work has started", not the first ELSE.
+    const work = branch.indexOf("v_title := 'Work has started';");
+    expect(work).toBeGreaterThan(guard);
+    const outerElse = branch.lastIndexOf("ELSE", work);
+    expect(branch.slice(outerElse + 4, work).trim()).toBe("");
+    const noArrival = branch.slice(guard, outerElse);
     expect(noArrival).toContain("v_title := 'Start time passed';");
     expect(noArrival).toContain("hasn''t checked in");
     expect(noArrival).not.toMatch(/started working|Work has started/);
-    // "Work has started" appears only after the guard's ELSE.
-    expect(branch.indexOf("'Work has started'")).toBeGreaterThan(branch.indexOf("ELSE", guard));
   });
 });

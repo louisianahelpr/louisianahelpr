@@ -14,10 +14,10 @@
  * Behaviour (real Postgres): src/test/pglite/jobNoticesNextStep.pglite.mjs (23 PASS; 15 FAIL with NEW_MIGRATION=skip;
  * 7 planted defects each red).
  *
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | (NEW.helper_completed_at + interval '24 hours') | (NEW.helper_completed_at + interval '48 hours')
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | '. Next: review them and approve by ' | '. Review them and confirm. '
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | '". Next: nothing for you to do until they arrive.' | '"'
- * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | '". Next: nothing for you to do; they mark it done when they finish.' | '"'
+ * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql | (NEW.helper_completed_at + interval '24 hours') | (NEW.helper_completed_at + interval '48 hours')
+ * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql | '. Next: review them and approve by ' | '. Review them and confirm. '
+ * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql | '". Next: nothing for you to do until they arrive.' | '"'
+ * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql | '". Next: nothing for you to do; they mark it done when they finish.' | '"'
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | '". Next: review and pick a Helpr' | '"'
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | AND (job_expires IS NULL OR v_start < job_expires) | AND true
  * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | - interval '2 hours'; | - interval '12 hours';

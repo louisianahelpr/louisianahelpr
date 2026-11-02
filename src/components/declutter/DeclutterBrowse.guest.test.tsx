@@ -13,9 +13,9 @@
  * Lead 10-31 (AUD31-67 follow-up): at desktop width the guest top bar carries the logo, Log in and Sign up, so the
  * Browse join line keeps only its message there; and a guest's empty Browse says "Sign up to sell", not "Sell something".
  * @mutate src/components/declutter/DeclutterGuest.tsx |   // AUD31-67 follow-up (lead 10-31): the desktop guest top bar has the logo and both buttons; the line stays.\n  const barShown = useIsWebDesktop(); |   const barShown = false;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |       {guest ? ( |       {false ? (
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |   const wantedOn = useFeature("declutter_wanted") && member; |   const wantedOn = true;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | <Link to={`/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}`}>Sign up to sell</Link> | <Link to="/signup">Sign up to sell</Link>
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |         primary={guest |         primary={false
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |         secondary={wanted ? { |         secondary={true ? {
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | { label: "Sign up to sell", to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` } | { label: "Sign up to sell", to: "/signup" }
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, | queryFn: () => fetchBundleSellers(sellerIds), enabled: sellerIds.length > 0,
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -134,9 +134,9 @@ describe("BUY-16: guests browse Declutter", () => {
     const g = show(<DeclutterHome />);
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sign up to sell" })).toHaveAttribute("href", `/signup?redirect=${encodeURIComponent("/declutter/sell?mode=choose")}`);
-    // No Wanted for a guest, so the line never offers to "say what you're looking for".
-    expect(screen.getByText("Be the first to sell something.")).toBeInTheDocument();
-    expect(screen.queryByText(/say what you're looking for/)).toBeNull();
+    // No Wanted for a guest, so no "Post what you're looking for" link under the pill.
+    expect(screen.getByText("New items show up here as neighbors list them.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Post what you're looking for" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Sell something" })).toBeNull();
     g.unmount();
     show(<DeclutterBrowse userId="me" tabs={(h) => <div>{h.end}</div>} />);

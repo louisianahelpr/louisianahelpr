@@ -15,7 +15,7 @@
  * guest-only surfaces), never an inline navigate to a bare /signup or to the
  * settings tab.
  *
- * @mutate src/components/dashboard/EmptyFeedActions.tsx | onClick={onNotify} | onClick={() => navigate("/signup")}
+ * @mutate src/components/dashboard/EmptyFeedActions.tsx | label: "Notify me when one lands", onClick: onNotify | label: "Notify me when one lands", onClick: () => navigate("/signup")
  * @mutate src/pages/home/DashboardGuest.tsx | onNotify={() => navigate(NOTIFY_SIGNUP_URL)} | onNotify={() => navigate("/signup")}
  * @mutate src/pages/home/DashboardGuest.tsx | onClick: () => navigate(NOTIFY_SIGNUP_URL), | onClick: () => navigate("/signup"),
  * @mutate src/lib/notifyWhenWorkLands.ts | export const NOTIFY_PREF_PATCH = { push_enabled: true, job_matches: true } as const; | export const NOTIFY_PREF_PATCH = { push_enabled: false, job_matches: true } as const;

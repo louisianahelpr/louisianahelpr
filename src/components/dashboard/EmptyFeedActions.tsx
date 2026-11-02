@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { Plus, Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bell } from "lucide-react";
+import { EmptyStateActions } from "@/components/ui/EmptyStateActions";
 import { useAgeGate } from "@/hooks/useAgeGate";
 
 /**
@@ -23,21 +23,12 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 export function EmptyFeedActions({ onNotify }: { onNotify: () => void }) {
   const navigate = useNavigate();
   const { gate, gatedProps } = useAgeGate();
+  // Owner 11-02 (1.0.4): the same layout as Declutter's empty Browse (EmptyStateActions).
   return (
-    <div className="flex flex-col items-center gap-3">
-      <Button onClick={gate("post", () => navigate("/post-job"))} {...gatedProps("post")}>
-        <Plus className="w-4 h-4 mr-1" strokeWidth={2.25} />
-        Post a job
-      </Button>
-      <Button
-        variant="ghost" size="wrap"
-        onClick={onNotify}
-        className="font-sans font-medium max-w-full"
-        style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-      >
-        <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} />
-        Notify me when one lands
-      </Button>
-    </div>
+    <EmptyStateActions
+      primary={{ label: "Post a job", onClick: gate("post", () => navigate("/post-job")), buttonProps: gatedProps("post") }}
+      secondary={{ label: "Notify me when one lands", onClick: onNotify }}
+      secondaryIcon={Bell}
+    />
   );
 }

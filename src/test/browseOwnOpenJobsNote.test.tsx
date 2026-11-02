@@ -74,7 +74,7 @@ describe("Jobs > Browse's empty state names where the viewer's own open jobs are
   it("two open jobs of your own: the line and a link to Posted, from a count of YOUR OPEN jobs", async () => {
     answer.count = 2;
     renderEmptyFeed();
-    expect(screen.getByText("No jobs near you right now.")).toBeTruthy();
+    expect(screen.getByText("No jobs near you yet.")).toBeTruthy();
     const link = await screen.findByRole("link", { name: "See them under Posted" });
     expect(link.getAttribute("href")).toBe("/jobs?tab=posted");
     expect(screen.getByText(/Your 2 open jobs don't show here\./)).toBeTruthy();

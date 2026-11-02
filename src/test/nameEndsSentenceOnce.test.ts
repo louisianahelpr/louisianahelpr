@@ -29,7 +29,6 @@ const NEVER_ENDS_IN_A_PERIOD: Record<string, string> = {
   "src/components/admin/BanDialog.tsx::${profile.full_name || \"user\"}.": "an admin view; profiles.full_name, the full name",
   "src/components/profile/profileEditForm/usePortfolio.ts::${file.name}.": "a file name, not a person",
   "src/components/admin/adminJobs/RemoveJobDialog.tsx::{detailJob?.helper_id ? \" and assigned Helpr\" : \"\"}.": "two string literals, neither ends in a period",
-  "src/components/dashboard/BrowseTasksFeed.tsx::${helprActivity.parish}.": "a parish name (the member's profile parish, e.g. \"Lafayette Parish\"), never a person's First L. name, so it never ends in its own period",
   "src/components/declutter/DeclutterBundleRow.tsx::{b.firstName}.": "the seller's FIRST name only (formatName(...).split(\" \")[0]) or \"this seller\"",
   "src/components/refund/RefundRequestDialog.tsx::${first}.": "firstNameOf(): the first name only",
   "src/components/declutter/ManagerActForSeller.tsx::${g.seller_first_name}.": "declutter_manager_first_name(): the seller's first name only (manager mode, 20261101181005)",

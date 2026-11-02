@@ -316,9 +316,9 @@ export function declutterPreviewSample(stage: DeclutterPreviewStage, side: Declu
       // cart to confirm (no payment page), and it is reserved for the giver. Missed: the picked asker let it run out,
       // so free asks are paused for 30 days and the item is back up for the giver.
       const freeItem = (over: Partial<DeclutterItem> = {}) =>
-        item(sellerId, now, { price_cents: 0, current_price_cents: 0, accepts_offers: false, handovers: ["porch", "pickup_home"], ...over });
+        item(sellerId, now, { price_cents: 0, current_price_cents: 0, accepts_offers: false, handovers: ["porch"], ...over });
       const freeLine = (over: Partial<CartLine>) => line({ price_cents: 0, order_id: null, order_status: null, handover: null, total_cents: null,
-        handovers: ["porch", "pickup_home"], ...over });
+        handovers: ["porch"], ...over });
       const ask = { id: FREE_ASK_ID, item_id: ITEM_ID, seller_id: sellerId, requester_id: buyerId, status: "open", created_at: hoursFrom(now, -3),
         declutter_items: { title: "Oak rocking chair (sample)" } };
       const freeBase: DeclutterPreviewSample = { ...base, paidCents: [] };

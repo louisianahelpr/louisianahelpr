@@ -1,5 +1,5 @@
 /**
- * A3-13 (audit 11-01): at 1440 the job page's action row stretched to about 547px per button. From md up each button
+ * A3-13 (audit 2026-11-01): at 1440 the job page's action row stretched to about 547px per button. From md up each button
  * is capped at 240px and the row sits right (the step last); on a phone it stays full width. jsdom draws no layout, so
  * this reads the classes that do it; the measured widths need a browser run (not done in this lane).
  *

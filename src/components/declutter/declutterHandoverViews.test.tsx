@@ -353,12 +353,20 @@ describe("Declutter slice 4: paid-order cards", () => {
     const { unmount } = show([line()]);
     expect(await screen.findByText("1234 Example St, Baton Rouge")).toBeInTheDocument();
     // Q2432: the buyer is told about the 1-hour reminder and the existing no-show rule, in one line, no money words.
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && ( |       {false && (
+    // Q2635 (audit 1102c R10): before a time is booked the picker comes first; the rule shows under it once a time is
+    // chosen, never above the picker.
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const noShowRule = order.side === "buyer" && <p | const noShowRule = false && <p
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         {!booked && !!(slot ?? localInputToIso(value)) && noShowRule} |         {!booked && noShowRule}
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {booked && noShowRule}\n |       {noShowRule}\n
+    expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
+    const picker = screen.getByLabelText("Pick a pickup time");
+    fireEvent.change(picker, { target: { value: "2026-10-20T12:00" } });
     const warn = screen.getByTestId("declutter-no-show-warning");
     expect(warn).toHaveTextContent("We'll remind you 1 hour before.");
     expect(warn).toHaveTextContent("a second miss cancels the sale with a strike");
     expect(warn.textContent).not.toMatch(/\$|fee|refund/i);
-    fireEvent.change(screen.getByLabelText("Pick a pickup time"), { target: { value: "2026-10-20T12:00" } });
+    expect(picker.compareDocumentPosition(warn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByTestId("declutter-no-show-warning")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Book" }));
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("book"));
     unmount();

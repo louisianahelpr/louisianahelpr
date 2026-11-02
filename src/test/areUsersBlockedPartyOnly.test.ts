@@ -46,6 +46,8 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 const EXPECTED_CALLERS = [
   "accept_application",
   "accept_group_application",
+  // Continue another day (20261101231015): the caller (auth.uid()) and the job's other party (poster or Helpr).
+  "answer_job_continue_day",
   // Quotes on jobs (20261015091114): each sets v_uid := auth.uid() and passes
   // it, or a party it has just pinned to it, as one argument.
   // book_accepted_quote / get_quotes_for_request: v_uid is the poster (checked
@@ -169,6 +171,8 @@ const EXPECTED_CALLERS = [
   // a trigger, it passes both parties (NEW.helper_id, the job's owner) and reads the pg_trigger_depth() arm.
   "notify_on_application",
   "offer_series_dates",
+  // Continue another day (20261101231015): the caller (auth.uid()) and the job's other party (poster or Helpr).
+  "propose_job_continue_day",
   // Quote hire on pay (20261018155222): the AFTER UPDATE OF payment_status
   // trigger asks (the quoter, the job's poster) before it sends the quoter an
   // "Accept to start" notice. Neither is auth.uid() (the webhook writes the

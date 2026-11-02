@@ -89,7 +89,7 @@ BEGIN
             format('order %s was never shipped by its ship-by and was refunded; its LIVE label must be voided by hand', o.id));
         END IF;
         PERFORM public.declutter_close_paid_order(o.id, 'seller_backed_out', 'seller', 'item_gone_after_sale',
-          'You did not ship a paid Declutter order by its ship-by date. The buyer got everything back, shipping included; the card fee comes out of your next Declutter payout.');
+          'You did not ship a paid Declutter order by its ship-by date. The buyer got everything back, shipping included; the cost of that refund comes out of your next Declutter payout.');
         v_never := v_never + 1;
       END IF;
     EXCEPTION WHEN OTHERS THEN

@@ -104,3 +104,7 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_restore_retained_strikes(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_restore_retained_strikes(uuid, text) TO service_role;
+
+-- Q807 (train 1 fix, B173 11-02): every public table created after Q807 gets the unconfirmed-email write gate in the
+-- migration that creates it (attach_unconfirmed_email_gate is idempotent: it adds the trigger only where it is missing).
+SELECT public.attach_unconfirmed_email_gate();

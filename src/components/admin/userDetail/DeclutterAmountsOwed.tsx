@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
+import { unwrap } from "@/lib/supabaseResult";
+import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 
 /**
  * Q1928 gap 1: what this member still owes from Declutter refunds (a card cost billed to a seller who was out, at
@@ -45,14 +47,17 @@ export function DeclutterAmountsOwed({ userId }: { userId: string }) {
     key: ["admin-declutter-amounts-owed", userId],
     fallback: [],
     fetcher: async () => {
-      const { data, error } = await supabase.rpc("declutter_admin_fee_debts", { p_user: userId });
-      if (error) {
-        // PGRST202: the function is not deployed yet (the migration lands first); show nothing rather than an error.
-        if (error.code === "PGRST202") return [];
-        report(error, { tags: { source: "DeclutterAmountsOwed.load" } });
-        throw error;
+      const res = await supabase.rpc("declutter_admin_fee_debts", { p_user: userId });
+      // PGRST202: the function is not deployed yet (the migration lands first); show nothing rather than an error.
+      if (res.error?.code === "PGRST202") return [];
+      try {
+        return (unwrap(res) ?? []) as OwedRow[];
+      } catch (thrown) {
+        report(thrown, { tags: { source: "DeclutterAmountsOwed.load" } });
+        const words = rpcErrorMessage("declutter_admin_fee_debts", thrown);
+        if (words && thrown instanceof Error && Object.isExtensible(thrown)) Object.assign(thrown, { userMessage: words });
+        throw thrown;
       }
-      return (data ?? []) as OwedRow[];
     },
   });
 
@@ -66,7 +71,7 @@ export function DeclutterAmountsOwed({ userId }: { userId: string }) {
     const { data, error } = await supabase.rpc("declutter_admin_waive_fee_debt", { p_debt_id: id, p_note: why });
     setSaving(false);
     if (error) {
-      toast.error(userFacingError(error, "Couldn't clear that amount. Try again."));
+      toast.error(rpcErrorMessage("declutter_admin_waive_fee_debt", error) ?? userFacingError(error, "Couldn't clear that amount. Try again."));
       return;
     }
     const answer = data as { result?: string } | null;

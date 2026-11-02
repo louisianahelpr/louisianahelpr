@@ -18,7 +18,7 @@ export function crewMemberLine(
   posterFirst: string | null | undefined,
 ): NextStepValue | null {
   if (!slot) return null;
-  const poster = (posterFirst ?? "").trim() || "the poster";
+  const poster = (posterFirst ?? "").trim() || "the person who posted this job";
   switch (crewMemberStep(slot, jobStatus)) {
     case "confirm":
       return null;
@@ -34,7 +34,7 @@ export function crewMemberLine(
       return { who: "you", text: "Mark your part done when you finish" };
     case "done":
       return slot.poster_confirmed_completion_at
-        ? { who: "info", text: `${poster === "the poster" ? "The poster" : poster} confirmed your work` }
+        ? { who: "info", text: `${poster === "the person who posted this job" ? "The person who posted this job" : poster} confirmed your work` }
         : { who: "them", text: `You marked your part done. Waiting on ${poster} to confirm your work` };
   }
 }

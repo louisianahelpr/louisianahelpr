@@ -39,6 +39,11 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
       "admin-only screens. Operators triage by which side of a job a party is on, and the queue labels, CSV headers and refund buttons are their vocabulary; no ordinary user reads them.",
   },
   {
+    file: "src/pages/admin/",
+    reason:
+      "admin-only pages (the stage previews at /admin/preview/*, behind AdminRoute): the operator picks which seat of a made-up job to view (\"Poster\" / \"Helpr\", \"Late cancel by poster\"); no ordinary user reads them, as src/components/admin/ above.",
+  },
+  {
     file: "src/pages/info/legal/",
     reason:
       "legal pages. Terms, Community Guidelines and Privacy define the contractual parties to a job and their fees; a contract needs the defined term, not a description.",

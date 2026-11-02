@@ -21,6 +21,16 @@ export function useLinkedOrder(): string | null {
   return linkedOrderId(params);
 }
 
+/**
+ * Q2660 (2026-11-02): an offer notice ("New offer", "New counteroffer") opens that offer. The writer
+ * (declutter_notice_order_link, migration 20261102124421) adds &offer=<id> to the member's own tab link.
+ */
+export function useLinkedOffer(): string | null {
+  const [params] = useSearchParams();
+  const id = params.get("offer");
+  return id && UUID.test(id) ? id : null;
+}
+
 /** Once per mount: the linked card opens (onOpen), scrolls into view and takes focus. */
 export function useScrollToLinkedOrder(ref: RefObject<HTMLElement>, linked: boolean, onOpen: () => void) {
   const done = useRef(false);

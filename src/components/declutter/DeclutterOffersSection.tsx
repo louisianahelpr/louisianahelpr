@@ -21,6 +21,7 @@ import { GOOD_NEWS_NOTE } from "./goodNews";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { invalidateTrades } from "./declutterLightActions";
+import { useLinkedOffer, useScrollToLinkedOrder } from "./useLinkedOrder";
 
 /** Every Declutter read refetches after a trade (offers, cart, orders). */
 
@@ -60,8 +61,13 @@ const OFFER_STATUS_WORDS: Record<MyOffer["status"], string> = {
   voided: "Item went to someone else",
 };
 
-function OfferRow({ o }: { o: MyOffer }) {
+const noop = () => {};
+
+function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
   const qc = useQueryClient();
+  // Q2660: the offer a notice opened scrolls into view and takes focus, once.
+  const rowRef = useRef<HTMLLIElement>(null);
+  useScrollToLinkedOrder(rowRef, linked, noop);
   const [counter, setCounter] = useState("");
   const [countering, setCountering] = useState(false);
   // NIGHT-SELL-offers,sale-4: opening the box puts the cursor in it (no second tap for the keyboard).
@@ -113,7 +119,7 @@ function OfferRow({ o }: { o: MyOffer }) {
   return (
     // Boards 68-70: the offer as a card (Declutter has no pre-purchase chat): the amount in money ink with who set it,
     // the asking price, whose turn it is, and what the answer means in money, from the real rules.
-    <li className="rounded-[20px] border border-border bg-card p-4 space-y-2.5" data-offer-row="">
+    <li ref={rowRef} tabIndex={linked ? -1 : undefined} className="rounded-[20px] border border-border bg-card p-4 space-y-2.5" data-offer-row="" data-linked-offer={linked ? "" : undefined}>
       <div className="flex items-start justify-between gap-3 min-w-0">
         <div className="min-w-0">
           {wantedReply && <p className="text-ds-12 font-semibold text-[hsl(var(--sage-ink))]" data-wanted-reply="">Reply to your Wanted</p>}
@@ -262,7 +268,9 @@ export function OffersSection({ side, onlyMyTurn = false }: { side: "buyer" | "s
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
   const seller = side === "seller";
   const title = seller ? "Offers on your items" : "Your offers";
-  const [showClosed, setShowClosed] = useState(false);
+  const linkedOffer = useLinkedOffer();
+  // null until the member taps the fold: then their choice wins over the notice's offer (Q2660).
+  const [showClosed, setShowClosed] = useState<boolean | null>(null);
   if (offers.isError) {
     return <ErrorState variant="inline" title="We couldn't load offers." body={declutterErrorMessage(offers.error)} onRetry={() => void offers.refetch()} />;
   }
@@ -275,7 +283,7 @@ export function OffersSection({ side, onlyMyTurn = false }: { side: "buyer" | "s
     return (
       <section className="space-y-2" aria-label={title} data-offers-my-turn="">
         <SectionHeading title={title} todo={toAnswer} todoWords="to answer" />
-        <ul className="space-y-3">{waiting.map((o) => <OfferRow key={o.offer_id} o={o} />)}</ul>
+        <ul className="space-y-3">{waiting.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>
       </section>
     );
   }
@@ -283,6 +291,8 @@ export function OffersSection({ side, onlyMyTurn = false }: { side: "buyer" | "s
   // seller sees the open ones; the closed ones fold under one button. declutter_my_offers keeps a closed offer 30 days.
   const shown = seller ? mine.filter((o) => o.status === "open") : mine;
   const closed = seller ? mine.filter((o) => o.status !== "open") : [];
+  // Q2660: a notice's offer that has since closed opens the fold, so the card it names is on screen.
+  const closedOpen = showClosed ?? (linkedOffer !== null && closed.some((o) => o.offer_id === linkedOffer));
   return (
     <section className="space-y-2" aria-label={title}>
       <SectionHeading title={title} todo={toAnswer} todoWords="to answer" />
@@ -291,15 +301,15 @@ export function OffersSection({ side, onlyMyTurn = false }: { side: "buyer" | "s
       ) : shown.length === 0 ? (
         <p className="text-sm text-muted-foreground">No open offers.</p>
       ) : (
-        <ul className="space-y-3">{shown.map((o) => <OfferRow key={o.offer_id} o={o} />)}</ul>
+        <ul className="space-y-3">{shown.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>
       )}
       {closed.length > 0 && (
         <>
-          <button type="button" className="link-standard text-sm font-medium" aria-expanded={showClosed}
-            onClick={() => setShowClosed((v) => !v)} data-closed-offers-toggle="">
-            {showClosed ? "Hide closed offers" : `Show ${closed.length} closed ${closed.length === 1 ? "offer" : "offers"} from the last 30 days`}
+          <button type="button" className="link-standard text-sm font-medium" aria-expanded={closedOpen}
+            onClick={() => setShowClosed(!closedOpen)} data-closed-offers-toggle="">
+            {closedOpen ? "Hide closed offers" : `Show ${closed.length} closed ${closed.length === 1 ? "offer" : "offers"} from the last 30 days`}
           </button>
-          {showClosed && <ul className="space-y-3" data-closed-offers="">{closed.map((o) => <OfferRow key={o.offer_id} o={o} />)}</ul>}
+          {closedOpen && <ul className="space-y-3" data-closed-offers="">{closed.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>}
         </>
       )}
     </section>

@@ -1797,7 +1797,8 @@ serve(async (req) => {
     // ladder below (money-reconciliation reads it the same way): a 0 a poster's cancel wrote for any other reason is
     // re-priced. Read once for every single Part A job with a hired Helpr. Only a missing table (a function deployed
     // before the migration, when no such cancel can exist) reads "no waiver"; any other read error moves no money for
-    // those jobs this run.
+    // those jobs this run. Q1415 (e): the same row (reason 'payee_frozen') records a 0 for a confirmed Helpr who was
+    // banned or under an open ban review at the cancel; their status may change before this runs, so only the row counts.
     const idWaiverCandidates = (jobs ?? [])
       .filter((j) => j.is_group_job !== true && !!j.helper_id)
       .map((j) => j.id as string);

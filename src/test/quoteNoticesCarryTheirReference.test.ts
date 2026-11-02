@@ -37,7 +37,7 @@
  * fail (every call is quote_notify_about / quote_notify, no reference).
  *
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | ' on "' \|\| v_req.title \|\| '".', v_uid, true,\n      v_req.id, NULL, false); | ' on "' \|\| v_req.title \|\| '".', v_uid, true,\n      NULL, NULL, false);
- * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | Finish your payout setup and ID check and you''re booked.',\n        NEW.customer_id, false, NULL, NEW.id, true); | Finish your payout setup and ID check and you''re booked.',\n        NEW.customer_id, false, NULL, NEW.id, false);
+ * @mutate supabase/migrations/20261102081647_quote_hire_catches_query_canceled.sql | Finish your payout setup and ID check and you''re booked.',\n        NEW.customer_id, false, NULL, NEW.id, true); | Finish your payout setup and ID check and you''re booked.',\n        NEW.customer_id, false, NULL, NEW.id, false);
  * @mutate supabase/migrations/20261023120308_quote_reminders_by_email.sql | WHEN p_request_id IS NOT NULL THEN '/quotes?request=' \|\| p_request_id::text | WHEN p_request_id IS NOT NULL THEN '/quotes?view=mine'
  * @mutate supabase/migrations/20261023120308_quote_reminders_by_email.sql |   VALUES (p_user, p_title, p_message, 'new_offers', v_link, p_job_id) |   VALUES (p_user, p_title, p_message, 'new_offers', v_link, NULL)
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | DROP FUNCTION IF EXISTS public.quote_notify_about(uuid, text, text, uuid, boolean);\n | \n

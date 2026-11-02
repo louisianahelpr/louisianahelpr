@@ -300,6 +300,8 @@ describe("the receipts of the runs deleted on 2026-10-30 (db-deploy red, run 411
     "40718824063": ["20261028151647"],
     "40734689453": ["20261028151144"],
     "40738655133": ["20261028155329", "20261028160637"],
+    // Q2553 (builder 148, 11-01): every run created 2026-10-30T19:12Z..2026-10-31T05:50Z answers 404 (total_count 0).
+    "41157098012": ["20261031011531"],
   };
 
   it("the checked-in list is exactly the measured pairs, dated and explained, and each names a real migration", () => {

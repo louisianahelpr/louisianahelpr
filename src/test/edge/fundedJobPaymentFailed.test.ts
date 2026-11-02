@@ -201,13 +201,16 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
 
   // Q1971 + Q1876 (merged with the train's returnBouncedGift): a funded job
   // NOBODY was hired on was never paid for, so after the un-fund its gift goes
-  // back exactly as an unpaid bounce's does; a hired job the RPC would not
-  // cancel (work done) keeps it, and the page names it (Q1975).
-  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && cancelOutcome === "not_hired"; | const giftAsked = false;
-  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && cancelOutcome === "not_hired"; | const giftAsked = Boolean(giftCardId);
+  // back exactly as an unpaid bounce's does. Q1975 part 2 (lead decision
+  // 11-01: 'failed' wins): a hired job the RPC would not cancel (work done) is
+  // never paid from the gift alone, so its gift goes back too. Only a cancel
+  // RPC that is not deployed keeps it, and the page names it.
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && (cancelOutcome === "not_hired" \|\| cancelOutcome === "not_cancellable"); | const giftAsked = false;
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && (cancelOutcome === "not_hired" \|\| cancelOutcome === "not_cancellable"); | const giftAsked = Boolean(giftCardId);
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && (cancelOutcome === "not_hired" \|\| cancelOutcome === "not_cancellable"); | const giftAsked = Boolean(giftCardId) && cancelOutcome === "not_hired";
   // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (giftBack === "returned" && job.customer_id) { | if (false) {
   // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | : ` Its checkout spent gift card ${giftCardId}, which is NOT returned | : ` Its checkout spent a gift card, which is NOT returned
-  it("nobody hired: the un-fund gives the spent gift back through return_bounced_gift_card and says so; work done keeps it and pages", async () => {
+  it("nobody hired, or work done: the un-fund gives the spent gift back through return_bounced_gift_card and says so; an undeployed cancel RPC keeps it and pages", async () => {
     const giftCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "return_bounced_gift_card");
     {
       const fn = await loadConfigured();
@@ -252,6 +255,24 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
       failedEvent(PI, { gift_card_id: "gift-1" });
       fundedJob({ status: "completed", helper_confirmed_at: "2026-10-16T18:40:55Z" });
       cancelAnswers("not_cancellable", { status: "completed" });
+      scenario.rpc.return_bounced_gift_card = { outcome: "returned", credit_id: "gift-1", payment_status: GIFT_CARD_PAID };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBe(200);
+      // Q1975 part 2: work done, never paid from the gift alone, so the gift goes back.
+      expect(giftCalls().map((c) => c.args)).toEqual([{ p_job_id: "job-ach", p_gift_card_id: "gift-1" }]);
+      expect(notices().some((x) => x.title === "Gift card returned")).toBe(true);
+      expect(slackAlerts.some((a) => /NOT returned/.test(String((a as { message?: string }).message)))).toBe(false);
+    }
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+    {
+      // The cancel RPC not deployed: nothing decided, the gift is kept for a person and the page names it.
+      const fn = await loadConfigured();
+      failedEvent(PI, { gift_card_id: "gift-1" });
+      fundedJob({ status: "completed", helper_confirmed_at: "2026-10-16T18:40:55Z" });
+      cancelNotDeployed();
       stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
       const res = await fn.fetch(webhookRequest(fn));
       expect(res.status).toBe(200);

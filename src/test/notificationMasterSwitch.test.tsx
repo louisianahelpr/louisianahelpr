@@ -42,6 +42,10 @@ let writes: Record<string, unknown>[];
 /** How many more `notification_preferences` reads fail (Q2311). */
 let failPrefsReads = 0;
 let prefsReads = 0;
+/** The signed-in account the stubbed useAuthReady reports (Q2320 switches it mid-mount). */
+let authId = "u1";
+/** Accounts whose notification_preferences read never answers (a read still in flight). */
+let hangingReadsFor = new Set<string>();
 
 const startingRow = (): Record<string, unknown> => ({
   ...defaultPrefs,
@@ -81,7 +85,7 @@ const startingRow = (): Record<string, unknown> => ({
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 
 vi.mock("@/hooks/useAuthReady", () => ({
-  useAuthReady: () => ({ user: { id: "u1" }, isReady: true }),
+  useAuthReady: () => ({ user: authId ? { id: authId } : null, isReady: true }),
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -89,10 +93,11 @@ vi.mock("@/integrations/supabase/client", () => ({
     auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
     from: (table: string) => ({
       select: () => ({
-        eq: () => ({
+        eq: (_col: string, id: string) => ({
           maybeSingle: async () => {
             if (table !== "notification_preferences") return { data: storedRow, error: null };
             prefsReads++;
+            if (hangingReadsFor.has(id)) return new Promise(() => {});
             if (failPrefsReads > 0) {
               failPrefsReads--;
               return { data: null, error: { message: "network down", code: "PGRST000" } };
@@ -120,6 +125,8 @@ beforeEach(() => {
   writes = [];
   failPrefsReads = 0;
   prefsReads = 0;
+  authId = "u1";
+  hangingReadsFor = new Set();
 });
 
 const mountLoaded = async () => {
@@ -275,6 +282,56 @@ describe("when the saved settings cannot be read", () => {
     fireEvent.click(emailMaster());
     await waitFor(() => expect(writes.length).toBe(1));
     expect(writes[0].email_messages).toBe(false);
+  });
+});
+
+// Q2320 (finding lh-silent-failure@4ffa9adb8c#4): the account changes while the screen stays mounted. Until the
+// new account's row is read, nothing may be written, and never the first account's values under the new id.
+// @mutate src/components/NotificationPreferences.tsx |       if (loadedFor.current !== user.id) { |       if (false) {
+// @mutate src/components/NotificationPreferences.tsx |         if (!cancelled) { forgetAccount(); setLoaded(true); } |         if (!cancelled) setLoaded(true);
+describe("the signed-in account changes while the screen is open (Q2320)", () => {
+  it("locks the switches until the new account's settings are read, and writes nothing meanwhile", async () => {
+    const { rerender } = render(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByLabelText("Job offers push").hasAttribute("disabled")).toBe(false));
+    // u1's opt-out is on screen.
+    expect(screen.getByLabelText("Messages email").getAttribute("data-state")).toBe("unchecked");
+    authId = "u2";
+    hangingReadsFor.add("u2");
+    rerender(<NotificationPreferences />);
+    // Unloaded again: the category switches go back to their loading pills (or stay disabled); none is pressable.
+    await waitFor(() => {
+      const offers = screen.queryByLabelText("Job offers push");
+      expect(offers === null || offers.hasAttribute("disabled")).toBe(true);
+    });
+    const live = screen.queryAllByRole("switch").filter((sw) => !sw.hasAttribute("disabled"));
+    expect(live.map((sw) => sw.getAttribute("aria-label"))).toEqual([]);
+    for (const sw of screen.queryAllByRole("switch")) fireEvent.click(sw);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(writes, "a press saved the first account's settings into the second").toEqual([]);
+  });
+
+  it("the new account's own row replaces the first account's values", async () => {
+    const { rerender } = render(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByLabelText("Job offers push").hasAttribute("disabled")).toBe(false));
+    authId = "u2";
+    storedRow = null as unknown as Record<string, unknown>; // u2 has no saved row: defaults apply
+    rerender(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByLabelText("Messages email").getAttribute("data-state")).toBe("checked"));
+    fireEvent.click(pushMaster());
+    await waitFor(() => expect(writes.length).toBe(1));
+    expect(writes[0].user_id).toBe("u2");
+    expect(writes[0].email_messages, "u1's opt-out was carried into u2").toBe(true);
+  });
+
+  it("signing out forgets the account: nothing can be written for it", async () => {
+    const { rerender } = render(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByLabelText("Job offers push").hasAttribute("disabled")).toBe(false));
+    authId = null as unknown as string;
+    rerender(<NotificationPreferences />);
+    await new Promise((r) => setTimeout(r, 20));
+    for (const sw of screen.queryAllByRole("switch")) fireEvent.click(sw);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(writes).toEqual([]);
   });
 });
 

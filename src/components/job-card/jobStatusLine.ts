@@ -22,6 +22,7 @@ import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 import { confirmDeadlineMs, confirmOpensMs, posterConfirmClosesMs } from "@/lib/jobDate";
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
+import { TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { workHasBegun } from "@/components/tracker/workHasBegun";
 
 /**
@@ -624,6 +625,9 @@ export function derivePosterWait(
       // In progress by the clock only (auto-start-due-jobs), with no arrival anyone recorded: not "at the job" (A2-B12).
       if (job.status === "in_progress" && !job.helper_arrived_at && !job.poster_confirmed_arrival_at && !job.poster_confirmed_working_at) {
         // T12-B: a start still ahead hasn't "passed", and Report no-show would be refused or wrong: it stays confirmed.
+        // Q2588: a no-start-time job ("any time that day") has no start to pass on its day; past the day, the
+        // overdue lines above take over.
+        if (!hasStartTime(job)) return "confirmed";
         const start = jobStartDateTime(job.date_needed, job.start_time);
         return start && start.getTime() > now.getTime() ? "confirmed" : "started_no_checkin";
       }
@@ -1034,7 +1038,8 @@ export function helperStatusLine(
   return {
     id,
     eyebrow: expired ? APPLICANT_CLOSED_EYEBROW : copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: expired ? APPLICANT_CLOSED_DETAIL : named ?? copy.detail,
+    // Q2588: "It's time" never on a no-start-time job (anyTimeThatDay.ts): today, any time.
+    detail: expired ? APPLICANT_CLOSED_DETAIL : id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking" || id === "confirm_spot",
     suffix:

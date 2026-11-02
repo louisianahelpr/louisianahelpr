@@ -8796,6 +8796,7 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string
+          declutter_ref: string | null
           id: string
           job_id: string | null
           link: string | null
@@ -8807,6 +8808,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          declutter_ref?: string | null
           id?: string
           job_id?: string | null
           link?: string | null
@@ -8818,6 +8820,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          declutter_ref?: string | null
           id?: string
           job_id?: string | null
           link?: string | null

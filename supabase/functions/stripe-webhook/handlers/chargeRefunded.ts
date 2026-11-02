@@ -254,7 +254,7 @@ export async function handleChargeRefunded(
   // reversed once per live refund, keyed on the refund id, by the share of the
   // labor and tax that refund returned. Never throws.
   if (!isOnboardingFeeCorrection) {
-    await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, logStep });
+    await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, supabase, logStep });
   }
 
   // A GIFT CARD donation's PaymentIntent never reaches `jobs`, so the lookup

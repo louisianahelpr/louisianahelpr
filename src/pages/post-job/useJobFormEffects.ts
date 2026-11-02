@@ -373,7 +373,10 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
         if (p.dateNeeded) setDateNeeded?.(p.dateNeeded);
       },
       (err) => {
-        report(err, { severity: "warning", tags: { source: "useJobFormEffects.declutterSetupPrefill" } });
+        // Q1943: a designed refusal (setupHelpr.ts) is not a defect; anything else is reported.
+        if ((err as { designedRefusal?: unknown } | null)?.designedRefusal !== true) {
+          report(err, { severity: "warning", tags: { source: "useJobFormEffects.declutterSetupPrefill" } });
+        }
         if (live) toast.error("Couldn't load that purchase. Fill in the job yourself.");
       },
     );

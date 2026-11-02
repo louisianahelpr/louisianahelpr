@@ -81,7 +81,15 @@ import { PRODUCT_TO_TIER } from "../_shared/productTiers.ts";
 import { PRO_ONE_TIME_AMOUNT_CENTS, PRO_PRICE_MAP, PRO_RECURRING_AMOUNT_CENTS } from "../_shared/proTiers.ts";
 import { subscriptionCurrentPeriodEndISO } from "../_shared/stripeSubscriptionPeriod.ts";
 import { subscriptionLinkage } from "../_shared/subscriptionLinkage.ts";
-import { environmentVerdict, fetchAppleTransaction } from "../_shared/appleAppStore.ts";
+import {
+  computeExpiry,
+  environmentVerdict,
+  fetchAppleTransaction,
+  fetchLatestSubscriptionTransaction,
+  isEntitled,
+  membershipsSwitchFor,
+  resolveProduct,
+} from "../_shared/appleAppStore.ts";
 
 /** Sample ids carried in a finding. Keeps the Slack fields and body readable. */
 const MAX_IDS_PER_CHECK = 10;
@@ -167,6 +175,13 @@ interface Repair {
   user_id: string;
   reason: string;
   patch: Record<string, unknown>;
+  /**
+   * The row state the decision was made on, repeated in the write (column ->
+   * value; null means IS NULL). A row that changed between the read and the
+   * write matches zero rows and is reported as a failed repair, never
+   * overwritten (Q1858, as apple-app-store-notifications does).
+   */
+  onlyIf?: Record<string, string | null>;
 }
 
 const ms = (iso: string | null | undefined): number | null => {
@@ -268,6 +283,16 @@ serve(async (req) => {
         "orphan_active_price",
         "warning",
         "An ACTIVE Stripe Price belongs to a product that is not in PRODUCT_TO_TIER. A checkout against it completes and grants nothing. Archive the Price and product, or map the product (SC-015).",
+      ),
+      appleReclaimed: new Check(
+        "apple_reclaimed",
+        "info",
+        "Apple took back a row Stripe no longer holds: the member's App Store subscription is paid, the row carried its App Store id, and no Stripe subscription or running Stripe tier remains (a double subscription settled by cancelling the Stripe side). The Apple tier was granted from Apple's latest transaction (Q1858).",
+      ),
+      appleReclaimedMembershipsOff: new Check(
+        "apple_reclaimed_memberships_off",
+        "warning",
+        "Apple took back a row (apple_reclaimed) for a member the memberships switch is off for, or whose switch could not be read: they are paying Apple for perks that are off. The grant was kept (Apple already charged). Refund them in App Store Connect or tell them how to cancel.",
       ),
       appleSandboxGrant: new Check(
         "apple_sandbox_grant",
@@ -635,10 +660,88 @@ serve(async (req) => {
       }
     }
 
+    // ── 2b'. Apple takes back a row Stripe no longer holds (Q1858) ─────────
+    //
+    // apple-app-store-notifications lets Apple reclaim a row whose Stripe side
+    // has ended, but only when Apple sends a notice: after ops settle a double
+    // subscription by cancelling Stripe, an annual Apple member could wait up
+    // to a year with no tier (lh-money-escrow re-review, 2026-10-15). So every
+    // row that carries an App Store id, is not Apple's, was matched to no live
+    // Stripe subscription above, and on which Stripe holds nothing (no
+    // subscription id, no tier still running: the notice handler's exact rule)
+    // is graded from Apple's LATEST transaction (never the original purchase,
+    // Q1860). Entitled, in an environment that counts for the account: the row
+    // goes back to Apple with the tier and expiry Apple's transaction grants,
+    // and section 2c does not touch it. Any read that fails (Apple, the
+    // test-account read) is a partial scan, never a write; 2c then still
+    // leaves the row alone this run rather than clear it on a guess.
+    //
+    // Shares the Apple budget with 2d below.
+    const applePassEnds = Date.now() + APPLE_PASS_BUDGET_MS;
+    const appleOwnsNow = new Set<string>();
+    for (const p of profiles) {
+      if (!p.apple_original_transaction_id) continue;
+      if (p.subscription_source === "apple") continue;
+      if (matchedUserIds.has(p.user_id)) continue; // a live Stripe subscription pays this row
+      if (p.stripe_subscription_id) continue;
+      const stripeExpiry = ms(p.subscription_expires_at);
+      if (p.subscription_tier && (stripeExpiry === null || stripeExpiry > now)) continue; // a Stripe tier still running
+      if (Date.now() > applePassEnds) {
+        caps.push(`Apple reclaim pass stopped at its ${APPLE_PASS_BUDGET_MS / 1000}s budget; ${p.user_id} and later rows not checked`);
+        appleOwnsNow.add(p.user_id); // not graded: 2c leaves it alone this run
+        break;
+      }
+      let tx;
+      try {
+        const original = await fetchAppleTransaction(p.apple_original_transaction_id);
+        const originalMeta = resolveProduct(original.productId);
+        if (!originalMeta) continue; // not one of our products: nothing to reclaim
+        tx = originalMeta.kind === "auto" ? await fetchLatestSubscriptionTransaction(original) : original;
+      } catch (e) {
+        caps.push(`Apple subscription for ${p.user_id} could not be read (reclaim pass): ${caughtMessage(e)}`);
+        appleOwnsNow.add(p.user_id);
+        continue;
+      }
+      const meta = resolveProduct(tx.productId);
+      if (!meta || !isEntitled(tx, meta)) continue;
+      const reclaimVerdict = await environmentVerdict(tx, admin, p.user_id);
+      if (reclaimVerdict === "unknown") {
+        caps.push(`test-account status for ${p.user_id} could not be read; Apple reclaim not graded`);
+        appleOwnsNow.add(p.user_id);
+        continue;
+      }
+      if (reclaimVerdict === "does_not_count") continue;
+      const expiresAt = computeExpiry(tx, meta);
+      appleOwnsNow.add(p.user_id);
+      checks.appleReclaimed.add({
+        user_id: p.user_id,
+        was_source: p.subscription_source,
+        tier: meta.tier,
+        expires_at: expiresAt,
+        original_transaction_id: p.apple_original_transaction_id,
+      });
+      const switchState = await membershipsSwitchFor(admin, p.user_id);
+      if (switchState !== "on") {
+        checks.appleReclaimedMembershipsOff.add({ user_id: p.user_id, memberships_switch: switchState, product: tx.productId });
+      }
+      repairs.push({
+        user_id: p.user_id,
+        reason: `Apple reclaims the row (was ${p.subscription_source ?? "nobody"}, Stripe holds nothing): tier ${meta.tier} until ${expiresAt}`,
+        patch: {
+          subscription_tier: meta.tier,
+          subscription_expires_at: expiresAt,
+          subscription_billing_cycle: meta.cadence,
+          subscription_source: "apple",
+        },
+        onlyIf: { subscription_source: p.subscription_source, stripe_subscription_id: null },
+      });
+    }
+
     // ── 2c. DB → Stripe ──────────────────────────────────────────────────────
     for (const p of profiles) {
       if (!p.subscription_tier) continue;
       if (matchedUserIds.has(p.user_id)) continue; // already graded against a live sub
+      if (appleOwnsNow.has(p.user_id)) continue; // Apple took it back, or its Apple read failed (2b')
 
       const expiry = ms(p.subscription_expires_at);
 
@@ -748,7 +851,6 @@ serve(async (req) => {
     // call has its own timeout (fetchAppleTransaction) and the pass stops at
     // APPLE_PASS_BUDGET_MS, sending the rest to caps, so a slow App Store can
     // never keep the Stripe repairs below from being applied.
-    const applePassEnds = Date.now() + APPLE_PASS_BUDGET_MS;
     for (const p of profiles) {
       if (p.subscription_source !== "apple" || !p.subscription_tier) continue;
       if (!p.apple_original_transaction_id) continue;
@@ -823,10 +925,14 @@ serve(async (req) => {
       const seedProfile = new Set(profiles.filter((p) => p.is_seed === true).map((p) => p.user_id));
       const who = (id: string) => (seedProfile.has(id) ? `${id} (seed profile)` : id);
       for (const r of repairs) {
-        const { data, error } = await admin
+        let write = admin
           .from("profiles")
           .update(r.patch)
-          .eq("user_id", r.user_id)
+          .eq("user_id", r.user_id);
+        for (const [column, value] of Object.entries(r.onlyIf ?? {})) {
+          write = value === null ? write.is(column, null) : write.eq(column, value);
+        }
+        const { data, error } = await write
           // A null `error` does not mean the write happened. This is an
           // entitlement write; a zero-row UPDATE returns `{data: [], error:
           // null}` and would otherwise be counted as a successful repair.

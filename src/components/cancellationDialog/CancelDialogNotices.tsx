@@ -37,13 +37,6 @@ export function visitDayLabel(dateNeeded: string): string {
     .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-export function cancelDialogTitle(scope: CancelSeriesScope, jobTitle: string, jobDate: string): string {
-  const day = visitDayLabel(jobDate);
-  if (scope === "visit") return day ? `Cancel only the ${day} visit?` : "Cancel only this visit?";
-  if (scope === "series") return `Cancel the whole "${jobTitle}" series?`;
-  return `Cancel "${jobTitle}"?`;
-}
-
 /** Series scope — stated HERE, at the decision, instead of living permanently on the card (owner, 2026-08-24). */
 export function CancelSeriesNotice({ scope, jobDate }: { scope: Exclude<CancelSeriesScope, null>; jobDate: string }) {
   const day = visitDayLabel(jobDate);

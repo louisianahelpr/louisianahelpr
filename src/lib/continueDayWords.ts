@@ -16,6 +16,12 @@ export type ContinueDay = {
   note: string | null;
   status: "proposed" | "set";
   helper_confirmed_at: string | null;
+  /**
+   * Q2606 (owner): who asked for the day, read with the row (proposed_by against the job's poster). Every new day is
+   * a proposal the OTHER side answers (answer_job_continue_day, 20261102102402). Absent (an older read, a gone
+   * proposer) reads as the Helpr, the server's own fallback: the poster answers.
+   */
+  proposer?: "poster" | "helpr";
 };
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
@@ -44,6 +50,12 @@ export function continueDayNextStep(
   const when = continueDayLabel(row.new_date, row.new_start_time);
   const other = (o.otherFirst ?? "").trim();
   if (row.status === "proposed") {
+    // Q2606 (owner): the poster's day goes to the Helpr to accept, as the Helpr's goes to the poster.
+    if (row.proposer === "poster") {
+      return o.side === "poster"
+        ? { who: "them", text: `You asked to finish ${when}`, by: `waiting on ${other || "your Helpr"}` }
+        : { who: "you", text: `Accept ${other ? `${other}'s` : "the"} new day`, by: when };
+    }
     return o.side === "poster"
       ? { who: "you", text: `Confirm ${other ? `${other}'s` : "your Helpr's"} new day`, by: when }
       : { who: "them", text: `You asked to finish ${when}`, by: `waiting on ${other || "the person who posted it"}` };

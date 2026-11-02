@@ -165,7 +165,9 @@ describe("every pop-up title is sentence case", () => {
     // 209: -1 "Need another day" (ContinueDaySheet has one title for both sides now, Jobs audit 1102b Q2593).
     // 212: +3 "Decline ${posterFirst}’s offer?" / "Decline this offer?" (OfferedActions asks before a direct offer is
     // declined, Q2605) and "Withdraw your offer?" (useWithdrawOffer, Q2604).
-    expect(all.length).toBe(212);
+    // 215: +3 the poster's cancel title says what it reaches (Q2677, CancellationDialog): "Cancel only the ${day} visit?",
+    // "Cancel only this visit?" and "Cancel the whole "${title}" series?" beside "Cancel "${title}"?".
+    expect(all.length).toBe(215);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

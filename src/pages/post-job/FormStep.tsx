@@ -449,8 +449,11 @@ export function FormStep({ form }: FormStepProps) {
             still naming what is missing. Guard: postJobFitsItsColumn.test.ts. */}
         {page !== 1 && (
         <div data-testid="post-job-action-bar" className={`${barFloats ? "sticky bottom-safe-nav" : "relative"} z-10 bg-premium-page pt-3 pb-2`}>
+          {/* A3-106: each branch is its own button (its own key). One button whose `type` flipped from "button" to
+              "submit" during the Continue click on Price submitted the form when When and where was already filled. */}
           {backTo && !atOpenJobLimit && !underAge ? (
             <Button
+              key="post-job-back"
               variant="primary"
               type="button"
               className="w-full rounded-full text-ds-16"
@@ -461,6 +464,7 @@ export function FormStep({ form }: FormStepProps) {
             </Button>
           ) : !lastPage ? (
             <Button
+              key="post-job-next"
               variant="primary"
               type="button"
               className="w-full rounded-full text-ds-16"
@@ -473,6 +477,7 @@ export function FormStep({ form }: FormStepProps) {
             </Button>
           ) : (
           <Button
+            key="post-job-submit"
             variant="primary"
             type="submit"
             className="w-full rounded-full"

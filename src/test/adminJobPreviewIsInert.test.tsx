@@ -16,6 +16,7 @@
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (sheetOpen) return null; |   if (sheetOpen) void 0;
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (!open) { |   if (open === null) {
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |     opens: stage === "cancel_sheet" ? "Cancel job" : null, |     opens: null,
+ * @mutate src/pages/admin/preview/jobPreviewSamples.ts |           tips: [{ |           tips_off: [{
  * @mutate src/pages/admin/preview/jobPreviewSamples.ts |       job_guarantee_claims: [],\n |
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |     const undoRealtime = installInertRealtime(); |     const undoRealtime = () => undefined;
  * @mutate src/App.tsx | <ProtectedRoute><AdminRoute><AdminJobPreview /></AdminRoute></ProtectedRoute> | <ProtectedRoute><AdminJobPreview /></ProtectedRoute>
@@ -137,6 +138,20 @@ describe("admin job-page preview", () => {
       }, 30000);
     }
   }
+
+  // Q2684 (audit 1102e row 11): the Tip stage offers the poster's Tip; Tip sent (a paid tips row) takes it away.
+  it("Tip offers the poster's Tip; Tip sent has none, and Review is what is left", async () => {
+    const tipButtons = () => screen.queryAllByRole("button").filter((b) => /^(Tip|Send a tip|Tip Eli)\b/i.test((b.textContent ?? "").trim()));
+    renderPreview("tip", "poster");
+    await screen.findAllByText(previewSample("tip", "poster").job.title, undefined, { timeout: 10000 });
+    await waitFor(() => expect(tipButtons().length).toBeGreaterThan(0), { timeout: 10000 });
+    cleanup();
+    renderPreview("tip_sent", "poster");
+    await screen.findAllByText(previewSample("tip_sent", "poster").job.title, undefined, { timeout: 10000 });
+    await waitFor(() => expect(screen.queryAllByRole("button").some((b) => /Review/.test(b.textContent ?? ""))).toBe(true), { timeout: 10000 });
+    expect(tipButtons().map((b) => b.textContent)).toEqual([]);
+    expect(leaked()).toEqual([]);
+  }, 30000);
 
   it("a pressed action or link says what it would have done, and never navigates", async () => {
     renderPreview("working", "helpr");

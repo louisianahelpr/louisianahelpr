@@ -437,7 +437,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {(isPoster || isHired) && <RevisionAsk job={job} side={isPoster ? "poster" : "helpr"} posterFirst={posterFirst} />}
           {/* Q2694: an open refund request, both sides (the cards' own panel; nothing while there is none). */}
           {party && (isPoster || isHired) && (
-            <PageRefundRequest job={job} userId={userId} otherName={isPoster ? helperCard.data?.name : posterCard.data?.name}
+            <PageRefundRequest job={{ ...job, status: job.status ?? "" }} userId={userId} otherName={isPoster ? helperCard.data?.name : posterCard.data?.name}
               feeFallbackPercent={isPoster ? null : tierFeePercent(ownProfile?.subscription_tier, ownProfile?.subscription_expires_at)} />
           )}
           {/* The Helpr's photos, as soon as they're submitted: the job's two parties only, off the party read. Big, in

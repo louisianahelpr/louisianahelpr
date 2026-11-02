@@ -80,9 +80,9 @@ describe("the job page's refund request (Q2694)", () => {
     expect(container.childNodes.length).toBe(0);
   });
 
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | <PageRefundRequest job={job} | <span data-x={job.id}
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | <PageRefundRequest job={{ ...job, status: job.status ?? "" }} | <span data-x={job.id}
   it("JobPage renders it for the job's two parties", () => {
     const src = blankComments(readFileSync(join(__dirname, "..", "pages", "jobs", "jobPage", "JobPage.tsx"), "utf8"));
-    expect(src).toMatch(/\{party && \(isPoster \|\| isHired\) && \(\s*<PageRefundRequest job=\{job\}/);
+    expect(src).toMatch(/\{party && \(isPoster \|\| isHired\) && \(\s*<PageRefundRequest job=\{\{ \.\.\.job, status: job\.status \?\? "" \}\}/);
   });
 });

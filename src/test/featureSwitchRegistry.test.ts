@@ -2,7 +2,7 @@
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | ON CONFLICT (key) DO NOTHING; | ON CONFLICT (key) DO UPDATE SET audience = EXCLUDED.audience;
 // @mutate src/config/featureSwitches.ts |   "declutter_shipping",\n] as const; |   "declutter_shipping",\n  "orphan_switch",\n] as const;
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | useFeature("switch_canary") | useFeature("switch_canarx")
-// @mutate src/config/featureSwitches.ts | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links", "declutter_shipping"]; | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = [];
+// @mutate src/config/featureSwitches.ts | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links"]; | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = [];
 // @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND public.feature_enabled_for_user('come_back_emails', p.user_id) |        AND true
 // @mutate supabase/migrations/20261021135921_come_back_emails_on_for_everyone.sql |         AND a.target_id = 'come_back_emails'); |         AND a.target_id = 'other');
 /**

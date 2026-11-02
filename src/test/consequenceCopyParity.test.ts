@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-// @mutate supabase/migrations/20261029180706_application_closed_by_no_show.sql | p_permanent_requires_review => true,\n    p_suspension_days | p_permanent_requires_review => false,\n    p_suspension_days
+// @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | p_copy                      => jsonb_build_array(null::jsonb, null::jsonb),\n    p_permanent_requires_review => true,\n    p_suspension_days           => 7,\n    p_clamp_to_worse_status     => true,\n    p_admin_message_format      => '%s has %s no-show reports on file from different posters | p_copy                      => jsonb_build_array(null::jsonb, null::jsonb),\n    p_permanent_requires_review => false,\n    p_suspension_days           => 7,\n    p_clamp_to_worse_status     => true,\n    p_admin_message_format      => '%s has %s no-show reports on file from different posters
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";

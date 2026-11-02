@@ -636,13 +636,8 @@ function AppliedJobCardInner({
              bottom of this card — one sentence, naming whose move it is. It
              replaces the 16px-dot rail that stood there for a few hours
              (owner: "remove the dots"). */}
-          {/* Q360: the money problem jobs.status cannot show — same notice,
-              same words as the poster's card. Not for an applicant who was
-              passed over: it is no longer their job. */}
-          {/* Owner 2026-10-25: and "Finish payout setup to get paid" on a hired job whose pay waits (payout_after_hire). */}
-          {isExpanded && app.status !== "rejected" && (
-            <HelperMoneyNotices job={job} hired={app.status === "accepted"} amountLabel={`$${formatPriceFloor(payout)}`} />
-          )}
+          {/* Q360: the money problem jobs.status cannot show, the poster's card's words (not for a passed-over applicant). */}
+          {isExpanded && app.status !== "rejected" && <HelperMoneyNotices job={job} hired={app.status === "accepted"} amountLabel={null} only="problem" />}
           {/* Confirmed: show tracking + message */}
           {/* A date/time change, then a refund request: above the step, never below its row (Q1567). */}
           <JobRequestRows job={job} userId={userId} viewer="helper" expanded={isExpanded} otherName={app.posterName} feeFallbackPercent={viewerFeePercent} />
@@ -655,7 +650,6 @@ function AppliedJobCardInner({
               navigate={navigate}
             />
           )}
-
           {/* In Progress / Revision */}
           {isActive && isExpanded && (
             <ActiveJobSection
@@ -674,12 +668,12 @@ function AppliedJobCardInner({
               navigate={navigate}
             />
           )}
-
           {/* A crew member's live job (Q1382): their own roster row's steps. */}
           {isCrewLive && (
             <CrewMemberSection app={app} job={job} userId={userId} isExpanded={isExpanded} navigate={navigate} />
           )}
-
+          {/* JOBS2-44: "Finish payout setup to get paid" (owner 10-25, payout_after_hire) sits under the step, never above it. */}
+          {isExpanded && app.status !== "rejected" && <HelperMoneyNotices job={job} hired={app.status === "accepted"} amountLabel={`$${formatPriceFloor(payout)}`} only="setup" />}
           {/* Disputed */}
           {isDisputed && isExpanded && (
             <DisputedSection

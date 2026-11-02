@@ -3,7 +3,7 @@
 // @mutate src/components/job-card/jobStatusLine.ts | if (problem) return problem;\n  if (completedAndRefunded(job)) return "done_refunded";\n  switch (job.status) { | if (completedAndRefunded(job)) return "done_refunded";\n  switch (job.status) {
 // @mutate src/pages/posts/PostedJobCard.tsx | <PaymentProblemNotice job={job} /> | {null}
 // @mutate src/pages/jobs/appliedJobCard/HelperMoneyNotices.tsx | {problem && <PaymentProblemNotice job={job} />} | {null}
-// @mutate src/pages/jobs/AppliedJobCard.tsx | <HelperMoneyNotices job={job} | <div data-x={job}
+// @mutate src/pages/jobs/AppliedJobCard.tsx | <HelperMoneyNotices job={job} hired={app.status === "accepted"} amountLabel={null} only="problem" />} | <div data-x={job} />}
 // @mutate src/components/job-card/activityFilters.ts | if (cardPaymentProblem(j)) return "needs_you"; | if (false) return "needs_you";
 // @mutate src/components/job-card/activityFilters.ts | if (app.status !== "rejected" && cardPaymentProblem(app.job)) return "needs_you"; | if (false) return "needs_you";
 import { describe, expect, it } from "vitest";
@@ -253,7 +253,7 @@ describe("C. both parties' cards show the money problem, in the same words", () 
       expect(src, `${side} card no longer renders PaymentProblemNotice`).toMatch(/<PaymentProblemNotice job=\{job\} \/>/);
       expect(src, `${side} card no longer gates the notice on cardPaymentProblem`).toMatch(/cardPaymentProblem\(job\)/);
     }
-    expect(blankComments(readFileSync(HELPER_CARD, "utf8")), "the Helpr's card no longer mounts its money band").toMatch(/<HelperMoneyNotices job=\{job\}/);
+    expect(blankComments(readFileSync(HELPER_CARD, "utf8")), "the Helpr's card no longer mounts its money band").toMatch(/<HelperMoneyNotices job=\{job\}[^>]*only="problem"/);
   });
 });
 

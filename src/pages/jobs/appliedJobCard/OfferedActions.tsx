@@ -20,6 +20,9 @@ interface OfferedActionsProps {
   job: Job;
   onHelperResponse: (app: Application, accept: boolean) => void;
   respondingHelperAppId: string | null;
+  /** On the job page (PageOfferPanel): no side padding of its own, so the pair lines up with the page's buttons
+   *  (Q2601, Jobs audit 1102b row 15). The Working card keeps its 16 px inset from the card's edge. */
+  flush?: boolean;
 }
 
 /**
@@ -50,13 +53,13 @@ function InstantOfferedActions(props: OfferedActionsProps & { declineUntil: stri
   const instantBookOn = useFeature("instant_book");
   if (!instantBookOn) return <GenericOfferedActions {...props} />;
   return (
-    <div className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+    <div className={props.flush ? "py-3" : "px-4 py-3"} onClick={(e) => e.stopPropagation()}>
       <InstantBookingCard jobId={props.job.id} title={props.job.title} declineUntil={props.declineUntil} />
     </div>
   );
 }
 
-function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperAppId }: OfferedActionsProps) {
+function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperAppId, flush }: OfferedActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const busy = respondingHelperAppId === app.id;
   // Which button was pressed: only that one says "Accepting…" / "Declining…" (audit 2026-10-28 F6:
@@ -108,7 +111,7 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
   const instantUntil = job.instant_decline_until ?? null;
   return (
     <div
-      className="px-4 py-3 space-y-2.5"
+      className={`${flush ? "" : "px-4 "}py-3 space-y-2.5`}
       onClick={(e) => e.stopPropagation()}
       style={{
         borderTop: "0.5px solid hsl(var(--amber-tint) / 0.30)",

@@ -94,7 +94,10 @@ describe("Deliver: accepting confirms, and asks nothing more of the taken task (
     fireEvent.click(screen.getByRole("button", { name: "Accept delivery" }));
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("accept"));
     // The list re-read after the accept says so (wait for that, then the absence: waitForEmptyIsVacuous).
-    expect(await screen.findByText(/^No deliveries to take right now\./)).toBeInTheDocument();
+    // Q2577 (audit 1102a): the empty list wears Selling's empty card (icon, dashed edge), not a bare grey line.
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | <DeclutterEmptyCard icon={Truck} title="No deliveries to take right now" data-deliver-open-empty=""> | <DeclutterEmptyCardX icon={Truck} title="No deliveries to take right now" data-deliver-open-empty="">
+    const empty = await screen.findByText("No deliveries to take right now");
+    expect(empty.closest("[data-empty-card]")).not.toBeNull();
     expect(screen.queryByText("Blue mug")).toBeNull();
     expect(state.windowReads.length, "no read of the taken task's pickup times after the accept").toBe(reads);
     const done = state.toasts.find((t) => t.msg.startsWith("Delivery accepted"));

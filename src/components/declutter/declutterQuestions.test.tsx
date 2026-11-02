@@ -26,6 +26,11 @@
  * @mutate src/components/declutter/DeclutterQuestions.tsx |   const askError = ask.isError ? declutterErrorMessage(ask.error) : null; |   const askError = null; void ask.error;
  * @mutate src/components/declutter/DeclutterQuestions.tsx | onChange={(e) => { setQuestion(e.target.value); if (ask.isError) ask.reset(); }} | onChange={(e) => setQuestion(e.target.value)}
  *
+ * Manager mode (11-01): an answer the seller's manager wrote is signed "Dana (helping Kaci)" instead of the seller's
+ * name; the labels are asked only for answered questions.
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | managerLabel={labels.data?.get(q.id) ?? null} | managerLabel={null}
+ * @mutate src/components/declutter/DeclutterQuestions.tsx |   const labels = useManagerLabels("answer", list.filter((x) => x.answer).map((x) => x.id)); |   const labels = useManagerLabels("answer", list.map((x) => x.id));
+ *
  * Suggested reply (owner 2026-10-29, builder 26 feature 1): Claude's draft shows in the seller's sheet; Send posts
  * exactly it, Edit only fills the box, nothing is ever posted without a tap, and a reply with a blank cannot be sent.
  * @mutate src/components/declutter/DeclutterQuestions.tsx |                 onSend={(t) => send.mutate({ id: q.id, text: t })} |                 onSend={() => send.mutate({ id: q.id, text: "" })}
@@ -63,6 +68,14 @@ vi.mock("@/lib/declutter/aiReply", () => ({
   suggestedReplyErrorMessage: () => "A suggested reply isn't available right now. You can write your own.",
 }));
 
+const labelState = vi.hoisted(() => ({ asked: [] as string[], map: new Map<string, string>() }));
+vi.mock("@/lib/declutter/managerMode", () => ({
+  useManagerLabels: (_kind: string, ids: string[]) => {
+    labelState.asked = ids;
+    return { data: new Map([...labelState.map].filter(([k]) => ids.includes(k))) };
+  },
+}));
+
 // B48: the shared report flow, as a stand-in that says what it was opened for.
 vi.mock("@/components/ReportDialog", () => ({
   default: (p: { reportedType: string; reportedId: string }) => <div data-testid="report-dialog" data-type={p.reportedType} data-id={p.reportedId} />,
@@ -89,6 +102,8 @@ function renderIt(props: { isSeller: boolean; canAsk: boolean }) {
 }
 
 beforeEach(() => {
+  labelState.asked = [];
+  labelState.map = new Map();
   mineState.ids = new Set();
   mineState.calls = 0;
   mineState.user = { id: "b1" };
@@ -125,6 +140,15 @@ describe("board 162: public questions", () => {
     const note = screen.getByText(/Contact info is not allowed\./);
     expect(note.textContent).not.toMatch(/message/i);
     expect(screen.queryByRole("button", { name: "Answer" })).toBeNull();
+  });
+
+  it("manager mode: an answer the manager wrote is signed 'Dana (helping Kaci)'; labels are asked for answered ones only", async () => {
+    labelState.map = new Map([["q1", "Dana (helping Kaci)"]]);
+    renderIt({ isSeller: false, canAsk: true });
+    const cards = await screen.findAllByRole("listitem");
+    await waitFor(() => expect(within(cards[0]).getByText(/— Dana \(helping Kaci\)/)).toBeInTheDocument());
+    expect(within(cards[0]).queryByText(/— Marie/)).toBeNull();
+    expect(labelState.asked).toEqual(["q1"]);
   });
 
   it("AUD31-15: the asker's own questions say 'Your question'; a neighbour's still say 'Asked by a neighbor'", async () => {

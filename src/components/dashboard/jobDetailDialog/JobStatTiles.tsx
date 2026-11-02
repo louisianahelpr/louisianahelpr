@@ -8,7 +8,7 @@ import type { EnrichedJob } from "../types";
 import { JobLocationPreview } from "./JobLocationPreview";
 import { calendarEventUrl } from "@/lib/calendarLink";
 import { openCrewSpots } from "@/components/job-card/JobHelprsChip";
-import { jobStartTarget } from "@/components/job-card/CountdownRows";
+import { listingDeadline } from "@/lib/listingDeadline";
 
 interface JobStatTilesProps {
   job: EnrichedJob;
@@ -87,10 +87,9 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
         // A3-94 (audit 11-01): the listing's close can be days after the job starts (all 115 dated open jobs on
         // prod, read-only); a Helpr read "Closes · 4 days left" on work starting in 30 minutes. The tile names
         // whichever comes first: "Starts" (the job's start) or "Closes" (expires_at).
-        const closeMs = job.expires_at ? Date.parse(job.expires_at) : NaN;
-        const startMs = jobStartTarget(job.date_needed, job.start_time)?.getTime() ?? NaN;
-        const startsFirst = Number.isFinite(closeMs) && Number.isFinite(startMs) && startMs < closeMs;
-        const deadline = job.expires_at ? new Date(startsFirst ? startMs : closeMs) : null;
+        const first = listingDeadline(job);
+        const startsFirst = !!first?.startsFirst;
+        const deadline = first?.at ?? null;
         // Closes urgency: <24h to that deadline → render in Sienna with subtle pulse
         const hoursLeft = deadline
           ? differenceInHours(deadline, new Date())

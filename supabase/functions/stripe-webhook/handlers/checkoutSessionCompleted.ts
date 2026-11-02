@@ -6,7 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
-import { ledgerDuplicateFundingRefund, refundDuplicateFunding } from "./refundDuplicateFunding.ts";
+import { billSellerFaultDuplicate, ledgerDuplicateFundingRefund, refundDuplicateFunding } from "./refundDuplicateFunding.ts";
 import { PRODUCT_TO_TIER, ONE_TIME_PRODUCTS } from "../constants.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { TIER_FEE_PERCENT } from "../../_shared/helperFees.ts";
@@ -1360,6 +1360,10 @@ async function settleCheckoutSession(
           }
           giftRestored = (restored ?? []).length > 0;
         }
+        // Q1940 (a): on a Declutter setup job cancelled for the seller's fault, the card fee Stripe kept on this
+        // refunded payment is the seller's debt (A10). Throws on failure, so Stripe redelivers (all of the above is
+        // keyed or guarded); before the ledger below, so the retry still writes it.
+        const sellerFeeBilledCents = await billSellerFaultDuplicate(stripe, supabase, { jobId, pi: piId });
         logStep("Job already funded; this checkout's payment refunded in full", {
           jobId, pi: piId, jobPaymentStatus: funded.payment_status, jobPi: funded.stripe_payment_intent_id,
         });
@@ -1373,6 +1377,7 @@ async function settleCheckoutSession(
             job_status: String(funded.status), job_payment_status: String(funded.payment_status),
             job_payment_intent: String(funded.stripe_payment_intent_id ?? "none"),
             gift_card: giftCardId ?? "none",
+            seller_fee_billed_cents: String(sellerFeeBilledCents),
             gift_restored: giftKeptWhy ?? (giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand"),
           },
         });

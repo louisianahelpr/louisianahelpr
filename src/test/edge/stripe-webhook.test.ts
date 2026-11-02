@@ -552,6 +552,59 @@ describe("stripe-webhook edge function", () => {
         expect(rows.map((r) => (r.payload as { stripe_refund_id?: string }).stripe_refund_id)).toEqual(["re_live"]);
       });
 
+      // Q1940 (a): a late payment on a Declutter setup job cancelled for the SELLER's fault (A10) is refunded in full, and
+      // the card fee Stripe kept on it is billed to the seller (declutter_setup_job_fee_debt, once per job).
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         const sellerFeeBilledCents = await billSellerFaultDuplicate(stripe, supabase, { jobId, pi: piId }); |         const sellerFeeBilledCents = 0;
+      // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |   if (!(link as { seller_fault_refund_id?: string \| null } \| null)?.seller_fault_refund_id) return 0; |   if (link) return 0;
+      // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |     throw new Error(`declutter seller fee debt for job ${args.jobId} failed: ${debtErr.message}`); |     return 0;
+      // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |   const cardFeeCents = actualOrEstimatedFeeCents(charged, Number(charged.amount_received ?? charged.amount ?? 0)); |   const cardFeeCents = 0;
+      describe("a late payment on a Declutter setup job cancelled for the seller's fault (Q1940 a)", () => {
+        const setup = (marker: string | null) => {
+          completed();
+          scenario.writeSelectRows.jobs = [];
+          scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "buyer-1", status: "cancelled", payment_status: "unpaid", stripe_payment_intent_id: null }] };
+          scenario.reads.declutter_order_jobs = { rows: marker ? [{ seller_fault_refund_id: marker }] : [] };
+          stripeMock.refunds.create.mockResolvedValue({ id: "re_dup", status: "succeeded", amount: 5150, currency: "usd" });
+          stripeMock.paymentIntents.retrieve.mockResolvedValue({
+            id: "pi_second", amount: 5150, amount_received: 5150,
+            latest_charge: { balance_transaction: { fee: 179 } },
+          });
+          scenario.rpc.declutter_setup_job_fee_debt = 179;
+        };
+        const bills = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "declutter_setup_job_fee_debt");
+
+        it("refunds it in full and bills the seller the card fee Stripe kept", async () => {
+          const fn = await loadConfigured();
+          setup("dr-1");
+          const res = await fn.fetch(webhookRequest(fn, "{}"));
+          expect(res.status).toBe(200);
+          expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+            { payment_intent: "pi_second", metadata: { source: "duplicate_funding" } },
+            { idempotencyKey: "duplicate-funding-refund:pi_second" },
+          );
+          expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_second", { expand: ["latest_charge.balance_transaction"] });
+          expect(bills()).toEqual([expect.objectContaining({ args: { p_job_id: "job-1", p_card_fee_cents: 179 } })]);
+          expect(scenario.writes.filter((x) => x.table === "payment_refunds")).toHaveLength(1);
+        });
+
+        it("bills nothing on a job that is not a seller-fault setup job", async () => {
+          const fn = await loadConfigured();
+          setup(null);
+          const res = await fn.fetch(webhookRequest(fn, "{}"));
+          expect(res.status).toBe(200);
+          expect(bills()).toHaveLength(0);
+        });
+
+        it("a failed bill pages and fails the event so Stripe redelivers (the refund is keyed)", async () => {
+          const fn = await loadConfigured();
+          setup("dr-1");
+          scenario.rpcErrors = { declutter_setup_job_fee_debt: { message: "db down" } };
+          const res = await fn.fetch(webhookRequest(fn, "{}"));
+          expect(res.status).toBeGreaterThanOrEqual(500);
+          expect((slackAlerts as Array<{ title: string }>).some((a) => /seller not billed for a late setup-job payment/.test(a.title))).toBe(true);
+        });
+      });
+
       it("a late redelivery of the payment that DID fund the job is ignored, never refunded", async () => {
         const fn = await loadConfigured();
         completed();

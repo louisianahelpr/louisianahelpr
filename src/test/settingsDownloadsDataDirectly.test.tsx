@@ -20,6 +20,12 @@ vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), succe
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null, isAdmin: false }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke } } }));
+// The Customize row read (useSectionPrefs, Q2199) answers locally: the client mock above has no .from, and the
+// read rejected unhandled in CI shard 5 (train 1, 11-02).
+vi.mock("@/lib/sectionPrefsRow", () => ({
+  fetchSectionPrefsRow: async () => ({ data: null, error: null }),
+  saveSectionPrefsRow: async () => ({ error: null }),
+}));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 // useSectionTabs reads the session (AUD31-73: a guest's open sections); this member is signed in.

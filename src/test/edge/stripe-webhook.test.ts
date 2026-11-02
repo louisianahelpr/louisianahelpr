@@ -1849,6 +1849,18 @@ describe("stripe-webhook edge function", () => {
         expect(alerts.some((a) => a.kind === "money_at_risk")).toBe(true);
       });
 
+      // Q2079: Postgres' own undefined_function (42883) is "not deployed" too,
+      // the same rule the cancel RPC's check uses (one shared helper).
+      // @mutate supabase/functions/_shared/rpcNotDeployed.ts |   return code === "PGRST202" \|\| code === "42883"; |   return code === "PGRST202";
+      it("the function not deployed yet as 42883 (undefined_function) is read the same as PGRST202: 200 and the plain notice", async () => {
+        scenario.rpcErrors = { return_bounced_gift_card: { message: "function public.return_bounced_gift_card(uuid, uuid) does not exist", code: "42883" } };
+        const { res, notices, alerts } = await bounce({ payment_status: "unpaid", stripe_session_id: "cs_ach_gift" });
+        expect(res.status).toBe(200);
+        expect(notices).toHaveLength(1);
+        expect(String((notices[0].payload as Record<string, unknown>).message)).not.toMatch(/gift/);
+        expect(alerts.some((a) => a.kind === "money_at_risk" && /gift card was NOT returned/.test(a.title ?? ""))).toBe(true);
+      });
+
       it("the retry (job already failed, session cleared) returns the gift AND sends the notice the first delivery lost", async () => {
         scenario.rpc.return_bounced_gift_card = { outcome: "returned", credit_id: "gc-1", restore_cents: 2500, payment_status: "paid" };
         // The CAS no longer matches a 'failed' job with no session: zero rows.

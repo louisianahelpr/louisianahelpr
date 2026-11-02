@@ -5,7 +5,7 @@
  *
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |           onClick={() => setConfirmOpen(true)} |           onClick={() => { if (!direct) return setConfirmOpen(true); setPressed("decline"); onHelperResponse(app, false); }}
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | `Decline ${posterFirst}’s offer?` | "Decline this job?"
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | `The offer goes back to ${posterFirst ?? "the person who posted it"}. Declining isn't a strike.` | "You applied for this one and the person who posted it picked you. Declining isn't a strike."
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | `${endSentence(`The offer goes back to ${posterFirst ?? "the person who posted it"}`)} Declining isn't a strike.` | "You applied for this one and the person who posted it picked you. Declining isn't a strike."
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";

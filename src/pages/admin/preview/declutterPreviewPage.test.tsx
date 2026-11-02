@@ -1,0 +1,89 @@
+/**
+ * Q2585: the admin Declutter stage preview draws the REAL Buying / Selling views on the stage's sample, for every
+ * stage on either side, and while it is open nothing reaches the network (the page's own fetch layer answers; the
+ * window's fetch underneath is a spy that must stay unused for every Supabase request).
+ * The backend's rules are proved request by request in src/test/adminDeclutterPreviewIsInert.test.ts.
+ *
+ * @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |           : <SellingDash todo={null} userId={sample.userId} listings={<MyListingsView userId={sample.userId} haulOn />} />} |           : null}
+ * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |   globalThis.fetch = previewFetch; |   void previewFetch;
+ */
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+import { DECLUTTER_PREVIEW_STAGES } from "./declutterPreviewSamples";
+
+const ADMIN = "00000000-0000-4000-a000-000000000001";
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: ADMIN }, profile: {}, isLoading: false }) }));
+vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: ADMIN }, isReady: true }) }));
+vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
+vi.mock("@/components/AppPage", () => ({
+  default: ({ title, children }: { title: string; children: ReactNode }) => <main><h1>{title}</h1>{children}</main>,
+}));
+
+const SUPABASE = "https://unit-test.invalid";
+let spy: ReturnType<typeof vi.fn>;
+const realFetch = globalThis.fetch;
+beforeEach(() => {
+  spy = vi.fn(async () => new Response("[]", { status: 200, headers: { "content-type": "application/json" } }));
+  globalThis.fetch = spy as unknown as typeof fetch;
+});
+afterEach(() => {
+  cleanup();
+  globalThis.fetch = realFetch;
+});
+
+import DeclutterPreviewPage from "./DeclutterPreviewPage";
+
+function open(search: string) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[`/admin/preview/declutter${search}`]}>
+        <Routes><Route path="/admin/preview/declutter" element={<DeclutterPreviewPage />} /></Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+const supabaseCalls = () => spy.mock.calls.filter(([u]) => String(u instanceof Request ? u.url : u).startsWith(SUPABASE) && !String(u).includes("/auth/v1/"));
+
+describe("Q2585: /admin/preview/declutter", () => {
+  it("draws the real Buying view on a paid sample order for the buyer, and the real Selling view for the seller", async () => {
+    const a = open("?stage=paid&side=buyer");
+    expect(await screen.findByRole("heading", { level: 1, name: /Declutter preview: Paid, pickup not booked, buyer/ })).toBeInTheDocument();
+    expect(await screen.findAllByText(/Oak rocking chair \(sample\)/)).not.toHaveLength(0);
+    expect(document.querySelector('[data-preview-view="paid:buyer"]')).not.toBeNull();
+    a.unmount();
+    open("?stage=paid&side=seller");
+    await waitFor(() => expect(document.querySelector('[data-preview-view="paid:seller"]')).not.toBeNull());
+    expect(await screen.findAllByText(/Oak rocking chair \(sample\)/)).not.toHaveLength(0);
+    expect(supabaseCalls()).toEqual([]);
+  });
+
+  it("every stage on either side draws without an error screen and sends nothing to Supabase", async () => {
+    let drawn = 0;
+    for (const { key } of DECLUTTER_PREVIEW_STAGES) {
+      for (const side of ["buyer", "seller"]) {
+        const r = open(`?stage=${key}&side=${side}`);
+        await waitFor(() => expect(document.querySelector(`[data-preview-view="${key}:${side}"]`), `${key}:${side}`).not.toBeNull());
+        // Let the views' reads land.
+        await new Promise((res) => setTimeout(res, 20));
+        expect(screen.queryByText(/Something went wrong/i), `${key}:${side}`).toBeNull();
+        r.unmount();
+        drawn++;
+      }
+    }
+    expect(drawn).toBeGreaterThan(20);
+    expect(supabaseCalls()).toEqual([]);
+  });
+
+  it("the controls name every stage and both sides", async () => {
+    open("?stage=booked&side=seller");
+    await screen.findByRole("region", { name: "Declutter preview controls" });
+    expect(document.querySelectorAll("[data-preview-stage]").length).toBe(DECLUTTER_PREVIEW_STAGES.length);
+    expect(document.querySelector('[data-preview-stage="booked"]')).toHaveAttribute("aria-checked", "true");
+    expect(document.querySelector('[data-preview-side="seller"]')).toHaveAttribute("aria-checked", "true");
+  });
+});

@@ -153,6 +153,7 @@ const CLASSIFIED: Record<string, string> = {
   "lib/calendarExport.ts::objectUrl": OBJECT_URL,
   "lib/nativeShare.ts::objectUrl": OBJECT_URL,
   "lib/chunkReload.ts::url.toString()": "new URL(window.location.href) with a _v param: the current page, reloaded",
+  "pages/admin/preview/DeclutterPreviewPage.tsx::window.location.href": "window.open of the page's own address (the 375-wide phone window of the same preview)",
   "lib/nativeReturnBounce.ts::target": "`${NATIVE_RETURN_SCHEME}://${url.pathname}${url.search}`: fixed app scheme",
   "lib/openExternalUrl.ts::url": "the helper itself; every caller is classified below",
   // Q2259 shipping (testers only): the seller's label is the EasyPost postage_label.label_url the label worker stored

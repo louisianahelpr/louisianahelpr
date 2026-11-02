@@ -16,6 +16,7 @@
  * @mutate src/pages/admin/preview/messagesPreviewSamples.ts |     opens: stage === "reported" ? ["Conversation options", "Report user"] : stage === "block_sheet" ? ["Conversation options", "Block user"] : null, |     opens: null,
  * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |         o.onAction?.(name); |         void 0;
  * @mutate src/App.tsx | <ProtectedRoute><AdminRoute><AdminMessagesPreview /></AdminRoute></ProtectedRoute> | <ProtectedRoute><AdminMessagesPreview /></ProtectedRoute>
+ * @mutate src/pages/admin/preview/messagesPreviewBackend.ts | ? json(row) : json([row], 200, 1); | ? json(null) : json([row], 200, 1);
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -162,6 +163,21 @@ describe("admin Messages preview", () => {
     fireEvent.click(just);
     await waitFor(() => expect(document.querySelector('[data-preview-view="blocked:poster"]')).not.toBeNull(), { timeout: 10000 });
     expect(toasts.some((t) => /block_user_and_settle/.test(t))).toBe(true);
+    expect(leaked()).toEqual([]);
+    getUser.mockRestore();
+  }, 30000);
+
+  // Q2686 (audit 1102e row 13): the Report sheet's "Send report" sat on "Sending…", so the owner never saw "Report sent".
+  it("Report sheet: Send report finishes on Report sent, and the report is never sent", async () => {
+    const getUser = vi.spyOn(supabase.auth, "getUser").mockResolvedValue({ data: { user: { id: ADMIN_ID } }, error: null } as never);
+    renderPreview("stage=reported&side=poster");
+    const reason = await screen.findByRole("radio", { name: "Spam or scam" }, { timeout: 10000 });
+    fireEvent.click(reason);
+    fireEvent.change(screen.getByPlaceholderText("Start with when it happened…"), { target: { value: "A sample report for the preview." } });
+    const send = screen.getByRole("button", { name: "Send report" });
+    fireEvent.click(send);
+    await waitFor(() => expect(screen.getByRole("dialog").textContent).toMatch(/Report sent/), { timeout: 10000 });
+    expect(screen.getByRole("dialog").textContent).not.toMatch(/Sending…/);
     expect(leaked()).toEqual([]);
     getUser.mockRestore();
   }, 30000);

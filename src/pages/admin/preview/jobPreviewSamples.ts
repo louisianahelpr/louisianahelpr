@@ -33,6 +33,7 @@ export const PREVIEW_STAGES = [
   { key: "approve", label: "Approve before payment" },
   { key: "revision", label: "Fix asked for" },
   { key: "tip", label: "Tip" },
+  { key: "tip_sent", label: "Tip sent" },
   { key: "refund", label: "Refund asked" },
   { key: "recurring", label: "Recurring visits" },
   { key: "late_cancel_poster", label: "Late cancel by poster" },
@@ -286,8 +287,10 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
         }],
       };
       break;
-    case "tip": {
-      // Approved and paying out, no tip sent yet: the poster's Tip.
+    case "tip":
+    case "tip_sent": {
+      // Approved and paying out. Tip: no tip sent yet (the poster's Tip). Tip sent (Q2684, audit 1102e row 11): the
+      // poster tipped $15 (a paid tips row), so the poster's Tip is gone and Review is what is left.
       job = {
         ...base, ...hired, ...today, ...bothIn, status: "completed", payment_status: "payout_pending", helper_on_the_way_at: ago(240),
         helper_arrived_at: ago(210), poster_confirmed_arrival_at: ago(208), poster_confirmed_working_at: ago(205),
@@ -295,6 +298,14 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       };
       applications = [accepted];
       trackingStatus = "completed";
+      if (stage === "tip_sent") {
+        extraTables = {
+          tips: [{
+            id: "00000000-0000-4000-d000-000000000003", job_id: jobId, tipper_id: PREVIEW_POSTER_ID, helper_id: PREVIEW_HELPR_ID, amount: 15,
+            payment_status: "paid", stripe_payment_intent_id: null, created_at: ago(10),
+          }],
+        };
+      }
       break;
     }
     case "recurring":

@@ -59,6 +59,7 @@ import {
   type OldDeclutterView,
 } from "@/lib/declutter/tabs";
 import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine } from "./DeclutterHaulAway";
+import { DonationReceipts } from "./DeclutterDonate";
 import { report } from "@/lib/errorLogger";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 // Types only: the predicates (oneTripGroup, haulJobToDelete) come with the lazily loaded haul-away code (Q178).
@@ -267,6 +268,8 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
             </SectionActionPill>
           </div>
         </DeclutterNotice>
+        {/* Q2667: a donation that took the last item still shows its receipt (HaulAwayCard, below, is not drawn here). */}
+        {haulOn && <DonationReceipts />}
       </section>
     );
   }

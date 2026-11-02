@@ -33,6 +33,17 @@ export const TRANSIENT = [
 
 export const isTransient = (text) => TRANSIENT.some((re) => re.test(String(text ?? "")));
 
+/**
+ * Newer CLIs (setup-cli `version: latest`, seen 2026-11-02 in write-contract run
+ * 41457216199) refuse a non-interactive `db query` against production with
+ * "Confirmation required ... For a read-only statement, pass --read-only
+ * instead. Nothing was changed." Older CLIs (2.122) do not know --read-only. So
+ * on exactly that refusal the call is repeated once with --read-only: a read
+ * then runs, and a write is refused by the read-only session (never confirmed
+ * with --yes here).
+ */
+export const NEEDS_READ_ONLY = /pass --read-only instead/i;
+
 function sleepSync(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
@@ -48,6 +59,12 @@ export function supabaseDbQuery(args, opts = {}, { globalArgs = [], tries = 3, w
       return run("supabase", [...globalArgs, "db", "query", ...args], { encoding: "utf8", ...opts, stdio: ["ignore", "pipe", "pipe"] });
     } catch (e) {
       const text = `${e?.stderr ?? ""}\n${e?.stdout ?? ""}\n${e?.message ?? ""}`;
+      if (NEEDS_READ_ONLY.test(text) && !args.includes("--read-only")) {
+        log("supabase db query: this CLI wants --read-only for a production read; repeating with --read-only\n");
+        args = [...args, "--read-only"];
+        attempt--;
+        continue;
+      }
       if (attempt < tries && isTransient(text)) {
         log(`supabase db query: transient connect failure (attempt ${attempt} of ${tries}); retrying in ${waitMs / 1000}s\n`);
         sleep(waitMs);

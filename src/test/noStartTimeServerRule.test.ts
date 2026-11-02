@@ -55,6 +55,7 @@ const MIDNIGHT_READS_CLASSIFIED: Record<string, string> = {
   sweep_confirm_reminders_and_repost: "the day-before confirm (CONFIRM_DEADLINE_HOURS_BEFORE_START), the same instant the app's confirmDeadlineMs uses for a NULL start",
   jobs_schedule_move_clears_confirms: "a schedule move clears the day-of confirm when the new start is over 2h15m ahead",
   refund_come_back_pending: "a refund come-back is pending while the job's day is ahead",
+  notify_on_payment_escrowed: "the Job funded notice names the day-before confirm deadline (2 h before a midnight start, as the confirm sweep reads it; A3-38, 20261102084222); not a late / no-show reading",
 };
 
 describe("a job with no start time is never started, late or a no-show on its day (server)", () => {

@@ -16,7 +16,7 @@ import { jobStartDateTime } from "@/lib/dateUtils";
  *    morning-of reminder hour, Q2483), never from 9 PM the night before (3 hours before a midnight start). The open
  *    card's tracker still offers the step at any hour, as for a timed job.
  */
-export const ANY_TIME_FACE_FROM = "08:00";
+const ANY_TIME_FACE_FROM = "08:00";
 
 export const TODAY_ANY_TIME_LINE = "Today, any time — tap I'm on my way when you leave";
 

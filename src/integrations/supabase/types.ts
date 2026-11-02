@@ -16323,6 +16323,7 @@ export type Database = {
       declutter_ship_setup_fee_at_capture: { Args: { p_order_id: string }; Returns: number }
       declutter_ship_sweep: { Args: never; Returns: Json }
       declutter_shipping_reserved_cents: { Args: { p_order_id: string }; Returns: number }
+      declutter_seller_can_ship: { Args: { p_seller_id: string }; Returns: boolean }
       declutter_ship_refund_after_void: { Args: { p_order_id: string }; Returns: string }
       declutter_ship_by: { Args: { p_paid: string }; Returns: string }
       declutter_my_ship_label: { Args: { p_order_id: string }; Returns: Json }

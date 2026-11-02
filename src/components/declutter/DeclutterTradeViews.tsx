@@ -133,7 +133,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
   // Shipping S3 (testers only: declutter_shipping): "Ship it to me" when every item has a parcel ("Ship it").
   const shipOn = useFeature("declutter_shipping");
-  const canShip = useQuery({ queryKey: ["declutter", "items-can-ship", itemIds.join(",")], queryFn: () => fetchItemsCanShip(itemIds),
+  const canShip = useQuery({ queryKey: ["declutter", "items-can-ship", sellerId, itemIds.join(",")], queryFn: () => fetchItemsCanShip(itemIds, sellerId),
     enabled: shipOn && itemIds.length > 0, staleTime: 60_000 });
   if (shipOn && canShip.data === true) ticked.push("ship");
   const offered = ticked; // None open to this buyer: no fallback to the seller's door (Q2462); NoWayWorks opens the chat.

@@ -1138,12 +1138,29 @@ async function settleCheckoutSession(
     // hiccup only delays tax recording until payment_intent.succeeded fires (if it
     // fires after this event, which is the common case).
     try {
-      const taxPi = await stripe.paymentIntents.retrieve(piId);
+      // Q2152 (lh-money-escrow review of 461a6b724 #2): the PaymentIntent's
+      // amount_details.tax is not returned by the pinned API version
+      // (2025-08-27.basil: AmountDetails has only `tip`, stripe@18.5.0's types;
+      // it went GA in 2025-10-29.clover), so this used to write nothing and the
+      // insert-time ESTIMATE stood. The Checkout Session in hand carries the tax
+      // the page charged (total_details.amount_tax): that is Stripe's figure.
+      // The PI field stays a fallback for a newer API version. A gift
+      // difference session prices its one line non-taxable on purpose
+      // (create-payment; docs/OPEN.md Q441), so its $0 is not the job's tax and
+      // the estimate stays, as before.
+      let taxPi: Stripe.PaymentIntent | null = null;
+      try {
+        taxPi = await stripe.paymentIntents.retrieve(piId);
+      } catch (piErr) {
+        logStep("WARN: PI retrieve failed in checkout handler — tax read from the session only", { piId, error: String(piErr) });
+      }
+      const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : session.total_details?.amount_tax;
+      const piTaxCents = (taxPi?.amount_details as any)?.tax?.total_tax_amount;
       // `> 0` here would never let a genuine $0 clear the estimate written at
       // insert time — and $0 is the normal outcome, since only assembly labor
       // is taxable. Write whenever Stripe HAS a number; skip only when the
       // field is absent, which means "no information", not "zero".
-      const taxCents = (taxPi.amount_details as any)?.tax?.total_tax_amount;
+      const taxCents = typeof sessionTaxForJob === "number" ? sessionTaxForJob : piTaxCents;
       if (typeof taxCents === "number") {
         updateData.sales_tax_amount = taxCents / 100;
 
@@ -1174,7 +1191,7 @@ async function settleCheckoutSession(
         // written by create-payment) wins over the row's, which a re-mint at
         // another price may have changed since (lh-money-escrow review of the
         // pre-flip items, #2). A PaymentIntent without it reads the row.
-        const piFeeRaw = String((taxPi.metadata as Record<string, string> | undefined)?.service_fee_cents ?? "");
+        const piFeeRaw = String((taxPi?.metadata as Record<string, string> | undefined)?.service_fee_cents ?? "");
         const taxedRow = jobRow && /^\d+$/.test(piFeeRaw)
           ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 }
           : jobRow;
@@ -1187,7 +1204,7 @@ async function settleCheckoutSession(
         }
       }
     } catch (taxErr) {
-      logStep("WARN: PI retrieve failed in checkout handler — payment_intent.succeeded will record tax", {
+      logStep("WARN: tax recording failed in checkout handler — payment_intent.succeeded will record tax", {
         piId,
         error: String(taxErr),
       });

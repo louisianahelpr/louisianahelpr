@@ -62,7 +62,7 @@ import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import { GotItSheet, PickedUpPhotoSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
-import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
+import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel, porchPhotoDay } from "./DeclutterPorchDay";
 import { OrderPorchPlace } from "./DeclutterPorchPlaces";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, byBucket, refundStanding, type BuyerOrderView } from "./BuyingOrders";
@@ -502,7 +502,9 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
   // BUY-5: the buyer's side reads it too (HandoverPanel already does, same key): the pickup photo waits like "I got it".
   const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId) });
   const posted = seller && !!handoverRow.data?.set_out_at;
-  const notYet = seller && !posted && !!booking.pickup_day && !porchDayIsNow(booking.pickup_day);
+  // Q2626: a porch TIME counts too: its day is the slot's (porchPhotoDay, the server's rule).
+  const photoDay = porchPhotoDay(booking);
+  const notYet = seller && !posted && !!photoDay && !porchDayIsNow(photoDay);
   // BUY-5 (buying audit 10-30 #5): offered days early, it finished the sale. Same rule as HandoverPanel's porchReady.
   const buyerWaits = !seller && !handoverRow.data?.set_out_at
     && !(booking.pickup_day ? porchDayIsNow(booking.pickup_day) : !!booking.slot_start && Date.now() >= new Date(booking.slot_start).getTime());
@@ -563,7 +565,7 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
       {buyerWaits ? null : notYet ? (
         // Night audit sold states #3: the card's status line already says "Put it out <day> and post the porch photo";
         // this one says only what is not there yet.
-        <p className="text-sm" data-porch-not-yet="">You can take the porch photo {onDay(booking.pickup_day as string)}.</p>
+        <p className="text-sm" data-porch-not-yet="">You can take the porch photo {onDay(photoDay as string)}.</p>
       ) : (<>
       <label htmlFor={fileId} className="sr-only">
         {order.side === "seller" ? `Photo of the item on your porch ("Left on porch"${payWords ? ": needed before you can be paid automatically)" : ")"}` : `Photo when you pick it up, taken at the address ("Picked up"${payWords ? ": this pays the seller 24 hours later)" : ")"}`}

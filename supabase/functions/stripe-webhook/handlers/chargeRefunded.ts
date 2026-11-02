@@ -341,12 +341,16 @@ export async function handleChargeRefunded(
           });
         }
       } else if (priorStatus !== "refunded") {
+        // Q1924: payment_status never becomes 'refunded' here, so trg_declutter_haul_away_job_refunded never puts a
+        // Declutter haul-away job's items back on sale. The page names them, so ops relist them by hand. A failed
+        // read says so in the page (never silent); the page itself always goes out.
+        const haulAway = await haulAwayItemsLine(supabase, String(refundedJob.id));
         await postSlackOpsAlert({
           seed: subjectIsSeed,
           kind: "money_at_risk",
           severity: "critical",
           title: `Full refund on a job in '${priorStatus ?? "null"}' — payment_status left as is`,
-          message: `Charge ${charge.id} was fully refunded in Stripe, but job ${refundedJob.id} is payment_status='${priorStatus ?? "null"}', which a refund must not overwrite${priorStatus === "released" ? " (the Helpr was already paid: the platform has now paid twice)" : ""}. Reconcile it by hand.`,
+          message: `Charge ${charge.id} was fully refunded in Stripe, but job ${refundedJob.id} is payment_status='${priorStatus ?? "null"}', which a refund must not overwrite${priorStatus === "released" ? " (the Helpr was already paid: the platform has now paid twice)" : ""}. Reconcile it by hand.${haulAway}`,
           fields: { "Job ID": String(refundedJob.id), "payment_status": priorStatus ?? "—", "Payment Intent": refundPiId },
         });
       }
@@ -900,4 +904,20 @@ async function closeDecidedDisputeOnExternalRefund(
   // 'needs_human', or an answer this code does not know: page, never guess.
   await handBack(res?.reason ?? `unexpected answer ${JSON.stringify(res)}`, split);
   return "needs_human";
+}
+
+/**
+ * Q1924: the sentence a "payment_status left as is" page adds for a Declutter haul-away job: its items are still off
+ * sale (the relist trigger fires only on 'refunded'), so ops put them back by hand. "" for any other job; a failed
+ * read is said in the page. An absent table (before the haul-away migration) is no haul-away.
+ */
+async function haulAwayItemsLine(supabase: WebhookContext["supabase"], jobId: string): Promise<string> {
+  const { data, error } = await supabase.from("declutter_haul_aways").select("item_id").eq("job_id", jobId).limit(50);
+  if (error) {
+    if (error.code === "42P01" || error.code === "PGRST205") return "";
+    return ` Could not check whether this is a Declutter haul-away job (${error.message}): if it is, put its items back on sale by hand.`;
+  }
+  const ids = ((data ?? []) as Array<{ item_id: string }>).map((r) => r.item_id);
+  if (ids.length === 0) return "";
+  return ` This is a Declutter haul-away job: its ${ids.length === 1 ? "item is" : `${ids.length} items are`} still off sale. Put ${ids.length === 1 ? "it" : "them"} back on sale by hand (declutter item ${ids.join(", ")}).`;
 }

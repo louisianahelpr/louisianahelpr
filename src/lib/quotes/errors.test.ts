@@ -29,7 +29,7 @@ import { quoteErrorMessage } from "./errors";
  */
 
 const MIGRATIONS = resolve(__dirname, "../../../supabase/migrations");
-const GENERIC = "Something went wrong. Please try again.";
+const GENERIC = "Couldn't do that just now. Check your connection and try again.";
 
 /** Trigger functions whose raises quote_insert_job cannot reach, and the jobs columns those raises depend on. */
 const NOT_FROM_QUOTE_INSERT: Record<string, { columns: string[]; reason: string }> = {

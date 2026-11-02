@@ -690,10 +690,10 @@ test.describe.serial("marketplace chain", () => {
     await expect(page, "the swipe was read as a tap and opened the conversation").toHaveURL(/\/messages\/?(\?.*)?$/, { timeout: 2_000 });
   }
 
-  /** The in-app location rationale; this journey's helper always says Not Now. */
+  /** The in-app location rationale; this journey's helper always says Not now. */
   async function declineLocation(page: Page) {
-    const notNow = page.getByRole("button", { name: "Not Now" });
-    for (let i = 0; i < 3 && (await page.getByRole("button", { name: "Share Location" }).isVisible().catch(() => false)); i++) {
+    const notNow = page.getByRole("button", { name: "Not now" });
+    for (let i = 0; i < 3 && (await page.getByRole("button", { name: "Share location" }).isVisible().catch(() => false)); i++) {
       await notNow.first().click();
       await page.waitForTimeout(500);
     }
@@ -851,7 +851,7 @@ test.describe.serial("marketplace chain", () => {
       await press(hp, c, /I'm on my way/, "on my way");
       // The location rationale on the way: this helper declines here (en-route
       // tracking is optional).
-      if (await appears(hp.getByRole("button", { name: "Share Location" }), 8_000)) {
+      if (await appears(hp.getByRole("button", { name: "Share location" }), 8_000)) {
         await journey.milestone(hp, "location-rationale");
         await declineLocation(hp);
       }
@@ -875,7 +875,7 @@ test.describe.serial("marketplace chain", () => {
       // Same rule as `press`: painted is not pressable on this rail.
       await expect(arriveBtn, `arrived: "I've arrived" is on the card but DISABLED`).toBeEnabled({ timeout: 45_000 });
       await arriveBtn.click();
-      const share = hp.getByRole("button", { name: "Share Location" });
+      const share = hp.getByRole("button", { name: "Share location" });
       if (await appears(share, 8_000)) await share.click();
       await expect.poll(
         async () => {
@@ -956,7 +956,7 @@ test.describe.serial("marketplace chain", () => {
           seen.push("Start working");
           await start.click();
           // Start working asks for location while it saves; decline, then let the save land.
-          await hp.getByRole("button", { name: "Share Location" }).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
+          await hp.getByRole("button", { name: "Share location" }).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
           await declineLocation(hp);
           await expect(c.getByText(/Saving your update/), "Start working never finished saving").toBeHidden({ timeout: 45_000 });
           await expect(c.getByRole("button", { name: /^Start working$/ }), "Start working did not advance the tracker").toBeHidden({ timeout: 45_000 });
@@ -972,7 +972,7 @@ test.describe.serial("marketplace chain", () => {
           await journey.milestone(hp, "request-payout-confirm");
           await yes.click();
           // The done write asks for location on its way out (JobTracking's
-          // updateStatus → getLocation), and "Not Now" is deliberately NOT
+          // updateStatus → getLocation), and "Not now" is deliberately NOT
           // remembered — usePermissionRationale only marks a kind confirmed
           // when the person says yes — so the rationale comes back here even
           // though Start working already declined it once. e2e-journeys
@@ -980,7 +980,7 @@ test.describe.serial("marketplace chain", () => {
           // `helper_completed_at` was never written, and the failure shot shows
           // the "Location" alertdialog still up. Answer it, the same way the
           // helper does everywhere else in this journey.
-          await hp.getByRole("button", { name: "Share Location" }).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
+          await hp.getByRole("button", { name: "Share location" }).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
           await declineLocation(hp);
           await expect(yes).toBeHidden({ timeout: 30_000 });
           break;

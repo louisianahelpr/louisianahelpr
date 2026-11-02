@@ -41,7 +41,7 @@ describe("explainPermission", () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
-  it("Not Now runs nothing", async () => {
+  it("Not now runs nothing", async () => {
     const run = vi.fn();
     const p = explainPermission("notifications", run);
     __resolveRationale(false);

@@ -37,13 +37,13 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
     icon: "📷",
     title: "Camera Access",
     body: "Helpr uses your camera to take before/after photos of jobs. Photos stay private and are only shared with the other person on the job.",
-    cta: "Allow Camera",
+    cta: "Allow camera",
   },
   photos: {
     icon: "🖼️",
     title: "Photo Library",
     body: "Pick existing photos from your library to show job details, completed work, or your portfolio. Helpr never reads photos you don't pick.",
-    cta: "Choose from Library",
+    cta: "Choose from library",
   },
   location: {
     icon: "📍",
@@ -57,7 +57,7 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
     // database keeps: get_helper_distances_from_job returns a BAND, never a
     // distance (migration 20260907051731).
     body: "We use your location to show jobs near you, rank them by how close they are, and confirm Helpr arrival. It's only checked while you're using the app, and your most recent location is saved to your profile so nearby jobs still work next time. Other people only ever see a rough distance range, never your exact location.",
-    cta: "Share Location",
+    cta: "Share location",
   },
   // Declutter's own reason for the SAME location read (useUserLocation with
   // rationale "declutter_location"): asked only when the member taps "Use my
@@ -68,13 +68,13 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
     icon: "📍",
     title: "Location",
     body: "Declutter uses your location to show how far away each item is and to list the nearest items first. It's only checked while you're using the app, and your most recent location is saved to your profile. Other people never see your exact location.",
-    cta: "Share Location",
+    cta: "Share location",
   },
   contacts: {
     icon: "👥",
     title: "Contacts",
     body: "Only used if you choose to invite a friend by phone or email. Helpr doesn't upload your contacts to any server.",
-    cta: "Invite Friends",
+    cta: "Invite friends",
   },
   notifications: {
     icon: "🔔",
@@ -82,7 +82,7 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
     // For both sides: Browse asks a member looking for work too, so it can't speak only to posters
     // (audit 2026-10-29 A2-C24).
     body: "Get notified about new jobs near you, messages, and updates on jobs you've posted or are working. You can change what you receive anytime in Settings.",
-    cta: "Turn On Notifications",
+    cta: "Turn on notifications",
   },
   // Web push (2026-10-29): iPhone and iPad Safari give web push ONLY to a site
   // added to the Home Screen (iOS 16.4+), so in a normal tab there is no prompt
@@ -91,7 +91,7 @@ const COPY: Record<PermissionKind, RationaleCopy> = {
     icon: "🔔",
     title: "Notifications",
     body: "To get notifications on your iPhone, add Louisiana Helpr to your Home Screen: tap the Share button, choose Add to Home Screen, then open Helpr from your Home Screen and turn notifications on.",
-    cta: "Got It",
+    cta: "Got it",
   },
 };
 

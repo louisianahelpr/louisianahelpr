@@ -254,7 +254,7 @@ export default function DeliveryRouteMap({ stops }: { stops: RouteStop[] }) {
           </button>
         </div>
         {locError && <p className="text-ds-13" role="alert">{locError}</p>}
-        <p className="text-ds-12 text-muted-foreground">After Start, the seller sees where you are until you pick it up, then the buyer until you deliver it. Only while this screen is open; it's deleted when you tap Stop or deliver.</p>
+        <p className="text-ds-12 text-muted-foreground">After Start, the seller sees where you are until you pick it up, then the buyer until you deliver it. Only while this screen is open: they stop seeing you while you're in Apple Maps. It's deleted when you tap Stop or deliver.</p>
         {current && (
           <div className="space-y-2 border-t border-border pt-3">
             {/* Audit 1c D3-9: the photo step showed here, on the stop card and on Your deliveries. It lives on the stop

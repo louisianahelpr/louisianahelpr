@@ -8,6 +8,9 @@
  * @mutate src/components/declutter/DeliveryRouteMap.tsx |     if (!tracking \|\| !here \|\| Date.now() - lastShare.current < SHARE_MS) return; |     if (!here \|\| Date.now() - lastShare.current < SHARE_MS) return;
  * @mutate src/components/declutter/DeliveryRouteMap.tsx |       stopSharingPosition().catch((err) => console.warn("[route map] stop sharing", err)); |       void 0;
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       <DeliveryLiveMap taskId={taskId} side={side} status={v.status} who={who} /> |       {null}
+ * @mutate src/components/declutter/DeliveryLiveMap.tsx |   const p = pos.data ?? last; |   const p = pos.data;
+ * @mutate src/components/declutter/DeliveryLiveMap.tsx |   const paused = !pos.data; |   const paused = false;
+ * @mutate src/components/declutter/DeliveryRouteMap.tsx |  they stop seeing you while you're in Apple Maps. |
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -64,6 +67,23 @@ describe("the seller's and the buyer's live map", () => {
     const { container } = wrap(<DeliveryLiveMap taskId="t1" side="buyer" status="picked_up" who="Yusef" />);
     await waitFor(() => expect(state.fetched).toEqual(["t1"]));
     expect(container.textContent).toBe("");
+  });
+  // A3-61: the Helpr opens Apple Maps to drive, the app stops sending, and the row goes. The viewer's map stayed blank
+  // without a word; it now keeps the last fix and says the location is paused, with the last ETA.
+  it("A3-61: a row that goes away after one was seen leaves the last fix, paused, with when it was seen", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    state.pos = { ...POS, updated_at: new Date(Date.now() - 3 * 60_000).toISOString() };
+    render(<QueryClientProvider client={client}><DeliveryLiveMap taskId="t1" side="buyer" status="picked_up" who="Yusef" /></QueryClientProvider>);
+    expect(await screen.findByText("Yusef is on the way with your item, about 12 min away.")).toBeTruthy();
+    state.pos = null;
+    await act(async () => { await client.refetchQueries({ queryKey: ["helpr-tasks", "live-position", "t1"] }); });
+    expect(await screen.findByText(/^Yusef's location paused · last seen [34] min ago$/)).toBeTruthy();
+    expect(screen.getByText("When last seen, about 12 min away. It comes back when Yusef opens Louisiana Helpr again.")).toBeTruthy();
+    expect(screen.getByTestId("tracking-map").textContent).toBe("30.05->30.07");
+  });
+  it("A3-61: the Helpr is told viewers stop seeing them in Apple Maps", () => {
+    const src = readFileSync("src/components/declutter/DeliveryRouteMap.tsx", "utf8");
+    expect(src).toContain("they stop seeing you while you're in Apple Maps.");
   });
   it("ETA words", () => {
     expect([etaWords(0), etaWords(1), etaWords(12), etaWords(60), etaWords(75)]).toEqual(

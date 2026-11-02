@@ -27,6 +27,12 @@ export function VehicleForm({ userId }: { userId: string }) {
   const hasTruck = truck ?? vehicle.data?.has_truck ?? false;
   const hasCar = hasTruck || (car ?? vehicle.data?.has_car ?? false);
   const twoPeople = hasTruck && (second ?? vehicle.data?.second_person ?? false);
+  // Q2584 (Auditor 1, audit 1102a): Save was a live primary with nothing ticked or changed, while Declutter settings
+  // greys its Save until something changes. It is pressable only when what is shown differs from what is saved.
+  const savedTruck = vehicle.data?.has_truck ?? false;
+  const savedCar = savedTruck || (vehicle.data?.has_car ?? false);
+  const savedTwo = savedTruck && (vehicle.data?.second_person ?? false);
+  const changed = hasCar !== savedCar || hasTruck !== savedTruck || twoPeople !== savedTwo || photo !== null;
   const save = useMutation({
     mutationFn: async () => {
       const path = hasTruck ? (photo ? await uploadVehiclePhoto(userId, photo) : vehicle.data?.photo_path ?? null) : null;
@@ -75,7 +81,7 @@ export function VehicleForm({ userId }: { userId: string }) {
         </>
       )}
       <button type="button" className={primary}
-        disabled={save.isPending || (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}>
+        disabled={save.isPending || vehicle.isLoading || !changed || (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}>
         {save.isPending ? "Saving…" : "Save"}
       </button>
       {/* Audit 1c D3-8: a plain success toast renders nothing (toastPolicy), so "Saved." never showed. */}

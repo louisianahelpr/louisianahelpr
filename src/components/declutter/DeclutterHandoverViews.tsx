@@ -164,8 +164,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   // The same row and key HandoverPanel, NoShowButton and NoShowAnswer read: a buyer's no-show report and its 24 hours.
   const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: !done });
   const noShowWaiting = !!handoverRow.data?.no_show_reported_at;
-  // Q2627: a porch seller's "They didn't show" and "Report a problem" wait for the end of the porch window (noShowFrom).
-  const porchSeller = order.handover === "porch" && order.side === "seller";
+  const porchSeller = order.handover === "porch" && order.side === "seller"; // Q2627: its no-show and Report a problem wait for the porch window's end (noShowFrom).
   const [problemOpen, setProblemOpen] = useState(false);
   const [atHandover, setAtHandover] = useState(false); // opened from the "I got it" sheet (D2-11)
   // Board 141 (Declutter side, 20261026155251): ask for / answer a refund in the 24 hours after the handover.

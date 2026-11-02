@@ -1412,11 +1412,19 @@ export async function fetchShipRates(sellerId: string, shipTo: ShipTo): Promise<
   return Array.isArray(data.quotes) ? (data.quotes as ShipQuote[]) : [];
 }
 
-/** True when every item has a parcel ("Ship it": declutter_items.ship_preset); the server checks it again. */
-export async function fetchItemsCanShip(itemIds: string[]): Promise<boolean> {
+/**
+ * True when every item has a parcel ("Ship it": declutter_items.ship_preset) and the seller may ship now (S6 2e: no
+ * shipping debt owed, declutter_seller_can_ship, the order trigger's own rule). The server checks both again.
+ */
+export async function fetchItemsCanShip(itemIds: string[], sellerId: string): Promise<boolean> {
   if (itemIds.length === 0) return false;
   const rows = unwrap(await supabase.from("declutter_items").select("id, ship_preset").in("id", itemIds)) as { id: string; ship_preset: string | null }[] | null;
-  return !!rows && rows.length === itemIds.length && rows.every((r) => !!r.ship_preset);
+  if (!rows || rows.length !== itemIds.length || !rows.every((r) => !!r.ship_preset)) return false;
+  const { data, error } = await supabase.rpc("declutter_seller_can_ship", { p_seller_id: sellerId });
+  // Before 20261102054848 reaches prod the read is missing: offer it, and the order trigger still refuses (handover_not_offered).
+  if (error && isMissingRpcNamed(error, "declutter_seller_can_ship")) return true;
+  if (error) throw error;
+  return data === true;
 }
 
 /** Check out one seller's cart lines (row 38): the Stripe page's URL, or paid=true when it already went through. */

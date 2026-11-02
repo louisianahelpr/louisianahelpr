@@ -21,7 +21,9 @@ import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
-import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { isFlatFeeJob, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
+import { jobStartDateTime } from "@/lib/dateUtils";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { isExpiredListing } from "@/lib/expiredListing";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
@@ -165,13 +167,31 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
  * poster's late cancel, whose fee is shared with them (poster_cancel_job: cancellation_fee > 0). Null = the normal box.
  * Guard: src/test/helprMoneyNotOnACancelledJob.test.tsx.
  */
-function helprNoPayWords(job: Pick<JobPageRow, "status" | "cancellation_fee" | "cancelled_by" | "customer_id">, noShow = false): { title: string; line: string } | null {
+function helprNoPayWords(job: JobPageRow, noShow = false): { title: string; line: string } | null {
   if (noShow) return { title: "Not paid", line: "You were reported as a no-show, so you aren't paid for this job." };
   if (job.status !== "cancelled") return null;
-  if (Number(job.cancellation_fee ?? 0) > 0 && !!job.cancelled_by && job.cancelled_by === job.customer_id) {
-    return { title: "Cancelled late", line: "It was cancelled close to the start, so you get a share of the late-cancel fee." };
+  const fee = Number(job.cancellation_fee ?? 0);
+  if (fee > 0 && !!job.cancelled_by && job.cancelled_by === job.customer_id) {
+    // Q2672 (audit 1102e row 4): when, and the dollars, never "a share of the late-cancel fee" (owner 10-25: no fee
+    // words). The amount is the cancel dialog's own quote of what void-cancelled-payments sends (cancellationHelperShare:
+    // the flat job's exact whole dollars; a legacy job's floor, "at least"). Guard: src/test/lateCancelByPosterSaysTheMoney.test.tsx.
+    const share = cancellationHelperShare(fee, job);
+    const line = share.helperPayout > 0
+      ? `${lateBy(job)}, so you get ${share.noFee || isFlatFeeJob(job) ? "" : "at least "}$${share.helperPayout} for your time.`
+      : `${lateBy(job)}. Your part for your time comes to under $1, so there is no payment for it.`;
+    return { title: "Cancelled late", line };
   }
   return { title: "Not paid", line: "This job was cancelled, so there's nothing to pay out." };
+}
+
+/** "It was cancelled less than 3 hours before the start" (Louisiana start time), or "close to the start" without one. */
+function lateBy(job: Pick<JobPageRow, "cancelled_at" | "date_needed" | "start_time">): string {
+  const start = job.date_needed && job.start_time ? jobStartDateTime(job.date_needed, job.start_time) : null;
+  const atMs = Date.parse(job.cancelled_at ?? "");
+  const left = start && !Number.isNaN(atMs) ? start.getTime() - atMs : NaN;
+  if (Number.isNaN(left) || left <= 0) return "It was cancelled close to the start";
+  const hours = Math.ceil(left / 3_600_000);
+  return hours <= 1 ? "It was cancelled less than an hour before the start" : `It was cancelled less than ${hours} hours before the start`;
 }
 
 /** The Helpr's take-home and the words that go with it (one computation: takeHomeOneComputation.test.ts). */

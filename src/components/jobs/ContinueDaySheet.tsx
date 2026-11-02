@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from 
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { Textarea } from "@/components/ui/textarea";
 import { formatJobDate } from "@/lib/dateUtils";
-import { chipStyles } from "@/components/dashboard/JobFilters";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 import { hapticError } from "@/lib/haptics";
 import { continueDayLabel, proposeContinueDay } from "@/lib/continueDay";
 
@@ -43,8 +43,6 @@ export function ContinueDaySheet({
   const [busy, setBusy] = useState(false);
   const days = useMemo(() => Array.from({ length: DAYS }, (_, i) => format(addDays(today, i), "yyyy-MM-dd")), [today]);
   const other = (otherFirst ?? "").trim();
-  const { chipBase, chipActive, chipIdle } = chipStyles;
-  const dayChip = chipBase.replace("min-h-10", "min-h-11");
   const poster = side === "poster";
 
   const save = async () => {
@@ -81,11 +79,11 @@ export function ContinueDaySheet({
         </p>
         <div className="mt-4 space-y-3">
           <p className="text-ds-14 font-semibold">Day</p>
-          <div role="group" aria-label="Day to finish" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
+          <div role="radiogroup" aria-label="Day to finish" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
             {days.map((d) => (
-              <button key={d} type="button" aria-pressed={date === d} className={`${dayChip} shrink-0 ${date === d ? chipActive : chipIdle}`} onClick={() => setDate(d)}>
+              <ChoicePill key={d} selected={date === d} className="shrink-0" onClick={() => setDate(d)}>
                 {formatJobDate(d)}
-              </button>
+              </ChoicePill>
             ))}
           </div>
           <TimePickerWheel value={time} onChange={setTime} ariaLabel="Start time" />

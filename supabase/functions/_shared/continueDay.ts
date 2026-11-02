@@ -9,9 +9,11 @@
  * FAIL CLOSED: a read error is `ok: false`, and the caller holds every candidate. A missing table (42P01 /
  * PGRST205, the deploy window before the migration) holds no job: a database without the table has no continue day.
  *
- * ZERO imports (the caller passes its service-role client), so the edge test harness runs the REAL module.
+ * One import, caughtMessage (itself import-free); the caller passes its service-role client, so the edge test harness
+ * runs the REAL module.
  * Guard: src/test/edge/continueDayHold.test.ts.
  */
+import { caughtMessage } from "./caughtMessage.ts";
 
 /** The statuses that hold a job: a day proposed by the Helpr and not answered, or a day the poster set. */
 const CONTINUE_DAY_ACTIVE_STATUSES = ["proposed", "set"] as const;
@@ -37,7 +39,7 @@ export async function loadContinuingJobs(
       .in("job_id", ids)
       .in("status", [...CONTINUE_DAY_ACTIVE_STATUSES]);
   } catch (err) {
-    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    return { ok: false, message: caughtMessage(err) };
   }
   if (res.error) {
     if (tableMissing(res.error)) return { ok: true, jobs };

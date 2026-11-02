@@ -348,6 +348,34 @@ export const RPC_ERROR_COPY = {
     booking_not_pending: "This booking already ended. Refresh the page to see where it stands.",
     decline_window_closed: "The 2 hours to decline have ended, so you're booked.",
   },
+  // Continue another day (owner 2026-11-01, 20261101231015): the job page's sheet and buttons (useContinueDayActions).
+  propose_job_continue_day: {
+    not_authenticated: "Sign in again to set a day.",
+    account_restricted: "Your account is restricted right now, so you can't change this job.",
+    not_authorized: "Only the person who posted this job or its Helpr can set another day.",
+    job_not_found: "This job is no longer available.",
+    users_blocked: "You can't set a day with this person.",
+    continue_day_invalid: "Pick a day and a time.",
+    continue_day_not_in_progress: "Another day can be set only while the job is under way.",
+    continue_day_note_too_long: "Keep the note under 300 characters.",
+    continue_day_too_far: "Pick a day within the next 30 days.",
+    continue_day_too_soon: "Pick a time at least an hour from now.",
+  },
+  answer_job_continue_day: {
+    not_authenticated: "Sign in again to answer.",
+    account_restricted: "Your account is restricted right now, so you can't change this job.",
+    not_authorized: "Only the person who posted this job can answer this day.",
+    users_blocked: "You can't answer this person.",
+    continue_day_not_found: "That day was already answered or changed. Refresh the page.",
+    continue_day_in_past: "That time has passed. Pick a new day.",
+  },
+  confirm_job_continue_day: {
+    not_authenticated: "Sign in again to confirm.",
+    account_restricted: "Your account is restricted right now, so you can't change this job.",
+    not_authorized: "Only this job's Helpr can confirm the new day.",
+    continue_day_not_found: "That day was changed. Refresh the page.",
+    continue_day_not_set: "The new day isn't set yet. It needs a yes from the person who posted the job first.",
+  },
   // useOfferHandlers — the Helpr's Accept (Q1180).
   accept_job_offer: {
     offer_not_active: "This offer is no longer available — it may have expired or gone to someone else.",

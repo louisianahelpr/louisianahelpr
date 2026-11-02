@@ -48,6 +48,9 @@ export function ApplyTimeQuestion({
   const when = [job.date_needed ? formatJobDate(job.date_needed) : null, startLabel === FLEXIBLE_TIME_LABEL ? null : startLabel]
     .filter(Boolean)
     .join(" at ");
+  // Q2607 (Jobs audit 1102b row 21): "9:00 AM" broke with "AM" alone on the next line; the time stays together.
+  const day = job.date_needed ? formatJobDate(job.date_needed) : null;
+  const time = startLabel === FLEXIBLE_TIME_LABEL ? null : startLabel;
   // An answer given on another job's sheet is not this job's answer.
   const value = given && given.jobId === job.id ? given : null;
   const suggesting = value !== null;
@@ -56,7 +59,7 @@ export function ApplyTimeQuestion({
   return (
     <fieldset className="space-y-2 min-w-0" data-testid="apply-time-question" disabled={disabled}>
       <legend className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-        Does {when} work for you?
+        Does {day}{day && time ? " at " : ""}{time && <span data-apply-time="" className="whitespace-nowrap">{time}</span>} work for you?
       </legend>
       <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={`Does ${when} work for you?`}>
         <button

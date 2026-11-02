@@ -95,7 +95,7 @@
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261101000817_declutter_admin_helpr_fault.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
+ * @mutate supabase/migrations/20261102040952_declutter_card_fee_prorated.sql | p_reason, o.total_cents - v_reserved,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | p_reason, o.total_cents - v_reserved,\n    0);
  * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
@@ -536,7 +536,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // LEAD-ADMIN-HELPR-FAULT (20261101000817, for verdict): restated from its effective body (170717 with 172503's notice
       // rewrites); only the buyer's refund notice for 'helpr_fault' added ("All $X ... delivery included"). Reasons,
       // the amount it passes to declutter_record_refund (total - reserved, the order's card fee) and the task branches unchanged.
-      declutter_close_paid_order: "20261101000817_declutter_admin_helpr_fault.sql 0cc6e353aeae56cf",
+      // Q1935 (20261102040952, builder 140, verdict owed): restated verbatim; only the fee it passes changes, to the
+      // order's card fee prorated to what is refunded (declutter_card_fee_left: fee x (total - reserved) / total), so a
+      // seller's debt or a kept fee no longer carries card cost on a delivery fee already given back or paid to the Helpr.
+      declutter_close_paid_order: "20261102040952_declutter_card_fee_prorated.sql 5bb92b283b065a37",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
       // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
       // #3730 (20261028235247, lh-money-escrow approved via the lead 2026-10-29): only the handover_not_offered refusal
@@ -638,7 +641,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // only the seller's payout rebook changes (a full refund also undoes a seller delivery's rate for the seller).
       // D2-5 (20261029224147, lh-money-escrow approve 2026-10-29): notice words only (the card-network sentence on a keep_card_fee refund, the order chat instead of Messages), from the body 20261027172503 left; amounts, fee policies and the payout rebook unchanged.
       // BUY-25 (lead 10-30): never got it is reason seller_no_show (full_seller_pays_fee: the seller owes the card fee), already pinned; verdict owed.
-      declutter_refund_after_handover: "20261031010243_declutter_never_got_it_no_return.sql 9789b5c5095d8eff",
+      // Q1935 (20261102040952, builder 140, verdict owed): restated verbatim; only the fee passed to declutter_record_refund
+      // is prorated to v_paid (total - reserved) by declutter_card_fee_left. Reasons, amounts and the part refund unchanged.
+      declutter_refund_after_handover: "20261102040952_declutter_card_fee_prorated.sql 2319c12797fa7813",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       declutter_payouts_due: "20261026155251_declutter_refund_requests.sql a7c6262ff5abda7d",

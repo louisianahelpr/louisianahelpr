@@ -62,7 +62,7 @@ function ProUpgradeSheet({
   const navigate = useNavigate();
 
   // Branded name, from TIER_PERKS — this string reaches the user in the sheet
-  // body and on the CTA ("See Helpr Pro Plans"), and must read the same as
+  // body and on the CTA ("See Helpr Pro plans"), and must read the same as
   // the plan card it sends them to.
   // DERIVED, not a ternary chain. The chain here named elite and basic and let
   // everything else fall through to Pro — so a `plus` requirement would have
@@ -92,7 +92,7 @@ function ProUpgradeSheet({
             the title stops the X being aligned to a heading. If popup headers
             are ever to have icons, they belong in the Hero as ONE slot every
             popup uses — not rebuilt per dialog. The tier is still named in the
-            title and on the CTA ("See Helpr Pro Plans"), so nothing is lost
+            title and on the CTA ("See Helpr Pro plans"), so nothing is lost
             but the ornament. */}
         <DialogHero title={title} />
 
@@ -143,7 +143,7 @@ function ProUpgradeSheet({
             dialog whose primary grew to fill the footer row. */}
         <DialogFooter>
           <DialogSecondaryAction onClick={onClose}>
-            Maybe Later
+            Maybe later
           </DialogSecondaryAction>
           <DialogPrimaryAction
             onClick={() => {
@@ -152,7 +152,7 @@ function ProUpgradeSheet({
             }}
           >
             <TierIcon className="w-4 h-4 mr-1.5" />
-            See {tierLabel} Plans
+            See {tierLabel} plans
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

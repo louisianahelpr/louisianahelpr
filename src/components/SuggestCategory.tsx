@@ -113,7 +113,7 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
             </DialogClose>
             <DialogPrimaryAction onClick={() => void send()} disabled={sending}>
               {sending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : null}
-              Send Suggestion
+              Send suggestion
             </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>

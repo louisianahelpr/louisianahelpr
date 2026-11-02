@@ -573,11 +573,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             font-semibold` and an inline bark colour on top of the ghost
             variant that already styles it.
             Cancelling an accepted job charges a fee and cannot be undone here,
-            so it is destructive; "Keep the Job" is the dismiss. Copy, fee
+            so it is destructive; "Keep the job" is the dismiss. Copy, fee
             arithmetic and handlers are untouched. */}
         <DialogFooter>
           <DialogSecondaryAction disabled={cancelling} onClick={onClose}>
-            Keep the Job
+            Keep the job
           </DialogSecondaryAction>
           {/* Held while the quote loads, so the fee confirmed is the one quoted. */}
           <DialogDestructiveAction onClick={handleCancel} disabled={cancelling || quoteLoading}>

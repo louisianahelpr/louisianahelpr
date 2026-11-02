@@ -167,7 +167,7 @@ export function TermsReconsentDialog() {
         {/* The dialog has to SAY what is being agreed to. The 2026-07-25
             subtitle sweep stripped this text along with 41 decorative
             subtitles, leaving a consent gate whose entire content was a title
-            and an "I Agree" button — no mention of Terms, Privacy, or where to
+            and an "I agree" button — no mention of Terms, Privacy, or where to
             read them. Same voice as every other popup body (DialogBody), same
             new-tab links as the signup consent line in CompleteProfile.tsx:
             this modal cannot be dismissed, so an in-app <Link> would navigate
@@ -178,7 +178,7 @@ export function TermsReconsentDialog() {
             <a href="/terms" target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>
               Terms of Service
             </a>
-            . Tap I Agree to continue using Helpr.
+            . Tap I agree to continue using Helpr.
           </p>
         </DialogBody>
         <DialogFooter>
@@ -191,7 +191,7 @@ export function TermsReconsentDialog() {
               void handleAccept();
             }}
           >
-            {submitting ? "Saving…" : "I Agree"}
+            {submitting ? "Saving…" : "I agree"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

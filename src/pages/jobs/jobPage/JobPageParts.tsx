@@ -85,7 +85,8 @@ const HELD_LINE: Partial<Record<string, string>> = {
   unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
   abandoned: "Not paid yet. Helprs can't see this job until it's paid.",
   refunded: "Refunded to your card.",
-  released: "Paid out to your Helpr.",
+  // Q2608 (Jobs audit 1102b row 22): the same words as the Job done sheet ("Paid to Eli · It's on its way to their bank").
+  released: "Paid to your Helpr. It's on its way to their bank.",
 };
 
 

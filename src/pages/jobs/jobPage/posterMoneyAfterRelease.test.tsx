@@ -49,7 +49,9 @@ describe("the poster's money after the release (F32)", () => {
 
   it("paid out: says so, with the receipt", () => {
     show(row({ payment_status: "released" }));
-    expect(notes()).toContain("Paid out to your Helpr.");
+    // Q2608 (Jobs audit 1102b row 22): one wording with the Job done sheet (JobDoneSummary).
+    // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   released: "Paid to your Helpr. It's on its way to their bank.", |   released: "Paid out to your Helpr.",
+    expect(notes()).toContain("Paid to your Helpr. It's on its way to their bank.");
     expect(screen.getByRole("link", { name: "See your receipt" })).toBeTruthy();
   });
 

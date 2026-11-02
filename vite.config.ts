@@ -971,7 +971,9 @@ export default defineConfig(({ mode, command }) => ({
             // they ride alone with their importers. Boot 236 -> 235 KB gz, every route -1.
             {
               name: "job-lifecycle",
-              test: /[\\/]src[\\/]lib[\\/](arrivalGate|cardHoldCapture)\.ts$/,
+              // + HelperDoneWhatNext and RefundsSwitch (L38, train 3): the admin job preview's lazy ConfirmedSection
+              // shared them, so on their own they were two more chunks named in the entry (5387 B gz, over its band).
+              test: /[\\/]src[\\/](lib[\\/](arrivalGate|cardHoldCapture)\.ts|components[\\/](whatNext[\\/]HelperDoneWhatNext|refund[\\/]RefundsSwitch)\.tsx)$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

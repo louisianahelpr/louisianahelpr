@@ -5,7 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
-import { adminDecideDeliveryDamage, adminDecideStuckDelivery, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
+import { decideByWords } from "@/lib/declutter/decideBy";
+import { adminDecideDeliveryDamage, adminDecideStuckDelivery, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, withDecideBy, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
 import { offerCentsFromInput } from "@/lib/declutter/refundRequests";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -173,6 +174,11 @@ function ProblemItem({ row }: { row: ProblemRow }) {
     <li className="rounded-xl border border-border p-3 space-y-2">
       <p className="font-semibold">{row.reporter_side === "system" ? "Held 60 days · nobody has said anything" : noShowAnswered ? "The seller didn't show · reported by the buyer · the seller answered" : <>{REASON_WORDS[row.reason] ?? row.reason} · reported by the {row.reporter_side === "helpr" ? "Helpr" : row.reporter_side}</>}</p>
       <p className="text-xs text-muted-foreground">Order {row.order_id.slice(0, 8)} · {new Date(row.created_at).toLocaleString()}</p>
+      {row.decide_by && (
+        <p className={new Date(row.decide_by).getTime() < Date.now() ? "text-xs font-semibold text-destructive-ink" : "text-xs text-muted-foreground"} data-decide-by="">
+          {new Date(row.decide_by).getTime() < Date.now() ? "Overdue · " : ""}Decide by {decideByWords(row.decide_by)}
+        </p>
+      )}
       <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.note}</p>
       {row.detail ? <ProblemDetail d={row.detail} /> : null}
       {/* AL-4: the order's steps and both sides' handover photos, side by side with their times and places. */}
@@ -289,7 +295,8 @@ export function DeclutterProblemsCard({ includeTest = false }: { includeTest?: b
   const open = useQuery({
     // ["declutter", "admin-problems"] stays the prefix a decision invalidates.
     queryKey: ["declutter", "admin-problems", includeTest ? "with-test" : "real-only"],
-    queryFn: () => fetchOpenProblemsWithDetail(includeTest),
+    // A3-74: each with its decide-by, the overdue ones first.
+    queryFn: async () => withDecideBy(await fetchOpenProblemsWithDetail(includeTest)),
   });
   // Row 62: paid sales (and their problems) carry on with the switch off, so an open problem always shows
   // (lh-authz-rls review 4.1); with the switch off and nothing open, the card stays hidden.

@@ -2120,7 +2120,7 @@ describe("A3-44: Leave series sits in the hired Helpr's More options", () => {
     const sheet = document.querySelector("[data-row-options]") as HTMLElement;
     await within(sheet).findByRole("button", { name: "Leave series" });
     fireEvent.click(within(sheet).getByRole("button", { name: "Close" }));
-    expect(pageActions()).toEqual(expect.arrayContaining(["Message Rhonda", "Open in working", "Leave series"]));
+    expect(pageActions()).toEqual(expect.arrayContaining(["Message Rhonda", "Open in Jobs", "Leave series"]));
     expect(within(document.querySelector("[data-job-series]") as HTMLElement).queryByRole("button", { name: "Leave series" })).toBeNull();
     pressAction("Leave series");
     expect(await screen.findByRole("alertdialog", { name: /Leave "Pressure wash driveway"\?/ })).toBeTruthy();

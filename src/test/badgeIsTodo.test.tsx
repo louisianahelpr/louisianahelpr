@@ -12,7 +12,7 @@
  * One fixture through the real bridge, the real dock, the real sidebar and the
  * real Home (only the network is faked): badge == to-dos == "See all (n)".
  *
- * @mutate src/components/MobileNav.tsx |         : badgeKey === "todo"\n          ? todo.total | : badgeKey === "todo"\n          ? todo.jobs
+ * @mutate src/components/mobileNav/dockBadgeCount.ts |     : badgeKey === "todo"\n      ? todo.total |     : badgeKey === "todo"\n      ? todo.jobs
  * @mutate src/components/NeedsYouBridge.tsx | publishNeedsYou(uid, { total: jobs + shops + declutter, jobs, shops, declutter }); | publishNeedsYou(uid, { total: jobs, jobs, shops, declutter });
  * @mutate src/components/DesktopSidebarNav.tsx |     if (key === "todoShops") return todo.shops; |     if (key === "todoShops") return 0;
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |   const { todos } = useNeedsYouTodos(user); |   const todos = useNeedsYouTodos(user).todos.slice(1);

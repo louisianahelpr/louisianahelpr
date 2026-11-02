@@ -54,7 +54,7 @@ function SpotForm({ initial, onDone }: { initial: Draft; onDone: () => void }) {
     <div className={`space-y-3 rounded-[16px] border border-border bg-card p-4 ${PLACE_CARD_EDGE}`} data-meetup-spot-form="">
       <div className="space-y-1.5">
         <label htmlFor={`${uid}-name`} className="block text-ds-14 font-semibold text-foreground">Name</label>
-        <Input id={`${uid}-name`} maxLength={80} value={d.name} onChange={(e) => setD((x) => ({ ...x, name: e.target.value }))} placeholder="e.g. Walmart parking lot" />
+        <Input id={`${uid}-name`} maxLength={80} value={d.name} onChange={(e) => setD((x) => ({ ...x, name: e.target.value }))} placeholder="e.g. the bank parking lot on Main St" />
       </div>
       <div className="space-y-1.5">
         <label htmlFor={`${uid}-address`} className="block text-ds-14 font-semibold text-foreground">Address</label>

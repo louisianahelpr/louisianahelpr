@@ -165,11 +165,8 @@ function AppliedJobCardInner({
     job.description.trim().toLowerCase() !== (job.title || "").trim().toLowerCase();
   /** Whether the block between the meta row and the action row has ANY content.
    *  Every child of it is conditional — see the note at the block itself. */
-  /* `app.posterName` used to count towards this, because the "Posted by" band
-     lived in the body. It does not any more (the identity row sits in the meta
-     block, collapsed or not), so counting it here would reserve a padded band
-     for a child that no longer renders — the same empty-band defect
-     STATUS_RENDERS_ACTIONS exists to stop on the poster's card. */
+  /* `app.posterName` no longer counts: the identity row sits in the meta block, so counting it would reserve an
+     empty padded band (the defect STATUS_RENDERS_ACTIONS stops on the poster's card). */
   /* THE POSTER'S PROFILE TILE, and WHO CARRIES IT.
      (owner, 2026-09-19: "the helpr or posted by should be right above the
      buttons" — the third position for this tile in five days; the history and

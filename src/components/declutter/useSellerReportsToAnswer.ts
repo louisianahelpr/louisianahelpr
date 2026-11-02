@@ -17,7 +17,7 @@ function problemAwaitsSeller(p: Pick<OrderProblem, "status" | "reporter_side" | 
  * A3-78: a buyer's "they didn't show" / "it wasn't delivered" waits on the seller while its answer-by is set
  * (declutter_my_handover; the card's NoShowAnswer shows its button on the same rule).
  */
-export function noShowAwaitsSeller(h: Pick<MyHandover, "no_show_reported_at" | "no_show_answer_by"> | null | undefined): boolean {
+function noShowAwaitsSeller(h: Pick<MyHandover, "no_show_reported_at" | "no_show_answer_by"> | null | undefined): boolean {
   return !!h?.no_show_reported_at && !!h.no_show_answer_by;
 }
 

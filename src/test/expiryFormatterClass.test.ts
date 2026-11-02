@@ -32,6 +32,7 @@ const NOT_A_LISTING: Record<string, string> = {
   "lib/dateUtils.ts": "the formatter itself",
   "pages/profile/giftCards/CreditCard.tsx": "gift-card credit expiry date, not a listing countdown",
   "integrations/supabase/types.ts": "generated types",
+  "components/declutter/DeclutterWantedViews.tsx": "A3-62 (11-01): a Wanted post and its replies have status words (expired: \"Expired\"), not a listing countdown; the post's \"Open until <date>\" reads expires_at as a date",
 };
 
 function walk(dir: string, out: string[] = []): string[] {

@@ -12,7 +12,7 @@ import { useRequestPushPermissionOutcome } from "@/lib/nativePush";
  * browser prompt and, on web, saving this browser's subscription), then shows what happened. "Not now" in our own
  * dialog changes nothing.
  */
-export const PUSH_HINT_ON = "On";
+const PUSH_HINT_ON = "On";
 export const PUSH_HINT_BLOCKED_PHONE = "Blocked in your phone's Settings: open Settings → Louisiana Helpr → Notifications.";
 export const PUSH_HINT_BLOCKED_BROWSER = "Blocked in this browser: allow notifications for this site in the browser's settings.";
 

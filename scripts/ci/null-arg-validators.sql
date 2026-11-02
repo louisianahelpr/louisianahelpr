@@ -94,6 +94,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_series_party',               'allow',    'user is on the recurring series (reads its holds, offers, releases; 20260927012806)'),
   ('is_safe_media_url',             'absent',   'NULL = no URL stored; nothing to render (nullable avatar_url CHECK)'),
   ('are_safe_media_urls',           'absent',   'NULL = no photo list stored (nullable jobs.photos / portfolio_urls CHECK)'),
+  ('declutter_photo_object_attached', 'deny',   'TRUE = a declutter photo row still names this object, so the own-folder delete policy refuses the delete (manager photos stay, 20261101235806); its only caller passes storage.objects.name, never NULL, and the same policy first requires the name''s own-folder parts'),
   ('declutter_handover_refused',    'deny',     'TRUE refuses this way at checkout (handover_not_offered; Q2462, 20261028235247); both checkouts refuse a NULL way before calling it, and NULL lines match no row (FALSE: nothing ticked to narrow)'),
   ('declutter_pair_talking',        'deny',     'TRUE holds back the "or you get a strike" checkout reminders while a handover chat is open (Q2462, 20261028235249); a NULL side matches no talk (FALSE: the reminders go out as before)'),
   ('are_users_blocked',             'deny',     'TRUE refuses the interaction'),

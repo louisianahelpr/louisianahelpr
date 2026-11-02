@@ -15014,6 +15014,66 @@ export type Database = {
           title: string
         }[]
       }
+      declutter_manager_first_name: {
+        Args: { p_user: string }
+        Returns: string
+      }
+      declutter_manager_grant_for: {
+        Args: { p_perm: string; p_seller: string }
+        Returns: {
+          can_list: boolean
+          can_messages: boolean
+          can_offers: boolean
+          can_pickups: boolean
+          can_prices: boolean
+          created_at: string
+          ended_at: string | null
+          ended_by: string | null
+          id: string
+          manager_id: string
+          responded_at: string | null
+          seller_id: string
+          share_cents: number | null
+          share_pct: number | null
+          share_type: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "declutter_manager_grants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      declutter_manager_payout_executed: {
+        Args: {
+          p_error: string
+          p_payout_id: string
+          p_succeeded: boolean
+          p_transfer_id: string
+        }
+        Returns: string
+      }
+      declutter_manager_payouts_due: {
+        Args: { p_limit: number }
+        Returns: {
+          amount_cents: number
+          attempts: number
+          buyer_id: string
+          manager_id: string
+          order_id: string
+          payment_intent_id: string
+          payout_id: string
+          refunds_recorded_cents: number
+          seller_id: string
+          stripe_account_id: string
+        }[]
+      }
+      declutter_manager_share_cents: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
       declutter_open_handover_talk: {
         Args: { p_other: string }
         Returns: string
@@ -15029,6 +15089,10 @@ export type Database = {
       }
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
+      declutter_photo_object_attached: {
+        Args: { p_name: string }
+        Returns: boolean
+      }
       helpr_task_talk_view: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_send_message: {
         Args: { p_task_id: string; p_body: string }

@@ -374,6 +374,20 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(within(sold).getByText("Nothing sold yet")).toBeInTheDocument();
   });
 
+  // Q2667 (Builder 178, 11-02): the donation that took the seller's last item still shows its receipt on the empty card.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |         {haulOn && <DonationReceipts />}\n |
+  it("Q2667: a seller whose only item was donated sees the donation receipt under 'You haven't listed anything yet'", async () => {
+    state.mine = [{ ...ITEM, status: "withdrawn" }];
+    const { fetchMyDonations } = await import("@/lib/declutter/donate");
+    vi.mocked(fetchMyDonations).mockResolvedValueOnce([{ item_id: "i1", item_title: "Oak rocking chair", partner_name: "St. Vincent de Paul",
+      partner_address: "220 St Vincent St", chosen_at: "2026-10-30T15:00:00Z", donated_at: "2026-11-01T15:00:00Z", receipt: true }]);
+    at("/declutter?tab=selling");
+    const listings = await screen.findByRole("region", { name: "Your listings" });
+    expect(within(listings).getByText("You haven't listed anything yet.")).toBeInTheDocument();
+    const receipts = await within(listings).findByRole("region", { name: "Donation receipts" });
+    expect(within(receipts).getByText(/Your Helpr took it to St\. Vincent de Paul, 220 St Vincent St/)).toBeInTheDocument();
+  });
+
   // Q2629 (audit 1102c R4): a sale waiting for the buyer to pay never sits over "Nothing sold yet".
   // @mutate src/components/declutter/DeclutterTabParts.tsx |     if (!buyer && lines.some((l) => l.status === "in_cart")) return null; |
   it("Q2629: a sale waiting for payment hides the Nothing sold yet card", async () => {

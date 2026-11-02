@@ -160,7 +160,7 @@ describe("pending vs missing: a migration prod had not applied is told apart fro
     const versions: string[] = snap.appliedMigrations.versions;
     expect(Array.isArray(versions)).toBe(true);
     expect(versions.length).toBe(snap.appliedMigrations.count);
-    expect([...versions].sort().at(-1)).toBe(snap.appliedMigrations.latest);
+    expect([...versions].sort()[versions.length - 1]).toBe(snap.appliedMigrations.latest);
     expect(contract.pendingDefinitions(snap).exact).toBe(true);
   });
 

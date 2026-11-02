@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { formatExactDollars } from "../_shared/money.ts";
 import { checkIdentityHold, checkPayoutHold, IDENTITY_HOLD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
-import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
+import { holdUnlessPayable, reportLiveGateDefect } from "../_shared/livePayoutHold.ts";
 import { CONNECT_NOT_PAYABLE_CODE } from "../_shared/livePayoutGate.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
@@ -90,7 +90,7 @@ serve(async (req) => {
     // Get user's Stripe Connect account
     const { data: profile, error: profileErr } = await supabase
       .from("profiles")
-      .select("stripe_account_id")
+      .select("stripe_account_id, is_seed")
       .eq("user_id", userId)
       .single();
 
@@ -158,7 +158,12 @@ serve(async (req) => {
       fn: "cash-out-credits",
       what: "a referral credit cash-out",
       then: "Nothing was claimed; the member can try again later.",
+      // A test member never pages the owner (digest only).
+      seed: (profile as { is_seed?: boolean | null }).is_seed === true,
     });
+    // Q2406: the gate's defect (a failed cached-gate close, an unexplained
+    // "could not verify") reaches ops, never only console.warn.
+    if (live.defect) await reportLiveGateDefect({ fn: "cash-out-credits", helperId: userId, defect: live.defect, seed: (profile as { is_seed?: boolean | null }).is_seed === true });
     if (live.held) {
       return new Response(
         JSON.stringify({

@@ -4,6 +4,7 @@ import type { MineFaceAction } from "@/components/job-card/MineJobFace";
 import type { Job } from "../../../components/job-card/activityConstants";
 import { requestFaceAction } from "@/components/job-card/faceActionRequest";
 import { useHelprTakesTips } from "@/hooks/useHelprTakesTips";
+import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
 
 /**
  * The ONE button on the poster's Posted card face (board 14; lead 2026-10-20:
@@ -29,6 +30,8 @@ export interface PosterFaceHandlers {
   openApplicants: () => void;
   confirmArrival: () => void;
   approve: () => void;
+  /** "Something's not right" (A3-8): the approve sheet, opened at the fix form. */
+  notRight?: () => void;
   review: () => void;
   tip: () => void;
   /** F29: false when the Helpr's payout setup is not finished (useHelprTakesTips); the face then offers no tip. */
@@ -81,6 +84,8 @@ export function posterFaceAction(
         onClick: h.approve,
         tone: "primary",
         disabled: h.completing,
+        // A3-8 (audit 11-01): the complaint is visible under Approve, never only inside its sheet.
+        ...(h.notRight ? { under: { label: NOT_RIGHT_LABEL, onClick: h.notRight } } : {}),
       };
     case "done_review_open":
     case "done_both_open":
@@ -143,11 +148,13 @@ export function usePosterFaceAction(a: {
   onNoShow: (jobId: string) => void;
   onCancel: (job: Job) => void;
   onViewDispute: (job: Job) => void;
-}): { faceAction: MineFaceAction; completionRequest: number } {
+}): { faceAction: MineFaceAction; completionRequest: number; revisionRequest: number } {
   const { job, toggle } = a;
   const tipsReady = useHelprTakesTips(job.helper_id, (a.wait === "done_tip_open" || a.wait === "done_tip_open_review_closed") && !job.is_group_job);
   // Bumped by "Approve and release": PostedJobActions opens its completion sheet.
   const [completionRequest, setCompletionRequest] = useState(0);
+  // Bumped by "Something's not right": the same sheet, at the fix form.
+  const [revisionRequest, setRevisionRequest] = useState(0);
   const faceAction = posterFaceAction(a.wait, job, {
     pendingApplicants: a.pendingApplicants,
     helperName: a.helperName,
@@ -158,6 +165,10 @@ export function usePosterFaceAction(a: {
     approve: () => {
       if (!a.isExpanded) toggle(job.id);
       setCompletionRequest((n) => n + 1);
+    },
+    notRight: () => {
+      if (!a.isExpanded) toggle(job.id);
+      setRevisionRequest((n) => n + 1);
     },
     review: () => a.onReview(job),
     tip: () => a.onTip(job.id, a.helperName),
@@ -173,5 +184,5 @@ export function usePosterFaceAction(a: {
     cancel: () => a.onCancel(job),
     viewDispute: () => a.onViewDispute(job),
   });
-  return { faceAction, completionRequest };
+  return { faceAction, completionRequest, revisionRequest };
 }

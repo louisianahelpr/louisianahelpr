@@ -69,6 +69,7 @@ import "@/lib/i18n/enJobs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
+import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
 
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
@@ -458,6 +459,14 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {continueDay.sheet}
             {isPoster && posterActions.panel}
             {hiredRow}
+            {/* A3-8 (audit 11-01): at the approve step the poster's complaint is a visible text button under the pair
+                (Message | Approve stays, owner 12:49 PM), opening the approve sheet at the fix form, never only behind Approve. */}
+            {isPoster && posterActions.notRight && (
+              <Button type="button" variant="link" size="sm" data-not-right-open="" onClick={posterActions.notRight}
+                className="h-auto self-center px-0 text-ds-15 font-semibold">
+                {NOT_RIGHT_LABEL}
+              </Button>
+            )}
             {/* Continue another day (owner 2026-11-01): a visible text button under the pair, both sides. */}
             {continueDay.setDay && (
               <Button type="button" variant="link" size="sm" data-continue-day-open="" onClick={continueDay.setDay.go}

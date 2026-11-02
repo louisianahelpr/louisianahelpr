@@ -44,6 +44,7 @@ export const enPostJob = {
   // The group grid
   "postJob.searchCategories": "Search categories",
   "postJob.searchPlaceholder": "e.g. wash my driveway",
+  "postJob.clearSearch": "Clear search",
   "postJob.matchingCategories": "Matching categories",
   "postJob.matches": "Matches",
   "postJob.noMatch": "No category matches \"{query}\". Pick a group below, or Something else.",

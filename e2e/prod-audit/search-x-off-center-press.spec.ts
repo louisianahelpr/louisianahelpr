@@ -175,6 +175,14 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
   },
   {
     // Board 89: /search, one search across the sections; the field is always open.
+    // Q2260: Post a job's category search (J1 screen 1), a permanent live filter with a "Clear search" ✕.
+    name: "post-job-category-search", file: "src/components/postjob/JobCategoryGroups.tsx",
+    url: "/post-job",
+    trigger: '#category-picker input[type="search"]',
+    field: '#category-picker input[type="search"]',
+    close: CLEAR,
+  },
+  {
     name: "search-page", file: "src/pages/search/SearchPage.tsx",
     url: "/search?q=chair",
     trigger: "",

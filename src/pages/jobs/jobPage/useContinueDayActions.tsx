@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
 import { ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
-import { answerContinueDay, confirmContinueDay, continueDayAhead, continueDayDoneNote, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
+import { CONTINUE_DAY_LABEL, answerContinueDay, confirmContinueDay, continueDayAhead, continueDayDoneNote, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
 import type { NextStepValue } from "@/components/ui/NextStep";
 import type { RowAction } from "./JobPageActionRow";
 import type { PagePrimary } from "./posterPageActions";
@@ -14,7 +14,7 @@ import type { Job } from "@/components/job-card/activityConstants";
  * The job page's half of "Couldn't finish: continue another day" (owner 2026-11-01, Yusef's job; src/lib/continueDay.ts):
  *  - the poster: "Not finished? Set a day" (set at once), and on a Helpr's ask the one-tap "Confirm new day" leads the
  *    row (over Approve: the work is not done), with Decline beside it;
- *  - the hired Helpr: "Need another day" (sent to the poster to confirm), and once a day is set "Confirm I'll be there";
+ *  - the hired Helpr: "Not finished? Set a day" too (one name, Q2593; sent to the poster to confirm), and once a day is set "Confirm I'll be there";
  *  - both: the next-step line "Continuing Thu 11/5 at 9 AM · waiting on Yusef".
  * Only on a solo job under way, only for its two people (the server checks it all again).
  */
@@ -25,7 +25,7 @@ export function useContinueDayActions({
   trackingStatus = null,
   onChanged,
 }: {
-  job: { id: string; status: string | null; is_group_job?: boolean | null; helper_completed_at?: string | null; helper_arrived_at?: string | null; helper_arrival_verified_at?: string | null; poster_confirmed_arrival_at?: string | null } | null | undefined;
+  job: { id: string; status: string | null; has_active_dispute?: boolean | null; is_group_job?: boolean | null; helper_completed_at?: string | null; helper_arrived_at?: string | null; helper_arrival_verified_at?: string | null; poster_confirmed_arrival_at?: string | null } | null | undefined;
   /** Who is looking: the poster, the hired Helpr, or nobody on the job (null: nothing shown). */
   side: "poster" | "helpr" | null;
   otherFirst: string | null;
@@ -39,7 +39,7 @@ export function useContinueDayActions({
   posterExtras: RowAction[];
   helprLead: RowAction | null;
   helprExtras: RowAction[];
-  /** "Not finished? Set a day" / "Need another day": a visible text button under the row (null: none). */
+  /** "Not finished? Set a day" (both sides): a visible text button under the row (null: none). */
   setDay: RowAction | null;
   sheet: React.ReactNode;
   /**
@@ -53,7 +53,8 @@ export function useContinueDayActions({
 } {
   // Once the Helpr is there (arrived, by any of the three stamps): before that, a new day is "Change date or time".
   const arrived = !!job && !!(job.helper_arrived_at || job.helper_arrival_verified_at || job.poster_confirmed_arrival_at);
-  const live = !!job && !!side && job.status === "in_progress" && !job.is_group_job && arrived;
+  // Q2593 (Jobs audit 1102b row 7): never while a dispute is open (Louisiana Helpr is deciding the job as it stands).
+  const live = !!job && !!side && job.status === "in_progress" && !job.has_active_dispute && !job.is_group_job && arrived;
   const q = useQuery({
     queryKey: ["job-continue-day", job?.id ?? ""],
     queryFn: () => fetchContinueDay(job!.id),
@@ -101,13 +102,14 @@ export function useContinueDayActions({
       posterExtras.push({ key: "continue-change", label: "Change day", go: open });
     } else if (offerSetDay) {
       // A VISIBLE text button under the row, never in More options (lead 11-01: on the Approve stage this is Yusef's case).
-      setDay = { key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open };
+      setDay = { key: "continue-set", label: row ? "Set a different day" : CONTINUE_DAY_LABEL, go: open };
     }
   } else {
     if (row?.status === "set" && !row.helper_confirmed_at) {
       helprLead = { key: "continue-confirm", label: "Confirm I'll be there", go: () => void run(() => confirmContinueDay(row.id), `Confirmed for ${when}.`)(), disabled: busy };
     }
-    if (offerSetDay) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open };
+    // Q2593: one name on both sides, the owner's "Not finished? Set a day" (it was "Need another day" here).
+    if (offerSetDay) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open };
   }
 
   const doneAhead = continueDayAhead(row);

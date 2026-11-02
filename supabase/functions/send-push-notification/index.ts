@@ -447,6 +447,10 @@ serve(async (req) => {
             },
             oncePerDayKey: adminPushEventKey(payload),
             seed,
+            // An informational admin notice ("New member joined", the daily new-member summary, "Dispute
+            // auto-resolved") still posts to Slack but is never a ledger item: the owner closed Q2543 (11-02,
+            // 560 occurrences) as an intended notice, not a defect. Critical ones are still recorded.
+            ledger: adminPushSeverity(payload.title) !== 'info',
           })
         }
       } catch (e) {

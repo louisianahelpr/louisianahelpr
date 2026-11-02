@@ -132,14 +132,12 @@ describe("uptime.yml: empty gets its own warning, down stays critical", () => {
     Object.values(wf.jobs as Record<string, { steps: unknown[] }>).flatMap((j) => j.steps as never[]);
   const byIf = (cond: string) => steps.filter((s) => (s.if ?? "").replace(/\s+/g, " ").trim() === cond);
 
-  it("empty records a WARNING ledger item that names the pre-launch cause", () => {
+  it("empty is a WARNING on the run and never a ledger item (owner closed Q2554 11-02: a notice, not a defect)", () => {
     const empty = byIf("steps.probe.outputs.status == 'empty'");
     expect(empty).toHaveLength(1);
-    expect(empty[0].run).toMatch(/ops-alert-ledger\.mjs record/);
-    expect(empty[0].run).toMatch(/--severity warning/);
-    expect(empty[0].run).toMatch(/--strict\b/);
-    expect(empty[0].run).not.toMatch(/\|\|\s*true/);
-    expect(empty[0].run).toMatch(/no funded jobs \(pre-launch\)/);
+    expect(empty[0].run).toMatch(/::warning::/);
+    expect(empty[0].run).not.toMatch(/ops-alert-ledger\.mjs/);
+    expect(empty[0].run).not.toMatch(/exit 1/);
   });
 
   it("down still fails the run (the critical path is untouched)", () => {

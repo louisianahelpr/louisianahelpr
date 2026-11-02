@@ -72,14 +72,6 @@ export function shipByWords(iso: string | null | undefined): string | null {
   return new Date(t).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "America/Chicago" });
 }
 
-/** Where a shipped order stands, from either read: 0 paid, 1 packed, 2 shipped (accepted scan), 3 delivered. */
-function shipStep(s: Pick<ShipLabel, "packed_at" | "accepted_at" | "delivered_at"> | null | undefined): number {
-  if (!s) return 0;
-  if (s.delivered_at) return 3;
-  if (s.accepted_at) return 2;
-  return s.packed_at ? 1 : 0;
-}
-
 /** The carrier's own words for a tracking status the order card shows (shipments.tracking_status). */
 const STATUS_WORDS: Record<string, string> = {
   pre_transit: "Label made, not scanned yet",

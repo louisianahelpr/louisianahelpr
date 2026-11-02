@@ -79,6 +79,11 @@ export interface PreviewSample {
   tables: Record<string, unknown[]>;
   /** A control the preview presses once the page has drawn, to open its sheet (the Cancel sheet stage). */
   opens: string | null;
+  /**
+   * What is drawn: the job page, or (the Cancel sheet stage seen by the Helpr) the Helpr's own Working card, where
+   * their cancel sheet lives (ConfirmedSection, helper_cancel_booking).
+   */
+  draws: "job_page" | "helpr_working_card";
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -339,6 +344,8 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       get_public_platform_settings: [{ id: "preview", customer_fee_percent: 0, helper_fee_percent: 5, feature_flags: {}, hybrid_idv_enabled: false, idv_auto_approve_threshold: 0, min_supported_build: 0, onboarding_fee_cents: 0 }],
       // null is the RPC's own "not deployed" answer: the caller then makes its older reads, answered from `tables`.
       get_my_activity_cores: null,
+      // The Helpr's Working card asks for the job's pets (JobPetCareSheet); the sample job has none.
+      get_job_pets: [],
     },
     tables: {
       job_guarantee_claims: [],
@@ -354,7 +361,9 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       refund_requests: [],
       ...extraTables,
     },
-    opens: stage === "cancel_sheet" && viewer === "poster" ? "Cancel job" : null,
+    // Both sides' cancel sheets: the poster's on the job page, the Helpr's on their Working card.
+    opens: stage === "cancel_sheet" ? "Cancel job" : null,
+    draws: stage === "cancel_sheet" && viewer === "helpr" ? "helpr_working_card" : "job_page",
     profiles: [
       { id: PREVIEW_POSTER_ID, full_name: "Lexi Landry", avatar_url: null, created_at: "2025-03-14T15:00:00Z" },
       { id: PREVIEW_HELPR_ID, full_name: "Eli Robichaux", avatar_url: null, created_at: "2025-06-02T15:00:00Z" },

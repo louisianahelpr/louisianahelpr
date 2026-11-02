@@ -8,6 +8,7 @@
  * and reads what reached the network (the window fetch underneath the preview): nothing but sign-in traffic may have.
  * It also pins the route behind the same admin gate as /admin, in its own lazy chunk.
  *
+ * @mutate src/pages/admin/preview/jobPreviewSamples.ts |     draws: stage === "cancel_sheet" && viewer === "helpr" ? "helpr_working_card" : "job_page", |     draws: "job_page",
  * @mutate src/pages/admin/preview/previewParts.tsx |       else sayWouldHave(`open ${toText(to)}`); |       else outer.navigator[how](to, state);
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (sheetOpen) return null; |   if (sheetOpen) void 0;
  * @mutate src/pages/admin/preview/JobPreviewPage.tsx |   if (!open) { |   if (open === null) {
@@ -190,6 +191,24 @@ describe("admin job-page preview", () => {
     expect(sheet.textContent ?? "").not.toMatch(/more than 24 hours away/);
     expect([...new Set(unlisted)]).toEqual([]);
     // Nothing of the preview sits over the sheet's buttons (at 375 the dock covered each sheet's second button).
+    await waitFor(() => expect(document.querySelector("[data-preview-controls]")).toBeNull());
+    expect(leaked()).toEqual([]);
+  }, 30000);
+
+  it("b177 open item: the Cancel sheet stage seen by the Helpr opens the Helpr's OWN cancel sheet, on their Working card", async () => {
+    const unlisted: string[] = [];
+    jobPreviewChecks.onUnlisted = (what) => unlisted.push(what);
+    renderPreview("cancel_sheet", "helpr");
+    // ConfirmedSection's BrandConfirmDialog: "Cancel this job?", the strike sentence (the start is about 3 hours away).
+    const sheet = await waitFor(() => {
+      const d = screen.queryAllByRole("alertdialog").concat(screen.queryAllByRole("dialog")).find((x) => /Cancel this job\?/.test(x.textContent ?? ""));
+      expect(d).toBeTruthy();
+      return d as HTMLElement;
+    }, { timeout: 10000 });
+    expect(sheet.textContent ?? "").toMatch(/reopens for other Helprs right away/);
+    expect(sheet.textContent ?? "").toMatch(/counts as a reliability strike/);
+    expect(document.querySelector("[data-preview-working-card]")).not.toBeNull();
+    expect([...new Set(unlisted)]).toEqual([]);
     await waitFor(() => expect(document.querySelector("[data-preview-controls]")).toBeNull());
     expect(leaked()).toEqual([]);
   }, 30000);

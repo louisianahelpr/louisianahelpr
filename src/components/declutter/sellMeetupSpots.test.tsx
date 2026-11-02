@@ -58,6 +58,11 @@ describe("SellMeetupSpots", () => {
     wrap(<SellMeetupSpots />);
     expect(await screen.findByText("Walmart parking lot")).toBeInTheDocument();
     expect(screen.getByText(SPOT.address)).toBeInTheDocument();
+    // Q2570 (audit 1102a): the way is named as its tile names it (Safe meeting spot), never a third name "Meet up".
+    // @mutate src/components/declutter/SellMeetupSpots.tsx | Buyers choosing a safe meeting spot pick one and a time. | Buyers choosing Meet up pick one and a time.
+    const intro = screen.getByTestId("sell-meetup-spots").textContent ?? "";
+    expect(intro).toContain("Buyers choosing a safe meeting spot pick one and a time.");
+    expect(intro).not.toMatch(/Meet up/);
     fireEvent.click(screen.getByRole("button", { name: "Remove Walmart parking lot" }));
     await waitFor(() => expect(h.rpc).toHaveBeenCalledWith("declutter_remove_my_meetup_spot", { p_id: "m1" }));
   });

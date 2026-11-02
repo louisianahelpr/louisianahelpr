@@ -121,10 +121,10 @@ describe("SMS alerts source rules", () => {
     expect(SMS_CONSENT_TEXT_BEFORE_LINKS).not.toMatch(/nearby|near you|new jobs/i);
   });
 
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     ELSIF n.read IS TRUE THEN | ELSIF false THEN
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |     ELSIF n.read IS TRUE THEN | ELSIF false THEN
   // @mutate supabase/migrations/20261021193738_sms_alerts.sql | v_kind, 'pending', now() + interval '3 minutes') | v_kind, 'pending', now())
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     v_urgent := r.kind IN ('job_offer', 'starting_soon'); |     v_urgent := false;
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |       IF v_release > v_now THEN |       IF false THEN
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |     v_urgent := r.kind IN ('job_offer', 'starting_soon'); |     v_urgent := false;
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |       IF v_release > v_now THEN |       IF false THEN
   it("a text waits a few minutes, is dropped if the alert was read, and quiet hours defer it (urgent kinds excepted)", () => {
     // Behaviour is proved in src/test/pglite/smsAlerts.pglite.mjs; these are the rules' anchors.
     const fanOut = newestFunctionBody("sms_fan_out_on_notification").replace(/\s+/g, " ");

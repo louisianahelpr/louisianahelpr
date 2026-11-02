@@ -371,8 +371,9 @@ function isStateToggle({ meta = {}, label = "" }) {
  * test-owned record. src/test/pressGatesEveryAdminWrite.test.ts keeps this
  * vocabulary in step with the admin buttons that write, read from the source.
  * "Bill the Helpr" (J4 Helpr at fault, BillHelprFaultButton) bills a card fee.
+ * "Clear $X" (Q1928, DeclutterAmountsOwed) waives what a member still owes; "Clear search" stays a plain press.
  */
-export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series|set to|bill)\b/i;
+export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series|set to|bill|clear(?! search\b))\b/i;
 /**
  * THE APP SAYS IT IS THE COMMIT (2026-10-17). DialogPrimaryAction inside a
  * confirm (role="alertdialog": every BrandConfirmDialog) and every

@@ -13,9 +13,10 @@ import { render, screen } from "@testing-library/react";
 import { nextStepWords } from "@/components/ui/NextStep";
 import { ApplicantsNextStep, applicantsNextStep } from "./ApplicantsNextStep";
 
-// Sat Nov 16 2030 9:00 AM CST = 15:00Z; the listing closes 14 days later.
-const job = { status: "open", payment_status: "held", date_needed: "2030-11-16", start_time: "09:00:00", expires_at: "2030-11-30T15:00:00Z" };
-const NOW = new Date("2030-11-12T18:00:00Z");
+// Sat Nov 16 2058 9:00 AM CST = 15:00Z; the listing closes 14 days later.
+// Pinned 28 years out (same weekdays and DST days as 2026), so no job day here ages into the present (jobDayFixtureTimezone).
+const job = { status: "open", payment_status: "held", date_needed: "2058-11-16", start_time: "09:00:00", expires_at: "2058-11-30T15:00:00Z" };
+const NOW = new Date("2058-11-12T18:00:00Z");
 const words = (j: Parameters<typeof applicantsNextStep>[0], now = NOW) => {
   const v = applicantsNextStep(j, 2, now);
   return v ? `${nextStepWords(v.step)} | ${v.ifNot ?? ""}` : null;
@@ -27,7 +28,7 @@ describe("A3-45: the Applicants sheet's next step", () => {
   });
 
   it("a close before the start is the pick-by", () => {
-    expect(words({ ...job, expires_at: "2030-11-14T18:00:00Z" })).toBe(
+    expect(words({ ...job, expires_at: "2058-11-14T18:00:00Z" })).toBe(
       "Next: choose a Helpr · by Thu, Nov 14, 12:00 PM | If nobody is hired by Thu, Nov 14, 12:00 PM, the job closes and your card isn't charged.",
     );
   });
@@ -37,8 +38,8 @@ describe("A3-45: the Applicants sheet's next step", () => {
   });
 
   it("past the start, the close is the pick-by; past both, no date", () => {
-    expect(words(job, new Date("2030-11-17T00:00:00Z"))).toMatch(/^Next: choose a Helpr · by Sat, Nov 30, 9:00 AM \|/);
-    expect(words(job, new Date("2030-12-01T00:00:00Z"))).toBe("Next: choose a Helpr | ");
+    expect(words(job, new Date("2058-11-17T00:00:00Z"))).toMatch(/^Next: choose a Helpr · by Sat, Nov 30, 9:00 AM \|/);
+    expect(words(job, new Date("2058-12-01T00:00:00Z"))).toBe("Next: choose a Helpr | ");
   });
 
   it("only a card hold is promised as not charged", () => {

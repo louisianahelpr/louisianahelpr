@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { safeStorage } from "@/lib/safeStorage";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchSectionPrefsRow, saveSectionPrefsRow } from "@/lib/sectionPrefsRow";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { SECTIONS, type SectionKey } from "./sectionsConfig";
 
@@ -99,17 +99,13 @@ function writeLocal(userId: string, prefs: SectionPrefs): void {
 /** Saves the choice to the member's own row. Best-effort: on an error the device copy stays and the next save retries. */
 async function pushToAccount(userId: string, prefs: SectionPrefs): Promise<void> {
   const p = normalizePrefs(prefs);
-  const { error } = await supabase.from("member_section_prefs").upsert(
-    { user_id: userId, section_order: p.order, sections_hidden: p.hidden, updated_at: new Date().toISOString() },
-    { onConflict: "user_id" },
-  );
+  const { error } = await saveSectionPrefsRow(userId, p.order, p.hidden);
   if (error) console.warn(`[sections] saving Customize to the account failed: ${error.message}`);
 }
 
 /** Reads the account's row once: it wins over the device copy; with no row, a device choice is copied up. */
 async function pullFromAccount(userId: string): Promise<void> {
-  const { data, error } = await supabase.from("member_section_prefs")
-    .select("section_order, sections_hidden").eq("user_id", userId).maybeSingle();
+  const { data, error } = await fetchSectionPrefsRow(userId);
   if (error) {
     pulled.delete(userId); // read again next mount; the device copy shows meanwhile
     console.warn(`[sections] reading Customize from the account failed: ${error.message}`);

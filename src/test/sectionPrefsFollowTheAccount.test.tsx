@@ -7,7 +7,7 @@
 // @mutate src/components/sections/useSectionPrefs.ts |       void pushToAccount(userId, next); |       void 0;
 // @mutate src/components/sections/useSectionPrefs.ts |   if (readRaw(userId)) await pushToAccount(userId, read(userId)); |   void 0;
 // @mutate src/components/sections/useSectionPrefs.ts |     pulled.delete(userId); // read again next mount |     // read again next mount
-// @mutate src/components/sections/useSectionPrefs.ts |     { user_id: userId, section_order: p.order, sections_hidden: p.hidden, | { user_id: userId, section_order: p.order, sections_hidden: [],
+// @mutate src/lib/sectionPrefsRow.ts |     { user_id: userId, section_order: order, sections_hidden: hidden, | { user_id: userId, section_order: order, sections_hidden: [],
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 

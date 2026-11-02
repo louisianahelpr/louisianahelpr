@@ -9,6 +9,8 @@ export type NextStepValue = {
   text: string;
   /** The deadline, already in words ("Sat 9:00 AM", "2 days left"); omitted when there is none. */
   by?: string | null;
+  /** The text starts with a person's name ("Lexi offered you this job"): "Next:" keeps its capital (Q2590). */
+  keepCase?: boolean;
 };
 
 /** "confirm it" from "Confirm it": the line reads "Next: confirm it", one sentence. Names stay capitalised. */
@@ -21,7 +23,7 @@ export function lowerFirst(s: string): string {
 
 /** The words the line prints, for a test or a screen reader label. */
 export function nextStepWords(v: NextStepValue): string {
-  const lead = v.who === "you" ? `Next: ${lowerFirst(v.text)}` : v.text;
+  const lead = v.who === "you" ? `Next: ${v.keepCase ? v.text : lowerFirst(v.text)}` : v.text;
   return v.by ? `${lead} · ${v.by}` : lead;
 }
 

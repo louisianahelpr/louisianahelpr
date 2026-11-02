@@ -12,7 +12,8 @@
  *     never to a fixture test seat.
  *
  * @mutate src/components/payouts/PayoutSetupJobNotice.tsx |   if (!on \|\| !profile \|\| payoutAccountReady(profile)) return null; |   if (!profile) return null;
- * @mutate src/pages/jobs/appliedJobCard/HelperMoneyNotices.tsx |   const setupOwed = payoutAfterHire && hired && PAY_HELD.has(job.payment_status ?? "") | const setupOwed = payoutAfterHire && PAY_HELD.has(job.payment_status ?? "")
+ * @mutate src/pages/jobs/appliedJobCard/HelperMoneyNotices.tsx | && payoutAfterHire && hired && PAY_HELD.has(job.payment_status ?? "") | && payoutAfterHire && PAY_HELD.has(job.payment_status ?? "")
+ * @mutate src/pages/jobs/appliedJobCard/HelperMoneyNotices.tsx |   const setupOwed = only !== "problem" && payoutAfterHire |   const setupOwed = payoutAfterHire
  * @mutate src/components/payouts/useHiredPayoutPrompt.ts |       if (profile.is_seed === true && !profile.stripe_account_id) return false; | 
  * @mutate src/components/payouts/useHiredPayoutPrompt.ts |       if (!payoutAfterHireOn()) return false; | 
  * @mutate src/hooks/useStartPayoutSetup.ts |     if (setupPaused \|\| loading) return; |     if (loading) return;
@@ -158,6 +159,15 @@ describe("the job card: Finish payout setup to get paid", () => {
     paidOut.unmount();
     const waiting = render(<HelperMoneyNotices job={{ payment_status: "payout_pending", status: "completed" }} hired amountLabel="$40" />);
     expect(waiting.container.textContent).toContain("Next: finish payout setup");
+  });
+
+  // JOBS2-44 (Jobs audit 10-30): the card draws the problem part above the step and the setup part under it.
+  it("only='problem' never draws the setup note; only='setup' draws it", () => {
+    const top = render(<HelperMoneyNotices job={{ payment_status: "escrow", status: "in_progress" }} hired amountLabel="$40" only="problem" />);
+    expect(top.container.textContent).toBe("");
+    top.unmount();
+    const under = render(<HelperMoneyNotices job={{ payment_status: "escrow", status: "in_progress" }} hired amountLabel="$40" only="setup" />);
+    expect(under.container.textContent).toContain("Next: finish payout setup");
   });
 });
 

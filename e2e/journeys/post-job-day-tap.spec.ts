@@ -165,6 +165,10 @@ test(title, async ({ browser, request, journey }) => {
   const avail = sessionsAvailable();
   test.skip(!avail.ok, avail.why);
   const session = await getSession(request, "poster");
+  // Q2417: the poster account's saved address is its last nightly job's, posted at the parish-less ZIP 99999
+  // (postJobForm fillLogistics), so choosing it on When and where fires parishLookup's deliberate warning in
+  // the contexts this spec opens. Journey-wide, like fillLogistics's own allowance.
+  journey.allowReport(/ZIP 99999 resolved to no Louisiana parish/, "deliberate: the poster's saved address is the nightly parish-less ZIP 99999");
   const phone = await openWhenAndWhere(browser, session, false);
   const page = journey.track("poster", phone.page);
   let tapped = 0;

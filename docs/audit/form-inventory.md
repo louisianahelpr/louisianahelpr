@@ -493,6 +493,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/BlockUserDialog.tsx` | textarea×1 |  |  | Block reason (optional, admin-only) |
+| `src/components/BlockUserDialog.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Block reason (optional, admin-only) |
 | `src/components/ReportDialog.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | Start with when it happened… |
 

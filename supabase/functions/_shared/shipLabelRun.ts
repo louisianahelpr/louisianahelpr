@@ -5,7 +5,7 @@
  */
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { easypostKeyName } from "./easypostRates.ts";
-import { nextAttemptDelayMs, runShipLabel, type ClaimedShipment, type LabelOutcome, type ShipOrder } from "./shipLabelWorker.ts";
+import { nextAttemptDelayMs, reconcileShipCapture, runShipLabel, type ClaimedShipment, type LabelOutcome, type ReconcileOutcome, type ShipOrder } from "./shipLabelWorker.ts";
 import { postSlackOpsAlert } from "./slack-alerts.ts";
 import { caughtMessage } from "./caughtMessage.ts";
 
@@ -14,19 +14,120 @@ type Db = any;
 const EASYPOST = "https://api.easypost.com/v2/shipments";
 const TIMEOUT_MS = 20_000;
 
-export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, record: (defect: string) => void): Promise<Partial<Record<LabelOutcome, number>>> {
-  const counts: Partial<Record<LabelOutcome, number>> = {};
+/** The capture port, shared by the label worker and the crash reconcile (same amount, same per-order key). */
+function captureWith(testStripe: Stripe) {
+  return async (pi: string, orderId: string, amountCents: number): Promise<"captured" | "hold_lost"> => {
+    try {
+      // amount_to_capture: a setup fee the account already paid elsewhere stays on the card (released with the
+      // rest of the hold), never captured then refunded. The same amount on every retry (the RPC's answer is
+      // stable), so the per-order idempotency key never sees different parameters.
+      const r = await testStripe.paymentIntents.capture(pi, { amount_to_capture: amountCents },
+        { idempotencyKey: `declutter-ship-capture-${orderId}` });
+      return r.status === "succeeded" ? "captured" : "hold_lost";
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      // The hold is gone (expired or cancelled): nothing can be taken. Anything else is thrown and retried.
+      if (code === "payment_intent_unexpected_state") return "hold_lost";
+      throw e;
+    }
+  };
+}
+
+/** declutter_ship_setup_fee_at_capture: the cents to capture. */
+function captureAmountWith(admin: Db) {
+  return async (orderId: string): Promise<number> => {
+    const { data, error: e } = await admin.rpc("declutter_ship_setup_fee_at_capture", { p_order_id: orderId });
+    if (e) throw new Error(`capture amount failed: ${e.message}`);
+    if (!Number.isInteger(data) || (data as number) <= 0) throw new Error(`capture amount unreadable: ${String(data)}`);
+    return data as number;
+  };
+}
+
+/** held -> captured | released, compare-and-set on 'held'. */
+function setCaptureWith(admin: Db) {
+  return async (orderId: string, st: "captured" | "released"): Promise<void> => {
+    const { error: e } = await admin.from("declutter_orders").update({ ship_capture: st })
+      .eq("id", orderId).eq("ship_capture", "held").select("id");
+    if (e) throw new Error(`order capture state failed: ${e.message}`);
+  };
+}
+
+function pageWith(shipmentId: string, labelMode: string) {
+  return (title: string, message: string, fields: Record<string, string>) => postSlackOpsAlert({
+    kind: "money_at_risk", severity: "warning", title, message, fields, oncePerDayKey: `ship-label-${shipmentId}-${title}`,
+    // A test-mode label (the worker never touches a live one yet) is test data: digest only, never a page.
+    seed: labelMode === "test",
+  }).then(() => undefined);
+}
+
+export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, record: (defect: string) => void): Promise<Partial<Record<LabelOutcome | ReconcileOutcome, number>>> {
+  const counts: Partial<Record<LabelOutcome | ReconcileOutcome, number>> = {};
+  await runClaimedLabels(admin, testStripeOf, record, counts);
+  await reconcileCaptures(admin, testStripeOf, record, counts);
+  return counts;
+}
+
+/**
+ * The crash reconcile (reconcileShipCapture): paid ship orders still 'held' whose shipment is already 'bought'. At most
+ * 10 a run. Runs after the label pass in the same declutter-money call, so a label this run bought and captured is
+ * already 'captured' and is not read here.
+ */
+async function reconcileCaptures(admin: Db, testStripeOf: () => Stripe, record: (defect: string) => void,
+  counts: Partial<Record<LabelOutcome | ReconcileOutcome, number>>): Promise<void> {
+  const { data: orders, error } = await admin.from("declutter_orders")
+    .select("id, status, ship_capture, stripe_payment_intent_id")
+    .eq("status", "paid").eq("handover", "ship").eq("ship_capture", "held").limit(50);
+  if (error) {
+    if (error.code === "42P01" || error.code === "42703") return;
+    record(`ship capture reconcile: held orders read failed: ${error.message}`);
+    return;
+  }
+  if (!orders || orders.length === 0) return;
+  const byId = new Map((orders as (ShipOrder & { id: string })[]).map((o) => [o.id, o]));
+  const { data: rows, error: sErr } = await admin.from("shipments")
+    .select("id, declutter_order_id, label_mode, provider_shipment_id")
+    .eq("label_state", "bought").in("declutter_order_id", [...byId.keys()]).limit(10);
+  if (sErr) {
+    record(`ship capture reconcile: bought read failed: ${sErr.message}`);
+    return;
+  }
+  if (!rows || rows.length === 0) return;
+  let testStripe: Stripe;
+  try {
+    testStripe = testStripeOf();
+  } catch (e) {
+    record(`ship capture reconcile: no test-mode Stripe client: ${caughtMessage(e)}`);
+    return;
+  }
+  for (const s of rows as Pick<ClaimedShipment, "id" | "declutter_order_id" | "label_mode" | "provider_shipment_id">[]) {
+    try {
+      const outcome = await reconcileShipCapture(s, byId.get(s.declutter_order_id) ?? null, {
+        intentStatus: async (pi) => (await testStripe.paymentIntents.retrieve(pi)).status,
+        captureAmount: captureAmountWith(admin),
+        capture: captureWith(testStripe),
+        setCapture: setCaptureWith(admin),
+        page: pageWith(s.id, s.label_mode),
+      });
+      counts[outcome] = (counts[outcome] ?? 0) + 1;
+    } catch (e) {
+      record(`ship capture reconcile ${s.id}: ${caughtMessage(e)}`.slice(0, 200));
+    }
+  }
+}
+
+async function runClaimedLabels(admin: Db, testStripeOf: () => Stripe, record: (defect: string) => void,
+  counts: Partial<Record<LabelOutcome | ReconcileOutcome, number>>): Promise<void> {
   const { data: rows, error } = await admin.from("shipments")
     .select("id, declutter_order_id, label_mode, provider_shipment_id, provider_rate_id, quoted_cents, attempts")
     .eq("label_state", "claimed").not("declutter_order_id", "is", null).lte("next_attempt_at", new Date().toISOString())
     .order("next_attempt_at").limit(10);
   if (error) {
     // 42P01 / 42703: the shipping migrations are not on this database yet; nothing to do.
-    if (error.code === "42P01" || error.code === "42703") return counts;
+    if (error.code === "42P01" || error.code === "42703") return;
     record(`ship labels: claimed read failed: ${error.message}`);
-    return counts;
+    return;
   }
-  if (!rows || rows.length === 0) return counts;
+  if (!rows || rows.length === 0) return;
   const key = Deno.env.get(easypostKeyName("test"));
   // Made only when a label is due, so a missing test key never stops the rest of the money run.
   let testStripe: Stripe;
@@ -34,7 +135,7 @@ export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, recor
     testStripe = testStripeOf();
   } catch (e) {
     record(`ship labels: no test-mode Stripe client: ${caughtMessage(e)}`);
-    return counts;
+    return;
   }
   for (const s of (rows ?? []) as ClaimedShipment[]) {
     if (!key) {
@@ -86,51 +187,23 @@ export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, recor
           }).eq("id", id).eq("label_state", "claimed").select("id");
           if (e) throw new Error(`label retry record failed: ${e.message}`);
         },
-        captureAmount: async (orderId) => {
-          const { data, error: e } = await admin.rpc("declutter_ship_setup_fee_at_capture", { p_order_id: orderId });
-          if (e) throw new Error(`capture amount failed: ${e.message}`);
-          if (!Number.isInteger(data) || (data as number) <= 0) throw new Error(`capture amount unreadable: ${String(data)}`);
-          return data as number;
-        },
-        capture: async (pi, orderId, amountCents) => {
-          try {
-            // amount_to_capture: a setup fee the account already paid elsewhere stays on the card (released with the
-            // rest of the hold), never captured then refunded. The same amount on every retry (the RPC's answer is
-            // stable), so the per-order idempotency key never sees different parameters.
-            const r = await testStripe.paymentIntents.capture(pi, { amount_to_capture: amountCents },
-              { idempotencyKey: `declutter-ship-capture-${orderId}` });
-            return r.status === "succeeded" ? "captured" : "hold_lost";
-          } catch (e) {
-            const code = (e as { code?: string }).code;
-            // The hold is gone (expired or cancelled): nothing can be taken. Anything else is thrown and retried.
-            if (code === "payment_intent_unexpected_state") return "hold_lost";
-            throw e;
-          }
-        },
+        captureAmount: captureAmountWith(admin),
+        capture: captureWith(testStripe),
         release: async (pi) => {
           const cur = await testStripe.paymentIntents.retrieve(pi);
           if (cur.status === "requires_capture") await testStripe.paymentIntents.cancel(pi);
         },
-        setCapture: async (orderId, st) => {
-          const { error: e } = await admin.from("declutter_orders").update({ ship_capture: st })
-            .eq("id", orderId).eq("ship_capture", "held").select("id");
-          if (e) throw new Error(`order capture state failed: ${e.message}`);
-        },
+        setCapture: setCaptureWith(admin),
         closeReleased: async (orderId) => {
           const { data, error: e } = await admin.rpc("declutter_ship_hold_released", { p_order_id: orderId });
           if (e) throw new Error(`closing the released order failed: ${e.message}`);
           return String(data);
         },
-        page: (title, message, fields) => postSlackOpsAlert({
-          kind: "money_at_risk", severity: "warning", title, message, fields, oncePerDayKey: `ship-label-${s.id}-${title}`,
-          // A test-mode label (the worker never touches a live one yet) is test data: digest only, never a page.
-          seed: s.label_mode === "test",
-        }).then(() => undefined),
+        page: pageWith(s.id, s.label_mode),
       });
       counts[outcome] = (counts[outcome] ?? 0) + 1;
     } catch (e) {
       record(`ship label ${s.id}: ${caughtMessage(e)}`.slice(0, 200));
     }
   }
-  return counts;
 }

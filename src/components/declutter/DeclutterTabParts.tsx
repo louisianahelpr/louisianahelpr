@@ -6,6 +6,7 @@
  * component size threshold; DeclutterTradeViews re-exports all three.
  */
 import { useState, type ReactNode } from "react";
+import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { useQuery } from "@tanstack/react-query";
 import { HandCoins, PackageCheck, type LucideIcon } from "lucide-react";
 import { fetchMyCart } from "@/lib/declutter/api";
@@ -56,6 +57,9 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   const todo = declutterTodo(lines, []);
   const [showDone, setShowDone] = useState(false);
   const linked = useLinkedOrder(); // BUY-30: the order a notice opened is never folded away or hidden by a chip
+  // A3-78: a finished sale still waiting on the seller (a refund request to answer, the item back to confirm) is never
+  // folded away: the seller's one deadline on the tab stays in the list.
+  const awaiting = useSellerReportsToAnswer();
   // CartView / SalesWaiting on the same tab show this read's loading and error.
   if (!cart.data) return null;
   // Buying's tracker says "Nothing bought yet." once for the whole tab, and a chip shows only its own orders.
@@ -80,7 +84,7 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   const sellerTitle = sold.every((l) => l.price_cents === 0) ? "Given away: pickup" : "Sold: pickup and payout";
   // NIGHT-SELL-soldstates-2: Selling's finished sales (handed over, refunded) fold under one button, as Buying folds
   // Done, so the sales still to hand over are the list. A chip's own `show` (To answer's reports) is never folded.
-  const done = new Set(side === "seller" && !show ? sold.filter((l) => l.order_status === "handed_over" || l.order_status === "refunded").map((l) => l.order_id as string) : []);
+  const done = new Set(side === "seller" && !show ? sold.filter((l) => (l.order_status === "handed_over" || l.order_status === "refunded") && !awaiting.has(l.order_id as string)).map((l) => l.order_id as string) : []);
   const allDone = done.size > 0 && sold.every((l) => done.has(l.order_id as string));
   const doneToggle = done.size > 0 && (
     <button type="button" className="text-sm font-medium underline underline-offset-2" aria-expanded={showDone} onClick={() => setShowDone((v) => !v)} data-done-sales-toggle="">

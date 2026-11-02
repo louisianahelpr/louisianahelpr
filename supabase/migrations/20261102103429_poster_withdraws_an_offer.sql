@@ -133,7 +133,7 @@ BEGIN
     INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
     VALUES (v_helpr,
             'Offer withdrawn',
-            COALESCE(v_poster, 'The poster') || ' withdrew the offer for "' || COALESCE(v_job.title, 'a job')
+            COALESCE(v_poster, 'The person who posted it') || ' withdrew the offer for "' || COALESCE(v_job.title, 'a job')
               || '". Nothing is owed and no strike.',
             'job_updates',
             '/jobs?job=' || p_job_id::text,

@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 219 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1085 (across 303 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1092 (across 305 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 44 |
 | Multi-step flows — probable | flow | 33 |
-| Back/next navigation only | flow | 60 |
-| Forms (submittable) | form | 95 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 176 |
+| Back/next navigation only | flow | 63 |
+| Forms (submittable) | form | 97 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 177 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **746** |
-| **Copy surfaces** (strings a person may read) | mixed | **1134** |
-| **Total auditable surface** | mixed | **1880** |
+| **Navigable surfaces** (places a person can stand) | mixed | **752** |
+| **Copy surfaces** (strings a person may read) | mixed | **1141** |
+| **Total auditable surface** | mixed | **1893** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 27 | 24 | agree |
 | Overlay surfaces | 219 | 130 | agree within method (script counts every menu instance) |
-| Forms | 95 | ~38 | agree |
+| Forms | 97 | ~38 | agree |
 | Confirmed multi-step flows | 44 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -538,10 +538,13 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/profile/SupportInline.tsx` | nav-handler |
 | `src/components/profile/WarningsTab.tsx` | nav-handler |
 | `src/components/ProfileRouteSkeleton.tsx` | nav-handler |
+| `src/components/series/JobSeriesCardControls.tsx` | nav-handler |
+| `src/components/series/SeriesDatesPanel.tsx` | nav-handler |
 | `src/hooks/useDeleteAccount.ts` | nav-handler |
 | `src/lib/declutter/route.ts` | nav-handler |
 | `src/pages/admin/AdminFrame.tsx` | nav-handler |
 | `src/pages/info/Legal.tsx` | nav-handler |
+| `src/pages/jobs/jobPage/HiredSeriesSection.tsx` | nav-handler |
 | `src/pages/post-job/CheckoutStepView.tsx` | nav-handler |
 | `src/pages/post-job/EntryChoice.tsx` | nav-handler |
 | `src/pages/post-job/FormStep.tsx` | nav-handler |
@@ -586,6 +589,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/AdminUserNotes.tsx` (dialog/mutation)
 - [ ] `src/components/admin/RestrictApplicationsDialog.tsx` (dialog/mutation)
 - [ ] `src/components/admin/settings/DeclutterReviewCard.tsx` (dialog/mutation)
+- [ ] `src/components/admin/userDetail/DeclutterAmountsOwed.tsx` (dialog/mutation)
 - [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterEditListing.tsx` (form tag)
@@ -606,6 +610,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/declutter/SellMeetupSpots.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/SellPorchDays.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/SellPorchPlaces.tsx` (dialog/mutation)
+- [ ] `src/components/declutter/ShipToMe.tsx` (dialog/mutation)
 - [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)
 - [ ] `src/components/EarningsExport.tsx` (dialog/mutation)
 - [ ] `src/components/guarantee/HelprGuaranteePanel.tsx` (dialog/mutation)

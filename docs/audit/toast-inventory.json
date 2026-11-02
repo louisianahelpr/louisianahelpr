@@ -10229,7 +10229,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 185,
+      "line": 187,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10239,7 +10239,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 186,
+      "line": 188,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -10249,7 +10249,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 190,
+      "line": 192,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10259,7 +10259,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 196,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10269,7 +10269,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 201,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10279,7 +10279,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 207,
+      "line": 209,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10289,7 +10289,7 @@
     },
     {
       "file": "src/components/shops/ShopEditView.tsx",
-      "line": 211,
+      "line": 213,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10679,7 +10679,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 67,
+      "line": 69,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10689,7 +10689,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 72,
+      "line": 74,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10709,7 +10709,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 75,
+      "line": 77,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10719,7 +10719,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 166,
+      "line": 168,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

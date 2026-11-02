@@ -11,7 +11,7 @@
  *    the page draws as the live app does. Never a write, never a job.
  * Guard: src/test/adminJobPreviewIsInert.test.tsx.
  */
-import type { PreviewSample } from "./jobPreviewSamples";
+import { SERIES_VISITS_KEY, type PreviewSample } from "./jobPreviewSamples";
 
 /** Tests set this to fail on a read the sample does not answer (audit 1102b; the Declutter preview's pattern, B172). */
 export const jobPreviewChecks: { onUnlisted?: (what: string) => void } = {};
@@ -75,7 +75,7 @@ function eqFilter(url: URL, column: string): string | null {
 
 function tableRows(table: string, url: URL, s: PreviewSample): unknown[] | undefined {
   // A series' visits (seriesDates.ts reads jobs by parent_job_id): their own rows, never the job itself.
-  if (table === "jobs" && url.searchParams.has("parent_job_id")) return s.tables["jobs?parent_job_id"];
+  if (table === "jobs" && url.searchParams.has("parent_job_id")) return s.tables[SERIES_VISITS_KEY];
   if (Object.prototype.hasOwnProperty.call(s.tables, table)) return s.tables[table];
   const job = { ...s.job };
   switch (table) {

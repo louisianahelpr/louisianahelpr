@@ -255,6 +255,18 @@
       "destination": "/index.html"
     },
     {
+      "source": "/admin/preview/declutter",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/preview/job",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/admin/preview/messages",
+      "destination": "/index.html"
+    },
+    {
       "source": "/messages",
       "destination": "/index.html"
     },

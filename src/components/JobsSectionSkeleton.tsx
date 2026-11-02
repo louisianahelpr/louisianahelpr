@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { SectionAddButton } from "@/components/sections/AppTopBar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
 import { ActivityCardSkeleton, DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
@@ -54,13 +55,20 @@ function JobsHeaderBones() {
   );
 }
 
-/** The four status boxes (StatusBoxes: border + py-2.5 + 24px count + 2px + 16px label = 64px). */
+/**
+ * The status chips' row (StatusBoxes in embeddedActivity: one row of 44px chips in JOBS_TOOLBAR_ROW, 46px with the
+ * scroller's 2px). Q1695: it drew the old four 64px status tiles, 18px taller than the chip row that replaced them;
+ * the loading-states refresh of 2026-11-02 01:07Z measured /posts row 623 -> 641 (+18px) on both test accounts.
+ * The bones are chip-sized: "All" and three bucket chips, the scroller's left inset and the row's own height.
+ */
 function StatusBoxBones() {
   return (
-    <div className="grid gap-2 grid-cols-4" aria-hidden>
-      {[0, 1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-16 rounded-2xl" />
-      ))}
+    <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW} aria-hidden>
+      <div className="min-w-0 flex-1 flex gap-2 overflow-hidden pl-1 pb-0.5">
+        {["w-14", "w-28", "w-24", "w-28"].map((w, i) => (
+          <Skeleton key={i} data-status-chip-bone="" className={`h-11 ${w} shrink-0 rounded-full`} />
+        ))}
+      </div>
     </div>
   );
 }

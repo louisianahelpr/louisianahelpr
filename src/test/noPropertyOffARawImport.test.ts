@@ -10,7 +10,7 @@
  * Found and fixed with it: AdminReports in the same file, BoughtWhatNext's seller-delivery booking, celebrate.ts's
  * confetti and bunchSaved's item statuses.
  *
- * @mutate src/components/admin/adminRailBadges.ts |     queryFn: () => loadModule(() => import("@/components/admin/AdminSupport")).then((m) => (m ? m.fetchSupportTickets("pending") : untilReload())), |     queryFn: async () => (await import("@/components/admin/AdminSupport")).fetchSupportTickets("pending"),
+ * @mutate src/components/admin/adminRailBadges.ts |     queryFn: () => loadModule(() => import("@/components/admin/AdminSupport").then((m) => m?.fetchSupportTickets)).then((fetch) => (fetch ? fetch("pending") : untilReload())), |     queryFn: async () => (await import("@/components/admin/AdminSupport")).fetchSupportTickets("pending"),
  * @mutate src/lib/celebrate.ts |   const confetti = m.default; |   const confetti = (await import("canvas-confetti")).default;
  */
 import { describe, expect, it } from "vitest";

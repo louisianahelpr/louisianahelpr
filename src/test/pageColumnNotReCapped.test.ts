@@ -25,9 +25,9 @@ const RECAP = /className="[^"]*\bmax-w-(?:xl|[2-7]xl)\b[^"]*\bmx-auto\b[^"]*"|cl
 // The three admin stage previews' controls (11-02): a fixed panel floating over the real page, not its column.
 const EXEMPT = new Set([
   "posts/BulkDismissBar.tsx:34",
-  "admin/preview/DeclutterPreviewPage.tsx:168",
-  "admin/preview/JobPreviewPage.tsx:165",
-  "admin/preview/MessagesPreviewPage.tsx:137",
+  "admin/preview/DeclutterPreviewPage.tsx:141",
+  "admin/preview/JobPreviewPage.tsx:173",
+  "admin/preview/MessagesPreviewPage.tsx:141",
 ]);
 
 function walk(dir: string): string[] {

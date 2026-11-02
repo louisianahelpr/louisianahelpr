@@ -50,7 +50,9 @@ const DELIVER_WORDS_ON_SETTINGS = "You bring it to the buyer for your delivery p
 export function SellWayTiles({ shown, ways, setWays, fixed = false, onSettingsPage = false }: { shown: SellerHandover[]; ways: SellerHandover[]; setWays: (w: SellerHandover[]) => void; fixed?: boolean; onSettingsPage?: boolean }) {
   const toggle = (w: SellerHandover, on: boolean) => setWays(on ? [...new Set([...ways, w])] : ways.filter((x) => x !== w));
   return (
-    <ul className="grid gap-2 lg:grid-cols-2">
+    // Q2582 (audit 1102a): three tiles in two columns left "Safe meeting spot" alone beside an empty half; two
+    // columns only when the tiles pair up.
+    <ul className={shown.length % 2 === 0 ? "grid gap-2 lg:grid-cols-2" : "grid gap-2"} data-way-tiles="">
       {shown.map((w) => {
         const c = HANDOVER_CHOICE[w];
         const on = fixed ? true : ways.includes(w);

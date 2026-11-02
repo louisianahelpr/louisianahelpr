@@ -29,6 +29,8 @@ export interface MineFaceAction {
   step?: string;
   /** A waiting card's quiet second control, drawn as a small text link ("Manage job"). */
   also?: { label: string; onClick: () => void };
+  /** A visible text button under the button: the step's other answer (A3-8: "Something's not right" under Approve). */
+  under?: { label: string; onClick: () => void };
   disabled?: boolean;
   /** Why a greyed button is greyed, on the line under it (the 30-minute wait on Mark it done). */
   note?: string;
@@ -231,6 +233,19 @@ export function MineJobFace({
         </Button>
       )}
       <MineFaceNote note={action?.note} className="order-3 mt-1 md:order-none md:basis-full md:mt-0 md:text-right" />
+      {action?.under && (
+        <button
+          type="button"
+          data-mine-face-under-action=""
+          className="link-standard order-3 mt-1 min-h-11 w-full text-center text-ds-14 font-semibold text-primary md:order-none md:basis-full md:mt-0 md:text-right"
+          onClick={(e) => {
+            e.stopPropagation();
+            action.under?.onClick();
+          }}
+        >
+          {action.under.label}
+        </button>
+      )}
       {/* The tracker under the face, above the button on phone (order); from 768px a full-width row of its own under face + button, so the
           eight full step names fit beside the rail. */}
       {/* A2-L19 (2026-10-29): no bar for a cancelled (or refunded) card. Its "cancelled" tone is eight empty grey

@@ -5,8 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PetPicker } from "@/components/postjob/PetPicker";
-import { Switch } from "@/components/ui/switch";
-import { MapPin, Minus, Plus, Shield, Users, Wrench, Zap } from "lucide-react";
+import { MapPin, Minus, Plus, Shield, Users, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AddressBlock } from "@/components/postjob/AddressBlock";
 import { RecurringSchedulePicker } from "@/components/postjob/RecurringSchedulePicker";
@@ -25,6 +24,7 @@ import { SegmentedControl, type SegmentedOption } from "@/components/ui/Segmente
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 import { SCHEDULE_TOO_SOON_COPY, TODAY_CLOSED_COPY } from "@/lib/jobScheduleCopy";
 import { useSameDayPick } from "@/components/postjob/useSameDayPick";
+import { MaterialsToggle } from "@/components/postjob/MaterialsToggle";
 
 /**
  * Repeats is ON as of 2026-08-23 (owner approved).
@@ -578,52 +578,8 @@ export function LogisticsSection({
         <Textarea id="requirements" value={specialRequirements} onChange={(e) => setSpecialRequirements(e.target.value)} placeholder="Gate codes, where to park, which door, pets on site… (optional)" rows={2} maxLength={500} autoCapitalize="sentences" />
       </div>
 
-      {/* "I'll provide materials" — only shows for the categories where
-          this is a meaningful poster signal (paint, repair, assembly,
-          yard, cleaning). When on, a freeform note appears so the
-          poster can list paint colors, parts numbers, supplies, etc.
-          Q1461: the note is stored on its own (jobs.materials_note) and
-          shown to everyone viewing the job; the Access & Parking notes
-          above go to job_access_notes, which only the booked Helpr sees. */}
       {materialsToggleRelevant && setIncludeMaterials && (
-        <div
-          className={`rounded-ds-md border p-4 space-y-3 ${
-            includeMaterials ? "border-primary/30 bg-primary/5" : "border-border"
-          }`}
-        >
-          <div className="flex items-center justify-between gap-3">
-            <label htmlFor="include-materials" className="flex items-center gap-2 cursor-pointer">
-              <Wrench className="w-4 h-4 text-primary" />
-              <span className="text-ds-13 font-semibold text-foreground">
-                I'll provide materials
-              </span>
-            </label>
-            <Switch
-              id="include-materials"
-              checked={!!includeMaterials}
-              onCheckedChange={setIncludeMaterials}
-            />
-          </div>
-          {includeMaterials && setMaterialsNote && (
-            <div className="space-y-2">
-              <Label htmlFor="materials-note" className="text-ds-11">
-                Materials I'll provide
-              </Label>
-              <Textarea
-                id="materials-note"
-                value={materialsNote ?? ""}
-                onChange={(e) => setMaterialsNote(e.target.value)}
-                placeholder="e.g. 1 gallon of Sherwin-Williams 'Cotton White', rollers, drop cloth — everything is staged by the door."
-                rows={2}
-                maxLength={500}
-                autoCapitalize="sentences"
-              />
-              <p className="text-ds-11 text-muted-foreground">
-                Listed on the job so applicants know what they don't need to bring.
-              </p>
-            </div>
-          )}
-        </div>
+        <MaterialsToggle includeMaterials={includeMaterials} setIncludeMaterials={setIncludeMaterials} materialsNote={materialsNote} setMaterialsNote={setMaterialsNote} />
       )}
 
     </SectionCard>

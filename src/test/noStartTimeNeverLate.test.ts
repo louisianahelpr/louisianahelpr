@@ -14,7 +14,7 @@
  * @mutate src/components/job-card/collapsedClocks.ts |   if (job.helper_on_the_way_at) return []; |   if (false) return [];
  * @mutate src/components/job-card/collapsedClocks.ts |   if (!job.start_time && Date.now() >= jobDayStart(job.date_needed).getTime()) return []; |   if (false) return [];
  * @mutate src/components/job-card/jobStatusLine.ts | id === "today" && app.job?.is_group_job === true ? CREW_TODAY_LINE : | false ? CREW_TODAY_LINE :
- * @mutate src/lib/anyTimeThatDay.ts | export const ANY_TIME_FACE_FROM = "08:00"; | export const ANY_TIME_FACE_FROM = "00:00";
+ * @mutate src/lib/anyTimeThatDay.ts | const ANY_TIME_FACE_FROM = "08:00"; | const ANY_TIME_FACE_FROM = "00:00";
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";

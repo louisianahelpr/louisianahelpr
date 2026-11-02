@@ -154,6 +154,6 @@ describe("the bell's feed is bound for every signed-in user, no bell required (Q
     expect(firstReturn).toBeGreaterThan(-1);
     expect(nav.indexOf("useNavUnreadCount(user)")).toBeLessThan(firstReturn);
     const app = read("src/App.tsx");
-    expect(app.indexOf("<MobileNav />")).toBeGreaterThan(app.indexOf("<RoutedBoundary />"));
+    expect(app.indexOf("<MobileNav />")).toBeGreaterThan(app.indexOf("<RoutedBoundary>"));
   });
 });

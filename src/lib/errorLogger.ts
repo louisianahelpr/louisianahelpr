@@ -16,7 +16,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
 import { onModuleUnavailable } from "@/lib/loadModule";
 import { isAutomatedBrowser } from "@/lib/automatedBrowser";
-import { announcePermissionDenied } from "@/lib/permissionDenied";
+import { announcePermissionDenied, isSessionLossNoise } from "@/lib/permissionDenied";
 import { redactInviteToken } from "@/lib/redactInviteToken";
 
 // ── Tunables ─────────────────────────────────────────────────────────
@@ -362,6 +362,9 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   // A 42501 is what an out-of-date bundle gets for a withheld column: send the
   // user down the update path (src/lib/permissionDenied.ts), then log as usual.
   announcePermissionDenied(err);
+  // Q1596: a denial after a confirmed session loss is that loss, which
+  // ProtectedRoute already reported once; not queued, not sent to Sentry.
+  if (isSessionLossNoise(err)) return;
   const isError = err instanceof Error;
   const rawMessage = describeUnknownError(err);
   const rawStack = isError ? err.stack : null;

@@ -6,7 +6,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { report } from "@/lib/errorLogger";
 import { confirmSessionLost } from "@/lib/sessionLoss";
 import { authDiagnostics } from "@/lib/authDiagnostics";
-import { PERMISSION_DENIED_EVENT } from "@/lib/permissionDenied";
+import { PERMISSION_DENIED_EVENT, markSessionLost } from "@/lib/permissionDenied";
 import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
 import { hasPreload } from "@/lib/lazyWithPreload";
@@ -210,6 +210,9 @@ const ProtectedRoute = ({
       void confirmSessionLost().then((lost) => {
         if (cancelled || fired || !lost) return;
         fired = true;
+        // Q1596: the denials still in flight from this screen are this loss;
+        // report() stops logging them from here (src/lib/permissionDenied.ts).
+        markSessionLost();
         report(new Error("Session lost on a signed-in screen"), {
           severity: "warning",
           tags: { source: "ProtectedRoute.sessionLost", screen: location.pathname },

@@ -17,6 +17,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { report, _describeUnknownError } from "./errorLogger";
 import { unwrap } from "./supabaseResult";
+import { releaseHeldDenials } from "./permissionDenied";
 
 const fetchSpy = vi.hoisted(() => vi.fn(async (_url: string, _init: RequestInit) => new Response(null, { status: 201 })));
 vi.stubGlobal("fetch", fetchSpy);
@@ -38,6 +39,8 @@ describe("Q1195: an unwrap()'d Supabase error keeps its PostgREST fields in erro
     Object.defineProperty(window, "location", { value: new URL("https://www.louisianahelpr.com/home"), writable: true });
     fetchSpy.mockClear();
     report(unwrapped("permission denied for table jobs"), { tags: { source: "query" } });
+    // Q2295: a grant denial is held until the session-loss check answers; send it now.
+    releaseHeldDenials();
     await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled(), { timeout: 3000 });
     const row = JSON.parse(String(fetchSpy.mock.calls[0][1].body))[0] as { message: string };
     expect(row.message).toContain("code=42501");

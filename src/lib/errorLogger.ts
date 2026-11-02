@@ -16,7 +16,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
 import { onModuleUnavailable } from "@/lib/loadModule";
 import { isAutomatedBrowser } from "@/lib/automatedBrowser";
-import { announcePermissionDenied, isSessionLossNoise } from "@/lib/permissionDenied";
+import { announcePermissionDenied, holdDenial, isPermissionDenied, isSessionLossNoise, releaseHeldDenials } from "@/lib/permissionDenied";
 import { redactInviteToken } from "@/lib/redactInviteToken";
 
 // ── Tunables ─────────────────────────────────────────────────────────
@@ -365,6 +365,16 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   // Q1596: a denial after a confirmed session loss is that loss, which
   // ProtectedRoute already reported once; not queued, not sent to Sentry.
   if (isSessionLossNoise(err)) return;
+  // Q2295: a grant denial waits for the session-loss check (or DENIAL_HOLD_MS,
+  // or pagehide) before it is logged; a confirmed loss drops it.
+  if (isPermissionDenied(err)) {
+    holdDenial(() => reportNow(err, opts));
+    return;
+  }
+  reportNow(err, opts);
+}
+
+function reportNow(err: unknown, opts: ReportOptions) {
   const isError = err instanceof Error;
   const rawMessage = describeUnknownError(err);
   const rawStack = isError ? err.stack : null;
@@ -440,6 +450,14 @@ export function installGlobalErrorHandlers() {
         colno: event.colno,
       },
     });
+  });
+
+  // Q2295: a page going away (a stale-bundle reload, a tab closed) sends the
+  // denials still held, so a real denial is never lost to the hold. After a
+  // confirmed session loss they were already dropped (markSessionLost).
+  window.addEventListener("pagehide", () => {
+    releaseHeldDenials();
+    if (queue.length > 0) void flush();
   });
 
   window.addEventListener("unhandledrejection", (event) => {

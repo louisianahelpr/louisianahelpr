@@ -28,7 +28,7 @@ vi.mock("@/lib/sentry", () => ({ captureException: sentrySpy }));
 vi.mock("@/lib/posthog", () => ({ captureException: vi.fn() }));
 
 import { report } from "./errorLogger";
-import { clearSessionLost, markSessionLost, PERMISSION_DENIED_EVENT } from "./permissionDenied";
+import { clearSessionLost, markSessionLost, PERMISSION_DENIED_EVENT, releaseHeldDenials } from "./permissionDenied";
 
 const denied = (table: string) => ({ message: `permission denied for table ${table}`, code: "42501", details: null, hint: null });
 
@@ -52,6 +52,8 @@ afterEach(() => clearSessionLost());
 describe("Q1596: denials after a confirmed session loss are not reported again", () => {
   it("a denial with a live session (no loss marked) still reports to error_logs and Sentry", async () => {
     report(denied("jobs"), { tags: { source: "query" } });
+    // Q2295: held until the session-loss check answers "not lost".
+    releaseHeldDenials();
     const msgs = await loggedMessages();
     expect(msgs.some((m) => m.startsWith("permission denied for table jobs"))).toBe(true);
     const sentMessages = sentrySpy.mock.calls.map((c) => String((c[0] as { message?: unknown })?.message ?? ""));
@@ -65,6 +67,8 @@ describe("Q1596: denials after a confirmed session loss are not reported again",
     report(denied("applications"), { tags: { source: "query" } });
     report({ message: "permission denied for function get_job_offer_targets", code: "42501" }, { tags: { source: "query" } });
     report(new Error("Cannot read properties of undefined"), { tags: { source: "window.onerror" } });
+    // Q2295: nothing may be sitting in the hold either (the window ending would send it).
+    releaseHeldDenials();
     const msgs = await loggedMessages();
     expect(msgs.filter((m) => /permission denied/.test(m))).toEqual([]);
     expect(msgs).toContain("Session lost on a signed-in screen");
@@ -95,6 +99,7 @@ describe("Q1596: denials after a confirmed session loss are not reported again",
     markSessionLost();
     clearSessionLost();
     report(denied("jobs"), { tags: { source: "query" } });
+    releaseHeldDenials();
     const msgs = await loggedMessages();
     expect(msgs.some((m) => m.startsWith("permission denied for table jobs"))).toBe(true);
   });

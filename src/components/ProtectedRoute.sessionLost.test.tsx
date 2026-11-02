@@ -163,7 +163,7 @@ describe("ProtectedRoute: session lost on a signed-in screen", () => {
   });
 });
 
-// @mutate src/components/ProtectedRoute.tsx |         if (cancelled \|\| fired \|\| !lost) return; |         if (fired \|\| !lost) return;
+// @mutate src/components/ProtectedRoute.tsx |         if (cancelled \|\| fired) return; |         if (fired) return;
 // @mutate src/lib/sessionLoss.ts |   if (err.name !== "AuthApiError") return false;\n | \n
 // @mutate src/lib/sessionLoss.ts |     if (after.session) { |     if (!after) {
 // @mutate src/lib/sessionLoss.ts |     if (!isDefiniteAuthLoss(error)) { |     if (false) {

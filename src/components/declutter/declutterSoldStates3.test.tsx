@@ -86,7 +86,9 @@ beforeEach(() => {
 describe("NIGHT-SELL-soldstates-3: the seller's open sale leads with the next action", () => {
   it("porch: tracker, pickup + Move, When will it be out, Take the porch photo, then the money note, then Message the buyer", async () => {
     show();
-    const photo = await screen.findByRole("button", { name: "Take the porch photo" });
+    // Q2626: the slot is tomorrow, so the photo step says its day ("You can take the porch photo ..."), with no button yet.
+    const photo = await waitFor(() => { const p = document.querySelector("[data-porch-not-yet]"); expect(p).not.toBeNull(); return p!; });
+    expect(screen.queryByRole("button", { name: "Take the porch photo" })).toBeNull();
     const card = photo.closest("article")!;
     const steps = card.querySelector("[data-pickup-status]")!;
     const move = within(card).getByRole("button", { name: /Move the pickup/ });

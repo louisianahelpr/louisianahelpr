@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Timer } from "lucide-react";
-import { jobStartDateTime } from "@/lib/dateUtils";
 
 /**
  * TWO CLOCKS, ONE FORMAT, SOONEST FIRST (owner, 2026-10-07, on job 4d7f3085
@@ -36,15 +35,8 @@ const FAR_CLOCK_MS = 48 * 60 * 60 * 1000;
 /** "Thu, Nov 12" in Louisiana time. */
 const farDay = (at: Date | string) => new Date(at).toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
 
-/** The instant a job starts: its start time in the job's zone, or the END of
- *  its day when it has none ("sometime that day" has not run out until the
- *  day has). The same target JobCountdown counts to. */
-export function jobStartTarget(dateNeeded: string | null | undefined, startTime?: string | null): Date | null {
-  if (!dateNeeded) return null;
-  if (startTime) return jobStartDateTime(dateNeeded, startTime);
-  const midnight = jobStartDateTime(dateNeeded, null);
-  return midnight ? new Date(midnight.getTime() + 86_400_000 - 1_000) : null;
-}
+/** The instant a job starts (src/lib/listingDeadline.ts, so the browse card reads it without this component). */
+export { jobStartTarget } from "@/lib/listingDeadline";
 
 /** "2d 16h 5m" / "18h 9m" / "7m": the one duration format every card clock uses. */
 export function formatCountdown(ms: number): string {

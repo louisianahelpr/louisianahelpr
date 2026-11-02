@@ -5,7 +5,7 @@
     "src/components/admin/AdminDisputes.tsx": 683,
     "src/components/admin/AdminReports.tsx": 673,
     "src/components/BrowseMap.tsx": 1134,
-    "src/components/dashboard/JobCard.tsx": 795,
+    "src/components/dashboard/JobCard.tsx": 787,
     "src/components/dashboard/JobDetailDialog.tsx": 945,
     "src/components/job-card/JobListPage.tsx": 639,
     "src/components/JobTracking.tsx": 1835,

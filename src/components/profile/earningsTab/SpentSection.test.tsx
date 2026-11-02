@@ -321,7 +321,7 @@ describe("A3-111: each Spent row opens its job and says where its money stands",
 // @mutate src/components/profile/earningsTab/SpentSection.tsx |   const totalSpent = (spentTotalCents(rows) + bought.reduce((s, p) => s + p.cents, 0)) / 100; |   const totalSpent = spentTotalCents(rows) / 100;
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | ${boughtCount > 0 ? ` · ${boughtCount} purchase${boughtCount === 1 ? "" : "s"}` : ""} |
 // @mutate src/components/profile/earningsTab/SpentSection.tsx |       {!isLoading && !isError && bought.length > 0 && ( |       {false && (
-// @mutate src/lib/declutter/purchaseSpend.ts | cents: refunded ? 0 : paid?.get(o.id) ?? o.total_cents, | cents: o.total_cents,
+// @mutate src/lib/declutter/purchaseSpend.ts | netOfRefund(paid?.get(o.id) ?? o.total_cents, | netOfRefund(o.total_cents,
 // @mutate src/lib/declutter/purchaseSpend.ts | const COUNTED = ["paid", "handed_over", "refunded"]; | const COUNTED = ["paid", "handed_over", "refunded", "awaiting_payment"];
 // @mutate src/components/profile/earningsTab/SpentSection.tsx |   const isError = spend.isError \|\| purchases.isError; |   const isError = spend.isError;
 describe("A3-112: Declutter purchases count in Spent", () => {

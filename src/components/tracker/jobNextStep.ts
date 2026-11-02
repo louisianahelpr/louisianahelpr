@@ -18,7 +18,7 @@ function laTime(ms: number): string {
 
 export function jobNextStep(
   progress: JobProgressState,
-  o: { side: "poster" | "helpr"; otherFirst?: string | null; pendingApplicants?: number; offerOut?: boolean; offerUntil?: string | null; noShowRepostedOn?: string | null; approveLeft?: string | null },
+  o: { side: "poster" | "helpr"; otherFirst?: string | null; pendingApplicants?: number; offerOut?: boolean; offerUntil?: string | null; noShowRepostedOn?: string | null; approveLeft?: string | null; crew?: boolean },
 ): NextStepValue | null {
   const other = (o.otherFirst ?? "").trim();
   // Off the path (cancelled, expired, under review): where it stands, with its word.
@@ -42,7 +42,8 @@ export function jobNextStep(
   // Marked done: the poster's step is the approval, and the review window is IN the line (owner 11-01, live Done-stage
   // screenshot: the countdown was repeated under More options), never a second panel.
   if (o.side === "poster" && progress.stage === 7 && progress.waitingOnYou) {
-    return { who: "you", text: `Approve ${other ? `${other}'s` : "your Helpr's"} work`, by: o.approveLeft ?? null };
+    // A3-32 (audit 11-01): a crew's approval is plural.
+    return { who: "you", text: `Approve ${o.crew ? "your crew's" : other ? `${other}'s` : "your Helpr's"} work`, by: o.approveLeft ?? null };
   }
   // The poster's Working step, before the Helpr marks it done: who the job waits on (unless after photos say more).
   // ("Yusef is at the job" keeps its words: work has not begun, so it is not yet theirs to mark done.)

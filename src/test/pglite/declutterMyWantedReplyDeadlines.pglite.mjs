@@ -7,6 +7,7 @@
  *   node src/test/pglite/declutterMyWantedReplyDeadlines.pglite.mjs                      # ALL OK (migration applied 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/declutterMyWantedReplyDeadlines.pglite.mjs   # red: the checks need it
  *   PLANT=any_buyer node src/test/pglite/declutterMyWantedReplyDeadlines.pglite.mjs      # red: a cart read not scoped to the caller
+ *   PLANT=anon node src/test/pglite/declutterMyWantedReplyDeadlines.pglite.mjs           # red: anon keeps execute
  *
  * The stub world is declutterWantedMatchManage.pglite.mjs's, plus respond_by on offers and the cart table.
  */
@@ -27,6 +28,8 @@ const P = "11111111-1111-4111-8111-111111111111", S = "22222222-2222-4222-8222-2
 const I = (n) => `a0000000-0000-4000-8000-00000000000${n}`;
 await db.exec(`
 create role anon; create role authenticated; create role service_role;
+-- Supabase gives anon an EXPLICIT execute on new functions; REVOKE FROM PUBLIC alone leaves it (CLAUDE.md).
+alter default privileges grant execute on functions to anon, authenticated;
 create schema auth; create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('t.uid', true), '')::uuid $$;
 create table off_keys(k text);
 create function require_feature(k text) returns void language plpgsql as $$ begin if exists(select 1 from off_keys where off_keys.k = require_feature.k) then raise exception 'feature_disabled' using errcode='42501'; end if; end $$;
@@ -73,6 +76,7 @@ await db.exec(pick(old, "declutter_miles"));
 await db.exec(prev);
 let m = mig;
 if (process.env.PLANT === "any_buyer") m = m.replaceAll("AND c.buyer_id = v_uid ", "");
+if (process.env.PLANT === "anon") m = m.replace("FROM PUBLIC, anon;", "FROM PUBLIC;");
 if (process.env.NEW_MIGRATION !== "skip") for (let i = 1; i <= 3; i++) await db.exec(m);
 const as = async (uid, sql) => { await db.exec(`select set_config('t.uid', '${uid ?? ""}', false)`); return db.query(sql); };
 const results = {};

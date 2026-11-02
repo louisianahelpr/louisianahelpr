@@ -3,7 +3,7 @@
  * "Open job". The card uses the shared next-step line (jobNextStep / NextStep, as the job page) with the window left,
  * and the green action on its right.
  *
- * @mutate src/components/messages/chatView/DealCard.tsx |         <div className="min-w-0 flex-1 text-ds-14">{step && <NextStep value={step} />}</div> |         <div className="min-w-0 flex-1 text-ds-14" />
+ * @mutate src/components/messages/chatView/DealCard.tsx |         <div className="min-w-0 flex-1 text-ds-14">{step && <NextStep value={step} compact />}</div> |         <div className="min-w-0 flex-1 text-ds-14" />
  * @mutate src/components/messages/chatView/DealCard.tsx |           {approveDue ? "Approve" : "Open job"} |           Open job
  */
 import { describe, expect, it, vi } from "vitest";

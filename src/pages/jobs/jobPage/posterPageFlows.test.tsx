@@ -14,7 +14,7 @@
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at` | JOB_READABLE_COLUMNS}`
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | .eq("id", jobId).eq("customer_id", userId).limit(1)); | .eq("id", jobId).limit(1));
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     <div data-poster-more="" hidden> |     <div data-poster-more="">
- * @mutate src/components/job-card/JobStepCard.tsx | menu?.secondHost && menuCount === 1 ? | menu?.secondHost && menuCount === 2 ?
+ * @mutate src/components/job-card/JobStepCard.tsx | menu?.secondHost && menuCount === 1 && !loneSos ? | menu?.secondHost && menuCount === 2 && !loneSos ?
  * @mutate src/components/job-card/JobStepCard.tsx | const menuPrimaries = menu && primaryChipKey !== "message" ? primaryButtons(ownPrimary) : []; | const menuPrimaries = menu ? primaryButtons(ownPrimary) : [];
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     crewRoster: job.is_group_job && detail ? detail.groupHelpersByJob?.[job.id] ?? [] : undefined, |     crewRoster: undefined,
  */

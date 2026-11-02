@@ -1342,7 +1342,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     canChange && { key: "change" |     false && { key: "change"
-  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |       {others > 1 && ( |       {others > 99 && (
+  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |       {(others > 1 \|\| menuOnly) && ( |       {(others > 99 \|\| menuOnly) && (
   it("a booked job: [Message | More options], and More options lists Change date or time and Cancel job in one tap", async () => {
     state.job = booked();
     state.party = true;

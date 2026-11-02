@@ -11,7 +11,7 @@
  * @mutate src/pages/home/homeDashboard/nextUpStates.ts |     if (!step \|\| step.who === "you") return null; |     return null;
  * @mutate src/pages/home/homeDashboard/comingUp.ts |   const setDay = (jobId: string) => (i.continueDays?.[jobId]?.status === "set" ? i.continueDays[jobId] : null); |   const setDay = (jobId: string) => (jobId ? null : null);
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | (cd[a.job.id] ? contStep(a.job.id, "helpr", helprOther(a))?.who === "you" : appliedActivityBucket(a) === "needs_you") | appliedActivityBucket(a) === "needs_you"
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail), |         title: (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail),
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status })), |         title: (line.id === "on_the_way" ? ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status })),
  * @mutate src/components/jobs/ContinueDaySheet.tsx |   const offerToday = !helprMarkedDone && today.getHours() < LAST_START_HOUR_TODAY; |   const offerToday = true;
  * @mutate src/components/jobs/ContinueDaySheet.tsx |           {helprMarkedDone && ( |           {false && (
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (step?.key === "done" && s.continueDayNote) { |   if (step?.key === "done" && s.continueDayNote && false) {
@@ -97,7 +97,8 @@ describe("the to-do list (Next up and the badges)", () => {
   const inputs = (cd: Record<string, ContinueDay>) => ({ postedJobs: [], pendingApplicantCounts: {}, appliedApps: [yusefApp(yusefJob())], shopOrders: [], backout: new Map(), continueDays: cd });
   it("the Helpr's to-do is to confirm the day, never 'Mark it done'; once confirmed there is nothing to do until then", () => {
     const before = deriveNeedsYouTodos({ ...inputs({}) });
-    expect(before.map((t) => t.title)).toEqual(["Finish and mark it done"]);
+    // The Needs-you task reads the job page's next-step words (todoTask / jobNextStep, A3-17 follow-up).
+    expect(before.map((t) => t.title)).toEqual(["Your after photos are in. Mark it done"]);
     expect(deriveNeedsYouTodos(inputs({ "7b1da54b": day() })).map((t) => t.title)).toEqual([`Next: confirm you'll be there · continuing ${label(AHEAD)}`]);
     expect(deriveNeedsYouTodos(inputs({ "7b1da54b": day({ helper_confirmed_at: "t" }) }))).toEqual([]);
   });

@@ -27,7 +27,7 @@ import { takeFirstScreenDropStates, takeFirstScreenItems, takeFirstScreenPhotos,
 /** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
 /** 20261027153244 adds "seller_delivery": the seller brings it at a time the buyer picks (switch declutter_seller_delivery). */
 // Q2425 (20261027204500): "meetup" is a safe public spot an admin curated; the seller's address is never shared.
-export type Handover = "pickup_home" | "porch" | "delivery" | "seller_delivery" | "meetup";
+export type Handover = "pickup_home" | "porch" | "delivery" | "seller_delivery" | "meetup" | "ship";
 
 export const DECLUTTER_PHOTO_BUCKET = "job-photos";
 
@@ -54,9 +54,11 @@ export function rpcData<T>(result: { data: T; error: { message: string } | null;
   try {
     unwrap(result);
   } catch (thrown) {
-    const e = thrown as Error & { userMessage?: string };
+    const e = thrown as Error & { userMessage?: string; designedRefusal?: boolean };
     const msg = words(thrown);
-    if (msg && Object.isExtensible(e)) e.userMessage = msg;
+    // A code with copy is a designed refusal (rate limit, open limit, ...): the member reads the words, and
+    // queryClient's cache hooks do not log it as a defect (Q1882). An unmapped error keeps being reported.
+    if (msg && Object.isExtensible(e)) Object.assign(e, { userMessage: msg, designedRefusal: true });
     throw e;
   }
   return result.data;
@@ -1369,7 +1371,7 @@ export async function buyNow(itemId: string, seenPriceCents: number): Promise<st
  * (declutterErrorMessage maps the code to plain words). The functions answer
  * `{ error: "<code>" }` on a refusal.
  */
-export async function invokeDeclutter(fn: "declutter-card" | "declutter-checkout", body: Record<string, unknown>): Promise<Record<string, unknown>> {
+export async function invokeDeclutter(fn: "declutter-card" | "declutter-checkout" | "ship-rates", body: Record<string, unknown>): Promise<Record<string, unknown>> {
   const { data, error } = await supabase.functions.invoke(fn, { body: { ...body, native: isNativePlatform } });
   if (error) {
     const ctx = (error as { context?: Response }).context;
@@ -1394,9 +1396,39 @@ export async function startCardSave(): Promise<string> {
   return data.url;
 }
 
+/** Shipping S2: one postage option for the buyer's address (ship-rates; stored 30 min, checkout takes only its id). */
+export interface ShipQuote {
+  quote_id: string;
+  service: "usps_ground_advantage" | "usps_priority" | "ups_ground";
+  rate_cents: number;
+  delivery_days: number | null;
+  preselected: boolean;
+}
+export interface ShipTo { street1: string; street2?: string; city: string; state: "LA"; zip: string }
+
+/** ship-rates: up to 3 options for this seller's cart lines to this Louisiana address, cheapest first. */
+export async function fetchShipRates(sellerId: string, shipTo: ShipTo): Promise<ShipQuote[]> {
+  const data = await invokeDeclutter("ship-rates", { seller_id: sellerId, ship_to: shipTo });
+  return Array.isArray(data.quotes) ? (data.quotes as ShipQuote[]) : [];
+}
+
+/**
+ * True when every item has a parcel ("Ship it": declutter_items.ship_preset) and the seller may ship now (S6 2e: no
+ * shipping debt owed, declutter_seller_can_ship, the order trigger's own rule). The server checks both again.
+ */
+export async function fetchItemsCanShip(itemIds: string[], sellerId: string): Promise<boolean> {
+  if (itemIds.length === 0) return false;
+  const rows = unwrap(await supabase.from("declutter_items").select("id, ship_preset").in("id", itemIds)) as { id: string; ship_preset: string | null }[] | null;
+  if (!rows || rows.length !== itemIds.length || !rows.every((r) => !!r.ship_preset)) return false;
+  const res = await supabase.rpc("declutter_seller_can_ship", { p_seller_id: sellerId });
+  // Before 20261102054848 reaches prod the read is missing: offer it, and the order trigger still refuses (handover_not_offered).
+  if (res.error && isMissingRpcNamed(res.error, "declutter_seller_can_ship")) return true;
+  return rpcData(res, (e) => rpcErrorMessage("declutter_seller_can_ship", e)) === true;
+}
+
 /** Check out one seller's cart lines (row 38): the Stripe page's URL, or paid=true when it already went through. */
 export async function startCheckoutPayment(sellerId: string, handover: Handover, slotStart?: string | null, handoff?: "leave" | "hand" | null,
-  expectedDeliveryCents?: number | null): Promise<{ url: string | null; paid: boolean }> {
+  expectedDeliveryCents?: number | null, quoteId?: string | null): Promise<{ url: string | null; paid: boolean }> {
   // A seller delivery carries the picked time (held while the payment page is open), the buyer's door choice
   // and the delivery price the screen showed ("Free" = 0): a different frozen price stops before Stripe.
   const data = await invokeDeclutter("declutter-checkout", {
@@ -1406,6 +1438,8 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
           ...(typeof expectedDeliveryCents === "number" ? { expected_delivery_cents: expectedDeliveryCents } : {}) }
       // B110: a porch / door / meetup pickup carries the day and time the buyer chose before paying (none: they book after).
       : (handover === "porch" || handover === "pickup_home" || handover === "meetup") && slotStart ? { slot_start: slotStart }
+        // Shipping S3: a shipped order carries only the quote the buyer picked (the server reads its price and address).
+        : handover === "ship" ? { quote_id: quoteId ?? null }
         : {}),
   });
   return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true };

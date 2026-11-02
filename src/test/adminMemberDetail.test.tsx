@@ -39,6 +39,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/components/admin/AdminUserNotes", () => ({ default: () => null }));
 vi.mock("@/components/admin/UserVerificationHistory", () => ({ default: () => null }));
+vi.mock("@/components/admin/userDetail/DeclutterAmountsOwed", () => ({ DeclutterAmountsOwed: () => null })); // Q1928 gap 1 card reads through react-query
 
 const SENT_AT = "2026-10-25T15:42:00Z";
 const member = (over: Partial<Profile> = {}) => ({
@@ -100,8 +101,8 @@ describe("Admin member detail: confirm email row (Q2420) and full name (Q2421)",
     expect(fn).toMatch(/rpc\('has_role'/);
     // The member's own Resend lands on the same page.
     const pending = blankComments(readFileSync(join(process.cwd(), "src/pages/auth/SignupPending.tsx"), "utf8"));
-    expect(pending).toMatch(/auth\.resend\(\{\s*type: "signup",[\s\S]*?emailRedirectTo: getSignupConfirmRedirect\(\)/);
-    expect(readFileSync(join(process.cwd(), "src/lib/authRedirects.ts"), "utf8")).toMatch(/getSignupConfirmRedirect = \(\): string => `\$\{getPublicOrigin\(\)\}\/signup-pending`/);
+    expect(pending).toMatch(/auth\.resend\(\{\s*type: "signup",[\s\S]*?emailRedirectTo: getSignupConfirmRedirect\(/);
+    expect(readFileSync(join(process.cwd(), "src/lib/authRedirects.ts"), "utf8")).toMatch(/getSignupConfirmRedirect = \(jobId: string \| null = null\): string =>\s*`\$\{getPublicOrigin\(\)\}\/signup-pending\$\{/);
     expect(readFileSync(join(process.cwd(), "supabase/functions/_shared/confirmLink.ts"), "utf8")).toMatch(/CONFIRM_LINK_PATH = "\/signup-pending"/);
   });
 });

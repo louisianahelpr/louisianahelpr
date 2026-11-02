@@ -41,5 +41,5 @@ export function quoteErrorMessage(err: unknown): string {
   for (const r of JOB_INSERT_REFUSAL_COPY) if (r.match.test(code)) return r.copy;
   // The contact-leak trigger's sentence is written for the member already.
   if (/detected/i.test(code) && code.length < 300) return code;
-  return "Something went wrong. Please try again.";
+  return "Couldn't do that just now. Check your connection and try again.";
 }

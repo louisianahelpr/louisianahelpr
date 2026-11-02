@@ -17,6 +17,12 @@
  * @mutate src/components/sections/AppTopBar.tsx |       actions={actions} |
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
+// The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
+// (no row yet, saves accepted); the device copy and the hook's own rules stay real.
+vi.mock("@/lib/sectionPrefsRow", () => ({
+  fetchSectionPrefsRow: async () => ({ data: null, error: null }),
+  saveSectionPrefsRow: async () => ({ error: null }),
+}));
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";

@@ -28,11 +28,18 @@ interface Setters {
 // the two api calls this needs.
 const declutter = () => loadModule(() => import("@/lib/declutter/haulAway"));
 
+/** Q1923: `?haulAway=` named no item id this code can read. */
+export const HAUL_AWAY_BAD_LINK_COPY = "That haul-away link didn't name your items. Open Haul it away from your listing again.";
+
 /** A listing photo (public job-photos bucket) as a File the job's upload takes. Null when it can't be read. */
 async function photoFile(path: string, photoPublicUrl: (p: string) => string): Promise<File | null> {
   try {
     const res = await fetch(photoPublicUrl(path));
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Q1923: a refused photo read is reported (status only; the path names the seller), as a thrown one is.
+      report(new Error(`haul-away listing photo read answered HTTP ${res.status}`), { severity: "warning", tags: { source: "useHaulAwayPrefill.photo" } });
+      return null;
+    }
     const blob = await res.blob();
     return new File([blob], path.split("/").pop() ?? "photo.jpg", { type: blob.type || "image/jpeg" });
   } catch (err) {
@@ -78,7 +85,11 @@ export function useHaulAwayPrefill(searchParams: URLSearchParams, s: Setters): s
       // Parsed with the lazily loaded code: Post a Job imports nothing the
       // Declutter screen also imports (Q178).
       const ids = d.parseHaulAwayParam(raw);
-      if (ids.length === 0) return;
+      if (ids.length === 0) {
+        // Q1923: a broken link must not leave a plain job form that posts with no haul-away link.
+        if (live) toast.error(HAUL_AWAY_BAD_LINK_COPY);
+        return;
+      }
       let rows;
       try {
         rows = await d.fetchHaulAwayState(ids);

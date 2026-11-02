@@ -11,6 +11,8 @@
  * @mutate src/pages/post-job/useHaulAwayPrefill.ts |       setItemIds(p.itemIds); |       setItemIds(null);
  * @mutate src/pages/post-job/useHaulAwayPrefill.ts |       if (left > 0) toast( |       if (false) toast(
  * @mutate src/pages/post-job/useHaulAwayPrefill.ts |       s.setRequirePhotoProof(true); |       s.setRequirePhotoProof(false);
+ * @mutate src/pages/post-job/useHaulAwayPrefill.ts |         if (live) toast.error(HAUL_AWAY_BAD_LINK_COPY); |         void HAUL_AWAY_BAD_LINK_COPY;
+ * @mutate src/pages/post-job/useHaulAwayPrefill.ts |       report(new Error(`haul-away listing photo read answered HTTP ${res.status}`), | void (
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
@@ -26,6 +28,7 @@ vi.mock("sonner", () => ({
   toast: Object.assign((m: string) => h.toasts.push(m), { error: (m: string) => h.toasts.push(`error:${m}`) }),
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+import { report } from "@/lib/errorLogger";
 vi.mock("@/lib/declutter/api", () => ({
   fetchMyItemPrivate: async () => ({ pickup_address: "1234 Example St, Baton Rouge, LA 70806" }),
   photoPublicUrl: (p: string) => `https://cdn.test/${p}`, photoCardUrl: (p: string) => `https://cdn.test/${p}`, CARD_PHOTO_PX: 480,
@@ -35,7 +38,7 @@ vi.mock("@/lib/declutter/haulAway", async (orig) => ({
   fetchHaulAwayState: async () => h.rows,
 }));
 
-import { useHaulAwayPrefill } from "./useHaulAwayPrefill";
+import { HAUL_AWAY_BAD_LINK_COPY, useHaulAwayPrefill } from "./useHaulAwayPrefill";
 
 const A = "11111111-1111-4111-8111-111111111111";
 const B = "22222222-2222-4222-8222-222222222222";
@@ -130,3 +133,24 @@ describe("useHaulAwayPrefill", () => {
     expect(s.setTitle).not.toHaveBeenCalled();
   });
 });
+
+describe("Q1923: a refused photo read is reported, a broken link says so", () => {
+  it("a listing photo answered HTTP 404 is reported with its status and left off", async () => {
+    vi.mocked(report).mockClear();
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: false, status: 404, blob: async () => new Blob([]) })));
+    h.rows = [row(A, "eligible", ["a/1.jpg"])];
+    const s = setters();
+    renderHook(() => useHaulAwayPrefill(new URLSearchParams(`haulAway=${A}`), s));
+    await waitFor(() => expect(vi.mocked(report).mock.calls.some((c) => /HTTP 404/.test(String((c[0] as Error).message)))).toBe(true));
+    expect(JSON.stringify(vi.mocked(report).mock.calls)).not.toContain("a/1.jpg");
+  });
+
+  it("a ?haulAway= with no readable id tells the seller and fills nothing", async () => {
+    const s = setters();
+    const { result } = renderHook(() => useHaulAwayPrefill(new URLSearchParams("haulAway=not-an-id"), s));
+    await waitFor(() => expect(h.toasts).toContain(`error:${HAUL_AWAY_BAD_LINK_COPY}`));
+    expect(result.current).toBeNull();
+    expect(s.setTitle).not.toHaveBeenCalled();
+  });
+});
+

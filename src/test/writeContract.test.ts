@@ -155,8 +155,32 @@ describe("pending vs missing: a migration prod had not applied is told apart fro
     const snap = JSON.parse(readFileSync(join(__dirname, "../../scripts/audit/write-contract.snapshot.json"), "utf8"));
     expect(typeof snap.appliedMigrations?.latest).toBe("string");
     expect(snap.appliedMigrations.count).toBeGreaterThan(900); // 1010 on 2026-10-06
-    expect(files.filter((f) => f.slice(0, 14) <= snap.appliedMigrations.latest).length).toBe(snap.appliedMigrations.count);
+    // The applied list is the source of truth (a train can carry files numbered
+    // below `latest` that prod has not run); it must agree with latest/count.
+    const versions: string[] = snap.appliedMigrations.versions;
+    expect(Array.isArray(versions)).toBe(true);
+    expect(versions.length).toBe(snap.appliedMigrations.count);
+    expect([...versions].sort()[versions.length - 1]).toBe(snap.appliedMigrations.latest);
     expect(contract.pendingDefinitions(snap).exact).toBe(true);
+  });
+
+  it("a file numbered below `latest` that is not in the applied list is pending, not missing", () => {
+    // @mutate scripts/audit/write-contract.mjs | isPending = (f) => !set.has(f.slice(0, 14)); | isPending = (f) => f.slice(0, 14) > meta.latest;
+    const s: any = clone();
+    // Every file but pick.file ran, plus a later prod-only version, so pick.file
+    // sits BELOW latest and only the list says it never ran.
+    const applied = [...files.map((f) => f.slice(0, 14)).filter((v) => v !== pick!.file.slice(0, 14)), "29991231000000"];
+    s.appliedMigrations = { latest: applied[applied.length - 1], count: applied.length, versions: applied };
+    expect(pick!.file.slice(0, 14) < s.appliedMigrations.latest).toBe(true);
+    delete s.functions[pick!.fn];
+    const c = codes(s);
+    expect(c.warns.has(`rpc_pending:${pick!.fn}`)).toBe(true);
+    expect(c.rejects.has(`rpc_missing:${pick!.fn}`)).toBe(false);
+    // A list that disagrees with its own count fails closed.
+    const bad: any = clone();
+    bad.appliedMigrations = { ...s.appliedMigrations, count: applied.length + 1 };
+    delete bad.functions[pick!.fn];
+    expect(codes(bad).rejects.has(`rpc_missing:${pick!.fn}`)).toBe(true);
   });
 
   it("an RPC created by a migration above `latest` is a pending warning, not a reject", () => {

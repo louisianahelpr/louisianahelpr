@@ -629,8 +629,9 @@ async function findMoneyOwedToMember(admin: PurgeCapableClient, userId: string):
 
 /**
  * Q2171: what the member is told when a fee they OWE blocks deleting their
- * account (a card fee from a Helpr-at-fault refund, or a Declutter seller's
- * card fee after a refund). Both come out of the member's next payout.
+ * account (a card fee from a Helpr-at-fault refund or a lapsed series visit's
+ * full refund (Q2245), or a Declutter seller's card fee after a refund). All
+ * come out of the member's next payout.
  */
 export const FEE_DEBT_BLOCKS_DELETION_MESSAGE =
   "You still owe money from a refunded job or Declutter sale. It comes out of your next payout. You can delete your account once it is paid off; if no payout is coming, contact support to settle it.";
@@ -668,6 +669,21 @@ export async function findFeeDebtOwed(admin: PurgeCapableClient, userId: string)
   }
   if (ruling.data && ruling.data.length > 0) {
     return { ok: true, active: true, detail: `helpr fault ruling ${ruling.data[0].id}`, reason: "fee_owed" };
+  }
+  // Q2245 (d): a series visit refunded in full because this Helpr's setup lapsed
+  // (helpr_card_fee_debts, helper_id SET NULL on delete): the same kind of debt.
+  const lapsed: PostgrestLike<{ id: string }[]> = await admin
+    .from("helpr_card_fee_debts")
+    .select("id")
+    .eq("helper_id", userId)
+    .gt("remaining_cents", 0)
+    .limit(1);
+  if (lapsed.error && !tableAbsent(lapsed.error)) {
+    console.error(`[accountPurge] lapsed-visit debt check failed for ${userId}:`, lapsed.error.message);
+    return { ok: false, active: false, detail: lapsed.error.message };
+  }
+  if (lapsed.data && lapsed.data.length > 0) {
+    return { ok: true, active: true, detail: `lapsed visit debt ${lapsed.data[0].id}`, reason: "fee_owed" };
   }
   const seller: PostgrestLike<{ id: string }[]> = await admin
     .from("declutter_seller_fee_debts")

@@ -37,6 +37,8 @@ export interface SeriesDate {
   releasedBy: string | null;
   /** Who holds it (poster view), when held. */
   holder: string | null;
+  /** A3-43: the viewer's own visit is already booked (its own job row); it is cancelled from its card, not given up here. */
+  booked?: true;
 }
 
 export interface SeriesDatesView {
@@ -55,16 +57,21 @@ export function foldSeriesDates(input: {
   viewer: string | null;
   holds: Array<{ visit_date: string; helper_id: string }>;
   releases: Array<{ visit_date: string; helper_id: string }>;
-  bookedDates: string[];
+  /** A booked visit's date, or its date and Helpr (A3-43: the viewer's own booked visit is "mine", not "taken"). */
+  bookedDates: Array<string | { date: string; helper_id: string | null }>;
 }): SeriesDate[] {
   const holdBy = new Map(input.holds.map((h) => [h.visit_date, h.helper_id]));
   const releaseBy = new Map(input.releases.map((r) => [r.visit_date, r.helper_id]));
-  const booked = new Set(input.bookedDates);
+  const booked = new Map(input.bookedDates.map((b) => (typeof b === "string" ? [b, null] : [b.date, b.helper_id])));
   return input.schedule
     .filter((d) => d > input.firstVisit && d > input.today)
     .map((date) => {
       const holder = holdBy.get(date) ?? null;
       if (holder && input.viewer && holder === input.viewer) return { date, state: "mine" as const, releasedBy: null, holder };
+      const bookedTo = booked.get(date) ?? null;
+      if (!holder && bookedTo && input.viewer && bookedTo === input.viewer) {
+        return { date, state: "mine" as const, releasedBy: null, holder: bookedTo, booked: true as const };
+      }
       if (holder || booked.has(date)) return { date, state: "taken" as const, releasedBy: null, holder };
       const releasedBy = releaseBy.get(date) ?? null;
       return { date, state: releasedBy ? ("released" as const) : ("open" as const), releasedBy, holder: null };
@@ -97,7 +104,7 @@ export async function fetchSeriesDates(args: {
   // only loses the "booked" marker on dates nobody holds, so it is not fatal.
   const bookedDates = (visits.error ? [] : (visits.data ?? []))
     .filter((v) => v.status !== "cancelled" && !(v.status === "open" && v.helper_id === null))
-    .map((v) => v.date_needed as string);
+    .map((v) => ({ date: v.date_needed as string, helper_id: (v.helper_id as string | null) ?? null }));
   const offeredTo = (offers.data ?? []).map((o) => o.helper_id as string);
   const dates = foldSeriesDates({
     schedule: recurringVisitDates(args.dateNeeded, args.recurrenceDays, args.recurrenceWeeks),

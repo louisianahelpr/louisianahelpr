@@ -43,7 +43,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { mapsSearchUrl } from "@/lib/mapsLink";
-import { HiredSeriesSection } from "./HiredSeriesSection";
+import { canLeaveSeries, HiredSeriesSection, useJobSeriesState, withLeaveSeries } from "./HiredSeriesSection";
 import { NoApplicantsYet } from "./NoApplicantsYet";
 import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
 import { jobPageViewerState } from "./viewerState";
@@ -87,7 +87,7 @@ function metaLine(job: JobPageRow): string {
 
 const CARD = "rounded-2xl border border-border bg-card";
 /** The hired Helpr's done step (helperFaceAction.ts, key "done"). */
-const DONE_FACE_LABEL = "Mark job complete";
+const DONE_FACE_LABEL = "Mark it done"; // helperFaceAction's done label (JA-56)
 /** A crew job whose roster the poster follows on the page (JA-32): filling, booked, under way, being fixed, done. */
 const CREW_ROSTER_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress", "revision_requested", "completed", "disputed"]);
 
@@ -134,11 +134,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const [reviewOpen, setReviewOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [caseOpen, setCaseOpen] = useState(false);
+  const seriesState = useJobSeriesState(isPoster ? null : q.data?.job);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   // Computer (the `lg` grid): the price sits in the side card; a phone shows it beside the title (mockups 4 and 5).
   const wide = useIsWebDesktop();
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
-  // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
+  // The Working card's own 30 minutes: Mark it done is greyed here too (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
   // The Posted card's own approve, cancel, edit and step flows, on this page (LEAD-JOBPAGE-LAYOUT, money half).
   const posterFlows = usePosterPageFlows({ jobId: id, enabled: isPoster, trackingStatus, onChanged: () => void q.refetch() });
@@ -229,8 +231,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // The hired Helpr's row (owner 2026-11-01, the same rules as the poster's, JobPageActionRow.tsx): the Working card's
   // step leads on the right, with Message and "Open in working" beside it (one, or More options); when the face's
   // button IS Message or Open in working, it leads and the other sits beside it.
-  const hiredRow = (() => {
-    if (!hiredFace) return null;
+  const { row: hiredRow, leaveInMenu } = (() => {
+    if (!hiredFace) return { row: null, leaveInMenu: false };
     const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;
     const work: RowAction = { key: "working", label: "Open in working", go: openWorking };
     // JA-18: a face that opens the Working card ("See your crew steps") IS "Open in working": never both.
@@ -244,10 +246,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
     const extras = [msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
     // Continue another day: a set day the Helpr has not confirmed leads; "Need another day" sits with the others.
+    // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
+    const leaveAction: RowAction = { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true };
+    const canLeave = canLeaveSeries(job, userId, seriesState.data?.series_ended_on ?? null, isPoster);
     if (continueDay.helprLead) {
-      return <JobPageActionRow tag="helpr" lead={continueDay.helprLead} leadIsStep extras={[...(faceIs === "step" ? [] : [lead]), ...extras, ...continueDay.helprExtras]} />;
+      const withLeaveDay = withLeaveSeries([...(faceIs === "step" ? [] : [lead]), ...extras, ...continueDay.helprExtras], canLeave, leaveAction);
+      return { row: <JobPageActionRow tag="helpr" lead={continueDay.helprLead} leadIsStep extras={withLeaveDay.extras} />, leaveInMenu: withLeaveDay.inMenu };
     }
-    return <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={[...extras, ...continueDay.helprExtras]} />;
+    const withLeave = withLeaveSeries([...extras, ...continueDay.helprExtras], canLeave, leaveAction);
+    return { row: <JobPageActionRow tag="helpr" lead={lead} leadIsStep={faceIs === "step"} extras={withLeave.extras} />, leaveInMenu: withLeave.inMenu };
   })();
   // JA-17: after an answer on the page, re-read the job, my application and the pending-offer row (useOfferedToMe).
   const refetchPage = () => {
@@ -330,8 +337,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                   Line 1 the day, time and town (muted); line 2 the category (semibold primary). Every stage, both sides. */}
               {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
               <p data-job-category="" className="text-ds-14 font-semibold text-primary">{eyebrow}</p>
-              {/* JOBS-18: every visit, before they apply or answer; a hired Helpr reads it in HiredSeriesSection. */}
-              {!isHired && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
+              {/* JOBS-18: every visit, before they apply or answer; the hired Helpr and the poster read it in HiredSeriesSection (A3-44). */}
+              {!isHired && !isPoster && seriesSummary(job) && <p data-job-series="" className="text-ds-14 text-muted-foreground">{seriesSummary(job)}</p>}
               {/* JA-20: the hired Helpr's street opens Maps; JA-25: not once the job is cancelled. */}
               {isHired && job.location && job.status !== "cancelled" && (
                 <p data-job-address="" className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
@@ -416,7 +423,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               <DeclutterGallery urls={job.photos ?? []} category={job.category} title={job.title} icon={job.category === "other" ? Briefcase : getCategoryIcon(job.category)} shape="banner" />
             </div>
           )}
-          {isHired && <HiredSeriesSection job={job} userId={userId} />}
+          {(isHired || isPoster) && <HiredSeriesSection job={job} userId={userId} isPoster={isPoster && !isHired}
+            leaveInMenu={leaveInMenu} leaveOpen={leaveOpen} onLeaveOpenChange={setLeaveOpen} />}
           {/* CMP-4: the poster's top 3 with Book now, or who is booked and until when. Nothing when nobody qualifies. */}
           {instantBookOn && isPoster && !job.is_group_job && job.status === "open" && <InstantBookPanel jobId={job.id} />}
           {/* Board 57: the poster's open, paid job that nobody has applied to yet; never while an offer or booking is

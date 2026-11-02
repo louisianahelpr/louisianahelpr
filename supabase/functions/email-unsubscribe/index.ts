@@ -82,7 +82,6 @@ import { corsHeadersFull as corsHeaders } from '../_shared/cors.ts'
 import { getAppUrl } from '../_shared/appUrl.ts'
 import { unsubscribeListFrom, unsubscribeSigningConfigured, verifyUnsubscribeToken } from '../_shared/unsubscribe.ts'
 import { serve } from "../_shared/buildStamp.ts";
-import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 /**
  * PostgREST turns `*` into `%` and passes `%`/`_` straight into SQL ILIKE, so
@@ -129,17 +128,7 @@ async function findProfile(
 }
 
 /**
- * What a promotions unsubscribe turned off, kept so its resubscribe can undo
- * exactly that. email_promotions is three-valued since 20261021135832 (Q2299):
- * null = never chosen (the sign-up box decides the welcome and come-back
- * emails), true = turned on, false = turned off. A null is restored as null,
- * never as true: true would also opt the member into marketing blasts, which
- * need an explicit true.
- */
-type PromotionsBefore = { marketing_consent: boolean; email_promotions: boolean | null }
-
-/**
- * The upsert both directions share. Upsert, not update: `notification_preferences`
+ * The opt-out fallback's list write. Upsert, not update: `notification_preferences`
  * rows are created lazily by the app, so a user who never opened the
  * notifications tab has no row and a bare UPDATE would match zero rows and
  * report success. `user_id` is UNIQUE (migration 20260312023604), which is what
@@ -160,57 +149,31 @@ async function writeEmailPromotions(
 }
 
 /**
- * The member's email_promotions: true, false, or null (never chosen). A
- * missing row reads as true, because send-marketing-blast reads a missing row
- * as on (every account has a row since 20260903012715).
- */
-async function readEmailPromotions(
-  // deno-lint-ignore no-explicit-any
-  supabase: any,
-  userId: string,
-): Promise<boolean | null> {
-  const { data, error } = await supabase
-    .from('notification_preferences')
-    .select('email_promotions')
-    .eq('user_id', userId)
-    .maybeSingle()
-  if (error) throw new Error(`email_promotions read failed: ${error.message}`)
-  return data ? (data.email_promotions ?? null) : true
-}
-
-/**
  * The promotions list, for one user. THROWS on failure — the caller must never
  * report success for a write that did not happen, which is the whole failure
  * mode this endpoint exists to fix.
  *
- * Q2092 (owner, 2026-10-15, pop-up: "Only undo what they
- * turned off"). Resubscribe used to write marketing_consent = true and
- * email_promotions = true whatever they had been, so anyone holding a
- * promotions link (a sign-up lead reminder carries one too; the token never
- * expires) could opt in an address that never agreed to marketing, or switch
- * on promotions a member had turned off in Settings. Now:
- *   - UNSUBSCRIBE turns both off, as before, and the FIRST one through a link
- *     records what they were in profiles.promotions_before_unsubscribe (a
- *     second one keeps the first record while both flags are still off: the
- *     UPDATE only fills an empty one, so two racing requests cannot record the
- *     half-off state). If a record exists but the member has turned either flag
- *     back on since, this unsubscribe REPLACES it with what is on now, so an
- *     old record never re-grants a consent the member withdrew in Settings
- *     before this link (lh-authz-rls review of v3, finding 1). A member with no
- *     notification_preferences row is recorded as promotions ON, because that
- *     is what every sender reads a missing row as. Recording is best effort:
- *     the opt-out itself never waits on it (an RFC 8058 one-click POST that
- *     fails is not reliably retried).
- *   - RESUBSCRIBE restores exactly that record and clears it, but only while
- *     both flags are still what the unsubscribe left (off). If the member has
- *     changed either since, in Settings or anywhere else, their later choice
- *     wins: the record is cleared and nothing else is written. No record means
- *     a link never turned anything off, so it writes NOTHING: marketing consent
- *     that was never given stays off. Every read failure fails the request.
+ * Q2092 (owner, 2026-10-15, pop-up: "Only undo what they turned off") and
+ * Q2159. Each direction is ONE database call, so its read and its writes are
+ * one transaction with the member's rows locked (migration 20261102063312):
+ *   - UNSUBSCRIBE: promotions_unsubscribe records what the link turns off in
+ *     profiles.promotions_before_unsubscribe (the first record stands while
+ *     both flags stay off; a fresh one if the member turned something back on
+ *     since) and turns marketing_consent and email_promotions off.
+ *   - RESUBSCRIBE: promotions_resubscribe restores exactly that record and
+ *     clears it, but only while both flags are still off. If the member
+ *     changed either since, their later choice wins: the record is cleared and
+ *     nothing else is written. No record means the link never turned anything
+ *     off, so it writes NOTHING: marketing consent never given stays off.
+ * Any other change to either flag (Settings, sign-up, anything that is not
+ * these two calls) clears the record in the database, so an old email's
+ * Resubscribe never re-grants a consent the member withdrew in Settings
+ * (lh-authz-rls review of resubscribe v3, Q2159).
  *
- * `.select('user_id')` on the profiles UPDATEs is deliberate: an UPDATE that
- * matches zero rows resolves `{ data: [], error: null }`, so without it a
- * user_id that no longer exists would report a successful opt-out.
+ * The opt-out never waits on the record: if promotions_unsubscribe fails (an
+ * RFC 8058 one-click POST that fails is not reliably retried), both flags are
+ * still turned off directly, with no record (that direct write clears any old
+ * one). A resubscribe that fails fails the request.
  */
 async function setCommercialConsent(
   // deno-lint-ignore no-explicit-any
@@ -218,82 +181,28 @@ async function setCommercialConsent(
   userId: string,
   optOut: boolean,
 ): Promise<void> {
-  const { data: profile, error: readError } = await supabase
-    .from('profiles')
-    .select('marketing_consent, promotions_before_unsubscribe')
-    .eq('user_id', userId)
-    .maybeSingle()
-  const saved = (profile?.promotions_before_unsubscribe ?? null) as PromotionsBefore | null
-
-  if (optOut) {
-    if (readError) {
-      console.error('[email-unsubscribe] consent read failed; opting out without a record:', readError.message)
-    } else if (profile) {
-      try {
-        const record: PromotionsBefore = {
-          marketing_consent: profile.marketing_consent === true,
-          email_promotions: await readEmailPromotions(supabase, userId),
-        }
-        const somethingOn = record.marketing_consent || record.email_promotions === true
-        if (!saved) {
-          const { error: recordError } = await supabase
-            .from('profiles')
-            .update({ promotions_before_unsubscribe: record })
-            .eq('user_id', userId)
-            .is('promotions_before_unsubscribe', null)
-          if (recordError) throw new Error(recordError.message)
-        } else if (somethingOn) {
-          // The member turned something back on since the record was made:
-          // this unsubscribe turns off what is on NOW, and that is all an undo
-          // may restore. A race can only under-restore, the safe direction.
-          const { error: recordError } = await supabase
-            .from('profiles')
-            .update({ promotions_before_unsubscribe: record })
-            .eq('user_id', userId)
-          if (recordError) throw new Error(recordError.message)
-        }
-      } catch (err) {
-        console.error('[email-unsubscribe] could not record what this unsubscribe turns off:', caughtMessage(err))
-      }
-    }
-    const { data: updated, error: profileError } = await supabase
-      .from('profiles')
-      .update({ marketing_consent: false })
-      .eq('user_id', userId)
-      .select('user_id')
-    if (profileError) throw new Error(`marketing_consent write failed: ${profileError.message}`)
-    if (!updated || updated.length === 0) {
-      throw new Error('marketing_consent write matched no profile row')
-    }
-    await writeEmailPromotions(supabase, userId, false)
+  if (!optOut) {
+    const { error } = await supabase.rpc('promotions_resubscribe', { p_user_id: userId })
+    if (error) throw new Error(`resubscribe failed: ${error.message}`)
     return
   }
 
-  // Resubscribe. Any read failure, including the column not deployed yet
-  // (42703/PGRST204), fails the request rather than guess.
-  if (readError) throw new Error(`consent read failed: ${readError.message}`)
-  if (!profile) throw new Error('consent read matched no profile row')
-  if (!saved) return
-
-  const untouched = profile.marketing_consent === false && (await readEmailPromotions(supabase, userId)) === false
-  // Consent + clearing the record first, then the list. If the list write
-  // fails, the record is already gone and promotions stay off: a retry
-  // under-restores, never over-restores (lh-authz-rls review of v3, finding 2).
-  const { data: restored, error: restoreError } = await supabase
+  const { error: rpcError } = await supabase.rpc('promotions_unsubscribe', { p_user_id: userId })
+  if (!rpcError) return
+  console.error('[email-unsubscribe] promotions_unsubscribe failed; opting out without a record:', rpcError.message)
+  // `.select('user_id')`: an UPDATE that matches zero rows resolves
+  // `{ data: [], error: null }`, so without it a user_id that no longer exists
+  // would report a successful opt-out.
+  const { data: updated, error: profileError } = await supabase
     .from('profiles')
-    .update(untouched
-      ? { marketing_consent: saved.marketing_consent === true, promotions_before_unsubscribe: null }
-      : { promotions_before_unsubscribe: null })
+    .update({ marketing_consent: false })
     .eq('user_id', userId)
     .select('user_id')
-  if (restoreError) throw new Error(`marketing_consent restore failed: ${restoreError.message}`)
-  if (!restored || restored.length === 0) throw new Error('marketing_consent restore matched no profile row')
-  // Restore exactly: true stays true, a never-chosen null goes back to null
-  // (the sign-up box decides again), and a false stays the false the
-  // unsubscribe left.
-  if (untouched && saved.email_promotions !== false) {
-    await writeEmailPromotions(supabase, userId, saved.email_promotions === true ? true : null)
+  if (profileError) throw new Error(`marketing_consent write failed: ${profileError.message}`)
+  if (!updated || updated.length === 0) {
+    throw new Error('marketing_consent write matched no profile row')
   }
+  await writeEmailPromotions(supabase, userId, false)
 }
 
 /**

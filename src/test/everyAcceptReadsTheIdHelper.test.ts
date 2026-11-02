@@ -124,8 +124,9 @@ const TS_HELPER_CALLS: Record<string, number> = {
   // 2: completePendingCrewConfirms (each crew seat's Accept my spot that waited).
   "supabase/functions/card-hold-sweep/index.ts": 2,
   // 1: the per-holder readiness check that releases an unready holder's due dates;
-  // 2: the re-read right before the charge (a holder who turned unready since is skipped).
-  "supabase/functions/charge-recurring-visits/index.ts": 2,
+  // 2: the re-read right before the charge (a holder who turned unready since is skipped);
+  // 3: the visit-date sweep's read of a still-held date's Helpr (Q2245: unready = lapsed, billed the card fee).
+  "supabase/functions/charge-recurring-visits/index.ts": 3,
 };
 
 describe("every booking path asks the one ID-once helper (owner 2026-10-20)", () => {

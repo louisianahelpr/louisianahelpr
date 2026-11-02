@@ -28,7 +28,7 @@ import { createPortal } from "react-dom";
  * A control that claims the `primary` slot SUPPRESSES the step's own `primary`
  * prop — "where a step has a tracker CTA, that CTA IS the primary; don't render
  * two primaries". That is what retires the Working card's stacked pair (the
- * tracker's "Mark job complete" above PayoutPrimary's identical one).
+ * tracker's "Mark it done" above PayoutPrimary's identical one).
  */
 
 export interface JobStepRowHosts {

@@ -85,6 +85,9 @@ const NOT_ACTION_ROWS = new Set([
   // Job page v2 (owner 11-01, mockups 4-5): the page's own action row (both sides), page-level buttons at the
   // page bar's size with one-line pair labels (pairLabel.ts), not a card step row's 11px chips.
   "src/pages/jobs/jobPage/JobPageActionRow.tsx",
+  // The card actions the JOB PAGE draws in its own row and under it (jobStepMenu.tsx: MenuAction at the page row's
+  // size, MenuTextAction for A3-40's Tip under the row), never inside a card's step row.
+  "src/components/job-card/jobStepMenu.tsx",
   "src/components/job-card/PagedActivityList.tsx",
   "src/pages/posts/BulkDismissBar.tsx",
 ]);

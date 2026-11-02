@@ -9,16 +9,22 @@
  */
 // @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | public.declutter_notify(v_item.seller_id, 'declutter_questions', 'New question', | public.declutter_notify(v_item.seller_id, 'declutter_offers', 'New question',
 // @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | public.declutter_notify(NEW.asker_id, 'declutter_questions', 'The seller answered', | public.declutter_notify(NEW.asker_id, 'declutter_offers', 'The seller answered',
-// @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | WHEN p_title IN ('New question', 'The seller answered') | WHEN p_title IN ('The seller answered')
+// @mutate supabase/migrations/20261102103524_declutter_ship_notice_kinds.sql | WHEN p_title IN ('New question', 'The seller answered') | WHEN p_title IN ('The seller answered')
 // @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | ('declutter_questions', 'declutter_questions', 'Declutter: | ('declutter_questions', 'declutter_offers', 'Declutter:
 // @mutate src/components/notificationPreferences/constants.tsx | { key: "declutter_questions", emailKey: "email_declutter_questions", label: "Questions", description: "Questions on your listings, and sellers' answers to yours.", icon: <MessageCircleQuestion className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL }, |
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { declutterRows } from "@/components/notificationPreferences/constants";
 
-const MIGRATION = "supabase/migrations/20261030170443_declutter_question_kind.sql";
+// The push-map row and the one-time copy of the Offers switches are data statements, not function bodies; they live in
+// 20261030170443 and no later migration redefines them. Read from every migration, so no file is pinned by name
+// (declutter_notice_type, also in that file, was restated by 20261102103524 and is read through effectiveDefs above).
+const ALL_MIGRATIONS = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort()
+  .map((f) => readFileSync(join("supabase/migrations", f), "utf8")).join("\n");
 const code = (fn: string) => blankSqlComments(effectiveDefs("supabase/migrations").get(fn)?.stmt ?? "");
 
 describe("question notices have their own kind", () => {
@@ -40,7 +46,7 @@ describe("question notices have their own kind", () => {
   });
 
   it("the push map gates the kind on its own column", () => {
-    const sql = blankSqlComments(readFileSync(MIGRATION, "utf8"));
+    const sql = blankSqlComments(ALL_MIGRATIONS);
     expect(sql).toContain("('declutter_questions', 'declutter_questions', 'Declutter:");
     expect(sql).toContain("SET declutter_questions = declutter_offers WHERE declutter_offers IS FALSE");
     expect(sql).toContain("SET email_declutter_questions = email_declutter_offers WHERE email_declutter_offers IS FALSE");

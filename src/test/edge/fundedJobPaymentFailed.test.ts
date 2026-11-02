@@ -5,7 +5,7 @@
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | : job.status === "in_progress" | : job.status === "in_progressX"
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (job.payment_status === "released") { | if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome === "cancelled") { | } else if (cancelOutcome === "cancelledX") {
-// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const cancelNotDeployed = cancelErr?.code === "PGRST202" \|\| cancelErr?.code === "42883"; | const cancelNotDeployed = !!cancelErr;
+// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const cancelNotDeployed = rpcNotDeployed(cancelErr); | const cancelNotDeployed = !!cancelErr;
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome === "moved_on" \|\| cancelOutcome === "not_found") { | } else if (cancelOutcome === "not_found") {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome !== "not_hired" && cancelOutcome !== "not_cancellable") { | } else if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | { p_job_id: job.id, p_payment_intent_id: piId, p_gift_card_id: giftCardId }, | { p_job_id: job.id, p_payment_intent_id: piId, p_gift_card_id: null },
@@ -118,6 +118,98 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
     resetSharedMocks();
   });
 
+  // Q1978: a failure that lands while the Helpr's payout is already moving
+  // (transfer sent, job not yet flipped 'released'; or a dispute split under
+  // its settlement claim) writes nothing and tells nobody; ops is paged once.
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (payoutMoving && job.payment_status !== "released") { | if (false) {
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   const payoutMoving = (movingRows ?? []).length > 0 \|\| (claimRows ?? []).length > 0; |   const payoutMoving = (movingRows ?? []).length > 0;
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     .neq("status", "failed")\n    .limit(1); |     .limit(1);
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   if (movingErr) throw new Error(`payout_transfers read failed for job ${job.id}: ${movingErr.message}`); |
+  describe("Q1978 the payout is already moving", () => {
+    const hiredDone = () => fundedJob({ status: "completed", payment_status: "payout_pending", helper_confirmed_at: "2026-10-16T18:40:55Z" });
+    const assertNothingWritten = () => {
+      expect(cancelCalls()).toHaveLength(0);
+      expect(jobUpdates()).toHaveLength(0);
+      expect(notices()).toHaveLength(0);
+      expect(slackAlerts.some((a) => /WHILE the payout was being sent/.test(String((a as { title?: string }).title)))).toBe(true);
+      expect(slackAlerts.some((a) => /taken out of escrow/.test(String((a as { title?: string }).title)))).toBe(false);
+    };
+
+    it("a payout_transfers row (transfer sent, job not yet released): nothing is written, nobody is told, ops paged", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { rows: [{ id: "pt-1", status: "pending" }] };
+      cancelAnswers("not_cancellable");
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBe(200);
+      assertNothingWritten();
+      // A 'failed' row (money never left) does not count as moving.
+      const q = (scenario.readQueries ?? []).find((r) => r.table === "payout_transfers");
+      expect(q?.filters).toContainEqual({ op: "neq", column: "status", value: "failed" });
+    });
+
+    it("a held dispute settlement claim (a split in progress): nothing is written, ops paged", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.dispute_settlement_claims = { rows: [{ job_id: "job-ach", action: "split" }] };
+      cancelAnswers("not_cancellable");
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBe(200);
+      assertNothingWritten();
+    });
+
+    it("a read that fails throws (500, Stripe retries), nothing written", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { error: { message: "timeout" } } as never;
+      cancelAnswers("not_cancellable");
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBeGreaterThanOrEqual(500);
+      expect(cancelCalls()).toHaveLength(0);
+      expect(jobUpdates()).toHaveLength(0);
+    });
+
+    // The same check inside the RPC, under the job's row lock (20261102055222): its 'payout_moving' answer is the
+    // released branch too, never the unknown-outcome throw.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome === "payout_moving") { | } else if (false) {
+    it("the RPC answers payout_moving (a payout appeared after the read): nothing written, ops paged, acked", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.dispute_settlement_claims = { rows: [] };
+      cancelAnswers("payout_moving", { payment_status: "payout_pending" });
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBe(200);
+      expect(cancelCalls()).toHaveLength(1);
+      expect(jobUpdates()).toHaveLength(0);
+      expect(notices()).toHaveLength(0);
+      expect(slackAlerts.some((a) => /WHILE the payout was being sent/.test(String((a as { title?: string }).title)))).toBe(true);
+    });
+
+    it("control: no payout row and no claim: the job is taken out of escrow as before", async () => {
+      const fn = await loadConfigured();
+      failedEvent();
+      hiredDone();
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.dispute_settlement_claims = { rows: [] };
+      cancelAnswers("not_cancellable");
+      scenario.writeSelectRows.jobs = [{ id: "job-ach" }];
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      await fn.fetch(webhookRequest(fn));
+      expect(cancelCalls()).toHaveLength(1);
+      expect(jobUpdates().map((w) => w.payload)).toEqual([{ payment_status: "failed", stripe_session_id: null }]);
+    });
+  });
+
   it("replays 7440a72d (hired, unconfirmed): the job is CANCELLED through the sanctioned RPC, pinned to its own PI", async () => {
     const fn = await loadConfigured();
     failedEvent();
@@ -201,13 +293,16 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
 
   // Q1971 + Q1876 (merged with the train's returnBouncedGift): a funded job
   // NOBODY was hired on was never paid for, so after the un-fund its gift goes
-  // back exactly as an unpaid bounce's does; a hired job the RPC would not
-  // cancel (work done) keeps it, and the page names it (Q1975).
-  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && cancelOutcome === "not_hired"; | const giftAsked = false;
-  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && cancelOutcome === "not_hired"; | const giftAsked = Boolean(giftCardId);
+  // back exactly as an unpaid bounce's does. Q1975 part 2 (lead decision
+  // 11-01: 'failed' wins): a hired job the RPC would not cancel (work done) is
+  // never paid from the gift alone, so its gift goes back too. Only a cancel
+  // RPC that is not deployed keeps it, and the page names it.
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && (cancelOutcome === "not_hired" \|\| cancelOutcome === "not_cancellable"); | const giftAsked = false;
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && (cancelOutcome === "not_hired" \|\| cancelOutcome === "not_cancellable"); | const giftAsked = Boolean(giftCardId);
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const giftAsked = Boolean(giftCardId) && (cancelOutcome === "not_hired" \|\| cancelOutcome === "not_cancellable"); | const giftAsked = Boolean(giftCardId) && cancelOutcome === "not_hired";
   // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (giftBack === "returned" && job.customer_id) { | if (false) {
   // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | : ` Its checkout spent gift card ${giftCardId}, which is NOT returned | : ` Its checkout spent a gift card, which is NOT returned
-  it("nobody hired: the un-fund gives the spent gift back through return_bounced_gift_card and says so; work done keeps it and pages", async () => {
+  it("nobody hired, or work done: the un-fund gives the spent gift back through return_bounced_gift_card and says so; an undeployed cancel RPC keeps it and pages", async () => {
     const giftCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "return_bounced_gift_card");
     {
       const fn = await loadConfigured();
@@ -252,6 +347,24 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
       failedEvent(PI, { gift_card_id: "gift-1" });
       fundedJob({ status: "completed", helper_confirmed_at: "2026-10-16T18:40:55Z" });
       cancelAnswers("not_cancellable", { status: "completed" });
+      scenario.rpc.return_bounced_gift_card = { outcome: "returned", credit_id: "gift-1", payment_status: GIFT_CARD_PAID };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status).toBe(200);
+      // Q1975 part 2: work done, never paid from the gift alone, so the gift goes back.
+      expect(giftCalls().map((c) => c.args)).toEqual([{ p_job_id: "job-ach", p_gift_card_id: "gift-1" }]);
+      expect(notices().some((x) => x.title === "Gift card returned")).toBe(true);
+      expect(slackAlerts.some((a) => /NOT returned/.test(String((a as { message?: string }).message)))).toBe(false);
+    }
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+    {
+      // The cancel RPC not deployed: nothing decided, the gift is kept for a person and the page names it.
+      const fn = await loadConfigured();
+      failedEvent(PI, { gift_card_id: "gift-1" });
+      fundedJob({ status: "completed", helper_confirmed_at: "2026-10-16T18:40:55Z" });
+      cancelNotDeployed();
       stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
       const res = await fn.fetch(webhookRequest(fn));
       expect(res.status).toBe(200);

@@ -83,7 +83,8 @@ describe("one rule: Home's to-do holds a job exactly when Jobs files it under Ne
   it("the owner's row: Confirm the job is still on before her tap, Waiting (no to-do) after", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2037-10-31T15:35:00Z"));
-    expect(todosFor([job()]).map((x) => x.title)).toEqual(["Confirm the job is still on"]);
+    // A3-17 rest: the task is the job page's next step, with its deadline (jobNextStep).
+    expect(todosFor([job()]).map((x) => x.title)).toEqual(["Confirm the job is still on · by Sun 7:00 AM"]);
     expect(postedActivityBucket(job())).toBe("needs_you");
     const after = job({ poster_confirmed_at: "2037-10-31T15:31:41Z" } as Partial<Job>);
     expect(todosFor([after])).toEqual([]);

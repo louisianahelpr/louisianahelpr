@@ -51,11 +51,14 @@ export function SeriesDatesForJob({
   userId,
   isPoster,
   inset,
+  nextStep,
 }: {
   job: SeriesCardJob;
   userId: string | null | undefined;
   isPoster: boolean;
   inset?: boolean;
+  /** A3-44: the job page leads with the series' next step. */
+  nextStep?: boolean;
 }) {
   if (job.parent_job_id || !(job.recurrence_days?.length) || !job.recurrence_weeks || !job.date_needed) return null;
   if (job.series_ended_on || job.status === "cancelled") return null;
@@ -72,6 +75,7 @@ export function SeriesDatesForJob({
       firstHelpr={job.recurring_helper_id && job.recurring_helper_id === job.helper_id ? job.recurring_helper_id : null}
       firstVisitHasHelpr={!!job.helper_id}
       splitOk={!!job.series_split_ok}
+      nextStep={nextStep}
     />
   );
 }

@@ -24,7 +24,8 @@
 //                   settleRaise below; only a PAID page changes anything.
 //   declutter_delivery_tip (declutter-checkout delivery_tip, mode=payment) the
 //                   buyer tipped the delivery Helpr (Q2453): settleDeliveryTip
-//                   below records it; Stripe already paid the Helpr.
+//                   below records it; Stripe already paid the Helpr (a Helpr
+//                   on a payout hold has it pulled back and re-paid, Q2459).
 //
 // Idempotent: a replayed event finds 'already_paid' or the same refund row,
 // and a refund already 'succeeded' is not sent again. Any failure THROWS, so
@@ -40,7 +41,7 @@ import { queueEmail } from "../../_shared/resend.ts";
 import { declutterEmailParts, emailSeller } from "../../_shared/declutterSellerEmail.ts";
 import { recordDeclutterCardAsWalletDefault } from "./_walletDefaultCard.ts";
 import { tipChargeBreakdown } from "../../_shared/tipFees.ts";
-import { checkPayoutHold } from "../../_shared/payoutHold.ts";
+import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 
 const DECLUTTER_KINDS = new Set(["declutter_card", "declutter_order", "declutter_raise", "declutter_delivery_tip"]);
 
@@ -81,11 +82,11 @@ type TipPaidAnswer = { result: "paid" | "already" | "unknown" | "session_mismatc
  * and kept only the card fee (application_fee_amount, _shared/tipFees.ts). helpr_task_tip_paid
  * marks the row paid ONCE (a replay answers 'already') and tells the Helpr once. Tips are final
  * (Q781). What is never quiet: a page we cannot tie to its row, a charge that is not the tip's
- * own total, and a tip that reached a Helpr placed on a payout hold after the page opened (a job
- * tip is pulled back then, Q1222; a delivery tip is paged to staff, critical, to reverse by hand:
- * tip_hold_redrives only knows job tips). The hold is read on EVERY delivery, the paid one and any
- * replay ('already'), so a failed read that makes Stripe redeliver still pages (lh-money-escrow
- * review #1). Any failure THROWS, so Stripe redelivers.
+ * own total. A tip that reached a Helpr placed on a payout hold after the page opened is pulled back
+ * to the platform and re-paid once the hold lifts, exactly as a job tip (Q1222; Q2459:
+ * holdBackPaidTip with source 'delivery', a tip_hold_redrives row; process-scheduled-payouts
+ * re-pays it). It runs on EVERY delivery, the paid one and any replay ('already'), so a redelivery
+ * finishes a pull-back a failed one began. Any failure THROWS, so Stripe redelivers.
  */
 async function settleDeliveryTip(
   session: Stripe.Checkout.Session,
@@ -151,20 +152,13 @@ async function settleDeliveryTip(
       fields: { "Payment intent": paymentIntentId, Tip: meta.tip_id, Helpr: answer.helpr_id ?? "?" },
     });
   }
+  // A held tip (above) never left the platform; any other tip is a destination charge already on the Helpr's account.
   if (answer.helpr_id && answer.held !== true) {
-    const hold = await checkPayoutHold(supabase, answer.helpr_id);
-    if (hold.kind === "error") throw new Error(`payout hold read failed for ${answer.helpr_id}: ${hold.message}`);
-    if (hold.kind === "held") {
-      await postSlackOpsAlert({
-        kind: "money_at_risk",
-        severity: "critical",
-        // One page per tip, however often Stripe redelivers.
-        oncePerDayKey: `delivery-tip-held-${meta.tip_id}`,
-        title: "A delivery tip reached a Helpr on a payout hold",
-        message: `A ${dollars(Number(answer.tip_cents ?? 0))} delivery tip (session ${session.id}) was paid while its Helpr is on a payout hold. Stripe already sent it to their account. A job tip is pulled back here automatically (Q1222); this one is not: reverse the transfer by hand and pay it again when the hold lifts.`,
-        fields: { "Payment intent": paymentIntentId, Tip: meta.tip_id, Helpr: answer.helpr_id },
-      });
-    }
+    const back = await holdBackPaidTip(ctx.stripe, supabase, {
+      tipId: meta.tip_id, helperId: answer.helpr_id, paymentIntentId, jobId: null, source: "delivery",
+    });
+    // 'not_reversed' has already paged (reverseOwed); 'held_back' is re-paid by process-scheduled-payouts.
+    logStep("Declutter delivery tip payout-hold check", { tip: meta.tip_id, outcome: back.kind });
   }
 }
 
@@ -326,13 +320,31 @@ async function settleOrder(
     logStep("Declutter order session ignored (shape)", { id: session.id, mode: session.mode });
     return;
   }
-  if (session.payment_status !== "paid") {
+  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+  // Shipping S3 (Q2259, money review fix 2): a shipped order's page is a card HOLD (capture_method manual), so its
+  // session completes 'unpaid' with the PaymentIntent in requires_capture. The hold is recorded like a payment
+  // (declutter_mark_order_paid; the same transaction writes the one label claim); the label worker captures only
+  // after the label is bought. Read from the PaymentIntent itself, as Shops does (shopCheckout.ts).
+  let shipHeld = false;
+  if (meta.ship === "1" && session.payment_status !== "paid") {
+    if (!paymentIntentId) throw new Error(`declutter ship session ${session.id} has no payment_intent`);
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+    if (pi.status === "canceled") {
+      // A redelivery after the release below: close the refund row too, in case the first delivery stopped between.
+      await closeReleasedHoldRefund(supabase, paymentIntentId);
+      logStep("Declutter ship hold already released", { id: session.id, pi: paymentIntentId });
+      return;
+    }
+    if (pi.status !== "requires_capture" && pi.status !== "succeeded") {
+      throw new Error(`declutter ship session ${session.id}: payment ${paymentIntentId} is ${pi.status}, not a hold`);
+    }
+    shipHeld = pi.status === "requires_capture";
+  } else if (session.payment_status !== "paid") {
     // Card only (declutter-checkout sets payment_method_types ['card']), so
     // completion is payment; anything else is logged and left alone.
     logStep("Declutter order session completed unpaid", { id: session.id, payment_status: session.payment_status });
     return;
   }
-  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
   const amount = session.amount_total;
   if (!paymentIntentId || typeof amount !== "number") {
     throw new Error(`declutter order session ${session.id} paid without a PaymentIntent or amount`);
@@ -383,7 +395,37 @@ async function settleOrder(
   if (!answer || typeof answer !== "object" || !("result" in answer)) {
     throw new Error(`${partyGone ? "declutter_refund_party_gone" : "declutter_mark_order_paid"} gave no answer for order ${orderId}`);
   }
-  logStep("Declutter order settled", { order: orderId, result: answer.result });
+  logStep("Declutter order settled", { order: orderId, result: answer.result, shipHeld });
+  if (shipHeld && answer.result !== "paid" && answer.result !== "already_paid") {
+    // A hold the order does not take (closed, wrong amount, a second page): release it, which costs nobody
+    // anything; never a refund of money that was never taken. The refund row the answer recorded is left for ops
+    // (Shipping S6 teaches declutter-money to close a released hold's row).
+    await stripe.paymentIntents.cancel(paymentIntentId).catch((e: unknown) => {
+      throw new Error(`declutter ship hold ${paymentIntentId} release failed: ${String(e).slice(0, 200)}`);
+    });
+    // The refund row the answer recorded is closed (nothing was captured), so declutter-money never tries to refund
+    // a cancelled hold (20261101221604).
+    const closed = await closeReleasedHoldRefund(supabase, paymentIntentId);
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "warning",
+      title: "Declutter shipped order: hold released",
+      message: `Order ${orderId}'s card hold (${dollars(amount)}) was not taken (${answer.result}) and was released at no cost. Its refund row: ${closed}.`,
+      fields: { "Payment intent": paymentIntentId, Order: orderId },
+      oncePerDayKey: `declutter-ship-hold-released:${paymentIntentId}`,
+      // A test-mode hold (every ship order until the owner turns shipping on) is test data: digest only, never a page.
+      seed: event.livemode !== true,
+    });
+    return;
+  }
+  // A held payment cannot be partly refunded (nothing was taken): a setup fee owed back is settled at capture (S5).
+  if (answer.result === "already_paid" && shipHeld) return;
+  if (answer.result === "paid" && shipHeld) {
+    await sendMoneyEmail(ctx, meta.buyer_id, "declutter_receipt", "Your Declutter order",
+      `We're holding ${dollars(amount)} on your card for your Declutter order. You're charged once the shipping label is made; if it can't be made, the hold is released and you pay nothing. You'll get tracking in the app.`);
+    await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep, 0);
+    return;
+  }
   if (answer.result === "paid") {
     // lh-money-escrow review of the Q2352 rebase #4: the receipt names the setup fee only when this order's claim
     // WON ('claimed'); a lost claim (refund_due: "Setup fee coming back" follows) or a page without it (not_charged)
@@ -525,6 +567,14 @@ async function settleSetupFee(
       `Refund ${feeRefund.id} (${dollars(cents)}) sent the setup fee back on order ${orderId}, but the order answered ${String(recorded)}. Check the payment's refunds in Stripe.`);
   }
   logStep("Declutter setup fee sent back (paid elsewhere first)", { order: orderId, refund: feeRefund.id, result: recorded });
+}
+
+/** Shipping: a released hold's refund row is closed (nothing was captured). Throws on a database error, so Stripe
+ *  redelivers and the redelivery's canceled branch closes it. */
+async function closeReleasedHoldRefund(supabase: WebhookContext["supabase"], paymentIntentId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("declutter_ship_hold_refund_released", { p_payment_intent_id: paymentIntentId });
+  if (error) throw new Error(`declutter_ship_hold_refund_released failed: ${error.message}`);
+  return String(data);
 }
 
 async function executeRefund(

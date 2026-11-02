@@ -24,6 +24,14 @@ export function centsLabel(cents: number): string {
 const MONEY = "hsl(var(--burnt-sienna))";
 
 /**
+ * A3-41 (audit 11-01): the tip button names what the poster is CHARGED ("Pay $18.85"), the "You pay" figure above it,
+ * never the tip alone ("Tip $18.00"), which differed from Stripe's charge. The tip itself is in "<name> receives".
+ */
+export function tipPayLabel(tipDollars: number | undefined): string {
+  return tipDollars !== undefined && tipDollars > 0 ? `Pay ${centsLabel(tipQuoteForDollars(tipDollars).chargeCents)}` : "Tip";
+}
+
+/**
  * Tip / card processing / you pay / <name> receives, for one amount (boards
  * 180 and 182: one card, rust amounts, "You pay" the big line).
  */
@@ -31,7 +39,8 @@ export function TipCostBreakdown({ tipDollars, receiverName }: { tipDollars: num
   const q = tipQuoteForDollars(tipDollars);
   if (q.tipCents <= 0) return null;
   const row = (label: string, cents: number, big = false) => (
-    <div className={`flex items-baseline justify-between gap-4 ${big ? "pt-2 mt-1 border-t" : ""}`} style={big ? { borderColor: "hsl(var(--olivewood) / 0.12)" } : undefined}>
+    // A3-42: no divider over "You pay": since 10-25 it is the card's only row, so the hairline sat over nothing.
+    <div className="flex items-baseline justify-between gap-4">
       <dt className={`font-sans ${big ? "font-bold text-ds-16" : "text-ds-14"}`} style={{ color: "hsl(var(--ink-deep))" }}>{label}</dt>
       <dd className={`tabular-nums font-sans font-bold ${big ? "text-ds-22" : "text-ds-14"}`} style={{ color: MONEY }}>{centsLabel(cents)}</dd>
     </div>

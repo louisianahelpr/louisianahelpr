@@ -57,7 +57,7 @@ export function DirectionsButton({ location }: { location: string | null | undef
       variant="outline"
       className={JOB_ACTION_CHIP_CLASS}
       // `neutral`, not `primary`: Directions is navigational, a thing you do on
-      // the way to the decision — it must not out-shout "Mark job complete".
+      // the way to the decision — it must not out-shout "Mark it done".
       // Same olivewood tint Message wears, which is the tone this row speaks in.
       style={jobActionChipStyle("neutral")}
       // Slot merges it onto the <a>. The 320px density gate measures every

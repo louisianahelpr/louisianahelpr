@@ -58,11 +58,18 @@ export function expiredCopyFor(view: ExpiredView | null | undefined) {
   return view.viewerIsPoster ? EXPIRED_IN_THREAD.poster : EXPIRED_IN_THREAD.other;
 }
 
+/**
+ * A3-88 (audit 11-01): the inbox row said "Accepted" while the same thread's tracker lit "Hired". On the path, the chip
+ * uses the tracker's stage word (JOB_PROGRESS_STEPS) for the stage the status alone pins down, so one state has one
+ * name. Guard: src/test/threadChipUsesTrackerWords.test.ts.
+ */
+const TRACKER_WORD: Readonly<Record<string, string>> = { accepted: "Hired", in_progress: "Working", pending_approval: "Done" };
+
 /** The status chip's label in the inbox row and the chat header. */
 export function threadJobChipLabel(status: string, view: ExpiredView | null | undefined): string {
   if (status === "cancelled") {
     const expired = expiredCopyFor(view);
     if (expired) return expired.chip;
   }
-  return jobStatusLabel(status);
+  return TRACKER_WORD[status] ?? jobStatusLabel(status);
 }

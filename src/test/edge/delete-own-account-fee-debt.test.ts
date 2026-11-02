@@ -11,7 +11,11 @@
  * @mutate supabase/functions/delete-own-account/index.ts |     if (debt.active) { |     if (false) {
  * @mutate supabase/functions/delete-own-account/index.ts |     if (!debt.ok) { |     if (false) {
  * @mutate supabase/functions/_shared/accountPurge.ts | export const FEE_DEBT_RULING_FILTER = "card_fee_cents.is.null,card_fee_remaining_cents.gt.0"; | export const FEE_DEBT_RULING_FILTER = "card_fee_remaining_cents.gt.0";
- * @mutate supabase/functions/_shared/accountPurge.ts |     .gt("remaining_cents", 0) |     .gte("remaining_cents", 0)
+ * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("seller_id", userId)\n    .gt("remaining_cents", 0) |     .eq("seller_id", userId)\n    .gte("remaining_cents", 0)
+ * Q2245 (d): a lapsed series visit's debt (helpr_card_fee_debts) blocks it the same way.
+ * @mutate supabase/functions/_shared/accountPurge.ts |   if (lapsed.data && lapsed.data.length > 0) { |   if (false) {
+ * @mutate supabase/functions/_shared/accountPurge.ts |   if (lapsed.error && !tableAbsent(lapsed.error)) { |   if (false) {
+ * @mutate supabase/functions/_shared/accountPurge.ts |     .from("helpr_card_fee_debts")\n    .select("id")\n    .eq("helper_id", userId)\n    .gt("remaining_cents", 0) |     .from("helpr_card_fee_debts")\n    .select("id")\n    .eq("helper_id", userId)\n    .gte("remaining_cents", 0)
  * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("seller_id", userId)\n    .gt("remaining_cents", 0) |     .eq("buyer_id", userId)\n    .gt("remaining_cents", 0)
  * @mutate supabase/functions/_shared/accountPurge.ts |     .eq("helper_id", userId)\n    .or(FEE_DEBT_RULING_FILTER) |     .or(FEE_DEBT_RULING_FILTER)
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (ruling.error && !tableAbsent(ruling.error)) { |   if (false) {
@@ -88,7 +92,20 @@ describe("Q2171: delete-own-account refuses while a fee debt is owed", () => {
     ]));
   });
 
-  it.each(["job_helpr_fault_rulings", "declutter_seller_fee_debts"])("a failed %s read fails closed (500, nothing deleted)", async (table) => {
+  it("Q2245: a lapsed series visit's debt with money left blocks it", async () => {
+    scenario.reads.helpr_card_fee_debts = { rows: [{ id: "c1" }] };
+    const { res, body } = await call();
+    expect(res.status).toBe(409);
+    expect(body.error).toBe(FEE_DEBT_BLOCKS_DELETION_MESSAGE);
+    const q = readsOf("helpr_card_fee_debts");
+    expect(q).toHaveLength(1);
+    expect(q[0].filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ op: "eq", column: "helper_id", value: ME }),
+      expect.objectContaining({ op: "gt", column: "remaining_cents", value: 0 }),
+    ]));
+  });
+
+  it.each(["job_helpr_fault_rulings", "helpr_card_fee_debts", "declutter_seller_fee_debts"])("a failed %s read fails closed (500, nothing deleted)", async (table) => {
     scenario.reads[table] = { error: { code: "57014", message: "statement timeout" } };
     const { res, body } = await call();
     expect(res.status).toBe(500);
@@ -106,6 +123,7 @@ describe("Q2171: delete-own-account refuses while a fee debt is owed", () => {
   it("no debt: both tables are read and the delete goes on past the check", async () => {
     const { body } = await call();
     expect(readsOf("job_helpr_fault_rulings")).toHaveLength(1);
+    expect(readsOf("helpr_card_fee_debts")).toHaveLength(1);
     expect(readsOf("declutter_seller_fee_debts")).toHaveLength(1);
     expect(body.error).not.toBe(FEE_DEBT_BLOCKS_DELETION_MESSAGE);
     expect(body.error).not.toBe("Couldn't verify account state. Please try again.");

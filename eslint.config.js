@@ -7,6 +7,7 @@ import noSilentCatch from "./scripts/eslint-rules/no-silent-catch.js";
 import noButtonHeightOverride from "./scripts/eslint-rules/no-button-height-override.js";
 import noDeletingCommentStripper from "./scripts/eslint-rules/no-deleting-comment-stripper.js";
 import BUTTON_HEIGHT_LEGACY from "./scripts/eslint-rules/button-height-legacy.json" with { type: "json" };
+import EDGE_SILENT_CATCH_LEGACY from "./scripts/eslint-rules/edge-silent-catch-legacy.json" with { type: "json" };
 
 
 /* ── Type-scale guards ──────────────────────────────────────────────────
@@ -300,13 +301,15 @@ export default tseslint.config(
   // prior run were adding 176 phantom typecheck errors and 28 lint warnings to
   // the local gate — the gate CLAUDE.md treats as load-bearing — training us to
   // ignore it. Excluded here and in tsconfig.app.json so the gate stays honest.
-  { ignores: ["dist", "build", "scripts/generated/**", "**/build/**", "ios/**", ".claude/**", ".remember/**", "supabase/functions/**", "src/test/edge/**/*.gen.ts", ".lh-edge-gen/**", "playwright-fixture.ts", "playwright.config.ts"] },
+  { ignores: ["dist", "build", "scripts/generated/**", "**/build/**", "ios/**", ".claude/**", ".remember/**", "src/test/edge/**/*.gen.ts", ".lh-edge-gen/**", "playwright-fixture.ts", "playwright.config.ts"] },
   // Q246: a disable directive that suppresses nothing is an error, so a stale
   // one cannot outlive the code it excused.
   { linterOptions: { reportUnusedDisableDirectives: "error" } },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
+    // Edge functions (Deno) get their own block below (Q2378).
+    ignores: ["supabase/functions/**"],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -420,6 +423,28 @@ export default tseslint.config(
     // anything else. Tests are excluded wholesale further down: a spec that
     // swallows on purpose is asserting the swallow, not committing one.
     files: SILENT_CATCH_LEGACY,
+    rules: { "local/no-silent-catch": "off" },
+  },
+  {
+    // Q2378 (lh-silent-failure@4cf0f6e4cd#10): the edge functions were wholly
+    // ignored, so no-silent-catch never saw the money and payout code. They get
+    // that rule ALONE (the browser rule set does not fit Deno). The @typescript-eslint
+    // plugin is registered, not enabled, so the files' existing disable comments
+    // resolve; unused-directive reporting is off here for the same reason.
+    files: ["supabase/functions/**/*.{ts,tsx}"],
+    ignores: ["supabase/functions/**/*.test.{ts,tsx}", "supabase/functions/**/node_modules/**"],
+    linterOptions: { reportUnusedDisableDirectives: "off" },
+    languageOptions: { parser: tseslint.parser, parserOptions: { ecmaFeatures: { jsx: true } }, ecmaVersion: 2022, sourceType: "module" },
+    plugins: {
+      "@typescript-eslint": tseslint.plugin,
+      local: { rules: { "no-silent-catch": noSilentCatch } },
+    },
+    rules: { "local/no-silent-catch": "error" },
+  },
+  {
+    // The edge silent-catch pile that predates Q2378. ONLY SHRINKS, exact both
+    // ways (src/test/edgeSilentCatchLedger.test.ts).
+    files: EDGE_SILENT_CATCH_LEGACY,
     rules: { "local/no-silent-catch": "off" },
   },
   {

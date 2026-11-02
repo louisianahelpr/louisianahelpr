@@ -9,7 +9,7 @@ import {
 } from "./jobStepRow";
 import { useClaimedPersonTile } from "./jobCardPerson";
 import { JobStepOverflowChip } from "./JobActionRow";
-import { JobStepMenuContext, MenuAction, primaryButtons } from "./jobStepMenu";
+import { JobStepMenuContext, MenuAction, MenuTextAction, primaryButtons } from "./jobStepMenu";
 
 /** React keys of chips that ALWAYS live inside `More`, at every width, even
  *  when the row has room (owner, 2026-09-27: "report a problem should be under
@@ -365,8 +365,10 @@ export function JobStepCard({
   // is not handed over (it drew "Message | Message" on a hired job before its start, happy-path smoke 11-01).
   const menuPrimaries = menu && primaryChipKey !== "message" ? primaryButtons(ownPrimary) : [];
   const menuLead = menu?.leadHost ? menuPrimaries[0] ?? null : null;
+  // A3-40: with a text slot under the row, the other primaries (Tip beside Review) are text buttons there, not options.
+  const menuText = menu?.leadHost && menu.textHost ? menuPrimaries.slice(1) : [];
   const menuChips = menu
-    ? [...(menu.leadHost ? menuPrimaries.slice(1) : []), ...moreChips.filter((c) => !(isValidElement(c) && c.key === "message"))]
+    ? [...(menu.leadHost && !menu.textHost ? menuPrimaries.slice(1) : []), ...moreChips.filter((c) => !(isValidElement(c) && c.key === "message"))]
     : [];
   const menuCount = menuChips.length;
   const setMenuCount = menu?.setCount;
@@ -480,6 +482,7 @@ export function JobStepCard({
         {dialogs}
         {menu?.askHost && ask ? createPortal(ask, menu.askHost) : null}
         {menu?.leadHost && menuLead ? createPortal(<MenuAction chip={menuLead} lead pair className="w-full" />, menu.leadHost) : null}
+        {menu?.textHost && menuText.length > 0 ? createPortal(<>{menuText.map((c, i) => <MenuTextAction key={i} chip={c} />)}</>, menu.textHost) : null}
         {menu?.secondHost && menuCount === 1 ? createPortal(<MenuAction chip={menuChips[0]} pair className="w-full" />, menu.secondHost) : null}
         {menu?.listHost && menuCount >= 1
           ? createPortal(<>{menuChips.map((c, i) => <MenuAction key={isValidElement(c) && c.key != null ? String(c.key) : i} chip={c} className="w-full" />)}</>, menu.listHost)

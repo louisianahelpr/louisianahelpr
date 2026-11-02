@@ -1492,6 +1492,7 @@ export type Database = {
           applied_at: string | null
           card_fee_cents: number
           created_at: string
+          gave_up_notified_at: string | null
           id: string
           is_seed: boolean
           livemode: boolean | null
@@ -1518,6 +1519,7 @@ export type Database = {
           applied_at?: string | null
           card_fee_cents: number
           created_at?: string
+          gave_up_notified_at?: string | null
           id?: string
           is_seed?: boolean
           livemode?: boolean | null
@@ -1544,6 +1546,7 @@ export type Database = {
           applied_at?: string | null
           card_fee_cents?: number
           created_at?: string
+          gave_up_notified_at?: string | null
           id?: string
           is_seed?: boolean
           livemode?: boolean | null
@@ -1588,6 +1591,7 @@ export type Database = {
           attempts: number
           created_at: string
           executed_at: string | null
+          gave_up_notified_at: string | null
           held_notified_at: string | null
           id: string
           is_seed: boolean
@@ -1609,6 +1613,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           executed_at?: string | null
+          gave_up_notified_at?: string | null
           held_notified_at?: string | null
           id?: string
           is_seed?: boolean
@@ -1630,6 +1635,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           executed_at?: string | null
+          gave_up_notified_at?: string | null
           held_notified_at?: string | null
           id?: string
           is_seed?: boolean
@@ -2666,6 +2672,36 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_retained_strikes: {
+        Row: {
+          expires_at: string
+          given_at: string
+          id: string
+          identity_sha256: string
+          offender_side: string
+          reason: string
+          retained_at: string
+        }
+        Insert: {
+          expires_at: string
+          given_at: string
+          id?: string
+          identity_sha256: string
+          offender_side: string
+          reason: string
+          retained_at?: string
+        }
+        Update: {
+          expires_at?: string
+          given_at?: string
+          id?: string
+          identity_sha256?: string
+          offender_side?: string
+          reason?: string
+          retained_at?: string
+        }
+        Relationships: []
+      }
       declutter_talk_reminder_sends: {
         Row: {
           conversation: string
@@ -2804,6 +2840,8 @@ export type Database = {
           setup_fee_cents: number
           setup_fee_refund_id: string | null
           setup_fee_state: string | null
+          ship_capture: string | null
+          shipping_quote_id: string | null
           seller_id: string | null
           status: string
           stripe_checkout_session_id: string | null
@@ -2836,6 +2874,8 @@ export type Database = {
           setup_fee_cents?: number
           setup_fee_refund_id?: string | null
           setup_fee_state?: string | null
+          ship_capture?: string | null
+          shipping_quote_id?: string | null
           seller_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
@@ -2868,6 +2908,8 @@ export type Database = {
           setup_fee_cents?: number
           setup_fee_refund_id?: string | null
           setup_fee_state?: string | null
+          ship_capture?: string | null
+          shipping_quote_id?: string | null
           seller_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
@@ -3664,6 +3706,7 @@ export type Database = {
         Row: {
           amount_cents: number
           created_at: string
+          fee_estimated: boolean
           id: string
           is_seed: boolean
           refund_id: string | null
@@ -3671,10 +3714,17 @@ export type Database = {
           remaining_cents: number
           seller_id: string
           shop_refund_id: string | null
+          source_kind: string
+          source_ref: string
+          waive_note: string | null
+          waived_at: string | null
+          waived_by: string | null
+          waived_cents: number | null
         }
         Insert: {
           amount_cents: number
           created_at?: string
+          fee_estimated?: boolean
           id?: string
           is_seed?: boolean
           refund_id?: string | null
@@ -3682,10 +3732,17 @@ export type Database = {
           remaining_cents: number
           seller_id: string
           shop_refund_id?: string | null
+          source_kind?: string
+          source_ref?: string
+          waive_note?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waived_cents?: number | null
         }
         Update: {
           amount_cents?: number
           created_at?: string
+          fee_estimated?: boolean
           id?: string
           is_seed?: boolean
           refund_id?: string | null
@@ -3693,6 +3750,12 @@ export type Database = {
           remaining_cents?: number
           seller_id?: string
           shop_refund_id?: string | null
+          source_kind?: string
+          source_ref?: string
+          waive_note?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waived_cents?: number | null
         }
         Relationships: [
           {
@@ -5073,6 +5136,92 @@ export type Database = {
           },
         ]
       }
+      helpr_card_fee_debt_deductions: {
+        Row: {
+          created_at: string
+          debt_id: string
+          deducted_cents: number
+          id: string
+          payout_ref: string
+        }
+        Insert: {
+          created_at?: string
+          debt_id: string
+          deducted_cents: number
+          id?: string
+          payout_ref: string
+        }
+        Update: {
+          created_at?: string
+          debt_id?: string
+          deducted_cents?: number
+          id?: string
+          payout_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpr_card_fee_debt_deductions_debt_id_fkey"
+            columns: ["debt_id"]
+            isOneToOne: false
+            referencedRelation: "helpr_card_fee_debts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      helpr_card_fee_debts: {
+        Row: {
+          card_fee_cents: number
+          created_at: string
+          helper_id: string | null
+          id: string
+          is_seed: boolean
+          job_id: string | null
+          recurring_visit_payment_id: string | null
+          refund_ref: string | null
+          remaining_cents: number
+          source: string
+        }
+        Insert: {
+          card_fee_cents: number
+          created_at?: string
+          helper_id?: string | null
+          id?: string
+          is_seed?: boolean
+          job_id?: string | null
+          recurring_visit_payment_id?: string | null
+          refund_ref?: string | null
+          remaining_cents: number
+          source: string
+        }
+        Update: {
+          card_fee_cents?: number
+          created_at?: string
+          helper_id?: string | null
+          id?: string
+          is_seed?: boolean
+          job_id?: string | null
+          recurring_visit_payment_id?: string | null
+          refund_ref?: string | null
+          remaining_cents?: number
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpr_card_fee_debts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "helpr_card_fee_debts_recurring_visit_payment_id_fkey"
+            columns: ["recurring_visit_payment_id"]
+            isOneToOne: true
+            referencedRelation: "recurring_visit_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       helpr_delivery_online: {
         Row: {
           near_lat: number | null
@@ -5183,6 +5332,7 @@ export type Database = {
           debt_cents: number
           executed_at: string | null
           fee_cents: number
+          gave_up_notified_at: string | null
           held_notified_at: string | null
           helpr_id: string | null
           id: string
@@ -5208,6 +5358,7 @@ export type Database = {
           debt_cents?: number
           executed_at?: string | null
           fee_cents: number
+          gave_up_notified_at?: string | null
           held_notified_at?: string | null
           helpr_id?: string | null
           id?: string
@@ -5233,6 +5384,7 @@ export type Database = {
           debt_cents?: number
           executed_at?: string | null
           fee_cents?: number
+          gave_up_notified_at?: string | null
           held_notified_at?: string | null
           helpr_id?: string | null
           id?: string
@@ -5820,14 +5972,17 @@ export type Database = {
         Row: {
           created_at: string
           job_id: string
+          reason: string
         }
         Insert: {
           created_at?: string
           job_id: string
+          reason?: string
         }
         Update: {
           created_at?: string
           job_id?: string
+          reason?: string
         }
         Relationships: [
           {
@@ -8084,6 +8239,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      member_section_prefs: {
+        Row: {
+          section_order: string[]
+          sections_hidden: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          section_order?: string[]
+          sections_hidden?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          section_order?: string[]
+          sections_hidden?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       member_signup_sources: {
         Row: {
@@ -11901,6 +12077,7 @@ export type Database = {
           ship_to: Json
           shop_order_id: string | null
           label_state: string
+          packed_at: string | null
           tracking_code: string | null
           tracking_status: string | null
           updated_at: string
@@ -11930,6 +12107,7 @@ export type Database = {
           ship_to: Json
           shop_order_id?: string | null
           label_state?: string
+          packed_at?: string | null
           tracking_code?: string | null
           tracking_status?: string | null
           updated_at?: string
@@ -11959,6 +12137,7 @@ export type Database = {
           ship_to?: Json
           shop_order_id?: string | null
           label_state?: string
+          packed_at?: string | null
           tracking_code?: string | null
           tracking_status?: string | null
           updated_at?: string
@@ -13749,47 +13928,63 @@ export type Database = {
         Row: {
           amount_cents: number
           created_at: string
+          delivery_tip_id: string | null
           failure_reason: string | null
           first_repay_attempt_at: string | null
           helper_id: string
+          job_tip_id: string | null
           repay_transfer_id: string | null
           reversal_id: string | null
           status: string
           tip_id: string
+          tip_source: string
           transfer_id: string
           updated_at: string
         }
         Insert: {
           amount_cents: number
           created_at?: string
+          delivery_tip_id?: never
           failure_reason?: string | null
           first_repay_attempt_at?: string | null
           helper_id: string
+          job_tip_id?: never
           repay_transfer_id?: string | null
           reversal_id?: string | null
           status?: string
           tip_id: string
+          tip_source?: string
           transfer_id: string
           updated_at?: string
         }
         Update: {
           amount_cents?: number
           created_at?: string
+          delivery_tip_id?: never
           failure_reason?: string | null
           first_repay_attempt_at?: string | null
           helper_id?: string
+          job_tip_id?: never
           repay_transfer_id?: string | null
           reversal_id?: string | null
           status?: string
           tip_id?: string
+          tip_source?: string
           transfer_id?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "tip_hold_redrives_tip_id_fkey"
-            columns: ["tip_id"]
-            isOneToOne: true
+            foreignKeyName: "tip_hold_redrives_delivery_tip_id_fkey"
+            columns: ["delivery_tip_id"]
+            isOneToOne: false
+            referencedRelation: "helpr_task_tips"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_hold_redrives_job_tip_id_fkey"
+            columns: ["job_tip_id"]
+            isOneToOne: false
             referencedRelation: "tips"
             referencedColumns: ["id"]
           },
@@ -15009,6 +15204,14 @@ export type Database = {
         }
         Returns: string
       }
+      bill_helpr_card_fee_debt: {
+        Args: {
+          p_card_fee_cents: number
+          p_refund_ref: string
+          p_visit_payment_id: string
+        }
+        Returns: number
+      }
       bill_helpr_fault_card_fee: {
         Args: {
           p_card_fee_cents: number
@@ -15043,6 +15246,7 @@ export type Database = {
         Args: { _job_id: string; _receiver: string }
         Returns: boolean
       }
+      cancel_fee_payee_frozen: { Args: { p_user: string }; Returns: boolean }
       cancel_job_after_failed_bank_payment: {
         Args: {
           p_gift_card_id?: string
@@ -15080,6 +15284,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      clamp_helpr_fault_fee: {
+        Args: { p_cents: number; p_helper_id: string; p_job_id: string }
+        Returns: number
+      }
       clear_my_job_post_draft: { Args: never; Returns: undefined }
       client_compat_floor: { Args: never; Returns: number }
       close_moot_backout_notices: { Args: { p_job?: string }; Returns: number }
@@ -15098,12 +15306,21 @@ export type Database = {
         Returns: Json
       }
       declutter_book_by_reminder_sweep: { Args: { p_now?: string }; Returns: number }
+      declutter_card_fee_left: {
+        Args: {
+          p_card_fee_cents: number
+          p_reserved_cents: number
+          p_total_cents: number
+        }
+        Returns: number
+      }
       declutter_decline_listed_for_me: {
         Args: {
           p_item_id: string
         }
         Returns: undefined
       }
+      declutter_delivery_gave_up_check: { Args: never; Returns: number }
       declutter_delivery_still_in_hand: {
         Args: { p_order_id: string; p_task: string }
         Returns: Json
@@ -15216,6 +15433,7 @@ export type Database = {
           title: string
         }[]
       }
+      declutter_my_block_partners: { Args: never; Returns: string[] }
       declutter_open_handover_talk: {
         Args: { p_other: string }
         Returns: string
@@ -15232,6 +15450,11 @@ export type Database = {
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
       declutter_pickup_when: { Args: { p_order_id: string }; Returns: string }
+      declutter_restore_retained_strikes: {
+        Args: { p_identity_sha256: string; p_user_id: string }
+        Returns: number
+      }
+      declutter_seller_fault_sweep: { Args: never; Returns: number }
       helpr_task_talk_view: { Args: { p_task_id: string }; Returns: Json }
       helpr_task_send_message: {
         Args: { p_task_id: string; p_body: string }
@@ -15313,6 +15536,21 @@ export type Database = {
         Returns: number
       }
       declutter_admin_decide_delivery_damage: { Args: { p_note: string; p_problem_id: string }; Returns: Json }
+      declutter_admin_fee_debts: {
+        Args: { p_user: string }
+        Returns: {
+          amount_cents: number
+          created_at: string
+          fee_estimated: boolean
+          id: string
+          items: string
+          reason: string
+          remaining_cents: number
+          waive_note: string
+          waived_at: string
+          waived_cents: number
+        }[]
+      }
       declutter_admin_problem_case: {
         Args: { p_problem_id: string }
         Returns: {
@@ -15344,6 +15582,7 @@ export type Database = {
           side: string
         }[]
       }
+      declutter_admin_waive_fee_debt: { Args: { p_debt_id: string; p_note: string }; Returns: Json }
       declutter_admin_open_problems: {
         Args: { p_include_test?: boolean }
         Returns: {
@@ -15528,6 +15767,10 @@ export type Database = {
         Returns: boolean
       }
       needs_you_reminder_quiet: { Args: { p_at: string }; Returns: boolean }
+      section_keys_ok: {
+        Args: { keys: string[]; max_len: number }
+        Returns: boolean
+      }
       sweep_chat_unread_reminders: {
         Args: { p_now?: string }
         Returns: Json
@@ -16065,6 +16308,13 @@ export type Database = {
           paid_cents: number
         }[]
       }
+      declutter_my_refunded_cents: {
+        Args: { p_order_ids: string[] }
+        Returns: {
+          order_id: string
+          refunded_cents: number
+        }[]
+      }
       declutter_my_porch_days: { Args: never; Returns: number[] }
       declutter_my_porch_places: {
         Args: never
@@ -16103,6 +16353,17 @@ export type Database = {
         Returns: { area: string; label: string; weekdays: number[]; windows: Json }[]
       }
       declutter_set_porch_place: { Args: { p_place_id: string; p_seller_id: string }; Returns: string }
+      declutter_ship_hold_refund_released: { Args: { p_payment_intent_id: string }; Returns: string }
+      declutter_ship_hold_released: { Args: { p_order_id: string }; Returns: string }
+      declutter_ship_setup_fee_at_capture: { Args: { p_order_id: string }; Returns: number }
+      declutter_ship_sweep: { Args: never; Returns: Json }
+      declutter_shipping_reserved_cents: { Args: { p_order_id: string }; Returns: number }
+      declutter_seller_can_ship: { Args: { p_seller_id: string }; Returns: boolean }
+      declutter_ship_refund_after_void: { Args: { p_order_id: string }; Returns: string }
+      declutter_ship_by: { Args: { p_paid: string }; Returns: string }
+      declutter_my_ship_label: { Args: { p_order_id: string }; Returns: Json }
+      declutter_mark_packed: { Args: { p_order_id: string }; Returns: string }
+      declutter_my_ship_tracking: { Args: { p_order_id: string }; Returns: Json }
       declutter_order_place: {
         Args: { p_order_id: string }
         Returns: { address: string; area: string; label: string; lat: number; lng: number; weekdays: number[] }[]
@@ -18618,6 +18879,8 @@ export type Database = {
       profile_handle_base: { Args: { p_full_name: string }; Returns: string }
       profile_handle_problem: { Args: { p_handle: string }; Returns: string }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
+      promotions_resubscribe: { Args: { p_user_id: string }; Returns: string }
+      promotions_unsubscribe: { Args: { p_user_id: string }; Returns: Json }
       prune_cron_http_requests: { Args: never; Returns: number }
       prune_cron_run_details: { Args: never; Returns: number }
       prune_cron_run_log: { Args: never; Returns: number }
@@ -19404,7 +19667,7 @@ export type Database = {
         Returns: undefined
       }
       restore_gift_card_for_job: {
-        Args: { p_dry_run?: boolean; p_job_id: string; p_share_bps?: number }
+        Args: { p_dry_run?: boolean; p_job_id: string; p_restore_cents?: number; p_share_bps?: number }
         Returns: Json
       }
       restore_helpr_fault_fee: {

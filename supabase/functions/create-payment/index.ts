@@ -74,7 +74,7 @@ import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { isDefinitiveStripeRefusal } from "../_shared/stripeRefusal.ts";
 import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
 import { TIP_WAITS_ON_ID_CODE, TIP_WAITS_ON_ID_MESSAGE, checkIdentityHold, checkPayoutHold, checkJobPayoutHold, IDENTITY_HOLD_MESSAGE, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
-import { holdUnlessPayable, noteDestinationChargeRefused } from "../_shared/livePayoutHold.ts";
+import { holdUnlessPayable, noteDestinationChargeRefused, reportLiveGateDefect } from "../_shared/livePayoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
@@ -2624,7 +2624,14 @@ serve(async (req) => {
         ? await supabaseAdmin.rpc("payout_waits_on_identity", { p_user_id: qJob.helper_id })
         : { data: false, error: null };
       if (qIdErr && qIdErr.code !== "PGRST202") return unquoted("unreadable", null);
-      const feeCents = qIdWaits === true ? 0 : Math.round(computeCancellationFee({ ...qJob, cancelled_at: nowIso }) * 100);
+      // Q1415 (e): a confirmed Helpr who is banned or under an open ban review carries no fee either; poster_cancel_job
+      // asks the same function under its lock. Not deployed yet (PGRST202) is the old rule, which the old SQL also
+      // charges; any other error quotes no amount (no p_expected_fee_cents is sent, so the cancel is never refused).
+      const { data: qFrozen, error: qFrozenErr } = qJob.helper_id && qJob.helper_confirmed_at && qIdWaits !== true
+        ? await supabaseAdmin.rpc("cancel_fee_payee_frozen", { p_user: qJob.helper_id })
+        : { data: false, error: null };
+      if (qFrozenErr && qFrozenErr.code !== "PGRST202") return unquoted("unreadable", null);
+      const feeCents = qIdWaits === true || qFrozen === true ? 0 : Math.round(computeCancellationFee({ ...qJob, cancelled_at: nowIso }) * 100);
       // Its tier, from the same ladder (0 when no fee is recorded).
       feePercent = feeCents > 0 && qJob.date_needed
         ? cancellationFeePercent(helperIsCommitted(qJob), hoursUntilJob(qJob.date_needed, nowIso, qJob.start_time ?? null))
@@ -6285,7 +6292,7 @@ async function transferToHelper(
   // onboarded" when the truth is "the profiles read blipped".
   const { data: helperProfile, error: helperProfileErr } = await supabaseAdmin
     .from("profiles")
-    .select("stripe_account_id")
+    .select("stripe_account_id, is_seed")
     .eq("user_id", helperId)
     .maybeSingle();
   if (helperProfileErr) {
@@ -6361,7 +6368,11 @@ async function transferToHelper(
     what: "the dispute release payout",
     then: "Nothing moved; the dispute stays open until it is released again.",
     fields: { job_id: jobId },
+    // A test Helpr never pages the owner (digest only).
+    seed: (helperProfile as { is_seed?: boolean | null }).is_seed === true,
   });
+  // Q2406: the gate's defect reaches ops, never only console.warn.
+  if (live.held && live.defect) await reportLiveGateDefect({ fn: "create-payment", helperId, defect: live.defect, fields: { job_id: jobId }, seed: (helperProfile as { is_seed?: boolean | null }).is_seed === true });
   if (live.held) {
     throw new PublicError(live.kind === "platform_rejected" || live.kind === "cannot_verify"
       ? "Stripe could not confirm the Helpr's payout account right now, so no money was moved. Try again later."

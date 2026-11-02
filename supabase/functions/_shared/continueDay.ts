@@ -39,6 +39,7 @@ export async function loadContinuingJobs(
       .in("job_id", ids)
       .in("status", [...CONTINUE_DAY_ACTIVE_STATUSES]);
   } catch (err) {
+    // Not silent: the failure goes back to the caller as { ok: false, message }, which reports it.
     return { ok: false, message: caughtMessage(err) };
   }
   if (res.error) {

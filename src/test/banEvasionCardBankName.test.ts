@@ -36,7 +36,7 @@
  * @mutate src/components/admin/AdminFraudDashboard.tsx |       <AdminBanEvasionReview /> |
  * @mutate supabase/migrations/20261027200455_helpr_guarantee.sql |                 WHERE q.review_state = 'open' AND q.user_id IN (v_customer, v_helper, NEW.helper_id)) THEN | WHERE false) THEN
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |   BEFORE UPDATE OF payment_status ON public.jobs |   AFTER UPDATE OF payment_status ON public.jobs
- * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |                          current_setting('app.ban_settlement_as_of', true)::timestamptz); |                          now());
+ * @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |                          current_setting('app.ban_settlement_as_of', true)::timestamptz); |                          now());
  * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |     PERFORM set_config('app.ban_settlement_as_of', v_review.created_at::text, true); |     PERFORM 1;
  * @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |        SET ban_status           = 'banned',\n           auto_suspended_until = NULL |        SET ban_status           = v_row.ban_status,\n           auto_suspended_until = v_row.expires_at
  * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN

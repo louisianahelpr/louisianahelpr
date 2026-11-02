@@ -18,6 +18,12 @@
  * @mutate src/components/job-card/embeddedActivity.tsx | label={tab === "posted" ? "Search posted jobs" | label={tab === "posted" ? "Search all sections"
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
+// The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
+// (no row yet, saves accepted); the device copy and the hook's own rules stay real.
+vi.mock("@/lib/sectionPrefsRow", () => ({
+  fetchSectionPrefsRow: async () => ({ data: null, error: null }),
+  saveSectionPrefsRow: async () => ({ error: null }),
+}));
 import { render, renderHook, act, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { useState, type ReactNode } from "react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";

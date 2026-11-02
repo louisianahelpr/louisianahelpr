@@ -920,13 +920,13 @@ test.describe.serial("marketplace chain", () => {
         const before = c.getByText("Before photo", { exact: true });
         const after = c.getByText("After photo", { exact: true });
         const start = c.getByRole("button", { name: /^Start working$/ });
-        // "Mark job complete" (owner, 2026-09-14; was "Request My Payout"). Since
+        // "Mark it done" (owner, 2026-09-14; was "Request My Payout"). Since
         // VN-21 the tracker's Done CTA is the card's ONE primary and the
         // same-label PayoutPrimary stands down, so there is one; `.first()`
         // stays as a guard. It opens the "Mark This Job Complete?"
-        // confirmation this step expects (its button reads "Mark job complete",
+        // confirmation this step expects (its button reads "Mark it done",
         // owner 2026-09-14; was "Yes, I'm Done").
-        const payout = c.getByRole("button", { name: /^Mark job complete$/ }).first();
+        const payout = c.getByRole("button", { name: /^Mark it done$/ }).first();
         await expect(before.or(after).or(start).or(payout).first(), `helper card offers no next step (so far: ${seen.join(" > ")})`).toBeVisible({ timeout: 45_000 });
         if (await before.isVisible() || await after.isVisible()) {
           const label = (await before.isVisible()) ? "Before" : "After";
@@ -963,12 +963,12 @@ test.describe.serial("marketplace chain", () => {
           await assertHealthy(hp, "start working");
           await journey.milestone(hp, "working");
         } else {
-          seen.push("Mark job complete");
-          const payoutButtons = await c.getByRole("button", { name: /^Mark job complete$/ }).count();
+          seen.push("Mark it done");
+          const payoutButtons = await c.getByRole("button", { name: /^Mark it done$/ }).count();
           test.info().annotations.push({ type: "payout-cta-count", description: String(payoutButtons) });
           await payout.click();
-          const yes = hp.getByRole("alertdialog").getByRole("button", { name: "Mark job complete", exact: true });
-          await expect(yes, "Mark job complete opened no confirmation").toBeVisible({ timeout: 15_000 });
+          const yes = hp.getByRole("alertdialog").getByRole("button", { name: "Mark it done", exact: true });
+          await expect(yes, "Mark it done opened no confirmation").toBeVisible({ timeout: 15_000 });
           await journey.milestone(hp, "request-payout-confirm");
           await yes.click();
           // The done write asks for location on its way out (JobTracking's

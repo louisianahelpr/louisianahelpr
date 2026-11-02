@@ -1,5 +1,5 @@
 /**
- * AUD31-79 (audit 10-31, Jobs arrival): the job page's "Mark job complete" opened the Working card but not the confirm
+ * AUD31-79 (audit 10-31, Jobs arrival): the job page's "Mark it done" opened the Working card but not the confirm
  * ("Mark this job complete?"), so it took two presses. The page leaves a one-shot request (helperStepRequest.ts) and
  * opens the card. On a Working tab that has not loaded the card's tracking row yet, the tracker first draws from the
  * job row alone (arrived, no poster tap: next step Start working), and that first draw dropped the "done" request
@@ -97,7 +97,7 @@ describe("AUD31-79: a done request from the job page opens the confirm on a cold
         proofBeforeUrls={["b.jpg"]} proofAfterUrls={["a.jpg"]} requirePhotoProof
       />,
     );
-    expect(await screen.findByRole("button", { name: /mark job complete/i })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /mark it done/i })).toBeTruthy();
     expect(await screen.findByText("Mark this job complete?", {}, { timeout: 2000 })).toBeTruthy();
   });
 });

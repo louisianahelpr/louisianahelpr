@@ -447,6 +447,72 @@ describe("auto-release-payment honours the payout hold", () => {
     });
   }
 
+  // Q2397 (lh-money-escrow review of the seedmode lane, #3): a Stripe-mode
+  // party refusal (a job mixing a test and a real account, or an unenrolled
+  // test-looking Helpr) is fixed by the account's enrolment or a hand payout,
+  // never by retrying: no failed attempt (so no give-up page that says "pay it
+  // by hand" for the wrong reason). It is a run defect naming the reason, as
+  // the same refusal is at this sweep's own Stripe read and in
+  // process-scheduled-payouts.
+  // @mutate supabase/functions/auto-release-payment/index.ts |           } else if (json.code === "stripe_mode_refused") { |           } else if (false) {
+  // @mutate supabase/functions/auto-release-payment/index.ts |       if (TEST_ACCOUNT_REFUSALS.has(reason) && (await jobHasTestParty(jobId))) seedDefects.push |       if (false) seedDefects.push
+  // @mutate supabase/functions/auto-release-payment/index.ts |   "counterparty_refused",\n |
+  // The digest only when the job or a party IS a test account (is_seed or a
+  // test_accounts row); a fixture inbox on a real account (neither) reads
+  // counterparty_refused / fixture_email too, and stays counted (lead 11-02).
+  // @mutate supabase/functions/auto-release-payment/index.ts |       if (j.is_seed === true) return true;\n      const ids | const ids
+  // @mutate supabase/functions/auto-release-payment/index.ts |       if (pErr \|\| eErr) return false; |       if (pErr \|\| eErr) return true;
+  const REFUSALS = [["mixed_parties", 409], ["lookup_failed", 503], ["unenrolled_seed", 403], ["fixture_email", 403], ["counterparty_refused", 409], ["test_account_live_only", 403]] as const;
+  const PARTIES = [
+    ["a test Helpr (is_seed)", { helperSeed: true, enrolled: [] as string[], jobSeed: false }],
+    ["an enrolled Helpr", { helperSeed: false, enrolled: ["helper-1"], jobSeed: false }],
+    ["an is_seed job", { helperSeed: false, enrolled: [] as string[], jobSeed: true }],
+    ["real and real (a fixture inbox on a real account)", { helperSeed: false, enrolled: [] as string[], jobSeed: false }],
+  ] as const;
+  for (const [reason, status] of REFUSALS) {
+    for (const [who, p] of PARTIES) {
+      it(`release-payout refusing the Stripe mode (${reason}), ${who}: not a failed attempt; ${reason === "mixed_parties" || reason === "lookup_failed" || who.startsWith("real") ? "counted" : "digest only"}`, async () => {
+        seed(scenario);
+        scenario.reads.payout_holds = { rows: [] };
+        (scenario.reads.jobs as { selectOverrides: unknown[] }).selectOverrides.push({
+          includes: "id, customer_id, helper_id, is_seed",
+          result: { rows: [{ id: "job-p", customer_id: "poster-1", helper_id: "helper-1", is_seed: p.jobSeed }] },
+        });
+        scenario.reads.profiles = { rows: [], selectOverrides: [{ includes: "user_id, is_seed", result: { rows: [
+          { user_id: "poster-1", is_seed: false }, { user_id: "helper-1", is_seed: p.helperSeed },
+        ] } }] };
+        scenario.reads.test_accounts = { rows: p.enrolled.map((user_id) => ({ user_id })) };
+        vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "refused", code: "stripe_mode_refused", reason }), { status })));
+        const res = await run();
+        const body = await json(res);
+        const row = (body.payoutResults as Array<{ status: string; detail?: string }>)[0];
+        expect(row.status).toBe("stripe_mode_refused");
+        expect(row.detail).toContain(reason);
+        expect(failedAttempts()).toHaveLength(0);
+        expect(JSON.stringify(body)).toContain(`stripe mode job-p: ${reason}`);
+        const seedOnly = reason !== "mixed_parties" && reason !== "lookup_failed" && !who.startsWith("real");
+        expect((body.seedDefects as string[]).some((d) => d.includes(`stripe mode job-p: ${reason}`))).toBe(seedOnly);
+        expect(res.status).toBe(seedOnly ? 200 : 500);
+      });
+    }
+  }
+
+  it("a test-account refusal whose party read fails is counted (unknown => page)", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    (scenario.reads.jobs as { selectOverrides: unknown[] }).selectOverrides.push({
+      includes: "id, customer_id, helper_id, is_seed",
+      result: { rows: [{ id: "job-p", customer_id: "poster-1", helper_id: "helper-1", is_seed: false }] },
+    });
+    scenario.reads.profiles = { rows: [], selectOverrides: [{ includes: "user_id, is_seed", result: { rows: [{ user_id: "helper-1", is_seed: true }] } }] };
+    scenario.reads.test_accounts = { error: { message: "connection reset" } };
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "refused", code: "stripe_mode_refused", reason: "counterparty_refused" }), { status: 409 })));
+    const res = await run();
+    const body = await json(res);
+    expect((body.seedDefects as string[]).length).toBe(0);
+    expect(res.status).toBe(500);
+  });
+
   it("an unreadable hold attempts NO payout this run and is a defect", async () => {
     seed(scenario);
     scenario.reads.payout_holds = { error: { message: "connection reset", code: "08006" } };

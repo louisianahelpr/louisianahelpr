@@ -96,7 +96,8 @@ function flagValue(name) {
 
 /**
  * Every `<Route path=…>` in src/App.tsx, with what wraps it. A route whose
- * element is ONLY a redirect (`<Navigate …/>`, `<XRedirect />`) is kept in the
+ * element is ONLY a redirect (`<Navigate …/>`, or a component whose module
+ * renders only a `<Navigate>`, Q2258) is kept in the
  * list but marked, so the report can say "redirect — covered at its target"
  * rather than pressing the same target twice.
  */
@@ -119,7 +120,50 @@ export function rowTimings(results, endedAt) {
     .sort((a, b) => b.ms - a.ms);
 }
 
-export function parseAppRoutes(appSrc = readFileSync(resolve(REPO, "src/App.tsx"), "utf8")) {
+/**
+ * Q2258: is this component module a PURE redirect, judged by what it renders
+ * (not by its name)? True only when its `export default function` returns a
+ * `<Navigate …/>` on every return (directly or through a const bound to one).
+ * Anything else (a page, a loading or error screen on some path, an arrow
+ * export this cannot read) is a page and is pressed.
+ */
+export function moduleIsPureRedirect(src) {
+  if (typeof src !== "string") return false;
+  const head = /export\s+default\s+function\s*\w*\s*\([^)]*\)\s*(?::[^{]+)?\{/.exec(src);
+  if (!head) return false;
+  let depth = 1;
+  let i = head.index + head[0].length;
+  const start = i;
+  for (; i < src.length && depth > 0; i++) {
+    if (src[i] === "{") depth++;
+    else if (src[i] === "}") depth--;
+  }
+  if (depth !== 0) return false;
+  // Comments out of the body so a word in a note is never read as a return (a tool
+  // script, not a guard: the guards' blankComments helper is TypeScript).
+  const body = src.slice(start, i - 1).replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:"'`])\/\/[^\n]*/g, "$1");
+  const navConsts = new Set([...body.matchAll(/\bconst\s+(\w+)\s*=\s*\(?\s*<Navigate\b/g)].map((m) => m[1]));
+  const returns = [...body.matchAll(/\breturn\b\s*([^;]*);/g)].map((m) => m[1].trim());
+  if (!returns.length) return false;
+  return returns.every((r) => /^\(?\s*<Navigate\b/.test(r) || navConsts.has(r));
+}
+
+/** The source of the module App.tsx binds `name` to (a static or lazy import), or null. */
+export function appComponentSource(name, appSrc) {
+  const esc = name.replace(/[^\w]/g, "");
+  const m = new RegExp(`import\\s+${esc}\\s+from\\s+"([^"]+)"`).exec(appSrc)
+    ?? new RegExp(`const\\s+${esc}\\s*=\\s*\\w+\\(\\s*\\(\\)\\s*=>\\s*import\\("([^"]+)"\\)`).exec(appSrc);
+  if (!m) return null;
+  const spec = m[1];
+  const base = spec.startsWith("@/") ? resolve(REPO, "src", spec.slice(2)) : spec.startsWith(".") ? resolve(REPO, "src", spec) : null;
+  if (!base) return null;
+  for (const f of [base, `${base}.tsx`, `${base}.ts`, `${base}/index.tsx`, `${base}/index.ts`]) {
+    if (existsSync(f) && !f.endsWith("/") && /\.(tsx?|jsx?)$/.test(f)) return readFileSync(f, "utf8");
+  }
+  return null;
+}
+
+export function parseAppRoutes(appSrc = readFileSync(resolve(REPO, "src/App.tsx"), "utf8"), readComponent = appComponentSource) {
   const out = [];
   for (const m of appSrc.matchAll(/(\{\s*(\w+)\s*&&\s*)?<Route\s+path="([^"]+)"\s+element=\{([\s\S]*?)\}\s*\/>/g)) {
     const guard = m[2];
@@ -134,7 +178,9 @@ export function parseAppRoutes(appSrc = readFileSync(resolve(REPO, "src/App.tsx"
       .replace(/^routeEl\(([\s\S]*)\)$/, "$1")
       .replace(/^<ProtectedRoute>([\s\S]*)<\/ProtectedRoute>$/, "$1")
       .trim();
-    const redirect = /^<Navigate\b/.test(el) || /^<\w*Redirect\s*\/>$/.test(page);
+    // Q2258: a page component is a redirect only when its module renders nothing but a <Navigate>.
+    const only = /^<(\w+)\s*\/>$/.exec(page);
+    const redirect = /^<Navigate\b/.test(el) || (only !== null && moduleIsPureRedirect(readComponent(only[1], appSrc)));
     out.push({
       path,
       redirect,
@@ -1941,7 +1987,19 @@ async function main() {
            * src/test/pressDrivesTheRealPressPath.test.tsx runs this loop).
            */
           if (entry.mutating) {
-            const liveRowText = await target.evaluate(LIVE_ROW_TEXT, RECORD_ROW_SEL).catch(() => null);
+            // Q2010: LIVE_ROW_TEXT never returns null (it returns ""), so a failed read means it THREW. A
+            // write whose record cannot be confirmed is never pressed: it FAILS, like the "gone" branch.
+            let rowReadError = null;
+            const liveRowText = await target.evaluate(LIVE_ROW_TEXT, RECORD_ROW_SEL).catch((e) => {
+              rowReadError = String(e?.message ?? e).slice(0, 120);
+              return null;
+            });
+            if (rowReadError !== null) {
+              entry.result = "FAIL"; entry.why = `its record could not be read before the press (${rowReadError}), so it was not pressed`;
+              rec.failed++; failedPresses++;
+              entry.shot = await shoot(`record-unreadable-${slug(label)}`);
+              continue;
+            }
             if (liveRowText !== null) {
               const now = await enumerate(item.step.scope);
               const placed = pressTargetRecord({ liveRowText, meta, now });

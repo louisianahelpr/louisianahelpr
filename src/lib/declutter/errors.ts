@@ -155,6 +155,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   before_pickup_time: "You can mark it picked up from the booked pickup time.",
   not_delivered_yet: "You can confirm you got it from the delivery day, or once the seller marks it delivered.",
   got_it_too_early: "You can tap \"I got it\" from an hour before the booked time.",
+  // B134, shipping (20261102023246 / 20261102025148): the label is not bought or the payment not taken yet.
+  label_not_ready: "The label isn't ready yet. Try again in a few minutes.",
   not_a_door_pickup: "Only a pickup at the door is marked \"Picked up\" by the seller. For porch pickups the buyer confirms.",
   invalid_porch_time: "Pick a time after the booked pickup, on the same day.",
   invalid_method: "Something went wrong with the handover. Please try again.",
@@ -376,7 +378,7 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
  */
 export class ListingPhotoError extends Error {}
 
-const GENERIC = "Something went wrong. Please try again.";
+const GENERIC = "Couldn't do that just now. Check your connection and try again.";
 
 /** Audit 1d D4-14: the device is offline (the browser says so). Any typed text stays where it was. */
 export const DECLUTTER_OFFLINE_COPY = "You're offline. Try again when you're back online.";

@@ -4,7 +4,7 @@
  * `JobCardShell` renders every job card COLLAPSED. A collapsed card is a
  * summary — category, heading, price, location chip, one status sentence — and
  * it contains no tracker at all. `JobTracking`'s rung buttons ("I'm On My
- * Way", "I've arrived", "Start working", "Mark job complete") and
+ * Way", "I've arrived", "Start working", "Mark it done") and
  * `PhotoProofCaptureChip`'s photo asks only exist once the card is open.
  *
  * THE DAY THIS COST, 2026-09-22. The full money loop against production — the
@@ -65,7 +65,7 @@ function trackerControlNames(): string[] {
   const names = new Set<string>();
 
   // The rung labels, as the component writes them.
-  for (const m of tracking.matchAll(/"(I'm on my way|I've arrived|Start working|Mark job complete)"/g)) {
+  for (const m of tracking.matchAll(/"(I'm on my way|I've arrived|Start working|Mark it done)"/g)) {
     names.add(m[1]);
   }
 

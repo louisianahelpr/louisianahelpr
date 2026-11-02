@@ -150,6 +150,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/confirmLink.ts";`,
   );
 
+  // Q2079: `_shared/rpcNotDeployed.ts` has ZERO imports (one predicate), so
+  // point at the REAL module.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/rpcNotDeployed\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/rpcNotDeployed.ts";`,
+  );
+
   // Guest support tickets: `_shared/supportGuest.ts` has ZERO imports, so point
   // at the REAL module and the writer and reader stay under test together.
   out = out.replace(
@@ -929,6 +936,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/crewShares.ts";`,
   );
 
+  // Q1909: `_shared/stripeTestIdScan.ts` is pure TS with no imports: the test-id classifier money-reconciliation grades
+  // every money table with, tested as the real one.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeTestIdScan\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeTestIdScan.ts";`,
+  );
+
   // Owner 2026-10-14 (never absorb a fee): `_shared/refundAmount.ts` has ZERO
   // imports and is THE refund-amount definition every refund path uses, so the
   // real module runs and the amounts sent to Stripe stay under test.
@@ -1160,7 +1174,7 @@ const serve = (h) => __hReg(h);
  * harness mocks (slack-alerts). Q1223 moved the chargeback clawback here from
  * stripe-webhook/handlers so process-scheduled-payouts can call it.
  */
-const SHARED_WALKED = ["/_shared/instantPayoutFeeReturn.ts", "/_shared/chargebackClawback.ts", "/_shared/heldTipRepay.ts", "/_shared/connectGateSync.ts", "/_shared/crewBlockFees.ts", "/_shared/shopHolds.ts", "/_shared/connectReadiness.ts", "/_shared/shopRefunds.ts", "/_shared/livePayoutGate.ts", "/_shared/cardHold.ts", "/_shared/livePayoutHold.ts", "/_shared/declutterSellerEmail.ts"];
+const SHARED_WALKED = ["/_shared/instantPayoutFeeReturn.ts", "/_shared/chargebackClawback.ts", "/_shared/heldTipRepay.ts", "/_shared/connectGateSync.ts", "/_shared/crewBlockFees.ts", "/_shared/shopHolds.ts", "/_shared/connectReadiness.ts", "/_shared/shopRefunds.ts", "/_shared/livePayoutGate.ts", "/_shared/cardHold.ts", "/_shared/livePayoutHold.ts", "/_shared/declutterSellerEmail.ts", "/_shared/shipLabelRun.ts"];
 
 function isLocalModuleSpecifier(spec: string): boolean {
   return (

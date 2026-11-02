@@ -34,10 +34,10 @@
  * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '72 hours'\n     WHERE id = r.id; |        SET status = 'returning', return_agreed_at = now(), return_by = now() + interval '1 hours'\n     WHERE id = r.id;
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |   IF r.status <> 'returning' THEN | IF false THEN
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |         OR (x.status = 'returning' AND x.return_by <= now() AND public.declutter_return_backstop_at(x) <= now()) | 
- * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |   PERFORM public.declutter_rebook_payout(o.id, v_refunded);\n | \n
- * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |     RAISE EXCEPTION 'already_refunded' USING ERRCODE = '55000';\n  END IF;\n  PERFORM 1 FROM public.declutter_payouts p WHERE p.order_id = o.id FOR UPDATE;\n  IF NOT public.declutter_payout_unsent(o.id) THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT |     RAISE EXCEPTION 'already_refunded' USING ERRCODE = '55000';\n  END IF;\n  PERFORM 1 FROM public.declutter_payouts p WHERE p.order_id = o.id FOR UPDATE;\n  IF false THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT
- * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents >= o.items_cents THEN |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents > o.items_cents THEN
- * @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents) |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents + 1)
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |   PERFORM public.declutter_rebook_payout(o.id, v_refunded);\n | \n
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |     RAISE EXCEPTION 'already_refunded' USING ERRCODE = '55000';\n  END IF;\n  PERFORM 1 FROM public.declutter_payouts p WHERE p.order_id = o.id FOR UPDATE;\n  IF NOT public.declutter_payout_unsent(o.id) THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT |     RAISE EXCEPTION 'already_refunded' USING ERRCODE = '55000';\n  END IF;\n  PERFORM 1 FROM public.declutter_payouts p WHERE p.order_id = o.id FOR UPDATE;\n  IF false THEN\n    RAISE EXCEPTION 'payout_already_sent' USING ERRCODE = '55000',\n      HINT
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents >= o.items_cents THEN |     IF p_part_cents IS NULL OR p_part_cents <= 0 OR p_part_cents > o.items_cents THEN
+ * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents) |     VALUES (o.id, o.stripe_payment_intent_id, 'refund_request_part', 'agreed_part', v_paid, 0, 0, p_part_cents + 1)
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |   PERFORM public.require_feature('declutter_refund_requests');\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id | IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id
  * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |     IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN |     IF v_side <> 'buyer' THEN
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |      WHERE (x.status = 'open' AND x.answer_by <= now()) OR (x.status = 'offered' AND x.offer_answer_by <= now()) |      WHERE (x.status = 'offered' AND x.offer_answer_by <= now())
@@ -131,7 +131,12 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
     // A Home read (declutter_my_refund_todos, A3-81) must not throw: with the switch off it returns no rows instead
     // (IF NOT feature_enabled_for(...) THEN RETURN), still server side. Every write keeps require_feature.
     const gated = (n: string) => /PERFORM public\.require_feature\('declutter_refund_requests'\);/.test(body(n))
-      || (n === "declutter_my_refund_todos" && /IF NOT public\.feature_enabled_for\('declutter_refund_requests'\) THEN\s+RETURN;/.test(body(n)));
+      || (n === "declutter_my_refund_todos" && /IF NOT public\.feature_enabled_for\('declutter_refund_requests'\) THEN\s+RETURN;/.test(body(n)))
+      // A3-112 follow-up (20261102033426): declutter_my_refunded_cents is not a refund-REQUEST RPC (its name only matches
+      // the selector): Money > Spent and Receipts net EVERY refund on the buyer's own orders (a no-show, a seller backing
+      // out, a delivery fee) with this switch off too. It keeps the Declutter switch, server side, like
+      // declutter_my_paid_cents.
+      || (n === "declutter_my_refunded_cents" && /PERFORM public\.require_feature\('declutter'\);/.test(body(n)));
     const missing = rpcs.filter((n) => !gated(n));
     expect(missing).toEqual([]);
   });

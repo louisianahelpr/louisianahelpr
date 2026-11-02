@@ -188,6 +188,28 @@ describe("one wallet: no screen promises a saved card is never charged automatic
     expect(appFiles.filter((f) => promise.test(blankComments(readFileSync(join(REPO, f), "utf8"))))).toEqual([]);
   });
 
+  // Q2143: Jobs' save-card switch says the saved card is the wallet card automatic charges use, on both of its
+  // lines (one-time post, and the repeating job that forces the save), and the forced save shows on and locked.
+  // @mutate src/components/postjob/CheckoutStep.tsx | "Stripe stores it securely. It's charged only when you pay, or automatically where you turned on automatic charges." | "Stripe stores it securely so you can one-tap next time you post."
+  // @mutate src/components/postjob/CheckoutStep.tsx | It's also charged automatically where you turned on automatic charges." | "
+  // @mutate src/components/postjob/CheckoutStep.tsx | checked={!!saveCardForFuture \|\| isRecurring} | checked={!!saveCardForFuture}
+  it("Jobs' save-card switch says the card is the wallet card for automatic charges, on both lines (Q2143)", () => {
+    const src = blankComments(readFileSync(join(REPO, "src/components/postjob/CheckoutStep.tsx"), "utf8"));
+    const at = src.indexOf('id="save-card"');
+    expect(at).toBeGreaterThan(0);
+    const block = src.slice(Math.max(0, at - 1500), at + 300);
+    const recurring = block.match(/isRecurring\s*\?\s*"([^"]*)"\s*:\s*"([^"]*)"/);
+    expect(recurring, "the switch's line must branch on isRecurring").not.toBeNull();
+    const [, repeating, once] = recurring!;
+    for (const line of [repeating, once]) expect(line).toMatch(/automatically where you turned on automatic charges/);
+    expect(repeating).toMatch(/repeating job saves your card/);
+    expect(block).toMatch(/checked=\{!!saveCardForFuture \|\| isRecurring\}/);
+    expect(block).toMatch(/disabled=\{isRecurring\}/);
+    // The forced save this copy describes is still there.
+    const submit = blankComments(readFileSync(join(REPO, "src/pages/post-job/useJobSubmit.ts"), "utf8"));
+    expect(submit).toMatch(/saveCardForFuture: saveCardForFuture \|\| isRecurring/);
+  });
+
   it("the newest declutter_save_card sends the one-wallet notice, not \"never charged\"", () => {
     const dir = join(REPO, "supabase/migrations");
     const defining = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()

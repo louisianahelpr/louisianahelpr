@@ -64,6 +64,9 @@ const ALLOWED: Record<string, string> = {
   declutter_book_by_reminder_sweep: "counts one order's own cart lines for the words of that order's own reminder, not a stat over members",
   // 20261102002217 (A3-81): count(*) over ONE order's own cart lines (item_count on the caller's own refund step);
   // every row is an order where the caller is the buyer or the seller (lh-authz-rls, lead verdict b124).
+  // A3-112 follow-up (20261102033426): sums the refunds on the CALLER's own orders (buyer_id = auth.uid()) for Money >
+  // Spent and Receipts; a member's own money, not a stat over members.
+  declutter_my_refunded_cents: MONEY,
   declutter_my_refund_todos: "counts one order's own cart lines for the caller's own refund step, not a stat over members",
   rpc_set_instant_book_floor: LIMIT, // CMP-4: at most 3 floors per Helpr
   block_user_and_settle: SPOTS,
@@ -102,6 +105,9 @@ const ALLOWED: Record<string, string> = {
   declutter_pickup_reminder_sweep: "logic: names the first item of one order in its reminder (\"and N more\")",
   declutter_publish_item: VALID,
   declutter_record_hand_refund: MONEY,
+  // Q2338 (20261102032514): counts the strikes it just moved back onto a re-verified identity; stripe-idv-webhook
+  // discards the number, and an is_seed filter would change whose strikes come back, not any displayed total.
+  declutter_restore_retained_strikes: LADDER,
   declutter_seller_delivery_check: MONEY,
   declutter_seller_hidden_sweep: OPS,
   declutter_send_handover_message: LIMIT,
@@ -197,6 +203,9 @@ const ALLOWED: Record<string, string> = {
   sweep_silent_cron_failures: OPS,
   sweep_unfilled_series_visit_reminders: PURGE,
   take_helpr_fault_fee: MONEY,
+  // 20261102080407: sums what ONE payout (payout_ref job_payout_<job>) already withheld for ONE Helpr, to give back
+  // anything over the payout; money arithmetic on one ledger, not a stat.
+  clamp_helpr_fault_fee: MONEY,
 };
 
 /** Restated by 20261030015205: must call the helper itself (is_seed alone is not enough). */

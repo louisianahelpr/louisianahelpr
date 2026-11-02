@@ -11,7 +11,7 @@
  * says `type: "financial_alerts"` can't keep this green.
  *
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | type: "financial_alerts", link: "/profile?tab=earnings", | type: "payment", link: "/profile?tab=earnings",
- * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | type: "financial_alerts", | type: "payment",
+ * (Q2329: the webhook's tip notice is gone; its @mutate moved to src/test/paidTipTellsTheHelprOnce.test.ts, on the trigger.)
  * @mutate supabase/functions/_shared/heldTipRepay.ts | type: "financial_alerts", | type: "payment",
  */
 import { readFileSync } from "node:fs";
@@ -37,7 +37,7 @@ function typesForTitle(src: string, title: string): string[] {
 
 const SENDERS: Array<{ file: string; title: string }> = [
   { file: "supabase/functions/process-scheduled-payouts/index.ts", title: "Payout sent!" },
-  { file: "supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts", title: "You received a tip!" },
+  // Q2329: the tip Checkout webhook no longer writes its own tip notice (trg_notify_helper_tip, financial_alerts, is the one).
   { file: "supabase/functions/_shared/heldTipRepay.ts", title: "You received a tip!" },
 ];
 
@@ -50,8 +50,8 @@ describe("payouts and tips sit under one notice switch (NOID-15)", () => {
     });
   }
 
-  it("floor: the three senders are all still found", () => {
+  it("floor: the two senders are both still found", () => {
     const found = SENDERS.filter(({ file, title }) => typesForTitle(read(file), title).length > 0);
-    expect(found.length).toBeGreaterThan(2);
+    expect(found.length).toBeGreaterThan(1);
   });
 });

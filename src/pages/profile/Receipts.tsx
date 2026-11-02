@@ -17,6 +17,7 @@ import { useFeesOwed } from "@/components/money/payoutProblems";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { fetchMyCart } from "@/lib/declutter/api";
 import { fetchMyPaidCents } from "@/lib/declutter/paidCents";
+import { fetchMyRefundedCents, netOfRefund } from "@/lib/declutter/refundedCents";
 
 /**
  * Board 177, RECEIPTS, FEES OWED, TAX FORMS (You → Money → Receipts).
@@ -79,6 +80,8 @@ export function orderReceipts(
   titles: ReadonlyMap<string, string[]> = new Map(),
   /** What the card was charged per order (declutter_my_paid_cents); null before that read is deployed. */
   paid: ReadonlyMap<string, number> | null = null,
+  /** What came back per order (declutter_my_refunded_cents): a part refund is netted and said. Null: not deployed. */
+  refundedBack: ReadonlyMap<string, number> | null = null,
 ): Receipt[] {
   return orders
     .filter((o) => o.paid_at && (o.status === "paid" || o.status === "handed_over" || o.status === "refunded"))
@@ -99,8 +102,8 @@ export function orderReceipts(
         ms: Date.parse(o.paid_at!),
         // A refund returns the order less the card fee Stripe keeps, so a refunded
         // order shows "Refunded", not a total that no longer left the card.
-        cents: o.status === "refunded" ? null : charged,
-        note: o.status === "refunded" ? " · Refunded" : "",
+        cents: o.status === "refunded" ? null : netOfRefund(charged, refundedBack?.get(o.id)).cents,
+        note: o.status === "refunded" ? " · Refunded" : netOfRefund(charged, refundedBack?.get(o.id)).note,
         lines,
         feeWords,
         setupCents: setup,
@@ -154,8 +157,15 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
     enabled: paidIds.length > 0,
   });
 
-  const loading = spend.isLoading || orders.isLoading || (paidIds.length > 0 && paid.isLoading);
-  const failed = spend.isError || orders.isError || paid.isError;
+  // A3-112 follow-up: what came back per order, so a part refund is netted (Spent reads the same, purchaseSpend.ts).
+  const back = useQuery({
+    queryKey: ["declutter", "my-refunded-cents", paidIds.join(",")],
+    queryFn: () => fetchMyRefundedCents(paidIds),
+    enabled: paidIds.length > 0,
+  });
+
+  const loading = spend.isLoading || orders.isLoading || (paidIds.length > 0 && (paid.isLoading || back.isLoading));
+  const failed = spend.isError || orders.isError || paid.isError || back.isError;
 
   const receipts: Receipt[] = [];
   if (spend.data) {
@@ -172,7 +182,7 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
       });
     }
   }
-  receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? []), paid.data ?? null));
+  receipts.push(...orderReceipts(orders.data ?? [], titlesByOrder(cart.data ?? []), paid.data ?? null, back.data ?? null));
   receipts.sort((a, b) => b.ms - a.ms);
 
   const year = new Date().getFullYear();

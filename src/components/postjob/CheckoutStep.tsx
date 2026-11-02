@@ -190,6 +190,8 @@ export function CheckoutStep({
   // a charge Stripe will not make — the same class of defect as the invented
   // 9-11% range this row was built to kill, just pointed at gifts.
   const totalWithTax = hasGift ? totalCharge : totalCharge + (salesTax ?? 0);
+  // JA-45: a plain job (nothing added or taken off) shows its Total alone; any fee, bonus, gift or tax line brings the budget row back.
+  const budgetRowShown = hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category) && salesTax === null);
   // `giftCoversEverything` is the $0 case: nothing left to collect. The CTA
   // and the total both change wording for it, because "Continue to payment"
   // in front of a $0.00 total is the screen contradicting itself.
@@ -321,7 +323,6 @@ export function CheckoutStep({
       <HelprActivityNote activity={helprActivity} />
 
       {quoteAsk ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <>
-      {/* Payment breakdown card */}
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
@@ -329,8 +330,8 @@ export function CheckoutStep({
           </h3>
         </div>
         <div className="p-5 space-y-3">
-          {/* What the customer pays */}
-          <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>
+          {/* What the customer pays. A3-96: only over lines to break down; a plain job's Total stands alone. */}
+          {budgetRowShown && <p className="text-ds-12 font-semibold text-muted-foreground uppercase tracking-wide">Your charges</p>}
           {/* A gift id came through the URL and we could not confirm it —
               missing, not this account's, unfunded, expired, or already
               spent. The numbers below are therefore FULL PRICE, and the
@@ -361,9 +362,7 @@ export function CheckoutStep({
               Checking your gift card…
             </div>
           )}
-          {/* JA-45: a plain job (nothing added, nothing taken off) shows its Total alone, not "Job budget $40"
-              over "Total $40". Any fee, bonus, gift or tax line brings the budget row back as the sum's first term. */}
-          {(hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category) && salesTax === null)) && (
+          {budgetRowShown && (
             <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} />
           )}
           {/* Roadmap F3 (owner 2026-10-14/15): the poster pays exactly the job
@@ -610,10 +609,8 @@ export function CheckoutStep({
           genuinely useful prep rather than a distraction from checkout. */}
 
 
-      {/* "Save card for next time" — optional opt-in passed through to
-          the create-payment edge function. Default off, sticky in
-          localStorage so a returning poster who turned it on once
-          doesn't have to re-tap it every post. */}
+      {/* "Save card for next time": opt-in to create-payment, sticky in localStorage. Q2143: it is the ONE wallet card
+          (owner 2026-10-18), also used by automatic charges; a repeating job forces the save (useJobSubmit), so on+locked. */}
       {setSaveCardForFuture && (
         <label
           htmlFor="save-card"
@@ -622,12 +619,15 @@ export function CheckoutStep({
           <span className="text-ds-13 text-foreground leading-snug">
             <span className="font-semibold block">Save card for next time</span>
             <span className="text-ds-11 text-muted-foreground">
-              Stripe stores it securely so you can one-tap next time you post.
+              {isRecurring
+                ? "A repeating job saves your card: each later visit is charged to it a few days ahead. It's also charged automatically where you turned on automatic charges."
+                : "Stripe stores it securely. It's charged only when you pay, or automatically where you turned on automatic charges."}
             </span>
           </span>
           <Switch
             id="save-card"
-            checked={!!saveCardForFuture}
+            checked={!!saveCardForFuture || isRecurring}
+            disabled={isRecurring}
             onCheckedChange={(checked) => setSaveCardForFuture(!!checked)}
           />
         </label>
@@ -637,22 +637,8 @@ export function CheckoutStep({
       {/* Preferred helper shortcut — shown when the poster has a trusted
           repeat helper. Lets them route this job to that helper first
           before broadcasting to all. Preference stored in job metadata. */}
-      {/* This row used to use a RAW `<input type="checkbox">` with an
-          `accent-` colour, inside a plain `<div>`. That made three different
-          control types on one checkout screen — a Switch above, a native
-          checkbox here, the design-system Checkbox below — for choices that
-          are all just "on or off".
-
-          It was also the only one that wasn't accessible: 20×20px with no
-          wrapping label, so the tap target was the box itself. The
-          confirmation card immediately below already solved exactly this
-          (its comment explains the full-card `<label>` trick for WCAG 2.5.5)
-          — this row simply never got the same treatment.
-
-          Now a `<label>` + the shared Checkbox, matching that card. Two
-          control types remain, and the split is meaningful rather than
-          accidental: Switch for a sticky account PREFERENCE ("save card for
-          next time"), Checkbox for a per-job CHOICE or consent. */}
+      {/* A label + the shared Checkbox (was a raw 20 px checkbox: one more control type, no tap target; WCAG 2.5.5).
+          Switch is for a sticky account PREFERENCE (save card), Checkbox for a per-job CHOICE or consent. */}
 
       {/* Confirmation Checkbox — the full card is a <label> so tapping
           anywhere on it toggles the checkbox. This makes the tap target
@@ -703,9 +689,8 @@ export function CheckoutStep({
                 ? "Processing…"
                 : giftLoading
                   ? "Checking your gift…"
-                  : !confirmed
-                    ? "Confirm details to continue"
-                    // "Continue to payment" in front of a $0.00 total is the
+                  // A3-96: the checkbox above is the one ask; the button never repeats it ("Confirm details to continue").
+                  // "Continue to payment" in front of a $0.00 total is the
                     // screen arguing with itself — there is no payment step
                     // when the gift covers the job; create-payment returns
                     // straight to /payment-success.

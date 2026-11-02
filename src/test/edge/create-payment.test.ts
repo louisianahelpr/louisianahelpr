@@ -531,6 +531,32 @@ describe("create-payment edge function", () => {
       });
 
       /**
+       * Q1993 (lh-money-escrow review of 4ec0dea84, #6), verified 11-02: the webhook's funding write accepts an 'unpaid'
+       * job, so a SECOND completed checkout on a job whose bank (ACH) payment is still settling would replace its
+       * PaymentIntent and flip it to escrow. It cannot open: the ACH session is 'complete' with payment_status 'unpaid'
+       * (and its PI 'processing') while the job stays 'unpaid', and the re-mint refuses on `complete` alone. The retire
+       * step runs before every job checkout and gift redemption in create-payment (the gift difference session too),
+       * and the stamped PI check below refuses a live row PI as well. This pins the exact ACH shape.
+       */
+      // @mutate supabase/functions/create-payment/index.ts | if (prior.status === "complete" \|\| prior.payment_status === "paid" \|\| priorPiLive) { | if (prior.payment_status === "paid") {
+      it("Q1993: refuses a second checkout while the first is a COMPLETED bank payment still settling (session complete + unpaid: refused on complete alone, whatever its PI reads)", async () => {
+        seedRemintable("unpaid", "cs_ach");
+        stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+          id: "cs_ach",
+          status: "complete",
+          payment_status: "unpaid",
+          payment_intent: { id: "pi_ach", status: "requires_payment_method" },
+        });
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1" } }),
+        );
+        expect((await json(res)).error).toMatch(/still being processed/i);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+        expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+      });
+
+      /**
        * lh-money-escrow review of a2f1618d0, #1 (the 7440a72d sequence): a
        * bounced bank payment leaves 'failed', no session and the bank's PI on
        * the row. A card retry used to stamp 'unpaid' + a new session with that
@@ -3381,6 +3407,62 @@ describe("create-payment edge function", () => {
         (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "released",
       );
       expect(released).toBeUndefined();
+    });
+
+    // Q2406: the gate's defect (the cached-gate close failing) reaches ops.
+    // @mutate supabase/functions/create-payment/index.ts |   if (live.held && live.defect) await reportLiveGateDefect( |   if (false) await reportLiveGateDefect(
+    it("a dispute release held with a failed cached-gate close reports the defect to ops", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", budget: 100, urgent_fee: 0,
+          platform_fee_amount: 10, title: "Disputed job", stripe_payment_intent_id: "pi_d",
+        }],
+      };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.reads.user_roles = { rows: [] };
+      scenario.writeErrors.profiles = { message: "connection reset" };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_d", status: "succeeded", latest_charge: "ch_d" });
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        ...PAYABLE_CONNECT_ACCOUNT,
+        requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+      });
+      const fn = await load();
+      await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const hit = (slackAlerts as Array<{ title?: string; message?: string }>).filter((a) => /payout gate defect/i.test(String(a.title)));
+      expect(hit).toHaveLength(1);
+      expect(String(hit[0].message)).toContain("connection reset");
+      expect((hit[0] as { seed?: boolean }).seed).toBe(false);
+    });
+
+    // A test Helpr never pages the owner: the hold and its defect go out as seed.
+    // @mutate supabase/functions/create-payment/index.ts | fields: { job_id: jobId }, seed: (helperProfile as { is_seed?: boolean \| null }).is_seed === true }); | fields: { job_id: jobId } });
+    it("a dispute release held for a test Helpr is digest only (seed), defect included", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [{
+          id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "disputed", budget: 100, urgent_fee: 0,
+          platform_fee_amount: 10, title: "Disputed job", stripe_payment_intent_id: "pi_d",
+        }],
+      };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper", is_seed: true }] };
+      scenario.reads.user_roles = { rows: [] };
+      scenario.writeErrors.profiles = { message: "connection reset" };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_d", status: "succeeded", latest_charge: "ch_d" });
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        ...PAYABLE_CONNECT_ACCOUNT,
+        requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+      });
+      const fn = await load();
+      await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }));
+      const alerts = slackAlerts as Array<{ title?: string; seed?: boolean }>;
+      expect(alerts.filter((a) => /payout gate defect/i.test(String(a.title)))).toHaveLength(1);
+      const mine = alerts.filter((a) => /payout gate defect|Payout held/i.test(String(a.title)));
+      expect(mine.length).toBeGreaterThan(1);
+      expect(mine.every((a) => a.seed === true)).toBe(true);
     });
 
     it("admin_refund_dispute refunds the poster minus the non-refundable Stripe fee and marks the job refunded", async () => {

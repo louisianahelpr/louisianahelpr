@@ -16,6 +16,7 @@
  * @mutate src/lib/i18n/enScreens.ts | "signup.subtitle": "One account to hire help, find work, and buy or sell nearby." | "signup.subtitle": "One account to hire help or find work."
  * @mutate src/pages/auth/Signup.tsx |       title={step === 1 ? undefined : stepHeading.title} |       title={step === 1 ? "Create Account" : stepHeading.title}
  */
+// @mutate src/pages/auth/Signup.tsx |         {/* Step 2: About you + ID */}\n |         {step === 2 && stepHeading.subtitle && <p>{stepHeading.subtitle}</p>}\n        {/* Step 2: About you + ID */}\n
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, fireEvent, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -38,6 +39,11 @@ describe("Create account matches board 55", () => {
     const button = step1.indexOf("onClick={handleContinue}");
     expect(consent).toBeGreaterThan(0);
     expect(button).toBeGreaterThan(consent);
+  });
+
+  it("Q2257: the subtitle is passed to step 1 only; no dead step-2 subtitle block in the card", () => {
+    expect(signup.match(/stepHeading\.subtitle/g) ?? []).toHaveLength(1);
+    expect(signup).toMatch(/subtitle=\{stepHeading\.subtitle\}/);
   });
 
   it("is not vacuous", () => {

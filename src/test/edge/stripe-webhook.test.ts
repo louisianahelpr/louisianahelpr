@@ -292,6 +292,41 @@ describe("stripe-webhook edge function", () => {
       expect(Number(p.sales_tax_rate)).toBeLessThanOrEqual(1);
     });
 
+    // Q2152 (lh-money-escrow review of 461a6b724 #2): the pinned API (2025-08-27.basil) returns no
+    // amount_details.tax on a PaymentIntent, so the job kept the insert-time estimate. The Checkout Session's own
+    // total_details.amount_tax is Stripe's figure; a gift difference session (non-taxable on purpose) is not.
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const taxCents = typeof sessionTaxForJob === "number" ? sessionTaxForJob : piTaxCents; | const taxCents = piTaxCents;
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : session.total_details?.amount_tax; | const sessionTaxForJob = session.total_details?.amount_tax;
+    it("Q2152: a basil PaymentIntent (no amount_details.tax) records the SESSION's tax, 1105c -> 11.05; a gift difference session's $0 does not overwrite the estimate", async () => {
+      const deliver = async (metadata: Record<string, string>, amountTax: number) => {
+        const fn = await loadConfigured();
+        scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "assembly", is_seed: false }] };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax", amount_details: { tip: {} } });
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: `evt_q2152_${amountTax}`,
+          type: "checkout.session.completed",
+          data: {
+            object: {
+              id: "cs_q2152", mode: "payment", payment_status: "paid", customer_email: "poster@test.com",
+              customer_details: { address: { state: "LA" } }, total_details: { amount_tax: amountTax },
+              payment_intent: "pi_tax", metadata: { job_id: "job-tax", ...metadata },
+            },
+          },
+        });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const w = scenario.writes.find((x) => x.table === "jobs" && x.op === "update" && (x.payload as Record<string, unknown>).stripe_payment_intent_id === "pi_tax");
+        return w?.payload as Record<string, unknown> | undefined;
+      };
+      const p = await deliver({}, 1105);
+      expect(p?.sales_tax_amount).toBe(11.05);
+      expect(p?.sales_tax_rate).toBe(0.1105);
+      resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+      const g = await deliver({ gift_card_id: "gc-1" }, 0);
+      expect(g).toBeTruthy();
+      expect(g).not.toHaveProperty("sales_tax_amount");
+    });
+
     // Q1996 (lh-money-escrow review of slice 3a, #5): on a poster-fee job in a
     // taxable category the "Service fee" line is taxed with the labor, so the
     // rate is tax over budget + fee. Dividing by the budget alone stored
@@ -550,6 +585,59 @@ describe("stripe-webhook edge function", () => {
         expect(res.status).toBe(200);
         const rows = scenario.writes.filter((x) => x.table === "payment_refunds");
         expect(rows.map((r) => (r.payload as { stripe_refund_id?: string }).stripe_refund_id)).toEqual(["re_live"]);
+      });
+
+      // Q1940 (a): a late payment on a Declutter setup job cancelled for the SELLER's fault (A10) is refunded in full, and
+      // the card fee Stripe kept on it is billed to the seller (declutter_setup_job_fee_debt, once per job).
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         const sellerFeeBilledCents = await billSellerFaultDuplicate(stripe, supabase, { jobId, pi: piId }); |         const sellerFeeBilledCents = 0;
+      // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |   if (!(link as { seller_fault_refund_id?: string \| null } \| null)?.seller_fault_refund_id) return 0; |   if (link) return 0;
+      // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |     throw new Error(`declutter seller fee debt for job ${args.jobId} failed: ${debtErr.message}`); |     return 0;
+      // @mutate supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts |   const cardFeeCents = actualOrEstimatedFeeCents(charged, Number(charged.amount_received ?? charged.amount ?? 0)); |   const cardFeeCents = 0;
+      describe("a late payment on a Declutter setup job cancelled for the seller's fault (Q1940 a)", () => {
+        const setup = (marker: string | null) => {
+          completed();
+          scenario.writeSelectRows.jobs = [];
+          scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "buyer-1", status: "cancelled", payment_status: "unpaid", stripe_payment_intent_id: null }] };
+          scenario.reads.declutter_order_jobs = { rows: marker ? [{ seller_fault_refund_id: marker }] : [] };
+          stripeMock.refunds.create.mockResolvedValue({ id: "re_dup", status: "succeeded", amount: 5150, currency: "usd" });
+          stripeMock.paymentIntents.retrieve.mockResolvedValue({
+            id: "pi_second", amount: 5150, amount_received: 5150,
+            latest_charge: { balance_transaction: { fee: 179 } },
+          });
+          scenario.rpc.declutter_setup_job_fee_debt = 179;
+        };
+        const bills = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "declutter_setup_job_fee_debt");
+
+        it("refunds it in full and bills the seller the card fee Stripe kept", async () => {
+          const fn = await loadConfigured();
+          setup("dr-1");
+          const res = await fn.fetch(webhookRequest(fn, "{}"));
+          expect(res.status).toBe(200);
+          expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+            { payment_intent: "pi_second", metadata: { source: "duplicate_funding" } },
+            { idempotencyKey: "duplicate-funding-refund:pi_second" },
+          );
+          expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_second", { expand: ["latest_charge.balance_transaction"] });
+          expect(bills()).toEqual([expect.objectContaining({ args: { p_job_id: "job-1", p_card_fee_cents: 179 } })]);
+          expect(scenario.writes.filter((x) => x.table === "payment_refunds")).toHaveLength(1);
+        });
+
+        it("bills nothing on a job that is not a seller-fault setup job", async () => {
+          const fn = await loadConfigured();
+          setup(null);
+          const res = await fn.fetch(webhookRequest(fn, "{}"));
+          expect(res.status).toBe(200);
+          expect(bills()).toHaveLength(0);
+        });
+
+        it("a failed bill pages and fails the event so Stripe redelivers (the refund is keyed)", async () => {
+          const fn = await loadConfigured();
+          setup("dr-1");
+          scenario.rpcErrors = { declutter_setup_job_fee_debt: { message: "db down" } };
+          const res = await fn.fetch(webhookRequest(fn, "{}"));
+          expect(res.status).toBeGreaterThanOrEqual(500);
+          expect((slackAlerts as Array<{ title: string }>).some((a) => /seller not billed for a late setup-job payment/.test(a.title))).toBe(true);
+        });
       });
 
       it("a late redelivery of the payment that DID fund the job is ignored, never refunded", async () => {
@@ -817,6 +905,71 @@ describe("stripe-webhook edge function", () => {
         expect(giftWrites).toHaveLength(1);
         expect(titles).toContain("Gift card difference payment — job underfunded");
       });
+
+      // Q1981 (lh-money-escrow review of 4ec0dea84, #3): a DUPLICATE checkout's
+      // first delivery consumed the gift, was refunded, put the gift back to
+      // 'sent', then failed its ledger write. Its redelivery must not re-spend
+      // the gift (a spurious Q1417 page) nor page a false CRITICAL and hold a
+      // job another PaymentIntent funded: the payment is refunded again (keyed)
+      // and the gift is left 'sent'.
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |            sessionIsJobs = !fundedElsewhere && jr?.stripe_session_id === session.id; |            sessionIsJobs = jr?.stripe_session_id === session.id;
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |        } else if (fundedElsewhere) { |        } else if (false) {
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |            jr.stripe_payment_intent_id !== thisPi && | false &&
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |            jr.payment_status != null && !["unpaid", "failed", "abandoned"].includes(jr.payment_status); |            jr.payment_status != null;
+      async function redeliverDuplicate(jobRow: Record<string, unknown>, escrowRows: Array<{ id: string }> = []) {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_q1981",
+          type: "checkout.session.completed",
+          data: { object: { id: "cs_d2", mode: "payment", payment_status: "paid", customer_email: "poster@test.com", payment_intent: "pi_d2", metadata: { job_id: "job-1", gift_card_id: "gc-1" } } },
+        });
+        scenario.writeOverrides = [
+          { table: "gift_cards", op: "update", when: isFirstConsume, rows: [] },
+          { table: "gift_cards", op: "update", when: (p) => p.status === "redeemed" && p.job_id === "job-1", rows: [{ id: "gc-1" }] },
+        ];
+        scenario.writeSelectRows.jobs = escrowRows;
+        scenario.reads.gift_cards = { rows: [{ id: "gc-1", status: "sent", job_id: null, payment_status: "paid" }] };
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", status: "open", ...jobRow }] };
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_q1981", status: "succeeded", amount: 2000, currency: "usd" });
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        const giftWrites = scenario.writes.filter((x) => x.table === "gift_cards" && x.op === "update");
+        const titles = (slackAlerts as Array<{ title: string }>).map((a) => a.title);
+        const holds = scenario.writes.filter((w) => w.table === "job_payout_holds");
+        return { res, giftWrites, titles, holds };
+      }
+
+      it.each([
+        ["is the job's stamped one", "cs_d2"],
+        ["is not the job's stamped one", "cs_other"],
+      ] as const)("Q1981: a duplicate's redelivery whose session %s leaves the gift 'sent', pages no Q1417/underfunded alert, holds nothing", async (_l, stamped) => {
+        const { res, giftWrites, titles, holds } = await redeliverDuplicate({ stripe_session_id: stamped, payment_status: "escrow", stripe_payment_intent_id: "pi_card" });
+        expect(res.status).toBe(200);
+        // Only the first (zero-row) consume: no re-claim, no second restore.
+        expect(giftWrites).toHaveLength(1);
+        expect(titles.some((t) => /re-claimed|underfunded/.test(t))).toBe(false);
+        expect(holds).toEqual([]);
+        // Still refunded (keyed) and ledgered by the duplicate-funding branch.
+        expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+          { payment_intent: "pi_d2", metadata: { source: "duplicate_funding" } },
+          { idempotencyKey: "duplicate-funding-refund:pi_d2" },
+        );
+        expect(titles).toContain("Escrow funding — a second payment on an already-funded job was refunded");
+      });
+
+      it("Q1981: a job on an unpaid or failed payment is not 'funded elsewhere' (the Q1417 re-claim still runs)", async () => {
+        const { giftWrites, titles } = await redeliverDuplicate({ stripe_session_id: "cs_d2", payment_status: "failed", stripe_payment_intent_id: "pi_card" }, [{ id: "job-1" }]);
+        expect(giftWrites).toHaveLength(2);
+        expect(titles.some((t) => /re-claimed/.test(t))).toBe(true);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |      if (giftSkippedFundedElsewhere) { |      if (false) {
+      it("Q1981: if the escrow write funds the job after all (its other payment failed in between), the underfunded hold and page still run", async () => {
+        const { res, titles, holds } = await redeliverDuplicate({ stripe_session_id: "cs_other", payment_status: "escrow", stripe_payment_intent_id: "pi_card" }, [{ id: "job-1" }]);
+        expect(res.status).toBe(200);
+        expect(holds).toHaveLength(1);
+        expect(holds[0].payload).toMatchObject({ job_id: "job-1" });
+        expect(titles).toContain("Gift card difference payment — job underfunded");
+      });
     });
 
     // Q1876 follow-up (lh-money-escrow re-review of 2cd90f553, #1): bank checkout D1's
@@ -898,7 +1051,9 @@ describe("stripe-webhook edge function", () => {
       });
     });
 
-    it("marks a tip as paid and notifies the helper on a tip checkout", async () => {
+    // Q2329: the webhook no longer writes its own "You received a tip!"; the
+    // tips trigger (notify_helper_on_tip) tells the Helpr once, from the paid flip.
+    it("marks a tip as paid on a tip checkout and writes no notice of its own (Q2329: the trigger tells the Helpr)", async () => {
       const fn = await loadConfigured();
       // The tip UPDATE is gated on `payment_status='pending'` and returns the
       // flipped row via `.select("id")`; the helper is notified ONLY when a row
@@ -928,10 +1083,7 @@ describe("stripe-webhook edge function", () => {
       expect((tipWrite?.payload as Record<string, unknown>).payment_status).toBe(
         "paid",
       );
-      const notif = scenario.writes.find((w) => w.table === "notifications");
-      expect((notif?.payload as Record<string, unknown>).user_id).toBe(
-        "helper-1",
-      );
+      expect(scenario.writes.filter((w) => w.table === "notifications")).toEqual([]);
     });
 
     // Q1344: a manual tip's PaymentIntent is stamped when its checkout
@@ -1028,7 +1180,7 @@ describe("stripe-webhook edge function", () => {
         expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
       });
 
-      it("a Helpr NOT on hold: no reversal, the Helpr is told as before", async () => {
+      it("a Helpr NOT on hold: no reversal, and no webhook notice (Q2329: the tips trigger tells them)", async () => {
         const fn = await loadConfigured();
         scenario.reads.payout_holds = { rows: [] };
         scenario.reads.tips = { rows: [{ id: "tip-1" }] };
@@ -1037,7 +1189,7 @@ describe("stripe-webhook edge function", () => {
         heldTipEvent("evt_tip_clear");
         await fn.fetch(webhookRequest(fn, "{}"));
         expect(stripeMock.transfers.createReversal).not.toHaveBeenCalled();
-        expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(true);
+        expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(false);
       });
 
       // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (isTransient(err)) throw err;\n    const why = message(err); |     const why = message(err);
@@ -1111,7 +1263,7 @@ describe("stripe-webhook edge function", () => {
       });
 
       // Second review (S-E): released before the pull-back: the Helpr keeps it AND is told, once.
-      // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (k && k.length > 0) await notifyKept(supabase, args.helperId, args.jobId, args.tipperId ?? null); |
+      // @mutate supabase/functions/_shared/heldTipRepay.ts |     if (k && k.length > 0 && source === "job") await notifyKept(supabase, args.helperId, args.jobId, args.tipperId ?? null); |
       it("a redelivery after the hold was released with no reversal at Stripe: 'kept', and the Helpr is told once", async () => {
         const fn = await loadConfigured();
         scenario.reads.payout_holds = { rows: [] };
@@ -1695,6 +1847,18 @@ describe("stripe-webhook edge function", () => {
         expect(notices).toHaveLength(1);
         expect(String((notices[0].payload as Record<string, unknown>).message)).not.toMatch(/gift/);
         expect(alerts.some((a) => a.kind === "money_at_risk")).toBe(true);
+      });
+
+      // Q2079: Postgres' own undefined_function (42883) is "not deployed" too,
+      // the same rule the cancel RPC's check uses (one shared helper).
+      // @mutate supabase/functions/_shared/rpcNotDeployed.ts |   return code === "PGRST202" \|\| code === "42883"; |   return code === "PGRST202";
+      it("the function not deployed yet as 42883 (undefined_function) is read the same as PGRST202: 200 and the plain notice", async () => {
+        scenario.rpcErrors = { return_bounced_gift_card: { message: "function public.return_bounced_gift_card(uuid, uuid) does not exist", code: "42883" } };
+        const { res, notices, alerts } = await bounce({ payment_status: "unpaid", stripe_session_id: "cs_ach_gift" });
+        expect(res.status).toBe(200);
+        expect(notices).toHaveLength(1);
+        expect(String((notices[0].payload as Record<string, unknown>).message)).not.toMatch(/gift/);
+        expect(alerts.some((a) => a.kind === "money_at_risk" && /gift card was NOT returned/.test(a.title ?? ""))).toBe(true);
       });
 
       it("the retry (job already failed, session cleared) returns the gift AND sends the notice the first delivery lost", async () => {

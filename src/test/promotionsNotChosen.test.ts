@@ -26,7 +26,8 @@
  * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql | np.email_promotions IS FALSE OR | np.email_promotions IS NOT TRUE OR
  * @mutate supabase/functions/engagement-automations/index.ts |         .filter((p) => p.email_promotions === false \|\| p.email_enabled === false) |         .filter((p) => p.email_promotions !== true \|\| p.email_enabled === false)
  * @mutate supabase/functions/send-marketing-blast/index.ts |           .filter((p) => p.email_promotions !== true \|\| p.email_enabled === false) |           .filter((p) => p.email_promotions === false \|\| p.email_enabled === false)
- * @mutate supabase/functions/email-unsubscribe/index.ts | saved.email_promotions === true ? true : null) | true)
+ * @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql | SET email_promotions = CASE WHEN (v_saved ->> 'email_promotions')::boolean THEN true END | SET email_promotions = true
+ * @mutate supabase/functions/email-unsubscribe/index.ts |     .upsert({ user_id: userId, email_promotions: on }, { onConflict: 'user_id' }) |     .upsert({ user_id: userId, email_promotions: true }, { onConflict: 'user_id' })
  * @mutate src/lib/promotionsEmail.ts |   return marketingConsent === true; |   return false;
  * @mutate src/components/notificationPreferences/constants.tsx | email_promotions: null, email_system_alerts: true, | email_promotions: false, email_system_alerts: true,
  * @mutate supabase/functions/_shared/email-templates/comeBack.tsx |         Founder, Louisiana Helpr |         The Louisiana Helpr team
@@ -83,8 +84,8 @@ const READERS: Record<string, { rule: string; pin: RegExp }> = {
     pin: /promotion:\s*\{\s*prefCol:\s*'email_promotions'/,
   },
   "supabase/functions/email-unsubscribe/index.ts": {
-    rule: "unsubscribe writes false; resubscribe restores exactly true or the never-chosen NULL",
-    pin: /saved\.email_promotions !== false\)[\s\S]*saved\.email_promotions === true \? true : null\)/,
+    rule: "the opt-out fallback writes false; the restore itself is promotions_resubscribe (pinned below)",
+    pin: /\.upsert\(\{ user_id: userId, email_promotions: on \}[\s\S]*writeEmailPromotions\(supabase, userId, false\)/,
   },
   "supabase/functions/_shared/unsubscribe.ts": {
     rule: "names the commercial consent columns",
@@ -115,6 +116,11 @@ describe("Q2299: the sign-up box alone is enough for the welcome and come-back e
     expect(b).not.toMatch(/email_promotions\s+IS\s+NOT\s+TRUE/i);
     expect(b).toMatch(/p\.marketing_consent\s+IS\s+TRUE/i);
     expect(b).toMatch(/NOT\s+EXISTS\s*\(SELECT\s+1\s+FROM\s+public\.suppressed_emails/i);
+  });
+
+  it("the unsubscribe link's undo puts a never-chosen NULL back as NULL, never true (Q2092, Q2159)", () => {
+    const b = newestBody("promotions_resubscribe");
+    expect(b).toMatch(/SET\s+email_promotions\s*=\s*CASE\s+WHEN\s+\(v_saved\s*->>\s*'email_promotions'\)::boolean\s+THEN\s+true\s+END/i);
   });
 
   it("every edge function that reads email_promotions is listed with its rule (exact both ways)", () => {

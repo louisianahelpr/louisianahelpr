@@ -15,3 +15,11 @@ or card-network order), refund it with BOTH:
 Then add a line to the job's admin notes naming who asked and why. Do not refund the
 job's escrow PaymentIntent to "cover" a tip: tips are separate PaymentIntents
 (`metadata.type = "tip"`), and the escrow refund paths do not know about them.
+
+## A Dashboard full refund on a Declutter haul-away job whose Helpr was paid (Q1924)
+
+A full refund made in the Stripe Dashboard on a job whose payout already went out ('released')
+leaves payment_status as it is (the platform has paid twice; reconcile by hand), so the trigger
+that puts a haul-away job's items back on sale never fires. The page "Full refund on a job in
+'released'" names those items ("This is a Declutter haul-away job: ... (declutter item <ids>)"):
+put each back on sale by hand (its declutter_haul_aways row says what it was before: live or ended).

@@ -17,15 +17,18 @@ import {
 import { fetchRecipientRestricted, recipientRestrictedToast } from "@/lib/recipientGate";
 import { OFF_JOB_TOAST, fetchOffJobState } from "@/lib/offJobGate";
 import { classifySendRefusal } from "@/lib/messageSendRefusal";
-import { isTeamThreadKey, normalizeMessageRow, teamUserIdFromKey } from "@/lib/teamThread";
+import { ADMIN_SEND_TEAM_MESSAGE_CODES, isTeamThreadKey, normalizeMessageRow, teamUserIdFromKey } from "@/lib/teamThread";
 import { report } from "@/lib/errorLogger";
-import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { codeNamedIn, loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import {
   DELETED_ACCOUNT_NOTICE,
   DELETED_ACCOUNT_TOAST,
   fetchCounterpartyDeleted,
   flipToDeletedAccountThread,
 } from "@/lib/deletedCounterparty";
+
+/** admin_send_team_message's codes as a lookup for codeNamedIn (Q1883: read without the admin copy chunk). */
+const ADMIN_TEAM_SEND_CODES = Object.fromEntries(ADMIN_SEND_TEAM_MESSAGE_CODES.map((c) => [c, c])) as Record<string, string>;
 
 // Module-level so it survives the per-render re-creation of the handlers:
 // a blocked send logs at most ONE violation per unique (user, message) —
@@ -453,7 +456,9 @@ export function createSendHandlers({
         teamUser === optimistic.sender_id
           ? rpcErrorMessage("send_team_reply", error)
           : ((await loadAdminRpcErrorCopy())?.rpcErrorMessage("admin_send_team_message", error) ?? null);
-      const closed = copy !== null;
+      // Q1883: final is read from the RPC's own codes, not from the copy, so a refusal stays final when the
+      // admin copy chunk failed to load (copy null; loadAdminRpcErrorCopy reports that).
+      const closed = copy !== null || (teamUser !== optimistic.sender_id && codeNamedIn(ADMIN_TEAM_SEND_CODES, error) !== null);
       toast.error(refusal?.toast ?? copy ?? "Message didn't go through — tap it to try again.");
       setMessages((prev) =>
         prev.map((m) =>

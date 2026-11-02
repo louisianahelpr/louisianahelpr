@@ -66,6 +66,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   instant_book_real_jobs_done: "hides", // CMP-4 (20261101063725): seed jobs and test posters never count toward the 3 real jobs
   admin_queue_still_pending: "hides",
   admin_rule_helpr_fault: "tags",
+  bill_helpr_card_fee_debt: "tags", // Q2245 (20261102072106): the lapsed Helpr's debt copies its series job's is_seed
   admin_section_funnel: "hides",
   admin_signup_source_report: "hides", // OPS-5 (20261031220447): seed profiles and test accounts never count in the sign-up sources
   owner_daily_summary_stats: "hides", // OPS-1 review (20261031224638): the owner's daily counts leave out seed rows and test subjects
@@ -101,6 +102,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_delivery_on_task_event: "tags",
   declutter_delivery_open_task: "tags",
   declutter_haul_away_job_refunded: "alerts",
+  declutter_seller_fault_sweep: "alerts", // 20261102035736: a test refund's sweep defect is logged under a -seed key (as the haul-away sweep); it moves no money
+  declutter_delivery_gave_up_check: "tags", // 20261102033730: labels the gave-up ledger row seed=true; the row, its severity and the member notice are the same either way
   declutter_haul_away_sweep: "alerts", // Q2423 haul-away sweep: a test row's defect is logged under a -seed key
   declutter_item_link_visible: "hides", // Q2426 share card: a test item is not shown to the public unless seeds are visible
   declutter_pickup_remind: "hides", // Q2432: a test account never reminds a real member (the seed actor rule, like declutter_notify)
@@ -266,6 +269,8 @@ const EDGE_READERS: Record<string, Kind> = {
   "_shared/seedBoundary.ts": "hides",
   // Stripe TEST mode: enrolled AND is_seed (classifyParties).
   "_shared/stripeMode.ts": "money-gate",
+  // Q1909: a seed row's test-mode id is not reported by money-reconciliation (read only, moves nothing).
+  "_shared/stripeTestIdScan.ts": "alerts",
   "_shared/testRecipient.ts": "hides",
   "arrival-confirm-reminder/index.ts": "hides",
   "auto-release-payment/index.ts": "alerts",
@@ -273,6 +278,7 @@ const EDGE_READERS: Record<string, Kind> = {
   // Q2399 card hold: is_seed only tags the Slack page (seed: job.is_seed), which pages for seed jobs too.
   "_shared/cardHold.ts": "alerts",
   "card-hold-sweep/index.ts": "alerts",
+  "cash-out-credits/index.ts": "alerts", // Q2406 (b157): the cash-out reads the Helpr's is_seed only to route a live-gate defect alert to the seed digest; the hold itself never reads it
   "create-payment/index.ts": "alerts",
   "engagement-automations/index.ts": "hides",
   "money-reconciliation/index.ts": "alerts",

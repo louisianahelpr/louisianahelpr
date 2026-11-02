@@ -28,7 +28,7 @@ describe("Helpr face: the real next step, taken through the tracker", () => {
     const arrived = { ...base, helper_on_the_way_at: T, helper_arrived_at: T };
     expect(helperFaceNextStep(arrived, null)?.label).toBe("Start working");
     const tr = { id: "t", status: "working", latitude: null, longitude: null, eta_minutes: null, updated_at: T };
-    expect(helperFaceNextStep(arrived, tr)?.label).toBe("Mark job complete");
+    expect(helperFaceNextStep(arrived, tr)?.label).toBe("Mark it done");
     expect(helperFaceNextStep({ ...arrived, helper_completed_at: T }, tr)).toBeNull();
   });
 

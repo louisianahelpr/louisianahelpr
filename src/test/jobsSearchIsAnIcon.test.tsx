@@ -37,6 +37,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect, vi, afterEach } from "vitest";
+// The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
+// (no row yet, saves accepted); the device copy and the hook's own rules stay real.
+vi.mock("@/lib/sectionPrefsRow", () => ({
+  fetchSectionPrefsRow: async () => ({ data: null, error: null }),
+  saveSectionPrefsRow: async () => ({ error: null }),
+}));
 import { render, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";

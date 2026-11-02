@@ -23,6 +23,13 @@
  * @mutate supabase/functions/_shared/posterCancelSplit.ts |       backCents: Math.max(0, cents(i.charge.amountCents) - captureCents), |       backCents: cents(i.charge.amountCents),
  * @mutate supabase/functions/create-payment/index.ts |       if ((qGift?.length ?? 0) > 0) return unquoted("gift", feeCents); |
  * @mutate supabase/functions/create-payment/index.ts |         if (alreadyRefundedCents > 0) return unquoted("earlier_refund", feeCents); |
+ *
+ * Q1415 (e): a confirmed Helpr who is banned or under an open ban review is owed no fee. poster_cancel_job records 0
+ * and writes a job_cancel_id_waivers row (reason payee_frozen); the quote asks cancel_fee_payee_frozen, so the fee it
+ * sends as p_expected_fee_cents is that 0 (no quote_changed refusal) and its "Back to you" is the sweep's refund.
+ * @mutate supabase/functions/create-payment/index.ts | const feeCents = qIdWaits === true \|\| qFrozen === true ? 0 : | const feeCents = qIdWaits === true ? 0 :
+ * @mutate supabase/functions/create-payment/index.ts | if (qFrozenErr && qFrozenErr.code !== "PGRST202") return unquoted("unreadable", null); | if (qFrozenErr && qFrozenErr.code !== "PGRST202") return unquoted("unreadable", 2500);
+ * @mutate supabase/functions/create-payment/index.ts | const { data: qFrozen, error: qFrozenErr } = qJob.helper_id && qJob.helper_confirmed_at && qIdWaits !== true | const { data: qFrozen, error: qFrozenErr } = qJob.helper_id && !qJob.helper_confirmed_at && qIdWaits !== true
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -55,12 +62,14 @@ function resetAll() {
   resetSharedMocks();
 }
 
-async function quote(job: Job, pi: Record<string, unknown>, opts: { taxCents?: number; gift?: boolean } = {}) {
+async function quote(job: Job, pi: Record<string, unknown>, opts: { taxCents?: number; gift?: boolean; frozen?: boolean; frozenErr?: { message: string; code?: string } } = {}) {
   resetAll();
   setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_quote" });
   scenario.authUser = POSTER;
   scenario.reads.jobs = { rows: [job] };
   if (opts.gift) scenario.reads.gift_cards = { rows: [{ id: "gift-1" }] };
+  if (opts.frozen !== undefined) scenario.rpc.cancel_fee_payee_frozen = opts.frozen;
+  if (opts.frozenErr) scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), cancel_fee_payee_frozen: opts.frozenErr };
   stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
   stripeMock.checkout.sessions.list.mockResolvedValue({ data: [{ total_details: { amount_tax: opts.taxCents ?? 0 } }] });
   const fn = await loadEdgeFunction("create-payment");
@@ -75,11 +84,12 @@ async function quote(job: Job, pi: Record<string, unknown>, opts: { taxCents?: n
 }
 
 /** The sweep on the same job once poster_cancel_job recorded it at NOW with the quoted fee. */
-async function sweep(job: Job, pi: Record<string, unknown>, feeCents: number, opts: { taxCents?: number } = {}) {
+async function sweep(job: Job, pi: Record<string, unknown>, feeCents: number, opts: { taxCents?: number; waiver?: boolean } = {}) {
   resetAll();
   setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_quote", CRON_SECRET });
   const cancelled = { ...job, status: "cancelled", cancelled_at: NOW.toISOString(), cancellation_fee: feeCents / 100, cancellation_fee_status: feeCents > 0 ? "pending" : null };
   scenario.reads.jobs = { selectOverrides: [{ includes: "cancellation_fee", result: { rows: [cancelled] } }], rows: [] };
+  if (opts.waiver) scenario.reads.job_cancel_id_waivers = { rows: [{ job_id: job.id }] };
   stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
   stripeMock.paymentIntents.capture.mockResolvedValue({ ...pi, status: "succeeded" });
   stripeMock.paymentIntents.cancel.mockResolvedValue({ ...pi, status: "canceled" });
@@ -144,6 +154,50 @@ describe("cancel_quote == the sweep's refund (posterCancelSplit, called from bot
   it("shows no number when an earlier refund already went back on the charge", async () => {
     const q = await quote(baseJob(), captured(11000, 349, 200));
     expect(q).toMatchObject({ back_to_you_cents: null, unquoted_reason: "earlier_refund" });
+  });
+
+  // Q1415 (e): the Helpr is banned or under an open ban review.
+  it("a late cancel with a frozen Helpr: the quote's fee is the recorded 0 and Back to you is the sweep's refund", async () => {
+    const job = baseJob();
+    const pi = captured(11000, 349);
+    const q = await quote(job, pi, { frozen: true });
+    expect(q).toMatchObject({ can_cancel: true, fee_cents: 0, charge_state: "captured", unquoted_reason: null });
+    expect(scenario.rpcCalls?.find((c) => c.name === "cancel_fee_payee_frozen")?.args).toEqual({ p_user: "helper-1" });
+    expect(q.back_to_you_cents).toBeGreaterThan(0);
+    await sweep(job, pi, 0, { waiver: true });
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(q.back_to_you_cents);
+  });
+
+  it("a frozen Helpr on a hold: nothing is captured for the Helpr's time", async () => {
+    const job = baseJob();
+    const pi = { id: "pi_q", status: "requires_capture", amount: 11000, amount_capturable: 11000, latest_charge: null };
+    const q = await quote(job, pi, { frozen: true });
+    expect(q).toMatchObject({ fee_cents: 0, charge_state: "hold", back_to_you_cents: 11000 });
+    await sweep(job, pi, 0, { waiver: true });
+    expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("a Helpr who is not frozen is still quoted the ladder fee", async () => {
+    const q = await quote(baseJob(), captured(11000, 349), { frozen: false });
+    expect(q).toMatchObject({ fee_cents: 2500, unquoted_reason: null });
+  });
+
+  it("an unreadable frozen check quotes no amount and no fee (the cancel is then not held to one)", async () => {
+    const q = await quote(baseJob(), captured(11000, 349), { frozenErr: { message: "connection reset", code: "08006" } });
+    expect(q).toMatchObject({ can_cancel: true, fee_cents: null, back_to_you_cents: null, unquoted_reason: "unreadable" });
+  });
+
+  it("before the function deploys (PGRST202) the ladder fee is quoted, as the old SQL charges", async () => {
+    const q = await quote(baseJob(), captured(11000, 349), { frozenErr: { message: "not found", code: "PGRST202" } });
+    expect(q).toMatchObject({ fee_cents: 2500, unquoted_reason: null });
+  });
+
+  it("an unconfirmed Helpr is not asked (no fee either way)", async () => {
+    const q = await quote(baseJob({ helper_confirmed_at: null }), captured(11000, 349), { frozenErr: { message: "should not be asked", code: "08006" } });
+    expect(q).toMatchObject({ fee_cents: 0, unquoted_reason: null });
+    expect(scenario.rpcCalls?.some((c) => c.name === "cancel_fee_payee_frozen")).toBe(false);
   });
 
   it("answers a stranger with nothing about the job", async () => {

@@ -135,7 +135,8 @@ CREATE FUNCTION public.has_role(p_user uuid, p_role public.app_role) RETURNS boo
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
 CREATE TABLE public.admin_audit_log (id bigserial, admin_id uuid, action text, target_type text, target_id text, details jsonb);
 CREATE TABLE public.platform_settings (key text PRIMARY KEY, value jsonb);
-CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, ban_status text NOT NULL DEFAULT 'active', auto_suspended_until timestamptz);
+CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, ban_status text NOT NULL DEFAULT 'active', auto_suspended_until timestamptz,
+  under_13_blocked_at timestamptz);
 INSERT INTO public.profiles (user_id, ban_status) VALUES ('${BUYER}', 'active'), ('${OTHER}', 'active'), ('${BANNED}', 'banned');
 CREATE TABLE public.jobs (id uuid PRIMARY KEY, customer_id uuid, title text, category public.job_category NOT NULL,
   status text NOT NULL DEFAULT 'open', payment_status text NOT NULL DEFAULT 'unpaid');

@@ -19,7 +19,7 @@
  * neither exit can regress alone.
  */
 // @mutate api/share.ts | const shell = absolutiseIconLinks(SHELL_HTML); | const shell = SHELL_HTML;
-// @mutate api/share.ts | return respond(absolutiseIconLinks(SHELL_HTML)); | return respond(SHELL_HTML);
+// @mutate api/share.ts | return respond(absolutiseIconLinks(SHELL_HTML), undefined, isNotFoundRequest | return respond(SHELL_HTML, undefined, isNotFoundRequest
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";

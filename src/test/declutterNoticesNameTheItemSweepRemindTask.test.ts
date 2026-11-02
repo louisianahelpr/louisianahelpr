@@ -13,7 +13,7 @@
  *   5. (AUD31-22) a notice whose title is built at run time (CASE, format, a variable) still files under a Declutter
  *      kind: its kind is a Declutter one, job_match on purpose, or one declutter_notice_type's kind fallback maps.
  *
- * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |       o := public.declutter_lock_order(r.order_id); |       SELECT * INTO o FROM public.declutter_orders WHERE id = r.order_id;
+ * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |       o := public.declutter_lock_order(r.order_id); |       SELECT * INTO o FROM public.declutter_orders WHERE id = r.order_id;
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |         'message', public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, p_link, p_message)), |         'message', p_message,
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql | format('The delivery of "%s" was cancelled. You do not need to go.', t.title), '/declutter?tab=deliver', | 'A delivery you took was cancelled. You do not need to go.', '/declutter?tab=deliver',
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql | t.title), '/declutter?tab=deliver', t.customer_id); | t.title), '/declutter?view=deliver', t.customer_id);
@@ -23,7 +23,7 @@
  * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |     '/declutter?tab=selling', v_uid); |     '/declutter?tab=selling', NULL);
  * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |   o := public.declutter_lock_order(v_order);\n  IF v_uid IN (o.buyer_id, o.seller_id) THEN\n    -- Another admin decides | \n  SELECT * INTO o FROM public.declutter_orders WHERE id = v_order;\n  IF v_uid IN (o.buyer_id, o.seller_id) THEN\n    -- Another admin decides
  * @mutate supabase/migrations/20261031184929_declutter_damage_notices_name_the_item.sql | '/declutter?tab=buying', o.seller_id);  -- AUD31-34 | '/declutter?tab=buying', NULL);  -- AUD31-34
- * @mutate supabase/migrations/20261030170443_declutter_question_kind.sql |     WHEN p_type IN ('payment', 'financial_alerts') THEN 'declutter_sales' |     WHEN p_type IN ('financial_alerts') THEN 'declutter_sales'
+ * @mutate supabase/migrations/20261102103524_declutter_ship_notice_kinds.sql |     WHEN p_type IN ('payment', 'financial_alerts') THEN 'declutter_sales' |     WHEN p_type IN ('financial_alerts') THEN 'declutter_sales'
  */
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

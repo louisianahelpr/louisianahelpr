@@ -82,6 +82,10 @@ const RELEASE_EXEMPT: Record<string, string> = {
     "Q2399: cancels authorizations that were never charged and are not the job's money: a hold superseded because the poster paid another way, the old authorization a renewal replaced, and one Stripe placed that no row recorded. Nothing was taken, so there is nothing to refund or announce",
   "supabase/functions/stripe-webhook/handlers/cardHoldCheckout.ts":
     "Q2399: cancels a duplicate hold-mode authorization when the job already holds another one; it was never charged, so there is nothing to refund or announce",
+  "supabase/functions/_shared/shipLabelRun.ts":
+    "Shipping S3/S6 (testers only): the shipped order's card HOLD. captureWith captures with amount_to_capture, leaving only a setup fee the account already paid elsewhere on the authorization (never charged, released with the hold; the same rule as cardHoldPlan's partial capture); release cancels a hold still in requires_capture when the label could not be bought, which was never charged, and declutter_ship_hold_released then closes the order and tells the buyer 'the hold on your card was released. You pay nothing.' (20261102030530)",
+  "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts":
+    "Shipping S3 (testers only): a shipped order's card hold that the order does not take (closed, wrong amount, a second page) is cancelled while still only AUTHORIZED: nothing was captured, so there is no refund to announce; its refund row is closed as settled at 0 (closeReleasedHoldRefund, 20261101221604) and ops are paged",
   "supabase/functions/_shared/shopHolds.ts":
     "Shops M1 (20261018164442): releases the never-captured hold of a Shops order that already ended unpaid; nothing was charged, so there is no refund to announce, and the SQL that closed the order told the buyer the hold is released (shops_decline_order 'Order declined', shop_order_sweep 'Order not answered', shop_mark_order_held 'That day filled up' / 'Order could not go through'), or the buyer withdrew or replaced the order themselves; the one silent case is shop_mark_order_held's order_missing (a paid page with no order row)",
 };
@@ -114,7 +118,7 @@ const REFUND_OWN_NOTICE: Record<string, string> = {
  */
 // @two-way src/test/refundPathsSendTheNotice.test.ts:stale REFUND_WORDS_ALLOWED entry
 const REFUND_WORDS_ALLOWED: Record<string, { lines: number; why: string }> = {
-  "supabase/functions/charge-recurring-visits/index.ts": { lines: 6, why: "the $0 fallback: the card fee took the whole payment, so nothing was refunded; plus (ID once, 2026-10-20) the poster's 'A visit is waiting on your Helpr' notice, which says a payment WOULD be refunded if the Helpr's setup is not done, before any refund exists" },
+  "supabase/functions/charge-recurring-visits/index.ts": { lines: 8, why: "the $0 fallback: the card fee took the whole payment, so nothing was refunded; plus (ID once, 2026-10-20) the poster's 'A visit is waiting on your Helpr' notice, which says a payment WOULD be refunded if the Helpr's setup is not done, before any refund exists; plus (Q2245 d) the lapsed HELPR's notice that the cost of refunding the poster comes out of their next payout (the poster's own refund notice is the usual one)" },
   "supabase/functions/create-payment/index.ts": { lines: 6, why: "to the HELPR (two writes): the job they worked was refunded to its poster; and admin_refund_general's full refund that sent NOTHING (earlier partials returned all but the kept $2 setup fee, Q1674): no refund id to claim a refund notice on, so the poster is told the job is cancelled" },
   "supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts": { lines: 2, why: "a chargeback the bank decided for the card holder: no refund was made" },
   "supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts": { lines: 2, why: "a refund that FAILED after it was made" },
@@ -169,7 +173,7 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // 12 since Q2399 card hold (2026-10-25): 3 in _shared/cardHold.ts, 3 in card-hold-sweep, 1 in cardHoldCheckout
     // (each releases an authorization that was never charged: RELEASE_EXEMPT). 14 since 2026-10-30: 2 in
     // cardHoldPlan partialCaptureParams (its return type and its value), the capture without the setup fee.
-    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(14); // 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT); 5 since lane-b-money-1: paymentIntentPaymentFailed cancels a failed bank debit (RELEASE_EXEMPT)
+    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(17); // 17 since Shipping S3/S6 (B145 11-01): 2 in _shared/shipLabelRun.ts (the hold capture without an already-paid setup fee; the release when no label could be bought) and 1 in declutterCheckout.ts (a hold the order does not take), each RELEASE_EXEMPT; 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT); 5 since lane-b-money-1: paymentIntentPaymentFailed cancels a failed bank debit (RELEASE_EXEMPT)
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);
     expect(new Set(refundSites.map((s) => s.file)).size).toBeGreaterThan(5);

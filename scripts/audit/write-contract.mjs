@@ -356,6 +356,10 @@ function policyAllows(table, cmd, role) {
 // (`count` equals the number of such files). Otherwise, and whenever the
 // metadata is absent, nothing is classified as pending and a missing object
 // stays a reject (fail closed).
+// Snapshots that also carry `versions` (the full applied list, whose length is
+// `count` and whose max is `latest`) are exact by construction: a file whose
+// version is not in the list had not run, even when its number is below
+// `latest` (a train lands an older-numbered migration after a newer one ran).
 
 export const MIGRATIONS_DIR = path.join(ROOT, "supabase/migrations");
 
@@ -370,7 +374,18 @@ export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
   if (!meta || typeof meta.latest !== "string" || typeof meta.count !== "number") return none;
   if (!fs.existsSync(migrationsDir)) return none;
   const files = fs.readdirSync(migrationsDir).filter((f) => /^\d{14}_.*\.sql$/.test(f)).sort();
-  if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none;
+  let isPending;
+  if (meta.versions !== undefined) {
+    const v = meta.versions;
+    // A list that disagrees with its own latest/count is a bad read: fail closed.
+    if (!Array.isArray(v) || v.length !== meta.count || !v.every((x) => typeof x === "string")) return none;
+    if (v.length && v.reduce((a, b) => (b > a ? b : a)) !== meta.latest) return none;
+    const set = new Set(v);
+    isPending = (f) => !set.has(f.slice(0, 14));
+  } else {
+    if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none;
+    isPending = (f) => f.slice(0, 14) > meta.latest;
+  }
   const functions = new Map();
   const tables = new Map();
   // "table.column" -> file, for columns a pending ALTER TABLE ... ADD COLUMN adds.
@@ -379,7 +394,7 @@ export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
   // table) and "role:PRIV:table.column" (per column). A pending column on a
   // table that grants per column is only writable with a matching GRANT.
   const grants = new Set();
-  for (const f of files.filter((x) => x.slice(0, 14) > meta.latest)) {
+  for (const f of files.filter(isPending)) {
     const sql = stripSqlComments(fs.readFileSync(path.join(migrationsDir, f), "utf8"));
     for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?\s*\(/gi)) {
       functions.set(m[1].toLowerCase(), f);
@@ -613,6 +628,10 @@ export function fetchSnapshot() {
   // Q1072: without this the checker cannot tell deploy lag from a missing RPC.
   if (typeof snap.appliedMigrations?.latest !== "string" || !(snap.appliedMigrations?.count > 0)) {
     throw new Error(`snapshot query returned no appliedMigrations {latest, count} (got ${JSON.stringify(snap.appliedMigrations)})`);
+  }
+  const am = snap.appliedMigrations;
+  if (!Array.isArray(am.versions) || am.versions.length !== am.count) {
+    throw new Error(`snapshot query returned appliedMigrations.versions that does not match count ${am.count}`);
   }
   return sortDeep(snap);
 }

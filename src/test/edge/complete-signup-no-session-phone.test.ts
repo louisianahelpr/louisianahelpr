@@ -122,14 +122,18 @@ describe("complete-signup takes a phone only from a signed-in member (Q1804 foll
     expect(update).not.toHaveProperty("phone");
   });
 
-  it("a signed-in member's phone is still checked against retained bans (and refused on a match)", async () => {
+  // Q1903: the phone is never sent to enforce_retained_ban (since Q1714 a phone match only files a doubt-check, and the
+  // profiles UPDATE trigger files it when the phone is actually saved); the email/identity re-check still refuses.
+  // @mutate supabase/functions/complete-signup/index.ts |           p_phone: null, |           p_phone: phone,
+  it("a signed-in member's completion re-checks retained bans without sending the phone (and is refused on a match)", async () => {
     seedSignedIn();
     const fn = await load();
     const res = await fn.fetch(
       fn.request({ body: body({ phone: BANNED_PHONE }), headers: { Authorization: "Bearer user-jwt" } }),
     );
     expect(banChecks()).toHaveLength(1);
-    expect((banChecks()[0].args as { p_phone?: string; p_user_id?: string }).p_phone).toBe(BANNED_PHONE);
+    expect((banChecks()[0].args as { p_phone?: string | null }).p_phone).toBeNull();
+    expect((banChecks()[0].args as { p_email?: string }).p_email).toBe("member@test.com");
     expect((banChecks()[0].args as { p_user_id?: string }).p_user_id).toBe(USER_ID);
     expect(res.status).toBe(403);
     expect(((await res.json()) as { code?: string }).code).toBe("retained_ban");

@@ -17,6 +17,12 @@
  * @mutate src/components/MobileNav.tsx |   const litNow = tapped && tapped.fromKey === location.key ? tapped.path : null; |   const litNow = tapped ? tapped.path : null;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
+// The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
+// (no row yet, saves accepted); the device copy and the hook's own rules stay real.
+vi.mock("@/lib/sectionPrefsRow", () => ({
+  fetchSectionPrefsRow: async () => ({ data: null, error: null }),
+  saveSectionPrefsRow: async () => ({ error: null }),
+}));
 import { lazy, Suspense } from "react";
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useNavigate } from "react-router-dom";

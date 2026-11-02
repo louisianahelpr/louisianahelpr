@@ -213,7 +213,7 @@ serve(async (req) => {
           // real transaction id must not page ops once per request.
           const message = profile.stripe_subscription_id
             ? "An App Store notice says this member's Apple subscription is paid, but a live Stripe subscription bills their row, so the notice changed nothing. They are paying twice: settle which subscription to keep and refund the other."
-            : "An App Store notice says this member's Apple subscription is paid, but their row holds a Stripe-granted tier with no Stripe subscription behind it (a one-time pass, or a tier with no end date), so the notice changed nothing. Check what the Stripe tier was paid with before refunding either side; the member can tap Restore Purchases once the Stripe tier ends.";
+            : "An App Store notice says this member's Apple subscription is paid, but their row holds a Stripe-granted tier with no Stripe subscription behind it (a one-time pass, or a tier with no end date), so the notice changed nothing. Check what the Stripe tier was paid with before refunding either side; once the Stripe tier ends, the daily subscription reconciliation hands the row back to Apple (or the member can tap Restore Purchases).";
           try {
             await postSlackOpsAlert({
               kind: "custom",

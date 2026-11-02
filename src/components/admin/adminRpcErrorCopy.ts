@@ -156,6 +156,16 @@ export const ADMIN_RPC_ERROR_COPY = {
     meetup_spot_invalid: "Fill in the parish, name and address, pick a type, and put the map point in Louisiana.",
     meetup_spot_not_found: "That spot no longer exists. Refresh the list.",
   },
+  // Q1928 gap 1 (20261102065446): a member's open Declutter amounts owed, and clearing one.
+  declutter_admin_fee_debts: {
+    admin_only: "Only an admin can see what a member owes.",
+  },
+  declutter_admin_waive_fee_debt: {
+    admin_only: "Only an admin can clear an amount owed.",
+    debt_not_found: "That amount no longer exists. Refresh the list.",
+    invalid_note: "Say why you're clearing it, in under 500 characters.",
+    nothing_owed: "This amount was already paid back from a payout. Refresh the list.",
+  },
   // Q2428 partner charities (20261027222743).
   admin_declutter_save_donation_partner: {
     admin_only: "Only an admin can add or edit partner charities.",
@@ -353,7 +363,8 @@ export const ADMIN_RPC_ERROR_COPY = {
     not_held_for_review: "This row isn't held for review any more. Another admin may have handled it. Refresh the list.",
     ref_already_used: "That Stripe id is already recorded on another payout or refund. Check you have the right one.",
     settle_amount_short: "That's less than this refund owes. Refund the rest in Stripe first, then record the full amount.",
-    settle_amount_differs: "A Shops refund is settled only for its whole amount. Enter the full amount shown.",
+    settle_amount_differs: "This refund is settled only for its whole amount. Enter the full amount shown.",
+    stripe_refund_required: "A pay-raise refund goes back to the buyer's card. Refund it in Stripe, then paste the re_... id.",
     stripe_check_required: "A Shops refund settled with a Stripe refund id is checked with Stripe first. Paste the re_... id in the Stripe id box, or use \"other:\".",
   },
   // Homes take-down and lift (20261019062540): HomesListingsCard.

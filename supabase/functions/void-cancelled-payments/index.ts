@@ -85,6 +85,17 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, { global: { fetch: boundedFetch() } });
 
+    // Q1939: a Declutter seller-fault setup job the refund's trigger could not cancel (lock timeout, a refused write)
+    // is re-applied here, BEFORE any cancelled job is priced, so it settles with no fee and the card fee billed to the
+    // seller (A10) instead of the normal cancel rules (20261102035736). Not deployed yet (PGRST202) or failed: one
+    // defect, never a stop for the rest of the run.
+    {
+      const { error: faultSweepErr } = await supabaseAdmin.rpc("declutter_seller_fault_sweep", {});
+      if (faultSweepErr && (faultSweepErr as { code?: string }).code !== "PGRST202") {
+        defects.record(`declutter_seller_fault_sweep failed: ${faultSweepErr.message}`.slice(0, 200));
+      }
+    }
+
     // Stripe mode (owner 2026-10-12): every job is settled on the key of its own
     // mode (test accounts on the test key); a job mixing test and real
     // accounts, or one whose mode cannot be read, is skipped as a defect.
@@ -133,6 +144,8 @@ serve(async (req) => {
       withholdReason = "the crew members whose spots you closed close to the start",
     ): Promise<{ ok: boolean; outcome: string | null }> => {
       let shareBps: number | undefined;
+      // Q1914: the exact cents to give back (applied - withheld), so the poster loses no rounding.
+      let restoreCents: number | undefined;
       let keptForBlockFees = 0;
       if (withholdCents > 0) {
         // What the gift paid toward this job, read without restoring anything.
@@ -152,17 +165,26 @@ serve(async (req) => {
           // The RPC floors applied * bps / 10000: the largest bps that does not
           // overshoot the target, as process-scheduled-payouts sizes a crew's
           // gift share, so the gift never returns any of the withheld fee.
+          // Only the fallback below uses it (a database without p_restore_cents yet).
           shareBps = target <= 0 || applied <= 0 ? 0 : Math.min(10000, Math.floor(((target + 1) * 10000 - 1) / applied));
-          keptForBlockFees = applied - Math.floor((applied * shareBps) / 10000);
+          restoreCents = target;
+          keptForBlockFees = applied - target;
           console.log(
-            `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for fees the poster owes; restoring ${Math.floor((applied * shareBps) / 10000)}c of ${applied}c.`,
+            `[void-cancelled-payments] job ${job.id}: ${withholdCents}c of the gift is kept for fees the poster owes; restoring ${target}c of ${applied}c.`,
           );
         }
       }
-      const { data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
+      let { data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
         p_job_id: job.id,
-        ...(shareBps !== undefined ? { p_share_bps: shareBps } : {}),
+        ...(restoreCents !== undefined ? { p_restore_cents: restoreCents } : {}),
       });
+      if (rpcErr?.code === "PGRST202" && restoreCents !== undefined && shareBps !== undefined) {
+        // Q1914: the database predates p_restore_cents (20261102071958): the whole-basis-point share, as before.
+        console.warn(`[void-cancelled-payments] job ${job.id}: restore_gift_card_for_job has no p_restore_cents yet; using ${shareBps} bps.`);
+        const applied = keptForBlockFees + restoreCents;
+        keptForBlockFees = applied - Math.floor((applied * shareBps) / 10000);
+        ({ data, error: rpcErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", { p_job_id: job.id, p_share_bps: shareBps }));
+      }
 
       // A null `error` is not proof the restore happened — read the outcome
       // the function reports and accept only the ones it actually defines.
@@ -536,8 +558,10 @@ serve(async (req) => {
       helper_amount: number | string;
       /** Q2356: every transfer of this fee Stripe reported failed or canceled (the stripe-webhook records them). */
       failed_transfer_ids?: string[] | null;
+      /** Q2439: read so a live-gate hold that already says why writes nothing. */
+      failure_reason?: string | null;
     };
-    const FEE_ROW_COLUMNS = "id, status, stripe_transfer_id, created_at, fee_amount, commission_percent, platform_cut, helper_amount, failed_transfer_ids";
+    const FEE_ROW_COLUMNS = "id, status, stripe_transfer_id, created_at, fee_amount, commission_percent, platform_cut, helper_amount, failed_transfer_ids, failure_reason";
     /**
      * Q2356: the transfers of a fee ledger row (single fee or crew share) that are NOT payments: every one the
      * webhook remembered as failed or canceled, and the row's own current transfer while the row says failed.
@@ -577,6 +601,14 @@ serve(async (req) => {
           .select("status, stripe_transfer_id")
           .eq("id", row.id)
           .maybeSingle();
+        if (patch.status === undefined) {
+          // Q2439: a patch with no status (the live-gate hold's reason) moves
+          // nothing; the row another run moved meanwhile now says what that
+          // run recorded, and nothing this run meant to record is lost. Not
+          // out of step; the next run reads the row afresh.
+          console.log(`[void-cancelled-payments] fee row ${row.id} (job ${jobId}) ${stage}: moved by another run; reason not written`);
+          return true;
+        }
         if (rereadErr) {
           why = `zero rows matched; re-read failed: ${rereadErr.message}`;
         } else if (
@@ -853,7 +885,12 @@ serve(async (req) => {
       if (feeLive.held) {
         // The row stays 'pending' (Part E retries it) and says why, so the
         // reconciler's "read failure_reason" has an answer (review #7).
-        await markFeeRow(job.id, feeRow, { failure_reason: `payee_not_payable: ${feeLive.kind}` }, `held (payee_not_payable: ${feeLive.kind})`);
+        // Q2439: written only when it differs, so a held row's text is not
+        // rewritten every hour.
+        const heldReason = `payee_not_payable: ${feeLive.kind}`;
+        if (feeRow.failure_reason !== heldReason) {
+          await markFeeRow(job.id, feeRow, { failure_reason: heldReason }, `held (${heldReason})`);
+        }
         if (feeLive.defect) defects.record(`cancellation fee ${job.id}: ${feeLive.defect}`);
         return true;
       }
@@ -1775,7 +1812,8 @@ serve(async (req) => {
     // ladder below (money-reconciliation reads it the same way): a 0 a poster's cancel wrote for any other reason is
     // re-priced. Read once for every single Part A job with a hired Helpr. Only a missing table (a function deployed
     // before the migration, when no such cancel can exist) reads "no waiver"; any other read error moves no money for
-    // those jobs this run.
+    // those jobs this run. Q1415 (e): the same row (reason 'payee_frozen') records a 0 for a confirmed Helpr who was
+    // banned or under an open ban review at the cancel; their status may change before this runs, so only the row counts.
     const idWaiverCandidates = (jobs ?? [])
       .filter((j) => j.is_group_job !== true && !!j.helper_id)
       .map((j) => j.id as string);
@@ -2616,10 +2654,14 @@ serve(async (req) => {
         continue;
       }
 
+      // Q1940 (b): the PaymentIntent, kept for the "already been refunded" catch below, which bills a
+      // Declutter seller-fault setup job's card fee from it before settling.
+      let retrievedPi: Stripe.PaymentIntent | null = null;
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
           expand: ["latest_charge.balance_transaction"],
         });
+        retrievedPi = pi;
 
         if (pi.status === "requires_capture") {
           // Uncaptured authorization. RECOMPUTE the fee server-side from trusted
@@ -2848,12 +2890,21 @@ serve(async (req) => {
           if (!cardGift && !cardGiftGone && chargeRefundedCents > voidSplit.ceilingCents + 1) {
             console.error(`[void-cancelled-payments] job ${job.id}: charge already refunded ${chargeRefundedCents}¢, more than the ${voidSplit.ceilingCents}¢ this cancel may return — not settled`);
             defects.record(`refunded past kept fees ${job.id}: ${chargeRefundedCents}¢ > ${voidSplit.ceilingCents}¢`);
+            const unbilledSellerFeeCents = sellerFault ? actualOrEstimatedFeeCents(pi, capturedCents) : 0;
             await postSlackOpsAlert({
               kind: "money_at_risk",
               severity: "warning",
               title: "Cancelled job's charge was already refunded past what the cancel keeps",
-              message: "Earlier refunds on this charge returned more than the cancellation may (they ate into the cancellation fee or the card fee). The job was NOT settled and no cancellation fee was paid; reconcile by hand.",
-              fields: { job_id: job.id, payment_intent: paymentIntentId, refunded_cents: chargeRefundedCents, refundable_cents: voidSplit.ceilingCents },
+              // Q1965: on a Declutter seller-fault setup job (A10) this skip also stops the seller's card-fee bill
+              // below, so the page says so and names the amount: whoever reconciles it bills the seller too.
+              message: "Earlier refunds on this charge returned more than the cancellation may (they ate into the cancellation fee or the card fee). The job was NOT settled and no cancellation fee was paid; reconcile by hand."
+                + (sellerFault
+                  ? ` This is a Declutter seller-fault setup job: the seller's $${(unbilledSellerFeeCents / 100).toFixed(2)} card-fee debt was NOT billed either; bill it when you reconcile (declutter_setup_job_fee_debt).`
+                  : ""),
+              fields: {
+                job_id: job.id, payment_intent: paymentIntentId, refunded_cents: chargeRefundedCents, refundable_cents: voidSplit.ceilingCents,
+                ...(sellerFault ? { seller_fault: "yes", seller_fee_cents: unbilledSellerFeeCents } : {}),
+              },
               oncePerDayKey: `void-refunded-past-kept:${job.id}`,
             });
             results.push({ job_id: job.id, title: job.title, status: "refunded_past_kept_fees" });
@@ -3107,6 +3158,31 @@ serve(async (req) => {
         }
         // Handle "already refunded" gracefully
         if (e.message?.includes("already been refunded")) {
+          // Q1940 (b): the charge went back in full elsewhere, but Stripe kept its card fee: on a Declutter
+          // seller-fault setup job (A10) that fee is still the seller's debt, billed once per job, as on the
+          // ordinary refund path. A failed bill leaves the job in escrow and pages ops; the next run retries.
+          const billSellerBeforeSettling = sellerFault;
+          if (billSellerBeforeSettling) {
+            const cardFeeCents = actualOrEstimatedFeeCents(retrievedPi, Number(retrievedPi?.amount_received ?? retrievedPi?.amount ?? 0));
+            const { error: debtErr } = await supabaseAdmin.rpc("declutter_setup_job_fee_debt", {
+              p_job_id: job.id,
+              p_card_fee_cents: cardFeeCents,
+            });
+            if (debtErr) {
+              console.error(`[void-cancelled-payments] seller fee debt failed for already-refunded job ${job.id}; not settling this run:`, debtErr.message);
+              defects.record(`declutter seller fee debt ${job.id}: ${debtErr.message} — already refunded, not settled`);
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "warning",
+                title: "Declutter seller not billed for a refunded setup job's card fee",
+                message: "A setup job cancelled because the Declutter seller backed out was already refunded in full, but the card fee was not added to the seller's debt. The job stays in escrow and the next run retries.",
+                fields: { job_id: job.id, seller_fee_cents: cardFeeCents, db_error: debtErr.message },
+                oncePerDayKey: `declutter-setup-debt:${job.id}`,
+              });
+              results.push({ job_id: job.id, title: job.title, status: "already_refunded_seller_fee_debt_failed" });
+              continue;
+            }
+          }
           const settledAlready = await settleCancelledJob(job, { payment_status: "refunded" }, "already-refunded");
           if (settledAlready) refunded++;
           results.push({ job_id: job.id, title: job.title, status: settledAlready ? "already_refunded" : "already_refunded_not_settled" });

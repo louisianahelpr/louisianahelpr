@@ -118,6 +118,7 @@ const partyWhy = (e: StripeModeRefused, what: string): string =>
 import { captureShopHold, releaseShopHold, shopOrderMode, type ShopHoldRow } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
 import { heldTipParts, helprPayoutParts, type PayoutPart } from "../_shared/helprPayoutParts.ts";
+import { runShipLabels } from "../_shared/shipLabelRun.ts";
 
 const FN = "declutter-money";
 const BATCH = 25;
@@ -184,6 +185,11 @@ type ShopPayoutDue = {
   checkout_session_id: string | null;
   attempts: number;
 };
+/** What a declutter_delivery_refunds row gives back, in an ops page ("shipping refund", "delivery-fee refund"). */
+function refundPartWord(reason: string): string {
+  return reason === "ship_void_refunded" ? "shipping" : "delivery-fee";
+}
+
 type DeliveryRefundDue = {
   delivery_refund_id: string;
   reason: string;
@@ -230,7 +236,11 @@ async function wholeCharge(stripe: Stripe, paymentIntentId: string | null, refun
   return ch.id;
 }
 
-/** Best-effort money email (row 44). Never throws: the money already moved. */
+/**
+ * Best-effort money email (row 44). Never throws: the money already moved.
+ * A receipt, so it always goes: no notification switch gates it (Q2466, lead 2026-11-01). Settings' Declutter Refunds
+ * row shows "Refund receipts are always emailed" instead of an Email switch, and the Terms say the same.
+ */
 async function tellBuyerRefunded(admin: Db, buyerId: string | null, cents: number): Promise<void> {
   if (!buyerId) return;
   try {
@@ -306,7 +316,7 @@ serve(async (req) => {
     payouts_sent: 0, payouts_reconciled: 0, payouts_failed: 0,
     helpr_payouts_sent: 0, helpr_payouts_reconciled: 0, helpr_payouts_failed: 0, held_tips_stranded: 0,
     delivery_refunds_sent: 0, delivery_refunds_reconciled: 0, delivery_refunds_failed: 0,
-    raise_refunds_sent: 0, raise_refunds_reconciled: 0, raise_refunds_failed: 0,
+    raise_refunds_sent: 0, raise_refunds_reconciled: 0, raise_refunds_failed: 0, delivery_gave_up: 0,
     held: 0, ban_review: 0, no_payout_account: 0, payout_account_not_ready: 0, payout_account_unreadable: 0,
     payee_setup_paged: 0, payee_banned: 0, payout_retry_later: 0, mixed_parties: 0,
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
@@ -911,6 +921,9 @@ serve(async (req) => {
       });
     }
   }
+  // 7. Shipping S3 (Q2259): buy each claimed label, then capture its hold (shipLabelWorker.ts). TEST mode only.
+  const shipLabels = await runShipLabels(admin, () => modes.clientFor("test"), (d) => defects.record(d));
+  Object.assign(out, { ship_labels: shipLabels });
   if (refunds.length === 0 && payouts.length === 0 && helprPayouts.length === 0 && deliveryRefunds.length === 0 && raiseRefunds.length === 0) {
     return cronResult(FN, out, defects.defects);
   }
@@ -1357,6 +1370,9 @@ serve(async (req) => {
 
   // 4. Delivery-fee refunds (row 40): the delivery fee alone, back to the buyer.
   for (const d of deliveryRefunds) {
+    // Shipping S6 2d (lead 11-01): this loop also sends the shipping a buyer-fault close held back until the label was
+    // voided ('ship_void_refunded'); its pages and defects name it, never "delivery-fee".
+    const part = refundPartWord(d.reason);
     groupOf.set(d.delivery_refund_id, d.payment_intent_id);
     if (Number(d.attempts ?? 0) > 0) maybeSentRows.add(d.delivery_refund_id);
     if ((d.buyer_id && review.users.has(d.buyer_id)) || (d.seller_id && review.users.has(d.seller_id))) {
@@ -1371,7 +1387,7 @@ serve(async (req) => {
         checkout_session_id: d.checkout_session_id,
       });
       if (!client) {
-        defects.record(`delivery refund ${d.delivery_refund_id}: no Stripe mode; refund it by hand`);
+        defects.record(`${part} refund ${d.delivery_refund_id}: no Stripe mode; refund it by hand`);
         await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "data_defect", "no Stripe mode");
         continue;
       }
@@ -1394,7 +1410,7 @@ serve(async (req) => {
         p_id: d.delivery_refund_id, p_stripe_refund_id: dRefund.id, p_succeeded: ok, p_error: ok ? null : `Stripe answered ${dRefund.status}`,
       });
       if (error) {
-        defects.record(`delivery refund ${d.delivery_refund_id}: Stripe ${dRefund.id} not recorded: ${error.message}`);
+        defects.record(`${part} refund ${d.delivery_refund_id}: Stripe ${dRefund.id} not recorded: ${error.message}`);
         await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 15, "record_failed", `refund ${dRefund.id} not recorded`);
         continue;
       }
@@ -1402,8 +1418,8 @@ serve(async (req) => {
         out.delivery_refunds_failed++;
         await postSlackOpsAlert({
           kind: "money_at_risk", severity: "critical",
-          title: d.attempts + 1 >= 12 ? "Declutter delivery-fee refund gave up" : "Declutter delivery-fee refund did not go through",
-          message: `Stripe answered ${dRefund.status} for delivery refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? "That was the last try: refund it by hand." : "It will be retried with back-off."}`,
+          title: d.attempts + 1 >= 12 ? `Declutter ${part} refund gave up` : `Declutter ${part} refund did not go through`,
+          message: `Stripe answered ${dRefund.status} for ${part} refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? "That was the last try: refund it by hand." : "It will be retried with back-off."}`,
           fields: { Refund: dRefund.id },
         });
         continue;
@@ -1414,7 +1430,7 @@ serve(async (req) => {
     } catch (e) {
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
-        defects.record(`delivery refund ${d.delivery_refund_id}: ${partyWhy(e, "the order")}; settle it by hand`);
+        defects.record(`${part} refund ${d.delivery_refund_id}: ${partyWhy(e, "the order")}; settle it by hand`);
         await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
         continue;
       }
@@ -1422,9 +1438,9 @@ serve(async (req) => {
       const { error } = await admin.rpc("declutter_delivery_refund_executed", {
         p_id: d.delivery_refund_id, p_stripe_refund_id: null, p_succeeded: false, p_error: msg.slice(0, 500),
       });
-      if (error) defects.record(`delivery refund ${d.delivery_refund_id}: failure not recorded: ${error.message}`);
+      if (error) defects.record(`${part} refund ${d.delivery_refund_id}: failure not recorded: ${error.message}`);
       out.delivery_refunds_failed++;
-      defects.record(`delivery refund ${d.delivery_refund_id}${d.attempts + 1 >= 12 ? " (LAST TRY: refund it by hand)" : ""}: ${msg}`.slice(0, 200));
+      defects.record(`${part} refund ${d.delivery_refund_id}${d.attempts + 1 >= 12 ? " (LAST TRY: refund it by hand)" : ""}: ${msg}`.slice(0, 200));
     }
   }
 
@@ -1513,6 +1529,17 @@ serve(async (req) => {
       out.raise_refunds_failed++;
       defects.record(`raise refund ${x.raise_id}${x.attempts + 1 >= 12 ? " (LAST TRY: refund it by hand)" : ""}: ${msg}`.slice(0, 200));
     }
+  }
+
+  // Q1931: delivery money that used its 12 tries (Helpr delivery pay, delivery-fee refunds, pay-raise
+  // refunds; the queues above no longer offer it). Run AFTER the queues, so a row that gave up on this
+  // run is raised now: one ops-ledger row per row per day while it is stuck, and the person owed the
+  // money is told once that our team is sending it (20261102033730). A function not deployed yet
+  // (PGRST202) or a failed check is a defect, never a stop.
+  {
+    const deliveryGaveUp = await admin.rpc("declutter_delivery_gave_up_check", {});
+    if (deliveryGaveUp.error) defects.record(`declutter_delivery_gave_up_check failed: ${deliveryGaveUp.error.message}`);
+    else out.delivery_gave_up = Number(deliveryGaveUp.data ?? 0);
   }
 
   return cronResult(FN, out, defects.defects);

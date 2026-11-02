@@ -12,7 +12,7 @@
  *
  * Behaviour: src/test/pglite/shippingS2ShipHandover.pglite.mjs (sweep, booking, address, "I got it", fee rule).
  *
- * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at | WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at
+ * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at | WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer' |                            AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer'
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                        WHEN NEW.handover = 'ship' THEN 'f1_ship' | WHEN NEW.handover = 'shipX' THEN 'f1_ship'
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'ship') THEN | IF false THEN
@@ -32,12 +32,11 @@ const REFUSALS: Record<string, string> = {
   "declutter_accept_refund_with_return|o.handover NOT IN ('pickup_home', 'porch')": "a drop-off is only where the seller offered pickup; anything else, shipped included, raises drop_off_not_offered",
   "declutter_on_my_way|o.handover NOT IN ('pickup_home', 'porch', 'meetup')": "I'm on my way is for a pickup; anything else raises not_a_pickup",
   "declutter_seller_picked_up|o.handover NOT IN ('pickup_home', 'meetup')": "\"Picked up\" is for a door pickup or a meetup; anything else raises not_a_door_pickup",
-  "declutter_start_checkout|p_handover NOT IN ('pickup_home', 'porch', 'delivery', 'seller_delivery', 'meetup')":
-    "checkout raises invalid_handover for anything else, so no member can open a shipped order until shipping S3 adds 'ship' here",
+  // B110 (20261101191500): the pickup time is only for the three timed pickups; a shipped order has none.
   "declutter_checkout_pickup_end|p_handover NOT IN ('porch', 'pickup_home', 'meetup')":
-    "B110 (20261101191500): only a pickup has a checkout pickup time; anything else (shipped included) gets no end time (NULL)",
+    "a pickup end time exists only for porch, door and meetup pickups; anything else (shipped included) gets none",
   "declutter_start_checkout|p_handover NOT IN ('porch', 'pickup_home', 'meetup')":
-    "B110: the same-pickup-time match applies to pickups only; a non-pickup order (shipped included) skips it, and the invalid_handover list above still refuses 'ship'",
+    "the same-order comparison checks the pickup time only for the timed pickups; a shipped order compares its quote instead (Shipping S3)",
 };
 
 function notInLists(): string[] {

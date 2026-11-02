@@ -14,10 +14,10 @@
  * Backend proof on a real database: src/test/pglite/declutterCheckoutReminders.pglite.mjs (3x; red without the
  * migration and on its planted defects).
  */
-// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | ELSE format('"%s" is waiting in your cart. Check out within 24 hours or you get a strike.', r.title) END, | ELSE 'You have an item waiting in your cart. Check out within 24 hours or you get a strike.' END,
-// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | ELSE format('Check out "%s" in the next 2 hours or you get a strike and it goes back up for sale.', r.title) END,\n      '/declutter?tab=buying'); | ELSE format('Check out "%s" in the next 2 hours or you get a strike and it goes back up for sale.', r.title) END,\n      '/declutter?view=cart');
-// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql | can''t be sold right now, so the sale is cancelled. You were not charged and you get no strike.', v_line.title),\n          '/declutter?tab=buying'); | can''t be sold right now, so the sale is cancelled. You were not charged and you get no strike.', v_line.title),\n          '/declutter?view=cart');
-// @mutate supabase/migrations/20261101030040_declutter_buy_now_30_minutes.sql |   v_talked integer := 0;\n | \n
+// @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql | ELSE format('"%s" is waiting in your cart. Check out within 24 hours or you get a strike.', r.title) END, | ELSE 'You have an item waiting in your cart. Check out within 24 hours or you get a strike.' END,
+// @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql | ELSE format('Check out "%s" in the next 2 hours or you get a strike and it goes back up for sale.', r.title) END,\n      '/declutter?tab=buying'); | ELSE format('Check out "%s" in the next 2 hours or you get a strike and it goes back up for sale.', r.title) END,\n      '/declutter?view=cart');
+// @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql | can''t be sold right now, so the sale is cancelled. You were not charged and you get no strike.', v_line.title),\n          '/declutter?tab=buying'); | can''t be sold right now, so the sale is cancelled. You were not charged and you get no strike.', v_line.title),\n          '/declutter?view=cart');
+// @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |   v_talked integer := 0;\n | \n
 import { describe, it, expect } from "vitest";
 import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
@@ -98,7 +98,7 @@ describe("Declutter checkout reminders name the item and open Buying", () => {
     expect(body).toContain(`format('"%s" is waiting in your cart. Check out within 24 hours or you get a strike.', r.title)`);
     expect(body).toContain(`format('Check out "%s" in the next 2 hours or you get a strike and it goes back up for sale.', r.title)`);
     // DA-12 also returns the line's price (a free line is worded without a strike); DB-5 its source (a Buy now line too).
-    expect(body.match(/RETURNING c\.buyer_id,(?: c\.price_cents,)?(?: c\.source,)? \(SELECT i\.title FROM public\.declutter_items i WHERE i\.id = c\.item_id\) AS title LOOP/g)?.length).toBe(2);
+    expect(body.match(/RETURNING (?:c\.id, )?c\.buyer_id,(?: c\.price_cents,)?(?: c\.source,)? \(SELECT i\.title FROM public\.declutter_items i WHERE i\.id = c\.item_id\) AS title LOOP/g)?.length).toBe(2);
   });
 
   it("a later restatement keeps every variable this one declared", () => {

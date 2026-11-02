@@ -33,10 +33,15 @@
  * asked whether their client showed up on time.
  */
 // @mutate src/components/reviewPanel/types.ts | role === "poster" ? POSTER_QUICK_TAGS : HELPER_QUICK_TAGS | role === "poster" ? HELPER_QUICK_TAGS : POSTER_QUICK_TAGS
+// A3-58 (audit 11-01): a Helpr rating a poster was offered "Paid fast", which rates the poster on the app's payout
+// timing (the poster pays at booking). The poster set names only what the poster does; the old tag stays recognised.
+// @mutate src/components/reviewPanel/types.ts |   "Approved quickly",\n  "Friendly", |   "Paid fast",\n  "Friendly",
+// @mutate src/components/reviewPanel/types.ts |   // A3-58 (11-01): offered to Helprs rating a poster until then; stored rows keep it.\n  "Paid fast", |
 import { describe, expect, it } from "vitest";
 import {
   HELPER_QUICK_TAGS,
   POSTER_QUICK_TAGS,
+  RETIRED_QUICK_TAGS,
   quickTagsFor,
 } from "@/components/reviewPanel/types";
 
@@ -67,6 +72,14 @@ describe("review tags adapt to who is being rated", () => {
     expect(asked).toMatch(/\bon\s+time\b/i);
     // Boards 35/36 (2026-10-20): "Great work" replaced "Quality work".
     expect(asked).toMatch(/\b(?:quality|great)\s+work\b/i);
+  });
+
+  it("A3-58: never rates a poster on when the Helpr gets paid; the old tag is still read as a tag", () => {
+    expect(POSTER_QUICK_TAGS.length).toBeGreaterThan(2);
+    expect(POSTER_QUICK_TAGS.join(" | ")).not.toMatch(/\bpaid\b|\bpay(s|ment)?\b/i);
+    expect(POSTER_QUICK_TAGS).toContain("Approved quickly");
+    expect(RETIRED_QUICK_TAGS).toContain("Paid fast");
+    expect(RETIRED_QUICK_TAGS).not.toContain("Approved quickly");
   });
 
   it("has no duplicate tag within a direction", () => {

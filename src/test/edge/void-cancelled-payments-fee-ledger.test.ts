@@ -263,6 +263,40 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
     expect((slackAlerts as Array<{ title: string }>).filter((a) => /ledger out of step/i.test(String(a.title)))).toHaveLength(0);
   });
 
+  // Q2439 (lh-money-escrow review of the live gate, #5): the live-gate hold
+  // patch on a fee row carries no status. A row another run moved in the same
+  // moment (zero rows) is not "out of step": nothing this run meant to record
+  // was lost. And a hold whose reason the row already says writes nothing, so
+  // the row's text is not rewritten every hour.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (patch.status === undefined) { |         if (false) {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (feeRow.failure_reason !== heldReason) { |         if (true) {
+  const NOT_PAYABLE = { ...PAYABLE_CONNECT_ACCOUNT, payouts_enabled: false };
+  it("a held fee row another run moved meanwhile (zero rows, no status in the patch) raises no 'ledger out of step' alert", async () => {
+    seed({ existing: ledgerRow({ created_at: OLD }), reread: { status: "paid", stripe_transfer_id: "tr_other" } });
+    stripeMock.accounts.retrieve.mockResolvedValue(NOT_PAYABLE);
+    scenario.writeSelectRows["cancellation_fee_transfers:update"] = [];
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(feeWrites("update").some((w) => String((w.payload as { failure_reason?: string }).failure_reason ?? "").startsWith("payee_not_payable"))).toBe(true);
+    expect((slackAlerts as Array<{ title: string }>).filter((a) => /ledger out of step/i.test(String(a.title)))).toHaveLength(0);
+  });
+
+  it("a held fee row that already says why is not rewritten; one that says something else is", async () => {
+    seed({ existing: ledgerRow({ created_at: OLD, failure_reason: "payee_not_payable: not_payable" }) });
+    stripeMock.accounts.retrieve.mockResolvedValue(NOT_PAYABLE);
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(feeWrites("update").filter((w) => "failure_reason" in (w.payload as object))).toHaveLength(0);
+
+    resetSupabaseMock(); resetSharedMocks();
+    seed({ existing: ledgerRow({ created_at: OLD, failure_reason: "Stripe: insufficient platform balance" }) });
+    stripeMock.accounts.retrieve.mockResolvedValue(NOT_PAYABLE);
+    await (await load()).fetch(cronReq());
+    expect(feeWrites("update").filter((w) => (w.payload as { failure_reason?: string }).failure_reason === "payee_not_payable: not_payable")).toHaveLength(1);
+  });
+
   // @mutate supabase/functions/void-cancelled-payments/index.ts | for (const fj of feeJobs ?? []) feeRetryJobs.push({ ...fj, fee_transfer_retry: true }); | void feeJobs;
   it("Part E retries a 'failed' row on a settled job, keyed to the same row", async () => {
     const failed = ledgerRow({ status: "failed", created_at: OLD });

@@ -13,6 +13,14 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { CONNECT_HELD_CODES } from "../_shared/livePayoutGate.ts";
+
+/** Stripe-mode refusal reasons that are about a test-looking account (Q2397). */
+const TEST_ACCOUNT_REFUSALS: ReadonlySet<string> = new Set([
+  "unenrolled_seed",
+  "fixture_email",
+  "counterparty_refused",
+  "test_account_live_only",
+]);
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { loadComeBackJobs, loadRefundHeldJobs } from "../_shared/refundRequestHold.ts";
 import { heldByContinueDay, loadContinuingJobs } from "../_shared/continueDay.ts";
@@ -131,6 +139,38 @@ serve(async (req) => {
     const jobDefect = (jobId: string, reason: string) => {
       if (seedJobIds.has(jobId)) seedDefects.push(reason);
       else defects.record(reason);
+    };
+    /**
+     * Q2397 (lead 11-02): a Stripe-mode refusal about a TEST-looking account
+     * (half-enrolled seed, fixture inbox, the other party being one, or an
+     * enrolled test account at a live-only step) is test data and goes to the
+     * digest (seedDefects, never a page to the owner), but ONLY when the job
+     * itself or one of its parties is a test account by is_seed or a
+     * test_accounts row. A fixture inbox on an account that is neither (a real
+     * person with a throwaway email) reads counterparty_refused / fixture_email
+     * too, so on its own it is NOT proof of test data: counted. Any read
+     * failure counts it (unknown => page). A real mix (mixed_parties) or our
+     * own misconfiguration or read failure is always counted.
+     */
+    const modeRefusalDefect = async (jobId: string, reason: string, text: string) => {
+      if (TEST_ACCOUNT_REFUSALS.has(reason) && (await jobHasTestParty(jobId))) seedDefects.push(`${text} (test account)`);
+      else jobDefect(jobId, text);
+    };
+    const jobHasTestParty = async (jobId: string): Promise<boolean> => {
+      const { data: j, error: jErr } = await supabaseAdmin
+        .from("jobs").select("id, customer_id, helper_id, is_seed").eq("id", jobId).maybeSingle();
+      if (jErr || !j) return false;
+      if (j.is_seed === true) return true;
+      const ids = [j.customer_id, j.helper_id].filter((v): v is string => typeof v === "string" && v.length > 0);
+      if (ids.length === 0) return false;
+      const [{ data: profs, error: pErr }, { data: enrolled, error: eErr }] = await Promise.all([
+        supabaseAdmin.from("profiles").select("user_id, is_seed").in("user_id", ids),
+        supabaseAdmin.from("test_accounts").select("user_id").in("user_id", ids),
+      ]);
+      if (pErr || eErr) return false;
+      const want = new Set(ids);
+      return (profs ?? []).some((r: { user_id?: string; is_seed?: boolean | null }) => r.user_id && want.has(r.user_id) && r.is_seed === true)
+        || (enrolled ?? []).some((r: { user_id?: string }) => !!r.user_id && want.has(r.user_id));
     };
     /** Q764: the hold read behind Phase 1's "you'll be paid" notice. */
     const holdBeforePromise = (helperId: string | null) => checkPayoutHold(supabaseAdmin, helperId);
@@ -530,7 +570,7 @@ serve(async (req) => {
         } catch (e) {
           if (!(e instanceof StripeModeRefused)) throw e;
           results.push({ job_id: job.id, status: "stripe_mode_refused", error: e.reason });
-          jobDefect(job.id, `stripe mode ${job.id}: ${e.reason}: ${e.message}`);
+          await modeRefusalDefect(job.id, e.reason, `stripe mode ${job.id}: ${e.reason}: ${e.message}`);
           continue;
         }
         if (!paymentIntentId && job.stripe_session_id) {
@@ -904,6 +944,18 @@ serve(async (req) => {
             // The hold landed between the read above and release-payout's own
             // check. Same outcome as above: not a failed attempt, no page.
             payoutResults.push({ job_id: job.id, status: PAYOUT_HELD_CODE, detail: json.error });
+          } else if (json.code === "stripe_mode_refused") {
+            // Q2397: release-payout refused the job's Stripe mode (a job mixing
+            // a test and a real account, an unenrolled test-looking Helpr, or
+            // its own misconfiguration). Retrying cannot fix it and the give-up
+            // page's "pay it by hand" is the wrong advice: it needs the
+            // account's enrolment (or a refund / hand payout). Not a failed
+            // attempt; a run defect naming the reason, as at Step 1 above and
+            // in process-scheduled-payouts.
+            const reason = typeof json.reason === "string" ? json.reason : `HTTP ${resp.status}`;
+            payoutResults.push({ job_id: job.id, status: "stripe_mode_refused", detail: `${reason}: ${json.error ?? ""}` });
+            const modeDefect = `stripe mode ${job.id}: ${reason}: release-payout refused the payout${reason === "mixed_parties" ? " (a payee in the other Stripe mode cannot be paid from this escrow: refund the person who paid it, from Admin)" : ""}`;
+            await modeRefusalDefect(job.id, reason, modeDefect);
           } else if (typeof json.code === "string" && CONNECT_HELD_CODES.has(json.code)) {
             // Lead 2026-10-23: release-payout refused before any transfer
             // because Stripe does not say the Helpr's account is payable (or

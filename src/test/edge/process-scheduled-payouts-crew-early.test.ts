@@ -143,7 +143,7 @@ describe("process-scheduled-payouts: a crew member the poster confirmed is paid 
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 3333 },
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3333, metadata: expect.objectContaining({ job_id: "job-crew", crew_source: "crew_unfilled_refund" }) }),
       { idempotencyKey: "crew-unfilled-refund-job-crew" },
     );
     expect(scenario.writes.filter((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toHaveLength(1);
@@ -158,7 +158,10 @@ describe("process-scheduled-payouts: a crew member the poster confirmed is paid 
     scenario.rpc.crew_members_due_early_payout = [{ job_id: "job-crew", helper_id: "m1" }];
     (scenario.reads.payout_transfers as { eqOverrides?: unknown[] }).eqOverrides = [
       { column: "helper_id", value: "m1", result: { rows: [{ id: "led-orphan", helper_id: "m1", stripe_transfer_id: null, status: "pending", created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() }] } },
+      // Q2172 (c) (73efb9a48a): a resumed claim reads its own record (no fee recorded) and clamps the booking to it.
+      { column: "id", value: "led-orphan", result: { rows: [{ id: "led-orphan", metadata: null }] } },
     ];
+    scenario.rpc.clamp_helpr_fault_fee = 0;
     await run();
     expect(claimsFor()).toEqual([]);
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);

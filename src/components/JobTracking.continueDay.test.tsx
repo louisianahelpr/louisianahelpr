@@ -1,5 +1,5 @@
 /**
- * A3-115 follow-up (lead 11-01): the open Working card's tracker offered "Mark job complete" before a day set to finish,
+ * A3-115 follow-up (lead 11-01): the open Working card's tracker offered "Mark it done" before a day set to finish,
  * which the server refuses (continue_day_ahead). It is greyed with the same note as the job page and the card face.
  *
  * @mutate src/components/JobTracking.tsx |         const doneBeforeContinueDay = isDoneStep && !!continueDayNote; |         const doneBeforeContinueDay = false;
@@ -99,11 +99,11 @@ function renderDoneStep() {
   );
 }
 
-describe("the open card's Mark job complete before a day set to finish", () => {
+describe("the open card's Mark it done before a day set to finish", () => {
   it("no day: enabled (the fixture is the done step)", async () => {
     day.row = null;
     renderDoneStep();
-    const btn = await screen.findByRole("button", { name: /mark job complete/i });
+    const btn = await screen.findByRole("button", { name: /mark it done/i });
     expect((btn as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -111,6 +111,6 @@ describe("the open card's Mark job complete before a day set to finish", () => {
     day.row = { id: "c1", job_id: "job-1", proposed_by: "poster", new_date: ahead, new_start_time: "09:00:00", note: null, status: "set", helper_confirmed_at: AGO_MIN(30) };
     renderDoneStep();
     expect(await screen.findByText(/You can mark it done on \w{3} \d+\/\d+, the day you set to finish\./)).toBeTruthy();
-    expect((screen.getByRole("button", { name: /mark job complete/i }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: /mark it done/i }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

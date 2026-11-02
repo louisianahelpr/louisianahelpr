@@ -3,6 +3,18 @@
 // @mutate supabase/functions/subscription-reconciliation/index.ts | if (matchedUserIds.has(p.user_id)) continue; // Stripe pays for it: report only | void 0;
 // @mutate supabase/functions/subscription-reconciliation/index.ts | if (verdict === "unknown") { | if (false) {
 // @mutate supabase/functions/subscription-reconciliation/index.ts | if (p.subscription_source !== "apple" \|\| !p.subscription_tier) continue; | if (true) continue;
+// Q1858, the reclaim pass.
+// @mutate supabase/functions/subscription-reconciliation/index.ts |       if (!meta \|\| !isEntitled(tx, meta)) continue; |       if (!meta) continue;
+// @mutate supabase/functions/subscription-reconciliation/index.ts |         tx = originalMeta.kind === "auto" ? await fetchLatestSubscriptionTransaction(original) : original; |         tx = original;
+// @mutate supabase/functions/subscription-reconciliation/index.ts |       if (p.stripe_subscription_id) continue;\n |
+// @mutate supabase/functions/subscription-reconciliation/index.ts |       if (p.subscription_tier && (stripeExpiry === null \|\| stripeExpiry > now)) continue; // a Stripe tier still running |       void stripeExpiry;
+// @mutate supabase/functions/subscription-reconciliation/index.ts |       if (reclaimVerdict === "does_not_count") continue;\n      const expiresAt |       const expiresAt
+// @mutate supabase/functions/subscription-reconciliation/index.ts |       if (appleOwnsNow.has(p.user_id)) continue; // Apple took it back, or its Apple read failed (2b') |       void appleOwnsNow;
+// @mutate supabase/functions/subscription-reconciliation/index.ts |         appleOwnsNow.add(p.user_id);\n        continue;\n      }\n      const meta = resolveProduct(tx.productId); |         continue;\n      }\n      const meta = resolveProduct(tx.productId);
+// @mutate supabase/functions/subscription-reconciliation/index.ts |         onlyIf: { subscription_source: p.subscription_source, stripe_subscription_id: null }, |
+// @mutate supabase/functions/subscription-reconciliation/index.ts |           write = value === null ? write.is(column, null) : write.eq(column, value); |           void write;
+// @mutate supabase/functions/subscription-reconciliation/index.ts |       if (switchState !== "on") { |       if (false) {
+// @mutate supabase/functions/subscription-reconciliation/index.ts |       if (reclaimVerdict === "unknown") { |       if (false) {
 /**
  * subscription-reconciliation grades Apple rows by the App Store environment.
  *
@@ -205,6 +217,143 @@ describe("Apple rows are graded by the App Store environment", () => {
     appleRow(false);
     const b = await run();
     expect(b.scan_caps.join(" ")).toMatch(/Apple transaction for u-apple could not be read/);
+    expect(tierClears()).toHaveLength(0);
+  });
+});
+
+/**
+ * Q1858 (lh-money-escrow re-review, 2026-10-15). After ops settle a double
+ * subscription by cancelling the Stripe side, the member is paying Apple and
+ * the row is still Stripe's. apple-app-store-notifications reclaims it only
+ * when Apple next sends a notice (up to a year for an annual member). The
+ * daily run now grades such a row from Apple's LATEST transaction.
+ */
+describe("Apple takes back a row Stripe no longer holds (Q1858)", () => {
+  const ROW = (o: Record<string, unknown> = {}) => ({
+    user_id: "u-switched", email: "s@example.test", subscription_tier: null,
+    subscription_expires_at: null, stripe_customer_id: "cus_old",
+    stripe_subscription_id: null, subscription_billing_cycle: null,
+    subscription_cancel_at_period_end: false, subscription_source: "stripe",
+    apple_original_transaction_id: ORIG, is_seed: false, ...o,
+  });
+  const LATEST_EXPIRY = Date.now() + 300 * 864e5;
+  /** The original purchase (a past period) and the latest transaction, as Apple's two endpoints return them. */
+  function appleLatest(latest: Record<string, unknown> | "unreachable", environment: "Production" | "Sandbox" = "Production") {
+    const original = {
+      transactionId: ORIG, originalTransactionId: ORIG, productId: "com.helpr.plus.monthly",
+      bundleId: "com.Helpr", expiresDate: Date.now() - 400 * 864e5, purchaseDate: Date.now() - 430 * 864e5, environment,
+    };
+    const signed = (tx: unknown) => `${b64u({ alg: "ES256" })}.${b64u(tx)}.sig`;
+    appleFetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/inApps/v1/transactions/")) {
+        return new Response(JSON.stringify({ signedTransactionInfo: signed(original) }), { status: 200 });
+      }
+      if (url.includes("/inApps/v1/subscriptions/")) {
+        if (latest === "unreachable") return new Response("{}", { status: 503 });
+        const tx = { ...original, transactionId: "2000000999", productId: "com.helpr.pro.annual", expiresDate: LATEST_EXPIRY, ...latest };
+        return new Response(JSON.stringify({ data: [{ lastTransactions: [{ originalTransactionId: ORIG, signedTransactionInfo: signed(tx) }] }] }), { status: 200 });
+      }
+      return new Response("{}", { status: 404 });
+    });
+    vi.stubGlobal("fetch", appleFetch);
+  }
+  const reclaims = () => (scenario.writes ?? []).filter((w) => w.table === "profiles" && w.op === "update"
+    && (w.payload as Record<string, unknown>)?.subscription_source === "apple");
+
+  it("a paid Apple subscription takes the row back, graded from Apple's LATEST transaction, guarded on the state it read", async () => {
+    appleLatest({});
+    scenario.reads.profiles = { rows: [ROW()] };
+    scenario.reads.test_accounts = { rows: [] };
+    scenario.rpc.feature_enabled_for_user = true;
+    const b = await run();
+    expect(reclaims(), "the member paying Apple got no tier back").toHaveLength(1);
+    const w = reclaims()[0];
+    expect(w.payload).toEqual({
+      subscription_tier: "pro", subscription_expires_at: new Date(LATEST_EXPIRY).toISOString(),
+      subscription_billing_cycle: "annual", subscription_source: "apple",
+    });
+    expect(w.filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ column: "subscription_source", value: "stripe" }),
+      expect.objectContaining({ op: "is", column: "stripe_subscription_id", value: null }),
+    ]));
+    expect(b.findings.map((f) => f.check)).toContain("apple_reclaimed");
+    expect(b.findings.map((f) => f.check)).not.toContain("apple_reclaimed_memberships_off");
+  });
+
+  it("an expired Stripe tier is not cleared by 2c in the same run: Apple's grant is the only write", async () => {
+    appleLatest({});
+    scenario.reads.profiles = { rows: [ROW({ subscription_tier: "plus", subscription_expires_at: new Date(Date.now() - 5 * 864e5).toISOString() })] };
+    scenario.reads.test_accounts = { rows: [] };
+    scenario.rpc.feature_enabled_for_user = true;
+    await run();
+    expect(tierClears()).toHaveLength(0);
+    expect(reclaims()).toHaveLength(1);
+  });
+
+  it("the memberships switch off (or unreadable): the grant stands and it is reported for a refund", async () => {
+    appleLatest({});
+    scenario.reads.profiles = { rows: [ROW()] };
+    scenario.reads.test_accounts = { rows: [] };
+    scenario.rpc.feature_enabled_for_user = false;
+    const b = await run();
+    expect(reclaims()).toHaveLength(1);
+    expect(b.findings.map((f) => f.check)).toContain("apple_reclaimed_memberships_off");
+  });
+
+  for (const [why, latest] of [
+    ["the latest transaction has lapsed", { expiresDate: Date.now() - 864e5 }],
+    ["the latest transaction was refunded", { revocationDate: Date.now() - 864e5 }],
+  ] as const) {
+    it(`${why}: nothing is reclaimed`, async () => {
+      appleLatest(latest);
+      scenario.reads.profiles = { rows: [ROW()] };
+      scenario.reads.test_accounts = { rows: [] };
+      await run();
+      expect(reclaims()).toHaveLength(0);
+    });
+  }
+
+  it("a Sandbox subscription whose test-account status cannot be read: 'don't know', a partial scan, never a grant", async () => {
+    appleLatest({}, "Sandbox");
+    scenario.reads.profiles = { rows: [ROW()] };
+    scenario.reads.test_accounts = { error: { message: "boom" } };
+    scenario.rpc.feature_enabled_for_user = true;
+    const b = await run();
+    expect(b.scan_caps.join(" ")).toMatch(/test-account status for u-switched could not be read; Apple reclaim not graded/);
+    expect(reclaims()).toHaveLength(0);
+  });
+
+  it("a Sandbox subscription on a real account reclaims nothing", async () => {
+    appleLatest({}, "Sandbox");
+    scenario.reads.profiles = { rows: [ROW()] };
+    scenario.reads.test_accounts = { rows: [] };
+    await run();
+    expect(reclaims()).toHaveLength(0);
+  });
+
+  for (const [why, row] of [
+    ["a Stripe subscription id is still on the row", ROW({ stripe_subscription_id: "sub_gone" })],
+    ["a Stripe tier is still running", ROW({ subscription_tier: "plus", subscription_expires_at: new Date(Date.now() + 9e8).toISOString() })],
+    ["a Stripe tier with no end date", ROW({ subscription_tier: "plus" })],
+  ] as const) {
+    it(`${why}: Stripe still holds it, so Apple is not even asked`, async () => {
+      appleLatest({});
+      scenario.reads.profiles = { rows: [row] };
+      scenario.reads.test_accounts = { rows: [] };
+      await run();
+      expect(reclaims()).toHaveLength(0);
+      expect(appleFetch.mock.calls.map((c) => String(c[0])).filter((u) => u.includes("/inApps/"))).toEqual([]);
+    });
+  }
+
+  it("Apple unreachable: a partial scan, and 2c does not clear the expired Stripe tier on a guess", async () => {
+    appleLatest("unreachable");
+    scenario.reads.profiles = { rows: [ROW({ subscription_tier: "plus", subscription_expires_at: new Date(Date.now() - 5 * 864e5).toISOString() })] };
+    scenario.reads.test_accounts = { rows: [] };
+    const b = await run();
+    expect(b.scan_caps.join(" ")).toMatch(/Apple subscription for u-switched could not be read \(reclaim pass\)/);
+    expect(reclaims()).toHaveLength(0);
     expect(tierClears()).toHaveLength(0);
   });
 });

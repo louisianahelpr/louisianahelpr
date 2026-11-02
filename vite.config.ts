@@ -685,7 +685,10 @@ export default defineConfig(({ mode, command }) => ({
         // B85 11-01: the entriesAware icon groups are named after every chunk that shares them
         // ("icons~Login~Signup~DashboardGuest~...~rk4z2qol", ~100 characters), and each name is written into the entry's
         // preload list and into every importer. A short name changes no chunk, only those strings.
-        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
+        // L33 train 11-02: "icons-rest" (the leftover icons, below) is written the same short way: its name in the
+        // entry's preload list put the entry 6 B gz over its band (5382 vs 5376); as "icons-<hash>" it shares the
+        // other icon chunks' prefix. Only the file name changes.
+        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
         // ── Chunk graph shape ────────────────────────────────────────────
         // Expressed as rolldown's `codeSplitting` rather than `manualChunks`
         // because the two are MUTUALLY EXCLUSIVE — rolldown logs
@@ -889,7 +892,7 @@ export default defineConfig(({ mode, command }) => ({
             // Q178). Same shape as pdf-documents: their own small chunk, fetched with their importers only.
             {
               name: "spent-reads",
-              test: /[\\/]src[\\/]lib[\\/]declutter[\\/](purchaseSpend|paidCents)\.ts$/,
+              test: /[\\/]src[\\/]lib[\\/]declutter[\\/](purchaseSpend|paidCents|refundedCents)\.ts$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

@@ -9,10 +9,10 @@ import { readHelperFeePercentStrict, jobHelprCommissionDollars, DEFAULT_TIER_FEE
 import { flatFeePercentOf, isFlatFeeJob, isGiveawayFixedPayJob } from "../_shared/helprFlatFee.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
-import { crewFeeShareReturnCents } from "../_shared/refundAmount.ts";
+import { crewFeeShareReturnCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
-import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
-import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
+import { formatExactDollars, formatPayoutDollars, isDefiniteStripeRefusal, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
+import { helprFaultFeeCapCents, releaseClaimAndRestoreFaultFee, restoreHelprFaultFee, resumedClaimHelprFaultFee, stampClaimHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnrecordedTransfers, claimPayout, failClaim, settleClaim } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
@@ -23,7 +23,7 @@ import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
-import { payDelayWhyForGate, tellHelprPayIsDelayed } from "../_shared/payDelayNotice.ts";
+import { PAY_DELAY_SENDING_STATUSES, payDelayWhyForGate, tellHelprPayIsDelayed } from "../_shared/payDelayNotice.ts";
 import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewShares.ts";
 import { checkIdentityHold, checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
@@ -702,7 +702,19 @@ serve(async (req) => {
       const flatCardFeeKeptCents = isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
         ? Math.min(unfilledCents, Math.floor((crewStripeFeeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
         : 0;
-      const taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
+      // Q2148 (1) (owner 'J3', Q2082 (a)): the tax on what this refund KEEPS of the card fee is kept too, as
+      // refundToPayerCents does on every other path. Kept at a given Stripe fee: the flat job's share of the card fee
+      // (flatCardFeeKeptCents), plus on a fee-holds-card-fee job the part of the fee share the cap holds back. Stripe
+      // Tax reverses a refund's tax in proportion to what it returns, so keeping K also keeps K x tax / (captured - tax).
+      const crewCardFeeKeptAt = (stripeFee: number) =>
+        (feeHoldsCardFee ? feeProRataCents - crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: stripeFee, proRataCents: feeProRataCents }) : 0)
+        + (isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
+          ? Math.min(unfilledCents, Math.floor((stripeFee * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
+          : 0);
+      const crewTaxKeptAt = (stripeFee: number) => taxOnKeptCents({ keptCents: crewCardFeeKeptAt(stripeFee), taxCents, capturedCents: a.capturedCents });
+      const taxShareCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
+      const crewTaxKeptCents = Math.min(taxShareCents, crewTaxKeptAt(crewStripeFeeCents));
+      const taxReturnCents = taxShareCents - crewTaxKeptCents;
       const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents;
       /**
        * Q1827: what the unfilled share owes at another Stripe fee, by moving
@@ -715,7 +727,9 @@ serve(async (req) => {
         - feeReturnCents + crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? stripeFee : 0, proRataCents: feeProRataCents })
         + flatCardFeeKeptCents - (isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
           ? Math.min(unfilledCents, Math.floor((stripeFee * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
-          : 0);
+          : 0)
+        // Q2148 (1): and the tax kept on that card fee, at that fee.
+        + crewTaxKeptCents - Math.min(taxShareCents, crewTaxKeptAt(stripeFee));
       if (owedCents <= 0) return { ok: true, refundCents: 0 };
 
       const source = decision ? "crew_dispute_refund" : "crew_unfilled_refund";
@@ -863,8 +877,8 @@ serve(async (req) => {
         });
         return { ok: true, refundId, refundCents: sentCents + giftRestoredCents, manual: true };
       };
-      if ((prior ?? []).length > 0) {
-        const row = (prior as Array<{ stripe_refund_id: string | null; amount_cents: number | null; metadata?: unknown }>)[0];
+      /** An earlier crew refund (ledger row, or a stamped Stripe refund, Q1992): never sent again; compared with what is owed. */
+      const fromPrior = (row: { stripe_refund_id: string | null; amount_cents: number | null; metadata?: unknown }) => {
         const priorCents = Number(row.amount_cents ?? 0);
         // Q1827: owed at the Stripe fee the refund was priced with, but ONLY
         // when its row says that fee was Stripe's ACTUAL one (and no more than
@@ -886,6 +900,9 @@ serve(async (req) => {
           console.warn(`[process-scheduled-payouts] crew ${source} ${job.id}: the earlier refund ${row.stripe_refund_id} returned ${priorCents}c, ${priorCents - owedThen}c more than owed at today's Stripe fee (stamp source ${String(stampMeta?.stripe_fee_source ?? "none")}).`);
         }
         return { ok: true, refundId: row.stripe_refund_id, refundCents: priorCents + giftRestoredCents };
+      };
+      if ((prior ?? []).length > 0) {
+        return fromPrior((prior as Array<{ stripe_refund_id: string | null; amount_cents: number | null; metadata?: unknown }>)[0]);
       }
 
       // A card leg the main loop found in Stripe TEST mode (Q891, read there
@@ -928,39 +945,100 @@ serve(async (req) => {
       const chargeLeftCents = a.isPifFunded
         ? Math.min(capturedCents, Math.max(0, capturedCents + a.giftAppliedCents - a.paidCents - giftRestoredCents - blockFeeCents))
         : Math.max(0, a.capturedCents - a.paidCents - blockFeeCents);
+      const refundReason = decision
+        ? "crew dispute: the refunded members' shares (and any unfilled slots), with that share of the service fee and tax"
+        : "under-filled crew: the unfilled slots' shares, with that share of the service fee and tax";
+      /**
+       * Writes the crew refund's payment_refunds row, then claims a row only charge.refunded wrote (it labels every
+       * refund 'stripe_dashboard', and it can reach the row first: both upsert with ignoreDuplicates). Without the
+       * claim the job_id + source dedupe above never sees it (Q1992 (a)), as recordRefund does (Q1261 (6)). ZERO ROWS
+       * IS LEGITIMATE (the zero-row-write rule's named exception): the upsert inserted the row, or another path owns it.
+       */
+      const ledgerCrewRefund = async (refundId: string, amountCents: number, currency: string, feeStamp: Record<string, unknown>) => {
+        const { error: ledgerErr } = await supabaseAdmin.from("payment_refunds").upsert({
+          job_id: job.id,
+          customer_id: job.customer_id,
+          stripe_refund_id: refundId,
+          stripe_payment_intent_id: a.paymentIntentId,
+          amount_cents: amountCents,
+          currency,
+          is_partial: true,
+          reason: refundReason,
+          source,
+          initiated_by_user_id: null,
+          metadata: feeStamp,
+        }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
+        if (ledgerErr) return ledgerErr.message;
+        const { error: relabelErr } = await supabaseAdmin.from("payment_refunds").update({
+          source,
+          is_partial: true,
+          reason: refundReason,
+          metadata: feeStamp,
+        }).eq("stripe_refund_id", refundId).eq("source", "stripe_dashboard").select("id");
+        return relabelErr ? relabelErr.message : null;
+      };
+      // ── Q1992: a crew refund the ledger lost or holds under another label ──
+      // The read above finds only a row under this crew source. One the webhook booked first (stripe_dashboard) or
+      // one whose run died after refunds.create has none, and after Stripe's 24-hour idempotency window the same key
+      // would send a SECOND real refund. Every crew refund is stamped { job_id, crew_source } (below), so a live one on
+      // this charge is this job's: book it under the crew source and never refund again. A read that fails, or a charge
+      // with more refunds than one page, refunds nothing this run (fail closed). Prod 2026-11-02: 0 crew refunds, so
+      // there is no unstamped crew refund this could miss.
+      {
+        let listed: { data: Stripe.Refund[]; has_more: boolean } | null = null;
+        let listErr: string | null = null;
+        try {
+          listed = await stripe.refunds.list({ payment_intent: a.paymentIntentId, limit: 100 }) as unknown as { data: Stripe.Refund[]; has_more: boolean };
+        } catch (e) {
+          listErr = (e as Error).message;
+        }
+        if (listErr || !listed || listed.has_more) {
+          jobDefect(job.id, `crew ${source} dedupe ${job.id}: the charge's refunds could not be read whole (${listErr ?? "more than 100"}); no refund this run`);
+          return { ok: false };
+        }
+        const mine = listed.data.find((r) =>
+          r.metadata?.job_id === job.id && r.metadata?.crew_source === source
+          && r.status !== "failed" && r.status !== "canceled");
+        if (mine) {
+          const meta = mine.metadata ?? {};
+          const feeStamp: Record<string, unknown> = {};
+          const fee = Number(meta.stripe_fee_cents);
+          if (meta.stripe_fee_cents != null && Number.isInteger(fee)) feeStamp.stripe_fee_cents = fee;
+          if (typeof meta.stripe_fee_source === "string") feeStamp.stripe_fee_source = meta.stripe_fee_source;
+          const amountCents = Math.round(Number(mine.amount ?? 0));
+          const problem = await ledgerCrewRefund(mine.id, amountCents, mine.currency ?? "usd", feeStamp);
+          // Booking failed: the refund still stands in Stripe, so it is never sent again; the next run books it.
+          if (problem) jobDefect(job.id, `crew ${source} ledger ${job.id} (recovered ${mine.id}): ${problem}`);
+          return fromPrior({ stripe_refund_id: mine.id, amount_cents: amountCents, metadata: feeStamp });
+        }
+      }
       const refundCents = Math.min(cardOwedCents, chargeLeftCents);
       if (refundCents <= 0) return shortRefund(null, 0);
       try {
         const refund = await stripe.refunds.create(
-          { payment_intent: a.paymentIntentId, amount: refundCents },
+          {
+            payment_intent: a.paymentIntentId,
+            amount: refundCents,
+            // Q1992: the stamp the dedupe above finds when the ledger lost the row or holds it under another label;
+            // the fee it was priced with rides along so a recovered row is compared as the original would be (Q1827).
+            metadata: { job_id: job.id, crew_source: source, stripe_fee_cents: String(crewStripeFeeCents), stripe_fee_source: crewStripeFeeSource },
+          },
           { idempotencyKey: decision ? `crew-dispute-refund-${decision.disputeId}` : `crew-unfilled-refund-${job.id}` },
         );
-        const { error: ledgerErr } = await supabaseAdmin.from("payment_refunds").upsert({
-          job_id: job.id,
-          customer_id: job.customer_id,
-          stripe_refund_id: refund.id,
-          stripe_payment_intent_id: a.paymentIntentId,
-          amount_cents: Math.round(Number(refund.amount ?? refundCents)),
-          currency: refund.currency ?? "usd",
-          is_partial: true,
-          reason: decision
-            ? "crew dispute: the refunded members' shares (and any unfilled slots), with that share of the service fee and tax"
-            : "under-filled crew: the unfilled slots' shares, with that share of the service fee and tax",
-          source,
-          initiated_by_user_id: null,
-          // Q1827: the Stripe fee this refund was priced with, and whether it
-          // was Stripe's actual fee or the estimate: a re-run honours only an
-          // actual one, so a fee read differently later never pages it short.
-          metadata: { stripe_fee_cents: crewStripeFeeCents, stripe_fee_source: crewStripeFeeSource },
-        }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
-        if (ledgerErr) {
+        // Q1827: the Stripe fee this refund was priced with, and whether it
+        // was Stripe's actual fee or the estimate: a re-run honours only an
+        // actual one, so a fee read differently later never pages it short.
+        const ledgerProblem = await ledgerCrewRefund(refund.id, Math.round(Number(refund.amount ?? refundCents)), refund.currency ?? "usd",
+          { stripe_fee_cents: crewStripeFeeCents, stripe_fee_source: crewStripeFeeSource });
+        if (ledgerProblem) {
+          const ledgerErr = { message: ledgerProblem };
           jobDefect(job.id, `crew ${source} ledger ${job.id}: ${ledgerErr.message}`);
           await postSlackOpsAlert({
             kind: "money_at_risk",
             seed: seedJobIds.has(job.id),
             severity: "critical",
             title: "Crew share refund sent but not recorded",
-            message: `Refund ${refund.id} (${refundCents}c) for crew job ${job.id} went out, but its payment_refunds row was not written. The Stripe key stops a second refund for ~24h; record the row by hand.`,
+            message: `Refund ${refund.id} (${refundCents}c) for crew job ${job.id} went out, but its payment_refunds row was not written or labelled. The refund is stamped with the job, so the next run finds it on the charge and sends no second one; check the row is booked under the crew source.`,
             fields: { job_id: job.id, refund_id: refund.id, db_error: ledgerErr.message.slice(0, 200) },
           });
         }
@@ -1399,7 +1477,25 @@ serve(async (req) => {
             // function could transfer more than was ever collected.
             const captured = resolveCapturedEscrow(pi);
 
-            if (pi.status !== "succeeded" && isPifFunded) {
+            if (isPifFunded && (pi.status === "requires_payment_method" || pi.status === "canceled")) {
+              // Q1975 part 2 (lead decision 11-01: 'failed' wins): the card or
+              // bank leg of a gift + card job FAILED. stripe-webhook flips such
+              // a job to 'failed' and gives the gift back; it is never paid from
+              // the gift alone. Reaching here means that event has not landed
+              // (or was missed): skip, and tell ops once a day.
+              console.error(`Gift job ${job.id}: its card/bank leg ${paymentIntentId} is "${pi.status}" (failed); not paid from the gift alone.`);
+              results.push({ job_id: job.id, status: "gift_job_card_leg_failed", skipped: true });
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "warning",
+                seed: job.is_seed === true,
+                title: "Payout skipped: a gift + card job's card or bank payment failed",
+                message: `Job ${job.id} was paid partly by gift card and partly by card or bank, and that payment (${paymentIntentId}) is ${pi.status}. It is not paid from the gift alone. stripe-webhook normally marks such a job failed and gives the gift back; if the job is still in payout_pending, set payment_status to 'failed' and run return_bounced_gift_card for it.`,
+                fields: { job_id: job.id, payment_intent: paymentIntentId, pi_status: pi.status },
+                oncePerDayKey: `psp-gift-job-card-leg-failed:${job.id}`,
+              });
+              continue;
+            } else if (pi.status !== "succeeded" && isPifFunded) {
               // A mixed job's card leg that never captured has no money behind
               // it: it adds nothing and the gift alone caps the payout (Q1210).
               console.warn(`Gift job ${job.id}: shortfall intent ${paymentIntentId} is "${pi.status}", so its card leg counts as 0.`);
@@ -1661,10 +1757,13 @@ serve(async (req) => {
       // the flag as already-paid and the $2 is silently lost forever.
       // Q2082 (b): what this payout withheld for a Helpr-fault card fee (below).
       let helprFaultFeeCents = 0;
-      const rollBackOnboardingFeeClaim = async () => {
-        // The Helpr-fault card fee taken below goes back on the same exits.
-        if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, helperId, job.id, "process-scheduled-payouts");
-        if (!owesOnboardingFee) return;
+      const rollBackOnboardingFeeClaim = async (opts: { transferMayExist?: boolean; keepHelprFaultFee?: boolean } = {}) => {
+        // The Helpr-fault card fee taken below goes back on the same exits, except a transfer error that may have
+        // moved money (Q2204, below).
+        if (helprFaultFeeCents > 0 && !opts.transferMayExist && !opts.keepHelprFaultFee) await restoreHelprFaultFee(supabaseAdmin, helperId, job.id, "process-scheduled-payouts");
+        // Lead 11-02: the one-time setup fee too stays claimed when the transfer may exist (a timeout may have
+        // sent it with the fee held back; un-claimed, the next payout would take the fee again).
+        if (!owesOnboardingFee || opts.transferMayExist) return;
         const { error: unclaimErr } = await supabaseAdmin
           .from("profiles")
           .update({ onboarding_fee_paid: false, onboarding_fee_charged_at: null })
@@ -1700,35 +1799,11 @@ serve(async (req) => {
       //
       // The gift leg counts toward the cap: it is real value leaving the
       // platform, denominated in credit rather than dollars.
-      // Q2082 (b), owner 2026-10-18 ("J4"): the card cost of a full refund this
-      // Helpr was ruled at fault for comes out of this payout (what keeps it at
-      // $1 or more; the rest waits for the next one). Taken once per job,
-      // shared with release-payout (_shared/helprFaultFee.ts). Fails closed.
-      // Owner 2026-10-30: the giveaway sends exactly $50, so a debt waits for the next payout.
-      if (!isGiveawayFixedPayJob(job)) {
-        const take = await takeHelprFaultFee(
-          supabaseAdmin, helperId, job.id,
-          helprFaultFeeCapCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)),
-        );
-        if (take.error !== undefined) {
-          console.error(`[process-scheduled-payouts] Helpr-fault card fee read failed for job ${job.id}: ${take.error}`);
-          await rollBackOnboardingFeeClaim();
-          results.push({ job_id: job.id, status: "helpr_fault_fee_error", error: take.error });
-          jobDefect(job.id, `helpr-fault fee ${job.id}: ${take.error}`);
-          continue;
-        }
-        if (take.cents > 0) {
-          helprFaultFeeCents = take.cents;
-          // Q2165 (owner 2026-10-19): whole dollars first, then the debt off
-          // in exact cents, so what is withheld is exactly what is booked.
-          helperPayout = (roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents) / 100;
-        }
-      }
-
       const escrowValueCents = capturedCents + giftAppliedCents;
       // The transfer: whole dollars after the onboarding fee, less the exact
       // Helpr-fault debt (Q2165), the same figure helperPayout holds.
-      const payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents;
+      // Q2172 (c): the Helpr-fault debt comes off after the claim (below).
+      let payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0));
       if (payoutCents > escrowValueCents) {
         console.error(
           `[process-scheduled-payouts] REFUSING: payout ${payoutCents}c exceeds escrow ${escrowValueCents}c ` +
@@ -1803,7 +1878,10 @@ serve(async (req) => {
       }
       if (unrecorded.kind === "conflict") {
         console.error(`[process-scheduled-payouts] REFUSING job ${job.id}: Stripe shows ${unrecorded.transferIds.join(", ")} with no payout_transfers row`);
-        await rollBackOnboardingFeeClaim();
+        // Q2172 (a): the transfer at Stripe may be an earlier run's, sent with this
+        // job's Helpr-fault deduction held back (take_helpr_fault_fee answers per job):
+        // keep the deduction, or the next payout takes the debt again.
+        await rollBackOnboardingFeeClaim({ keepHelprFaultFee: true });
         await postSlackOpsAlert({
           kind: "money_at_risk",
           seed: seedJobIds.has(job.id),
@@ -1879,6 +1957,60 @@ serve(async (req) => {
         await rollBackOnboardingFeeClaim();
         results.push({ job_id: job.id, status: "already_claimed", detail: "claim changed while verifying prior transfers" });
         continue;
+      }
+
+      // Q2082 (b), owner 2026-10-18 ("J4"): the card cost of a full refund this
+      // Helpr was ruled at fault for (and Q2245's lapsed-visit card fee) comes
+      // out of this payout (what keeps it at $1 or more; the rest waits for the
+      // next one). Taken once per job, shared with release-payout
+      // (_shared/helprFaultFee.ts). Fails closed.
+      // Q2172 (c), lead 11-02 (C1): taken only AFTER this run holds the claim; a
+      // resumed or adopted claim never takes again, it reads what that claim
+      // recorded and clamps the booking to it.
+      // Owner 2026-10-30: the giveaway sends exactly $50, so a debt waits for the next payout.
+      if (!isGiveawayFixedPayJob(job)) {
+        const take = claim.resumed
+          ? await resumedClaimHelprFaultFee(supabaseAdmin, helperId, job.id, claim.claimId)
+          : await takeHelprFaultFee(
+            supabaseAdmin, helperId, job.id,
+            helprFaultFeeCapCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)),
+          );
+        if (take.error !== undefined) {
+          console.error(`[process-scheduled-payouts] Helpr-fault card fee read failed for job ${job.id}: ${take.error}`);
+          // Nothing was sent: a fresh claim is released and anything a capped retry booked goes back.
+          if (!claim.resumed) {
+            await releaseClaimAndRestoreFaultFee(supabaseAdmin, claim.claimId, helperId, job.id, `helpr-fault fee: ${take.error}`, "process-scheduled-payouts");
+          }
+          await rollBackOnboardingFeeClaim();
+          results.push({ job_id: job.id, status: "helpr_fault_fee_error", error: take.error });
+          jobDefect(job.id, `helpr-fault fee ${job.id}: ${take.error}`);
+          continue;
+        }
+        if (take.cents > 0) {
+          helprFaultFeeCents = take.cents;
+          // Q2165 (owner 2026-10-19): whole dollars first, then the debt off
+          // in exact cents, so what is withheld is exactly what is booked.
+          helperPayout = (roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents) / 100;
+          payoutCents = roundPayoutDownCents(unroundedPayoutCents - (owesOnboardingFee ? onboardingFeeCents : 0)) - helprFaultFeeCents;
+        }
+        if (!claim.resumed && take.cents > 0) {
+          const stamped = await stampClaimHelprFaultFee(supabaseAdmin, claim.claimId, {
+            amountCents: payoutCents,
+            metadata: {
+              source: "scheduled_payout",
+              ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, payoutCents, take.cents),
+            },
+          });
+          if (!stamped.ok) {
+            console.error(`[process-scheduled-payouts] could not record the Helpr-fault fee on claim ${claim.claimId} for job ${job.id}: ${stamped.message}`);
+            await releaseClaimAndRestoreFaultFee(supabaseAdmin, claim.claimId, helperId, job.id, `helpr-fault fee stamp: ${stamped.message}`, "process-scheduled-payouts");
+            helprFaultFeeCents = 0;
+            await rollBackOnboardingFeeClaim();
+            results.push({ job_id: job.id, status: "helpr_fault_fee_error", error: stamped.message });
+            jobDefect(job.id, `helpr-fault fee stamp ${job.id}: ${stamped.message}`);
+            continue;
+          }
+        }
       }
 
       // ── Step 5: Transfer to helper (charge is confirmed captured) ──
@@ -2183,9 +2315,13 @@ serve(async (req) => {
           jobDefect(job.id, `claim fail-mark ${job.id}: ${failed.message}`);
         }
 
-        // Un-claim the onboarding fee if THIS job claimed it — no money moved,
-        // so the fee was never collected and the flag must not say it was.
-        await rollBackOnboardingFeeClaim();
+        // Un-claim the onboarding fee if THIS job claimed it, and
+        // Q2204: the Helpr-fault deduction too, ONLY on a definite Stripe
+        // refusal (no transfer exists), as transferToHelper and
+        // execute-dispute-split do. A timeout or 5xx may have created the
+        // transfer with the fee held back: restored, the debt would read unpaid
+        // and the next payout would take it again.
+        await rollBackOnboardingFeeClaim({ transferMayExist: !isDefiniteStripeRefusal(e) });
 
         await tellHelprPayIsDelayed(supabaseAdmin, { helperId, job, why: "sending", source: "process-scheduled-payouts" });
 
@@ -2220,6 +2356,21 @@ serve(async (req) => {
             });
           }
         }
+      }
+    }
+
+    // Q2497: a single-Helpr job stuck on any other exit of ours (a read, verify or
+    // claim that failed) tells its Helpr too, once it is past its promised time
+    // (tellHelprPayIsDelayed: 12 h grace, seed jobs skipped, once a day per job).
+    // The failed transfer and the account Stripe won't pay are told where they happen.
+    {
+      const told = new Set<string>();
+      for (const r of results as Array<{ job_id?: string; status?: string }>) {
+        if (!r.job_id || !r.status || told.has(r.job_id) || !PAY_DELAY_SENDING_STATUSES.has(r.status)) continue;
+        const job = payoutJobs.find((j) => j.id === r.job_id);
+        if (!job || job.is_group_job === true || !job.helper_id) continue;
+        told.add(r.job_id);
+        await tellHelprPayIsDelayed(supabaseAdmin, { helperId: job.helper_id as string, job, why: "sending", source: "process-scheduled-payouts" });
       }
     }
 

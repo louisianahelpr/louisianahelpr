@@ -43,6 +43,7 @@
 // they never page and never fail the run (docs/OPEN.md Q90).
 
 import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
+import { TEST_ID_TABLES, classifyTestIdRow, testIdColumns, testIdMarker, testIdOrFilter, testIdRefs, type Row as TestIdRow } from "../_shared/stripeTestIdScan.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -184,6 +185,17 @@ const STRIPE_READ_CONCURRENCY = 10;
  * after, both measured well under 1 s.
  */
 const STRIPE_PHASE_BUDGET_MS = 20_000;
+/**
+ * Q1974: the funded-jobs phase (escrow / payout_pending vs Stripe) has its own
+ * cap and budget, so a slow settled phase never starves it and it never eats
+ * the settled phase's time. Hitting either is a scan cap (a defect), never a
+ * quiet sample. Funded jobs are few (they leave escrow within days), so 300
+ * reads at concurrency 10 is roughly 1 s by the 2026-09-23 measurement above.
+ */
+const MAX_FUNDED_STRIPE_READS = 300;
+const FUNDED_STRIPE_PHASE_BUDGET_MS = 8_000;
+/** Stripe PaymentIntent states that mean no money is held or arriving. */
+const FAILED_PI_STATUSES = new Set(["requires_payment_method", "canceled"]);
 
 type Severity = "critical" | "warning" | "info";
 
@@ -282,6 +294,16 @@ serve(async (req) => {
     // invariants were actually evaluated — "0 findings" is only meaningful
     // alongside the list of things that were looked at.
     const checks = {
+      // Q2173: take_helpr_fault_fee books a deduction before the transfer, and
+      // restore_helpr_fault_fee only runs on a payout's in-run exits. A Quick
+      // Refund after an unclear Stripe failure, a stuck claim on a job later
+      // refunded, or a transfer clawed back leave the rows: the debt reads
+      // collected while no payout withheld it.
+      helprFaultDeductionNotWithheld: new Check(
+        "helpr_fault_deduction_not_withheld",
+        "warning",
+        `A Helpr card-fee deduction (job_helpr_fault_fee_deductions for an at-fault ruling, or helpr_card_fee_debt_deductions for a lapsed series visit, Q2245; payout_ref job_payout_<job>) is more than ${SETTLE_WINDOW_HOURS}h old, but no settled payout_transfers row for that job carries helpr_fault_fee_cents > 0: the debt reads collected while nothing was withheld. Check the job's transfer at Stripe; if none went out (or it was reversed), run restore_helpr_fault_fee(the Helpr's id, the job id) as the service role (it gives back both kinds), or put the cents back on the ruling or debt by hand.`,
+      ),
       // ── Gift-card credit ──────────────────────────────────────────────
       // This file used to say gift_cards needed no reconciliation because it
       // carries no cached balance, so "asserting on them would be theatre".
@@ -449,6 +471,16 @@ serve(async (req) => {
         "critical",
         "The DB says this job's payment is settled (payment_status 'cancelled'/'refunded'), but Stripe's PaymentIntent is still requires_capture (a live card hold) or processing (money still arriving). Nothing will release or refund it: the settlement paths only select jobs still in 'escrow'.",
       ),
+      // Q1974: the other direction. The DB says the job is FUNDED, and Stripe
+      // says the payment failed or was voided. The webhook that flips such a
+      // job to 'failed' (payment_intent.payment_failed / canceled) can be
+      // missed, and then nothing else looks: every payout path trusts
+      // payment_status.
+      stripeFundedPiFailed: new Check(
+        "stripe_payment_failed_on_funded_job",
+        "critical",
+        "The DB says this job is funded (payment_status 'escrow' or 'payout_pending'), but Stripe's PaymentIntent is requires_payment_method (the payment failed, e.g. a bounced bank debit or a declined capture) or canceled (the card hold expired or was voided). The webhook that should have marked it failed was missed. A payout from this job would pay the Helpr money the platform never collected. Hold the payout, look at the PaymentIntent in Stripe, then set payment_status to 'failed' by hand (the poster must pay again) or re-collect.",
+      ),
       stripeUnderRefunded: new Check(
         "stripe_charge_not_refunded_on_cancelled_job",
         "critical",
@@ -480,6 +512,13 @@ serve(async (req) => {
         "stripe_test_object_on_real_job",
         "warning",
         "A REAL (non-seed) job's stripe_payment_intent_id is a Stripe TEST-mode object, so the live key cannot read it and there is no real money behind it. Every money path skips the job, so it is stuck: decide by hand whether it was ever really paid, then fix its payment fields.",
+      ),
+      // Q1909: the database-side sibling of stripeTestObjectOnRealJob. That one only sees the PaymentIntents this run
+      // asks Stripe about; this one reads every money table for a TEST-mode id on a real row (_shared/stripeTestIdScan.ts).
+      stripeTestIdOnRealRow: new Check(
+        "stripe_test_id_on_real_row",
+        "warning",
+        "A REAL (non-seed) row in jobs, recurring_visit_payments, payment_refunds, payout_transfers, gift_cards or tips holds a Stripe TEST-mode id (a cs_test_ Checkout Session, or any Stripe id on a row written before Stripe went live on 2026-09-27). The test-mode webhook lets an event that names no one through on the belief that only test rows hold test ids, and refund notices fall back to gift_cards and tips for a recipient, so a sandbox event could reach a real person. Decide by hand where the id came from and clear or correct it; nothing pays or refunds from here.",
       ),
       // ── The single-Helpr cancellation-fee ledger (LOW-2) ───────────────
       // void-cancelled-payments sends a cancelled job's fee to its Helpr as a
@@ -601,7 +640,8 @@ serve(async (req) => {
     // Owner 2026-10-30: poster_cancel_job records $0, not late, when the hired Helpr had not verified
     // their ID, and writes job_cancel_id_waivers in the same transaction. That row is the only thing that
     // explains a 0 below the ladder: the Helpr may verify later, and any other 0 is still a real mismatch.
-    // A crew needs none: its shares carry their own committed flag.
+    // A crew needs none: its shares carry their own committed flag. Q1415 (e): the same row (reason 'payee_frozen')
+    // explains a 0 for a confirmed Helpr who was banned or under an open ban review at the cancel.
     const waiverCandidates = jobRows
       .filter((j) => j.status === "cancelled" && j.is_group_job !== true && !!j.helper_id && money(j.cancellation_fee) <= EPSILON)
       .map((j) => j.id as string);
@@ -1027,6 +1067,39 @@ serve(async (req) => {
         const set = paidMembersByJob.get(t.job_id) ?? new Set<string>();
         set.add(t.helper_id);
         paidMembersByJob.set(t.job_id, set);
+      }
+    }
+
+    // Q2173: a deduction no settled payout withheld. Job-scoped (seed policy follows
+    // `jobById`); skipped on a truncated ledger, which would manufacture hits.
+    // Q2245 (d): take_helpr_fault_fee books a lapsed series visit's card-fee debt
+    // in helpr_card_fee_debt_deductions under the same payout_ref, read the same way.
+    for (const dedTable of ["job_helpr_fault_fee_deductions", "helpr_card_fee_debt_deductions"] as const) {
+      const dedScan = await scanAll<{ id: string; payout_ref: string; deducted_cents: number; created_at: string }>(
+        dedTable,
+        (countOpt) =>
+          admin
+            .from(dedTable)
+            .select("id, payout_ref, deducted_cents, created_at", countOpt)
+            .order("id", { ascending: true }),
+      );
+      const dedCap = scanDefect(dedTable, dedScan);
+      if (dedCap || transferCap) {
+        notes.push(`Helpr-fault deduction check skipped (${dedTable}): ${dedCap ?? transferCap}`);
+      } else {
+        const withheldJobs = new Set(
+          transfers
+            .filter((t) => isSettledTransfer(t) && money((t.metadata as { helpr_fault_fee_cents?: unknown } | null)?.helpr_fault_fee_cents) > 0)
+            .map((t) => t.job_id),
+        );
+        const settledBefore = Date.now() - SETTLE_WINDOW_MS;
+        for (const d of dedScan.rows) {
+          const jobId = String(d.payout_ref ?? "").replace(/^job_payout_/, "");
+          if (!jobById.has(jobId) || withheldJobs.has(jobId)) continue;
+          const at = ts(d.created_at);
+          if (at !== null && at > settledBefore) continue;
+          checks.helprFaultDeductionNotWithheld.add({ job_id: jobId, deduction_id: d.id, deducted_cents: d.deducted_cents, deduction_table: dedTable });
+        }
       }
     }
 
@@ -1947,6 +2020,92 @@ serve(async (req) => {
       }
     }
 
+    // ── Funded jobs vs Stripe (docs/OPEN.md Q1974) ───────────────────────────
+    // The settled phase above only asks Stripe about jobs the DB says are
+    // settled, and returns early on a PaymentIntent that is not succeeded. A
+    // job still in escrow / payout_pending whose PaymentIntent FAILED (a bank
+    // debit that bounced, a capture refused, a hold that expired) is flipped
+    // to 'failed' only by the webhook; if that event is missed the job stays
+    // "funded" and a payout run would pay the Helpr from money never collected.
+    //
+    // seed-policy: follows the run's seed scope (`jobRows` is is_seed = false unless
+    // ?include_seed=1). READ-ONLY: paymentIntents.retrieve and nothing else.
+    const fundedWithPi = jobRows
+      .filter((j) =>
+        (j.payment_status === "escrow" || j.payment_status === "payout_pending") &&
+        typeof j.stripe_payment_intent_id === "string" && j.stripe_payment_intent_id !== ""
+      )
+      .map((j) => ({ job: j, at: ts(j.updated_at) ?? 0 }))
+      .sort((a, b) => b.at - a.at)
+      .map((x) => x.job);
+    let fundedStripeReads = 0;
+    if (fundedWithPi.length) {
+      const fundedKey = Deno.env.get("STRIPE_SECRET_KEY");
+      if (!fundedKey) {
+        notes.push(`funded-job stripe check skipped: STRIPE_SECRET_KEY not set (${fundedWithPi.length} funded job(s) unchecked)`);
+      } else {
+        if (fundedWithPi.length > MAX_FUNDED_STRIPE_READS) {
+          caps.push(`funded-job stripe check: ${fundedWithPi.length} funded jobs, only the newest ${MAX_FUNDED_STRIPE_READS} checked`);
+        }
+        const fundedBatch = fundedWithPi.slice(0, MAX_FUNDED_STRIPE_READS);
+        const fundedStripe = new Stripe(fundedKey, { apiVersion: "2025-08-27.basil" });
+        const fundedFailures: string[] = [];
+        const inspectFunded = async (job: Record<string, unknown>) => {
+          const piId = job.stripe_payment_intent_id as string;
+          let pi: Stripe.PaymentIntent;
+          try {
+            pi = await fundedStripe.paymentIntents.retrieve(piId);
+            fundedStripeReads++;
+          } catch (e) {
+            const err = e as { statusCode?: number; code?: string; message?: string };
+            // BEFORE the 404 test, as in the settled phase.
+            if (isTestObjectUnderLiveKey(e)) {
+              logTestObjectUnderLiveKey("money-reconciliation", { job_id: job.id, object: "payment_intent", id: piId, phase: "funded" });
+              if (job.is_seed !== true) checks.stripeTestObjectOnRealJob.add({ job_id: job.id, payment_intent: piId, phase: "funded" });
+              return;
+            }
+            if (err?.statusCode === 404 || err?.code === "resource_missing") {
+              checks.stripePiMissing.add({ job_id: job.id, payment_intent: piId, phase: "funded" });
+            } else {
+              fundedFailures.push(`${job.id}: ${err?.message ?? String(e)}`);
+            }
+            return;
+          }
+          const piStatus = (pi as { status?: unknown } | null)?.status;
+          if (typeof piStatus !== "string") {
+            // An answer with no status is unverified, never "not failed".
+            fundedFailures.push(`${job.id}: PaymentIntent ${piId} came back with no status`);
+            return;
+          }
+          if (FAILED_PI_STATUSES.has(piStatus)) {
+            checks.stripeFundedPiFailed.add({
+              job_id: job.id,
+              payment_intent: piId,
+              db_payment_status: job.payment_status,
+              stripe_status: piStatus,
+              amount: pi.amount,
+            });
+          }
+        };
+        const fundedStartedMs = Date.now();
+        let fundedReached = 0;
+        for (let i = 0; i < fundedBatch.length; i += STRIPE_READ_CONCURRENCY) {
+          if (Date.now() - fundedStartedMs > FUNDED_STRIPE_PHASE_BUDGET_MS) {
+            caps.push(
+              `funded-job stripe check stopped at its ${Math.round(FUNDED_STRIPE_PHASE_BUDGET_MS / 1000)}s budget: ${fundedReached} of ${fundedBatch.length} checked`,
+            );
+            break;
+          }
+          const slice = fundedBatch.slice(i, i + STRIPE_READ_CONCURRENCY);
+          await Promise.all(slice.map(inspectFunded));
+          fundedReached += slice.length;
+        }
+        if (fundedFailures.length) {
+          notes.push(`funded-job stripe check incomplete: ${fundedFailures.length} of ${fundedBatch.length} read(s) failed (${fundedFailures.slice(0, 3).join(" | ")})`);
+        }
+      }
+    }
+
     // ── Cancellation-fee transfers, two-way against Stripe (LOW-2) ──────────
     // Stripe is the other side of the fee ledger: every transfer
     // void-cancelled-payments sent with metadata.type = "cancellation_fee" must
@@ -2168,6 +2327,72 @@ serve(async (req) => {
       }
     }
 
+    // ── Q1909: a Stripe TEST-mode id on a real row (read only) ──────────────
+    // Each table is narrowed server-side to rows that can carry a marker; the shared classifier decides. Seed rows are
+    // skipped (this check is seed-scoped on every run), orphans (no job left, no person) are counted, never reported.
+    // A failed read is a degraded run (caps); a failed seed lookup reports every hit as real.
+    let stripeTestIdOrphans = 0;
+    let stripeTestIdRowsRead = 0;
+    {
+      const marked: Array<{ t: (typeof TEST_ID_TABLES)[number]; row: TestIdRow; marker: { marker: string; column: string } }> = [];
+      for (const t of TEST_ID_TABLES) {
+        const scan = await scanAll<TestIdRow>(`${t.table} (test ids)`, (countOpt) =>
+          admin.from(t.table).select(testIdColumns(t), countOpt).or(testIdOrFilter(t)).order("id", { ascending: true }),
+        );
+        const cap = scanDefect(`${t.table} (test ids)`, scan);
+        if (cap) {
+          caps.push(`stripe test-id check: ${cap}`);
+          continue;
+        }
+        stripeTestIdRowsRead += scan.rows.length;
+        for (const row of scan.rows) {
+          const marker = testIdMarker(row, t);
+          if (marker) marked.push({ t, row, marker });
+        }
+      }
+      const jobIds = new Set<string>();
+      const people = new Set<string>();
+      for (const { t, row } of marked) {
+        if (t.table === "jobs") continue;
+        const refs = testIdRefs(row, t);
+        if (refs.job) jobIds.add(refs.job);
+        for (const p of refs.people) people.add(p);
+      }
+      for (const { t, row } of marked) if (t.table === "jobs") for (const p of testIdRefs(row, t).people) people.add(p);
+      const ctx = { jobs: new Map<string, { is_seed: boolean | null }>(), seedPeople: new Set<string>(), lookupFailed: false };
+      const lookupFail = (what: string, message: string) => {
+        ctx.lookupFailed = true;
+        notes.push(`stripe test-id check: ${what} seed lookup failed (${message}); every hit reported as real`);
+      };
+      if (jobIds.size) {
+        const js = await scanAllIn<{ id: string; is_seed: boolean | null }>("jobs (test-id seed)", [...jobIds], (chunk, countOpt) =>
+          admin.from("jobs").select("id, is_seed", countOpt).order("id", { ascending: true }).in("id", chunk));
+        const jcap = scanDefect("jobs (test-id seed)", js);
+        if (jcap) lookupFail("jobs", jcap);
+        else for (const j of js.rows) ctx.jobs.set(j.id, { is_seed: j.is_seed });
+      }
+      if (people.size) {
+        const ps = await scanAllIn<{ user_id: string; is_seed: boolean | null }>("profiles (test-id seed)", [...people], (chunk, countOpt) =>
+          admin.from("profiles").select("user_id, is_seed", countOpt).order("user_id", { ascending: true }).in("user_id", chunk));
+        const pcap = scanDefect("profiles (test-id seed)", ps);
+        if (pcap) lookupFail("profiles", pcap);
+        else for (const p of ps.rows) if (p.is_seed === true) ctx.seedPeople.add(p.user_id);
+        const ta = await scanAllIn<{ user_id: string }>("test_accounts (test-id seed)", [...people], (chunk, countOpt) =>
+          admin.from("test_accounts").select("user_id", countOpt).order("user_id", { ascending: true }).in("user_id", chunk));
+        const tcap = scanDefect("test_accounts (test-id seed)", ta);
+        if (tcap) lookupFail("test_accounts", tcap);
+        else for (const r of ta.rows) ctx.seedPeople.add(r.user_id);
+      }
+      for (const { t, row, marker } of marked) {
+        const kind = classifyTestIdRow(row, t, ctx);
+        if (kind === "orphan") stripeTestIdOrphans++;
+        if (kind !== "real") continue;
+        const refs = testIdRefs(row, t);
+        // No job_id key: a row's seed-ness is decided above (its job AND its people), not by isSeedHit's job set.
+        checks.stripeTestIdOnRealRow.add({ table: t.table, row_id: row.id, row_job: t.table === "jobs" ? row.id : refs.job, marker: marker.marker, column: marker.column });
+      }
+    }
+
     // ── Emit ─────────────────────────────────────────────────────────────────
     //
     // A NON-2xx STATUS FROM THIS FUNCTION IS BY DESIGN, NOT A CRASH.
@@ -2246,6 +2471,10 @@ serve(async (req) => {
         // the settled-job count so "no Stripe findings" can be read against how
         // many were really asked about.
         stripe_payment_intents: stripeReads,
+        stripe_funded_payment_intents: fundedStripeReads,
+        // Q1909: rows read by the test-id check, and the marked ones that name no job left and no person (not reported).
+        stripe_test_id_rows: stripeTestIdRowsRead,
+        stripe_test_id_orphans: stripeTestIdOrphans,
         settled_jobs_with_payment_intent: settledWithPi.length,
       },
       checks_run: Object.values(checks).map((c) => c.name),
@@ -2283,7 +2512,8 @@ serve(async (req) => {
       for (const f of list) {
         fields[f.check] = `${f.count}${f.truncated ? "+" : ""} — ${f.sample
           .map((s) => (s as { job_id?: string; time_credit_id?: string }).job_id ??
-            (s as { time_credit_id?: string }).time_credit_id ?? "?")
+            (s as { time_credit_id?: string }).time_credit_id ??
+            (s as { row_id?: string }).row_id ?? "?")
           .join(", ")}`;
       }
       return fields;

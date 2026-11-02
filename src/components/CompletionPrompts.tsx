@@ -23,7 +23,7 @@ import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
-import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown";
+import { TipCostBreakdown, TipPicker, tipPayLabel, useTipJob } from "@/components/TipCostBreakdown";
 import { useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 import { formatPriceExact } from "@/lib/format";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
@@ -347,7 +347,7 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
           <DialogFooter>
             <DialogSecondaryAction onClick={() => setStep("share")}>No tip</DialogSecondaryAction>
             <DialogPrimaryAction onClick={() => sendTip(customTip ?? 0)} disabled={saving || customTip === undefined || customTip <= 0}>
-              {saving ? "Opening checkout…" : customTip !== undefined && customTip > 0 ? `Tip ${centsLabel(Math.round(customTip * 100))}` : "Tip"}
+              {saving ? "Opening checkout…" : tipPayLabel(customTip)}
             </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>

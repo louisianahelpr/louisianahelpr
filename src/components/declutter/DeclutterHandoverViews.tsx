@@ -85,6 +85,8 @@ const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
+// B134: a shipped order's label (seller) and tracking (buyer) load with ship orders only (Q178).
+const ShipOrderPanel = lazy(() => import("./ShipOrderPanel").then((m) => ({ default: m.ShipOrderPanel })));
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
@@ -195,13 +197,12 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   useScrollToLinkedOrder(cardRef, linked, () => setOpen(true));
   return (
     <article ref={cardRef} tabIndex={linked ? -1 : undefined} data-linked-order={linked ? "" : undefined} className="rounded-[20px] border border-border bg-card p-4 space-y-3">
-      {/* Board 47 / 26 mine card: title, the price in money ink, ONE line saying how it's coming. The buyer's card no
-          longer says "You're buying" (lead 2026-10-28: every card on the Buying tab repeated it). */}
+      {/* Board 47 / 26: title, price in money ink, ONE line on how it's coming; no "You're buying" (lead 2026-10-28). */}
       <div className="flex items-start justify-between gap-3 min-w-0" data-order-head="">
         <div className="min-w-0">
           <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
           <p className="text-ds-13 text-muted-foreground">
-            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
+            {order.handover === "ship" ? (order.side === "buyer" ? "Shipped to you" : "You ship it") : order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
           </p>
         </div>
         <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--accent-ink))]">{itemPriceLabel(items)}</span>
@@ -259,6 +260,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {!problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery free={order.lines.every((l) => l.price_cents === 0)} />}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />}
         </>
+      ) : order.handover === "ship" ? (
+        // B134: a shipped order has no pickup to book; the seller prints, packs and drops it off, the buyer tracks it.
+        <Suspense fallback={<HelprSpinner />}><ShipOrderPanel orderId={order.orderId} side={order.side} /></Suspense>
       ) : order.handover === "delivery" ? (
         <>
           {/* Slice 5: a Helpr picks it up and brings it; the task shows its progress. D-NEW14: where, for the seller. */}
@@ -279,10 +283,8 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
           {order.handover === "porch" && <OrderPorchPlace orderId={order.orderId} side={order.side} />}
-          {/* LEAD-PLACE-TIMES (owner 2026-10-31, lead's decision 1): the porch buyer picked the place at checkout, then
-              picks a day and a time inside that place's hours (BookingPanel: declutter_order_pickup_windows reads the
-              hours frozen on the order; declutter_book_pickup checks them). A porch DAY booked under the 10-28 design
-              keeps its day card. */}
+          {/* LEAD-PLACE-TIMES (owner 2026-10-31): porch day+time inside the checkout place's frozen hours (BookingPanel,
+              declutter_order_pickup_windows / declutter_book_pickup); a porch DAY booked under the 10-28 design keeps its card. */}
           {/* D2-2: no booking while a problem is open (the server refuses it: problem_open). */}
           {/* T9: while the seller has their 24 hours the time stands (the server refuses a move: no_show_waiting). */}
           {/* BUY-2 (owner 10-31): no Helpr took the delivery; the buyer may cancel instead (the buyer bears the card fee). A
@@ -294,8 +296,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
             : <BookingPanel order={order} booking={booking}
                 noTimes={order.handover === "porch" && order.side === "buyer" ? <ProblemForm orderId={order.orderId} side={order.side} stage="waiting" /> : null} />}
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
-          {/* NIGHT-BUYINGopenpr-7: the door tips are for a pickup still to come; a held order (a problem open, or the
-              seller's 24 hours after a no-show report) says what happens instead. */}
+          {/* NIGHT-BUYINGopenpr-7: door tips only for a pickup still to come; a held order says what happens instead. */}
           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} held={!!problem} />}
@@ -308,7 +309,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
             onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} />}
         </>
       )}
-      {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
+      {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
       </div>}
       {/* CMP-3: outside Details, so it is one tap from the card. */}
       <OrderGetHelpNow order={{ orderId: order.orderId, title, status: order.status }} problemOpen={!!problem} />

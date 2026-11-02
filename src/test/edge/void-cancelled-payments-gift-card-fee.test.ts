@@ -107,10 +107,12 @@ const SHORT = FEE + CARD_FEE - CARD;
 
 function giftRpc(dryOutcome: Record<string, unknown> = { outcome: "would_restore", credit_id: "gift-1", applied_cents: GIFT, restore_cents: GIFT }) {
   scenario.rpc.restore_gift_card_for_job = (args?: unknown) => {
-    const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number };
+    const a = (args ?? {}) as { p_dry_run?: boolean; p_share_bps?: number; p_restore_cents?: number };
     if (a.p_dry_run) return dryOutcome;
     const bps = a.p_share_bps ?? 10000;
-    return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: GIFT, restore_cents: Math.floor((GIFT * bps) / 10000) };
+    // Q1914: exact cents when given (capped to the gift), else the basis-point share.
+    const cents = a.p_restore_cents !== undefined ? Math.min(Math.max(a.p_restore_cents, 0), GIFT) : Math.floor((GIFT * bps) / 10000);
+    return { outcome: "restored", credit_id: "gift-2", recipient_id: "poster-1", applied_cents: GIFT, restore_cents: cents };
   };
 }
 
@@ -155,7 +157,9 @@ const restoreCalls = () =>
   (scenario.rpcCalls ?? []).filter((c) => c.name === "restore_gift_card_for_job").map((c) => c.args as Record<string, unknown>);
 const restoredCents = () => {
   const m = restoreCalls().filter((c) => !c.p_dry_run)[0];
-  return m ? Math.floor((GIFT * Number(m.p_share_bps ?? 10000)) / 10000) : null;
+  if (!m) return null;
+  if (m.p_restore_cents !== undefined) return Math.min(Math.max(Number(m.p_restore_cents), 0), GIFT);
+  return Math.floor((GIFT * Number(m.p_share_bps ?? 10000)) / 10000);
 };
 const feeTransferCalls = () =>
   stripeMock.transfers.create.mock.calls.filter(([p]) => (p as { metadata?: { type?: string } }).metadata?.type === "cancellation_fee");
@@ -295,7 +299,8 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     scenario.writes.filter((w) => w.table === "cancellation_fee_transfers" && w.op === "insert").map((w) => w.payload as Record<string, unknown>);
   const cappedPaged = () =>
     (slackAlerts as Array<{ title?: string }>).some((a) => /Cancellation fee capped at what the card paid/.test(String(a.title)));
-  const giftWithheld = () => restoreCalls().filter((c) => !c.p_dry_run).some((c) => Number(c.p_share_bps ?? 10000) < 10000);
+  const giftWithheld = () => restoreCalls().filter((c) => !c.p_dry_run)
+    .some((c) => (c.p_restore_cents !== undefined ? Number(c.p_restore_cents) < GIFT : Number(c.p_share_bps ?? 10000) < 10000));
 
   for (const [label, gone] of [
     ["the donation behind it was reversed", () => { reversedGift(); }],

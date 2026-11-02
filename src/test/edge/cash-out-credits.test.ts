@@ -26,7 +26,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 
 const JWT = "Bearer caller.jwt.sig";
@@ -135,5 +135,42 @@ describe("a cash-out to an account Stripe rejected moves nothing and gives the c
     expect((await res.json()).code).toBe("connect_account_not_payable");
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(scenario.writes.filter((w) => w.table === "referral_credits"), "nothing claimed, nothing to roll back").toEqual([]);
+  });
+
+  // Q2406 (lh-silent-failure review of the live gate, #5): the gate's
+  // `defect` (here the cached-gate close on profiles failing) was dropped to
+  // console.warn. It is now an ops alert naming it.
+  // @mutate supabase/functions/cash-out-credits/index.ts |     if (live.held && live.defect) await reportLiveGateDefect( |     if (false) await reportLiveGateDefect(
+  it("a failed cached-gate close is reported to ops, not dropped", async () => {
+    stageClaim([{ id: "cA", amount: 5 }]);
+    // Rejected: the hold closes the cached gate on profiles, and that write fails.
+    stripeMock.accounts.retrieve.mockResolvedValue({
+      ...PAYABLE_CONNECT_ACCOUNT, payouts_enabled: false, charges_enabled: false, capabilities: { transfers: "inactive" },
+      requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+    });
+    scenario.writeErrors.profiles = { message: "connection reset" };
+    const res = await post({ attemptId: ATTEMPT });
+    expect(res.status).toBe(409);
+    const hit = (slackAlerts as Array<{ title?: string; message?: string }>).filter((a) => /payout gate/i.test(String(a.title)));
+    expect(hit).toHaveLength(1);
+    expect(String(hit[0].message)).toContain("connection reset");
+    expect((hit[0] as { seed?: boolean }).seed).toBe(false);
+  });
+
+  // A test member never pages the owner: both alerts go out as seed (digest only).
+  // @mutate supabase/functions/cash-out-credits/index.ts | defect: live.defect, seed: (profile as { is_seed?: boolean \| null }).is_seed === true }); | defect: live.defect });
+  it("a test member's held cash-out and its defect are digest only (seed)", async () => {
+    stageClaim([{ id: "cA", amount: 5 }]);
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper", is_seed: true }] };
+    stripeMock.accounts.retrieve.mockResolvedValue({
+      ...PAYABLE_CONNECT_ACCOUNT, payouts_enabled: false, charges_enabled: false, capabilities: { transfers: "inactive" },
+      requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+    });
+    scenario.writeErrors.profiles = { message: "connection reset" };
+    expect((await post({ attemptId: ATTEMPT })).status).toBe(409);
+    const alerts = slackAlerts as Array<{ title?: string; seed?: boolean }>;
+    expect(alerts.filter((a) => /payout gate defect/i.test(String(a.title)))).toHaveLength(1);
+    expect(alerts.filter((a) => /payout gate defect|Payout held/i.test(String(a.title))).every((a) => a.seed === true)).toBe(true);
+    expect(alerts.filter((a) => /Payout held/i.test(String(a.title))).length).toBeGreaterThan(0);
   });
 });

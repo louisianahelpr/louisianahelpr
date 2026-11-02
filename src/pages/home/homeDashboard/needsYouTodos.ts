@@ -14,6 +14,8 @@ import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { useFeature } from "@/hooks/useFeature";
 import { posterStatusLine, helperStatusLine, type JobStatusLine } from "@/components/job-card/jobStatusLine";
 import { jobStartTarget } from "@/components/job-card/CountdownRows";
+import { jobProgress } from "@/components/tracker/jobProgressState";
+import { jobNextStep } from "@/components/tracker/jobNextStep";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { continueDayNextStep, continueDayWords, type ContinueDay } from "@/lib/continueDayWords";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
@@ -202,10 +204,15 @@ function withBackout<J extends { id: string; status?: string | null }>(j: J, bac
 export const ON_THE_WAY_TASK = "Tap I've arrived when you get there";
 /** JA-39: its button, the Working card's own step label (helperFaceAction.ts: key "arrived"). */
 export const ARRIVED_ACTION = "I've arrived";
-/** JA-39: which side of the job the Helpr is on, by where the job stands (never "working" before they arrive). */
+/**
+ * JA-39: which side of the job the Helpr is on, by where the job stands (never "working" before they arrive).
+ * A3-84 (audit 11-01): hired, offered, confirmed and confirm-due read "You're hired" (the confirm-due Home row said
+ * "Confirm you'll be at the job · You're working"); "You're working" only from arrival.
+ */
 function helprSide(job: Job, lineId: string): string {
   if (!job.helper_id) return "You applied";
-  return lineId === "on_the_way" ? "You're on the way" : "You're working";
+  if (lineId === "on_the_way") return "You're on the way";
+  return (job as { helper_arrived_at?: string | null }).helper_arrived_at ? "You're working" : "You're hired";
 }
 const HOUR = 3_600_000;
 /** A3-83: the poster's step when the Helpr marked it done (or fixed what was asked): its Next up button. */
@@ -227,6 +234,35 @@ function dueAt(line: JobStatusLine, job: Pick<Job, "date_needed" | "start_time">
   if (Number.isFinite(clock) && clock >= now) return clock;
   const start = jobStartTarget(job.date_needed, job.start_time)?.getTime() ?? NaN;
   return Number.isFinite(start) && start >= now ? start : null;
+}
+
+/**
+ * A3-17 (audit 11-01): the task says by when, as the cards' next-step line does ("Approve Yusef's work · 23h 49m left",
+ * "Confirm you'll be at the job · by Mon 8:00 AM"). From the status line's OWN clock, only while it is still ahead; a
+ * task whose words already carry a day keeps them.
+ */
+export function withTodoBy(task: string, line: Pick<JobStatusLine, "deadline">, now: number): string {
+  const at = line.deadline?.at ? Date.parse(line.deadline.at) : NaN;
+  if (!Number.isFinite(at) || at < now || / by (Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/.test(task)) return task;
+  if (line.deadline!.source === "auto_complete") {
+    const mins = Math.floor((at - now) / 60_000);
+    return `${task} · ${mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`} left`;
+  }
+  const day = new Date(at).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+  return `${task} · by ${day.replace(",", "")}`;
+}
+
+/**
+ * A3-17 rest (audit 11-01): the task is the job's NEXT STEP, the words the job page and the cards print (jobNextStep
+ * from the one tracker, jobProgress), e.g. "Approve your Helpr's work · 23h 0m left", never a second wording of the
+ * same step. Home reads no names (the cores only), so the other person is "your Helpr" / "them". A step that is not
+ * the member's own (or none) keeps the status line's words.
+ */
+export function todoTask(job: Job, viewer: "poster" | "helpr", line: JobStatusLine, now: number, o: { pendingApplicants?: number; application?: string | null } = {}): string {
+  const progress = jobProgress(job, { viewer, now: new Date(now), pendingApplicants: o.pendingApplicants, application: o.application });
+  const step = jobNextStep(progress, { side: viewer, pendingApplicants: o.pendingApplicants });
+  if (!step || step.who !== "you") return withTodoBy(line.detail, line, now);
+  return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, line, now);
 }
 
 /** A job's date for tier 4 ("everything else, by date"); undated last. */
@@ -310,7 +346,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       item: {
         id: `p-${j.id}`,
         section: "jobs",
-        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : continueDayWords(cd[j.id], { side: "poster", otherFirst: null }) ?? line.detail,
+        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : continueDayWords(cd[j.id], { side: "poster", otherFirst: null }) ?? todoTask(j, "poster", line, now, { pendingApplicants: n }),
         meta: `${j.helper_id ? "You hired" : "You posted"} · ${j.title}`,
         // "Open job" opens THE job (audit #12, 2026-10-21); the applicant
         // review still lands on the Posted list where applicants are handled.
@@ -331,7 +367,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         section: "jobs",
         // JA-39 (Jobs audit 11-01): on the way is not working yet. The task is the arrival tap, and the side word
         // says where they are ("You're on the way · Haul off..."), never "You're working" before they arrive.
-        title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail),
+        title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status })),
         meta: `${helprSide(a.job!, line.id)} · ${a.job!.title}`,
         // JA-39: the button IS the arrival step ("I've arrived"), run by the Working card's tracker (not a crew: a
         // member's steps are on the roster), instead of "Open job" and a second tap on the page.

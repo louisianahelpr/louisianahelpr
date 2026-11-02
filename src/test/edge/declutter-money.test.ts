@@ -895,6 +895,19 @@ describe("declutter-money: delivery-fee refunds (slice 5, row 40)", () => {
     expect(slackAlerts.length).toBe(1);
   });
 
+  // Shipping S6 2d (lead 11-01): the same loop sends a shipping refund held back until the label was voided; its page
+  // names it as shipping, a delivery-fee one still says delivery-fee.
+  // @mutate supabase/functions/declutter-money/index.ts |   return reason === "ship_void_refunded" ? "shipping" : "delivery-fee"; |   return "delivery-fee";
+  it("a failed shipping refund pages as a shipping refund; a delivery-fee one as delivery-fee", async () => {
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_bad", status: "failed" });
+    await run({ deliveryRefunds: [deliveryRefundRow({ reason: "ship_void_refunded", refund_cents: 700 })] });
+    expect(slackAlerts.map((a: any) => a.title)).toEqual(["Declutter shipping refund did not go through"]);
+    expect(String((slackAlerts[0] as { message?: string } | undefined)?.message)).toContain("for shipping refund ");
+    slackAlerts.length = 0;
+    await run({ deliveryRefunds: [deliveryRefundRow({ attempts: 11 })] });
+    expect(slackAlerts.map((a: any) => a.title)).toEqual(["Declutter delivery-fee refund gave up"]);
+  });
+
   it("runs on the key of the page that took the payment", async () => {
     scenario.reads.test_accounts = { rows: [{ user_id: BUYER }, { user_id: SELLER }] };
     scenario.reads.profiles = { rows: [{ user_id: BUYER, is_seed: true, email: "b@x.test" }, { user_id: SELLER, is_seed: true }] };

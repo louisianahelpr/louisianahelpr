@@ -51,7 +51,7 @@
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |       IF rf.reason = 'seller_no_show' AND j.committed AND NOT p_include_committed THEN |       IF false THEN
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   IF l.seller_fee_billed_cents IS NOT NULL THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           .select("seller_fault_refund_id") |           .select("id")
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} /></Suspense>} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} /></Suspense>} |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -231,6 +231,10 @@ describe("Declutter Add a Helpr", () => {
     // Loaded lazily as a BACKGROUND import: a stale chunk is a failed link the buyer is told about, never
     // a recovery reload between the job row and the checkout redirect (lh-money-escrow review of 6ef39799d #3a).
     expect(submit).toContain('const { linkSetupJob } = await backgroundImport(() => import("@/lib/declutter/setupHelpr"), "declutter-setup-helpr");');
+    // Q1967: the haul-away link loads the same way (it runs at the same point of the submit).
+    // @mutate src/pages/post-job/useJobSubmit.ts | const haulAwayLib = () => backgroundImport(() => import("@/lib/declutter/haulAway"), "declutter-haul-away"); | const haulAwayLib = () => import("@/lib/declutter/haulAway");
+    expect(submit).toContain('const haulAwayLib = () => backgroundImport(() => import("@/lib/declutter/haulAway"), "declutter-haul-away");');
+    expect(submit).not.toMatch(/loadModule\(\(\) => import\("@\/lib\/declutter\/haulAway"\)\)/);
     expect(submit).toContain("if (declutterOrderId) await linkSetupJobOrTell(declutterOrderId, jobData.id);");
     // The retry of a lost payment answer links again first (money review of 4f45a073f #4) ...
     expect(submit).toMatch(/if \(attempt\.jobId\) \{[\s\S]*?if \(declutterOrderId\) await linkSetupJobOrTell\(declutterOrderId, attempt\.jobId\);[\s\S]*?await startPayment\(attempt\.jobId/);
@@ -249,7 +253,7 @@ describe("Declutter Add a Helpr", () => {
   });
 
   it("the buyer's paid order card offers the choices behind the switch, each opening Post a job", () => {
-    expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain('{order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}');
+    expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain('{order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}');
     // Loaded with the buyer's order card only (Q178: off /posts' critical path).
     expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain('const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr")');
     const panel = code("src/components/declutter/DeclutterAddHelpr.tsx");

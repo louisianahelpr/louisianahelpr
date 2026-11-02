@@ -2,6 +2,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { rpcNotDeployed } from "../../_shared/rpcNotDeployed.ts";
 
 /**
  * The payment states that say "the poster's money is here". A failure event
@@ -50,6 +51,42 @@ async function unfundFailedEscrow(
     return;
   }
 
+  // Q1978: process-scheduled-payouts and release-payout send the transfer
+  // FIRST and flip the job to 'released' after; execute-dispute-split keeps
+  // 'escrow' under its settlement claim. A failure landing in that window
+  // used to un-escrow (or cancel) a job whose Helpr was being paid: the record
+  // said 'failed', the Helpr was told the payout is on hold (untrue) and ops
+  // got two critical pages. Any payout_transfers row but a 'failed' one (a
+  // claim in flight, a sent or reversed transfer) or a held settlement claim
+  // means money is moving: take the released branch (page, write nothing).
+  // A read error throws, so Stripe retries rather than guessing.
+  const { data: movingRows, error: movingErr } = await supabase
+    .from("payout_transfers")
+    .select("id, status")
+    .eq("job_id", job.id)
+    .neq("status", "failed")
+    .limit(1);
+  if (movingErr) throw new Error(`payout_transfers read failed for job ${job.id}: ${movingErr.message}`);
+  const { data: claimRows, error: claimErr } = await supabase
+    .from("dispute_settlement_claims")
+    .select("job_id, action")
+    .eq("job_id", job.id)
+    .limit(1);
+  if (claimErr) throw new Error(`dispute_settlement_claims read failed for job ${job.id}: ${claimErr.message}`);
+  const payoutMoving = (movingRows ?? []).length > 0 || (claimRows ?? []).length > 0;
+  if (payoutMoving && job.payment_status !== "released") {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Bank payment failed WHILE the payout was being sent",
+      message: `The poster's payment for job ${job.id} ("${job.title}") failed (PaymentIntent ${piId} is ${liveStatus}), but the Helpr's payout is already moving (${(movingRows ?? []).length > 0 ? `payout_transfers row ${String((movingRows as Array<{ status?: string }>)[0].status)}` : `settlement claim ${String((claimRows as Array<{ action?: string }>)[0].action)}`}). Nothing was written: the job was not un-escrowed and nobody was told. The Helpr is being paid from money that never arrived. Decide whether to reverse the transfer.`,
+      fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, payment_status: job.payment_status ?? null },
+      oncePerDayKey: `funded-job-payment-failed-released:${job.id}`,
+      seed: job.is_seed ?? false,
+    });
+    return;
+  }
+
   if (job.payment_status === "released") {
     // The Helpr was already paid from money that never arrived. Nothing here
     // can undo a transfer; a person must decide (reverse the transfer or
@@ -75,7 +112,7 @@ async function unfundFailedEscrow(
     "cancel_job_after_failed_bank_payment",
     { p_job_id: job.id, p_payment_intent_id: piId, p_gift_card_id: giftCardId },
   );
-  const cancelNotDeployed = cancelErr?.code === "PGRST202" || cancelErr?.code === "42883";
+  const cancelNotDeployed = rpcNotDeployed(cancelErr);
   if (cancelErr && !cancelNotDeployed) {
     // Throw: Stripe retries, and nothing was committed.
     throw new Error(`Failed to cancel job ${job.id} after its payment failed: ${cancelErr.message}`);
@@ -87,8 +124,12 @@ async function unfundFailedEscrow(
     const told = (cancelVerdict as { helpers_told?: unknown[] }).helpers_told ?? [];
     logStep("Hired job's bank payment failed — job cancelled", { jobId: job.id, piId, liveStatus, helpersTold: told.length });
     await cancelDeadBankPayment(stripe, piId, String(job.id), logStep, job.is_seed ?? false);
+    // Q2075: the DESIGNED outcome (job cancelled, no fee, no strike, everyone
+    // told) needs no one, so it is a warning of its own kind, not
+    // money_at_risk (which alertPolicy's CRITICAL_KINDS always pages). The
+    // gift left spent, below, is money at risk and still pages.
     await postSlackOpsAlert({
-      kind: "money_at_risk",
+      kind: "job_auto_cancelled",
       severity: "warning",
       title: "A hired job's bank payment failed — job cancelled",
       message: `Job ${job.id} ("${job.title}") was '${job.payment_status}' / '${job.status}' but its PaymentIntent ${piId} is ${liveStatus}. It is now cancelled (payment_status='failed'), with no fee and no strike; the poster${told.length > 0 ? ` and ${told.length} confirmed Helpr${told.length > 1 ? "s" : ""} were` : " was"} told.`,
@@ -118,6 +159,21 @@ async function unfundFailedEscrow(
     // would be 7440a72d again with this event spent: retry later instead
     // (lh-money-escrow review of 56346b5eb #5).
     throw new Error(`Job ${job.id} is mid-refund ('cancelling') while its payment failed; retrying so the failure is not lost`);
+  } else if (cancelOutcome === "payout_moving") {
+    // Q1978, decided under the job's row lock (20261102055222): a payout
+    // claimed or sent, or a settlement claim, appeared after the read above.
+    // Same answer as there: page, write nothing, tell nobody.
+    logStep("payment_failed while the payout is moving (RPC) — nothing written", { jobId: job.id, piId });
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Bank payment failed WHILE the payout was being sent",
+      message: `The poster's payment for job ${job.id} ("${job.title}") failed (PaymentIntent ${piId} is ${liveStatus}), but the Helpr's payout is already moving. Nothing was written: the job was not un-escrowed and nobody was told. The Helpr is being paid from money that never arrived. Decide whether to reverse the transfer.`,
+      fields: { job_id: job.id, payment_intent: piId, pi_status: liveStatus, payment_status: job.payment_status ?? null },
+      oncePerDayKey: `funded-job-payment-failed-released:${job.id}`,
+      seed: job.is_seed ?? false,
+    });
+    return;
   } else if (cancelOutcome === "moved_on" || cancelOutcome === "not_found") {
     logStep("payment_failed on a funded job: the job moved on before the cancel — nothing written", {
       jobId: job.id, piId, outcome: cancelOutcome,
@@ -156,12 +212,16 @@ async function unfundFailedEscrow(
   // Q1971 + Q1876: a funded job nobody was hired on was, like an unpaid
   // bounce, never paid for, so the gift its checkout spent goes back (the job
   // is now 'failed' with no checkout, which return_bounced_gift_card needs).
-  // A hired job the RPC would not cancel (work done, a series, a crew part
-  // done) or an RPC that is not deployed keeps it for a person (Q1975).
+  // Q1975 part 2 (lead decision 11-01: 'failed' wins): a hired job the RPC
+  // would not cancel (work done, a series, a crew part done) is 'failed' too,
+  // and process-scheduled-payouts never pays it from the gift alone, so its
+  // gift goes back to the poster as well. return_bounced_gift_card still
+  // refuses ('paid_out') a job that has any payout_transfers row. Only an RPC
+  // that is not deployed keeps it for a person.
   // The return runs AFTER the notices and the page below, so a gift-return
   // error (which throws for a Stripe retry) never swallows them (delta review
   // of dcfde9884 #1).
-  const giftAsked = Boolean(giftCardId) && cancelOutcome === "not_hired";
+  const giftAsked = Boolean(giftCardId) && (cancelOutcome === "not_hired" || cancelOutcome === "not_cancellable");
 
   // Copy follows where the job is (lh-money-escrow review): a 'failed' job is
   // hidden from My Posts and a hired or finished job cannot be checked out
@@ -323,10 +383,10 @@ async function returnBouncedGift(
   });
   const fields = { "Job ID": jobId, "Gift card": giftCardId, "Payment Intent": piId };
   if (error) {
-    // PGRST202: the function is not deployed yet (this code can ship before
+    // Not deployed yet (PGRST202 or 42883, Q2079: this code can ship before
     // its migration). Retrying cannot help until it is, so page ops and let
     // the bounce itself (job failed, poster told) stand.
-    const notDeployed = (error as { code?: string }).code === "PGRST202";
+    const notDeployed = rpcNotDeployed(error as { code?: string });
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "critical",

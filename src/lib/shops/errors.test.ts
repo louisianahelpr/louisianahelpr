@@ -23,7 +23,7 @@ import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
 import { SHOPS_ERROR_COPY, shopsErrorMessage } from "./errors";
 
-const GENERIC = "Something went wrong. Please try again.";
+const GENERIC = "Couldn't do that just now. Check your connection and try again.";
 const DEFS = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 
 /** The sentence a contact-leak trigger raises, built from its newest body. */

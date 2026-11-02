@@ -7,12 +7,12 @@ import type { Row } from "./types";
  * The "Declutter" group on the Notifications screen (owner 2026-10-28, via the
  * lead: "Yes, build them"): one switch per declutter_* notification kind
  * (migration 20261028162048). Shown only to a member who has Declutter, and
- * the Wanted matches row only while Wanted is on for them. Its own component
+ * every row, Wanted matches included: it also governs saved Declutter searches (Q2464), so it shows even while
+ * Wanted is off for them. Its own component
  * so the switch reads happen only where the group can show.
  */
 export function DeclutterNotificationGroup({ renderRow }: { renderRow: (row: Row) => ReactNode }) {
   const declutterOn = useFeature("declutter");
-  const wantedOn = useFeature("declutter_wanted");
   const heading = useRef<HTMLDivElement>(null);
   // Declutter settings' Notifications row links here with ?show=declutter: open at this group, not the top of the screen.
   useEffect(() => {
@@ -36,7 +36,7 @@ export function DeclutterNotificationGroup({ renderRow }: { renderRow: (row: Row
           Buying and selling your things. Everything still lands in the bell icon.
         </p>
       </div>
-      {declutterRows.filter((r) => r.key !== "declutter_wanted" || wantedOn).map((r) => renderRow(r))}
+      {declutterRows.map((r) => renderRow(r))}
     </>
   );
 }

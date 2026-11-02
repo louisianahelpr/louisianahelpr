@@ -1,5 +1,5 @@
-import { useRef } from "react";
 import { Label } from "@/components/ui/label";
+import { RadioCardList } from "@/components/ui/RadioCardList";
 import { hapticLight } from "@/lib/haptics";
 
 export type JobTaxKind = "item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations";
@@ -24,6 +24,9 @@ const OPTIONS: Array<{ value: JobTaxKind | null; label: string; sub: string }> =
   { value: "clothing_alterations", label: "It alters clothes", sub: "Hemming, taking in, letting out or other tailoring." },
 ];
 
+/** RadioCardList values are strings; "none" stands for the NULL answer. */
+const NONE = "none";
+
 export function TaxKindQuestion({
   taxKind,
   setTaxKind,
@@ -31,18 +34,6 @@ export function TaxKindQuestion({
   taxKind: JobTaxKind | null;
   setTaxKind: (next: JobTaxKind | null) => void;
 }) {
-  const rowRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const move = (from: number, delta: number) => {
-    const next = (from + delta + OPTIONS.length) % OPTIONS.length;
-    hapticLight();
-    setTaxKind(OPTIONS[next].value);
-    rowRefs.current[next]?.focus();
-  };
-  const onKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); move(index, 1); }
-    else if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); move(index, -1); }
-  };
-
   return (
     <div className="space-y-2.5" data-tax-kind-question="">
       <div className="space-y-0.5">
@@ -51,35 +42,15 @@ export function TaxKindQuestion({
           Louisiana charges sales tax on this kind of work. Checkout shows the tax before you pay.
         </p>
       </div>
-      <div role="radiogroup" aria-labelledby="tax-kind-label" className="grid grid-cols-1 gap-1.5">
-        {OPTIONS.map(({ value, label, sub }, index) => {
-          const active = taxKind === value;
-          return (
-            <button
-              key={label}
-              ref={(el) => {
-                rowRefs.current[index] = el;
-              }}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              tabIndex={active ? 0 : -1}
-              onClick={() => {
-                hapticLight();
-                setTaxKind(value);
-              }}
-              onKeyDown={(e) => onKeyDown(e, index)}
-              className={`flex w-full min-w-0 flex-col items-start gap-0.5 px-3 py-2.5 rounded-ds-md text-left transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                active ? "btn-grad-primary" : ""
-              }`}
-              style={active ? undefined : { background: "hsl(var(--parchment))", color: "hsl(var(--ink-deep))" }}
-            >
-              <span className="text-ds-14 font-semibold leading-snug">{label}</span>
-              <span className="text-ds-11 leading-snug" style={{ opacity: 0.85 }}>{sub}</span>
-            </button>
-          );
-        })}
-      </div>
+      <RadioCardList
+        label="Is this one of these jobs?"
+        options={OPTIONS.map(({ value, label, sub }) => ({ value: value ?? NONE, label, sub }))}
+        value={taxKind ?? NONE}
+        onChange={(next, via) => {
+          if (via === "click") hapticLight();
+          setTaxKind(next === NONE ? null : (next as JobTaxKind));
+        }}
+      />
     </div>
   );
 }

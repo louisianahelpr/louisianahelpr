@@ -65,7 +65,7 @@ describe("J3: the tax note names exactly what is taxed", () => {
 
   // Q2083 (owner Option 1): a cleaning job the poster says cleans fabric is
   // taxed, and the note names the WORK, not the (untaxed) category.
-  // @mutate src/components/postjob/CheckoutStep.tsx |             const taxable = hasTaxableLine(category, taxKind); |             const taxable = hasTaxableLine(category);
+  // @mutate src/components/postjob/CheckoutStep.tsx |   const taxableLine = hasTaxableLine(category, taxKind); |   const taxableLine = hasTaxableLine(category);
   it("a fabric-cleaning answer on an untaxed category is quoted as taxable work", () => {
     mockTax = 10.45;
     try {
@@ -78,7 +78,7 @@ describe("J3: the tax note names exactly what is taxed", () => {
     }
   });
 
-  // @mutate src/components/postjob/CheckoutStep.tsx |                         ? "Washing or cleaning clothes" |                         ? "Fixing an item"
+  // @mutate src/components/postjob/taxedWorkLabel.ts |   clothes_cleaning: "Washing or cleaning clothes", |   clothes_cleaning: "Fixing an item",
   it("a clothes-cleaning answer is quoted as its own taxable work", () => {
     mockTax = 10.45;
     try {

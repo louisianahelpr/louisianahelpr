@@ -2,6 +2,7 @@ import { FieldError } from "@/components/ui/FieldError";
 import { Button } from "@/components/ui/button";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
 import { displayUsPhone } from "@/lib/smsConsent";
+import { profilePhoneComplete, profilePhoneError } from "@/lib/profilePhone";
 import { useEffect, useRef, useState } from "react";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
@@ -82,7 +83,22 @@ export function ProfileEditForm({
   // show that inline while typing, same as the 20-char floor.
   const bioLeak = contactLeakFieldError(bio, "bio");
   const bioOk = bio.trim().length >= 20 && !bioLeak;
-  const phoneValid = phone.replace(/\D/g, "").length >= 10;
+  // The server's own rule (guard_profile_phone): empty, or 10 digits (11 with
+  // a leading 1). Q2654: "555" showed nothing until a toast after Save; the
+  // words now show under the field once it is left, and Save waits for them.
+  const phoneValid = profilePhoneComplete(phone);
+  const phoneError = profilePhoneError(phone);
+  const [phoneLeft, setPhoneLeft] = useState(false);
+  // Enter in a field submits the form too: an invalid phone shows its words
+  // instead of a round-trip that counts toward save_my_phone's limit.
+  const submit = (e: React.FormEvent) => {
+    if (phoneError) {
+      e.preventDefault();
+      setPhoneLeft(true);
+      return;
+    }
+    onSave(e);
+  };
   const locationValid = location.trim().length > 0;
   // Skills are stored as ONE comma-separated string (profiles.skills) — the
   // format every consumer already parses. Split here only to count and to
@@ -189,7 +205,7 @@ export function ProfileEditForm({
         ) : undefined}
       />
 
-      <form onSubmit={onSave} className="space-y-section">
+      <form onSubmit={submit} className="space-y-section">
         {/* Photo + Name section */}
         <PhotoNameSection
           profile={profile}
@@ -211,11 +227,12 @@ export function ProfileEditForm({
             <div className={SHORT_FIELD_MEASURE}>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
               <div className="relative">
-                <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={displayUsPhone(phone)} onChange={(e) => setPhone(e.target.value)} className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
+                <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={displayUsPhone(phone)} onChange={(e) => setPhone(e.target.value)} onBlur={() => setPhoneLeft(true)} aria-invalid={phoneLeft && !!phoneError} aria-describedby={phoneLeft && phoneError ? "phone-error" : undefined} className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
                 {phoneValid && (
                   <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                 )}
               </div>
+              {phoneLeft && phoneError && <div className="mt-1"><FieldError id="phone-error">{phoneError}</FieldError></div>}
             </div>
             {/* ZIP is a FIXED 6.25rem column, City takes the rest. ZIP now carries
                 the same valid ✓ as Phone and City (owner, 2026-09-12). A one-third
@@ -426,7 +443,7 @@ export function ProfileEditForm({
             scoped to the user's id. The user explicitly asked for this in
             their Edit-profile screenshot review. */}
         {/* Board 41: TRUST MARKS (phone, photo ID, payout bank), each with its next step. */}
-        <TrustMarksCard profile={profile} phone={phone} />
+        <TrustMarksCard profile={profile} phone={profile?.phone ?? ""} />
 
         <RecentWorkSection
           anchorId="work-portfolio-card"
@@ -464,10 +481,11 @@ export function ProfileEditForm({
           softly blurs through. */}
       <SaveBar
         dirty={dirty}
+        blocked={!!phoneError}
         saving={saving}
         justSaved={justSaved}
         onBack={onBack}
-        onSave={onSave}
+        onSave={submit}
       />
     </ProfileTabBody>
   );

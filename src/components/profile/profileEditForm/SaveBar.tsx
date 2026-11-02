@@ -4,6 +4,8 @@ import { useDockYield } from "@/components/mobileNav/useDockYield";
 
 interface SaveBarProps {
   dirty: boolean;
+  /** A field holds something the server would refuse (Q2654: an invalid phone): Save stays off. */
+  blocked?: boolean;
   saving: boolean;
   justSaved: boolean;
   onBack: () => void;
@@ -18,7 +20,7 @@ interface SaveBarProps {
  * around it. Frosted glass surface so content behind softly blurs through.
  * It takes the dock's strip, so the dock yields while it shows (Q1646).
  */
-export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarProps) {
+export function SaveBar({ dirty, blocked = false, saving, justSaved, onBack, onSave }: SaveBarProps) {
   // Only while there is something to save, a save in flight, or the brief
   // "Saved" confirmation. Owner, 2026-09-14 (VN-40): "i don't like that bottom
   // cancel or up to date" — with nothing changed the bar showed a disabled
@@ -66,17 +68,17 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
         variant="ghost"
         size="sm"
         onClick={(e) => onSave(e as unknown as React.FormEvent)}
-        disabled={saving || justSaved}
+        disabled={saving || justSaved || blocked}
         className="flex-[2] px-0 gap-2 text-ds-13 tracking-normal active:scale-[0.98] disabled:active:scale-100 disabled:opacity-100 [&_svg]:size-4"
         style={{
-          background: saving ? "hsl(var(--muted))" : "hsl(var(--bark))",
-          color: saving ? "hsl(var(--muted-foreground))" : "hsl(var(--parchment))",
+          background: saving || blocked ? "hsl(var(--muted))" : "hsl(var(--bark))",
+          color: saving || blocked ? "hsl(var(--muted-foreground))" : "hsl(var(--parchment))",
           border: "1px solid hsl(var(--bark-border))",
           boxShadow:
             "inset 0 1px 0 0 rgba(255, 255, 255, 0.12), " +
             "0 1px 2px hsl(var(--bark-border) / 0.18), " +
             "0 6px 14px -4px hsl(var(--bark) / 0.4)",
-          cursor: saving ? "not-allowed" : "pointer",
+          cursor: saving || blocked ? "not-allowed" : "pointer",
         }}
       >
         {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : "Save changes"}

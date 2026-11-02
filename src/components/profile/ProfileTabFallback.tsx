@@ -115,15 +115,17 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   // renders only while SOCIAL_SIGN_IN_ENABLED (off for launch, Q1462), so its
   // bone follows the same switch (loading-states-refresh 37554743989, 2026-10-07: 6
   // placeholder rows -> 5 real once it went off).
+  // Q1695 (loading-states refresh 2026-11-02 01:07Z, bot/refresh/loading-states 80cc9f9ff8, 375, both test
+  // accounts): email 89, password 71, two-step 86, sign-in methods 229, active sessions 261 (two device rows, so
+  // three icons). Heights from the gaps between the cards' <h2> landmarks (88.3, 189.6, 272.1, 370, 610.9) less
+  // the 12px section gap; the last is the rest of rowRect.h 856.9. It read 74/74/74/224/196 (row 74 -> 86, media
+  // 6 -> 7).
   security: [
-    { h: 74, media: 1 },
-    { h: 74, media: 1 },
-    { h: 74, media: 1 },
-    ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 224, media: 1 }] : []),
-    // Active sessions: the card's icon plus one device row's (196px with one
-    // device on prod, both test accounts, 2026-10-07; Q1427: 4 bones read
-    // 7 media against the real 5).
-    { h: 196, media: 2 },
+    { h: 89, media: 1 },
+    { h: 71, media: 1 },
+    { h: 86, media: 1 },
+    ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 229, media: 1 }] : []),
+    { h: 261, media: 3 },
   ],
   reviews: [{ h: 307 }],
   subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],

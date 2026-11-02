@@ -44,7 +44,7 @@ function PartsPicker({ id, value, onChange }: { id: string; value: ManagerParts;
       <legend className="text-ds-13 font-medium">What they handle</legend>
       {PARTS.map((p) => (
         <label key={p} className="flex min-h-11 items-center gap-3 text-ds-15">
-          <input type="checkbox" className="h-5 w-5 accent-[hsl(var(--primary))]" checked={value[p]}
+          <input type="checkbox" className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0 accent-[hsl(var(--primary))]" checked={value[p]}
             onChange={(e) => onChange({ ...value, [p]: e.target.checked })} />
           {MANAGER_PART_LABELS[p]}
         </label>

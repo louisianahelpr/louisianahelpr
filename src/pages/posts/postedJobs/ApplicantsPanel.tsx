@@ -32,6 +32,7 @@ import { ApplicantNeighborHires } from "./applicantsPanel/ApplicantNeighborHires
 import { ApplicantPrivateNote } from "./applicantsPanel/ApplicantPrivateNote";
 import { ApplicantsDesktopTable, useApplicantsTable } from "./applicantsPanel/ApplicantsDesktopTable";
 import { formatJobDate } from "@/lib/dateUtils";
+import { ApplicantsNextStep } from "./applicantsPanel/ApplicantsNextStep";
 
 interface ApplicantsPanelProps {
   /** No longer read here — the bid-mode sort default was its only consumer,
@@ -232,12 +233,10 @@ export function ApplicantsPanel({
                   <Eye className="w-3 h-3 shrink-0" aria-hidden />
                   {jobAnalytics.viewCount} {jobAnalytics.viewCount === 1 ? "view" : "views"}
                 </span>
-                {/* THE CONVERSION LINE IS 0.65, was 0.55 (3.53:1 against a
-                    4.5:1 AA floor). 0.65 is the lowest alpha on --ink-deep that
-                    clears (0.55 → 3.53, 0.6 → 4.08, 0.65 → 4.74), and the line
-                    is still the quieter of the pair: the view count above it is
-                    0.7 at ds-12, this is 0.65 at ds-11. Size and alpha both
-                    still descend — nothing was flattened to buy the ratio. */}
+                {/* THE CONVERSION LINE IS 0.65, was 0.55 (3.53:1 against a 4.5:1 AA floor). 0.65 is the lowest
+                    alpha on --ink-deep that clears (0.55 → 3.53, 0.6 → 4.08, 0.65 → 4.74), and the line is still the
+                    quieter of the pair: the view count above it is 0.7 at ds-12, this is 0.65 at ds-11. Size and
+                    alpha both still descend — nothing was flattened to buy the ratio. */}
                 {jobAnalytics.conversionRate !== null && (
                   <span className="block text-ds-11" style={{ color: "hsl(var(--ink-deep) / 0.65)" }}>
                     {jobAnalytics.conversionRate}% applied
@@ -247,11 +246,11 @@ export function ApplicantsPanel({
             ) : undefined
           }
         >
-          {/* The job this list belongs to, under "Applicants" (owner, 2026-10-22, board 170: "YES, put the
-              job name + date line back"; it was removed 2026-09-11). Guard: applicantsDesktopTableBoard170. */}
+          {/* The job's name + date under "Applicants" (owner 2026-10-22, board 170). Guard: applicantsDesktopTableBoard170. */}
           <p className="-mt-2 mb-3 truncate text-ds-13 text-muted-foreground" data-applicants-job-line="">
             {[selectedJob.title, selectedJob.date_needed ? formatJobDate(selectedJob.date_needed) : null].filter(Boolean).join(" · ")}
           </p>
+          <ApplicantsNextStep job={selectedJob} pending={applications.filter((a) => a.status === "pending").length} />
           {/* Fills AppPage's column (owner, 2026-10-01: "this content still
               needs to be wider to fill the space"). It was capped at
               max-w-2xl, a 672px strip at desktop width.

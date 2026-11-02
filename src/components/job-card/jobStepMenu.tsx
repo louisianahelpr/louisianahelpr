@@ -36,6 +36,9 @@ interface JobStepMenu {
   setCount: (n: number) => void;
   /** How many primaries the card holds (the page mounts `leadHost` when it has none of its own). */
   setLeadCount: (n: number) => void;
+  /** Q2592 (owner 11-02): the card's ONE action is SOS. SOS is never a peer of Message: it goes inside More options on
+   *  every live stage (Working and Arrived alike), even alone. */
+  setLoneSos?: (lone: boolean) => void;
 }
 
 export const JobStepMenuContext = createContext<JobStepMenu | null>(null);

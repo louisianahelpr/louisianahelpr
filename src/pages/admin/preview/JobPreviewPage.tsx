@@ -50,8 +50,17 @@ function HelprWorkingCard({ sample }: { sample: PreviewSample }) {
 
 const PHONE_WINDOW = "lh-job-preview-phone";
 
+/** The stage a final action leads to (audit 1102e: the owner never saw the after-state of a cancel). */
+function afterAction(name: string, stage: PreviewStage): PreviewStage | null {
+  if (name === "poster_cancel_job") return stage === "cancel_sheet" ? "late_cancel_poster" : "cancelled";
+  if (name === "helper_cancel_booking") return "late_cancel_helpr";
+  return null;
+}
+
 /** The preview backend, in place while this screen is open (previewBackend.ts). Children draw only once it is. */
-function PreviewBackend({ sample, children }: { sample: PreviewSample; children: ReactNode }) {
+function PreviewBackend({ sample, onAction, children }: { sample: PreviewSample; onAction: (name: string) => void; children: ReactNode }) {
+  const onActionRef = useRef(onAction);
+  onActionRef.current = onAction;
   const { user } = useCurrentUser();
   const sampleRef = useRef(sample);
   sampleRef.current = sample;
@@ -70,6 +79,9 @@ function PreviewBackend({ sample, children }: { sample: PreviewSample; children:
       ownUserId: () => ownRef.current,
       onBlocked: (what) => { if (Date.now() - lastGesture < 2000) sayWouldHave(what); },
       onUnlisted: (what) => jobPreviewChecks.onUnlisted?.(what),
+      // After the screen has taken the answer (its toast, its sheet closing), the next stage is drawn: half a second,
+      // so the answer's own toast is seen first.
+      onAction: (name) => { window.setTimeout(() => onActionRef.current(name), 500); },
     });
     // A new realtime channel (a live job list, a chat) never connects while the preview is open (lead 11-02).
     const undoRealtime = installInertRealtime();
@@ -216,7 +228,7 @@ export default function JobPreviewPage() {
   // The backend wraps everything this screen draws, the controls too, and stays until the route unmounts; a crash in
   // the page is caught INSIDE it (PreviewErrorBoundary), so nothing ever falls back to the real network.
   return (
-    <PreviewBackend sample={sample}>
+    <PreviewBackend sample={sample} onAction={(name) => { const next = afterAction(name, stage); if (next) set({ stage: next }); }}>
       <QueryClientProvider client={client}>
         <InertNavigation>
           <PreviewErrorBoundary resetKey={`${stage}-${viewer}`}>

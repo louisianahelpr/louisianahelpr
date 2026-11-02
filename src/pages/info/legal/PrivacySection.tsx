@@ -241,7 +241,7 @@ export const PrivacyContent = () => (
         title={PORTABILITY_ROW_TITLE}
         body={
           <>
-            <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed.</p>
+            <p><strong className="text-foreground">Deletion:</strong> Permanently delete your account and personal data yourself from <Link to="/profile" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Profile settings</Link> — it takes effect immediately. Financial and tax records we're legally required to keep are retained; everything else is removed. One exception, to stop repeat abuse: if you verified your ID and have active Declutter strikes, we keep a record of those strikes (a one-way code made from your ID check, the reason and the dates, never your name or contact details) until each strike would have ended, and restore them if the same ID verifies a new account.</p>
             {/* Points at the export's real home: the "Download your data"
                 card further down THIS policy (owner, 2026-09-14, VN-47). An
                 in-page hash link, not a route, so it works on the public

@@ -91,6 +91,22 @@ function dueAt(line: JobStatusLine, job: Pick<Job, "date_needed" | "start_time">
   return Number.isFinite(start) && start >= now ? start : null;
 }
 
+/**
+ * A3-17 (audit 11-01): the task says by when, as the cards' next-step line does ("Approve Yusef's work · 23h 49m left",
+ * "Confirm you'll be at the job · by Mon 8:00 AM"). From the status line's OWN clock, only while it is still ahead; a
+ * task whose words already carry a day keeps them.
+ */
+export function withTodoBy(task: string, line: Pick<JobStatusLine, "deadline">, now: number): string {
+  const at = line.deadline?.at ? Date.parse(line.deadline.at) : NaN;
+  if (!Number.isFinite(at) || at < now || / by (Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/.test(task)) return task;
+  if (line.deadline!.source === "auto_complete") {
+    const mins = Math.floor((at - now) / 60_000);
+    return `${task} · ${mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`} left`;
+  }
+  const day = new Date(at).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+  return `${task} · by ${day.replace(",", "")}`;
+}
+
 /** A job's date for tier 4 ("everything else, by date"); undated last. */
 const jobDateMs = (job: Pick<Job, "date_needed" | "start_time">) => jobStartTarget(job.date_needed, job.start_time)?.getTime() ?? Infinity;
 
@@ -162,7 +178,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       item: {
         id: `p-${j.id}`,
         section: "jobs",
-        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : line.detail,
+        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : withTodoBy(line.detail, line, now),
         meta: `${j.helper_id ? "You hired" : "You posted"} · ${j.title}`,
         // "Open job" opens THE job (audit #12, 2026-10-21); the applicant
         // review still lands on the Posted list where applicants are handled.
@@ -182,7 +198,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         section: "jobs",
         // JA-39 (Jobs audit 11-01): on the way is not working yet. The task is the arrival tap, and the side word
         // says where they are ("You're on the way · Haul off..."), never "You're working" before they arrive.
-        title: line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail,
+        title: line.id === "on_the_way" ? ON_THE_WAY_TASK : withTodoBy(line.detail, line, now),
         meta: `${helprSide(a.job!, line.id)} · ${a.job!.title}`,
         // JA-39: the button IS the arrival step ("I've arrived"), run by the Working card's tracker (not a crew: a
         // member's steps are on the roster), instead of "Open job" and a second tap on the page.

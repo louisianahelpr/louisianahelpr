@@ -1,24 +1,24 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1085,
-    "files": 303,
-    "rendering": 1004,
+    "calls": 1087,
+    "files": 305,
+    "rendering": 1006,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 32,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 184,
-      "toast.error": 746,
+      "toast": 185,
+      "toast.error": 747,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 461,
-      "template": 98,
+      "literal": 462,
+      "template": 99,
       "dynamic": 577,
       "jsx": 0
     }
@@ -11151,6 +11151,26 @@
       "title": {
         "form": "literal",
         "text": "You're offline. Try again when you're back."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/admin/preview/JobPreviewPage.tsx",
+      "line": 97,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Your browser blocked the phone window. Allow pop-ups for this site and try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/admin/preview/previewParts.tsx",
+      "line": 20,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "Preview: this would ${what}."
       },
       "renders": true
     },

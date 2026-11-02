@@ -16319,6 +16319,7 @@ export type Database = {
       declutter_ship_by: { Args: { p_paid: string }; Returns: string }
       declutter_my_ship_label: { Args: { p_order_id: string }; Returns: Json }
       declutter_mark_packed: { Args: { p_order_id: string }; Returns: string }
+      declutter_my_ship_tracking: { Args: { p_order_id: string }; Returns: Json }
       declutter_order_place: {
         Args: { p_order_id: string }
         Returns: { address: string; area: string; label: string; lat: number; lng: number; weekdays: number[] }[]

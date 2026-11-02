@@ -85,6 +85,8 @@ const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
+// B134: a shipped order's label (seller) and tracking (buyer) load with ship orders only (Q178).
+const ShipOrderPanel = lazy(() => import("./ShipOrderPanel").then((m) => ({ default: m.ShipOrderPanel })));
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
@@ -201,7 +203,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
         <div className="min-w-0">
           <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
           <p className="text-ds-13 text-muted-foreground">
-            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
+            {order.handover === "ship" ? (order.side === "buyer" ? "Shipped to you" : "You ship it") : order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
           </p>
         </div>
         <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--accent-ink))]">{itemPriceLabel(items)}</span>
@@ -259,6 +261,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {!problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery free={order.lines.every((l) => l.price_cents === 0)} />}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />}
         </>
+      ) : order.handover === "ship" ? (
+        // B134: a shipped order has no pickup to book; the seller prints, packs and drops it off, the buyer tracks it.
+        <Suspense fallback={<HelprSpinner />}><ShipOrderPanel orderId={order.orderId} side={order.side} /></Suspense>
       ) : order.handover === "delivery" ? (
         <>
           {/* Slice 5: a Helpr picks it up and brings it; the task shows its progress. D-NEW14: where, for the seller. */}
@@ -308,7 +313,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
             onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} />}
         </>
       )}
-      {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
+      {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
       </div>}
       {/* CMP-3: outside Details, so it is one tap from the card. */}
       <OrderGetHelpNow order={{ orderId: order.orderId, title, status: order.status }} problemOpen={!!problem} />

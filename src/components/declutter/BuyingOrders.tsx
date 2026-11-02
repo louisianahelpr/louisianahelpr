@@ -16,6 +16,7 @@ import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { fetchMyBookings, fetchMyHandover, fetchOrderProblem, type MyBooking, type MyHandover, type OrderProblem } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
+import { fetchMyShipTracking, shipByWords, shipTrackingKey, trackingStatusWords, type ShipTracking } from "@/lib/declutter/shipOrder";
 import { heldPastADay, stillInHandLine } from "@/lib/declutter/stillInHand";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
@@ -43,7 +44,8 @@ export type BuyerOrderView = {
   money: string | null;
 };
 
-const KINDS: readonly OrderHandover[] = ["porch", "pickup_home", "meetup", "delivery", "seller_delivery"];
+// B134: a shipped order is its own kind; before it was here it fell back to "pickup_home" and read as a pickup.
+const KINDS: readonly OrderHandover[] = ["porch", "pickup_home", "meetup", "delivery", "seller_delivery", "ship"];
 const kindOf = (h: string | null): OrderHandover => (KINDS as readonly string[]).includes(h ?? "") ? (h as OrderHandover) : "pickup_home";
 
 /** What the order's rows say, per handover kind. Pure: the rule is tested apart from the screen. */
@@ -52,7 +54,8 @@ export function buyerOrderFacts(
   rows: { slotStart?: string | null; handover?: Pick<MyHandover, "set_out_at" | "picked_up_at" | "confirmed_at"> | null;
     sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at">
       & Partial<Pick<SellerDeliveryBooking, "proposed_start" | "proposed_by" | "not_delivered_from">> | null;
-    task?: Pick<TaskView, "accepted_at" | "picked_up_at" | "delivered_at"> | null },
+    task?: Pick<TaskView, "accepted_at" | "picked_up_at" | "delivered_at"> | null;
+    ship?: Pick<ShipTracking, "packed_at" | "accepted_at" | "delivered_at"> | null },
   now: number = Date.now(),
 ): OrderFacts {
   const handover = kindOf(order.handover);
@@ -81,6 +84,11 @@ export function buyerOrderFacts(
       const t = rows.task;
       return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at,
         inHandLong: !t?.delivered_at && heldPastADay(t?.picked_up_at, now) };
+    }
+    case "ship": {
+      // B134: packed (the seller's tap), shipped (the carrier's acceptance scan), delivered (the delivered scan).
+      const sh = rows.ship;
+      return { ...base, packed: !!sh?.packed_at, pickedUp: !!sh?.accepted_at, delivered: !!sh?.delivered_at };
     }
     default:
       return { ...base, booked: !!rows.slotStart, pickedUp: tookIt, gotItOpen: gotItOpen(rows.slotStart, now) };
@@ -116,7 +124,8 @@ export function buyerNextAction(f: OrderFacts): string | null {
  * words, when there is one. A "you" step has no full stop (NextStep adds "Next: "); the others are whole sentences.
  */
 export function buyerNextStep(f: OrderFacts, when: string | null, helprName: string | null = null, taskPickedUpAt: string | null = null,
-  taskStatus: string | null = null, times: { chosen: string | null; by: string | null } = { chosen: null, by: null }): NextStepValue {
+  taskStatus: string | null = null, times: { chosen: string | null; by: string | null } = { chosen: null, by: null },
+  ship: Pick<ShipTracking, "ship_by" | "tracking_status"> | null = null): NextStepValue {
   const you = (text: string, by?: string | null): NextStepValue => ({ who: "you", text, by: by ?? null });
   const them = (text: string): NextStepValue => ({ who: "them", text });
   const info = (text: string): NextStepValue => ({ who: "info", text });
@@ -166,6 +175,14 @@ export function buyerNextStep(f: OrderFacts, when: string | null, helprName: str
         return held ? info(held) : them("Picked up. On its way to you.");
       }
       return you("Tap I got it once you have it");
+    case "ship": {
+      // B134: the seller packs it and drops it off by the Ship-by day; then the carrier's scans say where it is.
+      const by = shipByWords(ship?.ship_by);
+      if (at === 0) return them(by ? `The seller packs it and ships it by ${by}.` : "The seller packs it and ships it.");
+      if (at === 1) return them(by ? `Packed. The seller drops it off by ${by}.` : "Packed. The seller drops it off next.");
+      if (at === 2) return info(`Shipped. ${trackingStatusWords(ship?.tracking_status) ?? "On its way"}.`);
+      return info("Delivered.");
+    }
   }
 }
 
@@ -253,11 +270,14 @@ export function useBuyingTracker(): BuyingTracker {
   // NIGHT-BUYINGopenpr-2: whether this buyer still owes their side of each open problem (the card reads the same key).
   const problemIds = ids.filter((id) => problems.has(id));
   const problemRows = useQueries({ queries: problemIds.map((id) => ({ queryKey: ["declutter", "problem", id], queryFn: () => fetchOrderProblem(id) })) });
-  const pickups = live.filter((o) => o.handover !== "delivery" && o.handover !== "seller_delivery");
+  const pickups = live.filter((o) => o.handover !== "delivery" && o.handover !== "seller_delivery" && o.handover !== "ship");
   // ONE read of the order's times (lead 11-01): book_by (the server's 7-day mark, pinned to the handover sweep) and
   // the window chosen at checkout (pickup_slot_start / pickup_slot_end; a porch booking holds only its first 30 min).
   const pickupIds = pickups.map((o) => o.orderId);
   const times = useQuery({ queryKey: orderPickupTimesKey(pickupIds), queryFn: () => fetchOrderPickupTimes(pickupIds), enabled: pickupIds.length > 0 });
+  // B134: a shipped order's tracking (the same key the order card's ShipOrderPanel reads).
+  const shipOrders = live.filter((o) => o.handover === "ship");
+  const shipRows = useQueries({ queries: shipOrders.map((o) => ({ queryKey: shipTrackingKey(o.orderId), queryFn: () => fetchMyShipTracking(o.orderId) })) });
   const handovers = useQueries({ queries: pickups.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
   const sd = live.filter((o) => o.handover === "seller_delivery");
   const sdRows = useQueries({ queries: sd.map((o) => ({ queryKey: ["declutter", "seller-delivery-booking", o.orderId], queryFn: () => fetchSellerDeliveryBooking(o.orderId) })) });
@@ -285,6 +305,7 @@ export function useBuyingTracker(): BuyingTracker {
         handover: handovers[pickups.indexOf(o)]?.data ?? null,
         sellerDelivery: sdRow,
         task,
+        ship: shipRows[shipOrders.indexOf(o)]?.data ?? null,
       }),
       problem: problems.has(o.orderId),
       problemAwaitsYou: problemAwaitsBuyer(problemRows[problemIds.indexOf(o.orderId)]?.data ?? null),
@@ -306,7 +327,7 @@ export function useBuyingTracker(): BuyingTracker {
       action: buyerNextAction(facts),
       next: buyerNextStep(facts, when, o.handover === "delivery" ? task?.helpr_first_name ?? null : null, o.handover === "delivery" ? task?.picked_up_at ?? null : null,
         o.handover === "delivery" ? task?.status ?? null : null,
-        orderTimeWords(orderTimes, o.handover, slot)),
+        orderTimeWords(orderTimes, o.handover, slot), shipRows[shipOrders.indexOf(o)]?.data ?? null),
       // #6: a free item never reads like a paid order ("You paid $0").
       money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
     });

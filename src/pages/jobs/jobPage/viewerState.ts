@@ -3,6 +3,11 @@
  * still saw the big "Apply"). One table, every viewer state, the same truth the Home card uses
  * ("Waiting on Lexi · You applied"). Pinned by viewerState.test.ts.
  */
+import { isExpiredListing } from "@/lib/expiredListing";
+
+/** What an applicant (or anyone not on the job) reads on a listing that expired with nobody hired (Q2595). */
+export const EXPIRED_BEFORE_HIRE = "This job expired before anyone was hired.";
+
 export type ViewerAction =
   | { kind: "apply" }
   | { kind: "view_application" }
@@ -14,7 +19,7 @@ export type ViewerAction =
 export function jobPageViewerState(o: {
   isPoster: boolean;
   userId: string | null;
-  job: { status: string | null; helper_id: string | null; helper_confirmed_at?: string | null };
+  job: { status: string | null; helper_id: string | null; helper_confirmed_at?: string | null; cancellation_reason?: string | null; cancelled_by?: string | null };
   /** The viewer's own application, when they applied; undefined while it loads. */
   myApplication: { status: string; closed_reason: string | null } | null | undefined;
   /** The poster's first name, for "Waiting on Lexi". */
@@ -40,6 +45,9 @@ export function jobPageViewerState(o: {
   }
   const app = o.myApplication;
   if (app === undefined) return { action: { kind: "none" }, status: null };
+  // Q2595 (Jobs audit 1102b row 9): a listing that expired with nobody hired was never cancelled (owner 10-31), and
+  // its applicants were never hired: they read that, not "no longer available".
+  if (isExpiredListing(o.job)) return { action: { kind: "none" }, status: EXPIRED_BEFORE_HIRE };
   if (app) {
     if (app.closed_reason === "job_cancelled") return { action: { kind: "none" }, status: "This job is no longer available" };
     if (app.closed_reason === "no_show") return { action: { kind: "none" }, status: "This job was reported as a no-show" };

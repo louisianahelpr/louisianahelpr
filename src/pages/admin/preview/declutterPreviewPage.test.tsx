@@ -244,6 +244,32 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(supabaseCalls()).toEqual([]);
   }, 30_000);
 
+  // Q2624 rest (Builder 185): the free-claim stages Builder 180 left out: an ask waiting on the giver's pick, the
+  // picked asker's no-payment confirm, and a missed free pickup's 30-day pause. Each draws its own state, nothing sent.
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |         }, { declutter_free_requests: [ask] }); |         }, { declutter_free_requests: [] });
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts | item(sellerId, now, { price_cents: 0, current_price_cents: 0, | item(sellerId, now, { price_cents: 0, current_price_cents: 4000,
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts | const freeLine = (over: Partial<CartLine>) => line({ price_cents: 0, | const freeLine = (over: Partial<CartLine>) => line({ price_cents: 4000,
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |         { declutter_my_free_pause: side === "buyer" ? hoursFrom(now, 24 * 29) : null }); |         {});
+  it("Q2624 rest: the free-claim stages draw their own state", async () => {
+    const want: [string, string, RegExp][] = [
+      ["free_asked", "buyer", /You asked for Oak rocking chair \(sample\)/],
+      ["free_asked", "seller", /Requests \(1\)/],
+      ["free_picked", "buyer", /Confirm and pick a time/],
+      ["free_missed", "buyer", /You can ask for free items again on [A-Z][a-z]+ \d+\./],
+    ];
+    expect(want.length).toBeGreaterThan(3);
+    for (const [key, side, text] of want) {
+      expect(DECLUTTER_PREVIEW_STAGES.map((x) => x.key), key).toContain(key);
+      const r = open(`?stage=${key}&side=${side}`);
+      const view = await waitFor(() => { const el = document.querySelector(`[data-preview-view="${key}:${side}"]`); expect(el).not.toBeNull(); return el as HTMLElement; });
+      await waitFor(() => expect(view.textContent, `${key}:${side}`).toMatch(text));
+      expect(view.textContent, `${key}:${side}`).not.toMatch(/Invalid Date/);
+      await new Promise((res) => setTimeout(res, 20));
+      r.unmount();
+    }
+    expect(supabaseCalls()).toEqual([]);
+  }, 30_000);
+
   it("the controls name every stage and both sides", async () => {
     open("?stage=booked&side=seller");
     await screen.findByRole("region", { name: "Declutter preview controls" });

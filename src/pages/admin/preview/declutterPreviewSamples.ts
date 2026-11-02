@@ -39,6 +39,10 @@ export const DECLUTTER_PREVIEW_STAGES = [
   { key: "no_show", label: "No-show reported" },
   { key: "delivered", label: "Seller marked delivered" },
   { key: "reviewed", label: "Review left" },
+  // Q2624 rest (Builder 185): a free item asked for, the giver's pick, and a missed free pickup (the 30-day pause).
+  { key: "free_asked", label: "Free item asked for (giver to pick)" },
+  { key: "free_picked", label: "Free item picked (to confirm)" },
+  { key: "free_missed", label: "Free pickup missed (paused)" },
 ] as const;
 
 export type DeclutterPreviewStage = (typeof DECLUTTER_PREVIEW_STAGES)[number]["key"];
@@ -80,6 +84,7 @@ const ITEM2_ID = "00000000-0000-4000-d000-000000000011";
 const LINE2_ID = "00000000-0000-4000-d000-000000000031";
 const OFFER_ID = "00000000-0000-4000-d000-000000000070";
 const REFUND_ID = "00000000-0000-4000-d000-000000000080";
+const FREE_ASK_ID = "00000000-0000-4000-d000-000000000090";
 
 const hoursFrom = (now: number, h: number) => new Date(now + h * 3_600_000).toISOString();
 
@@ -303,6 +308,33 @@ export function declutterPreviewSample(stage: DeclutterPreviewStage, side: Declu
       return withReads({ ...base, cart: [paid("pickup_home", { order_status: "handed_over" })],
         handovers: { [ORDER_ID]: handover(side, { status: "handed_over", confirmed_at: hoursFrom(now, -26), confirmed_by: "buyer", picked_up_at: hoursFrom(now, -26) }) } },
         { declutter_i_reviewed: true, declutter_refund_request_view: noRefundAsked(side, now) });
+    case "free_asked":
+    case "free_picked":
+    case "free_missed": {
+      // Q2624 rest (Builder 185): a FREE listing (price 0; porch or the giver's door only, 20261027170717). Asked: the
+      // asker waits on the giver's pick, and the giver's listing shows "Requests (1)". Picked: the asker has it in the
+      // cart to confirm (no payment page), and it is reserved for the giver. Missed: the picked asker let it run out,
+      // so free asks are paused for 30 days and the item is back up for the giver.
+      const freeItem = (over: Partial<DeclutterItem> = {}) =>
+        item(sellerId, now, { price_cents: 0, current_price_cents: 0, accepts_offers: false, handovers: ["porch", "pickup_home"], ...over });
+      const freeLine = (over: Partial<CartLine>) => line({ price_cents: 0, order_id: null, order_status: null, handover: null, total_cents: null,
+        handovers: ["porch", "pickup_home"], ...over });
+      const ask = { id: FREE_ASK_ID, item_id: ITEM_ID, seller_id: sellerId, requester_id: buyerId, status: "open", created_at: hoursFrom(now, -3),
+        declutter_items: { title: "Oak rocking chair (sample)" } };
+      const freeBase: DeclutterPreviewSample = { ...base, paidCents: [] };
+      if (stage === "free_asked") {
+        return withReads({ ...freeBase, items: side === "seller" ? [freeItem()] : [] }, {
+          declutter_free_requests_for_item: [{ request_id: FREE_ASK_ID, requester_id: buyerId, display_name: "Marie S.", avg_rating: 4.8, review_count: 6,
+            created_at: hoursFrom(now, -3), pickup_at: hoursFrom(now, 26) }],
+        }, { declutter_free_requests: [ask] });
+      }
+      if (stage === "free_picked") {
+        return { ...freeBase, items: side === "seller" ? [freeItem({ status: "reserved" })] : [], cart: [freeLine({ status: "in_cart" })] };
+      }
+      return withReads({ ...freeBase, items: side === "seller" ? [freeItem()] : [],
+        cart: [freeLine({ status: "missed", closed_at: hoursFrom(now, -6) })] },
+        { declutter_my_free_pause: side === "buyer" ? hoursFrom(now, 24 * 29) : null });
+    }
     case "donated":
       // The donation job is done: the receipt (the item, the date, the charity; never a value).
       return { ...base, cart: [], paidCents: [], items: side === "seller" ? [item(sellerId, now, { status: "withdrawn" })] : [],

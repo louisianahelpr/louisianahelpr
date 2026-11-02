@@ -157,6 +157,10 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "Shops M3: refunds a Shops order's own PaymentIntent from a shop_refunds row (metadata.kind shop_refund); a Shops order is not a job escrow",
   },
+  "supabase/functions/_shared/shipLabelRun.ts": {
+    kind: "not-job-escrow",
+    why: "Shipping S3: captures or cancels a shipped Declutter order's own card hold (declutter_orders.ship_capture, idempotency key declutter-ship-capture-<order>) when its label is bought or fails; a Declutter order is not a job escrow",
+  },
   "supabase/functions/_shared/heldTipRepay.ts": {
     kind: "not-job-escrow",
     why: "reverses and re-pays only a TIP (its own destination charge, Q1222), never a job's escrow",

@@ -104,7 +104,8 @@ fns as (
 -- Q1072: which migrations prod had applied when this was read, so a missing
 -- object that a later migration creates reads as pending, not missing.
 applied as (
-  select jsonb_build_object('latest', max(version), 'count', count(*)) as j
+  -- versions (train 1, 11-02): the applied list itself, so a pending file timestamped below `latest` is told apart.
+  select jsonb_build_object('latest', max(version), 'count', count(*), 'versions', jsonb_agg(version order by version)) as j
   from supabase_migrations.schema_migrations
 )
 select jsonb_build_object('tables', (select j from tables), 'functions', (select j from fns),

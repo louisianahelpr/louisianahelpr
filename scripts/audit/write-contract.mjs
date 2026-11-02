@@ -353,7 +353,8 @@ function policyAllows(table, cmd, role) {
 // supabase_migrations.schema_migrations at refresh time, so the two are told
 // apart EXACTLY: a migration file whose version is above `latest` had not run.
 // It is exact only when every file at or below `latest` is accounted for
-// (`count` equals the number of such files). Otherwise, and whenever the
+// (`count` equals the number of such files); with `versions` (the applied list),
+// a file is pending when its version is not in it. Otherwise, and whenever the
 // metadata is absent, nothing is classified as pending and a missing object
 // stays a reject (fail closed).
 
@@ -370,7 +371,22 @@ export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
   if (!meta || typeof meta.latest !== "string" || typeof meta.count !== "number") return none;
   if (!fs.existsSync(migrationsDir)) return none;
   const files = fs.readdirSync(migrationsDir).filter((f) => /^\d{14}_.*\.sql$/.test(f)).sort();
-  if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none;
+  // Train 1 (11-02): a train's migrations are often timestamped BELOW prod's latest (other work deployed meanwhile;
+  // db-deploy pushes them with --include-all). With only {latest, count} those files read as applied, the count
+  // disagreed and every pending object turned into a reject. A snapshot that also lists prod's applied `versions`
+  // names exactly which files had not run, wherever their timestamp falls. Still exact or nothing: the list must
+  // match `count`, and a version prod applied that this tree lacks (a branch behind prod) fails closed.
+  let pendingFiles;
+  if (Array.isArray(meta.versions)) {
+    if (meta.versions.length !== meta.count) return none;
+    const have = new Set(files.map((f) => f.slice(0, 14)));
+    if (meta.versions.some((v) => !have.has(v))) return none;
+    const applied = new Set(meta.versions);
+    pendingFiles = files.filter((f) => !applied.has(f.slice(0, 14)));
+  } else {
+    if (files.filter((f) => f.slice(0, 14) <= meta.latest).length !== meta.count) return none;
+    pendingFiles = files.filter((x) => x.slice(0, 14) > meta.latest);
+  }
   const functions = new Map();
   const tables = new Map();
   // "table.column" -> file, for columns a pending ALTER TABLE ... ADD COLUMN adds.
@@ -379,7 +395,7 @@ export function pendingDefinitions(snapshot, migrationsDir = MIGRATIONS_DIR) {
   // table) and "role:PRIV:table.column" (per column). A pending column on a
   // table that grants per column is only writable with a matching GRANT.
   const grants = new Set();
-  for (const f of files.filter((x) => x.slice(0, 14) > meta.latest)) {
+  for (const f of pendingFiles) {
     const sql = stripSqlComments(fs.readFileSync(path.join(migrationsDir, f), "utf8"));
     for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:"?public"?\s*\.\s*)?"?([a-z_][a-z0-9_]*)"?\s*\(/gi)) {
       functions.set(m[1].toLowerCase(), f);
@@ -611,8 +627,9 @@ export function fetchSnapshot() {
     throw new Error(`snapshot query returned only ${nTables} tables / ${nFunctions} functions — refusing to write a near-empty snapshot`);
   }
   // Q1072: without this the checker cannot tell deploy lag from a missing RPC.
-  if (typeof snap.appliedMigrations?.latest !== "string" || !(snap.appliedMigrations?.count > 0)) {
-    throw new Error(`snapshot query returned no appliedMigrations {latest, count} (got ${JSON.stringify(snap.appliedMigrations)})`);
+  if (typeof snap.appliedMigrations?.latest !== "string" || !(snap.appliedMigrations?.count > 0)
+      || !Array.isArray(snap.appliedMigrations?.versions) || snap.appliedMigrations.versions.length !== snap.appliedMigrations.count) {
+    throw new Error(`snapshot query returned no appliedMigrations {latest, count, versions} (got latest ${snap.appliedMigrations?.latest}, count ${snap.appliedMigrations?.count}, ${snap.appliedMigrations?.versions?.length ?? "no"} versions)`);
   }
   return sortDeep(snap);
 }

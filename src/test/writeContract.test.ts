@@ -155,8 +155,35 @@ describe("pending vs missing: a migration prod had not applied is told apart fro
     const snap = JSON.parse(readFileSync(join(__dirname, "../../scripts/audit/write-contract.snapshot.json"), "utf8"));
     expect(typeof snap.appliedMigrations?.latest).toBe("string");
     expect(snap.appliedMigrations.count).toBeGreaterThan(900); // 1010 on 2026-10-06
-    expect(files.filter((f) => f.slice(0, 14) <= snap.appliedMigrations.latest).length).toBe(snap.appliedMigrations.count);
+    // Train 1 (11-02): the applied list itself. Every version prod applied is a file here, the list matches the
+    // count, and the files at or below `latest` that prod had NOT applied are exactly the ones it leaves out.
+    const versions: string[] = snap.appliedMigrations.versions;
+    expect(versions.length).toBe(snap.appliedMigrations.count);
+    const have = new Set(files.map((f) => f.slice(0, 14)));
+    expect(versions.filter((v) => !have.has(v))).toEqual([]);
+    expect(versions[versions.length - 1]).toBe(snap.appliedMigrations.latest);
     expect(contract.pendingDefinitions(snap).exact).toBe(true);
+  });
+
+  // Train 1 (11-02, #4002): a train's migration timestamped BELOW prod's latest (other work deployed meanwhile) read
+  // as applied, the count disagreed, and pending detection switched off for every train RPC.
+  // @mutate scripts/audit/write-contract.mjs |     pendingFiles = files.filter((f) => !applied.has(f.slice(0, 14))); |     pendingFiles = files.filter((f) => f.slice(0, 14) > meta.latest);
+  // @mutate scripts/audit/write-contract.mjs |     if (meta.versions.some((v) => !have.has(v))) return none; |
+  it("with the applied list, a pending file below `latest` is pending; a list that does not add up fails closed", () => {
+    const dir = mkdtempSync(join(tmpdir(), "wc-versions-"));
+    writeFileSync(join(dir, "20990101000000_a.sql"), "select 1;\n");
+    writeFileSync(join(dir, "20990101000001_b.sql"), "create or replace function public.below_latest_fn() returns int language sql as $$ select 1 $$;\n");
+    writeFileSync(join(dir, "20990101000002_c.sql"), "select 1;\n");
+    const s: any = clone();
+    s.appliedMigrations = { latest: "20990101000002", count: 2, versions: ["20990101000000", "20990101000002"] };
+    const p = contract.pendingDefinitions(s, dir);
+    expect(p.exact).toBe(true);
+    expect(p.functions.get("below_latest_fn")).toBe("20990101000001_b.sql");
+    // The list and the count disagree: nothing is pending.
+    expect(contract.pendingDefinitions({ ...s, appliedMigrations: { ...s.appliedMigrations, count: 3 } }, dir).exact).toBe(false);
+    // Prod applied a version this tree does not have (a branch behind prod): nothing is pending.
+    const behind = { ...s, appliedMigrations: { latest: "20990101000003", count: 3, versions: ["20990101000000", "20990101000002", "20990101000003"] } };
+    expect(contract.pendingDefinitions(behind, dir).exact).toBe(false);
   });
 
   it("an RPC created by a migration above `latest` is a pending warning, not a reject", () => {

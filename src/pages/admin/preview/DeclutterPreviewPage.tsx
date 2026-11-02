@@ -174,10 +174,11 @@ function previewClient(userId: string): QueryClient {
 
 function Views({ sample }: { sample: DeclutterPreviewSample }) {
   // A fresh cache per stage and side: the sample never mixes with the app's own cache or another stage's.
+  // The same rhythm as DeclutterHomeView's tab body (flex column, gap-4), so the preview spaces sections as members see them.
   const qc = useMemo(() => previewClient(sample.userId), [sample]);
   return (
     <QueryClientProvider client={qc}>
-      <div data-preview-view={`${sample.stage}:${sample.side}`} className="space-y-6 pb-56">
+      <div data-preview-view={`${sample.stage}:${sample.side}`} className="flex flex-col gap-4 pb-56">
         {sample.side === "buyer"
           ? <BuyingDash todo={null} />
           : <SellingDash todo={null} userId={sample.userId} listings={<Suspense fallback={null}><MyListingsView userId={sample.userId} haulOn /></Suspense>} />}

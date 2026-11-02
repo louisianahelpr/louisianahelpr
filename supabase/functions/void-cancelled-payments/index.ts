@@ -2627,10 +2627,14 @@ serve(async (req) => {
         continue;
       }
 
+      // Q1940 (b): the PaymentIntent, kept for the "already been refunded" catch below, which bills a
+      // Declutter seller-fault setup job's card fee from it before settling.
+      let retrievedPi: Stripe.PaymentIntent | null = null;
       try {
         const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
           expand: ["latest_charge.balance_transaction"],
         });
+        retrievedPi = pi;
 
         if (pi.status === "requires_capture") {
           // Uncaptured authorization. RECOMPUTE the fee server-side from trusted
@@ -3127,6 +3131,31 @@ serve(async (req) => {
         }
         // Handle "already refunded" gracefully
         if (e.message?.includes("already been refunded")) {
+          // Q1940 (b): the charge went back in full elsewhere, but Stripe kept its card fee: on a Declutter
+          // seller-fault setup job (A10) that fee is still the seller's debt, billed once per job, as on the
+          // ordinary refund path. A failed bill leaves the job in escrow and pages ops; the next run retries.
+          const billSellerBeforeSettling = sellerFault;
+          if (billSellerBeforeSettling) {
+            const cardFeeCents = actualOrEstimatedFeeCents(retrievedPi, Number(retrievedPi?.amount_received ?? retrievedPi?.amount ?? 0));
+            const { error: debtErr } = await supabaseAdmin.rpc("declutter_setup_job_fee_debt", {
+              p_job_id: job.id,
+              p_card_fee_cents: cardFeeCents,
+            });
+            if (debtErr) {
+              console.error(`[void-cancelled-payments] seller fee debt failed for already-refunded job ${job.id}; not settling this run:`, debtErr.message);
+              defects.record(`declutter seller fee debt ${job.id}: ${debtErr.message} — already refunded, not settled`);
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "warning",
+                title: "Declutter seller not billed for a refunded setup job's card fee",
+                message: "A setup job cancelled because the Declutter seller backed out was already refunded in full, but the card fee was not added to the seller's debt. The job stays in escrow and the next run retries.",
+                fields: { job_id: job.id, seller_fee_cents: cardFeeCents, db_error: debtErr.message },
+                oncePerDayKey: `declutter-setup-debt:${job.id}`,
+              });
+              results.push({ job_id: job.id, title: job.title, status: "already_refunded_seller_fee_debt_failed" });
+              continue;
+            }
+          }
           const settledAlready = await settleCancelledJob(job, { payment_status: "refunded" }, "already-refunded");
           if (settledAlready) refunded++;
           results.push({ job_id: job.id, title: job.title, status: settledAlready ? "already_refunded" : "already_refunded_not_settled" });

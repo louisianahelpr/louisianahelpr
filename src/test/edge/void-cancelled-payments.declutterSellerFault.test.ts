@@ -6,6 +6,9 @@
 // @mutate supabase/functions/void-cancelled-payments/index.ts |               results.push({ job_id: job.id, title: job.title, status: "seller_fee_debt_failed" });\n              continue; |               results.push({ job_id: job.id, title: job.title, status: "seller_fee_debt_failed" });
 // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ...(sellerFault ? { seller_fault: true, seller_fee_cents: unbilledSellerFeeCents } : {}), |                 ...({}),
 // @mutate supabase/functions/void-cancelled-payments/index.ts |             const unbilledSellerFeeCents = sellerFault ? actualOrEstimatedFeeCents(pi, capturedCents) : 0; |             const unbilledSellerFeeCents = 0;
+// @mutate supabase/functions/void-cancelled-payments/index.ts |         retrievedPi = pi;\n | \n
+// @mutate supabase/functions/void-cancelled-payments/index.ts |               results.push({ job_id: job.id, title: job.title, status: "already_refunded_seller_fee_debt_failed" });\n              continue; |               results.push({ job_id: job.id, title: job.title, status: "already_refunded_seller_fee_debt_failed" });
+// @mutate supabase/functions/void-cancelled-payments/index.ts |           const billSellerBeforeSettling = sellerFault; |           const billSellerBeforeSettling = false;
 /**
  * A10 (owner rule, 2026-10-17): a Declutter refund that is the SELLER's fault
  * cancels the buyer's linked Helpr setup job (declutter_refund_cancels_setup_jobs,
@@ -206,6 +209,28 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
     expect(page, JSON.stringify(slackAlerts)).toBeDefined();
     expect(page!.fields).toMatchObject({ job_id: "job-a10", seller_fault: true, seller_fee_cents: STRIPE_FEE });
     expect(page!.message).toContain("seller-fault setup job: the seller's $6.68 card-fee debt was NOT billed");
+  });
+
+  // Q1940 (b): Stripe says the charge "has already been refunded" (a refund made elsewhere): the job still bills the
+  // seller the card fee Stripe kept before it settles, and a failed bill leaves it in escrow.
+  it("a charge Stripe says was already refunded still bills the seller the card fee, then settles", async () => {
+    seed({ marker: MARKED });
+    stripeMock.refunds.create.mockRejectedValue(new Error("Charge ch_a10 has already been refunded."));
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(debtCalls().map((c) => c.args)).toEqual([{ p_job_id: "job-a10", p_card_fee_cents: STRIPE_FEE }]);
+    expect(settledRefunded()).toBe(true);
+  });
+
+  it("an already-refunded charge whose seller bill fails is not settled and pages ops", async () => {
+    seed({ marker: MARKED });
+    stripeMock.refunds.create.mockRejectedValue(new Error("Charge ch_a10 has already been refunded."));
+    scenario.rpcErrors = { declutter_setup_job_fee_debt: { message: "boom", code: "XX000" } };
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(settledRefunded()).toBe(false);
+    const page = (slackAlerts as Array<{ title: string; fields?: Record<string, unknown> }>).find((a) => /seller not billed/.test(a.title));
+    expect(page, JSON.stringify(slackAlerts)).toBeDefined();
   });
 
   it("the next run, with the refund already on the ledger, bills the seller and settles without a second refund", async () => {

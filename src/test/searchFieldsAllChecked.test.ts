@@ -63,8 +63,7 @@ const NO_X: Record<string, string> = {
   // no ✕ to press yet; it filters nothing in place, it navigates on submit.
   // Q2242 (lead ruling, 2026-10-20): no ✕ — a submit box that navigates, not a live filter.
   "src/components/landing/HeroSection.tsx": "landing hero search: a submit box that navigates, not a live filter; no ✕ by decision (Q2242)",
-  // TRAIN24 (2026-10-20): J1's Post a job screen 1 filters the category groups live with no ✕; open as Q2260.
-  "src/components/postjob/JobCategoryGroups.tsx": "Post a job category search (J1 screen 1): live filter, no ✕ yet (Q2260)",
+  // Q2260 (11-02): Post a job's category search got its ✕ and joined the press spec (post-job-categories).
 };
 
 /** ✕ files that render ONLY below the desktop breakpoint, so the press spec
@@ -192,6 +191,7 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-10-20 (TRAIN24): +1, Post a job's category search (JobCategoryGroups, on NO_X, Q2260).
     // 2026-10-21: +1, /search (board 89, SearchPage), a permanent field with a "Clear search" ✕.
     // 2026-10-27: +1, Jobs > Posted / Working's in-place search (InlineListSearch), an opening field with a "Close search" ✕.
+    // 2026-11-02 (Q2260): Post a job's category search (JobCategoryGroups) got a "Clear search" ✕ and left NO_X.
     expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(15);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
@@ -202,6 +202,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
+      "src/components/postjob/JobCategoryGroups.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
       "src/components/sections/InlineListSearch.tsx",
       "src/components/sections/SectionSearchRow.tsx",

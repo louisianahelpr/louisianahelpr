@@ -173,6 +173,14 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: '[role="dialog"] input[aria-label="Search admin sections"]',
     close: `[role="dialog"] ${CLEAR}`,
   },
+  // Q2260 (11-02): Post a job's screen 1 category search, a permanent field; its ✕ clears.
+  {
+    name: "post-job-categories", file: "src/components/postjob/JobCategoryGroups.tsx",
+    url: "/post-job",
+    trigger: '#category-picker input[type="search"]',
+    field: '#category-picker input[type="search"]',
+    close: '#category-picker button[aria-label="Clear search"]',
+  },
   {
     // Board 89: /search, one search across the sections; the field is always open.
     name: "search-page", file: "src/pages/search/SearchPage.tsx",

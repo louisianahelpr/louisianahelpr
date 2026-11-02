@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
 import type { MsgKey } from "@/lib/i18n/en";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { SuggestCategory } from "@/components/SuggestCategory";
 import { GROUP_EMOJI, categoryEmoji } from "@/lib/categoryEmoji";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
@@ -133,17 +133,26 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
         </section>
       ) : (
         <>
-          <label className="flex min-h-[52px] items-center gap-3 rounded-full border border-border bg-card px-4 focus-within:ring-2 focus-within:ring-ring">
-            <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span className="sr-only">{t("postJob.searchCategories")}</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("postJob.searchPlaceholder")}
-              className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none"
-            />
-          </label>
+          {/* Q2260: the app's "Clear search" ✕ once something is typed (pressed by the search-x press spec). It sits
+              beside the label, not in it (one labelable control per label); the browser's own cancel glyph is hidden. */}
+          <div className="flex min-h-[52px] items-center rounded-full border border-border bg-card pl-4 pr-1 focus-within:ring-2 focus-within:ring-ring">
+            <label className="flex min-w-0 flex-1 items-center gap-3 self-stretch">
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+              <span className="sr-only">{t("postJob.searchCategories")}</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("postJob.searchPlaceholder")}
+                className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none [&::-webkit-search-cancel-button]:hidden"
+              />
+            </label>
+            {query && (
+              <button type="button" aria-label={t("postJob.clearSearch")} onClick={() => setQuery("")} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground">
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            )}
+          </div>
 
           {matches ? (
             <section aria-label={t("postJob.matchingCategories")} className="space-y-2.5">

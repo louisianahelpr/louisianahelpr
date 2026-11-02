@@ -26,7 +26,7 @@ import {
   type MessagesPreviewSample, type MessagesPreviewSide, type MessagesPreviewStage,
 } from "./messagesPreviewSamples";
 import { installMessagesPreviewFetch, messagesPreviewChecks } from "./messagesPreviewBackend";
-import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetSharedReads, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
+import { DESKTOP_MIN_WIDTH, EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetSharedReads, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
 
 // The member's Messages page itself: the same module /messages lazy-loads (App.tsx).
 const Messages = lazy(() => import("@/pages/messages/Messages"));
@@ -101,14 +101,18 @@ function useOpenOnDraw(labels: string[] | null, key: string) {
 function Controls({ stage, side, onStage, onSide, onLeave }: {
   stage: MessagesPreviewStage; side: MessagesPreviewSide; onStage: (s: MessagesPreviewStage) => void; onSide: (s: MessagesPreviewSide) => void; onLeave: () => void;
 }) {
-  const [open, setOpen] = useState(true);
+  // Audit 1102e: open, the dock covered the bottom ~185 px of a phone's first screen (Recurring's Cancel job, the
+  // composer). Below the desktop width it starts as the small Preview button; a tap opens it.
+  const [open, setOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= DESKTOP_MIN_WIDTH);
   const sheetOpen = usePageSheetOpen();
   const label = MESSAGES_PREVIEW_STAGES.find((s) => s.key === stage)?.label ?? stage;
   if (sheetOpen) return null;
   if (!open) {
     return createPortal(
       <div data-preview-controls="" data-preview-collapsed="" role="region" aria-label="Messages preview controls"
-        className="fixed right-2 top-[calc(env(safe-area-inset-top)+0.5rem)] z-[60] pointer-events-auto">
+        // Audit 1102e: at the top it sat over the page title (375) and the account avatar (1440). Bottom corner, above
+        // the phone's tab bar and Post button (AppShell's 96 px reserve).
+        className="fixed right-2 bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] z-[60] pointer-events-auto lg:bottom-4 lg:right-4">
         <Button variant="outline" size="sm" className="rounded-full bg-card shadow-lg" onClick={() => setOpen(true)} aria-expanded={false}>
           <PreviewGlyph d={EYE_GLYPH} className="h-4 w-4 text-primary" />
           Preview

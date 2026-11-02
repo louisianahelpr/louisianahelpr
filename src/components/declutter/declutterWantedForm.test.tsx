@@ -17,7 +17,7 @@
  * Owner 2026-10-30: replies on your posts, and photos on the form, your post and the near-you cards (20261030064727).
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       <WantedReplies replies={post.replies} /> |       {null}
  * @mutate src/components/declutter/DeclutterWantedViews.tsx | {(post.replies ?? []).length > 0 ? "No other listings match yet." : | {false ? "No other listings match yet." :
- * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (r.status === "open") return r.awaiting === "buyer" ? "Waiting for you" : "Waiting for the seller"; |   if (r.status === "open") return "Waiting for the seller";
+ * @mutate src/components/declutter/DeclutterWantedViews.tsx |   if (r.status === "open") return r.awaiting === "buyer" ? (r.respond_by |   if (r.status === "open") return false ? (r.respond_by
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {yourTurn && <Link | {false && <Link
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       {userId && <WantedPostPhotos post={post} userId={userId} />} |       {null}
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |         try { await addWantedPhoto(userId, id, f); } |         try { void f; }

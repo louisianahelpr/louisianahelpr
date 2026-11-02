@@ -28,7 +28,7 @@
  * the sweep pages ops instead of asking the split; auto-resolve-disputes sets
  * it aside rather than paging every run.
  *
- * @mutate supabase/migrations/20261021102943_refund_requests.sql |                    AND rr.responder_id = v_uid\n |
+ * @mutate supabase/migrations/20261102061755_schedule_change_replace_words_your_own.sql |                    AND rr.responder_id = v_uid\n |
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |     PERFORM set_config('app.refund_finish_rpc', '0', true); |     NULL;
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |       UPDATE public.refund_requests SET status = 'declined' WHERE id = v_refund_id;\n    END IF;\n  END IF; |       NULL;\n    END IF;\n  END IF;
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |            OR p_status = 'coming_back' |            OR false
@@ -38,7 +38,7 @@
  * @mutate supabase/functions/auto-resolve-disputes/index.ts |               typeof row.execution_error === "string" && (row.execution_error as string).startsWith(REFUND_AGREEMENT_HELD_ERROR)\n |               false\n
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |              WHERE r.job_id = p_job_id\n                AND public.refund_request_is_live(r.status, r.dispute_id)) THEN |              WHERE r.job_id = p_job_id\n                AND r.status = 'open') THEN
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |     IF p_date > (now() AT TIME ZONE 'America/Chicago')::date + 7 THEN |     IF false THEN
- * @mutate supabase/migrations/20261021102943_refund_requests.sql |     v_starts_at := LEAST(v_new_at, now() + interval '1 day'); |     v_starts_at := v_new_at;
+ * @mutate supabase/migrations/20261102061755_schedule_change_replace_words_your_own.sql |     v_starts_at := LEAST(v_new_at, now() + interval '1 day'); |     v_starts_at := v_new_at;
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |       RETURN jsonb_build_object('status', 'expired', 'reason', 'come_back_lapsed'); |       NULL;
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |     RAISE EXCEPTION 'completion_before_come_back' |     RAISE NOTICE 'completion_before_come_back'
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |          OR r.closed_reason = 'coming_back'\n |
@@ -50,6 +50,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -57,6 +58,16 @@ import { REFUND_AGREEMENT_HELD_ERROR, loadStillHeldAgreements } from "../../supa
 import { COME_BACK_MAX_DAYS, latestComeBackDate } from "@/lib/refundRequests";
 
 const ROOT = resolve(__dirname, "../..");
+// The newest migration that (re)creates a trigger, by its name: a later restatement of any function in the file that
+// first made it must not leave this reading a superseded file (guardsReadTheNewestMigration).
+const newestCreatingTrigger = (name: string) => {
+  const dir = join(ROOT, "supabase/migrations");
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort().reverse()) {
+    const s = blankSqlComments(readFileSync(join(dir, f), "utf8")).replace(/\s+/g, " ");
+    if (s.includes(`CREATE TRIGGER ${name} `)) return s;
+  }
+  return "";
+};
 const defs = effectiveDefs(join(ROOT, "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "").replace(/\s+/g, " ");
 const src = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8")).replace(/\s+/g, " ");
@@ -134,8 +145,7 @@ describe("Q2326: come back and finish on a job under way", () => {
     expect(rule).toContain("now() < ((j.date_needed + COALESCE(j.start_time, '00:00'::time)) AT TIME ZONE 'America/Chicago')");
     expect(rule).toContain("r.status = 'coming_back' OR r.closed_reason = 'coming_back'");
     expect(gate).toContain("RAISE EXCEPTION 'completion_before_come_back'");
-    const mig = blankSqlComments(readFileSync(join(ROOT, "supabase/migrations/20261021102943_refund_requests.sql"), "utf8")).replace(/\s+/g, " ");
-    expect(mig).toContain("CREATE TRIGGER trg_refuse_done_before_come_back BEFORE UPDATE OF helper_completed_at ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.refuse_done_before_come_back();");
+    expect(newestCreatingTrigger("trg_refuse_done_before_come_back")).toContain("CREATE TRIGGER trg_refuse_done_before_come_back BEFORE UPDATE OF helper_completed_at ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.refuse_done_before_come_back();");
   });
 });
 

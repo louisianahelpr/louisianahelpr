@@ -7,7 +7,7 @@
  * Layers pinned here:
  *   - create-payment escrow (the REAL function through the edge harness): the
  *     "Urgent bonus" line's tax_code equals the labor line's, both ways, and
- *     the 3D Secure tax ceiling covers budget + bonus (a $200 + $61 assembly
+ *     the 3D Secure tax ceiling covers budget + bonus (a $200 + $61 auto repair
  *     job reaches $300 only once the bonus's tax is counted);
  *   - jobEscrowTaxableBaseCents (the base the webhooks divide Stripe's tax by
  *     for jobs.sales_tax_rate): includes the CHARGED bonus (create-payment's
@@ -80,8 +80,8 @@ describe("the urgent bonus is taxed like the labor (Q1843)", () => {
     resetSharedMocks();
   });
 
-  it("taxable category (assembly): the bonus line carries the labor's taxable code", async () => {
-    const { labor, bonus } = await escrow({ category: "assembly", budget: 100, urgent_fee: 20 });
+  it("taxable category (auto_repair): the bonus line carries the labor's taxable code", async () => {
+    const { labor, bonus } = await escrow({ category: "auto_repair", budget: 100, urgent_fee: 20 });
     expect(bonus, "an urgent job has a bonus line").toBeTruthy();
     expect(bonus.price_data.unit_amount).toBe(2000);
     expect(labor.price_data.product_data.tax_code).toBe(TAXABLE_LABOR_TAX_CODE);
@@ -94,9 +94,9 @@ describe("the urgent bonus is taxed like the labor (Q1843)", () => {
     expect(bonus.price_data.product_data.tax_code).toBe(NONTAXABLE_TAX_CODE);
   });
 
-  it("3D Secure: the tax ceiling counts the bonus ($200 + $61 assembly reaches $300 only with the bonus's tax)", async () => {
+  it("3D Secure: the tax ceiling counts the bonus ($200 + $61 auto repair reaches $300 only with the bonus's tax)", async () => {
     // lines 26,100c; ceiling 15% of 26,100 = 3,915 -> 30,015 (asks 3DS). On the budget alone: 3,000 -> 29,100.
-    const { args } = await escrow({ category: "assembly", budget: 200, urgent_fee: 61 });
+    const { args } = await escrow({ category: "auto_repair", budget: 200, urgent_fee: 61 });
     expect(args.payment_method_options?.card?.request_three_d_secure).toBe("any");
   });
 
@@ -108,10 +108,10 @@ describe("the urgent bonus is taxed like the labor (Q1843)", () => {
 
 describe("the taxed base the webhooks store sales_tax_rate over", () => {
   it("includes the charged bonus on a taxable category, never on an exempt one", () => {
-    expect(jobEscrowTaxableBaseCents({ budget: 100, category: "assembly", is_urgent: true, urgent_fee: 20 })).toBe(12000);
-    expect(jobEscrowTaxableBaseCents({ budget: 100, category: "assembly", is_urgent: false, urgent_fee: 20 })).toBe(10000);
+    expect(jobEscrowTaxableBaseCents({ budget: 100, category: "auto_repair", is_urgent: true, urgent_fee: 20 })).toBe(12000);
+    expect(jobEscrowTaxableBaseCents({ budget: 100, category: "auto_repair", is_urgent: false, urgent_fee: 20 })).toBe(10000);
     expect(jobEscrowTaxableBaseCents({ budget: 100, category: "cleaning", is_urgent: true, urgent_fee: 20 })).toBe(10000);
-    expect(jobEscrowTaxableBaseCents({ budget: 100, category: "assembly" })).toBe(10000);
+    expect(jobEscrowTaxableBaseCents({ budget: 100, category: "auto_repair" })).toBe(10000);
   });
 
   it("the charged bonus is create-payment's: $5 floor, the cap, none when not urgent", () => {

@@ -22,51 +22,44 @@
 // while "labor to construct, install, remodel, or repair immovable (real)
 // property is generally not."
 //
-//   assembly   furniture and equipment — movable. Taxable.
-//   handyman   BOTH. Repairing a lamp is movable and taxable; replacing a
-//              kitchen faucet is real property and is not. A category cannot
-//              tell the two apart, and neither can we at checkout.
+//   auto_repair       vehicles: named in item 7(a) ("the repair and servicing
+//                     of automobiles, vehicles, ..."). Taxable.
+//   appliance_repair  appliances: named in item 7(b) ("tangible personal
+//                     property includes machinery, appliances, and
+//                     equipment"). Taxable.
 //   pet_care   NOT on the enumerated list. Grooming and boarding are exempt —
 //              confirmed 2026-08-23, previously carried as "ambiguous".
 //   cleaning, yard_work, moving, painting, errands, delivery, storm_prep,
 //              events — none are enumerated. Exempt.
 //
-// HANDYMAN IS INCLUDED BY OWNER DECISION (2026-08-23): "just add the tax for
-// handyman so we are covered either way." That deliberately errs toward
-// COLLECTING on jobs that may be exempt real-property work, rather than
-// missing tax on the movable-property repairs item 7 does cover. The trade is
-// real and worth stating plainly: tax collected must be remitted, so
-// over-collecting is not free — it is a different exposure, not the absence of
-// one. The durable fix is a per-job movable/immovable answer at post time
-// rather than a per-category guess; until then this is the safer side of a
-// call the category cannot make.
-//
-// THE TWELVE TRADES ARE TAXED LIKE HANDYMAN (owner decision 2026-10-17, Q1831):
-// electrical, plumbing, hvac, roofing, welding, carpentry, auto_repair,
-// appliance_repair, flooring, concrete_masonry, fencing, pressure_washing.
-// Auto & small engine and appliance repair are movable property (item 7);
-// the rest are mostly real-property work, collected on anyway for the same
-// "covered either way" reason as handyman. The same list is in
+// HOUSE WORK AND THE TRADES ARE NO LONGER TAXED (owner Option 1, 2026-10-25,
+// docs/OPEN.md Q2083; this reverses the "covered either way" decisions of
+// 2026-08-23 for handyman and 2026-10-17, Q1831, for the trades). Q2083
+// carries the tax memo's Q4 table, which the owner adopted in place of a CPA:
+// only repairs and maintenance of MOVABLE property (R.S. 47:301.3(7)) and
+// laundry / cleaning / pressing / alterations (47:301.3(5)) are taxable.
+// R.S. 47:301.3(7)(b) (read on legis.la.gov 2026-11-01, Law.aspx?d=1392324)
+// keeps work on buildings and their component parts (Civil Code art. 466)
+// outside item 7, except things separated from them. So, by category:
+//   handyman (on a house), electrical, plumbing, hvac, roofing, carpentry,
+//   flooring, concrete_masonry, fencing, pressure_washing   real property:
+//                                                           NOT taxed;
+//   assembly   the memo: probably not taxable (MEDIUM): NOT taxed;
+//   welding    movable or not depends on the job: NOT taxed by category.
+// A category cannot tell a lamp repair (movable, taxable) from a faucet swap
+// (real property, exempt). The per-job "repair of an item / cleaning of
+// carpet, furniture or clothes" answer at posting (the rest of Q2083) is what
+// will tax the movable jobs inside handyman, welding and assembly; until it
+// lands those are untaxed, the side the memo puts them on. The same list is in
 // enforce_funded_category_tax_class and is_category_taxable (migration
-// 20261017055441); src/lib/salesTax.parity.test.ts holds all of them equal.
+// 20261102033237_q2083_tax_movable_repairs_only);
+// src/lib/salesTax.parity.test.ts holds all of them equal to the memo's set.
 import { isPosterFeeJob } from "./posterJobFee.ts";
 import { MAX_URGENT_FEE_DOLLARS } from "./jobBudgetLimits.ts";
 
 export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
-  "assembly",
-  "handyman",
-  "electrical",
-  "plumbing",
-  "hvac",
-  "roofing",
-  "welding",
-  "carpentry",
   "auto_repair",
   "appliance_repair",
-  "flooring",
-  "concrete_masonry",
-  "fencing",
-  "pressure_washing",
 ]);
 
 /** Whether the job's LABOR line is subject to LA sales tax. */
@@ -105,8 +98,8 @@ export const FOOD_FOR_HOME_TAX_CODE = "txcd_40040000";
 /**
  * The code on a TAXABLE labor line: Stripe's "Repair of Tangible Personal
  * Property", the LA R.S. 47:301.3 item-7 service the Q374 decision taxes
- * (assembly, handyman and the trades: labor to fabricate, repair or maintain movable
- * property).
+ * (labor to repair or maintain movable property: auto and appliance repair,
+ * Q2083).
  *
  * It was "General - Services" (txcd_20030000) until 2026-10-12, and that code
  * is EXEMPT in Louisiana, an enumerated-services state: the first live taxable

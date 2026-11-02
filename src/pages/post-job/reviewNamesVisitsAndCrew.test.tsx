@@ -62,8 +62,8 @@ describe("A2-C36: a Repeats job's review says the total is one visit of several"
     expect(row).not.toMatch(/charged now/);
   });
 
-  it("a taxable category (handyman): the later visits are charged their sales tax too", () => {
-    render(<CheckoutStepView form={makeForm({ category: "handyman", categoryLabel: "Handyman", isRecurring: true, recurrenceInterval: "weekly", recurrenceDays: [1], recurrenceWeeks: 4 })} />);
+  it("a taxable category (appliance repair): the later visits are charged their sales tax too", () => {
+    render(<CheckoutStepView form={makeForm({ category: "appliance_repair", categoryLabel: "Appliance repair", isRecurring: true, recurrenceInterval: "weekly", recurrenceDays: [1], recurrenceWeeks: 4 })} />);
     expect(totalRow()).toContain("The total is for the first visit; each later visit, plus its sales tax, is charged to your saved card about 3 days before it.");
   });
 

@@ -22,7 +22,7 @@ vi.mock("@/hooks/useStripeSalesTax", () => ({
 function makeForm(over: Record<string, unknown> = {}): ReturnType<typeof usePostJobForm> {
   const form = {
     setStep: vi.fn(), title: "Build a bookshelf", description: "Flat-pack bookshelf, two hours.",
-    categoryLabel: "Assembly", category: "assembly", imagePreviews: [], streetAddress: "314 Lynn St",
+    categoryLabel: "Auto repair", category: "auto_repair", imagePreviews: [], streetAddress: "314 Lynn St",
     city: "Delcambre", addrState: "LA", zipCode: "", dateNeeded: "2026-10-23", startTime: "09:00",
     estimatedHours: "", isFlexibleSchedule: false, specialRequirements: "", isRecurring: false,
     recurrenceInterval: "", recurrenceEndDate: "", recurrenceDays: [], recurrenceWeeks: 0,

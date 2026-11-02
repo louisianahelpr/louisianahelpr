@@ -22,7 +22,6 @@ import {
   subscriptionLinkage,
 } from "../../_shared/subscriptionLinkage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
-import { memberDisplayNameOf } from "../../_shared/memberDisplayName.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { effectiveSalesTaxRate, jobEscrowTaxableBaseCents, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
@@ -354,21 +353,9 @@ async function settleCheckoutSession(
       if (heldBack) {
         // The Helpr is told when the re-pay lands, not now.
       } else if (flippedTip && flippedTip.length > 0) {
+        // Q2329: the Helpr's notice is trg_notify_helper_tip's ("<Name> tipped you $X"), written by the flip above;
+        // this handler used to add a second one. One producer per event.
         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
-        // Notify the helper — only on the delivery that actually captured the tip.
-        if (tipHelperId) {
-          // Owner 2026-10-21: say who, as "First L." (the tipper is known: it is their session).
-          const tipperName = await memberDisplayNameOf(supabase, String(tipperId), String(tipHelperId), "Someone");
-          await insertNotifications(supabase, {
-            user_id: tipHelperId,
-            job_id: tipJobId,
-            title: "You received a tip!",
-            message: `${tipperName} tipped you for a completed job. Thanks for the great work!`,
-            // NOID-15: tips are "Payments and tips" (financial_alerts), not "Job payments".
-            type: "financial_alerts",
-            link: "/profile?tab=earnings",
-          });
-        }
       } else {
         logStep("Tip already paid (duplicate delivery) — skipping notify", { jobId: tipJobId, tipper: tipperId });
       }

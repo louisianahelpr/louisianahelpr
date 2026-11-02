@@ -130,7 +130,7 @@ export async function handleTransferCreated(
     // code path already notifies the helper:
     //   - process-scheduled-payouts → "💰 Payout sent!"
     //   - admin_release_dispute      → "Dispute resolved — payment released!"
-    //   - tip checkout               → "💰 You received a tip!" (via checkout.session.completed)
+    //   - tip checkout               → "<Name> tipped you $X" (trg_notify_helper_tip, on the paid flip; Q2329)
     //   - void-cancelled-payments   → "Cancellation fee received"
     // Sending here was causing helpers to receive two notifications for every
     // payout and every tip/cancellation-fee transfer.

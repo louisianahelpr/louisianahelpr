@@ -107,6 +107,7 @@ const NOT_APP_CHROME: Record<string, { rail?: string; dock?: string }> = {
   },
   "/admin": { dock: "the admin console's own top bar is phone-only (desktopNavRoutes.ts NO_NAV_PREFIXES note)" },
   "/admin/preview/job": { dock: "under /admin (noNavPages hides the dock on every /admin path); the preview's own controls sit there" },
+  "/admin/preview/messages": { dock: "under /admin (noNavPages hides the dock on every /admin path); the preview's own controls sit there" },
 };
 
 function protectedRoutes(): string[] {

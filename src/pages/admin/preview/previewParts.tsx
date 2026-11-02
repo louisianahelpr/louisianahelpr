@@ -3,10 +3,11 @@
  * boundary that sits INSIDE the preview backend, the note a blocked tap shows, and the dock that gets out of the
  * way. The Declutter preview (DeclutterPreviewPage.tsx) carries its own copies of the first three (B172).
  */
-import { Component, useContext, useEffect, useMemo, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, useContext, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 import { UNSAFE_NavigationContext, type To } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 function toText(to: To | number): string {
   if (typeof to === "number") return to < 0 ? "the previous screen" : "the next screen";
@@ -19,18 +20,31 @@ export function sayWouldHave(what: string) {
   toast(`Preview: this would ${what}.`, { id: `preview-${what}` });
 }
 
-/** The page's navigation, kept on this screen: the router's own navigator, with every move turned into a note. */
-export function InertNavigation({ children }: { children: ReactNode }) {
+/**
+ * The page's navigation, kept on this screen: the router's own navigator, with every move turned into a note.
+ * `rewrite` may turn a move WITHIN the previewed page (Messages opening a thread at /messages?chat=...) into one on
+ * the preview's own address; every other move stays a note.
+ */
+export function InertNavigation({ children, rewrite }: { children: ReactNode; rewrite?: (to: To) => To | null }) {
   const outer = useContext(UNSAFE_NavigationContext);
-  const value = useMemo(() => ({
-    ...outer,
-    navigator: {
-      ...outer.navigator,
-      push: (to: To) => sayWouldHave(`open ${toText(to)}`),
-      replace: (to: To) => sayWouldHave(`open ${toText(to)}`),
-      go: (n: number) => sayWouldHave(`go to ${toText(n)}`),
-    },
-  }), [outer]);
+  const rewriteRef = useRef(rewrite);
+  rewriteRef.current = rewrite;
+  const value = useMemo(() => {
+    const move = (how: "push" | "replace") => (to: To, state?: unknown) => {
+      const inPreview = rewriteRef.current?.(to) ?? null;
+      if (inPreview !== null) outer.navigator[how](inPreview, state);
+      else sayWouldHave(`open ${toText(to)}`);
+    };
+    return {
+      ...outer,
+      navigator: {
+        ...outer.navigator,
+        push: move("push"),
+        replace: move("replace"),
+        go: (n: number) => sayWouldHave(`go to ${toText(n)}`),
+      },
+    };
+  }, [outer]);
   // A plain <a href> (or a router Link, which yields to an earlier preventDefault) is caught before it leaves.
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -107,3 +121,44 @@ export function PreviewGlyph({ d, className }: { d: string; className?: string }
 }
 
 export const EYE_GLYPH = "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z";
+
+const INERT_CHANNEL = Symbol("preview-inert-channel");
+
+/** A realtime channel that never connects: every binding is kept and never fires; subscribe reports SUBSCRIBED. */
+function inertChannel(topic: string): unknown {
+  const ch: Record<string | symbol, unknown> = {
+    [INERT_CHANNEL]: true,
+    topic,
+    state: "joined",
+    on: () => ch,
+    subscribe: (cb?: (status: string) => void) => { if (cb) queueMicrotask(() => cb("SUBSCRIBED")); return ch; },
+    unsubscribe: async () => "ok",
+    send: async () => "ok",
+    track: async () => "ok",
+    untrack: async () => "ok",
+    presenceState: () => ({}),
+    // The realtime client's own removal path (should one ever reach it) tears the channel down.
+    teardown: () => undefined,
+  };
+  return ch;
+}
+
+/**
+ * While a preview is open, a NEW realtime channel (a chat's live thread, presence, reactions) never connects: it
+ * would join with the admin's real id and could carry real events (or send presence). Returns the undo. A channel
+ * the app opened before the preview (the shared per-user bus) stays; its events name real jobs and people, which
+ * never match a preview thread's made-up ids.
+ */
+export function installInertRealtime(): () => void {
+  const client = supabase as unknown as { channel: (...a: unknown[]) => unknown; removeChannel: (c: unknown) => unknown };
+  const realChannel = client.channel;
+  const realRemove = client.removeChannel;
+  const channel = (name: unknown) => inertChannel(String(name));
+  const removeChannel = (c: unknown) => ((c as Record<symbol, unknown> | null)?.[INERT_CHANNEL] ? Promise.resolve("ok") : realRemove.call(supabase, c));
+  client.channel = channel;
+  client.removeChannel = removeChannel;
+  return () => {
+    if (client.channel === channel) client.channel = realChannel;
+    if (client.removeChannel === removeChannel) client.removeChannel = realRemove;
+  };
+}

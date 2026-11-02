@@ -59,7 +59,6 @@ function PreviewBackend({ sample, onAction, children }: { sample: MessagesPrevie
       onAction: (name) => { window.setTimeout(() => onActionRef.current(name), 500); },
     });
     const undoRealtime = installInertRealtime();
-    forgetSharedReads();
     setReady(true);
     return () => {
       undoRealtime();
@@ -70,7 +69,8 @@ function PreviewBackend({ sample, onAction, children }: { sample: MessagesPrevie
       setReady(false);
     };
   }, []);
-  // Audit 1102e: a new stage or side drops the shared reads too. The block read is kept 2 s (userBlocks.ts), so "After
+  // The shared reads are dropped as the preview opens (this runs on mount) and again on every new stage or side
+  // (audit 1102e). The block read is kept 2 s (userBlocks.ts), so "After
   // a block" opened within 2 s of another stage drew that stage's blocks (none), and Eli stayed in the inbox.
   useLayoutEffect(() => {
     forgetSharedReads();

@@ -1,6 +1,6 @@
 /** The 30-minute done floor's start, as a pure helper app-shared code can import (libImportsNoPages). */
 
-/** Why Mark job complete is greyed, the one sentence: the job page, the card's face and the Working step. */
+/** Why Mark it done is greyed, the one sentence: the job page, the card's face and the Working step. */
 export function doneFloorNote(minutesLeft: number): string {
   return `Available in ${minutesLeft} min — 30 minutes after you arrived, to ensure quality.`;
 }

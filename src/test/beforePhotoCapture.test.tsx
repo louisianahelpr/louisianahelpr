@@ -23,7 +23,7 @@ import type { ReactElement } from "react";
  * `jobs.require_photo_proof` so a no-photos job shows no control at all.
  *
  * ── PART 2: WHAT THE GATE ACTUALLY IS, AND WHAT IT IS NOT ───────────────────
- * "Mark job complete" IS gated on the full requirement — `JobTracking`'s
+ * "Mark it done" IS gated on the full requirement — `JobTracking`'s
  * `needsProof`, rendered as a disabled primary with `requiredProof().reason`
  * in the row's note. That half is correct and this file pins it.
  *
@@ -266,7 +266,7 @@ describe("the photo capture is a control IN the action row", () => {
   it("working, after photo owed: the PRIMARY is Take after photo", async () => {
     const { container } = await renderStep(makeJob({ proof_after_urls: [] }), "working");
     expect(primary(container)?.textContent?.trim()).toMatch(/Take after photo/);
-    expect(within(row(container)).queryByRole("button", { name: /Mark job complete/ })).toBeNull();
+    expect(within(row(container)).queryByRole("button", { name: /Mark it done/ })).toBeNull();
   });
   it("the capture control is NAMED for which photo, so it cannot read as the Photos gallery chip", async () => {
     const { container } = await renderStep(makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }), "arrived");
@@ -297,7 +297,7 @@ describe("the photo capture is a control IN the action row", () => {
 });
 
 describe("the completion gate, and the one that is the SERVER's to add", () => {
-  it("a missing proof photo replaces Mark job complete with the photo itself (photo first, owner 2026-10-08)", async () => {
+  it("a missing proof photo replaces Mark it done with the photo itself (photo first, owner 2026-10-08)", async () => {
     const { container } = await renderStep(makeJob({ proof_after_urls: [] }), "working");
     const cta = primary(container);
     expect(cta?.textContent?.trim(), "the working step's primary").toMatch(/Take after photo/);
@@ -305,10 +305,10 @@ describe("the completion gate, and the one that is the SERVER's to add", () => {
     // simply never offers the refused tap.
     expect(requiredProof({ require_photo_proof: true }).reason.length).toBeGreaterThan(0);
   });
-  it("Mark job complete is ENABLED once both photos exist", async () => {
+  it("Mark it done is ENABLED once both photos exist", async () => {
     const { container } = await renderStep(makeJob({}), "working");
     const cta = primary(container);
-    expect(cta?.textContent?.trim()).toMatch(/Mark job complete/);
+    expect(cta?.textContent?.trim()).toMatch(/Mark it done/);
     expect(cta?.disabled, "the gate is refusing a job whose proof is complete").toBe(false);
   });
 

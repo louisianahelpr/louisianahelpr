@@ -375,7 +375,7 @@ export const CASES: Case[] = [
     minControls: 3,
   },
   {
-    name: "Jobs · Working — Mark job complete + Message · Report a Problem",
+    name: "Jobs · Working — Mark it done + Message · Report a Problem",
     side: "helper",
     render: active(makeJob({ ...VERIFIED }), "working"),
     minControls: 3,

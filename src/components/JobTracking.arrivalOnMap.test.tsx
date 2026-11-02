@@ -348,7 +348,7 @@ describe("the map survives a dispute or a revision (owner, 2026-09-16)", () => {
     jobLongitude: JOB_LNG,
     initialTracking: {
       id: "t-1",
-      // What the row really holds once "Mark job complete" was tapped.
+      // What the row really holds once "Mark it done" was tapped.
       status: "done",
       latitude: JOB_LAT,
       longitude: JOB_LNG,

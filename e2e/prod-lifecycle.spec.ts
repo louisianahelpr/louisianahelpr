@@ -613,7 +613,7 @@ test.describe("full money loop against production", () => {
            `start_time`, so the day gate is the one that applies — and at
            `+3 days` it was always true. The 2026-09-22 failure artefact shows
            exactly that: an OPEN card, a fully rendered "Job progress" rail
-           stopped at Arrived, `button "Mark job complete" [disabled]` and
+           stopped at Arrived, `button "Mark it done" [disabled]` and
            `paragraph: Actions available on Sep 25`. The tracker could never
            reach Working, so the before-photo ask it gates never rendered and
            the run died reporting a missing photo chip.

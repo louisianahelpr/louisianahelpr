@@ -276,7 +276,7 @@ export const STALLED_APPROVE_DETAIL_TITLE = "Why This Is Waiting";
  * refunded only by a human decision) — it just says it to someone who asked.
  */
 export const STALLED_APPROVE_DISABLED_DETAIL =
-  "If the work is finished, ask your Helpr to tap Mark job complete. " +
+  "If the work is finished, ask your Helpr to tap Mark it done. " +
   "Nothing is released or refunded until someone acts, and our team steps in if this stays stuck.";
 
 /** First and second reminder to the person who posted the job. */
@@ -290,8 +290,8 @@ export const stalledNudgeBodyPosted = (title: string, second: boolean): string =
 export const STALLED_NUDGE_TITLE_WORKING = "Did you finish this job?";
 export const stalledNudgeBodyWorking = (title: string, second: boolean): string =>
   second
-    ? `"${title}" — you still haven't marked it done, so you haven't been paid. Tap Mark job complete, or report a problem if you couldn't finish.`
-    : `"${title}" — its scheduled time has passed. Tap Mark job complete so your payment can be released.`;
+    ? `"${title}" — you still haven't marked it done, so you haven't been paid. Tap Mark it done, or report a problem if you couldn't finish.`
+    : `"${title}" — its scheduled time has passed. Tap Mark it done so your payment can be released.`;
 
 /** What both parties are told when it goes to a human. */
 export const STALLED_ESCALATED_TITLE = "We've asked support to step in";

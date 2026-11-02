@@ -465,10 +465,10 @@ const CASES: Array<{
     // The pair singlePrimaryCta.test.tsx pinned at 2: the tracker's "Mark Job
     // Complete" above PayoutPrimary's identical one. The tracker's IS the
     // primary; PayoutPrimary stands down.
-    name: "Jobs · Working (Mark job complete + Message · Report a Problem)",
+    name: "Jobs · Working (Mark it done + Message · Report a Problem)",
     render: active(makeJob({ ...VERIFIED }), "working"),
     minControls: 3,
-    primary: ["Mark job complete"],
+    primary: ["Mark it done"],
   },
   {
     /* THE CAPTURE IS IN THE ROW NOW (owner, 2026-09-19: "before and after

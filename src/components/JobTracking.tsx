@@ -52,7 +52,7 @@ const TrackingMap = lazy(() =>
  * so a label that outgrows its box spills instead of wrapping. On a 320px
  * phone this button has roughly 170px of text room (card px-4, tracker p-3,
  * size="sm" px-4, an 18px icon and its gap), which is ~20 characters of the
- * 14px bold sans it renders in. The Done action reads "Mark job complete"
+ * 14px bold sans it renders in. The Done action reads "Mark it done"
  * (owner, 2026-09-14: name the event, not the money) — the same words as the
  * card's PayoutPrimary button, so the two controls for one action agree.
  *
@@ -100,7 +100,7 @@ const STATUSES: TrackerStep[] = [
   { key: "on_the_way", label: "On the way", action: "I'm on my way", icon: Truck, color: "text-primary" },
   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" },
   { key: "working", label: "Working", action: "Start working", icon: Wrench, color: "text-primary" },
-  { key: "done", label: "Done", action: "Mark job complete", icon: PartyPopper, color: "text-primary" },
+  { key: "done", label: "Done", action: "Mark it done", icon: PartyPopper, color: "text-primary" },
 ];
 
 /**
@@ -682,7 +682,7 @@ export function JobTracking({
     // paths deliberately do NOT loadTracking(): nothing was written, so there
     // is nothing to re-read.
     //
-    // SAME GATES AS PayoutPrimary's "Mark job complete" (owner, 2026-08-24 E2E): this
+    // SAME GATES AS PayoutPrimary's "Mark it done" (owner, 2026-08-24 E2E): this
     // button used to write helper_completed_at with no checks at all, so the
     // before/after-photo requirement and the 30-minute work floor on the payout
     // CTA were decorative — the tracker was a free bypass that still started
@@ -1621,7 +1621,7 @@ export function JobTracking({
         // "Confirm they've arrived" tap, which is the way out.
         // The proof-photo gate, at RENDER time rather than only on click.
         // A state sweep found the two money controls disagreeing in 17 frames:
-        // this CTA rendered an ENABLED "Request My Payout" (now "Mark job complete") while
+        // this CTA rendered an ENABLED "Request My Payout" (now "Mark it done") while
         // ActiveJobSection's button sat directly below it, DISABLED, reading
         // "Upload before & after photos first". Both enforce the same rule —
         // the comment on the click-time gate below says the two "must not
@@ -1783,7 +1783,7 @@ export function JobTracking({
                 onOpenChange={(next) => { if (!updating) setConfirmDoneOpen(next); }}
                 title="Mark this job complete?"
                 description="This tells the person who posted this job the work is finished, so they can approve it."
-                primaryLabel="Mark job complete"
+                primaryLabel="Mark it done"
                 primaryTone="bark"
                 primaryDisabled={updating}
                 onPrimary={(e) => {

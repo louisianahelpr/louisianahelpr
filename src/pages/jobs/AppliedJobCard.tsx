@@ -101,7 +101,7 @@ function AppliedJobCardInner({
   /* The person slot, opened BEFORE the `if (!job)` early return below (rules
      of hooks). The tile is built once the card knows the poster. */
   const { claim: personClaim, stepCarriesTile } = useJobCardPersonSlot();
-  // The face's Mark job complete is greyed for the same 30 minutes as the Working card's (useDoneFloor).
+  // The face's Mark it done is greyed for the same 30 minutes as the Working card's (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(app.job?.poster_confirmed_working_at, app.job?.helper_arrived_at));
 
   // `poster_viewed_at` isn't in the generated types yet (migration lag);

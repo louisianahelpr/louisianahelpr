@@ -23,7 +23,6 @@ const SHORT: ReadonlyArray<[RegExp, string]> = [
   [/^See your crew steps$/, "Crew steps"],
   [/^Take the before photo$/, "Before photo"],
   [/^Take the after photo$/, "After photo"],
-  [/^Mark job complete$/, "Complete job"],
   [/^Leave a review$/, "Review"],
   [/^I'm on my way$/, "On my way"],
   [/^Start working$/, "Start"],

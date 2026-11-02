@@ -785,7 +785,7 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByTestId("where").textContent).toBe(`/messages?jobId=${row().id}&userId=${POSTER}`);
   });
 
-  it("reads the photos and the tracking row like the Working card: both photos and started = Mark job complete", () => {
+  it("reads the photos and the tracking row like the Working card: both photos and started = Mark it done", () => {
     state.job = row({
       helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
       poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
@@ -796,10 +796,10 @@ describe("job page, the hired Helpr", () => {
     state.tracking = "working";
     renderPage();
     expect(document.body.textContent).not.toMatch(/before photo/i);
-    expect(screen.getByRole("button", { name: "Mark job complete" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Mark it done" })).toBeTruthy();
   });
 
-  it("a Have a Helpr list it job says when it is done (sent for approval) beside Mark job complete; other jobs don't", () => {
+  it("a Have a Helpr list it job says when it is done (sent for approval) beside Mark it done; other jobs don't", () => {
     const working = {
       helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
       poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
@@ -810,7 +810,7 @@ describe("job page, the hired Helpr", () => {
     state.party = true;
     state.tracking = "working";
     const { unmount } = renderPage();
-    expect(screen.getByRole("button", { name: "Mark job complete" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Mark it done" })).toBeTruthy();
     expect(screen.getByText("Mark it done once you've sent the listings to the seller for approval.")).toBeTruthy();
     unmount();
     state.job = row({ ...working, category: "yard_work" });
@@ -818,7 +818,7 @@ describe("job page, the hired Helpr", () => {
     expect(document.querySelector("[data-sell-for-me-done-note]")).toBeNull();
   });
 
-  it("10 minutes after arriving, Mark job complete is greyed with the Working card's sentence; at 30 it is live", () => {
+  it("10 minutes after arriving, Mark it done is greyed with the Working card's sentence; at 30 it is live", () => {
     const stamps = {
       helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
       poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", poster_confirmed_arrival_at: "2026-10-28T12:30:00Z",
@@ -828,13 +828,13 @@ describe("job page, the hired Helpr", () => {
     state.party = true;
     state.tracking = "working";
     const { unmount } = renderPage();
-    expect((screen.getByRole("button", { name: "Mark job complete" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Mark it done" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Available in 20 min — 30 minutes after you arrived, to ensure quality.")).toBeTruthy();
     unmount();
 
     state.job = row({ ...stamps, helper_arrived_at: new Date(Date.now() - 31 * 60_000).toISOString() });
     renderPage();
-    expect((screen.getByRole("button", { name: "Mark job complete" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: "Mark it done" }) as HTMLButtonElement).disabled).toBe(false);
     expect(screen.queryByText(/^Available in/)).toBeNull();
   });
 
@@ -850,7 +850,7 @@ describe("job page, the hired Helpr", () => {
     const tracker = document.querySelector("[data-job-tracker]")?.textContent ?? "";
     // Without the tracking row the line guessed "working" and said to mark it done.
     expect(tracker).not.toMatch(/mark it done/i);
-    expect(screen.queryByRole("button", { name: "Mark job complete" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mark it done" })).toBeNull();
   });
 
   it("still asks for the before photo while it is owed", () => {

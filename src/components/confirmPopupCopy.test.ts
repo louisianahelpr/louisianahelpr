@@ -6,8 +6,8 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 /**
  * Owner wording decisions, 2026-09-14 (pop-up, visual-notes follow-ups).
  *
- * The Helpr's Mark job complete confirm read "Request Your Payout?" with a
- * "Yes, I'm Done" button: the card says Mark job complete, the popup it
+ * The Helpr's Mark it done confirm read "Request Your Payout?" with a
+ * "Yes, I'm Done" button: the card says Mark it done, the popup it
  * opens talked about money. Now "Mark this job complete?" / "Mark Complete".
  *
  * The confirm-booking popup's hand-off link read "Can't make it? See what
@@ -42,12 +42,12 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 const src = (f: string) =>
   blankComments(readFileSync(resolve(__dirname, f), "utf8"));
 
-describe("Mark job complete confirm popup", () => {
+describe("Mark it done confirm popup", () => {
   const tracking = src("JobTracking.tsx");
 
   it("asks to mark the job complete, not to request a payout", () => {
     expect(tracking).toContain('title="Mark this job complete?"');
-    expect(tracking).toContain('primaryLabel="Mark job complete"');
+    expect(tracking).toContain('primaryLabel="Mark it done"');
     expect(tracking).not.toContain("Request Your Payout?");
     expect(tracking).not.toMatch(/Yes, I['’]m Done/);
   });
@@ -73,7 +73,7 @@ describe("confirm-booking popup cancel link", () => {
   });
 });
 
-// Owner, 2026-09-14: the card says Mark job complete and the popup it opens
+// Owner, 2026-09-14: the card says Mark it done and the popup it opens
 // talked about money. This is that popup reverting.
 // @mutate src/components/JobTracking.tsx | title="Mark this job complete?" | title="Request Your Payout?"
 // The confirm-booking hand-off link reverting to euphemism: it opens the real

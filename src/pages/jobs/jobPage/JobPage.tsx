@@ -134,7 +134,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const wide = useIsWebDesktop();
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
-  // The Working card's own 30 minutes: Mark job complete is greyed here too (useDoneFloor).
+  // The Working card's own 30 minutes: Mark it done is greyed here too (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
   // The Posted card's own approve, cancel, edit and step flows, on this page (LEAD-JOBPAGE-LAYOUT, money half).
   const posterFlows = usePosterPageFlows({ jobId: id, enabled: isPoster, trackingStatus, onChanged: () => void q.refetch() });

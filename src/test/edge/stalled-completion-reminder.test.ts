@@ -164,7 +164,7 @@ describe("stalled-completion-reminder", () => {
     const sent = notifs();
     expect(sent.map((n) => n.user_id).sort()).toEqual([POSTED_BY, WORKED_BY].sort());
     // Each side is told the thing only THEY can act on.
-    expect(sent.find((n) => n.user_id === WORKED_BY)!.message).toMatch(/Mark job complete/);
+    expect(sent.find((n) => n.user_id === WORKED_BY)!.message).toMatch(/Mark it done/);
     expect(sent.find((n) => n.user_id === POSTED_BY)!.message).toMatch(/nobody has marked it done/i);
     // …and each on their own surface.
     expect(sent.find((n) => n.user_id === POSTED_BY)!.link).toBe("/posts?job=job-stalled");

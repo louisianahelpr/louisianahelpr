@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
@@ -220,12 +221,13 @@ export function useAdminPendingCounts(enabled: boolean): { data: PendingCounts; 
   const support = useQuery({
     ...opts,
     queryKey: supportQueueKey("pending"),
-    queryFn: async () => (await import("@/components/admin/AdminSupport")).fetchSupportTickets("pending"),
+    // A prevented preload resolves the import undefined (loadModule.ts): wait for the reload, never read off it.
+    queryFn: () => loadModule(() => import("@/components/admin/AdminSupport").then((m) => m?.fetchSupportTickets)).then((fetch) => (fetch ? fetch("pending") : untilReload())),
   });
   const reports = useQuery({
     ...opts,
     queryKey: reportsQueueKey("pending"),
-    queryFn: async () => (await import("@/components/admin/AdminReports")).fetchReports("pending"),
+    queryFn: () => loadModule(() => import("@/components/admin/AdminReports").then((m) => m?.fetchReports)).then((fetch) => (fetch ? fetch("pending") : untilReload())),
   });
   const disputes = useQuery({ ...opts, queryKey: ["admin-disputes", "open-count"], queryFn: fetchOpenDisputeCount });
   const supportN = support.data?.length;

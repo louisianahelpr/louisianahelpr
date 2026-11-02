@@ -145,6 +145,7 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
       "src/integrations/supabase/keychainStorageAdapter.ts": 1, // error-logger send
       "src/lib/authSignOut.ts": 2, // error-logger sends
       "src/lib/i18n/language.ts": 1, // resets `loading`: the next call loads Spanish
+      "src/lib/lifecycleErrors.ts": 1, // Q1883: error-logger send for a lost admin-copy chunk
       "src/lib/sentry.ts": 1, // Replay start
       "src/lib/sonnerFacade.ts": 1, // resets `loading`: the next toast loads Sonner
       "src/pages/auth/signup/useCityZipMismatch.ts": 1, // an advisory hint

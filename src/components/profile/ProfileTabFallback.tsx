@@ -135,7 +135,8 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   pets: [{ h: 216, media: 2 }],
   home_history: [{ h: 384, media: 1 }],
   str_settings: [{ h: 508, media: 1 }],
-  auto_tip: [{ h: 527 }],
+  // Q1695: 288px in the 2026-11-02 01:07Z refresh (both test accounts; Instant Release copy changed 10-30).
+  auto_tip: [{ h: 288 }],
   saved_helpers: [{ h: 344, media: 1 }],
   // Q2275 (board 91): intro line, the list, Pause all alerts (375, poster-e2e with one saved search, 2026-10-21).
   saved_searches: [{ h: 36 }, { h: 72 }, { h: 60 }],
@@ -144,16 +145,21 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   blocked: [{ h: 40 }],
   // CMP-4: the intro, the private line, the 2-hour line, the 3-spot list card (always 3 rows: 180-182px at 0, 1 and
   // 2 floors), the add form (375, stub build, 2026-11-01). At 3 floors the form gives way to one line, below.
-  instant_book: [{ h: 101 }, { h: 38 }, { h: 38 }, { h: 181 }, { h: 298 }],
-  analytics: [{ h: 481 }],
+  // Q1695: the intro measured 122px in the 2026-11-02 01:07Z refresh (both test accounts; the only single change
+  // that gives its median row 122 and its total 795px).
+  instant_book: [{ h: 122 }, { h: 38 }, { h: 38 }, { h: 181 }, { h: 298 }],
+  // Q1695: the no-plan card, 370px in the 2026-11-02 01:07Z refresh (both test accounts).
+  analytics: [{ h: 370 }],
   // Board 177 (375, helper-e2e, 2026-10-21): Payout history's one body row (no payout account: the set-up line;
   // a list grows below), and Receipts' one column (nothing paid yet, the tax-form card).
   payout_history: [{ h: 68 }],
   receipts: [{ h: 137 }],
   wrapped: [{ h: 333 }],
-  // You › Settings (board 52): Look, Your sections, Alerts, Your account, More, Log out
-  // (375, poster-e2e, 2026-10-20).
-  settings: [{ h: 166 }, { h: 295 }, { h: 101 }, { h: 397 }, { h: 378 }, { h: 58 }],
+  // You › Settings (board 52): Look, Your sections, Updates, Your account, More, Log out. Q1695: re-sized from the
+  // loading-states refresh of 2026-11-02 01:07Z (bot PR #3963, 375, both test accounts): each group's height is
+  // the gap between its heading and the next one's (12px section gap), Log out kept at 58. Look gained Language,
+  // Updates has two rows, Your account gained the profile link and share rows, More lost one row.
+  settings: [{ h: 235 }, { h: 301 }, { h: 166 }, { h: 626 }, { h: 313 }, { h: 58 }],
 };
 
 /** Avatar circles a screenful-reserve tab draws in its first card. */

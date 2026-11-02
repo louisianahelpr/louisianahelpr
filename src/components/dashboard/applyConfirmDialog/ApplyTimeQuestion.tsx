@@ -76,8 +76,10 @@ export function ApplyTimeQuestion({
           onClick={() => onChange(value ?? { jobId: job.id, date: job.date_needed && job.date_needed >= today ? job.date_needed : today, time: job.start_time ? job.start_time.slice(0, 5) : null })}
           className={`min-h-11 rounded-xl border px-3 text-ds-14 font-semibold transition-colors ${suggesting ? "border-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.08)]" : "border-border bg-card"}`}
           data-testid="apply-time-suggest"
+          // A3-95 (audit 11-01): a short label so the pair stays on one line at 375 (owner 11-01 12:49 PM); the full words stay here.
+          aria-label="Suggest another time"
         >
-          Suggest another time
+          Other time
         </button>
       </div>
       {suggesting && (

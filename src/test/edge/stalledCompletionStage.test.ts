@@ -242,7 +242,7 @@ describe("the copy", () => {
   it("the rest is kept, behind the tap — the trim is not a deletion", () => {
     // Every fact the pre-trim line carried is still in one of the two strings:
     // what to ask for, and that nothing moves until a person acts.
-    expect(STALLED_APPROVE_DISABLED_DETAIL).toMatch(/Mark job complete/);
+    expect(STALLED_APPROVE_DISABLED_DETAIL).toMatch(/Mark it done/);
     expect(STALLED_APPROVE_DISABLED_DETAIL).toMatch(/nothing is released or refunded/i);
     expect(STALLED_APPROVE_DISABLED_DETAIL).toMatch(/our team/i);
     // The two halves must not repeat each other — that is what made the

@@ -27,7 +27,7 @@ import { requestHelperStep } from "@/components/job-card/helperStepRequest";
  *
  * The one-line hint went with it, and that is the deliberate trade: the label
  * ("Before photo" / "After photo") plus the dialog's own "Before photos"
- * heading carry it, and the helper's blocked "Mark job complete" already
+ * heading carry it, and the helper's blocked "Mark it done" already
  * states the rule in full (`requiredProof().reason`) at the step where it
  * actually bites.
  *

@@ -311,7 +311,7 @@ export function collectNamedControls(files: string[]): NamedControl[] {
  * Does this phrase name a real control?
  *
  * The RENDERED inventory is the tokenizer: prose runs on past the end of a
- * label ("tap Mark job complete so your payment can be released"), so every
+ * label ("tap Mark it done so your payment can be released"), so every
  * contiguous ≥2-word span of the phrase is offered to the inventory and the
  * longest hit wins. That is why the verb-form scan can be permissive without
  * inventing violations.
@@ -843,10 +843,10 @@ describe("the checks are able to fail", () => {
     // exactly that column.
     const copyFn = (job: Record<string, unknown>) =>
       job.helper_arrived_at
-        ? 'Tap "Mark job complete" when you are done.'
+        ? 'Tap "Mark it done" when you are done.'
         : `Ask them to tap "Confirm they've arrived" before you can start.`;
     const ctrlFn = (job: Record<string, unknown>) => ({
-      label: job.helper_arrived_at ? "Confirm they've arrived" : "Mark job complete",
+      label: job.helper_arrived_at ? "Confirm they've arrived" : "Mark it done",
       enabled: !!job.helper_arrived_at,
     });
     const shared = ["helper_arrived_at"];

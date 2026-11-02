@@ -25,6 +25,16 @@ export const PREVIEW_STAGES = [
   { key: "disputed", label: "Disputed" },
   { key: "crew", label: "Crew job" },
   { key: "instant_pending", label: "Instant booking pending" },
+  // Audit 1102b: the stages it could not walk.
+  { key: "approve", label: "Approve before payment" },
+  { key: "revision", label: "Fix asked for" },
+  { key: "tip", label: "Tip" },
+  { key: "refund", label: "Refund asked" },
+  { key: "recurring", label: "Recurring visits" },
+  { key: "late_cancel_poster", label: "Late cancel by poster" },
+  { key: "late_cancel_helpr", label: "Late cancel by Helpr" },
+  { key: "cancel_sheet", label: "Cancel sheet" },
+  { key: "continue_day", label: "Another day set" },
 ] as const;
 
 export type PreviewStage = (typeof PREVIEW_STAGES)[number]["key"];
@@ -63,6 +73,12 @@ export interface PreviewSample {
   offeredTo: string | null;
   profiles: Array<{ id: string; full_name: string; avatar_url: string | null; created_at: string }>;
   candidates: Array<{ helper_id: string; display_name: string; avatar_url: string | null; jobs_done: number; rating: number | null; review_count: number }>;
+  /** Every other read RPC the page makes, by name (an RPC not here is answered null and reported, never sent). */
+  reads: Record<string, unknown>;
+  /** Every other table the page reads, by name (a table not here is answered [] and reported, never sent). */
+  tables: Record<string, unknown[]>;
+  /** A control the preview presses once the page has drawn, to open its sheet (the Cancel sheet stage). */
+  opens: string | null;
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -118,6 +134,8 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
   let pendingOffer: PreviewSample["pendingOffer"] = null;
   let offeredTo: string | null = null;
   let candidates: PreviewSample["candidates"] = [];
+  /** This stage's own rows, over the empty defaults below. */
+  let extraTables: Record<string, unknown[]> = {};
   const accepted = { status: "accepted", closed_reason: null, helper_id: PREVIEW_HELPR_ID };
 
   switch (stage) {
@@ -166,7 +184,7 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       break;
     case "done":
       job = {
-        ...base, ...hired, ...today, ...bothIn, status: "completed", payment_status: "released", helper_on_the_way_at: ago(240),
+        ...base, ...hired, ...today, ...bothIn, status: "completed", payment_status: "payout_pending", helper_on_the_way_at: ago(240),
         helper_arrived_at: ago(210), poster_confirmed_arrival_at: ago(208), poster_confirmed_working_at: ago(205),
         helper_completed_at: ago(60), poster_completed_at: ago(30), completed_at: ago(30), payout_scheduled_at: ago(-60 * 24),
       };
@@ -180,7 +198,8 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
     case "expired":
       // How auto-expire-jobs closes a listing nobody took (src/lib/expiredListing.ts): cancelled, no Helpr, its fixed reason.
       job = { ...base, status: "cancelled", payment_status: "refunded", expires_at: ago(60 * 24), cancellation_reason: "Job listing expired with no Helpr hired" };
-      applications = [{ status: "pending", closed_reason: null, helper_id: PREVIEW_HELPR_ID }];
+      // Prod closes an expired listing's applications (196 of 196 rejected, audit 1102b).
+      applications = [{ status: "rejected", closed_reason: "job_expired", helper_id: PREVIEW_HELPR_ID }];
       break;
     case "no_show":
       // The Helpr never came: the poster reported a no-show and the job was cancelled and refunded.
@@ -196,10 +215,103 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       trackingStatus = "completed";
       break;
     case "crew":
-      job = { ...base, ...today, ...bothIn, title: "Move a couch and boxes upstairs", category: "moving", budget: 300, is_group_job: true, helpers_needed: 3, status: "accepted", helper_confirmed_at: ago(60 * 24) };
+      job = { ...base, ...today, ...bothIn, title: "Move a couch and boxes upstairs", description: "A couch and about twenty boxes from the truck to the second floor. The stairs are narrow; a dolly is in the garage.", category: "moving", budget: 300, is_group_job: true, helpers_needed: 3, status: "accepted", helper_confirmed_at: ago(60 * 24) };
       applications = [accepted, { status: "accepted", closed_reason: null, helper_id: PREVIEW_CREWMATE_ID }];
       crew = [PREVIEW_HELPR_ID, PREVIEW_CREWMATE_ID];
       break;
+    case "approve":
+      // The Helpr marked it done; the poster has not approved, so the pay is still held.
+      job = {
+        ...base, ...hired, ...today, ...bothIn, status: "in_progress", helper_on_the_way_at: ago(240), helper_arrived_at: ago(210),
+        poster_confirmed_arrival_at: ago(208), poster_confirmed_working_at: ago(205), helper_completed_at: ago(20),
+      };
+      applications = [accepted];
+      trackingStatus = "completed";
+      break;
+    case "revision":
+      job = {
+        ...base, ...hired, ...today, ...bothIn, status: "revision_requested", helper_on_the_way_at: ago(240), helper_arrived_at: ago(210),
+        poster_confirmed_arrival_at: ago(208), poster_confirmed_working_at: ago(205), helper_completed_at: ago(90),
+        revision_note: "The side yard by the fence still has leaves, and two bags were left by the porch instead of the curb.",
+        revision_deadline: new Date(now + 22 * 60 * 60_000).toISOString(),
+      };
+      applications = [accepted];
+      trackingStatus = "completed";
+      break;
+    case "refund":
+      // The Helpr marked it done and the poster asked for part of the money back instead of approving (refund_requests).
+      job = {
+        ...base, ...hired, ...today, ...bothIn, status: "in_progress", helper_on_the_way_at: ago(240), helper_arrived_at: ago(210),
+        poster_confirmed_arrival_at: ago(208), poster_confirmed_working_at: ago(205), helper_completed_at: ago(60),
+      };
+      applications = [accepted];
+      trackingStatus = "completed";
+      extraTables = {
+        refund_requests: [{
+          id: "00000000-0000-4000-d000-000000000001", job_id: jobId, requester_id: PREVIEW_POSTER_ID, responder_id: PREVIEW_HELPR_ID,
+          refund_scope: "part", amount_cents: 4000, budget_cents: 12000, reason: "Only the front yard was done; the side yard was skipped.",
+          status: "open", answer_by: new Date(now + 23 * 60 * 60_000).toISOString(), answered_at: null, dispute_id: null, created_at: ago(30),
+        }],
+      };
+      break;
+    case "continue_day":
+      // The Helpr could not finish today; both agreed to come back the day after tomorrow (job_continue_days 'set').
+      job = {
+        ...base, ...hired, ...today, ...bothIn, status: "in_progress", helper_on_the_way_at: ago(300), helper_arrived_at: ago(280),
+        poster_confirmed_arrival_at: ago(278), poster_confirmed_working_at: ago(275),
+      };
+      applications = [accepted];
+      trackingStatus = "in_progress";
+      extraTables = {
+        job_continue_days: [{
+          id: "00000000-0000-4000-d000-000000000002", job_id: jobId, proposed_by: PREVIEW_HELPR_ID, new_date: isoDate(now + 2 * DAY),
+          new_start_time: "09:00", note: "Ran out of daylight; the side yard is left.", status: "set", helper_confirmed_at: ago(20),
+        }],
+      };
+      break;
+    case "tip": {
+      // Approved and paying out, no tip sent yet: the poster's Tip.
+      job = {
+        ...base, ...hired, ...today, ...bothIn, status: "completed", payment_status: "payout_pending", helper_on_the_way_at: ago(240),
+        helper_arrived_at: ago(210), poster_confirmed_arrival_at: ago(208), poster_confirmed_working_at: ago(205),
+        helper_completed_at: ago(60), poster_completed_at: ago(30), completed_at: ago(30), payout_scheduled_at: ago(-60 * 24),
+      };
+      applications = [accepted];
+      trackingStatus = "completed";
+      break;
+    }
+    case "recurring":
+      // A weekly series (Tuesdays and Thursdays, 4 weeks) with its standing Helpr; this is the next visit.
+      job = {
+        ...base, ...hired, title: "Mow and edge the lawn", parent_job_id: null, recurrence_days: [2, 4], recurrence_weeks: 4,
+        recurrence_interval: "weekly", recurrence_end_date: isoDate(now + 28 * DAY), recurring_helper_id: PREVIEW_HELPR_ID,
+      };
+      applications = [accepted];
+      // The series' visits (the jobs read by parent_job_id): this one, and the next three, all with the same Helpr.
+      extraTables = {
+        "jobs?parent_job_id": [3, 5, 10, 12].map((d) => ({ date_needed: isoDate(now + d * DAY), status: "accepted", helper_id: PREVIEW_HELPR_ID })),
+      };
+      break;
+    case "late_cancel_poster":
+      // The poster cancelled 3 hours before the start: the Helpr keeps the late-cancel fee, the rest is refunded.
+      job = {
+        ...base, ...hired, date_needed: isoDate(now + DAY), start_time: "09:00", status: "cancelled", payment_status: "refunded",
+        cancelled_by: PREVIEW_POSTER_ID, cancelled_at: ago(30), cancellation_reason: "Plans changed", cancellation_fee: 30,
+      };
+      applications = [{ status: "closed", closed_reason: "job_cancelled", helper_id: PREVIEW_HELPR_ID }];
+      break;
+    case "late_cancel_helpr":
+      // The Helpr cancelled the night before (helper_cancel_booking): the job is back up and they carry a strike.
+      job = { ...base, date_needed: isoDate(now + DAY), status: "open" };
+      applications = [{ status: "rejected", closed_reason: "helper_cancelled", helper_id: PREVIEW_HELPR_ID }];
+      break;
+    case "cancel_sheet": {
+      // Hired, starting in about 3 hours (inside the 24-hour late-cancel window): the poster's Cancel job opens the fee quote.
+      const soon = new Date(now + 3 * 60 * 60_000);
+      job = { ...base, ...hired, date_needed: isoDate(soon.getTime()), start_time: `${String(soon.getHours()).padStart(2, "0")}:00` };
+      applications = [accepted];
+      break;
+    }
     case "instant_pending": {
       const until = new Date(now + 95 * 60_000).toISOString();
       job = { ...base, helper_id: PREVIEW_HELPR_ID, status: "accepted", payment_status: "held", direct_offer_status: "pending", instant_decline_until: until };
@@ -215,6 +327,34 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
   return {
     stage, viewer, userId, jobId, job, party, applications, trackingStatus, crew, pendingOffer: viewer === "helpr" ? pendingOffer : null,
     offeredTo, candidates,
+    // Made-up answers for every other read the page makes (the inert test lists them: adminJobPreviewIsInert).
+    reads: {
+      // Every rating and count on the page; the backend hands back only the rows asked for (p_user_ids).
+      get_public_profile_stats: [
+        { user_id: PREVIEW_POSTER_ID, avg_rating: 4.8, review_count: 9, completed_jobs_as_helper: 0, completed_jobs_total: 12, posted_jobs_total: 12, jobs_total: 12, cancelled_jobs: 0, cancellation_rate: 0, on_time_rate: 1, on_time_sample: 0, poster_avg_rating: 4.8, has_pending_credentials: false, has_stripe_account: false, is_background_checked: false, is_id_verified: true },
+        { user_id: PREVIEW_HELPR_ID, avg_rating: 4.9, review_count: 11, completed_jobs_as_helper: 14, completed_jobs_total: 14, posted_jobs_total: 0, jobs_total: 15, cancelled_jobs: 1, cancellation_rate: 0.07, on_time_rate: 0.93, on_time_sample: 14, poster_avg_rating: null, has_pending_credentials: false, has_stripe_account: true, is_background_checked: false, is_id_verified: true },
+        { user_id: PREVIEW_CREWMATE_ID, avg_rating: 4.8, review_count: 5, completed_jobs_as_helper: 6, completed_jobs_total: 6, posted_jobs_total: 0, jobs_total: 6, cancelled_jobs: 0, cancellation_rate: 0, on_time_rate: 1, on_time_sample: 6, poster_avg_rating: null, has_pending_credentials: false, has_stripe_account: true, is_background_checked: false, is_id_verified: true },
+      ],
+      // The fee settings (made up: no one-time setup fee, so no take-home line names one).
+      get_public_platform_settings: [{ id: "preview", customer_fee_percent: 0, helper_fee_percent: 5, feature_flags: {}, hybrid_idv_enabled: false, idv_auto_approve_threshold: 0, min_supported_build: 0, onboarding_fee_cents: 0 }],
+      // null is the RPC's own "not deployed" answer: the caller then makes its older reads, answered from `tables`.
+      get_my_activity_cores: null,
+    },
+    tables: {
+      job_guarantee_claims: [],
+      job_schedule_change_requests: [],
+      job_continue_days: [],
+      reviews: [],
+      tips: [],
+      user_violations: [],
+      series_visit_holds: [],
+      series_date_offers: [],
+      recurring_visit_releases: [],
+      job_accept_pending: [],
+      refund_requests: [],
+      ...extraTables,
+    },
+    opens: stage === "cancel_sheet" && viewer === "poster" ? "Cancel job" : null,
     profiles: [
       { id: PREVIEW_POSTER_ID, full_name: "Lexi Landry", avatar_url: null, created_at: "2025-03-14T15:00:00Z" },
       { id: PREVIEW_HELPR_ID, full_name: "Eli Robichaux", avatar_url: null, created_at: "2025-06-02T15:00:00Z" },

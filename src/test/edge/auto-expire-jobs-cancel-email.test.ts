@@ -16,6 +16,7 @@
  * goes to the poster about their own job must be emailed by its file.
  */
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       if (job.customer_id) { |       if (false) {
+// @mutate supabase/functions/auto-expire-jobs/index.ts |         defects.record(`past-date cancel for job ${job.id} (payment_status ${job.payment_status ?? "none"}): ${cancelError.message}`); |         void cancelError;
 // @mutate supabase/functions/auto-expire-jobs/index.ts |             if (sent?.success === false) { |             if (false) {
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       if (!noticeLanded) { |       if (false) {
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       if (job.payment_status === "held") cancelQuery = cancelQuery.eq("payment_status", "held"); |
@@ -105,6 +106,17 @@ describe("auto-expire-jobs · Q1817: the auto-cancel notice is emailed to the po
     const body = await (await fn.fetch(cronRequest(fn))).text();
     expect(notificationEmails).toHaveLength(1);
     expect(body).toContain("auto-cancel email for job job-past: not sent (send_failed)");
+  });
+
+  // Q1890 (lh-money-escrow@1cf5c9e8f#3): the past-date cancel write failing only logged, so a funded past-dated job
+  // left open was invisible in the cron's result.
+  it("a past-date cancel write that errors is a defect in the cron result, and the poster is not told", async () => {
+    const fn = await load();
+    seedPastOpenJob(funded());
+    scenario.writeErrors.jobs = { message: "canceling statement due to statement timeout", code: "57014" };
+    const body = await (await fn.fetch(cronRequest(fn))).text();
+    expect(body).toContain("past-date cancel for job job-past (payment_status escrow): canceling statement due to statement timeout");
+    expect(scenario.writes.some((w) => w.table === "notifications" && w.op === "insert")).toBe(false);
   });
 
   it("an email the sender skipped (opted out or seed boundary) is not a defect", async () => {

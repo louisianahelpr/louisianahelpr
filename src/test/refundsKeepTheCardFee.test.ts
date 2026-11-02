@@ -463,6 +463,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // declutter_record_refund restated with ONE new reason, helpr_fault (the Helpr's fault in a delivery they could not
     // finish): everything goes back and the card fee becomes a debt on the at-fault Helpr, not the seller. Nothing
     // else in them changed (record_refund three-way merged from 20261031105148).
+    // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): declutter_record_refund restated; only the
+    // keep_buyer_fee whole-order amount check adds a ship order's shipping minus declutter_shipping_reserved_cents. The
+    // v_policy CASE is byte-for-byte unchanged (read again below); the constraints stay in 20261031231150.
     migration: "20261031231150_helpr_delivery_cant_finish.sql",
     // Q2404 (20261102061022): declutter_record_refund restated verbatim from 20261031231150 plus one block: for
     // full_seller_pays_fee and keep_card_fee, a charge that also carried the setup fee bills only the sale's share of the
@@ -599,6 +602,12 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // order was refunded on the seller; on a rejected label void it books the spent label as the seller's fee debt
       // (ship_void_rejected, once per shipment). It records no refund and changes no refund amount or card fee.
       declutter_ship_void_rejected_debt: "20261102045553_shipping_void_rejected_seller_debt.sql 0457a2d0103ead49",
+      // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): the shipping a buyer-fault close held back goes
+      // back once the label is VOIDED: one declutter_delivery_refunds row ('ship_void_refunded', refund_cents = the order's
+      // shipping_cents, order_id UNIQUE), only when the order's refund row is buyer-fault and left the shipping out
+      // (paid_cents <= total - shipping). Shipping carries no card fee of its own: the order's fee policy was applied by the
+      // main refund. It records no declutter_refunds row and changes no fee.
+      declutter_ship_refund_after_void: "20261102051521_shipping_refund_after_void.sql 3921227f48272635",
       // Owner answer 7 (20261017060455): the three seller-out paths record
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
       // Board 158 (20261020064354): the same body, a 'paused' listing sells like a 'live' one (two status

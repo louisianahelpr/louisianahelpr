@@ -32,6 +32,7 @@ import {
   type AbuseLimitKey,
 } from "./abuseLimits";
 import { userFacingError } from "@/lib/userFacingError";
+import { ilikeContains } from "@/lib/postgrestIlike";
 
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -294,7 +295,8 @@ const AdminSettings = () => {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
+      // Q2350: quoted, so a comma or ")" in the search cannot break the filter.
+      .or(`full_name.ilike.${ilikeContains(q)},email.ilike.${ilikeContains(q)}`)
       .limit(10);
 
     if (error) {

@@ -270,6 +270,25 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(supabaseCalls()).toEqual([]);
   }, 30_000);
 
+  // Builder 187 (seen by Builder 185 at 375): the paid buyer's "Pick a pickup time" said "No pickup times are open"
+  // because the sample did not answer the order's pickup-windows read. It answers with the seller's weekday times, so
+  // the day and time chips draw as a member sees them.
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_order_pickup_windows: WEEKDAYS.map((weekday) => ({ weekday, starts: "09:00", ends: "18:00", latest_pickup_at: hoursFrom(now, 46) })),\n |
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts | ({ weekday, starts: "09:00", ends: "18:00", latest_pickup_at: hoursFrom(now, 46) }) | ({ weekday, starts: "09:00", ends: "18:00", latest_pickup_at: hoursFrom(now, -1) })
+  it("the paid buyer's pickup picker offers the seller's sample times", async () => {
+    const unlisted: string[] = [];
+    declutterPreviewChecks.onUnlisted = (what) => unlisted.push(what);
+    localStorage.clear();
+    open("?stage=paid&side=buyer");
+    fireEvent.click(await screen.findByRole("button", { name: /^Details/ }));
+    const days = await screen.findByRole("group", { name: "Pickup day" });
+    expect(within(days).getAllByRole("button").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("declutter-no-pickup-slots")).toBeNull();
+    expect(unlisted).not.toContain("rpc declutter_order_pickup_windows");
+    await new Promise((res) => setTimeout(res, 20));
+    expect(supabaseCalls()).toEqual([]);
+  });
+
   it("the controls name every stage and both sides", async () => {
     open("?stage=booked&side=seller");
     await screen.findByRole("region", { name: "Declutter preview controls" });

@@ -122,6 +122,8 @@ function baseReads(now: number): Record<string, unknown> {
     get_public_platform_settings: null,
     declutter_checkout_porch_days: WEEKDAYS,
     declutter_item_pickup_windows: WEEKDAYS.map((weekday) => ({ weekday, starts: "09:00", ends: "18:00" })),
+    // The paid buyer's "Pick a pickup time" (Builder 187): the order's windows, open until the base order's book-by.
+    declutter_order_pickup_windows: WEEKDAYS.map((weekday) => ({ weekday, starts: "09:00", ends: "18:00", latest_pickup_at: hoursFrom(now, 46) })),
     declutter_seller_porch_places: [{ id: "00000000-0000-4000-d000-000000000060", label: "Front porch", area: "Mid-City, Baton Rouge", weekdays: WEEKDAYS, chosen: true, windows: null }],
     declutter_meetup_spots_near: [{ id: "00000000-0000-4000-d000-000000000061", name: "BRPD 1st District lobby (sample)", address: "3255 Choctaw Dr, Baton Rouge", parish: "East Baton Rouge", kind: "police", note: null, miles: 2.1, chosen: false }],
     declutter_seller_delivery_offer: { available: true, reason: null, rate_cents: 800, base_rate_cents: 800, free_over_cents: null, items_cents: 4000, radius_miles: 10, dropoff_area: "Mid-City, Baton Rouge", slot_minutes: 60, slots: [hoursFrom(now, 26), hoursFrom(now, 28)], held_slot: null },

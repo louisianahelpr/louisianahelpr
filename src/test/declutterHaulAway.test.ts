@@ -220,8 +220,9 @@ describe("Declutter haul-away (20261017070827)", () => {
       if (i.from === "@/lib/declutter/haulAwayParam") { seen++; expect(i.type, `${f} imports haulAwayParam at run time`).toBe(true); }
     }
     // 2. Post a job loads exactly one haul-away module, lazily, and nothing a screen shares. The one other
-    //    Declutter module it may name is Add a Helpr's ./setupHelpr, also lazily (the train's merge, 2026-10-17).
-    const LAZY_OK = ["@/lib/declutter/haulAway", "@/lib/declutter/setupHelpr"];
+    //    Declutter modules it may name are Add a Helpr's ./setupHelpr (the train's merge, 2026-10-17) and its
+    //    ./setupLinkPending (Q1942), also lazily.
+    const LAZY_OK = ["@/lib/declutter/haulAway", "@/lib/declutter/setupHelpr", "@/lib/declutter/setupLinkPending"];
     for (const f of postJob) for (const i of importsOf(f)) {
       if (/declutter\//.test(i.from)) {
         seen++;

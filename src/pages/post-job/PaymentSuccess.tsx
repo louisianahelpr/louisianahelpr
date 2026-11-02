@@ -40,6 +40,7 @@ import {
   type UnknownReason,
 } from "./paymentReturnCopy";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { useTellPendingSetupLink } from "./useTellPendingSetupLink";
 
 /**
  * TRUTHFULNESS CONTRACT FOR THIS SCREEN
@@ -155,6 +156,8 @@ const PaymentSuccess = () => {
   const live = jobStatus === "open" && !alreadyReleased && !directOffer;
 
   usePageTitle(paymentPageTitle(confirmState, live));
+  // Q1942: a Declutter "Add a Helpr" job whose order link failed at posting is linked again, and told here if not.
+  useTellPendingSetupLink(resolvedJobId);
 
   /**
    * Share the just-posted job so a neighbour can see it and apply.

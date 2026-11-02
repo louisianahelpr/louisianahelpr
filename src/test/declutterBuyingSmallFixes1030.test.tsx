@@ -7,7 +7,7 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | origin: from ?? null, extras: saveExtras }} | origin: from ?? null }}
  * BUY-14: the Buying tab is called Buying, and a meetup isn't a pickup.
  * @mutate src/components/declutter/DeclutterPaySettling.tsx | the order moves to Buying once | the order moves to Purchases once
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.handover === "meetup" ? "Meeting" : "Pickup"}: <span | Pickup: <span
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | {booked && timeLine(order.handover === "meetup" ? "Meeting" : "Pickup")} | {booked && timeLine("Pickup")}
  * BUY-18: a free item has no payment, and a porch claim picks a day.
  * @mutate src/components/declutter/DeclutterBundleRow.tsx | {b.free ? "Get them together: one pickup." : b.pickup ? | {b.pickup ?
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {confirm.isPending ? "Confirming…" : "Confirm and pick a time"} | {confirm.isPending ? "Confirming…" : chosen === "porch" ? "Confirm and pick a day" : "Confirm and pick a time"}
@@ -50,7 +50,7 @@ describe("the buying audit's small findings", () => {
   it("BUY-14: the words name what's on screen", () => {
     expect(code(`${D}DeclutterPaySettling.tsx`)).toContain("the order moves to Buying once");
     expect(code(`${D}DeclutterPaySettling.tsx`)).not.toContain("Purchases");
-    expect(code(`${D}DeclutterHandoverViews.tsx`)).toContain('{order.handover === "meetup" ? "Meeting" : "Pickup"}: <span');
+    expect(code(`${D}DeclutterHandoverViews.tsx`)).toContain('{booked && timeLine(order.handover === "meetup" ? "Meeting" : "Pickup")}');
   });
 
   // LEAD-PLACE-TIMES (owner 2026-10-31): a porch claim now picks a time inside the place's hours, as a door claim does.

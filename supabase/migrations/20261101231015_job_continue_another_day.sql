@@ -168,13 +168,14 @@ DECLARE
   v_job record;
   v_poster boolean;
   v_new_at timestamptz;
-  v_note text := NULLIF(btrim(COALESCE(p_note, '')), '');
+  v_note text;
   v_prev record;
   v_id uuid;
   v_status text;
   v_cleared timestamptz;
   v_label text;
 BEGIN
+  v_note := NULLIF(btrim(COALESCE(p_note, '')), '');
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
@@ -253,10 +254,12 @@ BEGIN
     CASE WHEN v_poster THEN 'Job continues another day' ELSE 'Your Helpr needs another day' END,
     CASE WHEN v_poster
          THEN format('%s set %s to finish "%s". Next: confirm you''ll be there.',
-                     COALESCE(NULLIF(split_part(btrim((SELECT pr.full_name FROM public.profiles pr WHERE pr.user_id = v_uid)), ' ', 1), ''), 'The person who posted it'),
+                     COALESCE(NULLIF(split_part(public.member_display_name((SELECT pr.full_name FROM public.profiles pr WHERE pr.user_id = v_uid), NULL), ' ', 1), ''), 'The person who posted it'),
                      v_label, COALESCE(v_job.title, 'your job'))
-         ELSE format('Your Helpr asked to finish "%s" on %s. Tap to confirm the day.%s', COALESCE(v_job.title, 'your job'), v_label,
-                     CASE WHEN v_note IS NULL THEN '' ELSE ' Note: ' || left(v_note, 120) END)
+         -- Server-built words only (Q223): the Helpr's note is shown on the job page to the two parties, never in a notice.
+         ELSE format('%s asked to finish "%s" on %s. Next: confirm the new day.',
+                     COALESCE(NULLIF(split_part(public.member_display_name((SELECT pr.full_name FROM public.profiles pr WHERE pr.user_id = v_uid), NULL), ' ', 1), ''), 'Your Helpr'),
+                     COALESCE(v_job.title, 'your job'), v_label)
     END,
     'job_updates',
     CASE WHEN v_poster THEN '/jobs?job=' ELSE '/posts?job=' END || v_job.id::text
@@ -359,7 +362,7 @@ BEGIN
     CASE WHEN p_accept THEN 'Another day confirmed' ELSE 'Another day declined' END,
     CASE WHEN p_accept
          THEN format('%s confirmed %s to finish "%s". Next: confirm you''ll be there.',
-                     COALESCE(NULLIF(split_part(btrim((SELECT pr.full_name FROM public.profiles pr WHERE pr.user_id = v_uid)), ' ', 1), ''), 'The person who posted it'),
+                     COALESCE(NULLIF(split_part(public.member_display_name((SELECT pr.full_name FROM public.profiles pr WHERE pr.user_id = v_uid), NULL), ' ', 1), ''), 'The person who posted it'),
                      v_label, COALESCE(v_job.title, 'your job'))
          ELSE format('The person who posted "%s" declined %s. Message them to agree on what''s next.', COALESCE(v_job.title, 'the job'), v_label)
     END,

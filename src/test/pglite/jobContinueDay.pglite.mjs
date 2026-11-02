@@ -41,6 +41,9 @@ await db.exec(`
     add column if not exists helper_arrived_at timestamptz, add column if not exists poster_confirmed_working_at timestamptz,
     add column if not exists proof_before_urls text[], add column if not exists proof_after_urls text[];
   create function public.sell_for_me_listings_sent(uuid) returns boolean language sql stable as $f$ select true $f$;
+  -- Stub of member_display_name (20261021131322 shape: "First L."); the notices take its first word.
+  create or replace function public.member_display_name(p_full_name text, p_fallback text) returns text language sql immutable as
+    $f$ select coalesce(nullif(split_part(btrim(p_full_name), ' ', 1), '') || coalesce(' ' || left(nullif(split_part(btrim(p_full_name), ' ', 2), ''), 1) || '.', ''), p_fallback) $f$;
   update public.profiles set full_name = 'Dana Poster' where user_id = '${P}';
   update public.profiles set full_name = 'Yusef Helpr' where user_id = '${A}';
 `);
@@ -143,7 +146,7 @@ check("the clearing helper is not callable by a client", refused(clearFn, /permi
 // 4. The Helpr proposes on job 2; the poster confirms with one tap.
 const prop2 = await propose(A, J(2), DAY, "13:30", "Need paint to dry");
 check("the Helpr proposes another day", prop2.ok && prop2.rows[0]?.r?.status === "proposed", prop2.err);
-check("...the poster is told", (await notes(P, J(2))).some((n) => /Your Helpr asked to finish "Paint the fence" on \w{3} \d+\/\d+ at 1:30 PM/.test(n.message)));
+check("...the poster is told, in server-built words (the Helpr's first name, no note)", (await notes(P, J(2))).some((n) => /^Yusef asked to finish "Paint the fence" on \w{3} \d+\/\d+ at 1:30 PM\. Next: confirm the new day\.$/.test(n.message)));
 const row2 = await active(J(2));
 const helprAnswers = await call(A, `select public.answer_job_continue_day('${row2?.id}', true)`);
 check("the Helpr cannot confirm their own proposal", refused(helprAnswers, /not_authorized/), helprAnswers.err ?? "ran");

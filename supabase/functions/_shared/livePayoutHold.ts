@@ -86,6 +86,34 @@ export async function holdUnlessPayable(i: LivePayoutHoldInput): Promise<LivePay
 }
 
 /**
+ * Q2406 (lh-silent-failure review of the live gate, #5): a caller that does
+ * not keep a run-level defect list (a member's request, not a cron) reports
+ * holdUnlessPayable's `defect` here instead of dropping it: console.error and
+ * an ops alert naming it, once a day per function and member. The defect is a
+ * failed cached-gate close on profiles (the cached Connect flags stay open, so
+ * client screens still read the account as payable) or an unexplained "could
+ * not verify".
+ */
+export async function reportLiveGateDefect(i: {
+  fn: string;
+  helperId: string | null;
+  defect: string;
+  seed?: boolean;
+  fields?: Record<string, unknown>;
+}): Promise<void> {
+  console.error(`[${i.fn}] live payout gate defect for ${i.helperId ?? "unknown member"}: ${i.defect}`);
+  await postSlackOpsAlert({
+    kind: "payout_wait",
+    severity: "warning",
+    oncePerDayKey: `live-gate-defect-${i.fn}-${i.helperId ?? "unknown"}`,
+    seed: i.seed === true,
+    title: "Live payout gate defect: a held payout's follow-up write failed",
+    message: `${i.fn} held a payout for ${i.helperId ?? "a member"} (Stripe does not say the account is payable), but: ${i.defect}. If it is the cached gate close, the profile's Stripe flags still read payable: close them by hand (stripe_charges_enabled / stripe_payouts_enabled = false).`,
+    fields: { ...i.fields, fn: i.fn, helper_id: i.helperId, defect: i.defect.slice(0, 300) },
+  });
+}
+
+/**
  * Stripe refusing a DESTINATION charge (a tip paid straight to the Helpr's
  * account with transfer_data) because that account cannot receive money:
  * "Your destination account needs to have at least one of the following

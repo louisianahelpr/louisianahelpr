@@ -29,7 +29,7 @@ import { BundleDiscountCard } from "./BundleDiscountCard";
 
 function show() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(<QueryClientProvider client={qc}><SellerDeliveryCard /><BundleDiscountCard /></QueryClientProvider>);
+  render(<QueryClientProvider client={qc}><SellerDeliveryCard /><BundleDiscountCard pick={undefined} onPick={() => {}} /></QueryClientProvider>);
 }
 
 describe("Declutterse-1: a settings card whose read failed says so", () => {

@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1078,
-    "files": 301,
+    "files": 300,
     "rendering": 997,
     "suppressedByPolicy": 81,
     "byKind": {
@@ -4488,31 +4488,6 @@
       "renders": true
     },
     {
-      "file": "src/components/declutter/BundleDiscountCard.tsx",
-      "line": 41,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "bundleErrorMessage(err)",
-        "from": "src/lib/declutter/bundleErrors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "BUNDLE_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "declutterErrorMessage(err)"
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/declutter/DeclutterBrowseView.tsx",
       "line": 254,
       "kind": "toast.error",
@@ -4983,7 +4958,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 111,
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4993,7 +4968,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 114,
+      "line": 127,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5013,7 +4988,32 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 121,
+      "line": 144,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "bundleErrorMessage(bundleError)",
+        "from": "src/lib/declutter/bundleErrors.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.userMessage"
+          },
+          {
+            "form": "dynamic",
+            "text": "BUNDLE_ERROR_COPY[message]"
+          },
+          {
+            "form": "dynamic",
+            "text": "declutterErrorMessage(err)"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterListingDefaults.tsx",
+      "line": 147,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5023,7 +5023,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 172,
+      "line": 198,
       "kind": "toast",
       "title": {
         "form": "literal",

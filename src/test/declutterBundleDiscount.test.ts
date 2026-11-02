@@ -18,7 +18,7 @@
  * @mutate supabase/migrations/20261101032626_declutter_checkout_page_inside_hold.sql |    v_delivery := public.declutter_seller_delivery_rate_cents(sd.base_rate_cents, sd.free_over_cents, v_items); |    v_delivery := sd.rate_cents;
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   SELECT COALESCE(sum(t.target_cents), 0)::integer INTO v_items FROM public.declutter_bundle_targets(p_seller, p_lines) t; |   SELECT COALESCE(sum(c.price_cents), 0)::integer INTO v_items FROM public.declutter_cart_items c WHERE c.id = ANY (p_lines);
  * @mutate src/components/declutter/DeclutterBundleRow.tsx |         {b.offer ? <span className="font-semibold text-primary" data-bundle-offer=""> {b.offer}.</span> : null} |
- * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       <BundleDiscountCard />\n |
+ * @mutate src/components/declutter/DeclutterListingDefaults.tsx |       <BundleDiscountCard pick={bundlePick} onPick={setBundlePick} disabled={save.isPending} />\n |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -97,7 +97,7 @@ describe("Q2427 bundle discounts: the screens", () => {
     expect(read("src/components/declutter/DeclutterBundleRow.tsx")).toContain("bundleLabel(rule.data)");
     expect(read("src/components/declutter/DeclutterBundleRow.tsx")).toContain("{b.offer}.</span>");
     // LEAD-BUNDLE-DROPDOWN (2026-10-31): a row in Listing defaults (on Declutter settings), under the free-after row.
-    expect(read("src/components/declutter/DeclutterListingDefaults.tsx")).toContain("<BundleDiscountCard />");
+    expect(read("src/components/declutter/DeclutterListingDefaults.tsx")).toContain("<BundleDiscountCard pick={bundlePick} onPick={setBundlePick}");
     expect(read("src/pages/declutter/DeclutterSettingsPage.tsx")).toContain("<ListingDefaultsCard userId={user.id} />");
     const card = blankComments(readFileSync("src/components/declutter/BundleDiscountCard.tsx", "utf8"));
     expect(card).not.toMatch(/\bfees?\b|\$\d/i);

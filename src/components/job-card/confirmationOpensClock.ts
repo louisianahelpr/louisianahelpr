@@ -2,6 +2,9 @@ import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs 
 import { JOB_TIMEZONE } from "../../../supabase/functions/_shared/cancellationFee";
 import type { CountdownClock } from "./CountdownRows";
 
+/** The confirm window's countdown words: "1d 21h 0m until you can confirm" (Q2597). */
+export const CONFIRM_OPENS_TEXT = "until you can confirm";
+
 /**
  * JobConfirmation's not-yet-open state ("Confirmation opens in ...") as a clock row (owner, 2026-10-07, Q1399): the
  * same window, the same shared helpers the sweep calls, for a card that draws
@@ -29,7 +32,8 @@ export function confirmationOpensClock(
     minute: "2-digit",
   });
   return {
-    clock: { id: "confirm-opens", at: new Date(opensMs), text: "until confirmation opens", expiredText: "Confirmation is open" },
+    // Q2597 (Jobs audit 1102b row 11, JA-5 seen again): "until confirmation opens" was app jargon on a countdown.
+    clock: { id: "confirm-opens", at: new Date(opensMs), text: CONFIRM_OPENS_TEXT, expiredText: "You can confirm now" },
     note: isOwner
       ? "The day before, we ask you both to confirm you're still on."
       : `The day before, we ask you both to confirm you're still on. Confirm by ${confirmBy} (${CONFIRM_DEADLINE_HOURS_BEFORE_START} hours before it starts), or it's reposted to other Helprs.`,

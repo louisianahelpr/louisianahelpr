@@ -78,7 +78,7 @@ function SignBlock(props: {
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Initial each of these</legend>
           {initialed.map((c) => (
-            <label key={c.key} className="flex items-start gap-2 text-sm">
+            <label key={c.key} className="flex min-h-11 items-start gap-2 text-sm">
               <Checkbox checked={props.ticks[c.key] === true} onCheckedChange={(v) => props.setTicks((t) => ({ ...t, [c.key]: v === true }))} aria-label={c.label} />
               <span>{c.label}</span>
             </label>
@@ -87,7 +87,7 @@ function SignBlock(props: {
       )}
       {/* Consent is not an initial: its own line, with the signature (coordinator, 2026-10-19). */}
       <div className="space-y-3 border-t border-border pt-3">
-        <label className="flex items-start gap-2 text-sm font-medium">
+        <label className="flex min-h-11 items-start gap-2 text-sm font-medium">
           <Checkbox checked={props.consent} onCheckedChange={(v) => props.setConsent(v === true)} aria-label="I agree to sign electronically" />
           <span>I agree to sign this lease electronically.</span>
         </label>

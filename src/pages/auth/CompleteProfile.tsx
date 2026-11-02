@@ -732,13 +732,13 @@ const CompleteProfile = () => {
                 <button role="checkbox"> with empty content, so the box
                 announced as an unnamed checkbox while the user was agreeing to
                 the rules, terms and privacy policy. */}
-            <label htmlFor="accept-policies" className="flex items-start gap-2.5 text-ds-11 cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <label htmlFor="accept-policies" className="flex min-h-11 items-start gap-2.5 text-ds-11 cursor-pointer" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               <Checkbox
                 id="accept-policies"
                 aria-labelledby="accept-policies-label"
                 checked={acceptedPolicies}
                 onCheckedChange={(v) => setAcceptedPolicies(v === true)}
-                className="h-3.5 w-3.5 mt-[3px] shrink-0 [&_svg]:h-3 [&_svg]:w-3"
+                className="mt-px shrink-0"
               />
               <span id="accept-policies-label" className="leading-relaxed">
                 {/* Wording/order matches SignupStep1's identical consent row
@@ -757,13 +757,13 @@ const CompleteProfile = () => {
                 sign-up (owner, 2026-10-14), laid out like the consent row
                 above it. Required, UNCHECKED by default. */}
             {ageBoxShown && (
-              <label htmlFor="age-confirm" className="flex items-start gap-2.5 text-ds-11 cursor-pointer -mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              <label htmlFor="age-confirm" className="flex min-h-11 items-start gap-2.5 text-ds-11 cursor-pointer -mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 <Checkbox
                   id="age-confirm"
                   aria-labelledby="age-confirm-label"
                   checked={ageConfirmed}
                   onCheckedChange={(v) => setAgeConfirmed(v === true)}
-                  className="h-3.5 w-3.5 mt-[3px] shrink-0 [&_svg]:h-3 [&_svg]:w-3"
+                  className="mt-px shrink-0"
                 />
                 <span id="age-confirm-label" className="leading-relaxed">
                   {t("profileGate.ageConfirm")} <span style={{ color: "hsl(var(--sienna-ink))" }}>*</span>

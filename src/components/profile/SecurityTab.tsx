@@ -42,6 +42,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { TAB_TITLES } from "@/pages/profile/types";
+import { sessionSeenWords } from "@/components/profile/sessionSeenWords";
 
 /**
  * Short display labels for the "Lock again" segmented control, keyed by the
@@ -505,14 +506,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
               const IconCmp =
                 group.icon === "phone" ? Smartphone :
                 group.icon === "tablet" ? Tablet : Monitor;
-              const lastSeen = new Date(group.lastSeenAt);
-              const minsAgo = Math.floor((Date.now() - lastSeen.getTime()) / 60_000);
-              const when =
-                minsAgo < 2 ? "just now" :
-                minsAgo < 60 ? `${minsAgo}m ago` :
-                minsAgo < 60 * 24 ? `${Math.floor(minsAgo / 60)}h ago` :
-                minsAgo < 60 * 24 * 7 ? `${Math.floor(minsAgo / (60 * 24))}d ago` :
-                lastSeen.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+              const isThisDevice = group.label === parseUserAgent(navigator.userAgent).label;
               return (
                 <div
                   key={group.fingerprint}
@@ -525,7 +519,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                   <span
                     className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
                     style={{
-                      background: group.label === parseUserAgent(navigator.userAgent).label ? "hsl(var(--bark) / 0.12)" : "hsl(var(--ivory-sand))",
+                      background: isThisDevice ? "hsl(var(--bark) / 0.12)" : "hsl(var(--ivory-sand))",
                       color: "hsl(var(--bark))",
                     }}
                   >
@@ -545,7 +539,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                           signal on the screen people read to spot intrusions.
                           Falls back to nothing when no group matches (e.g. the
                           current session predates login_history). */}
-                      {group.label === parseUserAgent(navigator.userAgent).label && (
+                      {isThisDevice && (
                         <span
                           className="text-ds-10 font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
                           style={{
@@ -562,9 +556,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                       className="text-ds-11 font-sans mt-0.5"
                       style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                     >
-                      Last seen {when}
-                      {group.ipAddress && <span className="ml-1.5">· {group.ipAddress}</span>}
-                      {group.count > 1 && <span className="ml-1.5">· {group.count} sign-ins</span>}
+                      {sessionSeenWords({ isThisDevice, lastSeenAt: group.lastSeenAt, ipAddress: group.ipAddress, count: group.count })}
                     </p>
                   </div>
                 </div>

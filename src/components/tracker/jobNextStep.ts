@@ -54,5 +54,9 @@ export function jobNextStep(
   if (!line) return null;
   const m = BY_DAY.exec(line);
   const who = progress.waitingOnYou ? "you" : "them";
-  return m ? { who, text: m[1], by: m[2] } : { who, text: line };
+  // Q2590 (Jobs audit 1102b row 4): "Next: lexi offered you this job" lost the name's capital; a line that starts
+  // with the other person's name keeps it.
+  const keepCase = !!other && (line === other || line.startsWith(`${other} `) || line.startsWith(`${other}'`));
+  const v: NextStepValue = m ? { who, text: m[1], by: m[2] } : { who, text: line };
+  return keepCase ? { ...v, keepCase } : v;
 }

@@ -345,7 +345,7 @@ export function SignupStep1({
             setAcceptedPolicies(checked === true);
             setAgeConfirmed(checked === true);
           }}
-          className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
+          className="mt-px shrink-0"
         />
         <span id="policies-label" className="text-ds-13 leading-snug font-sans text-muted-foreground">
           {t("signup.agreeLead")}{" "}
@@ -368,7 +368,7 @@ export function SignupStep1({
           aria-labelledby="marketing-consent-label"
           checked={marketingConsent}
           onCheckedChange={(checked) => setMarketingConsent(checked === true)}
-          className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
+          className="mt-px shrink-0"
         />
         <span id="marketing-consent-label" className="text-ds-13 leading-snug font-sans text-muted-foreground">
           {t("signup.marketing")}

@@ -93,7 +93,7 @@ export function TaxStatementsCheck({ id, checked, onChange, free = false }: { id
     return (
       <div className="flex items-start gap-3 text-ds-14" data-tax-statements="free">
         {box}
-        <label htmlFor={id}>{TAX_FREE_LABEL}</label>
+        <label htmlFor={id} className="min-h-11 flex-1">{TAX_FREE_LABEL}</label>
       </div>
     );
   }
@@ -104,7 +104,7 @@ export function TaxStatementsCheck({ id, checked, onChange, free = false }: { id
       </ul>
       <div className="flex items-start gap-3 text-ds-14 font-semibold">
         {box}
-        <label htmlFor={id}>{TAX_TICK_LABEL}</label>
+        <label htmlFor={id} className="min-h-11 flex-1">{TAX_TICK_LABEL}</label>
       </div>
     </div>
   );

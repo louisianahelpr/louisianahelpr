@@ -100,7 +100,7 @@ export const RefundJobDialog = ({
               <label className="flex min-h-11 items-center gap-2 text-ds-13 font-medium text-foreground">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 min-h-0 min-w-0 shrink-0"
+                  className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0"
                   style={{ accentColor: "hsl(var(--primary))" }}
                   aria-label="Helpr at fault"
                   checked={helprFault.on}

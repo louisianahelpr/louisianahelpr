@@ -47,14 +47,17 @@ export const BatchRow = ({
           the accessibility tree. */}
       {tab === "ready" && (
         batch.stripe_account_id ? (
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => onToggleSelected(batch.helper_id)}
-            aria-label={`Select ${batch.helper_name} for bulk payout`}
-            className="mt-0.5"
-          />
+          // A 44px tap square around the 18px box; the negative margin keeps the row's layout.
+          <label className="-m-[13px] flex shrink-0 cursor-pointer p-[13px]">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggleSelected(batch.helper_id)}
+              aria-label={`Select ${batch.helper_name} for bulk payout`}
+              className="mt-0.5"
+            />
+          </label>
         ) : (
-          <div className="hidden sm:block h-4 w-4 shrink-0" aria-hidden="true" />
+          <div className="hidden sm:block h-[18px] w-[18px] shrink-0" aria-hidden="true" />
         )
       )}
       <div className="flex-1 min-w-0 space-y-1">

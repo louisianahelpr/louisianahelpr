@@ -132,10 +132,10 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
                     </span>
                     <span
                       aria-hidden
-                      className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+                      className="shrink-0 w-[18px] h-[18px] rounded-full flex items-center justify-center"
                       style={on ? { background: "hsl(var(--bark))" } : { border: "1.5px solid hsl(var(--border))" }}
                     >
-                      {on && <Check className="w-4 h-4" style={{ color: "hsl(var(--primary-foreground))" }} strokeWidth={3} />}
+                      {on && <Check className="w-3 h-3" style={{ color: "hsl(var(--primary-foreground))" }} strokeWidth={3} />}
                     </span>
                   </button>
                 </li>

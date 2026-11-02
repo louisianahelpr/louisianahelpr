@@ -75,6 +75,18 @@ describe("CMP-5: Selling's row and the link", () => {
     vi.useRealTimers();
   });
 
+  // Q2638 (audit 1102c R13): "Hasn't sold yet. Drop the price?" read as a warning (terracotta ink); it is a neutral hint.
+  // @mutate src/components/declutter/DeclutterPriceNudge.tsx |     <p className="text-ds-13 text-muted-foreground" data-price-nudge=""> |     <p className="text-ds-13 text-[hsl(var(--sienna-ink))]" data-price-nudge="">
+  it("Q2638: the price nudge is in a neutral tone, not the warning ink", () => {
+    vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+    render(<PriceNudgeLine item={item()} dropState={undefined} onOpen={vi.fn()} />);
+    const line = document.querySelector("[data-price-nudge]") as HTMLElement;
+    expect(line).not.toBeNull();
+    expect(line.className).toContain("text-muted-foreground");
+    expect(line.className).not.toMatch(/sienna|destructive|warning|alert/);
+    vi.useRealTimers();
+  });
+
   it("the notice's link opens the live listing once and leaves the address clean", () => {
     const open = vi.fn();
     let where = "";

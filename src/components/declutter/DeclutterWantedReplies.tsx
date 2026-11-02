@@ -181,6 +181,12 @@ function IHaveThisSheet({ post, userId, onClose, startItemId = null }: { post: W
                     You keep the whole <strong className="tabular-nums text-[hsl(var(--sienna-ink))]">{formatPrice(cents)}</strong>. If {who} accepts, {who === "them" ? "they pay" : `${who} pays`} and you're paid after the handover.
                   </p>
                 )}
+                {/* A3-80: before Send, how long the buyer has and what happens to the listing meanwhile. The reply is an
+                    offer with 48 hours to answer (declutter_reply_to_wanted); anyone taking the item voids every open
+                    offer on it (declutter_take_item). */}
+                <p className="text-ds-13 text-muted-foreground" data-reply-meanwhile="">
+                  {who === "them" ? "They have" : `${who} has`} 48 hours to accept. Your listing stays up at {formatPrice(item.current_price_cents)}; if someone else buys it first, this answer ends.
+                </p>
               </div>
             )}
           </div>

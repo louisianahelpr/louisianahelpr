@@ -624,7 +624,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // T9 (20261031004529): names declutter_refunds only as a notice kind on the 60-day hold; its own refunds all go through declutter_close_paid_order with reasons already pinned (buyer_no_show, seller_no_show), and it writes no amount or fee.
       // 20261031181404 (Builder 16): restated verbatim but for the (d) delivery-reminder loop, which now locks its order and
       // re-reads the booking so its notice names the item; that loop records no refund. Every refund path above unchanged.
-      declutter_handover_sweep: "20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql f4d67855db1ff4c5",
+      // 20261102031228 (Builder 135, Q2465): verbatim but for the (d) loop's two "Delivery coming up" sends, now
+      // declutter_notify_strict; that loop records no refund. Every refund path unchanged.
+      declutter_handover_sweep: "20261102031228_declutter_reminders_retry_strict.sql 08f36324e2085c85",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout

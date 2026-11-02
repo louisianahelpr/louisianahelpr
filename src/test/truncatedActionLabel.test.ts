@@ -96,8 +96,6 @@ const KNOWN: Record<string, string> = {
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): recent-chat subtitles (\"Helper reply ...\") sw==cw 194/194 at 320 as poster-e2e",
   "src/components/policy/CollapsedPolicy.tsx:CollapsibleTrigger:{isSearching ? highlight(subtitle, query) : subtitle}":
     "MEASURED NOT CLIPPED 2026-09-26 (Q119): all 23 section subtitles on /legal, /terms, /privacy, /rules sh==ch at 320, 375 and 1440 (guest, local build on prod)",
-  "src/components/job-card/ActivitySectionedView.tsx:button:{sectionLabels[key]}":
-    "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): Active/Completed/Cancelled section headers sw==cw on /posts?filter=all at 320, 375 and 1440 as poster-e2e",
   "src/pages/profile/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): species line sw==cw 166/166 at 320 on the pets page as poster-e2e",
   "src/pages/post-job/FormStep.tsx:Button:{submitLabel}":

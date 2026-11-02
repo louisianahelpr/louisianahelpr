@@ -157,7 +157,7 @@ class PreviewErrorBoundary extends Component<{ resetKey: string; children: React
 function Controls({ stage, side, onStage, onSide }: {
   stage: DeclutterPreviewStage; side: DeclutterPreviewSide; onStage: (s: DeclutterPreviewStage) => void; onSide: (s: DeclutterPreviewSide) => void;
 }) {
-  // Audit 1102c P7 (Q2625): the panel covered ~40% of a 375 screen; it folds to its title row.
+  // Audit 1102c P7 (Q2625), measured 2026-11-02: the panel covered ~40% of a 375 screen; it folds to its title row.
   const [open, setOpen] = useState(true);
   const openPhone = () => {
     const w = window.open(window.location.href, PHONE_WINDOW, "popup=yes,width=375,height=812");

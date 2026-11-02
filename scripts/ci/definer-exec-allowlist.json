@@ -38,6 +38,7 @@
     "dismiss_sms_phone_prompt()": "reviewed 2026-10-27 (Q2423): writes only the caller's own notification_preferences row ((SELECT auth.uid()), refuses a NULL caller): one timestamp, the first one kept",
     "payout_setup_hire_allowed_for_me()": "client",
     "set_sms_consent(boolean, text)": "client",
+    "confirm_sms_code(text)": "client",
     "ack_backout_notice(uuid)": "client",
     "admin_ban_settlement_reviews()": "client",
     "admin_confirm_ban_settlement(uuid)": "client",

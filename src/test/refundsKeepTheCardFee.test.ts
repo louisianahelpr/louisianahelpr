@@ -95,7 +95,7 @@
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
  * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
+ * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
  * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
@@ -463,17 +463,20 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // declutter_record_refund restated with ONE new reason, helpr_fault (the Helpr's fault in a delivery they could not
     // finish): everything goes back and the card fee becomes a debt on the at-fault Helpr, not the seller. Nothing
     // else in them changed (record_refund three-way merged from 20261031105148).
+    migration: "20261102031000_declutter_seller_delivery_book_by.sql",
+    // A3-72 (20261102031000, lead 11-01 9:05 PM; kept by the A3 reconcile, builder 166): the reason CHECK adds
+    // 'delivery_never_booked' and the reason -> policy CHECK is restated unchanged beside it (the new reason takes its
+    // ELSE, full_platform_absorbs).
     // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): declutter_record_refund restated; only the
     // keep_buyer_fee whole-order amount check adds a ship order's shipping minus declutter_shipping_reserved_cents. The
     // v_policy CASE is byte-for-byte unchanged (read again below); the constraints stay in 20261031231150.
-    migration: "20261031231150_helpr_delivery_cant_finish.sql",
     // Q2404 (20261102061022): declutter_record_refund restated verbatim from 20261031231150 plus one block: for
     // full_seller_pays_fee and keep_card_fee, a charge that also carried the setup fee bills only the sale's share of the
     // card fee (fee * total / (total + setup fee)). Reasons, policies and the CHECKs are unchanged.
     // Q2556 (20261102080936): restated verbatim from 20261102061022; only an out seller's refused payment
     // (seller_out on a payment the order never took) skips record_refund's own notice. Amounts, policies, reasons unchanged.
     functionMigration: "20261102080936_declutter_seller_out_told_once.sql",
-    proofs: ["src/test/pglite/declutterCardFeeSetupShare.pglite.mjs", "src/test/pglite/declutterSellerOutAfterPayment.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
+    proofs: ["src/test/pglite/declutterSellerDeliveryBookBy.pglite.mjs", "src/test/pglite/a3StackReconcile.pglite.mjs", "src/test/pglite/declutterCardFeeSetupShare.pglite.mjs", "src/test/pglite/declutterSellerOutAfterPayment.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
       "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
     policySources: [
@@ -511,11 +514,18 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // fault = everything back, delivery included, and the card fee Stripe kept is a declutter_seller_fee_debts row
       // on the HELPR (declutter_record_refund: v_seller := the task's helpr_id), taken from their next payout.
       helpr_fault: "full_seller_pays_fee",
+      // A3-72 (lead 11-01 5:34 PM + 9:05 PM): a seller delivery that lost its time when the payment landed (the slot went
+      // to another buyer meanwhile) and has none 7 days on: the order is closed and the buyer's FULL payment refunded;
+      // the platform absorbs the card fee (no seller debt, no strike): neither side set a time, our checkout let the
+      // slot go while the payment was in flight.
+      delivery_never_booked: "full_platform_absorbs",
     } as Record<string, "full_platform_absorbs" | "full_seller_pays_fee" | "keep_card_fee" | "keep_buyer_fee" | "agreed_part">,
     /** Our own mistakes, the only reasons the platform refunds the fee on (owner, 2026-10-14). EXACT. */
     ownMistakes: ["superseded", "order_closed", "amount_mismatch", "duplicate_payment", "order_missing", "sold_elsewhere",
       // Row 43: the platform absorbs damage in a delivery it arranged (owner decision, not a guess).
-      "delivery_damage"],
+      "delivery_damage",
+      // A3-72 (lead decision 11-01 9:05 PM, not a guess): the slot was sold while the payment was in flight.
+      "delivery_never_booked"],
     constraints: [
       {
         name: "declutter_refunds_fee_policy_check",
@@ -567,7 +577,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // seller's debt or a kept fee no longer carries card cost on a delivery fee already given back or paid to the Helpr.
       // Q1928 gap 3 (20261102063343, lead PASS pending): restated from Shipping S6 2d (label hold) with Q1935's prorated
       // fee restored; buyer_no_show / admin_no_fault become seller_out (full_seller_pays_fee) while the seller is out.
-      declutter_close_paid_order: "20261102063343_declutter_seller_out_after_payment.sql 0dd0e2a8f5c5e2f4",
+      // A3 reconcile (20261102084222, builder 166, lead verdict pending): 20261102063343 verbatim plus A3-72's two notice
+      // lines on 'delivery_never_booked' (from 20261102031000, which 063343 dropped). Amount, fee, reasons unchanged.
+      declutter_close_paid_order: "20261102084222_a3_stack_reconcile.sql db5b1db1cd0b7ecc",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
       // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
       // #3730 (20261028235247, lh-money-escrow approved via the lead 2026-10-29): only the handover_not_offered refusal
@@ -705,7 +717,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // re-reads the booking so its notice names the item; that loop records no refund. Every refund path above unchanged.
       // 20261102031228 (Builder 135, Q2465): verbatim but for the (d) loop's two "Delivery coming up" sends, now
       // declutter_notify_strict; that loop records no refund. Every refund path unchanged.
-      declutter_handover_sweep: "20261102031228_declutter_reminders_retry_strict.sql 08f36324e2085c85",
+      // A3 reconcile (20261102084222, builder 166, lead verdict pending): 20261102031228 verbatim plus A3-72's loop (b2)
+      // (a needs_time seller delivery past book_by closes as delivery_never_booked = full_platform_absorbs, no strike),
+      // which 031228 dropped. Every other loop unchanged.
+      declutter_handover_sweep: "20261102084222_a3_stack_reconcile.sql f656e5c9f5444a25",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout
@@ -728,7 +743,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // D2-5 (20261029224147): + admin_decided (the request ended with an admin decision); still reads the settled refund row's amount and status only.
       // D2-3 (20261029225634): + the request's photo_paths; still reads the settled refund row's amount and status only.
       // Returns (20261030071818) add the return fields (way, day, time, collect address, drop-off time); still no write.
-      declutter_refund_request_view: "20261031010243_declutter_never_got_it_no_return.sql 45e59b8f95a4e7f1",
+      // A3-74 (20261102041000): + the seller's side (note, photos), the problem id and its decide_by; still reads the settled refund row's amount and status only.
+      declutter_refund_request_view: "20261102041000_declutter_refund_seller_side.sql 4a15d543a35dd29f",
       // D2-3 (20261029225634, lh-authz-rls approve 2026-10-29): the other side's words and photos on an open problem; names declutter_refunds only as its notice kind; records no refund and moves no money.
       declutter_problem_add_side: "20261029225634_declutter_problem_both_sides_and_photos.sql d28dab3c3c9756cd",
       // Returns (20261030071818, builder 80; restated 20261030164712, Q2486: the distance reads the order's pickup points): names declutter_refunds only as its notice kind; records no refund and moves no money (the drop-off photo and time only).
@@ -772,11 +788,12 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // ('failed', flagged gave_up), listed as recorded (refund_cents shown, still a read).
       // Q1931 raise refunds (builder 148, 20261102054153): + a delivery pay-raise refund that used its 12 tries
       // ('refunding', refund_attempts >= 12; kind 'raise_refund', gave_up), listed with refund_cents as recorded (a read).
-      admin_payouts_held_for_review: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql 1d1e384240069d7f",
+      // Builder 187 (11-02, PR #3990): moved to 20261102150413_declutter_manager_admin_held_after_gave_up.sql: the newest train body (20261102054153) + the manager's 'declutter_manager' kind.
+      admin_payouts_held_for_review: "20261102150413_declutter_manager_admin_held_after_gave_up.sql 807a0e1859efd3bd",
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
       // 20261019112103: + a held Shops refund / payout, refused while a refund made in Stripe stands (refunded_in_stripe)
       // or when the queue would not send it; a released Shops row starts its tries at 0. No amount changes.
-      admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
+      admin_payout_release: "20261101234732_declutter_manager_payout_admin_held.sql 89dda45e22ecebf0",
       // records how a held refund was settled outside the app (Stripe re_/pyr_ id or "other:") and the amount the admin
       // says moved (settled_by_hand_cents, payout_settlements, the hand-refund ledger); it sends no money and never
       // changes refund_cents, so no new fee is returned by the app (owner: hand-settled = no new money movement).
@@ -789,20 +806,26 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q1931 raise refunds (builder 148, 20261102054153): + records a gave-up raise refund sent in Stripe: a re_/pyr_ id
       // only, for EXACTLY refund_cents (settle_amount_differs), whose amount the raise CHECK _refund_amount already fixed
       // by reason (the card fee kept on delivery_cancelled_buyer); refund_cents never changed, no money sent.
-      admin_payout_settle_by_hand: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql d0136340240d2b1f",
+      // Builder 187 (11-02, PR #3990): moved to 20261102150413_declutter_manager_admin_held_after_gave_up.sql: the newest train body (20261102054153) + the manager's 'declutter_manager' kind.
+      admin_payout_settle_by_hand: "20261102150413_declutter_manager_admin_held_after_gave_up.sql b3cc1d19482347cc",
+      // Manager mode phase 2b (20261101233256 / 20261101234732, B120, lead PASS 266e149865): the admin tools, defer,
+      // hold-for-review, prune and the held check take the kind 'declutter_manager' (the manager's share row). The
+      // manager branches touch only declutter_manager_payouts; the declutter_refunds lines are unchanged.
+      // the manager's payout queue: reads declutter_refunds only to wait while a part refund is pending; no amount.
+      declutter_manager_payouts_due: "20261101233256_declutter_manager_payout_kind.sql c3c47f22b43097b7",
       // pushes next_attempt_at of a pending / failed row; no try used, no amount.
-      payout_defer: "20261019070737_payout_waits_for_payee_setup.sql 64f967d0b2d0c9f4",
+      payout_defer: "20261101233256_declutter_manager_payout_kind.sql 0e08cb79f90f76e5",
       // pages ops and tells the payee once per held row; writes only held_notified_at.
       // 20261019112103: + held Shops refunds on the ops ledger (the buyer is not told: refunded in Stripe already).
-      payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
+      payout_held_check: "20261101234732_declutter_manager_payout_admin_held.sql 0b96f15b3cffcc74",
       // Shops M3: the ONE refund formula for a Shops order (quote, write and CHECKs read it): keep_card_fee keeps the
       // card fee and its tax for buyer_cancelled / problem_no_fault; full otherwise (the shop is billed the fee as debt
       // for its own faults; the platform carries it only for problem_our_mistake).
       shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
       // the payout run holds a pending / failed row for review (status + reason); no amount.
-      payout_hold_for_review: "20261019070737_payout_waits_for_payee_setup.sql 744e5a8f330d8f6f",
+      payout_hold_for_review: "20261101233256_declutter_manager_payout_kind.sql a620256e1b71a72e",
       // deletes wait / send-mark bookkeeping rows of ended payouts; reads declutter_refunds status only.
-      payout_payee_waits_prune: "20261019070737_payout_waits_for_payee_setup.sql c4543482b291f2dc",
+      payout_payee_waits_prune: "20261101233256_declutter_manager_payout_kind.sql 817cd73b40cd51be",
     } as Record<string, string>,
     /**
      * Every top-level statement (outside a function body) that names declutter_refunds (table, ALTER, policy,
@@ -814,6 +837,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Board 141: the reason, fee policy, policy and amount CHECKs swapped in one DO block (agreed_part added, every
       // other arm unchanged), and declutter_refund_requests.refund_id referencing a refund row (no amount).
       // BUY-36: the reason CHECK and the reason -> policy CHECK swapped to add 'helpr_fault' (full_seller_pays_fee).
+      // A3-72: the reason CHECK adds 'delivery_never_booked'; the policy CHECK statements hash the same as 20261031231150's.
+      "declutter_refunds 20261102031000_declutter_seller_delivery_book_by.sql": ["1192c0e245b11665", "ee6fde0ace2bcc93", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261031231150_helpr_delivery_cant_finish.sql": ["1192c0e245b11665", "dafbb2cea83bdc81", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261026155251_declutter_refund_requests.sql": ["1192c0e245b11665", "7b90a5dbd6a21681", "4cf2e4567f6437bd", "2c0ac85e85bd01e6", "afb94a44f9fb4011", "7af5606b0b938d68", "9eb0bd77676aa5f0", "d2e483aa293ef495"],
       "declutter_refunds 20261014224914_declutter_slice3b_payments.sql": ["4bff57b818038dfb", "501086bd450ecad3", "3dac3faed7ee24b1", "f5f2155930f94544"],
@@ -905,12 +930,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // /code-review of shops-m3): amounts come only from shop_refund_amounts (held by the shop_refunds CHECKs); the
     // held-for-review admin tools move status and record what moved, never change refund_cents.
     functions: {
-      admin_payout_release: "20261031200034_declutter_payout_tries_restart.sql 78bddd7c72859a15",
+      admin_payout_release: "20261101234732_declutter_manager_payout_admin_held.sql 89dda45e22ecebf0",
       // Q1931 (builder 144): restated to also settle / list gave-up Declutter delivery rows; Shops branches unchanged.
       // Q1931 raise refunds (builder 148, 20261102054153): + the 'raise_refund' kind; Shops branches unchanged.
-      admin_payout_settle_by_hand: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql d0136340240d2b1f",
-      admin_payouts_held_for_review: "20261102054153_declutter_raise_refund_gave_up_hand_settle.sql 1d1e384240069d7f",
-      payout_held_check: "20261019112103_shops_held_for_review_admin_tools.sql b489b512cdf15ef7",
+      // Manager mode phase 2b (20261101234732): release and the held check take 'declutter_manager'; list and settle: 20261102150413_declutter_manager_admin_held_after_gave_up.sql (Builder 187).
+      admin_payout_settle_by_hand: "20261102150413_declutter_manager_admin_held_after_gave_up.sql b3cc1d19482347cc",
+      admin_payouts_held_for_review: "20261102150413_declutter_manager_admin_held_after_gave_up.sql 807a0e1859efd3bd",
+      payout_held_check: "20261101234732_declutter_manager_payout_admin_held.sql 0b96f15b3cffcc74",
       shop_hand_refund_failed: "20261019071055_shops_refunds_cancels_strikes.sql ba27ff33a9f0c110",
       shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",
       shop_money_rows_seed: "20261018211820_shops_handover_payout.sql 55e7c11ee19013d2",

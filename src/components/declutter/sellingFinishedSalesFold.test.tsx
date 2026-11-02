@@ -19,11 +19,13 @@ const state = vi.hoisted(() => ({
   cart: [] as Record<string, unknown>[],
   /** A3-78: each order's refund request view (declutter_refund_request_view); none unless a test sets it. */
   refunds: {} as Record<string, { request: Record<string, unknown> | null }>,
+  /** Q2631: the open problems (declutter_problems_open); none unless a test sets them. */
+  problems: [] as { id: string; order_id: string; reporter_side: string; reason: string }[],
 }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<object>()),
-  fetchOpenProblems: async () => [],
+  fetchOpenProblems: async () => state.problems,
   fetchOrderProblem: async () => null,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "seller", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null }),
 }));
@@ -53,7 +55,26 @@ function show(onlyShow?: (id: string) => boolean, url = "/declutter?tab=selling"
 }
 
 describe("soldstates-2: Selling folds finished sales", () => {
-  beforeEach(() => { state.cart = []; state.refunds = {}; });
+  beforeEach(() => { state.cart = []; state.refunds = {}; state.problems = []; });
+
+  // Q2631 (audit 1102c R6): an order on hold for a problem still counted in "Sold: pickup and payout · 1 to hand over"
+  // while its card said "On hold until the problem is decided." Held orders are left out of the count.
+  // @mutate src/components/declutter/DeclutterTabParts.tsx |   const toHandOver = Math.max(0, todo.salesOpen - held); |   const toHandOver = todo.salesOpen;
+  // @mutate src/components/declutter/DeclutterTabParts.tsx | l.order_status === "paid" && l.handover !== "delivery" && l.order_id && problems.has(l.order_id) | l.order_status === "paid" && l.handover !== "delivery" && l.order_id
+  it("Q2631: an order on hold for a problem is not counted to hand over", async () => {
+    state.cart = [line(1, "paid"), line(2, "paid")];
+    state.problems = [{ id: "p1", order_id: line(2, "x").order_id, reporter_side: "buyer", reason: "not_as_described" }];
+    show();
+    const heading = await screen.findByRole("heading", { name: /Sold: pickup and payout/ });
+    await vi.waitFor(() => expect(heading.textContent).toBe("Sold: pickup and payout · 1 to hand over"));
+    // Both on hold: no count at all.
+    state.problems = [...state.problems, { id: "p2", order_id: line(1, "x").order_id, reporter_side: "buyer", reason: "damaged" }];
+    document.body.innerHTML = "";
+    show();
+    const again = await screen.findByRole("heading", { name: /Sold: pickup and payout/ });
+    await vi.waitFor(() => expect(again.textContent).toBe("Sold: pickup and payout"));
+    expect(screen.getByText("Sale 1 paid")).toBeInTheDocument();
+  });
 
   // A3-78 (audit 11-01): a finished sale whose refund request waits on the seller (open, or the item dropped back
   // and not confirmed) stays in the list, never under "Show 1 finished sale".
@@ -79,11 +100,24 @@ describe("soldstates-2: Selling folds finished sales", () => {
     expect(await screen.findByText("Sale 1 paid")).toBeInTheDocument();
     expect(screen.queryByText("Sale 2 handed_over")).toBeNull();
     expect(screen.queryByText("Sale 3 refunded")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Show 2 finished sales" }));
+    // Q2630 (audit 1102c R5): the refunded one is never counted as a "finished sale".
+    fireEvent.click(screen.getByRole("button", { name: "Show 1 finished and 1 refunded sales" }));
     expect(screen.getByText("Sale 2 handed_over")).toBeInTheDocument();
     expect(screen.getByText("Sale 3 refunded")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Hide finished sales" }));
+    fireEvent.click(screen.getByRole("button", { name: "Hide finished and refunded sales" }));
     expect(screen.queryByText("Sale 2 handed_over")).toBeNull();
+  });
+
+  // Q2630 (audit 1102c R5): a refunded sale alone reads "refunded", never "finished".
+  // @mutate src/components/declutter/DeclutterTabParts.tsx |   const refundedDone = new Set(sold.filter((l) => l.order_status === "refunded" && | const refundedDone = new Set(sold.filter((l) => false &&
+  it("Q2630: a refunded sale folds as refunded, not finished", async () => {
+    state.cart = [line(1, "paid"), line(3, "refunded")];
+    show();
+    expect(await screen.findByText("Sale 1 paid")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Show 1 refunded sale" }));
+    expect(screen.getByText("Sale 3 refunded")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hide refunded sales" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /finished/ })).toBeNull();
   });
 
   it("every sale finished: the heading stays, says nothing to hand over, and the fold opens them", async () => {

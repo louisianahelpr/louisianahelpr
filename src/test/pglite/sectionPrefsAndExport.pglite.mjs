@@ -2,7 +2,7 @@
 /**
  * PGlite proof for Builder 160's two migrations (2026-11-02):
  *   20261102074244_member_section_prefs.sql (Q2199): the member's own Customize row, own-row RLS, anon nothing.
- *   20261102074248_export_my_data_handovers_fee_debts.sql: export_my_data restated from 20261102030000 VERBATIM except
+ *   20261102161715_export_my_data_manager_mode.sql: export_my_data restated from 20261102030000 VERBATIM except
  *     declutter_seller_fee_debts drops waived_by, plus five sections (declutter_handovers without the code,
  *     declutter_haul_aways and declutter_donations through the seller's items, helpr_card_fee_debts without
  *     refund_ref, member_section_prefs).
@@ -23,7 +23,7 @@ const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const BASE = "20261102030000_export_my_data_continue_days.sql";
 const PREFS_FILE = "20261102074244_member_section_prefs.sql";
-const EXPORT_FILE = "20261102074248_export_my_data_handovers_fee_debts.sql";
+const EXPORT_FILE = "20261102161715_export_my_data_manager_mode.sql";
 const skip = process.env.NEW_MIGRATION === "skip";
 if (skip) console.log("NEW_MIGRATION=skip: running WITHOUT the new migrations (expect FAILs)");
 

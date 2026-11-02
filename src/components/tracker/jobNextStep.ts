@@ -18,13 +18,16 @@ function laTime(ms: number): string {
 
 export function jobNextStep(
   progress: JobProgressState,
-  o: { side: "poster" | "helpr"; otherFirst?: string | null; pendingApplicants?: number; offerOut?: boolean; offerUntil?: string | null; noShowRepostedOn?: string | null; approveLeft?: string | null },
+  o: { side: "poster" | "helpr"; otherFirst?: string | null; pendingApplicants?: number; offerOut?: boolean; offerUntil?: string | null; noShowRepostedOn?: string | null; approveLeft?: string | null; crew?: boolean;
+    /** Q2669: the hired Helpr cancelled and the job went back up (their closed application): who, and when. */
+    helprCancelled?: { name: string | null; at: string } | null },
 ): NextStepValue | null {
   const other = (o.otherFirst ?? "").trim();
   // Off the path (cancelled, expired, under review): where it stands, with its word.
   if (progress.stage === null) {
     if (!progress.word && !progress.next) return null;
-    return { who: "info", text: progress.next ? `${progress.word} · ${progress.next}` : progress.word };
+    const off: NextStepValue = { who: "info", text: progress.next ? `${progress.word} · ${progress.next}` : progress.word };
+    return progress.next && progress.body ? { ...off, body: progress.body } : off;
   }
   // JA-48 / JA-49: an offer or a booking out is not "waiting for Helprs to apply", nor a nameless "with them".
   // JA-49 (lead 11-01, B107): the offered Helpr by name and until when the offer stands (jobs.direct_offer_expires_at).
@@ -35,14 +38,18 @@ export function jobNextStep(
   }
   if (o.side === "poster" && progress.stage === 0) {
     const n = o.pendingApplicants ?? 0;
-    if (n > 0) return { who: "you", text: "Choose a Helpr", by: `${n} applied` };
+    // Q2669 (audit 1102e row 2): the page looked like a plain open listing after the hired Helpr cancelled.
+    const gone = o.helprCancelled ? helprCancelledWords(o.helprCancelled) : null;
+    if (gone && n === 0) return { who: "info", text: gone.text, body: gone.next };
+    if (n > 0) return { who: "you", text: "Choose a Helpr", by: `${n} applied`, ...(gone ? { body: gone.body } : {}) };
     // JA-27: a no-show put the job back up; the line says so (the reposted day), never only "Waiting for Helprs".
     if (o.noShowRepostedOn != null) return { who: "info", text: `No-show reported · reposted${o.noShowRepostedOn ? ` ${o.noShowRepostedOn}` : ""}`, by: "waiting for Helprs to apply" };
   }
   // Marked done: the poster's step is the approval, and the review window is IN the line (owner 11-01, live Done-stage
   // screenshot: the countdown was repeated under More options), never a second panel.
   if (o.side === "poster" && progress.stage === 7 && progress.waitingOnYou) {
-    return { who: "you", text: `Approve ${other ? `${other}'s` : "your Helpr's"} work`, by: o.approveLeft ?? null };
+    // A3-32 (audit 11-01): a crew's approval is plural.
+    return { who: "you", text: `Approve ${o.crew ? "your crew's" : other ? `${other}'s` : "your Helpr's"} work`, by: o.approveLeft ?? null };
   }
   // The poster's Working step, before the Helpr marks it done: who the job waits on (unless after photos say more).
   // ("Yusef is at the job" keeps its words: work has not begun, so it is not yet theirs to mark done.)
@@ -51,7 +58,27 @@ export function jobNextStep(
   }
   const line = progress.next.trim();
   if (!line) return null;
+  // Q2601 (Jobs audit 1102b row 15): "Next: Lexi offered you this job" is news, not a step. The step is the answer,
+  // with who offered it and the offer's own clock when the page has it.
+  if (o.side === "helpr" && progress.waitingOnYou && / offered you this job$/.test(line)) {
+    const untilMs = Date.parse(o.offerUntil ?? "");
+    return { who: "you", text: `Accept or decline ${other ? `${other}'s` : "the"} offer`, by: Number.isNaN(untilMs) || untilMs <= Date.now() ? null : `by ${laTime(untilMs)}` };
+  }
   const m = BY_DAY.exec(line);
   const who = progress.waitingOnYou ? "you" : "them";
-  return m ? { who, text: m[1], by: m[2] } : { who, text: line };
+  // Q2590 (Jobs audit 1102b row 4): "Next: lexi offered you this job" lost the name's capital; a line that starts
+  // with the other person's name keeps it.
+  const keepCase = !!other && (line === other || line.startsWith(`${other} `) || line.startsWith(`${other}'`));
+  const v: NextStepValue = m ? { who, text: m[1], by: m[2] } : { who, text: line };
+  // Q2600: the line's explanation (a dispute's "who decides and when") is body text under it, never in the bold line.
+  if (progress.body) v.body = progress.body;
+  return keepCase ? { ...v, keepCase } : v;
+}
+
+/** "Eli cancelled Mon 6:00 AM" and the next step: the job is open again (helper_cancel_booking reopens it). */
+function helprCancelledWords(c: { name: string | null; at: string }): { text: string; next: string; body: string } {
+  const atMs = Date.parse(c.at);
+  const text = `${(c.name ?? "").trim() || "Your Helpr"} cancelled${Number.isNaN(atMs) ? "" : ` ${laTime(atMs)}`}`;
+  const next = "Your job is open again, so other Helprs can apply.";
+  return { text, next, body: `${text}. ${next}` };
 }

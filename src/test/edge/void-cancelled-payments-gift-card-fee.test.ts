@@ -266,6 +266,42 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect(jobFlips()).toHaveLength(0);
   });
 
+  // Q2097 (1) (lh-money-escrow@e03e43b8b#5): the hold pre-check estimated the
+  // card fee at Klarna's 5.99% + 30c, but Afterpay costs 6% + 30c. A gift that
+  // covers the 5.99% shortfall exactly passed the check, the hold was captured,
+  // and the real fee left the gift a few cents short (the platform's cents).
+  // The pre-check now takes the highest Pay-in-4 rate, so that gift is found
+  // short BEFORE any money moves.
+  // @mutate supabase/functions/_shared/stripeFees.ts |   return Math.round(amountCents * Math.max(...Object.values(STRIPE_BNPL_PCT))) + STRIPE_FLAT_CENTS; |   return Math.round(amountCents * 0.0599) + STRIPE_FLAT_CENTS;
+  it("Q2097: an Afterpay hold is priced at Afterpay's 6% before capture: a gift short by the rate gap moves no money", async () => {
+    const HOLD = 20000;
+    /** 5.99% of the hold + 30c: what the old pre-check asked for. */
+    const OLD_EST = Math.round(HOLD * 0.0599) + 30;
+    /** Afterpay's real fee on the hold: 6% + 30c. */
+    const AFTERPAY_FEE = Math.round(HOLD * 0.06) + 30;
+    expect(AFTERPAY_FEE).toBeGreaterThan(OLD_EST);
+    const fee = 50000;
+    seed(mixedJob({ budget: 1000, cancellation_fee: fee / 100 }));
+    // The gift paid exactly the old estimate's shortfall.
+    const giftPaid = OLD_EST + fee - HOLD;
+    giftRpc({ outcome: "would_restore", credit_id: "gift-1", applied_cents: giftPaid, restore_cents: giftPaid });
+    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce({
+      id: "pi_1", status: "requires_capture", amount: HOLD, amount_capturable: HOLD, latest_charge: "ch_1",
+      payment_method_types: ["afterpay_clearpay"],
+    });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: HOLD, amount_received: HOLD,
+      latest_charge: { id: "ch_1", amount: HOLD, amount_refunded: 0, balance_transaction: { fee: AFTERPAY_FEE }, payment_method_details: { type: "afterpay_clearpay" } },
+    });
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    const body = JSON.parse(await res.text());
+    expect(stripeMock.paymentIntents.capture, JSON.stringify(body)).not.toHaveBeenCalled();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(jobFlips()).toHaveLength(0);
+    expect(shortfallPaged()).toBe(true);
+  });
+
   it("no gift behind the shortfall: no money moves, the job stays in escrow, and a person is paged (never absorb a fee)", async () => {
     for (const hold of [false, true]) {
       reset();

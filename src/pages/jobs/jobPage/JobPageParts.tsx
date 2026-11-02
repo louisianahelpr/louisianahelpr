@@ -21,7 +21,9 @@ import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
-import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { isFlatFeeJob, isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
+import { jobStartDateTime } from "@/lib/dateUtils";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { isExpiredListing } from "@/lib/expiredListing";
 import { jobNextStep } from "@/components/tracker/jobNextStep";
@@ -34,7 +36,7 @@ const MONEY = "text-[hsl(var(--burnt-sienna))]";
  * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
  * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
  */
-export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, hideNext = false, crewMember, offerOut = false, offerUntil = null, noShowRepostedOn = null, approveLeft = null, continueStep = null }: {
+export function JobTracker({ job, side, trackingStatus = null, pendingApplicants, otherFirst = null, hideNext = false, crewMember, offerOut = false, offerUntil = null, noShowRepostedOn = null, approveLeft = null, continueStep = null, helprCancelled = null }: {
   job: JobPageRow; side: "poster" | "helpr" | null; trackingStatus?: string | null; pendingApplicants?: number;
   /** The poster's offer or booking is out (JA-48 / JA-49): the line waits on that Helpr, never "Helprs to apply". */
   offerOut?: boolean;
@@ -42,6 +44,8 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   offerUntil?: string | null;
   /** JA-27: the day a no-show put this job back up ("Sat, Nov 1"), for the poster's line. */
   noShowRepostedOn?: string | null;
+  /** Q2669: the hired Helpr cancelled and the job is open again: who and when, for the poster's line. */
+  helprCancelled?: { name: string | null; at: string } | null;
   /** The poster's review window in words ("23h 52m left, then Helpr support steps in"), in the line itself. */
   approveLeft?: string | null;
   /** Continue another day (owner 2026-11-01): "Continuing Thu 11/5 at 9 AM · waiting on Yusef" over the tracker's own line. */
@@ -68,7 +72,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   if (progress.stage === null && !progress.next) return null;
   // THE STATUS LINE IS THE NEXT STEP (owner 11-01 12:05 PM): what to do or who we wait on, with its deadline, ABOVE the
   // bar (mockups 4 and 5); the bar draws no line of its own under it. Off the path the tracker keeps its own words.
-  const step = hideNext ? null : continueStep ?? jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, offerUntil, noShowRepostedOn, approveLeft });
+  const step = hideNext ? null : continueStep ?? jobNextStep(progress, { side, otherFirst, pendingApplicants, offerOut, offerUntil, noShowRepostedOn, helprCancelled, approveLeft, crew: job.is_group_job === true });
   return (
     <div data-job-tracker="" className="space-y-3">
       {step && <NextStep value={step} />}
@@ -85,7 +89,8 @@ const HELD_LINE: Partial<Record<string, string>> = {
   unpaid: "Not paid yet. Helprs can't see this job until it's paid.",
   abandoned: "Not paid yet. Helprs can't see this job until it's paid.",
   refunded: "Refunded to your card.",
-  released: "Paid out to your Helpr.",
+  // Q2608 (Jobs audit 1102b row 22): the same words as the Job done sheet ("Paid to Eli · It's on its way to their bank").
+  released: "Paid to your Helpr. It's on its way to their bank.",
 };
 
 
@@ -110,20 +115,12 @@ function releasedLine(job: JobPageRow): string {
 }
 
 /**
- * The poster's amount. Phone: on the RIGHT of the title block (mockup 5). Computer: "Job price" on the left of the
- * side card, the amount on its right (mockup 4). The paid or held words are ONE sentence under it (PosterMoneyNotes),
+ * The poster's amount, on the RIGHT of the title block at every width (mockup 5; Q2599, owner 11-02: mockup 4's
+ * "Job price" side box is overruled). The paid or held words are ONE sentence under it (PosterMoneyNotes),
  * from payment_status alone (JA-47: "Paid · held" beside "card held, not charged" said two things about one payment).
  */
-export function PosterPrice({ job, labelled = false }: { job: JobPageRow; labelled?: boolean }) {
+export function PosterPrice({ job }: { job: JobPageRow }) {
   const amount = <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPrice(job.budget)}</p>;
-  if (labelled) {
-    return (
-      <div data-poster-money="" className="flex items-baseline justify-between gap-3">
-        <p className="text-ds-16 font-semibold">Job price</p>
-        {amount}
-      </div>
-    );
-  }
   return <div data-poster-money="" className="shrink-0 text-right">{amount}</div>;
 }
 
@@ -162,13 +159,31 @@ export function PosterMoneyNotes({ job, total, loading }: { job: JobPageRow; tot
  * poster's late cancel, whose fee is shared with them (poster_cancel_job: cancellation_fee > 0). Null = the normal box.
  * Guard: src/test/helprMoneyNotOnACancelledJob.test.tsx.
  */
-function helprNoPayWords(job: Pick<JobPageRow, "status" | "cancellation_fee" | "cancelled_by" | "customer_id">, noShow = false): { title: string; line: string } | null {
+function helprNoPayWords(job: JobPageRow, noShow = false): { title: string; line: string } | null {
   if (noShow) return { title: "Not paid", line: "You were reported as a no-show, so you aren't paid for this job." };
   if (job.status !== "cancelled") return null;
-  if (Number(job.cancellation_fee ?? 0) > 0 && !!job.cancelled_by && job.cancelled_by === job.customer_id) {
-    return { title: "Cancelled late", line: "It was cancelled close to the start, so you get a share of the late-cancel fee." };
+  const fee = Number(job.cancellation_fee ?? 0);
+  if (fee > 0 && !!job.cancelled_by && job.cancelled_by === job.customer_id) {
+    // Q2672 (audit 1102e row 4): when, and the dollars, never "a share of the late-cancel fee" (owner 10-25: no fee
+    // words). The amount is the cancel dialog's own quote of what void-cancelled-payments sends (cancellationHelperShare:
+    // the flat job's exact whole dollars; a legacy job's floor, "at least"). Guard: src/test/lateCancelByPosterSaysTheMoney.test.tsx.
+    const share = cancellationHelperShare(fee, job);
+    const line = share.helperPayout > 0
+      ? `${lateBy(job)}, so you get ${share.noFee || isFlatFeeJob(job) ? "" : "at least "}$${share.helperPayout} for your time.`
+      : `${lateBy(job)}. Your part for your time comes to under $1, so there is no payment for it.`;
+    return { title: "Cancelled late", line };
   }
   return { title: "Not paid", line: "This job was cancelled, so there's nothing to pay out." };
+}
+
+/** "It was cancelled less than 3 hours before the start" (Louisiana start time), or "close to the start" without one. */
+function lateBy(job: Pick<JobPageRow, "cancelled_at" | "date_needed" | "start_time">): string {
+  const start = job.date_needed && job.start_time ? jobStartDateTime(job.date_needed, job.start_time) : null;
+  const atMs = Date.parse(job.cancelled_at ?? "");
+  const left = start && !Number.isNaN(atMs) ? start.getTime() - atMs : NaN;
+  if (Number.isNaN(left) || left <= 0) return "It was cancelled close to the start";
+  const hours = Math.ceil(left / 3_600_000);
+  return hours <= 1 ? "It was cancelled less than an hour before the start" : `It was cancelled less than ${hours} hours before the start`;
 }
 
 /** The Helpr's take-home and the words that go with it (one computation: takeHomeOneComputation.test.ts). */
@@ -256,7 +271,8 @@ export function HelprMoneyNotes({ job, hired, noShow = false }: { job: JobPageRo
 export function RevisionAsk({ job, side, posterFirst }: { job: JobPageRow; side: "poster" | "helpr"; posterFirst?: string | null }) {
   if (job.status !== "revision_requested") return null;
   const note = (job.revision_note ?? "").trim();
-  const dueMs = Date.parse(job.revision_deadline ?? "");
+  // Q2668: once the Helpr marked the fix done, no deadline is left to meet here (the step line says who checks it, by when).
+  const dueMs = job.revision_completed_at ? NaN : Date.parse(job.revision_deadline ?? "");
   if (!note && Number.isNaN(dueMs)) return null;
   const due = Number.isNaN(dueMs) ? null : new Date(dueMs).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   const whose = side === "poster" ? "Your note" : posterFirst?.trim() ? `${posterFirst.trim()}'s note` : "Their note";
@@ -264,7 +280,7 @@ export function RevisionAsk({ job, side, posterFirst }: { job: JobPageRow; side:
     <section aria-label="What to fix" data-revision-ask="" className={CARD}>
       <p className="text-ds-15 font-semibold">What to fix</p>
       {note && <p className="mt-1.5 whitespace-pre-line text-ds-14 [overflow-wrap:anywhere]"><span className="font-semibold">{whose}: </span>{note}</p>}
-      {due && <p className="mt-1.5 text-ds-13 text-muted-foreground">{side === "poster" ? "The fix is due by" : "Send the fix by"} {due}.</p>}
+      {due && <p className="mt-1.5 text-ds-13 text-muted-foreground">{side === "poster" ? "The fix is due by" : "Fix it and mark it done by"} {due}.</p>}
     </section>
   );
 }

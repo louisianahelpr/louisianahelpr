@@ -491,7 +491,7 @@ export async function settle(page: Page, ms = 600): Promise<void> {
  *
  * `TermsReconsentDialog` (src/components/TermsReconsentDialog.tsx) opens on
  * EVERY authed load whose profile row carries a `terms_version_accepted` behind
- * `LATEST_TERMS_VERSION`, and it is deliberately non-dismissible: "I Agree" is
+ * `LATEST_TERMS_VERSION`, and it is deliberately non-dismissible: "I agree" is
  * the only way out, Escape does nothing, and Radix leaves everything behind it
  * `aria-hidden` with `pointer-events: none`.
  *
@@ -542,7 +542,7 @@ export function consentGate(page: Page): Locator {
  */
 const gateWaited = new WeakSet<Page>();
 
-/** Press "I Agree" on the re-consent gate if it is up. True when one was cleared. */
+/** Press "I agree" on the re-consent gate if it is up. True when one was cleared. */
 export async function clearConsentGate(page: Page, appearMs = 2_500): Promise<boolean> {
   const gate = consentGate(page);
   if (appearMs > 0 && !gateWaited.has(page)) {
@@ -571,7 +571,7 @@ export async function clearConsentGate(page: Page, appearMs = 2_500): Promise<bo
     .catch(() => false);
   test.info().annotations.push({
     type: "consent-gate",
-    description: `${gone ? "cleared" : "STILL UP after pressing I Agree"} at ${page.url()}`,
+    description: `${gone ? "cleared" : "STILL UP after pressing I agree"} at ${page.url()}`,
   });
   return gone;
 }

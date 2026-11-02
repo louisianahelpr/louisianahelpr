@@ -7,13 +7,18 @@
  * Inventory from source: in every tracked .tsx under src/ (admin screens and
  * the legal documents excepted, below), the visible text inside <Button>,
  * <button>, <Link>, <h1>-<h3>, <TabsTrigger>, <DropdownMenuItem> and
- * <SectionTabs>/<ToggleGroup> labels: each JSX text run and each string
+ * <SectionTabs>/<ToggleGroup> labels, and (Q2619, lead 11-02) the pop-up and sheet
+ * footer buttons <DialogPrimaryAction>, <DialogSecondaryAction>, <SheetPrimaryAction>
+ * and <SheetSecondaryAction>: each JSX text run and each string
  * literal written as a child ({"…"} and the string branches of a ternary).
  * Plus `label: "…"` entries in tab and range arrays (the segmented toggles).
  *
  * @mutate src/pages/info/HelpCenter.tsx | <PublicHeaderPage title="Help center" | <PublicHeaderPage title="Help Center"
  * @mutate src/components/PayoutSetupForm.tsx | Set up payouts with Stripe | Set Up Payouts with Stripe
  * @mutate src/components/profile/earningsTab/EarningsRangeToggle.tsx | label: "This week" | label: "This Week"
+ * @mutate src/pages/posts/EditJobDialog.tsx | <DialogPrimaryAction onClick={confirmDiscard}>Discard changes</DialogPrimaryAction> | <DialogPrimaryAction onClick={confirmDiscard}>Discard Changes</DialogPrimaryAction>
+ * @mutate src/components/SuggestCategory.tsx |               Send suggestion\n | Send Suggestion\n
+ * @mutate src/components/TermsReconsentDialog.tsx | "Saving…" : "I agree" | "Saving…" : "I Agree"
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -23,7 +28,8 @@ import { sentenceCaseProblems } from "./helpers/sentenceCase";
 
 /** Admin is operator vocabulary; legal pages name documents. */
 const SKIP = /^src\/(components\/admin|pages\/admin|pages\/info\/legal)\/|\.test\.tsx$|^src\/test\//;
-const TAGS = ["Button", "button", "Link", "h1", "h2", "h3", "TabsTrigger", "DropdownMenuItem"];
+// Q2619 (lead 11-02, owner rule 10-21): the pop-up and sheet footer buttons too; they were invisible to this scan.
+const TAGS = ["Button", "button", "Link", "h1", "h2", "h3", "TabsTrigger", "DropdownMenuItem", "DialogPrimaryAction", "DialogSecondaryAction", "SheetPrimaryAction", "SheetSecondaryAction"];
 
 const files = execFileSync("git", ["ls-files", "src"], { encoding: "utf8" })
   .split("\n")
@@ -60,6 +66,8 @@ function shown(body: string): string[] {
     prev = flat;
     flat = flat.replace(/\{[^{}<]*\}/g, (e) => (/^\{\s*"[^"]*"\s*\}$/.test(e) ? e : "\u0001"));
   }
+  // `{busy ? <Spinner /> : null}` before a label: the `: null}` tail is code, not shown text (Q2619).
+  flat = flat.replace(/:\s*null\s*\}/g, "}");
   for (const run of flat.split(/<[^>]*>/)) {
     const t = run.replace(/\{\s*"([^"]*)"\s*\}/g, "$1").replace(/[{}]/g, " \u0001 ").replace(/\s+/g, " ").trim();
     // A run holding quotes or backticks is an expression's source, not shown text (its literals are read below).
@@ -75,8 +83,9 @@ const TITLE_PROPS = /<(PageHeader|PublicHeaderPage|EmptyState|ProfileTabHeader|A
 /** Product and badge NAMES, written as names everywhere they appear (exact text). */
 // "Terms of Service": the legal document's name, the H1 of /terms/full (lead, 2026-10-23, Twilio's A2P review).
 // "Answer in Buying" / "Your Wanted posts" (B77/B82, 1030e): Buying and Wanted are the Declutter tabs' names, written as on the tab row.
+// "Find something in Browse" (B169 Q2569): Browse is the Declutter tab's name, written as on the tab row.
 // "Share your Book me link" (B99 UX-4): Book me is the profile button's name, written as on that button.
-const NAMES = new Set(["Licensed & Insured", "Licensed & Insured Only", "Top Rated", "Terms of Service", "Answer in Buying", "Your Wanted posts", "Share your Book me link"]);
+const NAMES = new Set(["Licensed & Insured", "Licensed & Insured Only", "Top Rated", "Terms of Service", "Answer in Buying", "Your Wanted posts", "Share your Book me link", "Find something in Browse"]);
 
 function findings(): string[] {
   const bad: string[] = [];

@@ -16,7 +16,7 @@
  * characters, so it fits a side-by-side pair as it is; the pair's "Complete job" short form is gone).
  * @mutate src/pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx | : "Mark it done"} | : "Mark job complete"}
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts | key: "done", label: "Mark it done" | key: "done", label: "Mark job complete"
- * @mutate src/components/JobTracking.tsx | action: "Mark it done", icon: PartyPopper | action: "Mark job complete", icon: PartyPopper
+ * @mutate src/components/job-card/trackerSteps.ts | action: "Mark it done", icon: PartyPopper | action: "Mark job complete", icon: PartyPopper
  * @mutate supabase/functions/_shared/stalledCompletion.ts | ask your Helpr to tap Mark it done. | ask your Helpr to tap Mark job complete.
  */
 import { describe, it, expect, vi } from "vitest";
@@ -41,6 +41,9 @@ describe("F35: the job's last steps are sentence case", () => {
   it("JA-56: the Helpr's done step has one label, Mark it done, on every surface that names it", () => {
     const files = [
       "components/JobTracking.tsx",
+      "components/job-card/trackerSteps.ts",
+      // The job page's done-before-the-day lock compares the face's label with this word (DONE_FACE_LABEL).
+      "pages/jobs/jobPage/JobPage.tsx",
       "pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx",
       "pages/jobs/appliedJobCard/helperFaceAction.ts",
       "components/ui/pairLabel.ts",

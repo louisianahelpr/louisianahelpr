@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { LandingProof } from "./LandingProof";
 
 /**
  * "Live now: Open jobs near you" (owner, 2026-10-23, landing option B): the
@@ -132,6 +133,9 @@ export function LiveJobsSection() {
       {/* max-w-6xl, the measure every other landing section uses (SectionsShowcase, HowItWorks): at
           1440 this section's left edge sat at x=160 against their 144 (audit 2026-10-28 P5-6). */}
       <div className="mx-auto w-full max-w-6xl flex flex-col gap-6 lg:gap-8" data-testid="landing-live-jobs-measure">
+        {/* The proof row opens this section, below the fold (owner, 2026-11-02: the hero's first screen is
+            just the headline, subhead and search). */}
+        <LandingProof />
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
           <div className="flex flex-col gap-2">
             <span className="inline-flex items-center gap-2 text-ds-11 lg:text-ds-12 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>

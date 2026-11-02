@@ -140,9 +140,9 @@ describe("SMS alerts source rules", () => {
     expect(claim).toMatch(/WHERE status = 'pending' AND due_at <= v_now ORDER BY due_at .* FOR UPDATE SKIP LOCKED/);
   });
 
-  // @mutate supabase/migrations/20261102074248_export_my_data_handovers_fee_debts.sql |         CASE WHEN t.kind = 'confirm' THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at) |         CASE WHEN false THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at)
-  // @mutate supabase/migrations/20261102074248_export_my_data_handovers_fee_debts.sql | jsonb_agg(to_jsonb(t) - 'confirm_code' - 'confirm_phone' - 'confirm_sent_at' - 'updated_at') | jsonb_agg(to_jsonb(t))
-  // @mutate supabase/migrations/20261023181442_sms_no_nearby_job_texts.sql |        WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code = p_code\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF; |        WHERE pending_phone = v_phone\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF;
+  // @mutate supabase/migrations/20261102161715_export_my_data_manager_mode.sql |         CASE WHEN t.kind = 'confirm' THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at) |         CASE WHEN false THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at)
+  // @mutate supabase/migrations/20261102161715_export_my_data_manager_mode.sql | jsonb_agg(to_jsonb(t) - 'confirm_code' - 'confirm_phone' - 'confirm_sent_at' - 'updated_at') | jsonb_agg(to_jsonb(t))
+  // @mutate supabase/migrations/20261102084156_sms_confirm_code_in_app.sql |        WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code = p_code\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF; |        WHERE pending_phone = v_phone\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF;
   it("Download My Data never says whether a number is used on another account (lh-authz-rls review)", () => {
     const ex = newestFunctionBody("export_my_data").replace(/\s+/g, " ");
     expect(ex.length).toBeGreaterThan(5000);
@@ -153,6 +153,26 @@ describe("SMS alerts source rules", () => {
     // A YES opts in only the account whose confirmation carried THAT code to THAT number.
     const yes = newestFunctionBody("sms_inbound_keyword").replace(/\s+/g, " ");
     expect(yes).toContain("WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code = p_code AND confirm_sent_at > now() - interval '24 hours';");
+  });
+
+  // Q2337 (lh-authz-rls@d885772f08#1): two live confirmations to one number read the same apart from the code, so a
+  // YES confirms only when exactly ONE account holds a live confirmation for that number; the member can type the
+  // code in the app instead (confirm_sms_code, for auth.uid() only, 5 misses a day). Behaviour proven in
+  // src/test/pglite/smsConfirmCodeInApp.pglite.mjs (the measured attack opts in nobody).
+  // @mutate supabase/migrations/20261102084156_sms_confirm_code_in_app.sql |             WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code IS NOT NULL\n               AND confirm_sent_at > now() - interval '24 hours') = 1 |             WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code IS NOT NULL\n               AND confirm_sent_at > now() - interval '24 hours') >= 1
+  // @mutate supabase/migrations/20261102084156_sms_confirm_code_in_app.sql |   SELECT * INTO c FROM public.sms_consent WHERE user_id = v_uid FOR UPDATE; |   SELECT * INTO c FROM public.sms_consent WHERE confirm_code = btrim(p_code) LIMIT 1 FOR UPDATE;
+  // @mutate supabase/migrations/20261102084156_sms_confirm_code_in_app.sql |   IF v_tries >= 5 THEN |   IF v_tries >= 50 THEN
+  it("a YES confirms only the one live confirmation for a number; the app takes the code for the caller only (Q2337)", () => {
+    const yes = newestFunctionBody("sms_inbound_keyword").replace(/\s+/g, " ");
+    expect(yes).toContain("WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code IS NOT NULL AND confirm_sent_at > now() - interval '24 hours') = 1");
+    const typed = newestFunctionBody("confirm_sms_code").replace(/\s+/g, " ");
+    expect(typed.length).toBeGreaterThan(1500);
+    expect(typed).toContain("v_uid uuid := auth.uid();");
+    expect(typed).toContain("SELECT * INTO c FROM public.sms_consent WHERE user_id = v_uid FOR UPDATE;");
+    expect(typed).toContain("IF v_tries >= 5 THEN RETURN jsonb_build_object('status', 'too_many_tries');");
+    expect(typed).toContain("IF NOT public.feature_enabled_for_user('sms_alerts', v_uid) THEN RAISE EXCEPTION 'feature_disabled'");
+    // the code is never handed back to the app
+    expect(newestFunctionBody("get_my_sms_consent")).not.toMatch(/confirm_/);
   });
 
   it("messy phone input: the client accepts exactly what the server accepts", () => {

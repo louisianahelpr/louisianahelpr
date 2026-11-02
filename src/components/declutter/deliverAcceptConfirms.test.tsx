@@ -94,7 +94,10 @@ describe("Deliver: accepting confirms, and asks nothing more of the taken task (
     fireEvent.click(screen.getByRole("button", { name: "Accept delivery" }));
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("accept"));
     // The list re-read after the accept says so (wait for that, then the absence: waitForEmptyIsVacuous).
-    expect(await screen.findByText(/^No deliveries to take right now\./)).toBeInTheDocument();
+    // Q2577 (audit 1102a): the empty list wears Selling's empty card (icon, dashed edge), not a bare grey line.
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | <DeclutterEmptyCard icon={Truck} title="No deliveries to take right now" data-deliver-open-empty=""> | <DeclutterEmptyCardX icon={Truck} title="No deliveries to take right now" data-deliver-open-empty="">
+    const empty = await screen.findByText("No deliveries to take right now");
+    expect(empty.closest("[data-empty-card]")).not.toBeNull();
     expect(screen.queryByText("Blue mug")).toBeNull();
     expect(state.windowReads.length, "no read of the taken task's pickup times after the accept").toBe(reads);
     const done = state.toasts.find((t) => t.msg.startsWith("Delivery accepted"));
@@ -104,13 +107,17 @@ describe("Deliver: accepting confirms, and asks nothing more of the taken task (
   it("Save says Vehicle saved on the form; changing a box clears it", async () => {
     show();
     const save = await screen.findByRole("button", { name: "Save" });
+    const car = screen.getByRole("checkbox", { name: "I have a car" });
+    // Q2584: Save is pressable only once a box changes, so change one first.
+    const before = car.getAttribute("aria-checked");
+    fireEvent.click(car);
+    await waitFor(() => expect(save).toBeEnabled());
     fireEvent.click(save);
     expect(await screen.findByText("Vehicle saved.")).toBeInTheDocument();
     expect(state.calls.some((c) => c[0] === "vehicle")).toBe(true);
-    const car = screen.getByRole("checkbox", { name: "I have a car" });
     fireEvent.click(car);
     // The click is the precondition (the box really changed), then the absence (waitForEmptyIsVacuous).
-    expect(car).not.toBeChecked();
+    expect(car.getAttribute("aria-checked")).toBe(before);
     expect(screen.queryByText("Vehicle saved.")).toBeNull();
   });
 

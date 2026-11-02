@@ -157,6 +157,7 @@ function SellOneForm({ onStartOver }: { onStartOver: () => void }) {
             heldFailed={s.failedHeld > 0}
             refusedNote={s.refusedNote}
             onMakeCover={s.makeCover}
+            onReorderHeld={s.reorderHeld}
             coverUndo={s.coverUndo ? s.undoCover : null}
             free={form.free}
             tipDone={ai.state.status === "done" || s.keptWork.restored}

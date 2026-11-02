@@ -25,9 +25,8 @@ import { trackFirstPaymentCollected } from "./firstPaymentCollected";
 import { isJobPoster } from "@/lib/checkoutReturnOwner";
 import { safeStorage } from "@/lib/safeStorage";
 import { dropDraftPaidAs } from "@/hooks/useDraftJob";
-// formatPriceExact, not formatPrice: the sentences below state a sum of money
-// that is ACTUALLY SITTING IN ESCROW. See the note at the render site.
-import { formatPriceExact } from "@/lib/format";
+// The paid-amount sentence (formatPriceExact: a sum ACTUALLY SITTING IN ESCROW) lives in PaidAmountLine.
+import { PaidAmountLine } from "./PaidAmountLine";
 import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
@@ -137,6 +136,8 @@ const PaymentSuccess = () => {
   // from "already released" — both are `isHeld`, but they are not the same
   // claim, and the escrow copy below is false for the second one.
   const [alreadyReleased, setAlreadyReleased] = useState(false);
+  // Q2087: payout_pending = both sides confirmed and the payout is scheduled, so "held until you confirm" is false.
+  const [payingOut, setPayingOut] = useState(false);
   const [cardHold, setCardHold] = useState<CardHoldLine | null>(null); // Q2399: card only HELD; cardHoldRead.ts words it
   const [confirmState, setConfirmState] = useState<ConfirmState>(resolvedJobId ? "checking" : "unknown");
   const [unknownReason, setUnknownReason] = useState<UnknownReason>(
@@ -328,6 +329,7 @@ const PaymentSuccess = () => {
         const status = data.payment_status;
         if (status === "held" || (status && HELD_STATUSES.has(status))) {
           if (status === "released") setAlreadyReleased(true);
+          if (status === "payout_pending") setPayingOut(true);
           if (status === "held") { // only a card hold (Q2399): its own line, never the escrow copy
             const line = await readCardHoldLine(resolvedJobId);
             if (cancelled) return;
@@ -443,27 +445,7 @@ const PaymentSuccess = () => {
                 there). This is a receipt, which is exactly what
                 `formatPriceExact` is for. */}
             {isHeld && cardHold ? cardHoldSentence(cardHold) : isHeld ? (
-              alreadyReleased ? (
-                escrowAmount != null ? (
-                  <>
-                    <span className="font-semibold" style={{ color: "hsl(var(--accent-ink))" }}>
-                      ${formatPriceExact(escrowAmount)}
-                    </span>{" "}
-                    was paid and has already been released to your Helpr.
-                  </>
-                ) : (
-                  <>This payment was already released to your Helpr.</>
-                )
-              ) : escrowAmount != null ? (
-                <>
-                  <span className="font-semibold" style={{ color: "hsl(var(--accent-ink))" }}>
-                    ${formatPriceExact(escrowAmount)}
-                  </span>{" "}
-                  is held securely — released when you confirm the work is done.
-                </>
-              ) : (
-                <>Held securely until you confirm the work is done.</>
-              )
+              <PaidAmountLine amount={escrowAmount} released={alreadyReleased} payingOut={payingOut} />
             ) : confirmState === "checking" ? (
               <>Hang tight — we're checking this payment against our records.</>
             ) : confirmState === "not_held" ? (

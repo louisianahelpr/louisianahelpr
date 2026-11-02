@@ -1708,7 +1708,7 @@ html.web-desktop {
 
   /* Activity (My Posts / My Jobs) card column. Gated by web-desktop so the
      native app + phone-width browsers keep their identical single column.
-     Used by both the sectioned view (ActivitySectionedView) and the flat
+     Used by the flat
      per-status view (PostedJobsTab / AppliedJobsTab render here instead of
      the window-virtualized list when useIsWebDesktop() is true). `!important`
      (below) cancels the base `space-y-3` vertical margins so the grid gap
@@ -2026,6 +2026,12 @@ html.web-desktop.desktop-rail:not(.app-shell) #root:has(.app-shell-frame) {
     border-radius: 3px;
     text-decoration-color: currentColor;
   }
+  /* Builder 187 (11-02, measured in a local build at 375): a link-standard that also asks for Tailwind's `underline`
+     (the seller's money-note "Details", Free's "How it works") computed text-decoration-color transparent from the
+     rule above, so the underline it asked for never drew. Asking for it shows it, at rest too. */
+  .link-standard.underline {
+    text-decoration-color: currentColor;
+  }
 }
 
 
@@ -2079,6 +2085,13 @@ body[data-scroll-locked] .strike-banner {
    the banner aria-hidden then (hideOthers), and a failed submit inside the
    dialog reports itself. The banner comes back on top the moment it closes. */
 body[data-scroll-locked] .offline-banner {
+  z-index: 49;
+}
+
+/* Q303 for the admin stage previews' docks (Job, Messages, Declutter; z-[60]): while one of the previewed page's own
+   sheets or dialogs holds the scroll lock, the dock dims under its backdrop like the rest of the page (Q2617: at 375
+   it covered each sheet's second button). It comes back on top when the sheet closes. */
+body[data-scroll-locked] .preview-dock {
   z-index: 49;
 }
 

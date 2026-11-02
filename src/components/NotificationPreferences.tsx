@@ -1,6 +1,6 @@
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,33 +56,26 @@ const NotificationPreferences = () => {
   // (email_promotions NULL, Q2299): see src/lib/promotionsEmail.ts.
   const [marketingConsent, setMarketingConsent] = useState(false);
 
-  // READ AUTH FROM THE SHARED SNAPSHOT, NOT A ONE-SHOT SAMPLE.
-  //
-  // This effect used to open with `await supabase.auth.getUser()` and
-  // `if (cancelled || !user) return;` on a `[]` dep array. `user` resolves
-  // asynchronously — getUser goes to the network whenever the access token
-  // needs refreshing — so a cold load could sample it as `null`, take the
-  // early return, and never reach `setLoaded(true)`. Nothing retried, because
-  // the deps were empty.
-  //
-  // The visible result: EVERY switch on this tab stayed `disabled={!loaded}`
-  // forever, with no error, no spinner and no explanation. The user simply
-  // could not change a notification preference until they reloaded the page.
-  //
-  // Measured on prod by the press sweep, run 35768341847, /profile?tab=notifications
-  // as the customer persona: 38 controls found, 26 FAILED, every one of them a
-  // `<button disabled role="switch" data-disabled="">` that never became
-  // clickable inside 16s — Quiet hours, Job Offers push, Job Offers email,
-  // Applications push and the rest.
-  //
-  // This is the same defect shape `useAppShellViewport` already records: an
-  // effect that "ran on mount, read `null`, and REMOVED the `desktop-rail`
-  // class". Treating a not-yet-resolved auth state as a definitive "signed
-  // out" is the bug, both times. `useAuthReady` exists for exactly this — it
-  // exposes `isReady` so callers can tell "no user" from "not yet", and it
-  // normalises the corrupt-session case in one place.
+  // READ AUTH FROM THE SHARED SNAPSHOT, NOT A ONE-SHOT SAMPLE: a one-shot getUser() on a [] dep array could read
+  // null on a cold load, return before setLoaded(true), and leave every switch disabled forever (press sweep run
+  // 35768341847: 26 of 38 controls never enabled). useAuthReady tells "no user" from "not yet". Full history and
+  // guard: src/test/authSampledOnceStrandsControls.test.tsx.
   const { user: authUser, isReady: authReady } = useAuthReady();
   const authUserId = authUser?.id ?? null;
+  // Q2320 (finding lh-silent-failure@4ffa9adb8c#4): the account whose settings `prefs` holds. When the signed-in
+  // account changes while this screen stays open, everything read for the old one is dropped and the switches lock
+  // until the new account's row is read: both writers send the WHOLE row, so one press in between would have saved
+  // the first account's settings into the second (src/test/notificationMasterSwitch.test.tsx).
+  const loadedFor = useRef<string | null>(null);
+  const forgetAccount = () => {
+    loadedFor.current = null;
+    setUserId(null);
+    setPrefs(defaultPrefs);
+    setColumns(ALL_PRESENT);
+    setMarketingConsent(false);
+    setPushTokenCount(0);
+    setLoadFailed(false);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -95,10 +88,15 @@ const NotificationPreferences = () => {
       // the tab stops presenting itself as mid-load; the controls have nothing
       // to write to and the surrounding route guards own that case.
       if (!user) {
-        if (!cancelled) setLoaded(true);
+        if (!cancelled) { forgetAccount(); setLoaded(true); }
         return;
       }
       if (cancelled) return;
+      if (loadedFor.current !== user.id) {
+        forgetAccount();
+        setLoaded(false);
+        loadedFor.current = user.id;
+      }
       setUserId(user.id);
       // Independent reads, fired together (sequential awaits caused the long blank before the toggles hydrated).
       const [tokenRead, { data, error }, consentRead] = await Promise.all([

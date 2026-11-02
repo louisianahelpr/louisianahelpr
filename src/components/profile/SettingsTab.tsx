@@ -1,3 +1,4 @@
+import { BIGGER_TEXT_LABEL, BIGGER_TEXT_SUB } from "@/components/profile/biggerTextWords";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
@@ -172,9 +173,9 @@ export function SettingsTab({
         {onToggleSeniorMode && (
           <Row
             testId="bigger-text"
-            label="Bigger text and buttons"
-            sub="Easier reading everywhere"
-            right={<Switch checked={seniorMode} onCheckedChange={onToggleSeniorMode} aria-label="Bigger text and buttons" />}
+            label={BIGGER_TEXT_LABEL}
+            sub={BIGGER_TEXT_SUB}
+            right={<Switch checked={seniorMode} onCheckedChange={onToggleSeniorMode} aria-label={BIGGER_TEXT_LABEL} />}
           />
         )}
         {/* Spanish language option (2026-10-29): the ONE shared switch, remembered on this device. Guard: src/test/settingsLanguageSwitch.test.tsx. */}

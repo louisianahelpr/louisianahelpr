@@ -311,8 +311,14 @@ const CHARGE_KEY_SAFE_MS = 20 * HOUR_MS;
  * gets the claim back with nothing charged. A decline that reads the hold
  * after this claim is refused (rpc_instant_book_decline locks the hold row and
  * requires 'authorized' or 'scheduled'), so the two never both win.
+ *
+ * opts.hireOf (Q2604): the same for a Hire's offer (status 'accepted', this
+ * Helpr named, unconfirmed). The poster's Withdraw offer (rpc_poster_withdraw_offer)
+ * that commits between the claim and this re-read reopens the job; the claim goes
+ * back with nothing charged. A withdraw that reads the hold after this claim is
+ * refused (it locks the hold row and refuses 'capturing').
  */
-export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { resume?: boolean; offerTo?: string } = {}): Promise<CaptureResult> {
+export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { resume?: boolean; offerTo?: string; hireOf?: string } = {}): Promise<CaptureResult> {
   const { db, stripe, mode } = deps;
   const job = await readJob(db, jobId);
   if (!job) return { ok: false, reason: "not_held" };
@@ -406,6 +412,13 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
   // claim sent nothing to Stripe yet, so it goes back and nothing is charged.
   if (opts.offerTo && hold.state !== "capturing" &&
       (fresh.offered_to_helper_id !== opts.offerTo || fresh.direct_offer_status !== "pending")) {
+    await unclaimSetupFee(db, jobId, job.customer_id, feeAt);
+    await updateHold(db, jobId, { state: from, capturing_from: null, capture_amount_cents: null, onboarding_fee_claimed_at: null }, ["capturing"]);
+    return { ok: false, reason: "not_held" };
+  }
+
+  if (opts.hireOf && hold.state !== "capturing" &&
+      (fresh.status !== "accepted" || fresh.helper_id !== opts.hireOf)) {
     await unclaimSetupFee(db, jobId, job.customer_id, feeAt);
     await updateHold(db, jobId, { state: from, capturing_from: null, capture_amount_cents: null, onboarding_fee_claimed_at: null }, ["capturing"]);
     return { ok: false, reason: "not_held" };
@@ -820,7 +833,18 @@ export async function releaseCardHold(deps: HoldDeps, jobId: string): Promise<Re
   // missed "not charged" notice is retried by the next sweep (the cancel above
   // is idempotent).
   if (!(await notifyPosterOnce(db, job, hold, "released"))) return "released_untold";
-  await updateHold(db, jobId, { state: "released" }, [hold.state]);
+  try {
+    await updateHold(db, jobId, { state: "released" }, [hold.state]);
+  } catch (e) {
+    // Q2531: the poster's cancel_escrow and card-hold-sweep release the same
+    // hold at once (both read it 'authorized'; the Stripe cancel is keyed, so
+    // one authorization is cancelled once). The loser's pinned update matches
+    // 0 rows. A hold that now reads 'released' is the other run's finished
+    // work, not a defect; anything else still throws.
+    const after = await readHold(db, jobId);
+    if (after?.state === "released") return "already_gone";
+    throw e;
+  }
   return "released";
 }
 

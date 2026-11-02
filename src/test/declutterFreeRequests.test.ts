@@ -52,7 +52,7 @@ describe("free items are asked for, not grabbed", () => {
   it("the screens: Requests (n) on a free Selling row, the member's asks and pause in Buying, and the Terms say how it works", () => {
     const src = (f: string) => blankComments(readFileSync(f, "utf8"));
     const selling = src("src/components/declutter/DeclutterHomeView.tsx");
-    expect(selling).toContain('item.status === "live" && item.current_price_cents === 0 && freeAsks.data ?');
+    expect(selling).toContain('item.status === "live" && item.current_price_cents === 0 && freeAsks.data && (freeAsks.data.get(item.id) ?? 0) > 0 ?');
     expect(selling).toContain("Requests ({freeAsks.data.get(item.id) ?? 0})");
     const buying = src("src/components/declutter/DeclutterMineViews.tsx");
     const dash = buying.slice(buying.indexOf("export function BuyingDash"), buying.indexOf("export function SellingDash"));

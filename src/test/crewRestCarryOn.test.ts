@@ -25,7 +25,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  */
 
 // @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |     IF v_job.status::text = 'accepted' AND v_remaining = 0 THEN | IF v_job.status::text = 'accepted' AND v_remaining < COALESCE(v_job.helpers_needed, 1) THEN
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
@@ -37,7 +37,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |          AND a.helper_id = ANY (COALESCE(v_gone, '{}'::uuid[])) |          AND a.helper_id IS NOT NULL
 // @mutate src/pages/posts/postedJobCard/crewRefill.ts |   return job.status === "open" \|\| crewSpotRefillable(job, roster, now, closedSpots); |   return job.status === "open";
 // @mutate src/pages/posts/postedJobCard/PostedJobApplicants.tsx |   if (!takesApplicants(job, crewRoster, undefined, closedSpots)) return null; |   if (job.status !== "open") return null;
-// @mutate supabase/migrations/20261101031804_crew_member_no_show.sql | RAISE EXCEPTION 'job_not_started' | RAISE EXCEPTION 'job_not_begun'
+// @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql | IF v_starts_at IS NULL OR v_now < v_starts_at THEN\n    RAISE EXCEPTION 'job_not_started' | IF v_starts_at IS NULL OR v_now < v_starts_at THEN\n    RAISE EXCEPTION 'job_not_begun'
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
@@ -55,7 +55,7 @@ const RACE = "20261006031350_crew_completion_rechecks_after_closing_spots.sql";
 const NEWEST: Record<string, string> = {
   helper_cancel_booking: "20261031013445_helper_cancel_says_why.sql", // JOBS-21 restated it; the crew rules hold there.
   // Q1380 restated it (the slotless hire-order fallback); the crew rules hold there.
-  block_user_and_settle: "20261012124103_crew_block_slotless_share_by_hire_order.sql",
+  block_user_and_settle: "20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql",
   expire_unanswered_offers: OFFER_WORDS,
 };
 

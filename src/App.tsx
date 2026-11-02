@@ -1,7 +1,7 @@
 import { lazy, Suspense, forwardRef, useState, type ComponentType, type ReactElement, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
-import { useBugReportScreen } from "@/hooks/useBugReportScreen";
+import { RoutedBoundary } from "@/components/RoutedBoundary";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { SpeedInsightsRouted } from "@/components/SpeedInsightsRouted";
@@ -119,6 +119,11 @@ const PostJob = lazyWithPreload(() => import("./pages/post-job/PostJob"));
 const PaymentSuccess = lazyWithPreload(() => import("./pages/post-job/PaymentSuccess"));
 const UserProfile = lazyWithPreload(() => import("./pages/user/UserProfile"));
 const Admin = lazyWithPreload(() => import("./pages/admin/Admin"));
+// Q2585: every Declutter order stage, made-up data, admin only. Its own chunk: nothing in boot or Home.
+const AdminDeclutterPreview = lazy(() => import("./pages/admin/preview/DeclutterPreviewPage"));
+// The job page at every stage, made-up data, admin only (owner 2026-11-01). Its own chunk: nothing in boot or Home.
+const AdminJobPreview = lazy(() => import("./pages/admin/preview/JobPreviewPage"));
+const AdminMessagesPreview = lazy(() => import("./pages/admin/preview/MessagesPreviewPage"));
 const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
 // A redirect (to the last or first open section): no screen of its own.
 const ExploreRedirect = lazyWithPreload(() => import("./pages/explore/Explore"));
@@ -275,6 +280,9 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/admin/preview/declutter" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminDeclutterPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/admin/preview/job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminJobPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/admin/preview/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminMessagesPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -481,27 +489,6 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
 });
 AnimatedRoutes.displayName = "AnimatedRoutes";
 
-// Page-level error boundary, re-keyed by route. A render crash on one
-// page shows the fallback inside <main> only — the header, nav, and
-// banners stay mounted — and navigating elsewhere clears it. The root
-// ErrorBoundary in <App> still backstops crashes in the shell itself.
-//
-// No outer <Suspense> here on purpose: every lazy route element brings
-// its own per-route Suspense (see `routeEl()` above). A single shared
-// Suspense at this level would tear down the active route's UI during a
-// nav transition — by scoping the fallback per route, the previous
-// route's content stays mounted until the next chunk resolves, so the
-// persistent shell never flashes blank between pages.
-const RoutedBoundary = () => {
-  const location = useLocation();
-  // "Report a bug" names the screen the person came from (Q1028).
-  useBugReportScreen(location);
-  return (
-    <ErrorBoundary resetKey={location.pathname}>
-      <AnimatedRoutes />
-    </ErrorBoundary>
-  );
-};
 
 
 const App = () => (
@@ -563,7 +550,7 @@ const App = () => (
             id="main-content"
             className="w-full max-w-full no-scrollbar"
           >
-            <RoutedBoundary />
+            <RoutedBoundary><AnimatedRoutes /></RoutedBoundary>
           </main>
           {/* A lazy chunk is fetched as soon as it renders, so these wait for a
               maybe-signed-in visitor: a guest draws none of them. The rationale

@@ -1,12 +1,16 @@
+import { lazy, Suspense, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { ReviewStars } from "@/components/profile/reviewCard";
+import { Button } from "@/components/ui/button";
 import { formatTimestamp } from "@/lib/format";
 import { reviewTagLabel } from "@/lib/declutter/reviewTags";
 import type { ProfileReview } from "@/hooks/useProfileTabData";
+
+const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
 /**
  * Board 179, "Reviews about you": ONE list of every review about this member,
@@ -20,6 +24,8 @@ import type { ProfileReview } from "@/hooks/useProfileTabData";
  * says "A buyer" / "A seller", never a name. Read only while the 'declutter'
  * switch is on for this member. Job reviewers are "First L." (formatName in
  * useProfileReviews; owner rule 2026-10-21).
+ * A3-75 (audit 11-01): a Declutter row has Report (ReportDialog, 'declutter_review'): a member hit with an unfair or
+ * abusive Declutter review reaches admin from it (owner rule: admin acts only on a report).
  */
 interface DeclutterReviewAboutYou {
   id: string;
@@ -58,6 +64,8 @@ interface AboutYouRow {
   /** The job's title (job rows only). */
   about: string | null;
   tags: string[];
+  /** The Declutter review's id, for Report (job rows: none). */
+  declutterReviewId?: string;
 }
 
 const RELATION: Record<AboutYouSide, string> = {
@@ -97,6 +105,7 @@ export function aboutYouRows(jobs: ProfileReview[], declutter: DeclutterReviewAb
         relation: side ? RELATION[side] : null,
         about: null,
         tags: [...new Set(r.tags ?? [])].map(reviewTagLabel).filter((t): t is string => !!t),
+        declutterReviewId: r.id,
       };
     }),
   ];
@@ -156,6 +165,7 @@ export function AboutYouChips({
 }
 
 export function AboutYouRowCard({ row }: { row: AboutYouRow }) {
+  const [reporting, setReporting] = useState(false);
   return (
     <div data-review-row={row.key.startsWith("declutter-") ? "declutter" : ""} className="rounded-ds-md liquid-glass p-card space-y-2">
       <div className="flex items-baseline justify-between gap-3">
@@ -187,6 +197,18 @@ export function AboutYouRowCard({ row }: { row: AboutYouRow }) {
         <p className="font-sans text-ds-12 [overflow-wrap:anywhere]" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           {row.about}
         </p>
+      )}
+      {row.declutterReviewId && (
+        <div className="flex justify-end">
+          <Button type="button" variant="ghost" size="sm" className="pl-4 pr-0 font-sans text-ds-13 font-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }} onClick={() => setReporting(true)} data-report="declutter_review">
+            Report
+          </Button>
+        </div>
+      )}
+      {reporting && row.declutterReviewId && (
+        <Suspense fallback={null}>
+          <ReportDialog open onClose={() => setReporting(false)} reportedType="declutter_review" reportedId={row.declutterReviewId} />
+        </Suspense>
       )}
     </div>
   );

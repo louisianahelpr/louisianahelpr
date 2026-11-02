@@ -85,6 +85,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_admin_open_problems: "hides",
   declutter_admin_pending_items: "hides",
   declutter_admin_reported_questions: "tags", // B48 (20261101021934): the admin's read returns is_seed so the queue drops test questions and answers
+  declutter_admin_reported_reviews: "tags", // A3-75 (20261102040000): the admin's read returns is_seed so the queue drops test reviews
   declutter_admin_reported_wanted: "tags", // posting audit #8 (20261030225143): the admin's read returns is_seed so the queue drops a test post
   declutter_block_wanted_poster: "hides", // posting audit #8: a test post reads as not found to a member
   declutter_wanted_hold_photos: "alerts", // posting audit #8: a test post's held photo files no report for admin
@@ -292,6 +293,7 @@ const EDGE_READERS: Record<string, Kind> = {
   "stripe-connect/index.ts": "alerts",
   // SEED-ALERTS: a test job's, order's or gift donor's refund alert goes to the digest; both files only route alerts and an admin notice.
   "stripe-webhook/handlers/_giftCardRefund.ts": "alerts",
+  "stripe-webhook/handlers/_visitTaxReversal.ts": "alerts", // Q1997 (6166e4e4a8): a zero-line visit tax reversal pages ops unless the job is is_seed or its people are test subjects
   "stripe-webhook/handlers/chargeRefunded.ts": "alerts",
   "stripe-webhook/handlers/checkoutSessionCompleted.ts": "alerts",
   "stripe-webhook/handlers/paymentIntentPaymentFailed.ts": "alerts",

@@ -92,7 +92,7 @@ describe("Way / Arr. / Work: white while waiting, yellow while happening, filled
 
   it("JOBS3-48: a Helpr arrived but not started sits on Working, and it is WHITE", () => {
     const { p, steps, seg } = drawn({ ...ARRIVED, helper_arrival_verified_at: "2037-10-21T14:51:00Z" }, "helpr", {
-      viewer: "helpr", card: { line: { id: "start_working", tone: "you", detail: "Tap Start working" }, face: { tone: "primary", step: "working" } },
+      viewer: "helpr", card: { line: { id: "start_working", tone: "you", detail: "Tap Start when you begin" }, face: { tone: "primary", step: "working" } },
     });
     expect(p.stage).toBe(6);
     expect(p.begun).toBe(false);

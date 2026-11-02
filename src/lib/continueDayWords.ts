@@ -6,7 +6,6 @@
  */
 import { nextStepWords, type NextStepValue } from "@/lib/nextStepWords";
 import { formatJobDate } from "@/lib/dateUtils";
-import { jobStartTimeLabel } from "@/lib/jobDate";
 
 export type ContinueDay = {
   id: string;
@@ -17,6 +16,12 @@ export type ContinueDay = {
   note: string | null;
   status: "proposed" | "set";
   helper_confirmed_at: string | null;
+  /**
+   * Q2606 (owner): who asked for the day, read with the row (proposed_by against the job's poster). Every new day is
+   * a proposal the OTHER side answers (answer_job_continue_day, 20261102102402). Absent (an older read, a gone
+   * proposer) reads as the Helpr, the server's own fallback: the poster answers.
+   */
+  proposer?: "poster" | "helpr";
 };
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
@@ -45,6 +50,12 @@ export function continueDayNextStep(
   const when = continueDayLabel(row.new_date, row.new_start_time);
   const other = (o.otherFirst ?? "").trim();
   if (row.status === "proposed") {
+    // Q2606 (owner): the poster's day goes to the Helpr to accept, as the Helpr's goes to the poster.
+    if (row.proposer === "poster") {
+      return o.side === "poster"
+        ? { who: "them", text: `You asked to finish ${when}`, by: `waiting on ${other || "your Helpr"}` }
+        : { who: "you", text: `Accept ${other ? `${other}'s` : "the"} new day`, by: when };
+    }
     return o.side === "poster"
       ? { who: "you", text: `Confirm ${other ? `${other}'s` : "your Helpr's"} new day`, by: when }
       : { who: "them", text: `You asked to finish ${when}`, by: `waiting on ${other || "the person who posted it"}` };
@@ -91,10 +102,15 @@ export function continueDayDoneNote(row: ContinueDay | null | undefined, now: Da
   return `You can mark it done on ${continueDayLabel(row.new_date, row.new_start_time).replace(/ at .*$/, "")}, the day you set to finish.`;
 }
 
-/** The job page's first line on a SET day: "Continuing Thu, Nov 5 · 9:00 AM" (null: day 1's line stands). */
+/**
+ * The job page's first line on a SET day: "Continuing Thu 11/5 at 9 AM" (null: day 1's line stands), the owner's own
+ * words (11-01 5:05 PM) and the same label as the tracker line under it. Q2680 (audit 1102e row 17): it read
+ * "Continuing Thu, Nov 5 · 9:00 AM" over a line saying "Thu 11/5 at 9 AM", two formats on one screen.
+ */
 export function continueDayHeader(row: ContinueDay | null | undefined): string | null {
   if (!row || row.status !== "set" || !row.new_date) return null;
-  return ["Continuing " + formatJobDate(row.new_date), jobStartTimeLabel(row.new_start_time.slice(0, 5))].filter(Boolean).join(" · ");
+  const when = continueDayLabel(row.new_date, row.new_start_time);
+  return when ? `Continuing ${when}` : "Continuing " + formatJobDate(row.new_date);
 }
 
 /**

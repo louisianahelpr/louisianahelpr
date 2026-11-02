@@ -12,10 +12,14 @@
  *     never to a fixture test seat.
  *
  * @mutate src/components/payouts/PayoutSetupJobNotice.tsx |   if (!on \|\| !profile \|\| payoutAccountReady(profile)) return null; |   if (!profile) return null;
- * @mutate src/pages/jobs/appliedJobCard/HelperMoneyNotices.tsx |   const setupOwed = payoutAfterHire && hired && PAY_HELD.has(job.payment_status ?? "") | const setupOwed = payoutAfterHire && PAY_HELD.has(job.payment_status ?? "")
+ * @mutate src/pages/jobs/appliedJobCard/HelperMoneyNotices.tsx | && payoutAfterHire && hired && PAY_HELD.has(job.payment_status ?? "") | && payoutAfterHire && PAY_HELD.has(job.payment_status ?? "")
+ * @mutate src/pages/jobs/appliedJobCard/HelperMoneyNotices.tsx |   const setupOwed = only !== "problem" && payoutAfterHire |   const setupOwed = payoutAfterHire
  * @mutate src/components/payouts/useHiredPayoutPrompt.ts |       if (profile.is_seed === true && !profile.stripe_account_id) return false; | 
  * @mutate src/components/payouts/useHiredPayoutPrompt.ts |       if (!payoutAfterHireOn()) return false; | 
  * @mutate src/hooks/useStartPayoutSetup.ts |     if (setupPaused \|\| loading) return; |     if (loading) return;
+ * A3-29 (audit 11-01): the job card's notice is the shared next-step line with one button.
+ * @mutate src/lib/payoutAfterHire.ts |   return { who: "you", text: "Finish payout setup", by: `your ${amountLabel ?? "pay"} is held until then` }; |   return { who: "you", text: "Finish payout setup", by: "" };
+ * @mutate src/components/payouts/PayoutSetupJobNotice.tsx |         <NextStep value={jobPayoutNextStep(amountLabel)} /> |
  * @mutate src/components/payouts/HiredPayoutSetupDialog.tsx |           {!setupPaused && (\n            <DialogPrimaryAction |           {(\n            <DialogPrimaryAction
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -55,7 +59,6 @@ import {
   HIRED_PAYOUT_BODY,
   HIRED_PAYOUT_PAUSED_TITLE,
   HIRED_PAYOUT_TITLE,
-  JOB_PAYOUT_SETUP_HEADLINE,
 } from "@/lib/payoutAfterHire";
 import { PAYOUT_SETUP_PAUSED_COPY } from "@/lib/payoutSetupPaused";
 
@@ -115,10 +118,12 @@ describe("useStartPayoutSetup: the one call that opens Stripe", () => {
 describe("the job card: Finish payout setup to get paid", () => {
   it("switch on, payouts not ready: the headline, the held amount and the button", async () => {
     render(<PayoutSetupJobNotice amountLabel="$40" />);
-    expect(screen.getByText(JOB_PAYOUT_SETUP_HEADLINE)).toBeTruthy();
-    expect(screen.getByText("Your $40 for this job is held until your payout account is ready.")).toBeTruthy();
+    // A3-29: the shared next-step line, no deadline (the money waits), and one button.
+    const line = document.querySelector("[data-next-step]");
+    expect(line?.textContent).toBe("Next: finish payout setup · your $40 is held until then");
+    expect(screen.getAllByRole("button")).toHaveLength(1);
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: new RegExp(FINISH_PAYOUT_SETUP_LABEL, "i") }));
+      fireEvent.click(screen.getByRole("button", { name: /Set up payouts/ }));
     });
     expect(onboardCalls()).toHaveLength(1);
   });
@@ -139,12 +144,12 @@ describe("the job card: Finish payout setup to get paid", () => {
     paused = true;
     render(<PayoutSetupJobNotice amountLabel="$40" />);
     expect(screen.queryByText(PAYOUT_SETUP_PAUSED_COPY)).toBeNull(); // no "paused" notice (owner 2026-10-25)
-    expect(screen.queryByRole("button", { name: new RegExp(FINISH_PAYOUT_SETUP_LABEL, "i") })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Set up payouts/ })).toBeNull();
   });
 
   it("the card's money band: only a HIRED job whose payment is held", () => {
     const hired = render(<HelperMoneyNotices job={{ payment_status: "escrow", status: "in_progress" }} hired amountLabel="$40" />);
-    expect(hired.container.textContent).toContain(JOB_PAYOUT_SETUP_HEADLINE);
+    expect(hired.container.textContent).toContain("Next: finish payout setup");
     hired.unmount();
     const applicant = render(<HelperMoneyNotices job={{ payment_status: "escrow", status: "accepted" }} hired={false} amountLabel="$40" />);
     expect(applicant.container.textContent).toBe("");
@@ -153,7 +158,16 @@ describe("the job card: Finish payout setup to get paid", () => {
     expect(paidOut.container.textContent).toBe("");
     paidOut.unmount();
     const waiting = render(<HelperMoneyNotices job={{ payment_status: "payout_pending", status: "completed" }} hired amountLabel="$40" />);
-    expect(waiting.container.textContent).toContain(JOB_PAYOUT_SETUP_HEADLINE);
+    expect(waiting.container.textContent).toContain("Next: finish payout setup");
+  });
+
+  // JOBS2-44 (Jobs audit 10-30): the card draws the problem part above the step and the setup part under it.
+  it("only='problem' never draws the setup note; only='setup' draws it", () => {
+    const top = render(<HelperMoneyNotices job={{ payment_status: "escrow", status: "in_progress" }} hired amountLabel="$40" only="problem" />);
+    expect(top.container.textContent).toBe("");
+    top.unmount();
+    const under = render(<HelperMoneyNotices job={{ payment_status: "escrow", status: "in_progress" }} hired amountLabel="$40" only="setup" />);
+    expect(under.container.textContent).toContain("Next: finish payout setup");
   });
 });
 

@@ -5,12 +5,12 @@
  * The gear itself and Selling's one row: sellingDash.test.tsx.
  *
  * @mutate src/App.tsx |       <Route path="/declutter/settings" element= |       <Route path="/declutter/settings-old" element=
- * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |         <MeetupTimesCard userId={user.id} />\n |         <MeetupTimesCard userId={user.id} />\n        <section aria-label="Pickup times" />\n
+ * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <MeetupTimesCard userId={user.id} />\n |             <MeetupTimesCard userId={user.id} />\n            <section aria-label="Pickup times" />\n
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />} | {sellerDeliveryOpen && <SellerDeliveryDetails />}
  * @mutate src/components/declutter/DeclutterListingDefaults.tsx | {sellerDeliveryOpen && draft.handovers.includes("seller_delivery") && <SellerDeliveryDetails />} |
  * @mutate src/components/declutter/SellerDeliverySettings.tsx |       {!embedded && (\n      <div className="flex items-center justify-between gap-3"> |       {(\n      <div className="flex items-center justify-between gap-3">
  * @mutate src/components/declutter/SellerDeliverySettings.tsx |   const [enabled, setEnabled] = useState(embedded ? true : current.enabled); |   const [enabled, setEnabled] = useState(current.enabled);
- * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |         <SellPorchPlaces card />\n |
+ * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             <SellPorchPlaces card />\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx |     return card ? inCard(<><span className="block text-sm font-semibold">Pickup places</span><span className="block text-xs text-muted-foreground">Loading…</span></>) : null; |     return null;
  * @mutate src/components/declutter/SellPorchPlaces.tsx | (card\n    ? <section className="rounded-2xl border border-border bg-card px-4 py-3" aria-label="Pickup places" data-porch-places-card="">{body}</section>\n    : body) | body
  * @mutate src/pages/declutter/DeclutterSettingsPage.tsx |             to="/profile?tab=notifications&show=declutter"\n |             to="/profile?tab=notifications"\n
@@ -140,6 +140,14 @@ describe("Declutter settings", () => {
     expect(button).toBeDisabled();
     expect(radio("How much each evening", "5%")).toHaveAttribute("aria-checked", "true");
     expect(radio("Lowest you'll take", "50%")).toHaveAttribute("aria-checked", "true");
+    // Q2571 (audit 1102a): the five % chips are the compact size, so they fit one row of a 375 card ("75%" wrapped alone).
+    // @mutate src/components/declutter/DeclutterListingDefaults.tsx | value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} compact /> | value={String(draft.floorPct)} onChange={(v) => change({ floorPct: Number(v) })} />
+    // @mutate src/components/declutter/DeclutterSellSteps.tsx | ${compact ? "px-3" : "px-4"} | px-4
+    for (const group of ["Lowest you'll take", "How much each evening"]) {
+      const chips = within(screen.getByRole("radiogroup", { name: group })).getAllByRole("radio");
+      expect(chips.length).toBeGreaterThan(3);
+      for (const c of chips) expect(c.className.split(/\s+/), `${group} ${c.textContent}`).toContain("px-3");
+    }
     fireEvent.click(radio("How much each evening", "15%"));
     fireEvent.click(radio("Lowest you'll take", "60%"));
     fireEvent.click(screen.getByRole("checkbox", { name: "Safe meeting spot" }));
@@ -195,6 +203,20 @@ describe("Declutter settings", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "Porch pickup" }));
     expect(button).toBeDisabled();
     expect(screen.getByText("Tick at least one way buyers can get it.")).toBeInTheDocument();
+  });
+
+  // Q2574 (audit 1102a): Browse's gear opens this page; the seller setup is one block headed Selling that says where
+  // the notifications are, and Notifications stands outside it.
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx |           <SectionHeading title="Selling" /> |           {null}
+  // @mutate src/pages/declutter/DeclutterSettingsPage.tsx | <p className="text-ds-13 text-muted-foreground">Notifications for buying and selling are at the end.</p> | {null}
+  it("Q2574: the seller setup is headed Selling and points a buyer to the notifications", async () => {
+    open();
+    await screen.findByRole("button", { name: "Add a pickup place" });
+    const selling = screen.getByRole("region", { name: "Selling" });
+    expect(within(selling).getByRole("heading", { level: 2, name: "Selling" })).toBeInTheDocument();
+    expect(within(selling).getByText("Notifications for buying and selling are at the end.")).toBeInTheDocument();
+    for (const name of ["Pickup places", "Listing defaults"]) expect(within(selling).getByRole("region", { name })).toBeInTheDocument();
+    expect(selling.contains(screen.getByRole("region", { name: "Notifications" }))).toBe(false);
   });
 
   it("pickup places have their own card, first on the page so a seller finds them", async () => {

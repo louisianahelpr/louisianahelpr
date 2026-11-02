@@ -7,10 +7,13 @@
  * 2 minutes) leaves the last fix on the map with "location paused · last seen N min ago" (A3-61).
  *
  * The map is TrackingMap (the job tracker's Apple map: the Helpr pin and the destination pin), lazy-loaded.
+ * Paused (lead 11-01): "Message <Helpr>" opens the delivery's own chat (DeliveryTalk, BUY-36). The map is only live
+ * while the delivery is accepted or picked up, and the chat is open in both, so there is always one to open.
  */
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchLivePosition, type LivePosition } from "@/lib/helprTasks/api";
+import { DeliveryTalkButton } from "./DeliveryTalk";
 
 const TrackingMap = lazy(() => import("@/components/TrackingMap").then((m) => ({ default: m.TrackingMap })));
 
@@ -59,6 +62,7 @@ export function DeliveryLiveMap({ taskId, side, status, who }: { taskId: string;
     <section className="space-y-2" aria-label={`Where ${who} is now`}>
       <p className="text-ds-15 font-semibold" aria-live="polite">{line}</p>
       {paused && <p className="text-ds-13 text-muted-foreground">When last seen, {etaWords(p.eta_minutes)}. It comes back when {who} opens Louisiana Helpr again.</p>}
+      {paused && <DeliveryTalkButton taskId={taskId} label={`Message ${who}`} />}
       <Suspense fallback={<div className="h-[180px] w-full rounded-2xl bg-muted" aria-hidden />}>
         <TrackingMap helperLat={p.lat} helperLng={p.lng} destLat={p.dest_lat} destLng={p.dest_lng} />
       </Suspense>

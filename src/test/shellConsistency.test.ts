@@ -90,6 +90,7 @@ const NON_RENDERING: Record<string, string> = {
  */
 const NO_SHELL_BY_DESIGN: Record<string, string> = {
   "messages/Messages.tsx": "delegates entirely to ConversationList / ChatView, each of which owns a shell",
+  "admin/preview/MessagesPreviewPage.tsx": "the admin Messages preview draws the real Messages page (above: ConversationList / ChatView own the shell) on sample data; its one wrapper <div> only marks the stage and side drawn (data-preview-view)",
 };
 
 /**

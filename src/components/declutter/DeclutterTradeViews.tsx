@@ -255,7 +255,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         {offered.map((h) => (
           <div key={h} className="space-y-2" data-handover-option={h}>
           <label
-            className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-[20px] border bg-card px-4 py-3.5 ${chosen === h ? "border-2 border-primary" : "border-border"}`}
+            // Q2637: not bg-card, whose T2 rule hid the chosen way's 2px primary border (measured transparent at 1440).
+            className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-[20px] border bg-[hsl(var(--card))] px-4 py-3.5 ${chosen === h ? "border-2 border-primary" : "border-border"}`}
           >
             <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setPicked(h)} style={{ accentColor: "hsl(var(--primary))" }} />
             <span className="min-w-0 flex-1">
@@ -320,7 +321,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
     </div>
     <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
       {/* BUY-34: the notes sit beside the <dl>; a <p> inside one fails axe's definition-list rule. */}
-      <div className="space-y-1.5 rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown="">
+      {/* Q2637 (measured 11-02 at 1440): with bg-card the T2 rule (index.css :where(.bg-card)) made the border
+          transparent, so this white box on the white checkout card had no top edge (no clip: every clipping parent
+          starts above it). The card colour without the bg-card class keeps the hairline on every side. */}
+      <div className="space-y-1.5 rounded-[20px] border border-border bg-[hsl(var(--card))] p-4 text-ds-14" data-checkout-breakdown="">
       <dl className="space-y-1.5">
         <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? `${itemCount} items` : "Item"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(itemsTotalCents)}</dd></div>
         {discountCents > 0 && (
@@ -357,7 +361,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {/* lh-money-escrow review (2026-10-20): the seller can be paid without a buyer step (home pickup marked by the
           seller; declutter_handover_sweep pays 24 h after the slot unless a problem is open, porch also needs the
           set-out photo: measured live with pg_get_functiondef), so never "held until you have your items". */}
-      <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-checkout-note="">
+      {/* Q2633 (audit 1102c R8): the seller's payout promise is information, not a warning: neutral ink, no rust box. */}
+      <p className="text-ds-13 text-muted-foreground" data-checkout-note="">
         The seller keeps the whole {formatPrice(netItemsCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
         {delivering
           ? "It's paid to the seller once the delivery is done."
@@ -410,21 +415,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       >
         {held ? "Confirming your payment…" : opening ? "Opening…" : `Pay ${formatPrice(payCents)}`}
       </button>
-      <p className="text-xs text-muted-foreground">You pay on a secure payment page.</p>
-      <AddHelprNote />
+      {/* Q2633 (owner rule: no line under the buttons): Pay is the last thing in the bill. The secure-page line went, and
+          the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */}
     </div>
     </div>
-  );
-}
-
-/** Declutter "Add a Helpr" at checkout: the add-on is one tap on the paid order (docs/specs/declutter-add-a-helpr.md). */
-function AddHelprNote() {
-  const on = useFeature("declutter_add_helpr");
-  if (!on) return null;
-  return (
-    <p className="text-xs text-muted-foreground">
-      Need it put together or hung on the wall? Once you pay, one tap posts a Helpr job for your place. You set the price and pay for it separately.
-    </p>
   );
 }
 
@@ -498,9 +492,10 @@ export function CartView() {
                     <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />
                     {l.item_id ? (
                       // NIGHT-BUYINGpresse-3: the title link was 20 px tall on a phone; it is now a 44 px tap.
-                      <Link to={`/declutter/item/${l.item_id}`} className="flex min-h-11 min-w-0 items-center truncate" title={l.item_title}><span className="truncate">{l.item_title}</span></Link>
+                      // Q2636: the title wraps to two lines instead of a one-line cut ("Oak rocking cha…").
+                      <Link to={`/declutter/item/${l.item_id}`} className="flex min-h-11 min-w-0 items-center" title={l.item_title}><span className="line-clamp-2 break-words">{l.item_title}</span></Link>
                     ) : (
-                      <span className="truncate" title={l.item_title}>{l.item_title}</span>
+                      <span className="line-clamp-2 min-w-0 break-words" title={l.item_title}>{l.item_title}</span>
                     )}
                     <span className="ml-auto shrink-0 font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{itemPriceLabel(l.price_cents)}</span>
                     <RemoveFromCart line={l} />

@@ -34,7 +34,9 @@ export type PriceMode = "price" | "quotes";
 
 /** What happens next, one line per choice (owner 2026-10-19: say it under the pills). */
 const PRICE_MODE_NEXT: Record<PriceMode, string> = {
-  price: "You set the budget and review it before anything is charged. Helprs apply at your price.",
+  // Q2613 (Jobs audit 1102b row 27): the header above already says when the card is charged; this line said it a
+  // second time in other words. It says only what this choice means.
+  price: "You set the price. Helprs apply at your price.",
   quotes: "No price yet. Helprs near you send theirs; you pick one and pay only when you book.",
 };
 
@@ -71,6 +73,9 @@ export function PriceModeChoice({
       </p>
       <SegmentedControl
         ariaLabel="How to price this job"
+        // Q2611 (Jobs audit 1102b row 25): the shared control's 11 px labels were tiny in this full-width pill.
+        // Guard: src/test/priceModeLabelsReadable.test.tsx.
+        optionClassName="text-ds-15"
         value={value}
         onChange={(v) => {
           if (v === "quotes" && quotesComingSoon) {
@@ -88,7 +93,7 @@ export function PriceModeChoice({
                 label: (
                   <span className="flex flex-col items-center leading-tight text-muted-foreground/60" data-quotes-coming-soon>
                     <span>Get quotes</span>
-                    <span className="text-ds-10 font-medium">Coming soon</span>
+                    <span className="text-ds-12 font-medium">Coming soon</span>
                   </span>
                 ),
               }

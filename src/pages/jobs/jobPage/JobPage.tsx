@@ -39,7 +39,6 @@ import { JobTracker, PosterPrice, PosterMoneyNotes, HelprPrice, HelprMoneyNotes,
 import { OnTheWayNow, showsNow } from "./OnTheWayNow";
 import { JobPageActionRow, type RowAction } from "./JobPageActionRow";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../supabase/functions/_shared/escrowTiming";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { mapsSearchUrl } from "@/lib/mapsLink";
@@ -55,7 +54,9 @@ import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
+import { usePageMarkFixDone } from "./usePageMarkFixDone";
 import { hiredHelprFace } from "./hiredHelprFace";
+
 import { HAS_HELPR, usePosterPageActions } from "./posterPageActions";
 import { usePosterPageFlows } from "./usePosterPageFlows";
 import { useContinueDayActions } from "./useContinueDayActions";
@@ -69,6 +70,14 @@ import "@/lib/i18n/enJobs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { isSellForMeJob, SELL_FOR_ME_DONE_NOTE } from "@/lib/declutter/sellForMe";
+import { NOT_RIGHT_LABEL } from "@/lib/releaseCopy";
+import { crewPosterStep } from "@/components/tracker/crewPosterStep";
+import { crewMemberLine } from "@/components/tracker/crewMemberLine";
+import { useCrewSlot } from "@/hooks/useCrewSlot";
+import { offerIsOut } from "./useWithdrawOffer";
+
+/** The hired Helpr's way to this job's card on the Jobs tab, one name everywhere (Q2598). */
+const OPEN_IN_JOBS = "Open in Jobs";
 
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
@@ -98,6 +107,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const { t } = useLanguage();
   const { job: q, applicants, isPoster, myApplication, tracking, onCrew, crewConfirmed } = useJobPage(id, userId);
   const offeredToMe = useOfferedToMe(id, !isPoster && q.data?.job.direct_offer_status === "pending");
+  // A3-33 (audit 11-01): a crew member's own roster row (the Working card's read, shared by its query key).
+  const crewSlot = useCrewSlot(id, userId, !isPoster && onCrew);
   // CMP-4: the booked Helpr's instant booking (Confirm / Decline, the 2-hour countdown), the Working offer card's own.
   // Instant book is off for everyone (owner 11-01, switch 'instant_book'): no Book now list, no booking card.
   const instantBookOn = useFeature("instant_book");
@@ -124,6 +135,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const helperId = isPoster ? q.data?.job.helper_id ?? (offerPending ? offerTarget.data ?? null : null) : null;
   const helperCard = useQuery({ queryKey: ["declutter", "seller-card", helperId], queryFn: () => fetchSellerCard(helperId!), enabled: !!helperId });
   const helperFirst = (helperCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  // Q2669: the Helpr who cancelled (their closed application), named as the page names people ("Eli cancelled ...").
+  const cancelledHelprId = isPoster && q.data?.job.status === "open" ? applicants.data?.helprCancelled?.helperId ?? null : null;
+  const cancelledHelprCard = useQuery({ queryKey: ["declutter", "seller-card", cancelledHelprId], queryFn: () => fetchSellerCard(cancelledHelprId!), enabled: !!cancelledHelprId });
+  const cancelledHelprFirst = (cancelledHelprCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
   // The poster's Instant Release (the card's own read, PostedJobActions): the work is approved for them, so no clock.
   const { profile: ownProfile } = useCurrentUser();
   const instantRelease = !!(ownProfile as { auto_release_on_complete?: boolean } | null)?.auto_release_on_complete;
@@ -136,9 +151,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const [caseOpen, setCaseOpen] = useState(false);
   const seriesState = useJobSeriesState(isPoster ? null : q.data?.job);
   const [leaveOpen, setLeaveOpen] = useState(false);
-  // Computer (the `lg` grid): the price sits in the side card; a phone shows it beside the title (mockups 4 and 5).
-  const wide = useIsWebDesktop();
   const arrival = usePageConfirmArrival(isPoster ? q.data?.job : null);
+  // Q2668: the hired Helpr's "Mark it done" on a job sent back for a fix (the Working card's own resolve_revision).
+  const fixDone = usePageMarkFixDone(isPoster ? null : id, posterFirst, () => void q.refetch());
   const apply = usePageApply(isPoster ? null : q.data?.job, posterCard.data);
   // The Working card's own 30 minutes: Mark it done is greyed here too (useDoneFloor).
   const doneFloorMinutes = useDoneFloorMinutesLeft(doneFloorStart(q.data?.job.poster_confirmed_working_at, q.data?.job.helper_arrived_at));
@@ -195,7 +210,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const eyebrow = jobEyebrow(job.category);
   // The offered or hired Helpr (helper_id is set from the offer on): the street, as on their Working card.
   // The city here; the street once, on the Address line below for the offered or hired Helpr (F7, JOBS2-39: it was printed twice in a row).
-  // A SET continue day (Auditor 11, 11-01): the first line is the next visit, "Continuing Thu, Nov 5 · 9:00 AM".
+  // A SET continue day (Auditor 11, 11-01): the first line is the next visit, "Continuing Thu 11/5 at 9 AM" (Q2680).
   const continuingOn = continueDayHeader(continueDay.row);
   const meta = continuingOn ? [continuingOn, job.location ? getCity(job.location) : null].filter(Boolean).join(" · ") : metaLine(job);
   const open = job.status === "open";
@@ -207,6 +222,12 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
   // Every viewer state, one table (viewerState.ts): applied, offered, hired, declined, closed, own job.
   const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew, offeredToMe });
+  // Q2595 (Jobs audit 1102b row 9): someone never hired, on a job that is over (expired, cancelled, filled by someone
+  // else), has no pay to read and no address coming: no money box, no address line, and a way on (Browse jobs).
+  // Q2673 (audit 1102e row 5): a Helpr who cancelled has given the job up, even though it is open again for others: no
+  // pay, no "street address is shared once you're offered the job" line.
+  const cancelledByMe = myApplication.data?.status === "rejected" && myApplication.data.closed_reason === "helper_cancelled";
+  const closedToMe = !isPoster && !isHired && !instantUntil && viewer.action.kind === "none" && ((!party && !open) || cancelledByMe);
   // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
   // is an application id), and `open=1` expands the card instead of only pulsing it.
   const highlight = `/jobs?tab=working&job=${encodeURIComponent(job.id)}&open=1`;
@@ -217,7 +238,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const messagePoster = () => navigate(job.customer_id ? `/messages?jobId=${encodeURIComponent(job.id)}&userId=${job.customer_id}` : "/messages");
   const openWorking = () => navigate(highlight);
   const hiredFace = isHired && viewer.action.kind === "open_working"
-    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true) })
+    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, doneFloorMinutes, open: openWorking, message: messagePoster, owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data, markFixDone: () => void fixDone.mark(), markingFix: fixDone.marking })
     : null;
   // The poster's own step on this page, over posterPageActions' (undefined: theirs).
   const posterStep = posterWait === "confirm_arrival"
@@ -234,7 +255,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const { row: hiredRow, leaveInMenu } = (() => {
     if (!hiredFace) return { row: null, leaveInMenu: false };
     const msg: RowAction | null = job.customer_id && !job.is_group_job ? { key: "message", label: `Message ${posterFirst ?? "them"}`, go: messagePoster } : null;
-    const work: RowAction = { key: "working", label: "Open in working", go: openWorking };
+    // Q2598 (Jobs audit 1102b row 12, JA-18 / A3-12): ONE name for this menu, "Open in Jobs", alone or in a pair
+    // (it read "Open in Jobs" in a pair and "Open in working" in More options).
+    const work: RowAction = { key: "working", label: OPEN_IN_JOBS, go: openWorking };
     // JA-18: a face that opens the Working card ("See your crew steps") IS "Open in working": never both.
     // A continue day still ahead (Auditor 11, 11-01): the server refuses "done" until that day (continue_day_ahead),
     // so the row never leads with Mark job complete then; Message leads and the note under it says when.
@@ -245,7 +268,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       : { key: "step", label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled };
     // L27 JA-F2: a cancelled job is in no live Working list, so "Open in working" there is a dead end: not offered.
     const extras = [msg, job.status === "cancelled" ? null : work].filter((a): a is RowAction => !!a && a.key !== lead.key);
-    // Continue another day: a set day the Helpr has not confirmed leads; "Need another day" sits with the others.
+    // Continue another day: a set day the Helpr has not confirmed leads; "Not finished? Set a day" sits with the others.
     // A3-44: "Leave series" joins More options only when that makes 2+ items (owner 5:42 PM); else it stays a link.
     const leaveAction: RowAction = { key: "leave-series", label: "Leave series", go: () => setLeaveOpen(true), danger: true };
     const canLeave = canLeaveSeries(job, userId, seriesState.data?.series_ended_on ?? null, isPoster);
@@ -273,7 +296,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
     : instantUntil
       ? null
     : viewer.action.kind === "open_working"
-      ? { label: "Open in working", go: openWorking }
+      ? { label: OPEN_IN_JOBS, go: openWorking }
       // JA-17: an offer is answered on this page (PageOfferPanel below), never by leaving it for the Working card.
       : viewer.action.kind === "see_offer"
         ? null
@@ -282,7 +305,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           : viewer.action.kind === "apply" && canApply
             // The apply sheet opens over THIS page (F9), the flow Home runs (PageApplySheet).
             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") }
-            : null;
+            : closedToMe
+              ? { label: "Browse jobs", go: () => navigate("/browse") }
+              : null;
 
   const share = open ? (
     <ShareJobButton
@@ -293,10 +318,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   ) : null;
 
   // JA-48 / JA-49: an offer or a booking out to one Helpr; the page waits on them, never on "more applicants".
-  const offerOut = isPoster && open && job.direct_offer_status === "pending";
+  // Q2604: a Hire's offer (accepted, not confirmed) is out too, and says until when (response_deadline).
+  const offerOut = isPoster && offerIsOut(job);
+  const offerUntil = job.status === "accepted" ? job.response_deadline ?? null : job.direct_offer_expires_at ?? null;
   // JA-27: a no-show put this job back up (the closed application's time); null when there was none.
   const noShowAt = isPoster && open ? applicants.data?.noShowAt ?? null : null;
   const noShowRepostedOn = noShowAt === null ? null : noShowAt ? formatJobDate(noShowAt.slice(0, 10)) : "";
+  // Q2669 (audit 1102e row 2): the hired Helpr cancelled and the job went back up: the poster's line says who and when.
+  const cancelledRow = isPoster && open && !job.helper_id ? applicants.data?.helprCancelled ?? null : null;
+  const helprCancelled = cancelledRow ? { name: cancelledHelprFirst, at: cancelledRow.at } : null;
   // The review window, IN the next-step line (owner 11-01: "Next: approve Yusef's work · 23h 52m left, then Helpr
   // support steps in"); nothing releases on a timer (owner 2026-10-23), so the words say who steps in.
   const approveLeft = isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease
@@ -305,13 +335,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterDetails = job.description?.trim() ?? "";
   // On a phone the details read two lines with "Show more" (mockup 5); a short one has nothing more to show.
   const detailsLong = posterDetails.length > 90 || posterDetails.includes("\n");
-  const helprPrice = isPoster ? null : <HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} />;
-  const price = isPoster ? <PosterPrice job={job} labelled={wide} /> : wide
-    ? <div className="flex items-start justify-between gap-3"><p className="text-ds-16 font-semibold">Your pay</p>{helprPrice}</div>
-    : helprPrice;
+  const helprPrice = isPoster || closedToMe ? null : <HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} />;
+  // Q2599 (owner 11-02, mockup 4 overruled here): the price is in the header row at EVERY width, beside the title
+  // block as on a phone; never a separate "Job price" / "Your pay" box in the side card at computer size.
+  const price = isPoster ? <PosterPrice job={job} /> : helprPrice;
   const moneyNotes = isPoster
     ? <PosterMoneyNotes job={job} total={total} loading={applicants.isLoading} />
-    : <HelprMoneyNotes job={job} hired={isHired} noShow={myApplication.data?.closed_reason === "no_show"} />;
+    : closedToMe ? null : <HelprMoneyNotes job={job} hired={isHired} noShow={myApplication.data?.closed_reason === "no_show"} />;
 
   /*
    * JOB PAGE LAYOUT V2 (owner 2026-11-01 12:00 PM, mockups 4 and 5 in ~/Documents/Louisiana Helpr):
@@ -349,9 +379,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
                 </p>
               )}
             </div>
-            {!wide && price}
+            {price}
           </div>
-          {!wide && moneyNotes}
+          {moneyNotes}
         </section>
 
         {(posterDetails || hasVideo) && (
@@ -385,8 +415,10 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             hideNext={isPoster && !continueDay.row && showsNow(job, trackingStatus)}
             otherFirst={isPoster ? helperFirst : posterFirst}
             pendingApplicants={isPoster && applicants.data ? pending : undefined}
-            offerOut={offerOut} offerUntil={job.direct_offer_expires_at ?? null} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft}
-            crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined} continueStep={continueDay.step} />
+            offerOut={offerOut} offerUntil={offerUntil} noShowRepostedOn={noShowRepostedOn} approveLeft={approveLeft} helprCancelled={helprCancelled}
+            crewMember={!isPoster && onCrew ? { confirmed: crewConfirmed } : undefined}
+            continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep(posterFlows.crewRoster, posterFlows.crewNames ?? {}, job)
+              : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} />
           {/* JA-34 (audit 11-01): the card's own clock ("28m until the job starts"), so the page knows what its card knows. */}
           {/* JA-30 (Jobs audit 11-01): the dispute line says when they hear back; "See the case" opens the case itself
               (the Working and Posted cards' own DisputeTimelineDialog: the reason, both sides' evidence, the decision). */}
@@ -432,7 +464,6 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           {isPoster && open && !offerOut && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
             <NoApplicantsYet job={job} onManage={posterActions.edit} />
           )}
-          {!isPoster && !isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
         </div>
 
         {/* Lead 11-01 (B107): a stage with nothing in the main column (no photos, crew or fix: Done, Cancelled) left an
@@ -440,14 +471,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             tracker at full content width, from 1024 up. */}
         <aside aria-label={t("jobPage.side")} data-job-side="" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:self-start lg:[[data-job-main]:empty+&]:col-start-1 lg:[[data-job-main]:empty+&]:col-span-2">
           <section data-job-card="" className={`${CARD} space-y-4 p-4 empty:hidden lg:p-5`}>
-            {wide && price}
-            {wide && moneyNotes}
             {/* CMP-4: the booked Helpr's card, the same one the Working offer card shows (InstantBookingCard). */}
             {!isPoster && instantUntil && <InstantBookingCard jobId={job.id} title={job.title} declineUntil={instantUntil} />}
             {viewer.status && !(!isPoster && instantUntil) && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
             {/* Owner 2026-11-01: the other person's card sits ABOVE the buttons. */}
             {isPoster && job.helper_id && !job.is_group_job && HAS_HELPR.has(job.status ?? "") && <HiredHelpr helprId={job.helper_id} />}
-            {isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
+            {/* Q2599 (Jobs audit 1102b row 13): every Helpr, hired or not, sees the poster's card here. On Posted it sat
+                alone in the main column, so the page split in two at 1440 (a short card left, pay and Apply right)
+                while every other stage is one full-width card. */}
+            {!isPoster && job.customer_id && <PostedBy posterId={job.customer_id} />}
             {/* Reported as a no-show (closed_reason 'no_show'): where the strikes are explained. */}
             {myApplication.data?.closed_reason === "no_show" && <Link to="/rules#strikes-bans" className="text-ds-14 font-medium text-primary underline underline-offset-2">How no-show strikes work</Link>}
             {/* The note sent with a new day is shown here to the two parties only, never in a notice (Q223). */}
@@ -458,6 +490,14 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {continueDay.sheet}
             {isPoster && posterActions.panel}
             {hiredRow}
+            {/* A3-8 (audit 11-01): at the approve step the poster's complaint is a visible text button under the pair
+                (Message | Approve stays, owner 12:49 PM), opening the approve sheet at the fix form, never only behind Approve. */}
+            {isPoster && posterActions.notRight && (
+              <Button type="button" variant="link" size="sm" data-not-right-open="" onClick={posterActions.notRight}
+                className="h-auto self-center px-0 text-ds-15 font-semibold">
+                {NOT_RIGHT_LABEL}
+              </Button>
+            )}
             {/* Continue another day (owner 2026-11-01): a visible text button under the pair, both sides. */}
             {continueDay.setDay && (
               <Button type="button" variant="link" size="sm" data-continue-day-open="" onClick={continueDay.setDay.go}
@@ -487,7 +527,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               <p data-sell-for-me-done-note="" className="text-center text-ds-13 text-muted-foreground">{SELL_FOR_ME_DONE_NOTE}</p>
             )}
             {/* Not beside an instant booking's "You're booked" (B80), nor to a Helpr already offered it (JA-50). */}
-            {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
+            {!isPoster && !isHired && !closedToMe && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
           </section>
           {/* Helpr Guarantee (owner 2026-10-27), small, under the card (mockups 4 and 5). */}
           <div data-job-guarantee="" className="empty:hidden">

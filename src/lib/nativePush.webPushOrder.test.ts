@@ -84,7 +84,7 @@ describe("web push permission from the in-app sheet", () => {
     expect(subscribe).not.toHaveBeenCalled();
   });
 
-  it("does nothing when Not Now is tapped", async () => {
+  it("does nothing when Not now is tapped", async () => {
     expect(await run(false)).toBe("dismissed");
     expect(calls).toEqual([]);
   });

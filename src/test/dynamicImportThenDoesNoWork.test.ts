@@ -144,6 +144,8 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
       "src/integrations/supabase/client.ts": 1, // error-logger send
       "src/integrations/supabase/keychainStorageAdapter.ts": 1, // error-logger send
       "src/lib/authSignOut.ts": 2, // error-logger sends
+      "src/components/admin/adminRailBadges.ts": 2, // m?.fetchX picks the queue fetcher; an empty module gives undefined and the query waits on untilReload(), so nothing is dropped (knip reads the member off the import here)
+      "src/lib/celebrate.ts": 1, // confetti: a decoration, nothing is lost
       "src/lib/i18n/language.ts": 1, // resets `loading`: the next call loads Spanish
       "src/lib/lifecycleErrors.ts": 1, // Q1883: error-logger send for a lost admin-copy chunk
       "src/lib/sentry.ts": 1, // Replay start

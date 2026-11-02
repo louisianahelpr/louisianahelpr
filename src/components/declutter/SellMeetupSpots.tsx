@@ -114,7 +114,8 @@ export function SellMeetupSpots() {
       <div className="space-y-1">
         <h2 id="meet-spots-title" className="text-base font-semibold text-foreground">Meet spots</h2>
         <p className="text-ds-13 text-muted-foreground">
-          Public places where you'll meet a buyer, with the days and times. Buyers choosing Meet up pick one and a time.
+          {/* Q2570 (audit 1102a): "Meet up" was a third name for the way the tile beside it calls Safe meeting spot. */}
+          Public places where you'll meet a buyer, with the days and times. Buyers choosing a safe meeting spot pick one and a time.
         </p>
       </div>
       {q.isError && <ErrorState variant="inline" title="We couldn't load your meet spots." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />}
@@ -132,7 +133,7 @@ export function SellMeetupSpots() {
               <div className="flex flex-wrap gap-2">
                 {suggestions.map((s) => (
                   <Button key={s.id} type="button" variant="outline" size="sm" onClick={() => setDraft(fromSuggestion(s))}
-                    className="px-3 text-left text-ds-13">
+                    className="h-auto max-w-full justify-start whitespace-normal px-3 py-2 text-left text-ds-13 leading-snug">
                     + {s.name}
                   </Button>
                 ))}

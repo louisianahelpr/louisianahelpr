@@ -74,10 +74,12 @@ describe("Q345: block_user_and_settle closes pending applications and offers", (
 });
 
 // The applications close disabled.
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |      AND a.status = 'pending' |      AND false
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |      AND a.status = 'pending' |      AND false
 // The offer decline disabled.
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql | direct_offer_expires_at = NULL\n   WHERE direct_offer_status = 'pending' | direct_offer_expires_at = NULL\n   WHERE false
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | direct_offer_expires_at = NULL\n   WHERE direct_offer_status = 'pending' | direct_offer_expires_at = NULL\n   WHERE false
 // The notification skip removed.
 // @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql |     IF NEW.closed_reason = 'party_blocked' THEN |     IF false THEN
-// The constraint not widened.
-// @mutate supabase/migrations/20261029180706_application_closed_by_no_show.sql | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked', 'offer_expired', 'not_confirmed', 'no_show')); | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'offer_expired', 'not_confirmed', 'no_show'));
+// The constraint not widened. It is restated by later migrations; the guard reads the NEWEST one, so the mutation
+// targets the newest restatement (20261102103429 adds 'offer_withdrawn'; 20261031013445 'helper_cancelled'), never a
+// superseded copy (vacuity found the old 20261029180706 target surviving, B182 11-02).
+// @mutate supabase/migrations/20261102103429_poster_withdraws_an_offer.sql | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'party_blocked', 'offer_expired', 'not_confirmed', 'no_show', 'helper_cancelled', 'offer_withdrawn')); | CHECK (closed_reason IS NULL OR closed_reason IN ('job_cancelled', 'offer_expired', 'not_confirmed', 'no_show', 'helper_cancelled', 'offer_withdrawn'));

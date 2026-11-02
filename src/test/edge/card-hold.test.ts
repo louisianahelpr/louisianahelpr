@@ -74,6 +74,8 @@
  * @mutate supabase/functions/card-hold-sweep/index.ts |       if (!r.already) await tellWaitingHelprsReady(db, job, defects); |
  * @mutate supabase/functions/card-hold-sweep/index.ts |     if (job.payment_status === "held") {\n      await takeFailedHoldOffListing(db, job.id); |     if (false) {\n      await takeFailedHoldOffListing(db, job.id);
  * @mutate supabase/functions/card-hold-sweep/index.ts |     if (Date.parse(hold.capture_before) <= now) defects.record( |     if (Date.parse(hold.capture_before) <= now) return; if (false) defects.record(
+ * @mutate supabase/functions/_shared/cardHold.ts |     if (after?.state === "released") return "already_gone"; |     if (false) return "already_gone";
+ * @mutate supabase/functions/_shared/cardHold.ts |     if (after?.state === "released") return "already_gone";\n    throw e; |     return "already_gone";
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -143,7 +145,7 @@ describe("card hold at posting (Q2399)", () => {
     it("a saved card is held off-session only under $300 and on an untaxed category (Q210b, tax)", () => {
       expect(offSessionAllowed(29_999, "yard_work")).toEqual({ ok: true });
       expect(offSessionAllowed(30_000, "yard_work")).toEqual({ ok: false, why: "large" });
-      expect(offSessionAllowed(5_000, "assembly")).toEqual({ ok: false, why: "taxed" });
+      expect(offSessionAllowed(5_000, "auto_repair")).toEqual({ ok: false, why: "taxed" });
     });
   });
 
@@ -544,6 +546,46 @@ describe("card hold at posting (Q2399)", () => {
       const told = notices().find((x) => x.user_id === POSTER.id);
       expect(told?.title).toBe(CARD_HOLD_COPY.releasedTitle);
       expect(told?.message).toBe(CARD_HOLD_COPY.released("Mow the yard"));
+    });
+  });
+
+  describe("Q2531: the poster's cancel and the sweep release one hold at once", () => {
+    async function sweep() {
+      const fn = await loadEdgeFunction("card-hold-sweep");
+      const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: {} }));
+      return { res, payload: JSON.parse(await res.text()) as Record<string, any> };
+    }
+    function seed() {
+      // Prod 2026-10-29 15:19Z, job 1b87e990: cancel_escrow closed the job at :00.227, the sweep read it
+      // cancelled + held at :00.34 with the hold still 'authorized', and the cancel's release won.
+      scenario.reads.job_card_holds = { rows: [holdRow({ notified_state: "released" })] };
+      scenario.reads.jobs = { rows: [heldJob({ status: "cancelled", helper_id: null })] };
+      scenario.writeSelectRows = { jobs: [{ id: JOB }], job_card_holds: [{ job_id: JOB }] };
+    }
+    it("the run whose pinned update loses to the other run's release is not a defect", async () => {
+      seed();
+      stripeMock.paymentIntents.cancel.mockImplementation(async () => {
+        // The other run finishes while this one talks to Stripe.
+        scenario.reads.job_card_holds = { rows: [holdRow({ state: "released", notified_state: "released" })] };
+        scenario.reads.jobs = { rows: [heldJob({ status: "cancelled", payment_status: "cancelled", helper_id: null })],
+          eqOverrides: [{ column: "payment_status", value: "held", result: { rows: [] } }] };
+        scenario.writeSelectRows = { ...scenario.writeSelectRows, job_card_holds: [] };
+        return { id: "pi_hold", status: "canceled" };
+      });
+      const { res, payload } = await sweep();
+      expect(JSON.stringify(payload)).not.toContain("matched 0 rows");
+      expect(payload.defectReasons ?? []).toEqual([]);
+      expect(payload.defects ?? 0).toBe(0);
+      expect(res.status).toBe(200);
+    });
+    it("a pinned update that matches nothing while the hold is still open stays a defect", async () => {
+      seed();
+      stripeMock.paymentIntents.cancel.mockImplementation(async () => {
+        scenario.writeSelectRows = { ...scenario.writeSelectRows, job_card_holds: [] };
+        return { id: "pi_hold", status: "canceled" };
+      });
+      const { payload } = await sweep();
+      expect(JSON.stringify(payload)).toContain("job_card_holds update matched 0 rows");
     });
   });
 

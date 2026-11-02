@@ -40,12 +40,16 @@ export interface PosterPageFlows {
   ready: boolean;
   completing: boolean;
   approve: () => void;
+  /** "Something's not right" (A3-8): the approve sheet, opened at the fix form. */
+  notRight: () => void;
   cancel: () => void;
   edit: () => void;
   /** How many card actions the page offers beside Message (jobStepMenu.tsx): 0, 1 (drawn in `setSecondHost`), or a list. */
   moreCount: number;
   /** How many primaries the card holds (Review, Tip): the first leads the row when the page has no step. */
   leadCount: number;
+  /** Q2592: the card's one action is SOS, so the row puts it inside More options (never beside Message). */
+  loneSos: boolean;
   /** The page's lead slot, where the card's first primary is drawn. */
   setLeadHost: (el: HTMLElement | null) => void;
   /** Above the row: where the card's `ask` is drawn (a crew's per-member Tip rows; why a Tip can't be sent yet). */
@@ -61,6 +65,8 @@ export interface PosterPageFlows {
   /** A crew job's roster as the Posted list read it (undefined until read, or not a crew): the page draws it (JA-32,
    *  JOBS-3: per-member arrival, Confirm work and "Didn't show"), never inside the card's hidden controls. */
   crewRoster?: React.ComponentProps<typeof GroupJobHelpers>["initialHelpers"];
+  /** The roster members' names (the Posted list's helperNames), for the crew's next-step line (A3-32). */
+  crewNames?: Record<string, string>;
   /** The card's own controls: always mounted and never shown (its actions reach the page through jobStepMenu.tsx), so
    *  Approve opens its sheet and each action keeps its own confirm step. */
   panel: React.ReactNode;
@@ -132,15 +138,17 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   const completeInFlight = useRef(new Set<string>());
   // Bumped by "Approve and release": the card's PostedJobActions opens its CompletionChoiceSheet (the confirm).
   const [completionRequest, setCompletionRequest] = useState(0);
+  const [revisionRequest, setRevisionRequest] = useState(0);
   // One tap to the options (owner 2026-11-01): the card's actions are drawn by the page, not in a panel under it.
   const [moreCount, setMoreCount] = useState(0);
   const [secondHost, setSecondHost] = useState<HTMLElement | null>(null);
   const [listHost, setListHost] = useState<HTMLElement | null>(null);
   const [leadCount, setLeadCount] = useState(0);
+  const [loneSos, setLoneSos] = useState(false);
   const [leadHost, setLeadHost] = useState<HTMLElement | null>(null);
   const [askHost, setAskHost] = useState<HTMLElement | null>(null);
   const [textHost, setTextHost] = useState<HTMLElement | null>(null);
-  const menu = useMemo(() => ({ secondHost, listHost, leadHost, askHost, textHost, setCount: setMoreCount, setLeadCount }), [secondHost, listHost, leadHost, askHost, textHost]);
+  const menu = useMemo(() => ({ secondHost, listHost, leadHost, askHost, textHost, setCount: setMoreCount, setLeadCount, setLoneSos }), [secondHost, listHost, leadHost, askHost, textHost]);
 
   const handlers = createLifecycleHandlers({
     user,
@@ -166,7 +174,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
   });
 
   if (!enabled || !job) {
-    return { ready: false, completing: false, approve: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, setLeadHost: () => {}, setAskHost: () => {}, setTextHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
+    return { ready: false, completing: false, approve: () => {}, notRight: () => {}, cancel: () => {}, edit: () => {}, moreCount: 0, leadCount: 0, loneSos: false, setLeadHost: () => {}, setAskHost: () => {}, setTextHost: () => {}, setSecondHost: () => {}, setListHost: () => {}, crewNobodyLeft: false, panel: null, dialogs: null };
   }
 
   // Its own Suspense: the card's steps lazy-load dialogs (the refund ask), and a suspend with no boundary of its own
@@ -201,6 +209,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
         helperWorking={trackingStatus === "working" || trackingStatus === "done"}
         onActionComplete={() => void refresh()}
         completionRequest={completionRequest}
+        revisionRequest={revisionRequest}
       />
     </div>
     </JobStepMenuContext.Provider>
@@ -248,10 +257,12 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     ready: true,
     completing: completingJobId === job.id,
     approve: () => setCompletionRequest((n) => n + 1),
+    notRight: () => setRevisionRequest((n) => n + 1),
     cancel: () => void handlers.tryCancelJob(job),
     edit: () => setEditJob(job),
     moreCount,
     leadCount,
+    loneSos,
     setLeadHost,
     setAskHost,
     setTextHost,
@@ -260,6 +271,7 @@ export function usePosterPageFlows({ jobId, enabled, trackingStatus, onChanged }
     // The detail read is done (q.data), so a crew with no roster entry has nobody left on it.
     crewNobodyLeft: !!detail && job.is_group_job === true && crewNobodyLeft(job.status, detail.groupHelpersByJob?.[job.id] ?? [], true, hasJobStarted(job.date_needed, job.start_time)),
     crewRoster: job.is_group_job && detail ? detail.groupHelpersByJob?.[job.id] ?? [] : undefined,
+    crewNames: job.is_group_job ? helperNames : undefined,
     panel,
     dialogs,
   };

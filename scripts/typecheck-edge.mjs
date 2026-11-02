@@ -66,65 +66,14 @@ const SKIP_DIRS = new Set(["node_modules", ".git"]);
  * An entry that no longer matches anything is itself a failure — see
  * `staleRules` below — so this list cannot rot into a permanent exemption.
  */
+// Empty since 2026-11-02: the only entries were the
+// FeeAdminClient pair (TS2345/TS2589 at every getHelperFeePercent and
+// readHelperFeePercentStrict call site). They went away when helperFees.ts
+// typed its client parameter as the real SupabaseClient instead of a
+// hand-rolled shape. Add an entry only with a `why` that names the upstream
+// defect and the one change that deletes it.
 // @two-way scripts/typecheck-edge.mjs:const staleRules =
-const KNOWN_ERRORS = [
-  {
-    code: "TS2345",
-    // One defect, two codes (see the TS2589 entry): the pair is stale only
-    // when NEITHER matches. Measured 2026-10-15: origin/main reports 6 hits
-    // across the pair, the sec-c-3 head 7, and a branch touching only
-    // unrelated edge functions 5 with no TS2589 at all, so a per-code stale
-    // check failed a tree where the defect was plainly still there.
-    group: "FeeAdminClient",
-    contains: "is not assignable to parameter of type 'FeeAdminClient'",
-    files: [
-      "supabase/functions/auto-release-payment/index.ts",
-      "supabase/functions/create-payment/index.ts",
-      "supabase/functions/execute-dispute-split/index.ts",
-      "supabase/functions/process-scheduled-payouts/index.ts",
-      "supabase/functions/release-payout/index.ts",
-      "supabase/functions/void-cancelled-payments/index.ts",
-    ],
-    why: [
-      "ONE upstream type defect, seven call sites. `FeeAdminClient` in",
-      "supabase/functions/_shared/helperFees.ts declares `single()` as returning a",
-      "`Promise<...>`. The Supabase client returns a `PostgrestBuilder`, which is a",
-      "PromiseLike (it implements `then` and nothing else), so it is missing `catch`,",
-      "`finally` and `[Symbol.toStringTag]` and NO real client satisfies the declared",
-      "parameter type. Runtime is unaffected — structural types are erased and every",
-      "caller does pass a real client.",
-      "",
-      "The fix is one word: `Promise<` -> `PromiseLike<` on helperFees.ts:89. That file",
-      "and release-payout/** are owned by other lanes right now, so this lane must not",
-      "touch them. Delete this entire entry with that one-word change.",
-    ].join("\n"),
-  },
-  {
-    code: "TS2589",
-    group: "FeeAdminClient",
-    contains: "Type instantiation is excessively deep and possibly infinite",
-    // Same six files as the entry above. A getHelperFeePercent() call site
-    // reports EITHER TS2345 or TS2589 depending on how deep the checker gets
-    // before it gives up — adding a comment line above the call has been
-    // observed to flip one into the other — so both codes are listed against
-    // the same set rather than pinning whichever one showed up today.
-    files: [
-      "supabase/functions/auto-release-payment/index.ts",
-      "supabase/functions/create-payment/index.ts",
-      "supabase/functions/execute-dispute-split/index.ts",
-      "supabase/functions/process-scheduled-payouts/index.ts",
-      "supabase/functions/release-payout/index.ts",
-      "supabase/functions/void-cancelled-payments/index.ts",
-    ],
-    why: [
-      "Same root cause as the FeeAdminClient entry above, at the same call sites.",
-      "Comparing the full generic `SupabaseClient` against the hand-rolled",
-      "`FeeAdminClient` shape blows the instantiation depth limit before the checker",
-      "can report the plain mismatch. Goes away with the same one-word fix in",
-      "_shared/helperFees.ts.",
-    ].join("\n"),
-  },
-];
+const KNOWN_ERRORS = [];
 
 // ── Collect the files ──────────────────────────────────────────────────────
 function walk(dir, out = []) {

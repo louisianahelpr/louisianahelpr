@@ -252,6 +252,17 @@ serve(async (req) => {
       if (!error || error.code !== 'PGRST002') break
       await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
     }
+    // Q2302: the account was deleted between the notification and this email (the privacy journey deletes its
+    // seed accounts seconds after they act). notification_preferences and notification_logs both carry an FK to
+    // auth.users, so the upsert fails 23503 and no log row can point at the account either. There is no one to
+    // email: answer skipped, write nothing, alert nothing. Any other failure still logs and answers 500 below.
+    if (ensureError?.code === '23503') {
+      console.log('send-notification-email: recipient account no longer exists; skipped')
+      return new Response(
+        JSON.stringify({ skipped: true, reason: 'recipient_deleted' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
     if (ensureError) {
       await logSkip('failed', `preference_row_ensure_failed: ${ensureError.message}`)
       return new Response(

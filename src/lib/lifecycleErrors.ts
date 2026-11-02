@@ -989,6 +989,10 @@ export const RPC_ERROR_COPY = {
     refund_already_answered: DC.refund_already_answered,
     refund_answer_late: DC.refund_answer_late,
     refund_not_found: DC.refund_not_found,
+    // A3-74 (20261102041000): the seller's optional words and photos on a part offer or a no.
+    note_too_long: DC.note_too_long,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    too_many_problem_photos: DC.too_many_problem_photos,
   },
   declutter_answer_refund_offer: {
     account_restricted: DC.account_restricted,
@@ -1565,6 +1569,133 @@ export const RPC_ERROR_COPY = {
     not_your_job: "Only the Helpr hired for this job can write its listings.",
     photo_not_uploaded: DC.photo_not_uploaded,
     too_many_photos: DC.too_many_photos,
+  },
+  // Declutter manager mode (20261101181005): the seller's private offer.
+  declutter_manager_offer: {
+    account_restricted: DC.account_restricted,
+    already_has_manager: "You already have someone managing your Declutter (or an offer waiting). End it first.",
+    feature_disabled: DC.feature_disabled,
+    invalid_share: "Pick a percent from 0 to 100, or a dollar amount per sold item.",
+    manager_blocked: "You can't ask this person.",
+    manager_not_found: "We couldn't find that person.",
+    no_parts_chosen: "Choose at least one thing for them to handle.",
+    not_authenticated: DC.not_authenticated,
+  },
+  // Declutter manager mode (20261101181005): the person answers the offer.
+  declutter_manager_respond: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    manager_blocked: "You can't manage this seller's Declutter.",
+    not_your_offer: "This offer isn't yours to answer.",
+    offer_not_pending: "This offer was already answered or taken back.",
+  },
+  // Declutter manager mode, owner 11-01: the seller OKs a draft her manager sent (she attests, and it posts as hers).
+  declutter_manager_approve: {
+    attestation_incomplete: DC.attestation_incomplete,
+    attestation_required: DC.attestation_required,
+    feature_disabled: DC.feature_disabled,
+    item_not_a_draft: DC.item_not_a_draft,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    not_found: "This draft isn't waiting for you any more.",
+    not_waiting: "This draft was already posted or sent back.",
+    photos_required: DC.photos_required,
+    pickup_windows_required: DC.pickup_windows_required,
+    sale_mode_unavailable: DC.sale_mode_unavailable,
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    invalid_floor_price: DC.invalid_floor_price,
+    under_18: DC.under_18,
+  },
+  // Declutter manager mode, owner 11-01: the seller sends a draft back to her manager with a note.
+  declutter_manager_send_back: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    not_found: "This draft isn't waiting for you any more.",
+    not_waiting: "This draft was already posted or sent back.",
+  },
+  // Declutter manager mode (20261101181005): either side ends it.
+  declutter_manager_end: {
+    not_your_grant: "Only the seller or their manager can end this.",
+  },
+  // Declutter manager mode (20261101181005): the seller changes the parts.
+  declutter_manager_set_permissions: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    grant_ended: "This has already ended.",
+    no_parts_chosen: "Choose at least one thing for them to handle, or end their access.",
+    not_your_grant: "Only the seller can change what their manager handles.",
+  },
+  // Declutter manager mode (20261101181005): what the manager sees of the seller.
+  declutter_managed_overview: {
+    feature_disabled: DC.feature_disabled,
+    not_your_seller: "You're not managing this seller's Declutter any more.",
+  },
+  // Declutter manager mode (20261101181005): the manager's switcher.
+  declutter_my_manager_grants: {
+    feature_disabled: DC.feature_disabled,
+  },
+  // Declutter manager mode (20261101181005): every action the manager takes for the seller. The seller RPC it runs
+  // can refuse with its own codes; managerMode.ts falls back to that RPC's words.
+  declutter_manage: {
+    account_restricted: DC.account_restricted,
+    act_as_seller_failed: "That didn't go through, and nothing was changed. Try again.",
+    act_as_seller_not_restored: "That didn't go through, and nothing was changed. Try again.",
+    area_looks_like_address: DC.area_looks_like_address,
+    attestation_required: DC.attestation_required,
+    card_required: DC.card_required,
+    counter_same_amount: DC.counter_same_amount,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    delivery_not_done: DC.delivery_not_done,
+    feature_disabled: DC.feature_disabled,
+    got_it_too_early: DC.got_it_too_early,
+    invalid_action: DC.invalid_action,
+    invalid_floor_price: DC.invalid_floor_price,
+    invalid_handovers: DC.invalid_handovers,
+    invalid_input: DC.invalid_input,
+    invalid_location: DC.invalid_location,
+    invalid_message: DC.invalid_message,
+    invalid_method: DC.invalid_method,
+    invalid_offer_amount: DC.invalid_offer_amount,
+    invalid_offer_rules: DC.invalid_offer_rules,
+    invalid_payout: DC.invalid_payout,
+    invalid_pickup_windows: DC.invalid_pickup_windows,
+    invalid_price: DC.invalid_price,
+    invalid_status: DC.invalid_status,
+    item_id_taken: "That listing already exists. Refresh and try again.",
+    item_not_available: DC.item_not_available,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    message_rate_limited: DC.message_rate_limited,
+    no_delivery_fee: DC.no_delivery_fee,
+    not_authenticated: DC.not_authenticated,
+    not_booked_yet: DC.not_booked_yet,
+    not_delivered_yet: DC.not_delivered_yet,
+    not_found: "That's no longer one of the seller's listings, offers or sales.",
+    not_your_seller: "You're not managing this seller's Declutter any more.",
+    not_your_turn: DC.not_your_turn,
+    offer_expired: DC.offer_expired,
+    offer_not_found: DC.offer_not_found,
+    offer_not_open: DC.offer_not_open,
+    offer_too_low: DC.offer_too_low,
+    offers_off: DC.offers_off,
+    order_not_paid: DC.order_not_paid,
+    other_side_unavailable: DC.other_side_unavailable,
+    permission_off: "The seller hasn't turned this part on for you.",
+    waiting_for_seller: "The seller is reviewing this draft. You can change it if they send it back.",
+    photo_not_found: DC.photo_not_found,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    price_above_listed: DC.price_above_listed,
+    problem_open: DC.problem_open,
+    question_not_found: DC.question_not_found,
+    talk_blocked: DC.talk_blocked,
+    talk_closed: DC.talk_closed,
+    too_few_photos: DC.too_few_photos,
+    too_many_photos: DC.too_many_photos,
+    under_18: DC.under_18,
+    unknown_action: "That can't be done for the seller.",
+    wrong_side: DC.wrong_side,
   },
   // LEAD-LIST-FOR-SELLER (20261101034159).
   declutter_helpr_create_listing: {
@@ -2406,6 +2537,13 @@ export const RPC_ERROR_COPY = {
   get_my_sms_consent: {
     not_authenticated: "Sign in again to see your text alert settings.",
   },
+  // Q2337 (20261102084156): the code from the confirmation text, typed into SmsAlertsCard. A wrong code is an
+  // answer ({status:'wrong_code'}), not an error, so only the refusals are here.
+  confirm_sms_code: {
+    account_restricted: "Your account is restricted right now, so you can't turn on text alerts.",
+    feature_disabled: "Text alerts aren't available on your account yet.",
+    not_authenticated: "Sign in again to confirm your phone.",
+  },
   // Q2423: the one-time "Add your phone" prompt (20261027183058). Its read fails quietly (no prompt) and its
   // dismiss is logged, so these words only reach a member through a shared error path.
   sms_phone_prompt_due: {
@@ -2414,6 +2552,14 @@ export const RPC_ERROR_COPY = {
   },
   dismiss_sms_phone_prompt: {
     not_authenticated: "Sign in again to change your text alert settings.",
+  },
+  // Q2604: the poster's Withdraw offer (20261102103429_poster_withdraws_an_offer.sql).
+  rpc_poster_withdraw_offer: {
+    offer_being_accepted: "Your Helpr is accepting this offer right now, so it can't be withdrawn. Check the job again in a minute.",
+    offer_not_active: "This offer was already answered or has ended. The job shows where it stands now.",
+    group_job_not_supported: "A crew's spots can't be withdrawn here.",
+    not_your_job: "Only the person who posted this job can withdraw its offer.",
+    not_authenticated: "Sign in again to withdraw this offer.",
   },
 } satisfies Record<string, Record<string, string>>;
 

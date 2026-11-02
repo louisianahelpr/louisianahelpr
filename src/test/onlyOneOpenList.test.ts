@@ -26,6 +26,8 @@ const THE_LIST = "docs/OPEN.md";
 /** Docs allowed to carry unchecked boxes or an open-list title, each with why. */
 // @two-way src/test/onlyOneOpenList.test.ts:allowlisted but no longer an open list
 export const ALLOWED: Record<string, string> = {
+  "docs/NOT-LAUNCHED.md":
+    "owner rule 2026-11-01: items for an area that has not launched (Homes, Shops, ...) are not open work; they sit here with their text unchanged and move back to docs/OPEN.md when the area launches (scripts/check-open-items-kept.mjs counts them)",
   "docs/audit/launch-2026-09/SURFACE.md":
     "GENERATED coverage checklist (scripts/audit-surface.mjs): one box per surface an audit lane must visit; findings go to the audit bus, not here",
   "docs/APP_STORE_REVIEW_SUBMISSION.md":

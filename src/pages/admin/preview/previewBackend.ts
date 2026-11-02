@@ -1,0 +1,229 @@
+/**
+ * The admin job-page preview's backend: while the preview is open, every request the page makes to Supabase is
+ * answered HERE, from the stage's sample (jobPreviewSamples.ts), and never reaches the network.
+ *
+ * It sits under supabase-js at the fetch layer (the client's own fetch calls the global `fetch` at call time,
+ * src/lib/signOutAbort.ts), so the job page's real code runs unchanged: its reads get the sample, and every write,
+ * RPC and edge-function call is answered "done" without being sent. Only two kinds of request still go out:
+ *  - sign-in traffic (/auth/v1/), so the admin stays signed in;
+ *  - a READ of the admin's OWN profile or role row (profiles / user_roles filtered by their id), so the app chrome
+ *    and the admin gate keep their real answer, and feature_switches_for_me (a read of which switches are on), so
+ *    the page draws as the live app does. Never a write, never a job.
+ * Guard: src/test/adminJobPreviewIsInert.test.tsx.
+ */
+import { SERIES_VISITS_KEY, type PreviewSample } from "./jobPreviewSamples";
+
+/** Tests set this to fail on a read the sample does not answer (audit 1102b; the Declutter preview's pattern, B172). */
+export const jobPreviewChecks: { onUnlisted?: (what: string) => void } = {};
+
+export interface PreviewRequestLog {
+  method: string;
+  path: string;
+  /** "sample" (answered from the sample), "blocked" (a write or action, answered without sending), "passed" (sent). */
+  outcome: "sample" | "blocked" | "passed";
+}
+
+export interface PreviewBackendOptions {
+  supabaseUrl: string;
+  /** The current stage's sample; read on every request, so switching stage needs no reinstall. */
+  sample: () => PreviewSample;
+  /** The admin's own user id: only their own profile/role reads pass through. */
+  ownUserId: () => string | null;
+  realFetch: typeof fetch;
+  /** A write or action the page tried; the caller says "Preview: this would …". */
+  onBlocked: (what: string) => void;
+  /** An RPC or table the sample does not answer (answered null / [] without being sent). Tests make it fail. */
+  onUnlisted?: (what: string) => void;
+  /** A final action the sample answers (a cancel): the page shows its after-state (audit 1102e). */
+  onAction?: (name: string) => void;
+}
+
+/** RPCs that only read. Everything else is treated as an action and never sent. */
+const READ_RPC = /^(get_|list_|fetch_|can_|is_|has_|count_|check_|search_)|_candidates$|_state$|_stats$/;
+const OWN_ROW_TABLES = new Set(["profiles", "user_roles"]);
+/** The admin's own feature switches: sent, so the page draws with the switches the app really has on. */
+const PASS_THROUGH_RPC = new Set(["feature_switches_for_me"]);
+
+function json(body: unknown, status = 200, count?: number): Response {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (count !== undefined) headers["content-range"] = count === 0 ? "*/0" : `0-${count - 1}/${count}`;
+  return new Response(body === undefined ? "" : JSON.stringify(body), { status, headers });
+}
+
+function requestParts(input: RequestInfo | URL, init?: RequestInit): { url: string; method: string; accept: string } {
+  const req = typeof Request !== "undefined" && input instanceof Request ? input : null;
+  const url = req ? req.url : input instanceof URL ? input.href : String(input);
+  const method = (init?.method ?? req?.method ?? "GET").toUpperCase();
+  const h = new Headers(init?.headers ?? req?.headers ?? undefined);
+  return { url, method, accept: h.get("accept") ?? "" };
+}
+
+function bodyJson(init?: RequestInit): Record<string, unknown> {
+  try {
+    return typeof init?.body === "string" ? (JSON.parse(init.body) as Record<string, unknown>) : {};
+  } catch {
+    // Not JSON (a file upload): nothing to read, and it is never sent anyway.
+    return {};
+  }
+}
+
+/** "eq.<value>" filter on one column of a PostgREST URL, or null. */
+function eqFilter(url: URL, column: string): string | null {
+  const v = url.searchParams.get(column);
+  return v?.startsWith("eq.") ? decodeURIComponent(v.slice(3)) : null;
+}
+
+function tableRows(table: string, url: URL, s: PreviewSample): unknown[] | undefined {
+  // A series' visits (seriesDates.ts reads jobs by parent_job_id): their own rows, never the job itself.
+  if (table === "jobs" && url.searchParams.has("parent_job_id")) return s.tables[SERIES_VISITS_KEY];
+  if (Object.prototype.hasOwnProperty.call(s.tables, table)) return s.tables[table];
+  const job = { ...s.job };
+  switch (table) {
+    case "jobs":
+      return s.party ? [job] : [];
+    case "open_jobs_browse":
+      return job.status === "open" && !job.direct_offer_status ? [job] : [];
+    case "applications": {
+      const who = eqFilter(url, "helper_id");
+      return s.applications.filter((a) => !who || a.helper_id === who).map((a) => ({ ...a, job_id: s.jobId }));
+    }
+    case "job_tracking":
+      return s.trackingStatus ? [{ status: s.trackingStatus, job_id: s.jobId }] : [];
+    case "group_job_helpers": {
+      const who = eqFilter(url, "helper_id");
+      return s.crew.filter((h) => !who || h === who).map((h, i) => ({ id: `00000000-0000-4000-c000-${String(i + 1).padStart(12, "0")}`, helper_id: h, job_id: s.jobId, status: "accepted", helper_confirmed_at: s.job.helper_confirmed_at ?? null }));
+    }
+    default:
+      return undefined;
+  }
+}
+
+function rpcAnswer(name: string, body: Record<string, unknown>, s: PreviewSample): unknown {
+  switch (name) {
+    case "get_safe_profiles": {
+      const ids = Array.isArray(body.user_ids) ? (body.user_ids as string[]) : [];
+      // get_safe_profiles rows carry user_id (pickRequestedProfile reads it), not id.
+      return s.profiles.filter((p) => ids.includes(p.id)).map((p) => ({ ...p, user_id: p.id }));
+    }
+    case "get_public_profile_stats": {
+      const ids = Array.isArray(body.p_user_ids) ? (body.p_user_ids as string[]) : [];
+      const rows = (s.reads.get_public_profile_stats ?? []) as Array<{ user_id: string }>;
+      return rows.filter((r) => ids.includes(r.user_id));
+    }
+    case "get_my_pending_direct_offers":
+      return s.pendingOffer ? [s.pendingOffer] : [];
+    case "get_job_offer_targets":
+      return s.offeredTo ? [{ job_id: s.jobId, offered_to_helper_id: s.offeredTo }] : [];
+    case "instant_book_candidates":
+      return s.viewer === "poster" ? s.candidates : [];
+    case "get_jobs_for_my_applications":
+      return !s.party && s.applications.some((a) => a.helper_id === s.userId) ? [{ ...s.job }] : [];
+    default:
+      if (Object.prototype.hasOwnProperty.call(s.reads, name)) return s.reads[name];
+      return undefined;
+  }
+}
+
+const VERB: Record<string, string> = { POST: "save", PATCH: "update", PUT: "save", DELETE: "delete" };
+
+/** A fetch that answers Supabase from the sample. `log` records every Supabase request it saw. */
+function createPreviewFetch(o: PreviewBackendOptions): { fetch: typeof fetch; log: PreviewRequestLog[] } {
+  const base = o.supabaseUrl.replace(/\/+$/, "");
+  const log: PreviewRequestLog[] = [];
+  const previewFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const { url, method, accept } = requestParts(input, init);
+    if (!base || !url.startsWith(base)) return o.realFetch(input, init);
+    const u = new URL(url);
+    const path = u.pathname;
+    const note = (outcome: PreviewRequestLog["outcome"]) => log.push({ method, path, outcome });
+    const s = o.sample();
+
+    if (path.startsWith("/auth/v1/")) {
+      note("passed");
+      return o.realFetch(input, init);
+    }
+    const rpc = path.match(/^\/rest\/v1\/rpc\/([^/]+)$/);
+    if (rpc) {
+      const name = decodeURIComponent(rpc[1]);
+      if (PASS_THROUGH_RPC.has(name)) {
+        note("passed");
+        return o.realFetch(input, init);
+      }
+      // Audit 1102e: a final action (Cancel · pay $30, the Helpr's Cancel job) gets the success shape its screen
+      // expects, so the button finishes, and the page moves to the stage after it. Still never sent, still said.
+      if (Object.prototype.hasOwnProperty.call(s.actions, name)) {
+        note("blocked");
+        o.onBlocked(`run "${name}"`);
+        o.onAction?.(name);
+        return json(s.actions[name]);
+      }
+      const out = rpcAnswer(name, bodyJson(init), s);
+      if (out !== undefined) {
+        note("sample");
+        return Array.isArray(out) ? json(out, 200, out.length) : json(out);
+      }
+      // Not in the sample: answered null (never [], which drew made-up states in the Declutter preview, audit 1102c P1)
+      // and never sent. It is reported (the page test fails on one the page makes as it draws), and an action says
+      // what it would have done.
+      note("blocked");
+      o.onUnlisted?.(`rpc ${name}`);
+      if (!READ_RPC.test(name)) o.onBlocked(`run "${name}"`);
+      return json(null);
+    }
+    const table = path.match(/^\/rest\/v1\/([^/]+)$/)?.[1];
+    if (table && (method === "GET" || method === "HEAD")) {
+      const own = o.ownUserId();
+      if (OWN_ROW_TABLES.has(table) && own && Object.values(Object.fromEntries(u.searchParams)).some((v) => v === `eq.${own}`)) {
+        note("passed");
+        return o.realFetch(input, init);
+      }
+      note("sample");
+      const listed = tableRows(table, u, s);
+      if (listed === undefined) o.onUnlisted?.(`table ${table}`);
+      const rows = listed ?? [];
+      if (method === "HEAD") return json(undefined, 200, rows.length);
+      if (accept.includes("vnd.pgrst.object+json")) {
+        return rows.length === 1
+          ? json(rows[0])
+          : json({ code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned", details: null, hint: null }, 406);
+      }
+      return json(rows, 200, rows.length);
+    }
+    if (!table && (method === "GET" || method === "HEAD")) {
+      // A storage or function read: nothing in the sample, and nothing sent.
+      note("sample");
+      return json(null, 404);
+    }
+    note("blocked");
+    if (table) {
+      o.onBlocked(`${VERB[method] ?? "change"} ${table.replace(/_/g, " ")}`);
+      // An echo row, so a write that asks for its row back (.select("id")) reads as done, not as a failed save.
+      const body = bodyJson(init);
+      const row = { id: s.jobId, ...(Array.isArray(body) ? {} : body) };
+      return accept.includes("vnd.pgrst.object+json") ? json(row) : json([row], 200, 1);
+    }
+    const fn = path.match(/^\/functions\/v1\/([^/]+)/)?.[1];
+    // Audit 1102e: the poster's cancel quote is a read ("this would create payment" showed just from opening the
+    // sheet, as if it charged). It is answered from the sample, silently.
+    if (fn === "create-payment" && bodyJson(init).action === "cancel_quote") {
+      note("sample");
+      return json(s.cancelQuote);
+    }
+    o.onBlocked(fn ? fn.replace(/-/g, " ") : "send a request");
+    return json({});
+  }) as typeof fetch;
+  return { fetch: previewFetch, log };
+}
+
+/** Puts the preview fetch in place of the window's own; returns the undo. */
+export function installPreviewFetch(o: Omit<PreviewBackendOptions, "realFetch">): { uninstall: () => void; log: PreviewRequestLog[] } {
+  const realFetch = globalThis.fetch;
+  const { fetch: previewFetch, log } = createPreviewFetch({ ...o, realFetch: realFetch.bind(globalThis) });
+  globalThis.fetch = previewFetch;
+  return {
+    log,
+    uninstall: () => {
+      if (globalThis.fetch === previewFetch) globalThis.fetch = realFetch;
+    },
+  };
+}

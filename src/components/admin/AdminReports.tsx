@@ -393,9 +393,9 @@ const AdminReports = () => {
 
   return (
     <AdminViewShell>
-      {/* Five chips wrapped to two ragged rows at 375. One scrollable strip
-          with the shared edge fade instead — a cut-off chip then reads as
-          "there is more this way" rather than as a broken layout. */}
+      <Button variant="outline" size="sm" className="self-start rounded-full" onClick={() => navigate("/admin/preview/messages")}>Preview the Messages page</Button>
+      {/* Five chips wrapped to two ragged rows at 375. One scrollable strip with the shared edge fade instead — a
+          cut-off chip then reads as "there is more this way" rather than as a broken layout. */}
       {/* Real Title Case text, not CSS `capitalize` over a lowercase status
           key. Two reasons it matters here: the platform writes controls in
           Title Case, and `capitalize` only paints — the ACCESSIBLE NAME stays

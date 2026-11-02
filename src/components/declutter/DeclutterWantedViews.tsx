@@ -14,7 +14,8 @@
  */
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Camera, X } from "lucide-react";
+import { Camera, Search, X } from "lucide-react";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -122,8 +123,11 @@ function FieldProblem({ id, text }: { id: string; text?: string }) {
 /** What the most you'd pay comes to for the buyer (audit 10-30 #10): the fee is 5% + 70 cents, money.ts's own sum. */
 function feeLine(maxPrice: string): string {
   const typed = dollarsToCents(maxPrice);
-  const cents = typed !== null && typed >= 100 && typed <= 100_000 && typed % 100 === 0 ? typed : 3000;
-  return `A ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time setup fee.`;
+  const valid = typed !== null && typed >= 100 && typed <= 100_000 && typed % 100 === 0;
+  const cents = valid ? typed : 3000;
+  // Q2578 (audit 1102a): with nothing typed the field shows a grey "30" and this line used to say "A $30 item costs...",
+  // so the empty field read as filled in. Until a price is typed the line says it is an example.
+  return `${valid ? "A" : "For example, a"} ${formatPrice(cents)} item costs ${formatMoneyExact(checkoutAmounts([cents]).totalCents)} with our fee. A first purchase also has a one-time setup fee.`;
 }
 
 function formatMoneyExact(cents: number): string {
@@ -554,7 +558,7 @@ export function WantedView() {
         ) : mine.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading your wanted posts…</p>
         ) : (mine.data ?? []).length === 0 ? (
-          <p className="text-sm text-muted-foreground">You haven't posted anything yet. Each post lasts 30 days, and sellers near you can answer it.</p>
+          <DeclutterEmptyCard icon={Search} title="No Wanted posts yet" data-wanted-mine-empty="">Each post lasts 30 days, and sellers near you can answer it.</DeclutterEmptyCard>
         ) : (
           <ul className="space-y-3">
             {(mine.data ?? []).map((w) => <WantedRow key={w.id} post={w} userId={user?.id ?? null} onEdit={setEditing} />)}

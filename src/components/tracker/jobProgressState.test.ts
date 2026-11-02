@@ -18,7 +18,11 @@
 // @mutate src/components/tracker/jobProgressState.ts |   if (isExpiredListing(job)) return { ...base, stage: 0 | if (false) return { ...base, stage: 0
 // @mutate src/components/tracker/jobProgressState.ts | const wait = poster ? `${other} confirms on ${day}, the day before` | const wait = poster ? `${other} confirms the day before. Opens ${when(opens)}`
 // JA-4 (audit 11-01): the line named a button ("I'm still on") the job page calls "Confirm it's still on"; it now says the step.
-// @mutate src/components/tracker/jobProgressState.ts | !posterIn ? "Confirm the job is still on" : | !posterIn ? "Tap I'm still on to confirm" :
+// @mutate src/components/tracker/jobProgressState.ts | !posterIn ? `Confirm the job is still on by ${posterBy}` : | !posterIn ? "Tap I'm still on to confirm" :
+// A3-9 (audit 11-01): both confirm lines say by when; the poster's closes at the start (posterConfirmClosesMs).
+// @mutate src/components/tracker/jobProgressState.ts | !posterIn ? `Confirm the job is still on by ${posterBy}` : | !posterIn ? "Confirm the job is still on" :
+// @mutate src/components/tracker/jobProgressState.ts | `Waiting on ${otherLow} to confirm by ${posterBy}` | `Waiting on ${otherLow} to confirm`
+// @mutate src/components/tracker/jobProgressState.ts | const posterBy = when(posterConfirmClosesMs(job.date_needed, job.start_time)); | const posterBy = when(due);
 // @mutate src/pages/jobs/jobPage/useJobPage.ts | has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, | has_active_dispute, dispute_deadline,
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -76,21 +80,21 @@ describe("jobProgress (the one tracker)", () => {
     expect(poster(j)).toMatchObject({ stage: 3, next: "It's start time. Jolie hasn't confirmed" });
     expect(poster({ ...j, helper_dayof_confirmed_at: "t" }).next).not.toMatch(/Tap I'm still on|confirm by/);
     // Vacuity floor: an hour before the start the ask (and its button) is still there.
-    expect(poster({ ...j, start_time: "11:00" })).toMatchObject({ stage: 3, waitingOnYou: true, next: "Confirm the job is still on" });
+    expect(poster({ ...j, start_time: "11:00" })).toMatchObject({ stage: 3, waitingOnYou: true, next: "Confirm the job is still on by Wed 11:00 AM" });
   });
 
   it("window open: who still owes the confirm, and by when", () => {
     const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-22", start_time: "09:00" };
-    expect(poster(j)).toMatchObject({ stage: 3, waitingOnYou: true, next: "Confirm the job is still on" });
+    expect(poster(j)).toMatchObject({ stage: 3, waitingOnYou: true, next: "Confirm the job is still on by Thu 9:00 AM" });
     expect(poster({ ...j, poster_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: false, next: "Waiting on Jolie to confirm by Thu 7:00 AM" });
     expect(helpr({ ...j, helper_id: ME, poster_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: true });
     // Both in: Confirmed is done; On the way is next.
     expect(poster({ ...j, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: false, next: "You're both confirmed. Jolie taps On my way when they leave" });
     // Both in, a day out: On the way is next; the face offers "I'm on my way" only from 3 hours before (owner 2026-10-23).
-    expect(helpr({ ...j, helper_id: ME, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: false, next: "You're scheduled" });
+    expect(helpr({ ...j, helper_id: ME, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: false, next: "Tap I'm on my way when you leave" });
     // Only the Helpr in: Confirmed lights on BOTH (the old rail's rule, kept), so it waits on the poster; the
     // Helpr's early "I'm on my way" does not make Confirmed theirs.
-    expect(helpr({ ...j, helper_id: ME, helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: false, next: "Waiting on Jolie to confirm" });
+    expect(helpr({ ...j, helper_id: ME, helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: false, next: "Waiting on Jolie to confirm by Thu 9:00 AM" });
   });
 
   it("moved by an accepted change: each side's line names the NEW slot until they confirm it (owner, 2026-10-21)", () => {
@@ -178,7 +182,7 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     expect(jobProgress(done, { viewer: "poster", otherFirst: "Yusef", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
     expect(jobProgress(done, { viewer: "helpr", otherFirst: "Dana", now: NOW })).toMatchObject({ stage: 8, next: "Finished Wed 9:20 AM" });
   });
-  // @mutate src/components/tracker/jobProgressState.ts |   return [who, reason, refund].filter(Boolean).join(" · "); |   return "This job was cancelled";
+  // @mutate src/components/tracker/jobProgressState.ts |   return [who, reason, kept, refund].filter(Boolean).join(" · "); |   return "This job was cancelled";
   // @mutate src/components/tracker/jobProgressState.ts |   const posterDid = !!by && by === job.customer_id; |   const posterDid = false;
   it("JA-26: a cancelled job says who, when, why and the refund", () => {
     const c: ProgressJob = { ...base, status: "cancelled", customer_id: "p", helper_id: "h", helper_confirmed_at: "t", cancelled_by: "p",

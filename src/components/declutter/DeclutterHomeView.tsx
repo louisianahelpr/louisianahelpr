@@ -1,14 +1,11 @@
 /**
- * /declutter — Declutter's own tab (spec rows 1, 2). Section dashboard
- * (owner, 2026-10-19): the shared top bar and Browse | Buying | Selling, Browse
- * leftmost and the default; Wanted and Deliver are sub-views at ?view=.
- * Tabs (src/lib/declutter/tabs.ts): Browse (nearest first, a distance
- * filter in the slide-up sheet, area + miles only: rows 5, 27) · Buying (cart, your offers,
- * purchases) · Selling (your listings with every status in plain words, incl.
- * waiting for a review: row 33; offers on your items; sales waiting to be paid;
- * paid sales and payouts) · Deliver · Wanted · Free (the live free items nearby, OWN-FREE). Old links (?view=mine|offers|cart)
- * open the tab that now holds them. Hidden unless the 'declutter' switch is on
- * for the member (DeclutterGate).
+ * /declutter — Declutter's own tab (spec rows 1, 2). Section dashboard (owner, 2026-10-19): the shared top bar and
+ * Browse | Buying | Selling, Browse leftmost and the default; Wanted and Deliver are sub-views at ?view=.
+ * Tabs (src/lib/declutter/tabs.ts): Browse (nearest first, a distance filter in the slide-up sheet, area + miles only:
+ * rows 5, 27) · Buying (cart, your offers, purchases) · Selling (your listings with every status in plain words, incl.
+ * waiting for a review: row 33; offers on your items; sales waiting to be paid; paid sales and payouts) · Deliver ·
+ * Wanted · Free (the live free items nearby, OWN-FREE). Old links (?view=mine|offers|cart) open the tab that now holds
+ * them. Hidden unless the 'declutter' switch is on for the member (DeclutterGate).
  */
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -21,14 +18,17 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { ListedWhatNext } from "./ListedWhatNext";
 import { ListedForYouCard } from "./ListedForYouCard";
+import { ManagerWaitingForOkGate } from "./ManagerWaitingForOkGate";
+import { ManagerPanelGate } from "./ManagerPanelGate";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
 import { soldPayoutWords } from "@/lib/declutter/soldPayout";
-import { DeclutterNotice, sellerStatusLabel } from "./declutterUi";
+import { sellerStatusLabel } from "./declutterUi";
 import { ChevronRight, Settings, Tags } from "lucide-react";
+import { SellChooserEntry } from "./SellChooserEntry";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
 import { PriceNudgeLine, usePriceNudgeLink } from "./DeclutterPriceNudge";
@@ -41,7 +41,7 @@ import { OrdersUpdating } from "./OrdersUpdating";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
-import { SELL_CHOOSER_PATH, SELL_ONE_PATH } from "@/lib/declutter/sellChooser";
+import { TabletSellRow } from "./TabletSellRow";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import type { DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
@@ -58,6 +58,8 @@ import {
   type OldDeclutterView,
 } from "@/lib/declutter/tabs";
 import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine } from "./DeclutterHaulAway";
+import { DonationReceipts } from "./DeclutterDonate";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { report } from "@/lib/errorLogger";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 // Types only: the predicates (oneTripGroup, haulJobToDelete) come with the lazily loaded haul-away code (Q178).
@@ -78,11 +80,9 @@ type HaulLib = typeof import("@/lib/declutter/haulAway");
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically from two Declutter screens, the shared Helpr task module rode in signed-in-shared and put /posts over its budget.
 const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
 
-// B77 (2026-11-01, "Nothing slow for users"): each tab's own code loads on its own (Buying/Selling through
-// DeclutterMineLazy, B74), so the first screen downloads only
-// the tab it draws. Imported statically, every tab's code (Browse's map and filters, Buying's checkout, Selling's
-// sale tools, Wanted, Free: 608 KB gz with the boot code) downloaded beside the boot code and the app first drew at
-// 5.7 s on Slow 4G. src/boot/declutterRoute.ts starts the URL's tab beside the page, so it costs no extra round.
+// B77 (2026-11-01, "Nothing slow for users"): each tab's code loads on its own (Buying/Selling via DeclutterMineLazy,
+// B74), so the first screen downloads only its tab (all tabs statically: 608 KB gz with boot, first draw 5.7 s on
+// Slow 4G). src/boot/declutterRoute.ts starts the URL's tab beside the page, so it costs no extra round.
 const DeclutterBrowse = lazy(() => import("./DeclutterBrowseView").then((m) => ({ default: m.DeclutterBrowse })));
 const WantedView = lazy(() => import("./DeclutterWantedViews").then((m) => ({ default: m.WantedView })));
 // Opened from a listing's Manage button (or a price-drop notice), never part of the first screen.
@@ -145,7 +145,8 @@ function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | unde
   );
 }
 
-function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
+/** Exported for the admin Declutter stage preview (Q2585), which draws Selling on sample data. */
+export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   // Audit 1028 D1-8: read again while a listing waits for review, and on every new notice (an approval sends one).
@@ -158,6 +159,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
   const dropsTonight = useMyDropsTonight(mine.data ?? [], myDrops.data);
   // The Free change (Q2487): each live free listing shows its open asks as "Requests (n)"; read only when there is one.
+  // Builder 187: only once someone has asked; a "Requests (0)" button opened a list with nobody in it.
   const anyFreeLive = (mine.data ?? []).some((i) => i.status === "live" && i.current_price_cents === 0);
   const freeAsks = useQuery({ queryKey: ["declutter", "free-request-counts", userId], queryFn: () => fetchOpenFreeRequestCounts(userId), enabled: anyFreeLive });
   // SE-5: a sold listing shows what it SOLD for (the paid line), never its list price; read only when one is sold.
@@ -188,13 +190,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     },
   });
   const haulById = useMemo(() => new Map<string, HaulAwayRow>((haul.data?.rows ?? []).map((r) => [r.item_id, r])), [haul.data]);
-  // An unpaid haul-away's job is deleted first (its checkout can then never
-  // be opened again), then the item is put back or booked on a new job.
-  // Only a 'job_open' job is deleted (never a cancelled one, whose photos and
-  // record stay). A declined card's job ('job_stuck') can't be deleted by its
-  // poster, so it is never tried: reported, and the seller is told it can't be
-  // removed from here; a delete the policy refuses anyway is reported inside
-  // deleteNeverPaidHaulJob (unwrapMutation) and told the same way.
+  // An unpaid haul-away's job is deleted first (its checkout can then never be opened again), then the item is put back
+  // or booked on a new job. Only a 'job_open' job is deleted (never a cancelled one, whose photos and record stay). A
+  // declined card's job ('job_stuck') can't be deleted by its poster, so it is never tried: reported, and the seller is
+  // told it can't be removed from here; a delete the policy refuses anyway is reported inside deleteNeverPaidHaulJob
+  // (unwrapMutation) and told the same way.
   // `lib` is loaded by the caller BEFORE anything is deleted: work that has written must never wait on a reload.
   const releaseJob = async (row: HaulAwayRow, lib: HaulLib) => {
     // Its words ride on userMessage (declutterErrorMessage shows them): the
@@ -259,14 +259,13 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
         {/* D3 (Cowork audit 2026-10-20): the copy said 'Tap "Sell an item"' with no
             such button on screen (only the top bar's "+"). The action is here, as
             the section's own pill, to the same path as the "+". */}
-        <DeclutterNotice title="You haven't listed anything yet.">
+        {/* Q2639 (audit 1102c R14): the same dashed, iconed empty card as "No offers yet" and "Nothing sold yet". */}
+        <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet." data-seller-empty=""
+          action={<SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>{sectionByKey("declutter").add.label}</SectionActionPill>}>
           Take a few photos and set your price. Listing is free.
-          <div>
-            <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>
-              {sectionByKey("declutter").add.label}
-            </SectionActionPill>
-          </div>
-        </DeclutterNotice>
+        </DeclutterEmptyCard>
+        {/* Q2667: a donation that took the last item still shows its receipt (HaulAwayCard, below, is not drawn here). */}
+        {haulOn && <DonationReceipts />}
       </section>
     );
   }
@@ -316,7 +315,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                   <Button type="button" size="sm" aria-label={`Finish listing ${item.title}`} onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
                     Finish listing
                   </Button>
-                ) : item.status === "live" && item.current_price_cents === 0 && freeAsks.data ? (
+                ) : item.status === "live" && item.current_price_cents === 0 && freeAsks.data && (freeAsks.data.get(item.id) ?? 0) > 0 ? (
                   <Button asChild variant="outline" size="sm">
                     <Link to={`/declutter/item/${item.id}`} data-free-request-count="">Requests ({freeAsks.data.get(item.id) ?? 0})</Link>
                   </Button>
@@ -393,14 +392,13 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
 // Board 80: opens once after a publish (router state from DeclutterSellView).
 function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null }) {
   return (
-    <div className="space-y-6">
+    // Q2562: a flex gap, not space-y-6 (space-y gave the child after the display:none Sell row a 24px margin).
+    <div className="flex flex-col gap-6">
       <ListedWhatNext />
       <ListedForYouCard />
-      {/* Audit posting 1030 #11 gave a tablet the photo screen directly and one line to the other ways; the header has its own add action on desktop. LEAD-SELLING-NO-SELL-BTN-PHONE (owner 10-31): not on a phone, where the + covers it. */}
-      <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell="">
-        <Button asChild className="shrink-0 rounded-full"><Link to={SELL_ONE_PATH}>Sell an item</Link></Button>
-        <Link to={SELL_CHOOSER_PATH} className="min-h-11 content-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Free, a bunch, or moving out?</Link>
-      </div>
+      <ManagerWaitingForOkGate userId={userId} />
+      <ManagerPanelGate />
+      <TabletSellRow />
       <Suspense fallback={<DeclutterTabBones />}><SellingDash
         todo={todo}
         userId={userId}
@@ -439,25 +437,6 @@ function SellingSettingsEntry() {
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">Declutter settings</span>
         <span className="block text-xs text-muted-foreground">Listing defaults, pickup places, pickup times, delivery, bundle discount, notifications</span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-    </Link>
-  );
-}
-
-/** "More ways to sell" (owner 2026-10-30): one row to the sell chooser, its line naming what is in it for this viewer. */
-function SellChooserEntry({ movingOutOn }: { movingOutOn: boolean }) {
-  const ways = movingOutOn ? "A bunch at once, a moving out sale, free, or a Helpr lists it" : "A bunch at once, free, or a Helpr lists it";
-  return (
-    <Link
-      to={SELL_CHOOSER_PATH}
-      data-sell-chooser-entry=""
-      className="flex min-h-14 items-center gap-3 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-    >
-      <Tags className="h-5 w-5 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-semibold">More ways to sell</span>
-        <span className="block text-xs text-muted-foreground">{ways}</span>
       </span>
       <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
     </Link>
@@ -584,6 +563,8 @@ function DeclutterMemberHome() {
     // Jobs (this replaces the 2026-10-28 call that left it off a member's own lists). Guard:
     // src/components/declutter/sellingDash.test.tsx.
     <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}>
+      {/* Q2562 (lead 11-02): pt-3 = Browse's first line, 12px into its 44px Miles-from row; guard declutterTabs.test.tsx. */}
+      <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3">
       <StrikeCount userId={user.id} />
       {(view === "buying" || view === "selling") && <OrdersUpdating />}
       <Suspense fallback={<TabSkeleton />}>
@@ -593,6 +574,7 @@ function DeclutterMemberHome() {
               : view === "free" ? <FreeView userId={user.id} />
                 : <WantedView />}
       </Suspense>
+      </div>
     </SectionScreen>
   );
 }

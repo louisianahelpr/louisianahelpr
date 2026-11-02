@@ -13,3 +13,9 @@ export const RELEASE_ACTION = "Approve and release";
 export function releaseActionLabel(jobPrice: number | null | undefined): string {
   return jobPrice ? `${RELEASE_ACTION} $${formatPriceExact(jobPrice)}` : RELEASE_ACTION;
 }
+
+/**
+ * The poster's other answer at the approve step (A3-8, audit 11-01): one name on the approve sheet, under the job
+ * page's pair and under the Posted card's Approve, each opening the fix form. Guard: src/test/notRightBesideApprove.test.tsx.
+ */
+export const NOT_RIGHT_LABEL = "Something's not right";

@@ -17,7 +17,7 @@
  * The Louisiana-day half of the strip is proven in every device zone by
  * postJobDayStrip.tz.test.tsx.
  *
- * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => setIsFlexibleSchedule(true)} | onClick={() => setIsFlexibleSchedule(false)}
+ * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => chooseWhen(true)} | onClick={() => chooseWhen(false)}
  * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => pickTime(t.value)} | onClick={() => pickTime("")}
  * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => pickDay(d.iso)} | onClick={() => pickDay(strip[0].iso)}
  * @mutate src/components/postjob/LogisticsSection.tsx |     if (!streetAddress.trim() && !zipCode.trim()) {\n      applySaved(savedAddress); |     if (!streetAddress.trim() && !zipCode.trim()) {\n      void 0;
@@ -238,7 +238,7 @@ describe("board 45 WHERE: the saved address radio fills the address fields", () 
   it("the privacy line names the town only, never the street", () => {
     render(<Host saved={HOME} />);
     const line = screen.getByText(/and the distance\./).closest("p");
-    expect(line?.textContent).toBe("Helprs see Delcambre and the distance. The street address is sent only to the Helpr you offer the job to.");
+    expect(line?.textContent).toBe("Helprs see Delcambre and the distance. Your street address goes only to the Helpr you offer the job to.");
     expect(line?.textContent).not.toContain("Bayou");
   });
 

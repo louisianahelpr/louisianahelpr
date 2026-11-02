@@ -8,11 +8,11 @@
  * and restating a sender to ?tab= must remove its entry. Behaviour: src/test/pglite/declutterNoticeLinksOneFormat.pglite.mjs
  * (3x; red with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |   v_link text := public.declutter_notice_order_link(p_user, p_other, public.declutter_notice_link(p_link)); |   v_link text := public.declutter_notice_order_link(p_user, p_other, p_link);
- * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |   v_link text := public.declutter_notice_order_link(p_user, p_other, public.declutter_notice_link(p_link)); |   v_link text := public.declutter_notice_link(p_link);
- * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |   SELECT CASE WHEN o.seller_id = p_user AND o.buyer_id = p_other THEN 'selling' | SELECT CASE WHEN o.seller_id = p_user THEN 'selling'
- * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |   IF v_tab IS NULL OR p_link <> '/declutter?tab=' \|\| v_tab THEN |   IF v_tab IS NULL THEN
- * @mutate supabase/migrations/20261031111949_declutter_notices_open_the_order.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), p_link);
+ * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |   v_link text := public.declutter_notice_order_link(p_user, p_other, public.declutter_notice_link(p_link)); |   v_link text := public.declutter_notice_order_link(p_user, p_other, p_link);
+ * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |   v_link text := public.declutter_notice_order_link(p_user, p_other, public.declutter_notice_link(p_link)); |   v_link text := public.declutter_notice_link(p_link);
+ * @mutate supabase/migrations/20261102124421_declutter_offer_notices_open_the_offer.sql |   SELECT CASE WHEN o.seller_id = p_user AND o.buyer_id = p_other THEN 'selling' | SELECT CASE WHEN o.seller_id = p_user THEN 'selling'
+ * @mutate supabase/migrations/20261102124421_declutter_offer_notices_open_the_offer.sql |   IF v_tab IS NULL OR p_link <> '/declutter?tab=' \|\| v_tab THEN |   IF v_tab IS NULL THEN
+ * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), p_link);
  * @mutate supabase/migrations/20261030155159_declutter_cart_links_open_buying.sql |     WHEN p_link ~ '^/declutter\?view=(sales\|selling\|mine)(&\|#\|$)' |     WHEN p_link ~ '^/declutter\?view=(sales\|selling)(&\|#\|$)'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     '/declutter?view=sales', o.buyer_id); |     '/declutter?view=cart', o.buyer_id);
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     '/declutter?view=sales', o.buyer_id); |     '/declutter?view=offers', o.buyer_id);

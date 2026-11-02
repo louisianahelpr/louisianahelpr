@@ -25,7 +25,8 @@ import { HelprNoShowAnswer, HelprNoShowReportButton } from "./DeclutterNoHelpr";
 import { RouteSuggestions } from "./RouteSuggestions";
 import { GoOnlineCard } from "./GoOnlineCard";
 import { Link } from "react-router-dom";
-import { Check } from "lucide-react";
+import { Check, PackageCheck, Truck } from "lucide-react";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { DeclutterNotice } from "./declutterUi";
@@ -40,6 +41,7 @@ import { ProblemForm } from "./DeclutterProblemForm";
 import { fetchTipsOnMyDeliveries } from "@/lib/declutter/deliveryTip";
 import { TaskPickupTime } from "./DeclutterPickupWindows";
 import { DeliveryLiveMap } from "./DeliveryLiveMap";
+import { TaskPhotos } from "./DeliveryTaskPhotos";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -62,7 +64,6 @@ import {
   fetchOpenTasks,
   fetchTaskView,
   releaseTask,
-  taskPhotoUrl,
   type MyTask,
   type OpenTask,
   type TaskSize,
@@ -85,36 +86,6 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "num
 /** AUD31-27: the Louisiana day a finished delivery ended, "Thu, Oct 29". */
 const ENDED_DAY = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-
-/** A private task photo through a short-lived signed URL. */
-function TaskPhoto({ path, label }: { path: string; label: string }) {
-  const url = useQuery({ queryKey: ["helpr-tasks", "photo", path], queryFn: () => taskPhotoUrl(path), staleTime: 5 * 60_000 });
-  if (url.isError) {
-    return (
-      <p className="text-xs" role="alert">
-        {label}: the photo couldn't load.{" "}
-        <button type="button" className="underline" onClick={() => void url.refetch()}>Try again</button>
-      </p>
-    );
-  }
-  if (!url.data) return null;
-  return (
-    <figure className="space-y-1">
-      <img src={url.data} alt={label} className="h-32 w-32 rounded-lg bg-photo-empty object-cover" loading="lazy" />
-      <figcaption className="text-xs text-muted-foreground">{label}</figcaption>
-    </figure>
-  );
-}
-
-function TaskPhotos({ view }: { view: TaskView }) {
-  if (!view.pickup_photo_path && !view.dropoff_photo_path) return null;
-  return (
-    <div className="flex flex-wrap gap-3">
-      {view.pickup_photo_path && <TaskPhoto path={view.pickup_photo_path} label="At the pickup" />}
-      {view.dropoff_photo_path && <TaskPhoto path={view.dropoff_photo_path} label="At the drop-off" />}
-    </div>
-  );
-}
 
 /**
  * BUY-22 (buying audit 10-30), the D2-9 rule for a Helpr delivery: pickups hold "Report a problem" back until the
@@ -571,7 +542,7 @@ export function DeliverView() {
         ) : open.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading deliveries…</p>
         ) : openList.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No deliveries to take right now.{vehicle.data?.has_truck ? "" : " Large items only show once you add a truck."}</p>
+          <DeclutterEmptyCard icon={Truck} title="No deliveries to take right now" data-deliver-open-empty="">{vehicle.data?.has_truck ? "New ones show here as buyers book them." : "New ones show here as buyers book them. Large items only show once you add a truck."}</DeclutterEmptyCard>
         ) : (
           <ul className="space-y-3">{openList.map((t) => <OpenTaskRow key={t.task_id} t={t} />)}</ul>
         )}
@@ -583,7 +554,7 @@ export function DeliverView() {
         ) : mine.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading your deliveries…</p>
         ) : myList.length === 0 ? (
-          <p className="text-sm text-muted-foreground">You haven't taken a delivery yet.</p>
+          <DeclutterEmptyCard icon={PackageCheck} title="You haven't taken a delivery yet" data-deliver-mine-empty="">Deliveries you take show here.</DeclutterEmptyCard>
         ) : (
           <>
             <DeliveryPayoutHeld tasks={myList} />

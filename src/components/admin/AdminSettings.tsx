@@ -448,6 +448,8 @@ const AdminSettings = () => {
       {/* Min Supported Build */}
       <MinSupportedBuildCard minBuild={minBuild} setMinBuild={setMinBuild} saveMinBuild={saveMinBuild} savingMinBuild={savingMinBuild} />
 
+      {/* Also renders the Declutter cards, the Declutter stage preview (Q2585)
+          among them, grouped (Q2583). */}
       <FeatureSwitchesCard />
 
       <SmsStatusCard />

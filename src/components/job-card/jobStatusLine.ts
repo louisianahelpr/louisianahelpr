@@ -22,6 +22,7 @@ import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 import { confirmDeadlineMs, confirmOpensMs, posterConfirmClosesMs } from "@/lib/jobDate";
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
+import { CREW_TODAY_LINE, TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { workHasBegun } from "@/components/tracker/workHasBegun";
 
 /**
@@ -181,6 +182,16 @@ function noteOrNull(note: string | null | undefined): string | null {
 function confirmDeadline(job: Job): StatusDeadline | null {
   if (!job.date_needed) return null;
   const ms = confirmDeadlineMs(job.date_needed, job.start_time ?? null);
+  return Number.isNaN(ms) ? null : { source: "confirm_deadline", at: new Date(ms).toISOString(), consequenceText: "left to confirm", expiredText: "Confirm window passed" };
+}
+
+/**
+ * The poster's own confirm closes at the start (posterConfirmClosesMs, JobConfirmation's "I'm still on"), not 2 hours
+ * before it like the Helpr's: the card's clock and the line's "by" (A3-9, audit 11-01) name the same time.
+ */
+function posterConfirmDeadline(job: Job): StatusDeadline | null {
+  if (!job.date_needed) return null;
+  const ms = posterConfirmClosesMs(job.date_needed, job.start_time ?? null);
   return Number.isNaN(ms) ? null : { source: "confirm_deadline", at: new Date(ms).toISOString(), consequenceText: "left to confirm", expiredText: "Confirm window passed" };
 }
 
@@ -614,6 +625,9 @@ export function derivePosterWait(
       // In progress by the clock only (auto-start-due-jobs), with no arrival anyone recorded: not "at the job" (A2-B12).
       if (job.status === "in_progress" && !job.helper_arrived_at && !job.poster_confirmed_arrival_at && !job.poster_confirmed_working_at) {
         // T12-B: a start still ahead hasn't "passed", and Report no-show would be refused or wrong: it stays confirmed.
+        // Q2588: a no-start-time job ("any time that day") has no start to pass on its day; past the day, the
+        // overdue lines above take over.
+        if (!hasStartTime(job)) return "confirmed";
         const start = jobStartDateTime(job.date_needed, job.start_time);
         return start && start.getTime() > now.getTime() ? "confirmed" : "started_no_checkin";
       }
@@ -705,7 +719,7 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
       return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed");
     // In the confirm window the clock that matters is the confirm's own deadline, not the start (item 6).
     case "confirm_still_on":
-      return confirmDeadline(job);
+      return posterConfirmDeadline(job);
     case "revision_fixed":
       return columnDeadline(
         "revision_acceptance_deadline",
@@ -742,6 +756,7 @@ export type HelperWait =
   | "applied"
   | "offer"
   | "offer_expired"
+  | "offer_withdrawn"
   | "confirm_booking"
   | "confirm_spot"
   | "confirmed"
@@ -796,6 +811,8 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* Its answer window closed (offerClock): filed under Cancelled with the
      card's own "This offer has expired" (owner, 2026-10-03). */
   offer_expired: { detail: "The offer expired" },
+  /* The poster took the offer back (rpc_poster_withdraw_offer, Q2604): nobody passed on them for someone else. */
+  offer_withdrawn: { detail: "The offer was withdrawn" },
   /* Accept, not confirm (owner, 2026-10-07, Q1399): confirm is the later
      day-before step. */
   confirm_booking: { detail: "Accept or decline it" },
@@ -823,7 +840,7 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
      started), before photo taken or not owed: the expanded primary is the
      tracker's "Start working" (lane B, 2026-10-12: the line read "Finish and
      mark it done"). Read only when the card passes its tracking progress. */
-  start_working: { detail: "Tap Start working", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
+  start_working: { detail: "Tap Start when you begin", eyebrow: BUCKET_LABEL.needs_you, tone: "you" },
   /* The same step while Start working is still locked on the arrival rule
      (no GPS match, no poster tap: arrivalEstablished). The tracker's amber
      line names the poster's "Confirm they've arrived" as the one way out. */
@@ -850,7 +867,7 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* Past the day, at the job, and the before photo is still the primary. */
   overdue_before_photo: { detail: "Day passed — take the before photo" },
   /* Past the day, at the job, work not started (tracking row): the next step is Start working. */
-  overdue_start_working: { detail: "Day passed — tap Start working" },
+  overdue_start_working: { detail: "Day passed — tap Start" }, // A3-11: the pair's word, as start_working says it
   /* Shorter than its on-the-day twin: the 320 line has room for no name here. */
   overdue_arrival_unconfirmed: { detail: "Day passed — arrival not confirmed" },
   overdue_after_photo: { detail: "Day passed — take the after photo" },
@@ -912,6 +929,8 @@ export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress)
   // as 'rejected' and reopens the job, so after it runs only this stamp says
   // the offer expired. Nobody passed on this Helpr.
   if (app.status === "rejected" && app.closed_reason === "offer_expired") return "offer_expired";
+  // Q2604: the poster withdrew the offer (closed_reason 'offer_withdrawn'): say so, never "You weren't picked".
+  if (app.status === "rejected" && app.closed_reason === "offer_withdrawn") return "offer_withdrawn";
   // The poster reported a no-show (report_helper_no_show closes the application with closed_reason
   // 'no_show'): say so plainly, never "You weren't picked".
   if (app.status === "rejected" && app.closed_reason === "no_show") return "reported_no_show";
@@ -969,7 +988,9 @@ export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress)
       if (jobIsOverdue(job)) return helperOverdue(job, progress);
       if (job.helper_on_the_way_at && !job.helper_arrived_at) return "on_the_way";
       const stage = agreedJobStage(job, "helper");
-      if (stage === "confirm_owed") return "confirm_day";
+      // A3-51 (audit 11-01): a crew owes no day-of confirm (crewMemberStep has none; the start sweep's owes_dayof is
+      // false for crews, 20261030035326), so a confirmed member is scheduled, never "Confirm you'll be at the job".
+      if (stage === "confirm_owed") return job.is_group_job ? "confirmed" : "confirm_day";
       if (stage === "started") return "today";
       return "confirmed";
     }
@@ -1022,7 +1043,8 @@ export function helperStatusLine(
   return {
     id,
     eyebrow: expired ? APPLICANT_CLOSED_EYEBROW : copy.eyebrow ?? BUCKET_LABEL[bucket],
-    detail: expired ? APPLICANT_CLOSED_DETAIL : named ?? copy.detail,
+    // Q2588: "It's time" never on a no-start-time job (anyTimeThatDay.ts): today, any time.
+    detail: expired ? APPLICANT_CLOSED_DETAIL : id === "today" && app.job?.is_group_job === true ? CREW_TODAY_LINE : id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking" || id === "confirm_spot",
     suffix:

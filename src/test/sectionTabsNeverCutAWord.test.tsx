@@ -72,7 +72,7 @@ describe("a tab row that doesn't fit", () => {
     layOut();
     row("selling");
     const list = screen.getByRole("tablist");
-    fireEvent.click(screen.getByRole("button", { name: "More tabs" }));
+    fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
     expect(list.scrollLeft).toBe(174 + TAB_W - TRACK);
     act(() => { list.dispatchEvent(new Event("scroll")); });
     expect(cut()).not.toContain("Deliver");
@@ -92,7 +92,7 @@ describe("a tab row that doesn't fit", () => {
     layOut();
     const { rerender } = row("browse");
     const list = screen.getByRole("tablist");
-    fireEvent.click(screen.getByRole("button", { name: "More tabs" }));
+    fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
     expect(list.scrollLeft).toBeGreaterThan(0);
     rerender(<MemoryRouter><SectionTabs label="Declutter view" tabs={TABS} value="browse" onChange={() => undefined} onlySelected /></MemoryRouter>);
     rerender(<MemoryRouter><SectionTabs label="Declutter view" tabs={TABS} value="browse" onChange={() => undefined} /></MemoryRouter>);
@@ -104,7 +104,7 @@ describe("a tab row that doesn't fit", () => {
     layOut();
     row("browse");
     const list = screen.getByRole("tablist");
-    fireEvent.click(screen.getByRole("button", { name: "More tabs" }));
+    fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
     act(() => { list.dispatchEvent(new Event("scroll")); });
     // Browse is at -54..-4: the chevron moved it off, and the row does not pull it back.
     expect(list.scrollLeft).toBe(54);
@@ -122,7 +122,7 @@ describe("a tab row that doesn't fit", () => {
     row("browse");
     const list = screen.getByRole("tablist");
     expect(screen.queryByRole("button", { name: "Earlier tabs" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "More tabs" }));
+    fireEvent.click(screen.getByRole("button", { name: /^\d+ more tabs$/ }));
     act(() => { list.dispatchEvent(new Event("scroll")); });
     expect(cut()).toContain("Browse");
     // At 54 Browse is off (-54..-4), so it's the one brought back: the selected tab is one tap away.
@@ -137,13 +137,13 @@ describe("a tab row that doesn't fit", () => {
     layOut();
     row("browse", true);
     expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Browse"]);
-    expect(screen.queryByRole("button", { name: "More tabs" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^\d+ more tabs$/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Earlier tabs" })).toBeNull();
   });
 
   it("a row that fits has no chevron and hides nothing", () => {
     render(<MemoryRouter><SectionTabs label="Jobs" tabs={TABS.slice(0, 2)} value="buying" onChange={() => undefined} /></MemoryRouter>);
-    expect(screen.queryByRole("button", { name: "More tabs" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^\d+ more tabs$/ })).toBeNull();
     expect(cut()).toEqual([]);
   });
 });

@@ -77,7 +77,7 @@ describe("the hire dialog (F16)", () => {
 
   it("sends a window the server reads as 'until the start' for that choice", () => {
     const onConfirm = open(jobStartingIn(10));
-    fireEvent.click(screen.getByRole("button", { name: /send offer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^hire hallie$/i }));
     // The server's rule: min(chosen, 48 h, the start). 48 resolves to the start for a job 10 hours out.
     expect(onConfirm).toHaveBeenCalledWith(48, undefined);
   });

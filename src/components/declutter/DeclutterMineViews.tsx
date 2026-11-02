@@ -35,6 +35,7 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
 }
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { StatusBoxes, useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
 import { fetchMyOffers } from "@/lib/declutter/api";
 import { myItemsQuery, PAST_LISTING } from "./myItemsQuery";
@@ -50,7 +51,7 @@ import { useEndedSales } from "./DeclutterEndedSales";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
 import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
-import { FreePauseLine, MyFreeAsks } from "./DeclutterFreeClaim";
+import { FreePauseLine, MyFreeAsks, useMyFreeAsks } from "./DeclutterFreeClaim";
 import { WatchingList } from "./DeclutterWatching";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 
@@ -88,6 +89,14 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   const orders = chips.length > 0;
   const showCart = t.ready && (only === null || only === "needs_you") && (t.checkouts > 0 || settling.settling);
   const ended = only === null || only === "cancelled" ? t.ended : [];
+  // Q2630 (audit 1102c R5): a paid order refunded in full did not go ahead, so it is filed under Ended (like a checkout
+  // that ran out), not under Your orders. Its card keeps the amount and day ("Cancelled. $42.70 was refunded ...").
+  const refunded = (id: string) => !!t.views.get(id)?.facts.cancelled;
+  const endedOrders = only === null || only === "cancelled" ? [...t.views.keys()].filter(refunded).length : 0;
+  const nothingActive = t.ready && chips.every((c) => c.key === "cancelled") && offers.has === false && !showCart;
+  // Builder 187 (seen in the preview, the same in the app): a member whose only Buying is an open free ask read
+  // "Nothing bought yet." above "Free items you asked for". The notice waits for the asks read and needs none.
+  const freeAsks = useMyFreeAsks();
   return (
     <div className="space-y-6">
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
@@ -95,20 +104,29 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {/* D-NEW11: on a day with pickups booked, what to do today comes first. */}
       {/* NIGHT-BUYINGopenpr-1: never on an order on hold (the same open-problem read as its card's "On hold"). */}
       <PickupDayCard orders={t.live} bookings={t.bookings} held={new Set(t.live.filter((o) => t.views.get(o.orderId)?.facts.problem).map((o) => o.orderId))} />
-      {orders && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
-      {t.ready && !orders && offers.has === false && !settling.settling && (
+      {/* Q2569 (audit 1102a): with every order in one group the row read "All · 2" "Cancelled · 2", the chip only
+          repeating All; the chips show once there are two groups to choose between. */}
+      {chips.length > 1 && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
+      {t.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && (
         <DeclutterNotice title="Nothing bought yet.">
           When a seller accepts your offer, or you tap Buy, the item comes here. Buy now holds it 30 minutes; an accepted offer gives you 24 hours to check out.
         </DeclutterNotice>
       )}
       {showCart && <CartView />}
       {offers.has && offers.toAnswer && <OffersSection side="buyer" />}
-      <PaidOrders side="buyer" views={t.views} show={(id) => only === null || t.views.get(id)?.bucket === only} />
-      {ended.length > 0 && (
+      <PaidOrders side="buyer" views={t.views} scope={(id) => !refunded(id)} show={(id) => only === null || t.views.get(id)?.bucket === only} />
+      {(ended.length > 0 || endedOrders > 0) && (
         <section className="space-y-2" aria-label="Ended">
           {/* "Ended", not "Ended before paying": an order cancelled after it was paid or claimed is kept here too (A2-4). */}
           <SectionHeading title="Ended" />
-          <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>
+          {endedOrders > 0 && <PaidOrders side="buyer" views={t.views} scope={refunded} ended />}
+          {ended.length > 0 && <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>}
+          {/* Q2569: only ended orders, nothing on the way and no offer out: a way back to shopping. */}
+          {nothingActive && (
+            <Link to="/declutter" data-ended-browse="" className="inline-flex min-h-11 items-center text-ds-13 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">
+              Find something in Browse
+            </Link>
+          )}
         </section>
       )}
       {offers.has && !offers.toAnswer && <OffersSection side="buyer" />}

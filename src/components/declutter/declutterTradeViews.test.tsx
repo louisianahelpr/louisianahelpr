@@ -51,6 +51,8 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act, fireEvent, render, screen, waitFor, within, waitForElementToBeRemoved } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider, focusManager } from "@tanstack/react-query";
@@ -290,6 +292,33 @@ describe("Declutter slice 3 screens", () => {
     state.previewCalls = 0;
   });
 
+  // Q2564 (Auditor 1, audit 1102a): at 375 the card step and the offer box opened below the delivery table, behind
+  // the dock. They open right under the buttons, before the panel's footer, and are brought into view.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       </div>\n      {footer}\n      {myOffer && <YourOfferBox |       </div>\n      {myOffer && <YourOfferBox
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (stepOpen) stepArea.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" }); |     void stepOpen;
+  it("Buy and Offer open their step right under the buttons, above the footer, and scroll it into view (Q2564)", async () => {
+    const scrolled: Element[] = [];
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this); };
+    try {
+      show(<OfferPanel item={ITEM} userId="u1" footer={<div data-testid="panel-footer">Helpr delivery table</div>} />);
+      const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
+      await waitFor(() => expect(buy).toBeEnabled());
+      fireEvent.click(buy);
+      const step = await screen.findByText("To buy, add a card first.");
+      const foot = screen.getByTestId("panel-footer");
+      expect(step.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const area = step.closest("[data-offer-step-area]");
+      expect(area).not.toBeNull();
+      await waitFor(() => expect(scrolled).toContain(area));
+      fireEvent.click(screen.getByRole("button", { name: "Make an offer" }));
+      const box = await screen.findByLabelText("Your offer");
+      expect(box.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      Element.prototype.scrollIntoView = original;
+    }
+  });
+
   it("no saved card: Buy now and Make an offer still show; Buy asks for a card first and remembers where to come back (row 36)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
@@ -301,7 +330,7 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText("Save a card to buy or make offers.")).toBeNull();
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
-    expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();
+    expect(await screen.findByText("To buy, add a card first.")).toBeInTheDocument();
     // #21 (owner chose C, 2026-10-28): two Stripe pages stay; before the first, one line says what it is for.
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged when you check out. | You're only charged when you buy.
     // NIGHT-BUYING0-4: after the card is saved the app holds the item and opens checkout (run("buy")); no confirm press.
@@ -323,20 +352,23 @@ describe("Declutter slice 3 screens", () => {
     await waitFor(() => expect(offer).toBeEnabled());
     fireEvent.click(offer);
     const input = await screen.findByLabelText("Your offer");
-    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    expect(screen.queryByText(/add a card first\./)).toBeNull();
     fireEvent.change(input, { target: { value: "30" } });
     // What they would pay shows before any card is asked for.
     expect(document.querySelector("[data-offer-bill]")?.textContent).toMatch(/You pay if the seller says yes\$32\.20/);
     await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
     expect(await screen.findByText(/Then you send your offer\./)).toBeInTheDocument();
+    // Q2573 (audit 1102a): the step names what it is for, never "to finish" on the first tap.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | {action === "buy" ? "To buy, add a card first." : "To send your offer, add a card first."} | Add a card to finish.
+    expect(screen.getByText("To send your offer, add a card first.")).toBeInTheDocument();
     // Nothing went to the server, the amount is still there, and "Add a card" is the one primary.
     expect(state.sent).toEqual([]);
     expect(screen.getByLabelText("Your offer")).toHaveValue("30");
     expect(document.querySelectorAll("[aria-label='Buy or make an offer'] button.btn-grad-primary").length).toBe(1);
     // Not now only closes the card step.
     fireEvent.click(screen.getByRole("button", { name: "Not now" }));
-    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    expect(screen.queryByText(/add a card first\./)).toBeNull();
     expect(screen.getByLabelText("Your offer")).toHaveValue("30");
     // The trip to Stripe's page remembers the amount for the way back.
     fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
@@ -358,7 +390,7 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled();
-      expect(screen.queryByText("Add a card to finish.")).toBeNull();
+      expect(screen.queryByText(/add a card first\./)).toBeNull();
       expect(screen.queryByText("Checking for your card…")).toBeNull();
     });
     // Never sent on its own: the member's own press sends it.
@@ -393,7 +425,7 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText(/Reserve it/)).toBeNull();
     expect(screen.queryByText(/strike/i)).toBeNull();
     expect(window.confirm).not.toHaveBeenCalled();
-    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    expect(screen.queryByText(/add a card first\./)).toBeNull();
   });
 
   it("DB-5: with a saved card, one tap on Buy now holds the item and opens that seller's checkout", async () => {
@@ -444,7 +476,7 @@ describe("Declutter slice 3 screens", () => {
   it("back before Stripe's webhook filed the card: it keeps looking, then Buy goes on to that seller's checkout (DB-5)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
     expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
-    expect(screen.queryByText("Add a card to finish.")).toBeNull();
+    expect(screen.queryByText(/add a card first\./)).toBeNull();
     expect(state.bought).toBe(0);
     state.card = { brand: "visa", last4: "4242" };
     // The Buy now the member started carries on: the hold, then the checkout (Pay is still its own press there).
@@ -725,7 +757,7 @@ describe("Declutter slice 3 screens", () => {
   // Accepted) above the live ones. The seller sees the open offers; the closed ones fold under one dated button.
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |   const shown = seller ? mine.filter((o) => o.status === "open") : mine; |   const shown = mine;
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |       ) : shown.length === 0 ? ( |       ) : false ? (
-  // @mutate src/components/declutter/DeclutterOffersSection.tsx |           {showClosed && <ul className="space-y-3" data-closed-offers=""> |           {true && <ul className="space-y-3" data-closed-offers="">
+  // @mutate src/components/declutter/DeclutterOffersSection.tsx |           {closedOpen && <ul className="space-y-3" data-closed-offers=""> |           {true && <ul className="space-y-3" data-closed-offers="">
   it("deep audit #30: the seller sees open offers; closed ones fold under one button, and open again on tap", async () => {
     const CLOSED = ["declined", "withdrawn", "accepted", "expired", "voided"] as const;
     state.offers = [
@@ -1663,7 +1695,7 @@ describe("B-1: the return from the payment page never offers Pay again for what 
 // @mutate src/components/declutter/DeclutterTradeViews.tsx |     </div>\n    <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary=""> |     <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
 // @mutate src/components/declutter/DeclutterTradeViews.tsx |                     <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />\n |
 // @mutate src/components/declutter/DeclutterTradeViews.tsx |       {path && stage !== "failed" && <img | {false && <img
-// @mutate src/components/declutter/DeclutterTradeViews.tsx | className="flex min-h-11 min-w-0 items-center truncate" | className="truncate"
+// @mutate src/components/declutter/DeclutterTradeViews.tsx | className="flex min-h-11 min-w-0 items-center" title={l.item_title}> | className="line-clamp-2" title={l.item_title}>
 describe("BUY-15: checkout is two columns from lg, and each cart line shows its photo", () => {
   const line = { line_id: "l1", item_id: "i1", item_title: "Oak rocking chair", my_side: "buyer", seller_id: "s2", price_cents: 4000, status: "in_cart",
     checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
@@ -1686,6 +1718,59 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
     expect(summary.querySelector("[data-checkout-note]")).not.toBeNull();
     // A phone keeps the old order: the choices come before the bill and Pay.
     expect(choices.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+  // Q2633 (audit 1102c R8; owner rule: no line under the buttons): Pay is the last thing in the bill, and the seller's
+  // payout promise is neutral, never the rust warning box.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |       <p className="text-ds-13 text-muted-foreground" data-checkout-note=""> |       <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-checkout-note="">
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |           the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */} |           the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */}<p>You pay on a secure payment page.</p>
+  it("Q2633: nothing sits under Pay, and the seller's payout line is not in a warning tone", async () => {
+    state.cart = [line];
+    show(<CartView />, "/declutter?tab=buying");
+    const pay = await screen.findByRole("button", { name: /^Pay \$/ });
+    const summary = document.querySelector("[data-checkout-summary]")!;
+    const after = Array.from(summary.querySelectorAll("*")).filter((el) => pay.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !pay.contains(el));
+    expect(after.map((el) => el.textContent)).toEqual([]);
+    const note = summary.querySelector("[data-checkout-note]")!;
+    expect(note.textContent).toMatch(/The seller keeps the whole \$40/);
+    expect(note.className).not.toMatch(/sienna|destructive|warning/);
+  });
+  // Q2636 (audit 1102c R11): the row cut the title to "Oak rocking cha…" on one line to fit "$40 Remove", though it has
+  // room for two. The title now wraps to two lines (line-clamp-2), never a one-line cut.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | className="flex min-h-11 min-w-0 items-center" title={l.item_title}><span className="line-clamp-2 break-words"> | className="flex min-h-11 min-w-0 items-center truncate" title={l.item_title}><span className="truncate">
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |                       <span className="line-clamp-2 min-w-0 break-words" title={l.item_title}>{l.item_title}</span> |                       <span className="truncate" title={l.item_title}>{l.item_title}</span>
+  it("Q2636: a cart line's title wraps to two lines, never cut to one", async () => {
+    const long = "Solid oak rocking chair with the original cane seat";
+    state.cart = [{ ...line, item_title: long }, { ...line, line_id: "l2", item_id: null, item_title: `${long} (gone)` }];
+    show(<CartView />, "/declutter?tab=buying");
+    await waitFor(() => expect(document.querySelectorAll("[data-cart-line]")).toHaveLength(2));
+    for (const row of Array.from(document.querySelectorAll("[data-cart-line]"))) {
+      const title = Array.from(row.querySelectorAll("a, span")).filter((el) => el.textContent?.startsWith(long));
+      expect(title.length).toBeGreaterThan(0);
+      for (const el of title) expect(el.className).not.toMatch(/\btruncate\b/);
+      expect(title.some((el) => /\bline-clamp-2\b/.test(el.className))).toBe(true);
+    }
+  });
+  // Q2637 (audit 1102c R12, measured 11-02 at 1440): the bill box showed no top edge. Not a clip (every clipping parent
+  // starts above it): it was bg-card, and index.css's T2 rule (`:where(.bg-card)`, border-color transparent !important)
+  // left a white box on the white checkout card with only a soft shadow; the chosen way's 2px primary border was
+  // transparent the same way. Both keep the card colour without the bg-card class, so their borders draw.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | rounded-[20px] border border-border bg-[hsl(var(--card))] p-4 text-ds-14" data-checkout-breakdown | rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | items-start gap-3 rounded-[20px] border bg-[hsl(var(--card))] px-4 py-3.5 | items-start gap-3 rounded-[20px] border bg-card px-4 py-3.5
+  it("Q2637: the bill box and the ways to get it are not bg-card, so their borders draw", async () => {
+    state.cart = [line];
+    show(<CartView />, "/declutter?tab=buying");
+    await screen.findByRole("button", { name: /^Pay \$/ });
+    // The premise: T2 still blanks every .bg-card border.
+    const css = readFileSync(resolve(__dirname, "../../index.css"), "utf8");
+    expect(css).toMatch(/:where\(\.bg-card\)[^{]*\{[^}]*border-color:\s*transparent\s*!important/);
+    const bill = document.querySelector("[data-checkout-breakdown]") as HTMLElement;
+    const ways = Array.from(document.querySelectorAll("[data-handover-option] > label")) as HTMLElement[];
+    expect(ways.length).toBeGreaterThan(0);
+    for (const el of [bill, ...ways]) {
+      expect(el.classList.contains("bg-card"), el.className).toBe(false);
+      expect(el.className).toMatch(/\bborder-(border|primary)\b/);
+    }
+    expect(ways.some((el) => el.classList.contains("border-primary"))).toBe(true);
   });
   it("each line shows its first photo (a grey square when it has none) and its title is a 44 px tap", async () => {
     cartPhotos.length = 0;

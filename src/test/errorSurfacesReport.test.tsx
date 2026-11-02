@@ -334,8 +334,18 @@ function errorCopyLines(src: string): number[] {
   return hits;
 }
 
+/**
+ * The admin previews' boundaries (made-up data on an inert fake backend): a report from there would be a backend call
+ * the preview must never make (adminDeclutterPreviewIsInert / adminJobPreviewCrash assert 0 calls after a crash). They
+ * show the crash on screen and log the stack to the console instead.
+ */
+const PREVIEW_BOUNDARIES: Record<string, string> = {
+  "pages/admin/preview/previewParts.tsx": "the job, Messages and Declutter previews' one shared boundary (admin only, inert backend)",
+};
+
 const EXCUSED_INLINE: Record<string, string> = {
   "components/admin/settings/MeetupSpotsCard.tsx": "one line inside the admin's Declutter meetup spots card when the list read fails (Q2425); the card and its add form stay; not a screen",
+  "components/declutter/DeliveryTaskPhotos.tsx": "one line with a Try again button where a Helpr delivery's pickup or drop-off photo would be (moved out of DeclutterDeliveryViews unchanged, Q2615; the order loaded); each photo is a signed-URL read, not a page load",
   "components/declutter/DeclutterPickupDayCard.tsx": "one line on the pickup-day card when a place read fails; the card and the order below stay; not a screen",
   "components/declutter/DeclutterMeetup.tsx": "one line inside a Declutter order's handover panel when its meeting spot read fails (Q2425); the order and its other controls stay; not a screen",
   "components/admin/settings/DonationPartnersCard.tsx": "one line inside the admin's Declutter partner charities card when the list read fails (Q2428); the card and its add form stay; not a screen",
@@ -386,8 +396,12 @@ describe("every error screen in src reaches the ops alert ledger (Q39)", () => {
   it("every error boundary (getDerivedStateFromError) reports with the kind tag", () => {
     const boundaries = tsxFiles.filter((f) => /getDerivedStateFromError/.test(readFileSync(f, "utf8")));
     expect(boundaries.length).toBeGreaterThanOrEqual(3);
-    const missing = boundaries.filter((f) => !/kind: USER_ERROR_SCREEN/.test(readFileSync(f, "utf8"))).map(rel);
+    const missing = boundaries.filter((f) => !/kind: USER_ERROR_SCREEN/.test(readFileSync(f, "utf8"))).map(rel)
+      .filter((f) => !(f in PREVIEW_BOUNDARIES));
     expect(missing).toEqual([]);
+    // Two-way: each excused preview boundary still exists and still does not report.
+    const stale = Object.keys(PREVIEW_BOUNDARIES).filter((k) => !boundaries.some((f) => rel(f) === k && !/kind: USER_ERROR_SCREEN/.test(readFileSync(f, "utf8"))));
+    expect(stale).toEqual([]);
   });
 
   it("the kind value is the one the database trigger keys on (newest is_user_error_screen_row)", () => {

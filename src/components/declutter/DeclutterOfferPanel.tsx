@@ -4,7 +4,7 @@
  * show, and with no saved card either one asks for a card and comes back to
  * itself; DA-11: an offer asks at Send, after the amount is typed). Moved out of DeclutterTradeViews.tsx unchanged (component size limit).
  */
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -28,6 +28,7 @@ import { checkoutLinkFor } from "@/lib/declutter/buyNowHold";
 import { HoldChecking, myHoldOn, myOpenOfferOn, ReservedForYou, YourOfferBox } from "./DeclutterYourOffer";
 import { dollarsInputToCents } from "@/lib/declutter/money";
 import { invalidateTrades } from "./declutterLightActions";
+import { useOffScreen } from "./useOffScreen";
 
 /**
  * Row 36, as the step INSIDE a buy or an offer (owner, 2026-10-19): a buyer
@@ -53,7 +54,8 @@ function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel, note }
   return (
     <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2" role="group" aria-label="Add a card">
       {note && <p className="text-sm text-foreground" role="status" data-card-not-saved="">{note}</p>}
-      <p className="text-sm font-semibold">Add a card to finish.</p>
+      {/* Q2573 (audit 1102a): "Add a card to finish." on the first tap, before anything had started. */}
+      <p className="text-sm font-semibold" data-card-step-title="">{action === "buy" ? "To buy, add a card first." : "To send your offer, add a card first."}</p>
       <p className="text-xs text-muted-foreground">
         {/* #21 (owner chose C, 2026-10-28): two Stripe pages stay; this line says what the first one is for. */}
         We save your card now; you're only charged when you check out. {action === "buy" ? "Then checkout opens." : "Then you send your offer."}
@@ -84,41 +86,6 @@ function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel, note }
       </div>
     </div>
   );
-}
-
-/**
- * How much of the screen's bottom edge the dock (MobileNav's `.mobile-nav-frame`) covers, in px; 0 where there is
- * none (desktop hides it). Measured, because `--bottom-nav-h` is only ever zeroed, never set. The dock keeps its box
- * while it yields (`visibility: hidden`), so the answer does not change when the bar takes its place.
- */
-function dockCoverPx(): number {
-  const dock = document.querySelector<HTMLElement>(".mobile-nav-frame");
-  if (!dock) return 0;
-  const r = dock.getBoundingClientRect();
-  return r.height > 0 ? Math.max(0, Math.round(window.innerHeight - r.top)) : 0;
-}
-
-/**
- * True until `el` is fully in view ABOVE the dock (IntersectionObserver). False where the observer does not exist,
- * so the in-page buttons are then the only ones.
- *
- * Audit 1030 DB-14: the observer used to count the strip behind the dock as on screen. At 375 the in-page Buy now
- * sat in that strip on a short-titled item, so it was hidden under the dock while the bar stayed away. The strip is
- * now cut off the observed screen (rootMargin), and a group only partly clear of the dock still gets the bar.
- */
-function useOffScreen(el: RefObject<HTMLElement>): boolean {
-  const [off, setOff] = useState(false);
-  useEffect(() => {
-    const node = el.current;
-    if (!node || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(
-      ([entry]) => setOff(!entry.isIntersecting || (entry.intersectionRatio ?? 1) < 0.99),
-      { rootMargin: `0px 0px -${dockCoverPx()}px 0px`, threshold: [0, 0.99] },
-    );
-    io.observe(node);
-    return () => io.disconnect();
-  }, [el]);
-  return off;
 }
 
 /** Back from saving a card: how long to wait for Stripe's webhook to file it, and how often to look. */
@@ -204,6 +171,13 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   // NIGHT-BUYING0-1: back from the card page the member lands at the top of the item, with "Checking for your
   // card…" (and later the card step or the offer box) below a phone's screen. Bring the panel into view.
   const showPanel = () => panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Q2564: whatever opens (the card step or the offer box) is brought into view, nearest edge, so it never sits
+  // under the dock at 375.
+  const stepArea = useRef<HTMLDivElement>(null);
+  const stepOpen = open || !!needCard;
+  useEffect(() => {
+    if (stepOpen) stepArea.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+  }, [stepOpen, needCard]);
   useEffect(() => { if (resume) showPanel(); }, [resume]);
   useEffect(() => {
     if (!cardCancelled) return;
@@ -422,16 +396,10 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
         </Button>
       </div>
       <SetupFeeNote className="-mt-1 text-center text-ds-12 text-muted-foreground" />
-      {footer}
-      {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
-      {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
-      {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons; the card step says when the card is charged. */}
-      {card.isError && (
-        <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />
-      )}
-      {checkingCard && (
-        <p role="status" className="text-sm text-muted-foreground">Checking for your card…</p>
-      )}
+      {/* Q2564 (Auditor 1, audit 1102a): the card step and the offer box open HERE, right under the buttons, and the
+          panel's footer (the delivery line) right after them, as before; at 375 they used to open below that table, behind the
+          dock, so a press on Buy or Offer showed nothing. A tap also brings the opened step into view. */}
+      <div ref={stepArea} className="space-y-3 scroll-mb-28" data-offer-step-area="">
       {showCardStep && needCard === "buy" && cardStep("buy")}
       {open && (
         <form
@@ -486,6 +454,17 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
         </form>
       )}
       {showCardStep && needCard === "offer" && cardStep("offer")}
+      </div>
+      {footer}
+      {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
+      {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
+      {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons; the card step says when the card is charged. */}
+      {card.isError && (
+        <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />
+      )}
+      {checkingCard && (
+        <p role="status" className="text-sm text-muted-foreground">Checking for your card…</p>
+      )}
       {barShown && typeof document !== "undefined" &&
         createPortal(
           // Portaled to <body>: a fixed bar inside the page would be placed by its transformed ancestor, not the screen.

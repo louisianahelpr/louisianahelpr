@@ -2330,6 +2330,231 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_manager_actions: {
+        Row: {
+          action: string
+          created_at: string
+          grant_id: string
+          id: number
+          manager_id: string
+          seller_id: string
+          target_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          grant_id: string
+          id?: number
+          manager_id: string
+          seller_id: string
+          target_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          grant_id?: string
+          id?: number
+          manager_id?: string
+          seller_id?: string
+          target_id?: string | null
+        }
+        Relationships: []
+      }
+      declutter_manager_grants: {
+        Row: {
+          can_list: boolean
+          can_messages: boolean
+          can_offers: boolean
+          can_pickups: boolean
+          can_prices: boolean
+          created_at: string
+          ended_at: string | null
+          ended_by: string | null
+          id: string
+          manager_id: string
+          responded_at: string | null
+          seller_id: string
+          share_cents: number | null
+          share_pct: number | null
+          share_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          can_list?: boolean
+          can_messages?: boolean
+          can_offers?: boolean
+          can_pickups?: boolean
+          can_prices?: boolean
+          created_at?: string
+          ended_at?: string | null
+          ended_by?: string | null
+          id?: string
+          manager_id: string
+          responded_at?: string | null
+          seller_id: string
+          share_cents?: number | null
+          share_pct?: number | null
+          share_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          can_list?: boolean
+          can_messages?: boolean
+          can_offers?: boolean
+          can_pickups?: boolean
+          can_prices?: boolean
+          created_at?: string
+          ended_at?: string | null
+          ended_by?: string | null
+          id?: string
+          manager_id?: string
+          responded_at?: string | null
+          seller_id?: string
+          share_cents?: number | null
+          share_pct?: number | null
+          share_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      declutter_manager_messages: {
+        Row: {
+          created_at: string
+          grant_id: string
+          kind: string
+          manager_id: string
+          message_id: string
+          seller_id: string
+        }
+        Insert: {
+          created_at?: string
+          grant_id: string
+          kind: string
+          manager_id: string
+          message_id: string
+          seller_id: string
+        }
+        Update: {
+          created_at?: string
+          grant_id?: string
+          kind?: string
+          manager_id?: string
+          message_id?: string
+          seller_id?: string
+        }
+        Relationships: []
+      }
+      declutter_manager_payouts: {
+        Row: {
+          amount_cents: number
+          attempts: number
+          created_at: string
+          executed_at: string | null
+          grant_id: string | null
+          held_notified_at: string | null
+          id: string
+          is_seed: boolean
+          last_error: string | null
+          manager_id: string | null
+          next_attempt_at: string
+          order_id: string
+          review_held_at: string | null
+          review_reason: string | null
+          seller_id: string | null
+          seller_payout_id: string
+          settled_by_hand_cents: number | null
+          settled_by_hand_note: string | null
+          settled_by_hand_ref: string | null
+          share_cents: number
+          status: string
+          stripe_transfer_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          grant_id?: string | null
+          held_notified_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          manager_id?: string | null
+          next_attempt_at?: string
+          order_id: string
+          review_held_at?: string | null
+          review_reason?: string | null
+          seller_id?: string | null
+          seller_payout_id: string
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
+          share_cents: number
+          status: string
+          stripe_transfer_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          grant_id?: string | null
+          held_notified_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          manager_id?: string | null
+          next_attempt_at?: string
+          order_id?: string
+          review_held_at?: string | null
+          review_reason?: string | null
+          seller_id?: string | null
+          seller_payout_id?: string
+          settled_by_hand_cents?: number | null
+          settled_by_hand_note?: string | null
+          settled_by_hand_ref?: string | null
+          share_cents?: number
+          status?: string
+          stripe_transfer_id?: string | null
+        }
+        Relationships: []
+      }
+      declutter_manager_submissions: {
+        Row: {
+          decided_at: string | null
+          grant_id: string
+          item_id: string
+          manager_id: string
+          note: string | null
+          seller_id: string
+          status: string
+          submitted_at: string
+        }
+        Insert: {
+          decided_at?: string | null
+          grant_id: string
+          item_id: string
+          manager_id: string
+          note?: string | null
+          seller_id: string
+          status?: string
+          submitted_at?: string
+        }
+        Update: {
+          decided_at?: string | null
+          grant_id?: string
+          item_id?: string
+          manager_id?: string
+          note?: string | null
+          seller_id?: string
+          status?: string
+          submitted_at?: string
+        }
+        Relationships: []
+      }
       declutter_meetup_choices: {
         Row: {
           buyer_id: string
@@ -2593,6 +2818,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      declutter_order_manager_shares: {
+        Row: {
+          grant_id: string | null
+          locked_at: string
+          manager_id: string | null
+          order_id: string
+          seller_id: string | null
+          share_cents: number | null
+          share_pct: number | null
+          share_type: string
+        }
+        Insert: {
+          grant_id?: string | null
+          locked_at?: string
+          manager_id?: string | null
+          order_id: string
+          seller_id?: string | null
+          share_cents?: number | null
+          share_pct?: number | null
+          share_type: string
+        }
+        Update: {
+          grant_id?: string | null
+          locked_at?: string
+          manager_id?: string | null
+          order_id?: string
+          seller_id?: string | null
+          share_cents?: number | null
+          share_pct?: number | null
+          share_type?: string
+        }
+        Relationships: []
       }
       declutter_order_meetups: {
         Row: {
@@ -2928,6 +3186,7 @@ export type Database = {
           attempts: number
           created_at: string
           debt_cents: number
+          manager_share_cents: number
           executed_at: string | null
           held_notified_at: string | null
           id: string
@@ -2954,6 +3213,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           debt_cents: number
+          manager_share_cents?: number
           executed_at?: string | null
           held_notified_at?: string | null
           id?: string
@@ -2980,6 +3240,7 @@ export type Database = {
           attempts?: number
           created_at?: string
           debt_cents?: number
+          manager_share_cents?: number
           executed_at?: string | null
           held_notified_at?: string | null
           id?: string
@@ -3239,6 +3500,7 @@ export type Database = {
           status: string
           strike_given: boolean
           withdrawn_at: string | null
+          decide_by: string | null
         }
         Insert: {
           other_side_at?: string | null
@@ -3261,6 +3523,7 @@ export type Database = {
           status?: string
           strike_given?: boolean
           withdrawn_at?: string | null
+          decide_by?: string | null
         }
         Update: {
           other_side_at?: string | null
@@ -3283,6 +3546,7 @@ export type Database = {
           status?: string
           strike_given?: boolean
           withdrawn_at?: string | null
+          decide_by?: string | null
         }
         Relationships: [
           {
@@ -3366,6 +3630,9 @@ export type Database = {
           settled_at: string | null
           status: string
           updated_at: string
+          seller_note: string | null
+          seller_photo_paths: string[]
+          seller_side_at: string | null
         }
         Insert: {
           photo_paths?: string[]
@@ -3397,6 +3664,9 @@ export type Database = {
           settled_at?: string | null
           status?: string
           updated_at?: string
+          seller_note?: string | null
+          seller_photo_paths?: string[]
+          seller_side_at?: string | null
         }
         Update: {
           photo_paths?: string[]
@@ -3428,6 +3698,9 @@ export type Database = {
           settled_at?: string | null
           status?: string
           updated_at?: string
+          seller_note?: string | null
+          seller_photo_paths?: string[]
+          seller_side_at?: string | null
         }
         Relationships: [
           {
@@ -3552,6 +3825,7 @@ export type Database = {
           id: string
           is_seed: boolean
           order_id: string
+          removed_at: string | null
           reviewee_id: string | null
           reviewer_id: string | null
           reviewer_side: string
@@ -3564,6 +3838,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           order_id: string
+          removed_at?: string | null
           reviewee_id?: string | null
           reviewer_id?: string | null
           reviewer_side: string
@@ -3576,6 +3851,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           order_id?: string
+          removed_at?: string | null
           reviewee_id?: string | null
           reviewer_id?: string | null
           reviewer_side?: string
@@ -8781,6 +9057,7 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string
+          declutter_ref: string | null
           id: string
           job_id: string | null
           link: string | null
@@ -8792,6 +9069,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          declutter_ref?: string | null
           id?: string
           job_id?: string | null
           link?: string | null
@@ -8803,6 +9081,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          declutter_ref?: string | null
           id?: string
           job_id?: string | null
           link?: string | null
@@ -13301,6 +13580,8 @@ export type Database = {
           confirm_code: string | null
           confirm_phone: string | null
           confirm_sent_at: string | null
+          confirm_tries: number
+          confirm_tries_since: string | null
           consent_text_version: string | null
           job_match_texts: boolean
           opt_in_source: string | null
@@ -13318,6 +13599,8 @@ export type Database = {
           confirm_code?: string | null
           confirm_phone?: string | null
           confirm_sent_at?: string | null
+          confirm_tries?: number
+          confirm_tries_since?: string | null
           consent_text_version?: string | null
           job_match_texts?: boolean
           opt_in_source?: string | null
@@ -13335,6 +13618,8 @@ export type Database = {
           confirm_code?: string | null
           confirm_phone?: string | null
           confirm_sent_at?: string | null
+          confirm_tries?: number
+          confirm_tries_since?: string | null
           consent_text_version?: string | null
           job_match_texts?: boolean
           opt_in_source?: string | null
@@ -15291,6 +15576,7 @@ export type Database = {
       clear_my_job_post_draft: { Args: never; Returns: undefined }
       client_compat_floor: { Args: never; Returns: number }
       close_moot_backout_notices: { Args: { p_job?: string }; Returns: number }
+      confirm_sms_code: { Args: { p_code: string }; Returns: Json }
       declutter_add_handover: {
         Args: { p_item_id: string; p_way: string }
         Returns: string[]
@@ -15433,6 +15719,66 @@ export type Database = {
           title: string
         }[]
       }
+      declutter_manager_first_name: {
+        Args: { p_user: string }
+        Returns: string
+      }
+      declutter_manager_grant_for: {
+        Args: { p_perm: string; p_seller: string }
+        Returns: {
+          can_list: boolean
+          can_messages: boolean
+          can_offers: boolean
+          can_pickups: boolean
+          can_prices: boolean
+          created_at: string
+          ended_at: string | null
+          ended_by: string | null
+          id: string
+          manager_id: string
+          responded_at: string | null
+          seller_id: string
+          share_cents: number | null
+          share_pct: number | null
+          share_type: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "declutter_manager_grants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      declutter_manager_payout_executed: {
+        Args: {
+          p_error: string
+          p_payout_id: string
+          p_succeeded: boolean
+          p_transfer_id: string
+        }
+        Returns: string
+      }
+      declutter_manager_payouts_due: {
+        Args: { p_limit: number }
+        Returns: {
+          amount_cents: number
+          attempts: number
+          buyer_id: string
+          manager_id: string
+          order_id: string
+          payment_intent_id: string
+          payout_id: string
+          refunds_recorded_cents: number
+          seller_id: string
+          stripe_account_id: string
+        }[]
+      }
+      declutter_manager_share_cents: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
       declutter_my_block_partners: { Args: never; Returns: string[] }
       declutter_open_handover_talk: {
         Args: { p_other: string }
@@ -15450,6 +15796,10 @@ export type Database = {
       declutter_order_talk_until: { Args: { p_order_id: string }; Returns: string }
       declutter_order_talk_view: { Args: { p_order_id: string }; Returns: Json }
       declutter_pickup_when: { Args: { p_order_id: string }; Returns: string }
+      declutter_photo_object_attached: {
+        Args: { p_name: string }
+        Returns: boolean
+      }
       declutter_restore_retained_strikes: {
         Args: { p_identity_sha256: string; p_user_id: string }
         Returns: number
@@ -15666,7 +16016,13 @@ export type Database = {
       }
       declutter_alert_overdue_checks: { Args: never; Returns: number }
       declutter_answer_refund: {
-        Args: { p_answer: string; p_offer_cents: number; p_request_id: string }
+        Args: {
+          p_answer: string
+          p_note?: string
+          p_offer_cents: number
+          p_photo_paths?: string[]
+          p_request_id: string
+        }
         Returns: Json
       }
       declutter_answer_refund_offer: {
@@ -16234,6 +16590,87 @@ export type Database = {
         Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }
         Returns: number
       }
+      declutter_manage: {
+        Args: { p_seller: string; p_action: string; p_args?: Json }
+        Returns: Json
+      }
+      declutter_managed_overview: {
+        Args: { p_seller: string }
+        Returns: Json
+      }
+      declutter_manager_approve: {
+        Args: {
+          p_item_id: string
+          p_bought_for_personal_use: boolean
+          p_not_in_the_business: boolean
+          p_not_a_frequent_seller: boolean
+          p_keeps_item_until_handover: boolean
+        }
+        Returns: Json
+      }
+      declutter_manager_end: {
+        Args: { p_grant_id: string }
+        Returns: string
+      }
+      declutter_manager_message_labels: {
+        Args: { p_kind: string; p_ids: string[] }
+        Returns: { message_id: string; label: string }[]
+      }
+      declutter_manager_offer: {
+        Args: {
+          p_manager: string
+          p_share_type: string
+          p_share_value: number
+          p_can_list: boolean
+          p_can_prices: boolean
+          p_can_offers: boolean
+          p_can_messages: boolean
+          p_can_pickups: boolean
+        }
+        Returns: string
+      }
+      declutter_manager_respond: {
+        Args: { p_grant_id: string; p_accept: boolean }
+        Returns: string
+      }
+      declutter_manager_send_back: {
+        Args: { p_item_id: string; p_note: string }
+        Returns: string
+      }
+      declutter_manager_set_permissions: {
+        Args: {
+          p_grant_id: string
+          p_can_list: boolean
+          p_can_prices: boolean
+          p_can_offers: boolean
+          p_can_messages: boolean
+          p_can_pickups: boolean
+        }
+        Returns: undefined
+      }
+      declutter_my_manager_grants: {
+        Args: never
+        Returns: {
+          id: string
+          role: string
+          seller_id: string
+          manager_id: string
+          seller_first_name: string
+          manager_first_name: string
+          status: string
+          share_type: string
+          share_pct: number | null
+          share_cents: number | null
+          can_list: boolean
+          can_prices: boolean
+          can_offers: boolean
+          can_messages: boolean
+          can_pickups: boolean
+          created_at: string
+          responded_at: string | null
+          ended_at: string | null
+        }[]
+      }
       declutter_my_cart: {
         Args: never
         Returns: {
@@ -16419,6 +16856,7 @@ export type Database = {
         Args: { p_link: string; p_other: string; p_user: string }
         Returns: string
       }
+      declutter_notice_ref: { Args: { p_ref: string }; Returns: undefined }
       declutter_notice_type: {
         Args: { p_link: string; p_title: string; p_type: string }
         Returns: string
@@ -16937,6 +17375,10 @@ export type Database = {
         Args: { p_note: string; p_part: string; p_question_id: string; p_report_id: string }
         Returns: string
       }
+      declutter_admin_remove_review: {
+        Args: { p_note: string; p_report_id: string; p_review_id: string }
+        Returns: string
+      }
       declutter_admin_reported_questions: {
         Args: { p_question_ids: string[] }
         Returns: {
@@ -16949,6 +17391,19 @@ export type Database = {
           question_id: string
           removed: boolean
           seller_id: string
+        }[]
+      }
+      declutter_admin_reported_reviews: {
+        Args: { p_review_ids: string[] }
+        Returns: {
+          comment: string
+          is_seed: boolean
+          removed: boolean
+          review_id: string
+          reviewee_id: string
+          reviewer_id: string
+          reviewer_side: string
+          stars: number
         }[]
       }
       declutter_admin_reported_wanted: {
@@ -19831,6 +20286,7 @@ export type Database = {
         Args: { _job_id: string; _member_id: string }
         Returns: Json
       }
+      rpc_poster_withdraw_offer: { Args: { p_job_id: string }; Returns: Json }
       rpc_record_application_attempt: {
         Args: { _applicant_id: string }
         Returns: undefined

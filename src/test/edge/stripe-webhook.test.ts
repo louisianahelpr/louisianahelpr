@@ -244,8 +244,8 @@ describe("stripe-webhook edge function", () => {
         return (slackAlerts as Array<{ title: string }>).filter((a) => /\$0 Louisiana sales tax/.test(a.title));
       }
 
-      it("alerts on an assembly job billed to LA with $0 tax", async () => {
-        const alerts = await deliver("assembly");
+      it("alerts on an auto repair job billed to LA with $0 tax (assembly is untaxed since Q2083 part 1)", async () => {
+        const alerts = await deliver("auto_repair");
         expect(alerts).toHaveLength(1);
         expect((alerts[0] as unknown as { oncePerDayKey: string }).oncePerDayKey).toBe("taxable-zero-tax:test");
       });
@@ -253,9 +253,9 @@ describe("stripe-webhook edge function", () => {
       it("stays quiet on an exempt category, a non-LA address, and a gift-card shortfall", async () => {
         expect(await deliver("yard_work")).toHaveLength(0);
         resetSharedMocks();
-        expect(await deliver("assembly", {}, "TX")).toHaveLength(0);
+        expect(await deliver("auto_repair", {}, "TX")).toHaveLength(0);
         resetSharedMocks();
-        expect(await deliver("assembly", { gift_card_id: "gc-1" })).toHaveLength(0);
+        expect(await deliver("auto_repair", { gift_card_id: "gc-1" })).toHaveLength(0);
       });
     });
 
@@ -265,7 +265,7 @@ describe("stripe-webhook edge function", () => {
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, taxableBaseCents); |           updateData.sales_tax_rate = Math.round((taxCents / taxableBaseCents) * 100 * 100) / 100;
     it("a taxed job's escrow write stores sales_tax_rate as a fraction that fits the CHECK", async () => {
       const fn = await loadConfigured();
-      scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "assembly", is_seed: false }] };
+      scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "auto_repair", is_seed: false }] };
       stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax", amount_details: { tax: { total_tax_amount: 1120 } } });
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
         id: "evt_tax_rate",
@@ -300,7 +300,7 @@ describe("stripe-webhook edge function", () => {
     it("Q2152: a basil PaymentIntent (no amount_details.tax) records the SESSION's tax, 1105c -> 11.05; a gift difference session's $0 does not overwrite the estimate", async () => {
       const deliver = async (metadata: Record<string, string>, amountTax: number) => {
         const fn = await loadConfigured();
-        scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "assembly", is_seed: false }] };
+        scenario.reads.jobs = { rows: [{ id: "job-tax", budget: 100, category: "auto_repair", is_seed: false }] };
         stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tax", amount_details: { tip: {} } });
         stripeMock.webhooks.constructEventAsync.mockResolvedValue({
           id: `evt_q2152_${amountTax}`,
@@ -343,13 +343,13 @@ describe("stripe-webhook edge function", () => {
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 } |           ? jobRow
     it.each([
       // [label, job, taxCents, rate]
-      ["a taxed poster-fee job divides by budget + the taxed fee", { budget: 100, category: "assembly", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1105, 0.1045],
+      ["a taxed poster-fee job divides by budget + the taxed fee", { budget: 100, category: "auto_repair", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1105, 0.1045],
       ["an exempt poster-fee job's fee is not in the base", { budget: 100, category: "yard_work", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1045, 0.1045],
-      ["a flat-model job divides by the budget", { budget: 100, category: "assembly", customer_fee_amount: 0, poster_fee_flat_cents: null }, 1045, 0.1045],
+      ["a flat-model job divides by the budget", { budget: 100, category: "auto_repair", customer_fee_amount: 0, poster_fee_flat_cents: null }, 1045, 0.1045],
       // The row was re-priced to Pay in 4 ($9.70) after this $5.70 charge opened.
-      ["the charge's own fee wins over a re-priced row", { budget: 100, category: "assembly", customer_fee_amount: 9.7, poster_fee_flat_cents: 70, piFee: "570" }, 1105, 0.1045],
+      ["the charge's own fee wins over a re-priced row", { budget: 100, category: "auto_repair", customer_fee_amount: 9.7, poster_fee_flat_cents: 70, piFee: "570" }, 1105, 0.1045],
       // Q1843: a taxed urgent job's $20 bonus is taxed with the labor: 10.45% of $120.
-      ["a taxed urgent job divides by budget + the bonus", { budget: 100, category: "assembly", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 20 }, 1254, 0.1045],
+      ["a taxed urgent job divides by budget + the bonus", { budget: 100, category: "auto_repair", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 20 }, 1254, 0.1045],
       ["an exempt urgent job's bonus is not in the base", { budget: 100, category: "yard_work", customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 20 }, 1045, 0.1045],
     ] as Array<[string, Record<string, unknown>, number, number]>)("%s", async (_label, jobIn, taxCents, rate) => {
       const fn = await loadConfigured();
@@ -1644,6 +1644,90 @@ describe("stripe-webhook edge function", () => {
       expect(res.status).toBe(500);
     });
 
+    // Q1994: a payment that settles on a job already refunded/cancelled/
+    // cancelling is captured money with no escrow. A BANK payment pages ops to
+    // refund it; a CARD one is a redelivery and stays quiet; an unreadable
+    // payment method fails closed and pages.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | } else if (!FUNDED_PAYMENT_STATUSES.has(String(taxJob.payment_status))) { | } else if (false) {
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | if (paidWith !== "us_bank_account" && paidWith !== null) { | if (paidWith !== null) {
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | if (paidWith !== "us_bank_account" && paidWith !== null) { | if (paidWith !== "us_bank_account") {
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | const FUNDED_PAYMENT_STATUSES = new Set(["escrow", "payout_pending", "released"]); | const FUNDED_PAYMENT_STATUSES = new Set(["escrow", "payout_pending", "released", "refunded"]);
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | new Set(["escrow", "payout_pending", "released"]) | new Set(["escrow", "payout_pending"])
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | const fromEvent = typeOf(pi.latest_charge); | const fromEvent = null as string \| null;
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | return typeOf(full?.latest_charge); | return "card";
+    describe("Q1994 a payment that settles on a job already refunded or closed", () => {
+      async function settle(paymentStatus: string, latestCharge?: unknown) {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: `evt_pi_succeeded_closed_${paymentStatus}`,
+          type: "payment_intent.succeeded",
+          data: { object: { id: "pi_closed", amount: 5000, amount_details: { tax: { total_tax_amount: 0 } }, latest_charge: latestCharge ?? "ch_closed" } },
+        });
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: paymentStatus, status: "cancelled", sales_tax_amount: 0, is_seed: true }],
+        };
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        const pages = (slackAlerts as Array<{ kind?: string; title?: string; fields?: Record<string, unknown> }>).filter((a) => a.kind === "money_at_risk");
+        const escrowWrite = scenario.writes.find(
+          (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "escrow",
+        );
+        return { res, pages, escrowWrite };
+      }
+
+      for (const ps of ["refunded", "cancelled", "cancelling"]) {
+        it(`pages ops to refund a BANK payment that settles on a '${ps}' job (read from the PI's charge)`, async () => {
+          stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_closed", latest_charge: { id: "ch_closed", payment_method_details: { type: "us_bank_account" } } });
+          const { res, pages, escrowWrite } = await settle(ps);
+          expect(res.status).toBe(200);
+          expect(escrowWrite).toBeUndefined();
+          expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_closed", { expand: ["latest_charge"] });
+          expect(pages).toHaveLength(1);
+          expect(pages[0].title).toMatch(/Bank payment settled on a job that is already refunded or closed/);
+          expect(pages[0].fields).toMatchObject({ job_id: "job-1", payment_intent: "pi_closed", payment_status: ps, method: "us_bank_account" });
+        });
+      }
+
+      it("reads the type from the event's expanded charge without a Stripe call", async () => {
+        const { pages } = await settle("refunded", { id: "ch_closed", payment_method_details: { type: "us_bank_account" } });
+        expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        expect(pages).toHaveLength(1);
+      });
+
+      it("stays quiet on a CARD redelivery for a job refunded later", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_closed", latest_charge: { id: "ch_closed", payment_method_details: { type: "card" } } });
+        const { res, pages, escrowWrite } = await settle("refunded");
+        expect(res.status).toBe(200);
+        expect(escrowWrite).toBeUndefined();
+        expect(pages).toHaveLength(0);
+        expect(slackAlerts).toHaveLength(0);
+      });
+
+      it("fails closed and pages when the PI cannot be read", async () => {
+        stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("stripe down"));
+        const { pages } = await settle("refunded");
+        expect(pages).toHaveLength(1);
+        expect(pages[0].title).toMatch(/payment method could not be read/);
+        expect(pages[0].fields).toMatchObject({ method: "unknown" });
+      });
+
+      it("fails closed and pages when the charge carries no payment method type", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_closed", latest_charge: "ch_closed" });
+        const { pages } = await settle("cancelling");
+        expect(pages).toHaveLength(1);
+        expect(pages[0].fields).toMatchObject({ method: "unknown" });
+      });
+
+      it("never reads Stripe or pages for a funded job (escrow, payout_pending, released)", async () => {
+        for (const ps of ["escrow", "payout_pending", "released"]) {
+          resetStripeMock();
+          resetSharedMocks();
+          const { pages } = await settle(ps);
+          expect(pages).toHaveLength(0);
+          expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        }
+      });
+    });
+
     it("does not promote a job that is already in escrow (sync card payment)", async () => {
       const fn = await loadConfigured();
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
@@ -2297,7 +2381,7 @@ describe("stripe-webhook edge function", () => {
     // 2026-10-15: tax stays paid on fees we keep). The visit below: $100
     // labor + $10 tax + $3.50 card fee = $113.50 charged; $110 is taxed.
     describe("recurring-visit sales tax reversal per refund (Q1655, Q1782 (2))", () => {
-      // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, logStep }); |     void reverseVisitTaxForRefund;
+      // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, supabase, logStep }); |     void reverseVisitTaxForRefund;
       const visitRefund = (id: string) => ({
         id,
         type: "charge.refunded",
@@ -2337,6 +2421,61 @@ describe("stripe-webhook edge function", () => {
           opts: { idempotencyKey: "visit-tax-reversal:re_full" },
         }]);
         expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith("pi_visit", { metadata: { tax_rev_re_full: "taxrev_refund:re_full" } });
+      });
+
+      // Q1997: a refund that returned money on a transaction listing no lines
+      // (or only zero amounts) reverses nothing, so a person is paged.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!(txTotalCents > 0)) { |   if (false) {
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts | logStep("Recurring-visit tax transaction records nothing to reverse; paged", { txId, chargeId: charge.id }); | logStep("Recurring-visit tax transaction records nothing to reverse; paged", { txId, chargeId: charge.id }); return "none";
+      for (const [label, lines] of [["no lines", []], ["only zero amounts", [{ id: "tax_li_0", amount: 0, amount_tax: 0, reference: "labor" }]]] as const) {
+        it(`a refund on a tax transaction with ${label} pages once and reverses nothing (Q1997)`, async () => {
+          stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: lines, has_more: false });
+          piMeta();
+          refundsAre([{ id: "re_empty", amount: 11000, created: 100 }]);
+          const res = await run(`evt_tax_empty_${label.length}`);
+          expect(res.status).toBe(200);
+          expect(reversals()).toEqual([]);
+          const pages = (slackAlerts as Array<{ kind?: string; title?: string; fields?: Record<string, unknown> }>).filter((a) => /lists nothing to reverse/.test(a.title ?? ""));
+          expect(pages).toHaveLength(1);
+          expect(pages[0].kind).toBe("money_at_risk");
+          expect(pages[0].fields).toMatchObject({ "Tax transaction": "tax_txn_9", Charge: "ch_visit", "Payment Intent": "pi_visit" });
+        });
+      }
+
+      // Q1997 (lead): test data never pages the owner. The page carries seed:
+      // the visit's series job is_seed, or its payer/Helpr is a test subject;
+      // a visit row that cannot be read pages as real.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |       seed: await visitIsSeed(supabase, piId, logStep), |       seed: false,
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   return job?.is_seed === true \|\| await anyIsTestSubject(supabase, [visit.payer_id, visit.helper_id], logStep); |   return job?.is_seed === true;
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (error \|\| !visit) { |   if (error) {
+      for (const [label, setup, seed] of [
+        ["a seed series job", () => { scenario.reads.jobs = { rows: [{ id: "job-v", is_seed: true }] }; }, true],
+        ["a test-account payer", () => { scenario.reads.jobs = { rows: [{ id: "job-v", is_seed: false }] }; scenario.rpc.is_test_subject = true; }, true],
+        ["a real visit", () => { scenario.reads.jobs = { rows: [{ id: "job-v", is_seed: false }] }; scenario.rpc.is_test_subject = false; }, false],
+      ] as const) {
+        it(`the empty-transaction page is seed=${seed} for ${label} (Q1997)`, async () => {
+          stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [], has_more: false });
+          piMeta();
+          refundsAre([{ id: "re_empty", amount: 11000, created: 100 }]);
+          scenario.reads.recurring_visit_payments = { rows: [{ parent_job_id: "job-v", payer_id: "poster-1", helper_id: "helpr-1" }] };
+          setup();
+          await run(`evt_tax_empty_seed_${label.length}`);
+          const pages = (slackAlerts as Array<{ title?: string; seed?: boolean }>).filter((a) => /lists nothing to reverse/.test(a.title ?? ""));
+          expect(pages).toHaveLength(1);
+          expect(pages[0].seed).toBe(seed);
+        });
+      }
+
+      it("the empty-transaction page counts as real when the visit row is missing (Q1997)", async () => {
+        stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [], has_more: false });
+        piMeta();
+        refundsAre([{ id: "re_empty", amount: 11000, created: 100 }]);
+        scenario.reads.recurring_visit_payments = { rows: [] };
+        scenario.reads.jobs = { rows: [{ id: "job-v", is_seed: true }] };
+        await run("evt_tax_empty_novisit");
+        const pages = (slackAlerts as Array<{ title?: string; seed?: boolean }>).filter((a) => /lists nothing to reverse/.test(a.title ?? ""));
+        expect(pages).toHaveLength(1);
+        expect(pages[0].seed).toBe(false);
       });
 
       // Q1828: an inclusive line's amount already holds its tax.

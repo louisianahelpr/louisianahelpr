@@ -100,6 +100,11 @@ import { currentSearch, profileTabTitle, type Tab } from "@/pages/profile/types"
  *     screenful) and collapsed 221px into the empty card. Once the review
  *     COUNT is known, ReviewsTab's own placeholder draws the populated shape,
  *     and only when there are reviews.
+ *     SUPERSEDED for reviews (owner, 2026-11-02, via the lead): the zero-state
+ *     card shape read as "No reviews yet" while the reviews were still loading.
+ *     Reviews now wait in ONE neutral review-row shape (ReviewRowReserve), which
+ *     says nothing about how many there are; the real list or the empty card
+ *     grows below it.
  *   - wrapped: the "No activity yet" card (333px at 375: the real card with
  *     its stats swapped for the zero-state markup, measured 2026-10-05). A
  *     year with activity is taller (419px with one stats row, 510px with two)
@@ -115,17 +120,18 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   // renders only while SOCIAL_SIGN_IN_ENABLED (off for launch, Q1462), so its
   // bone follows the same switch (loading-states-refresh 37554743989, 2026-10-07: 6
   // placeholder rows -> 5 real once it went off).
+  // Q1695 (loading-states refresh 2026-11-02 01:07Z, bot/refresh/loading-states 80cc9f9ff8, 375, both test
+  // accounts): email 89, password 71, two-step 86, sign-in methods 229, active sessions 261 (two device rows, so
+  // three icons). Heights from the gaps between the cards' <h2> landmarks (88.3, 189.6, 272.1, 370, 610.9) less
+  // the 12px section gap; the last is the rest of rowRect.h 856.9. It read 74/74/74/224/196 (row 74 -> 86, media
+  // 6 -> 7).
   security: [
-    { h: 74, media: 1 },
-    { h: 74, media: 1 },
-    { h: 74, media: 1 },
-    ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 224, media: 1 }] : []),
-    // Active sessions: the card's icon plus one device row's (196px with one
-    // device on prod, both test accounts, 2026-10-07; Q1427: 4 bones read
-    // 7 media against the real 5).
-    { h: 196, media: 2 },
+    { h: 89, media: 1 },
+    { h: 71, media: 1 },
+    { h: 86, media: 1 },
+    ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 229, media: 1 }] : []),
+    { h: 261, media: 3 },
   ],
-  reviews: [{ h: 307 }],
   subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
   // + "Take the tour again" (2026-10-20, FirstRun replay).
   support: [{ h: 469 }, { h: 43 }, { h: 43 }],
@@ -133,9 +139,12 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   credentials: [{ h: 92 }, { h: 152 }, { h: 169 }, { h: 70 }],
   accessibility: [{ h: 99 }, { h: 76 }],
   pets: [{ h: 216, media: 2 }],
-  home_history: [{ h: 384, media: 1 }],
+  // Q1695: helper-e2e's empty record measured 375px (rowRect.h 443.4) in the 2026-11-02 01:07Z refresh, against 384.
+  // poster-e2e's long record grows below (its jump is the 09-19 screenful ruling, byDesign).
+  home_history: [{ h: 375, media: 1 }],
   str_settings: [{ h: 508, media: 1 }],
-  auto_tip: [{ h: 527 }],
+  // Q1695: 288px in the 2026-11-02 01:07Z refresh (both test accounts; Instant Release copy changed 10-30).
+  auto_tip: [{ h: 288 }],
   saved_helpers: [{ h: 344, media: 1 }],
   // Q2275 (board 91): intro line, the list, Pause all alerts (375, poster-e2e with one saved search, 2026-10-21).
   saved_searches: [{ h: 36 }, { h: 72 }, { h: 60 }],
@@ -144,16 +153,21 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   blocked: [{ h: 40 }],
   // CMP-4: the intro, the private line, the 2-hour line, the 3-spot list card (always 3 rows: 180-182px at 0, 1 and
   // 2 floors), the add form (375, stub build, 2026-11-01). At 3 floors the form gives way to one line, below.
-  instant_book: [{ h: 101 }, { h: 38 }, { h: 38 }, { h: 181 }, { h: 298 }],
-  analytics: [{ h: 481 }],
+  // Q1695: the intro measured 122px in the 2026-11-02 01:07Z refresh (both test accounts; the only single change
+  // that gives its median row 122 and its total 795px).
+  instant_book: [{ h: 122 }, { h: 38 }, { h: 38 }, { h: 181 }, { h: 298 }],
+  // Q1695: the no-plan card, 370px in the 2026-11-02 01:07Z refresh (both test accounts).
+  analytics: [{ h: 370 }],
   // Board 177 (375, helper-e2e, 2026-10-21): Payout history's one body row (no payout account: the set-up line;
   // a list grows below), and Receipts' one column (nothing paid yet, the tax-form card).
   payout_history: [{ h: 68 }],
   receipts: [{ h: 137 }],
   wrapped: [{ h: 333 }],
-  // You › Settings (board 52): Look, Your sections, Alerts, Your account, More, Log out
-  // (375, poster-e2e, 2026-10-20).
-  settings: [{ h: 166 }, { h: 295 }, { h: 101 }, { h: 397 }, { h: 378 }, { h: 58 }],
+  // You › Settings (board 52): Look, Your sections, Updates, Your account, More, Log out. Q1695: re-sized from the
+  // loading-states refresh of 2026-11-02 01:07Z (bot PR #3963, 375, both test accounts): each group's height is
+  // the gap between its heading and the next one's (12px section gap), Log out kept at 58. Look gained Language,
+  // Updates has two rows, Your account gained the profile link and share rows, More lost one row.
+  settings: [{ h: 235 }, { h: 301 }, { h: 166 }, { h: 626 }, { h: 313 }, { h: 58 }],
 };
 
 /** Avatar circles a screenful-reserve tab draws in its first card. */
@@ -183,6 +197,7 @@ export interface ProfileTabFallbackProps {
  */
 export const ProfileTabBodyReserve = ({ tab }: { tab?: Exclude<Tab, "landing"> } = {}) => {
   if (tab === "notifications") return <NotificationsReserve />;
+  if (tab === "reviews") return <ReviewRowReserve />;
   if (tab === "work_record") return <WorkRecordReserve />;
   const shape = tab ? TAB_SHAPES[tab] : undefined;
   if (shape) {
@@ -250,6 +265,26 @@ const ShapeBlock = ({ block, first }: { block: Block; first: boolean }) => {
  * and the digest row run taller, the toggles-only rows shorter).
  */
 export const NOTIFICATION_ROWS = 17;
+/**
+ * Reviews' placeholder (owner, 2026-11-02, superseding Q722 for loading): one neutral review row, the shape of a
+ * review in the list (stars, a date, two lines), not the "No reviews yet" card, so the loading frame claims
+ * neither "none" nor "some".
+ */
+const ReviewRowReserve = () => (
+  <div data-testid="profile-tab-fallback" data-review-row-reserve="" className="rounded-ds-md liquid-glass p-card space-y-2.5" aria-hidden>
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-0.5">
+        {[0, 1, 2, 3, 4].map((s) => (
+          <Skeleton key={s} className="h-3.5 w-3.5 rounded-sm" />
+        ))}
+      </div>
+      <Skeleton className="h-3 w-20" />
+    </div>
+    <Skeleton className="h-3.5 w-full" />
+    <Skeleton className="h-3.5 w-5/6" />
+  </div>
+);
+
 const NotificationsReserve = () => (
   <div aria-hidden data-testid="profile-tab-fallback" className="rounded-2xl liquid-glass overflow-hidden">
     <div className="flex justify-end gap-4 px-card py-2">

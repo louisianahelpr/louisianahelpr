@@ -16,26 +16,26 @@
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF v_side <> 'buyer' THEN\n    -- the seller cannot tap | IF false THEN\n    -- the seller cannot tap
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF o.handover NOT IN ('pickup_home', 'meetup') THEN\n    RAISE EXCEPTION 'not_a_door_pickup' | IF false THEN\n    RAISE EXCEPTION 'not_a_door_pickup'
- * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL\n                                                  AND h.set_out_at + interval '24 hours' <= now())) THEN |          THEN
+ * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL\n                                                  AND h.set_out_at + interval '24 hours' <= now())) THEN |          THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF NEW.confirmed_by = 'code' AND | IF false AND
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN |   IF p_by IS NULL OR p_by NOT IN ('code', 'customer', 'auto', 'admin') THEN
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN | IF false THEN
  * @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql | They leave it at your door with a photo; | Have your 4-digit code ready;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   order_id uuid NOT NULL UNIQUE REFERENCES public.declutter_orders(id) ON DELETE RESTRICT, |   order_id uuid NOT NULL REFERENCES public.declutter_orders(id) ON DELETE RESTRICT,
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate); |   v_debt := 0;
+ * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
+ * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate - v_share); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                  ELSE b.slot_start + interval '15 minutes' END; |                  ELSE b.slot_start END;
- * @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
- * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
+ * @mutate supabase/migrations/20261102040000_declutter_review_report.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
+ * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon, authenticated;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role; | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role, authenticated;
  * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |   IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  o := public.declutter_lock_order(p_order_id);\n  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);\n  IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    -- 141d |   o := public.declutter_lock_order(p_order_id);\n  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);\n  IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    -- 141d
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |    WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts; |    WHERE id = p_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts;
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |   RETURN CASE WHEN v_attempts >= 12 THEN 'gave_up' ELSE 'reopened' END; |   RETURN 'reopened';
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id AND payment_livemode IS NULL; |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id;
- * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql | as before (authz review 2.7).\n  SELECT min(round(2 * 6371000 | as before (authz review 2.7).\n  SELECT max(round(2 * 6371000
+ * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql | as before (authz review 2.7).\n  SELECT min(round(2 * 6371000 | as before (authz review 2.7).\n  SELECT max(round(2 * 6371000
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -88,7 +88,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(MIG)).toContain("CONSTRAINT declutter_payouts_amount CHECK (amount_cents = items_cents - debt_cents AND amount_cents >= 0)");
     const done = flat(body("declutter_complete_handover"));
     // Seller delivery (20261027153244): the cap is items + the seller's rate (0 on every other handover).
-    expect(done).toContain("v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' || o.id::text, o.items_cents + v_rate);");
+    // Manager mode phase 2 (20261101230509): the debt comes from the seller's part, after the manager's share.
+    expect(done).toContain("v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' || o.id::text, o.items_cents + v_rate - v_share);");
     expect(done).toContain("ON CONFLICT (order_id) DO NOTHING");
   });
 
@@ -152,7 +153,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     // Then the handover money ruling (20261031004529): the porch rule unchanged, door and meetup need the seller's word.
     // Then 20261031181404: only the (d) delivery reminder locks its order (the notice names the item); porch rule unchanged.
     // Then 20261102031228 (Q2465): the (d) delivery reminders are sent strict; porch rule unchanged.
-    expect(DEFS.get("declutter_handover_sweep")?.file).toBe("20261102031228_declutter_reminders_retry_strict.sql");
+    // Then 20261102084222 (A3 reconcile): 031228 plus A3-72's loop (b2); porch rule unchanged.
+    expect(DEFS.get("declutter_handover_sweep")?.file).toBe("20261102084222_a3_stack_reconcile.sql");
     // porch: both the query and the re-check under the lock
     expect(sw.split("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now()))").length - 1).toBe(1);
     expect(sw.split("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL AND h.set_out_at + interval '24 hours' <= now()))").length - 1).toBe(1);
@@ -191,7 +193,7 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     const st = flat(body("get_public_profile_stats"));
     // 20261021074131 (ID badge = Stripe Identity only) restates it from this body with only the verdict changed.
     // 20261030015205 (b62: test data never counts) restates it with the test-data exclusion only.
-    expect(DEFS.get("get_public_profile_stats")?.file).toBe("20261031234653_public_stats_expired_is_not_cancelled.sql");
+    expect(DEFS.get("get_public_profile_stats")?.file).toBe("20261102040000_declutter_review_report.sql");
     expect(st).toContain("JOIN public.declutter_reviews dr ON dr.reviewee_id = t.user_id");
     expect(st).toContain("WHERE o.status = 'handed_over' AND (o.handed_over_at <= now() - interval '14 days' OR (SELECT count(*) FROM public.declutter_reviews d2 WHERE d2.order_id = dr.order_id) = 2)");
     expect(st).toContain("SELECT t.user_id, dr.stars::integer, false");

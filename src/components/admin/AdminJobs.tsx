@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
 import { functionErrorMessage, unwrap } from "@/lib/supabaseResult";
@@ -463,6 +463,7 @@ const AdminJobs = () => {
 
   return (
     <AdminViewShell>
+      <Button asChild variant="outline" size="sm" className="gap-1.5 self-start rounded-full"><Link to="/admin/preview/job">Preview the job page at every stage</Link></Button>
       <AdminFilterStrip label="Job filter">
         {FILTERS.map((f) => (
           <Button

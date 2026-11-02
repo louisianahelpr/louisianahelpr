@@ -162,6 +162,13 @@ import { MemoryRouter } from "react-router-dom";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import { pickupDays } from "@/lib/declutter/pickupSlots";
 
+/** Q2634 (owner 11-02): the seller's payout rule sits under the money note's "Details"; opens it and returns its words. */
+async function openPayoutRule(): Promise<string> {
+  const btn = await waitFor(() => { const el = document.querySelector("[data-payout-details]"); expect(el).not.toBeNull(); return el as HTMLElement; });
+  if (btn.getAttribute("aria-expanded") !== "true") fireEvent.click(btn);
+  return (await waitFor(() => { const el = document.querySelector("[data-payout-rule]"); expect(el).not.toBeNull(); return el as HTMLElement; })).textContent ?? "";
+}
+
 function show(cart: unknown[]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<MemoryRouter><QueryClientProvider client={qc}><PaidOrdersSection cart={cart as never} /></QueryClientProvider></MemoryRouter>);
@@ -255,10 +262,32 @@ describe("Q2425: a safe-spot meetup order", () => {
     expect(await screen.findByText("Book a time to meet first.")).toBeInTheDocument();
   });
 
-  it("at the meeting time the seller gets Picked up, as at the door", async () => {
+  // Q2632 (audit 1102c R7): the tracker said "Met" and the time line "Meeting", but the seller's buttons and help said
+  // pickup ("Move the pickup", "Picked up", "from the pickup time"). A meeting reads as a meeting; the door is unchanged.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const done = meet ? "Handed over" : "Picked up"; |     const done = "Picked up";
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |     const from = meet ? "the meeting time" : "the pickup time"; |     const from = "the pickup time";
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const what = order.handover === "meetup" ? "meeting" : "pickup"; |   const what = "pickup";
+  // @mutate src/components/declutter/DeclutterHandoverSheets.tsx | disabled={pending}>{label}</SheetPrimaryAction> | disabled={pending}>Picked up</SheetPrimaryAction>
+  it("Q2632: at the meeting time the seller gets Handed over (the door keeps Picked up)", async () => {
     state.bookings = [slot(5)];
-    show([line({ handover: "meetup", my_side: "seller" })]);
-    expect(await screen.findByRole("button", { name: "Picked up" })).toBeInTheDocument();
+    let v = show([line({ handover: "meetup", my_side: "seller" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Handed over" }));
+    expect(screen.queryByRole("button", { name: "Picked up" })).toBeNull();
+    const sheet = await waitFor(() => { const el = document.querySelector("[data-picked-up-sheet]"); expect(el).not.toBeNull(); return el as HTMLElement; });
+    expect(within(sheet).getByRole("button", { name: "Handed over" })).toBeInTheDocument();
+    v.unmount();
+    // Before the meeting: the move and the wait say meeting.
+    state.bookings = [slot(-120)];
+    v = show([line({ handover: "meetup", my_side: "seller" })]);
+    expect(await screen.findByText('You can tap "Handed over" from the meeting time.')).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move the meeting" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Move the pickup" })).toBeNull();
+    v.unmount();
+    // The door: unchanged.
+    v = show([line({ handover: "pickup_home", my_side: "seller" })]);
+    expect(await screen.findByText('You can tap "Picked up" from the pickup time.')).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move the pickup" })).toBeInTheDocument();
+    v.unmount();
   });
 
   // Audit 1030 DB-3 (live run B): the buyer's "I got it" at a meeting spot worked days before the meeting, which
@@ -331,12 +360,20 @@ describe("Declutter slice 4: paid-order cards", () => {
     const { unmount } = show([line()]);
     expect(await screen.findByText("1234 Example St, Baton Rouge")).toBeInTheDocument();
     // Q2432: the buyer is told about the 1-hour reminder and the existing no-show rule, in one line, no money words.
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && ( |       {false && (
+    // Q2635 (audit 1102c R10): before a time is booked the picker comes first; the rule shows under it once a time is
+    // chosen, never above the picker.
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const noShowRule = order.side === "buyer" && <p | const noShowRule = false && <p
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |         {!booked && !!(slot ?? localInputToIso(value)) && noShowRule} |         {!booked && noShowRule}
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {booked && noShowRule}\n |       {noShowRule}\n
+    expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
+    const picker = screen.getByLabelText("Pick a pickup time");
+    fireEvent.change(picker, { target: { value: "2026-10-20T12:00" } });
     const warn = screen.getByTestId("declutter-no-show-warning");
     expect(warn).toHaveTextContent("We'll remind you 1 hour before.");
     expect(warn).toHaveTextContent("a second miss cancels the sale with a strike");
     expect(warn.textContent).not.toMatch(/\$|fee|refund/i);
-    fireEvent.change(screen.getByLabelText("Pick a pickup time"), { target: { value: "2026-10-20T12:00" } });
+    expect(picker.compareDocumentPosition(warn) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getAllByTestId("declutter-no-show-warning")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Book" }));
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("book"));
     unmount();
@@ -487,7 +524,15 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.bookings = [slot(10)];
     show([line({ my_side: "seller" })]);
     // LEAD-DOOR-PAYLINE: said once, in the money note, with the owner's 10-30 rule; never "24 hours after you tap Picked up".
-    expect((await screen.findByText(/^You get/)).textContent).toBe('You get $40. You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. If neither of you says anything, the money stays held.');
+    // Q2634 (owner 11-02): one line; the rule, word for word, under Details.
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {ruleOpen && <span className="mt-1 block" data-payout-rule=""> | {true && <span className="mt-1 block" data-payout-rule="">
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {parts} after the handover.{" "} | {parts}. {sellerPayoutRule(kind)}{" "}
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | onClick={() => setRuleOpen((o) => !o)}> | onClick={() => undefined}>
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | <InlineTextButton className="font-semibold underline underline-offset-2" aria-expanded={ruleOpen} | <InlineTextButton aria-expanded={ruleOpen}
+    expect((await screen.findByText(/^You get/)).textContent).toBe("You get $40 after the handover. Details");
+    // It reads as a control: underlined, as the other in-line text links on Declutter cards ("How it works").
+    expect(document.querySelector("[data-payout-details]")!.className).toMatch(/\bunderline\b/);
+    expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it", unless they ask for a refund. If you tap "Picked up" and the buyer says nothing, you\'re paid about 48 hours later. If neither of you says anything, the money stays held.');
     expect(document.body.textContent).not.toMatch(/24 hours after you tap|paid 24 hours after the handover/);
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     expect(screen.queryByLabelText(/code/i)).toBeNull();
@@ -507,6 +552,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByText(/Add a Helpr below/)).toBeInTheDocument();
     unmount();
     show([line({ handover: "porch", my_side: "seller" })]);
+    await openPayoutRule();
     expect(await screen.findByText(/the later of the pickup time and your porch photo/)).toBeInTheDocument();
     expect(screen.queryByText("Pickup at the door")).toBeNull();
     expect(screen.queryByRole("button", { name: "Picked up" })).toBeNull();
@@ -644,7 +690,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
     // BUY-35: the shared pick-one list, and one letter isn't a report.
-    // @mutate src/components/declutter/DeclutterProblemForm.tsx | disabled={send.isPending \|\| note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send | disabled={send.isPending \|\| !note.trim()} onClick={() => send.mutate()}>Send
+    // @mutate src/components/declutter/DeclutterProblemForm.tsx | disabled={send.isPending \|\| !reason \|\| note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send | disabled={send.isPending \|\| !reason \|\| !note.trim()} onClick={() => send.mutate()}>Send
     fireEvent.click(screen.getByRole("radio", { name: "I didn't get it" }));
     fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "x" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
@@ -653,6 +699,27 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(document.querySelector("[data-problem-note-short]")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "not_received", "Nobody was there", []]));
+  });
+
+  // Q2627 (audit 1102c R2, lead 11-02): the seller's Report a problem opened with "The buyer didn't come" preselected,
+  // though that path is "They didn't show". Nothing is preselected; Send waits for the seller's own pick.
+  // @mutate src/components/declutter/DeclutterProblemForm.tsx | : side === "seller" ? null : reasons[0][0]; | : reasons[0][0];
+  // @mutate src/components/declutter/DeclutterProblemForm.tsx | disabled={send.isPending \|\| !reason \|\| note | disabled={send.isPending \|\| note
+  it("Q2627: the seller's Report a problem preselects nothing; Send waits for a pick", async () => {
+    state.bookings = [slot(20)];
+    state.handover = { side: "seller" };
+    show([line({ my_side: "seller" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    const radios = screen.getAllByRole("radio");
+    expect(radios.length).toBeGreaterThan(1);
+    expect(radios.filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(0);
+    fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "They never came to the door" } });
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(document.querySelector("[data-problem-pick]")).not.toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "I felt unsafe" }));
+    expect(document.querySelector("[data-problem-pick]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "safety", "They never came to the door", []]));
   });
 
   // Audit 1b D2-7: up to 3 photos on the problem form, uploaded on Send into the problem folder and sent with the
@@ -806,7 +873,8 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByText("Next: put it out and take one photo where the buyer will find it")).toBeInTheDocument();
     // Deep audit #31: one payout rule, the live one, never "when the buyer marks it". LEAD-DOOR-PAYLINE: the porch rule.
     // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {sellerPayoutRule(kind)} | You're paid when the buyer marks it picked up.
-    expect(screen.getByText(/You get/).textContent).toBe('You get $40. You\'re paid 24 hours after the buyer taps "I got it" or takes their pickup photo, unless they ask for a refund. If the buyer says nothing, you\'re paid about 48 hours after the later of the pickup time and your porch photo. With no porch photo, the money stays held until the buyer confirms.');
+    expect(screen.getByText(/You get/).textContent).toBe("You get $40 after the handover. Details");
+    expect(await openPayoutRule()).toBe('You\'re paid 24 hours after the buyer taps "I got it" or takes their pickup photo, unless they ask for a refund. If the buyer says nothing, you\'re paid about 48 hours after the later of the pickup time and your porch photo. With no porch photo, the money stays held until the buyer confirms.');
   });
 
   // Audit 1028 D1-5 (1a-s-porch-after-375): after the porch photo the seller's card still asked for it ("Take the porch
@@ -814,7 +882,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // the server refuses the photo, so the card says the day instead of offering the button.
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const posted = seller && !!handoverRow.data?.set_out_at; |   const posted = false;
   // @mutate src/components/declutter/DeclutterPorchDay.tsx |   const putOut = side === "seller" && !!out.data?.set_out_at; |   const putOut = false;
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const notYet = seller && !posted && !!booking.pickup_day && !porchDayIsNow(booking.pickup_day); |   const notYet = false;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const notYet = seller && !posted && !!photoDay && !porchDayIsNow(photoDay); |   const notYet = false;
   it("the seller's porch card: the day before it's due, then the photo, then no more asking (D1-5)", async () => {
     const today = new Date();
     const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -842,6 +910,31 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.queryByRole("button", { name: "Take the porch photo" })).toBeNull();
     expect(screen.queryByText(/You need it before you can be paid automatically/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Pick another day (once)" })).toBeNull();
+    v.unmount();
+  });
+
+  // Q2626 (audit 1102c R1): a porch pickup booked for a TIME tomorrow (no pickup_day) showed "Next: put it out and take
+  // one photo" and the primary "Take the porch photo" the evening before; a seller who followed it left the item out
+  // overnight. The server takes the photo from the slot's day (declutter_porch_photo, 20261030164712).
+  // @mutate src/components/declutter/DeclutterPorchDay.tsx |   return booking.slot_start ? todayKey(new Date(booking.slot_start)) : null; |   return null;
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | photoDay: handover === "porch" ? porchPhotoDay({ pickup_day: day, slot_start: slot }) : null | photoDay: null
+  it("Q2626: a porch time booked for tomorrow: the day, and no photo button until then", async () => {
+    const now = new Date();
+    const at = (days: number, h: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + days, h, 11);
+    const timed = (start: Date) => ({ order_id: "o1", slot_start: start.toISOString(), slot_end: new Date(start.getTime() + 60 * 60_000).toISOString(), porch_mode: null, porch_until: null });
+    state.handover = { side: "seller" };
+    state.bookings = [timed(at(1, 6))];
+    let v = show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    expect(await screen.findByText("You can take the porch photo tomorrow.")).toBeInTheDocument();
+    expect(screen.getByText("Next: put it out tomorrow, then take one photo where the buyer will find it")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Take the porch photo" })).toBeNull();
+    v.unmount();
+    // The day itself (a time later today): the photo is asked for.
+    state.bookings = [timed(at(0, 23))];
+    v = show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    expect(await screen.findByRole("button", { name: "Take the porch photo" })).toBeInTheDocument();
+    expect(screen.getByText("Next: put it out and take one photo where the buyer will find it")).toBeInTheDocument();
+    expect(screen.queryByText(/You can take the porch photo/)).toBeNull();
     v.unmount();
   });
 
@@ -925,7 +1018,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return them("Not out yet. We'll tell you when it's on the porch. Don't go before then."); |       return them("Booked. Pick it up on your day.");
   // @mutate src/components/declutter/DeclutterPorchHandover.tsx |       return porchDayIsNow(day) ? you("Pick it up today") | return porchDayIsNow(day) ? you("Pick it up at your pickup time")
   // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "seller" && !booking.pickup_day && ( |       {order.side === "seller" && (
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | slotStart={noShowFrom(booking) ?? booking.slot_start} | slotStart={booking.slot_start}
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | slotStart={noShowFrom(booking, porchSeller) ?? booking.slot_start} | slotStart={booking.slot_start}
   it("owner 10-28 / 10-31: a new porch pickup books a time; a day already booked: told not to go until it's out, then 'Pick it up today'", async () => {
     const today = new Date();
     const key = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -985,7 +1078,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(document.body.textContent).not.toMatch(/once the seller posts/);
     expect(screen.queryByRole("button", { name: "Out all day" })).toBeNull();
     expect(screen.queryByLabelText("Out until")).toBeNull();
-    expect(screen.getByText(/the later of the pickup time and your porch photo/)).toBeInTheDocument();
+    expect(await openPayoutRule()).toMatch(/the later of the pickup time and your porch photo/);
   });
 
   it("owner 10-28: before the porch-day migration is live (no days read), the porch card keeps the time picker", async () => {
@@ -1270,7 +1363,7 @@ describe("#2: the buyer books from the seller's pickup times", () => {
 // order waits for pickup. Its button shows once the booked pickup is over (the "They didn't show" moment: 15 minutes
 // after a booked time, the end of a porch day). The one exception: the place has no pickup times left (LEAD-PLACE-TIMES; was: no pickup days
 // left), so the buyer cannot book at all. The "I got it" sheet's "Something's not right" (the handover itself) still opens the form (159).
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |  if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} /> |  if (!o) setAtHandover(false); }} />
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |  if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking, Date.now(), porchSeller)} /> |  if (!o) setAtHandover(false); }} />
 // @mutate src/components/declutter/DeclutterPorchDay.tsx |   return !!from && now >= new Date(from).getTime() + 15 * 60_000; |   return !!from && now >= new Date(from).getTime();
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | noTimes={order.handover === "porch" && order.side === "buyer" ? <ProblemForm | noTimes={false ? <ProblemForm
 describe("D2-9: no Report a problem while the order waits for pickup", () => {
@@ -1288,12 +1381,15 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
   });
 
   it("each pickup kind and side: hidden before booking and during the booked time, shown once it is over", async () => {
-    const cases: { name: string; handover: string; booking: unknown; offered: boolean }[] = [];
+    // Q2627: the porch SELLER's moment is the end of the porch window (no "out until": the end of the slot's day).
+    const s16 = new Date(Date.now() - 16 * 60_000);
+    const slotDayOver = key(s16) !== today;
+    const cases: { name: string; handover: string; booking: unknown; offered: boolean; sellerOffered?: boolean }[] = [];
     for (const handover of ["pickup_home", "porch"]) {
       cases.push({ name: `${handover}, not booked`, handover, booking: null, offered: false });
       cases.push({ name: `${handover}, booked time 5 min in`, handover, booking: slot(5), offered: false });
       cases.push({ name: `${handover}, booked time in an hour`, handover, booking: slot(-60), offered: false });
-      cases.push({ name: `${handover}, booked time 16 min in`, handover, booking: slot(16), offered: true });
+      cases.push({ name: `${handover}, booked time 16 min in`, handover, booking: slot(16), offered: true, sellerOffered: handover === "porch" ? slotDayOver : true });
     }
     cases.push({ name: "porch day today", handover: "porch", booking: { ...slot(60), pickup_day: today }, offered: false });
     cases.push({ name: "porch day tomorrow", handover: "porch", booking: { ...slot(-600), pickup_day: tomorrow }, offered: false });
@@ -1310,12 +1406,35 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
         const dayCard = c.handover === "porch" && !!c.booking && "pickup_day" in (c.booking as object);
         if (dayCard) expect((await screen.findAllByText(/pick a pickup day|Pickup day:/i)).length).toBeGreaterThan(0);
         const offered = !!screen.queryByRole("button", { name: "Report a problem" });
-        expect(`${c.name} (${side}): ${offered}`).toBe(`${c.name} (${side}): ${c.offered}`);
+        const want = side === "seller" && c.sellerOffered !== undefined ? c.sellerOffered : c.offered;
+        expect(`${c.name} (${side}): ${offered}`).toBe(`${c.name} (${side}): ${want}`);
         if (!offered) hidden++;
         unmount();
       }
     }
     expect(hidden).toBeGreaterThan(9);
+  });
+
+  // Q2627 (audit 1102c R2): the item is "out until" a time. While it is out, the seller has no "They didn't show" and
+  // no "Report a problem" (the server refuses the no-show until porch_until: declutter_report_no_show); after it, both.
+  // @mutate src/components/declutter/DeclutterPorchDay.tsx |   if (porchSeller) { |   if (false) {
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const porchSeller = order.handover === "porch" && order.side === "seller"; |   const porchSeller = false;
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | trigger={pickupTimeOver(booking, Date.now(), porchSeller)} /> | trigger={pickupTimeOver(booking)} />
+  // @mutate src/components/declutter/DeclutterPorchDay.tsx | const until = booking.porch_until ? new Date(booking.porch_until) : | const until = false ? new Date(booking.porch_until ?? "") :
+  it("Q2627: porch out until a time: the seller's They didn't show and Report a problem wait until it is over", async () => {
+    const outUntil = (minsFromNow: number) => ({ ...slot(120), porch_mode: "until", porch_until: new Date(Date.now() + minsFromNow * 60_000).toISOString() });
+    let checked = 0;
+    for (const [mins, offered] of [[60, false], [-20, true]] as const) {
+      state.bookings = [outUntil(mins)];
+      const { unmount } = show([line({ handover: "porch", my_side: "seller", porch_ok: true })]);
+      await screen.findByText(/Pickup( day)?:/);
+      expect(await screen.findByText(/out until/)).toBeInTheDocument();
+      expect(`${mins}: ${!!screen.queryByRole("button", { name: "They didn't show" })}`).toBe(`${mins}: ${offered}`);
+      expect(`${mins}: ${!!screen.queryByRole("button", { name: "Report a problem" })}`).toBe(`${mins}: ${offered}`);
+      checked++;
+      unmount();
+    }
+    expect(checked).toBeGreaterThan(1);
   });
 
   // LEAD-PLACE-TIMES: a new porch order books a TIME, so "none left" is the time picker's "No pickup times are open"
@@ -1668,7 +1787,8 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
       expect(el).not.toBeNull();
       return el as HTMLElement;
     });
-    expect(await screen.findByText(/^You get .*You're paid 24 hours after the buyer taps "I got it"/)).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector("[data-money-note]")?.textContent).toMatch(/^You get \$[\d.]+.* after the handover\. Details$/));
+    expect(await openPayoutRule()).toMatch(/^You're paid 24 hours after the buyer taps "I got it"/);
     return steps;
   };
 
@@ -1714,7 +1834,8 @@ describe("DC-16: one sale card on the seller's side, every handover kind", () =>
     state.sd = { order_id: "o1", side: "seller", order_status: "paid", status: "booked", slot_start: "2026-10-31T14:00:00Z", slot_end: "2026-10-31T15:00:00Z", delivered_at: null, delivery_cents: 1000 };
     show([line({ handover: "seller_delivery", my_side: "seller", price_cents: 4500, delivery_cents: 1000 })]);
     const note = await screen.findByText(/^You get/);
-    expect(note.textContent).toMatch(/^You get \$55 \(\$45 for the sale and \$10 for delivering it\)\. You're paid 24 hours after the buyer taps "I got it"/);
+    expect(note.textContent).toMatch(/^You get \$55 \(\$45 for the sale and \$10 for delivering it\) after the handover\./);
+    expect(await openPayoutRule()).toMatch(/^You're paid 24 hours after the buyer taps "I got it"/);
   });
 
   // AUD31-3, the seller's side: a move the buyer asked for waits on the seller's answer, and the sentence said "Booked".

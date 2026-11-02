@@ -30,14 +30,14 @@
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | others.length === 0 ? "Nothing for sale near you yet." | others.length === 0 ? "Opens soon"
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |               !searched && others.length === 0 ? <NothingForSaleActions guest={!member} /> : |               false ? <NothingForSaleActions guest={!member} /> :
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |       {wanted && ( |       {true && (
- * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
+ * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side && (!scope \|\| !l.order_id \|\| scope(l.order_id))); |   const lines = (cart.data ?? []).filter((l) => !scope \|\| !l.order_id \|\| scope(l.order_id));
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine" \|\| view === "sales") return "selling"; |   if (view === "mine" \|\| view === "sales") return "buying";
  * @mutate src/lib/declutter/tabs.ts |   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying"; |   return "buying";
  * @mutate src/lib/declutter/tabs.ts |     selling: sellerOffers + salesOpen, |     selling: sellerOffers,
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     if (!fromView \|\| !tabsReady) return; |     return;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { declutterTodo, oldDeclutterView } from "@/lib/declutter/tabs";
@@ -54,6 +54,8 @@ const state = {
   bookings: [] as unknown[],
   questions: [] as { id: string; item_id: string; question: string; created_at: string }[],
   questionReads: 0,
+  freeAsks: [] as unknown[],
+  freeCounts: new Map<string, number>(),
 };
 
 // Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
@@ -77,6 +79,9 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
       free_over_cents: null, items_cents: null, radius_miles: null, dropoff_area: null, slot_minutes: 60, slots: [], held_slot: null }),
   };
 });
+// Manager mode (switch mocked on here): no grants, nothing waiting, no labels.
+vi.mock("@/lib/declutter/managerMode", async (orig) => ({ ...(await orig<object>()), useManagerLabels: () => ({ data: undefined }),
+  fetchWaitingDrafts: async () => [], useMyManagerGrants: () => ({ data: [] }) }));
 vi.mock("@/hooks/useFeature", () => ({
   // Every switch on except seller delivery, which this suite does not cover (its own tests do:
   // declutterTradeViews.test.tsx, src/test/declutterSellerDelivery.test.ts); porch reads "Porch pickup" either way (BUY-14).
@@ -133,6 +138,8 @@ vi.mock("@/lib/declutter/handoverTalk", () => ({ fetchMyOpenHandoverTalks: async
 // A1-B2 (b28): "You paid" reads the card charge per order (declutter_my_paid_cents); which tab an order lands on is
 // what this file checks, so no figure is answered here.
 vi.mock("@/lib/declutter/paidCents", () => ({ fetchMyPaidCents: async () => new Map() }));
+// Q2630: what a refunded order sent back (none read here: the card keeps its plain words; its own test: buyingOrders "Q2630").
+vi.mock("@/lib/declutter/refundedCents", async (orig) => ({ ...(await orig<object>()), fetchMyRefundedCents: async () => new Map() }));
 // A3-53: checkout's delivery size read (none here; its own test: declutterTradeViews "A3-53").
 vi.mock("@/lib/declutter/checkoutSize", async (orig) => ({ ...(await orig<object>()), fetchCheckoutSize: async () => null }));
 // Checkout's porch days (none here).
@@ -190,7 +197,8 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchHasAgreedSales: async () => false,
   // Q2487: Buying shows the free-ask pause line and your open free asks; none here.
   fetchMyFreePause: async () => null,
-  fetchMyFreeRequests: async () => [],
+  fetchMyFreeRequests: async () => state.freeAsks,
+  fetchOpenFreeRequestCounts: async () => state.freeCounts,
 }));
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
@@ -302,6 +310,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.cart = [];
     state.bookings = [];
     state.questions = [];
+    state.freeAsks = [];
+    state.freeCounts = new Map();
     state.questionReads = 0;
     where = "";
   });
@@ -553,7 +563,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // made any offers." sat above a purchase. Under "All" an empty list is left out; with nothing at all the tab says so
   // ONCE; a chosen chip still shows its own list's empty state.
   // @mutate src/components/declutter/DeclutterMineViews.tsx |   const showCart = t.ready && (only === null \|\| only === "needs_you") && (t.checkouts > 0 \|\| settling.settling); |   const showCart = t.ready;
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {t.ready && !orders && offers.has === false && !settling.settling && ( |       {false && (
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {t.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && ( |       {false && (
   it("lead 10-28: Buying shows no empty list beside a purchase, and one empty state when there is nothing at all", async () => {
     state.cart = [{ ...LINE, line_id: "l3", item_id: "i10", item_title: "Vase", status: "paid", order_id: "ord-bought", order_status: "paid", handover: "pickup_home" }];
     // ?status=done with nothing done (a group that just emptied): every order shows, never a blank tab.
@@ -582,6 +592,31 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(screen.queryByText("Your cart is empty.")).toBeNull();
   });
 
+  // Builder 187 (seen by Builder 185 in the stage preview; the same views run in the app): a member whose only Buying
+  // was an open free ask read "Nothing bought yet. When a seller accepts your offer..." above "Free items you asked
+  // for", and a live free listing nobody had asked for showed a "Requests (0)" button.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | && !settling.settling && freeAsks.data?.length === 0 && ( | && !settling.settling && (
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | freeAsks.data && (freeAsks.data.get(item.id) ?? 0) > 0 ? ( | freeAsks.data ? (
+  it("Q2693 Q2694: an open free ask is not 'Nothing bought yet', and a free listing shows Requests only once someone asked", async () => {
+    state.freeAsks = [{ id: "fr1", item_id: "i9", status: "open", created_at: "2026-11-01", declutter_items: { title: "Free lamp" } }];
+    const buying = at("/declutter?tab=buying");
+    const asks = await screen.findByRole("region", { name: "Free items you asked for" });
+    expect(within(asks).getByText("You asked for Free lamp")).toBeInTheDocument();
+    await new Promise((res) => setTimeout(res, 20));
+    expect(screen.queryByText("Nothing bought yet.")).toBeNull();
+    buying.unmount();
+
+    const free = [{ ...ITEM, id: "i1", title: "Free chair", price_cents: 0, current_price_cents: 0 }, { ...ITEM, id: "i2", title: "Free desk", price_cents: 0, current_price_cents: 0 }];
+    expect(free.length).toBeGreaterThan(1);
+    state.mine = free;
+    state.freeCounts = new Map([["i2", 2]]);
+    at("/declutter?tab=selling");
+    await screen.findAllByText("Free chair");
+    expect(await screen.findByRole("link", { name: "Requests (2)" })).toHaveAttribute("href", "/declutter/item/i2");
+    expect(screen.queryByRole("link", { name: /^Requests \(0\)/ })).toBeNull();
+    expect(document.querySelectorAll("[data-free-request-count]").length).toBe(1);
+  });
+
   // Owner 2026-10-28: "buyers and sellers need a very organized way to keep track of all their purchases". Buying is an
   // order tracker like Jobs > Posted. The class: the chips are exactly the ORDER_BUCKETS groups that hold orders, in
   // that order, and each chip's count is exactly how many orders (a checkout, a paid order, one that ended) it shows.
@@ -589,7 +624,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // @mutate src/components/declutter/BuyingOrders.tsx |   counts.needs_you += checkouts; |   counts.needs_you += 0;
   // @mutate src/components/declutter/BuyingOrders.tsx |   counts.cancelled += ended.length; |   counts.cancelled += 0;
   // @mutate src/components/declutter/BuyingOrders.tsx |   return ORDER_BUCKETS.filter((b) => counts[b.key] > 0).map( |   return ORDER_BUCKETS.map(
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       <PaidOrders side="buyer" views={t.views} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> |       <PaidOrders side="buyer" views={t.views} />
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> | scope={(id) => !refunded(id)} />
   // Audit DB-6 (2026-10-30): a seller's counter to answer sat under every order, below the fold. It now comes before
   // the orders; offers that wait on the seller stay below them.
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {offers.has && offers.toAnswer && <OffersSection side="buyer" />}\n |
@@ -650,6 +685,50 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(screen.getByText(/The time to check out ran out\. Nothing was charged\./)).toBeInTheDocument();
   });
 
+  // Q2630 (audit 1102c R5): a paid order refunded in full sat under Your orders as if still in progress. It is filed
+  // under Ended now, beside the checkouts that ran out, and drawn once.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | scope={(id) => !refunded(id)} show= | show=
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |           {endedOrders > 0 && <PaidOrders side="buyer" views={t.views} scope={refunded} ended />} |
+  // @mutate src/components/declutter/DeclutterTabParts.tsx | (l) => l.my_side === side && (!scope \|\| !l.order_id \|\| scope(l.order_id)) | (l) => l.my_side === side
+  it("Q2630: a refunded order is filed under Ended, not under Your orders", async () => {
+    state.cart = [
+      { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-live", order_status: "paid", handover: "pickup_home" },
+      { ...LINE, line_id: "p5", item_id: "p5", item_title: "Vase", status: "paid", order_id: "o-refunded", order_status: "refunded", handover: "pickup_home" },
+    ];
+    at("/declutter?tab=buying");
+    const ended = await screen.findByRole("region", { name: "Ended" });
+    expect(within(ended).getByText("paid order o-refunded as buyer")).toBeInTheDocument();
+    expect(within(ended).queryByText("paid order o-live as buyer")).toBeNull();
+    const yours = screen.getByRole("heading", { name: "Your orders" }).closest("section") as HTMLElement;
+    expect(within(yours).getByText("paid order o-live as buyer")).toBeInTheDocument();
+    expect(within(yours).queryByText("paid order o-refunded as buyer")).toBeNull();
+    expect(screen.getAllByText("paid order o-refunded as buyer")).toHaveLength(1);
+  });
+
+  // Q2569 (audit 1102a): a buyer with only ended orders saw "All · 2" "Cancelled · 2" (the chip repeating All) and
+  // no way back to shopping. One group: no chips; nothing active: "Find something in Browse" under Ended.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | {chips.length > 1 && <StatusBoxes | {orders && <StatusBoxes
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |           {nothingActive && ( |           {false && (
+  it("Q2569: only ended orders: no chip that repeats All, and a way back to Browse", async () => {
+    state.cart = [
+      { ...LINE, line_id: "e1", item_id: "e1", item_title: "Rake", status: "missed" },
+      { ...LINE, line_id: "e2", item_id: "e2", item_title: "Hoe", status: "missed" },
+    ];
+    const { container, unmount } = at("/declutter?tab=buying");
+    const ended = await screen.findByRole("region", { name: "Ended" });
+    expect(ended.querySelectorAll("[data-ended-line]").length).toBe(2);
+    expect(container.querySelector("[data-status-box]")).toBeNull();
+    expect(container.querySelector("[data-status-all]")).toBeNull();
+    expect(within(ended).getByRole("link", { name: "Find something in Browse" })).toHaveAttribute("href", "/declutter");
+    unmount();
+    // A live order beside them: the chips are back (two groups) and no Browse pointer.
+    state.cart = [...state.cart, { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-x", order_status: "paid", handover: "pickup_home" }];
+    const again = at("/declutter?tab=buying");
+    await screen.findByText("paid order o-x as buyer");
+    await vi.waitFor(() => expect(again.container.querySelectorAll("[data-status-box]").length).toBeGreaterThan(1));
+    expect(screen.queryByRole("link", { name: "Find something in Browse" })).toBeNull();
+  });
+
   it("Selling: your listings, the offers on your items, sales waiting to be paid and paid sales, every old action still there", async () => {
     everything();
     at("/declutter?view=selling");
@@ -707,7 +786,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   });
 
   // Audit posting 1030 #11: on a phone the Selling tab had no way to sell.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <Link to={SELL_ONE_PATH}>Sell an item</Link> | <span>Sell an item</span>
+  // @mutate src/components/declutter/TabletSellRow.tsx | <Link to={SELL_ONE_PATH}>Sell an item</Link> | <span>Sell an item</span>
   it("Selling offers Sell an item straight to the photo screen, and one line to the other ways", async () => {
     state.mine = [ITEM];
     at("/declutter?tab=selling");
@@ -719,7 +798,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // LEAD-SELLING-NO-SELL-BTN-PHONE (owner 2026-10-31): on a phone the + covers it, so the row is off below sm (640px)
   // and the filter chips move up; from sm to the desktop header (lg, 900px) it shows; the header has its own from lg.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell=""> | <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
+  // @mutate src/components/declutter/TabletSellRow.tsx | <div className="hidden items-center gap-3 sm:flex lg:hidden" data-selling-sell=""> | <div className="flex items-center gap-3 lg:hidden" data-selling-sell="">
   it("the Sell an item row is not on a phone, only from sm until the desktop header", async () => {
     state.mine = [ITEM];
     at("/declutter?tab=selling");
@@ -850,6 +929,46 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     for (const m of (region.textContent ?? "").matchAll(/Tap "([^"]+)"/g)) {
       expect(within(region).getByRole("button", { name: m[1] })).toBeInTheDocument();
     }
+  });
+
+  // Q2562 (Auditor 1 audit 1102a; lead 11-02: every Declutter tab uses Browse's gap under the tab row). Selling started
+  // 24px lower than Buying/Wanted/Deliver: its root was space-y-6 and its first rendered child (the Sell an item row)
+  // is display:none on a phone and on desktop, which still gave the next child its top margin. And Buying/Wanted
+  // started 4px under the rule while Browse's first line sits 12px into its 44px Miles from row. jsdom draws no
+  // layout, so the guard reads the two causes: (1) every tab but Browse sits in the one tab body that carries pt-3;
+  // (2) nowhere in a tab does a space-y parent start with a base-hidden child (the stray margin).
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |     <div className="flex flex-col gap-6">\n      <ListedWhatNext /> |     <div className="space-y-6">\n      <ListedWhatNext />
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3"> | <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-1">
+  it("Q2562: every tab but Browse starts at Browse's line under the tabs, and no hidden first child pushes one lower", async () => {
+    state.mine = [ITEM];
+    const ready: Record<string, () => Promise<unknown>> = {
+      buying: () => screen.findByText("Nothing bought yet."),
+      selling: () => screen.findByRole("heading", { name: /^Your listings/ }),
+      wanted: () => waitFor(() => expect(document.querySelector("[data-wanted-hub]")).not.toBeNull()),
+      free: () => screen.findByText("Nothing free right now."),
+    };
+    let checked = 0;
+    for (const [tab, settle] of Object.entries(ready)) {
+      const r = at(`/declutter?tab=${tab}`);
+      await settle();
+      const body = document.querySelector<HTMLElement>("[data-declutter-tab-body]");
+      expect(body, tab).not.toBeNull();
+      expect(body!.className.split(/\s+/), tab).toEqual(expect.arrayContaining(["pt-3", "flex-1"]));
+      for (const el of [body!, ...Array.from(body!.querySelectorAll<HTMLElement>("*"))]) {
+        if (!/(^|\s)space-y-\d/.test(el.getAttribute("class") ?? "")) continue;
+        checked++;
+        const first = el.firstElementChild;
+        expect(first && (first.getAttribute("class") ?? "").split(/\s+/).includes("hidden"), `${tab}: a space-y parent starts with a hidden child`).toBeFalsy();
+      }
+      r.unmount();
+    }
+    // Inventory floor: the walk really read space-y parents (Selling alone has several).
+    expect(checked).toBeGreaterThan(3);
+    // Browse draws its own section screen (its first row carries the 12px), so it has no tab body.
+    const b = at("/declutter");
+    await screen.findByRole("tablist", { name: "Declutter view" });
+    expect(document.querySelector("[data-declutter-tab-body]")).toBeNull();
+    b.unmount();
   });
 
   it("every old view value maps to one of the new tabs (none falls back to Browse)", () => {

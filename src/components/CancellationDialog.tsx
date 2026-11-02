@@ -22,8 +22,8 @@ import {
   DialogDestructiveAction,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight } from "lucide-react";
-import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeriesNotice } from "@/components/cancellationDialog/CancelDialogNotices";
+import { AlertTriangle, ShieldAlert, CheckCircle, ArrowRight } from "lucide-react";
+import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeriesNotice, cancelSeriesScope, visitDayLabel, type CancelSeriesScope } from "@/components/cancellationDialog/CancelDialogNotices";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { type FlatFeeStamp } from "@/lib/helprFlatFee";
@@ -90,23 +90,30 @@ type CancellationDialogProps = {
    *  customer_fee_amount). On a poster-fee job a gift pays the 5% + 70c first
    *  too, so it is part of the cost the toast compares the gift with (Q2082 (d)). */
   posterFee?: { poster_fee_flat_cents?: number | string | null; customer_fee_amount?: number | string | null } | null;
+  /** Q2677: the job's own series fields (jobs.parent_job_id, recurrence_days). Passed by the page, so the
+   *  scope line never waits on (or is lost to) a second read; undefined falls back to that read. */
+  parentJobId?: string | null;
+  recurrenceDays?: number[] | null;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, cardHeld, helperId: _helperId, helperName, crew, nobodyLeft = false, setupFeeKept, feeStamp, posterFee, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, cardHeld, helperId: _helperId, helperName, crew, nobodyLeft = false, setupFeeKept, feeStamp, posterFee, parentJobId, recurrenceDays, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Q1674: the sentence both the policy text and the toast add for a first job.
   const keptFee = wasFunded && typeof setupFeeKept === "number" && setupFeeKept > 0 ? setupFeeKept : 0;
   const keptFeeSentence = keptFee > 0
     ? ` The one-time $${keptFee.toFixed(2)} account setup fee is kept: it is paid once and never refunded.`
     : "";
-  // Is this a recurring PARENT? Fetched on open so the dialog can say the
-  // one thing the card no longer says (owner: card = less hectic; the
-  // cancel-scope warning belongs at the moment of cancelling).
-  const [isSeriesParent, setIsSeriesParent] = useState(false);
+  // Q2677: a series, one visit of it, or neither: the line that says what this cancel reaches.
+  // Fetched on open only when the page did not pass the job's own fields (owner: card = less hectic;
+  // the cancel-scope warning belongs at the moment of cancelling).
+  const passedScope = parentJobId !== undefined && recurrenceDays !== undefined
+    ? cancelSeriesScope({ parent_job_id: parentJobId, recurrence_days: recurrenceDays })
+    : undefined;
+  const [readScope, setReadScope] = useState<CancelSeriesScope>(null);
   useEffect(() => {
-    if (!open) return;
+    if (!open || passedScope !== undefined) return;
     let alive = true;
     void supabase
       .from("jobs")
@@ -115,10 +122,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       .maybeSingle()
       .then(({ data, error }) => {
         // A dropped error here is user-visible, not cosmetic: on failure this
-        // falls back to isSeriesParent=false and silently hides the
-        // whole-series cancellation warning, so someone cancelling a
-        // recurring parent is shown single-occurrence copy. Keep the safe
-        // fallback, but make the failure observable instead of invisible.
+        // falls back to no scope line and silently hides the whole-series or
+        // this-visit-only line. Keep the safe fallback, but make the failure
+        // observable instead of invisible.
         if (error) {
           report(error, {
             severity: "warning",
@@ -126,10 +132,12 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             context: { job_id: jobId },
           });
         }
-        if (alive) setIsSeriesParent(!!data && !data.parent_job_id && (data.recurrence_days?.length ?? 0) > 0);
+        if (alive) setReadScope(cancelSeriesScope(data));
       });
     return () => { alive = false; };
-  }, [open, jobId]);
+  }, [open, jobId, passedScope]);
+  const seriesScope = passedScope !== undefined ? passedScope : readScope;
+  const visitDay = visitDayLabel(jobDate);
 
   const [reason, setReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
@@ -405,9 +413,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHero
-          title={`Cancel "${jobTitle}"?`}
+          // Q2677: the title says what this cancel reaches (one visit, the whole series, or the job).
+          title={seriesScope === "visit" && visitDay ? `Cancel only the ${visitDay} visit?` : seriesScope === "visit" ? "Cancel only this visit?" : seriesScope === "series" ? `Cancel the whole "${jobTitle}" series?` : `Cancel "${jobTitle}"?`}
         />
         <div className="space-y-4">
+
+          {/* Series scope — stated at the decision (owner, 2026-08-24), first, before any money (Q2677). */}
+          {seriesScope && <CancelSeriesNotice scope={seriesScope} jobDate={jobDate} />}
 
           {nobodyLeft && (
             <div className="rounded-ds-md border border-primary/30 bg-primary/10 p-4 space-y-1.5" data-testid="cancel-nobody-left">
@@ -427,8 +439,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           <div className="rounded-ds-md border border-border bg-muted/30 p-4 space-y-3">
             <p className="text-ds-11 font-semibold text-foreground uppercase tracking-wide">Full Cancellation Policy</p>
 
-            {/* Step 1: Before helpr selected */}
-            <div className={`flex items-start gap-2.5 p-3 rounded-ds-sm border transition-all ${!hasHelper ? "bg-primary/10 border-primary/30 ring-1 ring-primary/20" : "bg-muted/20 border-border opacity-50"}`}>
+            {/* Step 1: Before helpr selected. Q2674 (audit 1102e row 7): not drawn once a Helpr is hired (a greyed step
+                for a state already past turned the confirm sheet into a policy page). */}
+            {!hasHelper && (<>
+            <div className="flex items-start gap-2.5 p-3 rounded-ds-sm border transition-all bg-primary/10 border-primary/30 ring-1 ring-primary/20">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${!hasHelper ? "bg-primary text-primary-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>1</div>
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -459,6 +473,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             </div>
 
             <div className="flex justify-center"><ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 rotate-90" /></div>
+            </>)}
 
             {/* Step 2: After helpr selected */}
             <div className={`p-3 rounded-ds-sm border space-y-2 transition-all ${hasHelper ? "bg-card border-border ring-1 ring-border" : "bg-muted/20 border-border opacity-50"}`}>
@@ -473,28 +488,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job pays your Helpr for the time they set aside, and it counts as a strike; you see the exact amount here before you confirm.
                   </p>
                   {hasHelper && keptFeeSentence && <p className="text-ds-11 text-muted-foreground mt-1">{keptFeeSentence.trim()}</p>}
-                  {hasHelper && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <DollarSign className="w-3 h-3 text-muted-foreground shrink-0" />
-                      <span className="text-ds-11 text-foreground font-medium">
-                        {cancellationFee > 0 ? `$${formatPrice(cancellationFee)} for your Helpr's time` : "Nothing for your Helpr's time"} · {strikeApplies ? "Strike recorded" : "No strike"}
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
-
-              {hasHelper && cancellationFee > 0 && (
-                <div className="rounded-ds-sm bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
-                  <div className="flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">
-                      {crewQuote ? "For your hired Helprs' time" : `For ${helperName || "your Helpr"}'s time`}
-                    </span>
-                    <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
-                  </div>
-                  <p className="text-ds-11 text-muted-foreground">Most of the rest of your payment comes back to your card within the hour.</p>
-                </div>
-              )}
 
               {hasHelper && cancellationFee === 0 && (
                 <div className="rounded-ds-sm bg-primary/10 border border-primary/20 p-3 ml-7 flex items-center gap-2">
@@ -507,10 +502,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             </div>
           </div>
 
-          {/* Strike system — always visible */}
-          <div className={`rounded-ds-md border p-4 space-y-3 ${strikeApplies ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
-            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${strikeApplies ? "text-destructive-ink" : "text-muted-foreground"}`}>
-              <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies inside 24 hours of the start, once a Helpr is selected)
+          {/* Strike system: Q2674 (audit 1102e row 7) only when this cancel IS a strike; otherwise the step above says so. */}
+          {strikeApplies && (
+          <div className="rounded-ds-md border p-4 space-y-3 border-destructive/30 bg-destructive/5">
+            <p className="text-ds-11 font-semibold flex items-center gap-1.5 text-destructive-ink">
+              <ShieldAlert className="w-3.5 h-3.5" /> How strikes work
             </p>
             <div className="space-y-2 text-ds-11 text-muted-foreground">
               <div className="flex items-start gap-2">
@@ -520,28 +516,21 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                 ))}
               </div>
             </div>
-            {!hasHelper && (
-              <p className="text-ds-11 text-muted-foreground">✓ These consequences don&apos;t apply to you — no Helpr has been selected.</p>
-            )}
-            {hasHelper && !strikeApplies && (
-              <p className="text-ds-11 text-muted-foreground">✓ These consequences don&apos;t apply to this cancel — the job is 24 or more hours away.</p>
-            )}
           </div>
+          )}
           </>)}
 
-          {/* Series scope — stated at the decision (owner, 2026-08-24). */}
-          {isSeriesParent && <CancelSeriesNotice />}
 
           {/* Fee summary callout: only when a non-zero fee applies (hasHelper + late). */}
           {hasHelper && cancellationFee > 0 && (
-            <CancelFeeCallout fee={cancellationFee} crew={!!crewQuote} feeTier={feeTier} />
+            <CancelFeeCallout fee={cancellationFee} crew={!!crewQuote} feeTier={feeTier} helperName={helperName} strike={strikeApplies} />
           )}
 
           {/* Boards 66/172 slice 2: "Back to you" is only ever the SERVER's number (see CancelBackToYou). */}
           {wasFunded && <CancelBackToYou quote={quote} quoteLoading={quoteLoading} backToYouCents={backToYouCents} />}
 
           {/* What the Helpr actually gets: gated on the FEE (see CancelHelprToldAndPaid). */}
-          {hasHelper && cancellationFee > 0 && <CancelHelprToldAndPaid helperName={helperName} fee={cancellationFee} />}
+          {hasHelper && cancellationFee > 0 && <CancelHelprToldAndPaid helperName={helperName} />}
 
           <div className="space-y-1.5">
             <label
@@ -573,11 +562,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             font-semibold` and an inline bark colour on top of the ghost
             variant that already styles it.
             Cancelling an accepted job charges a fee and cannot be undone here,
-            so it is destructive; "Keep the Job" is the dismiss. Copy, fee
+            so it is destructive; "Keep the job" is the dismiss. Copy, fee
             arithmetic and handlers are untouched. */}
         <DialogFooter>
           <DialogSecondaryAction disabled={cancelling} onClick={onClose}>
-            Keep the Job
+            Keep the job
           </DialogSecondaryAction>
           {/* Held while the quote loads, so the fee confirmed is the one quoted. */}
           <DialogDestructiveAction onClick={handleCancel} disabled={cancelling || quoteLoading}>

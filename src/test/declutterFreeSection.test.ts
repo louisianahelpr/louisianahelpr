@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261101201500_shipping_s3_checkout_claim.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
+ * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261031214749_seller_setup_fee_from_payout_restated.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
  * @mutate src/components/declutter/DeclutterItemView.tsx | (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />) | <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />
@@ -41,7 +41,8 @@ describe("the Declutter Free section", () => {
     // DA-12 (20261030063015): then the free claim notice without the strike threat (free claim kept); DB-5
     // (20261030064929): then the Buy now notice without it (free claim kept); BUY-1 (20261101030040): the hold lengths
     // (a free claim keeps its 48 hours, asserted below). B110 (20261101191500): the accepted-offer notice copy only.
-    expect(newestFunction("declutter_take_item").file).toContain("20261101191500_declutter_checkout_pickup_time.sql");
+    // Q2659 (20261102113853): verbatim plus the notices' subject lines (declutterNoticeRefCallersVerbatim.test.ts).
+    expect(newestFunction("declutter_take_item").file).toContain("20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql");
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
     // Then D-NEW14 porch places (20261030164712: porch_place_needed and the frozen place, insertion only).
@@ -53,14 +54,16 @@ describe("the Declutter Free section", () => {
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).
     // Then LEAD-B49-REBUILD (20261031214749: the seller's setup-fee notice line, restated from 20261028232338).
     // Then BUY-36 (20261031231150: B49's body plus the buyer-collects case, reconciled in train 6).
-    expect(newestFunction("declutter_complete_handover").file).toContain("20261031231150_helpr_delivery_cant_finish.sql");
+    // Then manager mode phase 2 (20261101230509: the manager's share comes off the seller's row; the free branch is untouched).
+    expect(newestFunction("declutter_complete_handover").file).toContain("20261101230509_declutter_manager_share_split.sql");
     // declutter_claim_free: the Free change (20261030064021, Q2487) made it ask through declutter_request_free (asserted below).
     expect(newestFunction("declutter_claim_free").file).toContain("20261030064021_declutter_free_requests.sql");
     // declutter_close_paid_order: LEAD-ADMIN-HELPR-FAULT (20261101000817) restated its effective body plus the
     // helpr_fault refund (train 6); the free branch below still reads that newest definition.
     // Then Q1935 (20261102040952, the prorated card fee), Shipping S6 2d (20261102051521, the label hold) and Q1928 gap 3
     // (20261102063343: 2d's body + Q1935's fee + an out seller's seller_out); the free branch is untouched in all three.
-    expect(newestFunction("declutter_close_paid_order").file).toContain("20261102063343_declutter_seller_out_after_payment.sql");
+    // Then the A3 reconcile (20261102084222): 063343 plus A3-72's two delivery_never_booked lines; free branch untouched.
+    expect(newestFunction("declutter_close_paid_order").file).toContain("20261102084222_a3_stack_reconcile.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now",
       "declutter_update_draft", "payout_setup_hire_allowed"];

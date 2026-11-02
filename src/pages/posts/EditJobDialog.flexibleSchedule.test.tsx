@@ -49,8 +49,8 @@ const job = (over: Partial<Job>) =>
      is_flexible_schedule: false, ...over }) as unknown as Job;
 
 const saveAndConfirm = async () => {
-  fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
-  const both = await screen.findAllByRole("button", { name: "Save Changes" });
+  fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  const both = await screen.findAllByRole("button", { name: "Save changes" });
   fireEvent.click(both[both.length - 1]);
 };
 

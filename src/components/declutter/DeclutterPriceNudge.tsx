@@ -15,7 +15,8 @@ export function PriceNudgeLine({ item, dropState, onOpen }: { item: DeclutterIte
   // planned the price stays where it is, and the nudge is the way down.
   if (!priceNudgeDue(item, dropOutlook(item, dropState).planned)) return null;
   return (
-    <p className="text-ds-13 text-[hsl(var(--sienna-ink))]" data-price-nudge="">
+    // Q2638 (audit 1102c R13): a neutral hint, not the warning ink.
+    <p className="text-ds-13 text-muted-foreground" data-price-nudge="">
       Hasn't sold yet.{" "}
       <button type="button" className="font-semibold underline underline-offset-2" onClick={onOpen}>
         Drop the price?

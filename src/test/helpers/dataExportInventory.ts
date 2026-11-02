@@ -192,6 +192,14 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   helpr_card_fee_debts: { by: ["helper_id"] },
   // Q2199 (20261102074244; exported by 20261102074248): the member's own Customize choice.
   member_section_prefs: { by: ["user_id"] },
+  // Declutter manager mode (20261101181005, 20261101230509; exported by 20261102161715): the member's own
+  // arrangements as the seller or the manager; ended_by is always one of the two (declutter_manager_end).
+  declutter_manager_grants: { by: ["seller_id", "manager_id", "ended_by"] },
+  declutter_manager_actions: { by: ["seller_id", "manager_id"] },
+  declutter_manager_messages: { by: ["seller_id", "manager_id"] },
+  declutter_manager_submissions: { by: ["seller_id", "manager_id"] },
+  declutter_order_manager_shares: { by: ["seller_id", "manager_id"] },
+  declutter_manager_payouts: { by: ["seller_id", "manager_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.
@@ -622,6 +630,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "declutter_delivery_dropoffs.seller_id": { reason: "the other side of the order: the drop-off address is the BUYER's and is never exported to the seller (exported by declutter_delivery_dropoffs.buyer_id, 20261017055506)" },
   "declutter_handovers.no_show_answer_by": { reason: "a deadline: when the seller's 24 hours to answer a no-show report end, not a person (20261031004529)" },
   "declutter_handovers.confirmed_by": { reason: "how a Declutter handover was confirmed ('buyer', 'seller', 'porch', 'auto', 'admin'; 'code' on historical rows only), not a person; the table has no person column (it is keyed by order_id; 20261015042253, no QR 'scan' since 20261018183715)" },
+  "declutter_problems.decide_by": { reason: "a time (when Louisiana Helpr usually decides a refund it was sent, display only), not a person (A3-74, 20261102041000)" },
   "declutter_problems.decided_by": { reason: "the staff member who decided a Declutter problem report; the report is the member's (exported by declutter_problems.reporter_id, 20261015042253, with this staff id dropped)", stripped: true },
   "landlord_id_reviews.reviewed_by": { reason: "the admin who reviewed a landlord's ID photo (owner 2026-10-19); the review is the landlord's (exported by landlord_id_reviews.user_id with this staff id dropped)", stripped: true },
   "rental_rent_payments.reported_by": { reason: "which side entered a rent payment ('tenant' or 'landlord'), not a person id; the table is keyed by tenancy_id and holds no person column (20261019073106)" },

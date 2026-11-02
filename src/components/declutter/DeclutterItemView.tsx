@@ -316,7 +316,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             readTimes={forSale && !!user}
           />
 
-          {user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={() => setOfferAsk((n) => n + 1)} />}
+          {user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !preview} preview={preview} free={free} onMakeOffer={() => setOfferAsk((n) => n + 1)} listingDown={it.status === "withdrawn"} />}
 
           {/* Item B (owner 2026-10-29): listings go live when posted; a member's report is what reaches an admin. */}
           {!ownListing && user && <DeclutterReportListing itemId={itemId} />}

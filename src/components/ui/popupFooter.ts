@@ -250,7 +250,7 @@ export const POPUP_SECONDARY_CLS =
 // A note the previous version of this comment got WRONG, and it matters
 // because it was the stated justification for a fixed ratio: the dismiss
 // labels are NOT all "Cancel". Counted across every call site — 38 "Cancel",
-// and then "Maybe Later", "Not Now", "Skip", "Keep the Job", "Keep It On",
+// and then "Maybe later", "Not now", "Skip", "Keep the job", "Keep It On",
 // "No Thanks", "Close", and a bare back-chevron. Nine distinct labels. Any
 // rule here has to hold for the longest of them, not for the common one.
 export const POPUP_COMMIT_CLS = "basis-[calc(50%-6px)] grow !min-w-max" + ` ${POPUP_ACTION_RADIUS}`;

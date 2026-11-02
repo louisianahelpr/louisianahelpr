@@ -11,6 +11,7 @@
  * @mutate supabase/migrations/20261023134752_application_suggests_a_time.sql |   BEFORE UPDATE OF status ON public.applications | --
  * @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     const agreesToSuggestion = !isGroupJob && !!deadlineDialogApp.suggested_date; |     const agreesToSuggestion = false;
  * @mutate src/pages/home/useApplyFlow.ts |       const { data: rpcData, error: rpcError } = suggestion\n | const { data: rpcData, error: rpcError } = false\n
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx | <span data-apply-time="" className="whitespace-nowrap">{time}</span> | <span data-apply-time="">{time}</span>
  * @mutate src/components/ResponseDeadlineDialog.tsx |           {suggestedTime && (when \|\| suggestedLabel) && ( |           {false && (
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                             <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} /> |
  * A3-95 (audit 11-01): beside "Yes, that works", "Suggest another time" wrapped to two lines at 375; the pair keeps a
@@ -56,7 +57,7 @@ describe("a Helpr can suggest another day/time; hiring them agrees to it (owner 
     // The note renders whenever the applicant suggested a time (not behind any other condition).
     expect(dlg).toMatch(/\{suggestedTime && \(when \|\| suggestedLabel\) && \(\s*<div[\s\S]{0,400}?data-hire-agrees-to-suggestion=""[\s\S]{0,200}?you&rsquo;re also agreeing to their suggested time/);
     expect(dlg).toMatch(/It keeps the new time even if they don&rsquo;t accept\./);
-    expect(dlg).toMatch(/suggestedTime \? "Agree and send offer" : "Send offer"/);
+    expect(dlg).toMatch(/suggestedTime \? `Agree and hire \$\{them\}` : `Hire \$\{them\}`/);
     const mount = read("src/components/job-card/ActivityDialogs.tsx");
     expect(mount).toMatch(/suggestedTime=\{\s*props\.deadlineDialogApp\.suggested_date/);
   });
@@ -81,7 +82,11 @@ describe("a Helpr can suggest another day/time; hiring them agrees to it (owner 
   it("the apply sheet asks, defaults to yes, and a suggestion is tied to its job", () => {
     const onChange = vi.fn();
     render(<ApplyTimeQuestion job={job} value={null} onChange={onChange} />);
-    expect(screen.getByText(/Does .* at 12:00 PM work for you\?/)).toBeTruthy();
+    expect(screen.getByTestId("apply-time-question").querySelector("legend")?.textContent).toMatch(/^Does .* at 12:00 PM work for you\?$/);
+    // Q2607 (Jobs audit 1102b row 21): the time never breaks inside itself, and the pair reads one line each.
+    expect(document.querySelector("[data-apply-time]")?.className).toContain("whitespace-nowrap");
+    expect(document.querySelector("[data-apply-time]")?.textContent).toBe("12:00 PM");
+    expect(screen.getByTestId("apply-time-suggest").textContent?.trim()).toBe("Other time");
     expect(screen.getByTestId("apply-time-yes").getAttribute("aria-checked")).toBe("true");
     const suggest = screen.getByTestId("apply-time-suggest");
     expect(suggest.textContent!.trim().length).toBeLessThanOrEqual(PAIR_LABEL_MAX);

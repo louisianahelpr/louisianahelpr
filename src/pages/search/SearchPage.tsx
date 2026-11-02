@@ -12,17 +12,21 @@ import { useFeatureStatus } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { formatPrice } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
 import { SEARCH_PARAM } from "@/components/landing/heroSearch";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { firstPhotos } from "@/components/declutter/DeclutterItemCard";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
+import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
 import { matchesSearch, searchOrFilter } from "@/lib/declutter/searchMatch";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { likePattern, type SearchSection } from "./searchQuery";
+import { SearchStart } from "./SearchStart";
+import { searchJobPrice, type PricedJobHit } from "./searchJobPrice";
+import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
+import { tierFeePercent } from "@/lib/subscriptionTiers";
 
 /**
  * /search?q= — one search across the sections (board 89).
@@ -40,7 +44,7 @@ const PER_SECTION = 3;
 /** A chip (or "See all") shows up to this many; beyond it, Jobs opens Browse. */
 const MAX_ROWS = 20;
 
-type JobHit = { id: string; title: string; category: string | null; budget: number | null; pricing_mode: string | null; parish: string | null; date_needed: string | null };
+type JobHit = PricedJobHit & { id: string; title: string; category: string | null; parish: string | null; date_needed: string | null };
 type ItemHit = { id: string; title: string; description: string | null; category: string | null; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
 
 function useJobHits(q: string, userId: string | null) {
@@ -56,7 +60,7 @@ function useJobHits(q: string, userId: string | null) {
       const blocked = [...(await getBlockedUserIds(userId!))];
       let query = supabase
         .from("open_jobs_browse")
-        .select("id,title,category,budget,pricing_mode,parish,date_needed", { count: "exact" })
+        .select("id,title,category,budget,pricing_mode,parish,date_needed,urgent_fee,is_group_job,helpers_needed,customer_id,helper_fee_flat_cents,helper_fee_percent", { count: "exact" })
         .ilike("title", likePattern(q));
       if (blocked.length) query = query.not("customer_id", "in", `(${blocked.join(",")})`);
       const res = await query
@@ -125,7 +129,8 @@ function Group({ title, count, onSeeAll, children }: { title: string; count: num
         <h2 className="font-sans font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>{title}</h2>
         {onSeeAll && count > PER_SECTION && (
           <button type="button" onClick={onSeeAll} className="font-sans font-semibold text-ds-13 min-h-[44px]" style={{ color: "hsl(var(--bark))" }}>
-            {count > MAX_ROWS ? `See ${MAX_ROWS} of ${count}` : `See all ${count}`}
+            {/* Q2644: "See 20 of 59" read like a count of what is shown, not an action. */}
+            {count > MAX_ROWS ? "See more" : `See all ${count}`}
           </button>
         )}
       </div>
@@ -156,7 +161,11 @@ export default function SearchPage() {
   useEffect(() => setDraft(q), [q]);
   const [section, setSection] = useState<SearchSection>("all");
 
-  const { user } = useCurrentUser();
+  const { user, profile } = useCurrentUser();
+  // Job hits are priced like the Jobs browse card (Q2642): the viewer's tier
+  // rate (as useDashboardData) and the one-time setup fee still owed.
+  const viewerFee = tierFeePercent(profile?.subscription_tier, profile?.subscription_expires_at ?? null);
+  const firstPayoutFee = useFirstPayoutFeeDollars();
   // A switch reads false until its answer arrives; "Coming soon" waits for
   // the settled answer so a slow read never says a section is closed.
   const declutter = useFeatureStatus("declutter");
@@ -252,7 +261,7 @@ export default function SearchPage() {
           />
         )}
 
-        {!q && <p className="font-sans text-ds-13 text-muted-foreground px-1">Search every section at once.</p>}
+        {!q && <SearchStart userId={user?.id ?? null} declutterOn={declutterOn} />}
         {q && failed && (
           <div className="flex items-center justify-between gap-3 px-1" role="alert">
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--alert-ink))" }}>Search didn't load.</p>
@@ -284,7 +293,7 @@ export default function SearchPage() {
             {items.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((it) => {
               const cents = it.current_price_cents ?? it.price_cents;
               return (
-                <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? `$${formatPrice(cents / 100)}` : null} />
+                <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? itemPriceLabel(cents) : null} />
               );
             })}
           </Group>
@@ -299,7 +308,7 @@ export default function SearchPage() {
                 title={j.title}
                 thumb={<Thumb icon={getCategoryIcon(j.category)} seed={j.category} />}
                 sub={[j.parish ? `${j.parish} Parish` : null, j.date_needed ? formatJobDate(j.date_needed) : null].filter(Boolean).join(" · ") || null}
-                price={j.pricing_mode === "quote" ? "Quote" : typeof j.budget === "number" && j.budget > 0 ? `$${formatPrice(j.budget)}` : null}
+                price={searchJobPrice(j, user?.id ?? null, viewerFee, firstPayoutFee)}
               />
             ))}
           </Group>

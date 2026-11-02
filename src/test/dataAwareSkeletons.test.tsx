@@ -5,7 +5,8 @@
 // @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady ? ( | ) : false ? (
 // @mutate src/components/ui/skeletons/EmptyStateSkeleton.tsx | if (data != null) n = Math.max(n, count(data)); | n = 0;
 // @mutate src/pages/post-job/EntryChoice.tsx | return ENTRY_BASE_CARD_COUNT + (known.draftCard ? 1 : 0) + (known.repostCard ? 1 : 0); | return 5;
-// @mutate src/components/profile/ProfileTabFallback.tsx | reviews: [{ h: 307 }], | reviews: [{ h: 86 }, { h: "fill" }],
+// @mutate src/components/profile/ProfileTabFallback.tsx |   if (tab === "reviews") return <ReviewRowReserve />;\n |
+// @mutate src/components/profile/ProfileTabFallback.tsx |     <Skeleton className="h-3.5 w-5/6" />\n  </div>\n);\n\nconst NotificationsReserve | </div>\n);\n\nconst NotificationsReserve
 // @mutate src/components/profile/ProfileTabFallback.tsx | wrapped: [{ h: 333 }], | wrapped: [{ h: 744 }],
 // @mutate src/components/profile/ReviewsTab.tsx | {loading ? (reviewCount === 0 ? ( | {loading ? (false ? (
 import { describe, it, expect, afterEach, vi } from "vitest";
@@ -107,9 +108,22 @@ describe("cold visits draw the zero state, warm visits the list", () => {
     expect(entryCardCount({ draftCard: true, repostCard: true })).toBe(5);
   });
 
-  it("profile tabs reviews and wrapped reserve their ZERO state, one block each", () => {
-    expect(TAB_SHAPES.reviews).toEqual([{ h: 307 }]);
+  it("wrapped reserves its ZERO state, one block", () => {
     expect(TAB_SHAPES.wrapped).toEqual([{ h: 333 }]);
+  });
+
+  // Owner 2026-11-02 (via the lead), superseding Q722 for loading: Reviews waits in ONE neutral review-row shape
+  // (stars, a date, two lines), not the 307px "No reviews yet" card's block, which read as "none" mid-load.
+  it("reviews loads in one neutral review-row shape, not the empty card's block", () => {
+    expect(TAB_SHAPES.reviews).toBeUndefined();
+    const r = render(<ProfileTabBodyReserve tab="reviews" />);
+    const row = r.container.querySelector("[data-review-row-reserve]") as HTMLElement;
+    expect(row).not.toBeNull();
+    expect(r.container.querySelectorAll("[data-testid='profile-tab-fallback']")).toHaveLength(1);
+    expect(row.querySelectorAll(".rounded-sm.h-3\\.5.w-3\\.5")).toHaveLength(5);
+    expect(row.querySelectorAll(".h-3\\.5:not(.rounded-sm)").length).toBeGreaterThan(1);
+    expect(row.style.height).toBe("");
+    expect(r.container.textContent).toBe("");
   });
 
   it("ReviewsTab draws the populated skeleton only when the count says there are reviews", () => {

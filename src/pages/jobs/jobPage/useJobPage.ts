@@ -70,6 +70,10 @@ export interface JobPageRow {
   /** The poster's fix note and its deadline (party read only): the page says what to fix and by when (JA-31). */
   revision_note?: string | null;
   revision_deadline?: string | null;
+  /** Q2668: when the fix was asked, when the Helpr marked it done (resolve_revision) and the poster's check-by time. */
+  revision_requested_at?: string | null;
+  revision_completed_at?: string | null;
+  revision_acceptance_deadline?: string | null;
   /** The photo rule and the photos taken (party read only): the hired Helpr's line and button hang on them, as on
    *  the Working card (audit 2026-10-28 F1/F26: without them every arrived job read "Take the before photo"). */
   require_photo_proof?: boolean | null;
@@ -88,12 +92,14 @@ export interface JobPageRow {
   direct_offer_status?: string | null;
   /** When a pending direct offer runs out (party read only): the poster's line says until when (JA-49). */
   direct_offer_expires_at?: string | null;
+  /** A Hire's offer: until when the Helpr may accept (Q2604, the poster's offer-out line). */
+  response_deadline?: string | null;
 }
 
 const BASE_COLUMNS =
   "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date";
 const PARTY_COLUMNS =
-  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, direct_offer_expires_at, has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, cancelled_at, cancellation_fee, revision_note, revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude";
+  "id, title, description, scope_video_url, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, dispute_deadline, cancellation_reason, cancelled_by, cancelled_at, cancellation_fee, revision_note, revision_deadline, require_photo_proof, proof_before_urls, proof_after_urls, payout_scheduled_at, parent_job_id, recurrence_days, recurrence_weeks, recurrence_interval, recurrence_end_date, recurring_helper_id, direct_offer_status, latitude, longitude, revision_requested_at, revision_completed_at, revision_acceptance_deadline";
 
 function toRow(raw: Record<string, unknown>): JobPageRow {
   return {
@@ -126,7 +132,9 @@ async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party: boole
   if (applied) {
     // Only the browse-safe columns: never the street address or coordinates.
     const safe = Object.fromEntries(BASE_COLUMNS.split(",").map((c) => c.trim()).filter((c) => c !== "location").map((c) => [c, applied[c]]));
-    return { job: toRow({ ...safe, helper_id: applied.helper_id ?? null, helper_confirmed_at: applied.helper_confirmed_at ?? null, location: null }), party: false };
+    // Q2595: the two columns that tell an expired listing from a cancelled one (isExpiredListing), already in the RPC's
+    // row: an applicant of a listing that expired reads "expired before anyone was hired", never "cancelled".
+    return { job: toRow({ ...safe, helper_id: applied.helper_id ?? null, helper_confirmed_at: applied.helper_confirmed_at ?? null, cancelled_by: applied.cancelled_by ?? null, cancellation_reason: applied.cancellation_reason ?? null, location: null }), party: false };
   }
   return null;
 }
@@ -135,10 +143,12 @@ async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party: boole
 export interface MyApplication {
   status: string;
   closed_reason: string | null;
+  /** When it last changed: a cancel's time (Q2673). */
+  updated_at?: string | null;
 }
 async function fetchMyApplication(jobId: string, userId: string): Promise<MyApplication | null> {
   const row = unwrap(
-    await supabase.from("applications").select("status, closed_reason").eq("job_id", jobId).eq("helper_id", userId).maybeSingle(),
+    await supabase.from("applications").select("status, closed_reason, updated_at").eq("job_id", jobId).eq("helper_id", userId).maybeSingle(),
   ) as MyApplication | null;
   return row ?? null;
 }
@@ -162,12 +172,31 @@ async function fetchOnCrew(jobId: string, userId: string): Promise<{ on: boolean
  * JA-27: a no-show report closes that Helpr's application (closed_reason 'no_show', report_helper_no_show) and puts
  * the job back up; that row is no applicant any more, and its close time is when the job was reposted.
  */
-async function fetchApplicantCounts(jobId: string): Promise<{ total: number; pending: number; noShowAt: string | null }> {
-  const rows = (unwrap(await supabase.from("applications").select("status, closed_reason, updated_at").eq("job_id", jobId)) ?? []) as { status: string; closed_reason?: string | null; updated_at?: string | null }[];
+type ApplicantRow = { status: string; closed_reason?: string | null; updated_at?: string | null; helper_id?: string | null };
+export type ApplicantCounts = { total: number; pending: number; noShowAt: string | null; helprCancelled: { at: string; helperId: string | null } | null };
+
+/**
+ * Q2669 (audit 1102e row 2): the hired Helpr's cancel (helper_cancel_booking) closes their application (status
+ * 'rejected', closed_reason 'helper_cancelled') and puts the job back up. That row is no applicant ("1 applicant" was the
+ * Helpr who cancelled), and the latest one says who cancelled and when, for the poster's line.
+ */
+export function applicantCounts(rows: ApplicantRow[]): ApplicantCounts {
   const noShows = rows.filter((r) => r.closed_reason === "no_show");
   const noShowAt = noShows.map((r) => r.updated_at ?? "").filter(Boolean).sort().pop() ?? (noShows.length ? "" : null);
-  const live = rows.filter((r) => r.closed_reason !== "no_show");
-  return { total: live.length, pending: live.filter((r) => r.status === "pending").length, noShowAt };
+  const cancels = rows.filter((r) => r.closed_reason === "helper_cancelled" && r.status !== "pending");
+  const last = [...cancels].sort((a, b) => (a.updated_at ?? "").localeCompare(b.updated_at ?? "")).pop() ?? null;
+  const live = rows.filter((r) => r.closed_reason !== "no_show" && !cancels.includes(r));
+  return {
+    total: live.length,
+    pending: live.filter((r) => r.status === "pending").length,
+    noShowAt,
+    helprCancelled: last ? { at: last.updated_at ?? "", helperId: last.helper_id ?? null } : null,
+  };
+}
+
+async function fetchApplicantCounts(jobId: string): Promise<ApplicantCounts> {
+  const rows = (unwrap(await supabase.from("applications").select("status, closed_reason, updated_at, helper_id").eq("job_id", jobId)) ?? []) as ApplicantRow[];
+  return applicantCounts(rows);
 }
 
 /** The job's latest tracking status (Start working lives there, not on the jobs row), or null. RLS: the parties. */

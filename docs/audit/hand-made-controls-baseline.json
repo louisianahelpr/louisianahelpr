@@ -310,7 +310,7 @@
       "button": 1
     },
     "src/components/declutter/DeclutterDeliveryViews.tsx": {
-      "button": 7
+      "button": 6
     },
     "src/components/declutter/DeclutterEditListing.tsx": {
       "button": 1,
@@ -532,9 +532,6 @@
     },
     "src/components/job-card/ActivityBucketGroups.tsx": {
       "button": 2
-    },
-    "src/components/job-card/ActivitySectionedView.tsx": {
-      "button": 1
     },
     "src/components/job-card/JobCardMetaRow.tsx": {
       "button": 1

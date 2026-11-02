@@ -10,15 +10,19 @@ import { ChoicePill } from "@/components/ui/ChoicePill";
 import { hapticError } from "@/lib/haptics";
 import { continueDayLabel, proposeContinueDay } from "@/lib/continueDay";
 
+/** Today's chip, when today is offered: it is "another day" only in the sense of later today (Q2606). */
+const LATER_TODAY = "Later today";
+
 /** The next 30 days from today (the server's own limit, propose_job_continue_day). */
 const DAYS = 30;
 /** Today is offered only before 10 PM: a start at least an hour out (propose_job_continue_day) must still fit in it. */
 const LAST_START_HOUR_TODAY = 22;
 
 /**
- * "Need another day" (the Helpr) / "Not finished? Set a day" (the poster): the rest of a job under way moves to a new
- * day and time (owner 2026-11-01, Yusef's job). The Helpr's pick goes to the poster to confirm; the poster's is set at
- * once. The job stays in progress and the payment stays held; a Helpr's earlier "done" is cleared when the day is set.
+ * "Not finished? Set a day" (both sides, one name since Q2593): the rest of a job under way moves to a new
+ * day and time (owner 2026-11-01, Yusef's job). Either side's pick goes to the other to accept (Q2606, owner: the
+ * poster's day is no longer set at once). The job stays in progress and the payment stays held; a Helpr's earlier
+ * "done" is cleared once the day is agreed.
  * Built on ChangeJobSheet's day strip and time wheel.
  */
 export function ContinueDaySheet({
@@ -29,6 +33,7 @@ export function ContinueDaySheet({
   otherFirst,
   onSaved,
   helprMarkedDone = false,
+  title,
   today = new Date(),
 }: {
   open: boolean;
@@ -39,6 +44,8 @@ export function ContinueDaySheet({
   onSaved: () => void;
   /** The Helpr already marked it done: the day is to come back, so today is not offered (A3-119). */
   helprMarkedDone?: boolean;
+  /** Q2679: the name of the button that opened the sheet ("Ask for a different day", "Change day"). */
+  title?: string;
   /** For tests: the first day of the strip. */
   today?: Date;
 }) {
@@ -53,6 +60,7 @@ export function ContinueDaySheet({
     () => Array.from({ length: DAYS }, (_, i) => format(addDays(today, i), "yyyy-MM-dd")).slice(offerToday ? 0 : 1),
     [today, offerToday],
   );
+  const todayKey = format(today, "yyyy-MM-dd");
   const other = (otherFirst ?? "").trim();
   const poster = side === "poster";
 
@@ -82,10 +90,10 @@ export function ContinueDaySheet({
           (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
         }}
       >
-        <SheetHero title={poster ? "Set a day to finish" : "Need another day"} />
+        <SheetHero title={title ?? "Set a day to finish"} />
         <p className="text-ds-13 text-muted-foreground">
           {poster
-            ? `${other || "Your Helpr"} comes back to finish. The payment stays held until the work is done.`
+            ? `${other || "Your Helpr"} confirms the day. The payment stays held until the work is done.`
             : `${other || "The person who posted it"} confirms the day. The payment stays held until you finish.`}
         </p>
         <div className="mt-4 space-y-3">
@@ -93,7 +101,8 @@ export function ContinueDaySheet({
           <div role="radiogroup" aria-label="Day to finish" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
             {days.map((d) => (
               <ChoicePill key={d} selected={date === d} className="shrink-0" onClick={() => setDate(d)}>
-                {formatJobDate(d)}
+                {/* Q2606 (Jobs audit 1102b row 20): today, first in a list of "another day", reads "Later today". */}
+                {d === todayKey ? LATER_TODAY : formatJobDate(d)}
               </ChoicePill>
             ))}
           </div>
@@ -102,8 +111,8 @@ export function ContinueDaySheet({
           {helprMarkedDone && (
             <p data-continue-day-effect="" className="text-ds-13 text-muted-foreground">
               {poster
-                ? `${other || "Your Helpr"}'s "done" is cleared and the payment waits until the work is finished.`
-                : `Your "done" is cleared and your payment waits until the work is finished.`}
+                ? `Once ${other || "your Helpr"} accepts the day, their "done" is cleared and the payment waits until the work is finished.`
+                : `Once the day is agreed, your "done" is cleared and your payment waits until the work is finished.`}
             </p>
           )}
           <label className="block space-y-1">
@@ -113,7 +122,7 @@ export function ContinueDaySheet({
           </label>
           <SheetFooter>
             <SheetPrimaryAction disabled={busy || !date || !time} onClick={() => void save()}>
-              {busy ? "Saving…" : poster ? "Set the day" : `Send to ${other || "them"}`}
+              {busy ? "Saving…" : `Send to ${other || (poster ? "your Helpr" : "them")}`}
             </SheetPrimaryAction>
           </SheetFooter>
         </div>

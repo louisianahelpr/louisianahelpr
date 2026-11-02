@@ -29,13 +29,13 @@
  * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql | 'slot_minutes', 60, | 'slot_minutes', 30,
  * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql | 'hold_minutes', 35, | 'hold_minutes', 20,
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   SELECT round((greatest(COALESCE(p_items_cents, 0), 0) + greatest(COALESCE(p_delivery_cents, 0), 0)) * 0.05)::integer + 70; |   SELECT round(greatest(COALESCE(p_items_cents, 0), 0) * 0.05)::integer + 70;
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |   VALUES (o.id, o.seller_id, o.items_cents, v_rate, v_debt, o.items_cents + v_rate - v_debt, |   VALUES (o.id, o.seller_id, o.items_cents, 0, v_debt, o.items_cents - v_debt,
+ * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   VALUES (o.id, o.seller_id, o.items_cents, v_rate, v_share, v_debt, o.items_cents + v_rate - v_share - v_debt, |   VALUES (o.id, o.seller_id, o.items_cents, 0, v_share, v_debt, o.items_cents - v_share - v_debt,
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   IF o.delivery_cents <= 0 OR o.stripe_payment_intent_id IS NULL OR o.handover = 'seller_delivery' THEN |   IF o.delivery_cents <= 0 OR o.stripe_payment_intent_id IS NULL THEN
- * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at + interval '7 days' <= now() |      WHERE o2.status = 'paid' AND o2.handover <> 'delivery' AND o2.paid_at + interval '7 days' <= now()
+ * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery', 'ship') AND o2.paid_at + interval '7 days' <= now() |      WHERE o2.status = 'paid' AND o2.handover <> 'delivery' AND o2.paid_at + interval '7 days' <= now()
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'seller_delivery') THEN | IF false THEN
  * @mutate supabase/migrations/20261101201500_shipping_s3_checkout_claim.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n | \n
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |     'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status = 'paid' THEN d.dropoff_address END, |     'dropoff_address', d.dropoff_address,
- * @mutate supabase/migrations/20261102074248_export_my_data_handovers_fee_debts.sql |              WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)\n | \n
+ * @mutate supabase/migrations/20261102161715_export_my_data_manager_mode.sql |              WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)\n | \n
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer' |                            ) THEN 'paid_buyer'
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   PERFORM public.require_feature('declutter_seller_delivery');\n  v_uid := public.declutter_assert_member(false); |   v_uid := public.declutter_assert_member(false);
  * @mutate supabase/migrations/20261030002630_declutter_paid_order_never_cancelled.sql |   -- Owner 2026-10-29: the buyer never cancels a paid order; it can be moved once.\n  RAISE EXCEPTION 'paid_order_not_cancellable' | RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL);\n  RAISE EXCEPTION 'paid_order_not_cancellable'
@@ -134,7 +134,8 @@ describe("Declutter seller delivery (20261027153244)", () => {
   it("the handover pays the seller items + rate (exact cents) and the rate is never refunded alone", () => {
     const h = flat(body("declutter_complete_handover"));
     expect(h).toContain("v_rate := CASE WHEN o.handover = 'seller_delivery' THEN o.delivery_cents ELSE 0 END");
-    expect(h).toContain("VALUES (o.id, o.seller_id, o.items_cents, v_rate, v_debt, o.items_cents + v_rate - v_debt,");
+    // Manager mode phase 2 (20261101230509): less the manager's share (0 without a manager).
+    expect(h).toContain("VALUES (o.id, o.seller_id, o.items_cents, v_rate, v_share, v_debt, o.items_cents + v_rate - v_share - v_debt,");
     expect(h).not.toMatch(/round_down|floor\(/i);
     expect(flat(body("declutter_delivery_refund"))).toContain("OR o.handover = 'seller_delivery' THEN RAISE EXCEPTION 'no_delivery_fee'");
     expect(flat(EDGE)).toContain(
@@ -161,7 +162,7 @@ describe("Declutter seller delivery (20261027153244)", () => {
     // 141d's full refund after the handover undoes the rate for the seller too (the buyer got it back).
     expect(flat(body("declutter_refund_after_handover"))).toContain(
       "v_refunded := o.items_cents + CASE WHEN o.handover = 'seller_delivery' THEN o.delivery_cents ELSE 0 END;");
-    expect(flat(body("declutter_rebook_payout"))).toContain("amount_cents = items_cents + delivery_cents - p_refunded_cents - v_debt,");
+    expect(flat(body("declutter_rebook_payout"))).toContain("amount_cents = items_cents + delivery_cents - p_refunded_cents - v_share - v_debt,");
     // Settings: $0 or a capped rate; the amount only with a paid rate.
     const set = flat(body("declutter_set_seller_delivery"));
     expect(set).toContain("p_rate_cents = (v_rules ->> 'free_rate_cents')::integer");

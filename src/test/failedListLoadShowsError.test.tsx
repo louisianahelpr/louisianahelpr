@@ -96,6 +96,8 @@ describe("Messages list: a rejected inbox query shows the error state", () => {
 
 vi.mock("@/hooks/useProfile", () => ({ useProfile: () => ({ data: null }) }));
 vi.mock("@/hooks/useHelprActivity", () => ({ useHelprActivity: () => ({ activity: null }) }));
+// Q2392's own-open-jobs line reads React Query (no QueryClient here); its words are proven in browseOwnOpenJobsNote.test.tsx.
+vi.mock("@/components/dashboard/OwnOpenJobsNote", () => ({ OwnOpenJobsNote: () => null }));
 
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 

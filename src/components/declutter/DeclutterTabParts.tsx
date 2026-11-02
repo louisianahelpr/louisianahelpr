@@ -6,6 +6,7 @@
  * component size threshold; DeclutterTradeViews re-exports all three.
  */
 import { useState, type ReactNode } from "react";
+import { useOpenProblems } from "./useOpenProblems";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { useQuery } from "@tanstack/react-query";
 import { HandCoins, PackageCheck, type LucideIcon } from "lucide-react";
@@ -15,27 +16,15 @@ import { SectionHeading } from "./DeclutterTabHeads";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import type { BuyerOrderView } from "./BuyingOrders";
 import { useLinkedOrder } from "./useLinkedOrder";
+import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 
 // useDeclutterTodo and SectionHeading live in the leaf DeclutterTabHeads (the /declutter first screen loads them without
 // this module's order views); re-exported so every import of them from here still works.
 export { SectionHeading, useDeclutterTodo } from "./DeclutterTabHeads";
 
-/**
- * A Selling list with nothing in it yet (owner 2026-10-28: designed empty states, not a bare grey sentence): the
- * list's icon on the olive tint, what will show here, and when. A dashed edge: the slot the first one fills.
- */
-function SellerEmpty({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
-  return (
-    <div data-seller-empty="" className="flex items-start gap-3 rounded-[20px] border border-dashed border-border bg-card/60 px-4 py-4">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--olive)/0.35)] text-[hsl(var(--bark))]" aria-hidden>
-        <Icon className="h-5 w-5" strokeWidth={1.75} />
-      </span>
-      <div className="min-w-0">
-        <p className="text-ds-15 font-semibold">{title}</p>
-        <p className="text-ds-13 text-muted-foreground">{children}</p>
-      </div>
-    </div>
-  );
+/** A Selling list with nothing in it yet: the shared Declutter empty card (DeclutterEmptyCard). */
+function SellerEmpty({ icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
+  return <DeclutterEmptyCard icon={icon} title={title} data-seller-empty="">{children}</DeclutterEmptyCard>;
 }
 
 /** "Offers on your items" with none yet (OffersSection side="seller"), from the real offer rules (half the price, 48 hours). */
@@ -51,12 +40,23 @@ export function NoSellerOffers() {
  * Paid orders on one side (slice 4: book the pickup, hand over, porch photos,
  * no-shows, problems, payout, reviews): Purchases on Buying, the paid sales on Selling.
  */
-export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; views?: Map<string, BuyerOrderView>; show?: (orderId: string) => boolean }) {
+export function PaidOrders({ side, views, show, scope, ended = false }: {
+  side: "buyer" | "seller"; views?: Map<string, BuyerOrderView>; show?: (orderId: string) => boolean;
+  /** Q2630: the only orders this list may draw, before the chip and the linked order (Buying's Your orders vs Ended). */
+  scope?: (orderId: string) => boolean;
+  /** Q2630: drawn inside Buying's Ended section, under its heading: no heading or empty card of its own. */
+  ended?: boolean;
+}) {
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
-  const lines = (cart.data ?? []).filter((l) => l.my_side === side);
+  const lines = (cart.data ?? []).filter((l) => l.my_side === side && (!scope || !l.order_id || scope(l.order_id)));
   const todo = declutterTodo(lines, []);
   const [showDone, setShowDone] = useState(false);
   const linked = useLinkedOrder(); // BUY-30: the order a notice opened is never folded away or hidden by a chip
+  // Q2631 (audit 1102c R6): an order on hold for a problem is not "to hand over" (its card says "On hold until the
+  // problem is decided."). The same read and key the order cards make (useOpenProblems), so it adds no request.
+  const problems = useOpenProblems(lines.filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id as string), side === "seller");
+  const held = new Set(lines.filter((l) => l.status === "paid" && l.order_status === "paid" && l.handover !== "delivery" && l.order_id && problems.has(l.order_id)).map((l) => l.order_id as string)).size;
+  const toHandOver = Math.max(0, todo.salesOpen - held);
   // A3-78: a finished sale still waiting on the seller (a refund request to answer, the item back to confirm) is never
   // folded away: the seller's one deadline on the tab stays in the list.
   const awaiting = useSellerReportsToAnswer();
@@ -65,7 +65,11 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   // Buying's tracker says "Nothing bought yet." once for the whole tab, and a chip shows only its own orders.
   if (views && !lines.some((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id) || l.order_id === linked))) return null;
   if (!lines.some((l) => l.status === "paid" && l.order_id)) {
+    if (ended) return null;
     const buyer = side === "buyer";
+    // Q2629 (audit 1102c R4): a sale waiting for the buyer to pay (SalesWaiting, right above) read "Sold, waiting for the
+    // buyer to pay" over "Nothing sold yet". While one waits, the empty card is left out.
+    if (!buyer && lines.some((l) => l.status === "in_cart")) return null;
     return (
       <section className="space-y-2" aria-label={buyer ? "Purchases" : "Sold: pickup and payout"}>
         <SectionHeading title={buyer ? "Purchases" : "Sold: pickup and payout"} />
@@ -86,15 +90,20 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
   // Done, so the sales still to hand over are the list. A chip's own `show` (To answer's reports) is never folded.
   const done = new Set(side === "seller" && !show ? sold.filter((l) => (l.order_status === "handed_over" || l.order_status === "refunded") && !awaiting.has(l.order_id as string)).map((l) => l.order_id as string) : []);
   const allDone = done.size > 0 && sold.every((l) => done.has(l.order_id as string));
+  // Q2630 (audit 1102c R5): a refunded sale did not go ahead, so the fold never calls it a "finished sale".
+  const refundedDone = new Set(sold.filter((l) => l.order_status === "refunded" && done.has(l.order_id as string)).map((l) => l.order_id as string)).size;
+  const finishedDone = done.size - refundedDone;
+  const doneCounts = [finishedDone > 0 ? `${finishedDone} finished` : null, refundedDone > 0 ? `${refundedDone} refunded` : null].filter(Boolean).join(" and ");
+  const doneKinds = [finishedDone > 0 ? "finished" : null, refundedDone > 0 ? "refunded" : null].filter(Boolean).join(" and ");
   const doneToggle = done.size > 0 && (
     <button type="button" className="text-sm font-medium underline underline-offset-2" aria-expanded={showDone} onClick={() => setShowDone((v) => !v)} data-done-sales-toggle="">
-      {showDone ? "Hide finished sales" : `Show ${done.size} finished ${done.size === 1 ? "sale" : "sales"}`}
+      {showDone ? `Hide ${doneKinds} sales` : `Show ${doneCounts} ${done.size === 1 ? "sale" : "sales"}`}
     </button>
   );
   if (allDone && !showDone && !(linked && done.has(linked))) {
     return (
       <section className="space-y-2" aria-label={sellerTitle}>
-        <SectionHeading title={sellerTitle} todo={todo.salesOpen} todoWords="to hand over" />
+        <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />
         <p className="text-sm text-muted-foreground">Nothing to hand over right now.</p>
         {doneToggle}
       </section>
@@ -106,11 +115,12 @@ export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; vi
       cart={lines}
       views={views}
       show={done.size > 0 && !showDone ? (id) => !done.has(id) || id === linked : show}
-      label={side === "buyer" ? "Purchases" : sellerTitle}
+      label={ended ? "Ended orders" : side === "buyer" ? "Purchases" : sellerTitle}
       heading={
-        side === "buyer"
+        ended ? <></>
+        : side === "buyer"
           ? views ? <SectionHeading title="Your orders" /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
-          : <SectionHeading title={sellerTitle} todo={todo.salesOpen} todoWords="to hand over" />
+          : <SectionHeading title={sellerTitle} todo={toHandOver} todoWords="to hand over" />
       }
     />
     {doneToggle}

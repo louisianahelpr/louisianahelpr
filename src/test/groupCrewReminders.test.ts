@@ -25,27 +25,27 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  */
 
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |       AND j.is_group_job IS TRUE\n      AND j.status IN ('open', 'accepted')\n      AND j.date_needed IS NOT NULL\n      AND EXISTS | AND false\n      AND j.status IN ('open', 'accepted')\n      AND j.date_needed IS NOT NULL\n      AND EXISTS
-// @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |          OR (j.is_group_job IS TRUE\n             AND EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id IS NOT NULL)\n             AND NOT EXISTS |          OR (false\n             AND EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id IS NOT NULL)\n             AND NOT EXISTS
-// @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql |                               WHERE g.job_id = j.id AND g.helper_id IS NOT NULL AND g.helper_confirmed_at IS NULL)) |                               WHERE false))
+// @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |          OR (j.is_group_job IS TRUE\n             AND EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id IS NOT NULL)\n             AND NOT EXISTS |          OR (false\n             AND EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id IS NOT NULL)\n             AND NOT EXISTS
+// @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |                               WHERE g.job_id = j.id AND g.helper_id IS NOT NULL AND g.helper_confirmed_at IS NULL)) |                               WHERE false))
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (j.is_group_job IS TRUE AND EXISTS ( |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (false AND EXISTS (
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC;
-// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql | JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n      AND j.is_seed | JOIN public.jobs j ON j.id = g.job_id AND false\n      AND j.is_seed
-// @mutate supabase/migrations/20261031234653_public_stats_expired_is_not_cancelled.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
+// @mutate supabase/migrations/20261102040000_declutter_review_report.sql | JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n      AND j.is_seed | JOIN public.jobs j ON j.id = g.job_id AND false\n      AND j.is_seed
+// @mutate supabase/migrations/20261102040000_declutter_review_report.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
 // @mutate supabase/migrations/20261019015304_helpr_fault_earnings_export.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id\n |       WHERE false\n
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
 // @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |         OR (j.is_group_job IS TRUE\n            AND j.status::text IN ('completed', 'cancelled') |         OR (false\n            AND j.status::text IN ('completed', 'cancelled')
 
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |       ELSIF v_member_fee > 0 THEN |       ELSIF false THEN
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |          OR (j.customer_id = p_blocked AND g.helper_id = v_user) |          OR false
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |       ELSIF v_member_fee > 0 THEN |       ELSIF false THEN
 // @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
 // @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
-// @mutate supabase/migrations/20261012124103_crew_block_slotless_share_by_hire_order.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
+// @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   IF v_row.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.'; |   IF false THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.';
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       .not("is_group_job", "is", true)\n      .lte("date_needed", tomorrow) |       .lte("date_needed", tomorrow)
 const root = resolve(__dirname, "../..");
@@ -103,13 +103,17 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       // 20261030015205 (b62) restates get_public_profile_stats and get_helper_completed_counts with the
       // test-data exclusion only (test data never counts in any number).
       // 20261031234653 (owner 10-31) leaves an unfilled expired listing out of cancelled_jobs only.
+      // 20261102040000 (A3-75) leaves a Declutter review an admin removed out of the rating only.
+      // 20261102100421 (Q2588) restates auto_start_due_jobs with a no-start-time job due at its day's end only.
       const want = fn === "get_public_profile_stats"
-        ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql", "20261030015205_test_data_never_counts.sql", "20261031234653_public_stats_expired_is_not_cancelled.sql"]
+        ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql", "20261030015205_test_data_never_counts.sql", "20261031234653_public_stats_expired_is_not_cancelled.sql", "20261102040000_declutter_review_report.sql"]
         : fn === "sweep_no_show_alerts"
           ? [THIS, "20261029173937_no_show_alert_says_the_start_time.sql"]
           : fn === "get_helper_completed_counts"
             ? [THIS, "20261030015205_test_data_never_counts.sql"]
-            : [THIS];
+            : fn === "auto_start_due_jobs"
+              ? [THIS, "20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql"]
+              : [THIS];
       expect(want, `${fn} is not the Q728 (or Q731/Q552) definition`).toContain(EFFECTIVE.get(fn)?.file);
     }
     for (const fn of ["get_helper_earnings_export", "get_helper_tiers", "get_neighbor_hire_count", "settle_one_off_jobs_for_banned_account"]) {
@@ -193,9 +197,9 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     // rules below must survive every restatement.
     // 20261007073145 (Q1390, the crew block fee ledger) restates both once
     // more; the crew rules below must survive it too.
-    // 20261012124103 (Q1380) restates block_user_and_settle once more.
+    // 20261012124103 (Q1380) restates block_user_and_settle once more. 20261102131745 (Q2675/Q2692) restates it again, crew path unchanged.
     expect(EFFECTIVE.get("accept_group_application")?.file, "accept_group_application is not the newest crew-aware definition").toBe("20261007073145_crew_block_fee_ledger.sql");
-    expect(EFFECTIVE.get("block_user_and_settle")?.file, "block_user_and_settle is not the newest crew-aware definition").toBe("20261012124103_crew_block_slotless_share_by_hire_order.sql");
+    expect(EFFECTIVE.get("block_user_and_settle")?.file, "block_user_and_settle is not the newest crew-aware definition").toBe("20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql");
     // 20261006022526 (the money review of Q1378) restates the sweep once more:
     // its crew pass also covers a started crew. 20261012184444 (Q1281: no
     // strike for an unanswered offer) restates it again; the crew rules hold.

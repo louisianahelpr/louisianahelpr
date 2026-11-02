@@ -10,18 +10,51 @@ import type { PosterCancelQuote } from "@/lib/posterCancelQuote";
 // whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
 
+/**
+ * Q2677 (audit 1102e row 15): what "Cancel job" reaches on a recurring job, read from poster_cancel_job
+ * itself. It cancels ONLY the row it is given (UPDATE ... WHERE id = p_job_id; it never touches
+ * parent_job_id or any other visit):
+ *  - "visit": a booked visit (a jobs row with parent_job_id). Only that visit is cancelled. The series
+ *    goes on: charge-recurring-visits counts a visit row of ANY status on a date as booked, so the date
+ *    is never booked again, and every other date books as usual.
+ *  - "series": the series itself (no parent_job_id, recurrence_days set). The parent is cancelled, and
+ *    charge-recurring-visits never scans a cancelled parent (status not in (cancelled, disputed)), so no
+ *    more visits are booked; a visit that is already booked is its own row and still goes ahead.
+ */
+export type CancelSeriesScope = "series" | "visit" | null;
+
+export function cancelSeriesScope(row: { parent_job_id?: string | null; recurrence_days?: number[] | null } | null | undefined): CancelSeriesScope {
+  if (!row) return null;
+  if (row.parent_job_id) return "visit";
+  return (row.recurrence_days?.length ?? 0) > 0 ? "series" : null;
+}
+
+/** "Thu, Nov 5" from a date_needed (YYYY-MM-DD, read as a local calendar day). */
+export function visitDayLabel(dateNeeded: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateNeeded ?? "");
+  if (!m) return "";
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
+    .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
 /** Series scope — stated HERE, at the decision, instead of living permanently on the card (owner, 2026-08-24). */
-export function CancelSeriesNotice() {
+export function CancelSeriesNotice({ scope, jobDate }: { scope: Exclude<CancelSeriesScope, null>; jobDate: string }) {
+  const day = visitDayLabel(jobDate);
   return (
     <div
       className="rounded-ds-md p-3"
+      data-testid="cancel-series-scope"
       style={{
         background: "hsl(var(--bark) / 0.06)",
         border: "0.5px solid hsl(var(--bark) / 0.22)",
       }}
     >
       <p className="text-ds-12 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
-        <strong>This cancels the whole series.</strong> Every future visit stops; visits already funded are unaffected.
+        {scope === "visit" ? (
+          <><strong>This cancels only the visit on {day || "this day"}.</strong> The rest of the series goes on as planned.</>
+        ) : (
+          <><strong>This cancels the whole series.</strong> No more visits are booked. A visit that is already booked still goes ahead.</>
+        )}
       </p>
     </div>
   );
@@ -32,7 +65,7 @@ export function CancelSeriesNotice() {
  * confirm so there's no ambiguity. The dialog shows it only when a non-zero
  * fee applies (hasHelper + late).
  */
-export function CancelFeeCallout({ fee, crew, feeTier }: { fee: number; crew: boolean; feeTier: string }) {
+export function CancelFeeCallout({ fee, crew, feeTier, helperName, strike }: { fee: number; crew: boolean; feeTier: string; helperName?: string; strike: boolean }) {
   return (
     <div
       className="flex items-start gap-2.5 rounded-ds-md p-3.5"
@@ -50,12 +83,12 @@ export function CancelFeeCallout({ fee, crew, feeTier }: { fee: number; crew: bo
           className="font-sans font-bold text-ds-13"
           style={{ color: "hsl(var(--destructive-ink))", letterSpacing: "-0.01em" }}
         >
-          <span className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPrice(fee)}</span> for {crew ? "your hired Helprs'" : "your Helpr's"} time
+          <span className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPrice(fee)}</span> for {crew ? "your hired Helprs'" : `${helperName || "your Helpr"}'s`} time
         </p>
-        {/* Owner 2026-10-25: no fee names, percentages or maths to members; the dollar
-            amount for the Helpr's time, and that the rest comes back. */}
+        {/* Owner 2026-10-25: no fee names, percentages or maths to members. Q2674 (audit 1102e row 7): the ONE box
+            that says the amount for the Helpr's time and the strike; what comes back is Back to you, said once. */}
         <p className="text-ds-11 text-muted-foreground mt-0.5">
-          {feeTier} · most of the rest of your payment comes back to you
+          {feeTier}{strike ? " · counts as a strike" : ""}
         </p>
       </div>
     </div>
@@ -117,7 +150,7 @@ export function CancelBackToYou({ quote, quoteLoading, backToYouCents }: { quote
  * its start time), and the old window excluded exactly that case — the one
  * where the Helpr has already given up their day.
  */
-export function CancelHelprToldAndPaid({ helperName, fee }: { helperName?: string; fee: number }) {
+export function CancelHelprToldAndPaid({ helperName }: { helperName?: string }) {
   return (
     <div
       className="rounded-ds-md p-3"
@@ -139,7 +172,7 @@ export function CancelHelprToldAndPaid({ helperName, fee }: { helperName?: strin
         className="font-sans text-ds-12"
         style={{ color: "hsl(var(--success-ink))" }}
       >
-        {helperName || "Your Helpr"} is notified the moment you confirm, and their pay for their time comes out of the ${formatPrice(fee)} and is sent to them automatically within the hour.
+        {helperName || "Your Helpr"} is notified the moment you confirm, and their pay for their time comes out of that amount and is sent to them automatically within the hour.
       </p>
     </div>
   );

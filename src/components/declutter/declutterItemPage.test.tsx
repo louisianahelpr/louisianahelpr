@@ -62,6 +62,7 @@ const state = {
   safeRows: [] as unknown[],
   more: [] as unknown[],
   similar: [] as unknown[],
+  questions: [] as unknown[],
   tableRows: [] as unknown[],
   drop: null as unknown,
   manage: null as unknown,
@@ -137,7 +138,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchItemDropState: async () => { state.reads++; return state.drop; },
     fetchManageState: async () => { state.reads++; state.manageReads++; return state.manage; },
     fetchPhotos: async () => state.photos,
-    fetchQuestions: async () => [],
+    fetchQuestions: async () => state.questions,
     fetchWatching: async () => new Set(),
     fetchMyItemReview: async () => null,
     fetchSellerRating: async () => state.rating,
@@ -186,6 +187,7 @@ function open(search = "") {
 describe("the photo-first Declutter item page", () => {
   beforeEach(() => {
     state.item = { ...ITEM };
+    state.questions = [];
     state.handovers = null;
     guest.on = false;
     guest.open = ["declutter"];
@@ -443,12 +445,38 @@ describe("the photo-first Declutter item page", () => {
     expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
     expect(within(bar).queryByRole("button", { name: "Make offer" })).toBeNull();
   });
+  // Q2560 (Auditor 1, audit 1102a): a free item gets the same pinned bar, with its one "Ask for it" button.
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   const askBarShown = useOffScreen(askButton) && item.status === "live" && !underAge && !myAsk; |   const askBarShown = false;
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   useDockYield(askBarShown); |   void askBarShown;
+  it("phone: a free item's Ask for it rides in the same bottom bar once its button is off screen (Q2560)", async () => {
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(private cb: (e: { isIntersecting: boolean }[]) => void) {}
+        observe() { this.cb([{ isIntersecting: false }]); }
+        disconnect() {}
+      },
+    );
+    state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
+    open();
+    await screen.findAllByRole("button", { name: "Ask for it" });
+    const bar = await waitFor(() => {
+      const el = document.body.querySelector("[data-declutter-askbar]") as HTMLElement | null;
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(bar.className).toContain("bottom-0");
+    expect(within(bar).getByRole("button", { name: "Ask for it" })).toBeInTheDocument();
+    await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
+    // A paid item's bar is not drawn for a free item.
+    expect(document.body.querySelector("[data-declutter-buybar]")).toBeNull();
+  });
   // Audit 1030 DB-14: at 375 the in-page Buy now sat in the strip behind the dock, and the observer counted that strip
   // as on screen, so the bar never came and Buy now stayed hidden. The strip the dock covers is cut off the observed
   // screen, and a group only partly clear of it still gets the bar (local repro 375x900: before no bar, after bar
   // 827-900 with the dock hidden; ~/.lh-shots/b96/db14).
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       { rootMargin: `0px 0px -${dockCoverPx()}px 0px`, threshold: [0, 0.99] }, |       { threshold: [0, 0.99] },
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       ([entry]) => setOff(!entry.isIntersecting \|\| (entry.intersectionRatio ?? 1) < 0.99), |       ([entry]) => setOff(!entry.isIntersecting),
+  // @mutate src/components/declutter/useOffScreen.ts |       { rootMargin: `0px 0px -${dockCoverPx()}px 0px`, threshold: [0, 0.99] }, |       { threshold: [0, 0.99] },
+  // @mutate src/components/declutter/useOffScreen.ts |       ([entry]) => setOff(!entry.isIntersecting \|\| (entry.intersectionRatio ?? 1) < 0.99), |       ([entry]) => setOff(!entry.isIntersecting),
   it("DB-14: the strip behind the dock does not count as on screen, and buttons only partly clear of it still get the bar", async () => {
     const dock = document.createElement("div");
     dock.className = "mobile-nav-frame";
@@ -483,6 +511,14 @@ describe("the photo-first Declutter item page", () => {
     const more = await screen.findByRole("region", { name: "More from this seller" });
     expect(within(more).getAllByRole("link")).toHaveLength(2);
     expect(more.querySelectorAll("[data-item-card]")).toHaveLength(2);
+    // Q2572 (audit 1102a): the cards snap to their start, so the scroller's snap line (scroll-padding) must equal its
+    // padding, or the first card snaps off the page gutter (x 8 at 375). jsdom draws no layout: the two classes are read.
+    // @mutate src/components/declutter/DeclutterItemRows.tsx | flex snap-x scroll-px-3 gap-3 | flex snap-x gap-3
+    for (const scroller of document.querySelectorAll("[data-item-row-scroller]")) {
+      const cls = scroller.className.split(/\s+/);
+      if (cls.includes("snap-x")) expect(cls).toEqual(expect.arrayContaining(["px-3", "scroll-px-3"]));
+    }
+    expect(document.querySelectorAll("[data-item-row-scroller]").length).toBeGreaterThan(1);
     const similar = screen.getByRole("region", { name: "Similar items" });
     expect(within(similar).getByText("Thing 3")).toBeInTheDocument();
     expect(screen.queryByText("My own lamp")).toBeNull();
@@ -491,6 +527,26 @@ describe("the photo-first Declutter item page", () => {
     open();
     await screen.findByRole("region", { name: "Similar items" });
     expect(screen.queryByRole("region", { name: "More from this seller" })).toBeNull();
+  });
+
+  // Q2579 (audit 1102a): on the seller's own TAKEN-DOWN listing an unanswered question asked for an answer ("waiting for
+  // your answer" + a primary Answer) though no buyer can see the listing. It says "relist it to answer", no button;
+  // the same question on the live listing still asks.
+  // @mutate src/components/declutter/DeclutterItemView.tsx | listingDown={it.status === "withdrawn"} /> | />
+  // @mutate src/components/declutter/DeclutterQuestions.tsx | onAnswer={isSeller && !listingDown ? () => setAnswering(q) : null} | onAnswer={isSeller ? () => setAnswering(q) : null}
+  it("Q2579: the seller's own taken-down listing never asks them to answer a question", async () => {
+    const asked = { id: "q9", item_id: ITEM.id, question: "Is it still here?", answer: null, created_at: new Date().toISOString(), answered_at: null };
+    state.questions = [asked];
+    state.item = { ...ITEM, seller_id: "u1", status: "withdrawn" };
+    const { unmount } = open();
+    expect(await screen.findByText(/· relist it to answer$/)).toBeInTheDocument();
+    expect(screen.queryByText(/waiting for your answer/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Answer" })).toBeNull();
+    unmount();
+    state.item = { ...ITEM, seller_id: "u1", status: "live" };
+    open();
+    expect(await screen.findByText(/· waiting for your answer$/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Answer" })).toBeInTheDocument();
   });
 
   it("the seller's own item page shows no rows", async () => {
@@ -753,6 +809,13 @@ describe("the photo-first Declutter item page", () => {
     const back = encodeURIComponent(`/declutter/item/${ID}`);
     expect(within(join).getByRole("link", { name: "Sign up" })).toHaveAttribute("href", `/signup?redirect=${back}`);
     expect(within(join).getByRole("link", { name: "Log in" })).toHaveAttribute("href", `/login?redirect=${back}`);
+    // Q2581 (audit 1102a): Log in then Sign up in one row, as on Browse's guest card (it was Sign up over Log in).
+    // @mutate src/components/declutter/DeclutterGuest.tsx |         <div className="flex gap-2" data-guest-buttons=""> |         <div className="grid gap-2" data-guest-buttons="">
+    const pair = join.querySelector("[data-guest-buttons]")!;
+    expect(Array.from(pair.querySelectorAll("a")).map((a) => a.textContent)).toEqual(["Log in", "Sign up"]);
+    expect(pair.className.split(/\s+/)).toContain("flex");
+    const browsePair = Array.from(document.querySelectorAll("[data-guest-join='browse'] a")).map((a) => a.textContent);
+    if (browsePair.length) expect(browsePair).toEqual(["Log in", "Sign up"]);
     expect(screen.queryByRole("button", { name: /Buy now/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save this item" })).toBeNull();
     // AUD31-67: the guest has the brand and a way to the rest of Louisiana Helpr.

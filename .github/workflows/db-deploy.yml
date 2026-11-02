@@ -389,8 +389,11 @@ jobs:
           # case that the May-09 backlog had).
           # Output kept (Q117): the "Applying migration" lines it prints are the
           # receipts the next step records.
+          # --yes (L38 11-02): the latest CLI refuses a production push it cannot confirm at a terminal
+          # ("Confirmation required: Apply 53 migrations ... Re-run with --yes. Nothing was changed.", run 41468950021);
+          # this step IS the confirmed deploy (its gates above passed), as the dry-run pre-flight already passes --yes.
           set -o pipefail
-          supabase db push --linked --include-all --password "${{ secrets.SUPABASE_DB_PASSWORD }}" 2>&1 | tee /tmp/db-push.log
+          supabase db push --linked --include-all --password "${{ secrets.SUPABASE_DB_PASSWORD }}" --yes 2>&1 | tee /tmp/db-push.log
 
       # Q117. A receipt per version THIS run applied, read from the CLI's own
       # "Applying migration" lines (never a before/after diff, which would

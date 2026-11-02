@@ -253,6 +253,8 @@ async function refuseQuoteJobPriceMismatch(
   db: any,
   jobId: string,
   budget: unknown,
+  /** jobs.offered_to_helper_id: the quoter a quote-booked job is offered to. */
+  offeredToHelperId?: string | null,
 ): Promise<void> {
   const { data: links, error: linkErr } = await db
     .from("job_quote_requests").select("id").eq("job_id", jobId).limit(5);
@@ -268,8 +270,23 @@ async function refuseQuoteJobPriceMismatch(
     console.error(`[create-payment] accepted quote read failed for job ${jobId}; refusing escrow:`, acceptedErr);
     throw new PublicError("Could not check this job's agreed quote. Please try again in a moment.");
   }
+  let compared = (accepted ?? []) as Array<{ price_cents: unknown }>;
+  // Q2123 (lh-money-escrow@9542ba1ba#2): cancel_quote_request moves the
+  // accepted quote to 'closed', so a job that outlives its cancelled request
+  // has no accepted quote left to compare. The job is booked as a direct offer
+  // to the quoter (book_accepted_quote), so that member's quote on the request
+  // is the agreed price. Fails closed like the reads above.
+  if (compared.length === 0 && offeredToHelperId) {
+    const { data: quoterQuotes, error: quoterErr } = await db
+      .from("job_quotes").select("price_cents").in("request_id", ids).eq("quoter_id", offeredToHelperId);
+    if (quoterErr) {
+      console.error(`[create-payment] offered Helpr's quote read failed for job ${jobId}; refusing escrow:`, quoterErr);
+      throw new PublicError("Could not check this job's agreed quote. Please try again in a moment.");
+    }
+    compared = (quoterQuotes ?? []) as Array<{ price_cents: unknown }>;
+  }
   const budgetCents = Math.round(Number(budget) * 100);
-  const mismatch = ((accepted ?? []) as Array<{ price_cents: unknown }>).some((q) => Number(q.price_cents) !== budgetCents);
+  const mismatch = compared.some((q) => Number(q.price_cents) !== budgetCents);
   if (mismatch) {
     console.error(`[create-payment] job ${jobId} budget ${budgetCents} != accepted quote price; refusing escrow`);
     throw new PublicError("This job's price doesn't match the quote you agreed, so it can't be paid for. Contact support.");
@@ -563,7 +580,7 @@ serve(async (req) => {
       // future server path that writes jobs.budget: when an accepted quote is
       // linked to this job, round(budget * 100) must equal its price_cents.
       // FAIL CLOSED on an unreadable quote table, as the dispute read above.
-      await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget);
+      await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget, job.offered_to_helper_id);
 
       // ─── Where a cancelled checkout lands (Q1862) ───
       // Post a Job by default; the quote screens send their own request page.
@@ -1564,7 +1581,7 @@ serve(async (req) => {
       }
       // A direct offer (an instant booking among them): the capture gives its claim
       // back if the offer stops being this Helpr's after the claim (CMP-4 race fix).
-      const result = await captureCardHold({ db: supabaseAdmin, stripe, mode: stripeMode }, jobId, directOpen ? { offerTo: user.id } : {});
+      const result = await captureCardHold({ db: supabaseAdmin, stripe, mode: stripeMode }, jobId, directOpen ? { offerTo: user.id } : offerOpen ? { hireOf: user.id } : {});
       if (result.ok) {
         const done = await hire();
         if (!done.error) return json({ state: "accepted", result: done.data ?? null });

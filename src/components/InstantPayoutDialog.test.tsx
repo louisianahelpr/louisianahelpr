@@ -59,12 +59,12 @@ const executeCalls = () =>
       (opts as { body?: { action?: string } } | undefined)?.body?.action === "execute",
   );
 
-/** Open the dialog and wait for the quote to render its Cash Out button. */
+/** Open the dialog and wait for the quote to render its Cash out button. */
 async function openWithQuote(onOpenChange = vi.fn(), onSuccess = vi.fn()) {
   render(
     <InstantPayoutDialog open onOpenChange={onOpenChange} onSuccess={onSuccess} />,
   );
-  const btn = await screen.findByRole("button", { name: /Cash Out \$/ });
+  const btn = await screen.findByRole("button", { name: /Cash out \$/ });
   await waitFor(() => expect(btn).not.toBeDisabled());
   return { btn, onOpenChange, onSuccess };
 }
@@ -90,7 +90,7 @@ describe("InstantPayoutDialog", () => {
   it("quotes on open and shows the net the Helpr receives", async () => {
     await openWithQuote();
     expect(invokeMock).toHaveBeenCalledWith("instant-payout", { body: { action: "quote" } });
-    expect(screen.getByRole("button", { name: /Cash Out \$118\.20/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cash out \$118\.20/ })).toBeInTheDocument();
     // A quote is a read. Nothing has been confirmed, so nothing prompted.
     expect(requireBiometricMock).not.toHaveBeenCalled();
   });
@@ -107,7 +107,7 @@ describe("InstantPayoutDialog", () => {
     await openWithQuote();
     expect(screen.getByText("$80.00")).toBeInTheDocument();
     expect(screen.getByText("−$2.40")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Cash Out \$77\.60/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cash out \$77\.60/ })).toBeInTheDocument();
   });
 
   // NIGHT-JOBSRE4-4 (night audit): a quote that failed to load said only "Couldn't load quote", with Cancel as the only
@@ -124,7 +124,7 @@ describe("InstantPayoutDialog", () => {
     render(<InstantPayoutDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} />);
     expect(await screen.findByText(/We couldn't get your cash-out amount/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(await screen.findByRole("button", { name: /Cash Out \$118\.20/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Cash out \$118\.20/ })).toBeInTheDocument();
     expect(calls).toBe(2);
   });
 
@@ -177,7 +177,7 @@ describe("InstantPayoutDialog", () => {
     expect(hapticSuccessMock).not.toHaveBeenCalled();
     // …and the dialog is still up, still offering the cash-out, not stuck on
     // "Processing…" — a refusal must leave the screen usable.
-    expect(screen.getByRole("button", { name: /Cash Out \$118\.20/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Cash out \$118\.20/ })).toBeInTheDocument();
     expect(screen.queryByText(/Processing…/)).not.toBeInTheDocument();
   });
 
@@ -192,7 +192,7 @@ describe("InstantPayoutDialog", () => {
 });
 
 // Jobs audit 54a: after a failure the screen says what is true. The offer and
-// its live Cash Out used to stay up under a toast that faded.
+// its live Cash out used to stay up under a toast that faded.
 // @mutate src/components/InstantPayoutDialog.tsx | canRetry: body?.can_retry !== false && body?.code !== "instant_fee_return_pending", | canRetry: true,
 // @mutate src/components/InstantPayoutDialog.tsx |   if (failure) { |   if (false) {
 describe("InstantPayoutDialog after a failed cash-out", () => {
@@ -208,14 +208,14 @@ describe("InstantPayoutDialog after a failed cash-out", () => {
           },
     );
 
-  it("fee still owed: the message stays, the offer and Cash Out are gone, no way to press again", async () => {
+  it("fee still owed: the message stays, the offer and Cash out are gone, no way to press again", async () => {
     const message = "Your instant payout didn't go through, and the $1.80 fee was already taken. You won't be charged a second fee.";
     failWith({ code: "instant_payout_failed", fee: "pending", can_retry: false, error: message });
     const { btn } = await openWithQuote();
     fireEvent.click(btn);
 
     expect((await screen.findByRole("alert")).textContent).toBe(message);
-    expect(screen.queryByRole("button", { name: /Cash Out/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Cash out/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Try again/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/You receive/)).not.toBeInTheDocument();
     expect(screen.queryByText(/30 minutes/)).not.toBeInTheDocument();
@@ -230,7 +230,7 @@ describe("InstantPayoutDialog after a failed cash-out", () => {
     fireEvent.click(btn);
     fireEvent.click(await screen.findByRole("button", { name: /Try again/ }));
 
-    expect(await screen.findByRole("button", { name: /Cash Out \$118\.20/ })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Cash out \$118\.20/ })).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(executeCalls()).toHaveLength(1);
     expect(invokeMock.mock.calls.filter(([, o]) => (o as { body?: { action?: string } })?.body?.action === "quote")).toHaveLength(2);

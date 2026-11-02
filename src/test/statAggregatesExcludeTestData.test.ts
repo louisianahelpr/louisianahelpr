@@ -206,6 +206,15 @@ const ALLOWED: Record<string, string> = {
   // 20261102080407: sums what ONE payout (payout_ref job_payout_<job>) already withheld for ONE Helpr, to give back
   // anything over the payout; money arithmetic on one ledger, not a stat.
   clamp_helpr_fault_fee: MONEY,
+  // Manager mode (20261101181005): counts ONE seller-and-manager pair's own waiting submissions for the words of the
+  // seller's "Waiting for your OK" notice ("2 items"), not a stat over members.
+  declutter_manage: "counts one seller-and-manager pair's own waiting submissions for the words of that seller's notice, not a stat over members",
+  // Manager mode (20261101230509): counts ONE order's own paid cart lines to price a flat per-item manager share;
+  // money arithmetic on one order, not a stat.
+  declutter_manager_share_cents: MONEY,
+  // Q2297 (20261102061755): counts whether ONE job's pending schedule change was the other person's, for the words
+  // of the notice ("your earlier request"), not a stat over members.
+  request_job_schedule_change: "counts one job's own pending schedule-change request by the other side, for the words of that job's notice, not a stat over members",
 };
 
 /** Restated by 20261030015205: must call the helper itself (is_seed alone is not enough). */

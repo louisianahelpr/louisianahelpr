@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { endSentence } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { CheckCircle2, XCircle, Timer } from "lucide-react";
@@ -13,12 +14,16 @@ import { DEFAULT_RESPONSE_WINDOW_HOURS, isDirectOffer, offerClock } from "../../
 import { seriesSummary } from "@/lib/format";
 import { InstantBookingCard } from "@/components/jobs/InstantBookingCard";
 import { useFeature } from "@/hooks/useFeature";
+import { declineUntilClock } from "@/lib/instantBook";
 
 interface OfferedActionsProps {
   app: AppliedApp;
   job: Job;
   onHelperResponse: (app: Application, accept: boolean) => void;
   respondingHelperAppId: string | null;
+  /** On the job page (PageOfferPanel): no side padding of its own, so the pair lines up with the page's buttons
+   *  (Q2601, Jobs audit 1102b row 15). The Working card keeps its 16 px inset from the card's edge. */
+  flush?: boolean;
 }
 
 /**
@@ -28,9 +33,9 @@ interface OfferedActionsProps {
  * cannot be undone: the job goes back to everyone. Strikes are only for
  * backing out AFTER accepting (helper_cancel_booking).
  *
- * A DIRECT offer is exempt: the helper never applied, so turning down
- * unsolicited work isn't misconduct and `respond_to_direct_offer` files no
- * violation. Those decline in one tap, as they should.
+ * A DIRECT offer files no violation either (`respond_to_direct_offer`), but it
+ * is just as final and sits right beside Accept, so it asks too (Q2605, Jobs
+ * audit 1102b row 19: one tap declined a paid offer with no confirm or undo).
  */
 /**
  * Offered: accept/decline — celebratory framing since this is a poster
@@ -49,13 +54,13 @@ function InstantOfferedActions(props: OfferedActionsProps & { declineUntil: stri
   const instantBookOn = useFeature("instant_book");
   if (!instantBookOn) return <GenericOfferedActions {...props} />;
   return (
-    <div className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+    <div className={props.flush ? "py-3" : "px-4 py-3"} onClick={(e) => e.stopPropagation()}>
       <InstantBookingCard jobId={props.job.id} title={props.job.title} declineUntil={props.declineUntil} />
     </div>
   );
 }
 
-function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperAppId }: OfferedActionsProps) {
+function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperAppId, flush }: OfferedActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const busy = respondingHelperAppId === app.id;
   // Which button was pressed: only that one says "Accepting…" / "Declining…" (audit 2026-10-28 F6:
@@ -92,7 +97,8 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
     text: "until the job starts",
     expiredText: "Job time has arrived",
   };
-  const skipConfirm = isDirectOffer(app);
+  const direct = isDirectOffer(app);
+  const posterFirst = app.posterName?.trim().split(/\s+/)[0] || null;
   // The clock and whether it has run out, from the one predicate the
   // Activity buckets use too (offerClock.ts): an expired offer leaves Needs
   // You the moment this card says so. Only the backend-stamped deadline is
@@ -101,9 +107,12 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
   const { hardDeadline, derivedDeadline, isExpired } = offerClock(app, job);
   const deadline = isExpired ? null : (hardDeadline ?? derivedDeadline);
   const seriesLine = seriesSummary(job); // JOBS-18: accepting a Repeats job takes on every visit.
+  // Q2591 (Jobs audit 1102b row 5): an instant booking that reaches this card (the switch is off) is answered by its
+  // own 2-hour decline window (instant_decline_until), never the 24-hour offer rule: the Helpr is already booked.
+  const instantUntil = job.instant_decline_until ?? null;
   return (
     <div
-      className="px-4 py-3 space-y-2.5"
+      className={`${flush ? "" : "px-4 "}py-3 space-y-2.5`}
       onClick={(e) => e.stopPropagation()}
       style={{
         borderTop: "0.5px solid hsl(var(--amber-tint) / 0.30)",
@@ -156,7 +165,16 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
           state the 24-hour rule in words rather than inventing a countdown from
           a timestamp we don't have, because a fabricated deadline is worse than
           none — the helper would plan around it. */}
-      {deadline ? (
+      {instantUntil ? (
+        <CountdownRows
+          variant="box"
+          clocks={[
+            { id: "decline", at: instantUntil, text: "left to decline", expiredText: "You're booked" },
+            startClock,
+          ]}
+          note={`You're booked. Can't make it? Decline by ${declineUntilClock(instantUntil)}. No strike, and nothing is charged.`}
+        />
+      ) : deadline ? (
         /* WHAT SILENCE DOES IS STATED: when the answer-by passes,
            `expire_unanswered_offers` gives the job back to everyone. It files
            no strike (owner, 2026-10-05, Q1281), and the line says so, so
@@ -280,11 +298,7 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
           className="flex-1"
           disabled={busy}
           aria-busy={busy}
-          onClick={() => {
-            if (!skipConfirm) return setConfirmOpen(true);
-            setPressed("decline");
-            onHelperResponse(app, false);
-          }}
+          onClick={() => setConfirmOpen(true)}
           style={{
             color: "hsl(var(--burnt-sienna))",
             borderColor: "hsl(var(--burnt-sienna) / 0.30)",
@@ -311,13 +325,15 @@ function GenericOfferedActions({ app, job, onHelperResponse, respondingHelperApp
       <BrandConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Decline this job?"
-        description="You applied for this one and the person who posted it picked you. Declining isn't a strike."
+        title={direct ? (posterFirst ? `Decline ${posterFirst}’s offer?` : "Decline this offer?") : "Decline this job?"}
+        description={direct
+          ? `${endSentence(`The offer goes back to ${posterFirst ?? "the person who posted it"}`)} Declining isn't a strike.`
+          : "You applied for this one and the person who posted it picked you. Declining isn't a strike."}
         callout={{
-          // decline_job_offer files no strike (Q1281, 20261012184444).
-          text: "The job goes back to everyone. This can’t be undone.",
+          // decline_job_offer / respond_to_direct_offer file no strike (Q1281, 20261012184444).
+          text: direct ? "This can’t be undone." : "The job goes back to everyone. This can’t be undone.",
         }}
-        primaryLabel="Decline job"
+        primaryLabel={direct ? "Decline offer" : "Decline job"}
         primaryTone="sienna"
         primaryHaptic="warning"
         onPrimary={() => {

@@ -26,8 +26,8 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx | pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] | pb-1 pl-3 pr-3 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)]
  * @mutate src/components/declutter/DeclutterMineViews.tsx | -mx-3 flex items-center gap-2 overflow-x-auto pb-1 | -mx-3 flex flex-wrap items-center gap-2 pb-1
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
- * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
- * @mutate src/components/declutter/DeclutterHomeView.tsx |       data-sell-chooser-entry=""\n      className="flex min-h-14 | data-sell-chooser-entry=""\n      className="rounded-full flex min-h-14
+ * @mutate src/components/declutter/DeclutterTabParts.tsx | data-seller-empty="">{children}</DeclutterEmptyCard> | data-plain="">{children}</DeclutterEmptyCard>
+ * @mutate src/components/declutter/SellChooserEntry.tsx |       data-sell-chooser-entry=""\n      className="flex min-h-14 | data-sell-chooser-entry=""\n      className="rounded-full flex min-h-14
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <SellingSettingsEntry />\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <SellingSettingsEntry />\n |
  * @mutate src/components/declutter/DeclutterHomeView.tsx | end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>} | end={browse?.end}
@@ -84,6 +84,8 @@ vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
   ...(await orig<object>()),
   fetchRefundRequestView: async (id: string) => state.refunds[id] ?? { order_id: id, side: "seller", handed_over: true, can_ask: false, can_report: false, items_cents: 0, full_refund_cents: 0, delivery_kept_cents: 0, window_ends_at: null, request: null },
 }));
+// Q2629: a sale waiting for payment draws SalesWaiting, which lists open handover chats.
+vi.mock("@/lib/declutter/handoverTalk", async (orig) => ({ ...(await orig<object>()), fetchMyOpenHandoverTalks: async () => [] }));
 // Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
@@ -99,6 +101,9 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
       items_off: [], rules: real.SELLER_DELIVERY_RULES }),
   };
 });
+// Manager mode (switch mocked on here): no grants, nothing waiting, no labels.
+vi.mock("@/lib/declutter/managerMode", async (orig) => ({ ...(await orig<object>()), useManagerLabels: () => ({ data: undefined }),
+  fetchWaitingDrafts: async () => [], useMyManagerGrants: () => ({ data: [] }) }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: () => true,
   useFeatureStatus: () => ({ on: true, settled: true }),
@@ -372,6 +377,70 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
     expect(within(sold).getByText("Nothing sold yet")).toBeInTheDocument();
   });
 
+  // Q2667 (Builder 178, 11-02): the donation that took the seller's last item still shows its receipt on the empty card.
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |         {haulOn && <DonationReceipts />}\n |
+  it("Q2667: a seller whose only item was donated sees the donation receipt under 'You haven't listed anything yet'", async () => {
+    state.mine = [{ ...ITEM, status: "withdrawn" }];
+    const { fetchMyDonations } = await import("@/lib/declutter/donate");
+    vi.mocked(fetchMyDonations).mockResolvedValueOnce([{ item_id: "i1", item_title: "Oak rocking chair", partner_name: "St. Vincent de Paul",
+      partner_address: "220 St Vincent St", chosen_at: "2026-10-30T15:00:00Z", donated_at: "2026-11-01T15:00:00Z", receipt: true }]);
+    at("/declutter?tab=selling");
+    const listings = await screen.findByRole("region", { name: "Your listings" });
+    expect(within(listings).getByText("You haven't listed anything yet.")).toBeInTheDocument();
+    const receipts = await within(listings).findByRole("region", { name: "Donation receipts" });
+    expect(within(receipts).getByText(/Your Helpr took it to St\. Vincent de Paul, 220 St Vincent St/)).toBeInTheDocument();
+  });
+
+  // Q2639 (audit 1102c R14): with no listing left, "Your listings" was a solid card with a primary button and no icon,
+  // beside the dashed, iconed "No offers yet" and "Nothing sold yet". It is the same DeclutterEmptyCard now, its one
+  // action still the sell path; and a Selling history title wraps instead of being cut ("Oak rocking chair (sa…").
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet." data-seller-empty="" | <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet."
+  // @mutate src/components/declutter/DeclutterEmptyCard.tsx |         {action} |
+  // @mutate src/components/declutter/DeclutterTakenDown.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={item.title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={item.title}>
+  // @mutate src/components/declutter/DeclutterEndedSales.tsx | <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={l.item_title}> | <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={l.item_title}>
+  it("Q2639: an empty Your listings is the same empty card as the others, with the sell action", async () => {
+    const long = "Oak rocking chair (sample) with the original cane seat";
+    state.mine = [{ ...ITEM, status: "withdrawn", title: long }];
+    state.cart = [{ line_id: "l-x1", item_id: "i-x1", item_title: `${long}, ran out`, my_side: "seller", seller_id: "u1", price_cents: 4000, status: "missed",
+      checkout_by: new Date(Date.now() - 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: 0, total_cents: null, closed_at: new Date().toISOString() }];
+    at("/declutter?tab=selling");
+    const listings = await screen.findByRole("region", { name: "Your listings" });
+    const card = listings.querySelector("[data-empty-card]") as HTMLElement;
+    expect(card).not.toBeNull();
+    expect(card.hasAttribute("data-seller-empty")).toBe(true);
+    expect(card.className).toContain("border-dashed");
+    expect(card.querySelector("svg")).not.toBeNull();
+    expect(within(card).getByText("You haven't listed anything yet.")).toBeInTheDocument();
+    fireEvent.click(within(card).getByRole("button", { name: /Sell an item|List an item|Sell/ }));
+    expect(await screen.findByText("Sell page")).toBeInTheDocument();
+  });
+
+  it("Q2639: Selling history titles wrap to two lines, never a one-line cut", async () => {
+    const long = "Oak rocking chair (sample) with the original cane seat";
+    state.mine = [ITEM, { ...ITEM, id: "i9", status: "withdrawn", title: long }];
+    state.cart = [{ line_id: "l-x1", item_id: "i-x1", item_title: `${long}, ran out`, my_side: "seller", seller_id: "u1", price_cents: 4000, status: "missed",
+      checkout_by: new Date(Date.now() - 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: 0, total_cents: null, closed_at: new Date().toISOString() }];
+    at("/declutter?tab=selling");
+    const history = await screen.findByRole("region", { name: "Selling history" });
+    const titles = Array.from(history.querySelectorAll("p")).filter((p) => p.textContent?.startsWith(long));
+    expect(titles.length).toBe(2);
+    for (const t of titles) {
+      expect(t.className).not.toMatch(/\btruncate\b/);
+      expect(t.className).toMatch(/\bline-clamp-2\b/);
+    }
+  });
+
+  // Q2629 (audit 1102c R4): a sale waiting for the buyer to pay never sits over "Nothing sold yet".
+  // @mutate src/components/declutter/DeclutterTabParts.tsx |     if (!buyer && lines.some((l) => l.status === "in_cart")) return null; |
+  it("Q2629: a sale waiting for payment hides the Nothing sold yet card", async () => {
+    state.cart = [{ line_id: "l-w1", item_id: "i-w1", item_title: "Oak rocking chair", my_side: "seller", seller_id: "u1", price_cents: 4000, status: "in_cart",
+      checkout_by: new Date(Date.now() + 3_600_000).toISOString(), order_id: null, order_status: null, handover: "porch", premium_cents: 0, total_cents: 4000 }];
+    at("/declutter?tab=selling");
+    expect(await screen.findByText(/Sold, waiting for the buyer to pay/)).toBeInTheDocument();
+    await screen.findByRole("region", { name: "Offers on your items" });
+    expect(screen.queryByText("Nothing sold yet")).toBeNull();
+  });
+
   // AUD31-4: a sale to hand over comes first on the whole tab, above the offers and the listings; none: after them.
   // @mutate src/components/declutter/DeclutterMineViews.tsx |   const soldFirst = only === null && (todo?.salesOpen ?? 0) > 0; |   const soldFirst = false;
   it("AUD31-4: a sale to hand over sits above the offers and the listings; with none, the sold group stays below", async () => {
@@ -457,7 +526,13 @@ describe("Selling tab: Taken down, with Relist", () => {
     const chip = container.querySelector('[data-status-box="taken"]') as HTMLElement;
     expect(chip).not.toBeNull();
     expect(chip.textContent).toContain("1");
-    fireEvent.click(within(group).getByRole("button", { name: "Relist" }));
+    // Q2580 (audit 1102a): a quiet outline Relist beside the price, never a full primary on its own line per row.
+    // @mutate src/components/declutter/DeclutterTakenDown.tsx | {item.status === "withdrawn" && <ReopenListingButton itemId={item.id} quiet />} | {item.status === "withdrawn" && <ReopenListingButton itemId={item.id} />}
+    const relist = within(group).getByRole("button", { name: "Relist" });
+    expect(relist.className).not.toMatch(/btn-grad-primary/);
+    expect(relist.closest("[data-taken-down-row]")!.querySelectorAll("button").length).toBe(1);
+    expect(relist.parentElement!.textContent).toContain("$35");
+    fireEvent.click(relist);
     await waitFor(() => expect(reopenSpy).toHaveBeenCalledWith("i9"));
     expect(await screen.findByText("Sell page")).toBeInTheDocument();
   });
@@ -526,7 +601,7 @@ describe("Selling tab: Taken down, with Relist", () => {
   // A2-5 (audit 2 SE2-1): "Mark sold elsewhere" keeps the listing as 'sold_elsewhere'. It belongs in the seller's
   // history, reads "Sold elsewhere.", has no Relist (it was sold), and is off the live listings.
   // @mutate src/components/declutter/DeclutterMineViews.tsx | i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | i.status === "withdrawn")
-  // @mutate src/components/declutter/DeclutterTakenDown.tsx |             {item.status === "withdrawn" && ( |             {true && (
+  // @mutate src/components/declutter/DeclutterTakenDown.tsx | {item.status === "withdrawn" && <ReopenListingButton itemId={item.id} quiet />} | {true && <ReopenListingButton itemId={item.id} quiet />}
   // @mutate src/components/declutter/myItemsQuery.ts | new Set(["withdrawn", "sold_elsewhere"]) | new Set(["withdrawn"])
   it("a listing sold elsewhere is in Selling history, reads Sold elsewhere, has no Relist, and is off Your listings (A2-5)", async () => {
     const SOLD = { ...ITEM, id: "i8", status: "sold_elsewhere", title: "Brass lamp", current_price_cents: 2000 };

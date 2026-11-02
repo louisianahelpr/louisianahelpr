@@ -31,7 +31,7 @@ import { applicationStatusLabel } from "@/lib/statusLabels";
 
 /** The roster columns a member's card and the poster's roster both read. */
 export const CREW_SLOT_COLUMNS =
-  "id, job_id, helper_id, status, helper_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, proof_before_urls, proof_after_urls";
+  "id, job_id, helper_id, status, helper_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, proof_before_urls, proof_after_urls, poster_confirmed_completion_at";
 
 export interface CrewSlot {
   id: string;
@@ -47,6 +47,8 @@ export interface CrewSlot {
   helper_completed_at: string | null;
   proof_before_urls: string[] | null;
   proof_after_urls: string[] | null;
+  /** JOBS-3: the poster confirmed this member's work (A3-33: the member's page says so). Optional for older fixtures. */
+  poster_confirmed_completion_at?: string | null;
 }
 
 type StepStamps = Pick<

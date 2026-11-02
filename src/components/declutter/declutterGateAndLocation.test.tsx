@@ -203,6 +203,16 @@ describe("Declutter loading frame (DeclutterGate)", () => {
     expect(bones(container)).toBe(0);
   });
 
+  // Q2565: the unavailable item page is not a dead end: it is titled Declutter and offers the way on.
+  // @mutate src/components/declutter/DeclutterSkeletons.tsx |         <Link to="/declutter">See more on Declutter</Link> |         <span>See more on Declutter</span>
+  // @mutate src/components/declutter/DeclutterSkeletons.tsx |     <AppPage title="Declutter" backTo="/declutter"> |     <AppPage title="Item" backTo="/declutter">
+  it("a sold or taken-down item offers a way on to Declutter (Q2565)", () => {
+    at("/declutter/item/test", <DeclutterItemPage />, "/declutter/item/:id");
+    expect(screen.getByRole("heading", { name: "Declutter" })).toBeInTheDocument();
+    const onward = screen.getByRole("link", { name: "See more on Declutter" });
+    expect(onward.getAttribute("href")).toBe("/declutter");
+  });
+
   it("a settled 'off' is still the 404, with no skeleton left behind", async () => {
     state.featureSettled = true;
     const { container } = at("/declutter", <DeclutterPage />);
@@ -274,7 +284,7 @@ describe("Declutter location ask", () => {
 
     fireEvent.click(again);
     expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
-    // (Not answered "Share Location" here: a fix would fill the module cache
+    // (Not answered "Share location" here: a fix would fill the module cache
     // that the later tests in this file land on.)
     expect(getCurrentPosition).not.toHaveBeenCalled();
   });

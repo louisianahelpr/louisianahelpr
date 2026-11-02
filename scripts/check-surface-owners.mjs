@@ -105,6 +105,10 @@ const OWNERS = {
   // LEAD-PROFILE-LINK: a member's shareable profile, open to anyone with the link (public_profile_by_handle).
   "/u/:handle": ["lh-trust-safety", "lh-browse-discovery"],
   "/admin": ["lh-admin-moderation"],
+  // Q2585: the admin Declutter stage preview (made-up data, inert); the views it draws are Declutter's.
+  "/admin/preview/declutter": ["lh-admin-moderation", "lh-long-tail-features"],
+  "/admin/preview/job": ["lh-admin-moderation"],
+  "/admin/preview/messages": ["lh-admin-moderation"],
   // Declutter (hidden switch 'declutter', docs/specs/declutter-auctions.md).
   "/declutter": ["lh-long-tail-features"],
   "/declutter/sell": ["lh-long-tail-features", "lh-input-boundary"],

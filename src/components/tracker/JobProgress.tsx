@@ -104,10 +104,9 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
   if (tone === "cancelled") {
     return (
       <div role="img" aria-label={jobStepsLabel(stage, false, tone, label)} data-job-steps="" data-stage={stage} data-tone={tone}>
-        <div className="grid grid-cols-8 gap-1" aria-hidden="true">
-          {JOB_PROGRESS_STEPS.map((full) => <span key={full} data-step-state="todo" className={`block h-1.5 rounded-full ${BAR.todo}`} />)}
-        </div>
-        <span className="mt-1 flex items-center gap-1 text-ds-11 font-semibold leading-tight text-muted-foreground" aria-hidden="true">
+        {/* Q2596 (Jobs audit 1102b row 10): no eight empty grey bars on an ended job (a progress bar with no progress);
+            the one word says where it stands. */}
+        <span className="flex items-center gap-1 text-ds-11 font-semibold leading-tight text-muted-foreground" aria-hidden="true">
           <XCircle className="h-3 w-3 shrink-0" />
           {label ?? "Cancelled"}
         </span>
@@ -136,7 +135,8 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
         const stepPhase = i === stage ? phase : null;
         const barCls = stepPhase ? PHASE_BAR[stepPhase] : BAR[s];
         const textCls = stepPhase ? PHASE_TEXT[stepPhase] : TEXT[s];
-        const Icon = JOB_STEP_ICONS[i];
+        // Q2600 (Jobs audit 1102b row 14): a dispute on the last step is a warning, never Done's party popper.
+        const Icon = s === "alarm" ? AlertTriangle : JOB_STEP_ICONS[i];
         const ts = s === "done" ? stamps?.[i] ?? null : null;
         // A done step with a time, or the current step with a reason, is a control (full tracker only).
         const tipText = !detailed ? null : ts ? stampText(ts) : i === stage && why ? why : null;
@@ -240,6 +240,11 @@ export function JobProgress({ progress, compact = false, barOnly = false, noLine
           ) : (
             line
           )}
+        </p>
+      )}
+      {line && progress.body && (
+        <p data-job-progress-body="" className={`${compact ? "text-ds-12" : "text-ds-13"} text-muted-foreground`}>
+          {progress.body}
         </p>
       )}
     </div>

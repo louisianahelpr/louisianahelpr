@@ -230,7 +230,15 @@ CREATE TABLE public.helpr_vehicles (user_id uuid PRIMARY KEY, has_truck boolean 
 CREATE TABLE public.job_guarantee_claims (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, status text, closed_at timestamptz);
 -- Q2425 (20261027204500): declutter_meetup_spot_near_lines reads the spot; the class SQL's 'meetup' step writes one.
 CREATE TABLE public.declutter_meetup_spots (id uuid PRIMARY KEY, parish text, name text, address text, lat numeric, lng numeric,
-  kind text, active boolean NOT NULL DEFAULT true);
+  kind text, active boolean NOT NULL DEFAULT true,
+  -- B110: a seller's own spot (declutter_meetup_spot_near_lines serves it only to that seller's lines) and its
+  -- hours (20261101194608).
+  seller_id uuid, windows jsonb);
+-- The safe-meetup pickup (20261027204500): declutter_delivery_slot_ok, declutter_order_slot_in_windows and
+-- helpr_task_source_slot_ok read an order's meetup row (none in the fixture: an order with no meetup).
+CREATE TABLE public.declutter_order_meetups (order_id uuid PRIMARY KEY, spot_id uuid, spot_name text NOT NULL,
+  spot_address text NOT NULL, spot_lat numeric(9,6) NOT NULL, spot_lng numeric(9,6) NOT NULL, buyer_here_at timestamptz,
+  seller_here_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.declutter_pickup_windows (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid NOT NULL,
   weekday smallint NOT NULL, starts_local time NOT NULL, ends_local time NOT NULL);
 CREATE TABLE public.declutter_seller_porch_days (seller_id uuid PRIMARY KEY, weekdays smallint[] NOT NULL);

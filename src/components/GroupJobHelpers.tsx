@@ -123,7 +123,7 @@ export function GroupJobHelpers({
       // account's profiles row (RLS), so that select came back EMPTY with no
       // error and every member read "Helpr" — measured 2026-10-05 on prod as
       // poster-e2e: profiles 200 [], get_safe_profiles both names (Q1382).
-      // With a per-member "Confirm Arrived", the poster must tell them apart.
+      // With a per-member "Confirm they've arrived", the poster must tell them apart.
       const { data: profiles, error: profilesError } = helperIds.length
         ? await supabase.rpc("get_safe_profiles", { user_ids: helperIds })
         : { data: [], error: null };
@@ -406,8 +406,10 @@ export function GroupJobHelpers({
                   {crewRosterPill(h)}
                 </span>
               </div>
-              {onMessage && h.helper_id && h.status === "accepted" && (
-                <div className="shrink-0">
+              {/* A3-34 (audit 11-01): one action group, right-aligned on every row: Message (outline) first, the
+                  step (green) last, so a wrap keeps the step on the right and the columns match row to row. */}
+              <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2" data-crew-actions="">
+                {onMessage && h.helper_id && h.status === "accepted" && (
                   <JobActionChip
                     icon={MessageCircle}
                     label="Message"
@@ -415,34 +417,8 @@ export function GroupJobHelpers({
                     tone="message"
                     onClick={() => { if (h.helper_id) onMessage(h.helper_id); }}
                   />
-                </div>
-              )}
-              {arrivalConfirmable(h) && (
-                <div className="shrink-0">
-                  <JobActionChip
-                    icon={MapPin}
-                    label={confirmingId === h.id ? "Confirming…" : "Confirm Arrived"}
-                    ariaLabel={`Confirm ${h.helperName || "this Helpr"} arrived`}
-                    tone="primary"
-                    disabled={confirmingId !== null}
-                    onClick={() => void confirmArrival(h)}
-                  />
-                </div>
-              )}
-              {workConfirmable(h) && (
-                <div className="shrink-0">
-                  <JobActionChip
-                    icon={CheckCircle2}
-                    label={approvingId === h.id ? "Confirming…" : "Confirm work"}
-                    ariaLabel={`Confirm ${h.helperName || "this Helpr"}'s work`}
-                    tone="primary"
-                    disabled={approvingId !== null}
-                    onClick={() => setPendingApproval(h)}
-                  />
-                </div>
-              )}
-              {noShowReportable(h) && (
-                <div className="shrink-0">
+                )}
+                {noShowReportable(h) && (
                   <JobActionChip
                     icon={XCircle}
                     label={reportingId === h.id ? "Reporting…" : "Didn't show"}
@@ -451,24 +427,44 @@ export function GroupJobHelpers({
                     disabled={reportingId !== null}
                     onClick={() => setPendingNoShow(h)}
                   />
-                </div>
-              )}
-              {canRemove && (
-                // 44px target (Apple HIG) with a negative inset so the row's
-                // visual rhythm is unchanged — the bare 16px icon was a
-                // quarter of the minimum and sat next to a status pill.
-                // Confirm first: this drops a Helpr who has already accepted.
-                <button
-                  type="button"
-                  onClick={() => setPendingRemoval(h)}
-                  disabled={removingIds.has(h.id)}
-                  aria-label={`Remove ${h.helperName || "Helpr"} from this job`}
-                  className="-m-2.5 p-2.5 shrink-0 inline-flex items-center justify-center rounded-full transition-colors disabled:opacity-40"
-                  style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                >
-                  <XCircle className="w-4 h-4" />
-                </button>
-              )}
+                )}
+                {arrivalConfirmable(h) && (
+                  <JobActionChip
+                    icon={MapPin}
+                    label={confirmingId === h.id ? "Confirming…" : "Confirm they've arrived"}
+                    ariaLabel={`Confirm ${h.helperName || "this Helpr"} arrived`}
+                    tone="primary"
+                    disabled={confirmingId !== null}
+                    onClick={() => void confirmArrival(h)}
+                  />
+                )}
+                {workConfirmable(h) && (
+                  <JobActionChip
+                    icon={CheckCircle2}
+                    label={approvingId === h.id ? "Confirming…" : "Confirm work"}
+                    ariaLabel={`Confirm ${h.helperName || "this Helpr"}'s work`}
+                    tone="primary"
+                    disabled={approvingId !== null}
+                    onClick={() => setPendingApproval(h)}
+                  />
+                )}
+                {canRemove && (
+                  // 44px target (Apple HIG) with a negative inset so the row's
+                  // visual rhythm is unchanged — the bare 16px icon was a
+                  // quarter of the minimum and sat next to a status pill.
+                  // Confirm first: this drops a Helpr who has already accepted.
+                  <button
+                    type="button"
+                    onClick={() => setPendingRemoval(h)}
+                    disabled={removingIds.has(h.id)}
+                    aria-label={`Remove ${h.helperName || "Helpr"} from this job`}
+                    className="-m-2.5 p-2.5 shrink-0 inline-flex items-center justify-center rounded-full transition-colors disabled:opacity-40"
+                    style={{ color: "hsl(var(--olivewood) / 0.7)" }}
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

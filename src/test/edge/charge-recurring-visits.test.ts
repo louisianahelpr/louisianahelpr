@@ -2003,7 +2003,7 @@ describe("charge-recurring-visits edge function", () => {
   it("ME-014: a taxable visit commits its tax calculation, and the fee floor covers the tax", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
-    wireJobsReads({ series: { rows: [seriesParent({ category: "assembly", budget: 2 })] } });
+    wireJobsReads({ series: { rows: [seriesParent({ category: "auto_repair", budget: 2 })] } });
     stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_1", tax_amount_exclusive: 20 });
     stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_1" });
 
@@ -2069,7 +2069,7 @@ describe("charge-recurring-visits edge function", () => {
   it("a taxable poster-fee series taxes the fee with the labor, and the visit's rate divides by both", async () => {
     const fn = await loadConfigured();
     seedHappyPath();
-    wirePosterSeries({ category: "assembly", budget: 100 });
+    wirePosterSeries({ category: "auto_repair", budget: 100 });
     // 10.45% of $100 (1045) + of $5.70 (60).
     stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_p", tax_amount_exclusive: 1105 });
     stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_p" });

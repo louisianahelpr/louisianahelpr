@@ -39,11 +39,32 @@ export function porchDayIsNow(day: string, now = new Date()): boolean {
 }
 
 /**
+ * Q2626 (audit 1102c R1): the day the server first takes the seller's porch photo (declutter_porch_photo,
+ * 20261030164712: COALESCE(pickup_day, the Louisiana date of slot_start)). A porch pickup booked for a TIME has no
+ * pickup_day, so the card used to ask for the photo the evening before ("put it out and take one photo" with the
+ * primary "Take the porch photo"), and a seller who followed it left the item outside overnight. Null: not booked.
+ */
+export function porchPhotoDay(booking: { pickup_day?: string | null; slot_start?: string | null }): string | null {
+  if (booking.pickup_day) return booking.pickup_day;
+  return booking.slot_start ? todayKey(new Date(booking.slot_start)) : null;
+}
+
+/**
  * When "They didn't show" may open. A booked time: its start (the button adds its own 15 minutes). A porch
  * day: 15 minutes before the day ends, so the button opens when the day is over (the server's rule).
+ *
+ * Q2627 (audit 1102c R2): the SELLER of a porch pickup waits until the item is no longer out, as the server
+ * does (declutter_report_no_show: COALESCE(porch_until, the end of the slot's day)). Before, a porch time
+ * opened "They didn't show" and "Report a problem" 15 minutes after the start, while the item was still out
+ * ("out until 7:03 AM"), which broke D2-9, and the server then refused the tap (too_early).
  */
-export function noShowFrom(booking: Pick<MyBooking, "slot_start" | "pickup_day">): string | null {
+export function noShowFrom(booking: Pick<MyBooking, "slot_start" | "pickup_day"> & { porch_until?: string | null }, porchSeller = false): string | null {
   if (!booking.slot_start) return null;
+  if (porchSeller) {
+    const s = new Date(booking.slot_start);
+    const until = booking.porch_until ? new Date(booking.porch_until) : new Date(s.getFullYear(), s.getMonth(), s.getDate() + 1);
+    return new Date(until.getTime() - 15 * 60_000).toISOString();
+  }
   if (!booking.pickup_day) return booking.slot_start;
   const d = localDay(booking.pickup_day);
   const end = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
@@ -54,9 +75,10 @@ export function noShowFrom(booking: Pick<MyBooking, "slot_start" | "pickup_day">
  * True once the booked pickup is over (owner 2026-10-29, D2-9: no "Report a problem" while the order waits for
  * pickup): 15 minutes after a booked time, or the end of a porch day, the moment "They didn't show" opens. The
  * "I got it" sheet's "Something's not right" (the handover itself) still opens the form. No booking yet: false.
+ * The porch seller's moment is the end of the porch window (Q2627, noShowFrom).
  */
-export function pickupTimeOver(booking: Pick<MyBooking, "slot_start" | "pickup_day"> | null, now = Date.now()): boolean {
-  const from = booking ? noShowFrom(booking) : null;
+export function pickupTimeOver(booking: (Pick<MyBooking, "slot_start" | "pickup_day"> & { porch_until?: string | null }) | null, now = Date.now(), porchSeller = false): boolean {
+  const from = booking ? noShowFrom(booking, porchSeller) : null;
   return !!from && now >= new Date(from).getTime() + 15 * 60_000;
 }
 

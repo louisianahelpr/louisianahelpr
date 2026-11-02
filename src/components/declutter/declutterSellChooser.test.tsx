@@ -18,7 +18,7 @@
  * @mutate src/components/ui/ChoiceCard.tsx | data-compact={compact ? "" : undefined} {...rest}>\n        {body}\n      </Link> | {...rest}>\n        {body}\n      </Link>
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | line="Your move date groups everything as one sale." | line="Add photos of everything, and your move date groups them as one sale."
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />\n |
- * @mutate src/components/declutter/DeclutterSellChooser.tsx | <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other ways</h3> |
+ * @mutate src/components/declutter/DeclutterSellChooser.tsx | <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other things</h3> |
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {movingOut && ( |             {true && (
  * @mutate src/components/declutter/DeclutterSellChooser.tsx |             {wanted && ( |             {true && (
  * @mutate src/components/declutter/DeclutterSellChooser.tsx | to={SELL_FREE_PATH} | to={SELL_ONE_PATH}
@@ -29,6 +29,7 @@
  * @mutate src/components/sections/sectionsConfig.ts | add: { label: "Sell an item", path: SELL_CHOOSER_PATH } | add: { label: "Sell an item", path: "/declutter/sell" }
  * @mutate src/components/create/CreateSheet.tsx | declutter: [{ label: "Sell an item", path: SELL_CHOOSER_PATH } | declutter: [{ label: "Sell an item", path: "/declutter/sell" }
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | <Link to={SELL_CHOOSER_PATH}>Sell something</Link> | <Link to="/declutter/sell">Sell something</Link>
+ * @mutate src/components/declutter/SellChooserEntry.tsx |       to={SELL_CHOOSER_PATH} |       to="/declutter/sell"
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
  * @mutate src/pages/post-job/EntryChoice.tsx |     <ChoiceCard key={key} icon={icon} title={title} line={line} onClick={onClick} extra={extra} /> |     <button key={key} type="button" onClick={onClick}>{title}{line}</button>
  */
@@ -158,7 +159,9 @@ describe("What do you want to sell?", () => {
     state.switches = { declutter: true, declutter_wanted: true };
     at(SELL_CHOOSER_PATH);
     await screen.findByRole("heading", { name: "What would you like to do?" });
-    expect(document.querySelector("[data-sell-other]")!.textContent).toBe("Other ways");
+    // Q2576 (audit 1102a): Post a Wanted is no way to sell, so the group is "Other things", not "Other ways".
+    // @mutate src/components/declutter/DeclutterSellChooser.tsx | data-sell-other="">Other things</h3> | data-sell-other="">Other ways</h3>
+    expect(document.querySelector("[data-sell-other]")!.textContent).toBe("Other things");
     expect(document.querySelector('[data-sell-choice="wanted"]')!.textContent).toContain("Post a Wanted");
     fireEvent.click(document.querySelector('[data-sell-choice="helpr"]')!);
     const sheet = await screen.findByRole("dialog");
@@ -215,7 +218,8 @@ describe("every Sell button opens the chooser", () => {
     const stale = [...ALLOWED].filter((f) => !files.includes(f) || !namesBarePath(f));
     expect(stale, "stale baseline entry in the bare-path list: remove it").toEqual([]);
     // The Sell buttons this guard was built for each name the chooser.
-    for (const f of ["src/components/create/CreateSheet.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterHomeView.tsx", "src/components/sections/sectionsConfig.ts"]) {
+    // DeclutterHomeView's Sell buttons moved into SellChooserEntry (the phone card) and TabletSellRow (B77, tab code split).
+    for (const f of ["src/components/create/CreateSheet.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/SellChooserEntry.tsx", "src/components/declutter/TabletSellRow.tsx", "src/components/sections/sectionsConfig.ts"]) {
       expect(blankComments(readFileSync(join(process.cwd(), f), "utf8")), f).toMatch(/SELL_CHOOSER_PATH/);
     }
   });

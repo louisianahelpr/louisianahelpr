@@ -10,7 +10,7 @@
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |     phone.trim() |     ""
  * @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | Neighbors see &ldquo;{formatName(`${firstName} ${lastName}`)}&rdquo; | Neighbors see &ldquo;{`${firstName} ${lastName}`}&rdquo;
  * @mutate src/components/profile/ProfileEditForm.tsx |             onClick={() => navigate(`/user/${profile.user_id}`)} |             onClick={() => navigate(`/profile`)}
- * @mutate src/components/profile/ProfileEditForm.tsx |         <TrustMarksCard profile={profile} phone={phone} /> |
+ * @mutate src/components/profile/ProfileEditForm.tsx |         <TrustMarksCard profile={profile} phone={profile?.phone ?? ""} /> |
  */
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";

@@ -1,29 +1,23 @@
 /**
- * The screens of Declutter slice 4 (docs/specs/declutter-auctions.md rows 14-15,
- * 18-19, 25-28, 45, 52, 93-99; B49-B58): what happens after the buyer paid.
- * One card per paid order, for both sides:
+ * The screens of Declutter slice 4 (docs/specs/declutter-auctions.md rows 14-15, 18-19, 25-28, 45, 52, 93-99;
+ * B49-B58): what happens after the buyer paid. One card per paid order, for both sides:
  *   - the exact pickup address (the paid buyer, row 98),
- *   - book / move the 30-minute pickup (buyer books first; each side may move
- *     it once; 7-day deadline),
- *   - the buyer's "I got it" (both pickups), which pays the seller; at the
- *     door (big items), the seller's "Picked up" (photo optional) does too;
- *     with neither, the 24 h auto-pay, which on a porch pickup needs the
- *     "Left on porch" photo (rows 25, 28, 93; owner 2026-10-18),
+ *   - book / move the 30-minute pickup (buyer books first; each side may move it once; 7-day deadline),
+ *   - the buyer's "I got it" (both pickups), which pays the seller; at the door (big items), the seller's "Picked up"
+ *     (photo optional) does too; with neither, the 24 h auto-pay, which on a porch pickup needs the "Left on porch"
+ *     photo (rows 25, 28, 93; owner 2026-10-18),
  *   - at the door: short safety tips for both sides, and "Add a Helpr" to carry it,
- *   - porch: the seller's "out all day / out until" and "Set out" photo; the
- *     buyer's "Picked up" photo, taken at the address, which pays the seller
- *     right away (rows 26, 97, 99),
+ *   - porch: the seller's "out all day / out until" and "Set out" photo; the buyer's "Picked up" photo, taken at the
+ *     address, which pays the seller right away (rows 26, 97, 99),
  *   - "They didn't show" from 15 minutes after the booked time (row 94),
  *   - "Report a problem" once the booked pickup is over or the item is handed over, until the seller is paid
  *     (rows 15, 67, 96; owner 2026-10-29: never while the order waits for pickup),
- *   - the seller's payout status (row 93) and, after handover, a review both
- *     ways (row 45).
- * Every rule is enforced by the server (20261015042253); these screens only
- * explain it. Plain words come from declutterErrorMessage.
+ *   - the seller's payout status (row 93) and, after handover, a review both ways (row 45).
+ * Every rule is enforced by the server (20261015042253); these screens only explain it. Plain words come from
+ * declutterErrorMessage.
  *
- * No QR code and no 4-digit code (owner 2026-10-17 + 2026-10-18: porch pickup,
- * buyer and seller never meet): the "Set out" photo, "I got it", the "Picked up"
- * photo and the 24 h auto-pay are the whole handover (20261018183715).
+ * No QR code and no 4-digit code (owner 2026-10-17 + 2026-10-18: porch pickup, buyer and seller never meet): the
+ * "Set out" photo, "I got it", the "Picked up" photo and the 24 h auto-pay are the whole handover (20261018183715).
  */
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import { lazy, Suspense, useState, type ReactNode, useEffect, useRef } from "react";
@@ -57,12 +51,13 @@ import { buyerOnWayToday } from "@/lib/declutter/pickupDay";
 import { ProblemOpenNote } from "./DeclutterProblemOpen";
 import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
 import { payoutLine } from "./declutterPayoutWords";
+import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
 import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
 import { GotItSheet, PickedUpPhotoSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
-import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
+import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel, porchPhotoDay } from "./DeclutterPorchDay";
 import { OrderPorchPlace } from "./DeclutterPorchPlaces";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, byBucket, refundStanding, type BuyerOrderView } from "./BuyingOrders";
@@ -72,9 +67,8 @@ import { DoorPickupTips, PickupAddresses, SellerAfterActions } from "./Declutter
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
-// The delivery screens load on their own (Q178, 2026-10-17): imported statically
-// from two Declutter screens, the shared Helpr task module rode in
-// signed-in-shared and put /posts over its critical-path budget.
+// The delivery screens load on their own (Q178, 2026-10-17): imported statically from two Declutter screens, the shared
+// Helpr task module rode in signed-in-shared and put /posts over its critical-path budget.
 import { DeliveryDoneStatus, onDay, PickupStatus, PorchOutPhoto, SellerDeliveryMoney, SellerDeliveryStatus } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
 import { gotItOpen } from "./OrderSteps";
@@ -99,10 +93,8 @@ const DeclutterProblemDecided = lazy(() => import("./DeclutterProblemSides").the
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 
-/**
- * Every paid order in `cart` (the cart's paid lines). The Buying and Selling
- * tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews).
- */
+/** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own
+ *  heading (PaidOrders in DeclutterTradeViews). */
 export function PaidOrdersSection({ cart, heading, label, views, show }: {
   cart: CartLine[]; heading?: ReactNode; label?: string;
   /** Buying's tracker (BuyingOrders.tsx): each buyer order's steps, chip and one next action. */
@@ -164,6 +156,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   // The same row and key HandoverPanel, NoShowButton and NoShowAnswer read: a buyer's no-show report and its 24 hours.
   const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: !done });
   const noShowWaiting = !!handoverRow.data?.no_show_reported_at;
+  const porchSeller = order.handover === "porch" && order.side === "seller"; // Q2627: its no-show and Report a problem wait for the porch window's end (noShowFrom).
   const [problemOpen, setProblemOpen] = useState(false);
   const [atHandover, setAtHandover] = useState(false); // opened from the "I got it" sheet (D2-11)
   // Board 141 (Declutter side, 20261026155251): ask for / answer a refund in the 24 hours after the handover.
@@ -239,9 +232,9 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       {!sellerNextFirst && problem && <OrderTalkButton orderId={order.orderId} side={order.side} />}
       {done ? (
         <>
-          {/* BUY-31: said once. The buyer's head line says it, and SellerDeliveryStatus says it to the seller. */}
-          {/* NIGHT-SELL-soldstates-7: the seller's finished delivery shows the tracker at its end too. */}
+          {/* BUY-31: said once (the buyer's head line; SellerDeliveryStatus to the seller). NIGHT-SELL-soldstates-7: a finished delivery shows the tracker at its end too. */}
           {order.handover === "delivery" && !view && <DeliveryDoneStatus free={items === 0} refunded={fullRefund} />}
+          {order.side === "seller" && items > 0 && <ManagerSaleShareGate orderId={order.orderId} itemsCents={items} itemCount={order.lines.length} />}
           {order.side === "seller" && payout && items > 0 && <p className="text-sm">{payoutLine(payout, !!problem)}
             {payout.status === "failed" && <FailedPayoutLink />}</p>}
           {refundRequests && items > 0 && (
@@ -301,12 +294,12 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} held={!!problem} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
-          {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
+          {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking, porchSeller) ?? booking.slot_start} who={who} />}
           {booking?.slot_start && !problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery={false} free={order.lines.every((l) => l.price_cents === 0)} />}
           {sellerNextFirst && <SellerAfterActions order={order} booking={booking} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
           {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). D2-2: none while a problem is open. */}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
-            onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} />}
+            onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking, Date.now(), porchSeller)} />}
         </>
       )}
       {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} bookedOnly={!!problem || refundHoldsTheItem(refundStatus) || refundTookItBack(refund.data?.request) || fullRefund} /></Suspense>}
@@ -341,32 +334,33 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
   // uses), never "(30 minutes)". Door and meetup keep their exact 30-minute time.
   const porch = order.handover === "porch";
   const windowWords = usePorchWindowWords(order, booked);
+  // Q2632 (audit 1102c R7): a safe-spot meeting is a meeting in its buttons too, as its tracker and time line say.
+  const what = order.handover === "meetup" ? "meeting" : "pickup";
   const timeLine = (label: string) => <BookedTimeLine order={order} booked={booked!} label={label} windowWords={windowWords} />;
   // A3-49: the seller's wait is said once, by the card's next-step line ("Waiting on Ann to pick a pickup time · by …").
   if (!booked && order.side === "seller") return null;
   const id = `dcl-slot-${order.orderId}`;
   if (frozen) return booked ? timeLine("Pickup") : null;
+  // Q2432: the no-show rule (declutter_report_no_show) where the buyer books, plus the reminder. Q2635 (audit 1102c
+  // R10): before a time is booked the picker comes first, and the rule follows it once a time is chosen.
+  const noShowRule = order.side === "buyer" && <p className="text-xs text-muted-foreground" data-testid="declutter-no-show-warning">
+    We'll remind you 1 hour before. If you miss it, the seller can report a no-show: you get one new time, and a second miss cancels the sale with a strike.</p>;
   return (
     <div className="space-y-2">
       {booked && timeLine(order.handover === "meetup" ? "Meeting" : "Pickup")}
-      {/* Q2432: the existing no-show rule (declutter_report_no_show), stated where the buyer books, plus the reminder. */}
-      {order.side === "buyer" && (
-        <p className="text-xs text-muted-foreground" data-testid="declutter-no-show-warning">
-          We'll remind you 1 hour before. If you miss it, the seller can report a no-show: you get one new time, and a second miss cancels the sale with a strike.
-        </p>
-      )}
+      {booked && noShowRule}
       {/* Each side moves a booked time once (deep audit #25: "Move it" was still offered after the move was used). */}
       {movedAlready ? (
-        <p className="text-xs text-muted-foreground" data-testid="declutter-move-used">You've already moved this pickup once. Message the other side if the time doesn't work.</p>
+        <p className="text-xs text-muted-foreground" data-testid="declutter-move-used">{`You've already moved this ${what} once. Message the other side if the time doesn't work.`}</p>
       ) : booked && order.side === "seller" ? (
         // Night audit sold states #3: once the booked time has started the seller's next step is "Picked up" or
         // "They didn't show", so "Move the pickup" goes.
         // Deep audit #32: folded behind one button, so a booked card is not two full pickers deep at 390.
-        Date.now() >= new Date(booked).getTime() ? null : <FoldedTimePicker id={id} openLabel="Move the pickup" title="Move it (you can do this once)" fieldLabel="New pickup time"
+        Date.now() >= new Date(booked).getTime() ? null : <FoldedTimePicker id={id} openLabel={`Move the ${what}`} title="Move it (you can do this once)" fieldLabel={`New ${what} time`}
           confirmLabel="Move" pending={book.isPending} onConfirm={(iso) => book.mutate(iso)} />
       ) : booked && !moving ? (
         // The buyer's move folds the same way (#32), and opens the seller's own times (#2).
-        <button type="button" className={btn} aria-expanded={false} disabled={book.isPending} onClick={() => setMoving(true)}>Move the pickup</button>
+        <button type="button" className={btn} aria-expanded={false} disabled={book.isPending} onClick={() => setMoving(true)}>{`Move the ${what}`}</button>
       ) : (
       <>
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
@@ -378,6 +372,7 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
             onClick={() => { const iso = slot ?? localInputToIso(value); if (iso) book.mutate(iso); }}>{booked ? "Move" : "Book"}</button>
           {booked && <button type="button" className={btn} onClick={() => { setMoving(false); setSlot(null); }}>Cancel</button>}
         </div>
+        {!booked && !!(slot ?? localInputToIso(value)) && noShowRule}
       </div>
       </>
       )}
@@ -433,26 +428,30 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
       return rule('the buyer taps "I got it" or takes their pickup photo, or 24 hours after the later of the pickup time and your porch photo, if no problem is reported');
     }
     const fileId = `dcl-door-${order.orderId}`;
+    // Q2632 (audit 1102c R7): at a safe meeting spot the seller hands it over: "Handed over", "from the meeting time".
+    const meet = order.handover === "meetup";
+    const done = meet ? "Handed over" : "Picked up";
+    const from = meet ? "the meeting time" : "the pickup time";
     // A buyer's no-show report: the card's answer is the seller's way forward (the server refuses Picked up: no_show_reported).
     if (handoverRow.data?.no_show_reported_at) return null;
     // Owner 10-30: the seller's word waits for the buyer. Said once; toasts for a confirmation show nothing (toastPolicy).
     if (handoverRow.data?.seller_confirmed_at && !free) {
-      return <p role="status" className="text-sm text-foreground" data-seller-confirmed="">You said it was picked up. We asked the buyer to confirm. If they don't say anything, you're paid in about 48 hours. If they report a problem, Louisiana Helpr decides.</p>;
+      return <p role="status" className="text-sm text-foreground" data-seller-confirmed="">{`You said it was ${meet ? "handed over" : "picked up"}. We asked the buyer to confirm. If they don't say anything, you're paid in about 48 hours. If they report a problem, Louisiana Helpr decides.`}</p>;
     }
     // From the booked time only (the server checks again: before_pickup_time).
     if (Date.now() < new Date(slotStart).getTime()) {
-      return free ? rule('the buyer taps "I got it" or you tap "Picked up", from the pickup time')
-        : <p className="text-sm text-muted-foreground">You can tap "Picked up" from the pickup time.</p>;
+      return free ? rule(`the buyer taps "I got it" or you tap "${done}", from ${from}`)
+        : <p className="text-sm text-muted-foreground">{`You can tap "${done}" from ${from}.`}</p>;
     }
     return (
       <div className="space-y-2">
-        {rule('the buyer taps "I got it" or you tap "Picked up"')}
+        {rule(`the buyer taps "I got it" or you tap "${done}"`)}
         <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional, taken where you hand it over)</label>
         <PhotoPickButton id={fileId} picked={photo} disabled={pickedUp.isPending} onPick={setPhoto} />
         <button type="button" className={primary} disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
-          Picked up
+          {done}
         </button>
-        <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} free={free} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} />
+        <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} free={free} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} label={done} />
       </div>
     );
   }
@@ -501,7 +500,9 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
   // BUY-5: the buyer's side reads it too (HandoverPanel already does, same key): the pickup photo waits like "I got it".
   const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId) });
   const posted = seller && !!handoverRow.data?.set_out_at;
-  const notYet = seller && !posted && !!booking.pickup_day && !porchDayIsNow(booking.pickup_day);
+  // Q2626: a porch TIME counts too: its day is the slot's (porchPhotoDay, the server's rule).
+  const photoDay = porchPhotoDay(booking);
+  const notYet = seller && !posted && !!photoDay && !porchDayIsNow(photoDay);
   // BUY-5 (buying audit 10-30 #5): offered days early, it finished the sale. Same rule as HandoverPanel's porchReady.
   const buyerWaits = !seller && !handoverRow.data?.set_out_at
     && !(booking.pickup_day ? porchDayIsNow(booking.pickup_day) : !!booking.slot_start && Date.now() >= new Date(booking.slot_start).getTime());
@@ -562,7 +563,7 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
       {buyerWaits ? null : notYet ? (
         // Night audit sold states #3: the card's status line already says "Put it out <day> and post the porch photo";
         // this one says only what is not there yet.
-        <p className="text-sm" data-porch-not-yet="">You can take the porch photo {onDay(booking.pickup_day as string)}.</p>
+        <p className="text-sm" data-porch-not-yet="">You can take the porch photo {onDay(photoDay as string)}.</p>
       ) : (<>
       <label htmlFor={fileId} className="sr-only">
         {order.side === "seller" ? `Photo of the item on your porch ("Left on porch"${payWords ? ": needed before you can be paid automatically)" : ")"}` : `Photo when you pick it up, taken at the address ("Picked up"${payWords ? ": this pays the seller 24 hours later)" : ")"}`}

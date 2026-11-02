@@ -445,16 +445,12 @@ describe("Popup grammar — body voice", () => {
 });
 
 describe("Popup grammar — footer", () => {
-  /** The one three-action footer in the app, and why it is allowed to be. */
-  const THREE_ACTION_EXCEPTIONS: Record<string, string> = {
-    "src/components/BlockUserDialog.tsx":
-      "'Just Block' and 'Block and Report' are two different writes; neither may be dropped to fit the pattern. Only one renders as the red commit.",
-  };
+  /** Three-action footers and why each is allowed to be. None since Q2682 (BlockUserDialog's "Just block" became an Also report box). */
+  const THREE_ACTION_EXCEPTIONS: Record<string, string> = {};
   /** Footers whose commit is chosen at render time between two components. */
   const BRANCHED_COMMITS: Record<string, string> = {
     "src/pages/profile/SavedSearchesTab.tsx": "Delete search asks once in the sheet: \"Delete search\" or, after it, \"Yes, delete it\": exactly one renders (asking ? confirm : delete)",
     "src/components/admin/BanDialog.tsx": "warning commits glossy, ban commits red — exactly one renders",
-    "src/components/BlockUserDialog.tsx": "see THREE_ACTION_EXCEPTIONS",
     "src/components/declutter/DeclutterManageListing.tsx": "board 158's confirm step: \"Mark sold\" (view sold) or \"Delete listing\" (view delete) — exactly one renders (view === \"sold\" ? primary : destructive)",
     "src/components/rentals/LeasePanel.tsx": "the lease editor's last step: \"Save and next\" until the landlord reads it, then \"Sign and send\" — exactly one renders (reviewing ? send : save)",
   };
@@ -1058,6 +1054,7 @@ describe("Popup grammar — footer", () => {
    * real distinction and it belongs in the open, per `popupFooter.ts`'s own
    * note that read-only and opt-out surfaces carry different weight.
    */
+  // @mutate src/pages/jobs/jobPage/useWithdrawOffer.tsx | secondaryLabel="Cancel" | secondaryLabel="Keep offer"
   it("a confirm dismiss says Cancel, and every exception is declared", () => {
     // Opt-out prompts, not confirms. Adding a name here is a deliberate
     // statement that the surface is an invitation being declined.
@@ -1077,7 +1074,7 @@ describe("Popup grammar — footer", () => {
       // Declutter Browse filter sheet (board 39): its footer's secondary resets
       // every filter; it is an action, not a dismissal.
       "Clear all",
-      "Maybe Later",
+      "Maybe later",
       // Boards 35/36 (Job done + review): the review can still be left later
       // from the completed card, so the dismiss names that.
       "Skip for now",
@@ -1089,24 +1086,23 @@ describe("Popup grammar — footer", () => {
       // Board 156's safety sheet: closing it says the person is safe; nothing
       // is cancelled (Builder 5, 2026-10-21).
       "I'm safe now",
-      "Not Now",
       "Skip",
       "No thanks",
       "Keep It On",
-      "Keep the Job",
+      "Keep the job",
       // Q446 (owner, 2026-10-05): the one-account choice's other answer is a
       // real path, not a dismissal; and removing a sign-in method's secondary
-      // names the state kept, like "Keep the Job".
+      // names the state kept, like "Keep the job".
       "I already have an account",
       // Q1550: the Application Sent pop-up's other answer goes on browsing;
       // nothing is being cancelled (the application is already sent).
       "Keep browsing",
       // Shops M3 (ShopOrderCancel): the buyer's / shop's "Cancel order?" confirm. Same grammar
-      // as "Keep the Job": "Cancel" beside "Cancel order" would read as the action itself.
+      // as "Keep the job": "Cancel" beside "Cancel order" would read as the action itself.
       "Keep the order",
       "Keep it",
       // DisputedSection's withdraw confirm ("Withdraw this dispute?"). Same
-      // grammar as "Keep the Job": the secondary names the state that is
+      // grammar as "Keep the job": the secondary names the state that is
       // KEPT, because "Cancel" beside "Withdraw" reads as cancelling the
       // dispute — the exact opposite of what the button does.
       "Keep It Open",

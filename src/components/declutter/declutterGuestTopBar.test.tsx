@@ -13,8 +13,8 @@
  * Lead 10-31 (follow-up): at 1440 a guest then saw the logo and Sign up / Log in twice (the bar and the item's join
  * panel). At desktop width the item panel keeps only its item-specific message; phone widths are unchanged.
  * @mutate src/components/declutter/DeclutterGuest.tsx |   // so the panel keeps only its item-specific message there. Phone widths have no bar and keep everything.\n  const barShown = useIsWebDesktop(); |   // so the panel keeps only its item-specific message there. Phone widths have no bar and keep everything.\n  const barShown = false;
- * @mutate src/components/declutter/DeclutterGuest.tsx |       {!barShown && (\n        <div className="grid gap-2 sm:grid-cols-2"> |       {true && (\n        <div className="grid gap-2 sm:grid-cols-2">
- * @mutate src/components/declutter/DeclutterGuest.tsx |       {!barShown && (\n        <div className="grid gap-2 sm:grid-cols-2"> |       {barShown && (\n        <div className="grid gap-2 sm:grid-cols-2">
+ * @mutate src/components/declutter/DeclutterGuest.tsx |       {!barShown && (\n        // Q2581 (audit 1102a) |       {true && (\n        // Q2581 (audit 1102a)
+ * @mutate src/components/declutter/DeclutterGuest.tsx |       {!barShown && (\n        // Q2581 (audit 1102a) |       {barShown && (\n        // Q2581 (audit 1102a)
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -115,8 +115,9 @@ describe("the item's join panel does not repeat the bar at desktop width (lead 1
     expect(join).toHaveTextContent("Sign up to buy it or make an offer.");
     expect(within(join).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
       "/",
-      "/signup?redirect=%2Fdeclutter%2Fitem%2Fi1",
+      // Q2581: Log in then Sign up, the order Browse's guest card and the top bar use.
       "/login?redirect=%2Fdeclutter%2Fitem%2Fi1",
+      "/signup?redirect=%2Fdeclutter%2Fitem%2Fi1",
     ]);
   });
 });

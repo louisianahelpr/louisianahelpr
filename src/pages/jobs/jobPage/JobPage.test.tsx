@@ -41,7 +41,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew, offeredToMe }); | myApplication: myApplication.data, posterFirst, offeredToMe });
  * @mutate src/components/tracker/jobProgressState.ts | poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") | poster ? ("Pick your Helpr")
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  pendingApplicants={isPoster && applicants.data ? pending : undefined} | pendingApplicants={undefined}
- * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !closedToMe && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {false && ((job.proof_before_urls
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {((job.proof_before_urls
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {party && (isPoster \|\| isHired) && ((job.proof_before_urls | {(isPoster \|\| isHired) && ((job.proof_before_urls
@@ -79,10 +79,13 @@ const state = {
   position: null as { status: string | null; latitude: number | null; longitude: number | null } | null,
   /** useJobPage's crewConfirmed: the member's roster row has helper_confirmed_at (JA-33). */
   crewConfirmed: false,
+  /** A3-33: the member's own roster row (useCrewSlot). */
+  crewSlot: null as Record<string, unknown> | null,
   /** usePosterPageFlows' crewNobodyLeft (JOBS-3: every crew member reported a no-show). */
   crewNobodyLeft: false,
   /** usePosterPageFlows' crewRoster (JA-32: the page draws the crew). */
   crewRoster: undefined as Array<Record<string, unknown>> | undefined,
+  crewNames: undefined as Record<string, string> | undefined,
   /** CMP-4: the viewer's instant booking's decline-by (useMyInstantBooking), or null. */
   instantUntil: null as string | null,
   /** useOfferedToMe: a pending direct offer to the viewer (an instant booking is one). */
@@ -91,6 +94,7 @@ const state = {
   owesReview: false,
 };
 
+vi.mock("@/hooks/useCrewSlot", () => ({ useCrewSlot: () => ({ data: state.crewSlot }) }));
 vi.mock("./useJobPage", () => ({
   useOfferedToMe: () => state.offeredToMe,
   useOwesReview: () => ({ owes: state.owesReview, refetch: () => {} }),
@@ -192,9 +196,9 @@ vi.mock("./usePosterPageFlows", () => ({
     setLeadHost: (el: HTMLElement | null) => { if (el) flowCalls.push("lead-host"); },
     setAskHost: () => {},
     setTextHost: (el: HTMLElement | null) => { if (el) flowCalls.push("text-host"); },
-    approve: () => flowCalls.push("approve"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
+    approve: () => flowCalls.push("approve"), notRight: () => flowCalls.push("not-right"), cancel: () => flowCalls.push("cancel"), edit: () => flowCalls.push("edit"),
     setSecondHost: () => {}, setListHost: (el: HTMLElement | null) => { if (el) flowCalls.push("options-list"); },
-    crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, panel: <div data-testid="card-panel" />, dialogs: null,
+    crewNobodyLeft: state.crewNobodyLeft, crewRoster: state.crewRoster, crewNames: state.crewNames, panel: <div data-testid="card-panel" />, dialogs: null,
   }),
 }));
 // JA-30: the case dialog the page opens (the cards' own DisputeTimelineDialog), recorded rather than reading Supabase.
@@ -308,6 +312,7 @@ beforeEach(() => {
   workingApps.rows = [];
   offerAnswers.length = 0;
   state.onCrew = false;
+  state.crewSlot = null;
   state.crewConfirmed = false;
   state.job = null;
   state.party = false;
@@ -321,6 +326,7 @@ beforeEach(() => {
   state.cardHold = false;
   state.crewNobodyLeft = false;
   state.crewRoster = undefined;
+  state.crewNames = undefined;
   state.instantUntil = null;
   state.offeredToMe = false;
   state.moreCount = 2;
@@ -366,6 +372,26 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "View application" }));
     expect(screen.getByTestId("where").textContent).toContain("/jobs?tab=working");
+  });
+
+  // Jobs audit 1102b row 9 (Q2595): an applicant of a listing that expired read "Not paid · This job was cancelled,
+  // so there's nothing to pay out." and "The street address is shared once you're offered the job.", with no way on.
+  // @mutate src/pages/jobs/jobPage/viewerState.ts |   if (isExpiredListing(o.job)) return { action: { kind: "none" }, status: EXPIRED_BEFORE_HIRE }; |
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const helprPrice = isPoster \|\| closedToMe ? null : |   const helprPrice = isPoster ? null :
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |     : closedToMe ? null : <HelprMoneyNotes |     : <HelprMoneyNotes
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !closedToMe && !instantUntil | {!isPoster && !isHired && !instantUntil
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | ? { label: "Browse jobs", go: () => navigate("/browse") } | ? null
+  it("an applicant of an expired listing: expired before anyone was hired, no money box, no address line, Browse jobs (Q2595)", async () => {
+    state.job = row({ status: "cancelled", location: null, cancellation_reason: "Job listing expired — no helper accepted", cancelled_by: null } as Partial<JobPageRow>);
+    state.myApplication = { status: "rejected", closed_reason: "job_cancelled" };
+    renderPage();
+    expect(await screen.findByText("This job expired before anyone was hired.")).toBeTruthy();
+    expect(document.querySelector("[data-helpr-money]")).toBeNull();
+    expect(document.querySelector("[data-helpr-money-notes]")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/nothing to pay out|was cancelled/);
+    expect(screen.queryByText(/street address is shared once/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Browse jobs" }));
+    expect(screen.getByTestId("where").textContent).toBe("/browse");
   });
 
   it("shows the real take-home (no fee named), the city only, and Apply opens the apply sheet on the page", async () => {
@@ -610,6 +636,31 @@ describe("job page, the poster confirms the arrival here (F14)", () => {
     expect(screen.getByTestId("card-panel")).toBeTruthy();
   });
 
+  // A3-8 (audit 11-01): at the approve step the poster's complaint is a visible text button under the pair (Message |
+  // Approve stays, owner 12:49 PM), opening the approve sheet at the fix form; at other steps it is not there.
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null; |   const notRight = null;
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null; |   const notRight = flows.ready ? flows.notRight : null;
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | data-not-right-open="" onClick={posterActions.notRight} | data-not-right-open="" onClick={posterActions.edit}
+  it("A3-8: 'Something's not right' sits under Message | Approve and opens the fix form; not before the Helpr marks it done", async () => {
+    state.job = { ...arrived(), poster_confirmed_arrival_at: "2026-10-28T12:40:00Z", helper_completed_at: "2026-10-28T15:00:00Z" };
+    state.party = true;
+    renderPage();
+    const link = await screen.findByRole("button", { name: "Something's not right" });
+    expect(link.hasAttribute("data-not-right-open")).toBe(true);
+    // The pair keeps Approve as its lead (owner 12:49 PM); the complaint is outside the row, not in a menu.
+    expect(link.closest("[data-job-row]")).toBeNull();
+    expect(screen.getByRole("button", { name: "Approve and release" })).toBeTruthy();
+    fireEvent.click(link);
+    expect(flowCalls).toEqual(["not-right"]);
+    cleanup();
+    flowCalls.length = 0;
+    // Arrived, not marked done: there is nothing to approve, so no complaint button either.
+    state.job = { ...arrived(), poster_confirmed_arrival_at: "2026-10-28T12:40:00Z" };
+    renderPage();
+    await screen.findAllByRole("button");
+    expect(screen.queryByRole("button", { name: "Something's not right" })).toBeNull();
+  });
+
   // LEAD-JOBPAGE-LAYOUT (owner 2026-10-31): no step due is the next useful thing, never "Manage job".
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |   const message = job.helper_id && HAS_HELPR.has(status) |   const message = false && HAS_HELPR.has(status)
   it("with nothing to confirm yet (on the way) the button is Message the Helpr, never Manage job", async () => {
@@ -765,7 +816,7 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByLabelText(/^Job progress, step 7 of 8: Working, waiting on you\./)).toBeTruthy();
     expect(screen.getByText("Next: mark it done when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open in Jobs" }));
     // F10: Working's own card for THIS job, in its bucket and opened (`?job=`; `?highlight=` there is an application id).
     expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
   });
@@ -929,7 +980,7 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
   // B80 / B111: after the Helpr answers, the pending-offer row is gone (offeredToMe false, so the viewer is no longer
   // "see_offer") while the page keeps the booking card on screen (useMyInstantBooking's latch). Only !instantUntil
   // keeps the "shared once you're offered" line from sitting beside "You're booked": the case that line guards.
-  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && viewer.action.kind !== "see_offer" && <p
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | {!isPoster && !isHired && !closedToMe && !instantUntil && viewer.action.kind !== "see_offer" && <p | {!isPoster && !isHired && !closedToMe && viewer.action.kind !== "see_offer" && <p
   it("after the answer (the offer row gone, the card kept): no 'street address is shared' line beside it", () => {
     state.job = row({ status: "open", payment_status: "held", direct_offer_status: null });
     state.party = true;
@@ -982,14 +1033,16 @@ describe("job page, the booked Helpr's instant booking (CMP-4)", () => {
 // city. Owner rule 2026-08-31 ("Should only see address when they are offered the job"): the offered
 // Helpr sees the street on both; a Helpr who only applied sees the city and the line saying when.
 describe("job page, the street address follows the Working card", () => {
-  it("the offered Helpr sees the street the offer card shows, and no 'shared once' line", () => {
+  it("the offered Helpr sees the street the offer card shows, and no 'shared once' line", async () => {
     state.job = row({ helper_id: ME, status: "accepted", helper_confirmed_at: null });
     state.party = true;
     renderPage();
     // JA-16 (audit 11-01): said once, by the tracker, never again as a bold status line under it.
     // @mutate src/pages/jobs/jobPage/viewerState.ts |     return { action: { kind: "see_offer" }, status: null }; |     return { action: { kind: "see_offer" }, status: "Lexi offered you this job" };
     expect(document.querySelector("[data-viewer-status]")).toBeNull();
-    expect(document.body.textContent!.match(/offered you this job/g)?.length).toBe(1);
+    // Q2601: the tracker says it as the step ("accept or decline Rhonda's offer"), once.
+    await waitFor(() => expect(document.body.textContent!.match(/accept or decline Rhonda's offer/g)?.length).toBe(1));
+    expect(document.body.textContent).not.toMatch(/offered you this job/);
     expect(document.querySelector("[data-job-address]")?.textContent).toBe("Address: 123 Main St, Delcambre, LA 70528");
     expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
     expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
@@ -1121,7 +1174,7 @@ describe("a crew member's own job page (A2-B8)", () => {
     renderPage();
     // JA-18: "See your crew steps" opens the Working card, so no "Open in working" beside it (two buttons, one place).
     expect(await screen.findByRole("button", { name: "See your crew steps" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open in Jobs" })).toBeNull();
     expect(screen.queryByText("This job is no longer available")).toBeNull();
     expect(document.querySelector("[data-job-address]")?.textContent).toContain("4412 Highland Rd");
     expect(screen.queryByText(/street address is shared once/)).toBeNull();
@@ -1130,7 +1183,7 @@ describe("a crew member's own job page (A2-B8)", () => {
 
   // JOBS-27 (Jobs audit 10-30, h6-crew): the member's page offered only a generic "Manage job"; their steps are on
   // the crew roster in the Working card, so the button names them and opens that card.
-  // @mutate src/pages/jobs/jobPage/hiredHelprFace.ts | return { ...face, label: "See your crew steps" }; | return face;
+  // @mutate src/pages/jobs/jobPage/hiredHelprFace.ts | ?? { ...face, label: "See your crew steps" }; | ?? face;
   it("names the crew steps as the button, not a generic Manage job, and opens the Working card", async () => {
     state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 3, helper_id: null, location: "4412 Highland Rd, Baton Rouge, LA 70808" });
     state.party = true;
@@ -1161,13 +1214,49 @@ describe("a crew member's own job page (A2-B8)", () => {
     await waitFor(() => expect(tracker()).toContain("Next: confirm your spot on the crew"));
   });
 
+  // A3-33 (audit 11-01): the member's page says THEIR step, read off their own roster row.
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx |               : !isPoster && onCrew ? crewMemberLine(crewSlot.data, job.status, posterFirst) : null)} /> |               : null)} />
+  it("A3-33: a crew member's page reads their own step from their roster row", async () => {
+    state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 2, helper_id: null });
+    state.party = true;
+    state.myApplication = { status: "accepted", closed_reason: null };
+    state.onCrew = true;
+    state.crewConfirmed = true;
+    state.crewSlot = { helper_confirmed_at: "t", helper_on_the_way_at: "t", helper_arrived_at: "t", poster_confirmed_arrival_at: null, helper_completed_at: null };
+    renderPage();
+    const line = () => document.querySelector("[data-next-step]")?.textContent ?? "";
+    await waitFor(() => expect(line()).toMatch(/^Waiting on .+ to confirm you arrived$/));
+    expect(line()).not.toMatch(/Your spot is confirmed/);
+  });
+
+  // A3-33 (audit 11-01): working, the member's page said "Next: finish and mark it done" but its only button was "See
+  // your crew steps". Their own step is the button now; it opens the Working card, which takes it (crewMemberFace).
+  // @mutate src/pages/jobs/jobPage/hiredHelprFace.ts |     return crewMemberFace(job.id, o.crewSlot, job, o.open) ?? { ...face, label: "See your crew steps" }; |     return { ...face, label: "See your crew steps" };
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data, | review: () => setReviewOpen(true), application: myApplication.data,
+  it("A3-33: a working crew member's button is 'Mark my part done', not 'See your crew steps'", async () => {
+    state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 2, helper_id: null });
+    state.party = true;
+    state.myApplication = { status: "accepted", closed_reason: null };
+    state.onCrew = true;
+    state.crewConfirmed = true;
+    const long = new Date(Date.now() - 3 * 3600_000).toISOString();
+    state.crewSlot = {
+      helper_confirmed_at: long, helper_on_the_way_at: long, helper_arrived_at: long, poster_confirmed_arrival_at: long,
+      poster_confirmed_working_at: long, helper_completed_at: null, proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"],
+    };
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Mark my part done" }));
+    expect(screen.queryByRole("button", { name: "See your crew steps" })).toBeNull();
+    expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
+  });
+
   it("an applicant NOT on the crew still reads as closed out", async () => {
     state.job = row({ status: "in_progress", is_group_job: true, helpers_needed: 3, helper_id: null, location: null });
     state.party = false;
     state.myApplication = { status: "rejected", closed_reason: null };
     renderPage();
     expect(await screen.findByText("Not selected this time")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open in Jobs" })).toBeNull();
   });
 });
 
@@ -1253,7 +1342,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   });
 
   // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     canChange && { key: "change" |     false && { key: "change"
-  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |       {others > 1 && ( |       {others > 99 && (
+  // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |       {(others > 1 \|\| menuOnly) && ( |       {(others > 99 \|\| menuOnly) && (
   it("a booked job: [Message | More options], and More options lists Change date or time and Cancel job in one tap", async () => {
     state.job = booked();
     state.party = true;
@@ -1335,6 +1424,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
   // @mutate src/components/GroupJobHelpers.tsx |               {onMessage && h.helper_id && h.status === "accepted" && ( |               {false && (
   // @mutate src/components/tracker/jobProgressState.ts |   if (poster && crewBookedOnRow(job)) return at(2 | if (false) return at(2
   // @mutate src/components/tracker/jobProgressState.ts | if (o.viewer === "poster" && crewBookedOnRow(job) && base.word === "Hired") return base; | if (false) return base;
+  // @mutate src/pages/jobs/jobPage/JobPage.tsx | continueStep={continueDay.step ?? (isPoster && job.is_group_job ? crewPosterStep( | continueStep={continueDay.step ?? (false ? crewPosterStep(
   it("a crew job: the roster on the page, with each member's step, Message and Confirm work", () => {
     const m = (id: string, name: string, over: Record<string, unknown>) => ({
       id: `slot-${id}`, helper_id: id, status: "accepted", helperName: name, helper_confirmed_at: "2026-10-27T12:00:00Z",
@@ -1347,12 +1437,15 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
       m("44444444-4444-4444-4444-444444444444", "Ann B.", { helper_arrived_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "t" }),
       m("55555555-5555-5555-5555-555555555555", "Marcus T.", {}),
     ];
+    state.crewNames = { "44444444-4444-4444-4444-444444444444": "Ann B.", "55555555-5555-5555-5555-555555555555": "Marcus T." };
     renderPage();
     const crew = document.querySelector("[data-job-crew]") as HTMLElement;
     expect(crew).toBeTruthy();
     expect(crew.textContent).toContain("Your crew · 2 of 2 hired");
     expect(crew.querySelectorAll("[data-crew-member]").length).toBe(2);
     expect(screen.getByRole("button", { name: /Confirm Ann B\.'s work/ })).toBeTruthy();
+    // A3-32 (audit 11-01): the line names the poster's step from the roster, never "Waiting on your crew to finish".
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe("Next: confirm Ann's work");
     fireEvent.click(screen.getByRole("button", { name: /Message Marcus T\./ }));
     expect(screen.getByTestId("where").textContent).toBe(`/messages?jobId=${encodeURIComponent(row().id)}&userId=55555555-5555-5555-5555-555555555555`);
   });
@@ -1444,7 +1537,7 @@ describe("the poster acts on the job page (LEAD-JOBPAGE-LAYOUT, owner 2026-10-31
 // @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const cells = (stepRight ? [second, leadNode] : [leadNode, second]).filter(Boolean); |   const cells = [leadNode, second].filter(Boolean);
 // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |     const cardLead = !step && cardSteps && flows.leadCount > 0; |     const cardLead = false;
 // @mutate src/pages/jobs/jobPage/JobPage.tsx |   const approveLeft = isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease |   const approveLeft = false && isPoster && posterWait === "approve" && job.helper_completed_at && !instantRelease
-// @mutate src/pages/jobs/jobPage/JobPage.tsx | owesReview, review: () => setReviewOpen(true) }) | review: () => setReviewOpen(true) })
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | owesReview, review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data, | review: () => setReviewOpen(true), crewSlot: crewSlot.data, application: myApplication.data,
 describe("one row of buttons at every stage (B93)", () => {
   const live = { customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
     helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
@@ -1478,6 +1571,31 @@ describe("one row of buttons at every stage (B93)", () => {
     expect(line.textContent).toMatch(/^Next: approve Rhonda's work · 23h 5\dm left, then Helpr support steps in$/);
     expect(document.querySelector("[data-approve-by]")).toBeNull();
     expect(document.body.textContent).not.toMatch(/to review — then Helpr support steps in/);
+  });
+
+  // Jobs audit 1102b rows 7 and 8 (Q2593, Q2594): while a dispute is open the poster's lead was "Approve" (its sheet
+  // never mentions the case) and "Not finished? Set a day" was offered to both sides beside "A real person at
+  // Louisiana Helpr is looking at the problem". Now Message leads, See the case is there, and no continue day.
+  // @mutate src/pages/jobs/jobPage/posterPageActions.tsx |       : posterWait === "approve" && !disputeOpen |       : posterWait === "approve"
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx | job.status === "in_progress" && !job.has_active_dispute && | job.status === "in_progress" &&
+  it("an open dispute on a job marked done: no Approve lead, no continue day, either side (Q2593, Q2594)", async () => {
+    state.moreCount = 0;
+    const disputed = { ...live, helper_arrived_at: "2026-10-28T14:20:00Z", poster_confirmed_working_at: "2026-10-28T14:25:00Z", helper_completed_at: new Date().toISOString(), has_active_dispute: true };
+    state.job = row(disputed);
+    state.party = true;
+    const r = renderPage();
+    await waitFor(() => expect(rowLabels()[0]).toBe("Message Rhonda"));
+    expect(rowLabels()).not.toContain("Approve and release");
+    expect(rowLabels()).not.toContain("Approve");
+    expect(document.querySelector("[data-see-the-case]")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Not finished? Set a day" })).toBeNull();
+    r.unmount();
+    // The Helpr's side of the same job.
+    state.job = row({ ...disputed, customer_id: POSTER, helper_id: ME, helper_completed_at: null });
+    state.tracking = "working";
+    renderPage();
+    await waitFor(() => expect(document.querySelector("[data-see-the-case]")).not.toBeNull());
+    expect(screen.queryByRole("button", { name: "Not finished? Set a day" })).toBeNull();
   });
 
   it("completed (JA-10): the card's own Review leads the row; Message joins the options", async () => {
@@ -1520,6 +1638,12 @@ describe("one row of buttons at every stage (B93)", () => {
     renderPage();
     await waitFor(() => expect(rowLabels()).toEqual(["More options", "Leave a review"]));
     expect(document.querySelector("[data-helpr-paid]")?.textContent).toMatch(/^Approved\. Your pay goes out /);
+    // Q2598 (Jobs audit 1102b row 12): the same name alone in More options as in a pair, never "Open in working".
+    // @mutate src/pages/jobs/jobPage/JobPage.tsx | const OPEN_IN_JOBS = "Open in Jobs"; | const OPEN_IN_JOBS = "Open in working";
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    const list = within(document.querySelector("[data-row-options]") as HTMLElement);
+    expect(await list.findByRole("button", { name: "Open in Jobs" })).toBeTruthy();
+    expect(list.queryByText("Open in working")).toBeNull();
   });
 });
 
@@ -1530,7 +1654,7 @@ describe("one row of buttons at every stage (B93)", () => {
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const detailsLong = posterDetails.length > 90 |   const detailsLong = posterDetails.length > 90000
  * @mutate src/pages/jobs/jobPage/JobPageActionRow.tsx |   const stepRight = cardLead \|\| (!!lead && !plainLead); |   const stepRight = cardLead \|\| leadIsStep;
  * @mutate src/components/tracker/jobProgressState.ts |   if (status === "in_progress" && !job.is_group_job && (job.proof_after_urls |   if (false && status === "in_progress" && !job.is_group_job && (job.proof_after_urls
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const offerOut = isPoster && open && job.direct_offer_status === "pending"; |   const offerOut = false;
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const offerOut = isPoster && offerIsOut(job); |   const offerOut = false;
  * @mutate src/pages/jobs/jobPage/posterPageActions.tsx |  && job.direct_offer_status !== "pending"; | ;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | [msg, job.status === "cancelled" ? null : work] | [msg, work]
  */
@@ -1623,7 +1747,7 @@ describe("job page layout V2 (owner 11-01, mockups 4 and 5)", () => {
     state.job = row({ helper_id: ME, status: "cancelled", helper_confirmed_at: "2026-10-27T12:00:00Z", cancelled_by: POSTER, cancelled_at: "2026-10-28T12:00:00Z" });
     state.party = true;
     renderPage();
-    expect(screen.queryByRole("button", { name: "Open in working" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open in Jobs" })).toBeNull();
   });
 });
 
@@ -1706,7 +1830,7 @@ describe("job page, no dead column at 1440", () => {
  * JA-49 (lead 11-01, B107): the poster's direct offer out names the offered Helpr and says until when it stands.
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |  ?? (offerPending ? offerTarget.data ?? null : null) : null; |  : null;
  * @mutate src/components/tracker/jobNextStep.ts |     return { who: "them", text: `Waiting on ${other \|\| "the Helpr"} to accept your offer`, by }; |     return { who: "them", text: `Waiting on ${other \|\| "the Helpr"} to accept your offer` };
- * @mutate src/pages/jobs/jobPage/useJobPage.ts |  completed_at, direct_offer_expires_at, has_active_dispute, |  completed_at, has_active_dispute,
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts |  completed_at, direct_offer_expires_at, response_deadline, has_active_dispute, |  completed_at, response_deadline, has_active_dispute,
  */
 describe("job page, the poster's direct offer out (JA-49)", () => {
   it("names the offered Helpr and the offer's expiry, read through get_job_offer_targets", async () => {
@@ -1751,10 +1875,10 @@ describe("job page, an offered Helpr is not told the address comes with an offer
 });
 
 describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yusef's job)", () => {
-  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-set", label: row ? "Set a different day" : "Not finished? Set a day", go: open }; |
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       setDay = { key: "continue-set", label: row ? "Set a different day" : CONTINUE_DAY_LABEL, go: open }; |
   // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | continueStep ?? jobNextStep( | jobNextStep(
   // @mutate src/pages/jobs/jobPage/JobPage.tsx | posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })} | posterActions.row(posterStep)}
-  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     setDay = { key: "continue-ask", label: row ? "Ask for a different day" : "Need another day", go: open }; |
+  // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     if (offerSetDay && !job.helper_completed_at) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open }; |
   const underWay = (over: Partial<JobPageRow> = {}) => row({
     customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
     helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
@@ -1800,12 +1924,12 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
     await waitFor(() => expect(continueCalls).toEqual(["answer:c1:true"]));
   });
 
-  it("the hired Helpr on a job under way: 'Need another day'; on a set day, 'Confirm I'll be there' leads", async () => {
+  it("the hired Helpr on a job under way: 'Not finished? Set a day' (one name, Q2593); on a set day, 'Confirm I'll be there' leads", async () => {
     state.job = underWay({ customer_id: POSTER, helper_id: ME });
     state.party = true;
     const { unmount } = renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Need another day" }));
-    expect(await screen.findByRole("dialog", { name: "Need another day" })).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Not finished? Set a day" }));
+    expect(await screen.findByRole("dialog", { name: "Set a day to finish" })).toBeTruthy();
     unmount();
     continueState.row = setRow({ proposed_by: POSTER });
     renderPage();
@@ -1838,17 +1962,17 @@ describe("job page: couldn't finish, continue another day (owner 2026-11-01, Yus
 
   // B118 follow-up (lead 11-01): "Need another day" showed after arrival, before any day-1 work had started.
   // @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |   const offerSetDay = workStarted \|\| !!row; |   const offerSetDay = true;
-  it("arrived but not started on day 1: no 'Need another day' yet; once working, it shows", async () => {
+  it("arrived but not started on day 1: no 'Not finished? Set a day' yet; once working, it shows", async () => {
     state.job = underWay({ customer_id: POSTER, helper_id: ME, poster_confirmed_arrival_at: null });
     state.tracking = "arrived";
     state.party = true;
     const { unmount } = renderPage();
     await waitFor(() => expect(document.querySelector('[data-job-row="helpr"]')).toBeTruthy());
-    expect(screen.queryByRole("button", { name: "Need another day" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Not finished? Set a day" })).toBeNull();
     unmount();
     state.tracking = "working";
     renderPage();
-    expect(await screen.findByRole("button", { name: "Need another day" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Not finished? Set a day" })).toBeTruthy();
   });
 });
 
@@ -1892,13 +2016,32 @@ describe("JA-17: Accept and Decline on the job page", () => {
     expect(offerAnswers).toEqual([["app-this", false]]);
   });
 
-  it("a direct offer (the Working list's synthetic row) declines in one tap", async () => {
+  // Q2605 (Jobs audit 1102b row 19): a direct offer asks first too (it declined in one tap beside Accept job).
+  it("a direct offer (the Working list's synthetic row) declines after its confirm", async () => {
     state.job = row({ status: "open", direct_offer_status: "pending" });
     state.offeredToMe = true;
     workingApps.rows = [workingRow(state.job.id, `direct-${state.job.id}`)];
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /^Decline$/ }));
+    expect(offerAnswers).toEqual([]);
+    fireEvent.click(await screen.findByRole("button", { name: "Decline offer" }));
     expect(offerAnswers).toEqual([[`direct-${state.job.id}`, false]]);
+  });
+
+  // Q2601 (Jobs audit 1102b row 15): on the page the Decline / Accept pair sat 16 px inside the page's button column
+  // (x 53-322 vs 37-338 at 375): the Working card's own side padding. On the page the offer box has none.
+  // @mutate src/pages/jobs/jobPage/PageOfferPanel.tsx | <OfferedActions flush app={app} | <OfferedActions app={app}
+  // @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | className={`${flush ? "" : "px-4 "}py-3 space-y-2.5`} | className="px-4 py-3 space-y-2.5"
+  it("the offer box on the page has no side padding of its own, so the pair lines up with the page's buttons", async () => {
+    state.job = offered();
+    state.party = true;
+    workingApps.rows = [workingRow(state.job.id, "app-this")];
+    const { container } = renderPage();
+    await screen.findByRole("button", { name: /Accept job/ }, { timeout: 5000 });
+    const box = container.querySelector("[data-page-offer] > div");
+    expect(box).toBeTruthy();
+    expect(box!.className).toMatch(/\bpy-3\b/);
+    expect(box!.className).not.toMatch(/\bpx-\d/);
   });
 
   it("with no Working row for the job, the way to the offer stays (never a blank card)", async () => {
@@ -1921,6 +2064,8 @@ describe("JA-17: Accept and Decline on the job page", () => {
  * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |       posterExtras.push({ key: "continue-change", label: "Change day", go: open }); |       posterExtras.push();
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const continuingOn = continueDayHeader(continueDay.row); |   const continuingOn = null as string \| null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | <MineFaceNote note={continueDay.doneAheadNote ?? hiredFace?.note} /> | <MineFaceNote note={hiredFace?.note} />
+ * Q2680 (audit 1102e row 17): the header and the line under it in one format.
+ * @mutate src/lib/continueDayWords.ts |   return when ? `Continuing ${when}` : "Continuing " + formatJobDate(row.new_date); |   return "Continuing " + formatJobDate(row.new_date);
  */
 describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () => {
   const ahead = jobLocalDateISO(3);
@@ -1965,8 +2110,11 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
     const names = within(document.querySelector('[data-job-row="poster"]') as HTMLElement).getAllByRole("button").map(fullName);
     expect(names).toEqual(["Change day", "Message Rhonda"]);
     expect(screen.queryByRole("button", { name: "Set a different day" })).toBeNull();
-    expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${formatJobDate(ahead)} · 9:00 AM`));
-    expect(document.querySelector("[data-next-step]")?.textContent).toMatch(/^Rhonda confirmed /);
+    // Q2680: the header and the line under it use ONE format, the owner's "Thu 11/5 at 9 AM".
+    const [, m, d] = ahead.split("-").map(Number);
+    const when = `${formatJobDate(ahead).slice(0, 3)} ${m}/${d} at 9 AM`;
+    expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${when}`));
+    expect(document.querySelector("[data-next-step]")?.textContent).toBe(`Rhonda confirmed ${when}`);
   });
 });
 
@@ -1993,7 +2141,7 @@ describe("A3-44: Leave series sits in the hired Helpr's More options", () => {
     const sheet = document.querySelector("[data-row-options]") as HTMLElement;
     await within(sheet).findByRole("button", { name: "Leave series" });
     fireEvent.click(within(sheet).getByRole("button", { name: "Close" }));
-    expect(pageActions()).toEqual(expect.arrayContaining(["Message Rhonda", "Open in working", "Leave series"]));
+    expect(pageActions()).toEqual(expect.arrayContaining(["Message Rhonda", "Open in Jobs", "Leave series"]));
     expect(within(document.querySelector("[data-job-series]") as HTMLElement).queryByRole("button", { name: "Leave series" })).toBeNull();
     pressAction("Leave series");
     expect(await screen.findByRole("alertdialog", { name: /Leave "Pressure wash driveway"\?/ })).toBeTruthy();
@@ -2019,5 +2167,23 @@ describe("A3-44: Leave series sits in the hired Helpr's More options", () => {
     await screen.findByText(/ · ended /);
     expect(pageActions()).not.toContain("Leave series");
     expect(screen.queryByRole("button", { name: "Leave series" })).toBeNull();
+  });
+});
+
+/**
+ * Q2599 part (Jobs audit 1102b row 13): on Posted the poster's card sat alone in the main column, so at 1440 the
+ * Helpr's page split in two (a short card left with empty space under it, "Your pay / Apply" right) while every other
+ * stage is one full-width card. The poster's card is now in the side card for every Helpr, so the main column is empty
+ * and the card spans the page (the B107 empty-main rule).
+ *
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {!isPoster && job.customer_id && <PostedBy posterId={job.customer_id} />} |             {isHired && job.customer_id && <PostedBy posterId={job.customer_id} />}
+ */
+describe("Q2599: the Helpr's Posted page is one column", () => {
+  it("the poster's card is in the side card, and the main column holds nothing", async () => {
+    state.job = row();
+    renderPage();
+    const posted = await screen.findByRole("region", { name: "Posted by" });
+    expect(posted.closest("[data-job-side] [data-job-card]")).not.toBeNull();
+    expect(document.querySelector("[data-job-main]")!.children.length).toBe(0);
   });
 });

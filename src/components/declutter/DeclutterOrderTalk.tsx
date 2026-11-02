@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetS
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { useManagerLabels } from "@/lib/declutter/managerMode";
 import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage } from "@/lib/declutter/orderTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
@@ -42,7 +43,8 @@ function OrderTalkLinkButton({ orderId, side }: { orderId: string; side: "buyer"
     setParams(next);
   };
   return (
-    <Button type="button" variant="outline" className="rounded-full" onClick={open}>
+    // Q2634 (audit 1102c R9): the card's other secondary button, Get help now, is the small outline; this matches it.
+    <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={open}>
       {side === "buyer" ? "Message the seller" : "Message the buyer"}
     </Button>
   );
@@ -73,6 +75,9 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
   useMarkTalkRead("order", orderId, talk.data ? talk.data.messages.length : null);
   // AUD31-13: the sheet names the item it is about, from the same list Messages -> Declutter reads (one cached read).
   const talks = useQuery({ queryKey: MY_ORDER_TALKS_KEY, queryFn: fetchMyOrderTalks });
+  // Manager mode: a message the seller's manager wrote says "Dana (helping Kaci)" to everyone, not "The seller" (nor
+  // "You" to the seller: it was sent under her account, but she did not write it).
+  const labels = useManagerLabels("order_talk", (talk.data?.messages ?? []).map((m) => m.id));
   const itemTitle = talks.data?.find((r) => r.order_id === orderId)?.title ?? null;
   const [draft, setDraft] = useState("");
   // AUD31-11: a refused message is said under the box, as Questions does, never in a toast over the box and draft.
@@ -118,7 +123,7 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
               {t.messages.map((m) => (
                 <li key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${m.mine ? "bg-[hsl(var(--bark)/0.1)]" : "border border-border bg-card"}`}>
-                    <p className="text-ds-12 font-semibold text-muted-foreground">{m.mine ? "You" : `The ${other}`} · {when(m.created_at)}</p>
+                    <p className="text-ds-12 font-semibold text-muted-foreground">{labels.data?.get(m.id) ?? (m.mine ? "You" : `The ${other}`)} · {when(m.created_at)}</p>
                     <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>
                   </div>
                 </li>

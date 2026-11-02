@@ -24,6 +24,7 @@ import { RELEASE_ACTION } from "@/lib/releaseCopy";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
+import { useWithdrawOffer } from "./useWithdrawOffer";
 import type { JobPageRow } from "./useJobPage";
 import type { PosterPageFlows } from "./usePosterPageFlows";
 
@@ -67,6 +68,11 @@ export function usePosterPageActions({
   panel: React.ReactNode;
   dialogs: React.ReactNode;
   edit: () => void;
+  /**
+   * A3-8 (audit 11-01): at the approve step, "Something's not right" as a visible text button under the pair (the
+   * pair stays Message | Approve, owner 12:49 PM); it opens the approve sheet at the fix form. Null at other steps.
+   */
+  notRight: (() => void) | null;
 } {
   const navigate = useNavigate();
   const helperId = enabled ? job?.helper_id ?? null : null;
@@ -80,7 +86,9 @@ export function usePosterPageActions({
   const [changeOpen, setChangeOpen] = useState(false);
   // Q1586(c): "Post this job again" opens /post-job, so under 18 it explains instead (as Posted's own Repost).
   const { gate: ageGate } = useAgeGate();
-  if (!enabled || !job) return { primary: null, row: () => null, panel: null, dialogs: null, edit: () => {} };
+  // Q2604 (JA-49): an offer out can be taken back without cancelling the job (useWithdrawOffer).
+  const withdrawOffer = useWithdrawOffer(enabled ? job : null, helperFirst, onChanged);
+  if (!enabled || !job) return { primary: null, row: () => null, panel: null, dialogs: null, edit: () => {}, notRight: null };
 
   const id = encodeURIComponent(job.id);
   const status = job.status ?? "";
@@ -102,10 +110,14 @@ export function usePosterPageActions({
   // JA-48 / JA-49: not while an offer or a booking is out to a Helpr (they are answering the job as it stands).
   const canEdit = !draft && status === "open" && !job.is_group_job && job.direct_offer_status !== "pending";
 
+  // Q2594 (Jobs audit 1102b row 8): while a dispute is open the money stays held and Louisiana Helpr decides, so the
+  // poster's lead is never Approve (its sheet does not know about the case); Message leads and "See the case" sits
+  // under the tracker. has_active_dispute covers an open case on a job whose row is still in progress.
+  const disputeOpen = status === "disputed" || !!job.has_active_dispute;
   const primaryOrMessage: PagePrimary | null =
     posterWait === "confirm_still_on"
       ? { label: "Confirm it's still on", go: () => setConfirmAsk((n) => n + 1) }
-      : posterWait === "approve"
+      : posterWait === "approve" && !disputeOpen
       // The card's own CompletionChoiceSheet (the confirm), then create-payment's release (usePosterPageFlows).
       ? { label: RELEASE_ACTION, go: flows.approve, disabled: !flows.ready || flows.completing }
       : open && pending > 0
@@ -122,6 +134,7 @@ export function usePosterPageActions({
   const pageExtras = (): RowAction[] => [
     canEdit && { key: "edit", label: "Edit job", go: flows.edit, disabled: !flows.ready },
     canChange && { key: "change", label: "Change date or time", go: () => setChangeOpen(true) },
+    withdrawOffer.action,
     canCancel && { key: "cancel", label: "Cancel job", go: flows.cancel, disabled: !flows.ready, danger: true },
   ].filter(Boolean) as RowAction[];
   const row = (override: PagePrimary | null | undefined, moreExtras: RowAction[] = [], opts: { noCardSteps?: boolean } = {}) => {
@@ -139,7 +152,7 @@ export function usePosterPageActions({
       <>
       {/* The card's own words above its buttons (a crew's Tip rows; why a Tip can't be sent yet). */}
       {cardSteps && <div ref={flows.setAskHost} data-card-ask="" className="empty:hidden" />}
-      <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} extras={extras} cardCount={cardCount}
+      <JobPageActionRow tag="poster" lead={lead} leadIsStep={!!step} extras={extras} cardCount={cardCount} cardInMenu={cardSteps && flows.loneSos}
         cardLead={cardLead} setCardLeadHost={flows.setLeadHost} setCardSecondHost={flows.setSecondHost} setCardListHost={flows.setListHost} />
       {/* A3-40 (lead 11-01): Tip beside Review is a visible text button under the row, not in More options. */}
       {cardLead && <div ref={flows.setTextHost} data-card-text="" className="flex justify-center empty:hidden" />}
@@ -190,8 +203,10 @@ export function usePosterPageActions({
           onCancelJob={flows.cancel}
         />
       )}
+      {withdrawOffer.dialog}
       {flows.dialogs}
     </>
   );
-  return { primary: primaryOrMessage, row, panel, dialogs, edit: flows.edit };
+  const notRight = posterWait === "approve" && flows.ready ? flows.notRight : null;
+  return { primary: primaryOrMessage, row, panel, dialogs, edit: flows.edit, notRight };
 }

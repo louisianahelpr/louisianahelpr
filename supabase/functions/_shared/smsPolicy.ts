@@ -16,7 +16,7 @@
  */
 export type SmsKind =
   | "message" | "job_offer" | "application" | "starting_soon" | "reschedule"
-  | "dispute" | "job_cancelled" | "money_problem" | "job_update" | "confirm";
+  | "dispute" | "job_cancelled" | "money_problem" | "job_update" | "needs_you" | "confirm";
 
 export const SMS_KIND_PHRASES: Record<SmsKind, string> = {
   message: "You have a new message.",
@@ -28,6 +28,9 @@ export const SMS_KIND_PHRASES: Record<SmsKind, string> = {
   job_cancelled: "One of your jobs was cancelled.",
   money_problem: "There is a problem with a payment or payout. Please check your account.",
   job_update: "There is an update on one of your jobs.",
+  // A3-85 (owner 11-01): a step due before a deadline (answer an offer or a refund step, check out, hand over,
+  // approve finished work). Migration 20261102002011.
+  needs_you: "Something needs you before a deadline.",
   confirm: "",
 };
 const PHRASES = SMS_KIND_PHRASES;
@@ -67,6 +70,8 @@ export function smsLinkPath(kind: SmsKind, jobId: unknown): string {
   if (kind === "message") return "/messages";
   if (kind === "money_problem") return "/profile?tab=earnings";
   if (typeof jobId === "string" && UUID_RE.test(jobId)) return `/jobs?job=${jobId.toLowerCase()}`;
+  // A needs-you reminder with no job is a Declutter step (offer, refund, checkout, pickup).
+  if (kind === "needs_you") return "/declutter";
   return "/jobs";
 }
 

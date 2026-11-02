@@ -28,7 +28,7 @@
  * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | ON CONFLICT (job_id, user_id, kind) DO NOTHING; | ;
  * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | v_message := CASE WHEN rec.owes_dayof | v_message := CASE WHEN false
  * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE, | user_id uuid NOT NULL,
- * @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql | p_title IN ('Your job starts in 2 hours', 'Time to head out') THEN 'starting_soon' | p_title IN ('Your job starts in 2 hours') THEN 'starting_soon'
+ * @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql | p_title IN ('Your job starts in 2 hours', 'Time to head out') THEN 'starting_soon' | p_title IN ('Your job starts in 2 hours') THEN 'starting_soon'
  * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | REVOKE ALL ON FUNCTION public.sweep_helpr_start_reminders(timestamptz) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.sweep_helpr_start_reminders(timestamptz) FROM PUBLIC;
  */
 import { readFileSync } from "node:fs";

@@ -59,6 +59,8 @@ const PROVEN: Record<string, string> = {
   sweep_expired_auto_bans: "sweepClockBoundaries.pglite.mjs",
   sweep_helpr_start_reminders: "helprStartReminders.pglite.mjs",
   sweep_chat_unread_reminders: "declutterTalkUnreadReminders.pglite.mjs",
+  sweep_needs_you_reminders: "needsYouDeadlineReminders.pglite.mjs",
+  sweep_deadline_reminders: "needsYouDeadlineReminders.pglite.mjs",
   sweep_declutter_talk_reminders: "declutterTalkUnreadReminders.pglite.mjs",
   sweep_unread_message_reminders: "unreadMessageReminders.pglite.mjs",
   sweep_idv_review_waiting: "idvReviewWaitingClock.pglite.mjs",

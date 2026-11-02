@@ -77,8 +77,8 @@ describe("SMS alerts source rules", () => {
     expect(src).not.toMatch(/from\(\s*['"]notifications['"]/);
   });
 
-  // @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql |     WHEN p_type IN ('warning', 'job_updates') AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute' |     WHEN p_type IN ('warning', 'job_updates') THEN 'dispute'
-  // @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'application' |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'applied'
+  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     WHEN p_type IN ('warning', 'job_updates') AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute' |     WHEN p_type IN ('warning', 'job_updates') THEN 'dispute'
+  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'application' |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'applied'
   it("the classifier reaches warning/payment/financial types only by exact title, never admin/system/review", () => {
     const trg = newestTrigger("notifications_fan_out_to_sms");
     expect(trg).toMatch(/AFTER\s+INSERT\s+ON\s+public\.notifications/i);
@@ -107,7 +107,7 @@ describe("SMS alerts source rules", () => {
   // NO TEXT FOR A NEARBY OR MATCHING JOB (owner ruling 2026-10-23, Twilio A2P). Behaviour (a waiting one skipped, a
   // new one never queued, the claim never hands one out) is proved in src/test/pglite/smsNoNearbyJobTexts.pglite.mjs;
   // the sender's refusal in src/test/edge/sms-alerts.test.ts. These are the anchors.
-  // @mutate supabase/migrations/20261030215251_job_notices_follow_job_switches.sql |     WHEN p_type = 'job_match' THEN NULL | WHEN p_type = 'job_match' THEN 'job_match'
+  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     WHEN p_type = 'job_match' THEN NULL | WHEN p_type = 'job_match' THEN 'job_match'
   // @mutate supabase/functions/_shared/smsPolicy.ts |   job_offer: "New job offer. Answer before it expires.", |   job_offer: "New job offer. Answer before it expires.",\n  job_match: "A new job was posted near you.",
   it("a nearby-job (job_match) notification is never texted, and no text can be built for one", () => {
     const body = newestFunctionBody("sms_kind_for").replace(/\s+/g, " ");
@@ -121,10 +121,10 @@ describe("SMS alerts source rules", () => {
     expect(SMS_CONSENT_TEXT_BEFORE_LINKS).not.toMatch(/nearby|near you|new jobs/i);
   });
 
-  // @mutate supabase/migrations/20261021193738_sms_alerts.sql |     ELSIF n.read IS TRUE THEN | ELSIF false THEN
+  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     ELSIF n.read IS TRUE THEN | ELSIF false THEN
   // @mutate supabase/migrations/20261021193738_sms_alerts.sql | v_kind, 'pending', now() + interval '3 minutes') | v_kind, 'pending', now())
-  // @mutate supabase/migrations/20261021193738_sms_alerts.sql |     v_urgent := r.kind IN ('job_offer', 'starting_soon'); |     v_urgent := false;
-  // @mutate supabase/migrations/20261021193738_sms_alerts.sql |       IF v_release > v_now THEN |       IF false THEN
+  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     v_urgent := r.kind IN ('job_offer', 'starting_soon'); |     v_urgent := false;
+  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |       IF v_release > v_now THEN |       IF false THEN
   it("a text waits a few minutes, is dropped if the alert was read, and quiet hours defer it (urgent kinds excepted)", () => {
     // Behaviour is proved in src/test/pglite/smsAlerts.pglite.mjs; these are the rules' anchors.
     const fanOut = newestFunctionBody("sms_fan_out_on_notification").replace(/\s+/g, " ");

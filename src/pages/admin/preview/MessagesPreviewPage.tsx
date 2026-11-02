@@ -34,7 +34,9 @@ const Messages = lazy(() => import("@/pages/messages/Messages"));
 const PREVIEW_PATH = "/admin/preview/messages";
 
 /** The preview backend, in place before the page mounts and until this screen unmounts. */
-function PreviewBackend({ sample, children }: { sample: MessagesPreviewSample; children: ReactNode }) {
+function PreviewBackend({ sample, onAction, children }: { sample: MessagesPreviewSample; onAction: (name: string) => void; children: ReactNode }) {
+  const onActionRef = useRef(onAction);
+  onActionRef.current = onAction;
   const { user } = useCurrentUser();
   const sampleRef = useRef(sample);
   sampleRef.current = sample;
@@ -53,6 +55,8 @@ function PreviewBackend({ sample, children }: { sample: MessagesPreviewSample; c
       ownUserId: () => ownRef.current,
       onBlocked: (what) => { if (Date.now() - lastGesture < 2000) sayWouldHave(what); },
       onUnlisted: (what) => messagesPreviewChecks.onUnlisted?.(what),
+      // After the sheet has taken the answer (its toast, closing), the stage after it is drawn (audit 1102e).
+      onAction: (name) => { window.setTimeout(() => onActionRef.current(name), 500); },
     });
     const undoRealtime = installInertRealtime();
     forgetSharedReads();
@@ -216,7 +220,7 @@ export default function MessagesPreviewPage() {
   const ready = readyKey === viewKey;
 
   return (
-    <PreviewBackend sample={sample}>
+    <PreviewBackend sample={sample} onAction={(name) => { if (name === "block_user_and_settle") set({ stage: "blocked" }); }}>
       <QueryClientProvider client={client}>
         <InertNavigation rewrite={rewrite}>
           <PreviewErrorBoundary resetKey={`${stage}-${side}`}>

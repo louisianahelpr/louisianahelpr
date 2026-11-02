@@ -12,6 +12,7 @@ import { hapticLight } from "@/lib/haptics";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { focusSheetItself } from "@/components/declutter/focusSheetItself";
 
 interface CreateAction {
   label: string;
@@ -81,7 +82,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
   };
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" floor data-testid="create-sheet" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <SheetContent side="bottom" floor data-testid="create-sheet" onOpenAutoFocus={focusSheetItself}>
         <SheetHero moment title="What are we doing?" />
         <p className="text-ds-14 text-muted-foreground">One account, four ways to get things done.</p>
         {hiddenOpen.length > 0 && (

@@ -213,6 +213,19 @@ describe("admin job-page preview", () => {
     expect(leaked()).toEqual([]);
   }, 30000);
 
+  it("DBGCANCEL", async () => {
+    const fs = await import("node:fs");
+    const log = (x: unknown) => fs.appendFileSync("/Users/lexilombas/.lh-shots/b181/dbg.txt", JSON.stringify(x) + "\n");
+    renderPreview("cancel_sheet", "poster");
+    const btn = await screen.findByRole("button", { name: /Cancel · pay/ }, { timeout: 10000 });
+    log(["before", btn.textContent, (btn as HTMLButtonElement).disabled]);
+    fireEvent.click(btn);
+    for (const ms of [200, 1000, 3000]) {
+      await new Promise((r) => setTimeout(r, ms));
+      log([ms, Array.from(document.querySelectorAll('[role="dialog"],[role="alertdialog"]')).map((d) => (d.textContent ?? "").slice(0, 60)), Array.from(document.querySelectorAll("button")).map((b) => b.textContent).filter((t) => /Cancel/.test(t ?? "")), toasts.slice(-4)]);
+    }
+  }, 30000);
+
   it("no realtime channel subscribes while the preview is open (every stage the page opens one on), and the client gets its own back after", async () => {
     const client = supabase as unknown as { channel: (...a: unknown[]) => unknown };
     const realChannel = client.channel;

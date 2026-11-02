@@ -99,6 +99,12 @@ export interface PreviewSample {
    * never finished), by RPC name. The page then draws the stage after it (JobPreviewPage AFTER_ACTION).
    */
   actions: Record<string, unknown>;
+  /**
+   * Feature switches the stage needs ON whatever the admin's own answer (Q2683: Refund asked is drawn by the
+   * refund_requests switch, which is testers-only and so off for the owner). The backend sets them on in its
+   * feature_switches_for_me answer; every write is still blocked.
+   */
+  switchesOn: string[];
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -406,6 +412,7 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
     // Inside 24 hours of the start (the Cancel sheet stage) a quarter of the job pays the Helpr for the time held, as
     // the Late cancel by poster stage records (cancellation_fee 30); otherwise nothing is kept.
     cancelQuote: { can_cancel: true, fee_cents: lateFeeCents, fee_percent: lateFeeCents ? 25 : 0, back_to_you_cents: job.budget * 100 - lateFeeCents, charge_state: "hold" },
+    switchesOn: stage === "refund" ? ["refund_requests"] : [],
     actions: {
       poster_cancel_job: { action: lateFeeCents ? "warning" : "none", cancellation_fee: lateFeeCents / 100, had_helper: !!job.helper_id },
       // No action word: "Job cancelled. This counts as a reliability strike." (inside 24 hours); "none" outside them.

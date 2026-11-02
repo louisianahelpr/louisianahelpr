@@ -71,8 +71,8 @@ async function startsAt(startMs, nowMs, over = {}) {
            VALUES ('accepted', $1, $2, $3::date, $4::time(3), $5)`,
     [over.helper ?? HELPR, over.confirmed === false ? null : iso(startMs - 2 * DAY), date, over.noTime ? null : time, over.flexible ?? false]);
   if (over.noTime) {
-    // A NULL start_time reads as Central midnight of date_needed.
-    const midnight = (await q(`SELECT ($1::date + '00:00'::time) AT TIME ZONE 'America/Chicago' AS t`, [date]))[0].t;
+    // A NULL start_time is due when its Central day is over (Q2588): the next Central midnight.
+    const midnight = (await q(`SELECT (($1::date + 1) + '00:00'::time) AT TIME ZONE 'America/Chicago' AS t`, [date]))[0].t;
     startMs = new Date(midnight).getTime();
   }
   await setClock(db, iso(nowMs));
@@ -97,8 +97,11 @@ for (const [label, s] of Object.entries(STARTS)) {
 }
 {
   const s = Date.UTC(2026, 9, 20, 14, 0, 0);
-  check("no start_time: due at Central midnight of date_needed, not before", !(await startsAt(s, Date.UTC(2026, 9, 20, 5, 0, 0) - 1, { noTime: true })));
-  check("no start_time: started at Central midnight", await startsAt(s, Date.UTC(2026, 9, 20, 5, 0, 0), { noTime: true }));
+  // Q2588 (20261102100421): no start time is "any time that day", due when the day is over: the NEXT Central midnight
+  // (2026-10-21 00:00 CDT = 05:00Z), never the midnight that starts it (2026-10-20 05:00Z).
+  check("no start_time: not started at the Central midnight that starts its day", !(await startsAt(s, Date.UTC(2026, 9, 20, 5, 0, 0), { noTime: true })));
+  check("no start_time: due when its Central day is over, not before", !(await startsAt(s, Date.UTC(2026, 9, 21, 5, 0, 0) - 1, { noTime: true })));
+  check("no start_time: started when its Central day is over", await startsAt(s, Date.UTC(2026, 9, 21, 5, 0, 0), { noTime: true }));
   check("a flexible-schedule job never auto-starts", !(await startsAt(s, s + HOUR, { flexible: true })));
   check("an unconfirmed single booking never auto-starts", !(await startsAt(s, s + HOUR, { confirmed: false })));
 }

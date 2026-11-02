@@ -17,7 +17,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { userFacingError } from "@/lib/userFacingError";
 import { report } from "@/lib/errorLogger";
 import { currentScreen } from "@/lib/currentScreen";
-import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown";
+import { TipCostBreakdown, TipPicker, tipPayLabel, useTipJob } from "@/components/TipCostBreakdown";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../supabase/functions/_shared/tipFees";
 import { tipsNotReadyLine, useHelprTakesTips, useTipWaitsOnId } from "@/hooks/useHelprTakesTips";
 
@@ -128,7 +128,7 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
         <DialogFooter>
           <DialogSecondaryAction onClick={onClose}>No tip</DialogSecondaryAction>
           <DialogPrimaryAction onClick={() => handleSend(amount ?? 0)} disabled={sending || amount === undefined || amount <= 0}>
-            {sending ? "Opening checkout…" : amount !== undefined && amount > 0 ? `Tip ${centsLabel(Math.round(amount * 100))}` : "Tip"}
+            {sending ? "Opening checkout…" : tipPayLabel(amount)}
           </DialogPrimaryAction>
         </DialogFooter>
         </>

@@ -17,6 +17,7 @@
  * Guard: src/test/adminDeclutterPreviewIsInert.test.ts.
  */
 import type { DeclutterPreviewSample } from "./declutterPreviewSamples";
+import { DECLUTTER_PREVIEW_READ_RPCS } from "./declutterPreviewReads";
 
 /** Tests set this to fail on a read the sample does not answer (the page passes every one here). */
 export const declutterPreviewChecks: { onUnlisted?: (what: string) => void } = {};
@@ -90,8 +91,11 @@ export interface DeclutterPreviewFetchOptions {
   /** The admin's own id: only their own profile / role reads pass through. */
   ownUserId: () => string | null;
   realFetch: typeof fetch;
-  /** A write or action the page tried; the page says "Preview: this would ...". */
-  onBlocked: (what: string) => void;
+  /**
+   * A request answered without being sent. "write": a write or action the page tried ("Preview: this would ...");
+   * "read": a read RPC the sample does not answer ("Preview: not loaded (<name>)", audit 1102c P7).
+   */
+  onBlocked: (what: string, kind: "write" | "read") => void;
   /** A read RPC or table the sample does not answer (Q2585 audit 1102c P1). Tests make it throw; the page notes it. */
   onUnlisted?: (what: string) => void;
 }
@@ -127,7 +131,7 @@ export function createDeclutterPreviewFetch(o: DeclutterPreviewFetchOptions): { 
       }
       note("blocked");
       o.onUnlisted?.(`rpc ${name}`);
-      o.onBlocked(name.replace(/^declutter_/, "").replace(/_/g, " "));
+      o.onBlocked(name.replace(/^declutter_/, "").replace(/_/g, " "), DECLUTTER_PREVIEW_READ_RPCS.has(name) ? "read" : "write");
       // null, not []: most reads want an object or nothing, and [] drew made-up states (Invalid Date, crashes).
       return json(null);
     }
@@ -150,13 +154,13 @@ export function createDeclutterPreviewFetch(o: DeclutterPreviewFetchOptions): { 
     }
     note("blocked");
     if (table) {
-      o.onBlocked(`change ${table.replace(/^declutter_/, "").replace(/_/g, " ")}`);
+      o.onBlocked(`change ${table.replace(/^declutter_/, "").replace(/_/g, " ")}`, "write");
       const row = { id: "00000000-0000-4000-d000-0000000000ff" };
       return accept.includes("vnd.pgrst.object+json") ? json(row) : json([row], 200, 1);
     }
     if (method === "GET" || method === "HEAD") return json(null, 404);
     const fn = path.match(/^\/functions\/v1\/([^/]+)/)?.[1];
-    o.onBlocked(fn ? fn.replace(/-/g, " ") : "send a request");
+    o.onBlocked(fn ? fn.replace(/-/g, " ") : "send a request", "write");
     return json({});
   }) as typeof fetch;
   return { fetch: previewFetch, log };

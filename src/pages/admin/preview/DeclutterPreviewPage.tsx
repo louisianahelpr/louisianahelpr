@@ -21,6 +21,7 @@ import { Eye } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { ChoicePill } from "@/components/ui/ChoicePill";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
@@ -35,12 +36,14 @@ import {
   type DeclutterPreviewSample, type DeclutterPreviewSide, type DeclutterPreviewStage,
 } from "./declutterPreviewSamples";
 import { declutterPreviewChecks, installDeclutterPreviewFetch } from "./declutterPreviewBackend";
+import { previewBlockedWords } from "./declutterPreviewReads";
 
 const PHONE_WINDOW = "lh-declutter-preview-phone";
 
 function sayWouldHave(what: string) {
   toast(`Preview: this would ${what}.`, { id: `preview-${what}` });
 }
+
 
 function toText(to: To | number): string {
   if (typeof to === "number") return to < 0 ? "the previous screen" : "the next screen";
@@ -106,7 +109,9 @@ function PreviewBackend({ sample, children }: { sample: DeclutterPreviewSample; 
       supabaseUrl: (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "",
       sample: () => sampleRef.current,
       ownUserId: () => ownRef.current,
-      onBlocked: (what) => { if (Date.now() - lastGesture < 2000) sayWouldHave(what); },
+      onBlocked: (what, kind) => {
+        if (Date.now() - lastGesture < 2000) toast(previewBlockedWords(what, kind), { id: `preview-${kind}-${what}` });
+      },
       onUnlisted: (what) => declutterPreviewChecks.onUnlisted?.(what),
     });
     setReady(true);
@@ -152,6 +157,8 @@ class PreviewErrorBoundary extends Component<{ resetKey: string; children: React
 function Controls({ stage, side, onStage, onSide }: {
   stage: DeclutterPreviewStage; side: DeclutterPreviewSide; onStage: (s: DeclutterPreviewStage) => void; onSide: (s: DeclutterPreviewSide) => void;
 }) {
+  // Audit 1102c P7 (Q2625): the panel covered ~40% of a 375 screen; it folds to its title row.
+  const [open, setOpen] = useState(true);
   const openPhone = () => {
     const w = window.open(window.location.href, PHONE_WINDOW, "popup=yes,width=375,height=812");
     if (!w) toast.error("Your browser blocked the phone window. Allow pop-ups for this site and try again.");
@@ -162,20 +169,37 @@ function Controls({ stage, side, onStage, onSide }: {
       <div className="flex items-center gap-2">
         <Eye className="h-4 w-4 shrink-0 text-primary" aria-hidden />
         <p className="min-w-0 flex-1 text-ds-14 font-semibold">Declutter preview · made-up data, nothing is saved</p>
-        {typeof window !== "undefined" && window.name !== PHONE_WINDOW && (
+        {open && typeof window !== "undefined" && window.name !== PHONE_WINDOW && (
           <Button type="button" size="sm" variant="outline" className="shrink-0 rounded-full" onClick={openPhone}>Phone window</Button>
         )}
+        <Button type="button" size="sm" variant="ghost" className="shrink-0 rounded-full" data-preview-fold=""
+          aria-expanded={open} aria-controls="declutter-preview-controls-body" onClick={() => setOpen((o) => !o)}>
+          {open ? "Hide" : "Show"}
+        </Button>
       </div>
-      <div role="radiogroup" aria-label="Side" className="flex gap-2">
-        {(["buyer", "seller"] as const).map((s) => (
-          <ChoicePill key={s} selected={side === s} data-preview-side={s} onClick={() => onSide(s)}>{s === "buyer" ? "Buyer" : "Seller"}</ChoicePill>
-        ))}
-      </div>
-      <div role="radiogroup" aria-label="Order stage" className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
-        {DECLUTTER_PREVIEW_STAGES.map((s) => (
-          <ChoicePill key={s.key} selected={stage === s.key} data-preview-stage={s.key} onClick={() => onStage(s.key)} className="px-3">{s.label}</ChoicePill>
-        ))}
-      </div>
+      {open && (
+        <div id="declutter-preview-controls-body" className="space-y-2">
+          <div role="radiogroup" aria-label="Side" className="flex gap-2">
+            {(["buyer", "seller"] as const).map((s) => (
+              <ChoicePill key={s} selected={side === s} data-preview-side={s} onClick={() => onSide(s)}>{s === "buyer" ? "Buyer" : "Seller"}</ChoicePill>
+            ))}
+          </div>
+          {/* Q2625: at 375 the chip box showed 4 of the stages; a phone picks the stage from one dropdown instead. */}
+          <div className="sm:hidden" data-preview-stage-select="">
+            <Select value={stage} onValueChange={(v) => { if (isDeclutterPreviewStage(v)) onStage(v); }}>
+              <SelectTrigger aria-label="Order stage"><SelectValue /></SelectTrigger>
+              <SelectContent className="z-[70]">
+                {DECLUTTER_PREVIEW_STAGES.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div role="radiogroup" aria-label="Order stage" className="hidden max-h-28 flex-wrap gap-1.5 overflow-y-auto sm:flex">
+            {DECLUTTER_PREVIEW_STAGES.map((s) => (
+              <ChoicePill key={s.key} selected={stage === s.key} data-preview-stage={s.key} onClick={() => onStage(s.key)} className="px-3">{s.label}</ChoicePill>
+            ))}
+          </div>
+        </div>
+      )}
     </div>,
     document.body,
   );

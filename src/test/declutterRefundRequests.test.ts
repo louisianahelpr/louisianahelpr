@@ -131,7 +131,12 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
     // A Home read (declutter_my_refund_todos, A3-81) must not throw: with the switch off it returns no rows instead
     // (IF NOT feature_enabled_for(...) THEN RETURN), still server side. Every write keeps require_feature.
     const gated = (n: string) => /PERFORM public\.require_feature\('declutter_refund_requests'\);/.test(body(n))
-      || (n === "declutter_my_refund_todos" && /IF NOT public\.feature_enabled_for\('declutter_refund_requests'\) THEN\s+RETURN;/.test(body(n)));
+      || (n === "declutter_my_refund_todos" && /IF NOT public\.feature_enabled_for\('declutter_refund_requests'\) THEN\s+RETURN;/.test(body(n)))
+      // A3-112 follow-up (20261102033426): declutter_my_refunded_cents is not a refund-REQUEST RPC (its name only matches
+      // the selector): Money > Spent and Receipts net EVERY refund on the buyer's own orders (a no-show, a seller backing
+      // out, a delivery fee) with this switch off too. It keeps the Declutter switch, server side, like
+      // declutter_my_paid_cents.
+      || (n === "declutter_my_refunded_cents" && /PERFORM public\.require_feature\('declutter'\);/.test(body(n)));
     const missing = rpcs.filter((n) => !gated(n));
     expect(missing).toEqual([]);
   });

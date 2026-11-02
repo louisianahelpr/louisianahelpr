@@ -77,6 +77,16 @@ export function objectKeys(obj: string): { keys: string[]; spread: boolean } {
   const keys: string[] = [];
   let spread = false;
   for (const raw of parts.map((p) => p.trim()).filter(Boolean)) {
+    // A conditional spread of an object LITERAL, `...(cond ? { k: v } : {})`, adds only the keys it spells out, so the
+    // key set stays known (train 1, 11-02: declutter-checkout's ship flag, the gift checkout's test-mode recipient_id).
+    // Anything else spread (a variable, a call, a nested spread) still makes the set unknowable.
+    const cond = /^\.\.\.\(([\s\S]*?)\?\s*(\{[\s\S]*\})\s*:\s*\{\s*\}\s*\)$/.exec(raw);
+    if (cond && !cond[1].includes("{")) {
+      const inner = objectKeys(cond[2]);
+      inner.keys.forEach((k) => keys.push(k));
+      spread ||= inner.spread;
+      continue;
+    }
     if (raw.startsWith("...")) { spread = true; continue; }
     const m = raw.match(/^["'`]?([A-Za-z_$][\w$]*)["'`]?\s*(:|$)/);
     if (m) keys.push(m[1]);
@@ -231,6 +241,15 @@ describe("Q343: checkout metadata the webhook reads is metadata a creator writes
 
   it("no creator spreads unknown keys into metadata (the inventory would go blind)", () => {
     expect(anySpread).toBe(false);
+  });
+
+  // @mutate src/test/checkoutMetadataKeysAreWritten.test.ts |     if (cond && !cond[1].includes("{")) { |     if (cond) {
+  it("a conditional spread of a literal adds its keys; any other spread still blinds the inventory", () => {
+    expect(objectKeys(`{ kind: "x", ...(mode === "test" && id ? { recipient_id: id } : {}) }`)).toEqual({ keys: ["kind", "recipient_id"], spread: false });
+    expect(objectKeys(`{ kind: "x", ...extra }`).spread).toBe(true);
+    expect(objectKeys(`{ kind: "x", ...(a ? b : {}) }`).spread).toBe(true);
+    expect(objectKeys(`{ kind: "x", ...(a ? { ...b } : {}) }`).spread).toBe(true);
+    expect(objectKeys(`{ ...(f({ a: 1 }) ? { k: 1 } : {}) }`).spread).toBe(true);
   });
 
   it("every metadata key the handler branches on is written by some creator", () => {

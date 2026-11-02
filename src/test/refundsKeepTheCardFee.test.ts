@@ -382,7 +382,7 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2352: reads the setup fee owed back (state refund_due); writes nothing, the refund is recorded by RPC.
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("setup_fee_cents, setup_fee_state, stripe_payment_intent_id").eq("id", orderId).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("id, setup_fee_cents").eq("stripe_payment_intent_id", paymentIntentId).eq("setup_fee_state", "refund_due").maybeSingle()',
-  // Q1940 (a) (builder 144): a late payment on a seller-fault Declutter setup job, refunded in full as a duplicate
+  // Q1940 (a) (builder 144; lh-money-escrow approve 11-01, ~/.lh-shots/verdicts/b144.txt): a late payment on a seller-fault Declutter setup job, refunded in full as a duplicate
   // funding; the card fee Stripe kept (from the retrieved PaymentIntent) goes to the seller's debt, never into a refund.
   "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts: p_card_fee_cents: cardFeeCents,",
   // A10: the card fee Stripe kept on a seller-fault setup job's charge, billed to the seller after the full refund.
@@ -696,7 +696,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // amount; each touches declutter_refunds only by status / time / review columns:
       // the admin page's list of held rows (a read; shows refund_cents as recorded).
       // Restated in 20261019112103 (shops-m3 run 3) with kind 'shop_refund' added: lists a held Shops refund too.
-      // Q1931 (builder 144, 20261102043754): + a Declutter delivery payout / delivery-fee refund that used its 12 tries
+      // Q1931 (builder 144, 20261102043754; lead approve 11-01, ~/.lh-shots/verdicts/b144.txt): + a Declutter delivery payout / delivery-fee refund that used its 12 tries
       // ('failed', flagged gave_up), listed as recorded (refund_cents shown, still a read).
       admin_payouts_held_for_review: "20261102043754_declutter_delivery_gave_up_hand_settle.sql 36c671b2464f485b",
       // puts a held refund back to 'pending' with its recorded refund_cents (the fee kept at record time is kept).
@@ -710,7 +710,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // a short refund never closes the row); only "other:" ends 'settled_by_hand'.
       // 20261019112103: + a held Shops refund, by "other:" only (a Stripe id goes through shop-checkout, checked with
       // Stripe: stripe_check_required) and only for its whole refund_cents (settle_amount_differs); settle_amount_short kept.
-      // Q1931 (builder 144, 20261102043754): + settles a gave-up ('failed', attempts >= 12) Helpr delivery payout or
+      // Q1931 (builder 144, 20261102043754; lead approve 11-01, ~/.lh-shots/verdicts/b144.txt): + settles a gave-up ('failed', attempts >= 12) Helpr delivery payout or
       // delivery-fee refund the same way (same id / amount checks; refund_cents never changed, no money sent).
       admin_payout_settle_by_hand: "20261102043754_declutter_delivery_gave_up_hand_settle.sql 9af5eeea52698394",
       // pushes next_attempt_at of a pending / failed row; no try used, no amount.

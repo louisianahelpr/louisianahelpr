@@ -1,6 +1,7 @@
 import { useFeature } from "@/hooks/useFeature";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useDeclutterIntent } from "./useDeclutterIntent";
 import { useDraftJob } from "@/hooks/useDraftJob";
 import { safeStorage } from "@/lib/safeStorage";
 import { defaultRequirePhotoProof } from "@/lib/photoProofDefaults";
@@ -44,7 +45,8 @@ export function usePostJobForm() {
   // would be paid with no link to them (lh-money-escrow review 2026-10-16;
   // lander's merge review 2026-10-17). The seller books again from My
   // listings, the buyer from the order card.
-  const noDraft = !!(searchParams.get("haulAway") || searchParams.get("declutterOrder"));
+  // Read once per mount (Q1963): tapping Post drops the link from the URL but not the form.
+  const { noDraft, declutterOrderId } = useDeclutterIntent(searchParams);
   const saveDraft = useCallback<typeof saveAnyDraft>((d) => { if (!noDraft) saveAnyDraft(d); }, [noDraft, saveAnyDraft]);
   const flushDraft = useCallback(() => { if (!noDraft) flushAnyDraft(); }, [noDraft, flushAnyDraft]);
   const [saving, setSaving] = useState(false);
@@ -482,7 +484,7 @@ export function usePostJobForm() {
     giftCardId,
     turnoverId: searchParams.get("turnover"),
     haulAwayItemIds,
-    declutterOrderId: searchParams.get("declutterOrder"),
+    declutterOrderId,
     maintenanceRequestId: searchParams.get("maintenance"),
     uploadAndAttachPhotos,
     uploadAndAttachScopeVideo,

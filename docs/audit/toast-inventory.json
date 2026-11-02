@@ -46,7 +46,7 @@
     },
     {
       "file": "src/components/BlockUserDialog.tsx",
-      "line": 127,
+      "line": 130,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -56,7 +56,7 @@
     },
     {
       "file": "src/components/BlockUserDialog.tsx",
-      "line": 132,
+      "line": 135,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -92,7 +92,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 277,
+      "line": 285,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -102,7 +102,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 334,
+      "line": 342,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -112,7 +112,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 336,
+      "line": 344,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -122,7 +122,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 381,
+      "line": 389,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -239,7 +239,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 395,
+      "line": 403,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7677,7 +7677,7 @@
     },
     {
       "file": "src/components/jobs/ContinueDaySheet.tsx",
-      "line": 68,
+      "line": 72,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -7697,7 +7697,7 @@
     },
     {
       "file": "src/components/jobs/ContinueDaySheet.tsx",
-      "line": 73,
+      "line": 77,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

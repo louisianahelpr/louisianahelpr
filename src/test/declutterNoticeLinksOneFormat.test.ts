@@ -35,6 +35,7 @@ const VIEW_LINKS_LEFT: Record<string, string> = {
   declutter_admin_decide_problem: "cart,selling",
   declutter_answer_delivery_time: "<dynamic>",
   declutter_answer_refund: "buying,cart,selling",
+  declutter_book_by_reminder_sweep: "cart", // B117 (20261101230519): the buyer's pick-a-time reminder
   declutter_book_pickup: "<dynamic>",
   declutter_checkout_free: "cart",
   declutter_close_paid_order: "cart,sales",

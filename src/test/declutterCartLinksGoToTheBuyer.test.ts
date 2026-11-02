@@ -22,6 +22,7 @@ const CART_SENDERS: Record<string, string> = {
   declutter_add_handover: "r.buyer_id",
   declutter_admin_decide_problem: "o.buyer_id",
   declutter_answer_refund: "o.buyer_id",
+  declutter_book_by_reminder_sweep: "r.buyer_id", // B117 (20261101230519): reminds the buyer to pick a pickup time
   declutter_checkout_free: "v_uid",
   declutter_close_paid_order: "o.buyer_id",
   declutter_complete_handover: "o.buyer_id",

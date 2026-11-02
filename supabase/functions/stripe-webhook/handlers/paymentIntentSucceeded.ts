@@ -63,11 +63,39 @@ async function settleDeferredSetupFee(pi: Stripe.PaymentIntent, ctx: WebhookCont
   }
 }
 
+/** A job in one of these already holds its money: this PI is its own funding. */
+const FUNDED_PAYMENT_STATUSES = new Set(["escrow", "payout_pending", "released"]);
+
+/**
+ * The PI's charge payment_method_details.type (us_bank_account, card, link...),
+ * from the event's latest_charge when it is expanded, else a PI retrieve with
+ * latest_charge expanded. null when it cannot be read (Q1994: fail closed).
+ */
+async function chargePaymentMethodType(
+  stripe: Stripe,
+  pi: Stripe.PaymentIntent,
+  logStep: WebhookContext["logStep"],
+): Promise<string | null> {
+  const typeOf = (charge: unknown): string | null => {
+    const t = (charge as { payment_method_details?: { type?: unknown } } | null)?.payment_method_details?.type;
+    return typeof charge === "object" && charge && typeof t === "string" && t ? t : null;
+  };
+  const fromEvent = typeOf(pi.latest_charge);
+  if (fromEvent) return fromEvent;
+  try {
+    const full = await stripe.paymentIntents.retrieve(pi.id, { expand: ["latest_charge"] });
+    return typeOf(full?.latest_charge);
+  } catch (err) {
+    logStep("WARN: PI retrieve failed while reading the payment method", { piId: pi.id, error: String(err) });
+    return null;
+  }
+}
+
 export async function handlePaymentIntentSucceeded(
   event: Stripe.Event,
   ctx: WebhookContext,
 ): Promise<void> {
-  const { supabase, logStep } = ctx;
+  const { stripe, supabase, logStep } = ctx;
   const pi = event.data.object as Stripe.PaymentIntent;
   logStep("Payment intent succeeded", { id: pi.id, amount: pi.amount });
 
@@ -238,6 +266,34 @@ export async function handlePaymentIntentSucceeded(
           seed: taxJob.is_seed ?? false,
         });
       }
+    } else if (!FUNDED_PAYMENT_STATUSES.has(String(taxJob.payment_status))) {
+      // Q1994: the job is past funding without being funded by this payment
+      // (refunded, cancelled, cancelling, chargeback, held). A CARD payment
+      // here is a redelivery of a charge that was settled, then refunded or
+      // closed: nothing to do. A BANK (ACH) payment that settles now is
+      // captured money with no escrow to hold it, so ops refund it. Told
+      // apart by the charge's payment_method_details.type (as Q1975 does);
+      // when that cannot be read, fail closed and page.
+      const paidWith = await chargePaymentMethodType(stripe, pi, logStep);
+      if (paidWith !== "us_bank_account" && paidWith !== null) {
+        logStep("Card-type PI succeeded on a closed job — a redelivery, no action", { jobId: taxJob.id, piId: pi.id, paymentStatus: taxJob.payment_status, paidWith });
+        return;
+      }
+      const known = paidWith === "us_bank_account";
+      logStep("PI succeeded on a closed unfunded job — ops paged to refund", { jobId: taxJob.id, piId: pi.id, paymentStatus: taxJob.payment_status, paidWith });
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        title: known
+          ? "Bank payment settled on a job that is already refunded or closed — refund it"
+          : "Payment settled on a closed job and its payment method could not be read — check it",
+        message: known
+          ? `A bank (ACH) payment settled for job ${taxJob.id}, but the job's payment is '${String(taxJob.payment_status)}' (job ${String(taxJob.status)}), so there is no escrow to hold it. The money is captured. Refund this PaymentIntent from the Stripe dashboard.`
+          : `payment_intent.succeeded fired for job ${taxJob.id}, whose payment is '${String(taxJob.payment_status)}' (job ${String(taxJob.status)}). The charge's payment method could not be read, so this may be a bank (ACH) payment that settled with no escrow to hold it. Open this PaymentIntent in the Stripe dashboard: if it is a bank payment that was not refunded, refund it.`,
+        fields: { job_id: taxJob.id, payment_intent: pi.id, job_status: String(taxJob.status), payment_status: String(taxJob.payment_status), method: paidWith ?? "unknown" },
+        oncePerDayKey: `ach-settled-closed-job:${pi.id}`,
+        seed: taxJob.is_seed ?? false,
+      });
     }
   } else {
     // No job found for this PI. Two possible causes:

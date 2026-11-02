@@ -8,6 +8,9 @@
  * 38317156550, 2026-10-12) flagged it as a mount-wiring gap.
  *
  * @mutate src/pages/auth/CompleteProfile.tsx |             <CompleteProfileIntro />\n |             \n
+ * A3-30 (audit 11-01): the page names the next step and how far along it is.
+ * @mutate src/pages/auth/CompleteProfile.tsx |                 <ProfileNextStep checklist={checklist} t={t} />\n |
+ * @mutate src/pages/auth/completeProfile/ProfileNextStep.tsx |   return { step: next.step, n: checklist.filter((c) => c.done).length + 1, total: checklist.length }; |   return { step: next.step, n: 1, total: checklist.length };
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -52,5 +55,19 @@ describe("Finish your profile mounts its intro", () => {
     );
     expect(screen.getByText(/We need a few details before you can use Helpr/)).toBeInTheDocument();
     expect(await screen.findByTestId("pre-verification-wipe-notice")).toBeInTheDocument();
+  });
+
+  it("A3-30: it names the next step and how far along it is", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(<QueryClientProvider client={qc}><MemoryRouter><CompleteProfile /></MemoryRouter></QueryClientProvider>);
+    expect((await screen.findByText(/^Next: /)).textContent).toMatch(/^Next: add your full name · step 1 of [23]$/);
+  });
+});
+
+describe("profileNextStep (A3-30)", () => {
+  it("the first missing step, numbered after the done ones; nothing once all are done", async () => {
+    const { profileNextStep } = await import("./ProfileNextStep");
+    expect(profileNextStep([{ done: true, step: "a" }, { done: false, step: "b" }, { done: false, step: "c" }])).toEqual({ step: "b", n: 2, total: 3 });
+    expect(profileNextStep([{ done: true, step: "a" }])).toBeNull();
   });
 });

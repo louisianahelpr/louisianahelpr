@@ -24,6 +24,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
 import { usePayoutSetupBlock } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { ManagerActForSeller } from "./ManagerActForSeller";
 import {
   MANAGER_PART_LABELS, answerManageOffer, endManaging, fetchManagedOverview, grantParts, offerToManage, searchMembers,
   setManagerParts, shareWords, splitOf, splitWords, useMyManagerGrants, useOrderManagerShares,
@@ -294,6 +295,7 @@ function Managing({ g }: { g: ManagerGrant }) {
             : openQuestions > 0
               ? { who: "you", text: `Answer ${openQuestions === 1 ? "1 question" : `${openQuestions} questions`} for ${g.seller_first_name}` }
               : { who: "info", text: `Nothing waiting for ${g.seller_first_name} right now` }} />
+          <ManagerActForSeller g={g} o={o} refresh={() => void ov.refetch()} />
           <ul className="divide-y divide-border">
             {o.items.map((i) => (
               <li key={i.id} className="flex items-center gap-3 py-2" data-managed-item={i.id}>

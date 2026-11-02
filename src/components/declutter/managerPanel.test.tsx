@@ -16,6 +16,10 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | <ManagerSaleShareGate orderId={order.orderId} itemsCents={items} itemCount={order.lines.length} /> | null
  * @mutate src/components/declutter/ManagerPanel.tsx |         <MyShares g={g} />\n | <p />
  * @mutate src/components/declutter/ManagerPanelGate.tsx |   if (!on) return null;\n  return <Suspense | return <Suspense
+ * @mutate src/components/declutter/ManagerActForSeller.tsx |   const offers = o.parts.offers ? | const offers = true ?
+ * @mutate src/components/declutter/ManagerActForSeller.tsx | { offer_id: offer.id, action }) | { offer_id: offer.id, action: "accept" })
+ * @mutate src/components/declutter/ManagerActForSeller.tsx | "submit_for_approval", { item_id: item.id } | "update_draft", { item_id: item.id }
+ * @mutate src/components/declutter/ManagerPanel.tsx |           <ManagerActForSeller g={g} o={o} refresh={() => void ov.refetch()} />\n |
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -34,6 +38,8 @@ const st = vi.hoisted(() => ({
   ended: [] as unknown[],
   prompt: "none" as "none" | "setup",
   shares: [] as unknown[],
+  overview: null as unknown,
+  managed: [] as unknown[],
 }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/hooks/useStripeConnectStatus", () => ({ useStripeConnectStatus: () => ({ payoutPrompt: { kind: st.prompt }, refetchStatus: () => {} }) }));
@@ -47,7 +53,8 @@ vi.mock("@/lib/declutter/managerMode", async (orig) => ({
   answerManageOffer: async (id: string, accept: boolean) => { st.answered.push([id, accept]); return accept ? "active" : "declined"; },
   setManagerParts: async (...a: unknown[]) => { st.parts.push(a); },
   endManaging: async (id: string) => { st.ended.push(id); return "ended"; },
-  fetchManagedOverview: async () => ({
+  manageForSeller: async (...a: unknown[]) => { st.managed.push(a); return "ok"; },
+  fetchManagedOverview: async () => st.overview ?? ({
     grant_id: "g1", seller_first_name: "Kaci", parts: {},
     items: [{ id: "i1", title: "Oak dresser", status: "live", price_cents: 4000, updated_at: "", photo_path: null }],
     offers: [], questions: [{ id: "q1", item_id: "i1", question: "Still there?", answer: null, answered_at: null, created_at: "" }], orders: [],
@@ -77,6 +84,7 @@ beforeEach(() => {
   st.offered = []; st.answered = []; st.parts = []; st.ended = [];
   st.prompt = "none";
   st.shares = [];
+  st.overview = null; st.managed = [];
 });
 
 describe("the split preview matches the server's lock (20261101230509)", () => {
@@ -165,6 +173,42 @@ describe("the manager's side", () => {
     st.prompt = "none";
     mount();
     expect(screen.queryByText("Next: set up payouts to get your share")).toBeNull();
+  });
+
+  it("Managing: the manager acts for the seller, only in the parts she turned on (declutter_manage)", async () => {
+    st.grants = [grant({ role: "manager", status: "active" })];
+    const overview = (parts: object) => ({
+      grant_id: "g1", seller_first_name: "Kaci", parts,
+      items: [{ id: "i1", title: "Oak dresser", status: "live", price_cents: 4000, updated_at: "", photo_path: null },
+        { id: "i2", title: "Blue lamp", status: "draft", price_cents: 1500, updated_at: "", photo_path: null }],
+      offers: [{ id: "f1", item_id: "i1", amount_cents: 3000, awaiting: "seller", respond_by: "2026-11-03T18:00:00Z", buyer_first_name: "Ben" },
+        { id: "f2", item_id: "i1", amount_cents: 3500, awaiting: "buyer", respond_by: "2026-11-03T18:00:00Z", buyer_first_name: "Amy" }],
+      questions: [{ id: "q1", item_id: "i1", question: "Still there?", answer: null, answered_at: null, created_at: "" }],
+      orders: [],
+    });
+    st.overview = overview({ list: false, prices: false, offers: false, messages: false, pickups: false });
+    const { unmount } = mount();
+    fireEvent.click(screen.getByRole("tab", { name: "Kaci's" }));
+    expect(await screen.findByText("Oak dresser")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Accept" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send answer" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send to Kaci for OK" })).toBeNull();
+    unmount();
+
+    st.overview = overview({ list: true, prices: false, offers: true, messages: true, pickups: false });
+    mount();
+    fireEvent.click(screen.getByRole("tab", { name: "Kaci's" }));
+    expect(await screen.findByText("Ben offered $30 for Oak dresser")).toBeTruthy();
+    expect(screen.queryByText(/Amy offered/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Decline" }));
+    await waitFor(() => expect(st.managed).toEqual([["k1", "respond_offer", { offer_id: "f1", action: "decline" }]]));
+    fireEvent.click(screen.getByRole("button", { name: "Accept" }));
+    await waitFor(() => expect(st.managed[1]).toEqual(["k1", "respond_offer", { offer_id: "f1", action: "accept" }]));
+    fireEvent.change(screen.getByLabelText(/Still there\?/), { target: { value: "  Yes, until Sunday  " } });
+    fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
+    await waitFor(() => expect(st.managed[2]).toEqual(["k1", "answer_question", { question_id: "q1", answer: "Yes, until Sunday" }]));
+    fireEvent.click(screen.getByRole("button", { name: "Send to Kaci for OK" }));
+    await waitFor(() => expect(st.managed[3]).toEqual(["k1", "submit_for_approval", { item_id: "i2" }]));
   });
 
   it("Selling mounts it lazily, only while the declutter_manager switch is on", () => {

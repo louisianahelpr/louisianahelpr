@@ -62,10 +62,15 @@ function withBackout<J extends { id: string; status?: string | null }>(j: J, bac
 export const ON_THE_WAY_TASK = "Tap I've arrived when you get there";
 /** JA-39: its button, the Working card's own step label (helperFaceAction.ts: key "arrived"). */
 export const ARRIVED_ACTION = "I've arrived";
-/** JA-39: which side of the job the Helpr is on, by where the job stands (never "working" before they arrive). */
+/**
+ * JA-39: which side of the job the Helpr is on, by where the job stands (never "working" before they arrive).
+ * A3-84 (audit 11-01): hired, offered, confirmed and confirm-due read "You're hired" (the confirm-due Home row said
+ * "Confirm you'll be at the job · You're working"); "You're working" only from arrival.
+ */
 function helprSide(job: Job, lineId: string): string {
   if (!job.helper_id) return "You applied";
-  return lineId === "on_the_way" ? "You're on the way" : "You're working";
+  if (lineId === "on_the_way") return "You're on the way";
+  return (job as { helper_arrived_at?: string | null }).helper_arrived_at ? "You're working" : "You're hired";
 }
 const HOUR = 3_600_000;
 

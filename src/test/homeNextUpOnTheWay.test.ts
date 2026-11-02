@@ -4,7 +4,11 @@
  * where they are ("You're on the way · ..."), and the task is the arrival tap, not the status repeated.
  * Inventory: the Helpr's own stages that reach Next up (on the way, and the day-before confirm for contrast).
  *
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return lineId === "on_the_way" ? "You're on the way" : "You're working"; |   return "You're working";
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (lineId === "on_the_way") return "You're on the way"; |   if (false) return "You're on the way";
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return (job as { helper_arrived_at?: string \| null }).helper_arrived_at ? "You're working" : "You're hired"; |   return "You're working";
+ *
+ * A3-84 (audit 11-01): before arrival (hired, confirmed, confirm-due) the side word is "You're hired", never
+ * "You're working"; "You're working" only once helper_arrived_at is set.
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | title: line.id === "on_the_way" ? ON_THE_WAY_TASK : line.detail, | title: line.detail,
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ...(line.id === "on_the_way" && !a.job!.is_group_job | ...(false
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (t.helperStep) request(t.helperStep.jobId, t.helperStep.key); |   void request;
@@ -41,6 +45,13 @@ describe("JA-39: Next up for a Helpr on the way", () => {
     expect(t.meta).toBe("You're on the way · Haul off an old couch and two chairs");
     expect(t.title).toBe(ON_THE_WAY_TASK);
     expect(t.title).not.toBe("You're on the way");
+  });
+
+  it("A3-84: before arrival the side is You're hired (confirm-due too); from arrival, You're working", () => {
+    const confirmDue = deriveNeedsYouTodos({ ...none, appliedApps: [app({ helper_dayof_confirmed_at: null })] }, NOW).find((x) => x.id === "a-a1")!;
+    expect(confirmDue.meta).toBe("You're hired · Haul off an old couch and two chairs");
+    const arrived = deriveNeedsYouTodos({ ...none, appliedApps: [app({ status: "in_progress", helper_on_the_way_at: new Date(NOW - 1_200_000).toISOString(), helper_arrived_at: new Date(NOW - 600_000).toISOString() } as Partial<Job>)] }, NOW).find((x) => x.id === "a-a1");
+    expect(arrived?.meta).toBe("You're working · Haul off an old couch and two chairs");
   });
 
   it("the button is I've arrived, and it asks the Working card's tracker to take that step", () => {

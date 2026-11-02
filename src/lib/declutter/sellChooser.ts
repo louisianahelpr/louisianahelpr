@@ -27,6 +27,21 @@ export const SELL_MOVE_PATH = "/declutter/sell?mode=moving";
 export const WANTED_POST_PARAM = "post";
 export const WANTED_POST_PATH = `/declutter?tab=wanted&${WANTED_POST_PARAM}=1`;
 
+/**
+ * A3-99 (audit 7, 11-01): "Can't find it? Post what you're looking for" under a search that found nothing opened an
+ * empty form, so the member typed "treadmill" again. The link carries the search words (and a category filter) into
+ * the open form: /declutter?tab=wanted&post=1&what=treadmill. The form keeps at most 60 characters, as it allows.
+ */
+export const WANTED_WHAT_PARAM = "what";
+export const WANTED_CATEGORY_PARAM = "category";
+export function wantedAskHref(query: string, category: string | null = null): string {
+  const p = new URLSearchParams({ tab: "wanted", [WANTED_POST_PARAM]: "1" });
+  const what = query.trim().slice(0, 60);
+  if (what) p.set(WANTED_WHAT_PARAM, what);
+  if (category) p.set(WANTED_CATEGORY_PARAM, category);
+  return `/declutter?${p.toString()}`;
+}
+
 /** True when the URL asks for the chooser. */
 export function wantsSellChooser(params: URLSearchParams): boolean {
   return params.get("mode") === "choose";

@@ -375,6 +375,26 @@ describe("the Wanted hub", () => {
     expect(within(sheet).getByText("What are you looking for?")).toBeInTheDocument();
   });
 
+  // A3-99 (audit 7, 11-01): Browse's "Ask for ..." under an empty search opens the form on the search's words.
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |     : { ...readWantedDraft(), ...prefill }); |     : readWantedDraft());
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |     if (category && category in CATEGORY_LABEL) out.category = category; |     if (category) out.category = category;
+  // @mutate src/components/declutter/DeclutterWantedViews.tsx |     next.delete(WANTED_WHAT_PARAM);\n |
+  it("A3-99: ?what= from an empty search fills 'I'm looking for', a known category too, and leaves the address", async () => {
+    const draft = () => JSON.parse(localStorage.getItem("helpr_wanted_draft") ?? "{}") as { what?: string; category?: string };
+    open("/declutter?tab=wanted&post=1&what=Treadmill&category=sports_outdoors");
+    let sheet = await screen.findByRole("dialog");
+    expect((within(sheet).getByLabelText("I'm looking for") as HTMLInputElement).value).toBe("Treadmill");
+    await waitFor(() => expect(draft().category).toBe("sports_outdoors"));
+    await waitFor(() => expect(screen.getByTestId("where").textContent).toBe("/declutter?tab=wanted"));
+    cleanup();
+    localStorage.removeItem("helpr_wanted_draft");
+    open("/declutter?tab=wanted&post=1&what=Rowing%20machine&category=bogus");
+    sheet = await screen.findByRole("dialog");
+    expect((within(sheet).getByLabelText("I'm looking for") as HTMLInputElement).value).toBe("Rowing machine");
+    await waitFor(() => expect(draft().what).toBe("Rowing machine"));
+    expect(draft().category).toBe("");
+  });
+
   it("Wanted near you lists other members' posts with I have this", async () => {
     near.rows = [{ id: "n1", what: "Crib", category: "baby_kids", max_price_cents: 4000, poster_name: "Sam R.", miles: 3, expires_at: "2026-11-20", replied: false }];
     open();

@@ -206,6 +206,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   notify_helpers_on_job_post: "hides",
   notify_helpr_of_booking_clash: "alerts",
   notify_ops_dispute_filed: "alerts",
+  notify_reporter_report_outcome: "hides", // A3-113 (20261102015348): a test or seed reporter never gets the report-outcome notice
   notify_saved_searches_on_new_job: "hides",
   ops_alert_condition: "alerts",
   payout_held_check: "alerts",
@@ -245,6 +246,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   sms_claim_confirmation: "hides",
   sms_claim_due: "hides",
   sweep_daily_job_digest: "hides",
+  sweep_declutter_free_asks: "hides", // 20261102011547: a test (is_seed) item's free asks close without a notice
   sweep_disputes_closed_without_payment: "alerts",
   sweep_idv_review_waiting: "alerts",
   sweep_job_match_queue: "alerts",

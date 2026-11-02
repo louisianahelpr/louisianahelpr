@@ -242,6 +242,7 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "sql:send_new_member_daily_summary#1": "an admin alert listing who joined: test and seed members are refused at the queue and checked again at send time (20261031152136)",
   "sql:notify_admins_support_ticket#1": "an admin alert about a ticket: a test or seed reporter is skipped in the function itself, and a guest has no account (fixed words)",
   "sql:review_credential#1": "own credential reviewed",
+  "sql:notify_reporter_report_outcome#1": "own report's outcome (A3-113, 20261102015348): fixed words naming only the kind of thing reported and the reporter's own case number, never who was reported; a test or seed reporter is skipped in the function itself",
   "sql:bill_helpr_fault_card_fee#1": "own card fee billed after a Helpr-at-fault refund (the recipient's own debt; the poster is never named, and the ruling copies the job's is_seed)",
   "sql:sweep_expired_auto_bans#1": "own restriction lifted",
   "sql:sweep_job_post_drafts#1": "own job draft reminder: about the member's own saved post, names no other person, and is_seed, test and banned members are never reminded",

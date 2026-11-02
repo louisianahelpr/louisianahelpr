@@ -25,7 +25,7 @@ import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useFeature } from "@/hooks/useFeature";
 import { safeStorage } from "@/lib/safeStorage";
-import { fetchDropStates, fetchDroppedIntoBudget, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
+import { fetchDropStates, fetchDroppedIntoBudget, fetchItemWays, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, droppedQueryFromParams, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
@@ -164,6 +164,8 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const [maxMiles, setMaxMiles] = useState<number | null>(start.maxMiles);
   const [query, setQuery] = useState(start.query);
   const [filters, setFilters] = useState<DeclutterFilters>(start.filters);
+  // Checkout offers "Seller delivers" only while its switch is on (DeclutterTradeViews); the filter follows it.
+  const sellerDeliveryOn = useFeature("declutter_seller_delivery");
   // BUY-13: what Save this search keeps beyond words, category, price and distance.
   const saveExtras = useMemo(() => ({ freeOnly: filters.freeOnly, porchOnly: filters.porchOnly, dropsOnly: filters.dropsOnly, conditions: filters.conditions }),
     [filters.freeOnly, filters.porchOnly, filters.dropsOnly, filters.conditions]);
@@ -239,6 +241,15 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
     enabled: others.length > 0,
     placeholderData: keepPreviousData,
   });
+  // A3-109: the sellers' ticks, only while the filter asks for meet up or seller delivery (porch and Helpr delivery
+  // read columns Browse already has).
+  const needWays = filters.ways.some((w) => w !== "delivery");
+  const itemWays = useQuery({
+    queryKey: ["declutter", "item-ways", others.map((i) => i.id).join(",")],
+    queryFn: () => fetchItemWays(others.map((i) => i.id)),
+    enabled: needWays && others.length > 0,
+    placeholderData: keepPreviousData,
+  });
   // D-NEW12: the sellers on this page with a bundle discount on (one read; no chip until it is deployed).
   const sellerIds = useMemo(() => [...new Set(others.map((i) => i.seller_id))].sort(), [others]);
   const bundles = useQuery({ queryKey: ["declutter", "bundle-sellers", sellerIds.join(",")], queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, placeholderData: keepPreviousData });
@@ -262,7 +273,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const now = new Date();
   const outlook = new Map(others.map((i) => [i.id, dropOutlook(i, drops.data?.get(i.id), now)]));
   const showDrops = [...outlook.values()].some((o) => o.planned);
-  const rows = applyBrowseFilters(nearestFirst(others, from, from ? maxMiles : null), filters, query, drops.data, now);
+  const rows = applyBrowseFilters(nearestFirst(others, from, from ? maxMiles : null), filters, query, drops.data, now, itemWays.data);
   const q = query.trim().toLowerCase();
   const filterCount = activeFilterCount(filters, from ? maxMiles : null);
   const clearAll = () => {
@@ -309,7 +320,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
       open={filtersOpen}
       onOpenChange={setFiltersOpen}
       anchorRef={filtersButtonRef}
-      sections={declutterFilterSections({ filters, onChange: setFilters, maxMiles, onMaxMiles: setMaxMiles, ask, showDrops })}
+      sections={declutterFilterSections({ filters, onChange: setFilters, maxMiles, onMaxMiles: setMaxMiles, ask, showDrops, sellerDelivery: sellerDeliveryOn })}
       filterCount={filterCount}
       shown={rows.length}
       onClearAll={clearAll}

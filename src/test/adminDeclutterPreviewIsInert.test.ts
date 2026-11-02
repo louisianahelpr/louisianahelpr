@@ -5,7 +5,7 @@
  * stage's sample. The inventory of RPCs is read from the app's own source (every supabase.rpc("...") name under src/),
  * so a new Declutter RPC is covered the day it is added.
  *
- * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |       note("blocked");\n      o.onBlocked(name.replace(/^declutter_/, "").replace(/_/g, " "));\n      return json([], 200, 0); |       note("passed");\n      return o.realFetch(input, init);
+ * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |       note("blocked");\n      o.onUnlisted?.(`rpc ${name}`); |       note("passed");\n      return o.realFetch(input, init);
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |     if (table && (method === "GET" \|\| method === "HEAD")) { |     if (table) {\n      if (method !== "GET" && method !== "HEAD") return o.realFetch(input, init);
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |     const fn = path.match(/^\/functions\/v1\/([^/]+)/)?.[1]; |     if (path.startsWith("/functions/")) return o.realFetch(input, init);\n    const fn = path.match(/^\/functions\/v1\/([^/]+)/)?.[1];
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |       if (OWN_ROW_TABLES.has(table) && own && Array.from(u.searchParams.values()).some((v) => v === `eq.${own}`)) { |       if (OWN_ROW_TABLES.has(table)) {
@@ -54,7 +54,9 @@ describe("Q2585: the admin Declutter stage preview sends nothing", () => {
     }
     expect(h.realFetch).not.toHaveBeenCalled();
     const blockedRpcs = h.log.filter((l) => l.outcome === "blocked").length;
-    expect(blockedRpcs).toBe(names.filter((n) => !READS.has(n)).length);
+    // The sample's own reads (audit 1102c P1) answer from the sample too.
+    const listed = new Set([...READS, ...Object.keys(h.sample.reads)]);
+    expect(blockedRpcs).toBe(names.filter((n) => !listed.has(n)).length);
   });
 
   it("no write to any table, no edge function, no storage write is sent", async () => {

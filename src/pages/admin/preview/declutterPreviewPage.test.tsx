@@ -6,6 +6,9 @@
  *
  * @mutate src/pages/admin/preview/DeclutterPreviewPage.tsx |           : <SellingDash todo={null} userId={sample.userId} listings={<MyListingsView userId={sample.userId} haulOn />} />} |           : null}
  * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |   globalThis.fetch = previewFetch; |   void previewFetch;
+ * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_my_free_pause: null,\n |
+ * @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     declutter_order_meetups: [],\n |
+ * @mutate src/pages/admin/preview/declutterPreviewBackend.ts |      o.onUnlisted?.(`rpc ${name}`); |      void name;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
@@ -13,6 +16,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { DECLUTTER_PREVIEW_STAGES } from "./declutterPreviewSamples";
+import { declutterPreviewChecks } from "./declutterPreviewBackend";
 
 const ADMIN = "00000000-0000-4000-a000-000000000001";
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: ADMIN }, profile: {}, isLoading: false }) }));
@@ -32,6 +36,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   globalThis.fetch = realFetch;
+  declutterPreviewChecks.onUnlisted = undefined;
 });
 
 import DeclutterPreviewPage from "./DeclutterPreviewPage";
@@ -62,20 +67,25 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(supabaseCalls()).toEqual([]);
   });
 
-  it("every stage on either side draws without an error screen and sends nothing to Supabase", async () => {
+  it("every stage on either side draws without an error screen, answers every read from its sample, and sends nothing", async () => {
+    // Audit 1102c P1: a read the sample does not answer drew made-up states (Invalid Date, a crashed Seller delivers).
+    const unlisted: string[] = [];
     let drawn = 0;
     for (const { key } of DECLUTTER_PREVIEW_STAGES) {
       for (const side of ["buyer", "seller"]) {
+        declutterPreviewChecks.onUnlisted = (what) => unlisted.push(`${key}:${side} ${what}`);
         const r = open(`?stage=${key}&side=${side}`);
         await waitFor(() => expect(document.querySelector(`[data-preview-view="${key}:${side}"]`), `${key}:${side}`).not.toBeNull());
         // Let the views' reads land.
         await new Promise((res) => setTimeout(res, 20));
         expect(screen.queryByText(/Something went wrong/i), `${key}:${side}`).toBeNull();
+        expect(document.querySelector("[data-preview-crashed]"), `${key}:${side} crashed`).toBeNull();
         r.unmount();
         drawn++;
       }
     }
     expect(drawn).toBeGreaterThan(20);
+    expect(unlisted).toEqual([]);
     expect(supabaseCalls()).toEqual([]);
   });
 

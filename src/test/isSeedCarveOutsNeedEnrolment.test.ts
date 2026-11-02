@@ -270,6 +270,8 @@ const EDGE_READERS: Record<string, Kind> = {
   "_shared/seedBoundary.ts": "hides",
   // Stripe TEST mode: enrolled AND is_seed (classifyParties).
   "_shared/stripeMode.ts": "money-gate",
+  // Q1909: a seed row's test-mode id is not reported by money-reconciliation (read only, moves nothing).
+  "_shared/stripeTestIdScan.ts": "alerts",
   "_shared/testRecipient.ts": "hides",
   "arrival-confirm-reminder/index.ts": "hides",
   "auto-release-payment/index.ts": "alerts",

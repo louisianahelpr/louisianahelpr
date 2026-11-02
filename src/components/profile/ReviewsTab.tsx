@@ -149,11 +149,11 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
 
       {loading ? (reviewCount === 0 ? (
         // DATA-AWARE (owner, Q722): the count lands before the list. Zero, or
-        // not known yet (reads as 0), draws the zero state's silhouette: the
-        // same block the tab's chunk fallback drew, so a cold visit to an
-        // account with no reviews holds one shape from first paint to the
-        // "No reviews yet" card. The populated skeleton below is drawn only
-        // when the count says there ARE reviews.
+        // not known yet (reads as 0), draws the same block the tab's chunk
+        // fallback drew: since 2026-11-02 (owner) one neutral review row
+        // (ReviewRowReserve), never the "No reviews yet" card's shape. The
+        // populated skeleton below is drawn only when the count says there
+        // ARE reviews.
         <ProfileTabBodyReserve key="reviews-loading-empty" tab="reviews" />
       ) : (
         // Content-shaped skeleton: hero summary card (matches the real

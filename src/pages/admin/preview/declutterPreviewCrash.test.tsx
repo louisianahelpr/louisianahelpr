@@ -52,7 +52,9 @@ class RouteBoundary extends Component<{ onCatch: () => void; children: ReactNode
   render() { return this.state.failed ? <p>Route error page with Go Home</p> : this.props.children; }
 }
 
-const supabaseCalls = () => spy.mock.calls.filter(([u]) => String(u instanceof Request ? u.url : u).startsWith(SUPABASE));
+/** Same origin as the stand-in Supabase URL (an origin compare, not a prefix one: CodeQL js/incomplete-url-substring-sanitization). */
+const isSupabase = (u: unknown) => { try { return new URL(String(u instanceof Request ? u.url : u)).origin === SUPABASE; } catch { return false; } };
+const supabaseCalls = () => spy.mock.calls.filter(([u]) => isSupabase(u));
 
 describe("audit 1102c P2: a crashed preview view still sends nothing", () => {
   it("catches the crash inside the preview and keeps answering every Supabase request until the route unmounts", async () => {

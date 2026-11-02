@@ -21,9 +21,9 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * the 20261005171601 body with --before; all green after, applied 3x).
  */
 
-// @mutate supabase/migrations/20261019015304_helpr_fault_earnings_export.sql |            THEN ROUND((COALESCE(pt.paid_cents, 0) + COALESCE(pt.fee_cents, 0)) / 100.0, 2)\n           WHEN j.helper_fee_flat_cents IS NOT NULL\n           THEN ROUND(fl.gross_cents / 100.0, 2) |            THEN j.budget\n           WHEN j.helper_fee_flat_cents IS NOT NULL\n           THEN ROUND(fl.gross_cents / 100.0, 2)
-// @mutate supabase/migrations/20261019015304_helpr_fault_earnings_export.sql |       ROUND((pt.paid_cents + pt.fee_cents) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2), |       ROUND(COALESCE(g.share_cents, 0) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2),
-// @mutate supabase/migrations/20261019015304_helpr_fault_earnings_export.sql |       AND j.is_group_job IS NOT TRUE\n |\n
+// @mutate supabase/migrations/20261102152453_q2083_job_tax_kind.sql |            THEN ROUND((COALESCE(pt.paid_cents, 0) + COALESCE(pt.fee_cents, 0)) / 100.0, 2)\n           WHEN j.helper_fee_flat_cents IS NOT NULL\n           THEN ROUND(fl.gross_cents / 100.0, 2) |            THEN j.budget\n           WHEN j.helper_fee_flat_cents IS NOT NULL\n           THEN ROUND(fl.gross_cents / 100.0, 2)
+// @mutate supabase/migrations/20261102152453_q2083_job_tax_kind.sql |       ROUND((pt.paid_cents + pt.fee_cents) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2), |       ROUND(COALESCE(g.share_cents, 0) / 100.0, 2),\n      ROUND(pt.fee_cents / 100.0, 2),
+// @mutate supabase/migrations/20261102152453_q2083_job_tax_kind.sql |       AND j.is_group_job IS NOT TRUE\n |\n
 
 const ROOT = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(ROOT, "supabase/migrations");
@@ -31,8 +31,9 @@ const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 // fee, and Q1840 (20261017104746) again (a flat-model job's no-ledger fallback
 // prices 5% + 70c), and Q2082 (b) (20261019015304) again (a Helpr-fault card
 // fee withheld from a payout is added back); every Q1379 property below still
-// holds on it.
-const THIS = "20261019015304_helpr_fault_earnings_export.sql";
+// holds on it. Q2083 part 2 (20261102152453) restates it again, with only the
+// Taxable/Exempt column reading is_job_labor_taxable(category, tax_kind).
+const THIS = "20261102152453_q2083_job_tax_kind.sql";
 const def = effectiveDefs(MIGRATIONS).get("get_helper_earnings_export");
 const body = blankSqlComments(def?.stmt ?? "").replace(/\s+/g, " ");
 

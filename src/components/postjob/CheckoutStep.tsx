@@ -27,7 +27,7 @@ import { CheckoutSummaryRow } from "./CheckoutSummaryRow";
 import { CheckoutBudgetLine } from "./CheckoutBudgetLine";
 import { CheckoutRepeatsRow } from "./CheckoutRepeatsRow";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
-import { hasTaxableLine } from "@/lib/salesTax";
+import { hasTaxableLine, TAXABLE_CATEGORIES } from "@/lib/salesTax";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
 import { ReviewMediaRows } from "./ReviewMediaRows";
@@ -42,6 +42,8 @@ interface CheckoutStepProps {
    *  `categoryLabel` is the display string and can't be matched against the
    *  taxable-category list. */
   category: string;
+  /** The poster's taxed-kind answer (jobs.tax_kind, Q2083, owner Option 1); null = neither. */
+  taxKind?: string | null;
   imagePreviews: string[];
   /** The picked scope video's blob: preview (A2-B6), or null. */
   scopeVideoUrl?: string | null;
@@ -113,6 +115,7 @@ export function CheckoutStep({
   description,
   categoryLabel,
   category,
+  taxKind = null,
   imagePreviews,
   scopeVideoUrl,
   streetAddress,
@@ -167,10 +170,10 @@ export function CheckoutStep({
   // (owner: "show Stripe's number, delete the table")
   // The poster's service fee on a taxable job is taxed with it (tax memo,
   // owner 2026-10-18); 0 on the flat model, so nothing changes there.
-  const taxedAmount = budgetNum + (hasTaxableLine(category) ? customerFeeAmount : 0);
-  const { salesTax, loading: taxLoading, jurisdiction } = useStripeSalesTax(taxedAmount, category, zipCode);
+  const taxedAmount = budgetNum + (hasTaxableLine(category, taxKind) ? customerFeeAmount : 0);
+  const { salesTax, loading: taxLoading, jurisdiction } = useStripeSalesTax(taxedAmount, category, zipCode, taxKind);
   // J3: the tax note names what is taxed, from the SAME taxedAmount the quote is asked for.
-  const taxedWhat = `$${formatPriceExact(taxedAmount)} ${hasTaxableLine(category) && customerFeeAmount > 0 ? "(the job budget and service fee)" : "job budget"}`;
+  const taxedWhat = `$${formatPriceExact(taxedAmount)} ${hasTaxableLine(category, taxKind) && customerFeeAmount > 0 ? "(the job budget and service fee)" : "job budget"}`;
   // Sales tax, resolved ONCE. Both the summary card at the top of the screen
   // and the payment breakdown at the bottom read this — the two used to be
   // computed independently (summary showed `totalCharge`, breakdown added an
@@ -191,7 +194,7 @@ export function CheckoutStep({
   // 9-11% range this row was built to kill, just pointed at gifts.
   const totalWithTax = hasGift ? totalCharge : totalCharge + (salesTax ?? 0);
   // JA-45: a plain job (nothing added or taken off) shows its Total alone; any fee, bonus, gift or tax line brings the budget row back.
-  const budgetRowShown = hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category) && salesTax === null);
+  const budgetRowShown = hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100) || (hasTaxableLine(category, taxKind) && salesTax === null);
   // `giftCoversEverything` is the $0 case: nothing left to collect. The CTA
   // and the total both change wording for it, because "Continue to payment"
   // in front of a $0.00 total is the screen contradicting itself.
@@ -469,7 +472,7 @@ export function CheckoutStep({
                 </>
               );
             }
-            const taxable = hasTaxableLine(category);
+            const taxable = hasTaxableLine(category, taxKind);
             const tax = salesTax;
             // Exempt category (the common case): tax is a known $0, so the
             // total is exact, not an estimate. No $0.00 tax row and no
@@ -513,8 +516,8 @@ export function CheckoutStep({
                         already typed their ZIP to "add your ZIP" reads as a
                         failure of their input. */}
                     {taxLoading
-                      ? `This category is taxable in Louisiana — checking the exact amount for your address. Tax applies to the ${taxedWhat}.`
-                      : `This category is taxable in Louisiana. Add your ZIP and we'll show the exact amount — tax applies to the ${taxedWhat}.`}
+                      ? `${TAXABLE_CATEGORIES.has(category) ? "This category" : "This job"} is taxable in Louisiana — checking the exact amount for your address. Tax applies to the ${taxedWhat}.`
+                      : `${TAXABLE_CATEGORIES.has(category) ? "This category" : "This job"} is taxable in Louisiana. Add your ZIP and we'll show the exact amount — tax applies to the ${taxedWhat}.`}
                   </p>
                 </>
               );
@@ -553,7 +556,15 @@ export function CheckoutStep({
                       every Handyman checkout was telling the poster "Assembly is
                       taxable labor," a category their job wasn't. Caught live posting
                       a Handyman job with Licensed+Insured selected. */}
-                  {categoryLabel} is taxable labor in Louisiana, so tax applies to the {taxedWhat}. The exact rate is set by the billing address you enter at checkout.
+                  {TAXABLE_CATEGORIES.has(category)
+                    ? categoryLabel
+                    : taxKind === "fabric_cleaning"
+                      ? "Cleaning carpet, rugs or furniture"
+                      : taxKind === "clothes_cleaning"
+                        ? "Washing or cleaning clothes"
+                        : taxKind === "clothing_alterations"
+                          ? "Altering clothes"
+                          : "Fixing an item"} is taxable labor in Louisiana, so tax applies to the {taxedWhat}. The exact rate is set by the billing address you enter at checkout.
                 </p>
               </>
             );
@@ -565,7 +576,7 @@ export function CheckoutStep({
             <div data-testid="checkout-total-notes">
               <CheckoutBudgetLine budgetNum={budgetNum} totalWithTax={budgetNum} hasGift={false} giftAppliedAmount={0}
                 isUrgent={false} urgentFeeNum={0} onboardingFeeAmount={0}
-                visitCount={isRecurring ? seriesDates.length : 1} crewSize={isGroupJob ? helpersNeeded : 1} taxable={hasTaxableLine(category)} />
+                visitCount={isRecurring ? seriesDates.length : 1} crewSize={isGroupJob ? helpersNeeded : 1} taxable={hasTaxableLine(category, taxKind)} />
             </div>
           )}
           {/* Escrow was explained FIVE times on this one screen: this pill and

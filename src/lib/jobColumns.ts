@@ -178,8 +178,10 @@ export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "
 // (owner 2026-10-18; measured on prod 2026-10-18).
 // last_edit_notice_at: server-owned hour of the last open-job edit notice (board 66/172 s4, 20261021111723).
 // Listed for coverage only; no client reads it.
+// tax_kind: the poster's taxed-kind answer (Q2083, owner Option 1, 20261102152453). Written at
+// posting; read by the server (create-payment, the recurring charge). Listed for coverage.
 // poster_marked_done_at: a cancelled job filed under the poster's Done list (owner 2026-10-25, 20261025211357).
-export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "last_edit_notice_at", "poster_marked_done_at"] as const;
+export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "last_edit_notice_at", "poster_marked_done_at", "tax_kind"] as const;
 
 /**
  * Columns the BROWSE VIEW (open_jobs_browse) gains in a newer migration though

@@ -98,8 +98,13 @@ export function holdCheckoutPaymentMethodOptions(
  * Checkout Session (refundAmount.checkoutChargeTaxCents), which an off-session
  * payment has none of. Either way the poster confirms on a Checkout page.
  */
-export function offSessionAllowed(amountCents: number, category: string | null | undefined): { ok: true } | { ok: false; why: "large" | "taxed" } {
+export function offSessionAllowed(
+  amountCents: number,
+  category: string | null | undefined,
+  taxKind: string | null | undefined = null,
+): { ok: true } | { ok: false; why: "large" | "taxed" } {
   if (!(amountCents < THREE_D_SECURE_MIN_CENTS)) return { ok: false, why: "large" };
-  if (isLaborTaxable(category ?? null)) return { ok: false, why: "taxed" };
+  // A taxed job: a taxed category or the poster's taxed-kind answer (Q2083).
+  if (isLaborTaxable(category ?? null, taxKind ?? null)) return { ok: false, why: "taxed" };
   return { ok: true };
 }

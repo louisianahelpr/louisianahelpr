@@ -19,7 +19,7 @@
  * @mutate supabase/functions/create-payment/index.ts |       if (quoteRefusal) { |       if (false) {
  * @mutate supabase/functions/create-payment/index.ts |         payment_method_types: payInFour ? payInFourMethods : [...JOB_CHECKOUT_PAYMENT_METHOD_TYPES], |         payment_method_types: payInFour ? payInFourMethods : undefined,
  * @mutate supabase/functions/create-payment/index.ts |       if (payInFour && job.recurrence_days != null) throw | if (false) throw
- * @mutate supabase/functions/create-payment/index.ts |               tax_code: laborTaxable ? laborTaxCode(job.category) : NONTAXABLE_TAX_CODE, |               tax_code: NONTAXABLE_TAX_CODE,
+ * @mutate supabase/functions/create-payment/index.ts |               tax_code: laborTaxable ? laborTaxCode(job.category, job.tax_kind) : NONTAXABLE_TAX_CODE, |               tax_code: NONTAXABLE_TAX_CODE,
  * @mutate supabase/functions/_shared/jobCheckout.ts |   return i.switchOn ? "poster" : "flat"; |   return "poster";
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -420,7 +420,7 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
     expect(card.args?.payment_method_options).toEqual({ card: { request_three_d_secure: "any" } });
   });
 
-  // @mutate supabase/functions/create-payment/index.ts |             + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category) : 0) |             + 0
+  // @mutate supabase/functions/create-payment/index.ts |             + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category, job.tax_kind) : 0) |             + 0
   it("the 3D Secure ceiling counts the tax on a taxable job's service fee (review #7d)", async () => {
     const taxable = [...TAXABLE_CATEGORIES][0];
     // A budget whose lines + labor-tax ceiling sit under $300 and cross it only with the fee's tax.

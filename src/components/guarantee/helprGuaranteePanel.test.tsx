@@ -5,6 +5,9 @@
  *
  * F5 (app audit 2026-10-28): the explainer ended "we decide, and a refund is of the job price." (broken sentence),
  * and the admin-deciding line read "A refund, if any, is of the job price." (same shape; lead, same commit).
+ * @mutate src/lib/guarantee/index.ts |   return done ? new Date(done.getTime() + GUARANTEE_RULES.claimWindowHours * 3600_000) : null; |   return done;
+ * @mutate src/components/guarantee/HelprGuaranteePanel.tsx |   const by = guaranteeClaimBy(job); |   const by = null as Date \| null;
+ * @mutate src/components/guarantee/HelprGuaranteePanel.tsx | timeZone: "America/Chicago", weekday | timeZone: "UTC", weekday
  * @mutate src/components/guarantee/HelprGuaranteePanel.tsx |       we decide whether you get a refund of the job price. |       we decide, and a refund is of the job price.
  * @mutate src/components/guarantee/HelprGuaranteePanel.tsx | An admin is deciding this, including whether you get a refund of the job price. | An admin is deciding this. A refund, if any, is of the job price.
  */
@@ -121,9 +124,30 @@ describe("the poster", () => {
     expect(s.calls[1]).toEqual(["open", "j1", "Two of the shelves are crooked.", []]);
   });
 
+  // A3-40 (audit 11-01): a done job's explainer names the window's end as a date in Louisiana time, not "48 hours of".
+  it("a done job: the explainer says until when, as a date", async () => {
+    // Done Tue Nov 12 2030 4:30 PM CST (22:30Z): tell us by Thu, Nov 14, 4:30 PM.
+    vi.useFakeTimers({ now: new Date("2030-11-13T12:00:00Z"), toFake: ["Date"] });
+    try {
+      const { container } = renderPanel(job({ completed_at: "2030-11-12T22:30:00Z", helper_completed_at: "2030-11-12T22:00:00Z", poster_completed_at: "2030-11-12T22:30:00Z" }), "me", "poster");
+      await waitFor(() => expect(container.querySelector("[data-guarantee-explainer]")).not.toBeNull());
+      const text = (container.querySelector("[data-guarantee-explainer]")?.textContent ?? "").replace(/\s+/g, " ").trim();
+      expect(text).toMatch(/^Not done right\? Tell us by Thu, Nov 14, 4:30 PM\. Your Helpr comes back to fix it,/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a job under way keeps the 48-hour words (no done time yet)", async () => {
+    const { container } = renderPanel(job({ status: "in_progress", helper_completed_at: null, poster_completed_at: null }), "someone-else", "poster");
+    await waitFor(() => expect(container.querySelector("[data-guarantee-explainer]")).not.toBeNull());
+    const text = (container.querySelector("[data-guarantee-explainer]")?.textContent ?? "").replace(/\s+/g, " ").trim();
+    expect(text).toMatch(/^Not done right\? Tell us within 48 hours of the job being done\. Your Helpr/);
+  });
+
   it("past 48 h, or already paid: no button", async () => {
     renderPanel(job({ payment_status: "released" }), "me", "poster");
-    await screen.findByText(/Tell us within 48 hours/);
+    await screen.findByText(/Not done right\? Tell us by /); // A3-40: a done job names the date
     expect(screen.queryByRole("button", { name: "Not done right" })).toBeNull();
     cleanup();
     const before = s.fetched;

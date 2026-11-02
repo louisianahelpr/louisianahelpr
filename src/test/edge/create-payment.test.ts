@@ -172,6 +172,65 @@ describe("create-payment edge function", () => {
       expect(stripeMock.customers.create).not.toHaveBeenCalled();
     });
 
+    // Q2140: a stored customer deleted in Stripe is replaced (guarded), never kept for good.
+    // @mutate supabase/functions/_shared/stripeCustomer.ts |     return c?.deleted === true; |     return false;
+    // @mutate supabase/functions/_shared/stripeCustomer.ts |     return e?.code === "resource_missing" \|\| e?.raw?.code === "resource_missing"; |     return false;
+    // @mutate supabase/functions/_shared/stripeCustomer.ts |       .eq("wallet_mode", mode)\n      .eq("stripe_customer_id", stored); |       .eq("wallet_mode", mode);
+    // @mutate supabase/functions/_shared/stripeCustomer.ts |     if (delErr) throw | if (false) throw
+    // @mutate supabase/functions/_shared/stripeCustomer.ts | { idempotencyKey: replacing ? `lh-wallet-customer-${user.id}-${mode}-replaces-${replacing}` : | { idempotencyKey: replacing ? `lh-wallet-customer-${user.id}-${mode}` :
+    // @mutate supabase/functions/_shared/stripeCustomer.ts |   let candidate = options.adoptTagged && !replacing ? | let candidate = options.adoptTagged ?
+    const walletDeletes = () => scenario.writes.filter((w) => w.table === "stripe_customers" && w.op === "delete");
+    it("Q2140: a stored customer Stripe reads back as deleted is replaced: its row removed only while it names that customer, a new one claimed", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_saved" }] };
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_saved", deleted: true });
+      stripeMock.customers.search.mockResolvedValue({ data: [{ id: "cus_saved_tagged", created: 9, metadata: { supabase_user_id: WALLET_POSTER.id } }] });
+      const res = await escrow();
+      expect(res.status).toBe(200);
+      expect(stripeMock.customers.retrieve).toHaveBeenCalledWith("cus_saved");
+      expect(walletDeletes()).toHaveLength(1);
+      expect(walletDeletes()[0].filters).toEqual(expect.arrayContaining([
+        expect.objectContaining({ column: "user_id", value: WALLET_POSTER.id }),
+        expect.objectContaining({ column: "stripe_customer_id", value: "cus_saved" }),
+      ]));
+      expect(stripeMock.customers.search).not.toHaveBeenCalled();
+      expect(stripeMock.customers.create.mock.calls[0]?.[1]?.idempotencyKey).toMatch(/-replaces-cus_saved$/);
+      expect(rpcs("claim_stripe_customer")[0]?.args).toMatchObject({ p_user: WALLET_POSTER.id, p_customer: "cus_walletnew" });
+      expect(sessionCustomer()).toBe("cus_walletnew");
+    });
+
+    it("Q2140: a stored customer Stripe does not know (resource_missing, e.g. test data deleted) is replaced", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_saved" }] };
+      stripeMock.customers.retrieve.mockRejectedValue(Object.assign(new Error("No such customer: 'cus_saved'"), { code: "resource_missing" }));
+      const res = await escrow();
+      expect(res.status).toBe(200);
+      expect(walletDeletes()).toHaveLength(1);
+      expect(sessionCustomer()).toBe("cus_walletnew");
+    });
+
+    it("Q2140: any other read failure is not proof it is gone: the stored customer is kept", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_saved" }] };
+      stripeMock.customers.retrieve.mockRejectedValue(Object.assign(new Error("connection reset"), { code: "api_connection_error" }));
+      const res = await escrow();
+      expect(res.status).toBe(200);
+      expect(walletDeletes()).toHaveLength(0);
+      expect(stripeMock.customers.create).not.toHaveBeenCalled();
+      expect(sessionCustomer()).toBe("cus_saved");
+    });
+
+    it("Q2140: a replace whose row removal fails opens no Checkout", async () => {
+      seedEscrow();
+      scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_saved" }] };
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_saved", deleted: true });
+      scenario.writeErrors.stripe_customers = { message: "boom", code: "XX000" };
+      const res = await escrow();
+      expect(res.status).not.toBe(200);
+      expect(stripeMock.customers.create).not.toHaveBeenCalled();
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
     it("adopts the payer's old Jobs customer ONLY by its exact supabase_user_id tag, and claims it", async () => {
       seedEscrow();
       scenario.reads.stripe_customers = { rows: [] };

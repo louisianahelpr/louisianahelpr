@@ -32,6 +32,8 @@ interface CustomerCreator {
       params: { email?: string; name?: string; metadata?: Record<string, string> },
       options?: { idempotencyKey?: string },
     ): Promise<{ id: string }>;
+    /** Q2140: reads the stored customer back, to see whether it was deleted in Stripe. */
+    retrieve?(id: string): Promise<{ id?: string; deleted?: unknown } | null | undefined>;
     search?(params: { query: string; limit?: number }): Promise<{
       data: Array<{
         id: string; created?: number; deleted?: unknown; metadata?: Record<string, string> | null;
@@ -105,7 +107,24 @@ export async function storedStripeCustomer(
   return typeof id === "string" && CUSTOMER_ID_RE.test(id) ? id : null;
 }
 
-/** The member's one Stripe customer in `mode`: the stored one, else a new one claimed for them. */
+/**
+ * Q2140: true only when Stripe says the stored customer is gone: it reads back
+ * `deleted: true`, or the read is refused as `resource_missing` (no such
+ * customer under this mode's key). Any other failure is NOT proof it is gone,
+ * so the stored customer is kept (the caller's own Stripe call then answers).
+ */
+async function customerIsGone(stripe: CustomerCreator, id: string): Promise<boolean> {
+  if (!stripe.customers.retrieve) return false;
+  try {
+    const c = await stripe.customers.retrieve(id);
+    return c?.deleted === true;
+  } catch (err) {
+    const e = err as { code?: unknown; statusCode?: unknown; raw?: { code?: unknown } } | null;
+    return e?.code === "resource_missing" || e?.raw?.code === "resource_missing";
+  }
+}
+
+/** The member's one Stripe customer in `mode`: the stored one (unless deleted in Stripe, Q2140), else a new one claimed for them. */
 export async function resolveStripeCustomer(
   admin: WalletDb,
   stripe: CustomerCreator,
@@ -114,16 +133,35 @@ export async function resolveStripeCustomer(
   options: { adoptTagged?: boolean } = {},
 ): Promise<string> {
   const stored = await storedStripeCustomer(admin, user.id, mode);
-  if (stored) return stored;
+  let replacing: string | null = null;
+  if (stored) {
+    if (!(await customerIsGone(stripe, stored))) return stored;
+    // Q2140: the stored customer was deleted in Stripe (the Dashboard, or "delete
+    // all test data" in test mode). The table is first-writer-wins, so it would
+    // fail every later card page and checkout with "No such customer" for good.
+    // Its row is removed ONLY while it still names that dead customer (a racing
+    // request that already replaced it keeps its new one), then a new customer
+    // is claimed below the same way a first one is.
+    const { error: delErr } = await admin
+      .from("stripe_customers")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("wallet_mode", mode)
+      .eq("stripe_customer_id", stored);
+    if (delErr) throw new StripeCustomerUnavailable(`wallet replace failed: ${delErr.message}`);
+    replacing = stored;
+  }
 
-  let candidate = options.adoptTagged ? await adoptTaggedCustomer(stripe, user.id) : null;
+  // A replacement never adopts: a tagged customer is the one that was just found deleted, or older.
+  let candidate = options.adoptTagged && !replacing ? await adoptTaggedCustomer(stripe, user.id) : null;
   if (!candidate) {
     const created = await stripe.customers.create(
       {
         email: user.email ?? undefined,
         metadata: { supabase_user_id: user.id, wallet_mode: mode },
       },
-      { idempotencyKey: `lh-wallet-customer-${user.id}-${mode}` },
+      // A replacement gets its own key: the first key would hand back the deleted customer for 24 hours.
+      { idempotencyKey: replacing ? `lh-wallet-customer-${user.id}-${mode}-replaces-${replacing}` : `lh-wallet-customer-${user.id}-${mode}` },
     );
     if (!created?.id || !CUSTOMER_ID_RE.test(created.id)) {
       throw new StripeCustomerUnavailable("Stripe returned no wallet id");

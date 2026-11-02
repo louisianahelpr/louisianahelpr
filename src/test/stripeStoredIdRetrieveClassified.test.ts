@@ -298,6 +298,8 @@ const EXEMPT: Record<string, string> = {
   "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.paymentIntents.retrieve(session.payment_intent)": EVENT,
   "stripe-webhook/handlers/_walletDefaultCard.ts::stripe.paymentIntents.retrieve(session.payment_intent)": EVENT,
   "stripe-webhook/handlers/_walletDefaultCard.ts::stripe.customers.retrieve(stored)": "the member's stored wallet customer, keyed by the event's mode and read on that mode's client; minted after the live switch",
+  // Q2140: only "deleted" or resource_missing replaces the customer; any other failure keeps the stored one.
+  "_shared/stripeCustomer.ts::stripe.customers.retrieve(id)": "the member's stored wallet customer (Q2140 deleted-customer check), keyed by (member, mode) and read on that mode's client; minted after the live switch",
   "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.subscriptions.retrieve(session.subscription)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(chargeId)": EVENT,
   "stripe-webhook/handlers/chargeRefundUpdated.ts::stripe.charges.retrieve(chargeId)": EVENT,

@@ -18,7 +18,7 @@
  * @mutate supabase/functions/declutter-card/index.ts | const customerId = await resolveStripeCustomer(admin, stripe, user, mode, { adoptTagged: true }); | const customerId = (await stripe.customers.create({ email: user.email ?? undefined })).id;
  * @mutate supabase/functions/declutter-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
  * @mutate supabase/functions/shop-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
- * @mutate supabase/functions/_shared/stripeCustomer.ts | .eq("wallet_mode", mode) | .eq("user_id", userId)
+ * @mutate supabase/functions/_shared/stripeCustomer.ts | .eq("wallet_mode", mode)\n    .maybeSingle(); | .eq("user_id", userId)\n    .maybeSingle();
  * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | LANGUAGE plpgsql\nSECURITY INVOKER | LANGUAGE plpgsql\nSECURITY DEFINER
  * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | GRANT SELECT, INSERT, DELETE ON TABLE public.stripe_customers TO service_role; | GRANT ALL ON TABLE public.stripe_customers TO service_role;
  * @mutate supabase/functions/_shared/stripeCustomer.ts | query: `metadata['supabase_user_id']:'${userId}'` | query: `email:'${userId}'`

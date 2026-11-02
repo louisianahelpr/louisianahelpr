@@ -141,7 +141,7 @@ export function AwardGateDialog({
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            {payoutPaused && !idMissing ? "OK" : pendingMissing ? "Later" : "Not Now"}
+            {payoutPaused && !idMissing ? "OK" : pendingMissing ? "Later" : "Not now"}
           </DialogSecondaryAction>
           {!(payoutPaused && !idMissing) && (
             <DialogPrimaryAction

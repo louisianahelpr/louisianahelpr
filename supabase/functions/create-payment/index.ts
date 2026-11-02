@@ -2624,7 +2624,14 @@ serve(async (req) => {
         ? await supabaseAdmin.rpc("payout_waits_on_identity", { p_user_id: qJob.helper_id })
         : { data: false, error: null };
       if (qIdErr && qIdErr.code !== "PGRST202") return unquoted("unreadable", null);
-      const feeCents = qIdWaits === true ? 0 : Math.round(computeCancellationFee({ ...qJob, cancelled_at: nowIso }) * 100);
+      // Q1415 (e): a confirmed Helpr who is banned or under an open ban review carries no fee either; poster_cancel_job
+      // asks the same function under its lock. Not deployed yet (PGRST202) is the old rule, which the old SQL also
+      // charges; any other error quotes no amount (no p_expected_fee_cents is sent, so the cancel is never refused).
+      const { data: qFrozen, error: qFrozenErr } = qJob.helper_id && qJob.helper_confirmed_at && qIdWaits !== true
+        ? await supabaseAdmin.rpc("cancel_fee_payee_frozen", { p_user: qJob.helper_id })
+        : { data: false, error: null };
+      if (qFrozenErr && qFrozenErr.code !== "PGRST202") return unquoted("unreadable", null);
+      const feeCents = qIdWaits === true || qFrozen === true ? 0 : Math.round(computeCancellationFee({ ...qJob, cancelled_at: nowIso }) * 100);
       // Its tier, from the same ladder (0 when no fee is recorded).
       feePercent = feeCents > 0 && qJob.date_needed
         ? cancellationFeePercent(helperIsCommitted(qJob), hoursUntilJob(qJob.date_needed, nowIso, qJob.start_time ?? null))

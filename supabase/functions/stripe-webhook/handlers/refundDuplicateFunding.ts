@@ -5,6 +5,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { actualOrEstimatedFeeCents } from "../../_shared/stripeFees.ts";
 
 /**
  * Q1419: a full refund of a payment that would have funded an already-funded
@@ -106,4 +107,46 @@ export async function ledgerDuplicateFundingRefund(
     });
     throw new Error(`duplicate-funding refund ${refund.id} not ledgered: ${error.message}`);
   }
+}
+
+/**
+ * Q1940 (a): a Declutter "Add a Helpr" setup job cancelled because the SELLER backed out (A10, owner 2026-10-17:
+ * the setup job comes back in full and the seller owes the card fee) can still be paid afterwards, when the buyer
+ * was mid-checkout as it was cancelled. That late payment is refunded in full above, as a duplicate funding, and
+ * Stripe keeps its card fee: on a seller-fault setup job that fee is the SELLER's debt, exactly as on
+ * void-cancelled-payments' refund (declutter_setup_job_fee_debt, billed once per job; a job billed already
+ * answers 0). Any other job owes nothing here: the platform's own mistake is refunded in full.
+ *
+ * Returns the cents billed (0 when the job is not a seller-fault setup job, or was billed already). A read or bill
+ * failure pages and THROWS, so Stripe redelivers: the refund is keyed and the bill is once per job.
+ */
+export async function billSellerFaultDuplicate(
+  stripe: WebhookContext["stripe"],
+  supabase: WebhookContext["supabase"],
+  args: { jobId: string; pi: string },
+): Promise<number> {
+  const { data: link, error: linkErr } = await supabase
+    .from("declutter_order_jobs").select("seller_fault_refund_id").eq("job_id", args.jobId).maybeSingle();
+  // Before the Add a Helpr migration the table does not exist: no job can be a seller-fault setup job.
+  if (linkErr && (linkErr.code === "42P01" || linkErr.code === "PGRST205")) return 0;
+  if (linkErr) throw new Error(`seller-fault marker read failed for job ${args.jobId}: ${linkErr.message}`);
+  if (!(link as { seller_fault_refund_id?: string | null } | null)?.seller_fault_refund_id) return 0;
+  const charged = await stripe.paymentIntents.retrieve(args.pi, { expand: ["latest_charge.balance_transaction"] });
+  const cardFeeCents = actualOrEstimatedFeeCents(charged, Number(charged.amount_received ?? charged.amount ?? 0));
+  const { data: billed, error: debtErr } = await supabase.rpc("declutter_setup_job_fee_debt", {
+    p_job_id: args.jobId,
+    p_card_fee_cents: cardFeeCents,
+  });
+  if (debtErr) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Declutter seller not billed for a late setup-job payment's card fee",
+      message: "A payment landed on a Declutter setup job already cancelled because the seller backed out; it was refunded in full, but its card fee was not added to the seller's debt. Stripe will redeliver the event and the bill is retried.",
+      fields: { job_id: args.jobId, payment_intent: args.pi, seller_fee_cents: cardFeeCents, db_error: debtErr.message },
+      oncePerDayKey: `declutter-setup-debt-dup:${args.jobId}`,
+    });
+    throw new Error(`declutter seller fee debt for job ${args.jobId} failed: ${debtErr.message}`);
+  }
+  return Math.max(0, Number(billed ?? 0));
 }

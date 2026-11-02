@@ -122,12 +122,12 @@ export function DeclutterAmountsOwed({ userId }: { userId: string }) {
                 className="text-ds-13 resize-none"
               />
               <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={saving} onClick={() => setClearing(null)}>
+                  Cancel
+                </Button>
                 <Button size="sm" disabled={saving} onClick={() => clear(r.id)}>
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
                   Clear {dollars(r.remaining_cents)}
-                </Button>
-                <Button variant="outline" size="sm" disabled={saving} onClick={() => setClearing(null)}>
-                  Cancel
                 </Button>
               </div>
             </div>

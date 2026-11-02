@@ -63,7 +63,7 @@ describe("Home's Declutter reads (A3-81 remainder)", () => {
     const row = { request_id: "r1", order_id: "o1", my_side: "seller", status: "open", due_at: "2026-11-02T12:00:00Z", title: "Lamp", item_count: 1 };
     h.queue.push({ data: [row], error: null });
     expect(await fetchMyRefundTodos()).toEqual([row]);
-    expect(h.rpcs.at(-1)).toBe("declutter_my_refund_todos");
+    expect(h.rpcs[h.rpcs.length - 1]).toBe("declutter_my_refund_todos");
     h.queue.push({ data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_my_refund_todos without parameters in the schema cache", hint: null } });
     expect(await fetchMyRefundTodos()).toEqual([]);
     h.queue.push({ data: null, error: { code: "42501", message: "not_authenticated" } });

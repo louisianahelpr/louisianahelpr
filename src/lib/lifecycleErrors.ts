@@ -882,6 +882,10 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  // A3-81 (20261102002217): Home's read of the refund requests waiting on the member (raises only without a session).
+  declutter_my_refund_todos: {
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_ask_refund: {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,

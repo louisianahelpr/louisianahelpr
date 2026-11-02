@@ -10,7 +10,7 @@
 // fixed once at payment (never re-locked by a second 'paid' write), a refund cuts the manager's row in proportion,
 // declutter_payout_unsent counts the manager's send, the manager's queue waits on the seller's row's own gates, and
 // only the service role runs the money functions. Behaviour: src/test/pglite/declutterManagerShareSplit.pglite.mjs
-// (20 checks; NEW_MIGRATION=skip and 5 planted defects go red).
+// (23 checks, measured 2026-11-01; NEW_MIGRATION=skip and 5 planted defects go red).
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
 import { readFileSync } from "node:fs";

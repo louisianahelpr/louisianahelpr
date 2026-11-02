@@ -204,6 +204,13 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   // NIGHT-BUYING0-1: back from the card page the member lands at the top of the item, with "Checking for your
   // card…" (and later the card step or the offer box) below a phone's screen. Bring the panel into view.
   const showPanel = () => panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  // Q2564: whatever opens (the card step or the offer box) is brought into view, nearest edge, so it never sits
+  // under the dock at 375.
+  const stepArea = useRef<HTMLDivElement>(null);
+  const stepOpen = open || !!needCard;
+  useEffect(() => {
+    if (stepOpen) stepArea.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+  }, [stepOpen, needCard]);
   useEffect(() => { if (resume) showPanel(); }, [resume]);
   useEffect(() => {
     if (!cardCancelled) return;
@@ -422,16 +429,10 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
         </Button>
       </div>
       <SetupFeeNote className="-mt-1 text-center text-ds-12 text-muted-foreground" />
-      {footer}
-      {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
-      {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
-      {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons; the card step says when the card is charged. */}
-      {card.isError && (
-        <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />
-      )}
-      {checkingCard && (
-        <p role="status" className="text-sm text-muted-foreground">Checking for your card…</p>
-      )}
+      {/* Q2564 (Auditor 1, audit 1102a): the card step and the offer box open HERE, right under the buttons, and the
+          panel's footer (the delivery line) right after them, as before; at 375 they used to open below that table, behind the
+          dock, so a press on Buy or Offer showed nothing. A tap also brings the opened step into view. */}
+      <div ref={stepArea} className="space-y-3 scroll-mb-28" data-offer-step-area="">
       {showCardStep && needCard === "buy" && cardStep("buy")}
       {open && (
         <form
@@ -486,6 +487,17 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
         </form>
       )}
       {showCardStep && needCard === "offer" && cardStep("offer")}
+      </div>
+      {footer}
+      {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
+      {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
+      {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons; the card step says when the card is charged. */}
+      {card.isError && (
+        <ErrorState variant="inline" title="We couldn't check your saved card." body={declutterErrorMessage(card.error)} onRetry={() => void card.refetch()} />
+      )}
+      {checkingCard && (
+        <p role="status" className="text-sm text-muted-foreground">Checking for your card…</p>
+      )}
       {barShown && typeof document !== "undefined" &&
         createPortal(
           // Portaled to <body>: a fixed bar inside the page would be placed by its transformed ancestor, not the screen.

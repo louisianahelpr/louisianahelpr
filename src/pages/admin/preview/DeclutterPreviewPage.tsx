@@ -165,7 +165,7 @@ function Controls({ stage, side, onStage, onSide }: {
   };
   return createPortal(
     <div data-preview-controls="" role="region" aria-label="Declutter preview controls"
-      className="pointer-events-auto fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-[60] mx-auto max-w-2xl space-y-2 rounded-2xl border border-border bg-card p-3 shadow-lg lg:bottom-4">
+      className="pointer-events-auto fixed inset-x-2 bottom-safe-nav z-[60] mx-auto max-w-2xl space-y-2 rounded-2xl border border-border bg-card p-3 shadow-lg lg:bottom-4">
       <div className="flex items-center gap-2">
         <Eye className="h-4 w-4 shrink-0 text-primary" aria-hidden />
         <p className="min-w-0 flex-1 text-ds-14 font-semibold">Declutter preview · made-up data, nothing is saved</p>

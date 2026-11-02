@@ -20,6 +20,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useDockYield } from "@/components/mobileNav/useDockYield";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { PREVIEW_STAGES, isPreviewStage, previewSample, type PreviewSample, type PreviewStage, type PreviewViewer } from "./jobPreviewSamples";
 import { installPreviewFetch, jobPreviewChecks } from "./previewBackend";
@@ -135,6 +136,8 @@ function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
   const [open, setOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= DESKTOP_MIN_WIDTH);
   // Q2617: while one of the page's sheets is open the dock steps aside, so it never covers the sheet's buttons.
   const sheetOpen = usePageSheetOpen();
+  // Open on a phone, the panel sits where the tab bar is: the tab bar steps aside while it shows (fixedBottomBarsClearTheDock).
+  useDockYield(open && !sheetOpen);
   const label = PREVIEW_STAGES.find((s) => s.key === stage)?.label ?? stage;
   const inPhoneWindow = typeof window !== "undefined" && window.name === PHONE_WINDOW;
   const openPhone = () => {
@@ -148,7 +151,7 @@ function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
       <div data-preview-controls="" data-preview-collapsed="" role="region" aria-label="Job page preview controls"
         // Audit 1102e: at the top it sat over the page title (375) and the account avatar (1440). Bottom corner, above
         // the phone's tab bar and Post button (AppShell's 96 px reserve).
-        className="fixed right-2 bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] z-[60] pointer-events-auto lg:bottom-4 lg:right-4">
+        className="fixed right-2 bottom-safe-nav z-[60] pointer-events-auto lg:bottom-4 lg:right-4">
         <Button variant="outline" size="sm" className="rounded-full bg-card shadow-lg" onClick={() => setOpen(true)} aria-expanded={false}>
           <PreviewGlyph d={EYE_GLYPH} className="h-4 w-4 text-primary" />
           Preview
@@ -162,7 +165,7 @@ function PreviewControls({ stage, viewer, onStage, onViewer, onLeave }: {
       data-preview-controls=""
       role="region"
       aria-label="Job page preview controls"
-      className="fixed inset-x-2 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-[60] mx-auto max-w-2xl rounded-2xl border border-border bg-card p-3 shadow-lg pointer-events-auto lg:bottom-4 lg:left-[calc(var(--desktop-sidebar-w,0px)+1rem)] lg:right-auto lg:mx-0 lg:w-[34rem]"
+      className="fixed inset-x-2 bottom-[calc(var(--safe-area-bottom,0px)+0.5rem)] z-[60] mx-auto max-w-2xl rounded-2xl border border-border bg-card p-3 shadow-lg pointer-events-auto lg:bottom-4 lg:left-[calc(var(--desktop-sidebar-w,0px)+1rem)] lg:right-auto lg:mx-0 lg:w-[34rem]"
     >
       <div className="flex items-center gap-2">
         <PreviewGlyph d={EYE_GLYPH} className="h-4 w-4 shrink-0 text-primary" />

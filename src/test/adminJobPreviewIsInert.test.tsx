@@ -144,11 +144,11 @@ describe("admin job-page preview", () => {
     const start = where;
     // The sample's people are named on the page (get_safe_profiles and get_public_profile_stats answered from the sample).
     expect((await screen.findAllByLabelText("See the poster, Lexi L., 4.8 stars from 9 reviews")).length).toBeGreaterThan(0);
-    // The hired Helpr's "Open in working" (under More options) is a navigation: it stays here and says where it would have gone.
+    // The hired Helpr's "Open in Jobs" (under More options; one name since Q2598) is a navigation: it stays here and says where it would have gone.
     const more = screen.getAllByRole("button", { name: "More options" })[0];
     fireEvent.pointerDown(more);
     fireEvent.click(more);
-    const open = (await screen.findAllByRole("button", { name: "Open in working" }))[0];
+    const open = (await screen.findAllByRole("button", { name: "Open in Jobs" }))[0];
     fireEvent.pointerDown(open);
     fireEvent.click(open);
     expect(toasts).toContain(`Preview: this would open /jobs?tab=working&job=${previewSample("working", "helpr").jobId}&open=1.`);

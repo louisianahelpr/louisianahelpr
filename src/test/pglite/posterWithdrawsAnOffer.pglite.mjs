@@ -23,10 +23,14 @@
  *   marks_declined   a direct offer is marked 'declined' instead of cleared (the poster is told about their own act)
  *   wrong_reason     the application closes as offer_expired (the Helpr reads "didn't answer in time")
  *   moves_money      the withdraw also writes the job's payment_status
+ *
+ * Q2641 (20261102110120): the trigger clear_job_accept_pending itself removes a Hire's pending accept when the job
+ * reopens (the expiry's own UPDATE). CLEAR_TRIGGER=before loads the body before that migration: its Q2641 check FAILS.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
 import { newestFunction } from "./lib/fixedClock.mjs";
+import { effectiveDefs } from "../helpers/effectiveFunctionDefs.ts";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
@@ -95,6 +99,11 @@ INSERT INTO public.profiles VALUES ('${POSTER}', 'Dana Poster'), ('${HELPR}', 'E
 `);
 // The real newest bodies the withdraw runs through.
 for (const name of ["job_payment_is_listed", "clear_job_accept_pending", "record_backout_notice"]) await db.exec(newestFunction(name).stmt);
+if (process.env.CLEAR_TRIGGER === "before") {
+  const d = effectiveDefs(DIR, { before: "20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql" }).get("clear_job_accept_pending");
+  await db.exec(d.stmt.trimEnd().endsWith(";") ? d.stmt : `${d.stmt};`);
+  console.log("CLEAR_TRIGGER=before (the Q2641 check expected to FAIL)");
+}
 await db.exec(`
 CREATE TRIGGER trg_jobs_clear_accept_pending AFTER UPDATE ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.clear_job_accept_pending();
 CREATE TRIGGER trg_jobs_record_backout_notice AFTER UPDATE OF status, helper_id, direct_offer_status ON public.jobs
@@ -242,6 +251,23 @@ const backouts = async (J) => q(`SELECT user_id, backout_kind FROM public.backou
   const r = await withdraw("authenticated", POSTER, J);
   check("W4 an unfunded direct offer (never shown) is withdrawn and the Helpr is not told",
     !err(r) && r.open_to_everyone === false && (await notes(J, HELPR)).length === 0, JSON.stringify(r));
+}
+
+// ── Q2641 the trigger alone: the expiry's reopen removes a Hire's pending accept ──
+{
+  const J = await offerJob();
+  await q(`INSERT INTO public.job_accept_pending (job_id, helper_id) VALUES ($1, $2)`, [J, HELPR]);
+  await q(`UPDATE public.jobs SET status = 'open', helper_id = NULL, response_deadline = NULL WHERE id = $1`, [J]);
+  check("Q2641 a Hire's offer reopened (expire_unanswered_offers' UPDATE): the trigger removes its pending accept",
+    (await q(`SELECT 1 FROM public.job_accept_pending WHERE job_id = $1`, [J])).length === 0);
+  const D = await directJob();
+  await q(`INSERT INTO public.job_accept_pending (job_id, helper_id) VALUES ($1, $2)`, [D, HELPR]);
+  await q(`UPDATE public.jobs SET title = title WHERE id = $1`, [D]);
+  check("Q2641 control: a live direct offer keeps its pending accept", (await q(`SELECT 1 FROM public.job_accept_pending WHERE job_id = $1`, [D])).length === 1);
+  const K = await offerJob();
+  await q(`INSERT INTO public.job_accept_pending (job_id, helper_id) VALUES ($1, $2)`, [K, HELPR]);
+  await q(`UPDATE public.jobs SET response_deadline = now() + interval '30 hours' WHERE id = $1`, [K]);
+  check("Q2641 control: a live Hire's offer keeps its pending accept", (await q(`SELECT 1 FROM public.job_accept_pending WHERE job_id = $1`, [K])).length === 1);
 }
 
 // ── W5 nothing else is an "offer" ──

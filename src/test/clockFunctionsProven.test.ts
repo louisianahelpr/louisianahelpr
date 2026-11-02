@@ -19,7 +19,7 @@
  * why. Both lists are EXACT both ways: a new clock-reading cron fails here
  * until someone decides, and an entry that no longer matches fails as stale.
  * The probes need ~/.lh-pglite and run by hand:
- *   node src/test/pglite/autoStartDueJobsClock.pglite.mjs   (25 PASS; RED with
+ *   node src/test/pglite/autoStartDueJobsClock.pglite.mjs   (26 PASS since 20261102100421; RED with
  *   AUTO_START_AS_UTC=1: 9 FAILED)
  */
 // @mutate src/test/clockFunctionsProven.test.ts |   auto_start_due_jobs: "autoStartDueJobsClock.pglite.mjs",\n | \n

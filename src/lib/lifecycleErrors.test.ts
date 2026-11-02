@@ -116,4 +116,30 @@ describe("loadAdminRpcErrorCopy", () => {
     const fresh = await import("./lifecycleErrors");
     await expect(fresh.loadAdminRpcErrorCopy()).resolves.toBeNull();
   });
+
+  // Q1883: the lost sentence is reported at warning severity, never invisible.
+  // @mutate src/lib/lifecycleErrors.ts |       .then((m) => m?.report(err, { severity: "warning", tags: { source: "lifecycleErrors.loadAdminRpcErrorCopy" } })) |       .then(() => undefined)
+  it("reports a chunk that cannot be fetched, as a warning", async () => {
+    vi.resetModules();
+    const report = vi.fn();
+    vi.doMock("@/lib/errorLogger", () => ({ report }));
+    vi.doMock("@/components/admin/adminRpcErrorCopy", () => {
+      throw new Error("Failed to fetch dynamically imported module");
+    });
+    const fresh = await import("./lifecycleErrors");
+    await expect(fresh.loadAdminRpcErrorCopy()).resolves.toBeNull();
+    await vi.waitFor(() => expect(report).toHaveBeenCalledTimes(1));
+    expect(report.mock.calls[0][1]).toMatchObject({ severity: "warning", tags: { source: "lifecycleErrors.loadAdminRpcErrorCopy" } });
+    vi.doUnmock("@/lib/errorLogger");
+  });
+
+  it("a chunk that loads reports nothing", async () => {
+    vi.resetModules();
+    const report = vi.fn();
+    vi.doMock("@/lib/errorLogger", () => ({ report }));
+    const fresh = await import("./lifecycleErrors");
+    await expect(fresh.loadAdminRpcErrorCopy()).resolves.not.toBeNull();
+    expect(report).not.toHaveBeenCalled();
+    vi.doUnmock("@/lib/errorLogger");
+  });
 });

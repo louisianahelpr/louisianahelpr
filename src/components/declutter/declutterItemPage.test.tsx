@@ -62,6 +62,7 @@ const state = {
   safeRows: [] as unknown[],
   more: [] as unknown[],
   similar: [] as unknown[],
+  questions: [] as unknown[],
   tableRows: [] as unknown[],
   drop: null as unknown,
   manage: null as unknown,
@@ -137,7 +138,7 @@ vi.mock("@/lib/declutter/api", async () => {
     fetchItemDropState: async () => { state.reads++; return state.drop; },
     fetchManageState: async () => { state.reads++; state.manageReads++; return state.manage; },
     fetchPhotos: async () => state.photos,
-    fetchQuestions: async () => [],
+    fetchQuestions: async () => state.questions,
     fetchWatching: async () => new Set(),
     fetchMyItemReview: async () => null,
     fetchSellerRating: async () => state.rating,
@@ -186,6 +187,7 @@ function open(search = "") {
 describe("the photo-first Declutter item page", () => {
   beforeEach(() => {
     state.item = { ...ITEM };
+    state.questions = [];
     state.handovers = null;
     guest.on = false;
     guest.open = ["declutter"];
@@ -525,6 +527,26 @@ describe("the photo-first Declutter item page", () => {
     open();
     await screen.findByRole("region", { name: "Similar items" });
     expect(screen.queryByRole("region", { name: "More from this seller" })).toBeNull();
+  });
+
+  // Q2579 (audit 1102a): on the seller's own TAKEN-DOWN listing an unanswered question asked for an answer ("waiting for
+  // your answer" + a primary Answer) though no buyer can see the listing. It says "relist it to answer", no button;
+  // the same question on the live listing still asks.
+  // @mutate src/components/declutter/DeclutterItemView.tsx | listingDown={it.status === "withdrawn"} /> | />
+  // @mutate src/components/declutter/DeclutterQuestions.tsx | onAnswer={isSeller && !listingDown ? () => setAnswering(q) : null} | onAnswer={isSeller ? () => setAnswering(q) : null}
+  it("Q2579: the seller's own taken-down listing never asks them to answer a question", async () => {
+    const asked = { id: "q9", item_id: ITEM.id, question: "Is it still here?", answer: null, created_at: new Date().toISOString(), answered_at: null };
+    state.questions = [asked];
+    state.item = { ...ITEM, seller_id: "u1", status: "withdrawn" };
+    const { unmount } = open();
+    expect(await screen.findByText(/· relist it to answer$/)).toBeInTheDocument();
+    expect(screen.queryByText(/waiting for your answer/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Answer" })).toBeNull();
+    unmount();
+    state.item = { ...ITEM, seller_id: "u1", status: "live" };
+    open();
+    expect(await screen.findByText(/· waiting for your answer$/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Answer" })).toBeInTheDocument();
   });
 
   it("the seller's own item page shows no rows", async () => {
